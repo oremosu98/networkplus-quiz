@@ -334,7 +334,13 @@
       <button class="chip" data-v="Protecting Networks">Protecting Networks</button>
       <button class="chip" data-v="Cabling & Topology">Cabling & Topology</button>
       <button class="chip" data-v="Ethernet Basics">Ethernet Basics</button>
+      <button class="chip" data-v="Ethernet Standards">Ethernet Standards</button>
       <button class="chip" data-v="SD-WAN & SASE">SD-WAN & SASE</button>
+      <button class="chip" data-v="Integrating Networked Devices">Networked Devices & IoT</button>
+      <button class="chip" data-v="Network Troubleshooting & Tools">Troubleshooting & Tools</button>
+      <button class="chip" data-v="NAT & IP Services">NAT & IP Services</button>
+      <button class="chip" data-v="AAA & Authentication">AAA & Authentication</button>
+      <button class="chip" data-v="NTP, ICMP & Traffic Types">NTP, ICMP & Traffic Types</button>
       <button class="chip on" data-v="Mixed &mdash; All Topics">&#127922; Mixed (All Topics)</button>
     </div>
   </div>
@@ -538,9 +544,17 @@ async function startQuiz() {
 // API
 // ═══════════════════════════════════════════════
 async function fetchQuestions(key, topic, difficulty, n) {
+  const topicHints = {
+    'Integrating Networked Devices': 'IoT devices, ICS/SCADA systems, OT/IT convergence, smart building tech, embedded systems on networks, segmentation of IoT, industrial control risks.',
+    'Network Troubleshooting & Tools': 'Troubleshooting methodology, ping, traceroute/tracert, ipconfig/ifconfig, nslookup, dig, netstat, arp, route, Wireshark/packet capture, cable testers, TDR, loopback testing, speed testers, common network faults and how to diagnose them.',
+    'NAT & IP Services': 'Static NAT, dynamic NAT, PAT/NAT overload, inside/outside local/global addresses, port forwarding, NAT64, private vs public IP ranges, IP helper addresses.',
+    'AAA & Authentication': 'AAA framework (Authentication, Authorisation, Accounting), RADIUS protocol and ports, TACACS+, differences between RADIUS and TACACS+, 802.1X port-based authentication, EAP variants, Kerberos, LDAP, multifactor authentication, certificate-based auth.',
+    'NTP, ICMP & Traffic Types': 'NTP stratum levels, NTP hierarchy, clock synchronisation, ICMP message types (echo request/reply, TTL exceeded, destination unreachable, redirect), ping and traceroute mechanics, unicast vs multicast vs broadcast vs anycast, IGMP, traffic shaping.',
+    'Ethernet Standards': '802.3 standards, 10BASE-T, 100BASE-TX, 1000BASE-T, 10GBASE-T, 1000BASE-SX/LX, 10GBASE-SR/LR, fibre vs copper standards, auto-negotiation, duplex, PoE standards (802.3af/at/bt), MDI/MDIX.'
+  };
   const topicStr = topic === 'Mixed \u2014 All Topics'
-    ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless, VPNs, security, DNS, DHCP, network operations, WAN, cloud, and data centres.'
-    : `Focus only on: "${topic}" for the CompTIA Network+ N10-009 exam.`;
+    ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless, VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, and Ethernet standards.'
+    : `Focus only on: "${topic}" for the CompTIA Network+ N10-009 exam.${topicHints[topic] ? ' Specifically cover: ' + topicHints[topic] : ''}`;
 
   const diffStr = {
     'Foundational': 'Foundational: test basic recall and definitions. Clear right answers.',
