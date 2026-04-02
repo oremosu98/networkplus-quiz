@@ -303,7 +303,7 @@
 ════════════════════════════════════════════ -->
 <div id="page-setup" class="page active">
   <div class="hero">
-    <span class="hero-icon">⚡</span>
+    <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
   </div>
@@ -335,7 +335,7 @@
       <button class="chip" data-v="Cabling & Topology">Cabling & Topology</button>
       <button class="chip" data-v="Ethernet Basics">Ethernet Basics</button>
       <button class="chip" data-v="SD-WAN & SASE">SD-WAN & SASE</button>
-      <button class="chip on" data-v="Mixed — All Topics">🎲 Mixed (All Topics)</button>
+      <button class="chip on" data-v="Mixed &mdash; All Topics">&#127922; Mixed (All Topics)</button>
     </div>
   </div>
 
@@ -361,7 +361,7 @@
   </div>
 
   <div id="setup-err" class="err-box"></div>
-  <button class="btn btn-primary btn-full" onclick="startQuiz()">Generate Quiz ⚡</button>
+  <button class="btn btn-primary btn-full" onclick="startQuiz()">Generate Quiz &#9889;</button>
 </div>
 
 <!-- ════════════════════════════════════════════
@@ -419,20 +419,20 @@
       <span class="grade-letter" id="grade-letter">A</span>
       <span class="grade-pct" id="grade-pct">100%</span>
     </div>
-    <h2 id="result-headline">🏆 Crushing it!</h2>
+    <h2 id="result-headline">&#127942; Crushing it!</h2>
     <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="result-sub">You're exam-ready.</p>
   </div>
 
   <div class="results-stats">
     <div class="rstat"><div class="val val-green" id="r-correct">0</div><div class="lbl">Correct</div></div>
     <div class="rstat"><div class="val val-red"   id="r-wrong">0</div><div class="lbl">Wrong</div></div>
-    <div class="rstat"><div class="val val-acc"   id="r-streak">0</div><div class="lbl">Best Streak 🔥</div></div>
+    <div class="rstat"><div class="val val-acc"   id="r-streak">0</div><div class="lbl">Best Streak &#128293;</div></div>
   </div>
 
   <div class="results-actions">
     <button class="btn btn-secondary" onclick="showPage('setup')">← New Quiz</button>
-    <button class="btn btn-ghost" id="btn-review" onclick="showReview()">📋 Review Answers</button>
-    <button class="btn btn-primary" onclick="retryQuiz()">Same Topic ⚡</button>
+    <button class="btn btn-ghost" id="btn-review" onclick="showReview()">&#128203; Review Answers</button>
+    <button class="btn btn-primary" onclick="retryQuiz()">Same Topic &#9889;</button>
   </div>
 </div>
 
@@ -458,7 +458,7 @@ let streak      = 0;
 let bestStreak  = 0;
 let answered    = 0;
 let log         = []; // { q, chosen, correct, isRight }
-let topic       = 'Mixed — All Topics';
+let topic       = 'Mixed \u2014 All Topics';
 let diff        = 'Exam Level';
 let qCount      = 10;
 let apiKey      = '';
@@ -538,7 +538,7 @@ async function startQuiz() {
 // API
 // ═══════════════════════════════════════════════
 async function fetchQuestions(key, topic, difficulty, n) {
-  const topicStr = topic === 'Mixed — All Topics'
+  const topicStr = topic === 'Mixed \u2014 All Topics'
     ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless, VPNs, security, DNS, DHCP, network operations, WAN, cloud, and data centres.'
     : `Focus only on: "${topic}" for the CompTIA Network+ N10-009 exam.`;
 
@@ -557,7 +557,7 @@ Difficulty: ${diffStr}
 Generate exactly ${n} multiple choice questions. Requirements:
 - 4 options each: A, B, C, D
 - One correct answer only
-- Distractors must be plausible — never obviously wrong
+- Distractors must be plausible - never obviously wrong
 - Vary the correct answer letter across questions
 - Each explanation must state WHY the answer is correct AND briefly why the main wrong option is wrong (2-3 sentences max)
 - No repeated questions
@@ -686,7 +686,7 @@ function pick(chosen, q) {
   const expBox  = document.getElementById('exp-box');
   const expLbl  = document.getElementById('exp-label');
   const expTxt  = document.getElementById('exp-text');
-  expLbl.textContent = isRight ? '✅ Correct!' : `❌ Wrong — correct answer: ${q.answer}`;
+  expLbl.textContent = isRight ? 'Correct!' : `Wrong \u2014 correct answer: ${q.answer}`;
   expTxt.textContent = q.explanation;
   expBox.className   = 'explanation-box show ' + (isRight ? 'correct' : 'wrong');
   expBox.style.display = 'block';
@@ -721,11 +721,11 @@ function finish() {
   document.getElementById('grade-pct').textContent    = pct + '%';
 
   const headlines = {
-    A: ['🏆 Crushing it!',       "You're exam-ready on this topic."],
-    B: ['✅ Solid session',       'A few gaps — keep at it.'],
-    C: ['📖 Getting there',      'Review your weak spots and retry.'],
-    D: ['🔄 Keep studying',      'Go back to the notes then come back.'],
-    F: ['💡 More work needed',   'Rewatch the Messer videos on this topic.']
+    A: ['Crushing it!',         "You're exam-ready on this topic."],
+    B: ['Solid session',        'A few gaps \u2014 keep at it.'],
+    C: ['Getting there',        'Review your weak spots and retry.'],
+    D: ['Keep studying',        'Go back to the notes then come back.'],
+    F: ['More work needed',     'Rewatch the Messer videos on this topic.']
   };
   document.getElementById('result-headline').textContent = headlines[grade][0];
   document.getElementById('result-sub').textContent      = headlines[grade][1];
