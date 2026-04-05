@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Network+ AI Quiz</title>
+<meta name="theme-color" content="#0a0a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Net+ Quiz">
+<link rel="manifest" href="manifest.json">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -17,10 +23,10 @@
     --radius: 14px; --radius-sm: 10px;
   }
 
-  html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter','Segoe UI',system-ui,sans-serif; min-height: 100vh; line-height: 1.6; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter','Segoe UI',system-ui,sans-serif; min-height: 100vh; line-height: 1.6; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 
-  .page { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px 60px; animation: slideIn .2s ease; }
+  .page { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px calc(60px + env(safe-area-inset-bottom)); animation: slideIn .2s ease; }
   .page.active { display: block; }
   @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
@@ -31,7 +37,7 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 14px; }
   .card h3 { margin-bottom: 14px; }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   .btn-primary { background: var(--accent); color: white; }
   .btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,111,247,.3); }
   .btn-secondary { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border); }
@@ -45,7 +51,11 @@
   .btn-full { width: 100%; margin-top: 6px; padding: 15px; font-size: 16px; }
 
   .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { padding: 8px 16px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--text-mid); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  @media (max-width: 520px) {
+    .chip-group { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 4px; }
+    .chip-group::-webkit-scrollbar { display: none; }
+  }
+  .chip { padding: 8px 16px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--text-mid); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 36px; }
   .chip:hover { border-color: var(--accent-dim); color: var(--text); }
   .chip.on { border-color: var(--accent); background: rgba(124,111,247,.18); color: var(--accent); font-weight: 700; }
 
@@ -116,7 +126,7 @@
   .q-text { font-size: 20px; font-weight: 700; line-height: 1.5; color: var(--text); margin-bottom: 26px; }
 
   .options { display: flex; flex-direction: column; gap: 10px; }
-  .option { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface2); cursor: pointer; transition: all .15s; text-align: left; width: 100%; }
+  .option { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface2); cursor: pointer; transition: all .15s; text-align: left; width: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 56px; }
   .option:hover:not([disabled]) { border-color: var(--accent-dim); background: rgba(124,111,247,.07); }
   .option[disabled] { cursor: default; }
   .opt-letter { min-width: 30px; height: 30px; border-radius: 8px; background: var(--surface3); color: var(--text-mid); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
@@ -246,6 +256,75 @@
     .scaled-score { font-size: 60px; }
     .qnav-grid { grid-template-columns: repeat(9,1fr); }
   }
+
+  /* ── STREAK BADGE ── */
+  .streak-badge { display: none; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; font-weight: 700; color: var(--yellow); background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.25); padding: 4px 14px; border-radius: 99px; }
+  .streak-badge.show { display: inline-flex; }
+
+  /* ── SMART CHIP ── */
+  .chip-smart { border-color: rgba(167,139,250,.5); color: var(--accent-light); }
+  .chip-smart.on { border-color: var(--accent); background: rgba(124,111,247,.25); color: #fff; }
+
+  /* ── OFFLINE CACHE NOTICE ── */
+  .cache-notice { display: none; font-size: 11px; font-weight: 600; color: var(--text-dim); background: var(--surface2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 99px; }
+  .cache-notice.show { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* ── TOPIC PROGRESS PAGE ── */
+  .topic-grid { display: flex; flex-direction: column; gap: 8px; }
+  .topic-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background .15s; }
+  .topic-row:hover { background: var(--surface2); }
+  .topic-rag { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .rag-green { background: var(--green); } .rag-yellow { background: var(--yellow); } .rag-red { background: var(--red); } .rag-grey { background: var(--text-dim); }
+  .topic-info { flex: 1; min-width: 0; }
+  .topic-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topic-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .topic-mini-bar { height: 3px; border-radius: 99px; background: var(--surface3); margin-top: 5px; overflow: hidden; }
+  .topic-mini-fill { height: 100%; border-radius: 99px; transition: width .4s; }
+  .topic-pct-lbl { font-size: 15px; font-weight: 800; min-width: 44px; text-align: right; }
+
+  /* ── DIFFICULTY BREAKDOWN (RESULTS) ── */
+  .diff-breakdown { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .dstat { flex: 1; min-width: 70px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+  .dstat .dv { font-size: 15px; font-weight: 800; }
+  .dstat .dl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+  /* ── STUDY STATS CARD ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+  .sstat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .sstat .sv { font-size: 20px; font-weight: 800; color: var(--accent-light); }
+  .sstat .sl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+  @media (min-width: 480px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
+
+  /* ── EXAM READINESS CARD ── */
+  .readiness-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .readiness-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .readiness-score-block { display: flex; align-items: baseline; gap: 4px; }
+  .readiness-num { font-size: 38px; font-weight: 900; line-height: 1; }
+  .readiness-denom { font-size: 14px; font-weight: 600; color: var(--text-dim); }
+  .readiness-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 4px 12px; border-radius: 99px; }
+  .readiness-bar-wrap { height: 5px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+  .readiness-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
+  .readiness-action { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .readiness-action strong { color: var(--text); }
+
+  /* ── TODAY'S SESSION BANNER ── */
+  .session-card { background: linear-gradient(135deg,rgba(124,111,247,.1),rgba(124,111,247,.04)); border: 1.5px solid rgba(124,111,247,.4); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
+  .session-card h3 { color: var(--accent-light); margin-bottom: 14px; font-size: 11px; }
+  .session-topic-row { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .session-topic-row:last-of-type { border-bottom: none; }
+  .session-step-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-dim); color: var(--accent-light); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .session-t-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
+  .session-t-reason { font-size: 11px; margin-top: 1px; }
+  .session-est { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 12px; }
+
+  /* ── SESSION TRANSITION / COMPLETE ── */
+  .session-hero { text-align: center; padding: 36px 20px 24px; }
+  .session-emoji { font-size: 58px; margin-bottom: 14px; display: block; }
+  .session-result-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; }
+  .session-result-topic { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .session-result-bar { width: 100px; height: 3px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+  .session-result-fill { height: 100%; border-radius: 99px; }
+  .session-result-pct { font-size: 18px; font-weight: 800; }
 </style>
 </head>
 <body>
@@ -258,6 +337,34 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
+    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v2.8</span>
+    <div id="streak-badge" class="streak-badge"></div>
+  </div>
+
+  <!-- Exam Readiness Card -->
+  <div id="readiness-card" class="readiness-card">
+    <h3 style="margin-bottom:10px">EXAM READINESS</h3>
+    <div class="readiness-top">
+      <div class="readiness-score-block">
+        <span class="readiness-num" id="readiness-num">&#8212;</span>
+        <span class="readiness-denom">/ 900</span>
+      </div>
+      <span class="readiness-badge" id="readiness-badge"></span>
+    </div>
+    <div class="readiness-bar-wrap">
+      <div class="readiness-bar-fill" id="readiness-bar-fill" style="width:0%"></div>
+    </div>
+    <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
+  </div>
+
+  <!-- Today's Session banner -->
+  <div id="session-banner" style="display:none">
+    <div class="session-card">
+      <h3>&#9889; TODAY&#8217;S SESSION</h3>
+      <div id="session-topic-rows"></div>
+      <p class="session-est">&#128336; ~21 min &nbsp;&bull;&nbsp; 7 questions per topic &nbsp;&bull;&nbsp; Mixed difficulty</p>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="startSession()">Start Today&#8217;s Session &#9889;</button>
   </div>
 
   <!-- Weak topic banner (shown when history exists) -->
@@ -299,6 +406,11 @@
       <button class="chip" data-v="NAT & IP Services">NAT & IP Services</button>
       <button class="chip" data-v="AAA & Authentication">AAA & Authentication</button>
       <button class="chip" data-v="NTP, ICMP & Traffic Types">NTP, ICMP & Traffic Types</button>
+      <button class="chip" data-v="IPsec & VPN Protocols">IPsec &amp; VPN Protocols</button>
+      <button class="chip" data-v="SMB & Network File Services">SMB &amp; File Services</button>
+      <button class="chip" data-v="Cloud Networking & VPCs">Cloud Networking &amp; VPCs</button>
+      <button class="chip" data-v="Port Numbers">&#128268; Port Numbers</button>
+      <button class="chip chip-smart" data-v="🧠 Smart (Spaced Rep)">&#129504; Smart</button>
       <button class="chip on" data-v="Mixed &mdash; All Topics">&#127922; Mixed (All Topics)</button>
     </div>
   </div>
@@ -324,6 +436,11 @@
     </div>
   </div>
 
+  <!-- Study stats card -->
+  <div id="stats-card" style="display:none">
+    <div class="stats-grid" id="stats-grid"></div>
+  </div>
+
   <!-- History panel -->
   <div id="history-panel" class="card" style="display:none">
     <h3 style="margin-bottom:12px">Recent Performance</h3>
@@ -334,6 +451,7 @@
   <button class="btn btn-primary btn-full" onclick="startQuiz()">Generate Quiz &#9889;</button>
   <button class="btn btn-exam btn-full" style="margin-top:10px" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
+  <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="showPage('progress');renderProgressPage()">&#128200; Topic Progress</button>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -359,6 +477,7 @@
       <div class="stat-pill score" id="live-score">0 / 0</div>
       <div class="stat-pill streak" id="live-streak">&#128293; 0</div>
       <button class="flag-btn" id="quiz-flag-btn" onclick="toggleFlag()" title="Flag question (F)">Flag</button>
+      <span class="cache-notice" id="cache-notice">&#128230; Cached</span>
     </div>
   </div>
 
@@ -409,6 +528,7 @@
     <div class="rstat"><div class="val val-red"   id="r-wrong">0</div><div class="lbl">Wrong</div></div>
     <div class="rstat"><div class="val val-acc"   id="r-streak">0</div><div class="lbl">Best Streak &#128293;</div></div>
   </div>
+  <div id="diff-breakdown" class="diff-breakdown"></div>
   <div class="results-actions">
     <button class="btn btn-secondary" onclick="goSetup()">&#8592; Menu</button>
     <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">&#128203; Review</button>
@@ -425,6 +545,63 @@
     <h2>Review Answers</h2>
   </div>
   <div id="review-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SESSION TRANSITION PAGE
+══════════════════════════════════════════ -->
+<div id="page-session-transition" class="page">
+  <div class="session-hero">
+    <span class="session-emoji" id="st-emoji">&#9989;</span>
+    <h2 id="st-heading">Topic 1 done!</h2>
+    <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="st-sub"></p>
+  </div>
+  <div id="st-result-row" class="session-result-row" style="margin-bottom:20px">
+    <div>
+      <div class="session-result-topic" id="st-topic-done"></div>
+      <div class="session-result-bar"><div class="session-result-fill" id="st-bar-fill"></div></div>
+    </div>
+    <div class="session-result-pct" id="st-pct"></div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin-bottom:10px">NEXT UP</h3>
+    <div style="font-size:16px;font-weight:700;color:var(--text)" id="st-next-topic"></div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="st-next-reason"></div>
+  </div>
+  <button class="btn btn-primary btn-full" onclick="runSessionStep()">Continue Session &#8594;</button>
+  <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="endSessionEarly()">End Session Early</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SESSION COMPLETE PAGE
+══════════════════════════════════════════ -->
+<div id="page-session-complete" class="page">
+  <div class="session-hero">
+    <span class="session-emoji">&#127881;</span>
+    <h2>Session Complete!</h2>
+    <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="sc-sub"></p>
+  </div>
+  <div id="sc-results"></div>
+  <button class="btn btn-primary btn-full" onclick="startSession()">New Session &#9889;</button>
+  <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="goSetup()">&#8592; Back to Menu</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOPIC PROGRESS PAGE
+══════════════════════════════════════════ -->
+<div id="page-progress" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+      <h2>Topic Progress</h2>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);display:flex;gap:14px;align-items:center">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px"></span>&#8805;80%</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>60-79%</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px"></span>&lt;60%</span>
+    </div>
+  </div>
+  <div id="progress-topic-grid" class="topic-grid"></div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -535,10 +712,17 @@ let bestStreak = 0;
 let answered   = 0;
 let log        = [];
 let quizFlags  = []; // bool per question in regular mode
-let topic      = 'Mixed \u2014 All Topics';
+let topic           = 'Mixed \u2014 All Topics';
+let activeQuizTopic = 'Mixed \u2014 All Topics'; // resolved topic for current quiz (Smart mode resolves here)
 let diff       = 'Exam Level';
 let qCount     = 10;
 let apiKey     = '';
+
+// Session state
+let sessionMode    = false;
+let sessionPlan    = [];   // [{topic, reason}]
+let sessionStep    = 0;
+let sessionResults = [];   // [{topic, score, total, pct}]
 
 // Exam state
 let examMode      = false;
@@ -560,8 +744,20 @@ window.addEventListener('DOMContentLoaded', () => {
   initChips('diff-group',  v => diff  = v);
   initChips('count-group', v => qCount = parseInt(v));
 
+  // Fix #4: sync state from whichever chips are pre-selected in HTML
+  const t0 = document.querySelector('#topic-group .chip.on');
+  const d0 = document.querySelector('#diff-group .chip.on');
+  const c0 = document.querySelector('#count-group .chip.on');
+  if (t0) topic  = t0.dataset.v;
+  if (d0) diff   = d0.dataset.v;
+  if (c0) qCount = parseInt(c0.dataset.v);
+
   renderHistoryPanel();
+  renderStatsCard();
   renderWeakBanner();
+  renderStreakBadge();
+  renderReadinessCard();
+  renderSessionBanner();
 });
 
 function initChips(groupId, cb) {
@@ -587,8 +783,13 @@ function showPage(name) {
 function goSetup() {
   if (examTimer) { clearInterval(examTimer); examTimer = null; }
   examMode = false;
+  navOpen = false; // bug fix: reset navigator state on every return to menu
   renderHistoryPanel();
+  renderStatsCard();
   renderWeakBanner();
+  renderStreakBadge();
+  renderReadinessCard();
+  renderSessionBanner();
   showPage('setup');
 }
 
@@ -631,11 +832,187 @@ function renderHistoryPanel() {
 }
 
 // ══════════════════════════════════════════
+// STUDY STATS
+// ══════════════════════════════════════════
+function getStudyStats() {
+  const h = loadHistory();
+  if (!h.length) return null;
+  const totalQ    = h.reduce((a, e) => a + e.total, 0);
+  const sessions  = h.length;
+  const avgPct    = Math.round(h.reduce((a, e) => a + e.pct, 0) / sessions);
+  const bestExam  = h.filter(e => e.mode === 'exam').reduce((best, e) => {
+    const scaled = Math.round(100 + (e.score / e.total) * 800);
+    return scaled > best ? scaled : best;
+  }, 0);
+  return { totalQ, sessions, avgPct, bestExam };
+}
+function renderStatsCard() {
+  const stats = getStudyStats();
+  const card  = document.getElementById('stats-card');
+  const grid  = document.getElementById('stats-grid');
+  if (!stats || !card || !grid) return;
+  card.style.display = 'block';
+  const avgColor = stats.avgPct >= 80 ? 'var(--green)' : stats.avgPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  grid.innerHTML = `
+    <div class="sstat"><div class="sv">${stats.totalQ.toLocaleString()}</div><div class="sl">Questions</div></div>
+    <div class="sstat"><div class="sv">${stats.sessions}</div><div class="sl">Sessions</div></div>
+    <div class="sstat"><div class="sv" style="color:${avgColor}">${stats.avgPct}%</div><div class="sl">Avg Score</div></div>
+    <div class="sstat"><div class="sv">${stats.bestExam > 0 ? stats.bestExam : '—'}</div><div class="sl">Best Exam</div></div>`;
+}
+
+// ══════════════════════════════════════════
+// TOPIC PROGRESS PAGE
+// ══════════════════════════════════════════
+function renderProgressPage() {
+  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
+    .map(c => c.dataset.v)
+    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
+  const h   = loadHistory();
+  const now = Date.now();
+  const grid = document.getElementById('progress-topic-grid');
+  if (!grid) return;
+
+  const rows = allTopics.map(t => {
+    const entries = h.filter(e => e.topic === t);
+    if (entries.length === 0) {
+      return { t, pct: null, total: 0, last: null };
+    }
+    const totalQ  = entries.reduce((a, e) => a + e.total, 0);
+    const totalC  = entries.reduce((a, e) => a + e.score, 0);
+    const pct     = Math.round((totalC / totalQ) * 100);
+    const daysSince = Math.round((now - new Date(entries[0].date)) / 86400000);
+    return { t, pct, total: totalQ, daysSince };
+  });
+
+  // Sort: studied + worst first, never-studied last
+  rows.sort((a, b) => {
+    if (a.pct === null && b.pct === null) return 0;
+    if (a.pct === null) return 1;
+    if (b.pct === null) return -1;
+    return a.pct - b.pct;
+  });
+
+  grid.innerHTML = rows.map(({ t, pct, total, daysSince }) => {
+    let ragClass, color, label;
+    if (pct === null) {
+      ragClass = 'rag-grey'; color = 'var(--text-dim)'; label = 'Not studied yet';
+    } else if (pct >= 80) {
+      ragClass = 'rag-green'; color = 'var(--green)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
+    } else if (pct >= 60) {
+      ragClass = 'rag-yellow'; color = 'var(--yellow)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
+    } else {
+      ragClass = 'rag-red'; color = 'var(--red)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
+    }
+    const barW = pct !== null ? pct : 0;
+    const pctTxt = pct !== null ? pct + '%' : '—';
+    return `<div class="topic-row" onclick="drillTopic('${escHtml(t)}')">
+      <div class="topic-rag ${ragClass}"></div>
+      <div class="topic-info">
+        <div class="topic-name">${escHtml(t)}</div>
+        <div class="topic-meta">${label}</div>
+        <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
+      </div>
+      <div class="topic-pct-lbl" style="color:${color}">${pctTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+function drillTopic(t) {
+  // Select the topic chip and go back to setup ready to start
+  topic = t;
+  document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === t));
+  goSetup();
+}
+
+// ══════════════════════════════════════════
+// STREAK
+// ══════════════════════════════════════════
+function getStreak() {
+  try { return JSON.parse(localStorage.getItem('nplus_streak') || '{"current":0,"best":0,"last":null}'); }
+  catch(e) { return { current: 0, best: 0, last: null }; }
+}
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const s = getStreak();
+  if (s.last === today) return s; // already counted today
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  s.current = (s.last === yesterday) ? s.current + 1 : 1;
+  s.best = Math.max(s.best || 0, s.current);
+  s.last = today;
+  localStorage.setItem('nplus_streak', JSON.stringify(s));
+  return s;
+}
+function renderStreakBadge() {
+  const s = getStreak();
+  const el = document.getElementById('streak-badge');
+  if (!el) return;
+  if (s.current >= 1) {
+    const fire = s.current >= 7 ? '\ud83d\udd25\ud83d\udd25' : '\ud83d\udd25';
+    const best = s.best > s.current ? ' \u00b7 Best: ' + s.best : '';
+    el.textContent = fire + ' ' + s.current + ' day streak' + best;
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+// ══════════════════════════════════════════
+// SPACED REPETITION
+// ══════════════════════════════════════════
+function getSpacedRepTopic() {
+  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
+    .map(c => c.dataset.v)
+    .filter(v => v !== 'Mixed \u2014 All Topics' && !v.includes('Smart'));
+  const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
+  const now = Date.now();
+  let bestTopic = allTopics[Math.floor(Math.random() * allTopics.length)];
+  let bestScore = -1;
+  allTopics.forEach(t => {
+    const entries = h.filter(e => e.topic === t);
+    let score;
+    if (entries.length === 0) {
+      score = 1.0; // never studied — top priority
+    } else {
+      const daysSince = (now - new Date(entries[0].date)) / 86400000;
+      const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
+      score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
+    }
+    if (score > bestScore) { bestScore = score; bestTopic = t; }
+  });
+  return bestTopic;
+}
+
+// ══════════════════════════════════════════
+// OFFLINE QUESTION CACHE
+// ══════════════════════════════════════════
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function _cacheKey(t, d, n) {
+  return 'nplus_qcache__' + t.replace(/[^a-zA-Z0-9]/g, '_') + '__' + d.replace(/[^a-zA-Z0-9]/g, '_') + '__' + n;
+}
+function cacheQuestions(t, d, n, qs) {
+  try { localStorage.setItem(_cacheKey(t, d, n), JSON.stringify({ ts: Date.now(), qs })); } catch(e) {}
+}
+function getCachedQuestions(t, d, n) {
+  try {
+    const raw = localStorage.getItem(_cacheKey(t, d, n));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > CACHE_TTL) return null;
+    return obj.qs;
+  } catch(e) { return null; }
+}
+function showCacheNotice(show) {
+  const el = document.getElementById('cache-notice');
+  if (el) el.classList.toggle('show', show);
+}
+
+// ══════════════════════════════════════════
 // WEAK TOPIC DETECTOR
 // ══════════════════════════════════════════
 function getWeakTopic() {
   const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation' && e.total >= 5);
-  if (h.length < 2) return null;
+  if (h.length < 1) return null; // Fix #6: show weak banner after just 1 qualifying session
   const map = {};
   h.forEach(e => {
     if (!map[e.topic]) map[e.topic] = { correct: 0, total: 0 };
@@ -679,20 +1056,35 @@ async function startQuiz() {
   apiKey = key;
   localStorage.setItem('nplus_key', key);
   examMode = false;
+
+  // Spaced rep: resolve Smart topic before API call
+  activeQuizTopic = topic.includes('Smart') ? getSpacedRepTopic() : topic;
+
   document.getElementById('load-progress').style.display = 'none';
   showPage('loading');
-  document.getElementById('loading-msg').textContent = `Generating ${qCount} ${diff} questions on ${topic}\u2026`;
+  document.getElementById('loading-msg').textContent = topic.includes('Smart')
+    ? '\ud83e\udde0 Smart pick: ' + activeQuizTopic + '\u2026'
+    : 'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
+
+  showCacheNotice(false);
   try {
-    questions  = await fetchQuestions(key, topic, diff, qCount);
-    current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
-    quizFlags  = new Array(questions.length).fill(false);
-    showPage('quiz');
-    render();
+    questions = await fetchQuestions(key, activeQuizTopic, diff, qCount);
   } catch(e) {
-    showPage('setup');
-    errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
-    errBox.style.display = 'block';
+    const cached = getCachedQuestions(activeQuizTopic, diff, qCount);
+    if (cached) {
+      questions = cached;
+      showCacheNotice(true);
+    } else {
+      showPage('setup');
+      errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
+      errBox.style.display = 'block';
+      return;
+    }
   }
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  showPage('quiz');
+  render();
 }
 
 // ══════════════════════════════════════════
@@ -718,6 +1110,7 @@ async function startExam() {
   const prog = document.getElementById('load-progress');
   const fill = document.getElementById('load-bar-fill');
   const lbl  = document.getElementById('load-progress-label');
+  fill.style.width = '0%'; // Fix #3: always reset bar to 0 before new batch loop
   prog.style.display = 'block';
 
   const BATCHES = 5, BATCH_SIZE = 18;
@@ -752,7 +1145,11 @@ async function fetchQuestions(key, topic, difficulty, n) {
     'NAT & IP Services': 'Static NAT, dynamic NAT, PAT/NAT overload, inside/outside local/global, port forwarding, NAT64, private vs public IP ranges, IP helper addresses.',
     'AAA & Authentication': 'AAA framework, RADIUS protocol and ports, TACACS+, RADIUS vs TACACS+ differences, 802.1X port-based authentication, EAP variants, Kerberos, LDAP, MFA, certificate-based auth.',
     'NTP, ICMP & Traffic Types': 'NTP stratum levels, NTP hierarchy, ICMP message types (echo, TTL exceeded, unreachable, redirect), ping and traceroute mechanics, unicast vs multicast vs broadcast vs anycast, IGMP.',
-    'Ethernet Standards': '802.3 standards, 10BASE-T, 100BASE-TX, 1000BASE-T, 10GBASE-T, 1000BASE-SX/LX, 10GBASE-SR/LR, fibre vs copper, auto-negotiation, duplex, PoE (802.3af/at/bt), MDI/MDIX.'
+    'Ethernet Standards': '802.3 standards, 10BASE-T, 100BASE-TX, 1000BASE-T, 10GBASE-T, 1000BASE-SX/LX, 10GBASE-SR/LR, fibre vs copper, auto-negotiation, duplex, PoE (802.3af/at/bt), MDI/MDIX.',
+    'IPsec & VPN Protocols': 'IPsec tunnel vs transport mode, AH vs ESP, IKEv1 vs IKEv2, IKE Phase 1 (main/aggressive), IKE Phase 2, ISAKMP, SA negotiation, site-to-site VPN, remote access VPN, SSL/TLS VPN, split tunneling, GRE tunnels, L2TP/IPsec, OpenVPN.',
+    'SMB & Network File Services': 'SMB protocol versions (SMBv1/2/3), CIFS, NFS (v3/v4), Samba, file share permissions vs NTFS, UNC paths, port 445 (SMB), port 2049 (NFS), iSCSI, SAN vs NAS, FTP/SFTP/FTPS, SCP.',
+    'Cloud Networking & VPCs': 'VPC (Virtual Private Cloud), subnets in cloud, route tables, internet gateways, NAT gateways, security groups vs NACLs, VPC peering, transit gateways, VPN to cloud, Direct Connect / ExpressRoute, cloud service models (IaaS/PaaS/SaaS), shared responsibility model, multi-tenant networking.',
+    'Port Numbers': 'Every question must be about matching a protocol to its port number or transport (TCP/UDP). Cover: FTP data 20/TCP, FTP control 21/TCP, SSH & SFTP 22/TCP, Telnet 23/TCP, SMTP 25/TCP, DNS 53 (TCP & UDP), DHCP server 67/UDP & client 68/UDP, TFTP 69/UDP, HTTP 80/TCP, Kerberos 88 (TCP & UDP), POP3 110/TCP, NTP 123/UDP, NetBIOS name 137/UDP, NetBIOS datagram 138/UDP, NetBIOS session 139/TCP, IMAP 143/TCP, SNMP queries 161/UDP & traps 162/UDP, LDAP 389/TCP, HTTPS 443/TCP, SMB 445/TCP, Syslog 514/UDP, SMTP submission/TLS 587/TCP, LDAPS 636/TCP, iSCSI 3260/TCP, TACACS+ 49/TCP, BGP 179/TCP, RADIUS auth 1812/UDP & accounting 1813/UDP, NFS 2049/TCP & UDP, MySQL 3306/TCP, RDP 3389/TCP, SIP 5060/UDP & TLS 5061/TCP, VNC 5900/TCP, IKE/IPsec 500/UDP, IPsec NAT-T 4500/UDP, L2TP 1701/UDP, OpenVPN 1194/UDP, FTPS implicit 990/TCP. Use tricky distractors — near-miss ports and protocol confusions are fair game.'
   };
   const topicStr = topic === 'Mixed \u2014 All Topics'
     ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless, VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, and Ethernet standards.'
@@ -778,6 +1175,13 @@ Generate exactly ${n} multiple choice questions. Requirements:
 - Each explanation must state WHY the answer is correct AND briefly why the main wrong option is wrong (2-3 sentences max)
 - No repeated questions
 
+CRITICAL — ANSWER KEY VALIDATION (do this before outputting):
+For every question, verify these three things match each other:
+1. The option text at the letter in "answer" must be the factually correct answer
+2. The "explanation" must say THAT same letter is correct
+3. If your explanation contradicts the "answer" field, fix the "answer" field to match the correct option
+Never output a question where the explanation and the answer field disagree.
+
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
@@ -800,7 +1204,14 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
   const raw  = data.content?.[0]?.text || '';
   const m    = raw.match(/\[[\s\S]*\]/);
   if (!m) throw new Error('Could not parse AI response. Try again.');
-  return JSON.parse(m[0]);
+  // Fix #2: catch malformed JSON from AI with a friendly message
+  try {
+    const parsed = JSON.parse(m[0]);
+    cacheQuestions(topic, difficulty, n, parsed); // save for offline fallback
+    return parsed;
+  } catch(parseErr) {
+    throw new Error('AI returned malformed data. Please try again.');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -926,7 +1337,41 @@ function finish() {
   document.getElementById('r-streak').textContent  = bestStreak;
   document.getElementById('btn-review').style.display = log.length > 0 ? '' : 'none';
 
-  saveToHistory({ date: new Date().toISOString(), topic, difficulty: diff, score, total, pct, mode: 'quiz' });
+  // Difficulty breakdown
+  const byDiff = {};
+  log.forEach(entry => {
+    const d = (entry.q.difficulty || 'Exam Level').trim();
+    if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
+    byDiff[d].total++;
+    if (entry.isRight) byDiff[d].right++;
+  });
+  const diffOrder = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Hard', 'Mixed'];
+  const diffColors = { 'Foundational': 'var(--blue)', 'Exam Level': 'var(--yellow)', 'Hard / Tricky': 'var(--red)', 'Hard': 'var(--red)', 'Mixed': 'var(--accent-light)' };
+  const diffEl = document.getElementById('diff-breakdown');
+  const diffKeys = diffOrder.filter(d => byDiff[d]);
+  diffEl.innerHTML = diffKeys.length > 1 ? diffKeys.map(d => {
+    const { right, total } = byDiff[d];
+    const dpct = Math.round((right / total) * 100);
+    const col = diffColors[d] || 'var(--text)';
+    const shortLabel = d.replace(' / Tricky', '').replace('Foundational', 'Basic');
+    return `<div class="dstat"><div class="dv" style="color:${col}">${right}/${total}</div><div class="dl">${shortLabel}</div></div>`;
+  }).join('') : '';
+
+  updateStreak();
+  renderStreakBadge();
+  saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: 'quiz' });
+
+  if (sessionMode) {
+    sessionResults.push({ topic: activeQuizTopic, score, total, pct });
+    sessionStep++;
+    if (sessionStep >= sessionPlan.length) {
+      sessionMode = false;
+      renderSessionComplete();
+    } else {
+      renderSessionTransition();
+    }
+    return;
+  }
 
   showPage('results');
 }
@@ -935,21 +1380,44 @@ function finish() {
 // RETRY
 // ══════════════════════════════════════════
 async function retryQuiz() {
-  document.getElementById('load-progress').style.display = 'none';
-  showPage('loading');
-  document.getElementById('loading-msg').textContent = `Generating ${qCount} fresh ${diff} questions on ${topic}\u2026`;
-  try {
-    questions  = await fetchQuestions(apiKey, topic, diff, qCount);
-    current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
-    quizFlags  = new Array(questions.length).fill(false);
-    showPage('quiz');
-    render();
-  } catch(e) {
+  // Fix #1: guard against stale/empty apiKey after page reload
+  const key = apiKey || document.getElementById('api-key').value.trim();
+  if (!key) {
     showPage('setup');
     const err = document.getElementById('setup-err');
-    err.textContent = '\u26a0\ufe0f ' + e.message;
+    err.textContent = '\u26a0\ufe0f Please enter your API key to retry.';
     err.style.display = 'block';
+    return;
   }
+  apiKey = key;
+
+  // Re-resolve Smart topic on every retry
+  activeQuizTopic = topic.includes('Smart') ? getSpacedRepTopic() : topic;
+
+  document.getElementById('load-progress').style.display = 'none';
+  showPage('loading');
+  document.getElementById('loading-msg').textContent = 'Generating ' + qCount + ' fresh ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
+
+  showCacheNotice(false);
+  try {
+    questions = await fetchQuestions(key, activeQuizTopic, diff, qCount);
+  } catch(e) {
+    const cached = getCachedQuestions(activeQuizTopic, diff, qCount);
+    if (cached) {
+      questions = cached;
+      showCacheNotice(true);
+    } else {
+      showPage('setup');
+      const err = document.getElementById('setup-err');
+      err.textContent = '\u26a0\ufe0f ' + e.message;
+      err.style.display = 'block';
+      return;
+    }
+  }
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  showPage('quiz');
+  render();
 }
 
 // ══════════════════════════════════════════
@@ -1110,6 +1578,7 @@ function submitExam() {
     skipped: examAnswers[i].chosen === null
   }));
 
+  updateStreak();
   saveToHistory({ date: new Date().toISOString(), topic: 'Exam Simulation', difficulty: 'Mixed', score: correct, total, pct, mode: 'exam' });
 
   const scoreEl = document.getElementById('exam-scaled-score');
@@ -1215,10 +1684,295 @@ document.addEventListener('keydown', e => {
 });
 
 // ══════════════════════════════════════════
+// EXAM READINESS SCORE
+// ══════════════════════════════════════════
+function getReadinessScore() {
+  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
+    .map(c => c.dataset.v)
+    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
+  const totalTopics = allTopics.length;
+
+  const h = loadHistory().filter(e =>
+    e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation' && e.total >= 3
+  );
+  if (h.length === 0) return null;
+
+  const now = Date.now();
+  const topicMap = {};
+  h.forEach(e => {
+    if (!topicMap[e.topic]) topicMap[e.topic] = { correct: 0, total: 0, lastDate: 0 };
+    topicMap[e.topic].correct += e.score;
+    topicMap[e.topic].total   += e.total;
+    const d = new Date(e.date).getTime();
+    if (d > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = d;
+  });
+
+  const studiedTopics = Object.keys(topicMap);
+  const studiedCount  = studiedTopics.length;
+
+  // 1. Accuracy (40%) — unstudied topics pull average down
+  const accuracyScore = allTopics.reduce((sum, t) => {
+    if (!topicMap[t]) return sum;
+    return sum + (topicMap[t].correct / topicMap[t].total) * 100;
+  }, 0) / totalTopics;
+
+  // 2. Coverage (25%) — % of topics touched at all
+  const coverageScore = (studiedCount / totalTopics) * 100;
+
+  // 3. Recency / retention (20%) — each topic decays to 0 over 14 days; unstudied = 0
+  const recencyScore = studiedTopics.reduce((sum, t) => {
+    const daysSince = (now - topicMap[t].lastDate) / 86400000;
+    return sum + Math.max(0, 1 - daysSince / 14) * 100;
+  }, 0) / totalTopics;
+
+  // 4. Volume (15%) — total Qs, capped at 500
+  const totalQs    = h.reduce((sum, e) => sum + e.total, 0);
+  const volumeScore = Math.min(totalQs / 500, 1) * 100;
+
+  // Composite 0-100
+  const raw = (accuracyScore * 0.40) + (coverageScore * 0.25) + (recencyScore * 0.20) + (volumeScore * 0.15);
+
+  // Map to 420-870: at raw=70 → ~763 (just above pass); floor 420 keeps early learners motivated
+  const predicted = Math.round(420 + (raw / 100) * 450);
+
+  // Worst gap for action line — never-studied beats low-pct for priority
+  let worstTopic = null, worstPct = 101;
+  allTopics.forEach(t => {
+    if (!topicMap[t]) {
+      if (worstTopic === null) { worstTopic = t; worstPct = -1; }
+    } else {
+      const pct = Math.round((topicMap[t].correct / topicMap[t].total) * 100);
+      if (worstPct === -1) return; // already have a never-studied topic
+      if (pct < worstPct) { worstPct = pct; worstTopic = t; }
+    }
+  });
+
+  return { predicted, raw, worstTopic, worstPct: worstPct === -1 ? null : worstPct };
+}
+
+function renderReadinessCard() {
+  const data     = getReadinessScore();
+  const numEl    = document.getElementById('readiness-num');
+  const badgeEl  = document.getElementById('readiness-badge');
+  const barEl    = document.getElementById('readiness-bar-fill');
+  const actionEl = document.getElementById('readiness-action');
+  if (!numEl) return;
+
+  if (!data) {
+    numEl.textContent    = '\u2014';
+    numEl.style.color    = 'var(--text-dim)';
+    badgeEl.textContent  = 'Not started';
+    badgeEl.style.background = 'var(--surface3)';
+    badgeEl.style.color  = 'var(--text-dim)';
+    barEl.style.width    = '0%';
+    actionEl.innerHTML   = 'Complete your first quiz to activate your readiness score.';
+    return;
+  }
+
+  const { predicted, raw, worstTopic, worstPct } = data;
+
+  // Tier config
+  let tierLabel, tierColor, tierBg;
+  if (predicted >= 720) {
+    tierLabel = '\ud83d\udfe2 Exam Ready'; tierColor = 'var(--green)'; tierBg = 'rgba(34,197,94,.15)';
+  } else if (predicted >= 650) {
+    tierLabel = '\ud83d\udfe0 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.15)';
+  } else if (predicted >= 500) {
+    tierLabel = '\ud83d\udfe1 Building'; tierColor = 'var(--yellow)'; tierBg = 'rgba(251,191,36,.15)';
+  } else {
+    tierLabel = '\ud83d\udd34 Not Ready'; tierColor = 'var(--red)'; tierBg = 'rgba(248,113,113,.15)';
+  }
+
+  // Bar: 420 = 0%, 870 = 100%
+  const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
+
+  numEl.textContent    = predicted;
+  numEl.style.color    = tierColor;
+  badgeEl.textContent  = tierLabel;
+  badgeEl.style.background = tierBg;
+  badgeEl.style.color  = tierColor;
+  barEl.style.width    = barPct + '%';
+  barEl.style.background = tierColor;
+
+  if (worstTopic) {
+    const gapText = worstPct === null
+      ? '<strong>' + escHtml(worstTopic) + '</strong> \u2014 never studied'
+      : '<strong>' + escHtml(worstTopic) + '</strong> \u2014 ' + worstPct + '% avg';
+    actionEl.innerHTML = '\u25b2 Biggest gap: ' + gapText + '. Drill it to move the score.';
+  } else {
+    actionEl.innerHTML = '\u2728 All topics covered. Keep your scores up!';
+  }
+}
+
+// ══════════════════════════════════════════
+// TODAY'S SESSION
+// ══════════════════════════════════════════
+function buildSessionPlan(n) {
+  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
+    .map(c => c.dataset.v)
+    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
+  const h   = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
+  const now = Date.now();
+
+  const scored = allTopics.map(t => {
+    const entries = h.filter(e => e.topic === t);
+    let score, reason, color;
+    if (entries.length === 0) {
+      score = 1.0;
+      reason = 'Never studied';
+      color  = 'var(--text-dim)';
+    } else {
+      const daysSince = (now - new Date(entries[0].date)) / 86400000;
+      const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
+      score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
+
+      if (recentAvg < 60) {
+        reason = Math.round(recentAvg) + '% avg \u2014 needs work';
+        color  = 'var(--red)';
+      } else if (daysSince >= 7) {
+        reason = Math.round(daysSince) + 'd since last drill';
+        color  = 'var(--yellow)';
+      } else if (recentAvg < 80) {
+        reason = Math.round(recentAvg) + '% avg \u2014 room to improve';
+        color  = 'var(--yellow)';
+      } else {
+        reason = Math.round(recentAvg) + '% avg \u2014 keep sharp';
+        color  = 'var(--green)';
+      }
+    }
+    return { topic: t, score, reason, color };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, n).map(({ topic, reason, color }) => ({ topic, reason, color }));
+}
+
+function renderSessionBanner() {
+  const plan = buildSessionPlan(3);
+  sessionPlan = plan;
+  const banner = document.getElementById('session-banner');
+  const rows   = document.getElementById('session-topic-rows');
+  if (!banner || !rows) return;
+  banner.style.display = 'block';
+  rows.innerHTML = plan.map((item, i) => `
+    <div class="session-topic-row">
+      <div class="session-step-badge">${i + 1}</div>
+      <div>
+        <div class="session-t-name">${escHtml(item.topic)}</div>
+        <div class="session-t-reason" style="color:${item.color}">${escHtml(item.reason)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function startSession() {
+  const key = document.getElementById('api-key').value.trim();
+  const errBox = document.getElementById('setup-err');
+  errBox.style.display = 'none';
+  if (!key) { errBox.textContent = 'Please enter your Anthropic API key.'; errBox.style.display = 'block'; return; }
+  apiKey = key;
+  localStorage.setItem('nplus_key', key);
+
+  sessionMode    = true;
+  sessionStep    = 0;
+  sessionResults = [];
+  sessionPlan    = buildSessionPlan(3);
+  examMode       = false;
+
+  runSessionStep();
+}
+
+async function runSessionStep() {
+  const step  = sessionPlan[sessionStep];
+  const sTopic = step.topic;
+  activeQuizTopic = sTopic;
+  topic = sTopic;
+
+  document.getElementById('load-progress').style.display = 'none';
+  showPage('loading');
+  document.getElementById('loading-msg').textContent =
+    'Session ' + (sessionStep + 1) + '/3 \u2014 ' + sTopic + '\u2026';
+
+  showCacheNotice(false);
+  try {
+    questions = await fetchQuestions(apiKey, sTopic, 'Mixed', 7);
+  } catch(e) {
+    const cached = getCachedQuestions(sTopic, 'Mixed', 7);
+    if (cached) { questions = cached; showCacheNotice(true); }
+    else {
+      sessionMode = false;
+      showPage('setup');
+      const err = document.getElementById('setup-err');
+      err.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
+      err.style.display = 'block';
+      return;
+    }
+  }
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  diff = 'Mixed';
+  showPage('quiz');
+  render();
+}
+
+function renderSessionTransition() {
+  const prev   = sessionResults[sessionResults.length - 1];
+  const next   = sessionPlan[sessionStep];
+  const color  = prev.pct >= 80 ? 'var(--green)' : prev.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  const emoji  = prev.pct >= 80 ? '\u2705' : prev.pct >= 60 ? '\ud83d\udcaa' : '\ud83d\udcda';
+
+  document.getElementById('st-emoji').textContent   = emoji;
+  document.getElementById('st-heading').textContent = 'Topic ' + sessionStep + ' done!';
+  document.getElementById('st-sub').textContent     = prev.pct + '% on ' + prev.topic;
+  document.getElementById('st-topic-done').textContent = prev.topic;
+  document.getElementById('st-pct').textContent    = prev.pct + '%';
+  document.getElementById('st-pct').style.color    = color;
+
+  const fill = document.getElementById('st-bar-fill');
+  fill.style.width      = prev.pct + '%';
+  fill.style.background = color;
+
+  document.getElementById('st-next-topic').textContent  = next.topic;
+  document.getElementById('st-next-reason').textContent = next.reason;
+  showPage('session-transition');
+}
+
+function renderSessionComplete() {
+  const total    = sessionResults.length;
+  const overall  = Math.round(sessionResults.reduce((a, r) => a + r.pct, 0) / total);
+  const color    = overall >= 80 ? 'var(--green)' : overall >= 60 ? 'var(--yellow)' : 'var(--red)';
+
+  document.getElementById('sc-sub').textContent =
+    'Overall ' + overall + '% across ' + total + ' topics';
+
+  const scResults = document.getElementById('sc-results');
+  scResults.innerHTML = sessionResults.map(r => {
+    const c = r.pct >= 80 ? 'var(--green)' : r.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="session-result-row">
+      <div>
+        <div class="session-result-topic">${escHtml(r.topic)}</div>
+        <div class="session-result-bar"><div class="session-result-fill" style="width:${r.pct}%;background:${c}"></div></div>
+      </div>
+      <div class="session-result-pct" style="color:${c}">${r.pct}%</div>
+    </div>`;
+  }).join('');
+
+  showPage('session-complete');
+}
+
+function endSessionEarly() {
+  sessionMode = false;
+  sessionPlan = [];
+  sessionStep = 0;
+  sessionResults = [];
+  goSetup();
+}
+
+// ══════════════════════════════════════════
 // UTIL
 // ══════════════════════════════════════════
 function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // Fix #5: include single-quote escaping for full safety
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 </script>
 </body>
