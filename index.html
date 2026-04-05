@@ -337,7 +337,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v2.8</span>
+    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v2.9</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -877,9 +877,11 @@ function renderProgressPage() {
     if (entries.length === 0) {
       return { t, pct: null, total: 0, last: null };
     }
-    const totalQ  = entries.reduce((a, e) => a + e.total, 0);
-    const totalC  = entries.reduce((a, e) => a + e.score, 0);
-    const pct     = Math.round((totalC / totalQ) * 100);
+    const totalQ   = entries.reduce((a, e) => a + e.total, 0);
+    // Weighted score: harder sessions count more
+    const wCorrect = entries.reduce((a, e) => a + e.score * diffWeight(e.difficulty), 0);
+    const wTotal   = entries.reduce((a, e) => a + e.total * diffWeight(e.difficulty), 0);
+    const pct      = Math.round((wCorrect / wTotal) * 100);
     const daysSince = Math.round((now - new Date(entries[0].date)) / 86400000);
     return { t, pct, total: totalQ, daysSince };
   });
@@ -1686,6 +1688,16 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════
 // EXAM READINESS SCORE
 // ══════════════════════════════════════════
+// Difficulty weight: harder sessions count more towards readiness & progress
+function diffWeight(d) {
+  if (!d) return 1.5; // unknown → treat as Exam Level
+  const s = d.toLowerCase();
+  if (s.includes('hard'))  return 2.0;
+  if (s.includes('exam'))  return 1.5;
+  if (s.includes('found')) return 1.0;
+  return 1.3; // Mixed
+}
+
 function getReadinessScore() {
   const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
     .map(c => c.dataset.v)
@@ -1700,9 +1712,10 @@ function getReadinessScore() {
   const now = Date.now();
   const topicMap = {};
   h.forEach(e => {
-    if (!topicMap[e.topic]) topicMap[e.topic] = { correct: 0, total: 0, lastDate: 0 };
-    topicMap[e.topic].correct += e.score;
-    topicMap[e.topic].total   += e.total;
+    if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
+    const w = diffWeight(e.difficulty);
+    topicMap[e.topic].wCorrect += e.score * w;
+    topicMap[e.topic].wTotal   += e.total * w;
     const d = new Date(e.date).getTime();
     if (d > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = d;
   });
@@ -1710,10 +1723,10 @@ function getReadinessScore() {
   const studiedTopics = Object.keys(topicMap);
   const studiedCount  = studiedTopics.length;
 
-  // 1. Accuracy (40%) — unstudied topics pull average down
+  // 1. Weighted accuracy (40%) — harder correct answers worth more; unstudied topics pull down
   const accuracyScore = allTopics.reduce((sum, t) => {
     if (!topicMap[t]) return sum;
-    return sum + (topicMap[t].correct / topicMap[t].total) * 100;
+    return sum + (topicMap[t].wCorrect / topicMap[t].wTotal) * 100;
   }, 0) / totalTopics;
 
   // 2. Coverage (25%) — % of topics touched at all
@@ -1741,8 +1754,8 @@ function getReadinessScore() {
     if (!topicMap[t]) {
       if (worstTopic === null) { worstTopic = t; worstPct = -1; }
     } else {
-      const pct = Math.round((topicMap[t].correct / topicMap[t].total) * 100);
-      if (worstPct === -1) return; // already have a never-studied topic
+      const pct = Math.round((topicMap[t].wCorrect / topicMap[t].wTotal) * 100);
+      if (worstPct === -1) return;
       if (pct < worstPct) { worstPct = pct; worstTopic = t; }
     }
   });
