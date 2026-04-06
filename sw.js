@@ -1,11 +1,11 @@
-// Service Worker v3.4.1 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v3.4.1';
+// Service Worker v3.5 — Network+ Quiz App
+const CACHE_NAME = 'netplus-v3.5';
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json'
 ];
 
 // Install: cache the app shell

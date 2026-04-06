@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Net+ Quiz">
+<meta name="description" content="AI-powered CompTIA Network+ N10-009 study tool with quizzes, exam simulation, subnetting trainer, port drills, and performance analytics.">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,11 +20,11 @@
 ══════════════════════════════════════════ -->
 <div id="page-setup" class="page active">
   <div class="hero">
-    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">&#9728;&#65039;</button>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme">&#9728;&#65039;</button>
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.4</span>
+    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.5</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -61,7 +62,7 @@
 
   <div class="card">
     <h3>Anthropic API Key</h3>
-    <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" />
+    <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" />
     <p style="margin-top:10px;font-size:12px;color:var(--text-dim)">Stored in your browser only. Used only to call the Anthropic API.</p>
   </div>
 
@@ -372,7 +373,7 @@
 <!-- ══════════════════════════════════════════
      EXAM SUBMIT MODAL
 ══════════════════════════════════════════ -->
-<div id="exam-modal" class="modal-overlay hidden">
+<div id="exam-modal" class="modal-overlay hidden" role="dialog" aria-label="Submit exam confirmation">
   <div class="modal-box">
     <h2>Submit Exam?</h2>
     <div class="modal-stats">

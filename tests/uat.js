@@ -161,6 +161,35 @@ test('Broadcast 192.168.1.100/24', sandbox.getBroadcastAddr([192,168,1,100], san
 test('Subnet 10.0.5.67/26', sandbox.getSubnetAddr([10,0,5,67], sandbox.cidrToMaskArr(26)).join('.') === '10.0.5.64');
 test('Broadcast 10.0.5.67/26', sandbox.getBroadcastAddr([10,0,5,67], sandbox.cidrToMaskArr(26)).join('.') === '10.0.5.127');
 
+// ── Tech Debt Fixes (v3.5) ──
+console.log('\n\x1b[1m── TECH DEBT FIXES ──\x1b[0m');
+test('APP_VERSION constant defined', js.includes("const APP_VERSION = '3.5'"));
+test('EXAM_TIME_SECONDS constant', js.includes('const EXAM_TIME_SECONDS = 5400'));
+test('HISTORY_CAP constant', js.includes('const HISTORY_CAP = 200'));
+test('WRONG_BANK_CAP constant', js.includes('const WRONG_BANK_CAP = 200'));
+test('Port timer cleared in goSetup()', js.includes('if (portTimer) { clearInterval(portTimer)'));
+test('Wrong bank capped', js.includes('WRONG_BANK_CAP'));
+test('Reports capped', js.includes('REPORTS_CAP'));
+test('History cap uses constant', js.includes('HISTORY_CAP) h.length'));
+test('Export version uses constant', js.includes('version: APP_VERSION'));
+test('ExamTimeLeft uses constant', !js.includes('examTimeLeft   = 5400'));
+test('Explanation cleanup before insert', js.includes('while (expTextEl.nextSibling)'));
+test('Touch event support for topology', js.includes('touchstart') && js.includes('touchend'));
+test('E key for multi-select', js.includes("'A','B','C','D','E'"));
+test('Shared scoring helper', js.includes('function _scoreTopicNeed('));
+test('Meta description in HTML', html.includes('meta name="description"'));
+test('ARIA on theme toggle', html.includes('aria-label="Toggle'));
+test('ARIA on API key input', html.includes('aria-label="Anthropic'));
+test('ARIA on exam modal', html.includes('role="dialog"'));
+test('Version badge v3.5', html.includes('v3.5'));
+test('SW cache name v3.5', sw.includes('netplus-v3.5'));
+test('SW relative paths', sw.includes("'./index.html'"));
+test('No unused Inter font', !css.includes("'Inter'"));
+test('Difficulty uses e.difficulty', js.includes('e.difficulty || e.diff'));
+test('/31 edge case guard', js.includes('cidr >= 31') && js.includes('genSubnetQuestion'));
+test('Validation in retryQuiz', js.includes('retryQuiz') && js.includes('aiValidateQuestions(key, questions)'));
+test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, questions)'));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

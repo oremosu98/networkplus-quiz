@@ -1,6 +1,16 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v3.4
+// Network+ AI Quiz — app.js  v3.5
 // ══════════════════════════════════════════
+
+// ── CONSTANTS ──
+const APP_VERSION = '3.5';
+const EXAM_TIME_SECONDS = 5400;     // 90 minutes
+const HISTORY_CAP = 200;
+const WRONG_BANK_CAP = 200;
+const REPORTS_CAP = 500;
+const PORT_DRILL_SECONDS = 30;
+const SESSION_TOPICS = 3;
+const SESSION_QUESTIONS = 7;
 
 // ── STATE ──
 let questions  = [];
@@ -40,7 +50,7 @@ let examQuestions  = [];
 let examAnswers    = []; // [{chosen, flagged, msChosen:[], orderSeq:[]}]
 let examCurrent    = 0;
 let examTimer      = null;
-let examTimeLeft   = 5400;
+let examTimeLeft   = EXAM_TIME_SECONDS;
 let examEndTime    = 0;
 let navOpen        = false;
 
@@ -121,6 +131,7 @@ function showPage(name) {
 
 function goSetup() {
   if (examTimer) { clearInterval(examTimer); examTimer = null; }
+  if (portTimer) { clearInterval(portTimer); portTimer = null; }
   examMode = false;
   wrongDrillMode = false;
   navOpen = false;
@@ -147,7 +158,7 @@ function loadHistory() {
 function saveToHistory(entry) {
   const h = loadHistory();
   h.unshift(entry);
-  if (h.length > 60) h.length = 60;
+  if (h.length > HISTORY_CAP) h.length = HISTORY_CAP;
   localStorage.setItem('nplus_history', JSON.stringify(h));
 }
 
@@ -297,24 +308,36 @@ function renderStreakBadge() {
 // ══════════════════════════════════════════
 // SPACED REPETITION
 // ══════════════════════════════════════════
-function getSpacedRepTopic() {
-  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
+
+// Shared scoring helper used by both getSpacedRepTopic and buildSessionPlan
+function _scoreTopicNeed(topic, historyEntries, now) {
+  const entries = historyEntries.filter(e => e.topic === topic);
+  if (entries.length === 0) return { score: 1.0, reason: 'Never studied', color: 'var(--text-dim)' };
+  const daysSince = (now - new Date(entries[0].date)) / 86400000;
+  const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
+  const score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
+  let reason, color;
+  if (recentAvg < 60) { reason = Math.round(recentAvg) + '% avg \u2014 needs work'; color = 'var(--red)'; }
+  else if (daysSince >= 7) { reason = Math.round(daysSince) + 'd since last drill'; color = 'var(--yellow)'; }
+  else if (recentAvg < 80) { reason = Math.round(recentAvg) + '% avg \u2014 room to improve'; color = 'var(--yellow)'; }
+  else { reason = Math.round(recentAvg) + '% avg \u2014 keep sharp'; color = 'var(--green)'; }
+  return { score, reason, color };
+}
+
+function _getAllStudyTopics() {
+  return Array.from(document.querySelectorAll('#topic-group .chip'))
     .map(c => c.dataset.v)
-    .filter(v => v !== 'Mixed \u2014 All Topics' && !v.includes('Smart'));
+    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
+}
+
+function getSpacedRepTopic() {
+  const allTopics = _getAllStudyTopics();
   const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
   const now = Date.now();
   let bestTopic = allTopics[Math.floor(Math.random() * allTopics.length)];
   let bestScore = -1;
   allTopics.forEach(t => {
-    const entries = h.filter(e => e.topic === t);
-    let score;
-    if (entries.length === 0) {
-      score = 1.0;
-    } else {
-      const daysSince = (now - new Date(entries[0].date)) / 86400000;
-      const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
-      score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
-    }
+    const { score } = _scoreTopicNeed(t, h, now);
     if (score > bestScore) { bestScore = score; bestTopic = t; }
   });
   return bestTopic;
@@ -396,6 +419,8 @@ function addToWrongBank(q, chosen) {
     rightCount: 0,
     addedDate: new Date().toISOString()
   });
+  // Cap wrong bank size — oldest entries drop off
+  if (bank.length > WRONG_BANK_CAP) bank.length = WRONG_BANK_CAP;
   saveWrongBank(bank);
 }
 
@@ -483,6 +508,7 @@ function getWeakTopic() {
 function renderWeakBanner() {
   const weak   = getWeakTopic();
   const banner = document.getElementById('weak-banner');
+  if (!banner) return;
   if (!weak) { banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
   document.getElementById('weak-topic-name').textContent = weak.topic;
@@ -587,7 +613,7 @@ async function startExam() {
   examQuestions = [];
   examAnswers   = [];
   examCurrent   = 0;
-  examTimeLeft  = 5400;
+  examTimeLeft  = EXAM_TIME_SECONDS;
   navOpen       = false;
 
   showPage('loading');
@@ -1096,7 +1122,11 @@ function showExplanation(q, isRight) {
     extraHtml += '<button class="report-btn" onclick="reportIssue()">\u2691 Report Issue</button>';
   }
 
+  // Clean up previous extra HTML (resource links, buttons) before inserting new
   const expTextEl = document.getElementById('exp-text');
+  while (expTextEl.nextSibling) expTextEl.parentNode.removeChild(expTextEl.nextSibling);
+  const deepEl = document.getElementById('deep-explain');
+  if (deepEl) deepEl.remove();
   expTextEl.insertAdjacentHTML('afterend', extraHtml);
 
   expBox.className   = 'explanation-box show ' + (isRight ? 'correct' : 'wrong');
@@ -1210,6 +1240,10 @@ async function retryQuiz() {
   showCacheNotice(false);
   try {
     questions = await fetchQuestions(key, activeQuizTopic, diff, qCount);
+    document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
+    questions = await aiValidateQuestions(key, questions);
+    questions = validateQuestions(questions);
+    if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
   } catch(e) {
     const cached = getCachedQuestions(activeQuizTopic, diff, qCount);
     if (cached) {
@@ -1222,6 +1256,11 @@ async function retryQuiz() {
       err.style.display = 'block';
       return;
     }
+  }
+  // Inject PBQs on retry too
+  const retryPbqCount = qCount >= 10 ? 1 : 0;
+  if (retryPbqCount > 0) {
+    questions = injectPBQs(questions, activeQuizTopic, retryPbqCount);
   }
   current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
   quizFlags = new Array(questions.length).fill(false);
@@ -1639,14 +1678,27 @@ document.addEventListener('keydown', e => {
   const onQuiz  = document.getElementById('page-quiz').classList.contains('active');
   const onExam  = document.getElementById('page-exam').classList.contains('active');
 
-  if (['A','B','C','D'].includes(key)) {
+  if (['A','B','C','D','E'].includes(key)) {
     if (onQuiz) {
       const q = questions[current];
-      if (getQType(q) === 'mcq') pick(key, q);
+      const qType = getQType(q);
+      if (qType === 'mcq' && key !== 'E') pick(key, q);
+      else if (qType === 'multi-select' && q.options && q.options[key]) {
+        // Toggle multi-select option via keyboard
+        const optBtn = document.querySelector(`#options .option[data-letter="${key}"]`);
+        if (optBtn) optBtn.click();
+      }
     } else if (onExam) {
       const q = examQuestions[examCurrent];
-      if (getQType(q) === 'mcq') {
+      const qType = getQType(q);
+      if (qType === 'mcq' && key !== 'E') {
         examAnswers[examCurrent].chosen = key;
+        renderExam();
+      } else if (qType === 'multi-select' && q.options && q.options[key]) {
+        const ms = examAnswers[examCurrent].msChosen || [];
+        const idx = ms.indexOf(key);
+        if (idx >= 0) ms.splice(idx, 1); else ms.push(key);
+        examAnswers[examCurrent].msChosen = ms;
         renderExam();
       }
     }
@@ -1798,26 +1850,12 @@ function renderReadinessCard() {
 // TODAY'S SESSION
 // ══════════════════════════════════════════
 function buildSessionPlan(n) {
-  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
-    .map(c => c.dataset.v)
-    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
-  const h   = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
+  const allTopics = _getAllStudyTopics();
+  const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
   const now = Date.now();
 
   const scored = allTopics.map(t => {
-    const entries = h.filter(e => e.topic === t);
-    let score, reason, color;
-    if (entries.length === 0) {
-      score = 1.0; reason = 'Never studied'; color = 'var(--text-dim)';
-    } else {
-      const daysSince = (now - new Date(entries[0].date)) / 86400000;
-      const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
-      score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
-      if (recentAvg < 60) { reason = Math.round(recentAvg) + '% avg \u2014 needs work'; color = 'var(--red)'; }
-      else if (daysSince >= 7) { reason = Math.round(daysSince) + 'd since last drill'; color = 'var(--yellow)'; }
-      else if (recentAvg < 80) { reason = Math.round(recentAvg) + '% avg \u2014 room to improve'; color = 'var(--yellow)'; }
-      else { reason = Math.round(recentAvg) + '% avg \u2014 keep sharp'; color = 'var(--green)'; }
-    }
+    const { score, reason, color } = _scoreTopicNeed(t, h, now);
     return { topic: t, score, reason, color };
   });
 
@@ -1826,7 +1864,7 @@ function buildSessionPlan(n) {
 }
 
 function renderSessionBanner() {
-  const plan = buildSessionPlan(3);
+  const plan = buildSessionPlan(SESSION_TOPICS);
   sessionPlan = plan;
   const banner = document.getElementById('session-banner');
   const rows   = document.getElementById('session-topic-rows');
@@ -1854,7 +1892,7 @@ async function startSession() {
   sessionMode    = true;
   sessionStep    = 0;
   sessionResults = [];
-  sessionPlan    = buildSessionPlan(3);
+  sessionPlan    = buildSessionPlan(SESSION_TOPICS);
   examMode       = false;
   wrongDrillMode = false;
 
@@ -1870,13 +1908,17 @@ async function runSessionStep() {
   document.getElementById('load-progress').style.display = 'none';
   showPage('loading');
   document.getElementById('loading-msg').textContent =
-    'Session ' + (sessionStep + 1) + '/3 \u2014 ' + sTopic + '\u2026';
+    'Session ' + (sessionStep + 1) + '/' + SESSION_TOPICS + ' \u2014 ' + sTopic + '\u2026';
 
   showCacheNotice(false);
   try {
-    questions = await fetchQuestions(apiKey, sTopic, 'Mixed', 7);
+    questions = await fetchQuestions(apiKey, sTopic, 'Mixed', SESSION_QUESTIONS);
+    document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
+    questions = await aiValidateQuestions(apiKey, questions);
+    questions = validateQuestions(questions);
+    if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
   } catch(e) {
-    const cached = getCachedQuestions(sTopic, 'Mixed', 7);
+    const cached = getCachedQuestions(sTopic, 'Mixed', SESSION_QUESTIONS);
     if (cached) { questions = cached; showCacheNotice(true); }
     else {
       sessionMode = false;
@@ -1951,7 +1993,7 @@ function endSessionEarly() {
 // ══════════════════════════════════════════
 function exportData() {
   const data = {
-    version: '3.4',
+    version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     history: loadHistory(),
     streak: getStreak(),
@@ -1986,7 +2028,7 @@ function importData(event) {
       const newEntries = data.history.filter(e => !existingKeys.has(e.date + '|' + e.topic));
       const merged = existing.concat(newEntries);
       merged.sort((a, b) => new Date(b.date) - new Date(a.date));
-      if (merged.length > 200) merged.length = 200;
+      if (merged.length > HISTORY_CAP) merged.length = HISTORY_CAP;
       localStorage.setItem('nplus_history', JSON.stringify(merged));
 
       if (data.streak) {
@@ -2273,6 +2315,8 @@ function loadReports() {
 function saveReport(questionText, reason) {
   const reports = loadReports();
   reports.push({ question: questionText, reason, date: new Date().toISOString() });
+  // Cap reports storage
+  if (reports.length > REPORTS_CAP) reports.splice(0, reports.length - REPORTS_CAP);
   localStorage.setItem('nplus_reports', JSON.stringify(reports));
 }
 
@@ -2388,6 +2432,12 @@ function renderTopology(q, box) {
       btn.classList.add('dragging');
     };
     btn.ondragend = () => { btn.classList.remove('dragging'); };
+    // Touch support for mobile
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      selectedTopoDevice = dev;
+      document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
+    }, { passive: false });
     btn.onclick = () => {
       selectedTopoDevice = dev;
       document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
@@ -2424,8 +2474,8 @@ function renderTopology(q, box) {
       renderTopoState(q);
     };
 
-    // Click handler (existing behaviour)
-    zoneEl.onclick = () => {
+    // Click handler (existing behaviour) — also serves as touch tap target
+    const handleZonePlacement = () => {
       if (!selectedTopoDevice) return;
       Object.keys(topoDevices).forEach(z => {
         topoDevices[z] = (topoDevices[z] || []).filter(d => d !== selectedTopoDevice);
@@ -2436,6 +2486,9 @@ function renderTopology(q, box) {
       selectedTopoDevice = null;
       renderTopoState(q);
     };
+    zoneEl.onclick = handleZonePlacement;
+    // Touch support for mobile zones
+    zoneEl.addEventListener('touchend', (e) => { e.preventDefault(); handleZonePlacement(); }, { passive: false });
     zonesDiv.appendChild(zoneEl);
   });
   box.appendChild(zonesDiv);
@@ -2636,6 +2689,7 @@ function renderExamTopology(q, box, ans) {
     btn.draggable = true;
     btn.ondragstart = (e) => { e.dataTransfer.setData('text/plain', dev); e.dataTransfer.effectAllowed = 'move'; btn.classList.add('dragging'); };
     btn.ondragend = () => { btn.classList.remove('dragging'); };
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); selectedTopoDevice = dev; renderExam(); }, { passive: false });
     btn.onclick = () => { selectedTopoDevice = dev; renderExam(); };
     palette.appendChild(btn);
   });
@@ -2669,7 +2723,7 @@ function renderExamTopology(q, box, ans) {
       renderExam();
     };
 
-    zoneEl.onclick = () => {
+    const handleExamZonePlacement = () => {
       if (!selectedTopoDevice) return;
       Object.keys(ans.topoState).forEach(z => {
         ans.topoState[z] = (ans.topoState[z] || []).filter(d => d !== selectedTopoDevice);
@@ -2680,6 +2734,8 @@ function renderExamTopology(q, box, ans) {
       selectedTopoDevice = null;
       renderExam();
     };
+    zoneEl.onclick = handleExamZonePlacement;
+    zoneEl.addEventListener('touchend', (e) => { e.preventDefault(); handleExamZonePlacement(); }, { passive: false });
     zonesDiv.appendChild(zoneEl);
   });
   box.appendChild(zonesDiv);
@@ -2932,6 +2988,7 @@ function genSubnetQuestion() {
     case 'host_count':
       return { q: `How many usable host addresses in a /${cidr} network?`, answer: String(hosts), hint: `2^${32-cidr} - 2` };
     case 'usable_range':
+      if (cidr >= 31) return genSubnetQuestion(); // /31 and /32 have no usable range — regenerate
       const first = subnet.slice(); first[3] += 1;
       const last = broadcast.slice(); last[3] -= 1;
       return { q: `What is the first usable IP in ${arrToIp(subnet)}/${cidr}?`, answer: arrToIp(first), hint: 'Network address + 1' };
@@ -3016,7 +3073,7 @@ const portData = [
   {proto:'IPsec NAT-T',port:'4500',tp:'UDP'},{proto:'VNC',port:'5900',tp:'TCP'}
 ];
 
-let portTimer = null, portTimeLeft = 30, portScore = 0, portCurrentQ = null;
+let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
 let portMissed = []; // Track wrong answers for review
 
 function startPortDrill() {
@@ -3025,18 +3082,18 @@ function startPortDrill() {
   document.getElementById('port-pregame').style.display = 'block';
   document.getElementById('port-game').style.display = 'none';
   document.getElementById('port-results').style.display = 'none';
-  document.getElementById('port-timer').textContent = '30';
+  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-score').textContent = '0';
 }
 
 function beginPortDrill() {
   portScore = 0;
-  portTimeLeft = 30;
+  portTimeLeft = PORT_DRILL_SECONDS;
   portMissed = [];
   document.getElementById('port-pregame').style.display = 'none';
   document.getElementById('port-game').style.display = 'block';
   document.getElementById('port-results').style.display = 'none';
-  document.getElementById('port-timer').textContent = '30';
+  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-score').textContent = '0';
   document.getElementById('port-timer').className = 'port-timer';
   nextPortQ();
@@ -3118,9 +3175,7 @@ function endPortDrill() {
       const unique = portMissed.filter(m => { if (seen.has(m.proto)) return false; seen.add(m.proto); return true; });
       reviewDiv.innerHTML = '<h3 style="margin-bottom:10px">MISSED PORTS — LEARN THESE</h3>' +
         unique.map(m => {
-          const yourAns = m.mode === 'port'
-            ? `You picked: <span class="port-review-wrong">${escHtml(m.yourAnswer)}</span>`
-            : `You picked: <span class="port-review-wrong">${escHtml(m.yourAnswer)}</span>`;
+          const yourAns = `You picked: <span class="port-review-wrong">${escHtml(m.yourAnswer)}</span>`;
           return `<div class="port-review-row">
             <div class="port-review-proto">${escHtml(m.proto)}</div>
             <div class="port-review-correct">${m.port}/${m.tp}</div>
@@ -3184,7 +3239,6 @@ function renderAnalytics() {
 
   // 1. Accuracy Trend (last 20 sessions)
   const recent = h.slice(0, 20).reverse();
-  const maxPct = 100;
   html += `<div class="ana-card">
     <h3>ACCURACY TREND</h3>
     <div class="ana-subtitle">Last ${recent.length} sessions</div>
@@ -3206,7 +3260,7 @@ function renderAnalytics() {
   // 2. Difficulty Breakdown
   const diffs = {};
   h.forEach(e => {
-    const d = e.diff || 'Exam Level';
+    const d = e.difficulty || e.diff || 'Exam Level';
     if (!diffs[d]) diffs[d] = { correct: 0, total: 0 };
     diffs[d].correct += e.score;
     diffs[d].total += e.total;
