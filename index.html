@@ -23,7 +23,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.1</span>
+    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.4</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -150,6 +150,12 @@
 
   <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="showPage('progress');renderProgressPage()">&#128200; Topic Progress</button>
 
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+    <button class="btn btn-tool btn-full" onclick="showPage('subnet');startSubnetTrainer()">&#129518; Subnet Trainer</button>
+    <button class="btn btn-tool btn-full" onclick="showPage('ports');startPortDrill()">&#9889; Port Drill</button>
+    <button class="btn btn-tool btn-full" onclick="showPage('analytics');renderAnalytics()">&#128202; Analytics</button>
+  </div>
+
   <!-- Data Export / Import -->
   <div style="display:flex;gap:10px;margin-top:10px">
     <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
@@ -170,6 +176,10 @@
   <div class="load-progress" id="load-progress" style="display:none">
     <div class="load-bar"><div class="load-bar-fill" id="load-bar-fill" style="width:0%"></div></div>
     <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px" id="load-progress-label">0 / 5 batches</p>
+  </div>
+  <div id="topic-brief" class="topic-brief" style="display:none">
+    <h3>&#128218; TOPIC OVERVIEW</h3>
+    <div id="topic-brief-text" class="topic-brief-text"></div>
   </div>
 </div>
 
@@ -398,6 +408,101 @@
     <button class="btn btn-secondary" onclick="goSetup()">&#8592; Menu</button>
     <button class="btn btn-ghost" onclick="showReview(true)">&#128203; Review All</button>
     <button class="btn btn-exam" onclick="startExam()">Retry Exam &#127358;</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SUBNETTING TRAINER
+══════════════════════════════════════════ -->
+<div id="page-subnet" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <h2>&#129518; Subnet Trainer</h2>
+  </div>
+  <div class="subnet-score-bar">
+    <span id="subnet-score">0 / 0</span>
+    <span id="subnet-streak-lbl">&#128293; 0</span>
+  </div>
+  <div class="subnet-card" id="subnet-card">
+    <div class="subnet-q-num" id="subnet-q-num">Q1</div>
+    <div class="subnet-question" id="subnet-question">Loading&#8230;</div>
+    <div class="subnet-input-row">
+      <input type="text" id="subnet-answer" class="subnet-input" placeholder="Type your answer&#8230;" autocomplete="off" />
+      <button class="btn btn-primary" onclick="checkSubnetAnswer()" id="subnet-submit-btn">Check</button>
+    </div>
+    <div id="subnet-feedback" class="subnet-feedback"></div>
+    <button class="btn btn-primary btn-full" id="subnet-next-btn" style="display:none;margin-top:14px" onclick="nextSubnetQuestion()">Next Question &#8594;</button>
+  </div>
+  <div class="subnet-ref" id="subnet-ref">
+    <h3>QUICK REFERENCE</h3>
+    <table class="subnet-table">
+      <tr><th>CIDR</th><th>Mask</th><th>Hosts</th><th>Block</th></tr>
+      <tr><td>/24</td><td>255.255.255.0</td><td>254</td><td>256</td></tr>
+      <tr><td>/25</td><td>255.255.255.128</td><td>126</td><td>128</td></tr>
+      <tr><td>/26</td><td>255.255.255.192</td><td>62</td><td>64</td></tr>
+      <tr><td>/27</td><td>255.255.255.224</td><td>30</td><td>32</td></tr>
+      <tr><td>/28</td><td>255.255.255.240</td><td>14</td><td>16</td></tr>
+      <tr><td>/29</td><td>255.255.255.248</td><td>6</td><td>8</td></tr>
+      <tr><td>/30</td><td>255.255.255.252</td><td>2</td><td>4</td></tr>
+      <tr><td>/16</td><td>255.255.0.0</td><td>65534</td><td>65536</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PORT NUMBER SPEED DRILL
+══════════════════════════════════════════ -->
+<div id="page-ports" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+    <button class="btn btn-ghost" onclick="endPortDrill();goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <h2>&#9889; Port Number Drill</h2>
+  </div>
+  <div class="port-stats-bar">
+    <div class="port-timer-block">
+      <span class="port-timer-label">TIME</span>
+      <span class="port-timer" id="port-timer">30</span>
+    </div>
+    <div class="port-score-block">
+      <span class="port-score-label">SCORE</span>
+      <span class="port-score" id="port-score">0</span>
+    </div>
+    <div class="port-best-block">
+      <span class="port-best-label">BEST</span>
+      <span class="port-best" id="port-best">0</span>
+    </div>
+  </div>
+  <div id="port-pregame" class="port-pregame">
+    <p style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px">Match protocols to their port numbers as fast as you can!</p>
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px">You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.</p>
+    <button class="btn btn-primary btn-full" onclick="beginPortDrill()" style="font-size:18px;padding:18px">&#9889; START DRILL</button>
+  </div>
+  <div id="port-game" class="port-game" style="display:none">
+    <div class="port-prompt" id="port-prompt">SSH</div>
+    <div class="port-options" id="port-options"></div>
+  </div>
+  <div id="port-results" class="port-results" style="display:none">
+    <div class="port-result-hero">
+      <div class="port-final-score" id="port-final-score">0</div>
+      <div style="font-size:14px;color:var(--text-dim);margin-top:4px">ports matched</div>
+    </div>
+    <div id="port-missed-review" class="port-missed-review"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" style="flex:1" onclick="beginPortDrill()">Play Again &#9889;</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="goSetup()">&#8592; Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PERFORMANCE ANALYTICS DASHBOARD
+══════════════════════════════════════════ -->
+<div id="page-analytics" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <h2>&#128202; Performance Analytics</h2>
+  </div>
+  <div id="analytics-content">
+    <p style="color:var(--text-dim)">Complete at least one quiz to see your analytics.</p>
   </div>
 </div>
 
