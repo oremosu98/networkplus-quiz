@@ -337,7 +337,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v2.9</span>
+    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.0</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -410,6 +410,11 @@
       <button class="chip" data-v="SMB & Network File Services">SMB &amp; File Services</button>
       <button class="chip" data-v="Cloud Networking & VPCs">Cloud Networking &amp; VPCs</button>
       <button class="chip" data-v="Port Numbers">&#128268; Port Numbers</button>
+      <button class="chip" data-v="PKI & Certificate Management">PKI &amp; Certificates</button>
+      <button class="chip" data-v="CompTIA Troubleshooting Methodology">7-Step Methodology</button>
+      <button class="chip" data-v="Firewalls, DMZ & Security Zones">Firewalls &amp; DMZ</button>
+      <button class="chip" data-v="WPA3 & EAP Authentication">WPA3 &amp; EAP</button>
+      <button class="chip" data-v="SDN, NFV & Automation">SDN &amp; Automation</button>
       <button class="chip chip-smart" data-v="🧠 Smart (Spaced Rep)">&#129504; Smart</button>
       <button class="chip on" data-v="Mixed &mdash; All Topics">&#127922; Mixed (All Topics)</button>
     </div>
@@ -452,6 +457,15 @@
   <button class="btn btn-exam btn-full" style="margin-top:10px" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
   <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="showPage('progress');renderProgressPage()">&#128200; Topic Progress</button>
+
+  <!-- Data Export / Import -->
+  <div style="display:flex;gap:10px;margin-top:10px">
+    <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
+    <label class="btn btn-ghost" style="flex:1;font-size:13px;cursor:pointer;text-align:center">
+      &#128228; Import Data
+      <input type="file" accept=".json" style="display:none" onchange="importData(event)" />
+    </label>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -731,11 +745,17 @@ let examAnswers   = []; // [{chosen:null|str, flagged:bool}]
 let examCurrent   = 0;
 let examTimer     = null;
 let examTimeLeft  = 5400;
+let examEndTime   = 0;   // wall-clock ms when exam ends (drift-proof)
 let navOpen       = false;
 
 // ══════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════
+// Register service worker for offline UI shell
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('nplus_key');
   if (saved) document.getElementById('api-key').value = saved;
@@ -994,6 +1014,30 @@ function _cacheKey(t, d, n) {
 }
 function cacheQuestions(t, d, n, qs) {
   try { localStorage.setItem(_cacheKey(t, d, n), JSON.stringify({ ts: Date.now(), qs })); } catch(e) {}
+  pruneCache(); // keep localStorage tidy
+}
+function pruneCache() {
+  try {
+    const cacheKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('nplus_qcache__')) {
+        try {
+          const obj = JSON.parse(localStorage.getItem(k));
+          cacheKeys.push({ key: k, ts: obj.ts || 0 });
+        } catch { cacheKeys.push({ key: k, ts: 0 }); }
+      }
+    }
+    // Remove expired (>7 days)
+    const now = Date.now();
+    cacheKeys.forEach(c => { if (now - c.ts > CACHE_TTL) localStorage.removeItem(c.key); });
+    // If still >20 entries, remove oldest
+    const remaining = cacheKeys.filter(c => now - c.ts <= CACHE_TTL);
+    if (remaining.length > 20) {
+      remaining.sort((a, b) => a.ts - b.ts);
+      remaining.slice(0, remaining.length - 20).forEach(c => localStorage.removeItem(c.key));
+    }
+  } catch(e) {}
 }
 function getCachedQuestions(t, d, n) {
   try {
@@ -1050,11 +1094,19 @@ function renderWeakBanner() {
 // ══════════════════════════════════════════
 // START REGULAR QUIZ
 // ══════════════════════════════════════════
+function validateApiKey(key) {
+  if (!key) return 'Please enter your Anthropic API key.';
+  if (!key.startsWith('sk-ant-')) return 'Invalid API key format. Anthropic keys start with "sk-ant-".';
+  if (key.length < 20) return 'API key looks too short. Please check and try again.';
+  return null;
+}
+
 async function startQuiz() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.style.display = 'none';
-  if (!key) { errBox.textContent = 'Please enter your Anthropic API key.'; errBox.style.display = 'block'; return; }
+  const keyErr = validateApiKey(key);
+  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
   localStorage.setItem('nplus_key', key);
   examMode = false;
@@ -1096,7 +1148,8 @@ async function startExam() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.style.display = 'none';
-  if (!key) { errBox.textContent = 'Please enter your Anthropic API key.'; errBox.style.display = 'block'; return; }
+  const keyErr = validateApiKey(key);
+  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
   localStorage.setItem('nplus_key', key);
 
@@ -1115,13 +1168,23 @@ async function startExam() {
   fill.style.width = '0%'; // Fix #3: always reset bar to 0 before new batch loop
   prog.style.display = 'block';
 
-  const BATCHES = 5, BATCH_SIZE = 18;
+  const BATCHES = 5, BATCH_SIZE = 18, MAX_RETRIES = 2;
   try {
     for (let i = 0; i < BATCHES; i++) {
       fill.style.width = ((i / BATCHES) * 100) + '%';
       lbl.textContent  = `Batch ${i + 1} / ${BATCHES}\u2026`;
       document.getElementById('loading-msg').textContent = `Generating questions (${examQuestions.length + BATCH_SIZE} / 90)\u2026`;
-      const batch = await fetchQuestions(key, 'Mixed \u2014 All Topics', 'Mixed', BATCH_SIZE);
+      let batch = null;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          batch = await fetchQuestions(key, 'Mixed \u2014 All Topics', 'Mixed', BATCH_SIZE);
+          break;
+        } catch(retryErr) {
+          if (attempt === MAX_RETRIES) throw retryErr;
+          lbl.textContent = `Batch ${i + 1} failed, retrying (${attempt + 1}/${MAX_RETRIES})\u2026`;
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      }
       examQuestions = examQuestions.concat(batch);
     }
     fill.style.width = '100%';
@@ -1140,7 +1203,7 @@ async function startExam() {
 // ══════════════════════════════════════════
 // API
 // ══════════════════════════════════════════
-async function fetchQuestions(key, topic, difficulty, n) {
+async function fetchQuestions(key, qTopic, difficulty, n) {
   const topicHints = {
     'Integrating Networked Devices': 'IoT devices, ICS/SCADA systems, OT/IT convergence, smart building tech, embedded systems, segmentation of IoT, industrial control risks.',
     'Network Troubleshooting & Tools': 'Troubleshooting methodology, ping, traceroute/tracert, ipconfig/ifconfig, nslookup, dig, netstat, arp, route, Wireshark/packet capture, cable testers, TDR, loopback testing, common network faults.',
@@ -1151,11 +1214,16 @@ async function fetchQuestions(key, topic, difficulty, n) {
     'IPsec & VPN Protocols': 'IPsec tunnel vs transport mode, AH vs ESP, IKEv1 vs IKEv2, IKE Phase 1 (main/aggressive), IKE Phase 2, ISAKMP, SA negotiation, site-to-site VPN, remote access VPN, SSL/TLS VPN, split tunneling, GRE tunnels, L2TP/IPsec, OpenVPN.',
     'SMB & Network File Services': 'SMB protocol versions (SMBv1/2/3), CIFS, NFS (v3/v4), Samba, file share permissions vs NTFS, UNC paths, port 445 (SMB), port 2049 (NFS), iSCSI, SAN vs NAS, FTP/SFTP/FTPS, SCP.',
     'Cloud Networking & VPCs': 'VPC (Virtual Private Cloud), subnets in cloud, route tables, internet gateways, NAT gateways, security groups vs NACLs, VPC peering, transit gateways, VPN to cloud, Direct Connect / ExpressRoute, cloud service models (IaaS/PaaS/SaaS), shared responsibility model, multi-tenant networking.',
-    'Port Numbers': 'Every question must be about matching a protocol to its port number or transport (TCP/UDP). Cover: FTP data 20/TCP, FTP control 21/TCP, SSH & SFTP 22/TCP, Telnet 23/TCP, SMTP 25/TCP, DNS 53 (TCP & UDP), DHCP server 67/UDP & client 68/UDP, TFTP 69/UDP, HTTP 80/TCP, Kerberos 88 (TCP & UDP), POP3 110/TCP, NTP 123/UDP, NetBIOS name 137/UDP, NetBIOS datagram 138/UDP, NetBIOS session 139/TCP, IMAP 143/TCP, SNMP queries 161/UDP & traps 162/UDP, LDAP 389/TCP, HTTPS 443/TCP, SMB 445/TCP, Syslog 514/UDP, SMTP submission/TLS 587/TCP, LDAPS 636/TCP, iSCSI 3260/TCP, TACACS+ 49/TCP, BGP 179/TCP, RADIUS auth 1812/UDP & accounting 1813/UDP, NFS 2049/TCP & UDP, MySQL 3306/TCP, RDP 3389/TCP, SIP 5060/UDP & TLS 5061/TCP, VNC 5900/TCP, IKE/IPsec 500/UDP, IPsec NAT-T 4500/UDP, L2TP 1701/UDP, OpenVPN 1194/UDP, FTPS implicit 990/TCP. Use tricky distractors — near-miss ports and protocol confusions are fair game.'
+    'Port Numbers': 'Every question must be about matching a protocol to its port number or transport (TCP/UDP). Cover: FTP data 20/TCP, FTP control 21/TCP, SSH & SFTP 22/TCP, Telnet 23/TCP, SMTP 25/TCP, DNS 53 (TCP & UDP), DHCP server 67/UDP & client 68/UDP, TFTP 69/UDP, HTTP 80/TCP, Kerberos 88 (TCP & UDP), POP3 110/TCP, NTP 123/UDP, NetBIOS name 137/UDP, NetBIOS datagram 138/UDP, NetBIOS session 139/TCP, IMAP 143/TCP, SNMP queries 161/UDP & traps 162/UDP, LDAP 389/TCP, HTTPS 443/TCP, SMB 445/TCP, Syslog 514/UDP, SMTP submission/TLS 587/TCP, LDAPS 636/TCP, iSCSI 3260/TCP, TACACS+ 49/TCP, BGP 179/TCP, RADIUS auth 1812/UDP & accounting 1813/UDP, NFS 2049/TCP & UDP, MySQL 3306/TCP, RDP 3389/TCP, SIP 5060/UDP & TLS 5061/TCP, VNC 5900/TCP, IKE/IPsec 500/UDP, IPsec NAT-T 4500/UDP, L2TP 1701/UDP, OpenVPN 1194/UDP, FTPS implicit 990/TCP. Use tricky distractors — near-miss ports and protocol confusions are fair game.',
+    'PKI & Certificate Management': 'Public Key Infrastructure: Root CA, Intermediate CA, end-entity (leaf) certificates and the full chain of trust. Certificate fields: CN (Common Name), SAN (Subject Alternative Name), issuer, expiry, serial number. Self-signed vs CA-signed certificates. CRL (Certificate Revocation List) and OCSP (Online Certificate Status Protocol) — difference and use cases. TLS handshake steps: ClientHello, ServerHello, certificate exchange, key exchange, session keys, ChangeCipherSpec. Cipher suites: what they contain (key exchange, auth, encryption, MAC). Wildcard certificates. Certificate pinning. Private vs public keys — which encrypts, which decrypts, which signs. PKI use cases: HTTPS, email signing (S/MIME), VPN certificate auth, code signing.',
+    'CompTIA Troubleshooting Methodology': 'The CompTIA 7-step troubleshooting methodology — test knowledge of the steps IN ORDER: 1) Identify the problem (gather information, question users, identify symptoms, determine if anything changed), 2) Establish a theory of probable cause (question the obvious, consider multiple approaches), 3) Test the theory to determine the cause (if confirmed proceed to step 4; if not, establish a new theory or escalate), 4) Establish a plan of action and identify potential effects, 5) Implement the solution or escalate as necessary, 6) Verify full system functionality and implement preventive measures, 7) Document findings, actions, and outcomes. Exam questions describe a scenario mid-troubleshooting and ask which step is next, which step an action belongs to, or the correct order. Also cover: when to escalate vs implement, why documentation is step 7 not step 1, difference between identifying symptoms and establishing a theory.',
+    'Firewalls, DMZ & Security Zones': 'Stateful vs stateless (packet-filtering) firewalls — how each tracks connections, which is more secure. Next-Generation Firewalls (NGFW) — application-layer inspection, deep packet inspection, IPS integration. UTM (Unified Threat Management). Security zones: trusted (LAN), untrusted (internet), DMZ. Screened subnet (DMZ) — purpose, placement between two firewalls, what lives there (web servers, mail servers). Implicit deny — all traffic blocked unless explicitly permitted. Firewall rule order and ACL processing. Content filtering and URL filtering — how they work, use cases. Active-passive high availability (HA) — primary/standby failover. Proxy firewalls and their advantages. Host-based vs network-based firewalls. Common firewall scenario questions: which zone a server belongs in, what rule allows/blocks traffic, how HA changes failover behaviour.',
+    'WPA3 & EAP Authentication': 'WPA3-Personal: uses SAE (Simultaneous Authentication of Equals / Dragonfly handshake) instead of PSK — eliminates offline dictionary attacks. WPA3-Enterprise: uses 192-bit security suite (Suite B cryptography), stronger than WPA2-Enterprise. OWE (Opportunistic Wireless Encryption) — encrypts open/guest networks without a password. WPA3 vs WPA2 key differences: forward secrecy in WPA3, SAE vs PSK, protection against KRACK-style attacks. EAP types for 802.1X: EAP-TLS (mutual certificate authentication — strongest), PEAP (Protected EAP — client uses password, server uses certificate, tunnelled), EAP-TTLS (like PEAP but more flexible inner methods), EAP-FAST (Cisco, uses PAC instead of certificates). 802.1X roles: Supplicant (client), Authenticator (switch/AP), Authentication Server (RADIUS). PMKID attacks. Wi-Fi Easy Connect (QR code provisioning in WPA3). Transition mode (WPA2/WPA3 mixed).',
+    'SDN, NFV & Automation': 'Software-Defined Networking (SDN): separation of control plane and data plane. SDN controller sits centrally, pushes flow rules to network devices. Northbound API (controller ↔ applications), southbound API (controller ↔ devices, e.g. OpenFlow). Benefits: centralised management, programmability, faster provisioning. NFV (Network Functions Virtualisation): running network functions (firewalls, load balancers, routers) as software on commodity hardware instead of dedicated appliances. VNF (Virtual Network Function). Difference between SDN and NFV — SDN = control plane abstraction, NFV = virtualising network appliances. Infrastructure as Code (IaC): defining network/infrastructure config in code files (Ansible, Terraform, Puppet, Chef). YANG data models and NETCONF protocol for network automation. Intent-based networking (IBN) — defining desired outcomes rather than configs. Benefits of automation: consistency, speed, reduced human error. REST APIs for network management. Zero-touch provisioning.'
   };
-  const topicStr = topic === 'Mixed \u2014 All Topics'
-    ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless, VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, and Ethernet standards.'
-    : `Focus only on: "${topic}" for the CompTIA Network+ N10-009 exam.${topicHints[topic] ? ' Specifically cover: ' + topicHints[topic] : ''}`;
+  const topicStr = qTopic === 'Mixed \u2014 All Topics'
+    ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless (including WPA3/EAP), VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, Ethernet standards, PKI and certificate management, the CompTIA 7-step troubleshooting methodology, firewalls and security zones (DMZ, stateful vs stateless), WPA3 and EAP authentication types, and SDN/NFV/network automation.'
+    : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam.${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
 
   const diffStr = {
     'Foundational':  'Foundational: test basic recall and definitions. Clear right answers.',
@@ -1209,7 +1277,7 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
   // Fix #2: catch malformed JSON from AI with a friendly message
   try {
     const parsed = JSON.parse(m[0]);
-    cacheQuestions(topic, difficulty, n, parsed); // save for offline fallback
+    cacheQuestions(qTopic, difficulty, n, parsed); // save for offline fallback
     return parsed;
   } catch(parseErr) {
     throw new Error('AI returned malformed data. Please try again.');
@@ -1427,8 +1495,9 @@ async function retryQuiz() {
 // ══════════════════════════════════════════
 function startExamTimer() {
   if (examTimer) clearInterval(examTimer);
+  examEndTime = Date.now() + examTimeLeft * 1000; // wall-clock end time
   examTimer = setInterval(() => {
-    examTimeLeft--;
+    examTimeLeft = Math.max(0, Math.round((examEndTime - Date.now()) / 1000));
     updateTimerDisplay();
     if (examTimeLeft <= 0) { clearInterval(examTimer); examTimer = null; submitExam(); }
   }, 1000);
@@ -1723,14 +1792,14 @@ function getReadinessScore() {
   const studiedTopics = Object.keys(topicMap);
   const studiedCount  = studiedTopics.length;
 
-  // 1. Weighted accuracy (40%) — harder correct answers worth more; unstudied topics pull down
-  const accuracyScore = allTopics.reduce((sum, t) => {
-    if (!topicMap[t]) return sum;
-    return sum + (topicMap[t].wCorrect / topicMap[t].wTotal) * 100;
-  }, 0) / totalTopics;
+  // 1. Weighted accuracy (40%) — only average across STUDIED topics so early users aren't crushed
+  const accuracyScore = studiedCount > 0
+    ? studiedTopics.reduce((sum, t) => sum + (topicMap[t].wCorrect / topicMap[t].wTotal) * 100, 0) / studiedCount
+    : 0;
 
-  // 2. Coverage (25%) — % of topics touched at all
-  const coverageScore = (studiedCount / totalTopics) * 100;
+  // 2. Coverage (25%) — % of topics touched; soft-start: weight reduces when <5 topics studied
+  const coverageRaw = (studiedCount / totalTopics) * 100;
+  const coverageScore = studiedCount < 5 ? coverageRaw * 0.5 : coverageRaw; // halve penalty early on
 
   // 3. Recency / retention (20%) — each topic decays to 0 over 14 days; unstudied = 0
   const recencyScore = studiedTopics.reduce((sum, t) => {
@@ -1881,7 +1950,8 @@ async function startSession() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.style.display = 'none';
-  if (!key) { errBox.textContent = 'Please enter your Anthropic API key.'; errBox.style.display = 'block'; return; }
+  const keyErr = validateApiKey(key);
+  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
   localStorage.setItem('nplus_key', key);
 
@@ -1978,6 +2048,71 @@ function endSessionEarly() {
   sessionStep = 0;
   sessionResults = [];
   goSetup();
+}
+
+// ══════════════════════════════════════════
+// DATA EXPORT / IMPORT
+// ══════════════════════════════════════════
+function exportData() {
+  const data = {
+    version: '3.0',
+    exportedAt: new Date().toISOString(),
+    history: loadHistory(),
+    streak: getStreak()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'networkplus-quiz-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.history || !Array.isArray(data.history)) {
+        alert('Invalid backup file — no history data found.');
+        return;
+      }
+      if (!confirm(`Import ${data.history.length} history entries? This will MERGE with your existing data.`)) return;
+
+      // Merge histories (deduplicate by date+topic)
+      const existing = loadHistory();
+      const existingKeys = new Set(existing.map(e => e.date + '|' + e.topic));
+      const newEntries = data.history.filter(e => !existingKeys.has(e.date + '|' + e.topic));
+      const merged = existing.concat(newEntries);
+      merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (merged.length > 200) merged.length = 200;
+      localStorage.setItem('nplus_history', JSON.stringify(merged));
+
+      // Import streak if better
+      if (data.streak) {
+        const current = getStreak();
+        if ((data.streak.best || 0) > (current.best || 0)) {
+          current.best = data.streak.best;
+          localStorage.setItem('nplus_streak', JSON.stringify(current));
+        }
+      }
+
+      alert(`Imported ${newEntries.length} new entries (${data.history.length - newEntries.length} duplicates skipped).`);
+      renderHistoryPanel();
+      renderStatsCard();
+      renderReadinessCard();
+      renderStreakBadge();
+    } catch(err) {
+      alert('Failed to parse backup file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset file input
 }
 
 // ══════════════════════════════════════════
