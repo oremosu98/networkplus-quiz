@@ -1,8 +1,10 @@
-// Service Worker v3.0 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v3.0';
+// Service Worker v3.1 — Network+ Quiz App
+const CACHE_NAME = 'netplus-v3.1';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
+  '/styles.css',
+  '/app.js',
   '/manifest.json'
 ];
 
@@ -24,7 +26,7 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API calls, cache-first for app shell
+// Fetch: network-first for API calls, stale-while-revalidate for app shell
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -33,14 +35,13 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.match(event.request).then(cached => {
-      // Return cached version immediately, but also update cache in background
       const fetchPromise = fetch(event.request).then(response => {
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return response;
-      }).catch(() => cached); // if offline, fall back to cache
+      }).catch(() => cached);
 
       return cached || fetchPromise;
     })
