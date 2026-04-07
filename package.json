@@ -8,6 +8,7 @@
     "test": "npm run test:uat && npm run test:e2e",
     "serve": "npx serve . -l 3131 -s",
     "bump": "node scripts/bump-version.js",
+    "stage": "node scripts/stage.js",
     "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
