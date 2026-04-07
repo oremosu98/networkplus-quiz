@@ -145,9 +145,12 @@
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
 
   <!-- Wrong Answers Drill -->
-  <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" style="margin-top:10px;display:none" onclick="startWrongDrill()">
-    &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
-  </button>
+  <div class="wrong-bank-row" id="wrong-bank-row" style="display:none;margin-top:10px;gap:8px">
+    <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" onclick="startWrongDrill()">
+      &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
+    </button>
+    <button class="btn btn-ghost wrong-bank-clear" id="wrong-bank-clear" onclick="clearWrongBank()" title="Clear all wrong answers">&#128465; Clear</button>
+  </div>
 
   <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="showPage('progress');renderProgressPage()">&#128200; Topic Progress</button>
 

@@ -436,16 +436,25 @@ function graduateFromBank(questionText) {
 }
 
 function renderWrongBankBtn() {
+  const row = document.getElementById('wrong-bank-row');
   const btn = document.getElementById('wrong-bank-btn');
-  if (!btn) return;
+  if (!row || !btn) return;
   const bank = loadWrongBank();
   if (bank.length === 0) {
-    btn.style.display = 'none';
+    row.style.display = 'none';
     return;
   }
-  btn.style.display = '';
+  row.style.display = 'flex';
   const badge = btn.querySelector('.wrong-count-badge');
   if (badge) badge.textContent = bank.length;
+}
+
+function clearWrongBank() {
+  const bank = loadWrongBank();
+  if (bank.length === 0) return;
+  if (!confirm(`Clear all ${bank.length} wrong answers? This cannot be undone.`)) return;
+  localStorage.removeItem('nplus_wrong_bank');
+  renderWrongBankBtn();
 }
 
 function startWrongDrill() {
@@ -1045,10 +1054,26 @@ function submitOrder(q) {
   // Show correct vs wrong in placed list
   const items = q.items || [];
   const list = document.getElementById('order-placed-list');
-  list.innerHTML = orderSequence.map((idx, pos) => {
-    const isCorrectPos = correctOrder[pos] === idx;
-    return `<div class="order-placed-item ${isCorrectPos ? 'order-correct' : 'order-wrong'}"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])} ${isCorrectPos ? '\u2713' : '\u2717 (should be: ' + escHtml(items[correctOrder[pos]]) + ')'}</div>`;
-  }).join('');
+  if (isRight) {
+    // All correct — show green ticks
+    list.innerHTML = orderSequence.map((idx, pos) => {
+      return `<div class="order-placed-item order-correct"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])} \u2713</div>`;
+    }).join('');
+  } else {
+    // Wrong — show user's order with X marks, then animate to correct order
+    list.innerHTML = orderSequence.map((idx, pos) => {
+      const isCorrectPos = correctOrder[pos] === idx;
+      return `<div class="order-placed-item ${isCorrectPos ? 'order-correct' : 'order-wrong'}"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])} ${isCorrectPos ? '\u2713' : '\u2717'}</div>`;
+    }).join('');
+    // After a brief pause, reorder to show the CORRECT sequence
+    setTimeout(() => {
+      list.innerHTML = '<div class="order-correct-label">\u2705 Correct order:</div>' +
+        correctOrder.map((idx, pos) => {
+          const wasCorrect = orderSequence[pos] === idx;
+          return `<div class="order-placed-item order-reveal${wasCorrect ? '' : ' order-highlight'}"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])}</div>`;
+        }).join('');
+    }, 1500);
+  }
 
   showExplanation(q, isRight);
 }
