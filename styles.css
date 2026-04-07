@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.0
+   Network+ AI Quiz — styles.css  v4.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,7 +39,7 @@ button:focus-visible, .chip:focus-visible, .btn:focus-visible { outline: 2px sol
 .mon-entry-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .mon-type { font-size: 10px; font-weight: 800; letter-spacing: .08em; padding: 2px 8px; border-radius: 4px; }
 .mon-type-runtime { background: rgba(220,38,38,.15); color: var(--red); }
-.mon-type-promise { background: rgba(251,191,36,.15); color: var(--yellow); }
+.mon-type-promise { background: rgba(var(--yellow-rgb),.15); color: var(--yellow); }
 .mon-time { font-size: 11px; color: var(--text-dim); }
 .mon-page { font-size: 11px; color: var(--accent-light); background: rgba(124,111,247,.08); padding: 1px 6px; border-radius: 3px; }
 .mon-version { font-size: 10px; color: var(--text-dim); margin-left: auto; }
@@ -68,6 +68,7 @@ button:focus-visible, .chip:focus-visible, .btn:focus-visible { outline: 2px sol
   --green: #22c55e; --green-bg: #061a0e; --green-border: rgba(34,197,94,.35);
   --red: #f87171; --red-bg: #1c0505; --red-border: rgba(248,113,113,.35);
   --yellow: #fbbf24; --blue: #60a5fa; --orange: #fb923c;
+  --accent-rgb: 124,111,247; --green-rgb: 34,197,94; --red-rgb: 248,113,113; --yellow-rgb: 251,191,36;
   --radius: 14px; --radius-sm: 10px;
   --correct-text: #bbf7d0; --correct-text2: #d1fae5; --correct-text3: #86efac;
   --wrong-text: #fecaca; --wrong-text2: #fee2e2;
@@ -80,6 +81,7 @@ button:focus-visible, .chip:focus-visible, .btn:focus-visible { outline: 2px sol
   --green: #16a34a; --green-bg: #f0fdf4; --green-border: rgba(22,163,74,.3);
   --red: #dc2626; --red-bg: #fef2f2; --red-border: rgba(220,38,38,.3);
   --yellow: #b45309; --blue: #2563eb; --orange: #ea580c;
+  --accent-rgb: 99,85,224; --green-rgb: 22,163,74; --red-rgb: 220,38,38; --yellow-rgb: 180,83,9;
   --correct-text: #166534; --correct-text2: #15803d; --correct-text3: #166534;
   --wrong-text: #991b1b; --wrong-text2: #b91c1c;
 }
@@ -142,7 +144,7 @@ input::placeholder { color: var(--text-dim); }
 .weak-banner { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .weak-banner .wb-text { font-size: 14px; color: var(--text); flex: 1; line-height: 1.5; }
 .weak-banner .wb-text strong { color: var(--yellow); }
-.weak-drill { font-size: 13px; font-weight: 700; color: var(--yellow); cursor: pointer; background: rgba(251,191,36,.15); border: 1px solid rgba(251,191,36,.3); padding: 8px 14px; border-radius: var(--radius-sm); white-space: nowrap; }
+.weak-drill { font-size: 13px; font-weight: 700; color: var(--yellow); cursor: pointer; background: rgba(var(--yellow-rgb),.15); border: 1px solid rgba(251,191,36,.3); padding: 8px 14px; border-radius: var(--radius-sm); white-space: nowrap; }
 .weak-drill:hover { background: rgba(251,191,36,.25); }
 
 /* ── WRONG BANK BANNER ── */
@@ -212,7 +214,7 @@ input::placeholder { color: var(--text-dim); }
 .q-num { font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 .diff-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 3px 10px; border-radius: 99px; }
 .diff-Foundational { background: rgba(96,165,250,.15); color: var(--blue); }
-.diff-ExamLevel    { background: rgba(251,191,36,.15); color: var(--yellow); }
+.diff-ExamLevel    { background: rgba(var(--yellow-rgb),.15); color: var(--yellow); }
 .diff-Hard         { background: rgba(248,113,113,.15); color: var(--red); }
 
 .q-text { font-size: 20px; font-weight: 700; line-height: 1.5; color: var(--text); margin-bottom: 26px; }
@@ -346,7 +348,7 @@ input::placeholder { color: var(--text-dim); }
 .qnav-sq:hover { border-color: var(--accent); }
 .qnav-sq.current  { border-color: var(--accent); background: rgba(124,111,247,.25); color: var(--accent); }
 .qnav-sq.answered { background: rgba(124,111,247,.12); border-color: var(--accent-dim); color: var(--accent-light); }
-.qnav-sq.flagged  { background: rgba(251,191,36,.15); border-color: var(--yellow); color: var(--yellow); }
+.qnav-sq.flagged  { background: rgba(var(--yellow-rgb),.15); border-color: var(--yellow); color: var(--yellow); }
 
 /* ── EXAM NAV ROW ── */
 .exam-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
@@ -569,7 +571,7 @@ input::placeholder { color: var(--text-dim); }
 .td-concept-body { flex: 1; }
 .td-concept-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
 .td-concept-detail { font-size: 12px; line-height: 1.6; color: var(--text-dim); }
-.td-scenario { background: linear-gradient(135deg, rgba(251,191,36,.04), rgba(251,191,36,.01)); border-color: rgba(251,191,36,.15); }
+.td-scenario { background: linear-gradient(135deg, rgba(251,191,36,.04), rgba(251,191,36,.01)); border-color: rgba(var(--yellow-rgb),.15); }
 .td-diagram-section pre.td-diagram { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace; font-size: 12px; line-height: 1.5; color: var(--accent-light); background: rgba(0,0,0,.25); padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; border: 1px solid rgba(124,111,247,.15); }
 [data-theme="light"] .td-diagram-section pre.td-diagram { background: rgba(124,111,247,.04); color: var(--accent); }
 .td-tips-list { list-style: none; padding: 0; margin: 0; }
@@ -674,9 +676,9 @@ input::placeholder { color: var(--text-dim); }
 .ana-cal-day { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; animation: anaCalPop .4s ease-out both; position: relative; transition: transform .2s, box-shadow .2s; cursor: default; flex-direction: column; }
 .ana-cal-day:hover { transform: scale(1.15); z-index: 2; }
 .ana-cal-day.cal-active { cursor: pointer; }
-.ana-cal-day.cal-active:hover { box-shadow: 0 0 14px rgba(124,111,247,.5); }
+.ana-cal-day.cal-active:hover { box-shadow: 0 0 14px rgba(var(--accent-rgb),.5); }
 .ana-cal-day.cal-hot { animation: anaCalPop .4s ease-out both, calGlow 2s ease-in-out infinite; }
-@keyframes calGlow { 0%,100% { box-shadow: 0 0 4px rgba(124,111,247,.2); } 50% { box-shadow: 0 0 16px rgba(124,111,247,.6); } }
+@keyframes calGlow { 0%,100% { box-shadow: 0 0 4px rgba(var(--accent-rgb),.2); } 50% { box-shadow: 0 0 16px rgba(var(--accent-rgb),.6); } }
 .cal-tip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) scale(0.8); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 700; color: var(--accent-light); white-space: nowrap; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
 .ana-cal-day:hover .cal-tip { opacity: 1; transform: translateX(-50%) scale(1); }
 @keyframes anaCalPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -692,11 +694,11 @@ input::placeholder { color: var(--text-dim); }
 .ana-exam-details { flex: 1; font-size: 13px; color: var(--text-mid); }
 .ana-exam-date { font-size: 11px; color: var(--text-dim); }
 
-.ana-priority { border-color: rgba(251,191,36,.3); background: rgba(251,191,36,.03); }
+.ana-priority { border-color: rgba(var(--yellow-rgb),.3); background: rgba(var(--yellow-rgb),.03); }
 .ana-priority h3 { color: var(--yellow); }
 .ana-priority-list { display: flex; flex-direction: column; gap: 6px; }
 .ana-priority-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-.ana-priority-rank { width: 22px; height: 22px; border-radius: 50%; background: rgba(251,191,36,.15); color: var(--yellow); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.ana-priority-rank { width: 22px; height: 22px; border-radius: 50%; background: rgba(var(--yellow-rgb),.15); color: var(--yellow); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .ana-priority-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
 .ana-priority-pct { font-size: 14px; font-weight: 800; }
 

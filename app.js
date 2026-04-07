@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -83,6 +83,7 @@ const ERROR_LOG_CAP = 50;
 const GH_TOKEN_KEY = 'nplus_gh_monitor_token';
 const GH_REPORTED_KEY = 'nplus_gh_reported';
 const GH_REPO = 'oremosu98/networkplus-quiz';
+const GH_PROJECT_ID = 'PVT_kwHOB0H7gM4BT-VD';
 
 function logError(type, msg, extra = {}) {
   try {
@@ -170,12 +171,30 @@ _Auto-reported by Production Monitor v${entry.version}_`;
       })
     });
     if (res.ok) {
+      const issue = await res.json();
+      // Add issue to Kanban board
+      addIssueToProject(token, issue.node_id);
       // Mark as reported so we don't create duplicates
       reported.push(fp);
       if (reported.length > 200) reported.splice(0, reported.length - 200);
       localStorage.setItem(GH_REPORTED_KEY, JSON.stringify(reported));
     }
   } catch (_) { /* silent — don't error on error reporting */ }
+}
+
+async function addIssueToProject(token, issueNodeId) {
+  try {
+    await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Authorization': `bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: `mutation { addProjectV2ItemById(input: { projectId: "${GH_PROJECT_ID}", contentId: "${issueNodeId}" }) { item { id } } }`
+      })
+    });
+  } catch (_) { /* silent */ }
 }
 
 window.onerror = function(msg, src, line, col, err) {
@@ -242,6 +261,7 @@ function renderMonitor() {
       <div class="mon-github-input-row">
         <input type="password" id="gh-monitor-token" class="mon-github-input" placeholder="ghp_xxxxxxxxxxxx" value="${ghToken ? '••••••••••••••••' : ''}" />
         <button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="saveGhToken()">Save</button>
+        ${ghToken ? '<button class="btn btn-ghost" style="padding:8px 14px;font-size:12px" onclick="revealGhToken()">Reveal</button><button class="btn btn-ghost" style="padding:8px 14px;font-size:12px" onclick="copyGhToken()">Copy</button>' : ''}
       </div>
       <p class="mon-github-hint">${reportedCount} unique errors reported so far. Token stored locally, never sent anywhere except GitHub API.</p>
     </div>
@@ -325,6 +345,25 @@ function saveGhToken() {
     showErrorToast('GitHub auto-reporter disconnected.');
   }
   renderMonitor();
+}
+
+function revealGhToken() {
+  const input = document.getElementById('gh-monitor-token');
+  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  if (!input || !token) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    input.value = token;
+  } else {
+    input.type = 'password';
+    input.value = '••••••••••••••••';
+  }
+}
+
+function copyGhToken() {
+  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  if (!token) return;
+  navigator.clipboard.writeText(token).then(() => showErrorToast('Token copied to clipboard'));
 }
 
 // Triple-tap version badge to open monitor
@@ -460,7 +499,7 @@ function renderHistoryPanel() {
   panel.style.display = 'block';
   list.innerHTML = h.slice(0,8).map(e => {
     const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    const color = e.pct >= 80 ? '#22c55e' : e.pct >= 60 ? '#fbbf24' : '#f87171';
+    const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
     const tag   = e.mode === 'exam' ? '<span class="mode-tag">EXAM</span>' : '';
     return `<div class="history-row">
       <div class="h-info">
@@ -600,15 +639,39 @@ function renderStreakBadge() {
 // ══════════════════════════════════════════
 
 // Shared scoring helper used by both getSpacedRepTopic and buildSessionPlan
+// Uses Leitner-inspired decay: topics you've aced many times decay slower,
+// topics you struggle with or haven't seen much decay fast.
 function _scoreTopicNeed(topic, historyEntries, now) {
   const entries = historyEntries.filter(e => e.topic === topic);
   if (entries.length === 0) return { score: 1.0, reason: 'Never studied', color: 'var(--text-dim)' };
+
   const daysSince = (now - new Date(entries[0].date)) / 86400000;
   const recentAvg = entries.slice(0, 3).reduce((a, e) => a + e.pct, 0) / Math.min(entries.length, 3);
-  const score = (Math.min(daysSince, 14) / 14) * 0.4 + ((100 - recentAvg) / 100) * 0.6;
+
+  // Confidence level: consecutive 80%+ sessions (like Leitner boxes)
+  let confidence = 0;
+  for (const e of entries) { if (e.pct >= 80) confidence++; else break; }
+
+  // Decay interval — higher confidence = slower decay (1d, 3d, 7d, 14d, 30d)
+  const intervals = [1, 3, 7, 14, 30];
+  const interval = intervals[Math.min(confidence, intervals.length - 1)];
+  const decayScore = Math.min(daysSince / interval, 1.0);
+
+  // Performance score — how much room to improve
+  const perfScore = (100 - recentAvg) / 100;
+
+  // Wrong bank boost — topics with wrong answers get priority
+  const wrongBank = loadWrongBank();
+  const wrongCount = wrongBank.filter(w => w.topic === topic).length;
+  const wrongBoost = Math.min(wrongCount * 0.1, 0.3);
+
+  // Combined: 35% decay + 45% performance + 20% wrong bank
+  const score = decayScore * 0.35 + perfScore * 0.45 + wrongBoost + (entries.length < 3 ? 0.1 : 0);
+
   let reason, color;
-  if (recentAvg < 60) { reason = Math.round(recentAvg) + '% avg \u2014 needs work'; color = 'var(--red)'; }
-  else if (daysSince >= 7) { reason = Math.round(daysSince) + 'd since last drill'; color = 'var(--yellow)'; }
+  if (wrongCount > 0) { reason = wrongCount + ' wrong answer' + (wrongCount > 1 ? 's' : '') + ' banked'; color = 'var(--red)'; }
+  else if (recentAvg < 60) { reason = Math.round(recentAvg) + '% avg \u2014 needs work'; color = 'var(--red)'; }
+  else if (daysSince >= interval) { reason = Math.round(daysSince) + 'd ago \u2014 due for review'; color = 'var(--yellow)'; }
   else if (recentAvg < 80) { reason = Math.round(recentAvg) + '% avg \u2014 room to improve'; color = 'var(--yellow)'; }
   else { reason = Math.round(recentAvg) + '% avg \u2014 keep sharp'; color = 'var(--green)'; }
   return { score, reason, color };
@@ -624,13 +687,19 @@ function getSpacedRepTopic() {
   const allTopics = _getAllStudyTopics();
   const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
   const now = Date.now();
-  let bestTopic = allTopics[Math.floor(Math.random() * allTopics.length)];
-  let bestScore = -1;
-  allTopics.forEach(t => {
-    const { score } = _scoreTopicNeed(t, h, now);
-    if (score > bestScore) { bestScore = score; bestTopic = t; }
-  });
-  return bestTopic;
+
+  // Score all topics and pick from top 3 with weighted randomness
+  const scored = allTopics.map(t => ({ topic: t, ...(_scoreTopicNeed(t, h, now)) }))
+    .sort((a, b) => b.score - a.score);
+
+  const top = scored.slice(0, Math.min(3, scored.length));
+  const totalWeight = top.reduce((a, t) => a + t.score, 0);
+  let r = Math.random() * totalWeight;
+  for (const t of top) {
+    r -= t.score;
+    if (r <= 0) return t.topic;
+  }
+  return top[0].topic;
 }
 
 // ══════════════════════════════════════════
@@ -3969,7 +4038,7 @@ function renderAnalytics() {
     <div class="ana-calendar">
       ${days.map((d, idx) => {
         const intensity = d.count > 0 ? Math.max(0.2, d.count / maxCount) : 0;
-        const bg = d.count > 0 ? `rgba(124,111,247,${intensity})` : 'var(--surface3)';
+        const bg = d.count > 0 ? `rgba(var(--accent-rgb),${intensity})` : 'var(--surface3)';
         const activeClass = d.count > 0 ? ' cal-active' : '';
         const hotClass = d.count === maxCount && d.count > 0 ? ' cal-hot' : '';
         return `<div class="ana-cal-day${activeClass}${hotClass}" style="background:${bg};animation-delay:${idx * 0.02}s" data-count="${d.count}">
@@ -3981,10 +4050,10 @@ function renderAnalytics() {
     <div class="ana-cal-legend">
       <span>Less</span>
       <div class="ana-cal-day-sm" style="background:var(--surface3)"></div>
-      <div class="ana-cal-day-sm" style="background:rgba(124,111,247,.2)"></div>
-      <div class="ana-cal-day-sm" style="background:rgba(124,111,247,.5)"></div>
-      <div class="ana-cal-day-sm" style="background:rgba(124,111,247,.8)"></div>
-      <div class="ana-cal-day-sm" style="background:rgba(124,111,247,1)"></div>
+      <div class="ana-cal-day-sm" style="background:rgba(var(--accent-rgb),.2)"></div>
+      <div class="ana-cal-day-sm" style="background:rgba(var(--accent-rgb),.5)"></div>
+      <div class="ana-cal-day-sm" style="background:rgba(var(--accent-rgb),.8)"></div>
+      <div class="ana-cal-day-sm" style="background:rgba(var(--accent-rgb),1)"></div>
       <span>More</span>
     </div>
   </div>`;
@@ -4001,7 +4070,7 @@ function renderAnalytics() {
           const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
           return `<div class="ana-exam-row">
             <div class="ana-exam-score" style="color:${pass ? 'var(--green)' : 'var(--red)'}">${scaled}</div>
-            <div class="ana-exam-badge" style="background:${pass ? 'rgba(34,197,94,.1)' : 'rgba(248,113,113,.1)'};color:${pass ? 'var(--green)' : 'var(--red)'}">${pass ? 'PASS' : 'FAIL'}</div>
+            <div class="ana-exam-badge" style="background:${pass ? 'rgba(var(--green-rgb),.1)' : 'rgba(var(--red-rgb),.1)'};color:${pass ? 'var(--green)' : 'var(--red)'}">${pass ? 'PASS' : 'FAIL'}</div>
             <div class="ana-exam-details">${e.score}/${e.total} correct (${e.pct}%)</div>
             <div class="ana-exam-date">${date}</div>
           </div>`;
