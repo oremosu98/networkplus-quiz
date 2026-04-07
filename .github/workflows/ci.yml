@@ -60,7 +60,6 @@ jobs:
 
       - name: Build and deploy to production
         run: |
-          vercel link --yes --project=$VERCEL_PROJECT_ID --scope=$VERCEL_ORG_ID --token=${{ secrets.VERCEL_TOKEN }}
           vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
 
   # ── JOB 3: Preview deploy for PRs ──
@@ -85,7 +84,6 @@ jobs:
       - name: Deploy preview
         id: deploy
         run: |
-          vercel link --yes --project=$VERCEL_PROJECT_ID --scope=$VERCEL_ORG_ID --token=${{ secrets.VERCEL_TOKEN }}
           URL=$(vercel --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
