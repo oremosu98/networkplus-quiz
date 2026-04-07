@@ -94,6 +94,10 @@ node tests/uat.js
 | v3.4.1 | Port drill wrong answer review, enhanced 6-section deep explanations, drag-and-drop topology builder |
 | v3.5 | Tech debt: APP_VERSION constant, magic number extraction, port timer cleanup, wrong bank/reports/history caps, XSS cleanup in showExplanation, retryQuiz/session validation pipeline, touch events for mobile topology, E key multi-select, /31 subnet guard, ARIA labels, meta description, SW relative paths, shared spaced rep scoring, dead code removal, analytics difficulty field fix |
 | v3.6 | Infrastructure: Playwright E2E (64 tests), GitHub Actions CI/CD, auto-versioning, pre-commit hooks, Topic Deep Dive panel, Dependabot, security headers (CSP/X-Frame/Referrer-Policy), Lighthouse CI with performance budgets, production error monitoring with GitHub Issues auto-reporter, keyboard accessibility (skip link, focus trap, focus management, ARIA roles, visible focus rings), branch protection on main, Kanban board |
+| v3.7 | Page transitions (fade-out/fade-in with slide), confetti celebration on exam pass (720+ score) |
+| v3.8 | UI polish: SVG progress ring animation, skeleton loading screens, micro-interactions (bounce/shake on answer), glassmorphism cards, animated score counters |
+| v3.9 | Analytics animations: staggered bar chart grow, difficulty/topic bar slide-in, calendar cell pop-in, card fade-in cascade |
+| v4.0 | Analytics interactivity: bar chart hover lift with tooltip (% + date), calendar hover scale + tooltips, hottest day pulsing glow |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.

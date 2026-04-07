@@ -50,7 +50,7 @@ const pages = ['setup','loading','quiz','results','review','session-transition',
 pages.forEach(p => test(`page-${p} exists`, html.includes(`id="page-${p}"`)));
 
 console.log('\n\x1b[1m── HTML ELEMENTS ──\x1b[0m');
-test('Version badge present', html.includes('v3.'));
+test('Version badge present', /v\d+\.\d+/.test(html));
 test('API key input', html.includes('id="api-key"'));
 test('Topic chip group', html.includes('id="topic-group"'));
 test('Difficulty chip group', html.includes('id="diff-group"'));

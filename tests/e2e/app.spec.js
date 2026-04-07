@@ -21,8 +21,9 @@ test.describe('App Load & Setup Page', () => {
     await expect(page.locator('#api-key')).toBeVisible();
 
     // Version badge is visible and contains a version number
-    const badge = page.locator('#page-setup .hero span:has-text("v3.")');
+    const badge = page.locator('#version-badge');
     await expect(badge).toBeVisible();
+    await expect(badge).toHaveText(/v\d+\.\d+/);
   });
 
   test('API key input has ARIA label', async ({ page }) => {

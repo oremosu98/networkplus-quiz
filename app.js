@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '3.6';
+const APP_VERSION = '4.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -394,9 +394,29 @@ function initChips(groupId, cb) {
 // NAVIGATION
 // ══════════════════════════════════════════
 function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  window.scrollTo(0, 0);
+  const current = document.querySelector('.page.active');
+  const next = document.getElementById('page-' + name);
+  if (current && current !== next) {
+    current.classList.add('page-exit');
+    current.addEventListener('animationend', function handler() {
+      current.removeEventListener('animationend', handler);
+      current.classList.remove('active', 'page-exit');
+      next.classList.add('active');
+      window.scrollTo(0, 0);
+    }, { once: true });
+    // Fallback in case animationend doesn't fire
+    setTimeout(() => {
+      if (current.classList.contains('page-exit')) {
+        current.classList.remove('active', 'page-exit');
+        next.classList.add('active');
+        window.scrollTo(0, 0);
+      }
+    }, 300);
+  } else {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    next.classList.add('active');
+    window.scrollTo(0, 0);
+  }
 }
 
 function goSetup() {
@@ -1461,12 +1481,21 @@ function finish() {
   const grade = pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
   const gradeColor = { A:'#22c55e', B:'#60a5fa', C:'#fbbf24', D:'#fb923c', F:'#f87171' }[grade];
 
-  const ring = document.getElementById('grade-ring');
-  ring.style.borderColor = gradeColor;
-  ring.style.background  = gradeColor + '14';
+  // Animated SVG progress ring
+  const ringFill = document.getElementById('grade-fill');
+  ringFill.style.stroke = gradeColor;
+  ringFill.style.strokeDashoffset = '326.73'; // reset
+  const targetOffset = 326.73 - (326.73 * pct / 100);
+  requestAnimationFrame(() => { ringFill.style.strokeDashoffset = targetOffset; });
+
   document.getElementById('grade-letter').textContent = grade;
   document.getElementById('grade-letter').style.color = gradeColor;
   document.getElementById('grade-pct').textContent    = pct + '%';
+
+  // Animated score count-up
+  animateCount('r-correct', 0, score, 800);
+  animateCount('r-wrong', 0, total - score, 800);
+  animateCount('r-streak', 0, bestStreak, 600);
 
   const headlines = {
     A: ['Crushing it!',       "You're exam-ready on this topic."],
@@ -1921,8 +1950,8 @@ function submitExam() {
   saveToHistory({ date: new Date().toISOString(), topic: 'Exam Simulation', difficulty: 'Mixed', score: correct, total, pct, mode: 'exam' });
 
   const scoreEl = document.getElementById('exam-scaled-score');
-  scoreEl.textContent  = scaledScore;
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';
+  animateCount('exam-scaled-score', 0, scaledScore, 1200);
 
   const badge = document.getElementById('exam-pass-badge');
   badge.textContent = passed ? 'PASS' : 'FAIL';
@@ -1932,12 +1961,113 @@ function submitExam() {
     ? `Score ${scaledScore}/900 \u2014 above the 720 pass mark. Exam-ready!`
     : `Score ${scaledScore}/900 \u2014 need ${720 - scaledScore} more points. Keep drilling!`;
 
-  document.getElementById('exam-r-correct').textContent = correct;
-  document.getElementById('exam-r-wrong').textContent   = wrong;
-  document.getElementById('exam-r-skipped').textContent = skipped;
+  animateCount('exam-r-correct', 0, correct, 800);
+  animateCount('exam-r-wrong', 0, wrong, 800);
+  animateCount('exam-r-skipped', 0, skipped, 600);
   document.getElementById('exam-r-pct').textContent     = pct + '%';
 
   showPage('exam-results');
+  if (passed) setTimeout(() => launchConfetti(), 400);
+}
+
+// ══════════════════════════════════════════
+// ANIMATED SCORE COUNTER
+// ══════════════════════════════════════════
+function animateCount(elId, from, to, duration) {
+  const el = document.getElementById(elId);
+  if (!el || from === to) { if (el) el.textContent = to; return; }
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    el.textContent = Math.round(from + (to - from) * ease);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ══════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════
+function launchConfetti() {
+  let canvas = document.getElementById('confetti-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'confetti-canvas';
+    document.body.appendChild(canvas);
+  }
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  const PARTICLE_COUNT = 150;
+  const COLORS = ['#22c55e','#7c6ff7','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316'];
+  const particles = [];
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height * -1,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 6 + 3,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 3 + 2,
+      rot: Math.random() * 360,
+      rotSpeed: (Math.random() - 0.5) * 10,
+      opacity: 1,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle'
+    });
+  }
+
+  let frame = 0;
+  const MAX_FRAMES = 200;
+
+  function animate() {
+    frame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let alive = 0;
+    particles.forEach(p => {
+      if (p.opacity <= 0) return;
+      alive++;
+
+      p.x += p.vx;
+      p.vy += 0.05;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+
+      if (frame > MAX_FRAMES * 0.6) {
+        p.opacity -= 0.015;
+      }
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.fillStyle = p.color;
+
+      if (p.shape === 'rect') {
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    });
+
+    if (alive > 0 && frame < MAX_FRAMES) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+    }
+  }
+
+  requestAnimationFrame(animate);
 }
 
 // ══════════════════════════════════════════
@@ -3751,8 +3881,11 @@ function renderAnalytics() {
       <div class="ana-chart-bars">
         ${recent.map((e, i) => {
           const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
-          return `<div class="ana-bar-wrap" title="${escHtml(e.topic)} — ${e.pct}%">
-            <div class="ana-bar" style="height:${e.pct}%;background:${color}"></div>
+          const day = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return `<div class="ana-bar-wrap">
+            <div class="ana-bar" style="height:${e.pct}%;background:${color};animation-delay:${i * 0.05}s">
+              <div class="ana-bar-tip"><strong>${e.pct}%</strong><span>${day}</span></div>
+            </div>
           </div>`;
         }).join('')}
       </div>
@@ -3771,12 +3904,12 @@ function renderAnalytics() {
   html += `<div class="ana-card">
     <h3>DIFFICULTY BREAKDOWN</h3>
     <div class="ana-diff-grid">
-      ${Object.entries(diffs).map(([d, v]) => {
+      ${Object.entries(diffs).map(([d, v], idx) => {
         const pct = v.total > 0 ? Math.round(v.correct / v.total * 100) : 0;
         const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
         return `<div class="ana-diff-item">
           <div class="ana-diff-name">${escHtml(d)}</div>
-          <div class="ana-diff-bar"><div class="ana-diff-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="ana-diff-bar"><div class="ana-diff-fill" style="width:${pct}%;background:${color};animation-delay:${idx * 0.15}s"></div></div>
           <div class="ana-diff-pct" style="color:${color}">${pct}%</div>
           <div class="ana-diff-count">${v.correct}/${v.total} correct</div>
         </div>`;
@@ -3799,13 +3932,13 @@ function renderAnalytics() {
     <h3>TOPIC MASTERY</h3>
     <div class="ana-subtitle">${topicArr.length} topics studied</div>
     <div class="ana-topics">
-      ${topicArr.map(t => {
+      ${topicArr.map((t, idx) => {
         const color = t.avg >= 80 ? 'var(--green)' : t.avg >= 60 ? 'var(--yellow)' : 'var(--red)';
         const trendIcon = t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192';
         const trendColor = t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)';
         return `<div class="ana-topic-row">
           <div class="ana-topic-name">${escHtml(t.topic)}</div>
-          <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color}"></div></div>
+          <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color};animation-delay:${idx * 0.06}s"></div></div>
           <div class="ana-topic-pct" style="color:${color}">${t.avg}%</div>
           <div class="ana-topic-trend" style="color:${trendColor}" title="Trend">${trendIcon}</div>
           <div class="ana-topic-sessions">${t.sessions}x</div>
@@ -3814,12 +3947,12 @@ function renderAnalytics() {
     </div>
   </div>`;
 
-  // 4. Study Activity Calendar (last 30 days)
+  // 4. Study Activity Calendar (last 30 days) — tracks questions answered, not sessions
   const today = new Date();
   const dayMap = {};
   h.forEach(e => {
     const d = new Date(e.date).toISOString().slice(0,10);
-    dayMap[d] = (dayMap[d] || 0) + 1;
+    dayMap[d] = (dayMap[d] || 0) + (e.total || 0);
   });
   const days = [];
   for (let i = 29; i >= 0; i--) {
@@ -3829,15 +3962,19 @@ function renderAnalytics() {
     days.push({ date: key, count: dayMap[key] || 0, day: d.toLocaleDateString('en-US',{weekday:'short'}).charAt(0), num: d.getDate() });
   }
   const maxCount = Math.max(...days.map(d => d.count), 1);
+  const totalQ30 = days.reduce((a, d) => a + d.count, 0);
   html += `<div class="ana-card">
     <h3>STUDY ACTIVITY</h3>
-    <div class="ana-subtitle">Last 30 days</div>
+    <div class="ana-subtitle">Last 30 days \u2014 ${totalQ30} questions answered</div>
     <div class="ana-calendar">
-      ${days.map(d => {
+      ${days.map((d, idx) => {
         const intensity = d.count > 0 ? Math.max(0.2, d.count / maxCount) : 0;
         const bg = d.count > 0 ? `rgba(124,111,247,${intensity})` : 'var(--surface3)';
-        return `<div class="ana-cal-day" style="background:${bg}" title="${d.date}: ${d.count} sessions">
+        const activeClass = d.count > 0 ? ' cal-active' : '';
+        const hotClass = d.count === maxCount && d.count > 0 ? ' cal-hot' : '';
+        return `<div class="ana-cal-day${activeClass}${hotClass}" style="background:${bg};animation-delay:${idx * 0.02}s" data-count="${d.count}">
           <span class="ana-cal-num">${d.num}</span>
+          ${d.count > 0 ? `<span class="cal-tip">${d.count} Q's</span>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -3889,17 +4026,18 @@ function renderAnalytics() {
     </div>`;
   }
 
-  // 7. Weekly Volume Chart
+  // 7. Weekly Volume Chart — questions answered per week
   const weeks = [0,0,0,0];
   const weekLabels = ['This Week','Last Week','2 Weeks Ago','3 Weeks Ago'];
   h.forEach(e => {
     const daysAgo = Math.floor((today - new Date(e.date)) / 86400000);
     const weekIdx = Math.floor(daysAgo / 7);
-    if (weekIdx < 4) weeks[weekIdx]++;
+    if (weekIdx < 4) weeks[weekIdx] += (e.total || 0);
   });
   const maxWeek = Math.max(...weeks, 1);
   html += `<div class="ana-card">
     <h3>WEEKLY VOLUME</h3>
+    <div class="ana-subtitle">Questions answered per week</div>
     <div class="ana-weekly">
       ${weeks.map((w, i) => `<div class="ana-week-row">
         <span class="ana-week-label">${weekLabels[i]}</span>

@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v3.6</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.0</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -175,9 +175,24 @@
      LOADING PAGE
 ══════════════════════════════════════════ -->
 <div id="page-loading" class="page">
-  <div class="spinner"></div>
-  <h2>Building your quiz&#8230;</h2>
-  <p id="loading-msg">Claude is generating fresh questions</p>
+  <div class="skeleton-loader">
+    <div class="skel-topbar">
+      <div class="skel-block skel-back"></div>
+      <div class="skel-block skel-pill"></div>
+      <div class="skel-block skel-pill"></div>
+    </div>
+    <div class="skel-progress"><div class="skel-block skel-bar"></div></div>
+    <div class="skel-card">
+      <div class="skel-block skel-badge-row"></div>
+      <div class="skel-block skel-title"></div>
+      <div class="skel-block skel-title-short"></div>
+      <div class="skel-block skel-option"></div>
+      <div class="skel-block skel-option"></div>
+      <div class="skel-block skel-option"></div>
+      <div class="skel-block skel-option"></div>
+    </div>
+    <p class="skel-status" id="loading-msg">Claude is generating fresh questions</p>
+  </div>
   <div class="load-progress" id="load-progress" style="display:none">
     <div class="load-bar"><div class="load-bar-fill" id="load-bar-fill" style="width:0%"></div></div>
     <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px" id="load-progress-label">0 / 5 batches</p>
@@ -239,6 +254,10 @@
 <div id="page-results" class="page">
   <div class="results-hero">
     <div class="grade-ring" id="grade-ring">
+      <svg class="grade-svg" viewBox="0 0 120 120">
+        <circle class="grade-track" cx="60" cy="60" r="52" />
+        <circle class="grade-fill" id="grade-fill" cx="60" cy="60" r="52" />
+      </svg>
       <span class="grade-letter" id="grade-letter">A</span>
       <span class="grade-pct" id="grade-pct">100%</span>
     </div>
