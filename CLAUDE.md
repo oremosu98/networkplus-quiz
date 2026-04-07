@@ -93,7 +93,7 @@ node tests/uat.js
 | v3.4 | Subnetting Trainer, Port Number Speed Drill, Pre-Quiz Topic Brief, Performance Analytics Dashboard (8 sections) |
 | v3.4.1 | Port drill wrong answer review, enhanced 6-section deep explanations, drag-and-drop topology builder |
 | v3.5 | Tech debt: APP_VERSION constant, magic number extraction, port timer cleanup, wrong bank/reports/history caps, XSS cleanup in showExplanation, retryQuiz/session validation pipeline, touch events for mobile topology, E key multi-select, /31 subnet guard, ARIA labels, meta description, SW relative paths, shared spaced rep scoring, dead code removal, analytics difficulty field fix |
-| v3.6 | Infrastructure: Playwright E2E, GitHub Actions CI/CD, auto-versioning, pre-commit hooks |
+| v3.6 | Infrastructure: Playwright E2E (64 tests), GitHub Actions CI/CD, auto-versioning, pre-commit hooks, Topic Deep Dive panel, Dependabot, security headers (CSP/X-Frame/Referrer-Policy), Lighthouse CI with performance budgets, production error monitoring with GitHub Issues auto-reporter, keyboard accessibility (skip link, focus trap, focus management, ARIA roles, visible focus rings), branch protection on main, Kanban board |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.

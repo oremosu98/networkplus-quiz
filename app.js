@@ -76,6 +76,275 @@ function toggleTheme() {
 }
 
 // ══════════════════════════════════════════
+// PRODUCTION MONITORING + AUTO GITHUB ISSUES
+// ══════════════════════════════════════════
+const ERROR_LOG_KEY = 'nplus_error_log';
+const ERROR_LOG_CAP = 50;
+const GH_TOKEN_KEY = 'nplus_gh_monitor_token';
+const GH_REPORTED_KEY = 'nplus_gh_reported';
+const GH_REPO = 'oremosu98/networkplus-quiz';
+
+function logError(type, msg, extra = {}) {
+  try {
+    const log = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+    const entry = {
+      type,
+      message: String(msg).slice(0, 500),
+      timestamp: new Date().toISOString(),
+      page: document.querySelector('.page.active')?.id || 'unknown',
+      version: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?',
+      userAgent: navigator.userAgent.slice(0, 150),
+      ...extra
+    };
+    log.unshift(entry);
+    if (log.length > ERROR_LOG_CAP) log.length = ERROR_LOG_CAP;
+    localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(log));
+    // Auto-report to GitHub if configured
+    autoReportToGitHub(entry);
+  } catch (_) { /* storage full or unavailable */ }
+}
+
+function showErrorToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
+}
+
+// ── GitHub Issues Auto-Reporter ──
+function getReportedErrors() {
+  try { return JSON.parse(localStorage.getItem(GH_REPORTED_KEY) || '[]'); } catch { return []; }
+}
+
+function errorFingerprint(entry) {
+  // Deduplicate by message + source + line (ignore timestamp)
+  return (entry.message || '').slice(0, 100) + '|' + (entry.source || '') + '|' + (entry.line || '');
+}
+
+async function autoReportToGitHub(entry) {
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  if (!token) return;
+  // Skip localhost errors
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+  // Deduplicate — don't report the same error twice
+  const fp = errorFingerprint(entry);
+  const reported = getReportedErrors();
+  if (reported.includes(fp)) return;
+
+  const title = `[Auto] ${entry.type}: ${entry.message.slice(0, 80)}`;
+  const body = `## Auto-Reported Bug
+
+| Field | Value |
+|---|---|
+| **Type** | \`${entry.type}\` |
+| **Page** | \`${entry.page}\` |
+| **Version** | \`v${entry.version}\` |
+| **Time** | ${entry.timestamp} |
+| **Browser** | ${entry.userAgent || 'Unknown'} |
+${entry.source ? `| **Source** | \`${entry.source}:${entry.line}:${entry.col}\` |` : ''}
+
+### Error Message
+\`\`\`
+${entry.message}
+\`\`\`
+
+${entry.stack ? `### Stack Trace\n\`\`\`\n${entry.stack}\n\`\`\`` : ''}
+
+---
+_Auto-reported by Production Monitor v${entry.version}_`;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_REPO}/issues`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title,
+        body,
+        labels: ['bug', 'monitoring']
+      })
+    });
+    if (res.ok) {
+      // Mark as reported so we don't create duplicates
+      reported.push(fp);
+      if (reported.length > 200) reported.splice(0, reported.length - 200);
+      localStorage.setItem(GH_REPORTED_KEY, JSON.stringify(reported));
+    }
+  } catch (_) { /* silent — don't error on error reporting */ }
+}
+
+window.onerror = function(msg, src, line, col, err) {
+  console.error(`[App Error] ${msg} at ${src}:${line}:${col}`, err);
+  logError('runtime', msg, {
+    source: src ? src.split('/').pop() : '',
+    line, col,
+    stack: err?.stack ? err.stack.slice(0, 500) : ''
+  });
+  showErrorToast('Something went wrong. Try refreshing the page.');
+  return false;
+};
+
+window.addEventListener('unhandledrejection', e => {
+  console.error('[Unhandled Promise]', e.reason);
+  const msg = e.reason?.message || String(e.reason);
+  const isNetwork = msg.includes('API') || msg.includes('fetch') || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+  logError('promise', msg, {
+    stack: e.reason?.stack ? e.reason.stack.slice(0, 500) : ''
+  });
+  if (!isNetwork) showErrorToast('An unexpected error occurred.');
+});
+
+// ── Monitor Panel ──
+function getErrorLog() {
+  try { return JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]'); } catch { return []; }
+}
+
+function renderMonitor() {
+  const log = getErrorLog();
+  const statsEl = document.getElementById('monitor-stats');
+  const logEl = document.getElementById('monitor-log');
+  if (!statsEl || !logEl) return;
+
+  // Stats
+  const total = log.length;
+  const runtime = log.filter(e => e.type === 'runtime').length;
+  const promise = log.filter(e => e.type === 'promise').length;
+  const last24h = log.filter(e => Date.now() - new Date(e.timestamp).getTime() < 86400000).length;
+  const lastErr = log[0] ? new Date(log[0].timestamp).toLocaleString() : 'None';
+
+  // Top errors by frequency
+  const freq = {};
+  log.forEach(e => { const k = e.message.slice(0, 80); freq[k] = (freq[k] || 0) + 1; });
+  const topErrors = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const ghToken = localStorage.getItem(GH_TOKEN_KEY) || '';
+  const ghStatus = ghToken ? '🟢 Connected' : '⚪ Not configured';
+  const reportedCount = getReportedErrors().length;
+
+  statsEl.innerHTML = `
+    <div class="mon-stats-grid">
+      <div class="mon-stat"><div class="mon-stat-val">${total}</div><div class="mon-stat-lbl">Total Errors</div></div>
+      <div class="mon-stat"><div class="mon-stat-val" style="color:var(--red)">${runtime}</div><div class="mon-stat-lbl">Runtime</div></div>
+      <div class="mon-stat"><div class="mon-stat-val" style="color:var(--yellow)">${promise}</div><div class="mon-stat-lbl">Promise</div></div>
+      <div class="mon-stat"><div class="mon-stat-val" style="color:var(--accent-light)">${last24h}</div><div class="mon-stat-lbl">Last 24h</div></div>
+    </div>
+    <div class="mon-github">
+      <div class="mon-github-header">
+        <h4>GitHub Auto-Reporter</h4>
+        <span class="mon-github-status">${ghStatus}</span>
+      </div>
+      <p class="mon-github-desc">Errors auto-create issues on <a href="https://github.com/${GH_REPO}/issues" target="_blank" rel="noopener" style="color:var(--accent-light)">${GH_REPO}</a> with bug + monitoring labels. Duplicates are skipped.</p>
+      <div class="mon-github-input-row">
+        <input type="password" id="gh-monitor-token" class="mon-github-input" placeholder="ghp_xxxxxxxxxxxx" value="${ghToken ? '••••••••••••••••' : ''}" />
+        <button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="saveGhToken()">Save</button>
+      </div>
+      <p class="mon-github-hint">${reportedCount} unique errors reported so far. Token stored locally, never sent anywhere except GitHub API.</p>
+    </div>
+    ${topErrors.length > 0 ? `
+    <div class="mon-freq">
+      <h4>Top Errors</h4>
+      ${topErrors.map(([msg, count]) => `<div class="mon-freq-row"><span class="mon-freq-count">${count}x</span><span class="mon-freq-msg">${escHtml(msg)}</span></div>`).join('')}
+    </div>` : ''}
+    <div class="mon-last">Last error: ${escHtml(lastErr)}</div>
+  `;
+
+  // Error log
+  if (log.length === 0) {
+    logEl.innerHTML = '<div class="mon-empty">No errors logged. Your app is running clean! &#127881;</div>';
+    return;
+  }
+
+  logEl.innerHTML = log.map((e, i) => {
+    const time = new Date(e.timestamp);
+    const ago = formatTimeAgo(time);
+    const typeClass = e.type === 'runtime' ? 'mon-type-runtime' : 'mon-type-promise';
+    return `<div class="mon-entry">
+      <div class="mon-entry-header">
+        <span class="mon-type ${typeClass}">${e.type.toUpperCase()}</span>
+        <span class="mon-time" title="${time.toLocaleString()}">${ago}</span>
+        <span class="mon-page">${escHtml(e.page || '')}</span>
+        <span class="mon-version">v${escHtml(e.version || '?')}</span>
+      </div>
+      <div class="mon-entry-msg">${escHtml(e.message)}</div>
+      ${e.source ? `<div class="mon-entry-loc">${escHtml(e.source)}:${e.line}:${e.col}</div>` : ''}
+      ${e.stack ? `<details class="mon-stack-details"><summary>Stack trace</summary><pre class="mon-stack">${escHtml(e.stack)}</pre></details>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function formatTimeAgo(date) {
+  const s = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function copyErrorLog() {
+  const log = getErrorLog();
+  const text = log.map(e => `[${e.timestamp}] ${e.type.toUpperCase()} | ${e.page} | v${e.version}\n${e.message}${e.source ? `\n  at ${e.source}:${e.line}:${e.col}` : ''}${e.stack ? `\n${e.stack}` : ''}`).join('\n\n---\n\n');
+  navigator.clipboard.writeText(text || 'No errors logged.').then(() => showErrorToast('Error log copied to clipboard'));
+}
+
+function exportErrorLog() {
+  const log = getErrorLog();
+  const data = { exported: new Date().toISOString(), version: APP_VERSION, errors: log };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `netplus-errors-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function clearErrorLog() {
+  if (!confirm('Clear all logged errors? This cannot be undone.')) return;
+  localStorage.removeItem(ERROR_LOG_KEY);
+  renderMonitor();
+}
+
+function saveGhToken() {
+  const input = document.getElementById('gh-monitor-token');
+  const token = (input?.value || '').trim();
+  // Don't save the masked placeholder
+  if (token === '••••••••••••••••') return;
+  if (token && !token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    showErrorToast('Invalid token — must start with ghp_ or github_pat_');
+    return;
+  }
+  if (token) {
+    localStorage.setItem(GH_TOKEN_KEY, token);
+    showErrorToast('GitHub connected! Errors will auto-create issues.');
+  } else {
+    localStorage.removeItem(GH_TOKEN_KEY);
+    showErrorToast('GitHub auto-reporter disconnected.');
+  }
+  renderMonitor();
+}
+
+// Triple-tap version badge to open monitor
+let monitorTaps = 0, monitorTapTimer = null;
+function initMonitorGesture() {
+  const badge = document.getElementById('version-badge');
+  if (!badge) return;
+  badge.addEventListener('click', () => {
+    monitorTaps++;
+    if (monitorTapTimer) clearTimeout(monitorTapTimer);
+    monitorTapTimer = setTimeout(() => { monitorTaps = 0; }, 600);
+    if (monitorTaps >= 3) {
+      monitorTaps = 0;
+      renderMonitor();
+      showPage('monitor');
+    }
+  });
+}
+
+// ══════════════════════════════════════════
 // BOOT
 // ══════════════════════════════════════════
 if ('serviceWorker' in navigator) {
@@ -107,6 +376,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderReadinessCard();
   renderSessionBanner();
   renderWrongBankBtn();
+  initMonitorGesture();
 });
 
 function initChips(groupId, cb) {
@@ -847,13 +1117,24 @@ function render() {
   btnNext.className = 'btn-next';
   btnNext.textContent = current === total - 1 ? 'See Results' : 'Next \u2192';
   btnNext.onclick = current === total - 1 ? finish : advance;
+
+  // Focus the question text for screen readers, first option for keyboard users
+  setTimeout(() => {
+    const firstOption = box.querySelector('.option, .ms-option, .order-item, button');
+    if (firstOption) firstOption.focus();
+  }, 150);
 }
 
 // ── MCQ Render ──
 function renderMCQ(q, box) {
+  box.setAttribute('role', 'radiogroup');
+  box.setAttribute('aria-label', 'Answer options');
   ['A','B','C','D'].forEach(l => {
     const btn = document.createElement('button');
     btn.className = 'option';
+    btn.setAttribute('role', 'radio');
+    btn.setAttribute('aria-checked', 'false');
+    btn.setAttribute('aria-label', `Option ${l}: ${q.options[l]}`);
     btn.innerHTML = `<span class="opt-letter">${l}</span><span class="opt-text">${escHtml(q.options[l])}</span>`;
     btn.onclick = () => pick(l, q);
     box.appendChild(btn);
@@ -1128,12 +1409,12 @@ function showExplanation(q, isRight) {
   document.getElementById('exp-label').textContent = label;
   document.getElementById('exp-text').textContent  = q.explanation;
 
-  // Resource link
+  // Resource link — opens in-app Topic Deep Dive
   const qTopic = q.topic || activeQuizTopic;
   const res = topicResources[qTopic];
   let extraHtml = '';
   if (res) {
-    extraHtml += '<div class="resource-link"><a href="https://www.youtube.com/results?search_query=' + res.search + '" target="_blank" rel="noopener">\ud83c\udfa5 Study: ' + escHtml(res.title) + ' (Obj ' + res.obj + ')</a></div>';
+    extraHtml += '<div class="resource-link"><button class="resource-dive-btn" onclick="showTopicDeepDive(\'' + escHtml(qTopic).replace(/'/g, "\\'") + '\')">📚 Study: ' + escHtml(res.title) + ' (Obj ' + res.obj + ')</button></div>';
   }
 
   // Explain Further button (Enhancement 5)
@@ -1156,7 +1437,10 @@ function showExplanation(q, isRight) {
 
   expBox.className   = 'explanation-box show ' + (isRight ? 'correct' : 'wrong');
   expBox.style.display = 'block';
-  document.getElementById('btn-next').classList.add('show');
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.classList.add('show');
+  // Focus the Next button for keyboard users
+  setTimeout(() => nextBtn.focus(), 100);
 }
 
 function advance() { current++; render(); window.scrollTo(0,0); }
@@ -1491,10 +1775,38 @@ function showExamModal() {
   const flagBtn = document.getElementById('modal-flagged-btn');
   flagBtn.disabled = flaggedCount === 0;
   flagBtn.style.opacity = flaggedCount === 0 ? '0.4' : '1';
-  document.getElementById('exam-modal').classList.remove('hidden');
+  const modal = document.getElementById('exam-modal');
+  modal.classList.remove('hidden');
+  // Focus first button in modal for keyboard users
+  setTimeout(() => {
+    const firstBtn = modal.querySelector('button:not([disabled])');
+    if (firstBtn) firstBtn.focus();
+  }, 100);
+  // Trap focus inside modal
+  modal._trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = modal.querySelectorAll('button:not([disabled])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  modal.addEventListener('keydown', modal._trapHandler);
+  // Close on Escape
+  modal._escHandler = (e) => { if (e.key === 'Escape') hideExamModal(); };
+  document.addEventListener('keydown', modal._escHandler);
 }
 
-function hideExamModal() { document.getElementById('exam-modal').classList.add('hidden'); }
+function hideExamModal() {
+  const modal = document.getElementById('exam-modal');
+  modal.classList.add('hidden');
+  if (modal._trapHandler) { modal.removeEventListener('keydown', modal._trapHandler); modal._trapHandler = null; }
+  if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
+  // Return focus to the End Exam button
+  const endBtn = document.querySelector('.end-exam-btn');
+  if (endBtn) endBtn.focus();
+}
 
 function goToFirstFlagged() {
   hideExamModal();
@@ -1679,7 +1991,7 @@ function showReview(fromExam) {
 
     const reviewTopic = q.topic || activeQuizTopic;
     const reviewRes = topicResources[reviewTopic];
-    const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><a href="https://www.youtube.com/results?search_query=${reviewRes.search}" target="_blank" rel="noopener">\ud83c\udfa5 Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</a></div>` : '';
+    const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">📚 Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
 
     div.innerHTML = `
       <div class="review-q">${i+1}. ${escHtml(q.question)}</div>
@@ -2964,6 +3276,172 @@ Use plain text, no markdown. Label each section clearly. Aim for 250-350 words t
   } catch (e) {
     if (btn) { btn.textContent = 'Failed \u2014 try again'; btn.disabled = false; }
   }
+}
+
+// ══════════════════════════════════════════
+// TOPIC DEEP DIVE PANEL
+// ══════════════════════════════════════════
+let topicDiveReturnPage = 'quiz';
+
+async function showTopicDeepDive(topicName) {
+  // Remember which page to return to
+  const pages = ['page-quiz', 'page-review', 'page-exam', 'page-exam-results', 'page-results'];
+  topicDiveReturnPage = pages.find(p => document.getElementById(p).classList.contains('active')) || 'page-quiz';
+
+  const res = topicResources[topicName];
+  const titleEl = document.getElementById('topic-dive-title');
+  const objEl = document.getElementById('topic-dive-obj');
+  const contentEl = document.getElementById('topic-dive-content');
+  const backBtn = document.getElementById('topic-dive-back');
+
+  titleEl.textContent = '📚 ' + topicName;
+  objEl.textContent = res ? 'Exam Objective ' + res.obj : '';
+  contentEl.innerHTML = '<div class="topic-dive-loading"><div class="spinner" style="width:32px;height:32px;border-width:3px"></div><p style="margin-top:12px;color:var(--text-dim)">Generating topic guide\u2026</p></div>';
+
+  backBtn.onclick = () => {
+    document.getElementById('page-topic-dive').classList.remove('active');
+    document.getElementById(topicDiveReturnPage).classList.add('active');
+    window.scrollTo(0, 0);
+  };
+
+  showPage('topic-dive');
+
+  const key = apiKey || localStorage.getItem('nplus_key') || '';
+  if (!key) {
+    contentEl.innerHTML = '<div class="topic-dive-error">⚠️ No API key found. Enter your Anthropic API key on the setup page to use Topic Deep Dive.</div>';
+    return;
+  }
+
+  const prompt = `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
+
+Return your response as valid JSON with this exact structure:
+{
+  "summary": "2-3 sentence overview of what this topic covers and why it matters for the exam",
+  "keyConcepts": [
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" }
+  ],
+  "howItWorks": "3-4 sentence detailed but accessible explanation of how the core technology/concept works under the hood. Use simple language a beginner would understand.",
+  "scenario": "A realistic workplace scenario (3-4 sentences) showing this concept in action. Include the problem, the solution, and what commands/tools/protocols were used.",
+  "examTips": [
+    "Specific exam tip or trap to watch for",
+    "Another specific tip",
+    "A third tip"
+  ],
+  "memoryTrick": "A mnemonic, acronym, or memorable hook to remember the key facts",
+  "diagram": "An ASCII diagram showing the concept visually (use box-drawing characters like ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ and arrows → ← ↑ ↓). Make it clear and labeled. 5-8 lines max. If the topic doesn't suit a diagram, provide a structured comparison table instead."
+}
+
+Return ONLY valid JSON, no extra text before or after.`;
+
+  try {
+    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+    });
+
+    if (!apiRes.ok) throw new Error('API error');
+
+    const data = await apiRes.json();
+    const raw = data.content?.[0]?.text || '';
+
+    // Extract JSON (handle possible markdown code fences)
+    let jsonStr = raw.trim();
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+
+    const guide = JSON.parse(jsonStr);
+    renderTopicDive(guide, topicName);
+  } catch (e) {
+    // Fallback: try to render what we can, or show error
+    contentEl.innerHTML = '<div class="topic-dive-error">⚠️ Could not generate topic guide. Please try again.<br><button class="btn btn-primary" style="margin-top:12px" onclick="showTopicDeepDive(\'' + escHtml(topicName).replace(/'/g, "\\'") + '\')">Retry</button></div>';
+  }
+}
+
+function renderTopicDive(guide, topicName) {
+  const contentEl = document.getElementById('topic-dive-content');
+
+  const conceptCards = (guide.keyConcepts || []).map((c, i) => {
+    const icons = ['🔹', '🔸', '💠', '🔷', '⚡', '🔶'];
+    return `<div class="td-concept-card">
+      <div class="td-concept-icon">${icons[i % icons.length]}</div>
+      <div class="td-concept-body">
+        <div class="td-concept-name">${escHtml(c.name)}</div>
+        <div class="td-concept-detail">${escHtml(c.detail)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const examTips = (guide.examTips || []).map(t =>
+    `<li>${escHtml(t)}</li>`
+  ).join('');
+
+  contentEl.innerHTML = `
+    <div class="td-section td-summary">
+      <div class="td-section-icon">📋</div>
+      <div class="td-section-body">
+        <h3>Overview</h3>
+        <p>${escHtml(guide.summary || '')}</p>
+      </div>
+    </div>
+
+    <div class="td-section">
+      <div class="td-section-icon">🧩</div>
+      <div class="td-section-body">
+        <h3>Key Concepts</h3>
+        <div class="td-concept-grid">${conceptCards}</div>
+      </div>
+    </div>
+
+    <div class="td-section">
+      <div class="td-section-icon">⚙️</div>
+      <div class="td-section-body">
+        <h3>How It Works</h3>
+        <p>${escHtml(guide.howItWorks || '')}</p>
+      </div>
+    </div>
+
+    ${guide.diagram ? `<div class="td-section td-diagram-section">
+      <div class="td-section-icon">📐</div>
+      <div class="td-section-body">
+        <h3>Visual Diagram</h3>
+        <pre class="td-diagram">${escHtml(guide.diagram)}</pre>
+      </div>
+    </div>` : ''}
+
+    <div class="td-section td-scenario">
+      <div class="td-section-icon">🏢</div>
+      <div class="td-section-body">
+        <h3>Real-World Scenario</h3>
+        <p>${escHtml(guide.scenario || '')}</p>
+      </div>
+    </div>
+
+    <div class="td-section">
+      <div class="td-section-icon">🎯</div>
+      <div class="td-section-body">
+        <h3>Exam Tips &amp; Traps</h3>
+        <ul class="td-tips-list">${examTips}</ul>
+      </div>
+    </div>
+
+    <div class="td-section td-memory">
+      <div class="td-section-icon">🧠</div>
+      <div class="td-section-body">
+        <h3>Memory Trick</h3>
+        <p class="td-memory-text">${escHtml(guide.memoryTrick || '')}</p>
+      </div>
+    </div>
+  `;
 }
 
 // ══════════════════════════════════════════

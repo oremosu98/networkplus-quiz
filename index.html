@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<a href="#api-key" class="skip-link" id="skip-link">Skip to content</a>
 
 <!-- ══════════════════════════════════════════
      SETUP PAGE
@@ -24,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px">v3.6</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v3.6</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -215,9 +216,9 @@
       <span class="diff-badge" id="diff-badge">Exam Level</span>
       <span class="pbq-badge" id="pbq-badge" style="display:none"></span>
     </div>
-    <div class="q-text" id="q-text">Loading&#8230;</div>
+    <div class="q-text" id="q-text" role="heading" aria-level="3">Loading&#8230;</div>
     <div class="options" id="options"></div>
-    <div class="explanation-box" id="exp-box">
+    <div class="explanation-box" id="exp-box" aria-live="polite" role="alert"
       <strong id="exp-label"></strong>
       <span id="exp-text"></span>
     </div>
@@ -508,6 +509,40 @@
   <div id="analytics-content">
     <p style="color:var(--text-dim)">Complete at least one quiz to see your analytics.</p>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOPIC DEEP DIVE PAGE
+══════════════════════════════════════════ -->
+<div id="page-topic-dive" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+    <button class="btn btn-ghost" id="topic-dive-back" style="padding:10px 16px">&#8592; Back</button>
+    <h2 id="topic-dive-title">&#128218; Topic Deep Dive</h2>
+  </div>
+  <div class="topic-dive-obj" id="topic-dive-obj"></div>
+  <div id="topic-dive-content" class="topic-dive-content">
+    <div class="topic-dive-loading">
+      <div class="spinner" style="width:32px;height:32px;border-width:3px"></div>
+      <p style="margin-top:12px;color:var(--text-dim)">Generating topic guide&#8230;</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PRODUCTION MONITOR (hidden — triple-tap version badge)
+══════════════════════════════════════════ -->
+<div id="page-monitor" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <h2>&#128737;&#65039; Production Monitor</h2>
+  </div>
+  <div class="monitor-stats" id="monitor-stats"></div>
+  <div class="monitor-actions">
+    <button class="btn btn-ghost" onclick="copyErrorLog()" style="font-size:13px">&#128203; Copy Log</button>
+    <button class="btn btn-ghost" onclick="exportErrorLog()" style="font-size:13px">&#128229; Export JSON</button>
+    <button class="btn btn-danger" onclick="clearErrorLog()" style="font-size:13px">&#128465; Clear All</button>
+  </div>
+  <div id="monitor-log" class="monitor-log"></div>
 </div>
 
 <script src="app.js"></script>
