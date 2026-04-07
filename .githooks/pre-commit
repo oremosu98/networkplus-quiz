@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════
+# Pre-commit hook: CLAUDE.md freshness check
+# Warns if app.js changed but CLAUDE.md didn't
+# Skip with: git commit --no-verify
+# ══════════════════════════════════════════
+
+STAGED=$(git diff --cached --name-only)
+
+# Check if app.js or major feature files changed
+MAJOR_CHANGED=false
+for file in app.js index.html styles.css; do
+  if echo "$STAGED" | grep -q "^${file}$"; then
+    MAJOR_CHANGED=true
+    break
+  fi
+done
+
+if [ "$MAJOR_CHANGED" = true ]; then
+  if ! echo "$STAGED" | grep -q '^CLAUDE.md$'; then
+    echo ""
+    echo "  ══════════════════════════════════════════════"
+    echo "  WARNING: Code files changed but CLAUDE.md didn't."
+    echo "  Consider updating CLAUDE.md to reflect your changes."
+    echo ""
+    echo "  Changed files: $(echo "$STAGED" | grep -E '^(app|index|styles)' | tr '\n' ' ')"
+    echo ""
+    echo "  To skip this check: git commit --no-verify"
+    echo "  ══════════════════════════════════════════════"
+    echo ""
+    exit 1
+  fi
+fi

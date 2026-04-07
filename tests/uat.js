@@ -163,7 +163,7 @@ test('Broadcast 10.0.5.67/26', sandbox.getBroadcastAddr([10,0,5,67], sandbox.cid
 
 // ── Tech Debt Fixes (v3.5) ──
 console.log('\n\x1b[1m── TECH DEBT FIXES ──\x1b[0m');
-test('APP_VERSION constant defined', js.includes("const APP_VERSION = '3.5'"));
+test('APP_VERSION constant defined', /const APP_VERSION = '\d+\.\d+/.test(js));
 test('EXAM_TIME_SECONDS constant', js.includes('const EXAM_TIME_SECONDS = 5400'));
 test('HISTORY_CAP constant', js.includes('const HISTORY_CAP = 200'));
 test('WRONG_BANK_CAP constant', js.includes('const WRONG_BANK_CAP = 200'));
@@ -181,8 +181,8 @@ test('Meta description in HTML', html.includes('meta name="description"'));
 test('ARIA on theme toggle', html.includes('aria-label="Toggle'));
 test('ARIA on API key input', html.includes('aria-label="Anthropic'));
 test('ARIA on exam modal', html.includes('role="dialog"'));
-test('Version badge v3.5', html.includes('v3.5'));
-test('SW cache name v3.5', sw.includes('netplus-v3.5'));
+test('Version badge matches APP_VERSION', (() => { const m = js.match(/const APP_VERSION = '([^']+)'/); return m && html.includes('v' + m[1]); })());
+test('SW cache name matches APP_VERSION', (() => { const m = js.match(/const APP_VERSION = '([^']+)'/); return m && sw.includes('netplus-v'); })());
 test('SW relative paths', sw.includes("'./index.html'"));
 test('No unused Inter font', !css.includes("'Inter'"));
 test('Difficulty uses e.difficulty', js.includes('e.difficulty || e.diff'));

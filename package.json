@@ -1,0 +1,17 @@
+{
+  "name": "networkplus-quiz",
+  "version": "3.6",
+  "private": true,
+  "scripts": {
+    "test:uat": "node tests/uat.js",
+    "test:e2e": "npx playwright test",
+    "test": "npm run test:uat && npm run test:e2e",
+    "serve": "npx serve . -l 3131 -s",
+    "bump": "node scripts/bump-version.js",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "serve": "^14.2.0"
+  }
+}
