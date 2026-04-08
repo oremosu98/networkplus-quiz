@@ -103,6 +103,9 @@ node tests/uat.js
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
 
+## Infrastructure Template
+A reusable infrastructure blueprint covering CI/CD, security, monitoring, and more lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Use it when setting up new projects or hardening existing ones. Update it when we refine the approach here.
+
 ## Common Gotchas
 - The `pick()` function targets `#options .option` — CLI sim diagnosis MCQ must be inside `#options` div
 - Topology scoring uses `correctPlacements` object mapping device→zone name (exact string match)
