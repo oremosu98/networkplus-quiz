@@ -183,7 +183,7 @@ _Auto-reported by Production Monitor v${entry.version}_`;
       body: JSON.stringify({
         title,
         body,
-        labels: ['bug', 'monitoring']
+        labels: ['bug', 'monitoring', 'priority: high']
       })
     });
     if (res.ok) {
@@ -198,19 +198,22 @@ _Auto-reported by Production Monitor v${entry.version}_`;
   } catch (_) { /* silent — don't error on error reporting */ }
 }
 
-async function addIssueToProject(token, issueNodeId) {
+async function addIssueToProject(token, issueNodeId, priority = 'high') {
+  const PRIORITY_IDS = { high: 'c32bf0c4', medium: 'f0fdf4e6', low: '0ce27c83' };
+  const PRIORITY_FIELD = 'PVTSSF_lAHOB0H7gM4BT-VDzhBQYqI';
+  const STATUS_FIELD = 'PVTSSF_lAHOB0H7gM4BT-VDzhBJlx0';
+  const BACKLOG_ID = '630cbc97';
   try {
-    await fetch('https://api.github.com/graphql', {
+    const gql = (query) => fetch('https://api.github.com/graphql', {
       method: 'POST',
-      headers: {
-        'Authorization': `bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: `mutation { addProjectV2ItemById(input: { projectId: "${GH_PROJECT_ID}", contentId: "${issueNodeId}" }) { item { id } } }`
-      })
-    });
-  } catch (_) { /* silent */ }
+      headers: { 'Authorization': `bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    }).then(r => r.json());
+    const res = await gql(`mutation { addProjectV2ItemById(input: { projectId: "${GH_PROJECT_ID}", contentId: "${issueNodeId}" }) { item { id } } }`);
+    const itemId = res.data.addProjectV2ItemById.item.id;
+    await gql(`mutation { updateProjectV2ItemFieldValue(input: { projectId: "${GH_PROJECT_ID}", itemId: "${itemId}", fieldId: "${PRIORITY_FIELD}", value: { singleSelectOptionId: "${PRIORITY_IDS[priority]}" } }) { projectV2Item { id } } }`);
+    await gql(`mutation { updateProjectV2ItemFieldValue(input: { projectId: "${GH_PROJECT_ID}", itemId: "${itemId}", fieldId: "${STATUS_FIELD}", value: { singleSelectOptionId: "${BACKLOG_ID}" } }) { projectV2Item { id } } }`);
+  } catch (_) {}
 }
 
 window.onerror = function(msg, src, line, col, err) {

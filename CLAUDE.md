@@ -104,13 +104,14 @@ node tests/uat.js
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
 
-## Tech Debt Monitoring
-- `tests/tech-debt.js` runs in CI on every push (Job 2 in pipeline)
-- Checks 9 thresholds: file size, console logs, globals, long functions, duplicated renders, hardcoded URLs, inline styles, empty CSS rules
-- Thresholds set at current baseline — only alerts on *new* debt introduced
-- Breaches auto-create GitHub Issues with `tech-debt` label → Kanban board → email notification
-- Master checklist: [Issue #10](https://github.com/oremosu98/networkplus-quiz/issues/10)
-- Tighten thresholds as debt is paid down
+## Tech Debt & Bug Tracking
+- The [Kanban board](https://github.com/users/oremosu98/projects/1) is the single source of truth for all bugs and tech debt
+- No master checklist issue — every item is an individual issue on the board
+- Priority field on board: 🔴 High, 🟡 Medium, 🟢 Low / Quick Win
+- `tests/tech-debt.js` runs in CI on every push — breaches auto-create issues with `tech-debt` + `priority: medium` labels, added to board in Backlog
+- Auto-reported bugs get `bug` + `priority: high` labels, added to board in Backlog
+- Weekly cadence: Tuesdays for bugs, Thursdays for tech debt
+- Tighten tech debt thresholds as debt is paid down
 
 ## Infrastructure Template
 A reusable infrastructure blueprint covering CI/CD, security, monitoring, and more lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Use it when setting up new projects or hardening existing ones. Update it when we refine the approach here.
