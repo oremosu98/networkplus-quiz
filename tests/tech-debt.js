@@ -43,7 +43,7 @@ const consoleMatches = jsLines.filter((line, i) => {
   return (trimmed.startsWith('console.log(') || trimmed.startsWith('console.warn(')) &&
     !trimmed.includes('error') && !trimmed.includes('Error');
 });
-check('console.log/warn in production', consoleMatches.length, 2); // baseline: 2 — target: 0
+check('console.log/warn in production', consoleMatches.length, 0);
 
 // Global variables (let/var at top level, rough heuristic)
 const globalVars = jsLines.filter(line => /^(let|var)\s+\w+/.test(line));
@@ -101,7 +101,7 @@ console.log('\n🎨 CSS');
 
 // Empty rules
 const emptyRules = css.match(/\{[\s]*\}/g);
-check('Empty CSS rules', emptyRules ? emptyRules.length : 0, 1); // baseline: 1 — target: 0
+check('Empty CSS rules', emptyRules ? emptyRules.length : 0, 0);
 
 // --- Summary ---
 console.log(`\n${'─'.repeat(50)}`);

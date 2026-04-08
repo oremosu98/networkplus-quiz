@@ -99,6 +99,7 @@ node tests/uat.js
 | v3.9 | Analytics animations: staggered bar chart grow, difficulty/topic bar slide-in, calendar cell pop-in, card fade-in cascade |
 | v4.0 | Analytics interactivity: bar chart hover lift with tooltip (% + date), calendar hover scale + tooltips, hottest day pulsing glow |
 | v4.1 | Enhanced spaced rep (Leitner decay, wrong bank boost, weighted random top-3), analytics theme fix (RGB CSS vars for light/dark), study activity tracks questions not sessions |
+| v4.2 | Tech debt: magic strings → constants (MIXED_TOPIC, EXAM_TOPIC, DEFAULT_DIFF, CLAUDE_API_URL, CLAUDE_MODEL), STORAGE object for all localStorage keys, silent catch block audit with user-facing toasts, CI tech debt monitor |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.

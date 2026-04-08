@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -11,6 +11,25 @@ const REPORTS_CAP = 500;
 const PORT_DRILL_SECONDS = 30;
 const SESSION_TOPICS = 3;
 const SESSION_QUESTIONS = 7;
+
+const MIXED_TOPIC = 'Mixed \u2014 All Topics';
+const EXAM_TOPIC = 'Exam Simulation';
+const DEFAULT_DIFF = 'Exam Level';
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+
+const STORAGE = {
+  THEME: 'nplus_theme',
+  KEY: 'nplus_key',
+  HISTORY: 'nplus_history',
+  STREAK: 'nplus_streak',
+  WRONG_BANK: 'nplus_wrong_bank',
+  REPORTS: 'nplus_reports',
+  PORT_BEST: 'nplus_port_best',
+  ERROR_LOG: 'nplus_error_log',
+  GH_TOKEN: 'nplus_gh_monitor_token',
+  GH_REPORTED: 'nplus_gh_reported',
+};
 
 // ── STATE ──
 let questions  = [];
@@ -21,9 +40,9 @@ let bestStreak = 0;
 let answered   = 0;
 let log        = [];
 let quizFlags  = [];
-let topic           = 'Mixed \u2014 All Topics';
-let activeQuizTopic = 'Mixed \u2014 All Topics';
-let diff       = 'Exam Level';
+let topic           = MIXED_TOPIC;
+let activeQuizTopic = MIXED_TOPIC;
+let diff       = DEFAULT_DIFF;
 let qCount     = 10;
 let apiKey     = '';
 let wrongDrillMode = false;
@@ -58,12 +77,12 @@ let navOpen        = false;
 // THEME TOGGLE
 // ══════════════════════════════════════════
 function getTheme() {
-  return localStorage.getItem('nplus_theme') || 'dark';
+  return localStorage.getItem(STORAGE.THEME) || 'dark';
 }
 
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  localStorage.setItem('nplus_theme', t);
+  localStorage.setItem(STORAGE.THEME, t);
   const btn = document.getElementById('theme-toggle');
   if (btn) btn.textContent = t === 'dark' ? '\u2600\ufe0f' : '\ud83c\udf19';
   // Update theme-color meta for mobile
@@ -78,16 +97,13 @@ function toggleTheme() {
 // ══════════════════════════════════════════
 // PRODUCTION MONITORING + AUTO GITHUB ISSUES
 // ══════════════════════════════════════════
-const ERROR_LOG_KEY = 'nplus_error_log';
 const ERROR_LOG_CAP = 50;
-const GH_TOKEN_KEY = 'nplus_gh_monitor_token';
-const GH_REPORTED_KEY = 'nplus_gh_reported';
 const GH_REPO = 'oremosu98/networkplus-quiz';
 const GH_PROJECT_ID = 'PVT_kwHOB0H7gM4BT-VD';
 
 function logError(type, msg, extra = {}) {
   try {
-    const log = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+    const log = JSON.parse(localStorage.getItem(STORAGE.ERROR_LOG) || '[]');
     const entry = {
       type,
       message: String(msg).slice(0, 500),
@@ -99,7 +115,7 @@ function logError(type, msg, extra = {}) {
     };
     log.unshift(entry);
     if (log.length > ERROR_LOG_CAP) log.length = ERROR_LOG_CAP;
-    localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(log));
+    localStorage.setItem(STORAGE.ERROR_LOG, JSON.stringify(log));
     // Auto-report to GitHub if configured
     autoReportToGitHub(entry);
   } catch (_) { /* storage full or unavailable */ }
@@ -116,7 +132,7 @@ function showErrorToast(msg) {
 
 // ── GitHub Issues Auto-Reporter ──
 function getReportedErrors() {
-  try { return JSON.parse(localStorage.getItem(GH_REPORTED_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(STORAGE.GH_REPORTED) || '[]'); } catch { return []; }
 }
 
 function errorFingerprint(entry) {
@@ -125,7 +141,7 @@ function errorFingerprint(entry) {
 }
 
 async function autoReportToGitHub(entry) {
-  const token = localStorage.getItem(GH_TOKEN_KEY);
+  const token = localStorage.getItem(STORAGE.GH_TOKEN);
   if (!token) return;
   // Skip localhost errors
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
@@ -177,7 +193,7 @@ _Auto-reported by Production Monitor v${entry.version}_`;
       // Mark as reported so we don't create duplicates
       reported.push(fp);
       if (reported.length > 200) reported.splice(0, reported.length - 200);
-      localStorage.setItem(GH_REPORTED_KEY, JSON.stringify(reported));
+      localStorage.setItem(STORAGE.GH_REPORTED, JSON.stringify(reported));
     }
   } catch (_) { /* silent — don't error on error reporting */ }
 }
@@ -220,7 +236,7 @@ window.addEventListener('unhandledrejection', e => {
 
 // ── Monitor Panel ──
 function getErrorLog() {
-  try { return JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(STORAGE.ERROR_LOG) || '[]'); } catch { return []; }
 }
 
 function renderMonitor() {
@@ -241,7 +257,7 @@ function renderMonitor() {
   log.forEach(e => { const k = e.message.slice(0, 80); freq[k] = (freq[k] || 0) + 1; });
   const topErrors = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  const ghToken = localStorage.getItem(GH_TOKEN_KEY) || '';
+  const ghToken = localStorage.getItem(STORAGE.GH_TOKEN) || '';
   const ghStatus = ghToken ? '🟢 Connected' : '⚪ Not configured';
   const reportedCount = getReportedErrors().length;
 
@@ -324,7 +340,7 @@ function exportErrorLog() {
 
 function clearErrorLog() {
   if (!confirm('Clear all logged errors? This cannot be undone.')) return;
-  localStorage.removeItem(ERROR_LOG_KEY);
+  localStorage.removeItem(STORAGE.ERROR_LOG);
   renderMonitor();
 }
 
@@ -338,10 +354,10 @@ function saveGhToken() {
     return;
   }
   if (token) {
-    localStorage.setItem(GH_TOKEN_KEY, token);
+    localStorage.setItem(STORAGE.GH_TOKEN, token);
     showErrorToast('GitHub connected! Errors will auto-create issues.');
   } else {
-    localStorage.removeItem(GH_TOKEN_KEY);
+    localStorage.removeItem(STORAGE.GH_TOKEN);
     showErrorToast('GitHub auto-reporter disconnected.');
   }
   renderMonitor();
@@ -349,7 +365,7 @@ function saveGhToken() {
 
 function revealGhToken() {
   const input = document.getElementById('gh-monitor-token');
-  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  const token = localStorage.getItem(STORAGE.GH_TOKEN) || '';
   if (!input || !token) return;
   if (input.type === 'password') {
     input.type = 'text';
@@ -361,7 +377,7 @@ function revealGhToken() {
 }
 
 function copyGhToken() {
-  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  const token = localStorage.getItem(STORAGE.GH_TOKEN) || '';
   if (!token) return;
   navigator.clipboard.writeText(token).then(() => showErrorToast('Token copied to clipboard'));
 }
@@ -394,7 +410,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Apply saved theme
   setTheme(getTheme());
 
-  const saved = localStorage.getItem('nplus_key');
+  const saved = localStorage.getItem(STORAGE.KEY);
   if (saved) document.getElementById('api-key').value = saved;
 
   initChips('topic-group', v => topic = v);
@@ -482,13 +498,15 @@ function confirmBack() {
 // HISTORY
 // ══════════════════════════════════════════
 function loadHistory() {
-  try { return JSON.parse(localStorage.getItem('nplus_history') || '[]'); } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem(STORAGE.HISTORY) || '[]'); } catch(e) { return []; }
 }
 function saveToHistory(entry) {
-  const h = loadHistory();
-  h.unshift(entry);
-  if (h.length > HISTORY_CAP) h.length = HISTORY_CAP;
-  localStorage.setItem('nplus_history', JSON.stringify(h));
+  try {
+    const h = loadHistory();
+    h.unshift(entry);
+    if (h.length > HISTORY_CAP) h.length = HISTORY_CAP;
+    localStorage.setItem(STORAGE.HISTORY, JSON.stringify(h));
+  } catch { showToast('Storage full — history not saved', 'error'); }
 }
 
 function renderHistoryPanel() {
@@ -606,7 +624,7 @@ function drillTopic(t) {
 // STREAK
 // ══════════════════════════════════════════
 function getStreak() {
-  try { return JSON.parse(localStorage.getItem('nplus_streak') || '{"current":0,"best":0,"last":null}'); }
+  try { return JSON.parse(localStorage.getItem(STORAGE.STREAK) || '{"current":0,"best":0,"last":null}'); }
   catch(e) { return { current: 0, best: 0, last: null }; }
 }
 function updateStreak() {
@@ -617,7 +635,7 @@ function updateStreak() {
   s.current = (s.last === yesterday) ? s.current + 1 : 1;
   s.best = Math.max(s.best || 0, s.current);
   s.last = today;
-  localStorage.setItem('nplus_streak', JSON.stringify(s));
+  localStorage.setItem(STORAGE.STREAK, JSON.stringify(s));
   return s;
 }
 function renderStreakBadge() {
@@ -685,7 +703,7 @@ function _getAllStudyTopics() {
 
 function getSpacedRepTopic() {
   const allTopics = _getAllStudyTopics();
-  const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
+  const h = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
   const now = Date.now();
 
   // Score all topics and pick from top 3 with weighted randomness
@@ -753,10 +771,10 @@ function showCacheNotice(show) {
 // WRONG ANSWERS BANK
 // ══════════════════════════════════════════
 function loadWrongBank() {
-  try { return JSON.parse(localStorage.getItem('nplus_wrong_bank') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(STORAGE.WRONG_BANK) || '[]'); } catch { return []; }
 }
 function saveWrongBank(bank) {
-  try { localStorage.setItem('nplus_wrong_bank', JSON.stringify(bank)); } catch {}
+  try { localStorage.setItem(STORAGE.WRONG_BANK, JSON.stringify(bank)); } catch { showToast('Storage full — wrong bank not saved', 'error'); }
 }
 
 function addToWrongBank(q, chosen) {
@@ -812,7 +830,7 @@ function clearWrongBank() {
   const bank = loadWrongBank();
   if (bank.length === 0) return;
   if (!confirm(`Clear all ${bank.length} wrong answers? This cannot be undone.`)) return;
-  localStorage.removeItem('nplus_wrong_bank');
+  localStorage.removeItem(STORAGE.WRONG_BANK);
   renderWrongBankBtn();
 }
 
@@ -857,7 +875,7 @@ function startWrongDrill() {
 // WEAK TOPIC DETECTOR
 // ══════════════════════════════════════════
 function getWeakTopic() {
-  const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation' && e.total >= 5);
+  const h = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 5);
   if (h.length < 1) return null;
   const map = {};
   h.forEach(e => {
@@ -884,8 +902,8 @@ function renderWeakBanner() {
   document.getElementById('weak-drill-btn').onclick = () => {
     topic = weak.topic;
     document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === weak.topic));
-    diff = 'Exam Level';
-    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === 'Exam Level'));
+    diff = DEFAULT_DIFF;
+    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
     qCount = 10;
     document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '10'));
     startQuiz();
@@ -912,7 +930,7 @@ async function startQuiz() {
   const keyErr = validateApiKey(key);
   if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
-  localStorage.setItem('nplus_key', key);
+  localStorage.setItem(STORAGE.KEY, key);
   examMode = false;
   wrongDrillMode = false;
 
@@ -974,7 +992,7 @@ async function startExam() {
   const keyErr = validateApiKey(key);
   if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
-  localStorage.setItem('nplus_key', key);
+  localStorage.setItem(STORAGE.KEY, key);
 
   examMode = true;
   wrongDrillMode = false;
@@ -1001,7 +1019,7 @@ async function startExam() {
       let batch = null;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          batch = await fetchQuestions(key, 'Mixed \u2014 All Topics', 'Mixed', BATCH_SIZE);
+          batch = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', BATCH_SIZE);
           break;
         } catch(retryErr) {
           if (attempt === MAX_RETRIES) throw retryErr;
@@ -1013,7 +1031,7 @@ async function startExam() {
     }
     fill.style.width = '100%';
     // Inject 2 CLI/topo PBQs into exam
-    examQuestions = injectPBQs(examQuestions, 'Mixed \u2014 All Topics', 2);
+    examQuestions = injectPBQs(examQuestions, MIXED_TOPIC, 2);
     examAnswers = examQuestions.map(() => ({ chosen: null, flagged: false, msChosen: [], orderSeq: [], cliRan: [], topoState: {} }));
     showPage('exam');
     renderExam();
@@ -1047,7 +1065,7 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
     'WPA3 & EAP Authentication': 'WPA3-Personal: SAE/Dragonfly. WPA3-Enterprise: 192-bit security. OWE. WPA3 vs WPA2. EAP types: EAP-TLS, PEAP, EAP-TTLS, EAP-FAST. 802.1X roles: Supplicant, Authenticator, Authentication Server. Wi-Fi Easy Connect. Transition mode.',
     'SDN, NFV & Automation': 'SDN: control/data plane separation. SDN controller, northbound/southbound APIs, OpenFlow. NFV: VNF, virtualising network functions. IaC: Ansible, Terraform, Puppet. YANG/NETCONF. Intent-based networking. REST APIs. Zero-touch provisioning.'
   };
-  const topicStr = qTopic === 'Mixed \u2014 All Topics'
+  const topicStr = qTopic === MIXED_TOPIC
     ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless (including WPA3/EAP), VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, Ethernet standards, PKI and certificate management, the CompTIA 7-step troubleshooting methodology, firewalls and security zones (DMZ, stateful vs stateless), WPA3 and EAP authentication types, and SDN/NFV/network automation.'
     : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam.${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
 
@@ -1056,7 +1074,7 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
     'Exam Level':    'Exam Level: scenario-based, mirrors real CompTIA style. Plausible distractors.',
     'Hard / Tricky': 'Hard: tricky edge cases, near-identical distractors, deep understanding required.',
     'Mixed':         'Mix of foundational, exam-level, and hard questions across all difficulties.'
-  }[difficulty] || 'Exam Level';
+  }[difficulty] || DEFAULT_DIFF;
 
   // Determine PBQ count
   const pbqCount = n >= 10 ? 2 : (n >= 7 ? 1 : 0);
@@ -1108,7 +1126,7 @@ MANDATORY RULES:
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"type":"mcq","question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(CLAUDE_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1116,7 +1134,7 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
   });
 
   if (!res.ok) {
@@ -1162,9 +1180,9 @@ function render() {
   document.getElementById('q-num').textContent       = `Q${current + 1}`;
 
   const badge = document.getElementById('diff-badge');
-  const dc    = (q.difficulty || 'Exam Level').replace(/[^a-zA-Z]/g, '');
+  const dc    = (q.difficulty || DEFAULT_DIFF).replace(/[^a-zA-Z]/g, '');
   badge.className   = `diff-badge diff-${dc}`;
-  badge.textContent = q.difficulty || 'Exam Level';
+  badge.textContent = q.difficulty || DEFAULT_DIFF;
 
   // PBQ badge
   const pbqBadge = document.getElementById('pbq-badge');
@@ -1583,7 +1601,7 @@ function finish() {
   // Difficulty breakdown
   const byDiff = {};
   log.forEach(entry => {
-    const d = (entry.q.difficulty || 'Exam Level').trim();
+    const d = (entry.q.difficulty || DEFAULT_DIFF).trim();
     if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
     byDiff[d].total++;
     if (entry.isRight) byDiff[d].right++;
@@ -2016,7 +2034,7 @@ function submitExam() {
   });
 
   updateStreak();
-  saveToHistory({ date: new Date().toISOString(), topic: 'Exam Simulation', difficulty: 'Mixed', score: correct, total, pct, mode: 'exam' });
+  saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam' });
 
   const scoreEl = document.getElementById('exam-scaled-score');
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';
@@ -2280,7 +2298,7 @@ function getReadinessScore() {
   const totalTopics = allTopics.length;
 
   const h = loadHistory().filter(e =>
-    e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation' && e.total >= 3
+    e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 3
   );
   if (h.length === 0) return null;
 
@@ -2387,7 +2405,7 @@ function renderReadinessCard() {
 // ══════════════════════════════════════════
 function buildSessionPlan(n) {
   const allTopics = _getAllStudyTopics();
-  const h = loadHistory().filter(e => e.topic !== 'Mixed \u2014 All Topics' && e.topic !== 'Exam Simulation');
+  const h = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
   const now = Date.now();
 
   const scored = allTopics.map(t => {
@@ -2423,7 +2441,7 @@ async function startSession() {
   const keyErr = validateApiKey(key);
   if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
   apiKey = key;
-  localStorage.setItem('nplus_key', key);
+  localStorage.setItem(STORAGE.KEY, key);
 
   sessionMode    = true;
   sessionStep    = 0;
@@ -2565,13 +2583,13 @@ function importData(event) {
       const merged = existing.concat(newEntries);
       merged.sort((a, b) => new Date(b.date) - new Date(a.date));
       if (merged.length > HISTORY_CAP) merged.length = HISTORY_CAP;
-      localStorage.setItem('nplus_history', JSON.stringify(merged));
+      localStorage.setItem(STORAGE.HISTORY, JSON.stringify(merged));
 
       if (data.streak) {
         const current = getStreak();
         if ((data.streak.best || 0) > (current.best || 0)) {
           current.best = data.streak.best;
-          localStorage.setItem('nplus_streak', JSON.stringify(current));
+          localStorage.setItem(STORAGE.STREAK, JSON.stringify(current));
         }
       }
 
@@ -2640,7 +2658,7 @@ const topicResources = {
 // ══════════════════════════════════════════
 const cliScenarios = [
   {
-    type: 'cli-sim', difficulty: 'Exam Level', topic: 'Network Troubleshooting & Tools',
+    type: 'cli-sim', difficulty: DEFAULT_DIFF, topic: 'Network Troubleshooting & Tools',
     scenario: 'A user reports they can reach internal servers but cannot browse any websites. You sit at their workstation to investigate.',
     hostname: 'WORKSTATION-PC',
     commands: {
@@ -2656,7 +2674,7 @@ const cliScenarios = [
     explanation: 'The workstation has a valid IP (192.168.1.45), can ping the gateway and 8.8.8.8, proving Layer 3 connectivity works. However, nslookup fails and the DNS server at 192.168.1.10 is unreachable (100% loss). The DNS server being down explains why name resolution fails while IP connectivity works. A is wrong because gateway pings succeed.'
   },
   {
-    type: 'cli-sim', difficulty: 'Exam Level', topic: 'Network Troubleshooting & Tools',
+    type: 'cli-sim', difficulty: DEFAULT_DIFF, topic: 'Network Troubleshooting & Tools',
     scenario: 'A new employee\'s PC cannot connect to any network resources. They just plugged in their Ethernet cable. You open a command prompt.',
     hostname: 'NEW-PC',
     commands: {
@@ -2686,7 +2704,7 @@ const cliScenarios = [
     explanation: 'The ARP table shows 192.168.10.25 (this PC) and 192.168.10.99 share the identical MAC address 00-1a-2b-3c-4d-5e. This is a duplicate IP/MAC conflict causing intermittent connectivity as traffic gets misdirected. A is wrong because aa-bb-cc-dd-ee-01 is a valid unicast MAC, not a broadcast.'
   },
   {
-    type: 'cli-sim', difficulty: 'Exam Level', topic: 'Network Troubleshooting & Tools',
+    type: 'cli-sim', difficulty: DEFAULT_DIFF, topic: 'Network Troubleshooting & Tools',
     scenario: 'A remote office reports connections to the HQ file server (10.0.0.50) are extremely slow. Normal latency should be ~20ms.',
     hostname: 'REMOTE-PC',
     commands: {
@@ -2701,7 +2719,7 @@ const cliScenarios = [
     explanation: 'The traceroute shows latency jumps from 14ms at hop 3 to 155ms at hop 4 \u2014 a 141ms spike between 10.2.2.1 and 10.3.3.1. All later hops maintain similar high latency because the bottleneck compounds downstream. The link between those routers is likely congested or routing sub-optimally. A is wrong because hop 1 shows <1ms.'
   },
   {
-    type: 'cli-sim', difficulty: 'Exam Level', topic: 'Network Troubleshooting & Tools',
+    type: 'cli-sim', difficulty: DEFAULT_DIFF, topic: 'Network Troubleshooting & Tools',
     scenario: 'An application team reports their web server on port 8080 is not reachable from the network. The server runs on 192.168.1.100. You investigate from the server itself.',
     hostname: 'WEB-SRV',
     commands: {
@@ -2737,7 +2755,7 @@ const cliScenarios = [
 // ══════════════════════════════════════════
 const topoScenarios = [
   {
-    type: 'topology', difficulty: 'Exam Level', topic: 'Firewalls, DMZ & Security Zones',
+    type: 'topology', difficulty: DEFAULT_DIFF, topic: 'Firewalls, DMZ & Security Zones',
     scenario: 'Place each network component into the correct security zone for a secure web hosting architecture.',
     zones: ['Internet', 'DMZ', 'Internal LAN'],
     devices: ['Public Web Server', 'Database Server', 'Email Gateway', 'Domain Controller'],
@@ -2746,7 +2764,7 @@ const topoScenarios = [
     explanation: 'Public-facing servers (web server, email gateway) belong in the DMZ \u2014 a screened subnet between firewalls. This limits exposure if compromised. The database and domain controller hold sensitive data and must be in the Internal LAN, never directly exposed to the internet.'
   },
   {
-    type: 'topology', difficulty: 'Exam Level', topic: 'Protecting Networks',
+    type: 'topology', difficulty: DEFAULT_DIFF, topic: 'Protecting Networks',
     scenario: 'A company is deploying network monitoring. Place each security tool in the correct zone.',
     zones: ['Internet Edge', 'Core Network', 'Server Farm'],
     devices: ['IDS Sensor', 'SIEM Collector', 'Honeypot', 'Syslog Server'],
@@ -2755,7 +2773,7 @@ const topoScenarios = [
     explanation: 'The IDS sensor and honeypot belong at the Internet Edge to detect and attract threats before they reach internal networks. The SIEM collector goes in the Core Network to aggregate logs from all zones. The Syslog server belongs in the Server Farm for secure log storage alongside infrastructure servers.'
   },
   {
-    type: 'topology', difficulty: 'Exam Level', topic: 'Wireless Networking',
+    type: 'topology', difficulty: DEFAULT_DIFF, topic: 'Wireless Networking',
     scenario: 'Deploy a secure enterprise wireless network. Place each component in the correct location.',
     zones: ['Reception Area', 'Server Room', 'Office Floor'],
     devices: ['Wireless Access Point', 'WLC (Controller)', 'RADIUS Server', 'Guest Captive Portal'],
@@ -2773,7 +2791,7 @@ const topoScenarios = [
     explanation: 'The VPN Gateway sits on-premises to tunnel securely to the cloud VPC. The Load Balancer needs the Public Subnet to accept internet traffic. App Servers and the Cloud Database belong in the Private Subnet \u2014 not directly internet-accessible, receiving traffic only through the load balancer.'
   },
   {
-    type: 'topology', difficulty: 'Exam Level', topic: 'Cabling & Topology',
+    type: 'topology', difficulty: DEFAULT_DIFF, topic: 'Cabling & Topology',
     scenario: 'A new office needs network infrastructure. Place each device at the correct layer of the three-tier architecture.',
     zones: ['Access Layer', 'Distribution Layer', 'Core Layer'],
     devices: ['End-user Switch (24-port)', 'Layer 3 Switch', 'Backbone Router', 'PoE Switch for IP Phones'],
@@ -2845,15 +2863,16 @@ function validateQuestions(qs) {
 // REPORT ISSUE
 // ══════════════════════════════════════════
 function loadReports() {
-  try { return JSON.parse(localStorage.getItem('nplus_reports') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(STORAGE.REPORTS) || '[]'); } catch { return []; }
 }
 
 function saveReport(questionText, reason) {
-  const reports = loadReports();
-  reports.push({ question: questionText, reason, date: new Date().toISOString() });
-  // Cap reports storage
-  if (reports.length > REPORTS_CAP) reports.splice(0, reports.length - REPORTS_CAP);
-  localStorage.setItem('nplus_reports', JSON.stringify(reports));
+  try {
+    const reports = loadReports();
+    reports.push({ question: questionText, reason, date: new Date().toISOString() });
+    if (reports.length > REPORTS_CAP) reports.splice(0, reports.length - REPORTS_CAP);
+    localStorage.setItem(STORAGE.REPORTS, JSON.stringify(reports));
+  } catch { showToast('Storage full — report not saved', 'error'); }
 }
 
 function getReportCount(questionText) {
@@ -3131,8 +3150,8 @@ function submitTopology(q) {
 // INJECT PBQs FROM PREDEFINED BANKS
 // ══════════════════════════════════════════
 function getMatchingScenarios(qTopic) {
-  const cli = cliScenarios.filter(s => qTopic === 'Mixed \u2014 All Topics' || s.topic === qTopic || qTopic.includes('Troubleshoot'));
-  const topo = topoScenarios.filter(s => qTopic === 'Mixed \u2014 All Topics' || s.topic === qTopic);
+  const cli = cliScenarios.filter(s => qTopic === MIXED_TOPIC || s.topic === qTopic || qTopic.includes('Troubleshoot'));
+  const topo = topoScenarios.filter(s => qTopic === MIXED_TOPIC || s.topic === qTopic);
   return { cli, topo };
 }
 
@@ -3316,7 +3335,7 @@ ${qList}
 Respond with one line per question, nothing else:`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3324,7 +3343,7 @@ Respond with one line per question, nothing else:`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!res.ok) return qs; // If validation call fails, keep questions as-is
@@ -3368,12 +3387,8 @@ Respond with one line per question, nothing else:`;
       return true;
     });
 
-    if (fixCount > 0 || removeCount > 0) {
-      console.log(`AI Validator: fixed ${fixCount}, removed ${removeCount} questions`);
-    }
     return result;
   } catch (e) {
-    console.warn('AI validation failed, using questions as-is:', e.message);
     return qs;
   }
 }
@@ -3388,7 +3403,7 @@ async function explainFurther() {
   const btn = document.querySelector('.explain-btn');
   if (btn) { btn.textContent = 'Loading\u2026'; btn.disabled = true; }
 
-  const key = apiKey || localStorage.getItem('nplus_key') || '';
+  const key = apiKey || localStorage.getItem(STORAGE.KEY) || '';
   if (!key) {
     if (btn) { btn.textContent = 'No API key'; btn.disabled = true; }
     return;
@@ -3438,7 +3453,7 @@ List 2-3 related topics the student should also review (one line each).
 Use plain text, no markdown. Label each section clearly. Aim for 250-350 words total — thorough but not bloated.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3446,7 +3461,7 @@ Use plain text, no markdown. Label each section clearly. Aim for 250-350 words t
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!res.ok) throw new Error('API error');
@@ -3505,7 +3520,7 @@ async function showTopicDeepDive(topicName) {
 
   showPage('topic-dive');
 
-  const key = apiKey || localStorage.getItem('nplus_key') || '';
+  const key = apiKey || localStorage.getItem(STORAGE.KEY) || '';
   if (!key) {
     contentEl.innerHTML = '<div class="topic-dive-error">⚠️ No API key found. Enter your Anthropic API key on the setup page to use Topic Deep Dive.</div>';
     return;
@@ -3536,7 +3551,7 @@ Return your response as valid JSON with this exact structure:
 Return ONLY valid JSON, no extra text before or after.`;
 
   try {
-    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiRes = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3544,7 +3559,7 @@ Return ONLY valid JSON, no extra text before or after.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!apiRes.ok) throw new Error('API error');
@@ -3779,7 +3794,7 @@ let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurr
 let portMissed = []; // Track wrong answers for review
 
 function startPortDrill() {
-  const best = parseInt(localStorage.getItem('nplus_port_best') || '0');
+  const best = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
   document.getElementById('port-best').textContent = best;
   document.getElementById('port-pregame').style.display = 'block';
   document.getElementById('port-game').style.display = 'none';
@@ -3861,9 +3876,9 @@ function endPortDrill() {
   document.getElementById('port-pregame').style.display = 'none';
   document.getElementById('port-results').style.display = 'block';
   document.getElementById('port-final-score').textContent = portScore;
-  const best = parseInt(localStorage.getItem('nplus_port_best') || '0');
+  const best = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
   if (portScore > best) {
-    localStorage.setItem('nplus_port_best', String(portScore));
+    localStorage.setItem(STORAGE.PORT_BEST, String(portScore));
     document.getElementById('port-best').textContent = portScore;
   }
   // Render missed answers review
@@ -3905,7 +3920,7 @@ Include:
 
 Keep it under 120 words. Use plain text, no markdown. Number each section.`;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3913,7 +3928,7 @@ Keep it under 120 words. Use plain text, no markdown. Number each section.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) return;
     const data = await res.json();
@@ -3965,7 +3980,7 @@ function renderAnalytics() {
   // 2. Difficulty Breakdown
   const diffs = {};
   h.forEach(e => {
-    const d = e.difficulty || e.diff || 'Exam Level';
+    const d = e.difficulty || e.diff || DEFAULT_DIFF;
     if (!diffs[d]) diffs[d] = { correct: 0, total: 0 };
     diffs[d].correct += e.score;
     diffs[d].total += e.total;
