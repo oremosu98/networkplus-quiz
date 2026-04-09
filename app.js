@@ -2720,6 +2720,35 @@ function renderReadinessCard() {
   } else {
     actionEl.innerHTML = '\u2728 All topics covered. Keep your scores up!';
   }
+
+  // Exam date row
+  const examInput     = document.getElementById('readiness-exam-input');
+  const examDisplay   = document.getElementById('readiness-exam-display');
+  const examCountdown = document.getElementById('readiness-exam-countdown');
+  if (examInput && examDisplay && examCountdown) {
+    const dateStr = getExamDate();
+    examInput.value = dateStr || '';
+    if (dateStr) {
+      examDisplay.textContent = new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const days = getDaysToExam();
+      if (days !== null) {
+        if (days > 0) {
+          const emoji = days <= 7 ? '\ud83d\udd25' : days <= 30 ? '\u26a1' : '\ud83d\udcc5';
+          examCountdown.innerHTML = `${emoji} <strong>${days}</strong> day${days === 1 ? '' : 's'} to go`;
+          examCountdown.style.color = days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--yellow)' : 'var(--text-mid)';
+        } else if (days === 0) {
+          examCountdown.innerHTML = '\ud83c\udfaf <strong>Today!</strong>';
+          examCountdown.style.color = 'var(--red)';
+        } else {
+          examCountdown.textContent = `Was ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
+          examCountdown.style.color = 'var(--text-dim)';
+        }
+      }
+    } else {
+      examDisplay.textContent = 'Pick a date';
+      examCountdown.textContent = '';
+    }
+  }
 }
 
 // ══════════════════════════════════════════
@@ -4394,7 +4423,11 @@ function renderAnalytics() {
       </div>
       <div class="ana-exam-date-row">
         <label for="ana-exam-date-input" class="ana-exam-date-lbl">🎯 Your exam date:</label>
-        <input type="date" id="ana-exam-date-input" class="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+        <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="Open date picker">
+          <span class="ana-exam-date-display">${examDateStr ? new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}</span>
+          <span class="ana-exam-date-icon">📅</span>
+          <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+        </button>
         ${examDateStr ? '<button class="ana-exam-date-clear" onclick="updateExamDate(\'\')" aria-label="Clear exam date">Clear</button>' : ''}
       </div>
     </div>`;
@@ -4592,38 +4625,7 @@ function renderAnalytics() {
   </div>`;
 
   // ═══════════════════════════════════════════
-  // 9. Readiness Forecast — days to ready, exam-date comparison
-  // ═══════════════════════════════════════════
-  if (forecast && !forecast.trendFlat) {
-    let verdict = '', verdictColor = 'var(--text)';
-    if (daysToExam !== null && forecast.daysToTarget !== null) {
-      const buffer = daysToExam - forecast.daysToTarget;
-      if (buffer >= 7)        { verdict = `✅ On track — ready ~${buffer} days before exam`; verdictColor = 'var(--green)'; }
-      else if (buffer >= 0)   { verdict = `⚠️ Cutting it close — ready just in time`;       verdictColor = 'var(--yellow)'; }
-      else                    { verdict = `🔴 Behind schedule by ${Math.abs(buffer)} days — increase pace`; verdictColor = 'var(--red)'; }
-    } else if (forecast.daysToTarget !== null) {
-      verdict = `📈 At current pace: ready in ~${forecast.daysToTarget} days (${forecast.sessionsToTarget} sessions)`;
-    }
-    html += `<div class="ana-card">
-      <h3>READINESS FORECAST</h3>
-      <div class="ana-subtitle">Linear trend on your last 14 sessions</div>
-      <div class="ana-forecast-stats">
-        <div class="ana-forecast-stat"><div class="ana-forecast-val">${Math.round(forecast.currentProj)}%</div><div class="ana-forecast-lbl">Projected next score</div></div>
-        <div class="ana-forecast-stat"><div class="ana-forecast-val">${forecast.slope > 0 ? '+' : ''}${forecast.slope.toFixed(1)}</div><div class="ana-forecast-lbl">Points/session trend</div></div>
-        <div class="ana-forecast-stat"><div class="ana-forecast-val">${forecast.daysToTarget ?? '—'}</div><div class="ana-forecast-lbl">Days to 75% mastery</div></div>
-      </div>
-      ${verdict ? `<div class="ana-forecast-verdict" style="color:${verdictColor}">${verdict}</div>` : ''}
-    </div>`;
-  } else if (forecast && forecast.trendFlat) {
-    html += `<div class="ana-card">
-      <h3>READINESS FORECAST</h3>
-      <div class="ana-subtitle">Trend is flat or declining</div>
-      <p class="ana-forecast-verdict" style="color:var(--yellow)">Your last 14 sessions show no improvement. Consider: switching to harder difficulty, drilling weak topics, or reviewing explanations more carefully.</p>
-    </div>`;
-  }
-
-  // ═══════════════════════════════════════════
-  // 10. Streak tracker — consecutive study days
+  // 9. Streak tracker — consecutive study days
   // ═══════════════════════════════════════════
   const streak = getStreakData();
   const flameIcon = streak.currentStreak > 0 ? '🔥' : '💤';

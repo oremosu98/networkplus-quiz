@@ -43,6 +43,15 @@
       <div class="readiness-bar-fill" id="readiness-bar-fill" style="width:0%"></div>
     </div>
     <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
+    <div class="readiness-exam-row" id="readiness-exam-row">
+      <span class="readiness-exam-lbl">🎯 Exam date:</span>
+      <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('readiness-exam-input').showPicker && document.getElementById('readiness-exam-input').showPicker()" aria-label="Open exam date picker">
+        <span class="ana-exam-date-display" id="readiness-exam-display">Pick a date</span>
+        <span class="ana-exam-date-icon">📅</span>
+        <input type="date" id="readiness-exam-input" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+      </button>
+      <span class="readiness-exam-countdown" id="readiness-exam-countdown"></span>
+    </div>
   </div>
 
   <!-- Today's Session banner -->

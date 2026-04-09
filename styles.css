@@ -722,6 +722,12 @@ input::placeholder { color: var(--text-dim); }
 .ana-stat-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
 @media (min-width: 480px) { .ana-alltime { grid-template-columns: repeat(4,1fr); } }
 
+/* Readiness card — exam date row (setup page hero) */
+.readiness-exam-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.readiness-exam-lbl { font-size: 12px; color: var(--text-mid); font-weight: 600; }
+.readiness-exam-countdown { font-size: 12px; color: var(--text-mid); margin-left: auto; }
+.readiness-exam-countdown strong { font-size: 14px; }
+
 /* ── ANALYTICS v2 (v4.5) ── */
 /* Readiness hero card */
 .ana-ready-hero { border-color: rgba(var(--accent-rgb),.35); background: linear-gradient(160deg, rgba(var(--accent-rgb),.08), rgba(var(--accent-rgb),.02)); }
@@ -746,17 +752,15 @@ input::placeholder { color: var(--text-dim); }
 /* Exam date input */
 .ana-exam-date-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .ana-exam-date-lbl { font-size: 12px; color: var(--text-mid); font-weight: 600; }
-.ana-exam-date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; }
-.ana-exam-date-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ana-exam-date-btn { position: relative; display: inline-flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; transition: all .2s; min-width: 180px; }
+.ana-exam-date-btn:hover { border-color: var(--accent); background: var(--surface3); }
+.ana-exam-date-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ana-exam-date-display { flex: 1; text-align: left; }
+.ana-exam-date-icon { font-size: 15px; opacity: .8; }
+.ana-exam-date-btn input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; border: none; padding: 0; font: inherit; color: transparent; background: transparent; width: 100%; height: 100%; }
+.ana-exam-date-btn input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
 .ana-exam-date-clear { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; }
 .ana-exam-date-clear:hover { color: var(--red); border-color: rgba(var(--red-rgb),.4); }
-
-/* Forecast */
-.ana-forecast-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 6px; }
-.ana-forecast-stat { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 10px; text-align: center; }
-.ana-forecast-val { font-size: 22px; font-weight: 900; color: var(--accent-light); }
-.ana-forecast-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
-.ana-forecast-verdict { font-size: 13px; margin-top: 12px; padding: 10px; background: var(--surface2); border-radius: var(--radius-sm); line-height: 1.5; }
 
 /* Streak */
 .ana-streak-grid { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
