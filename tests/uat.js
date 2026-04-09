@@ -219,7 +219,20 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.5', js.includes("const APP_VERSION = '4.5"));
+test('APP_VERSION is 4.6', js.includes("const APP_VERSION = '4.6"));
+test('getDailyGoal function', js.includes('function getDailyGoal('));
+test('renderDailyGoal function', js.includes('function renderDailyGoal('));
+test('editDailyGoal function', js.includes('function editDailyGoal('));
+test('STORAGE.DAILY_GOAL key', js.includes('DAILY_GOAL:'));
+test('getTodayQuestionCount function', js.includes('function getTodayQuestionCount('));
+test('Daily goal card in HTML', html.includes('id="daily-goal-card"'));
+test('Topic domain groups', html.includes('topic-domain-group'));
+test('Advanced collapsible section', html.includes('id="advanced-section"'));
+test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
+test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
+test('CSS: .advanced-section', css.includes('.advanced-section'));
+test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
+test('SW cache bumped to v4.6', sw.includes('netplus-v4.6'));
 test('DOMAIN_WEIGHTS constant', js.includes('const DOMAIN_WEIGHTS = {'));
 test('TOPIC_DOMAINS mapping', js.includes('const TOPIC_DOMAINS = {'));
 test('MILESTONE_DEFS defined', js.includes('MILESTONE_DEFS'));
@@ -256,7 +269,6 @@ test('CSS: .ana-exam-date-btn', css.includes('.ana-exam-date-btn'));
 test('CSS: .ana-streak-grid', css.includes('.ana-streak-grid'));
 test('CSS: .ana-heatmap', css.includes('.ana-heatmap'));
 test('CSS: .ana-milestone', css.includes('.ana-milestone'));
-test('SW cache bumped to v4.5', sw.includes('netplus-v4.5'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

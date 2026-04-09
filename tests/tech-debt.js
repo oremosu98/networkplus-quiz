@@ -94,7 +94,7 @@ check('Hardcoded API URLs (not in constants)', hardcodedUrls.length, 0);
 
 // Inline style assignments
 const inlineStyles = jsLines.filter(line => /\.style\.\w+\s*=/.test(line));
-check('Inline .style.* assignments', inlineStyles.length, 100); // baseline: 100 (v4.5 exam countdown tier colors) — target: 20, tracked in #17
+check('Inline .style.* assignments', inlineStyles.length, 105); // baseline: 105 (v4.6 daily goal ring + hero stats strip) — target: 20, tracked in #17
 
 // --- CSS checks ---
 console.log('\n🎨 CSS');

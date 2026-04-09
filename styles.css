@@ -427,6 +427,14 @@ input::placeholder { color: var(--text-dim); }
 .sstat .sl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
 @media (min-width: 480px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
 
+/* Hero stats strip override */
+.hero-stats-strip { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.hero-stats-strip .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 0; }
+.hero-stats-strip .sstat { background: rgba(var(--accent-rgb), .06); border-color: rgba(var(--accent-rgb), .15); padding: 10px 8px; }
+.hero-stats-strip .sstat .sv { font-size: 16px; }
+.hero-stats-strip .sstat .sl { font-size: 9px; }
+@media (min-width: 560px) { .hero-stats-strip .stats-grid { grid-template-columns: repeat(5, 1fr); } }
+
 /* ── EXAM READINESS CARD ── */
 .readiness-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
 .readiness-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -721,6 +729,44 @@ input::placeholder { color: var(--text-dim); }
 .ana-stat-val { font-size: 24px; font-weight: 900; color: var(--accent-light); }
 .ana-stat-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
 @media (min-width: 480px) { .ana-alltime { grid-template-columns: repeat(4,1fr); } }
+
+/* Advanced collapsible section */
+.advanced-section { padding: 0; }
+.advanced-section > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text); user-select: none; }
+.advanced-section > summary::-webkit-details-marker { display: none; }
+.advanced-section > summary::after { content: '\25BE'; margin-left: auto; color: var(--text-dim); transition: transform .2s; }
+.advanced-section[open] > summary::after { transform: rotate(180deg); }
+.advanced-section .adv-hint { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+.advanced-section .advanced-body { padding: 0 16px 16px; border-top: 1px solid var(--border); }
+
+/* Topic domain groups (v4.6) */
+.topic-group-v2 { display: flex; flex-direction: column; gap: 10px; }
+.topic-quickpicks { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+.topic-domain-group { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.topic-domain-group[open] { border-color: rgba(var(--accent-rgb), .3); }
+.topic-domain-group > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--text); text-transform: uppercase; user-select: none; transition: background .2s; }
+.topic-domain-group > summary::-webkit-details-marker { display: none; }
+.topic-domain-group > summary::before { content: '\25B8'; color: var(--text-dim); font-size: 10px; transition: transform .2s; display: inline-block; margin-right: 4px; }
+.topic-domain-group[open] > summary::before { transform: rotate(90deg); }
+.topic-domain-group > summary:hover { background: var(--surface3); }
+.topic-domain-group .dom-name { flex: 1; }
+.topic-domain-group .dom-weight { font-size: 10px; color: var(--accent-light); background: rgba(var(--accent-rgb), .12); padding: 2px 8px; border-radius: 99px; font-weight: 800; }
+.topic-domain-group .chip-grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 12px; border-top: 1px solid var(--border); }
+
+/* Daily goal ring card */
+.daily-goal-card { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; position: relative; }
+.dg-ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.dg-ring { transform: rotate(-90deg); }
+.dg-ring-track { fill: none; stroke: var(--surface3); stroke-width: 6; }
+.dg-ring-fill { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .8s ease, stroke .4s; }
+.dg-ring-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--accent-light); }
+.dg-info { flex: 1; min-width: 0; }
+.dg-title { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
+.dg-progress { font-size: 14px; color: var(--text); }
+.dg-progress strong { color: var(--accent-light); font-size: 18px; font-weight: 900; }
+.dg-msg { font-size: 11px; color: var(--text-mid); margin-top: 3px; }
+.dg-edit-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 14px; cursor: pointer; transition: all .2s; flex-shrink: 0; }
+.dg-edit-btn:hover { color: var(--accent-light); border-color: var(--accent); }
 
 /* Readiness card — exam date row (setup page hero) */
 .readiness-exam-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }

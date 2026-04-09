@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -31,6 +31,7 @@ const STORAGE = {
   MILESTONES: 'nplus_milestones',
   TYPE_STATS: 'nplus_type_stats',
   SUBNET_STATS: 'nplus_subnet_stats',
+  DAILY_GOAL: 'nplus_daily_goal',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
   GH_REPORTED: 'nplus_gh_reported',
@@ -420,6 +421,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const saved = localStorage.getItem(STORAGE.KEY);
   if (saved) document.getElementById('api-key').value = saved;
+  // Auto-open Advanced section on first visit (no API key yet)
+  const adv = document.getElementById('advanced-section');
+  if (adv && !saved) adv.open = true;
 
   initChips('topic-group', v => topic = v);
   initChips('diff-group',  v => diff  = v);
@@ -574,18 +578,87 @@ function getStudyStats() {
   }, 0);
   return { totalQ, sessions, avgPct, bestExam };
 }
+function getTodayQuestionCount() {
+  const today = new Date().toISOString().slice(0, 10);
+  return loadHistory()
+    .filter(e => new Date(e.date).toISOString().slice(0, 10) === today)
+    .reduce((a, e) => a + (e.total || 0), 0);
+}
+
+// ── Daily goal ──
+const DEFAULT_DAILY_GOAL = 20;
+function getDailyGoal() {
+  const raw = parseInt(localStorage.getItem(STORAGE.DAILY_GOAL), 10);
+  return (Number.isFinite(raw) && raw > 0) ? raw : DEFAULT_DAILY_GOAL;
+}
+function setDailyGoal(n) {
+  const v = parseInt(n, 10);
+  if (Number.isFinite(v) && v > 0 && v <= 500) {
+    localStorage.setItem(STORAGE.DAILY_GOAL, String(v));
+  }
+}
+function editDailyGoal() {
+  const current = getDailyGoal();
+  const input = prompt('Daily question goal:', String(current));
+  if (input === null) return;
+  const v = parseInt(input, 10);
+  if (!Number.isFinite(v) || v <= 0 || v > 500) {
+    alert('Enter a number between 1 and 500.');
+    return;
+  }
+  setDailyGoal(v);
+  renderDailyGoal();
+}
+function renderDailyGoal() {
+  const card = document.getElementById('daily-goal-card');
+  if (!card) return;
+  const goal = getDailyGoal();
+  const done = getTodayQuestionCount();
+  const pct = Math.min(100, Math.round((done / goal) * 100));
+  const circumference = 2 * Math.PI * 30; // r=30
+  const offset = circumference * (1 - Math.min(1, done / goal));
+  const fill = document.getElementById('dg-ring-fill');
+  const pctEl = document.getElementById('dg-ring-pct');
+  const countEl = document.getElementById('dg-progress-count');
+  const goalEl = document.getElementById('dg-goal-num');
+  const msgEl  = document.getElementById('dg-msg');
+  if (!fill || !pctEl) return;
+  fill.style.strokeDasharray = circumference;
+  fill.style.strokeDashoffset = offset;
+  let color;
+  if (pct >= 100)      color = 'var(--green)';
+  else if (pct >= 60)  color = 'var(--accent)';
+  else if (pct >= 25)  color = 'var(--yellow)';
+  else                 color = 'var(--red)';
+  fill.style.stroke = color;
+  pctEl.textContent = pct + '%';
+  pctEl.style.color = color;
+  countEl.textContent = done;
+  goalEl.textContent = goal;
+  if (pct >= 100)      msgEl.textContent = '\ud83c\udf89 Goal smashed for today!';
+  else if (pct >= 75)  msgEl.textContent = 'Almost there — push through!';
+  else if (pct >= 40)  msgEl.textContent = 'Solid progress. Keep going.';
+  else if (done > 0)   msgEl.textContent = 'Good start. Stay consistent.';
+  else                 msgEl.textContent = "Let's get started today";
+}
+
 function renderStatsCard() {
+  renderDailyGoal();
   const stats = getStudyStats();
   const card  = document.getElementById('stats-card');
   const grid  = document.getElementById('stats-grid');
   if (!stats || !card || !grid) return;
   card.style.display = 'block';
+  const streakData = getStreakData();
+  const todayQs = getTodayQuestionCount();
   const avgColor = stats.avgPct >= 80 ? 'var(--green)' : stats.avgPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  const streakIcon = streakData.currentStreak > 0 ? '\ud83d\udd25' : '\ud83d\udcab';
   grid.innerHTML = `
     <div class="sstat"><div class="sv">${stats.totalQ.toLocaleString()}</div><div class="sl">Questions</div></div>
-    <div class="sstat"><div class="sv">${stats.sessions}</div><div class="sl">Sessions</div></div>
     <div class="sstat"><div class="sv" style="color:${avgColor}">${stats.avgPct}%</div><div class="sl">Avg Score</div></div>
-    <div class="sstat"><div class="sv">${stats.bestExam > 0 ? stats.bestExam : '\u2014'}</div><div class="sl">Best Exam</div></div>`;
+    <div class="sstat"><div class="sv">${streakIcon} ${streakData.currentStreak}</div><div class="sl">Day streak</div></div>
+    <div class="sstat"><div class="sv">${todayQs}</div><div class="sl">Qs today</div></div>
+    <div class="sstat"><div class="sv">${stats.bestExam > 0 ? stats.bestExam : '\u2014'}</div><div class="sl">Best exam</div></div>`;
 }
 
 // ══════════════════════════════════════════

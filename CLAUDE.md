@@ -104,6 +104,7 @@ node tests/uat.js
 | v4.4 | Port Drill adaptive focus: weighted port selection based on per-port miss rate (prototype for issue #25 adaptive coverage). Pregame shows weakest ports + accuracy; reset stats button |
 | v4.5 | Analytics v2: enhanced `getReadinessScore()` with CompTIA domain weighting + recency/exam boosts, exam date input with days-to-exam countdown, readiness forecast (linear regression → days-to-75%), study streak card, subtopic weak spots mined from wrong bank, difficulty×topic heatmap, question type breakdown, exam vs quiz mode compare, drills summary card, 13 milestones with unlock tracking |
 | v4.5.1 | Removed Readiness Forecast card. Exam date is now a click-anywhere calendar picker (native `showPicker()`), surfaced on both the analytics hero and the setup-page readiness card with day-to-exam countdown |
+| v4.6 | Setup-page polish: hero stats strip (Qs, Avg, Streak, Qs today, Best exam) merged into hero, daily goal ring card with editable target and SVG progress ring, 33 topic chips grouped into 5 collapsible CompTIA domain sections with weight badges, Advanced section (API key + Export/Import) collapsed behind `<details>` and auto-opens on first visit |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
