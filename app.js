@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.7';
+const APP_VERSION = '4.8';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -1170,9 +1170,16 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
     'WPA3 & EAP Authentication': 'WPA3-Personal: SAE/Dragonfly. WPA3-Enterprise: 192-bit security. OWE. WPA3 vs WPA2. EAP types: EAP-TLS, PEAP, EAP-TTLS, EAP-FAST. 802.1X roles: Supplicant, Authenticator, Authentication Server. Wi-Fi Easy Connect. Transition mode.',
     'SDN, NFV & Automation': 'SDN: control/data plane separation. SDN controller, northbound/southbound APIs, OpenFlow. NFV: VNF, virtualising network functions. IaC: Ansible, Terraform, Puppet. YANG/NETCONF. Intent-based networking. REST APIs. Zero-touch provisioning.'
   };
+  // N10-009 domain-weighted distribution for Mixed mode (23/20/19/14/24)
+  let mixedDistributionStr = '';
+  if (qTopic === MIXED_TOPIC) {
+    const dist = computeDomainDistribution(n);
+    mixedDistributionStr = `\n\nMANDATORY DOMAIN DISTRIBUTION (CompTIA N10-009 official weights): Of the ${n} questions, generate exactly:\n- ${dist.concepts} from Domain 1.0 Networking Concepts (23%) — topics like OSI, TCP/IP, subnetting, IPv6, DNS, DHCP, NAT, ports, cloud, virtualisation\n- ${dist.implementation} from Domain 2.0 Network Implementation (20%) — routing, switching, VLANs, wireless, Ethernet, cabling, SDN, data center architectures\n- ${dist.operations} from Domain 3.0 Network Operations (19%) — network ops, monitoring/SNMP, WAN, SD-WAN/SASE, BCDR, data centres\n- ${dist.security} from Domain 4.0 Network Security (14%) — securing TCP/IP, firewalls, AAA, IPsec/VPN, PKI, WPA3, attacks & threats, physical security\n- ${dist.troubleshooting} from Domain 5.0 Network Troubleshooting (24%) — methodology, tools (ping/trace/netstat), common faults\n`;
+  }
+  const expectedObj = (qTopic !== MIXED_TOPIC && topicResources[qTopic]) ? topicResources[qTopic].obj : null;
   const topicStr = qTopic === MIXED_TOPIC
-    ? 'Cover a broad mix of Network+ N10-009 exam topics: OSI model, TCP/IP, subnetting, routing protocols, switching, VLANs, IPv6, wireless (including WPA3/EAP), VPNs, security, DNS, DHCP, network operations, WAN, cloud, data centres, IoT/SCADA, troubleshooting tools, NAT, AAA/RADIUS, NTP, ICMP, Ethernet standards, PKI and certificate management, the CompTIA 7-step troubleshooting methodology, firewalls and security zones (DMZ, stateful vs stateless), WPA3 and EAP authentication types, and SDN/NFV/network automation.'
-    : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam.${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
+    ? 'Cover a broad mix of Network+ N10-009 exam topics across all 5 official CompTIA domains.'
+    : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam (primary objective ${expectedObj || 'N/A'}).${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
 
   const diffStr = {
     'Foundational':  'Foundational: test basic recall and definitions. Clear right answers.',
@@ -1190,20 +1197,20 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
 IMPORTANT: Out of the ${n} questions, generate exactly ${mcqCount} as standard MCQ and ${pbqCount} as performance-based questions (PBQ).
 
 For standard MCQ, use this format:
-{"type":"mcq","question":"...","difficulty":"...","topic":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}
+{"type":"mcq","question":"...","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}
 
 For PBQ, use ONE of these two formats:
 
 1. MULTI-SELECT (choose 2 or 3 correct answers from 5 options):
-{"type":"multi-select","question":"(Choose TWO) ...","difficulty":"...","topic":"...","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"answers":["A","C"],"explanation":"..."}
+{"type":"multi-select","question":"(Choose TWO) ...","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"answers":["A","C"],"explanation":"..."}
 
 2. ORDERING (put 4-5 items in correct order):
-{"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
+{"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
 For ordering: correctOrder is an array of indices (0-based) representing the correct sequence. correctOrder[0] = index of the item that should be FIRST.` : '';
 
-  const prompt = `You are a CompTIA Network+ N10-009 exam question writer.
+  const prompt = `You are a CompTIA Network+ N10-009 exam question writer. You ONLY write questions that map to the official N10-009 exam objectives. Never write questions about content outside the N10-009 blueprint.
 
-${topicStr}
+${topicStr}${mixedDistributionStr}
 Difficulty: ${diffStr}
 
 Generate exactly ${n} multiple choice questions. Requirements:
@@ -1213,6 +1220,11 @@ Generate exactly ${n} multiple choice questions. Requirements:
 - Vary the correct answer letter across questions
 - Each explanation must state WHY the answer is correct AND briefly why the main wrong option is wrong (2-3 sentences max)
 - No repeated questions
+
+MANDATORY N10-009 OBJECTIVE TAGGING:
+- Every question MUST include an "objective" field with the CompTIA N10-009 exam objective number (format "X.Y" — e.g., "1.4", "2.1", "4.3", "5.1")
+- Valid objectives are 1.1–1.8 (Concepts), 2.1–2.4 (Implementation), 3.1–3.5 (Operations), 4.1–4.5 (Security), 5.1–5.5 (Troubleshooting)
+- If you cannot map the question to a specific N10-009 objective, do NOT write the question — write a different one that does map${expectedObj ? `\n- For this topic, use objective "${expectedObj}" (or an adjacent sub-objective in the same domain if more appropriate)` : ''}
 ${pbqInstructions}
 
 CRITICAL — SELF-VERIFICATION PROTOCOL (you MUST follow these steps for EVERY question):
@@ -1229,7 +1241,7 @@ MANDATORY RULES:
 - Never output a question where the explanation and the answer field disagree
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
-[{"type":"mcq","question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
+[{"type":"mcq","question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
   const res = await fetch(CLAUDE_API_URL, {
     method: 'POST',
@@ -2395,6 +2407,23 @@ const DOMAIN_LABELS = {
   security:        'Network Security',
   troubleshooting: 'Network Troubleshooting'
 };
+// Valid CompTIA N10-009 exam objective numbers — questions must map to one of these
+// Domain 1: 1.1-1.8 | Domain 2: 2.1-2.4 | Domain 3: 3.1-3.5 | Domain 4: 4.1-4.5 | Domain 5: 5.1-5.5
+const N10_009_OBJECTIVE_RE = /^[1-5]\.[1-8]$/;
+// Largest-remainder allocation of n questions across the 5 CompTIA domains per official weights
+function computeDomainDistribution(n) {
+  const order = ['concepts','implementation','operations','security','troubleshooting'];
+  const raw = order.map(k => ({ k, exact: n * DOMAIN_WEIGHTS[k] }));
+  const floors = raw.map(r => ({ k: r.k, count: Math.floor(r.exact), rem: r.exact - Math.floor(r.exact) }));
+  let assigned = floors.reduce((s, r) => s + r.count, 0);
+  let leftover = n - assigned;
+  // Distribute leftover to the largest remainders
+  floors.sort((a, b) => b.rem - a.rem);
+  for (let i = 0; i < leftover; i++) floors[i % floors.length].count++;
+  const result = {};
+  floors.forEach(r => { result[r.k] = r.count; });
+  return result;
+}
 // Map each topic to its primary CompTIA domain
 const TOPIC_DOMAINS = {
   // Domain 1.0 — Networking Concepts (23%)
@@ -3248,6 +3277,16 @@ function validateQuestions(qs) {
     const qType = getQType(q);
     if (!q.question || !q.explanation) return false;
 
+    // v4.8 — N10-009 objective tagging: every question must cite a valid exam objective
+    // Accept common shapes: "1.4", "Obj 1.4", "1.4 — Routing", etc. Extract first X.Y match.
+    if (q.objective) {
+      const m = String(q.objective).match(/([1-5]\.[1-8])/);
+      if (!m) return false;
+      q.objective = m[1]; // normalize
+    } else {
+      return false;
+    }
+
     // Enhancement 2: Auto-exclude questions with 2+ reports
     const reportCount = reports.filter(r => r.question === q.question).length;
     if (reportCount >= 2) return false;
@@ -3684,7 +3723,10 @@ function injectPBQs(qs, qTopic, count) {
   const result = [...qs];
   toInject.forEach((pbq, i) => {
     const insertIdx = Math.min(Math.floor(result.length * 0.4) + i * 3, result.length - 1);
-    result.splice(insertIdx, 1, { ...pbq });
+    // Stamp N10-009 objective on injected PBQs so they pass validateQuestions
+    const pbqTopic = pbq.topic || qTopic;
+    const obj = (topicResources[pbqTopic] && topicResources[pbqTopic].obj) || '5.1';
+    result.splice(insertIdx, 1, { ...pbq, objective: obj });
   });
   return result;
 }

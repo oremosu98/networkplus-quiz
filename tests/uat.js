@@ -219,7 +219,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.7', js.includes("const APP_VERSION = '4.7"));
+test('APP_VERSION is 4.8', js.includes("const APP_VERSION = '4.8"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,7 +232,32 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.7', sw.includes('netplus-v4.7'));
+test('SW cache bumped to v4.8', sw.includes('netplus-v4.8'));
+// v4.8 — N10-009 tightness
+test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
+test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
+test('Prompt requires objective field', js.includes('MANDATORY N10-009 OBJECTIVE TAGGING'));
+test('Prompt: objective in JSON schema', js.includes('"objective":"X.Y"'));
+test('Mixed mode domain distribution', js.includes('MANDATORY DOMAIN DISTRIBUTION'));
+test('validateQuestions enforces objective', js.includes('q.objective') && js.includes('[1-5]\\.[1-8]'));
+test('injectPBQs stamps objective', js.includes('objective: obj'));
+// computeDomainDistribution math — largest remainder adds up to n, respects 23/20/19/14/24
+const vm2 = require('vm');
+const distSandbox = { DOMAIN_WEIGHTS: { concepts:0.23, implementation:0.20, operations:0.19, security:0.14, troubleshooting:0.24 } };
+const distCode = js.match(/function computeDomainDistribution[\s\S]*?\n\}/);
+if (distCode) {
+  vm2.runInNewContext(distCode[0] + '; result10 = computeDomainDistribution(10); result18 = computeDomainDistribution(18); result90 = computeDomainDistribution(90);', distSandbox);
+  const sum10 = Object.values(distSandbox.result10).reduce((a,b)=>a+b,0);
+  const sum18 = Object.values(distSandbox.result18).reduce((a,b)=>a+b,0);
+  const sum90 = Object.values(distSandbox.result90).reduce((a,b)=>a+b,0);
+  test('computeDomainDistribution(10) sums to 10', sum10 === 10);
+  test('computeDomainDistribution(18) sums to 18', sum18 === 18);
+  test('computeDomainDistribution(90) sums to 90', sum90 === 90);
+  test('computeDomainDistribution(90) respects weights (concepts≈21)', distSandbox.result90.concepts === 21 || distSandbox.result90.concepts === 20);
+  test('computeDomainDistribution(90) troubleshooting≈22', distSandbox.result90.troubleshooting === 22 || distSandbox.result90.troubleshooting === 21);
+} else {
+  test('computeDomainDistribution extracted', false);
+}
 // v4.7 new topics
 [
   'Network Attacks & Threats',
