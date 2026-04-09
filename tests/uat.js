@@ -217,6 +217,48 @@ test('/31 edge case guard', js.includes('cidr >= 31') && js.includes('genSubnetQ
 test('Validation in retryQuiz', js.includes('retryQuiz') && js.includes('aiValidateQuestions(key, questions)'));
 test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, questions)'));
 
+// ── Analytics v2 (v4.5) ──
+console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
+test('APP_VERSION is 4.5', js.includes("const APP_VERSION = '4.5"));
+test('DOMAIN_WEIGHTS constant', js.includes('const DOMAIN_WEIGHTS = {'));
+test('TOPIC_DOMAINS mapping', js.includes('const TOPIC_DOMAINS = {'));
+test('MILESTONE_DEFS defined', js.includes('MILESTONE_DEFS'));
+[
+  'getExamDate','setExamDate','getDaysToExam','getReadinessForecast',
+  'getTypeStats','updateTypeStat','unlockMilestone','evaluateMilestones',
+  'getStreakData','mineSubtopicWeakSpots','getSubnetStats','updateSubnetStat','updateExamDate'
+].forEach(fn => test(`function ${fn}()`, js.includes(`function ${fn}(`)));
+test('Enhanced readiness uses domain weighting', js.includes('domainAccuracy') && js.includes('DOMAIN_WEIGHTS'));
+test('Recency boost in readiness', js.includes('recencyBoost') || js.includes('SEVEN_DAYS_MS'));
+test('Exam-mode boost in readiness', js.includes('examBoost'));
+test('Linear regression in forecast', js.includes('slope') && js.includes('intercept'));
+test('Readiness hero card in analytics', js.includes('ana-ready-hero'));
+test('Domain breakdown rendered', js.includes('ana-domain-row'));
+test('Exam date input in analytics', js.includes('ana-exam-date-input'));
+test('Forecast card rendered', js.includes('ana-forecast-stats'));
+test('Streak card rendered', js.includes('ana-streak-grid'));
+test('Weak spots card rendered', js.includes('ana-weak-list'));
+test('Heatmap card rendered', js.includes('ana-heatmap'));
+test('Type breakdown card rendered', js.includes('ana-type-list'));
+test('Mode compare card rendered', js.includes('ana-mode-compare'));
+test('Drills grid card rendered', js.includes('ana-drills-grid'));
+test('Milestones card rendered', js.includes('ana-milestones'));
+test('Type stats instrumented in pick()', js.includes("updateTypeStat(q.type"));
+test('Type stats instrumented in submitExam', /updateTypeStat\(qType/.test(js));
+test('Subnet stats instrumented', js.includes('updateSubnetStat('));
+test('Perfect port milestone unlock', js.includes("unlockMilestone('perfect_port')"));
+test('STORAGE.EXAM_DATE key', js.includes('EXAM_DATE:'));
+test('STORAGE.MILESTONES key', js.includes('MILESTONES:'));
+test('STORAGE.TYPE_STATS key', js.includes('TYPE_STATS:'));
+test('STORAGE.SUBNET_STATS key', js.includes('SUBNET_STATS:'));
+test('CSS: .ana-ready-hero', css.includes('.ana-ready-hero'));
+test('CSS: .ana-domain-row', css.includes('.ana-domain-row'));
+test('CSS: .ana-forecast-stats', css.includes('.ana-forecast-stats'));
+test('CSS: .ana-streak-grid', css.includes('.ana-streak-grid'));
+test('CSS: .ana-heatmap', css.includes('.ana-heatmap'));
+test('CSS: .ana-milestone', css.includes('.ana-milestone'));
+test('SW cache bumped to v4.5', sw.includes('netplus-v4.5'));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

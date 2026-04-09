@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -27,6 +27,10 @@ const STORAGE = {
   REPORTS: 'nplus_reports',
   PORT_BEST: 'nplus_port_best',
   PORT_STATS: 'nplus_port_stats',
+  EXAM_DATE: 'nplus_exam_date',
+  MILESTONES: 'nplus_milestones',
+  TYPE_STATS: 'nplus_type_stats',
+  SUBNET_STATS: 'nplus_subnet_stats',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
   GH_REPORTED: 'nplus_gh_reported',
@@ -1361,6 +1365,7 @@ function submitMultiSelect(q) {
   const isRight = JSON.stringify(chosen) === JSON.stringify(correctAnswers);
 
   answered++;
+  updateTypeStat('multi-select', isRight);
   if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
   else { streak = 0; }
 
@@ -1509,6 +1514,7 @@ function submitOrder(q) {
   const isRight = JSON.stringify(orderSequence) === JSON.stringify(correctOrder);
 
   answered++;
+  updateTypeStat('order', isRight);
   if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
   else { streak = 0; }
 
@@ -1560,6 +1566,7 @@ function pick(chosen, q) {
   if (document.querySelector('#options .option.correct, #options .option.wrong')) return;
   const isRight = chosen === q.answer;
   answered++;
+  updateTypeStat(q.type || 'mcq', isRight);
 
   if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
   else { streak = 0; }
@@ -1969,37 +1976,40 @@ function submitExam() {
   examAnswers.forEach((a, i) => {
     const q = examQuestions[i];
     const qType = getQType(q);
+    let qCorrect = false, qSkipped = false;
 
     if (qType === 'multi-select') {
       const correctAns = (q.answers || []).sort();
       const chosen = [...(a.msChosen || [])].sort();
-      if (chosen.length === 0) skipped++;
-      else if (JSON.stringify(chosen) === JSON.stringify(correctAns)) correct++;
+      if (chosen.length === 0) { skipped++; qSkipped = true; }
+      else if (JSON.stringify(chosen) === JSON.stringify(correctAns)) { correct++; qCorrect = true; }
       else wrong++;
     } else if (qType === 'order') {
       const correctOrd = q.correctOrder || [];
-      if (a.orderSeq.length === 0) skipped++;
-      else if (JSON.stringify(a.orderSeq) === JSON.stringify(correctOrd)) correct++;
+      if (a.orderSeq.length === 0) { skipped++; qSkipped = true; }
+      else if (JSON.stringify(a.orderSeq) === JSON.stringify(correctOrd)) { correct++; qCorrect = true; }
       else wrong++;
     } else if (qType === 'topology') {
       const correctP = q.correctPlacements || {};
       const state = a.topoState || {};
-      if (Object.keys(state).length === 0) skipped++;
+      if (Object.keys(state).length === 0) { skipped++; qSkipped = true; }
       else {
         let allRight = true;
         Object.entries(correctP).forEach(([dev, zone]) => {
           const placed = Object.entries(state).find(([z, devs]) => devs.includes(dev));
           if (!placed || placed[0] !== zone) allRight = false;
         });
-        if (allRight) correct++;
+        if (allRight) { correct++; qCorrect = true; }
         else wrong++;
       }
     } else {
       // mcq and cli-sim both use chosen + answer
-      if (a.chosen === null) skipped++;
-      else if (a.chosen === q.answer) correct++;
+      if (a.chosen === null) { skipped++; qSkipped = true; }
+      else if (a.chosen === q.answer) { correct++; qCorrect = true; }
       else wrong++;
     }
+    // Type stats (skipped answers don't count toward accuracy denominator)
+    if (!qSkipped) updateTypeStat(qType, qCorrect);
   });
 
   const pct = Math.round((correct / total) * 100);
@@ -2297,6 +2307,63 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════
 // EXAM READINESS SCORE
 // ══════════════════════════════════════════
+// CompTIA N10-009 official domain weights
+const DOMAIN_WEIGHTS = {
+  concepts:        0.23, // Domain 1.0 — Networking Concepts
+  implementation:  0.20, // Domain 2.0 — Network Implementation
+  operations:      0.19, // Domain 3.0 — Network Operations
+  security:        0.14, // Domain 4.0 — Network Security
+  troubleshooting: 0.24  // Domain 5.0 — Network Troubleshooting
+};
+const DOMAIN_LABELS = {
+  concepts:        'Networking Concepts',
+  implementation:  'Network Implementation',
+  operations:      'Network Operations',
+  security:        'Network Security',
+  troubleshooting: 'Network Troubleshooting'
+};
+// Map each topic to its primary CompTIA domain
+const TOPIC_DOMAINS = {
+  // Domain 1.0 — Networking Concepts (23%)
+  'Network Models & OSI':              'concepts',
+  'TCP/IP Basics':                     'concepts',
+  'Subnetting & IP Addressing':        'concepts',
+  'TCP/IP Applications':               'concepts',
+  'Network Naming (DNS & DHCP)':       'concepts',
+  'IPv6':                              'concepts',
+  'NAT & IP Services':                 'concepts',
+  'NTP, ICMP & Traffic Types':         'concepts',
+  'Port Numbers':                      'concepts',
+  'Virtualisation & Cloud':            'concepts',
+  'Cloud Networking & VPCs':           'concepts',
+  // Domain 2.0 — Network Implementation (20%)
+  'Routing Protocols':                 'implementation',
+  'Switch Features & VLANs':           'implementation',
+  'Wireless Networking':               'implementation',
+  'Ethernet Basics':                   'implementation',
+  'Ethernet Standards':                'implementation',
+  'Cabling & Topology':                'implementation',
+  'Integrating Networked Devices':     'implementation',
+  'SDN, NFV & Automation':             'implementation',
+  // Domain 3.0 — Network Operations (19%)
+  'Network Operations':                'operations',
+  'Data Centres':                      'operations',
+  'WAN Connectivity':                  'operations',
+  'SD-WAN & SASE':                     'operations',
+  'SMB & Network File Services':       'operations',
+  // Domain 4.0 — Network Security (14%)
+  'Securing TCP/IP':                   'security',
+  'Protecting Networks':               'security',
+  'AAA & Authentication':              'security',
+  'IPsec & VPN Protocols':             'security',
+  'PKI & Certificate Management':      'security',
+  'Firewalls, DMZ & Security Zones':   'security',
+  'WPA3 & EAP Authentication':         'security',
+  // Domain 5.0 — Network Troubleshooting (24%)
+  'Network Troubleshooting & Tools':   'troubleshooting',
+  'CompTIA Troubleshooting Methodology': 'troubleshooting'
+};
+
 function diffWeight(d) {
   if (!d) return 1.5;
   const s = d.toLowerCase();
@@ -2318,22 +2385,43 @@ function getReadinessScore() {
   if (h.length === 0) return null;
 
   const now = Date.now();
+  const SEVEN_DAYS_MS = 7 * 86400000;
   const topicMap = {};
   h.forEach(e => {
     if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
-    const w = diffWeight(e.difficulty);
+    // Base weight: difficulty × exam-mode boost × recency boost (last 7 days = 2x)
+    const sessionTime = new Date(e.date).getTime();
+    const isRecent = (now - sessionTime) <= SEVEN_DAYS_MS;
+    const examBoost = (e.mode === 'exam') ? 1.3 : 1.0;
+    const recencyBoost = isRecent ? 2.0 : 1.0;
+    const w = diffWeight(e.difficulty) * examBoost * recencyBoost;
     topicMap[e.topic].wCorrect += e.score * w;
     topicMap[e.topic].wTotal   += e.total * w;
-    const d = new Date(e.date).getTime();
-    if (d > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = d;
+    if (sessionTime > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = sessionTime;
   });
 
   const studiedTopics = Object.keys(topicMap);
   const studiedCount  = studiedTopics.length;
 
-  const accuracyScore = studiedCount > 0
-    ? studiedTopics.reduce((sum, t) => sum + (topicMap[t].wCorrect / topicMap[t].wTotal) * 100, 0) / studiedCount
-    : 0;
+  // Domain-weighted accuracy — each CompTIA domain contributes its official weight.
+  // Unstudied domains contribute 0, which drags the score down and incentivizes coverage.
+  const domainBuckets = {};
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => { domainBuckets[d] = { pctSum: 0, count: 0 }; });
+  studiedTopics.forEach(t => {
+    const domain = TOPIC_DOMAINS[t];
+    if (!domain) return; // topics not in map (e.g. Mixed) are excluded
+    const pct = (topicMap[t].wCorrect / topicMap[t].wTotal) * 100;
+    domainBuckets[domain].pctSum += pct;
+    domainBuckets[domain].count++;
+  });
+  const domainAccuracy = {};
+  let accuracyScore = 0;
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => {
+    const bucket = domainBuckets[d];
+    const avg = bucket.count > 0 ? (bucket.pctSum / bucket.count) : 0;
+    domainAccuracy[d] = avg;
+    accuracyScore += avg * DOMAIN_WEIGHTS[d];
+  });
 
   const coverageRaw = (studiedCount / totalTopics) * 100;
   const coverageScore = studiedCount < 5 ? coverageRaw * 0.5 : coverageRaw;
@@ -2360,7 +2448,226 @@ function getReadinessScore() {
     }
   });
 
-  return { predicted, raw, worstTopic, worstPct: worstPct === -1 ? null : worstPct };
+  return {
+    predicted, raw,
+    accuracyScore, coverageScore, recencyScore, volumeScore,
+    domainAccuracy,
+    worstTopic,
+    worstPct: worstPct === -1 ? null : worstPct,
+    studiedCount,
+    totalTopics,
+    totalQs
+  };
+}
+
+// ── Exam date storage + forecast ──
+function getExamDate() {
+  const raw = localStorage.getItem(STORAGE.EXAM_DATE);
+  return raw || null;
+}
+function setExamDate(isoDate) {
+  if (!isoDate) { localStorage.removeItem(STORAGE.EXAM_DATE); return; }
+  localStorage.setItem(STORAGE.EXAM_DATE, isoDate);
+}
+function getDaysToExam() {
+  const raw = getExamDate();
+  if (!raw) return null;
+  const examMs = new Date(raw).getTime();
+  if (isNaN(examMs)) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.ceil((examMs - today) / 86400000);
+}
+function getReadinessForecast() {
+  // Linear regression on raw score over the last N sessions to project when we
+  // hit the pass threshold. Returns null if insufficient data or flat/negative trend.
+  const h = loadHistory().filter(e =>
+    e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 3
+  );
+  if (h.length < 5) return null;
+  // Use the last 14 sessions (history is newest-first, so take .slice(0, 14).reverse())
+  const recent = h.slice(0, 14).reverse();
+  // Compute cumulative raw-score trajectory: for each session endpoint, what was raw?
+  // Approximation: use per-session pct as the proxy (avoids re-running full getReadinessScore per session)
+  const points = recent.map((e, i) => ({ x: i, y: e.pct }));
+  const n = points.length;
+  const sumX  = points.reduce((a, p) => a + p.x, 0);
+  const sumY  = points.reduce((a, p) => a + p.y, 0);
+  const sumXY = points.reduce((a, p) => a + p.x * p.y, 0);
+  const sumXX = points.reduce((a, p) => a + p.x * p.x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return null;
+  const slope     = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  const currentProj = slope * (n - 1) + intercept;
+
+  // Target: 75% avg pct → roughly correlates with a 720 pass score when coverage is decent
+  const TARGET_PCT = 75;
+  if (slope <= 0.1) {
+    return { slope, currentProj, sessionsToTarget: null, trendFlat: true };
+  }
+  const sessionsNeeded = Math.max(0, Math.ceil((TARGET_PCT - currentProj) / slope));
+  // Convert sessions to days using observed session cadence
+  const firstDate = new Date(recent[0].date).getTime();
+  const lastDate  = new Date(recent[recent.length - 1].date).getTime();
+  const daySpan   = Math.max(1, (lastDate - firstDate) / 86400000);
+  const sessionsPerDay = n / daySpan; // sessions per calendar day in the window
+  const daysToTarget = sessionsPerDay > 0 ? Math.ceil(sessionsNeeded / sessionsPerDay) : null;
+  return { slope, currentProj, sessionsToTarget: sessionsNeeded, daysToTarget, trendFlat: false };
+}
+
+// ── Per-question-type accuracy tracking (MCQ vs PBQ) ──
+function getTypeStats() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.TYPE_STATS) || '{}'); } catch { return {}; }
+}
+function updateTypeStat(type, wasCorrect) {
+  if (!type) type = 'mcq';
+  try {
+    const stats = getTypeStats();
+    if (!stats[type]) stats[type] = { seen: 0, correct: 0 };
+    stats[type].seen++;
+    if (wasCorrect) stats[type].correct++;
+    localStorage.setItem(STORAGE.TYPE_STATS, JSON.stringify(stats));
+  } catch {}
+}
+
+// ── Milestones tracking ──
+function getMilestones() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.MILESTONES) || '{}'); } catch { return {}; }
+}
+function unlockMilestone(key) {
+  const m = getMilestones();
+  if (m[key]) return false;
+  m[key] = new Date().toISOString();
+  try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(m)); } catch {}
+  return true;
+}
+
+// Milestone definitions — keyed by id, evaluated against current state
+const MILESTONE_DEFS = [
+  { id: 'first_quiz',       label: 'First steps',         desc: 'Complete your first quiz',               icon: '🎯' },
+  { id: 'hundred_qs',       label: 'Century',             desc: 'Answer 100 questions',                   icon: '💯' },
+  { id: 'five_hundred_qs',  label: 'Grinder',             desc: 'Answer 500 questions',                   icon: '🔥' },
+  { id: 'thousand_qs',      label: 'Iron will',           desc: 'Answer 1,000 questions',                 icon: '⚡' },
+  { id: 'first_exam',       label: 'Exam rehearsal',      desc: 'Complete your first exam simulation',    icon: '📝' },
+  { id: 'exam_pass',        label: 'Passing grade',       desc: 'Score 720+ on any exam simulation',      icon: '🎓' },
+  { id: 'all_domains',      label: 'Full coverage',       desc: 'Study at least one topic in all 5 domains', icon: '🗺️' },
+  { id: 'all_topics',       label: 'Completionist',       desc: 'Attempt every topic at least once',      icon: '🏆' },
+  { id: 'streak_7',         label: 'Week warrior',        desc: '7-day study streak',                     icon: '🔥' },
+  { id: 'streak_30',        label: 'Month master',        desc: '30-day study streak',                    icon: '🌟' },
+  { id: 'ready_650',        label: 'Getting close',       desc: 'Reach a readiness score of 650',         icon: '📈' },
+  { id: 'ready_720',        label: 'Exam ready',          desc: 'Reach a readiness score of 720 (pass)',  icon: '🚀' },
+  { id: 'perfect_port',     label: 'Port master',         desc: 'Perfect round on Port Drill (40 correct)', icon: '🔌' }
+];
+
+function evaluateMilestones() {
+  const h = loadHistory();
+  const totalQs = h.reduce((a, e) => a + e.total, 0);
+  const studied = new Set(h.filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC).map(e => e.topic));
+  const exams = h.filter(e => e.mode === 'exam');
+  const readiness = (typeof document !== 'undefined' && document.querySelector('#topic-group')) ? getReadinessScore() : null;
+  const streak = getStreakData();
+  const allDomainsHit = new Set(Array.from(studied).map(t => TOPIC_DOMAINS[t]).filter(Boolean));
+  const allTopicCount = Object.keys(TOPIC_DOMAINS).length;
+  const newlyUnlocked = [];
+  function maybe(id, cond) { if (cond && unlockMilestone(id)) newlyUnlocked.push(id); }
+
+  maybe('first_quiz',      h.length >= 1);
+  maybe('hundred_qs',      totalQs >= 100);
+  maybe('five_hundred_qs', totalQs >= 500);
+  maybe('thousand_qs',     totalQs >= 1000);
+  maybe('first_exam',      exams.length >= 1);
+  maybe('exam_pass',       exams.some(e => {
+    const scaled = Math.round(100 + (e.score / e.total) * 800);
+    return scaled >= 720;
+  }));
+  maybe('all_domains',     allDomainsHit.size >= 5);
+  maybe('all_topics',      studied.size >= allTopicCount);
+  maybe('streak_7',        streak.currentStreak >= 7);
+  maybe('streak_30',       streak.currentStreak >= 30);
+  maybe('ready_650',       readiness && readiness.predicted >= 650);
+  maybe('ready_720',       readiness && readiness.predicted >= 720);
+  // perfect_port handled in endPortDrill
+  return newlyUnlocked;
+}
+
+// ── Streak tracking (consecutive study days) ──
+function getStreakData() {
+  const h = loadHistory();
+  if (h.length === 0) return { currentStreak: 0, longestStreak: 0, lastStudyDate: null };
+  // Collect unique study days (YYYY-MM-DD)
+  const daySet = new Set(h.map(e => new Date(e.date).toISOString().slice(0, 10)));
+  const days = Array.from(daySet).sort((a, b) => b.localeCompare(a)); // newest first
+
+  // Current streak: count back from today (or yesterday, if today has no activity)
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0, 10);
+  const yestKey  = new Date(today.getTime() - 86400000).toISOString().slice(0, 10);
+  let currentStreak = 0;
+  let cursor = daySet.has(todayKey) ? new Date(today) : (daySet.has(yestKey) ? new Date(today.getTime() - 86400000) : null);
+  while (cursor) {
+    const key = cursor.toISOString().slice(0, 10);
+    if (daySet.has(key)) {
+      currentStreak++;
+      cursor = new Date(cursor.getTime() - 86400000);
+    } else {
+      break;
+    }
+  }
+  // Longest streak: scan all days for the longest consecutive run
+  const sortedAsc = [...daySet].sort();
+  let longestStreak = 0, run = 0, prev = null;
+  sortedAsc.forEach(d => {
+    if (prev === null) { run = 1; }
+    else {
+      const gap = (new Date(d).getTime() - new Date(prev).getTime()) / 86400000;
+      run = (gap === 1) ? run + 1 : 1;
+    }
+    if (run > longestStreak) longestStreak = run;
+    prev = d;
+  });
+  return { currentStreak, longestStreak, lastStudyDate: days[0] };
+}
+
+// ── Subtopic weak-spot mining from wrong bank (keyword frequency) ──
+const SUBTOPIC_KEYWORDS = [
+  // Routing
+  'OSPF', 'BGP', 'EIGRP', 'RIP', 'LSA', 'route summarization', 'autonomous system',
+  // Subnetting
+  'subnet mask', 'CIDR', 'VLSM', 'supernet', 'broadcast address', 'usable hosts',
+  // Switching
+  'VLAN', 'trunk', 'spanning tree', 'STP', 'RSTP', 'port-channel', 'EtherChannel', 'native VLAN',
+  // IPv6
+  'EUI-64', 'SLAAC', 'link-local', 'anycast', 'IPv6 header',
+  // Wireless
+  'WPA3', 'WPA2', 'EAP', 'PSK', '802.11', 'roaming', 'channel bonding',
+  // Security
+  'IPsec', 'IKE', 'ESP', 'AH', 'tunnel mode', 'transport mode', 'RADIUS', 'TACACS', 'Kerberos',
+  // DNS / DHCP
+  'DHCP relay', 'scope', 'reservation', 'DNS record', 'PTR', 'MX', 'SRV', 'CNAME', 'DNSSEC',
+  // Tools
+  'ping', 'traceroute', 'nmap', 'netstat', 'Wireshark', 'tcpdump', 'SNMP', 'syslog',
+  // NAT
+  'PAT', 'static NAT', 'port forwarding', 'NAT overload', 'inside local',
+  // PBQ-specific
+  'topology', 'firewall zone', 'DMZ'
+];
+function mineSubtopicWeakSpots(limit = 8) {
+  const bank = loadWrongBank();
+  if (bank.length === 0) return [];
+  const counts = {};
+  bank.forEach(b => {
+    const text = ((b.question || '') + ' ' + (b.explanation || '')).toLowerCase();
+    SUBTOPIC_KEYWORDS.forEach(kw => {
+      if (text.includes(kw.toLowerCase())) {
+        counts[kw] = (counts[kw] || 0) + 1;
+      }
+    });
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([keyword, count]) => ({ keyword, count }));
 }
 
 function renderReadinessCard() {
@@ -3207,6 +3514,7 @@ function submitTopology(q) {
   });
 
   answered++;
+  updateTypeStat('topology', allCorrect);
   if (allCorrect) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
   else { streak = 0; }
 
@@ -3697,6 +4005,18 @@ function nextSubnetQuestion() {
   document.getElementById('subnet-streak-lbl').textContent = '\ud83d\udd25 ' + subnetStreak;
 }
 
+function getSubnetStats() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.SUBNET_STATS) || '{"seen":0,"correct":0}'); } catch { return { seen: 0, correct: 0 }; }
+}
+function updateSubnetStat(wasCorrect) {
+  try {
+    const s = getSubnetStats();
+    s.seen++;
+    if (wasCorrect) s.correct++;
+    localStorage.setItem(STORAGE.SUBNET_STATS, JSON.stringify(s));
+  } catch {}
+}
+
 function checkSubnetAnswer() {
   if (!subnetQ) return;
   const input = document.getElementById('subnet-answer').value.trim();
@@ -3704,6 +4024,7 @@ function checkSubnetAnswer() {
   subnetTotal++;
   const fb = document.getElementById('subnet-feedback');
   const correct = input === subnetQ.answer || (subnetQ.altAnswer && input === subnetQ.altAnswer);
+  updateSubnetStat(correct);
   if (correct) {
     subnetCorrect++;
     subnetStreak++;
@@ -3941,6 +4262,10 @@ function endPortDrill() {
     localStorage.setItem(STORAGE.PORT_BEST, String(portScore));
     document.getElementById('port-best').textContent = portScore;
   }
+  // Perfect round milestone: scored as many as the port bank length within the timer
+  if (portMissed.length === 0 && portScore >= 40) {
+    unlockMilestone('perfect_port');
+  }
   // Render missed answers review
   const reviewDiv = document.getElementById('port-missed-review');
   if (reviewDiv) {
@@ -4013,6 +4338,67 @@ function renderAnalytics() {
   }
 
   let html = '';
+
+  // ═══════════════════════════════════════════
+  // HERO: Exam Readiness Score + countdown
+  // ═══════════════════════════════════════════
+  const readiness = getReadinessScore();
+  const examDateStr = getExamDate();
+  const daysToExam = getDaysToExam();
+  const forecast = getReadinessForecast();
+
+  if (readiness) {
+    const { predicted, domainAccuracy } = readiness;
+    let tier, tierColor, tierBg;
+    if (predicted >= 720)      { tier = '🟢 Exam Ready';   tierColor = 'var(--green)';  tierBg = 'rgba(34,197,94,.12)'; }
+    else if (predicted >= 650) { tier = '🟠 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.12)'; }
+    else if (predicted >= 500) { tier = '🟡 Building';     tierColor = 'var(--yellow)'; tierBg = 'rgba(251,191,36,.12)'; }
+    else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
+    const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
+
+    let countdown = '';
+    if (daysToExam !== null && daysToExam >= 0) {
+      const emoji = daysToExam === 0 ? '🔥' : daysToExam <= 7 ? '⏰' : daysToExam <= 30 ? '📅' : '🗓️';
+      countdown = `<div class="ana-ready-countdown">${emoji} <strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'} to exam</div>`;
+    } else if (daysToExam !== null && daysToExam < 0) {
+      countdown = `<div class="ana-ready-countdown">✅ Exam was ${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</div>`;
+    }
+
+    // Domain bar breakdown
+    const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
+      const pct = Math.round(domainAccuracy[d] || 0);
+      const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : pct > 0 ? 'var(--red)' : 'var(--surface3)';
+      const label = DOMAIN_LABELS[d];
+      return `<div class="ana-domain-row">
+        <div class="ana-domain-name">${label}</div>
+        <div class="ana-domain-weight">${Math.round(w * 100)}%</div>
+        <div class="ana-domain-bar"><div class="ana-domain-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="ana-domain-pct" style="color:${color}">${pct > 0 ? pct + '%' : '—'}</div>
+      </div>`;
+    }).join('');
+
+    html += `<div class="ana-card ana-ready-hero">
+      <div class="ana-ready-top">
+        <div>
+          <h3 style="margin:0">EXAM READINESS</h3>
+          <div class="ana-subtitle">CompTIA-domain-weighted · 720 = pass</div>
+        </div>
+        <div class="ana-ready-num" style="color:${tierColor}">${predicted}</div>
+      </div>
+      <div class="ana-ready-badge" style="background:${tierBg};color:${tierColor}">${tier}</div>
+      <div class="ana-ready-bar"><div class="ana-ready-bar-fill" style="width:${barPct}%;background:${tierColor}"></div></div>
+      ${countdown}
+      <div class="ana-domain-breakdown">
+        <div class="ana-domain-header">CompTIA domain breakdown</div>
+        ${domainBars}
+      </div>
+      <div class="ana-exam-date-row">
+        <label for="ana-exam-date-input" class="ana-exam-date-lbl">🎯 Your exam date:</label>
+        <input type="date" id="ana-exam-date-input" class="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+        ${examDateStr ? '<button class="ana-exam-date-clear" onclick="updateExamDate(\'\')" aria-label="Clear exam date">Clear</button>' : ''}
+      </div>
+    </div>`;
+  }
 
   // 1. Accuracy Trend (last 20 sessions)
   const recent = h.slice(0, 20).reverse();
@@ -4205,7 +4591,253 @@ function renderAnalytics() {
     </div>
   </div>`;
 
+  // ═══════════════════════════════════════════
+  // 9. Readiness Forecast — days to ready, exam-date comparison
+  // ═══════════════════════════════════════════
+  if (forecast && !forecast.trendFlat) {
+    let verdict = '', verdictColor = 'var(--text)';
+    if (daysToExam !== null && forecast.daysToTarget !== null) {
+      const buffer = daysToExam - forecast.daysToTarget;
+      if (buffer >= 7)        { verdict = `✅ On track — ready ~${buffer} days before exam`; verdictColor = 'var(--green)'; }
+      else if (buffer >= 0)   { verdict = `⚠️ Cutting it close — ready just in time`;       verdictColor = 'var(--yellow)'; }
+      else                    { verdict = `🔴 Behind schedule by ${Math.abs(buffer)} days — increase pace`; verdictColor = 'var(--red)'; }
+    } else if (forecast.daysToTarget !== null) {
+      verdict = `📈 At current pace: ready in ~${forecast.daysToTarget} days (${forecast.sessionsToTarget} sessions)`;
+    }
+    html += `<div class="ana-card">
+      <h3>READINESS FORECAST</h3>
+      <div class="ana-subtitle">Linear trend on your last 14 sessions</div>
+      <div class="ana-forecast-stats">
+        <div class="ana-forecast-stat"><div class="ana-forecast-val">${Math.round(forecast.currentProj)}%</div><div class="ana-forecast-lbl">Projected next score</div></div>
+        <div class="ana-forecast-stat"><div class="ana-forecast-val">${forecast.slope > 0 ? '+' : ''}${forecast.slope.toFixed(1)}</div><div class="ana-forecast-lbl">Points/session trend</div></div>
+        <div class="ana-forecast-stat"><div class="ana-forecast-val">${forecast.daysToTarget ?? '—'}</div><div class="ana-forecast-lbl">Days to 75% mastery</div></div>
+      </div>
+      ${verdict ? `<div class="ana-forecast-verdict" style="color:${verdictColor}">${verdict}</div>` : ''}
+    </div>`;
+  } else if (forecast && forecast.trendFlat) {
+    html += `<div class="ana-card">
+      <h3>READINESS FORECAST</h3>
+      <div class="ana-subtitle">Trend is flat or declining</div>
+      <p class="ana-forecast-verdict" style="color:var(--yellow)">Your last 14 sessions show no improvement. Consider: switching to harder difficulty, drilling weak topics, or reviewing explanations more carefully.</p>
+    </div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 10. Streak tracker — consecutive study days
+  // ═══════════════════════════════════════════
+  const streak = getStreakData();
+  const flameIcon = streak.currentStreak > 0 ? '🔥' : '💤';
+  const streakMsg = streak.currentStreak === 0
+    ? 'Study today to start a new streak'
+    : streak.currentStreak === 1 ? 'First day — keep it going tomorrow!'
+    : `${streak.currentStreak} days in a row`;
+  html += `<div class="ana-card">
+    <h3>STUDY STREAK</h3>
+    <div class="ana-streak-grid">
+      <div class="ana-streak-big">
+        <div class="ana-streak-flame">${flameIcon}</div>
+        <div class="ana-streak-num">${streak.currentStreak}</div>
+        <div class="ana-streak-lbl">Current streak</div>
+      </div>
+      <div class="ana-streak-info">
+        <div class="ana-streak-msg">${streakMsg}</div>
+        <div class="ana-streak-stat"><strong>${streak.longestStreak}</strong> day longest streak</div>
+        ${streak.lastStudyDate ? `<div class="ana-streak-stat ana-streak-last">Last study: ${new Date(streak.lastStudyDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  // ═══════════════════════════════════════════
+  // 11. Subtopic weak spots (wrong-bank keyword mining)
+  // ═══════════════════════════════════════════
+  const weakSpots = mineSubtopicWeakSpots(8);
+  if (weakSpots.length > 0) {
+    const maxCount = weakSpots[0].count;
+    html += `<div class="ana-card">
+      <h3>SUBTOPIC WEAK SPOTS</h3>
+      <div class="ana-subtitle">Keywords appearing most in your wrong bank</div>
+      <div class="ana-weak-list">
+        ${weakSpots.map(w => `<div class="ana-weak-row">
+          <div class="ana-weak-kw">${escHtml(w.keyword)}</div>
+          <div class="ana-weak-bar"><div class="ana-weak-fill" style="width:${(w.count / maxCount) * 100}%"></div></div>
+          <div class="ana-weak-count">${w.count}x</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 12. Difficulty × Topic heatmap (where are the real leaks)
+  // ═══════════════════════════════════════════
+  const diffTopic = {}; // { topic: { Foundational: {c,t}, 'Exam Level': {c,t}, ... } }
+  const diffLevels = new Set();
+  h.forEach(e => {
+    if (!e.topic || e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
+    const d = e.difficulty || e.diff || 'Unknown';
+    diffLevels.add(d);
+    if (!diffTopic[e.topic]) diffTopic[e.topic] = {};
+    if (!diffTopic[e.topic][d]) diffTopic[e.topic][d] = { c: 0, t: 0 };
+    diffTopic[e.topic][d].c += e.score;
+    diffTopic[e.topic][d].t += e.total;
+  });
+  const diffLevelArr = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Mixed'].filter(d => diffLevels.has(d));
+  const heatTopics = Object.keys(diffTopic).sort();
+  if (heatTopics.length > 0 && diffLevelArr.length > 0) {
+    html += `<div class="ana-card">
+      <h3>DIFFICULTY × TOPIC HEATMAP</h3>
+      <div class="ana-subtitle">Find where strong topics break down at harder difficulty</div>
+      <div class="ana-heatmap">
+        <div class="ana-heat-head">
+          <div class="ana-heat-h-topic">Topic</div>
+          ${diffLevelArr.map(d => `<div class="ana-heat-h-diff">${d.replace(' / Tricky', '')}</div>`).join('')}
+        </div>
+        ${heatTopics.map(t => {
+          return `<div class="ana-heat-row">
+            <div class="ana-heat-topic">${escHtml(t)}</div>
+            ${diffLevelArr.map(d => {
+              const v = diffTopic[t][d];
+              if (!v || v.t === 0) return `<div class="ana-heat-cell ana-heat-empty">—</div>`;
+              const pct = Math.round((v.c / v.t) * 100);
+              const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+              return `<div class="ana-heat-cell" style="color:${color};background:${color.replace('var(','rgba(').replace(')', ', 0.12)')}" title="${v.c}/${v.t} correct">${pct}%</div>`;
+            }).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 13. MCQ vs PBQ performance breakdown
+  // ═══════════════════════════════════════════
+  const typeStats = getTypeStats();
+  const typeEntries = Object.entries(typeStats).filter(([, v]) => v.seen > 0);
+  if (typeEntries.length > 0) {
+    const typeLabels = { 'mcq': 'MCQ', 'multi-select': 'Multi-select', 'order': 'Order / Sequence', 'topology': 'Topology PBQ', 'cli-sim': 'CLI Simulation' };
+    typeEntries.sort((a, b) => b[1].seen - a[1].seen);
+    html += `<div class="ana-card">
+      <h3>QUESTION TYPE BREAKDOWN</h3>
+      <div class="ana-subtitle">Accuracy by MCQ vs performance-based question types</div>
+      <div class="ana-type-list">
+        ${typeEntries.map(([t, v]) => {
+          const pct = Math.round((v.correct / v.seen) * 100);
+          const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+          const label = typeLabels[t] || t;
+          return `<div class="ana-type-row">
+            <div class="ana-type-name">${escHtml(label)}</div>
+            <div class="ana-type-bar"><div class="ana-type-fill" style="width:${pct}%;background:${color}"></div></div>
+            <div class="ana-type-pct" style="color:${color}">${pct}%</div>
+            <div class="ana-type-count">${v.correct}/${v.seen}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 14. Exam-mode vs Quiz-mode comparison
+  // ═══════════════════════════════════════════
+  const quizEntries = h.filter(e => e.mode !== 'exam' && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
+  const examEntries = h.filter(e => e.mode === 'exam');
+  if (quizEntries.length >= 2 && examEntries.length >= 1) {
+    const quizAvg = Math.round(quizEntries.reduce((a, e) => a + e.pct, 0) / quizEntries.length);
+    const examAvg = Math.round(examEntries.reduce((a, e) => a + e.pct, 0) / examEntries.length);
+    const delta = quizAvg - examAvg;
+    let insight, insightColor;
+    if (Math.abs(delta) <= 3)      { insight = 'Consistent performance across modes — good sign.'; insightColor = 'var(--green)'; }
+    else if (delta > 3)            { insight = `Quiz avg beats exam avg by ${delta} points — timed pressure is costing you. Practice more exam simulations.`; insightColor = 'var(--yellow)'; }
+    else                           { insight = `Exam avg beats quiz avg by ${Math.abs(delta)} points — you rise to the occasion.`; insightColor = 'var(--green)'; }
+    html += `<div class="ana-card">
+      <h3>EXAM vs QUIZ MODE</h3>
+      <div class="ana-subtitle">Does timed pressure hurt your performance?</div>
+      <div class="ana-mode-compare">
+        <div class="ana-mode-item">
+          <div class="ana-mode-val" style="color:var(--accent-light)">${quizAvg}%</div>
+          <div class="ana-mode-lbl">Quiz avg</div>
+          <div class="ana-mode-n">${quizEntries.length} sessions</div>
+        </div>
+        <div class="ana-mode-divider">vs</div>
+        <div class="ana-mode-item">
+          <div class="ana-mode-val" style="color:var(--accent-light)">${examAvg}%</div>
+          <div class="ana-mode-lbl">Exam avg</div>
+          <div class="ana-mode-n">${examEntries.length} sessions</div>
+        </div>
+      </div>
+      <div class="ana-mode-insight" style="color:${insightColor}">${insight}</div>
+    </div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 15. Drill integration — Port Drill + Subnet Drill stats
+  // ═══════════════════════════════════════════
+  const portSummary = (typeof getPortStatsSummary === 'function') ? getPortStatsSummary() : null;
+  const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
+  const subnetStatsData = getSubnetStats();
+  const hasPort = portSummary && portSummary.totalSeen > 0;
+  const hasSubnet = subnetStatsData.seen > 0;
+  if (hasPort || hasSubnet || portBest > 0) {
+    html += `<div class="ana-card">
+      <h3>PRACTICE DRILLS</h3>
+      <div class="ana-subtitle">Port Drill and Subnet Drill progress</div>
+      <div class="ana-drills-grid">`;
+    if (hasPort || portBest > 0) {
+      const accPct = hasPort ? Math.round(portSummary.overallAccuracy * 100) : 0;
+      const accColor = accPct >= 80 ? 'var(--green)' : accPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      html += `<div class="ana-drill-card">
+        <div class="ana-drill-title">🔌 Port Drill</div>
+        <div class="ana-drill-stats">
+          <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Best score</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${accColor}">${accPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.uniqueSeen : 0}/${hasPort ? portSummary.totalPorts : 40}</div><div class="ana-drill-lbl">Ports seen</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.totalSeen : 0}</div><div class="ana-drill-lbl">Attempts</div></div>
+        </div>
+      </div>`;
+    }
+    if (hasSubnet) {
+      const subnetPct = Math.round((subnetStatsData.correct / subnetStatsData.seen) * 100);
+      const subColor = subnetPct >= 80 ? 'var(--green)' : subnetPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+      html += `<div class="ana-drill-card">
+        <div class="ana-drill-title">🧮 Subnet Drill</div>
+        <div class="ana-drill-stats">
+          <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${subColor}">${subnetPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.correct}</div><div class="ana-drill-lbl">Correct</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.seen}</div><div class="ana-drill-lbl">Attempts</div></div>
+        </div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  // ═══════════════════════════════════════════
+  // 16. Milestones / achievements
+  // ═══════════════════════════════════════════
+  evaluateMilestones(); // unlock any newly-earned milestones on render
+  const unlockedMap = getMilestones();
+  const totalMilestones = MILESTONE_DEFS.length;
+  const unlockedCount = MILESTONE_DEFS.filter(m => unlockedMap[m.id]).length;
+  html += `<div class="ana-card">
+    <h3>MILESTONES</h3>
+    <div class="ana-subtitle">${unlockedCount}/${totalMilestones} unlocked</div>
+    <div class="ana-milestones">
+      ${MILESTONE_DEFS.map(m => {
+        const unlocked = !!unlockedMap[m.id];
+        return `<div class="ana-milestone ${unlocked ? 'ana-milestone-on' : 'ana-milestone-off'}" title="${escHtml(m.desc)}">
+          <div class="ana-milestone-icon">${m.icon}</div>
+          <div class="ana-milestone-label">${escHtml(m.label)}</div>
+          <div class="ana-milestone-desc">${escHtml(m.desc)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
   container.innerHTML = html;
+}
+
+// Wired to the exam date input on the analytics page
+function updateExamDate(value) {
+  setExamDate(value);
+  renderAnalytics(); // re-render so forecast/countdown update
+  renderReadinessCard(); // setup-page card may be affected by coverage/recency thresholds
 }
 
 // ══════════════════════════════════════════

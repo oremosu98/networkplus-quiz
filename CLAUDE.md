@@ -101,6 +101,8 @@ node tests/uat.js
 | v4.1 | Enhanced spaced rep (Leitner decay, wrong bank boost, weighted random top-3), analytics theme fix (RGB CSS vars for light/dark), study activity tracks questions not sessions |
 | v4.2 | Tech debt: magic strings → constants (MIXED_TOPIC, EXAM_TOPIC, DEFAULT_DIFF, CLAUDE_API_URL, CLAUDE_MODEL), STORAGE object for all localStorage keys, silent catch block audit with user-facing toasts, CI tech debt monitor |
 | v4.3 | Tech debt #16 + #19: Merged 5 pairs of duplicated quiz/exam render functions into single unified functions (renderMCQ/MultiSelect/Order/CliSim/Topology each take optional `ans` param for exam mode). Accessibility pass: aria-label on icon/arrow-only buttons, aria-pressed on flag/chip toggle state, aria-live on score/streak/timer, aria-expanded on question navigator, focus management on showPage, descriptive aria-labels on nav grid squares, subnet input accessible name |
+| v4.4 | Port Drill adaptive focus: weighted port selection based on per-port miss rate (prototype for issue #25 adaptive coverage). Pregame shows weakest ports + accuracy; reset stats button |
+| v4.5 | Analytics v2: enhanced `getReadinessScore()` with CompTIA domain weighting + recency/exam boosts, exam date input with days-to-exam countdown, readiness forecast (linear regression → days-to-75%), study streak card, subtopic weak spots mined from wrong bank, difficulty×topic heatmap, question type breakdown, exam vs quiz mode compare, drills summary card, 13 milestones with unlock tracking |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
