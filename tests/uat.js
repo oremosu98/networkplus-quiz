@@ -401,6 +401,36 @@ const dataProtos = [...js.matchAll(/proto:'([^']+)'/g)].map(m => m[1]);
 test('All 40 ports covered in portCategories',
   dataProtos.length === 40 && dataProtos.every(p => catProtos.includes(`'${p}'`)));
 
+// ── Topic Progress v2 (v4.11) ──
+console.log('\n\x1b[1m── TOPIC PROGRESS v2 (v4.11) ──\x1b[0m');
+test('progressState defined', js.includes('let progressState ='));
+test('_buildProgressRows function', js.includes('function _buildProgressRows('));
+test('_sortProgressRows function', js.includes('function _sortProgressRows('));
+test('_progressRowMatches function', js.includes('function _progressRowMatches('));
+test('_progressRowHtml function', js.includes('function _progressRowHtml('));
+test('_renderProgressSummary function', js.includes('function _renderProgressSummary('));
+test('_renderProgressGrouped function', js.includes('function _renderProgressGrouped('));
+test('setProgressFilter function', js.includes('function setProgressFilter('));
+test('setProgressSort function', js.includes('function setProgressSort('));
+test('filterProgressPage function', js.includes('function filterProgressPage('));
+test('_bucketOf helper', js.includes('function _bucketOf('));
+test('progressState.sort default worst', /progressState = \{[^}]*sort: 'worst'/.test(js));
+test('Summary uses TOPIC_DOMAINS', js.includes('TOPIC_DOMAINS[t]'));
+test('Grouped render uses DOMAIN_WEIGHTS', /_renderProgressGrouped[\s\S]*?DOMAIN_WEIGHTS/.test(js));
+test('Grouped render uses DOMAIN_LABELS', /_renderProgressGrouped[\s\S]*?DOMAIN_LABELS/.test(js));
+test('HTML: progress-summary element', html.includes('id="progress-summary"'));
+test('HTML: progress-search input', html.includes('id="progress-search"'));
+test('HTML: progress-sort-select', html.includes('id="progress-sort-select"'));
+test('HTML: filter button All', html.includes('data-filter="all"'));
+test('HTML: filter button weak', html.includes('data-filter="weak"'));
+test('HTML: filter button untouched', html.includes('data-filter="untouched"'));
+test('HTML: filter button strong', html.includes('data-filter="strong"'));
+test('CSS: .progress-summary', css.includes('.progress-summary'));
+test('CSS: .progress-domain', css.includes('.progress-domain '));
+test('CSS: .topic-obj-badge', css.includes('.topic-obj-badge'));
+test('CSS: .prog-filter-active', css.includes('.prog-filter-active'));
+test('CSS: .ps-coverage-bar', css.includes('.ps-coverage-bar'));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

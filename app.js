@@ -675,56 +675,172 @@ function renderStatsCard() {
 // ══════════════════════════════════════════
 // TOPIC PROGRESS PAGE
 // ══════════════════════════════════════════
-function renderProgressPage() {
+// Topic Progress v2 (v4.11) — summary + filters + sort + search + domain grouping
+let progressState = { filter: 'all', sort: 'worst', search: '', rows: [] };
+
+function _bucketOf(pct) {
+  if (pct === null) return 'untouched';
+  if (pct >= 80) return 'strong';
+  if (pct >= 60) return 'solid';
+  return 'weak';
+}
+
+function _buildProgressRows() {
   const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
     .map(c => c.dataset.v)
     .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
   const h   = loadHistory();
   const now = Date.now();
-  const grid = document.getElementById('progress-topic-grid');
-  if (!grid) return;
-
-  const rows = allTopics.map(t => {
+  return allTopics.map(t => {
     const entries = h.filter(e => e.topic === t);
-    if (entries.length === 0) return { t, pct: null, total: 0, last: null };
+    const domainKey = TOPIC_DOMAINS[t] || 'concepts';
+    const obj = (topicResources[t] && topicResources[t].obj) || '';
+    if (entries.length === 0) {
+      return { t, pct: null, total: 0, attempts: 0, daysSince: null, lastDate: 0, domainKey, obj };
+    }
     const totalQ   = entries.reduce((a, e) => a + e.total, 0);
     const wCorrect = entries.reduce((a, e) => a + e.score * diffWeight(e.difficulty), 0);
     const wTotal   = entries.reduce((a, e) => a + e.total * diffWeight(e.difficulty), 0);
     const pct      = Math.round((wCorrect / wTotal) * 100);
-    const daysSince = Math.round((now - new Date(entries[0].date)) / 86400000);
-    return { t, pct, total: totalQ, daysSince };
+    const lastDate = Math.max.apply(null, entries.map(e => new Date(e.date).getTime()));
+    const daysSince = Math.round((now - lastDate) / 86400000);
+    return { t, pct, total: totalQ, attempts: entries.length, daysSince, lastDate, domainKey, obj };
   });
+}
 
-  rows.sort((a, b) => {
-    if (a.pct === null && b.pct === null) return 0;
-    if (a.pct === null) return 1;
-    if (b.pct === null) return -1;
-    return a.pct - b.pct;
-  });
+function _sortProgressRows(rows, mode) {
+  const sorted = rows.slice();
+  if (mode === 'alpha') {
+    sorted.sort((a, b) => a.t.localeCompare(b.t));
+  } else if (mode === 'most') {
+    sorted.sort((a, b) => (b.total || 0) - (a.total || 0) || a.t.localeCompare(b.t));
+  } else if (mode === 'recent') {
+    sorted.sort((a, b) => (b.lastDate || 0) - (a.lastDate || 0) || a.t.localeCompare(b.t));
+  } else { // 'worst' — default: untouched last, then lowest pct first
+    sorted.sort((a, b) => {
+      if (a.pct === null && b.pct === null) return a.t.localeCompare(b.t);
+      if (a.pct === null) return 1;
+      if (b.pct === null) return -1;
+      return a.pct - b.pct;
+    });
+  }
+  return sorted;
+}
 
-  grid.innerHTML = rows.map(({ t, pct, total, daysSince }) => {
-    let ragClass, color, label;
-    if (pct === null) {
-      ragClass = 'rag-grey'; color = 'var(--text-dim)'; label = 'Not studied yet';
-    } else if (pct >= 80) {
-      ragClass = 'rag-green'; color = 'var(--green)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
-    } else if (pct >= 60) {
-      ragClass = 'rag-yellow'; color = 'var(--yellow)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
-    } else {
-      ragClass = 'rag-red'; color = 'var(--red)'; label = total + 'Q \u00b7 ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
-    }
-    const barW = pct !== null ? pct : 0;
-    const pctTxt = pct !== null ? pct + '%' : '\u2014';
-    return `<div class="topic-row" onclick="drillTopic('${escHtml(t)}')">
-      <div class="topic-rag ${ragClass}"></div>
-      <div class="topic-info">
-        <div class="topic-name">${escHtml(t)}</div>
-        <div class="topic-meta">${label}</div>
-        <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
-      </div>
-      <div class="topic-pct-lbl" style="color:${color}">${pctTxt}</div>
+function _progressRowMatches(row) {
+  // Filter chip
+  if (progressState.filter === 'weak' && _bucketOf(row.pct) !== 'weak') return false;
+  if (progressState.filter === 'strong' && _bucketOf(row.pct) !== 'strong') return false;
+  if (progressState.filter === 'untouched' && row.pct !== null) return false;
+  // Search box
+  const q = progressState.search.trim().toLowerCase();
+  if (q && !row.t.toLowerCase().includes(q) && !(row.obj && row.obj.includes(q))) return false;
+  return true;
+}
+
+function _progressRowHtml(row) {
+  const { t, pct, total, daysSince, obj } = row;
+  let ragClass, color, metaRight;
+  if (pct === null) {
+    ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
+  } else {
+    if (pct >= 80) { ragClass = 'rag-green'; color = 'var(--green)'; }
+    else if (pct >= 60) { ragClass = 'rag-yellow'; color = 'var(--yellow)'; }
+    else { ragClass = 'rag-red'; color = 'var(--red)'; }
+    metaRight = total + 'Q · ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
+  }
+  const barW = pct !== null ? pct : 0;
+  const pctTxt = pct !== null ? pct + '%' : '—';
+  const objBadge = obj ? `<span class="topic-obj-badge" title="N10-009 objective ${obj}">${obj}</span>` : '';
+  return `<div class="topic-row" onclick="drillTopic('${escHtml(t).replace(/'/g, "\\'")}')">
+    <div class="topic-rag ${ragClass}"></div>
+    <div class="topic-info">
+      <div class="topic-name-line">${objBadge}<span class="topic-name">${escHtml(t)}</span></div>
+      <div class="topic-meta">${metaRight}</div>
+      <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
+    </div>
+    <div class="topic-pct-lbl" style="color:${color}">${pctTxt}</div>
+  </div>`;
+}
+
+function _renderProgressSummary(rows) {
+  const el = document.getElementById('progress-summary');
+  if (!el) return;
+  const buckets = { strong: 0, solid: 0, weak: 0, untouched: 0 };
+  rows.forEach(r => { buckets[_bucketOf(r.pct)]++; });
+  const total = rows.length;
+  const touched = total - buckets.untouched;
+  const coveragePct = total ? Math.round((touched / total) * 100) : 0;
+  el.innerHTML = `
+    <div class="ps-stat ps-strong"><div class="ps-n">${buckets.strong}</div><div class="ps-l">&#128994; Strong</div></div>
+    <div class="ps-stat ps-solid"><div class="ps-n">${buckets.solid}</div><div class="ps-l">&#128993; Solid</div></div>
+    <div class="ps-stat ps-weak"><div class="ps-n">${buckets.weak}</div><div class="ps-l">&#128308; Weak</div></div>
+    <div class="ps-stat ps-untouched"><div class="ps-n">${buckets.untouched}</div><div class="ps-l">&#9898; Untouched</div></div>
+    <div class="ps-stat ps-coverage">
+      <div class="ps-n">${touched}<span class="ps-n-sub">/${total}</span></div>
+      <div class="ps-l">Topics touched &middot; ${coveragePct}%</div>
+      <div class="ps-coverage-bar"><div class="ps-coverage-fill" style="width:${coveragePct}%"></div></div>
     </div>`;
-  }).join('');
+}
+
+function _renderProgressGrouped(rows) {
+  // Group by domain in official 1→5 order, compute avg pct per domain, honor filter/search.
+  const order = ['concepts','implementation','operations','security','troubleshooting'];
+  const grouped = {};
+  order.forEach(k => { grouped[k] = []; });
+  rows.forEach(r => { (grouped[r.domainKey] || (grouped[r.domainKey] = [])).push(r); });
+  let html = '';
+  order.forEach(dk => {
+    const groupRows = _sortProgressRows(grouped[dk] || [], progressState.sort);
+    const visible = groupRows.filter(_progressRowMatches);
+    if (!visible.length) return;
+    // Domain average uses touched topics only
+    const touched = groupRows.filter(r => r.pct !== null);
+    const avg = touched.length ? Math.round(touched.reduce((a, r) => a + r.pct, 0) / touched.length) : null;
+    let avgColor = 'var(--text-dim)';
+    if (avg !== null) {
+      avgColor = avg >= 80 ? 'var(--green)' : (avg >= 60 ? 'var(--yellow)' : 'var(--red)');
+    }
+    const weightPct = Math.round(DOMAIN_WEIGHTS[dk] * 100);
+    html += `<details class="progress-domain" open>
+      <summary class="progress-domain-head">
+        <span class="pd-name">${DOMAIN_LABELS[dk]}</span>
+        <span class="pd-weight">${weightPct}% of exam</span>
+        <span class="pd-avg" style="color:${avgColor}">${avg !== null ? avg + '%' : '—'}</span>
+        <span class="pd-count">${visible.length}/${groupRows.length}</span>
+      </summary>
+      <div class="progress-domain-rows">${visible.map(_progressRowHtml).join('')}</div>
+    </details>`;
+  });
+  const grid = document.getElementById('progress-topic-grid');
+  if (grid) grid.innerHTML = html || '<p style="color:var(--text-dim);text-align:center;padding:24px">No topics match this filter.</p>';
+}
+
+function renderProgressPage() {
+  progressState.rows = _buildProgressRows();
+  _renderProgressSummary(progressState.rows);
+  _renderProgressGrouped(progressState.rows);
+}
+
+function setProgressFilter(name) {
+  progressState.filter = name;
+  document.querySelectorAll('.prog-filter-btn').forEach(btn => {
+    const active = btn.getAttribute('data-filter') === name;
+    btn.classList.toggle('prog-filter-active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  _renderProgressGrouped(progressState.rows);
+}
+
+function setProgressSort(mode) {
+  progressState.sort = mode;
+  _renderProgressGrouped(progressState.rows);
+}
+
+function filterProgressPage() {
+  const input = document.getElementById('progress-search');
+  progressState.search = input ? input.value : '';
+  _renderProgressGrouped(progressState.rows);
 }
 
 function drillTopic(t) {

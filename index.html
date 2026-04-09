@@ -427,7 +427,7 @@
      TOPIC PROGRESS PAGE
 ══════════════════════════════════════════ -->
 <div id="page-progress" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:14px">
       <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
       <h2>Topic Progress</h2>
@@ -436,6 +436,25 @@
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px"></span>&#8805;80%</span>
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>60-79%</span>
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px"></span>&lt;60%</span>
+    </div>
+  </div>
+  <div id="progress-summary" class="progress-summary"></div>
+  <div class="progress-toolbar">
+    <input type="search" id="progress-search" class="progress-search" placeholder="Search topic&#8230;" aria-label="Search topics" oninput="filterProgressPage()">
+    <div class="progress-filters" role="group" aria-label="Filter topics">
+      <button type="button" class="prog-filter-btn prog-filter-active" data-filter="all" onclick="setProgressFilter('all')" aria-pressed="true">All</button>
+      <button type="button" class="prog-filter-btn" data-filter="weak" onclick="setProgressFilter('weak')" aria-pressed="false">Weak only</button>
+      <button type="button" class="prog-filter-btn" data-filter="untouched" onclick="setProgressFilter('untouched')" aria-pressed="false">Untouched</button>
+      <button type="button" class="prog-filter-btn" data-filter="strong" onclick="setProgressFilter('strong')" aria-pressed="false">Strong</button>
+    </div>
+    <div class="progress-sort" role="group" aria-label="Sort topics">
+      <label for="progress-sort-select" class="prog-sort-label">Sort:</label>
+      <select id="progress-sort-select" class="prog-sort-select" onchange="setProgressSort(this.value)" aria-label="Sort order">
+        <option value="worst">Worst first</option>
+        <option value="recent">Most recent</option>
+        <option value="most">Most studied</option>
+        <option value="alpha">A&ndash;Z</option>
+      </select>
     </div>
   </div>
   <div id="progress-topic-grid" class="topic-grid"></div>
