@@ -2694,7 +2694,7 @@ const MILESTONE_DEFS = [
   { id: 'subnet_50',        label: 'Subnet surgeon',      desc: 'Answer 50 subnet drill questions',       icon: '🧬' },
   { id: 'first_port_drill', label: 'Port pioneer',        desc: 'Complete your first Port Drill run',     icon: '🔭' },
   { id: 'all_ports_seen',   label: 'Port cartographer',   desc: 'See every port in the Port Drill bank',  icon: '🗺️' },
-  { id: 'first_session',    label: 'Session starter',     desc: "Complete your first Today's Session",    icon: '📚' },
+  { id: 'first_session',    label: 'Plan starter',        desc: "Complete your first Study Plan",         icon: '📚' },
   { id: 'night_owl',        label: 'Night owl',           desc: 'Study between midnight and 5am',         icon: '🦉' },
   { id: 'early_bird',       label: 'Early bird',          desc: 'Study before 7am',                       icon: '🐦' },
   { id: 'weekend_warrior',  label: 'Weekend warrior',     desc: 'Study on both Saturday and Sunday of the same week', icon: '🎽' },
@@ -3010,7 +3010,7 @@ function renderTodaysFocus() {
   const topics = getTodaysFocusTopics(2);
   if (topics.length === 0) { row.style.display = 'none'; return; }
   row.innerHTML = `
-    <span class="tf-label">🎯 Today's focus:</span>
+    <span class="tf-label">🎯 Weak spots:</span>
     <div class="tf-chips">
       ${topics.map(t => `<button type="button" class="tf-chip" onclick="focusTopic('${t.replace(/'/g, "\\'")}')">${escHtml(t)} →</button>`).join('')}
     </div>

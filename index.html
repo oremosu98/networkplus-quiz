@@ -65,7 +65,7 @@
   <div id="daily-challenge-card" class="daily-challenge-card" style="display:none" role="region" aria-label="Daily Challenge"></div>
 
   <!-- Today's Focus chip row (conditional) -->
-  <div id="todays-focus" class="todays-focus" style="display:none" role="region" aria-label="Today's focus topics"></div>
+  <div id="todays-focus" class="todays-focus" style="display:none" role="region" aria-label="Weak spot topics"></div>
 
   <!-- Daily Goal Ring -->
   <div id="daily-goal-card" class="daily-goal-card">
@@ -84,14 +84,14 @@
     <button class="dg-edit-btn" onclick="editDailyGoal()" aria-label="Edit daily question goal" title="Edit goal">⚙️</button>
   </div>
 
-  <!-- Today's Session banner -->
+  <!-- Study Plan banner (a.k.a. session) -->
   <div id="session-banner" style="display:none">
     <div class="session-card">
-      <h3>&#9889; TODAY&#8217;S SESSION</h3>
+      <h3>&#128218; STUDY PLAN</h3>
       <div id="session-topic-rows"></div>
       <p class="session-est">&#128336; ~21 min &nbsp;&bull;&nbsp; 7 questions per topic &nbsp;&bull;&nbsp; Mixed difficulty</p>
     </div>
-    <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="startSession()">Start Today&#8217;s Session &#9889;</button>
+    <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="startSession()">Start Study Plan &#9889;</button>
   </div>
 
   <!-- Weak topic banner -->
