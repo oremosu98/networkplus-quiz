@@ -100,6 +100,7 @@ node tests/uat.js
 | v4.0 | Analytics interactivity: bar chart hover lift with tooltip (% + date), calendar hover scale + tooltips, hottest day pulsing glow |
 | v4.1 | Enhanced spaced rep (Leitner decay, wrong bank boost, weighted random top-3), analytics theme fix (RGB CSS vars for light/dark), study activity tracks questions not sessions |
 | v4.2 | Tech debt: magic strings → constants (MIXED_TOPIC, EXAM_TOPIC, DEFAULT_DIFF, CLAUDE_API_URL, CLAUDE_MODEL), STORAGE object for all localStorage keys, silent catch block audit with user-facing toasts, CI tech debt monitor |
+| v4.3 | Tech debt #16 + #19: Merged 5 pairs of duplicated quiz/exam render functions into single unified functions (renderMCQ/MultiSelect/Order/CliSim/Topology each take optional `ans` param for exam mode). Accessibility pass: aria-label on icon/arrow-only buttons, aria-pressed on flag/chip toggle state, aria-live on score/streak/timer, aria-expanded on question navigator, focus management on showPage, descriptive aria-labels on nav grid squares, subnet input accessible name |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
@@ -114,7 +115,7 @@ Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--
 - Tighten tech debt thresholds as debt is paid down
 
 ## Infrastructure Template
-A reusable infrastructure blueprint covering CI/CD, security, monitoring, and more lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Use it when setting up new projects or hardening existing ones. Update it when we refine the approach here.
+A reusable infrastructure blueprint lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Product vision and architecture visuals live at `~/Desktop/Dev Projects/product-vision/`. Update both when we refine the approach here.
 
 ## Common Gotchas
 - The `pick()` function targets `#options .option` — CLI sim diagnosis MCQ must be inside `#options` div

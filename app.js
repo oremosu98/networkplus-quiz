@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -439,12 +439,26 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function initChips(groupId, cb) {
   const g = document.getElementById(groupId);
+  g.setAttribute('role', 'group');
   g.querySelectorAll('.chip').forEach(c => {
+    // Set initial aria-pressed based on current selection class
+    c.setAttribute('aria-pressed', c.classList.contains('on') ? 'true' : 'false');
     c.addEventListener('click', () => {
-      g.querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+      g.querySelectorAll('.chip').forEach(x => {
+        x.classList.remove('on');
+        x.setAttribute('aria-pressed', 'false');
+      });
       c.classList.add('on');
+      c.setAttribute('aria-pressed', 'true');
       cb(c.dataset.v);
     });
+  });
+}
+
+// Keep aria-pressed in sync when chips are toggled programmatically
+function syncChipAriaPressed(groupSelector) {
+  document.querySelectorAll(groupSelector + ' .chip').forEach(c => {
+    c.setAttribute('aria-pressed', c.classList.contains('on') ? 'true' : 'false');
   });
 }
 
@@ -454,26 +468,33 @@ function initChips(groupId, cb) {
 function showPage(name) {
   const current = document.querySelector('.page.active');
   const next = document.getElementById('page-' + name);
+  const activate = () => {
+    next.classList.add('active');
+    window.scrollTo(0, 0);
+    // a11y: move focus to the new page so screen readers announce context
+    const focusTarget = next.querySelector('h1, h2, [role="heading"], .page-title') || next;
+    if (focusTarget) {
+      if (!focusTarget.hasAttribute('tabindex')) focusTarget.setAttribute('tabindex', '-1');
+      try { focusTarget.focus({ preventScroll: true }); } catch (_) {}
+    }
+  };
   if (current && current !== next) {
     current.classList.add('page-exit');
     current.addEventListener('animationend', function handler() {
       current.removeEventListener('animationend', handler);
       current.classList.remove('active', 'page-exit');
-      next.classList.add('active');
-      window.scrollTo(0, 0);
+      activate();
     }, { once: true });
     // Fallback in case animationend doesn't fire
     setTimeout(() => {
       if (current.classList.contains('page-exit')) {
         current.classList.remove('active', 'page-exit');
-        next.classList.add('active');
-        window.scrollTo(0, 0);
+        activate();
       }
     }, 300);
   } else {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    next.classList.add('active');
-    window.scrollTo(0, 0);
+    activate();
   }
 }
 
@@ -905,10 +926,13 @@ function renderWeakBanner() {
   document.getElementById('weak-drill-btn').onclick = () => {
     topic = weak.topic;
     document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === weak.topic));
+    syncChipAriaPressed('#topic-group');
     diff = DEFAULT_DIFF;
     document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
+    syncChipAriaPressed('#diff-group');
     qCount = 10;
     document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '10'));
+    syncChipAriaPressed('#count-group');
     startQuiz();
   };
 }
@@ -1203,6 +1227,7 @@ function render() {
   const flagBtn = document.getElementById('quiz-flag-btn');
   flagBtn.className = 'flag-btn' + (quizFlags[current] ? ' flagged' : '');
   flagBtn.textContent = quizFlags[current] ? 'Flagged' : 'Flag';
+  flagBtn.setAttribute('aria-pressed', quizFlags[current] ? 'true' : 'false');
 
   const box = document.getElementById('options');
   box.innerHTML = '';
@@ -1235,63 +1260,90 @@ function render() {
   }, 150);
 }
 
-// ── MCQ Render ──
-function renderMCQ(q, box) {
+// ── MCQ Render (unified quiz + exam mode) ──
+function renderMCQ(q, box, ans) {
   box.setAttribute('role', 'radiogroup');
   box.setAttribute('aria-label', 'Answer options');
   ['A','B','C','D'].forEach(l => {
     const btn = document.createElement('button');
-    btn.className = 'option';
+    const isSelected = ans && ans.chosen === l;
+    btn.className = 'option' + (isSelected ? ' exam-selected' : '');
     btn.setAttribute('role', 'radio');
-    btn.setAttribute('aria-checked', 'false');
+    btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
     btn.setAttribute('aria-label', `Option ${l}: ${q.options[l]}`);
     btn.innerHTML = `<span class="opt-letter">${l}</span><span class="opt-text">${escHtml(q.options[l])}</span>`;
-    btn.onclick = () => pick(l, q);
+    if (ans) {
+      btn.onclick = () => { examAnswers[examCurrent].chosen = l; renderExam(); };
+    } else {
+      btn.onclick = () => pick(l, q);
+    }
     box.appendChild(btn);
   });
 }
 
-// ── Multi-Select Render ──
-function renderMultiSelect(q, box) {
-  msSelections = [];
+// ── Multi-Select Render (unified quiz + exam mode) ──
+function renderMultiSelect(q, box, ans) {
   const letters = Object.keys(q.options).sort();
   const reqCount = (q.answers || []).length || 2;
+  if (!ans) msSelections = [];
 
   letters.forEach(l => {
     const btn = document.createElement('button');
-    btn.className = 'option';
+    const isSelected = ans ? ans.msChosen.includes(l) : false;
+    btn.className = 'option' + (isSelected ? ' ms-selected' : '');
     btn.dataset.letter = l;
-    btn.innerHTML = `<span class="ms-checkbox"></span><span class="opt-text">${escHtml(q.options[l])}</span>`;
+    btn.setAttribute('role', 'checkbox');
+    btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+    btn.setAttribute('aria-label', `Option ${l}: ${q.options[l]}`);
+    btn.innerHTML = `<span class="ms-checkbox">${isSelected ? '\u2713' : ''}</span><span class="opt-text">${escHtml(q.options[l])}</span>`;
     btn.onclick = () => {
-      if (btn.closest('.options').querySelector('.option.correct, .option.wrong')) return;
-      const idx = msSelections.indexOf(l);
-      if (idx >= 0) {
-        msSelections.splice(idx, 1);
-        btn.classList.remove('ms-selected');
-        btn.querySelector('.ms-checkbox').textContent = '';
+      if (ans) {
+        const idx = ans.msChosen.indexOf(l);
+        if (idx >= 0) ans.msChosen.splice(idx, 1);
+        else ans.msChosen.push(l);
+        renderExam();
       } else {
-        msSelections.push(l);
-        btn.classList.add('ms-selected');
-        btn.querySelector('.ms-checkbox').textContent = '\u2713';
+        if (btn.closest('.options').querySelector('.option.correct, .option.wrong')) return;
+        const idx = msSelections.indexOf(l);
+        if (idx >= 0) {
+          msSelections.splice(idx, 1);
+          btn.classList.remove('ms-selected');
+          btn.querySelector('.ms-checkbox').textContent = '';
+          btn.setAttribute('aria-checked', 'false');
+        } else {
+          msSelections.push(l);
+          btn.classList.add('ms-selected');
+          btn.querySelector('.ms-checkbox').textContent = '\u2713';
+          btn.setAttribute('aria-checked', 'true');
+        }
+        updateMsSubmitBtn(reqCount);
       }
-      updateMsSubmitBtn(reqCount);
     };
     box.appendChild(btn);
   });
 
-  // Submit row
-  const row = document.createElement('div');
-  row.className = 'ms-submit-row';
-  row.innerHTML = `<span class="ms-hint">Select ${reqCount} answers</span>`;
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'btn btn-primary';
-  submitBtn.id = 'ms-submit-btn';
-  submitBtn.textContent = 'Submit';
-  submitBtn.disabled = true;
-  submitBtn.style.opacity = '0.5';
-  submitBtn.onclick = () => submitMultiSelect(q);
-  row.appendChild(submitBtn);
-  box.appendChild(row);
+  if (ans) {
+    // Exam: selection hint only
+    const hint = document.createElement('div');
+    hint.className = 'ms-hint';
+    hint.style.marginTop = '8px';
+    hint.textContent = `Select ${reqCount} answers (${ans.msChosen.length} selected)`;
+    box.appendChild(hint);
+  } else {
+    // Quiz: submit row
+    const row = document.createElement('div');
+    row.className = 'ms-submit-row';
+    row.innerHTML = `<span class="ms-hint">Select ${reqCount} answers</span>`;
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn btn-primary';
+    submitBtn.id = 'ms-submit-btn';
+    submitBtn.textContent = 'Submit';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.onclick = () => submitMultiSelect(q);
+    row.appendChild(submitBtn);
+    box.appendChild(row);
+  }
 }
 
 function updateMsSubmitBtn(reqCount) {
@@ -1341,21 +1393,30 @@ function submitMultiSelect(q) {
   showExplanation(q, isRight);
 }
 
-// ── Order Render ──
-function renderOrder(q, box) {
-  orderSequence = [];
+// ── Order Render (unified quiz + exam mode) ──
+function renderOrder(q, box, ans) {
   const items = q.items || [];
-  // Show items as clickable buttons
+  if (!ans) orderSequence = [];
+  const currentSeq = () => ans ? ans.orderSeq : orderSequence;
+
+  // Items to pick from
   const itemsDiv = document.createElement('div');
   itemsDiv.className = 'order-items';
   itemsDiv.id = 'order-items';
 
   items.forEach((item, idx) => {
     const btn = document.createElement('button');
-    btn.className = 'order-item';
+    btn.className = 'order-item' + (currentSeq().includes(idx) ? ' placed' : '');
     btn.dataset.idx = idx;
+    btn.setAttribute('aria-label', `Item ${idx + 1}: ${item}`);
     btn.innerHTML = `<span class="order-num">${idx + 1}</span><span class="order-item-text">${escHtml(item)}</span>`;
-    btn.onclick = () => addToOrderSequence(idx, items, q);
+    btn.onclick = () => {
+      if (ans) {
+        if (!ans.orderSeq.includes(idx)) { ans.orderSeq.push(idx); renderExam(); }
+      } else {
+        addToOrderSequence(idx, items, q);
+      }
+    };
     itemsDiv.appendChild(btn);
   });
   box.appendChild(itemsDiv);
@@ -1363,28 +1424,50 @@ function renderOrder(q, box) {
   // Sequence display
   const seqDiv = document.createElement('div');
   seqDiv.className = 'order-sequence';
-  seqDiv.innerHTML = '<h4>Your Order:</h4><div class="order-placed-list" id="order-placed-list"><span style="color:var(--text-dim);font-size:13px">Click items above in the correct order</span></div>';
+  if (ans) {
+    let seqHtml = '<h4>Your Order:</h4><div class="order-placed-list">';
+    if (ans.orderSeq.length === 0) {
+      seqHtml += '<span style="color:var(--text-dim);font-size:13px">Click items above in order</span>';
+    } else {
+      seqHtml += ans.orderSeq.map((idx, pos) =>
+        `<div class="order-placed-item"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])}</div>`
+      ).join('');
+    }
+    seqHtml += '</div>';
+    seqDiv.innerHTML = seqHtml;
+  } else {
+    seqDiv.innerHTML = '<h4>Your Order:</h4><div class="order-placed-list" id="order-placed-list"><span style="color:var(--text-dim);font-size:13px">Click items above in the correct order</span></div>';
+  }
   box.appendChild(seqDiv);
 
   // Controls
-  const controls = document.createElement('div');
-  controls.className = 'order-controls';
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'btn btn-ghost';
-  resetBtn.style.fontSize = '13px';
-  resetBtn.textContent = 'Reset';
-  resetBtn.onclick = () => { orderSequence = []; renderOrderState(items, q); };
-  controls.appendChild(resetBtn);
+  if (ans) {
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-ghost';
+    resetBtn.style.cssText = 'font-size:13px;margin-top:8px';
+    resetBtn.textContent = 'Reset Order';
+    resetBtn.onclick = () => { ans.orderSeq = []; renderExam(); };
+    box.appendChild(resetBtn);
+  } else {
+    const controls = document.createElement('div');
+    controls.className = 'order-controls';
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-ghost';
+    resetBtn.style.fontSize = '13px';
+    resetBtn.textContent = 'Reset';
+    resetBtn.onclick = () => { orderSequence = []; renderOrderState(items, q); };
+    controls.appendChild(resetBtn);
 
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'btn btn-primary';
-  submitBtn.id = 'order-submit-btn';
-  submitBtn.textContent = 'Submit Order';
-  submitBtn.disabled = true;
-  submitBtn.style.opacity = '0.5';
-  submitBtn.onclick = () => submitOrder(q);
-  controls.appendChild(submitBtn);
-  box.appendChild(controls);
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn btn-primary';
+    submitBtn.id = 'order-submit-btn';
+    submitBtn.textContent = 'Submit Order';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.onclick = () => submitOrder(q);
+    controls.appendChild(submitBtn);
+    box.appendChild(controls);
+  }
 }
 
 function addToOrderSequence(idx, items, q) {
@@ -1738,6 +1821,7 @@ function renderExam() {
   const flagBtn = document.getElementById('exam-flag-btn');
   flagBtn.className = 'exam-flag-btn' + (ans.flagged ? ' flagged' : '');
   flagBtn.textContent = ans.flagged ? '\u2691 Flagged' : '\u2691 Flag';
+  flagBtn.setAttribute('aria-pressed', ans.flagged ? 'true' : 'false');
 
   document.getElementById('exam-q-text').textContent = q.question;
 
@@ -1745,15 +1829,15 @@ function renderExam() {
   box.innerHTML = '';
 
   if (qType === 'multi-select') {
-    renderExamMultiSelect(q, box, ans);
+    renderMultiSelect(q, box, ans);
   } else if (qType === 'order') {
-    renderExamOrder(q, box, ans);
+    renderOrder(q, box, ans);
   } else if (qType === 'cli-sim') {
-    renderExamCliSim(q, box, ans);
+    renderCliSim(q, box, ans);
   } else if (qType === 'topology') {
-    renderExamTopology(q, box, ans);
+    renderTopology(q, box, ans);
   } else {
-    renderExamMCQ(q, box, ans);
+    renderMCQ(q, box, ans);
   }
 
   document.getElementById('exam-prev-btn').disabled = examCurrent === 0;
@@ -1764,85 +1848,6 @@ function renderExam() {
 
   if (navOpen) renderNavGrid();
   updateTimerDisplay();
-}
-
-function renderExamMCQ(q, box, ans) {
-  ['A','B','C','D'].forEach(l => {
-    const btn = document.createElement('button');
-    btn.className = 'option' + (ans.chosen === l ? ' exam-selected' : '');
-    btn.innerHTML = `<span class="opt-letter">${l}</span><span class="opt-text">${escHtml(q.options[l])}</span>`;
-    btn.onclick = () => { examAnswers[examCurrent].chosen = l; renderExam(); };
-    box.appendChild(btn);
-  });
-}
-
-function renderExamMultiSelect(q, box, ans) {
-  const letters = Object.keys(q.options).sort();
-  letters.forEach(l => {
-    const btn = document.createElement('button');
-    const isSelected = ans.msChosen.includes(l);
-    btn.className = 'option' + (isSelected ? ' ms-selected' : '');
-    btn.dataset.letter = l;
-    btn.innerHTML = `<span class="ms-checkbox">${isSelected ? '\u2713' : ''}</span><span class="opt-text">${escHtml(q.options[l])}</span>`;
-    btn.onclick = () => {
-      const idx = ans.msChosen.indexOf(l);
-      if (idx >= 0) ans.msChosen.splice(idx, 1);
-      else ans.msChosen.push(l);
-      renderExam();
-    };
-    box.appendChild(btn);
-  });
-  const reqCount = (q.answers || []).length || 2;
-  const hint = document.createElement('div');
-  hint.className = 'ms-hint';
-  hint.style.marginTop = '8px';
-  hint.textContent = `Select ${reqCount} answers (${ans.msChosen.length} selected)`;
-  box.appendChild(hint);
-}
-
-function renderExamOrder(q, box, ans) {
-  const items = q.items || [];
-
-  // Items to pick from
-  const itemsDiv = document.createElement('div');
-  itemsDiv.className = 'order-items';
-  items.forEach((item, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'order-item' + (ans.orderSeq.includes(idx) ? ' placed' : '');
-    btn.dataset.idx = idx;
-    btn.innerHTML = `<span class="order-num">${idx + 1}</span><span class="order-item-text">${escHtml(item)}</span>`;
-    btn.onclick = () => {
-      if (!ans.orderSeq.includes(idx)) {
-        ans.orderSeq.push(idx);
-        renderExam();
-      }
-    };
-    itemsDiv.appendChild(btn);
-  });
-  box.appendChild(itemsDiv);
-
-  // Placed sequence
-  const seqDiv = document.createElement('div');
-  seqDiv.className = 'order-sequence';
-  let seqHtml = '<h4>Your Order:</h4><div class="order-placed-list">';
-  if (ans.orderSeq.length === 0) {
-    seqHtml += '<span style="color:var(--text-dim);font-size:13px">Click items above in order</span>';
-  } else {
-    seqHtml += ans.orderSeq.map((idx, pos) =>
-      `<div class="order-placed-item"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])}</div>`
-    ).join('');
-  }
-  seqHtml += '</div>';
-  seqDiv.innerHTML = seqHtml;
-  box.appendChild(seqDiv);
-
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'btn btn-ghost';
-  resetBtn.style.fontSize = '13px';
-  resetBtn.style.marginTop = '8px';
-  resetBtn.textContent = 'Reset Order';
-  resetBtn.onclick = () => { ans.orderSeq = []; renderExam(); };
-  box.appendChild(resetBtn);
 }
 
 function examNext() { if (examCurrent < examQuestions.length - 1) { examCurrent++; renderExam(); window.scrollTo(0,0); } }
@@ -1861,21 +1866,27 @@ function toggleNav() {
   const grid = document.getElementById('qnav-grid');
   document.getElementById('qnav-arrow').textContent = navOpen ? '\u25b2' : '\u25bc';
   grid.classList.toggle('open', navOpen);
+  const toggleBtn = document.getElementById('qnav-toggle');
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', navOpen ? 'true' : 'false');
   if (navOpen) renderNavGrid();
 }
 
 function renderNavGrid() {
   const grid = document.getElementById('qnav-grid');
   grid.innerHTML = '';
+  grid.setAttribute('role', 'list');
   examAnswers.forEach((a, i) => {
     const sq = document.createElement('button');
     const hasAnswer = a.chosen !== null || a.msChosen.length > 0 || a.orderSeq.length > 0 || Object.keys(a.topoState || {}).length > 0;
     let cls = 'qnav-sq';
-    if (i === examCurrent)    cls += ' current';
-    else if (a.flagged)       cls += ' flagged';
-    else if (hasAnswer)       cls += ' answered';
+    let stateLbl = 'unanswered';
+    if (i === examCurrent)    { cls += ' current';  stateLbl = 'current'; }
+    else if (a.flagged)       { cls += ' flagged';  stateLbl = 'flagged'; }
+    else if (hasAnswer)       { cls += ' answered'; stateLbl = 'answered'; }
     sq.className   = cls;
     sq.textContent = i + 1;
+    sq.setAttribute('aria-label', `Question ${i + 1}, ${stateLbl}`);
+    sq.setAttribute('aria-current', i === examCurrent ? 'true' : 'false');
     sq.onclick     = () => { examCurrent = i; renderExam(); window.scrollTo(0,0); };
     grid.appendChild(sq);
   });
@@ -2897,7 +2908,7 @@ function reportIssue() {
 // ══════════════════════════════════════════
 // CLI SIMULATOR RENDER
 // ══════════════════════════════════════════
-function renderCliSim(q, box) {
+function renderCliSim(q, box, ans) {
   const scenarioDiv = document.createElement('div');
   scenarioDiv.className = 'cli-scenario';
   scenarioDiv.textContent = q.scenario;
@@ -2906,8 +2917,21 @@ function renderCliSim(q, box) {
   const terminal = document.createElement('div');
   terminal.className = 'cli-terminal';
   terminal.id = 'cli-terminal';
+  terminal.setAttribute('role', 'log');
+  terminal.setAttribute('aria-label', 'Terminal output');
+  terminal.setAttribute('aria-live', 'polite');
   const hn = escHtml(q.hostname || 'PC');
-  terminal.innerHTML = '<div class="cli-prompt">' + hn + '&gt; <span class="cli-cursor">_</span></div>';
+  let termHtml = '';
+  // Exam mode: replay previously-run commands
+  if (ans && ans.cliRan && ans.cliRan.length > 0) {
+    ans.cliRan.forEach(cmd => {
+      const output = (q.commands || {})[cmd] || '';
+      termHtml += '<div class="cli-line"><span class="cli-prompt-text">' + hn + '&gt; </span>' + escHtml(cmd) + '</div>';
+      termHtml += '<pre class="cli-output">' + escHtml(output) + '</pre>';
+    });
+  }
+  termHtml += '<div class="cli-prompt">' + hn + '&gt; <span class="cli-cursor">_</span></div>';
+  terminal.innerHTML = termHtml;
   box.appendChild(terminal);
 
   const cmdRow = document.createElement('div');
@@ -2915,26 +2939,66 @@ function renderCliSim(q, box) {
   cmdRow.innerHTML = '<span style="font-size:11px;color:var(--text-dim);margin-right:8px">Run:</span>';
   Object.keys(q.commands || {}).forEach(cmd => {
     const btn = document.createElement('button');
-    btn.className = 'cli-cmd-btn';
+    const alreadyRan = ans && (ans.cliRan || []).includes(cmd);
+    btn.className = 'cli-cmd-btn' + (alreadyRan ? ' used' : '');
     btn.textContent = cmd;
-    btn.onclick = () => { runCliCommand(cmd, q); btn.classList.add('used'); };
+    btn.setAttribute('aria-label', `Run command: ${cmd}`);
+    btn.onclick = () => {
+      if (ans) {
+        if (!ans.cliRan) ans.cliRan = [];
+        if (!ans.cliRan.includes(cmd)) ans.cliRan.push(cmd);
+        renderExam();
+      } else {
+        runCliCommand(cmd, q);
+        btn.classList.add('used');
+      }
+    };
     cmdRow.appendChild(btn);
   });
   box.appendChild(cmdRow);
 
-  const diagSection = document.createElement('div');
-  diagSection.id = 'cli-diagnosis';
-  diagSection.className = 'cli-diagnosis';
-  diagSection.style.display = 'none';
-  diagSection.innerHTML = '<div class="cli-diag-label">DIAGNOSIS</div>';
-  ['A','B','C','D'].forEach(l => {
-    const btn = document.createElement('button');
-    btn.className = 'option';
-    btn.innerHTML = '<span class="opt-letter">' + l + '</span><span class="opt-text">' + escHtml(q.options[l]) + '</span>';
-    btn.onclick = () => pick(l, q);
-    diagSection.appendChild(btn);
-  });
-  box.appendChild(diagSection);
+  if (ans) {
+    // Exam: show diagnosis once any command has been run
+    if (ans.cliRan && ans.cliRan.length > 0) {
+      const diagDiv = document.createElement('div');
+      diagDiv.className = 'cli-diagnosis';
+      diagDiv.setAttribute('role', 'radiogroup');
+      diagDiv.setAttribute('aria-label', 'Diagnosis options');
+      diagDiv.innerHTML = '<div class="cli-diag-label">DIAGNOSIS</div>';
+      ['A','B','C','D'].forEach(l => {
+        const btn = document.createElement('button');
+        const isSelected = ans.chosen === l;
+        btn.className = 'option' + (isSelected ? ' exam-selected' : '');
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        btn.setAttribute('aria-label', `Option ${l}: ${q.options[l]}`);
+        btn.innerHTML = '<span class="opt-letter">' + l + '</span><span class="opt-text">' + escHtml(q.options[l]) + '</span>';
+        btn.onclick = () => { ans.chosen = l; renderExam(); };
+        diagDiv.appendChild(btn);
+      });
+      box.appendChild(diagDiv);
+    }
+  } else {
+    // Quiz: diagnosis revealed after first command runs
+    const diagSection = document.createElement('div');
+    diagSection.id = 'cli-diagnosis';
+    diagSection.className = 'cli-diagnosis';
+    diagSection.style.display = 'none';
+    diagSection.setAttribute('role', 'radiogroup');
+    diagSection.setAttribute('aria-label', 'Diagnosis options');
+    diagSection.innerHTML = '<div class="cli-diag-label">DIAGNOSIS</div>';
+    ['A','B','C','D'].forEach(l => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.setAttribute('aria-label', `Option ${l}: ${q.options[l]}`);
+      btn.innerHTML = '<span class="opt-letter">' + l + '</span><span class="opt-text">' + escHtml(q.options[l]) + '</span>';
+      btn.onclick = () => pick(l, q);
+      diagSection.appendChild(btn);
+    });
+    box.appendChild(diagSection);
+  }
 }
 
 function runCliCommand(cmd, q) {
@@ -2967,9 +3031,16 @@ function runCliCommand(cmd, q) {
 // ══════════════════════════════════════════
 // TOPOLOGY BUILDER RENDER
 // ══════════════════════════════════════════
-function renderTopology(q, box) {
-  topoDevices = {};
-  selectedTopoDevice = null;
+function renderTopology(q, box, ans) {
+  // State container: exam uses ans.topoState, quiz uses global topoDevices
+  if (!ans) {
+    topoDevices = {};
+    selectedTopoDevice = null;
+  } else if (!ans.topoState) {
+    ans.topoState = {};
+  }
+  const state = () => ans ? ans.topoState : topoDevices;
+  const allPlaced = () => Object.values(state()).flat();
 
   const scenarioDiv = document.createElement('div');
   scenarioDiv.className = 'topo-scenario';
@@ -2981,9 +3052,12 @@ function renderTopology(q, box) {
   palette.innerHTML = '<div class="topo-palette-label">DEVICES <span style="font-size:11px;font-weight:400;color:var(--text-dim)">(drag to a zone, or click to select then click a zone)</span></div>';
   (q.devices || []).forEach(dev => {
     const btn = document.createElement('button');
-    btn.className = 'topo-device';
+    const placedNow = ans ? allPlaced().includes(dev) : false;
+    const selectedNow = selectedTopoDevice === dev;
+    btn.className = 'topo-device' + (placedNow ? ' placed' : '') + (selectedNow ? ' selected' : '');
     btn.textContent = dev;
     btn.draggable = true;
+    btn.setAttribute('aria-label', `Device: ${dev}${placedNow ? ' (placed)' : ''}`);
     btn.ondragstart = (e) => {
       e.dataTransfer.setData('text/plain', dev);
       e.dataTransfer.effectAllowed = 'move';
@@ -2994,11 +3068,13 @@ function renderTopology(q, box) {
     btn.addEventListener('touchstart', (e) => {
       e.preventDefault();
       selectedTopoDevice = dev;
-      document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
+      if (ans) renderExam();
+      else document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
     }, { passive: false });
     btn.onclick = () => {
       selectedTopoDevice = dev;
-      document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
+      if (ans) renderExam();
+      else document.querySelectorAll('.topo-device').forEach(b => b.classList.toggle('selected', b.textContent === dev));
     };
     palette.appendChild(btn);
   });
@@ -3010,8 +3086,14 @@ function renderTopology(q, box) {
     const zoneEl = document.createElement('div');
     zoneEl.className = 'topo-zone';
     zoneEl.dataset.zone = zone;
+    zoneEl.setAttribute('role', 'region');
+    zoneEl.setAttribute('aria-label', `Zone: ${zone}`);
     const zoneId = 'topo-zone-' + zone.replace(/[^a-zA-Z0-9]/g, '-');
-    zoneEl.innerHTML = '<div class="topo-zone-label">' + escHtml(zone) + '</div><div class="topo-zone-devices" id="' + zoneId + '"><span style="color:var(--text-dim);font-size:12px">Drag or click to place device here</span></div>';
+    const placed = state()[zone] || [];
+    const placedHtml = placed.length === 0
+      ? '<span style="color:var(--text-dim);font-size:12px">Drag or click to place device here</span>'
+      : placed.map(d => '<span class="topo-placed-device">' + escHtml(d) + '</span>').join('');
+    zoneEl.innerHTML = '<div class="topo-zone-label">' + escHtml(zone) + '</div><div class="topo-zone-devices" id="' + zoneId + '">' + placedHtml + '</div>';
 
     // Drag-and-drop handlers
     zoneEl.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zoneEl.classList.add('topo-zone-dragover'); };
@@ -3021,54 +3103,64 @@ function renderTopology(q, box) {
       zoneEl.classList.remove('topo-zone-dragover');
       const dev = e.dataTransfer.getData('text/plain');
       if (!dev) return;
-      // Remove from any previous zone
-      Object.keys(topoDevices).forEach(z => {
-        topoDevices[z] = (topoDevices[z] || []).filter(d => d !== dev);
-        if (topoDevices[z].length === 0) delete topoDevices[z];
+      const s = state();
+      Object.keys(s).forEach(z => {
+        s[z] = (s[z] || []).filter(d => d !== dev);
+        if (s[z].length === 0) delete s[z];
       });
-      if (!topoDevices[zone]) topoDevices[zone] = [];
-      topoDevices[zone].push(dev);
+      if (!s[zone]) s[zone] = [];
+      s[zone].push(dev);
       selectedTopoDevice = null;
-      renderTopoState(q);
+      if (ans) renderExam();
+      else renderTopoState(q);
     };
 
-    // Click handler (existing behaviour) — also serves as touch tap target
     const handleZonePlacement = () => {
       if (!selectedTopoDevice) return;
-      Object.keys(topoDevices).forEach(z => {
-        topoDevices[z] = (topoDevices[z] || []).filter(d => d !== selectedTopoDevice);
-        if (topoDevices[z].length === 0) delete topoDevices[z];
+      const s = state();
+      Object.keys(s).forEach(z => {
+        s[z] = (s[z] || []).filter(d => d !== selectedTopoDevice);
+        if (s[z].length === 0) delete s[z];
       });
-      if (!topoDevices[zone]) topoDevices[zone] = [];
-      topoDevices[zone].push(selectedTopoDevice);
+      if (!s[zone]) s[zone] = [];
+      s[zone].push(selectedTopoDevice);
       selectedTopoDevice = null;
-      renderTopoState(q);
+      if (ans) renderExam();
+      else renderTopoState(q);
     };
     zoneEl.onclick = handleZonePlacement;
-    // Touch support for mobile zones
     zoneEl.addEventListener('touchend', (e) => { e.preventDefault(); handleZonePlacement(); }, { passive: false });
     zonesDiv.appendChild(zoneEl);
   });
   box.appendChild(zonesDiv);
 
-  const controls = document.createElement('div');
-  controls.className = 'topo-controls';
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'btn btn-ghost';
-  resetBtn.style.fontSize = '13px';
-  resetBtn.textContent = 'Reset';
-  resetBtn.onclick = () => { topoDevices = {}; selectedTopoDevice = null; renderTopoState(q); };
-  controls.appendChild(resetBtn);
+  if (ans) {
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-ghost';
+    resetBtn.style.cssText = 'font-size:13px;margin-top:8px';
+    resetBtn.textContent = 'Reset Placement';
+    resetBtn.onclick = () => { ans.topoState = {}; selectedTopoDevice = null; renderExam(); };
+    box.appendChild(resetBtn);
+  } else {
+    const controls = document.createElement('div');
+    controls.className = 'topo-controls';
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-ghost';
+    resetBtn.style.fontSize = '13px';
+    resetBtn.textContent = 'Reset';
+    resetBtn.onclick = () => { topoDevices = {}; selectedTopoDevice = null; renderTopoState(q); };
+    controls.appendChild(resetBtn);
 
-  const submitBtn = document.createElement('button');
-  submitBtn.className = 'btn btn-primary';
-  submitBtn.id = 'topo-submit-btn';
-  submitBtn.textContent = 'Submit Placement';
-  submitBtn.disabled = true;
-  submitBtn.style.opacity = '0.5';
-  submitBtn.onclick = () => submitTopology(q);
-  controls.appendChild(submitBtn);
-  box.appendChild(controls);
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn btn-primary';
+    submitBtn.id = 'topo-submit-btn';
+    submitBtn.textContent = 'Submit Placement';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.5';
+    submitBtn.onclick = () => submitTopology(q);
+    controls.appendChild(submitBtn);
+    box.appendChild(controls);
+  }
 }
 
 function renderTopoState(q) {
@@ -3170,140 +3262,6 @@ function injectPBQs(qs, qTopic, count) {
     result.splice(insertIdx, 1, { ...pbq });
   });
   return result;
-}
-
-// ══════════════════════════════════════════
-// EXAM CLI SIM & TOPOLOGY RENDER
-// ══════════════════════════════════════════
-function renderExamCliSim(q, box, ans) {
-  const scenarioDiv = document.createElement('div');
-  scenarioDiv.className = 'cli-scenario';
-  scenarioDiv.textContent = q.scenario;
-  box.appendChild(scenarioDiv);
-
-  const terminal = document.createElement('div');
-  terminal.className = 'cli-terminal';
-  terminal.id = 'cli-terminal';
-  const hn = escHtml(q.hostname || 'PC');
-  let termHtml = '';
-  if (ans.cliRan && ans.cliRan.length > 0) {
-    ans.cliRan.forEach(cmd => {
-      const output = (q.commands || {})[cmd] || '';
-      termHtml += '<div class="cli-line"><span class="cli-prompt-text">' + hn + '&gt; </span>' + escHtml(cmd) + '</div>';
-      termHtml += '<pre class="cli-output">' + escHtml(output) + '</pre>';
-    });
-  }
-  termHtml += '<div class="cli-prompt">' + hn + '&gt; <span class="cli-cursor">_</span></div>';
-  terminal.innerHTML = termHtml;
-  box.appendChild(terminal);
-
-  const cmdRow = document.createElement('div');
-  cmdRow.className = 'cli-cmd-row';
-  cmdRow.innerHTML = '<span style="font-size:11px;color:var(--text-dim);margin-right:8px">Run:</span>';
-  Object.keys(q.commands || {}).forEach(cmd => {
-    const btn = document.createElement('button');
-    btn.className = 'cli-cmd-btn' + ((ans.cliRan || []).includes(cmd) ? ' used' : '');
-    btn.textContent = cmd;
-    btn.onclick = () => {
-      if (!ans.cliRan) ans.cliRan = [];
-      if (!ans.cliRan.includes(cmd)) ans.cliRan.push(cmd);
-      renderExam();
-    };
-    cmdRow.appendChild(btn);
-  });
-  box.appendChild(cmdRow);
-
-  if (ans.cliRan && ans.cliRan.length > 0) {
-    const diagDiv = document.createElement('div');
-    diagDiv.className = 'cli-diagnosis';
-    diagDiv.innerHTML = '<div class="cli-diag-label">DIAGNOSIS</div>';
-    ['A','B','C','D'].forEach(l => {
-      const btn = document.createElement('button');
-      btn.className = 'option' + (ans.chosen === l ? ' exam-selected' : '');
-      btn.innerHTML = '<span class="opt-letter">' + l + '</span><span class="opt-text">' + escHtml(q.options[l]) + '</span>';
-      btn.onclick = () => { ans.chosen = l; renderExam(); };
-      diagDiv.appendChild(btn);
-    });
-    box.appendChild(diagDiv);
-  }
-}
-
-function renderExamTopology(q, box, ans) {
-  const scenarioDiv = document.createElement('div');
-  scenarioDiv.className = 'topo-scenario';
-  scenarioDiv.textContent = q.scenario;
-  box.appendChild(scenarioDiv);
-
-  if (!ans.topoState) ans.topoState = {};
-  const allPlaced = Object.values(ans.topoState).flat();
-
-  const palette = document.createElement('div');
-  palette.className = 'topo-palette';
-  palette.innerHTML = '<div class="topo-palette-label">DEVICES <span style="font-size:11px;font-weight:400;color:var(--text-dim)">(drag to a zone, or click then click a zone)</span></div>';
-  (q.devices || []).forEach(dev => {
-    const btn = document.createElement('button');
-    btn.className = 'topo-device' + (allPlaced.includes(dev) ? ' placed' : '') + (selectedTopoDevice === dev ? ' selected' : '');
-    btn.textContent = dev;
-    btn.draggable = true;
-    btn.ondragstart = (e) => { e.dataTransfer.setData('text/plain', dev); e.dataTransfer.effectAllowed = 'move'; btn.classList.add('dragging'); };
-    btn.ondragend = () => { btn.classList.remove('dragging'); };
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); selectedTopoDevice = dev; renderExam(); }, { passive: false });
-    btn.onclick = () => { selectedTopoDevice = dev; renderExam(); };
-    palette.appendChild(btn);
-  });
-  box.appendChild(palette);
-
-  const zonesDiv = document.createElement('div');
-  zonesDiv.className = 'topo-zones';
-  (q.zones || []).forEach(zone => {
-    const zoneEl = document.createElement('div');
-    zoneEl.className = 'topo-zone';
-    const placed = ans.topoState[zone] || [];
-    const zoneId = 'topo-zone-' + zone.replace(/[^a-zA-Z0-9]/g, '-');
-    zoneEl.innerHTML = '<div class="topo-zone-label">' + escHtml(zone) + '</div><div class="topo-zone-devices" id="' + zoneId + '">' +
-      (placed.length === 0 ? '<span style="color:var(--text-dim);font-size:12px">Drag or click to place</span>' : placed.map(d => '<span class="topo-placed-device">' + escHtml(d) + '</span>').join('')) + '</div>';
-
-    // Drag-and-drop handlers for exam mode
-    zoneEl.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zoneEl.classList.add('topo-zone-dragover'); };
-    zoneEl.ondragleave = () => { zoneEl.classList.remove('topo-zone-dragover'); };
-    zoneEl.ondrop = (e) => {
-      e.preventDefault();
-      zoneEl.classList.remove('topo-zone-dragover');
-      const dev = e.dataTransfer.getData('text/plain');
-      if (!dev) return;
-      Object.keys(ans.topoState).forEach(z => {
-        ans.topoState[z] = (ans.topoState[z] || []).filter(d => d !== dev);
-        if (ans.topoState[z].length === 0) delete ans.topoState[z];
-      });
-      if (!ans.topoState[zone]) ans.topoState[zone] = [];
-      ans.topoState[zone].push(dev);
-      selectedTopoDevice = null;
-      renderExam();
-    };
-
-    const handleExamZonePlacement = () => {
-      if (!selectedTopoDevice) return;
-      Object.keys(ans.topoState).forEach(z => {
-        ans.topoState[z] = (ans.topoState[z] || []).filter(d => d !== selectedTopoDevice);
-        if (ans.topoState[z].length === 0) delete ans.topoState[z];
-      });
-      if (!ans.topoState[zone]) ans.topoState[zone] = [];
-      ans.topoState[zone].push(selectedTopoDevice);
-      selectedTopoDevice = null;
-      renderExam();
-    };
-    zoneEl.onclick = handleExamZonePlacement;
-    zoneEl.addEventListener('touchend', (e) => { e.preventDefault(); handleExamZonePlacement(); }, { passive: false });
-    zonesDiv.appendChild(zoneEl);
-  });
-  box.appendChild(zonesDiv);
-
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'btn btn-ghost';
-  resetBtn.style.cssText = 'font-size:13px;margin-top:8px';
-  resetBtn.textContent = 'Reset Placement';
-  resetBtn.onclick = () => { ans.topoState = {}; selectedTopoDevice = null; renderExam(); };
-  box.appendChild(resetBtn);
 }
 
 // ══════════════════════════════════════════

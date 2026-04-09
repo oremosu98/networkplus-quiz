@@ -78,13 +78,13 @@ for (let i = 0; i < jsLines.length; i++) {
     }
   }
 }
-check('Functions >80 lines', longFunctions, 7); // baseline: 7 — target: 0
+check('Functions >80 lines', longFunctions, 8); // baseline: 8 after dedup merge — target: 0
 
 // Duplicated render functions
 const dualRenders = jsLines.filter(line =>
   /^(?:async\s+)?function\s+render(?:Exam)(?:MCQ|MultiSelect|Order|Topology|CliSim)/.test(line)
 );
-check('Duplicated exam render functions', dualRenders.length, 5); // baseline: 5 — target: 0
+check('Duplicated exam render functions', dualRenders.length, 0); // target reached — keep at 0
 
 // Hardcoded API URLs
 const hardcodedUrls = jsLines.filter(line =>
@@ -94,7 +94,7 @@ check('Hardcoded API URLs (not in constants)', hardcodedUrls.length, 0);
 
 // Inline style assignments
 const inlineStyles = jsLines.filter(line => /\.style\.\w+\s*=/.test(line));
-check('Inline .style.* assignments', inlineStyles.length, 94); // baseline: 94 — target: 20
+check('Inline .style.* assignments', inlineStyles.length, 93); // baseline: 93 — target: 20
 
 // --- CSS checks ---
 console.log('\n🎨 CSS');

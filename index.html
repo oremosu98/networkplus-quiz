@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.2</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.3</span>
     <div id="streak-badge" class="streak-badge"></div>
   </div>
 
@@ -150,7 +150,7 @@
     <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" onclick="startWrongDrill()">
       &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
     </button>
-    <button class="btn btn-ghost wrong-bank-clear" id="wrong-bank-clear" onclick="clearWrongBank()" title="Clear all wrong answers">&#128465; Clear</button>
+    <button class="btn btn-ghost wrong-bank-clear" id="wrong-bank-clear" onclick="clearWrongBank()" title="Clear all wrong answers" aria-label="Clear all wrong answers">&#128465; Clear</button>
   </div>
 
   <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="showPage('progress');renderProgressPage()">&#128200; Topic Progress</button>
@@ -166,7 +166,7 @@
     <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
     <label class="btn btn-ghost" style="flex:1;font-size:13px;cursor:pointer;text-align:center">
       &#128228; Import Data
-      <input type="file" accept=".json" style="display:none" onchange="importData(event)" />
+      <input type="file" accept=".json" style="display:none" onchange="importData(event)" aria-label="Import data JSON file" />
     </label>
   </div>
 </div>
@@ -208,11 +208,11 @@
 ══════════════════════════════════════════ -->
 <div id="page-quiz" class="page">
   <div class="quiz-topbar">
-    <button class="back-btn" onclick="confirmBack()">&#8592; Menu</button>
+    <button class="back-btn" onclick="confirmBack()" aria-label="Back to menu">&#8592; Menu</button>
     <div class="quiz-stats">
-      <div class="stat-pill score" id="live-score">0 / 0</div>
-      <div class="stat-pill streak" id="live-streak">&#128293; 0</div>
-      <button class="flag-btn" id="quiz-flag-btn" onclick="toggleFlag()" title="Flag question (F)">Flag</button>
+      <div class="stat-pill score" id="live-score" role="status" aria-live="polite" aria-label="Score">0 / 0</div>
+      <div class="stat-pill streak" id="live-streak" role="status" aria-live="polite" aria-label="Current streak">&#128293; 0</div>
+      <button class="flag-btn" id="quiz-flag-btn" onclick="toggleFlag()" title="Flag question (F)" aria-label="Flag question" aria-pressed="false">Flag</button>
       <span class="cache-notice" id="cache-notice">&#128230; Cached</span>
     </div>
   </div>
@@ -271,7 +271,7 @@
   </div>
   <div id="diff-breakdown" class="diff-breakdown"></div>
   <div class="results-actions">
-    <button class="btn btn-secondary" onclick="goSetup()">&#8592; Menu</button>
+    <button class="btn btn-secondary" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
     <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">&#128203; Review</button>
     <button class="btn btn-primary" onclick="retryQuiz()">Same Topic &#9889;</button>
   </div>
@@ -282,7 +282,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-review" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" id="review-back-btn" style="padding:10px 16px">&#8592; Back</button>
+    <button class="btn btn-ghost" id="review-back-btn" style="padding:10px 16px" aria-label="Back to results">&#8592; Back</button>
     <h2>Review Answers</h2>
   </div>
   <div id="review-list"></div>
@@ -333,7 +333,7 @@
 <div id="page-progress" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <div style="display:flex;align-items:center;gap:14px">
-      <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+      <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
       <h2>Topic Progress</h2>
     </div>
     <div style="font-size:12px;color:var(--text-dim);display:flex;gap:14px;align-items:center">
@@ -352,20 +352,20 @@
   <div class="exam-topbar">
     <div class="exam-timer-block">
       <div class="timer-label">Time Left</div>
-      <div class="exam-timer" id="exam-timer">90:00</div>
+      <div class="exam-timer" id="exam-timer" role="timer" aria-live="off" aria-atomic="true" aria-label="Exam time remaining">90:00</div>
     </div>
     <div class="exam-center-info">
-      <div class="exam-q-counter" id="exam-q-num">Q1 / 90</div>
-      <div class="exam-answered-lbl" id="exam-answered-lbl">0 / 90 answered</div>
+      <div class="exam-q-counter" id="exam-q-num" aria-live="polite">Q1 / 90</div>
+      <div class="exam-answered-lbl" id="exam-answered-lbl" aria-live="polite">0 / 90 answered</div>
     </div>
     <div class="exam-topbar-actions">
-      <button class="exam-flag-btn" id="exam-flag-btn" onclick="examToggleFlag()">&#9873; Flag</button>
+      <button class="exam-flag-btn" id="exam-flag-btn" onclick="examToggleFlag()" aria-label="Flag question for review" aria-pressed="false">&#9873; Flag</button>
       <button class="end-exam-btn" onclick="showExamModal()">End Exam</button>
     </div>
   </div>
 
-  <button class="qnav-toggle" id="qnav-toggle" onclick="toggleNav()">
-    <span>Question Navigator</span><span id="qnav-arrow">&#9660;</span>
+  <button class="qnav-toggle" id="qnav-toggle" onclick="toggleNav()" aria-expanded="false" aria-controls="qnav-grid" aria-label="Toggle question navigator">
+    <span>Question Navigator</span><span id="qnav-arrow" aria-hidden="true">&#9660;</span>
   </button>
   <div class="qnav-grid" id="qnav-grid"></div>
 
@@ -383,7 +383,7 @@
   </div>
 
   <div class="exam-nav-row">
-    <button class="btn btn-ghost" id="exam-prev-btn" onclick="examPrev()" style="padding:12px 20px">&#8592; Prev</button>
+    <button class="btn btn-ghost" id="exam-prev-btn" onclick="examPrev()" style="padding:12px 20px" aria-label="Previous question">&#8592; Prev</button>
     <div class="kb-hint">
       <span class="kb-key">A</span><span class="kb-key">B</span><span class="kb-key">C</span><span class="kb-key">D</span> select &nbsp;&bull;&nbsp;
       <span class="kb-key">F</span> flag &nbsp;&bull;&nbsp;
@@ -440,7 +440,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-subnet" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>&#129518; Subnet Trainer</h2>
   </div>
   <div class="subnet-score-bar">
@@ -451,7 +451,7 @@
     <div class="subnet-q-num" id="subnet-q-num">Q1</div>
     <div class="subnet-question" id="subnet-question">Loading&#8230;</div>
     <div class="subnet-input-row">
-      <input type="text" id="subnet-answer" class="subnet-input" placeholder="Type your answer&#8230;" autocomplete="off" />
+      <input type="text" id="subnet-answer" class="subnet-input" placeholder="Type your answer&#8230;" autocomplete="off" aria-label="Subnet question answer" />
       <button class="btn btn-primary" onclick="checkSubnetAnswer()" id="subnet-submit-btn">Check</button>
     </div>
     <div id="subnet-feedback" class="subnet-feedback"></div>
@@ -478,17 +478,17 @@
 ══════════════════════════════════════════ -->
 <div id="page-ports" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" onclick="endPortDrill();goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <button class="btn btn-ghost" onclick="endPortDrill();goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>&#9889; Port Number Drill</h2>
   </div>
   <div class="port-stats-bar">
     <div class="port-timer-block">
       <span class="port-timer-label">TIME</span>
-      <span class="port-timer" id="port-timer">30</span>
+      <span class="port-timer" id="port-timer" role="timer" aria-live="off" aria-label="Port drill time remaining">30</span>
     </div>
     <div class="port-score-block">
       <span class="port-score-label">SCORE</span>
-      <span class="port-score" id="port-score">0</span>
+      <span class="port-score" id="port-score" aria-live="polite" aria-label="Port drill score">0</span>
     </div>
     <div class="port-best-block">
       <span class="port-best-label">BEST</span>
@@ -512,7 +512,7 @@
     <div id="port-missed-review" class="port-missed-review"></div>
     <div style="display:flex;gap:10px;margin-top:20px">
       <button class="btn btn-primary" style="flex:1" onclick="beginPortDrill()">Play Again &#9889;</button>
-      <button class="btn btn-secondary" style="flex:1" onclick="goSetup()">&#8592; Menu</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
     </div>
   </div>
 </div>
@@ -522,7 +522,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-analytics" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>&#128202; Performance Analytics</h2>
   </div>
   <div id="analytics-content">
@@ -535,7 +535,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-topic-dive" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-    <button class="btn btn-ghost" id="topic-dive-back" style="padding:10px 16px">&#8592; Back</button>
+    <button class="btn btn-ghost" id="topic-dive-back" style="padding:10px 16px" aria-label="Back">&#8592; Back</button>
     <h2 id="topic-dive-title">&#128218; Topic Deep Dive</h2>
   </div>
   <div class="topic-dive-obj" id="topic-dive-obj"></div>
@@ -552,7 +552,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-monitor" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px">&#8592; Menu</button>
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>&#128737;&#65039; Production Monitor</h2>
   </div>
   <div class="monitor-stats" id="monitor-stats"></div>

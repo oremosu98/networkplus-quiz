@@ -71,8 +71,26 @@ const coreFns = [
   'pick','showExplanation','showReview','submitExam','exportData','importData',
   'validateQuestions','aiValidateQuestions','explainFurther','injectPBQs',
   'renderTopology','renderTopoState','submitTopology','renderCliSim','runCliCommand',
-  'renderExamTopology'
+  'renderMCQ','renderMultiSelect','renderOrder'
 ];
+// Unified render functions should accept an `ans` parameter (exam mode) — verify all take it
+test('renderMCQ unified signature', /function renderMCQ\(q, box, ans\)/.test(js));
+test('renderMultiSelect unified signature', /function renderMultiSelect\(q, box, ans\)/.test(js));
+test('renderOrder unified signature', /function renderOrder\(q, box, ans\)/.test(js));
+test('renderCliSim unified signature', /function renderCliSim\(q, box, ans\)/.test(js));
+test('renderTopology unified signature', /function renderTopology\(q, box, ans\)/.test(js));
+test('No duplicated renderExam* functions', !/function renderExam(MCQ|MultiSelect|Order|CliSim|Topology)\(/.test(js));
+
+// Accessibility
+test('quiz-flag-btn has aria-pressed', html.includes('id="quiz-flag-btn"') && html.includes('aria-pressed="false"'));
+test('exam-flag-btn has aria-pressed', html.includes('id="exam-flag-btn"') && /exam-flag-btn[^>]*aria-pressed/.test(html));
+test('live-score has aria-live', /id="live-score"[^>]*aria-live/.test(html));
+test('subnet-answer has aria-label', /id="subnet-answer"[^>]*aria-label/.test(html));
+test('qnav-toggle has aria-expanded', /id="qnav-toggle"[^>]*aria-expanded/.test(html));
+test('exam-timer has role=timer', /id="exam-timer"[^>]*role="timer"/.test(html));
+test('syncChipAriaPressed helper defined', js.includes('function syncChipAriaPressed'));
+test('showPage moves focus to heading', js.includes('focusTarget.focus'));
+test('renderNavGrid sets aria-label per square', js.includes('`Question ${i + 1},'));
 coreFns.forEach(fn => test(`function ${fn}()`, js.includes(`function ${fn}(`)));
 
 console.log('\n\x1b[1m── JS FEATURE: SUBNETTING ──\x1b[0m');
