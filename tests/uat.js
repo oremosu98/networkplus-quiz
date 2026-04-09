@@ -100,11 +100,20 @@ console.log('\n\x1b[1m── JS FEATURE: SUBNETTING ──\x1b[0m');
 test('6 question types', ['cidr_to_mask','mask_to_cidr','find_subnet','find_broadcast','host_count','usable_range'].every(t => js.includes(t)));
 
 console.log('\n\x1b[1m── JS FEATURE: PORT DRILL ──\x1b[0m');
-['startPortDrill','beginPortDrill','nextPortQ','pickPort','endPortDrill'
+['startPortDrill','beginPortDrill','nextPortQ','pickPort','endPortDrill',
+ 'getPortStats','savePortStats','updatePortStat','portWeight','pickWeightedPort',
+ 'getWeakestPorts','renderPortFocusInfo','resetPortStats'
 ].forEach(fn => test(`function ${fn}()`, js.includes(`function ${fn}(`)));
 test('40+ port entries', (js.match(/proto:'/g) || []).length >= 38);
 test('Wrong answer tracking (portMissed)', js.includes('portMissed.push'));
 test('Missed review rendering', js.includes('MISSED PORTS'));
+test('Adaptive focus: PORT_STATS storage key', js.includes("PORT_STATS: 'nplus_port_stats'"));
+test('Adaptive focus: nextPortQ uses weighted selection', js.includes('pickWeightedPort()'));
+test('Adaptive focus: pickPort records stats', js.includes('updatePortStat(portCurrentQ.correct.proto'));
+test('Adaptive focus: weight formula boosts weak ports', js.includes('1 - accuracy'));
+test('Adaptive focus: pregame shows focus info', js.includes('renderPortFocusInfo()'));
+test('Port focus info container in HTML', html.includes('id="port-focus-info"'));
+test('Port reset stats button in HTML', html.includes('id="port-reset-stats-btn"'));
 
 console.log('\n\x1b[1m── JS FEATURE: TOPIC BRIEF ──\x1b[0m');
 test('function fetchTopicBrief()', js.includes('function fetchTopicBrief('));

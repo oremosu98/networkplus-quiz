@@ -105,14 +105,36 @@ node tests/uat.js
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
 
-## Tech Debt & Bug Tracking
-- The [Kanban board](https://github.com/users/oremosu98/projects/1) is the single source of truth for all bugs and tech debt
-- No master checklist issue — every item is an individual issue on the board
-- Priority field on board: 🔴 High, 🟡 Medium, 🟢 Low / Quick Win
+## Project Boards (two separate trackers)
+Two Kanban boards, each with distinct purpose — never mix them.
+
+### Bug / Tech Debt tracker
+- [Board #1](https://github.com/users/oremosu98/projects/1) — bugs and tech debt only
+- Labels: `bug`, `tech-debt`
+- Priority field: 🔴 High, 🟡 Medium, 🟢 Low / Quick Win
 - `tests/tech-debt.js` runs in CI on every push — breaches auto-create issues with `tech-debt` + `priority: medium` labels, added to board in Backlog
 - Auto-reported bugs get `bug` + `priority: high` labels, added to board in Backlog
 - Weekly cadence: Tuesdays for bugs, Thursdays for tech debt
 - Tighten tech debt thresholds as debt is paid down
+
+### Feature Ideas tracker
+- [Board #2](https://github.com/users/oremosu98/projects/2) — future feature candidates only
+- Label: `feature-idea` (purple)
+- Priority field: 🔥 Must Have, ⭐ Should Have, 💡 Nice to Have, 🧊 Someday
+- Effort field: XS / S / M / L / XL
+- Tie-in field: Cert SaaS Vision / Quiz App Only / Both
+- Tied to product vision doc at `~/Desktop/Dev Projects/product-vision/PRODUCT-VISION.md`
+- No weekly cadence — this is a long-term idea backlog, not an active sprint queue
+- Promote to Board #1 (as `tech-debt` or regular work) only when actually scheduled
+
+### Routing rules
+- Broken behavior / regression / crash → Board #1 with `bug`
+- Code smell / duplication / architecture → Board #1 with `tech-debt`
+- New capability / UX enhancement / product direction → Board #2 with `feature-idea`
+- Every item is an individual issue — no master checklists
+
+### Known gotcha
+- Auto-add workflow does not fire for issues created via REST API (see #24) — add manually via GraphQL `addProjectV2ItemById` until fixed
 
 ## Infrastructure Template
 A reusable infrastructure blueprint lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Product vision and architecture visuals live at `~/Desktop/Dev Projects/product-vision/`. Update both when we refine the approach here.

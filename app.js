@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -26,6 +26,7 @@ const STORAGE = {
   WRONG_BANK: 'nplus_wrong_bank',
   REPORTS: 'nplus_reports',
   PORT_BEST: 'nplus_port_best',
+  PORT_STATS: 'nplus_port_stats',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
   GH_REPORTED: 'nplus_gh_reported',
@@ -3754,6 +3755,97 @@ const portData = [
 let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
 let portMissed = []; // Track wrong answers for review
 
+// ── Adaptive port focus (weighted selection based on per-port accuracy) ──
+function getPortStats() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.PORT_STATS) || '{}'); } catch { return {}; }
+}
+function savePortStats(stats) {
+  try { localStorage.setItem(STORAGE.PORT_STATS, JSON.stringify(stats)); } catch {}
+}
+function updatePortStat(proto, wasCorrect) {
+  const stats = getPortStats();
+  if (!stats[proto]) stats[proto] = { seen: 0, correct: 0 };
+  stats[proto].seen++;
+  if (wasCorrect) stats[proto].correct++;
+  savePortStats(stats);
+}
+function portWeight(proto, stats) {
+  const s = stats[proto];
+  // No data yet → baseline. Slight explore bonus on truly never-seen ports
+  if (!s || s.seen === 0) return 1.2;
+  // Not enough samples to trust — treat as baseline
+  if (s.seen < 3) return 1.0;
+  const accuracy = s.correct / s.seen;
+  // Mastered → heavy downweight (still appears, just rarely)
+  if (accuracy >= 0.95) return 0.3;
+  if (accuracy >= 0.85) return 0.7;
+  // Struggling → boost proportional to miss rate. Max ~5x at 0% accuracy.
+  return 1.0 + ((1 - accuracy) * 4);
+}
+function pickWeightedPort() {
+  const stats = getPortStats();
+  const weights = portData.map(p => portWeight(p.proto, stats));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < portData.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return portData[i];
+  }
+  return portData[portData.length - 1];
+}
+function getWeakestPorts(limit = 3) {
+  const stats = getPortStats();
+  return Object.entries(stats)
+    .filter(([, s]) => s.seen >= 3)
+    .map(([proto, s]) => ({ proto, accuracy: s.correct / s.seen, seen: s.seen }))
+    .filter(x => x.accuracy < 0.85)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, limit);
+}
+function getPortStatsSummary() {
+  const stats = getPortStats();
+  const entries = Object.values(stats);
+  const totalSeen = entries.reduce((a, b) => a + b.seen, 0);
+  const totalCorrect = entries.reduce((a, b) => a + b.correct, 0);
+  const uniqueSeen = entries.filter(e => e.seen > 0).length;
+  return {
+    totalSeen,
+    totalCorrect,
+    overallAccuracy: totalSeen > 0 ? totalCorrect / totalSeen : 0,
+    uniqueSeen,
+    totalPorts: portData.length
+  };
+}
+function renderPortFocusInfo() {
+  const infoEl = document.getElementById('port-focus-info');
+  const resetBtn = document.getElementById('port-reset-stats-btn');
+  if (!infoEl) return;
+  const summary = getPortStatsSummary();
+  if (summary.totalSeen < 5) {
+    infoEl.style.display = 'none';
+    if (resetBtn) resetBtn.style.display = 'none';
+    return;
+  }
+  const weak = getWeakestPorts(3);
+  const accPct = Math.round(summary.overallAccuracy * 100);
+  let html = `<div class="port-focus-title">🎯 <strong>Adaptive focus active</strong></div>`;
+  html += `<div class="port-focus-stats">${summary.uniqueSeen}/${summary.totalPorts} ports seen · ${accPct}% overall accuracy</div>`;
+  if (weak.length > 0) {
+    const weakList = weak.map(w => `<span class="port-focus-weak">${escHtml(w.proto)}</span>`).join(', ');
+    html += `<div class="port-focus-weak-line">Drilling: ${weakList}</div>`;
+  } else {
+    html += `<div class="port-focus-weak-line">No weak spots — mastery mode 💪</div>`;
+  }
+  infoEl.innerHTML = html;
+  infoEl.style.display = 'block';
+  if (resetBtn) resetBtn.style.display = 'inline-block';
+}
+function resetPortStats() {
+  if (!confirm('Reset all port focus stats? Your best score will be kept.')) return;
+  try { localStorage.removeItem(STORAGE.PORT_STATS); } catch {}
+  renderPortFocusInfo();
+}
+
 function startPortDrill() {
   const best = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
   document.getElementById('port-best').textContent = best;
@@ -3762,6 +3854,7 @@ function startPortDrill() {
   document.getElementById('port-results').style.display = 'none';
   document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-score').textContent = '0';
+  renderPortFocusInfo();
 }
 
 function beginPortDrill() {
@@ -3786,9 +3879,10 @@ function beginPortDrill() {
 }
 
 function nextPortQ() {
-  // Pick random port question — 50/50 "what port?" vs "what protocol?"
+  // Pick port question — 50/50 "what port?" vs "what protocol?"
+  // Port selection is weighted by per-port miss rate (adaptive focus)
   const mode = Math.random() < 0.5 ? 'port' : 'proto';
-  const correct = portData[Math.floor(Math.random() * portData.length)];
+  const correct = pickWeightedPort();
   portCurrentQ = { mode, correct };
   // Generate 3 wrong options
   const wrongPool = portData.filter(p => p.port !== correct.port);
@@ -3812,7 +3906,12 @@ function nextPortQ() {
 }
 
 function pickPort(chosen, correct) {
-  if (chosen === correct) {
+  const wasCorrect = (chosen === correct);
+  // Record per-port stat for adaptive focus (keyed on proto regardless of mode)
+  if (portCurrentQ && portCurrentQ.correct) {
+    updatePortStat(portCurrentQ.correct.proto, wasCorrect);
+  }
+  if (wasCorrect) {
     portScore++;
     document.getElementById('port-score').textContent = portScore;
   } else {
