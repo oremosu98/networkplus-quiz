@@ -219,7 +219,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.10', js.includes("const APP_VERSION = '4.10"));
+test('APP_VERSION is 4.11', js.includes("const APP_VERSION = '4.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,7 +232,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.10', sw.includes('netplus-v4.10'));
+test('SW cache bumped to v4.11', sw.includes('netplus-v4.11'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
 test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
@@ -377,6 +377,29 @@ test('evaluateMilestones handles weekend_warrior', js.includes("maybe('weekend_w
 test('evaluateMilestones handles diversity_5', js.includes("maybe('diversity_5'"));
 test('evaluateMilestones handles deep_dive_10', js.includes("maybe('deep_dive_10'"));
 test('evaluateMilestones handles daily_challenge_7', js.includes("maybe('daily_challenge_7'"));
+
+// ── Port Reference panel (v4.11) ──
+console.log('\n\x1b[1m── PORT REFERENCE v4.11 ──\x1b[0m');
+test('portCategories defined', js.includes('const portCategories ='));
+test('portSortMode state', js.includes("let portSortMode = 'category'"));
+test('renderPortReference function', js.includes('function renderPortReference('));
+test('setPortSortMode function', js.includes('function setPortSortMode('));
+test('filterPortReference function', js.includes('function filterPortReference('));
+test('_portCard helper', js.includes('function _portCard('));
+test('startPortDrill calls renderPortReference', /function startPortDrill\(\)[\s\S]*?renderPortReference\(\);[\s\S]*?\n\}/.test(js));
+test('HTML: port-ref details', html.includes('id="port-ref"'));
+test('HTML: port-ref search input', html.includes('id="port-ref-search"'));
+test('HTML: port-ref sort buttons', html.includes('id="port-ref-sort-cat"') && html.includes('id="port-ref-sort-num"') && html.includes('id="port-ref-sort-name"'));
+test('HTML: port-ref list container', html.includes('id="port-ref-list"'));
+test('CSS: .port-ref', css.includes('.port-ref '));
+test('CSS: .port-ref-card', css.includes('.port-ref-card'));
+test('CSS: .port-ref-group', css.includes('.port-ref-group'));
+test('CSS: .port-ref-sort-active', css.includes('.port-ref-sort-active'));
+// Every protocol in portData appears in exactly one category list
+const catProtos = (js.match(/const portCategories = \[[\s\S]*?\];/) || [''])[0];
+const dataProtos = [...js.matchAll(/proto:'([^']+)'/g)].map(m => m[1]);
+test('All 40 ports covered in portCategories',
+  dataProtos.length === 40 && dataProtos.every(p => catProtos.includes(`'${p}'`)));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v3.6
+// Network+ AI Quiz — app.js  v4.11
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.10';
+const APP_VERSION = '4.11';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4668,6 +4668,92 @@ function resetPortStats() {
   renderPortFocusInfo();
 }
 
+// ══════════════════════════════════════════
+// PORT REFERENCE PANEL (v4.11) — studyable cheatsheet of all 40 ports
+// ══════════════════════════════════════════
+const portCategories = [
+  { name: 'Web',              protos: ['HTTP','HTTPS'] },
+  { name: 'Email',            protos: ['SMTP','POP3','IMAP','SMTP TLS'] },
+  { name: 'File Transfer',    protos: ['FTP Data','FTP Control','TFTP','FTPS','SMB','NFS','iSCSI'] },
+  { name: 'Remote Access',    protos: ['SSH','Telnet','RDP','VNC'] },
+  { name: 'Name / Time',      protos: ['DNS','NTP','NetBIOS Name','NetBIOS Session'] },
+  { name: 'Network Config',   protos: ['DHCP Server','DHCP Client'] },
+  { name: 'Directory & Auth', protos: ['Kerberos','LDAP','LDAPS','TACACS+','RADIUS Auth','RADIUS Acct'] },
+  { name: 'Management',       protos: ['SNMP','SNMP Trap','Syslog'] },
+  { name: 'Routing',          protos: ['BGP'] },
+  { name: 'Database',         protos: ['MySQL'] },
+  { name: 'VoIP',             protos: ['SIP','SIP TLS'] },
+  { name: 'VPN / Tunneling',  protos: ['IKE/IPsec','L2TP','OpenVPN','IPsec NAT-T'] },
+];
+let portSortMode = 'category'; // 'category' | 'number' | 'name'
+
+function _portCard(p) {
+  // portData is static/controlled — no user input, no escaping needed
+  return `<div class="port-ref-card" data-proto="${p.proto.toLowerCase()}" data-port="${p.port}">
+    <div class="port-ref-num">${p.port}</div>
+    <div class="port-ref-meta">
+      <div class="port-ref-proto">${p.proto}</div>
+      <div class="port-ref-tp">${p.tp}</div>
+    </div>
+  </div>`;
+}
+
+function renderPortReference() {
+  const list = document.getElementById('port-ref-list');
+  if (!list) return;
+  const byProto = {};
+  portData.forEach(p => { byProto[p.proto] = p; });
+  let html = '';
+  if (portSortMode === 'category') {
+    portCategories.forEach(cat => {
+      const cards = cat.protos.map(name => byProto[name]).filter(Boolean);
+      if (!cards.length) return;
+      html += `<div class="port-ref-group"><div class="port-ref-group-head">${cat.name} <span class="port-ref-group-count">${cards.length}</span></div><div class="port-ref-group-cards">${cards.map(_portCard).join('')}</div></div>`;
+    });
+  } else {
+    const sorted = portData.slice();
+    if (portSortMode === 'number') {
+      sorted.sort((a, b) => parseInt(a.port) - parseInt(b.port));
+    } else {
+      sorted.sort((a, b) => a.proto.localeCompare(b.proto));
+    }
+    html = `<div class="port-ref-group-cards">${sorted.map(_portCard).join('')}</div>`;
+  }
+  list.innerHTML = html;
+  filterPortReference();
+}
+
+function setPortSortMode(mode) {
+  portSortMode = (mode === 'number' || mode === 'name') ? mode : 'category';
+  ['cat','num','name'].forEach(key => {
+    const btn = document.getElementById('port-ref-sort-' + key);
+    if (!btn) return;
+    const active = (key === 'cat' && portSortMode === 'category')
+                || (key === 'num' && portSortMode === 'number')
+                || (key === 'name' && portSortMode === 'name');
+    btn.classList.toggle('port-ref-sort-active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  renderPortReference();
+}
+
+function filterPortReference() {
+  const input = document.getElementById('port-ref-search');
+  const q = (input && input.value || '').trim().toLowerCase();
+  const cards = document.querySelectorAll('#port-ref-list .port-ref-card');
+  cards.forEach(c => {
+    const proto = c.getAttribute('data-proto') || '';
+    const port = c.getAttribute('data-port') || '';
+    const match = !q || proto.includes(q) || port.includes(q);
+    c.style.display = match ? '' : 'none';
+  });
+  // Hide empty category groups
+  document.querySelectorAll('#port-ref-list .port-ref-group').forEach(g => {
+    const visible = g.querySelectorAll('.port-ref-card:not([style*="display: none"])').length;
+    g.style.display = visible ? '' : 'none';
+  });
+}
+
 function startPortDrill() {
   document.getElementById('port-pregame').style.display = 'block';
   document.getElementById('port-game').style.display = 'none';
@@ -4677,6 +4763,7 @@ function startPortDrill() {
   // Re-apply current mode (also loads the correct best value)
   setPortMode(portMode);
   renderPortFocusInfo();
+  renderPortReference();
 }
 
 function beginPortDrill() {
