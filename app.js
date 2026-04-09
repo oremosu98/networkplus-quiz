@@ -2921,35 +2921,27 @@ function getDailyChallengeTopic() {
 function renderDailyChallengeCard() {
   const card = document.getElementById('daily-challenge-card');
   if (!card) return;
+  // Once today's challenge is done, hide the card entirely until tomorrow.
+  if (isDailyChallengeDoneToday()) {
+    card.style.display = 'none';
+    card.classList.remove('dc-done', 'dc-pending');
+    return;
+  }
   const dc = getDailyChallenge();
-  const done = isDailyChallengeDoneToday();
   const topicToday = getDailyChallengeTopic();
   const streakText = dc.currentStreak > 0
     ? `${dc.currentStreak}-day streak${dc.bestStreak > dc.currentStreak ? ' · Best ' + dc.bestStreak : ''}`
     : 'Start your streak today';
-  if (done) {
-    card.innerHTML = `
-      <div class="dc-icon">✅</div>
-      <div class="dc-body">
-        <div class="dc-title">DAILY CHALLENGE · COMPLETE</div>
-        <div class="dc-sub">See you tomorrow · <strong>${dc.currentStreak}-day streak</strong> 🔥</div>
-      </div>
-      <div class="dc-count" title="Total challenges completed">${dc.totalDone || 0}</div>
-    `;
-    card.classList.add('dc-done');
-    card.classList.remove('dc-pending');
-  } else {
-    card.innerHTML = `
-      <div class="dc-icon">🎯</div>
-      <div class="dc-body">
-        <div class="dc-title">DAILY CHALLENGE</div>
-        <div class="dc-sub">One question · Topic: <strong>${escHtml(topicToday)}</strong> · ${escHtml(streakText)}</div>
-      </div>
-      <button class="dc-btn" onclick="startDailyChallenge()">Play →</button>
-    `;
-    card.classList.add('dc-pending');
-    card.classList.remove('dc-done');
-  }
+  card.innerHTML = `
+    <div class="dc-icon">🎯</div>
+    <div class="dc-body">
+      <div class="dc-title">DAILY CHALLENGE</div>
+      <div class="dc-sub">One question · Topic: <strong>${escHtml(topicToday)}</strong> · ${escHtml(streakText)}</div>
+    </div>
+    <button class="dc-btn" onclick="startDailyChallenge()">Play →</button>
+  `;
+  card.classList.add('dc-pending');
+  card.classList.remove('dc-done');
   card.style.display = 'flex';
 }
 async function startDailyChallenge() {
@@ -3183,12 +3175,31 @@ function buildSessionPlan(n) {
   return scored.slice(0, n).map(({ topic, reason, color }) => ({ topic, reason, color }));
 }
 
-function renderSessionBanner() {
+// Study Plan is "addressed for the day" if the user completed a multi-topic
+// session run today, OR they've already drilled each of today's plan topics
+// individually today (covered via any non-wrong-drill history entry).
+function isStudyPlanDoneToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  const h = loadHistory();
+  const todayEntries = h.filter(e => new Date(e.date).toISOString().slice(0, 10) === today);
+  if (todayEntries.some(e => e.mode === 'session')) return true;
   const plan = buildSessionPlan(SESSION_TOPICS);
-  sessionPlan = plan;
+  if (!plan.length) return false;
+  const studiedTopicsToday = new Set(todayEntries.map(e => e.topic));
+  return plan.every(item => studiedTopicsToday.has(item.topic));
+}
+
+function renderSessionBanner() {
   const banner = document.getElementById('session-banner');
   const rows   = document.getElementById('session-topic-rows');
   if (!banner || !rows) return;
+  // Hide the whole banner once the plan is addressed for today — back tomorrow.
+  if (isStudyPlanDoneToday()) {
+    banner.style.display = 'none';
+    return;
+  }
+  const plan = buildSessionPlan(SESSION_TOPICS);
+  sessionPlan = plan;
   banner.style.display = 'block';
   rows.innerHTML = plan.map((item, i) => `
     <div class="session-topic-row">
