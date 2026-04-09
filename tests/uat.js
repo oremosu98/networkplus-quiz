@@ -219,7 +219,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.6', js.includes("const APP_VERSION = '4.6"));
+test('APP_VERSION is 4.7', js.includes("const APP_VERSION = '4.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,7 +232,21 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.6', sw.includes('netplus-v4.6'));
+test('SW cache bumped to v4.7', sw.includes('netplus-v4.7'));
+// v4.7 new topics
+[
+  'Network Attacks & Threats',
+  'Business Continuity & Disaster Recovery',
+  'Network Monitoring & Observability',
+  'Network Appliances & Device Functions',
+  'Data Center Architectures',
+  'Physical Security Controls',
+  'DNS Records & DNSSEC'
+].forEach(topic => {
+  test(`Topic chip: ${topic}`, html.includes(`data-v="${topic}"`));
+  test(`TOPIC_DOMAINS: ${topic}`, js.includes(`'${topic}'`));
+  test(`topicResources: ${topic}`, new RegExp(`'${topic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}':\\s*\\{\\s*obj:`).test(js));
+});
 test('DOMAIN_WEIGHTS constant', js.includes('const DOMAIN_WEIGHTS = {'));
 test('TOPIC_DOMAINS mapping', js.includes('const TOPIC_DOMAINS = {'));
 test('MILESTONE_DEFS defined', js.includes('MILESTONE_DEFS'));

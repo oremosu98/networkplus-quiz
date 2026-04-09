@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -2409,6 +2409,8 @@ const TOPIC_DOMAINS = {
   'Port Numbers':                      'concepts',
   'Virtualisation & Cloud':            'concepts',
   'Cloud Networking & VPCs':           'concepts',
+  'Network Appliances & Device Functions': 'concepts',
+  'DNS Records & DNSSEC':              'concepts',
   // Domain 2.0 — Network Implementation (20%)
   'Routing Protocols':                 'implementation',
   'Switch Features & VLANs':           'implementation',
@@ -2418,12 +2420,15 @@ const TOPIC_DOMAINS = {
   'Cabling & Topology':                'implementation',
   'Integrating Networked Devices':     'implementation',
   'SDN, NFV & Automation':             'implementation',
+  'Data Center Architectures':         'implementation',
   // Domain 3.0 — Network Operations (19%)
   'Network Operations':                'operations',
   'Data Centres':                      'operations',
   'WAN Connectivity':                  'operations',
   'SD-WAN & SASE':                     'operations',
   'SMB & Network File Services':       'operations',
+  'Business Continuity & Disaster Recovery': 'operations',
+  'Network Monitoring & Observability': 'operations',
   // Domain 4.0 — Network Security (14%)
   'Securing TCP/IP':                   'security',
   'Protecting Networks':               'security',
@@ -2432,6 +2437,8 @@ const TOPIC_DOMAINS = {
   'PKI & Certificate Management':      'security',
   'Firewalls, DMZ & Security Zones':   'security',
   'WPA3 & EAP Authentication':         'security',
+  'Network Attacks & Threats':         'security',
+  'Physical Security Controls':        'security',
   // Domain 5.0 — Network Troubleshooting (24%)
   'Network Troubleshooting & Tools':   'troubleshooting',
   'CompTIA Troubleshooting Methodology': 'troubleshooting'
@@ -3074,7 +3081,14 @@ const topicResources = {
   'CompTIA Troubleshooting Methodology': { obj: '5.1', title: '7-Step Methodology', search: 'professor+messer+N10-009+troubleshooting+methodology' },
   'Firewalls, DMZ & Security Zones': { obj: '4.1', title: 'Firewalls & DMZ', search: 'professor+messer+N10-009+firewall+DMZ+security+zones' },
   'WPA3 & EAP Authentication': { obj: '4.3', title: 'WPA3 & EAP', search: 'professor+messer+N10-009+WPA3+EAP+authentication' },
-  'SDN, NFV & Automation': { obj: '1.8', title: 'SDN & Automation', search: 'professor+messer+N10-009+SDN+NFV+automation' }
+  'SDN, NFV & Automation': { obj: '1.8', title: 'SDN & Automation', search: 'professor+messer+N10-009+SDN+NFV+automation' },
+  'Network Attacks & Threats': { obj: '4.2', title: 'Network Attacks & Threats', search: 'professor+messer+N10-009+network+attacks' },
+  'Business Continuity & Disaster Recovery': { obj: '3.3', title: 'BCDR & Failover', search: 'professor+messer+N10-009+disaster+recovery+HA' },
+  'Network Monitoring & Observability': { obj: '3.2', title: 'Monitoring & SNMP', search: 'professor+messer+N10-009+SNMP+network+monitoring' },
+  'Network Appliances & Device Functions': { obj: '1.2', title: 'Network Appliances', search: 'professor+messer+N10-009+network+appliances' },
+  'Data Center Architectures': { obj: '1.8', title: 'DC Architectures', search: 'professor+messer+N10-009+three+tier+spine+leaf+data+center' },
+  'Physical Security Controls': { obj: '4.5', title: 'Physical Security', search: 'professor+messer+N10-009+physical+security' },
+  'DNS Records & DNSSEC': { obj: '1.6', title: 'DNS Records & DNSSEC', search: 'professor+messer+N10-009+DNS+records+DNSSEC' }
 };
 
 // ══════════════════════════════════════════

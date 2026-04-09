@@ -57,7 +57,7 @@ Pages are `<div class="page">` elements. `showPage(name)` toggles `.active` clas
 | `nplus_port_best` | Port drill high score |
 
 ### Topic Resources
-`topicResources` object maps all 33 topics to Professor Messer N10-009 YouTube search URLs with exam objective numbers.
+`topicResources` object maps all 40 topics to Professor Messer N10-009 YouTube search URLs with exam objective numbers.
 
 ## Deployment
 ```bash
@@ -105,6 +105,7 @@ node tests/uat.js
 | v4.5 | Analytics v2: enhanced `getReadinessScore()` with CompTIA domain weighting + recency/exam boosts, exam date input with days-to-exam countdown, readiness forecast (linear regression → days-to-75%), study streak card, subtopic weak spots mined from wrong bank, difficulty×topic heatmap, question type breakdown, exam vs quiz mode compare, drills summary card, 13 milestones with unlock tracking |
 | v4.5.1 | Removed Readiness Forecast card. Exam date is now a click-anywhere calendar picker (native `showPicker()`), surfaced on both the analytics hero and the setup-page readiness card with day-to-exam countdown |
 | v4.6 | Setup-page polish: hero stats strip (Qs, Avg, Streak, Qs today, Best exam) merged into hero, daily goal ring card with editable target and SVG progress ring, 33 topic chips grouped into 5 collapsible CompTIA domain sections with weight badges, Advanced section (API key + Export/Import) collapsed behind `<details>` and auto-opens on first visit |
+| v4.7 | Topic coverage audit: added 7 new topics to close N10-009 exam blueprint gaps — Network Attacks & Threats (4.2), Physical Security Controls (4.5), Business Continuity & Disaster Recovery (3.3), Network Monitoring & Observability (3.2), Network Appliances & Device Functions (1.2), Data Center Architectures (1.8 spine-leaf/three-tier), DNS Records & DNSSEC (1.6). Total topics: 33 → 40. Updated `TOPIC_DOMAINS` + `topicResources` (Messer video links) + chip buttons routed to correct domain group |
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
