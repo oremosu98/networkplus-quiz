@@ -219,7 +219,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.8', js.includes("const APP_VERSION = '4.8"));
+test('APP_VERSION is 4.9', js.includes("const APP_VERSION = '4.9"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,7 +232,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.8', sw.includes('netplus-v4.8'));
+test('SW cache bumped to v4.9', sw.includes('netplus-v4.9'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
 test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
@@ -308,6 +308,24 @@ test('CSS: .ana-exam-date-btn', css.includes('.ana-exam-date-btn'));
 test('CSS: .ana-streak-grid', css.includes('.ana-streak-grid'));
 test('CSS: .ana-heatmap', css.includes('.ana-heatmap'));
 test('CSS: .ana-milestone', css.includes('.ana-milestone'));
+
+// ── Port Drill Endless mode (v4.9) ──
+console.log('\n\x1b[1m── PORT DRILL ENDLESS (v4.9) ──\x1b[0m');
+test('STORAGE.PORT_STREAK_BEST key', js.includes('PORT_STREAK_BEST:'));
+test('portMode state variable', js.includes("let portMode = 'timed'"));
+test('setPortMode function', js.includes('function setPortMode('));
+test('Endless mode branch in beginPortDrill', js.includes("portMode === 'timed'") && js.includes('beginPortDrill'));
+test('Endless mode ends on wrong answer', js.includes("portMode === 'endless'") && js.includes('endPortDrill()'));
+test('streak_port_25 milestone defined', js.includes('streak_port_25'));
+test('streak_port_25 unlock on endless', js.includes("unlockMilestone('streak_port_25')"));
+test('Mode toggle buttons in HTML', html.includes('port-mode-timed') && html.includes('port-mode-endless'));
+test('port-mode-desc in HTML', html.includes('id="port-mode-desc"'));
+test('port-final-label in HTML', html.includes('id="port-final-label"'));
+test('port-best-label has id', html.includes('id="port-best-label"'));
+test('CSS: .port-mode-toggle', css.includes('.port-mode-toggle'));
+test('CSS: .port-mode-btn', css.includes('.port-mode-btn'));
+test('CSS: .port-mode-active', css.includes('.port-mode-active'));
+test('Analytics surfaces endless streak best', js.includes('portStreakBest'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

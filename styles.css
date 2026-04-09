@@ -630,6 +630,11 @@ input::placeholder { color: var(--text-dim); }
 .port-focus-weak { color: var(--red); font-weight: 600; }
 .port-reset-link { display: inline-block; background: none; border: none; color: var(--text-dim); font-size: 12px; text-decoration: underline; cursor: pointer; padding: 6px 10px; margin-top: 10px; }
 .port-reset-link:hover { color: var(--text); }
+.port-mode-toggle { display: inline-flex; gap: 6px; padding: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; margin: 0 auto 14px; }
+.port-mode-btn { background: transparent; border: none; color: var(--text-dim); font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 8px; cursor: pointer; transition: all .15s; font-family: inherit; }
+.port-mode-btn:hover { color: var(--text); }
+.port-mode-btn.port-mode-active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(124, 111, 247, 0.35); }
+.port-mode-btn.port-mode-active:hover { color: #fff; }
 .port-game { text-align: center; }
 .port-prompt { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); transition: background .2s; }
 .port-prompt.port-flash-wrong { background: var(--red-bg); border-color: var(--red-border); }

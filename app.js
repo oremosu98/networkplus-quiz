@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.8';
+const APP_VERSION = '4.9';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -26,6 +26,7 @@ const STORAGE = {
   WRONG_BANK: 'nplus_wrong_bank',
   REPORTS: 'nplus_reports',
   PORT_BEST: 'nplus_port_best',
+  PORT_STREAK_BEST: 'nplus_port_streak_best',
   PORT_STATS: 'nplus_port_stats',
   EXAM_DATE: 'nplus_exam_date',
   MILESTONES: 'nplus_milestones',
@@ -2666,7 +2667,8 @@ const MILESTONE_DEFS = [
   { id: 'streak_30',        label: 'Month master',        desc: '30-day study streak',                    icon: '🌟' },
   { id: 'ready_650',        label: 'Getting close',       desc: 'Reach a readiness score of 650',         icon: '📈' },
   { id: 'ready_720',        label: 'Exam ready',          desc: 'Reach a readiness score of 720 (pass)',  icon: '🚀' },
-  { id: 'perfect_port',     label: 'Port master',         desc: 'Perfect round on Port Drill (40 correct)', icon: '🔌' }
+  { id: 'perfect_port',     label: 'Port master',         desc: 'Perfect round on Port Drill (40 correct)', icon: '🔌' },
+  { id: 'streak_port_25',   label: 'Streak keeper',       desc: 'Reach a 25+ streak in Port Drill Endless mode', icon: '⛓️' }
 ];
 
 function evaluateMilestones() {
@@ -4233,6 +4235,37 @@ const portData = [
 
 let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
 let portMissed = []; // Track wrong answers for review
+let portMode = 'timed'; // 'timed' (30s countdown) or 'endless' (no timer, one wrong ends run)
+
+function setPortMode(mode) {
+  portMode = (mode === 'endless') ? 'endless' : 'timed';
+  // Update toggle button visuals
+  const timedBtn = document.getElementById('port-mode-timed');
+  const endlessBtn = document.getElementById('port-mode-endless');
+  if (timedBtn && endlessBtn) {
+    timedBtn.classList.toggle('port-mode-active', portMode === 'timed');
+    endlessBtn.classList.toggle('port-mode-active', portMode === 'endless');
+    timedBtn.setAttribute('aria-pressed', String(portMode === 'timed'));
+    endlessBtn.setAttribute('aria-pressed', String(portMode === 'endless'));
+  }
+  // Swap pregame description + best label
+  const descEl = document.getElementById('port-mode-desc');
+  const bestLabelEl = document.getElementById('port-best-label');
+  const bestValEl = document.getElementById('port-best');
+  if (descEl) {
+    descEl.textContent = portMode === 'endless'
+      ? 'No timer. Build the longest streak you can — one wrong answer ends the run.'
+      : 'You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.';
+  }
+  if (bestLabelEl) bestLabelEl.textContent = portMode === 'endless' ? 'BEST STREAK' : 'BEST';
+  if (bestValEl) {
+    const key = portMode === 'endless' ? STORAGE.PORT_STREAK_BEST : STORAGE.PORT_BEST;
+    bestValEl.textContent = parseInt(localStorage.getItem(key) || '0');
+  }
+  // Hide the timer block entirely in endless mode
+  const timerBlock = document.querySelector('.port-timer-block');
+  if (timerBlock) timerBlock.style.display = (portMode === 'endless') ? 'none' : '';
+}
 
 // ── Adaptive port focus (weighted selection based on per-port accuracy) ──
 function getPortStats() {
@@ -4326,13 +4359,13 @@ function resetPortStats() {
 }
 
 function startPortDrill() {
-  const best = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
-  document.getElementById('port-best').textContent = best;
   document.getElementById('port-pregame').style.display = 'block';
   document.getElementById('port-game').style.display = 'none';
   document.getElementById('port-results').style.display = 'none';
   document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-score').textContent = '0';
+  // Re-apply current mode (also loads the correct best value)
+  setPortMode(portMode);
   renderPortFocusInfo();
 }
 
@@ -4343,18 +4376,25 @@ function beginPortDrill() {
   document.getElementById('port-pregame').style.display = 'none';
   document.getElementById('port-game').style.display = 'block';
   document.getElementById('port-results').style.display = 'none';
-  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
+  const scoreLabelEl = document.querySelector('.port-score-label');
+  if (scoreLabelEl) scoreLabelEl.textContent = portMode === 'endless' ? 'STREAK' : 'SCORE';
   document.getElementById('port-score').textContent = '0';
+  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-timer').className = 'port-timer';
+  // Hide/show timer block per mode
+  const timerBlock = document.querySelector('.port-timer-block');
+  if (timerBlock) timerBlock.style.display = (portMode === 'endless') ? 'none' : '';
   nextPortQ();
-  if (portTimer) clearInterval(portTimer);
-  portTimer = setInterval(() => {
-    portTimeLeft--;
-    document.getElementById('port-timer').textContent = portTimeLeft;
-    if (portTimeLeft <= 10) document.getElementById('port-timer').className = 'port-timer port-timer-warn';
-    if (portTimeLeft <= 5) document.getElementById('port-timer').className = 'port-timer port-timer-danger';
-    if (portTimeLeft <= 0) endPortDrill();
-  }, 1000);
+  if (portTimer) { clearInterval(portTimer); portTimer = null; }
+  if (portMode === 'timed') {
+    portTimer = setInterval(() => {
+      portTimeLeft--;
+      document.getElementById('port-timer').textContent = portTimeLeft;
+      if (portTimeLeft <= 10) document.getElementById('port-timer').className = 'port-timer port-timer-warn';
+      if (portTimeLeft <= 5) document.getElementById('port-timer').className = 'port-timer port-timer-danger';
+      if (portTimeLeft <= 0) endPortDrill();
+    }, 1000);
+  }
 }
 
 function nextPortQ() {
@@ -4394,8 +4434,6 @@ function pickPort(chosen, correct) {
     portScore++;
     document.getElementById('port-score').textContent = portScore;
   } else {
-    portTimeLeft = Math.max(0, portTimeLeft - 1);
-    document.getElementById('port-timer').textContent = portTimeLeft;
     // Log the miss for review
     if (portCurrentQ) {
       const c = portCurrentQ.correct;
@@ -4404,8 +4442,16 @@ function pickPort(chosen, correct) {
     // Flash red
     document.getElementById('port-prompt').classList.add('port-flash-wrong');
     setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
+    if (portMode === 'endless') {
+      // One wrong answer ends an endless run immediately
+      endPortDrill();
+      return;
+    }
+    // Timed mode: lose 1 second penalty
+    portTimeLeft = Math.max(0, portTimeLeft - 1);
+    document.getElementById('port-timer').textContent = portTimeLeft;
   }
-  if (portTimeLeft <= 0) { endPortDrill(); return; }
+  if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
   nextPortQ();
 }
 
@@ -4415,14 +4461,22 @@ function endPortDrill() {
   document.getElementById('port-pregame').style.display = 'none';
   document.getElementById('port-results').style.display = 'block';
   document.getElementById('port-final-score').textContent = portScore;
-  const best = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
+  // Label the final score per mode
+  const finalLabelEl = document.getElementById('port-final-label');
+  if (finalLabelEl) finalLabelEl.textContent = portMode === 'endless' ? 'streak length' : 'ports matched';
+  const bestKey = portMode === 'endless' ? STORAGE.PORT_STREAK_BEST : STORAGE.PORT_BEST;
+  const best = parseInt(localStorage.getItem(bestKey) || '0');
   if (portScore > best) {
-    localStorage.setItem(STORAGE.PORT_BEST, String(portScore));
+    localStorage.setItem(bestKey, String(portScore));
     document.getElementById('port-best').textContent = portScore;
   }
-  // Perfect round milestone: scored as many as the port bank length within the timer
-  if (portMissed.length === 0 && portScore >= 40) {
+  // Perfect round milestone (timed mode only): scored as many as the port bank length within the timer
+  if (portMode === 'timed' && portMissed.length === 0 && portScore >= 40) {
     unlockMilestone('perfect_port');
+  }
+  // Endless streak milestone: 25+ without a miss
+  if (portMode === 'endless' && portScore >= 25) {
+    unlockMilestone('streak_port_25');
   }
   // Render missed answers review
   const reviewDiv = document.getElementById('port-missed-review');
@@ -4903,24 +4957,25 @@ function renderAnalytics() {
   // ═══════════════════════════════════════════
   const portSummary = (typeof getPortStatsSummary === 'function') ? getPortStatsSummary() : null;
   const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
+  const portStreakBest = parseInt(localStorage.getItem(STORAGE.PORT_STREAK_BEST) || '0');
   const subnetStatsData = getSubnetStats();
   const hasPort = portSummary && portSummary.totalSeen > 0;
   const hasSubnet = subnetStatsData.seen > 0;
-  if (hasPort || hasSubnet || portBest > 0) {
+  if (hasPort || hasSubnet || portBest > 0 || portStreakBest > 0) {
     html += `<div class="ana-card">
       <h3>PRACTICE DRILLS</h3>
       <div class="ana-subtitle">Port Drill and Subnet Drill progress</div>
       <div class="ana-drills-grid">`;
-    if (hasPort || portBest > 0) {
+    if (hasPort || portBest > 0 || portStreakBest > 0) {
       const accPct = hasPort ? Math.round(portSummary.overallAccuracy * 100) : 0;
       const accColor = accPct >= 80 ? 'var(--green)' : accPct >= 60 ? 'var(--yellow)' : 'var(--red)';
       html += `<div class="ana-drill-card">
         <div class="ana-drill-title">🔌 Port Drill</div>
         <div class="ana-drill-stats">
-          <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Best score</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Timed best</div></div>
+          <div class="ana-drill-stat"><div class="ana-drill-val">${portStreakBest}</div><div class="ana-drill-lbl">Endless streak</div></div>
           <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${accColor}">${accPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
           <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.uniqueSeen : 0}/${hasPort ? portSummary.totalPorts : 40}</div><div class="ana-drill-lbl">Ports seen</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.totalSeen : 0}</div><div class="ana-drill-lbl">Attempts</div></div>
         </div>
       </div>`;
     }
