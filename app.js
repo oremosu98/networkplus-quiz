@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.9';
+const APP_VERSION = '4.10';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -33,6 +33,8 @@ const STORAGE = {
   TYPE_STATS: 'nplus_type_stats',
   SUBNET_STATS: 'nplus_subnet_stats',
   DAILY_GOAL: 'nplus_daily_goal',
+  DAILY_CHALLENGE: 'nplus_daily_challenge',
+  DEEP_DIVE_USES: 'nplus_deep_dive_uses',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
   GH_REPORTED: 'nplus_gh_reported',
@@ -53,6 +55,7 @@ let diff       = DEFAULT_DIFF;
 let qCount     = 10;
 let apiKey     = '';
 let wrongDrillMode = false;
+let dailyChallengeMode = false;
 
 // Multi-select state (regular quiz)
 let msSelections = [];
@@ -444,6 +447,9 @@ window.addEventListener('DOMContentLoaded', () => {
   renderReadinessCard();
   renderSessionBanner();
   renderWrongBankBtn();
+  renderStreakDefender();
+  renderDailyChallengeCard();
+  renderTodaysFocus();
   initMonitorGesture();
 });
 
@@ -513,6 +519,7 @@ function goSetup() {
   if (portTimer) { clearInterval(portTimer); portTimer = null; }
   examMode = false;
   wrongDrillMode = false;
+  dailyChallengeMode = false;
   navOpen = false;
   renderHistoryPanel();
   renderStatsCard();
@@ -521,6 +528,9 @@ function goSetup() {
   renderReadinessCard();
   renderSessionBanner();
   renderWrongBankBtn();
+  renderStreakDefender();
+  renderDailyChallengeCard();
+  renderTodaysFocus();
   showPage('setup');
 }
 
@@ -1802,7 +1812,14 @@ function finish() {
   renderStreakBadge();
 
   if (!wrongDrillMode) {
-    saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: 'quiz' });
+    const entryMode = dailyChallengeMode ? 'daily' : (sessionMode ? 'session' : 'quiz');
+    saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
+  }
+
+  // Daily challenge completion hook — count any finished daily-challenge run
+  if (dailyChallengeMode) {
+    completeDailyChallenge();
+    dailyChallengeMode = false;
   }
 
   if (sessionMode) {
@@ -2668,7 +2685,23 @@ const MILESTONE_DEFS = [
   { id: 'ready_650',        label: 'Getting close',       desc: 'Reach a readiness score of 650',         icon: '📈' },
   { id: 'ready_720',        label: 'Exam ready',          desc: 'Reach a readiness score of 720 (pass)',  icon: '🚀' },
   { id: 'perfect_port',     label: 'Port master',         desc: 'Perfect round on Port Drill (40 correct)', icon: '🔌' },
-  { id: 'streak_port_25',   label: 'Streak keeper',       desc: 'Reach a 25+ streak in Port Drill Endless mode', icon: '⛓️' }
+  { id: 'streak_port_25',   label: 'Streak keeper',       desc: 'Reach a 25+ streak in Port Drill Endless mode', icon: '⛓️' },
+  // ── v4.10 expansion ──
+  { id: 'perfect_quiz',     label: 'Flawless',            desc: 'Score 100% on a 10+ question quiz',      icon: '💎' },
+  { id: 'five_exams',       label: 'Exam veteran',        desc: 'Complete 5 exam simulations',            icon: '🎖️' },
+  { id: 'ten_exams',        label: 'Exam marathon',       desc: 'Complete 10 exam simulations',           icon: '🏅' },
+  { id: 'first_subnet',     label: 'Subnet initiate',     desc: 'Complete your first subnet drill',       icon: '🧮' },
+  { id: 'subnet_50',        label: 'Subnet surgeon',      desc: 'Answer 50 subnet drill questions',       icon: '🧬' },
+  { id: 'first_port_drill', label: 'Port pioneer',        desc: 'Complete your first Port Drill run',     icon: '🔭' },
+  { id: 'all_ports_seen',   label: 'Port cartographer',   desc: 'See every port in the Port Drill bank',  icon: '🗺️' },
+  { id: 'first_session',    label: 'Session starter',     desc: "Complete your first Today's Session",    icon: '📚' },
+  { id: 'night_owl',        label: 'Night owl',           desc: 'Study between midnight and 5am',         icon: '🦉' },
+  { id: 'early_bird',       label: 'Early bird',          desc: 'Study before 7am',                       icon: '🐦' },
+  { id: 'weekend_warrior',  label: 'Weekend warrior',     desc: 'Study on both Saturday and Sunday of the same week', icon: '🎽' },
+  { id: 'diversity_5',      label: 'Renaissance',         desc: 'Study 5 different topics in a single day', icon: '🎨' },
+  { id: 'deep_dive_10',     label: 'Deep diver',          desc: 'Use Explain Further 10 times',           icon: '🌊' },
+  { id: 'daily_challenge_7',label: 'Daily disciple',      desc: '7-day Daily Challenge streak',           icon: '📅' },
+  { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' }
 ];
 
 function evaluateMilestones() {
@@ -2699,6 +2732,65 @@ function evaluateMilestones() {
   maybe('ready_650',       readiness && readiness.predicted >= 650);
   maybe('ready_720',       readiness && readiness.predicted >= 720);
   // perfect_port handled in endPortDrill
+
+  // ── v4.10 expansion ──
+  // perfect_quiz: any quiz ≥ 10 Qs with 100% score
+  maybe('perfect_quiz',    h.some(e => e.total >= 10 && e.score === e.total));
+  maybe('five_exams',      exams.length >= 5);
+  maybe('ten_exams',       exams.length >= 10);
+  // Subnet drill milestones
+  const subStats = (typeof getSubnetStats === 'function') ? getSubnetStats() : { seen: 0 };
+  maybe('first_subnet',    subStats.seen >= 1);
+  maybe('subnet_50',       subStats.seen >= 50);
+  // Port drill milestones
+  const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
+  const portStreakBest = parseInt(localStorage.getItem(STORAGE.PORT_STREAK_BEST) || '0');
+  maybe('first_port_drill', portBest > 0 || portStreakBest > 0);
+  if (typeof getPortStatsSummary === 'function') {
+    const ps = getPortStatsSummary();
+    maybe('all_ports_seen', ps.uniqueSeen >= ps.totalPorts && ps.totalPorts > 0);
+  }
+  // Session mode
+  maybe('first_session',   h.some(e => e.mode === 'session'));
+  // Time-of-day milestones — check each history entry's timestamp
+  maybe('night_owl',       h.some(e => {
+    const hr = new Date(e.date).getHours();
+    return hr >= 0 && hr < 5;
+  }));
+  maybe('early_bird',      h.some(e => new Date(e.date).getHours() < 7));
+  // Weekend warrior: same ISO-week has entries on both Sat (6) and Sun (0)
+  const weekMap = {};
+  h.forEach(e => {
+    const d = new Date(e.date);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) return;
+    // ISO week key: year + week number
+    const yr = d.getFullYear();
+    const start = new Date(yr, 0, 1);
+    const weekNum = Math.floor((d - start) / (7 * 86400000));
+    const key = yr + '-' + weekNum;
+    weekMap[key] = weekMap[key] || { sat: false, sun: false };
+    if (dow === 6) weekMap[key].sat = true;
+    if (dow === 0) weekMap[key].sun = true;
+  });
+  maybe('weekend_warrior', Object.values(weekMap).some(w => w.sat && w.sun));
+  // Diversity: 5 different topics studied in a single day
+  const dayTopics = {};
+  h.forEach(e => {
+    if (e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
+    const day = new Date(e.date).toISOString().slice(0, 10);
+    dayTopics[day] = dayTopics[day] || new Set();
+    dayTopics[day].add(e.topic);
+  });
+  maybe('diversity_5',     Object.values(dayTopics).some(s => s.size >= 5));
+  // Deep dive uses
+  const ddUses = parseInt(localStorage.getItem(STORAGE.DEEP_DIVE_USES) || '0');
+  maybe('deep_dive_10',    ddUses >= 10);
+  // Daily challenge streaks
+  const dc = getDailyChallenge();
+  maybe('daily_challenge_7',  dc.bestStreak >= 7);
+  maybe('daily_challenge_30', dc.bestStreak >= 30);
+
   return newlyUnlocked;
 }
 
@@ -2779,6 +2871,218 @@ function mineSubtopicWeakSpots(limit = 8) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([keyword, count]) => ({ keyword, count }));
+}
+
+// ══════════════════════════════════════════
+// v4.10 FRONT PAGE FEATURES
+// ══════════════════════════════════════════
+
+// ── Daily Challenge ──
+function getDailyChallenge() {
+  try {
+    const raw = localStorage.getItem(STORAGE.DAILY_CHALLENGE);
+    if (!raw) return { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalDone: 0 };
+    const obj = JSON.parse(raw);
+    return {
+      lastCompletedDate: obj.lastCompletedDate || null,
+      currentStreak: obj.currentStreak || 0,
+      bestStreak: obj.bestStreak || 0,
+      totalDone: obj.totalDone || 0,
+    };
+  } catch { return { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalDone: 0 }; }
+}
+function saveDailyChallenge(data) {
+  try { localStorage.setItem(STORAGE.DAILY_CHALLENGE, JSON.stringify(data)); } catch {}
+}
+function isDailyChallengeDoneToday() {
+  const today = new Date().toISOString().slice(0, 10);
+  return getDailyChallenge().lastCompletedDate === today;
+}
+function completeDailyChallenge() {
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const dc = getDailyChallenge();
+  if (dc.lastCompletedDate === today) return dc; // already counted
+  dc.currentStreak = (dc.lastCompletedDate === yesterday) ? dc.currentStreak + 1 : 1;
+  dc.bestStreak = Math.max(dc.bestStreak, dc.currentStreak);
+  dc.lastCompletedDate = today;
+  dc.totalDone = (dc.totalDone || 0) + 1;
+  saveDailyChallenge(dc);
+  return dc;
+}
+// Deterministic topic for the day: hash YYYY-MM-DD into the topic list
+function getDailyChallengeTopic() {
+  const today = new Date().toISOString().slice(0, 10);
+  let hash = 0;
+  for (let i = 0; i < today.length; i++) hash = ((hash << 5) - hash + today.charCodeAt(i)) | 0;
+  const topics = Object.keys(TOPIC_DOMAINS);
+  return topics[Math.abs(hash) % topics.length];
+}
+function renderDailyChallengeCard() {
+  const card = document.getElementById('daily-challenge-card');
+  if (!card) return;
+  const dc = getDailyChallenge();
+  const done = isDailyChallengeDoneToday();
+  const topicToday = getDailyChallengeTopic();
+  const streakText = dc.currentStreak > 0
+    ? `${dc.currentStreak}-day streak${dc.bestStreak > dc.currentStreak ? ' · Best ' + dc.bestStreak : ''}`
+    : 'Start your streak today';
+  if (done) {
+    card.innerHTML = `
+      <div class="dc-icon">✅</div>
+      <div class="dc-body">
+        <div class="dc-title">DAILY CHALLENGE · COMPLETE</div>
+        <div class="dc-sub">See you tomorrow · <strong>${dc.currentStreak}-day streak</strong> 🔥</div>
+      </div>
+      <div class="dc-count" title="Total challenges completed">${dc.totalDone || 0}</div>
+    `;
+    card.classList.add('dc-done');
+    card.classList.remove('dc-pending');
+  } else {
+    card.innerHTML = `
+      <div class="dc-icon">🎯</div>
+      <div class="dc-body">
+        <div class="dc-title">DAILY CHALLENGE</div>
+        <div class="dc-sub">One question · Topic: <strong>${escHtml(topicToday)}</strong> · ${escHtml(streakText)}</div>
+      </div>
+      <button class="dc-btn" onclick="startDailyChallenge()">Play →</button>
+    `;
+    card.classList.add('dc-pending');
+    card.classList.remove('dc-done');
+  }
+  card.style.display = 'flex';
+}
+async function startDailyChallenge() {
+  const key = (document.getElementById('api-key').value || localStorage.getItem(STORAGE.KEY) || '').trim();
+  const errBox = document.getElementById('setup-err');
+  if (errBox) errBox.style.display = 'none';
+  const keyErr = validateApiKey(key);
+  if (keyErr) {
+    if (errBox) { errBox.textContent = keyErr; errBox.style.display = 'block'; }
+    return;
+  }
+  // Configure the quiz: 1 question, Exam Level, date-seeded topic
+  const dcTopic = getDailyChallengeTopic();
+  topic = dcTopic;
+  diff = DEFAULT_DIFF;
+  qCount = 1;
+  dailyChallengeMode = true;
+  document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === dcTopic));
+  document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
+  document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '1' || c.dataset.v === '5'));
+  syncChipAriaPressed('#topic-group');
+  syncChipAriaPressed('#diff-group');
+  syncChipAriaPressed('#count-group');
+  startQuiz();
+}
+
+// ── Today's Focus chip row (weakest topics surfaced as one-tap) ──
+function getTodaysFocusTopics(limit = 2) {
+  // Combine wrong-bank counts + low-accuracy history topics, rank, return topN
+  const bank = loadWrongBank();
+  const hist = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 3);
+  const score = {};
+  // +2 per banked wrong from this topic
+  bank.forEach(w => {
+    if (w.topic && w.topic !== MIXED_TOPIC && w.topic !== EXAM_TOPIC) {
+      score[w.topic] = (score[w.topic] || 0) + 2;
+    }
+  });
+  // + weight for low-accuracy topics from history
+  const acc = {};
+  hist.forEach(e => {
+    if (!acc[e.topic]) acc[e.topic] = { c: 0, t: 0 };
+    acc[e.topic].c += e.score;
+    acc[e.topic].t += e.total;
+  });
+  Object.entries(acc).forEach(([t, s]) => {
+    const pct = s.c / s.t;
+    if (pct < 0.75) score[t] = (score[t] || 0) + Math.round((0.75 - pct) * 20);
+  });
+  return Object.entries(score)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([t]) => t);
+}
+function renderTodaysFocus() {
+  const row = document.getElementById('todays-focus');
+  if (!row) return;
+  const topics = getTodaysFocusTopics(2);
+  if (topics.length === 0) { row.style.display = 'none'; return; }
+  row.innerHTML = `
+    <span class="tf-label">🎯 Today's focus:</span>
+    <div class="tf-chips">
+      ${topics.map(t => `<button type="button" class="tf-chip" onclick="focusTopic('${t.replace(/'/g, "\\'")}')">${escHtml(t)} →</button>`).join('')}
+    </div>
+  `;
+  row.style.display = 'flex';
+}
+function focusTopic(t) {
+  topic = t;
+  diff = DEFAULT_DIFF;
+  qCount = 10;
+  document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === t));
+  document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
+  document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '10'));
+  syncChipAriaPressed('#topic-group');
+  syncChipAriaPressed('#diff-group');
+  syncChipAriaPressed('#count-group');
+  startQuiz();
+}
+
+// ── Streak Defender (amber warning if streak at risk) ──
+function renderStreakDefender() {
+  const card = document.getElementById('streak-defender');
+  if (!card) return;
+  const s = getStreak();
+  const today = new Date().toISOString().slice(0, 10);
+  // Active threat: current streak ≥ 3 AND no activity today yet
+  if (s.current >= 3 && s.last !== today) {
+    card.innerHTML = `
+      <div class="sd-icon">🔥</div>
+      <div class="sd-body">
+        <div class="sd-title">Don't break your ${s.current}-day streak!</div>
+        <div class="sd-sub">One question is all it takes to keep it alive.</div>
+      </div>
+      <button class="sd-btn" onclick="startStreakSave()">Save streak →</button>
+    `;
+    card.style.display = 'flex';
+  } else {
+    card.style.display = 'none';
+  }
+}
+function startStreakSave() {
+  // Configure a minimum quiz: 5 questions, mixed, exam level
+  topic = MIXED_TOPIC;
+  diff = DEFAULT_DIFF;
+  qCount = 5;
+  document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === MIXED_TOPIC));
+  document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
+  document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '5'));
+  syncChipAriaPressed('#topic-group');
+  syncChipAriaPressed('#diff-group');
+  syncChipAriaPressed('#count-group');
+  startQuiz();
+}
+
+// ── Quiz Presets (3 one-click starting configs) ──
+function applyPreset(name) {
+  if (name === 'warmup') {
+    topic = MIXED_TOPIC; diff = 'Foundational'; qCount = 5;
+  } else if (name === 'focused') {
+    // Focused: use weakest topic if known, otherwise Smart spaced-rep
+    const weakest = (getTodaysFocusTopics(1)[0]) || getSpacedRepTopic() || MIXED_TOPIC;
+    topic = weakest; diff = 'Exam Level'; qCount = 10;
+  } else if (name === 'grind') {
+    topic = MIXED_TOPIC; diff = 'Exam Level'; qCount = 20;
+  } else { return; }
+  document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === topic));
+  document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === diff));
+  document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === String(qCount)));
+  syncChipAriaPressed('#topic-group');
+  syncChipAriaPressed('#diff-group');
+  syncChipAriaPressed('#count-group');
+  startQuiz();
 }
 
 function renderReadinessCard() {
@@ -3829,6 +4133,12 @@ Respond with one line per question, nothing else:`;
 async function explainFurther() {
   const q = examMode ? examQuestions[examCurrent] : questions[current];
   if (!q) return;
+
+  // Increment deep dive usage counter (for deep_dive_10 milestone)
+  try {
+    const prev = parseInt(localStorage.getItem(STORAGE.DEEP_DIVE_USES) || '0');
+    localStorage.setItem(STORAGE.DEEP_DIVE_USES, String(prev + 1));
+  } catch {}
 
   const btn = document.querySelector('.explain-btn');
   if (btn) { btn.textContent = 'Loading\u2026'; btn.disabled = true; }

@@ -219,7 +219,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.9', js.includes("const APP_VERSION = '4.9"));
+test('APP_VERSION is 4.10', js.includes("const APP_VERSION = '4.10"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,7 +232,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.9', sw.includes('netplus-v4.9'));
+test('SW cache bumped to v4.10', sw.includes('netplus-v4.10'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
 test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
@@ -326,6 +326,57 @@ test('CSS: .port-mode-toggle', css.includes('.port-mode-toggle'));
 test('CSS: .port-mode-btn', css.includes('.port-mode-btn'));
 test('CSS: .port-mode-active', css.includes('.port-mode-active'));
 test('Analytics surfaces endless streak best', js.includes('portStreakBest'));
+
+// ── Front page features (v4.10) ──
+console.log('\n\x1b[1m── FRONT PAGE v4.10 ──\x1b[0m');
+test('STORAGE.DAILY_CHALLENGE key', js.includes('DAILY_CHALLENGE:'));
+test('STORAGE.DEEP_DIVE_USES key', js.includes('DEEP_DIVE_USES:'));
+test('getDailyChallenge function', js.includes('function getDailyChallenge('));
+test('saveDailyChallenge function', js.includes('function saveDailyChallenge('));
+test('isDailyChallengeDoneToday function', js.includes('function isDailyChallengeDoneToday('));
+test('completeDailyChallenge function', js.includes('function completeDailyChallenge('));
+test('getDailyChallengeTopic function', js.includes('function getDailyChallengeTopic('));
+test('renderDailyChallengeCard function', js.includes('function renderDailyChallengeCard('));
+test('startDailyChallenge function', js.includes('function startDailyChallenge('));
+test('Daily challenge completion hook', js.includes('completeDailyChallenge()') && js.includes('dailyChallengeMode = false'));
+test("Daily challenge history entry mode 'daily'", js.includes("mode: 'daily'") || js.includes("dailyChallengeMode ? 'daily'"));
+test('dailyChallengeMode state', js.includes('dailyChallengeMode'));
+test('getTodaysFocusTopics function', js.includes('function getTodaysFocusTopics('));
+test('renderTodaysFocus function', js.includes('function renderTodaysFocus('));
+test('focusTopic function', js.includes('function focusTopic('));
+test('renderStreakDefender function', js.includes('function renderStreakDefender('));
+test('startStreakSave function', js.includes('function startStreakSave('));
+test('applyPreset function', js.includes('function applyPreset('));
+test('Preset: warmup', js.includes("'warmup'"));
+test('Preset: focused', js.includes("'focused'"));
+test('Preset: grind', js.includes("'grind'"));
+test('Deep dive counter increment', js.includes('STORAGE.DEEP_DIVE_USES') && js.includes('explainFurther'));
+// HTML
+test('streak-defender element', html.includes('id="streak-defender"'));
+test('daily-challenge-card element', html.includes('id="daily-challenge-card"'));
+test('todays-focus element', html.includes('id="todays-focus"'));
+test('quiz-presets block', html.includes('class="quiz-presets"'));
+test('Preset tile: warmup', html.includes("applyPreset('warmup')"));
+test('Preset tile: focused', html.includes("applyPreset('focused')"));
+test('Preset tile: grind', html.includes("applyPreset('grind')"));
+// CSS
+test('CSS: .streak-defender', css.includes('.streak-defender'));
+test('CSS: .daily-challenge-card', css.includes('.daily-challenge-card'));
+test('CSS: .todays-focus', css.includes('.todays-focus'));
+test('CSS: .quiz-presets', css.includes('.quiz-presets'));
+test('CSS: .preset-tile', css.includes('.preset-tile'));
+// New milestones (v4.10)
+const newMilestones = [
+  'perfect_quiz','five_exams','ten_exams','first_subnet','subnet_50',
+  'first_port_drill','all_ports_seen','first_session','night_owl','early_bird',
+  'weekend_warrior','diversity_5','deep_dive_10','daily_challenge_7','daily_challenge_30'
+];
+newMilestones.forEach(m => test(`Milestone: ${m}`, js.includes(`id: '${m}'`)));
+test('evaluateMilestones handles perfect_quiz', js.includes("maybe('perfect_quiz'"));
+test('evaluateMilestones handles weekend_warrior', js.includes("maybe('weekend_warrior'"));
+test('evaluateMilestones handles diversity_5', js.includes("maybe('diversity_5'"));
+test('evaluateMilestones handles deep_dive_10', js.includes("maybe('deep_dive_10'"));
+test('evaluateMilestones handles daily_challenge_7', js.includes("maybe('daily_challenge_7'"));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
