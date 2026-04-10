@@ -78,7 +78,7 @@ for (let i = 0; i < jsLines.length; i++) {
     }
   }
 }
-check('Functions >80 lines', longFunctions, 9); // baseline: 9 after v4.5 Analytics v2 (getReadinessScore + renderAnalytics 504) — target: 0
+check('Functions >80 lines', longFunctions, 8); // baseline 11 → 8 after #18 burndown (finish, showTopicDeepDive, getReadinessScore split) — target: 0
 
 // Duplicated render functions
 const dualRenders = jsLines.filter(line =>

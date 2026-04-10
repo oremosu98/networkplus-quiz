@@ -1890,6 +1890,28 @@ function toggleFlag() {
 // ══════════════════════════════════════════
 // REGULAR QUIZ RESULTS
 // ══════════════════════════════════════════
+// Build the per-difficulty score breakdown shown on the results page.
+// Extracted from finish() (#18) so the parent function fits the long-function budget.
+function renderResultsDifficultyBreakdown() {
+  const byDiff = {};
+  log.forEach(entry => {
+    const d = (entry.q.difficulty || DEFAULT_DIFF).trim();
+    if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
+    byDiff[d].total++;
+    if (entry.isRight) byDiff[d].right++;
+  });
+  const diffOrder = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Hard', 'Mixed'];
+  const diffColors = { 'Foundational': 'var(--blue)', 'Exam Level': 'var(--yellow)', 'Hard / Tricky': 'var(--red)', 'Hard': 'var(--red)', 'Mixed': 'var(--accent-light)' };
+  const diffEl = document.getElementById('diff-breakdown');
+  const diffKeys = diffOrder.filter(d => byDiff[d]);
+  diffEl.innerHTML = diffKeys.length > 1 ? diffKeys.map(d => {
+    const { right, total: t } = byDiff[d];
+    const col = diffColors[d] || 'var(--text)';
+    const shortLabel = d.replace(' / Tricky', '').replace('Foundational', 'Basic');
+    return `<div class="dstat"><div class="dv" style="color:${col}">${right}/${t}</div><div class="dl">${shortLabel}</div></div>`;
+  }).join('') : '';
+}
+
 function finish() {
   const total = questions.length;
   const pct   = total > 0 ? Math.round((score / total) * 100) : 0;
@@ -1926,25 +1948,7 @@ function finish() {
   document.getElementById('r-streak').textContent  = bestStreak;
   document.getElementById('btn-review').classList.toggle('is-hidden', log.length === 0);
 
-  // Difficulty breakdown
-  const byDiff = {};
-  log.forEach(entry => {
-    const d = (entry.q.difficulty || DEFAULT_DIFF).trim();
-    if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
-    byDiff[d].total++;
-    if (entry.isRight) byDiff[d].right++;
-  });
-  const diffOrder = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Hard', 'Mixed'];
-  const diffColors = { 'Foundational': 'var(--blue)', 'Exam Level': 'var(--yellow)', 'Hard / Tricky': 'var(--red)', 'Hard': 'var(--red)', 'Mixed': 'var(--accent-light)' };
-  const diffEl = document.getElementById('diff-breakdown');
-  const diffKeys = diffOrder.filter(d => byDiff[d]);
-  diffEl.innerHTML = diffKeys.length > 1 ? diffKeys.map(d => {
-    const { right, total: t } = byDiff[d];
-    const dpct = Math.round((right / t) * 100);
-    const col = diffColors[d] || 'var(--text)';
-    const shortLabel = d.replace(' / Tricky', '').replace('Foundational', 'Basic');
-    return `<div class="dstat"><div class="dv" style="color:${col}">${right}/${t}</div><div class="dl">${shortLabel}</div></div>`;
-  }).join('') : '';
+  renderResultsDifficultyBreakdown();
 
   updateStreak();
   renderStreakBadge();
@@ -2635,6 +2639,26 @@ function diffWeight(d) {
   return 1.3;
 }
 
+// Build a per-topic weighted-accuracy map from history entries.
+// Weights: difficulty × exam-mode boost (1.3 for exam mode) × recency boost
+// (2.0 for sessions in the last 7 days). Extracted from getReadinessScore (#18).
+function buildWeightedTopicMap(historyEntries, now) {
+  const SEVEN_DAYS_MS = 7 * 86400000;
+  const topicMap = {};
+  historyEntries.forEach(e => {
+    if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
+    const sessionTime = new Date(e.date).getTime();
+    const isRecent = (now - sessionTime) <= SEVEN_DAYS_MS;
+    const examBoost = (e.mode === 'exam') ? 1.3 : 1.0;
+    const recencyBoost = isRecent ? 2.0 : 1.0;
+    const w = diffWeight(e.difficulty) * examBoost * recencyBoost;
+    topicMap[e.topic].wCorrect += e.score * w;
+    topicMap[e.topic].wTotal   += e.total * w;
+    if (sessionTime > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = sessionTime;
+  });
+  return topicMap;
+}
+
 function getReadinessScore() {
   const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
     .map(c => c.dataset.v)
@@ -2647,20 +2671,7 @@ function getReadinessScore() {
   if (h.length === 0) return null;
 
   const now = Date.now();
-  const SEVEN_DAYS_MS = 7 * 86400000;
-  const topicMap = {};
-  h.forEach(e => {
-    if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
-    // Base weight: difficulty × exam-mode boost × recency boost (last 7 days = 2x)
-    const sessionTime = new Date(e.date).getTime();
-    const isRecent = (now - sessionTime) <= SEVEN_DAYS_MS;
-    const examBoost = (e.mode === 'exam') ? 1.3 : 1.0;
-    const recencyBoost = isRecent ? 2.0 : 1.0;
-    const w = diffWeight(e.difficulty) * examBoost * recencyBoost;
-    topicMap[e.topic].wCorrect += e.score * w;
-    topicMap[e.topic].wTotal   += e.total * w;
-    if (sessionTime > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = sessionTime;
-  });
+  const topicMap = buildWeightedTopicMap(h, now);
 
   const studiedTopics = Object.keys(topicMap);
   const studiedCount  = studiedTopics.length;
@@ -4383,6 +4394,34 @@ Use plain text, no markdown. Label each section clearly. Aim for 250-350 words t
 // ══════════════════════════════════════════
 let topicDiveReturnPage = 'quiz';
 
+// Builds the JSON-shaped prompt sent to Claude for the Topic Deep Dive feature.
+// Extracted from showTopicDeepDive() (#18) so the parent fits the long-function budget.
+function buildTopicDivePrompt(topicName) {
+  return `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
+
+Return your response as valid JSON with this exact structure:
+{
+  "summary": "2-3 sentence overview of what this topic covers and why it matters for the exam",
+  "keyConcepts": [
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" }
+  ],
+  "howItWorks": "3-4 sentence detailed but accessible explanation of how the core technology/concept works under the hood. Use simple language a beginner would understand.",
+  "scenario": "A realistic workplace scenario (3-4 sentences) showing this concept in action. Include the problem, the solution, and what commands/tools/protocols were used.",
+  "examTips": [
+    "Specific exam tip or trap to watch for",
+    "Another specific tip",
+    "A third tip"
+  ],
+  "memoryTrick": "A mnemonic, acronym, or memorable hook to remember the key facts",
+  "diagram": "An ASCII diagram showing the concept visually (use box-drawing characters like ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ and arrows → ← ↑ ↓). Make it clear and labeled. 5-8 lines max. If the topic doesn't suit a diagram, provide a structured comparison table instead."
+}
+
+Return ONLY valid JSON, no extra text before or after.`;
+}
+
 async function showTopicDeepDive(topicName) {
   // Remember which page to return to
   const pages = ['page-quiz', 'page-review', 'page-exam', 'page-exam-results', 'page-results'];
@@ -4412,29 +4451,7 @@ async function showTopicDeepDive(topicName) {
     return;
   }
 
-  const prompt = `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
-
-Return your response as valid JSON with this exact structure:
-{
-  "summary": "2-3 sentence overview of what this topic covers and why it matters for the exam",
-  "keyConcepts": [
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" }
-  ],
-  "howItWorks": "3-4 sentence detailed but accessible explanation of how the core technology/concept works under the hood. Use simple language a beginner would understand.",
-  "scenario": "A realistic workplace scenario (3-4 sentences) showing this concept in action. Include the problem, the solution, and what commands/tools/protocols were used.",
-  "examTips": [
-    "Specific exam tip or trap to watch for",
-    "Another specific tip",
-    "A third tip"
-  ],
-  "memoryTrick": "A mnemonic, acronym, or memorable hook to remember the key facts",
-  "diagram": "An ASCII diagram showing the concept visually (use box-drawing characters like ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ and arrows → ← ↑ ↓). Make it clear and labeled. 5-8 lines max. If the topic doesn't suit a diagram, provide a structured comparison table instead."
-}
-
-Return ONLY valid JSON, no extra text before or after.`;
+  const prompt = buildTopicDivePrompt(topicName);
 
   try {
     const apiRes = await fetch(CLAUDE_API_URL, {
