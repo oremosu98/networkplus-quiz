@@ -156,6 +156,10 @@ test('Install handler', sw.includes("addEventListener('install'"));
 test('Activate handler', sw.includes("addEventListener('activate'"));
 test('Fetch handler', sw.includes("addEventListener('fetch'"));
 test('API calls excluded from cache', sw.includes('api.anthropic.com'));
+test('SW: cache cap defined (#20)', /CACHE_MAX_ENTRIES\s*=\s*\d+/.test(sw));
+test('SW: trimCache helper present (#20)', sw.includes('async function trimCache'));
+test('SW: trimCache called after cache.put (#20)', /cache\.put\([^)]+\);\s*trimCache\(/.test(sw));
+test('SW: 5xx falls back to cached response (#20)', /response\.status\s*>=\s*500\s*&&\s*cached/.test(sw));
 
 // ── Subnet Math Verification ──
 console.log('\n\x1b[1m── SUBNET MATH ──\x1b[0m');
