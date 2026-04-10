@@ -56,6 +56,12 @@ jobs:
         if: steps.debt.outcome == 'failure' && github.event_name == 'push'
         uses: actions/github-script@v8
         with:
+          # PROJECT_TOKEN needs the `project` scope so the GraphQL calls below
+          # can add the new issue to Board #1 and set its status fields. Falls
+          # back to GITHUB_TOKEN for the issue-creation REST call only — the
+          # auto-add-to-board workflow then handles board placement on the
+          # `issues.opened` event when PROJECT_TOKEN is unset.
+          github-token: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             let report = 'Thresholds breached — check CI logs for details.';

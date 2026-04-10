@@ -1,8 +1,13 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.1
+   Network+ AI Quiz — styles.css  v4.11
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── UTILITY: hide/show toggle (replaces inline .style.display, see #17) ── */
+.is-hidden { display: none !important; }
+/* ── UTILITY: dimmed/disabled-look (replaces inline .style.opacity) ── */
+.is-dimmed { opacity: 0.5; }
 
 /* ── SKIP LINK ── */
 .skip-link { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 10px 24px; border-radius: 0 0 8px 8px; font-size: 14px; font-weight: 700; z-index: 10000; transition: top .2s; text-decoration: none; }
@@ -125,6 +130,9 @@ h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacin
 .chip { padding: 8px 16px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--text-mid); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 36px; }
 .chip:hover { border-color: var(--accent-dim); color: var(--text); }
 .chip.on { border-color: var(--accent); background: rgba(124,111,247,.18); color: var(--accent); font-weight: 700; }
+/* v4.11 — drillTopic lands on setup and flashes the chip so you see where you landed */
+@keyframes chipFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,111,247,0); transform: scale(1); } 25% { box-shadow: 0 0 0 6px rgba(124,111,247,.35); transform: scale(1.05); } 60% { box-shadow: 0 0 0 3px rgba(124,111,247,.2); transform: scale(1.02); } }
+.chip.chip-flash { animation: chipFlash 1.3s ease-out; }
 
 input[type="password"], input[type="text"] { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; color: var(--text); font-size: 14px; font-family: monospace; outline: none; transition: border-color .2s; }
 input:focus { border-color: var(--accent); }
@@ -273,11 +281,14 @@ input::placeholder { color: var(--text-dim); }
 @keyframes orderSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .order-controls { margin-top: 10px; display: flex; gap: 8px; }
 
-.explanation-box { margin-top: 18px; padding: 16px 20px; border-radius: var(--radius-sm); font-size: 14px; line-height: 1.7; display: none; }
+/* v4.11 — explanation panel is forced white-bg + black-text for readability,
+   with a colored left accent rail that preserves the correct/wrong signal. */
+.explanation-box { margin-top: 18px; padding: 16px 20px; border-radius: var(--radius-sm); font-size: 14px; line-height: 1.7; display: none; background: #ffffff; color: #111111; border: 1px solid #d4d4d8; border-left-width: 5px; }
 .explanation-box.show { display: block; }
-.explanation-box.correct { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--correct-text2); }
-.explanation-box.wrong   { background: var(--red-bg);   border: 1px solid var(--red-border);   color: var(--wrong-text2); }
-.explanation-box strong  { font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px; letter-spacing: .02em; }
+.explanation-box.correct { border-left-color: #16a34a; }
+.explanation-box.wrong   { border-left-color: #dc2626; }
+.explanation-box strong  { font-size: 13px; font-weight: 800; display: block; margin-bottom: 5px; letter-spacing: .02em; color: #111111; }
+.explanation-box a { color: #6d28d9; }
 
 .next-btn-row { margin-top: 22px; display: flex; justify-content: flex-end; }
 .btn-next { padding: 13px 26px; border-radius: var(--radius-sm); background: var(--accent); color: white; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .15s; display: none; }
@@ -374,7 +385,7 @@ input::placeholder { color: var(--text-dim); }
 .pass-threshold { font-size: 12px; color: var(--text-dim); }
 
 /* ── MISC ── */
-.err-box { background: var(--red-bg); border: 1px solid var(--red-border); color: #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-top: 12px; display: none; }
+.err-box { background: var(--red-bg); border: 1px solid var(--red-border); color: #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-top: 12px; }
 [data-theme="light"] .err-box { color: var(--red); }
 /* .divider removed — unused */
 @keyframes popIn { 0% { transform:scale(0.5); opacity:0; } 70% { transform:scale(1.2); } 100% { transform:scale(1); opacity:1; } }
@@ -413,6 +424,51 @@ input::placeholder { color: var(--text-dim); }
 .topic-mini-bar { height: 3px; border-radius: 99px; background: var(--surface3); margin-top: 5px; overflow: hidden; }
 .topic-mini-fill { height: 100%; border-radius: 99px; transition: width .4s; }
 .topic-pct-lbl { font-size: 15px; font-weight: 800; min-width: 44px; text-align: right; }
+/* Topic Progress v2 (v4.11) */
+.progress-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+.ps-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; position: relative; }
+.ps-stat .ps-n { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+.ps-stat .ps-n-sub { font-size: 13px; font-weight: 700; color: var(--text-dim); }
+.ps-stat .ps-l { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 5px; }
+.ps-strong .ps-n { color: var(--green); }
+.ps-solid .ps-n { color: var(--yellow); }
+.ps-weak .ps-n { color: var(--red); }
+.ps-untouched .ps-n { color: var(--text-dim); }
+.ps-coverage { grid-column: span 1; }
+.ps-coverage-bar { height: 3px; background: var(--surface3); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+.ps-coverage-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+.progress-toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.progress-search { flex: 1 1 200px; min-width: 0; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+.progress-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,111,247,.25); }
+.progress-filters { display: inline-flex; gap: 4px; padding: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.prog-filter-btn { background: transparent; border: none; color: var(--text-dim); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.prog-filter-btn:hover { color: var(--text); }
+.prog-filter-btn.prog-filter-active { background: var(--accent); color: #fff; }
+.progress-sort { display: inline-flex; align-items: center; gap: 6px; }
+.prog-sort-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+.prog-sort-select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit; cursor: pointer; }
+.prog-sort-select:focus { outline: none; border-color: var(--accent); }
+.progress-domain { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; padding: 0; }
+.progress-domain[open] { padding-bottom: 10px; }
+.progress-domain-head { cursor: pointer; padding: 12px 16px; font-size: 13px; font-weight: 700; color: var(--text); list-style: none; user-select: none; display: flex; align-items: center; gap: 12px; border-radius: var(--radius); }
+.progress-domain-head::-webkit-details-marker { display: none; }
+.progress-domain-head::before { content: '▸'; display: inline-block; color: var(--accent); transition: transform .15s; font-size: 11px; }
+.progress-domain[open] .progress-domain-head::before { transform: rotate(90deg); }
+.progress-domain-head:hover { background: rgba(124,111,247,.06); }
+.pd-name { flex: 1; }
+.pd-weight { font-size: 10px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.pd-avg { font-size: 15px; font-weight: 900; min-width: 42px; text-align: right; }
+.pd-count { font-size: 10px; color: var(--text-dim); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 2px 7px; font-weight: 700; }
+.progress-domain-rows { display: flex; flex-direction: column; gap: 6px; padding: 4px 10px 0; }
+.topic-name-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.topic-obj-badge { background: var(--surface3); border: 1px solid var(--border); color: var(--text-dim); font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 99px; flex-shrink: 0; font-family: monospace; }
+@media (max-width: 600px) {
+  .progress-summary { grid-template-columns: repeat(2, 1fr); }
+  .ps-coverage { grid-column: span 2; }
+  .progress-toolbar { flex-direction: column; align-items: stretch; }
+  .progress-filters { overflow-x: auto; }
+  .pd-weight { display: none; }
+}
 
 /* ── DIFFICULTY BREAKDOWN (RESULTS) ── */
 .diff-breakdown { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -521,14 +577,15 @@ input::placeholder { color: var(--text-dim); }
 .explain-btn:hover { background: rgba(124,111,247,.18); border-color: var(--accent); }
 .explain-btn.explained { opacity: 0.5; cursor: default; }
 .explain-btn:disabled { opacity: 0.5; cursor: default; }
-.deep-explain { margin-top: 14px; padding: 16px 18px; border-radius: var(--radius-sm); background: rgba(124,111,247,.06); border: 1px solid var(--accent-dim); display: none; }
+/* v4.11 — Deep Dive panel forced white-bg + black-text to match explanation */
+.deep-explain { margin-top: 14px; padding: 16px 18px; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid #d4d4d8; border-left: 5px solid #7c6ff7; display: none; color: #111111; }
 .deep-explain.show { display: block; }
-.deep-explain strong { font-size: 13px; color: var(--accent-light); display: block; margin-bottom: 8px; }
-.deep-explain-text { font-size: 13px; line-height: 1.7; color: var(--text-mid); }
+.deep-explain strong { font-size: 13px; color: #6d28d9; display: block; margin-bottom: 8px; }
+.deep-explain-text { font-size: 13px; line-height: 1.7; color: #111111; }
+.deep-explain-text a { color: #6d28d9; }
 .deep-section-header { display: block; font-weight: 800; color: var(--accent-light); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-top: 12px; margin-bottom: 2px; }
 .deep-section-header:first-child { margin-top: 0; }
-[data-theme="light"] .deep-explain { background: rgba(124,111,247,.04); }
-[data-theme="light"] .deep-explain strong { color: var(--accent); }
+/* Both panels are already white/black, so light-theme overrides are no-ops */
 [data-theme="light"] .deep-section-header { color: var(--accent); }
 
 /* ── PORT DRILL REVIEW ── */
@@ -635,6 +692,36 @@ input::placeholder { color: var(--text-dim); }
 .port-mode-btn:hover { color: var(--text); }
 .port-mode-btn.port-mode-active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(124, 111, 247, 0.35); }
 .port-mode-btn.port-mode-active:hover { color: #fff; }
+/* Port Reference panel (v4.11) */
+.port-ref { margin-top: 18px; text-align: left; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 0; }
+.port-ref[open] { padding-bottom: 14px; }
+.port-ref-summary { cursor: pointer; padding: 14px 18px; font-size: 14px; font-weight: 700; color: var(--text); list-style: none; user-select: none; border-radius: 12px; }
+.port-ref-summary::-webkit-details-marker { display: none; }
+.port-ref-summary::before { content: '▸'; display: inline-block; margin-right: 8px; color: var(--accent); transition: transform .15s; }
+.port-ref[open] .port-ref-summary::before { transform: rotate(90deg); }
+.port-ref-summary:hover { background: rgba(124,111,247,.08); }
+.port-ref-controls { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 18px 12px; align-items: center; }
+.port-ref-search { flex: 1 1 180px; min-width: 0; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit; }
+.port-ref-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,111,247,.25); }
+.port-ref-sort { display: inline-flex; gap: 4px; padding: 3px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.port-ref-sort-btn { background: transparent; border: none; color: var(--text-dim); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.port-ref-sort-btn:hover { color: var(--text); }
+.port-ref-sort-btn.port-ref-sort-active { background: var(--accent); color: #fff; }
+.port-ref-list { padding: 0 18px; max-height: 440px; overflow-y: auto; }
+.port-ref-group { margin-bottom: 14px; }
+.port-ref-group-head { font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.port-ref-group-count { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1px 7px; font-size: 10px; color: var(--text-dim); letter-spacing: 0; }
+.port-ref-group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.port-ref-card { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; transition: all .15s; }
+.port-ref-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.port-ref-num { font-family: monospace; font-size: 15px; font-weight: 800; color: var(--accent-light); min-width: 42px; }
+.port-ref-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.port-ref-proto { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.port-ref-tp { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+@media (max-width: 520px) {
+  .port-ref-group-cards { grid-template-columns: 1fr 1fr; }
+  .port-ref-list { max-height: 360px; }
+}
 .port-game { text-align: center; }
 .port-prompt { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 20px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); transition: background .2s; }
 .port-prompt.port-flash-wrong { background: var(--red-bg); border-color: var(--red-border); }
@@ -685,6 +772,10 @@ input::placeholder { color: var(--text-dim); }
 .ana-topics { display: flex; flex-direction: column; gap: 6px; }
 .ana-topic-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .ana-topic-row:last-child { border-bottom: none; }
+/* v4.11 — clickable analytics rows: hover reveals the row is interactive */
+.ana-row-clickable { cursor: pointer; border-radius: 8px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; transition: background .15s; }
+.ana-row-clickable:hover { background: rgba(124,111,247,.08); }
+.ana-row-clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ana-topic-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ana-topic-bar { width: 80px; height: 4px; background: var(--surface3); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
 .ana-topic-fill { height: 100%; border-radius: 99px; animation: anaFillSlide .9s ease-out both; transform-origin: left; }

@@ -156,6 +156,14 @@ test('Install handler', sw.includes("addEventListener('install'"));
 test('Activate handler', sw.includes("addEventListener('activate'"));
 test('Fetch handler', sw.includes("addEventListener('fetch'"));
 test('API calls excluded from cache', sw.includes('api.anthropic.com'));
+test('SW: cache cap defined (#20)', /CACHE_MAX_ENTRIES\s*=\s*\d+/.test(sw));
+test('SW: trimCache helper present (#20)', sw.includes('async function trimCache'));
+test('SW: trimCache called after cache.put (#20)', /cache\.put\([^)]+\);\s*trimCache\(/.test(sw));
+test('SW: 5xx falls back to cached response (#20)', /response\.status\s*>=\s*500\s*&&\s*cached/.test(sw));
+test('CSS: .is-hidden utility class (#17)', css.includes('.is-hidden { display: none !important;'));
+test('CSS: .is-dimmed utility class (#17)', css.includes('.is-dimmed { opacity:'));
+test('JS: uses is-hidden classList toggles (#17)', (js.match(/classList\.(add|remove|toggle)\(['"]is-hidden['"]/g) || []).length >= 50);
+test('JS: uses is-dimmed classList toggles (#17)', (js.match(/classList\.(add|toggle)\(['"]is-dimmed['"]/g) || []).length >= 5);
 
 // ── Subnet Math Verification ──
 console.log('\n\x1b[1m── SUBNET MATH ──\x1b[0m');
@@ -219,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.10', js.includes("const APP_VERSION = '4.10"));
+test('APP_VERSION is 4.11', js.includes("const APP_VERSION = '4.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -232,10 +240,10 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.10', sw.includes('netplus-v4.10'));
+test('SW cache bumped to v4.11', sw.includes('netplus-v4.11'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
-test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
+test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
 test('Prompt requires objective field', js.includes('MANDATORY N10-009 OBJECTIVE TAGGING'));
 test('Prompt: objective in JSON schema', js.includes('"objective":"X.Y"'));
 test('Mixed mode domain distribution', js.includes('MANDATORY DOMAIN DISTRIBUTION'));
@@ -377,6 +385,59 @@ test('evaluateMilestones handles weekend_warrior', js.includes("maybe('weekend_w
 test('evaluateMilestones handles diversity_5', js.includes("maybe('diversity_5'"));
 test('evaluateMilestones handles deep_dive_10', js.includes("maybe('deep_dive_10'"));
 test('evaluateMilestones handles daily_challenge_7', js.includes("maybe('daily_challenge_7'"));
+
+// ── Port Reference panel (v4.11) ──
+console.log('\n\x1b[1m── PORT REFERENCE v4.11 ──\x1b[0m');
+test('portCategories defined', js.includes('const portCategories ='));
+test('portSortMode state', js.includes("let portSortMode = 'category'"));
+test('renderPortReference function', js.includes('function renderPortReference('));
+test('setPortSortMode function', js.includes('function setPortSortMode('));
+test('filterPortReference function', js.includes('function filterPortReference('));
+test('_portCard helper', js.includes('function _portCard('));
+test('startPortDrill calls renderPortReference', /function startPortDrill\(\)[\s\S]*?renderPortReference\(\);[\s\S]*?\n\}/.test(js));
+test('HTML: port-ref details', html.includes('id="port-ref"'));
+test('HTML: port-ref search input', html.includes('id="port-ref-search"'));
+test('HTML: port-ref sort buttons', html.includes('id="port-ref-sort-cat"') && html.includes('id="port-ref-sort-num"') && html.includes('id="port-ref-sort-name"'));
+test('HTML: port-ref list container', html.includes('id="port-ref-list"'));
+test('CSS: .port-ref', css.includes('.port-ref '));
+test('CSS: .port-ref-card', css.includes('.port-ref-card'));
+test('CSS: .port-ref-group', css.includes('.port-ref-group'));
+test('CSS: .port-ref-sort-active', css.includes('.port-ref-sort-active'));
+// Every protocol in portData appears in exactly one category list
+const catProtos = (js.match(/const portCategories = \[[\s\S]*?\];/) || [''])[0];
+const dataProtos = [...js.matchAll(/proto:'([^']+)'/g)].map(m => m[1]);
+test('All 40 ports covered in portCategories',
+  dataProtos.length === 40 && dataProtos.every(p => catProtos.includes(`'${p}'`)));
+
+// ── Topic Progress v2 (v4.11) ──
+console.log('\n\x1b[1m── TOPIC PROGRESS v2 (v4.11) ──\x1b[0m');
+test('progressState defined', js.includes('let progressState ='));
+test('_buildProgressRows function', js.includes('function _buildProgressRows('));
+test('_sortProgressRows function', js.includes('function _sortProgressRows('));
+test('_progressRowMatches function', js.includes('function _progressRowMatches('));
+test('_progressRowHtml function', js.includes('function _progressRowHtml('));
+test('_renderProgressSummary function', js.includes('function _renderProgressSummary('));
+test('_renderProgressGrouped function', js.includes('function _renderProgressGrouped('));
+test('setProgressFilter function', js.includes('function setProgressFilter('));
+test('setProgressSort function', js.includes('function setProgressSort('));
+test('filterProgressPage function', js.includes('function filterProgressPage('));
+test('_bucketOf helper', js.includes('function _bucketOf('));
+test('progressState.sort default worst', /progressState = \{[^}]*sort: 'worst'/.test(js));
+test('Summary uses TOPIC_DOMAINS', js.includes('TOPIC_DOMAINS[t]'));
+test('Grouped render uses DOMAIN_WEIGHTS', /_renderProgressGrouped[\s\S]*?DOMAIN_WEIGHTS/.test(js));
+test('Grouped render uses DOMAIN_LABELS', /_renderProgressGrouped[\s\S]*?DOMAIN_LABELS/.test(js));
+test('HTML: progress-summary element', html.includes('id="progress-summary"'));
+test('HTML: progress-search input', html.includes('id="progress-search"'));
+test('HTML: progress-sort-select', html.includes('id="progress-sort-select"'));
+test('HTML: filter button All', html.includes('data-filter="all"'));
+test('HTML: filter button weak', html.includes('data-filter="weak"'));
+test('HTML: filter button untouched', html.includes('data-filter="untouched"'));
+test('HTML: filter button strong', html.includes('data-filter="strong"'));
+test('CSS: .progress-summary', css.includes('.progress-summary'));
+test('CSS: .progress-domain', css.includes('.progress-domain '));
+test('CSS: .topic-obj-badge', css.includes('.topic-obj-badge'));
+test('CSS: .prog-filter-active', css.includes('.prog-filter-active'));
+test('CSS: .ps-coverage-bar', css.includes('.ps-coverage-bar'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

@@ -1,0 +1,80 @@
+name: Auto-add issues to project boards
+
+# Fixes #24: GitHub Projects' built-in auto-add workflow does not reliably
+# fire for issues created via the REST API. This workflow listens for label
+# events and adds the issue to the correct board via GraphQL.
+#
+# Routing:
+#   - tech-debt or bug -> Board #1 (oremosu98 project number 1)
+#   - feature-idea     -> Board #2 (oremosu98 project number 2)
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+
+jobs:
+  add-to-board:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to the correct board
+        uses: actions/github-script@v8
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const wantsBoard1 = labels.includes('tech-debt') || labels.includes('bug');
+            const wantsBoard2 = labels.includes('feature-idea');
+
+            if (!wantsBoard1 && !wantsBoard2) {
+              core.info(`Issue #${context.payload.issue.number} has no routable label — skipping`);
+              return;
+            }
+
+            const projectNumber = wantsBoard1 ? 1 : 2;
+            const boardName = wantsBoard1 ? 'Board #1 (Bugs / Tech Debt)' : 'Board #2 (Feature Ideas)';
+            const owner = 'oremosu98';
+
+            // Look up the project ID by number so we never hardcode it.
+            let projectId;
+            try {
+              const data = await github.graphql(
+                `query($login: String!, $number: Int!) {
+                  user(login: $login) {
+                    projectV2(number: $number) { id }
+                  }
+                }`,
+                { login: owner, number: projectNumber }
+              );
+              projectId = data.user.projectV2 && data.user.projectV2.id;
+            } catch (e) {
+              core.setFailed(`Failed to look up ${boardName}: ${e.message}`);
+              return;
+            }
+
+            if (!projectId) {
+              core.setFailed(`Could not resolve project ID for ${boardName}`);
+              return;
+            }
+
+            const contentId = context.payload.issue.node_id;
+
+            try {
+              await github.graphql(
+                `mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+                    item { id }
+                  }
+                }`,
+                { projectId, contentId }
+              );
+              core.info(`Added issue #${context.payload.issue.number} to ${boardName}`);
+            } catch (e) {
+              // GraphQL throws if the item is already on the board — that's fine.
+              if (/already exists/i.test(e.message)) {
+                core.info(`Issue #${context.payload.issue.number} already on ${boardName}`);
+                return;
+              }
+              core.setFailed(`Failed to add issue to ${boardName}: ${e.message}`);
+            }

@@ -25,10 +25,10 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.10</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.11</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
-    <div id="stats-card" class="hero-stats-strip" style="display:none">
+    <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
     </div>
   </div>
@@ -59,13 +59,13 @@
   </div>
 
   <!-- Streak Defender (amber, conditional) -->
-  <div id="streak-defender" class="streak-defender" style="display:none" role="status" aria-live="polite"></div>
+  <div id="streak-defender" class="streak-defender is-hidden" role="status" aria-live="polite"></div>
 
   <!-- Daily Challenge card (conditional) -->
-  <div id="daily-challenge-card" class="daily-challenge-card" style="display:none" role="region" aria-label="Daily Challenge"></div>
+  <div id="daily-challenge-card" class="daily-challenge-card is-hidden" role="region" aria-label="Daily Challenge"></div>
 
   <!-- Today's Focus chip row (conditional) -->
-  <div id="todays-focus" class="todays-focus" style="display:none" role="region" aria-label="Today's focus topics"></div>
+  <div id="todays-focus" class="todays-focus is-hidden" role="region" aria-label="Weak spot topics"></div>
 
   <!-- Daily Goal Ring -->
   <div id="daily-goal-card" class="daily-goal-card">
@@ -84,18 +84,18 @@
     <button class="dg-edit-btn" onclick="editDailyGoal()" aria-label="Edit daily question goal" title="Edit goal">⚙️</button>
   </div>
 
-  <!-- Today's Session banner -->
-  <div id="session-banner" style="display:none">
+  <!-- Study Plan banner (a.k.a. session) -->
+  <div id="session-banner" class="is-hidden">
     <div class="session-card">
-      <h3>&#9889; TODAY&#8217;S SESSION</h3>
+      <h3>&#128218; STUDY PLAN</h3>
       <div id="session-topic-rows"></div>
       <p class="session-est">&#128336; ~21 min &nbsp;&bull;&nbsp; 7 questions per topic &nbsp;&bull;&nbsp; Mixed difficulty</p>
     </div>
-    <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="startSession()">Start Today&#8217;s Session &#9889;</button>
+    <button class="btn btn-primary btn-full" style="margin-bottom:14px" onclick="startSession()">Start Study Plan &#9889;</button>
   </div>
 
   <!-- Weak topic banner -->
-  <div id="weak-banner" class="weak-banner" style="display:none">
+  <div id="weak-banner" class="weak-banner is-hidden">
     <div class="wb-text">&#9888;&#65039; Weakest area: <strong id="weak-topic-name"></strong> &mdash; avg <span id="weak-topic-pct"></span>. Drill it now?</div>
     <button class="weak-drill" id="weak-drill-btn">Drill Now</button>
   </div>
@@ -111,7 +111,7 @@
         <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
         <label class="btn btn-ghost" style="flex:1;font-size:13px;cursor:pointer;text-align:center">
           &#128228; Import Data
-          <input type="file" accept=".json" style="display:none" onchange="importData(event)" aria-label="Import data JSON file" />
+          <input type="file" accept=".json" class="is-hidden" onchange="importData(event)" aria-label="Import data JSON file" />
         </label>
       </div>
     </div>
@@ -220,7 +220,7 @@
   </div>
 
   <!-- History panel -->
-  <div id="history-panel" class="card" style="display:none">
+  <div id="history-panel" class="card is-hidden">
     <h3 style="margin-bottom:12px">Recent Performance</h3>
     <div id="history-list"></div>
   </div>
@@ -244,13 +244,13 @@
     </button>
   </div>
 
-  <div id="setup-err" class="err-box"></div>
+  <div id="setup-err" class="err-box is-hidden"></div>
   <button class="btn btn-primary btn-full" onclick="startQuiz()">Generate Quiz &#9889;</button>
   <button class="btn btn-exam btn-full" style="margin-top:10px" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
 
   <!-- Wrong Answers Drill -->
-  <div class="wrong-bank-row" id="wrong-bank-row" style="display:none;margin-top:10px;gap:8px">
+  <div class="wrong-bank-row is-hidden" id="wrong-bank-row" style="margin-top:10px;gap:8px">
     <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" onclick="startWrongDrill()">
       &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
     </button>
@@ -289,11 +289,11 @@
     </div>
     <p class="skel-status" id="loading-msg">Claude is generating fresh questions</p>
   </div>
-  <div class="load-progress" id="load-progress" style="display:none">
+  <div class="load-progress is-hidden" id="load-progress">
     <div class="load-bar"><div class="load-bar-fill" id="load-bar-fill" style="width:0%"></div></div>
     <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px" id="load-progress-label">0 / 5 batches</p>
   </div>
-  <div id="topic-brief" class="topic-brief" style="display:none">
+  <div id="topic-brief" class="topic-brief is-hidden">
     <h3>&#128218; TOPIC OVERVIEW</h3>
     <div id="topic-brief-text" class="topic-brief-text"></div>
   </div>
@@ -325,7 +325,7 @@
     <div class="q-meta">
       <span class="q-num" id="q-num">Q1</span>
       <span class="diff-badge" id="diff-badge">Exam Level</span>
-      <span class="pbq-badge" id="pbq-badge" style="display:none"></span>
+      <span class="pbq-badge is-hidden" id="pbq-badge"></span>
     </div>
     <div class="q-text" id="q-text" role="heading" aria-level="3">Loading&#8230;</div>
     <div class="options" id="options"></div>
@@ -427,7 +427,7 @@
      TOPIC PROGRESS PAGE
 ══════════════════════════════════════════ -->
 <div id="page-progress" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:14px">
       <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
       <h2>Topic Progress</h2>
@@ -436,6 +436,25 @@
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px"></span>&#8805;80%</span>
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>60-79%</span>
       <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:4px"></span>&lt;60%</span>
+    </div>
+  </div>
+  <div id="progress-summary" class="progress-summary"></div>
+  <div class="progress-toolbar">
+    <input type="search" id="progress-search" class="progress-search" placeholder="Search topic&#8230;" aria-label="Search topics" oninput="filterProgressPage()">
+    <div class="progress-filters" role="group" aria-label="Filter topics">
+      <button type="button" class="prog-filter-btn prog-filter-active" data-filter="all" onclick="setProgressFilter('all')" aria-pressed="true">All</button>
+      <button type="button" class="prog-filter-btn" data-filter="weak" onclick="setProgressFilter('weak')" aria-pressed="false">Weak only</button>
+      <button type="button" class="prog-filter-btn" data-filter="untouched" onclick="setProgressFilter('untouched')" aria-pressed="false">Untouched</button>
+      <button type="button" class="prog-filter-btn" data-filter="strong" onclick="setProgressFilter('strong')" aria-pressed="false">Strong</button>
+    </div>
+    <div class="progress-sort" role="group" aria-label="Sort topics">
+      <label for="progress-sort-select" class="prog-sort-label">Sort:</label>
+      <select id="progress-sort-select" class="prog-sort-select" onchange="setProgressSort(this.value)" aria-label="Sort order">
+        <option value="worst">Worst first</option>
+        <option value="recent">Most recent</option>
+        <option value="most">Most studied</option>
+        <option value="alpha">A&ndash;Z</option>
+      </select>
     </div>
   </div>
   <div id="progress-topic-grid" class="topic-grid"></div>
@@ -551,7 +570,7 @@
       <button class="btn btn-primary" onclick="checkSubnetAnswer()" id="subnet-submit-btn">Check</button>
     </div>
     <div id="subnet-feedback" class="subnet-feedback"></div>
-    <button class="btn btn-primary btn-full" id="subnet-next-btn" style="display:none;margin-top:14px" onclick="nextSubnetQuestion()">Next Question &#8594;</button>
+    <button class="btn btn-primary btn-full is-hidden" id="subnet-next-btn" style="margin-top:14px" onclick="nextSubnetQuestion()">Next Question &#8594;</button>
   </div>
   <div class="subnet-ref" id="subnet-ref">
     <h3>QUICK REFERENCE</h3>
@@ -602,15 +621,27 @@
       </button>
     </div>
     <p id="port-mode-desc" style="font-size:13px;color:var(--text-dim);margin-bottom:20px">You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.</p>
-    <div id="port-focus-info" class="port-focus-info" style="display:none" aria-live="polite"></div>
+    <div id="port-focus-info" class="port-focus-info is-hidden" aria-live="polite"></div>
     <button class="btn btn-primary btn-full" onclick="beginPortDrill()" style="font-size:18px;padding:18px">&#9889; START DRILL</button>
-    <button id="port-reset-stats-btn" class="port-reset-link" onclick="resetPortStats()" style="display:none" aria-label="Reset port focus stats">Reset focus stats</button>
+    <button id="port-reset-stats-btn" class="port-reset-link is-hidden" onclick="resetPortStats()" aria-label="Reset port focus stats">Reset focus stats</button>
+    <details id="port-ref" class="port-ref">
+      <summary class="port-ref-summary">&#128214; Port Reference &middot; All 40 ports</summary>
+      <div class="port-ref-controls">
+        <input type="search" id="port-ref-search" class="port-ref-search" placeholder="Search protocol or port&#8230;" aria-label="Search port reference" oninput="filterPortReference()">
+        <div class="port-ref-sort" role="group" aria-label="Sort ports">
+          <button type="button" id="port-ref-sort-cat" class="port-ref-sort-btn port-ref-sort-active" aria-pressed="true" onclick="setPortSortMode('category')">By Category</button>
+          <button type="button" id="port-ref-sort-num" class="port-ref-sort-btn" aria-pressed="false" onclick="setPortSortMode('number')">By Number</button>
+          <button type="button" id="port-ref-sort-name" class="port-ref-sort-btn" aria-pressed="false" onclick="setPortSortMode('name')">By Name</button>
+        </div>
+      </div>
+      <div id="port-ref-list" class="port-ref-list" aria-live="polite"></div>
+    </details>
   </div>
-  <div id="port-game" class="port-game" style="display:none">
+  <div id="port-game" class="port-game is-hidden">
     <div class="port-prompt" id="port-prompt">SSH</div>
     <div class="port-options" id="port-options"></div>
   </div>
-  <div id="port-results" class="port-results" style="display:none">
+  <div id="port-results" class="port-results is-hidden">
     <div class="port-result-hero">
       <div class="port-final-score" id="port-final-score">0</div>
       <div id="port-final-label" style="font-size:14px;color:var(--text-dim);margin-top:4px">ports matched</div>
