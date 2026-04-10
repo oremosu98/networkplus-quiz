@@ -28,7 +28,7 @@
     <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.11</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
-    <div id="stats-card" class="hero-stats-strip" style="display:none">
+    <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
     </div>
   </div>
@@ -59,13 +59,13 @@
   </div>
 
   <!-- Streak Defender (amber, conditional) -->
-  <div id="streak-defender" class="streak-defender" style="display:none" role="status" aria-live="polite"></div>
+  <div id="streak-defender" class="streak-defender is-hidden" role="status" aria-live="polite"></div>
 
   <!-- Daily Challenge card (conditional) -->
-  <div id="daily-challenge-card" class="daily-challenge-card" style="display:none" role="region" aria-label="Daily Challenge"></div>
+  <div id="daily-challenge-card" class="daily-challenge-card is-hidden" role="region" aria-label="Daily Challenge"></div>
 
   <!-- Today's Focus chip row (conditional) -->
-  <div id="todays-focus" class="todays-focus" style="display:none" role="region" aria-label="Weak spot topics"></div>
+  <div id="todays-focus" class="todays-focus is-hidden" role="region" aria-label="Weak spot topics"></div>
 
   <!-- Daily Goal Ring -->
   <div id="daily-goal-card" class="daily-goal-card">
@@ -85,7 +85,7 @@
   </div>
 
   <!-- Study Plan banner (a.k.a. session) -->
-  <div id="session-banner" style="display:none">
+  <div id="session-banner" class="is-hidden">
     <div class="session-card">
       <h3>&#128218; STUDY PLAN</h3>
       <div id="session-topic-rows"></div>
@@ -95,7 +95,7 @@
   </div>
 
   <!-- Weak topic banner -->
-  <div id="weak-banner" class="weak-banner" style="display:none">
+  <div id="weak-banner" class="weak-banner is-hidden">
     <div class="wb-text">&#9888;&#65039; Weakest area: <strong id="weak-topic-name"></strong> &mdash; avg <span id="weak-topic-pct"></span>. Drill it now?</div>
     <button class="weak-drill" id="weak-drill-btn">Drill Now</button>
   </div>
@@ -111,7 +111,7 @@
         <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
         <label class="btn btn-ghost" style="flex:1;font-size:13px;cursor:pointer;text-align:center">
           &#128228; Import Data
-          <input type="file" accept=".json" style="display:none" onchange="importData(event)" aria-label="Import data JSON file" />
+          <input type="file" accept=".json" class="is-hidden" onchange="importData(event)" aria-label="Import data JSON file" />
         </label>
       </div>
     </div>
@@ -220,7 +220,7 @@
   </div>
 
   <!-- History panel -->
-  <div id="history-panel" class="card" style="display:none">
+  <div id="history-panel" class="card is-hidden">
     <h3 style="margin-bottom:12px">Recent Performance</h3>
     <div id="history-list"></div>
   </div>
@@ -250,7 +250,7 @@
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
 
   <!-- Wrong Answers Drill -->
-  <div class="wrong-bank-row" id="wrong-bank-row" style="display:none;margin-top:10px;gap:8px">
+  <div class="wrong-bank-row is-hidden" id="wrong-bank-row" style="margin-top:10px;gap:8px">
     <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" onclick="startWrongDrill()">
       &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
     </button>
@@ -289,11 +289,11 @@
     </div>
     <p class="skel-status" id="loading-msg">Claude is generating fresh questions</p>
   </div>
-  <div class="load-progress" id="load-progress" style="display:none">
+  <div class="load-progress is-hidden" id="load-progress">
     <div class="load-bar"><div class="load-bar-fill" id="load-bar-fill" style="width:0%"></div></div>
     <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px" id="load-progress-label">0 / 5 batches</p>
   </div>
-  <div id="topic-brief" class="topic-brief" style="display:none">
+  <div id="topic-brief" class="topic-brief is-hidden">
     <h3>&#128218; TOPIC OVERVIEW</h3>
     <div id="topic-brief-text" class="topic-brief-text"></div>
   </div>
@@ -325,7 +325,7 @@
     <div class="q-meta">
       <span class="q-num" id="q-num">Q1</span>
       <span class="diff-badge" id="diff-badge">Exam Level</span>
-      <span class="pbq-badge" id="pbq-badge" style="display:none"></span>
+      <span class="pbq-badge is-hidden" id="pbq-badge"></span>
     </div>
     <div class="q-text" id="q-text" role="heading" aria-level="3">Loading&#8230;</div>
     <div class="options" id="options"></div>
@@ -570,7 +570,7 @@
       <button class="btn btn-primary" onclick="checkSubnetAnswer()" id="subnet-submit-btn">Check</button>
     </div>
     <div id="subnet-feedback" class="subnet-feedback"></div>
-    <button class="btn btn-primary btn-full" id="subnet-next-btn" style="display:none;margin-top:14px" onclick="nextSubnetQuestion()">Next Question &#8594;</button>
+    <button class="btn btn-primary btn-full is-hidden" id="subnet-next-btn" style="margin-top:14px" onclick="nextSubnetQuestion()">Next Question &#8594;</button>
   </div>
   <div class="subnet-ref" id="subnet-ref">
     <h3>QUICK REFERENCE</h3>
@@ -621,9 +621,9 @@
       </button>
     </div>
     <p id="port-mode-desc" style="font-size:13px;color:var(--text-dim);margin-bottom:20px">You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.</p>
-    <div id="port-focus-info" class="port-focus-info" style="display:none" aria-live="polite"></div>
+    <div id="port-focus-info" class="port-focus-info is-hidden" aria-live="polite"></div>
     <button class="btn btn-primary btn-full" onclick="beginPortDrill()" style="font-size:18px;padding:18px">&#9889; START DRILL</button>
-    <button id="port-reset-stats-btn" class="port-reset-link" onclick="resetPortStats()" style="display:none" aria-label="Reset port focus stats">Reset focus stats</button>
+    <button id="port-reset-stats-btn" class="port-reset-link is-hidden" onclick="resetPortStats()" aria-label="Reset port focus stats">Reset focus stats</button>
     <details id="port-ref" class="port-ref">
       <summary class="port-ref-summary">&#128214; Port Reference &middot; All 40 ports</summary>
       <div class="port-ref-controls">
@@ -637,11 +637,11 @@
       <div id="port-ref-list" class="port-ref-list" aria-live="polite"></div>
     </details>
   </div>
-  <div id="port-game" class="port-game" style="display:none">
+  <div id="port-game" class="port-game is-hidden">
     <div class="port-prompt" id="port-prompt">SSH</div>
     <div class="port-options" id="port-options"></div>
   </div>
-  <div id="port-results" class="port-results" style="display:none">
+  <div id="port-results" class="port-results is-hidden">
     <div class="port-result-hero">
       <div class="port-final-score" id="port-final-score">0</div>
       <div id="port-final-label" style="font-size:14px;color:var(--text-dim);margin-top:4px">ports matched</div>
