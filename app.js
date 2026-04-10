@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.12
+// Network+ AI Quiz — app.js  v4.13
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.12';
+const APP_VERSION = '4.13';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -28,6 +28,7 @@ const STORAGE = {
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
   PORT_FAMILY_BEST: 'nplus_port_family_best',
+  HARDCORE_EXAM: 'nplus_hardcore_exam',
   PORT_STATS: 'nplus_port_stats',
   EXAM_DATE: 'nplus_exam_date',
   MILESTONES: 'nplus_milestones',
@@ -76,6 +77,7 @@ let sessionResults = [];
 
 // Exam state
 let examMode      = false;
+let examHardcore  = false; // #48: locked order, no flagging, no navigator
 let examQuestions  = [];
 let examAnswers    = []; // [{chosen, flagged, msChosen:[], orderSeq:[]}]
 let examCurrent    = 0;
@@ -452,7 +454,17 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDailyChallengeCard();
   renderTodaysFocus();
   initMonitorGesture();
+  // Restore Hardcore exam preference (#48)
+  const hcCheckbox = document.getElementById('hardcore-checkbox');
+  if (hcCheckbox) hcCheckbox.checked = localStorage.getItem(STORAGE.HARDCORE_EXAM) === '1';
 });
+
+// Persist hardcore-mode preference (#48). The exam page reads `examHardcore`
+// at startExam time, so toggling the checkbox between exams just updates the
+// stored preference.
+function setHardcoreMode(on) {
+  try { localStorage.setItem(STORAGE.HARDCORE_EXAM, on ? '1' : '0'); } catch {}
+}
 
 function initChips(groupId, cb) {
   const g = document.getElementById(groupId);
@@ -1250,6 +1262,10 @@ async function startExam() {
   localStorage.setItem(STORAGE.KEY, key);
 
   examMode = true;
+  // Hardcore mode (#48): read the persisted checkbox state at start time
+  examHardcore = localStorage.getItem(STORAGE.HARDCORE_EXAM) === '1';
+  const examPage = document.getElementById('page-exam');
+  if (examPage) examPage.classList.toggle('hardcore-active', examHardcore);
   wrongDrillMode = false;
   examQuestions = [];
   examAnswers   = [];
@@ -2105,9 +2121,15 @@ function renderExam() {
 }
 
 function examNext() { if (examCurrent < examQuestions.length - 1) { examCurrent++; renderExam(); window.scrollTo(0,0); } }
-function examPrev() { if (examCurrent > 0) { examCurrent--; renderExam(); window.scrollTo(0,0); } }
+function examPrev() {
+  // Hardcore mode locks question order — no going back (#48)
+  if (examHardcore) return;
+  if (examCurrent > 0) { examCurrent--; renderExam(); window.scrollTo(0,0); }
+}
 
 function examToggleFlag() {
+  // Flagging is disabled in hardcore mode (#48)
+  if (examHardcore) return;
   examAnswers[examCurrent].flagged = !examAnswers[examCurrent].flagged;
   renderExam();
 }
@@ -2116,6 +2138,8 @@ function examToggleFlag() {
 // QUESTION NAVIGATOR
 // ══════════════════════════════════════════
 function toggleNav() {
+  // Question navigator is disabled in hardcore mode (#48)
+  if (examHardcore) return;
   navOpen = !navOpen;
   const grid = document.getElementById('qnav-grid');
   document.getElementById('qnav-arrow').textContent = navOpen ? '\u25b2' : '\u25bc';
@@ -2305,7 +2329,7 @@ function submitExam() {
   });
 
   updateStreak();
-  saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam' });
+  saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam', hardcore: examHardcore });
 
   const scoreEl = document.getElementById('exam-scaled-score');
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';
@@ -2314,6 +2338,9 @@ function submitExam() {
   const badge = document.getElementById('exam-pass-badge');
   badge.textContent = passed ? 'PASS' : 'FAIL';
   badge.className   = 'pass-badge ' + (passed ? 'badge-pass' : 'badge-fail');
+  // Hardcore badge on results hero (#48)
+  const hcBadge = document.getElementById('exam-hardcore-badge');
+  if (hcBadge) hcBadge.classList.toggle('is-hidden', !examHardcore);
 
   document.getElementById('exam-result-msg').textContent = passed
     ? `Score ${scaledScore}/900 \u2014 above the 720 pass mark. Exam-ready!`
@@ -2848,7 +2875,9 @@ const MILESTONE_DEFS = [
   { id: 'diversity_5',      label: 'Renaissance',         desc: 'Study 5 different topics in a single day', icon: '🎨' },
   { id: 'deep_dive_10',     label: 'Deep diver',          desc: 'Use Explain Further 10 times',           icon: '🌊' },
   { id: 'daily_challenge_7',label: 'Daily disciple',      desc: '7-day Daily Challenge streak',           icon: '📅' },
-  { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' }
+  { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' },
+  // ── v4.13: Hardcore exam (#48) ──
+  { id: 'hardcore_pass',    label: 'Hardcore pass',       desc: 'Score 720+ on a Hardcore exam simulation', icon: '🔥' }
 ];
 
 function evaluateMilestones() {
@@ -2869,6 +2898,12 @@ function evaluateMilestones() {
   maybe('thousand_qs',     totalQs >= 1000);
   maybe('first_exam',      exams.length >= 1);
   maybe('exam_pass',       exams.some(e => {
+    const scaled = Math.round(100 + (e.score / e.total) * 800);
+    return scaled >= 720;
+  }));
+  // Hardcore pass milestone (#48)
+  maybe('hardcore_pass',   exams.some(e => {
+    if (!e.hardcore) return false;
     const scaled = Math.round(100 + (e.score / e.total) * 800);
     return scaled >= 720;
   }));

@@ -1027,3 +1027,29 @@ input::placeholder { color: var(--text-dim); }
 
 /* ── CONFETTI CANVAS ── */
 #confetti-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9998; }
+
+/* ── Hardcore exam mode (#48) ── */
+.hardcore-toggle {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding: 12px 14px;
+  border: 1.5px solid rgba(239,68,68,.35);
+  background: rgba(239,68,68,.06);
+  border-radius: var(--radius-sm);
+  cursor: pointer; user-select: none;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  transition: all .15s;
+}
+.hardcore-toggle:hover { border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.10); }
+.hardcore-toggle input[type="checkbox"] { width: 18px; height: 18px; accent-color: #ef4444; cursor: pointer; }
+.hardcore-sub { font-weight: 500; color: var(--text-dim); font-size: 11px; }
+.hardcore-badge {
+  display: inline-block; margin-left: 8px; padding: 4px 10px;
+  font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  background: #ef4444; color: #fff; border-radius: 99px;
+  vertical-align: middle;
+}
+/* Hide flag + navigator entirely when exam page is in hardcore mode */
+#page-exam.hardcore-active #exam-flag-btn,
+#page-exam.hardcore-active #qnav-toggle,
+#page-exam.hardcore-active #qnav-grid { display: none !important; }
+#page-exam.hardcore-active #exam-prev-btn { visibility: hidden; }

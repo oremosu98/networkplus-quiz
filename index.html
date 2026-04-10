@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.12</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.13</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -247,6 +247,10 @@
   <div id="setup-err" class="err-box is-hidden"></div>
   <button class="btn btn-primary btn-full" onclick="startQuiz()">Generate Quiz &#9889;</button>
   <button class="btn btn-exam btn-full" style="margin-top:10px" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
+  <label class="hardcore-toggle" for="hardcore-checkbox" title="Locked question order, no flagging, no navigator — strict CompTIA conditions">
+    <input type="checkbox" id="hardcore-checkbox" onchange="setHardcoreMode(this.checked)">
+    <span>&#128293; Hardcore mode <span class="hardcore-sub">&middot; locked order &middot; no flagging &middot; no navigator</span></span>
+  </label>
   <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">Exam mode: timed, no hints, scaled 100-900 score. Pass mark: 720</p>
 
   <!-- Wrong Answers Drill -->
@@ -533,7 +537,7 @@
 <div id="page-exam-results" class="page">
   <div class="exam-results-hero">
     <div class="scaled-score" id="exam-scaled-score">750</div>
-    <div><span class="pass-badge" id="exam-pass-badge">PASS</span></div>
+    <div><span class="pass-badge" id="exam-pass-badge">PASS</span> <span class="hardcore-badge is-hidden" id="exam-hardcore-badge">&#128293; HARDCORE</span></div>
     <p class="pass-msg" id="exam-result-msg"></p>
     <p class="pass-threshold">Pass mark: 720 / 900 &nbsp;&bull;&nbsp; CompTIA N10-009 scaled score</p>
   </div>

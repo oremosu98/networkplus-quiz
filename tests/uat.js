@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.12', js.includes("const APP_VERSION = '4.12"));
+test('APP_VERSION is 4.13', js.includes("const APP_VERSION = '4.13"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.12', sw.includes('netplus-v4.12'));
+test('SW cache bumped to v4.13', sw.includes('netplus-v4.13'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -248,6 +248,27 @@ test('Family Drill: nextPortQ reverted to 50/50', js.includes("Math.random() < 0
 test('Family Drill: nextPortQ no longer calls family', !/function nextPortQ\(\)[\s\S]{0,400}nextPortFamilyQ\(\);[\s\S]{0,80}return;/.test(js));
 test('Family Drill: beginPortDrill routes family', /portMode === 'family'[\s\S]{0,80}nextPortFamilyQ/.test(js));
 test('Family Drill: family wrong ends run', /portMode === 'family' \|\| portMode === 'endless'/.test(js));
+
+// ── Hardcore exam (#48) ──
+console.log('\n\x1b[1m── HARDCORE EXAM (v4.13 #48) ──\x1b[0m');
+test('STORAGE.HARDCORE_EXAM key', js.includes("HARDCORE_EXAM:"));
+test('examHardcore state var', js.includes('let examHardcore'));
+test('setHardcoreMode function', js.includes('function setHardcoreMode('));
+test('startExam reads HARDCORE_EXAM pref', /examHardcore = localStorage\.getItem\(STORAGE\.HARDCORE_EXAM\)/.test(js));
+test('startExam toggles hardcore-active class', js.includes("classList.toggle('hardcore-active'"));
+test('examPrev guarded by examHardcore', /function examPrev[\s\S]{0,150}if \(examHardcore\) return;/.test(js));
+test('examToggleFlag guarded by examHardcore', /function examToggleFlag[\s\S]{0,200}if \(examHardcore\) return;/.test(js));
+test('toggleNav guarded by examHardcore', /function toggleNav[\s\S]{0,150}if \(examHardcore\) return;/.test(js));
+test('History entry includes hardcore flag', js.includes('hardcore: examHardcore'));
+test('Hardcore badge shown on results', js.includes("'exam-hardcore-badge'"));
+test('hardcore_pass milestone defined', js.includes("id: 'hardcore_pass'"));
+test('hardcore_pass evaluated against history', /maybe\('hardcore_pass'[\s\S]{0,200}e\.hardcore/.test(js));
+test('HTML: hardcore-checkbox', html.includes('id="hardcore-checkbox"'));
+test('HTML: hardcore-toggle label', html.includes('class="hardcore-toggle"'));
+test('HTML: exam-hardcore-badge', html.includes('id="exam-hardcore-badge"'));
+test('CSS: .hardcore-toggle', css.includes('.hardcore-toggle'));
+test('CSS: .hardcore-badge', css.includes('.hardcore-badge'));
+test('CSS: hardcore-active hides flag/nav', css.includes('hardcore-active'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
 test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
@@ -459,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.12.x', sw.includes('netplus-v4.12.'));
-test('APP_VERSION bumped to 4.12', js.includes("APP_VERSION = '4.12'"));
+test('SW cache bumped to v4.13.x', sw.includes('netplus-v4.13.'));
+test('APP_VERSION bumped to 4.13', js.includes("APP_VERSION = '4.13'"));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
