@@ -69,6 +69,18 @@ npx vercel --prod --yes
 
 Production URL: https://networkplus-quiz-sable.vercel.app
 
+## Branching Strategy
+**Trunk-based** — direct commits to `main`, no `stage`/`preprod` branch. Vercel auto-deploys every push to main. Local UAT (`node tests/uat.js`) gates every push.
+
+For risky changes (SW rewrites, API contract changes, big refactors), use a feature branch — Vercel auto-builds a **preview deployment** at `https://networkplus-quiz-sable-git-<branch-name>-oremosu98.vercel.app`. Click around on the real CDN before merging, then squash-merge to main (auto-deletes the branch).
+
+**Add a `stage` branch only when one of these triggers fires:**
+1. Paying users on the cert SaaS pivot (a broken deploy starts costing real money)
+2. A backend with DB migrations (need a non-prod target to run them against)
+3. A second person joins (contractor, partner, beta team needs a non-prod URL)
+
+Until then, stage is pure overhead — Vercel preview deploys give 90% of its value at 0% of the friction.
+
 ## Local Development
 ```bash
 cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
