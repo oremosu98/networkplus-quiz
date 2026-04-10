@@ -2563,9 +2563,6 @@ const DOMAIN_LABELS = {
   security:        'Network Security',
   troubleshooting: 'Network Troubleshooting'
 };
-// Valid CompTIA N10-009 exam objective numbers — questions must map to one of these
-// Domain 1: 1.1-1.8 | Domain 2: 2.1-2.4 | Domain 3: 3.1-3.5 | Domain 4: 4.1-4.5 | Domain 5: 5.1-5.5
-const N10_009_OBJECTIVE_RE = /^[1-5]\.[1-8]$/;
 // Largest-remainder allocation of n questions across the 5 CompTIA domains per official weights
 function computeDomainDistribution(n) {
   const order = ['concepts','implementation','operations','security','troubleshooting'];
@@ -4560,7 +4557,6 @@ function cidrToMaskArr(cidr) {
   const bits = '1'.repeat(cidr) + '0'.repeat(32 - cidr);
   return [parseInt(bits.slice(0,8),2), parseInt(bits.slice(8,16),2), parseInt(bits.slice(16,24),2), parseInt(bits.slice(24,32),2)];
 }
-function ipToArr(ip) { return ip.split('.').map(Number); }
 function arrToIp(a) { return a.join('.'); }
 function getSubnetAddr(ipArr, maskArr) { return ipArr.map((o,i) => o & maskArr[i]); }
 function getBroadcastAddr(ipArr, maskArr) { return ipArr.map((o,i) => (o & maskArr[i]) | (~maskArr[i] & 255)); }

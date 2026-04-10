@@ -239,7 +239,7 @@ test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
 test('SW cache bumped to v4.11', sw.includes('netplus-v4.11'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
-test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
+test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
 test('Prompt requires objective field', js.includes('MANDATORY N10-009 OBJECTIVE TAGGING'));
 test('Prompt: objective in JSON schema', js.includes('"objective":"X.Y"'));
 test('Mixed mode domain distribution', js.includes('MANDATORY DOMAIN DISTRIBUTION'));
