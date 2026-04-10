@@ -557,8 +557,8 @@ function renderHistoryPanel() {
   const h = loadHistory();
   const panel = document.getElementById('history-panel');
   const list  = document.getElementById('history-list');
-  if (h.length === 0) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
+  if (h.length === 0) { panel.classList.add('is-hidden'); return; }
+  panel.classList.remove('is-hidden');
   list.innerHTML = h.slice(0,8).map(e => {
     const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
@@ -659,7 +659,7 @@ function renderStatsCard() {
   const card  = document.getElementById('stats-card');
   const grid  = document.getElementById('stats-grid');
   if (!stats || !card || !grid) return;
-  card.style.display = 'block';
+  card.classList.remove('is-hidden');
   const streakData = getStreakData();
   const todayQs = getTodayQuestionCount();
   const avgColor = stats.avgPct >= 80 ? 'var(--green)' : stats.avgPct >= 60 ? 'var(--yellow)' : 'var(--red)';
@@ -1069,10 +1069,10 @@ function renderWrongBankBtn() {
   if (!row || !btn) return;
   const bank = loadWrongBank();
   if (bank.length === 0) {
-    row.style.display = 'none';
+    row.classList.add('is-hidden');
     return;
   }
-  row.style.display = 'flex';
+  row.classList.remove('is-hidden');
   const badge = btn.querySelector('.wrong-count-badge');
   if (badge) badge.textContent = bank.length;
 }
@@ -1146,8 +1146,8 @@ function renderWeakBanner() {
   const weak   = getWeakTopic();
   const banner = document.getElementById('weak-banner');
   if (!banner) return;
-  if (!weak) { banner.style.display = 'none'; return; }
-  banner.style.display = 'flex';
+  if (!weak) { banner.classList.add('is-hidden'); return; }
+  banner.classList.remove('is-hidden');
   document.getElementById('weak-topic-name').textContent = weak.topic;
   document.getElementById('weak-topic-pct').textContent  = weak.pct + '%';
   document.getElementById('weak-drill-btn').onclick = () => {
@@ -1180,9 +1180,9 @@ function validateApiKey(key) {
 async function startQuiz() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
-  errBox.style.display = 'none';
+  errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
   examMode = false;
@@ -1190,7 +1190,7 @@ async function startQuiz() {
 
   activeQuizTopic = topic.includes('Smart') ? getSpacedRepTopic() : topic;
 
-  document.getElementById('load-progress').style.display = 'none';
+  document.getElementById('load-progress').classList.add('is-hidden');
   showPage('loading');
   document.getElementById('loading-msg').textContent = topic.includes('Smart')
     ? '\ud83e\udde0 Smart pick: ' + activeQuizTopic + '\u2026'
@@ -1203,7 +1203,7 @@ async function startQuiz() {
     fetchTopicBrief(key, briefTopic);
   } else {
     const tb = document.getElementById('topic-brief');
-    if (tb) tb.style.display = 'none';
+    if (tb) tb.classList.add('is-hidden');
   }
   try {
     questions = await fetchQuestions(key, activeQuizTopic, diff, qCount);
@@ -1221,7 +1221,7 @@ async function startQuiz() {
     } else {
       showPage('setup');
       errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
-      errBox.style.display = 'block';
+      errBox.classList.remove('is-hidden');
       return;
     }
   }
@@ -1242,9 +1242,9 @@ async function startQuiz() {
 async function startExam() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
-  errBox.style.display = 'none';
+  errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
 
@@ -1262,7 +1262,7 @@ async function startExam() {
   const fill = document.getElementById('load-bar-fill');
   const lbl  = document.getElementById('load-progress-label');
   fill.style.width = '0%';
-  prog.style.display = 'block';
+  prog.classList.remove('is-hidden');
 
   const BATCHES = 5, BATCH_SIZE = 18, MAX_RETRIES = 2;
   try {
@@ -1294,7 +1294,7 @@ async function startExam() {
     examMode = false;
     showPage('setup');
     errBox.textContent = '\u26a0\ufe0f ' + e.message;
-    errBox.style.display = 'block';
+    errBox.classList.remove('is-hidden');
   }
 }
 
@@ -1453,11 +1453,11 @@ function render() {
   // PBQ badge
   const pbqBadge = document.getElementById('pbq-badge');
   if (pbqBadge) {
-    if (qType === 'multi-select') { pbqBadge.textContent = 'Multi-Select'; pbqBadge.style.display = ''; }
-    else if (qType === 'order') { pbqBadge.textContent = 'Ordering'; pbqBadge.style.display = ''; }
-    else if (qType === 'cli-sim') { pbqBadge.textContent = 'CLI Sim'; pbqBadge.style.display = ''; }
-    else if (qType === 'topology') { pbqBadge.textContent = 'Topology'; pbqBadge.style.display = ''; }
-    else { pbqBadge.style.display = 'none'; }
+    if (qType === 'multi-select') { pbqBadge.textContent = 'Multi-Select'; pbqBadge.classList.remove('is-hidden'); }
+    else if (qType === 'order') { pbqBadge.textContent = 'Ordering'; pbqBadge.classList.remove('is-hidden'); }
+    else if (qType === 'cli-sim') { pbqBadge.textContent = 'CLI Sim'; pbqBadge.classList.remove('is-hidden'); }
+    else if (qType === 'topology') { pbqBadge.textContent = 'Topology'; pbqBadge.classList.remove('is-hidden'); }
+    else { pbqBadge.classList.add('is-hidden'); }
   }
 
   document.getElementById('q-text').textContent = q.question;
@@ -1485,7 +1485,7 @@ function render() {
 
   const expBox = document.getElementById('exp-box');
   expBox.className = 'explanation-box';
-  expBox.style.display = 'none';
+  expBox.classList.add('is-hidden');
 
   const btnNext = document.getElementById('btn-next');
   btnNext.className = 'btn-next';
@@ -1578,7 +1578,7 @@ function renderMultiSelect(q, box, ans) {
     submitBtn.id = 'ms-submit-btn';
     submitBtn.textContent = 'Submit';
     submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.5';
+    submitBtn.classList.add('is-dimmed');
     submitBtn.onclick = () => submitMultiSelect(q);
     row.appendChild(submitBtn);
     box.appendChild(row);
@@ -1590,7 +1590,7 @@ function updateMsSubmitBtn(reqCount) {
   if (!btn) return;
   const ready = msSelections.length === reqCount;
   btn.disabled = !ready;
-  btn.style.opacity = ready ? '1' : '0.5';
+  btn.classList.toggle('is-dimmed', !ready);
 }
 
 function submitMultiSelect(q) {
@@ -1628,7 +1628,7 @@ function submitMultiSelect(q) {
 
   // Hide submit row
   const submitBtn = document.getElementById('ms-submit-btn');
-  if (submitBtn) submitBtn.style.display = 'none';
+  if (submitBtn) submitBtn.classList.add('is-hidden');
 
   showExplanation(q, isRight);
 }
@@ -1703,7 +1703,7 @@ function renderOrder(q, box, ans) {
     submitBtn.id = 'order-submit-btn';
     submitBtn.textContent = 'Submit Order';
     submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.5';
+    submitBtn.classList.add('is-dimmed');
     submitBtn.onclick = () => submitOrder(q);
     controls.appendChild(submitBtn);
     box.appendChild(controls);
@@ -1739,7 +1739,7 @@ function renderOrderState(items, q) {
   if (btn) {
     const ready = orderSequence.length === items.length;
     btn.disabled = !ready;
-    btn.style.opacity = ready ? '1' : '0.5';
+    btn.classList.toggle('is-dimmed', !ready);
   }
 }
 
@@ -1763,8 +1763,8 @@ function submitOrder(q) {
 
   // Disable items
   document.querySelectorAll('#order-items .order-item').forEach(btn => { btn.onclick = null; btn.style.pointerEvents = 'none'; });
-  document.getElementById('order-submit-btn').style.display = 'none';
-  document.querySelector('.order-controls .btn-ghost').style.display = 'none';
+  document.getElementById('order-submit-btn').classList.add('is-hidden');
+  document.querySelector('.order-controls .btn-ghost').classList.add('is-hidden');
 
   // Show correct vs wrong in placed list
   const items = q.items || [];
@@ -1871,7 +1871,7 @@ function showExplanation(q, isRight) {
   expTextEl.insertAdjacentHTML('afterend', extraHtml);
 
   expBox.className   = 'explanation-box show ' + (isRight ? 'correct' : 'wrong');
-  expBox.style.display = 'block';
+  expBox.classList.remove('is-hidden');
   const nextBtn = document.getElementById('btn-next');
   nextBtn.classList.add('show');
   // Focus the Next button for keyboard users
@@ -1890,6 +1890,28 @@ function toggleFlag() {
 // ══════════════════════════════════════════
 // REGULAR QUIZ RESULTS
 // ══════════════════════════════════════════
+// Build the per-difficulty score breakdown shown on the results page.
+// Extracted from finish() (#18) so the parent function fits the long-function budget.
+function renderResultsDifficultyBreakdown() {
+  const byDiff = {};
+  log.forEach(entry => {
+    const d = (entry.q.difficulty || DEFAULT_DIFF).trim();
+    if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
+    byDiff[d].total++;
+    if (entry.isRight) byDiff[d].right++;
+  });
+  const diffOrder = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Hard', 'Mixed'];
+  const diffColors = { 'Foundational': 'var(--blue)', 'Exam Level': 'var(--yellow)', 'Hard / Tricky': 'var(--red)', 'Hard': 'var(--red)', 'Mixed': 'var(--accent-light)' };
+  const diffEl = document.getElementById('diff-breakdown');
+  const diffKeys = diffOrder.filter(d => byDiff[d]);
+  diffEl.innerHTML = diffKeys.length > 1 ? diffKeys.map(d => {
+    const { right, total: t } = byDiff[d];
+    const col = diffColors[d] || 'var(--text)';
+    const shortLabel = d.replace(' / Tricky', '').replace('Foundational', 'Basic');
+    return `<div class="dstat"><div class="dv" style="color:${col}">${right}/${t}</div><div class="dl">${shortLabel}</div></div>`;
+  }).join('') : '';
+}
+
 function finish() {
   const total = questions.length;
   const pct   = total > 0 ? Math.round((score / total) * 100) : 0;
@@ -1924,27 +1946,9 @@ function finish() {
   document.getElementById('r-correct').textContent = score;
   document.getElementById('r-wrong').textContent   = total - score;
   document.getElementById('r-streak').textContent  = bestStreak;
-  document.getElementById('btn-review').style.display = log.length > 0 ? '' : 'none';
+  document.getElementById('btn-review').classList.toggle('is-hidden', log.length === 0);
 
-  // Difficulty breakdown
-  const byDiff = {};
-  log.forEach(entry => {
-    const d = (entry.q.difficulty || DEFAULT_DIFF).trim();
-    if (!byDiff[d]) byDiff[d] = { right: 0, total: 0 };
-    byDiff[d].total++;
-    if (entry.isRight) byDiff[d].right++;
-  });
-  const diffOrder = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Hard', 'Mixed'];
-  const diffColors = { 'Foundational': 'var(--blue)', 'Exam Level': 'var(--yellow)', 'Hard / Tricky': 'var(--red)', 'Hard': 'var(--red)', 'Mixed': 'var(--accent-light)' };
-  const diffEl = document.getElementById('diff-breakdown');
-  const diffKeys = diffOrder.filter(d => byDiff[d]);
-  diffEl.innerHTML = diffKeys.length > 1 ? diffKeys.map(d => {
-    const { right, total: t } = byDiff[d];
-    const dpct = Math.round((right / t) * 100);
-    const col = diffColors[d] || 'var(--text)';
-    const shortLabel = d.replace(' / Tricky', '').replace('Foundational', 'Basic');
-    return `<div class="dstat"><div class="dv" style="color:${col}">${right}/${t}</div><div class="dl">${shortLabel}</div></div>`;
-  }).join('') : '';
+  renderResultsDifficultyBreakdown();
 
   updateStreak();
   renderStreakBadge();
@@ -1986,14 +1990,14 @@ async function retryQuiz() {
     showPage('setup');
     const err = document.getElementById('setup-err');
     err.textContent = '\u26a0\ufe0f Please enter your API key to retry.';
-    err.style.display = 'block';
+    err.classList.remove('is-hidden');
     return;
   }
   apiKey = key;
 
   activeQuizTopic = topic.includes('Smart') ? getSpacedRepTopic() : topic;
 
-  document.getElementById('load-progress').style.display = 'none';
+  document.getElementById('load-progress').classList.add('is-hidden');
   showPage('loading');
   document.getElementById('loading-msg').textContent = 'Generating ' + qCount + ' fresh ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
 
@@ -2013,7 +2017,7 @@ async function retryQuiz() {
       showPage('setup');
       const err = document.getElementById('setup-err');
       err.textContent = '\u26a0\ufe0f ' + e.message;
-      err.style.display = 'block';
+      err.classList.remove('is-hidden');
       return;
     }
   }
@@ -2153,7 +2157,7 @@ function showExamModal() {
   document.getElementById('modal-flagged').textContent    = flaggedCount;
   const flagBtn = document.getElementById('modal-flagged-btn');
   flagBtn.disabled = flaggedCount === 0;
-  flagBtn.style.opacity = flaggedCount === 0 ? '0.4' : '1';
+  flagBtn.classList.toggle('is-dimmed', flaggedCount === 0);
   const modal = document.getElementById('exam-modal');
   modal.classList.remove('hidden');
   // Focus first button in modal for keyboard users
@@ -2352,7 +2356,7 @@ function launchConfetti() {
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  canvas.style.display = 'block';
+  canvas.classList.remove('is-hidden');
 
   const PARTICLE_COUNT = 150;
   const COLORS = ['#22c55e','#7c6ff7','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316'];
@@ -2416,7 +2420,7 @@ function launchConfetti() {
       requestAnimationFrame(animate);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      canvas.style.display = 'none';
+      canvas.classList.add('is-hidden');
     }
   }
 
@@ -2563,9 +2567,6 @@ const DOMAIN_LABELS = {
   security:        'Network Security',
   troubleshooting: 'Network Troubleshooting'
 };
-// Valid CompTIA N10-009 exam objective numbers — questions must map to one of these
-// Domain 1: 1.1-1.8 | Domain 2: 2.1-2.4 | Domain 3: 3.1-3.5 | Domain 4: 4.1-4.5 | Domain 5: 5.1-5.5
-const N10_009_OBJECTIVE_RE = /^[1-5]\.[1-8]$/;
 // Largest-remainder allocation of n questions across the 5 CompTIA domains per official weights
 function computeDomainDistribution(n) {
   const order = ['concepts','implementation','operations','security','troubleshooting'];
@@ -2638,6 +2639,26 @@ function diffWeight(d) {
   return 1.3;
 }
 
+// Build a per-topic weighted-accuracy map from history entries.
+// Weights: difficulty × exam-mode boost (1.3 for exam mode) × recency boost
+// (2.0 for sessions in the last 7 days). Extracted from getReadinessScore (#18).
+function buildWeightedTopicMap(historyEntries, now) {
+  const SEVEN_DAYS_MS = 7 * 86400000;
+  const topicMap = {};
+  historyEntries.forEach(e => {
+    if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
+    const sessionTime = new Date(e.date).getTime();
+    const isRecent = (now - sessionTime) <= SEVEN_DAYS_MS;
+    const examBoost = (e.mode === 'exam') ? 1.3 : 1.0;
+    const recencyBoost = isRecent ? 2.0 : 1.0;
+    const w = diffWeight(e.difficulty) * examBoost * recencyBoost;
+    topicMap[e.topic].wCorrect += e.score * w;
+    topicMap[e.topic].wTotal   += e.total * w;
+    if (sessionTime > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = sessionTime;
+  });
+  return topicMap;
+}
+
 function getReadinessScore() {
   const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
     .map(c => c.dataset.v)
@@ -2650,20 +2671,7 @@ function getReadinessScore() {
   if (h.length === 0) return null;
 
   const now = Date.now();
-  const SEVEN_DAYS_MS = 7 * 86400000;
-  const topicMap = {};
-  h.forEach(e => {
-    if (!topicMap[e.topic]) topicMap[e.topic] = { wCorrect: 0, wTotal: 0, lastDate: 0 };
-    // Base weight: difficulty × exam-mode boost × recency boost (last 7 days = 2x)
-    const sessionTime = new Date(e.date).getTime();
-    const isRecent = (now - sessionTime) <= SEVEN_DAYS_MS;
-    const examBoost = (e.mode === 'exam') ? 1.3 : 1.0;
-    const recencyBoost = isRecent ? 2.0 : 1.0;
-    const w = diffWeight(e.difficulty) * examBoost * recencyBoost;
-    topicMap[e.topic].wCorrect += e.score * w;
-    topicMap[e.topic].wTotal   += e.total * w;
-    if (sessionTime > topicMap[e.topic].lastDate) topicMap[e.topic].lastDate = sessionTime;
-  });
+  const topicMap = buildWeightedTopicMap(h, now);
 
   const studiedTopics = Object.keys(topicMap);
   const studiedCount  = studiedTopics.length;
@@ -3061,7 +3069,7 @@ function renderDailyChallengeCard() {
   if (!card) return;
   // Once today's challenge is done, hide the card entirely until tomorrow.
   if (isDailyChallengeDoneToday()) {
-    card.style.display = 'none';
+    card.classList.add('is-hidden');
     card.classList.remove('dc-done', 'dc-pending');
     return;
   }
@@ -3080,15 +3088,15 @@ function renderDailyChallengeCard() {
   `;
   card.classList.add('dc-pending');
   card.classList.remove('dc-done');
-  card.style.display = 'flex';
+  card.classList.remove('is-hidden');
 }
 async function startDailyChallenge() {
   const key = (document.getElementById('api-key').value || localStorage.getItem(STORAGE.KEY) || '').trim();
   const errBox = document.getElementById('setup-err');
-  if (errBox) errBox.style.display = 'none';
+  if (errBox) errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
   if (keyErr) {
-    if (errBox) { errBox.textContent = keyErr; errBox.style.display = 'block'; }
+    if (errBox) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); }
     return;
   }
   // Configure the quiz: 1 question, Exam Level, date-seeded topic
@@ -3138,14 +3146,14 @@ function renderTodaysFocus() {
   const row = document.getElementById('todays-focus');
   if (!row) return;
   const topics = getTodaysFocusTopics(2);
-  if (topics.length === 0) { row.style.display = 'none'; return; }
+  if (topics.length === 0) { row.classList.add('is-hidden'); return; }
   row.innerHTML = `
     <span class="tf-label">🎯 Weak spots:</span>
     <div class="tf-chips">
       ${topics.map(t => `<button type="button" class="tf-chip" onclick="focusTopic('${t.replace(/'/g, "\\'")}')">${escHtml(t)} →</button>`).join('')}
     </div>
   `;
-  row.style.display = 'flex';
+  row.classList.remove('is-hidden');
 }
 function focusTopic(t) {
   topic = t;
@@ -3176,9 +3184,9 @@ function renderStreakDefender() {
       </div>
       <button class="sd-btn" onclick="startStreakSave()">Save streak →</button>
     `;
-    card.style.display = 'flex';
+    card.classList.remove('is-hidden');
   } else {
-    card.style.display = 'none';
+    card.classList.add('is-hidden');
   }
 }
 function startStreakSave() {
@@ -3333,12 +3341,12 @@ function renderSessionBanner() {
   if (!banner || !rows) return;
   // Hide the whole banner once the plan is addressed for today — back tomorrow.
   if (isStudyPlanDoneToday()) {
-    banner.style.display = 'none';
+    banner.classList.add('is-hidden');
     return;
   }
   const plan = buildSessionPlan(SESSION_TOPICS);
   sessionPlan = plan;
-  banner.style.display = 'block';
+  banner.classList.remove('is-hidden');
   rows.innerHTML = plan.map((item, i) => `
     <div class="session-topic-row">
       <div class="session-step-badge">${i + 1}</div>
@@ -3352,9 +3360,9 @@ function renderSessionBanner() {
 async function startSession() {
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
-  errBox.style.display = 'none';
+  errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.style.display = 'block'; return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
 
@@ -3374,7 +3382,7 @@ async function runSessionStep() {
   activeQuizTopic = sTopic;
   topic = sTopic;
 
-  document.getElementById('load-progress').style.display = 'none';
+  document.getElementById('load-progress').classList.add('is-hidden');
   showPage('loading');
   document.getElementById('loading-msg').textContent =
     'Session ' + (sessionStep + 1) + '/' + SESSION_TOPICS + ' \u2014 ' + sTopic + '\u2026';
@@ -3394,7 +3402,7 @@ async function runSessionStep() {
       showPage('setup');
       const err = document.getElementById('setup-err');
       err.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
-      err.style.display = 'block';
+      err.classList.remove('is-hidden');
       return;
     }
   }
@@ -3901,7 +3909,7 @@ function renderCliSim(q, box, ans) {
     const diagSection = document.createElement('div');
     diagSection.id = 'cli-diagnosis';
     diagSection.className = 'cli-diagnosis';
-    diagSection.style.display = 'none';
+    diagSection.classList.add('is-hidden');
     diagSection.setAttribute('role', 'radiogroup');
     diagSection.setAttribute('aria-label', 'Diagnosis options');
     diagSection.innerHTML = '<div class="cli-diag-label">DIAGNOSIS</div>';
@@ -3943,7 +3951,7 @@ function runCliCommand(cmd, q) {
   terminal.scrollTop = terminal.scrollHeight;
 
   const diag = document.getElementById('cli-diagnosis');
-  if (diag) diag.style.display = 'block';
+  if (diag) diag.classList.remove('is-hidden');
 }
 
 // ══════════════════════════════════════════
@@ -4074,7 +4082,7 @@ function renderTopology(q, box, ans) {
     submitBtn.id = 'topo-submit-btn';
     submitBtn.textContent = 'Submit Placement';
     submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.5';
+    submitBtn.classList.add('is-dimmed');
     submitBtn.onclick = () => submitTopology(q);
     controls.appendChild(submitBtn);
     box.appendChild(controls);
@@ -4106,7 +4114,7 @@ function renderTopoState(q) {
   if (submitBtn) {
     const ready = allPlaced.length === devices.length;
     submitBtn.disabled = !ready;
-    submitBtn.style.opacity = ready ? '1' : '0.5';
+    submitBtn.classList.toggle('is-dimmed', !ready);
   }
 }
 
@@ -4139,9 +4147,9 @@ function submitTopology(q) {
   document.querySelectorAll('.topo-device').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
   document.querySelectorAll('.topo-zone').forEach(z => { z.onclick = null; z.style.cursor = 'default'; });
   const topoSubmit = document.getElementById('topo-submit-btn');
-  if (topoSubmit) topoSubmit.style.display = 'none';
+  if (topoSubmit) topoSubmit.classList.add('is-hidden');
   const topoReset = document.querySelector('.topo-controls .btn-ghost');
-  if (topoReset) topoReset.style.display = 'none';
+  if (topoReset) topoReset.classList.add('is-hidden');
 
   const zones = q.zones || [];
   zones.forEach(zone => {
@@ -4386,6 +4394,34 @@ Use plain text, no markdown. Label each section clearly. Aim for 250-350 words t
 // ══════════════════════════════════════════
 let topicDiveReturnPage = 'quiz';
 
+// Builds the JSON-shaped prompt sent to Claude for the Topic Deep Dive feature.
+// Extracted from showTopicDeepDive() (#18) so the parent fits the long-function budget.
+function buildTopicDivePrompt(topicName) {
+  return `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
+
+Return your response as valid JSON with this exact structure:
+{
+  "summary": "2-3 sentence overview of what this topic covers and why it matters for the exam",
+  "keyConcepts": [
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
+    { "name": "Concept Name", "detail": "1-2 sentence explanation" }
+  ],
+  "howItWorks": "3-4 sentence detailed but accessible explanation of how the core technology/concept works under the hood. Use simple language a beginner would understand.",
+  "scenario": "A realistic workplace scenario (3-4 sentences) showing this concept in action. Include the problem, the solution, and what commands/tools/protocols were used.",
+  "examTips": [
+    "Specific exam tip or trap to watch for",
+    "Another specific tip",
+    "A third tip"
+  ],
+  "memoryTrick": "A mnemonic, acronym, or memorable hook to remember the key facts",
+  "diagram": "An ASCII diagram showing the concept visually (use box-drawing characters like ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ and arrows → ← ↑ ↓). Make it clear and labeled. 5-8 lines max. If the topic doesn't suit a diagram, provide a structured comparison table instead."
+}
+
+Return ONLY valid JSON, no extra text before or after.`;
+}
+
 async function showTopicDeepDive(topicName) {
   // Remember which page to return to
   const pages = ['page-quiz', 'page-review', 'page-exam', 'page-exam-results', 'page-results'];
@@ -4415,29 +4451,7 @@ async function showTopicDeepDive(topicName) {
     return;
   }
 
-  const prompt = `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
-
-Return your response as valid JSON with this exact structure:
-{
-  "summary": "2-3 sentence overview of what this topic covers and why it matters for the exam",
-  "keyConcepts": [
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" },
-    { "name": "Concept Name", "detail": "1-2 sentence explanation" }
-  ],
-  "howItWorks": "3-4 sentence detailed but accessible explanation of how the core technology/concept works under the hood. Use simple language a beginner would understand.",
-  "scenario": "A realistic workplace scenario (3-4 sentences) showing this concept in action. Include the problem, the solution, and what commands/tools/protocols were used.",
-  "examTips": [
-    "Specific exam tip or trap to watch for",
-    "Another specific tip",
-    "A third tip"
-  ],
-  "memoryTrick": "A mnemonic, acronym, or memorable hook to remember the key facts",
-  "diagram": "An ASCII diagram showing the concept visually (use box-drawing characters like ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ and arrows → ← ↑ ↓). Make it clear and labeled. 5-8 lines max. If the topic doesn't suit a diagram, provide a structured comparison table instead."
-}
-
-Return ONLY valid JSON, no extra text before or after.`;
+  const prompt = buildTopicDivePrompt(topicName);
 
   try {
     const apiRes = await fetch(CLAUDE_API_URL, {
@@ -4560,7 +4574,6 @@ function cidrToMaskArr(cidr) {
   const bits = '1'.repeat(cidr) + '0'.repeat(32 - cidr);
   return [parseInt(bits.slice(0,8),2), parseInt(bits.slice(8,16),2), parseInt(bits.slice(16,24),2), parseInt(bits.slice(24,32),2)];
 }
-function ipToArr(ip) { return ip.split('.').map(Number); }
 function arrToIp(a) { return a.join('.'); }
 function getSubnetAddr(ipArr, maskArr) { return ipArr.map((o,i) => o & maskArr[i]); }
 function getBroadcastAddr(ipArr, maskArr) { return ipArr.map((o,i) => (o & maskArr[i]) | (~maskArr[i] & 255)); }
@@ -4616,8 +4629,8 @@ function nextSubnetQuestion() {
   document.getElementById('subnet-answer').value = '';
   document.getElementById('subnet-feedback').innerHTML = '';
   document.getElementById('subnet-feedback').className = 'subnet-feedback';
-  document.getElementById('subnet-next-btn').style.display = 'none';
-  document.getElementById('subnet-submit-btn').style.display = 'inline-flex';
+  document.getElementById('subnet-next-btn').classList.add('is-hidden');
+  document.getElementById('subnet-submit-btn').classList.remove('is-hidden');
   document.getElementById('subnet-answer').disabled = false;
   document.getElementById('subnet-answer').focus();
   document.getElementById('subnet-score').textContent = subnetCorrect + ' / ' + subnetTotal;
@@ -4656,8 +4669,8 @@ function checkSubnetAnswer() {
   }
   document.getElementById('subnet-score').textContent = subnetCorrect + ' / ' + subnetTotal;
   document.getElementById('subnet-streak-lbl').textContent = '\ud83d\udd25 ' + subnetStreak;
-  document.getElementById('subnet-submit-btn').style.display = 'none';
-  document.getElementById('subnet-next-btn').style.display = 'block';
+  document.getElementById('subnet-submit-btn').classList.add('is-hidden');
+  document.getElementById('subnet-next-btn').classList.remove('is-hidden');
   document.getElementById('subnet-answer').disabled = true;
 }
 
@@ -4666,7 +4679,7 @@ document.addEventListener('keydown', e => {
   if (document.getElementById('page-subnet')?.classList.contains('active')) {
     if (e.key === 'Enter') {
       const nextBtn = document.getElementById('subnet-next-btn');
-      if (nextBtn && nextBtn.style.display !== 'none') nextSubnetQuestion();
+      if (nextBtn && !nextBtn.classList.contains('is-hidden')) nextSubnetQuestion();
       else checkSubnetAnswer();
     }
   }
@@ -4723,7 +4736,7 @@ function setPortMode(mode) {
   }
   // Hide the timer block entirely in endless mode
   const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.style.display = (portMode === 'endless') ? 'none' : '';
+  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode === 'endless');
 }
 
 // ── Adaptive port focus (weighted selection based on per-port accuracy) ──
@@ -4793,8 +4806,8 @@ function renderPortFocusInfo() {
   if (!infoEl) return;
   const summary = getPortStatsSummary();
   if (summary.totalSeen < 5) {
-    infoEl.style.display = 'none';
-    if (resetBtn) resetBtn.style.display = 'none';
+    infoEl.classList.add('is-hidden');
+    if (resetBtn) resetBtn.classList.add('is-hidden');
     return;
   }
   const weak = getWeakestPorts(3);
@@ -4808,8 +4821,8 @@ function renderPortFocusInfo() {
     html += `<div class="port-focus-weak-line">No weak spots — mastery mode 💪</div>`;
   }
   infoEl.innerHTML = html;
-  infoEl.style.display = 'block';
-  if (resetBtn) resetBtn.style.display = 'inline-block';
+  infoEl.classList.remove('is-hidden');
+  if (resetBtn) resetBtn.classList.remove('is-hidden');
 }
 function resetPortStats() {
   if (!confirm('Reset all port focus stats? Your best score will be kept.')) return;
@@ -4894,19 +4907,19 @@ function filterPortReference() {
     const proto = c.getAttribute('data-proto') || '';
     const port = c.getAttribute('data-port') || '';
     const match = !q || proto.includes(q) || port.includes(q);
-    c.style.display = match ? '' : 'none';
+    c.classList.toggle('is-hidden', !match);
   });
   // Hide empty category groups
   document.querySelectorAll('#port-ref-list .port-ref-group').forEach(g => {
-    const visible = g.querySelectorAll('.port-ref-card:not([style*="display: none"])').length;
-    g.style.display = visible ? '' : 'none';
+    const visible = g.querySelectorAll('.port-ref-card:not(.is-hidden)').length;
+    g.classList.toggle('is-hidden', !visible);
   });
 }
 
 function startPortDrill() {
-  document.getElementById('port-pregame').style.display = 'block';
-  document.getElementById('port-game').style.display = 'none';
-  document.getElementById('port-results').style.display = 'none';
+  document.getElementById('port-pregame').classList.remove('is-hidden');
+  document.getElementById('port-game').classList.add('is-hidden');
+  document.getElementById('port-results').classList.add('is-hidden');
   document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-score').textContent = '0';
   // Re-apply current mode (also loads the correct best value)
@@ -4919,9 +4932,9 @@ function beginPortDrill() {
   portScore = 0;
   portTimeLeft = PORT_DRILL_SECONDS;
   portMissed = [];
-  document.getElementById('port-pregame').style.display = 'none';
-  document.getElementById('port-game').style.display = 'block';
-  document.getElementById('port-results').style.display = 'none';
+  document.getElementById('port-pregame').classList.add('is-hidden');
+  document.getElementById('port-game').classList.remove('is-hidden');
+  document.getElementById('port-results').classList.add('is-hidden');
   const scoreLabelEl = document.querySelector('.port-score-label');
   if (scoreLabelEl) scoreLabelEl.textContent = portMode === 'endless' ? 'STREAK' : 'SCORE';
   document.getElementById('port-score').textContent = '0';
@@ -4929,7 +4942,7 @@ function beginPortDrill() {
   document.getElementById('port-timer').className = 'port-timer';
   // Hide/show timer block per mode
   const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.style.display = (portMode === 'endless') ? 'none' : '';
+  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode === 'endless');
   nextPortQ();
   if (portTimer) { clearInterval(portTimer); portTimer = null; }
   if (portMode === 'timed') {
@@ -5003,9 +5016,9 @@ function pickPort(chosen, correct) {
 
 function endPortDrill() {
   if (portTimer) { clearInterval(portTimer); portTimer = null; }
-  document.getElementById('port-game').style.display = 'none';
-  document.getElementById('port-pregame').style.display = 'none';
-  document.getElementById('port-results').style.display = 'block';
+  document.getElementById('port-game').classList.add('is-hidden');
+  document.getElementById('port-pregame').classList.add('is-hidden');
+  document.getElementById('port-results').classList.remove('is-hidden');
   document.getElementById('port-final-score').textContent = portScore;
   // Label the final score per mode
   const finalLabelEl = document.getElementById('port-final-label');
@@ -5053,7 +5066,7 @@ async function fetchTopicBrief(key, topicName) {
   const tb = document.getElementById('topic-brief');
   const tbt = document.getElementById('topic-brief-text');
   if (!tb || !tbt) return;
-  tb.style.display = 'none';
+  tb.classList.add('is-hidden');
   tbt.innerHTML = '';
   const prompt = `Give a concise study brief for the CompTIA Network+ N10-009 topic: "${topicName}".
 Include:
@@ -5078,7 +5091,7 @@ Keep it under 120 words. Use plain text, no markdown. Number each section.`;
     const text = data.content?.[0]?.text || '';
     if (text) {
       tbt.innerHTML = escHtml(text).replace(/\n/g, '<br>');
-      tb.style.display = 'block';
+      tb.classList.remove('is-hidden');
     }
   } catch(e) { /* silent fail — brief is a nice-to-have */ }
 }

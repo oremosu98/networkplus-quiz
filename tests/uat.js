@@ -156,6 +156,14 @@ test('Install handler', sw.includes("addEventListener('install'"));
 test('Activate handler', sw.includes("addEventListener('activate'"));
 test('Fetch handler', sw.includes("addEventListener('fetch'"));
 test('API calls excluded from cache', sw.includes('api.anthropic.com'));
+test('SW: cache cap defined (#20)', /CACHE_MAX_ENTRIES\s*=\s*\d+/.test(sw));
+test('SW: trimCache helper present (#20)', sw.includes('async function trimCache'));
+test('SW: trimCache called after cache.put (#20)', /cache\.put\([^)]+\);\s*trimCache\(/.test(sw));
+test('SW: 5xx falls back to cached response (#20)', /response\.status\s*>=\s*500\s*&&\s*cached/.test(sw));
+test('CSS: .is-hidden utility class (#17)', css.includes('.is-hidden { display: none !important;'));
+test('CSS: .is-dimmed utility class (#17)', css.includes('.is-dimmed { opacity:'));
+test('JS: uses is-hidden classList toggles (#17)', (js.match(/classList\.(add|remove|toggle)\(['"]is-hidden['"]/g) || []).length >= 50);
+test('JS: uses is-dimmed classList toggles (#17)', (js.match(/classList\.(add|toggle)\(['"]is-dimmed['"]/g) || []).length >= 5);
 
 // ── Subnet Math Verification ──
 console.log('\n\x1b[1m── SUBNET MATH ──\x1b[0m');
@@ -235,7 +243,7 @@ test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
 test('SW cache bumped to v4.11', sw.includes('netplus-v4.11'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
-test('N10_009_OBJECTIVE_RE regex', js.includes('N10_009_OBJECTIVE_RE'));
+test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
 test('Prompt requires objective field', js.includes('MANDATORY N10-009 OBJECTIVE TAGGING'));
 test('Prompt: objective in JSON schema', js.includes('"objective":"X.Y"'));
 test('Mixed mode domain distribution', js.includes('MANDATORY DOMAIN DISTRIBUTION'));

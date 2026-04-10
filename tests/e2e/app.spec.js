@@ -312,10 +312,10 @@ test.describe('Default Chip Selections', () => {
 });
 
 test.describe('Topic Chip Count', () => {
-  test('has 35 topic chips including Mixed and Smart', async ({ page }) => {
+  test('has 42 topic chips including Mixed and Smart', async ({ page }) => {
     await page.goto('/');
     const chips = page.locator('#topic-group .chip');
-    await expect(chips).toHaveCount(35);
+    await expect(chips).toHaveCount(42);
   });
 
   test('switching topic chip deselects previous', async ({ page }) => {

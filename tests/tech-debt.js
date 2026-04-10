@@ -78,7 +78,7 @@ for (let i = 0; i < jsLines.length; i++) {
     }
   }
 }
-check('Functions >80 lines', longFunctions, 9); // baseline: 9 after v4.5 Analytics v2 (getReadinessScore + renderAnalytics 504) — target: 0
+check('Functions >80 lines', longFunctions, 8); // baseline 11 → 8 after #18 burndown (finish, showTopicDeepDive, getReadinessScore split) — target: 0
 
 // Duplicated render functions
 const dualRenders = jsLines.filter(line =>
@@ -94,7 +94,7 @@ check('Hardcoded API URLs (not in constants)', hardcodedUrls.length, 0);
 
 // Inline style assignments
 const inlineStyles = jsLines.filter(line => /\.style\.\w+\s*=/.test(line));
-check('Inline .style.* assignments', inlineStyles.length, 105); // baseline: 105 (v4.6 daily goal ring + hero stats strip) — target: 20, tracked in #17
+check('Inline .style.* assignments', inlineStyles.length, 50); // baseline: 117 → 37 after #17 burndown (display + opacity → .is-hidden / .is-dimmed) — new ceiling 50, target: 20
 
 // --- CSS checks ---
 console.log('\n🎨 CSS');
