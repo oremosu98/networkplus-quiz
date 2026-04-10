@@ -160,6 +160,10 @@ test('SW: cache cap defined (#20)', /CACHE_MAX_ENTRIES\s*=\s*\d+/.test(sw));
 test('SW: trimCache helper present (#20)', sw.includes('async function trimCache'));
 test('SW: trimCache called after cache.put (#20)', /cache\.put\([^)]+\);\s*trimCache\(/.test(sw));
 test('SW: 5xx falls back to cached response (#20)', /response\.status\s*>=\s*500\s*&&\s*cached/.test(sw));
+test('CSS: .is-hidden utility class (#17)', css.includes('.is-hidden { display: none !important;'));
+test('CSS: .is-dimmed utility class (#17)', css.includes('.is-dimmed { opacity:'));
+test('JS: uses is-hidden classList toggles (#17)', (js.match(/classList\.(add|remove|toggle)\(['"]is-hidden['"]/g) || []).length >= 50);
+test('JS: uses is-dimmed classList toggles (#17)', (js.match(/classList\.(add|toggle)\(['"]is-dimmed['"]/g) || []).length >= 5);
 
 // ── Subnet Math Verification ──
 console.log('\n\x1b[1m── SUBNET MATH ──\x1b[0m');

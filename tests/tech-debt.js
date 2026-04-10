@@ -94,7 +94,7 @@ check('Hardcoded API URLs (not in constants)', hardcodedUrls.length, 0);
 
 // Inline style assignments
 const inlineStyles = jsLines.filter(line => /\.style\.\w+\s*=/.test(line));
-check('Inline .style.* assignments', inlineStyles.length, 105); // baseline: 105 (v4.6 daily goal ring + hero stats strip) — target: 20, tracked in #17
+check('Inline .style.* assignments', inlineStyles.length, 50); // baseline: 117 → 37 after #17 burndown (display + opacity → .is-hidden / .is-dimmed) — new ceiling 50, target: 20
 
 // --- CSS checks ---
 console.log('\n🎨 CSS');
