@@ -5228,7 +5228,8 @@ function renderAnalytics() {
         const color = t.avg >= 80 ? 'var(--green)' : t.avg >= 60 ? 'var(--yellow)' : 'var(--red)';
         const trendIcon = t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192';
         const trendColor = t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)';
-        return `<div class="ana-topic-row">
+        const safeT = escHtml(t.topic).replace(/'/g, "\\'");
+        return `<div class="ana-topic-row ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
           <div class="ana-topic-name">${escHtml(t.topic)}</div>
           <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color};animation-delay:${idx * 0.06}s"></div></div>
           <div class="ana-topic-pct" style="color:${color}">${t.avg}%</div>
@@ -5309,11 +5310,14 @@ function renderAnalytics() {
       <h3>\u26a0\ufe0f PRIORITY STUDY AREAS</h3>
       <div class="ana-subtitle">Topics below 70% accuracy</div>
       <div class="ana-priority-list">
-        ${weak.map((t, i) => `<div class="ana-priority-item">
-          <span class="ana-priority-rank">${i+1}</span>
-          <span class="ana-priority-name">${escHtml(t.topic)}</span>
-          <span class="ana-priority-pct" style="color:${t.avg >= 60 ? 'var(--yellow)' : 'var(--red)'}">${t.avg}%</span>
-        </div>`).join('')}
+        ${weak.map((t, i) => {
+          const safeT = escHtml(t.topic).replace(/'/g, "\\'");
+          return `<div class="ana-priority-item ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
+            <span class="ana-priority-rank">${i+1}</span>
+            <span class="ana-priority-name">${escHtml(t.topic)}</span>
+            <span class="ana-priority-pct" style="color:${t.avg >= 60 ? 'var(--yellow)' : 'var(--red)'}">${t.avg}%</span>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   }

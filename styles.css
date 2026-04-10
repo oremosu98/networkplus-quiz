@@ -767,6 +767,10 @@ input::placeholder { color: var(--text-dim); }
 .ana-topics { display: flex; flex-direction: column; gap: 6px; }
 .ana-topic-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .ana-topic-row:last-child { border-bottom: none; }
+/* v4.11 — clickable analytics rows: hover reveals the row is interactive */
+.ana-row-clickable { cursor: pointer; border-radius: 8px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; transition: background .15s; }
+.ana-row-clickable:hover { background: rgba(124,111,247,.08); }
+.ana-row-clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ana-topic-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ana-topic-bar { width: 80px; height: 4px; background: var(--surface3); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
 .ana-topic-fill { height: 100%; border-radius: 99px; animation: anaFillSlide .9s ease-out both; transform-origin: left; }
