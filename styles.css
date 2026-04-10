@@ -125,6 +125,9 @@ h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacin
 .chip { padding: 8px 16px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--text-mid); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 36px; }
 .chip:hover { border-color: var(--accent-dim); color: var(--text); }
 .chip.on { border-color: var(--accent); background: rgba(124,111,247,.18); color: var(--accent); font-weight: 700; }
+/* v4.11 — drillTopic lands on setup and flashes the chip so you see where you landed */
+@keyframes chipFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,111,247,0); transform: scale(1); } 25% { box-shadow: 0 0 0 6px rgba(124,111,247,.35); transform: scale(1.05); } 60% { box-shadow: 0 0 0 3px rgba(124,111,247,.2); transform: scale(1.02); } }
+.chip.chip-flash { animation: chipFlash 1.3s ease-out; }
 
 input[type="password"], input[type="text"] { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; color: var(--text); font-size: 14px; font-family: monospace; outline: none; transition: border-color .2s; }
 input:focus { border-color: var(--accent); }

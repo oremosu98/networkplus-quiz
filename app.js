@@ -856,7 +856,19 @@ function filterProgressPage() {
 function drillTopic(t) {
   topic = t;
   document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === t));
+  syncChipAriaPressed('#topic-group');
   goSetup();
+  // Reveal the selected chip: open its collapsed domain accordion, scroll to
+  // it, and flash briefly so the landing target is obvious.
+  requestAnimationFrame(() => {
+    const chip = document.querySelector('#topic-group .chip.on');
+    if (!chip) return;
+    const domainGroup = chip.closest('details.topic-domain-group');
+    if (domainGroup && !domainGroup.open) domainGroup.open = true;
+    chip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    chip.classList.add('chip-flash');
+    setTimeout(() => chip.classList.remove('chip-flash'), 1400);
+  });
 }
 
 // ══════════════════════════════════════════
