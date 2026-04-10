@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.11
+// Network+ AI Quiz — app.js  v4.12
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.11';
+const APP_VERSION = '4.12';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4956,10 +4956,28 @@ function beginPortDrill() {
   }
 }
 
+// Categories with ≥2 protocols are eligible for family questions (#27).
+// Routing/Database have only 1 each so they're skipped.
+function getFamilyEligibleCategories() {
+  const byProto = {};
+  portData.forEach(p => { byProto[p.proto] = p; });
+  return portCategories
+    .map(cat => ({ name: cat.name, ports: cat.protos.map(n => byProto[n]).filter(Boolean) }))
+    .filter(cat => cat.ports.length >= 2);
+}
+
 function nextPortQ() {
-  // Pick port question — 50/50 "what port?" vs "what protocol?"
-  // Port selection is weighted by per-port miss rate (adaptive focus)
-  const mode = Math.random() < 0.5 ? 'port' : 'proto';
+  // Pick port question type:
+  //   40% "what port runs X?"
+  //   40% "what protocol uses port Y?"
+  //   20% family multi-select (#27)
+  // Port selection for single-Q modes is weighted by per-port miss rate (adaptive focus).
+  const r = Math.random();
+  if (r < 0.2) {
+    nextPortFamilyQ();
+    return;
+  }
+  const mode = r < 0.6 ? 'port' : 'proto';
   const correct = pickWeightedPort();
   portCurrentQ = { mode, correct };
   // Generate 3 wrong options
@@ -4981,6 +4999,95 @@ function nextPortQ() {
       `<button class="port-opt" onclick="pickPort('${escHtml(o.proto)}','${escHtml(correct.proto)}')">${escHtml(o.proto)}</button>`
     ).join('');
   }
+}
+
+// Family multi-select question (#27) — "Which N ports are X-related?"
+function nextPortFamilyQ() {
+  const eligible = getFamilyEligibleCategories();
+  if (!eligible.length) { nextPortQ(); return; }
+  const cat = eligible[Math.floor(Math.random() * eligible.length)];
+  const correctPorts = cat.ports.slice();
+  const correctKeys = new Set(correctPorts.map(p => p.proto));
+  // Pick 4 distractors from outside this family (or fewer if pool is small)
+  const wrongPool = portData.filter(p => !correctKeys.has(p.proto));
+  const wrongs = [];
+  const distractorCount = Math.min(4, wrongPool.length);
+  while (wrongs.length < distractorCount) {
+    const w = wrongPool[Math.floor(Math.random() * wrongPool.length)];
+    if (!wrongs.find(x => x.proto === w.proto)) wrongs.push(w);
+  }
+  const allOpts = [...correctPorts, ...wrongs].sort(() => Math.random() - 0.5);
+  portCurrentQ = { mode: 'family', categoryName: cat.name, correctKeys, allOptions: allOpts };
+  // Varied phrasing — include the count hint to mirror CompTIA style
+  const n = correctPorts.length;
+  const phrasings = [
+    `Select all <strong>${n}</strong> ports used by the <strong>${escHtml(cat.name)}</strong> family`,
+    `Which <strong>${n}</strong> ports are <strong>${escHtml(cat.name.toLowerCase())}</strong>-related?`,
+    `Pick the <strong>${n}</strong> ports that belong to the <strong>${escHtml(cat.name)}</strong> family`
+  ];
+  document.getElementById('port-prompt').innerHTML = phrasings[Math.floor(Math.random() * phrasings.length)];
+  const optsHtml = allOpts.map(o =>
+    `<button class="port-opt port-opt-multi" type="button" data-proto="${escHtml(o.proto)}" aria-pressed="false" onclick="togglePortFamilyPick(this)">${o.port}/${o.tp} <span class="port-opt-proto">${escHtml(o.proto)}</span></button>`
+  ).join('');
+  document.getElementById('port-options').innerHTML =
+    optsHtml +
+    `<button class="port-submit-family" type="button" onclick="submitPortFamilyAnswer()">Submit answer</button>`;
+}
+
+function togglePortFamilyPick(btn) {
+  const selected = btn.classList.toggle('port-opt-selected');
+  btn.setAttribute('aria-pressed', String(selected));
+}
+
+function submitPortFamilyAnswer() {
+  if (!portCurrentQ || portCurrentQ.mode !== 'family') return;
+  const { correctKeys, allOptions, categoryName } = portCurrentQ;
+  const picked = new Set();
+  document.querySelectorAll('#port-options .port-opt-multi.port-opt-selected').forEach(b => {
+    picked.add(b.getAttribute('data-proto'));
+  });
+  // Exact-match scoring: every correct selected, no wrong selected
+  let allCorrect = picked.size === correctKeys.size;
+  if (allCorrect) {
+    for (const k of correctKeys) { if (!picked.has(k)) { allCorrect = false; break; } }
+  }
+  // Update per-port stats for every option in this question:
+  //   correct port & picked → positive; correct port & missed → negative
+  //   wrong port & picked → negative; wrong port & not picked → no update
+  allOptions.forEach(o => {
+    const isCorrect = correctKeys.has(o.proto);
+    const wasPicked = picked.has(o.proto);
+    if (isCorrect) {
+      updatePortStat(o.proto, wasPicked);
+    } else if (wasPicked) {
+      updatePortStat(o.proto, false);
+    }
+  });
+  if (allCorrect) {
+    portScore++;
+    document.getElementById('port-score').textContent = portScore;
+  } else {
+    // Build a single missed-review entry capturing the family attempt
+    const correctList = allOptions.filter(o => correctKeys.has(o.proto));
+    const yourList = allOptions.filter(o => picked.has(o.proto));
+    portMissed.push({
+      proto: `${categoryName} family`,
+      port: correctList.map(c => c.port).join(', '),
+      tp: 'multi',
+      yourAnswer: yourList.length ? yourList.map(y => `${y.port}/${escHtml(y.proto)}`).join(', ') : '(nothing selected)',
+      mode: 'family'
+    });
+    document.getElementById('port-prompt').classList.add('port-flash-wrong');
+    setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
+    if (portMode === 'endless') {
+      endPortDrill();
+      return;
+    }
+    portTimeLeft = Math.max(0, portTimeLeft - 1);
+    document.getElementById('port-timer').textContent = portTimeLeft;
+  }
+  if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
+  nextPortQ();
 }
 
 function pickPort(chosen, correct) {
@@ -5043,11 +5150,21 @@ function endPortDrill() {
     if (portMissed.length === 0) {
       reviewDiv.innerHTML = '<div class="port-review-perfect">🎯 Perfect round — no wrong answers!</div>';
     } else {
-      // Deduplicate by proto (may have missed same port twice)
+      // Deduplicate by proto (may have missed same port twice). Family entries
+      // pre-include the family name in the proto field so they dedupe naturally.
       const seen = new Set();
       const unique = portMissed.filter(m => { if (seen.has(m.proto)) return false; seen.add(m.proto); return true; });
       reviewDiv.innerHTML = '<h3 style="margin-bottom:10px">MISSED PORTS — LEARN THESE</h3>' +
         unique.map(m => {
+          // Family-mode entries already contain a comma-separated port list and
+          // pre-escaped HTML in yourAnswer; render them without re-escaping.
+          if (m.mode === 'family') {
+            return `<div class="port-review-row">
+              <div class="port-review-proto">${escHtml(m.proto)}</div>
+              <div class="port-review-correct">${escHtml(m.port)}</div>
+              <div class="port-review-yours">You picked: <span class="port-review-wrong">${m.yourAnswer}</span></div>
+            </div>`;
+          }
           const yourAns = `You picked: <span class="port-review-wrong">${escHtml(m.yourAnswer)}</span>`;
           return `<div class="port-review-row">
             <div class="port-review-proto">${escHtml(m.proto)}</div>

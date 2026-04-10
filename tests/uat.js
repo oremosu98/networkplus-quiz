@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.11', js.includes("const APP_VERSION = '4.11"));
+test('APP_VERSION is 4.12', js.includes("const APP_VERSION = '4.12"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.11', sw.includes('netplus-v4.11'));
+test('SW cache bumped to v4.12', sw.includes('netplus-v4.12'));
 // v4.8 — N10-009 tightness
 test('computeDomainDistribution helper', js.includes('function computeDomainDistribution('));
 test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
@@ -438,6 +438,22 @@ test('CSS: .progress-domain', css.includes('.progress-domain '));
 test('CSS: .topic-obj-badge', css.includes('.topic-obj-badge'));
 test('CSS: .prog-filter-active', css.includes('.prog-filter-active'));
 test('CSS: .ps-coverage-bar', css.includes('.ps-coverage-bar'));
+
+// ── Port Drill family multi-select (v4.12 #27) ──
+console.log('\n\x1b[1m── PORT DRILL FAMILY Q (v4.12) ──\x1b[0m');
+['getFamilyEligibleCategories','nextPortFamilyQ','togglePortFamilyPick','submitPortFamilyAnswer'
+].forEach(fn => test(`function ${fn}()`, js.includes(`function ${fn}(`)));
+test('nextPortQ rolls 40/40/20 (family branch)', js.includes('nextPortFamilyQ()') && /Math\.random\(\)/.test(js));
+test('Family Q filters categories with >=2 protos', /ports\.length >= 2/.test(js));
+test('Family Q exact-match scoring (correctKeys)', js.includes('correctKeys'));
+test('Family Q records mode:family in portMissed', js.includes("mode: 'family'"));
+test('Missed review branches on family mode', js.includes("m.mode === 'family'"));
+test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?updatePortStat/.test(js));
+test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
+test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
+test('CSS: .port-submit-family', css.includes('.port-submit-family'));
+test('SW cache bumped to v4.12.0', sw.includes('netplus-v4.12.0'));
+test('APP_VERSION bumped to 4.12', js.includes("APP_VERSION = '4.12'"));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
