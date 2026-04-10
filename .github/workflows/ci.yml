@@ -93,10 +93,10 @@ jobs:
               });
               try {
                 const projectId = 'PVT_kwHOB0H7gM4BT-VD';
-                const result = await github.graphql(\`mutation { addProjectV2ItemById(input: { projectId: "\${projectId}", contentId: "\${issue.data.node_id}" }) { item { id } } }\`);
+                const result = await github.graphql(`mutation { addProjectV2ItemById(input: { projectId: "${projectId}", contentId: "${issue.data.node_id}" }) { item { id } } }`);
                 const itemId = result.addProjectV2ItemById.item.id;
-                await github.graphql(\`mutation { updateProjectV2ItemFieldValue(input: { projectId: "\${projectId}", itemId: "\${itemId}", fieldId: "PVTSSF_lAHOB0H7gM4BT-VDzhBQYqI", value: { singleSelectOptionId: "f0fdf4e6" } }) { projectV2Item { id } } }\`);
-                await github.graphql(\`mutation { updateProjectV2ItemFieldValue(input: { projectId: "\${projectId}", itemId: "\${itemId}", fieldId: "PVTSSF_lAHOB0H7gM4BT-VDzhBJlx0", value: { singleSelectOptionId: "630cbc97" } }) { projectV2Item { id } } }\`);
+                await github.graphql(`mutation { updateProjectV2ItemFieldValue(input: { projectId: "${projectId}", itemId: "${itemId}", fieldId: "PVTSSF_lAHOB0H7gM4BT-VDzhBQYqI", value: { singleSelectOptionId: "f0fdf4e6" } }) { projectV2Item { id } } }`);
+                await github.graphql(`mutation { updateProjectV2ItemFieldValue(input: { projectId: "${projectId}", itemId: "${itemId}", fieldId: "PVTSSF_lAHOB0H7gM4BT-VDzhBJlx0", value: { singleSelectOptionId: "630cbc97" } }) { projectV2Item { id } } }`);
               } catch (_) {}
             }
 
