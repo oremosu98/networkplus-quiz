@@ -686,17 +686,21 @@ function _bucketOf(pct) {
 }
 
 function _buildProgressRows() {
-  const allTopics = Array.from(document.querySelectorAll('#topic-group .chip'))
-    .map(c => c.dataset.v)
-    .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
+  // Read chip display labels (setup page) so Topic Progress shows the SAME text
+  // the user picks from on the menu. The canonical data-v value is kept as the
+  // id used for history lookups / drilling / domain grouping.
+  const chips = Array.from(document.querySelectorAll('#topic-group .chip'))
+    .filter(c => !c.dataset.v.includes('Mixed') && !c.dataset.v.includes('Smart'));
   const h   = loadHistory();
   const now = Date.now();
-  return allTopics.map(t => {
+  return chips.map(chip => {
+    const t = chip.dataset.v;
+    const label = (chip.textContent || t).trim(); // short display label from the chip
     const entries = h.filter(e => e.topic === t);
     const domainKey = TOPIC_DOMAINS[t] || 'concepts';
     const obj = (topicResources[t] && topicResources[t].obj) || '';
     if (entries.length === 0) {
-      return { t, pct: null, total: 0, attempts: 0, daysSince: null, lastDate: 0, domainKey, obj };
+      return { t, label, pct: null, total: 0, attempts: 0, daysSince: null, lastDate: 0, domainKey, obj };
     }
     const totalQ   = entries.reduce((a, e) => a + e.total, 0);
     const wCorrect = entries.reduce((a, e) => a + e.score * diffWeight(e.difficulty), 0);
@@ -704,21 +708,22 @@ function _buildProgressRows() {
     const pct      = Math.round((wCorrect / wTotal) * 100);
     const lastDate = Math.max.apply(null, entries.map(e => new Date(e.date).getTime()));
     const daysSince = Math.round((now - lastDate) / 86400000);
-    return { t, pct, total: totalQ, attempts: entries.length, daysSince, lastDate, domainKey, obj };
+    return { t, label, pct, total: totalQ, attempts: entries.length, daysSince, lastDate, domainKey, obj };
   });
 }
 
 function _sortProgressRows(rows, mode) {
   const sorted = rows.slice();
+  const byLabel = (a, b) => (a.label || a.t).localeCompare(b.label || b.t);
   if (mode === 'alpha') {
-    sorted.sort((a, b) => a.t.localeCompare(b.t));
+    sorted.sort(byLabel);
   } else if (mode === 'most') {
-    sorted.sort((a, b) => (b.total || 0) - (a.total || 0) || a.t.localeCompare(b.t));
+    sorted.sort((a, b) => (b.total || 0) - (a.total || 0) || byLabel(a, b));
   } else if (mode === 'recent') {
-    sorted.sort((a, b) => (b.lastDate || 0) - (a.lastDate || 0) || a.t.localeCompare(b.t));
+    sorted.sort((a, b) => (b.lastDate || 0) - (a.lastDate || 0) || byLabel(a, b));
   } else { // 'worst' — default: untouched last, then lowest pct first
     sorted.sort((a, b) => {
-      if (a.pct === null && b.pct === null) return a.t.localeCompare(b.t);
+      if (a.pct === null && b.pct === null) return byLabel(a, b);
       if (a.pct === null) return 1;
       if (b.pct === null) return -1;
       return a.pct - b.pct;
@@ -732,14 +737,17 @@ function _progressRowMatches(row) {
   if (progressState.filter === 'weak' && _bucketOf(row.pct) !== 'weak') return false;
   if (progressState.filter === 'strong' && _bucketOf(row.pct) !== 'strong') return false;
   if (progressState.filter === 'untouched' && row.pct !== null) return false;
-  // Search box
+  // Search box (matches both the short display label and the canonical id, plus objective)
   const q = progressState.search.trim().toLowerCase();
-  if (q && !row.t.toLowerCase().includes(q) && !(row.obj && row.obj.includes(q))) return false;
+  if (q) {
+    const hay = (row.label + ' ' + row.t).toLowerCase();
+    if (!hay.includes(q) && !(row.obj && row.obj.includes(q))) return false;
+  }
   return true;
 }
 
 function _progressRowHtml(row) {
-  const { t, pct, total, daysSince, obj } = row;
+  const { t, label, pct, total, daysSince, obj } = row;
   let ragClass, color, metaRight;
   if (pct === null) {
     ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
@@ -752,10 +760,12 @@ function _progressRowHtml(row) {
   const barW = pct !== null ? pct : 0;
   const pctTxt = pct !== null ? pct + '%' : '—';
   const objBadge = obj ? `<span class="topic-obj-badge" title="N10-009 objective ${obj}">${obj}</span>` : '';
+  // Show the same short label the user picks from on the setup page
+  const display = label || t;
   return `<div class="topic-row" onclick="drillTopic('${escHtml(t).replace(/'/g, "\\'")}')">
     <div class="topic-rag ${ragClass}"></div>
     <div class="topic-info">
-      <div class="topic-name-line">${objBadge}<span class="topic-name">${escHtml(t)}</span></div>
+      <div class="topic-name-line">${objBadge}<span class="topic-name">${escHtml(display)}</span></div>
       <div class="topic-meta">${metaRight}</div>
       <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
     </div>
