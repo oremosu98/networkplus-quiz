@@ -385,7 +385,7 @@ input::placeholder { color: var(--text-dim); }
 .pass-threshold { font-size: 12px; color: var(--text-dim); }
 
 /* ── MISC ── */
-.err-box { background: var(--red-bg); border: 1px solid var(--red-border); color: #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-top: 12px; display: none; }
+.err-box { background: var(--red-bg); border: 1px solid var(--red-border); color: #fca5a5; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-top: 12px; }
 [data-theme="light"] .err-box { color: var(--red); }
 /* .divider removed — unused */
 @keyframes popIn { 0% { transform:scale(0.5); opacity:0; } 70% { transform:scale(1.2); } 100% { transform:scale(1); opacity:1; } }
