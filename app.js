@@ -27,6 +27,7 @@ const STORAGE = {
   REPORTS: 'nplus_reports',
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
+  PORT_FAMILY_BEST: 'nplus_port_family_best',
   PORT_STATS: 'nplus_port_stats',
   EXAM_DATE: 'nplus_exam_date',
   MILESTONES: 'nplus_milestones',
@@ -4710,33 +4711,48 @@ let portMissed = []; // Track wrong answers for review
 let portMode = 'timed'; // 'timed' (30s countdown) or 'endless' (no timer, one wrong ends run)
 
 function setPortMode(mode) {
-  portMode = (mode === 'endless') ? 'endless' : 'timed';
+  if (mode === 'endless') portMode = 'endless';
+  else if (mode === 'family') portMode = 'family';
+  else portMode = 'timed';
   // Update toggle button visuals
   const timedBtn = document.getElementById('port-mode-timed');
   const endlessBtn = document.getElementById('port-mode-endless');
+  const familyBtn = document.getElementById('port-mode-family');
   if (timedBtn && endlessBtn) {
     timedBtn.classList.toggle('port-mode-active', portMode === 'timed');
     endlessBtn.classList.toggle('port-mode-active', portMode === 'endless');
     timedBtn.setAttribute('aria-pressed', String(portMode === 'timed'));
     endlessBtn.setAttribute('aria-pressed', String(portMode === 'endless'));
   }
+  if (familyBtn) {
+    familyBtn.classList.toggle('port-mode-active', portMode === 'family');
+    familyBtn.setAttribute('aria-pressed', String(portMode === 'family'));
+  }
   // Swap pregame description + best label
   const descEl = document.getElementById('port-mode-desc');
   const bestLabelEl = document.getElementById('port-best-label');
   const bestValEl = document.getElementById('port-best');
   if (descEl) {
-    descEl.textContent = portMode === 'endless'
-      ? 'No timer. Build the longest streak you can — one wrong answer ends the run.'
-      : 'You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.';
+    if (portMode === 'family') {
+      descEl.textContent = 'No timer. Each question asks you to select every port in a protocol family — one wrong submission ends the streak.';
+    } else if (portMode === 'endless') {
+      descEl.textContent = 'No timer. Build the longest streak you can — one wrong answer ends the run.';
+    } else {
+      descEl.textContent = 'You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.';
+    }
   }
-  if (bestLabelEl) bestLabelEl.textContent = portMode === 'endless' ? 'BEST STREAK' : 'BEST';
+  if (bestLabelEl) {
+    bestLabelEl.textContent = portMode === 'timed' ? 'BEST' : 'BEST STREAK';
+  }
   if (bestValEl) {
-    const key = portMode === 'endless' ? STORAGE.PORT_STREAK_BEST : STORAGE.PORT_BEST;
+    const key = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
+      : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
+      : STORAGE.PORT_BEST;
     bestValEl.textContent = parseInt(localStorage.getItem(key) || '0');
   }
-  // Hide the timer block entirely in endless mode
+  // Hide the timer block entirely in non-timed modes
   const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode === 'endless');
+  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode !== 'timed');
 }
 
 // ── Adaptive port focus (weighted selection based on per-port accuracy) ──
@@ -4936,14 +4952,18 @@ function beginPortDrill() {
   document.getElementById('port-game').classList.remove('is-hidden');
   document.getElementById('port-results').classList.add('is-hidden');
   const scoreLabelEl = document.querySelector('.port-score-label');
-  if (scoreLabelEl) scoreLabelEl.textContent = portMode === 'endless' ? 'STREAK' : 'SCORE';
+  if (scoreLabelEl) scoreLabelEl.textContent = portMode === 'timed' ? 'SCORE' : 'STREAK';
   document.getElementById('port-score').textContent = '0';
   document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
   document.getElementById('port-timer').className = 'port-timer';
   // Hide/show timer block per mode
   const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode === 'endless');
-  nextPortQ();
+  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode !== 'timed');
+  if (portMode === 'family') {
+    nextPortFamilyQ();
+  } else {
+    nextPortQ();
+  }
   if (portTimer) { clearInterval(portTimer); portTimer = null; }
   if (portMode === 'timed') {
     portTimer = setInterval(() => {
@@ -4968,16 +4988,12 @@ function getFamilyEligibleCategories() {
 
 function nextPortQ() {
   // Pick port question type:
-  //   40% "what port runs X?"
-  //   40% "what protocol uses port Y?"
-  //   20% family multi-select (#27)
+  //   50% "what port runs X?"
+  //   50% "what protocol uses port Y?"
+  // Family multi-select questions live in their own dedicated mode (#27),
+  // not interleaved here.
   // Port selection for single-Q modes is weighted by per-port miss rate (adaptive focus).
-  const r = Math.random();
-  if (r < 0.2) {
-    nextPortFamilyQ();
-    return;
-  }
-  const mode = r < 0.6 ? 'port' : 'proto';
+  const mode = Math.random() < 0.5 ? 'port' : 'proto';
   const correct = pickWeightedPort();
   portCurrentQ = { mode, correct };
   // Generate 3 wrong options
@@ -5079,7 +5095,10 @@ function submitPortFamilyAnswer() {
     });
     document.getElementById('port-prompt').classList.add('port-flash-wrong');
     setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
-    if (portMode === 'endless') {
+    // Family mode is endless-style: one wrong submission ends the streak.
+    // Endless single-Q mode normally never reaches this branch (family Qs only
+    // appear in family mode), but keep the guard for safety.
+    if (portMode === 'family' || portMode === 'endless') {
       endPortDrill();
       return;
     }
@@ -5087,7 +5106,9 @@ function submitPortFamilyAnswer() {
     document.getElementById('port-timer').textContent = portTimeLeft;
   }
   if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
-  nextPortQ();
+  // In family mode, stay on family Qs; otherwise back to single-Q rotation
+  if (portMode === 'family') nextPortFamilyQ();
+  else nextPortQ();
 }
 
 function pickPort(chosen, correct) {
@@ -5129,8 +5150,14 @@ function endPortDrill() {
   document.getElementById('port-final-score').textContent = portScore;
   // Label the final score per mode
   const finalLabelEl = document.getElementById('port-final-label');
-  if (finalLabelEl) finalLabelEl.textContent = portMode === 'endless' ? 'streak length' : 'ports matched';
-  const bestKey = portMode === 'endless' ? STORAGE.PORT_STREAK_BEST : STORAGE.PORT_BEST;
+  if (finalLabelEl) {
+    finalLabelEl.textContent = portMode === 'family' ? 'family streak'
+      : portMode === 'endless' ? 'streak length'
+      : 'ports matched';
+  }
+  const bestKey = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
+    : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
+    : STORAGE.PORT_BEST;
   const best = parseInt(localStorage.getItem(bestKey) || '0');
   if (portScore > best) {
     localStorage.setItem(bestKey, String(portScore));
