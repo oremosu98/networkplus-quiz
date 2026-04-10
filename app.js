@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.14';
+const APP_VERSION = '4.15';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -28,6 +28,7 @@ const STORAGE = {
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
   PORT_FAMILY_BEST: 'nplus_port_family_best',
+  PORT_PAIRS_BEST: 'nplus_port_pairs_best',
   HARDCORE_EXAM: 'nplus_hardcore_exam',
   PORT_STATS: 'nplus_port_stats',
   EXAM_DATE: 'nplus_exam_date',
@@ -4830,18 +4831,37 @@ const portData = [
   {proto:'IPsec NAT-T',port:'4500',tp:'UDP'},{proto:'VNC',port:'5900',tp:'TCP'}
 ];
 
+// Secure ↔ insecure protocol/port pairs (Port Drill: secure pairs mode, #30).
+// Each entry is one (insecure, secure) mapping. FTP and SMTP appear twice
+// because they each have two valid secure equivalents — the `qualifier` field
+// disambiguates them in the prompt, and `siblingProto` is excluded from
+// distractors so the alternate isn't presented as a "wrong" answer.
+const securePairs = [
+  { insecure: { proto: 'HTTP',   port: '80',  tp: 'TCP' }, secure: { proto: 'HTTPS',           port: '443', tp: 'TCP' } },
+  { insecure: { proto: 'FTP',    port: '21',  tp: 'TCP' }, secure: { proto: 'FTPS',            port: '990', tp: 'TCP' }, qualifier: 'over SSL/TLS', siblingProto: 'SFTP' },
+  { insecure: { proto: 'FTP',    port: '21',  tp: 'TCP' }, secure: { proto: 'SFTP',            port: '22',  tp: 'TCP' }, qualifier: 'over SSH',     siblingProto: 'FTPS' },
+  { insecure: { proto: 'Telnet', port: '23',  tp: 'TCP' }, secure: { proto: 'SSH',             port: '22',  tp: 'TCP' } },
+  { insecure: { proto: 'SMTP',   port: '25',  tp: 'TCP' }, secure: { proto: 'SMTPS',           port: '465', tp: 'TCP' }, qualifier: 'with implicit TLS', siblingProto: 'SMTP submission (STARTTLS)' },
+  { insecure: { proto: 'SMTP',   port: '25',  tp: 'TCP' }, secure: { proto: 'SMTP submission (STARTTLS)', port: '587', tp: 'TCP' }, qualifier: 'using STARTTLS submission', siblingProto: 'SMTPS' },
+  { insecure: { proto: 'LDAP',   port: '389', tp: 'TCP' }, secure: { proto: 'LDAPS',           port: '636', tp: 'TCP' } },
+  { insecure: { proto: 'POP3',   port: '110', tp: 'TCP' }, secure: { proto: 'POP3S',           port: '995', tp: 'TCP' } },
+  { insecure: { proto: 'IMAP',   port: '143', tp: 'TCP' }, secure: { proto: 'IMAPS',           port: '993', tp: 'TCP' } }
+];
+
 let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
 let portMissed = []; // Track wrong answers for review
-let portMode = 'timed'; // 'timed' (30s countdown) or 'endless' (no timer, one wrong ends run)
+let portMode = 'timed'; // 'timed' | 'endless' | 'family' | 'pairs'
 
 function setPortMode(mode) {
   if (mode === 'endless') portMode = 'endless';
   else if (mode === 'family') portMode = 'family';
+  else if (mode === 'pairs') portMode = 'pairs';
   else portMode = 'timed';
   // Update toggle button visuals
   const timedBtn = document.getElementById('port-mode-timed');
   const endlessBtn = document.getElementById('port-mode-endless');
   const familyBtn = document.getElementById('port-mode-family');
+  const pairsBtn = document.getElementById('port-mode-pairs');
   if (timedBtn && endlessBtn) {
     timedBtn.classList.toggle('port-mode-active', portMode === 'timed');
     endlessBtn.classList.toggle('port-mode-active', portMode === 'endless');
@@ -4852,6 +4872,10 @@ function setPortMode(mode) {
     familyBtn.classList.toggle('port-mode-active', portMode === 'family');
     familyBtn.setAttribute('aria-pressed', String(portMode === 'family'));
   }
+  if (pairsBtn) {
+    pairsBtn.classList.toggle('port-mode-active', portMode === 'pairs');
+    pairsBtn.setAttribute('aria-pressed', String(portMode === 'pairs'));
+  }
   // Swap pregame description + best label
   const descEl = document.getElementById('port-mode-desc');
   const bestLabelEl = document.getElementById('port-best-label');
@@ -4859,6 +4883,8 @@ function setPortMode(mode) {
   if (descEl) {
     if (portMode === 'family') {
       descEl.textContent = 'No timer. Each question asks you to select every port in a protocol family — one wrong submission ends the streak.';
+    } else if (portMode === 'pairs') {
+      descEl.textContent = 'No timer. Match insecure protocols (HTTP, FTP, Telnet, SMTP, LDAP, POP3, IMAP) to their secure equivalents — one wrong answer ends the streak.';
     } else if (portMode === 'endless') {
       descEl.textContent = 'No timer. Build the longest streak you can — one wrong answer ends the run.';
     } else {
@@ -4870,6 +4896,7 @@ function setPortMode(mode) {
   }
   if (bestValEl) {
     const key = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
+      : portMode === 'pairs' ? STORAGE.PORT_PAIRS_BEST
       : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
       : STORAGE.PORT_BEST;
     bestValEl.textContent = parseInt(localStorage.getItem(key) || '0');
@@ -5085,6 +5112,8 @@ function beginPortDrill() {
   if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode !== 'timed');
   if (portMode === 'family') {
     nextPortFamilyQ();
+  } else if (portMode === 'pairs') {
+    nextPortPairsQ();
   } else {
     nextPortQ();
   }
@@ -5235,6 +5264,59 @@ function submitPortFamilyAnswer() {
   else nextPortQ();
 }
 
+// Secure ↔ insecure pairs question (#30) — dedicated mode.
+// Two formats picked at random per question:
+//   port-pick:  "<Secure> is the secure version of <Insecure>. Which port does <Secure> use?"
+//   proto-pick: "Which protocol replaces <Insecure> (port N) <qualifier>?"
+// Both end the streak on a single wrong answer (handled in pickPort).
+function nextPortPairsQ() {
+  const pair = securePairs[Math.floor(Math.random() * securePairs.length)];
+  // 50/50: ask for the port (pickType='port') vs ask for the protocol name (pickType='proto')
+  const pickType = Math.random() < 0.5 ? 'port' : 'proto';
+  const correct = pair.secure;
+  portCurrentQ = { mode: 'pairs', correct, pair };
+
+  // Build distractor pool from securePairs (both insecure and secure sides),
+  // dedup by the field we're answering (port number or protocol name), and
+  // exclude the correct answer + sibling protocol so duplicates don't appear.
+  const distractorPool = [];
+  securePairs.forEach(p => {
+    distractorPool.push(p.insecure, p.secure);
+  });
+  const correctKey = pickType === 'port' ? correct.port : correct.proto;
+  const siblingExclude = pair.siblingProto || null;
+  const seen = new Set();
+  const filteredPool = distractorPool.filter(o => {
+    const key = pickType === 'port' ? o.port : o.proto;
+    if (key === correctKey) return false;
+    if (pickType === 'proto' && siblingExclude && o.proto === siblingExclude) return false;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const wrongs = [];
+  while (wrongs.length < 3 && filteredPool.length > 0) {
+    const idx = Math.floor(Math.random() * filteredPool.length);
+    wrongs.push(filteredPool.splice(idx, 1)[0]);
+  }
+  const allOpts = [correct, ...wrongs].sort(() => Math.random() - 0.5);
+
+  if (pickType === 'port') {
+    document.getElementById('port-prompt').innerHTML =
+      `<strong>${escHtml(correct.proto)}</strong> is the secure version of <strong>${escHtml(pair.insecure.proto)}</strong>. Which port does ${escHtml(correct.proto)} use?`;
+    document.getElementById('port-options').innerHTML = allOpts.map(o =>
+      `<button class="port-opt" onclick="pickPort('${o.port}','${correct.port}')">${o.port}/${o.tp}</button>`
+    ).join('');
+  } else {
+    const qual = pair.qualifier ? ` <em>${escHtml(pair.qualifier)}</em>` : '';
+    document.getElementById('port-prompt').innerHTML =
+      `Which protocol replaces <strong>${escHtml(pair.insecure.proto)}</strong> (port ${pair.insecure.port})${qual}?`;
+    document.getElementById('port-options').innerHTML = allOpts.map(o =>
+      `<button class="port-opt" onclick="pickPort('${escHtml(o.proto)}','${escHtml(correct.proto)}')">${escHtml(o.proto)}</button>`
+    ).join('');
+  }
+}
+
 function pickPort(chosen, correct) {
   const wasCorrect = (chosen === correct);
   // Record per-port stat for adaptive focus (keyed on proto regardless of mode)
@@ -5253,8 +5335,8 @@ function pickPort(chosen, correct) {
     // Flash red
     document.getElementById('port-prompt').classList.add('port-flash-wrong');
     setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
-    if (portMode === 'endless') {
-      // One wrong answer ends an endless run immediately
+    if (portMode === 'endless' || portMode === 'pairs') {
+      // One wrong answer ends an endless / pairs run immediately
       endPortDrill();
       return;
     }
@@ -5263,7 +5345,8 @@ function pickPort(chosen, correct) {
     document.getElementById('port-timer').textContent = portTimeLeft;
   }
   if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
-  nextPortQ();
+  if (portMode === 'pairs') nextPortPairsQ();
+  else nextPortQ();
 }
 
 function endPortDrill() {
@@ -5276,10 +5359,12 @@ function endPortDrill() {
   const finalLabelEl = document.getElementById('port-final-label');
   if (finalLabelEl) {
     finalLabelEl.textContent = portMode === 'family' ? 'family streak'
+      : portMode === 'pairs' ? 'pairs streak'
       : portMode === 'endless' ? 'streak length'
       : 'ports matched';
   }
   const bestKey = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
+    : portMode === 'pairs' ? STORAGE.PORT_PAIRS_BEST
     : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
     : STORAGE.PORT_BEST;
   const best = parseInt(localStorage.getItem(bestKey) || '0');

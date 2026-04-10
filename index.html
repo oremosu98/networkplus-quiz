@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.14</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.15</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -644,6 +644,9 @@
       </button>
       <button type="button" id="port-mode-family" class="port-mode-btn" aria-pressed="false" onclick="setPortMode('family')">
         &#128101; Family Drill
+      </button>
+      <button type="button" id="port-mode-pairs" class="port-mode-btn" aria-pressed="false" onclick="setPortMode('pairs')">
+        &#128274; Secure Pairs
       </button>
     </div>
     <p id="port-mode-desc" style="font-size:13px;color:var(--text-dim);margin-bottom:20px">You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.</p>

@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.14', js.includes("const APP_VERSION = '4.14"));
+test('APP_VERSION is 4.15', js.includes("const APP_VERSION = '4.15"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.14', sw.includes('netplus-v4.14'));
+test('SW cache bumped to v4.15', sw.includes('netplus-v4.15'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,40 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.14.x', sw.includes('netplus-v4.14.'));
-test('APP_VERSION bumped to 4.14', js.includes("APP_VERSION = '4.14'"));
+test('SW cache bumped to v4.15.x', sw.includes('netplus-v4.15.'));
+test('APP_VERSION bumped to 4.15', js.includes("APP_VERSION = '4.15'"));
+
+// ── Secure Pairs Port Drill mode (v4.15 #30) ──
+console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.15 #30) ──\x1b[0m');
+test('STORAGE.PORT_PAIRS_BEST key', js.includes("PORT_PAIRS_BEST:"));
+test('securePairs dataset defined', js.includes('const securePairs = ['));
+test('Pairs: HTTP↔HTTPS', /HTTP[\s\S]{0,200}HTTPS[\s\S]{0,80}443/.test(js));
+test('Pairs: Telnet↔SSH', /Telnet[\s\S]{0,200}SSH[\s\S]{0,80}'22'/.test(js));
+test('Pairs: LDAP↔LDAPS', /LDAP[\s\S]{0,200}LDAPS[\s\S]{0,80}636/.test(js));
+test('Pairs: POP3↔POP3S', /POP3[\s\S]{0,200}POP3S[\s\S]{0,80}995/.test(js));
+test('Pairs: IMAP↔IMAPS', /IMAP[\s\S]{0,200}IMAPS[\s\S]{0,80}993/.test(js));
+test('Pairs: FTP has FTPS variant', js.includes("'FTPS'") && js.includes("'990'"));
+test('Pairs: FTP has SFTP variant', js.includes("'SFTP'"));
+test('Pairs: SMTP has SMTPS variant', js.includes("'SMTPS'") && js.includes("'465'"));
+test('Pairs: SMTP submission 587', js.includes("'587'"));
+test('Pairs: qualifier disambiguation', js.includes('qualifier:'));
+test('Pairs: siblingProto exclusion', js.includes('siblingProto:'));
+test('nextPortPairsQ function defined', js.includes('function nextPortPairsQ('));
+test('setPortMode handles pairs', js.includes("portMode = 'pairs'"));
+test('setPortMode pairs description', /portMode === 'pairs'[\s\S]{0,300}secure equivalents/.test(js));
+test('setPortMode pairs button toggle', js.includes("'port-mode-pairs'"));
+test('setPortMode pairs best key lookup', /portMode === 'pairs' \? STORAGE\.PORT_PAIRS_BEST/.test(js));
+test('beginPortDrill routes to nextPortPairsQ', /portMode === 'pairs'[\s\S]{0,80}nextPortPairsQ/.test(js));
+test('pickPort ends run on pairs wrong', js.includes("portMode === 'endless' || portMode === 'pairs'"));
+test('pickPort routes next Q to pairs', /portMode === 'pairs'\) nextPortPairsQ/.test(js));
+test('endPortDrill labels pairs streak', js.includes("'pairs streak'"));
+test('endPortDrill uses PORT_PAIRS_BEST', /portMode === 'pairs' \? STORAGE\.PORT_PAIRS_BEST/.test(js));
+test('Pairs: dedup distractors by answered field', js.includes('seen.has(key)'));
+test('Pairs: exclude sibling from distractors', js.includes('siblingExclude'));
+test('Pairs: port-pick prompt format', js.includes('is the secure version of'));
+test('Pairs: proto-pick prompt format', js.includes('Which protocol replaces'));
+test('HTML: port-mode-pairs button', html.includes('id="port-mode-pairs"'));
+test('HTML: Secure Pairs label', html.includes('Secure Pairs'));
 
 // ── Bulk Mixed quiz presets (v4.14) ──
 console.log('\n\x1b[1m── BULK MIXED PRESETS (v4.14) ──\x1b[0m');
