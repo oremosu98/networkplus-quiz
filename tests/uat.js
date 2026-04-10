@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.13', js.includes("const APP_VERSION = '4.13"));
+test('APP_VERSION is 4.14', js.includes("const APP_VERSION = '4.14"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.13', sw.includes('netplus-v4.13'));
+test('SW cache bumped to v4.14', sw.includes('netplus-v4.14'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,26 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.13.x', sw.includes('netplus-v4.13.'));
-test('APP_VERSION bumped to 4.13', js.includes("APP_VERSION = '4.13'"));
+test('SW cache bumped to v4.14.x', sw.includes('netplus-v4.14.'));
+test('APP_VERSION bumped to 4.14', js.includes("APP_VERSION = '4.14'"));
+
+// ── Bulk Mixed quiz presets (v4.14) ──
+console.log('\n\x1b[1m── BULK MIXED PRESETS (v4.14) ──\x1b[0m');
+test('HTML: bulk30 preset tile', html.includes("applyPreset('bulk30')"));
+test('HTML: bulk60 preset tile', html.includes("applyPreset('bulk60')"));
+test('HTML: bulk100 preset tile', html.includes("applyPreset('bulk100')"));
+test('HTML: 30 Questions title', html.includes('30 Questions'));
+test('HTML: 60 Questions title', html.includes('60 Questions'));
+test('HTML: 100 Questions title', html.includes('100 Questions'));
+test('startBulkQuiz function defined', js.includes('async function startBulkQuiz('));
+test('applyPreset handles bulk sizes', js.includes('bulk30: 30, bulk60: 60, bulk100: 100'));
+test('applyPreset routes bulk to startBulkQuiz', /bulkSizes\[name\][\s\S]{0,900}startBulkQuiz\(/.test(js));
+test('startBulkQuiz batches via fetchQuestions', /startBulkQuiz[\s\S]{0,2000}fetchQuestions\(key, MIXED_TOPIC, 'Exam Level', thisBatch\)/.test(js));
+test('startBulkQuiz uses 18-Q batches', /startBulkQuiz[\s\S]{0,1500}BATCH_SIZE = 18/.test(js));
+test('startBulkQuiz has retry logic', /startBulkQuiz[\s\S]{0,2000}MAX_RETRIES/.test(js));
+test('startBulkQuiz runs validation pipeline', /startBulkQuiz[\s\S]{0,3000}aiValidateQuestions[\s\S]{0,200}validateQuestions/.test(js));
+test('startBulkQuiz forces Mixed topic', /startBulkQuiz[\s\S]{0,800}activeQuizTopic = MIXED_TOPIC/.test(js));
+test('startBulkQuiz clears progress bar at end', /startBulkQuiz[\s\S]{0,2500}fill\.style\.width = '100%'/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.13';
+const APP_VERSION = '4.14';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -3241,6 +3241,20 @@ function startStreakSave() {
 
 // ── Quiz Presets (3 one-click starting configs) ──
 function applyPreset(name) {
+  // Bulk Mixed presets — large counts that exceed the single-call ceiling are
+  // batched via startBulkQuiz so the AI never gets asked for >20 Qs at once.
+  const bulkSizes = { bulk30: 30, bulk60: 60, bulk100: 100 };
+  if (bulkSizes[name]) {
+    topic = MIXED_TOPIC; diff = 'Exam Level'; qCount = bulkSizes[name];
+    document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === topic));
+    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === diff));
+    document.querySelectorAll('#count-group .chip').forEach(c => c.classList.remove('on'));
+    syncChipAriaPressed('#topic-group');
+    syncChipAriaPressed('#diff-group');
+    syncChipAriaPressed('#count-group');
+    startBulkQuiz(qCount);
+    return;
+  }
   if (name === 'warmup') {
     topic = MIXED_TOPIC; diff = 'Foundational'; qCount = 5;
   } else if (name === 'focused') {
@@ -3257,6 +3271,81 @@ function applyPreset(name) {
   syncChipAriaPressed('#diff-group');
   syncChipAriaPressed('#count-group');
   startQuiz();
+}
+
+// ══════════════════════════════════════════
+// START BULK MIXED QUIZ (batched, for 30/60/100 presets)
+// ══════════════════════════════════════════
+// Batched mixed quiz for the large preset tiles. The single fetchQuestions
+// call is unreliable above ~20 Qs, so we mirror the exam-mode batching: chunk
+// the request into 18-Q calls, show a progress bar, and concatenate. The flow
+// after assembly is identical to startQuiz() (validation pipeline + render).
+async function startBulkQuiz(count) {
+  const key = document.getElementById('api-key').value.trim();
+  const errBox = document.getElementById('setup-err');
+  errBox.classList.add('is-hidden');
+  const keyErr = validateApiKey(key);
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
+  apiKey = key;
+  localStorage.setItem(STORAGE.KEY, key);
+  examMode = false;
+  wrongDrillMode = false;
+
+  activeQuizTopic = MIXED_TOPIC;
+  topic = MIXED_TOPIC;
+  diff = 'Exam Level';
+  qCount = count;
+
+  showPage('loading');
+  document.getElementById('loading-msg').textContent = `Generating ${count} mixed Exam Level questions\u2026`;
+  const tb = document.getElementById('topic-brief');
+  if (tb) tb.classList.add('is-hidden');
+
+  const prog = document.getElementById('load-progress');
+  const fill = document.getElementById('load-bar-fill');
+  const lbl  = document.getElementById('load-progress-label');
+  if (fill) fill.style.width = '0%';
+  if (prog) prog.classList.remove('is-hidden');
+
+  const BATCH_SIZE = 18, MAX_RETRIES = 2;
+  const batches = Math.ceil(count / BATCH_SIZE);
+  let collected = [];
+  try {
+    for (let i = 0; i < batches; i++) {
+      const remaining = count - collected.length;
+      const thisBatch = Math.min(BATCH_SIZE, remaining);
+      if (fill) fill.style.width = ((i / batches) * 100) + '%';
+      if (lbl) lbl.textContent = `Batch ${i + 1} / ${batches}\u2026`;
+      document.getElementById('loading-msg').textContent = `Generating questions (${collected.length + thisBatch} / ${count})\u2026`;
+      let batch = null;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          batch = await fetchQuestions(key, MIXED_TOPIC, 'Exam Level', thisBatch);
+          break;
+        } catch(retryErr) {
+          if (attempt === MAX_RETRIES) throw retryErr;
+          if (lbl) lbl.textContent = `Batch ${i + 1} failed, retrying (${attempt + 1}/${MAX_RETRIES})\u2026`;
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+      collected = collected.concat(batch);
+    }
+    if (fill) fill.style.width = '100%';
+    document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
+    collected = await aiValidateQuestions(key, collected);
+    collected = validateQuestions(collected);
+    if (collected.length === 0) throw new Error('All generated questions failed validation. Try again.');
+  } catch(e) {
+    showPage('setup');
+    errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
+    errBox.classList.remove('is-hidden');
+    return;
+  }
+  questions = injectPBQs(collected, MIXED_TOPIC, 2);
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  showPage('quiz');
+  render();
 }
 
 function renderReadinessCard() {
