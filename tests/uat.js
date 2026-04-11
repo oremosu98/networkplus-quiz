@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.16.2', js.includes("const APP_VERSION = '4.16.2"));
+test('APP_VERSION is 4.17', js.includes("const APP_VERSION = '4.17"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.16.2', sw.includes('netplus-v4.16.2'));
+test('SW cache bumped to v4.17', sw.includes('netplus-v4.17'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.16.2', sw.includes('netplus-v4.16.2'));
-test('APP_VERSION bumped to 4.16.2', js.includes("APP_VERSION = '4.16.2'"));
+test('SW cache bumped to v4.17', sw.includes('netplus-v4.17'));
+test('APP_VERSION bumped to 4.17', js.includes("APP_VERSION = '4.17'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -597,7 +597,7 @@ test('startPortDrill calls renderPortLabsList', /startPortDrill\(\)[\s\S]{0,900}
 test('renderPortTerminalList uses portCategories', /renderPortTerminalList[\s\S]{0,800}portCategories\.forEach/.test(js));
 test('renderPortTerminalList uses portCommands', /renderPortTerminalList[\s\S]{0,800}portCommands\[proto\]/.test(js));
 test('renderPortTerminalList uses _terminalCardHtml', /renderPortTerminalList[\s\S]{0,1200}_terminalCardHtml/.test(js));
-test('renderPortLabsList dedupes by lab title', /renderPortLabsList[\s\S]{0,600}seen\.has\(lab\.title\)/.test(js));
+test('renderPortLabsList dedupes by lab title', /renderPortLabsList[\s\S]{0,1500}seen\.has\(lab\.title\)/.test(js));
 test('renderPortLabsList uses primaryKeys map', /renderPortLabsList[\s\S]{0,400}primaryKeys = \{/.test(js));
 test('renderPortLabsList launches openGuidedLab', /renderPortLabsList[\s\S]{0,2000}openGuidedLab\(/.test(js));
 test('CSS: .port-term-row', css.includes('.port-term-row'));
@@ -606,6 +606,49 @@ test('CSS: .port-term-num', css.includes('.port-term-num'));
 test('CSS: .port-lab-card', css.includes('.port-lab-card'));
 test('CSS: .port-lab-start', css.includes('.port-lab-start'));
 test('CSS: .port-terminal-intro', css.includes('.port-terminal-intro'));
+
+// ── Remaining 5 Guided Terminal Labs (v4.17 / #70) ──
+console.log('\n\x1b[1m── GUIDED LABS: REMAINING 5 (v4.17 / #70) ──\x1b[0m');
+test('Lab: _tlsLab defined', js.includes('const _tlsLab = {'));
+test('Lab: _arpLab defined', js.includes('const _arpLab = {'));
+test('Lab: _subnetLab defined', js.includes('const _subnetLab = {'));
+test('Lab: _monitoringLab defined', js.includes('const _monitoringLab = {'));
+test('Lab: _troubleshootingLab defined', js.includes('const _troubleshootingLab = {'));
+test('TLS lab: openssl s_client', /_tlsLab[\s\S]{0,3500}openssl s_client -connect google\.com:443/.test(js));
+test('TLS lab: SNI step', /_tlsLab[\s\S]{0,3500}-servername example\.com/.test(js));
+test('TLS lab: badssl', /_tlsLab[\s\S]{0,4000}expired\.badssl\.com/.test(js));
+test('ARP lab: ifconfig ether', /_arpLab[\s\S]{0,2500}ifconfig en0 \| grep ether/.test(js));
+test('ARP lab: arp -a', /_arpLab[\s\S]{0,3000}arp -a/.test(js));
+test('ARP lab: gateway MAC step', /_arpLab[\s\S]{0,3500}route -n get default/.test(js));
+test('Subnet lab: ifconfig inet', /_subnetLab[\s\S]{0,2500}ifconfig en0 \| grep "inet "/.test(js));
+test('Subnet lab: ipcalc /24', /_subnetLab[\s\S]{0,3500}ipcalc 192\.168\.1\.0\/24/.test(js));
+test('Subnet lab: /26 harder case', /_subnetLab[\s\S]{0,4000}ipcalc 192\.168\.1\.0\/26/.test(js));
+test('Subnet lab: IPv6 branch', /_subnetLab[\s\S]{0,4500}ifconfig en0 \| grep inet6/.test(js));
+test('Monitoring lab: netstat -s', /_monitoringLab[\s\S]{0,2500}netstat -s/.test(js));
+test('Monitoring lab: lsof -i', /_monitoringLab[\s\S]{0,3500}lsof -i/.test(js));
+test('Monitoring lab: nettop', /_monitoringLab[\s\S]{0,4000}nettop/.test(js));
+test('Monitoring lab: tcpdump port 53', /_monitoringLab[\s\S]{0,4500}tcpdump[\s\S]{0,100}port 53/.test(js));
+test('Troubleshooting lab: 20 min duration', /_troubleshootingLab[\s\S]{0,200}~20 min/.test(js));
+test('Troubleshooting lab: ping google.com step', /_troubleshootingLab[\s\S]{0,2500}ping -c 2 google\.com/.test(js));
+test('Troubleshooting lab: nslookup with 1.1.1.1', /_troubleshootingLab[\s\S]{0,3500}nslookup google\.com 1\.1\.1\.1/.test(js));
+test('Troubleshooting lab: networksetup getdnsservers', /_troubleshootingLab[\s\S]{0,4500}networksetup -getdnsservers/.test(js));
+test('Troubleshooting lab: 8 steps (all 7 CompTIA + extra step 3)', (js.match(/_troubleshootingLab[\s\S]*?\]\s*,\s*wrap/) || [''])[0].match(/\{ narration:/g)?.length >= 8);
+test('guidedLabs: Securing TCP/IP → _tlsLab', /'Securing TCP\/IP':[\s]+_tlsLab/.test(js));
+test('guidedLabs: PKI → _tlsLab', /'PKI & Certificate Management':[\s]+_tlsLab/.test(js));
+test('guidedLabs: Switch Features → _arpLab', /'Switch Features & VLANs':[\s]+_arpLab/.test(js));
+test('guidedLabs: Cabling → _arpLab', /'Cabling & Topology':[\s]+_arpLab/.test(js));
+test('guidedLabs: Subnetting → _subnetLab', /'Subnetting & IP Addressing':[\s]+_subnetLab/.test(js));
+test('guidedLabs: IPv6 → _subnetLab', /'IPv6':[\s]+_subnetLab/.test(js));
+test('guidedLabs: Monitoring → _monitoringLab', /'Network Monitoring & Observability':[\s]+_monitoringLab/.test(js));
+test('guidedLabs: Network Operations → _monitoringLab', /'Network Operations':[\s]+_monitoringLab/.test(js));
+test('guidedLabs: Troubleshooting Methodology → _troubleshootingLab', /'CompTIA Troubleshooting Methodology':[\s]+_troubleshootingLab/.test(js));
+test('guidedLabs: Network Troubleshooting → _troubleshootingLab', /'Network Troubleshooting & Tools':[\s]+_troubleshootingLab/.test(js));
+test('guidedLabs: Troubleshooting no longer aliased to routing', !/'CompTIA Troubleshooting Methodology':[\s]+_routingLab/.test(js));
+test('primaryKeys: TLS launch key', /primaryKeys[\s\S]{0,600}'TLS Handshake[\s\S]{0,80}'Securing TCP\/IP'/.test(js));
+test('primaryKeys: ARP launch key', /primaryKeys[\s\S]{0,700}'ARP & Layer 2 Adjacency'[\s\S]{0,80}'Switch Features & VLANs'/.test(js));
+test('primaryKeys: Subnet launch key', /primaryKeys[\s\S]{0,800}'Subnetting Your Own Network'[\s\S]{0,80}'Subnetting & IP Addressing'/.test(js));
+test('primaryKeys: Monitoring launch key', /primaryKeys[\s\S]{0,900}'Network Monitoring with[\s\S]{0,80}'Network Monitoring & Observability'/.test(js));
+test('primaryKeys: Troubleshooting launch key', /primaryKeys[\s\S]{0,1000}'The 7-Step Troubleshooting[\s\S]{0,80}'CompTIA Troubleshooting Methodology'/.test(js));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');

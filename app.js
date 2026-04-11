@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.16.2';
+const APP_VERSION = '4.17';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5256,14 +5256,99 @@ const _portsLab = {
   ],
   wrap: 'Now fire the Port Drill mode — you\'ve just seen a bunch of these ports actually DO something, which makes them stick.'
 };
+const _tlsLab = {
+  title: 'TLS Handshake & Secure Protocols',
+  objective: '4.3',
+  duration: '~15 min',
+  intro: 'We\'ll peel back HTTPS and watch the TLS handshake actually happen — cert chain, SNI, cipher suite, the whole thing. This is the lab that turns "PKI" from a textbook acronym into something you\'ve seen with your own eyes.',
+  steps: [
+    { narration: 'Dump the full certificate chain for Google. You\'ll see the leaf cert, an intermediate CA, and the root — the chain of trust the N10-009 objectives describe. Hit Ctrl+C when you\'re done reading.', cmd: 'openssl s_client -connect google.com:443', expect: 'Several "Certificate chain" entries with subject (s:) and issuer (i:) lines, followed by the full leaf cert in PEM format, then "SSL-Session" details including Protocol (TLSv1.3) and Cipher.' },
+    { narration: 'Now do the same thing with SNI — Server Name Indication. SNI lets one IP host many HTTPS sites by telling the server which hostname you want BEFORE the cert is picked. Different servername → potentially different cert.', cmd: 'openssl s_client -connect google.com:443 -servername example.com', expect: 'A different cert chain in the response because the server now selects the cert for example.com (or a default cert if that vhost isn\'t hosted there).' },
+    { narration: 'curl with -v shows the TLS handshake inline, without all the openssl noise. Look for the "SSL connection using" line, the "Server certificate" block, and the cipher suite negotiated.', cmd: 'curl -vI https://example.com', expect: 'Verbose output including "ALPN: server accepted h2", "SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384", and cert subject/issuer lines, followed by HTTP/2 200 and response headers.' },
+    { narration: 'Check when a cert expires and who issued it — without opening a browser. -dates prints validity window, -issuer shows the CA, -subject shows who the cert is for.', cmd: 'echo | openssl s_client -connect github.com:443 2>/dev/null | openssl x509 -noout -dates -issuer -subject', expect: 'Four lines: notBefore=..., notAfter=..., issuer=..., subject=... — all pulled from the live leaf certificate.' },
+    { narration: 'badssl.com intentionally serves broken certs so you can practice recognizing them. Try the expired one — notice how openssl still shows you the handshake output even though a browser would block it.', cmd: 'echo | openssl s_client -connect expired.badssl.com:443 -servername expired.badssl.com 2>&1 | grep -E "verify|notAfter"', expect: 'A "verify error:num=10:certificate has expired" line and a notAfter date in the past. Great confirmation you can spot expired certs on the exam.' },
+    { narration: 'Final step — the cipher suite. This is what the exam asks about under "secure protocols". The TLS 1.3 suite below is AES-256 in GCM mode with SHA-384 for the HMAC.', cmd: 'echo | openssl s_client -connect cloudflare.com:443 2>/dev/null | grep -E "Protocol|Cipher"', expect: 'Two lines: "Protocol  : TLSv1.3" and "Cipher    : TLS_AES_256_GCM_SHA384" (or similar).' }
+  ],
+  wrap: 'You\'ve now seen the TLS handshake, the cert chain, SNI, and cipher negotiation live. Head back and drill Securing TCP/IP and PKI — those topics will feel concrete now.'
+};
+const _arpLab = {
+  title: 'ARP & Layer 2 Adjacency',
+  objective: '2.1',
+  duration: '~10 min',
+  intro: 'ARP is how Layer 3 (IP) actually reaches Layer 2 (MAC). This lab makes the abstract "ARP resolves IP to MAC" sentence concrete by letting you watch your own ARP cache populate and disappear.',
+  steps: [
+    { narration: 'Your own MAC address. This is the L2 identity of your machine on the local network — 6 bytes, printed as hex. The first 3 bytes are the OUI (Organizationally Unique Identifier) and identify the vendor.', cmd: 'ifconfig en0 | grep ether', expect: 'A line like "ether a4:83:e7:xx:xx:xx". Write the first 3 bytes down — that\'s Apple\'s OUI block.' },
+    { narration: 'Look up the OUI online to see the vendor. For Apple it should say "Apple, Inc." — this is how a switch or a network scanner identifies devices without ever resolving their IP.', cmd: 'echo "Paste your OUI at https://www.wireshark.org/tools/oui-lookup.html"', expect: 'The Wireshark lookup tool returns the vendor name for any valid OUI. Apple OUIs start with a4:83:e7, f0:18:98, etc.' },
+    { narration: 'Look at the live ARP cache. Every row here is an IP-to-MAC mapping your machine has learned by asking "who has this IP?" and hearing the reply.', cmd: 'arp -a', expect: 'Several rows like "? (192.168.1.1) at aa:bb:cc:dd:ee:ff on en0 ifscope [ethernet]". Your router should be one of them.' },
+    { narration: 'Ping a host you\'ve never talked to — any IP on your LAN that isn\'t the gateway. Your machine has to ARP for it BEFORE the ICMP can go out. The first ping is typically slower because of that extra ARP round trip.', cmd: 'ping -c 2 192.168.1.2', expect: 'One or two replies (or timeouts if nothing is at that address). Either way, the ARP request goes out on the wire first.' },
+    { narration: 'Check the ARP cache again — the new entry is there now. ARP learned the MAC while trying to deliver your ICMP.', cmd: 'arp -a', expect: 'The same list as before plus (if the host responded) a new row for 192.168.1.2. If nothing responded, you might see "incomplete" or no new row.' },
+    { narration: 'Finally, your default gateway\'s MAC. This is the single most important ARP entry on your machine — every packet bound for the public internet is sent to this MAC at Layer 2 first. "You reach the gateway by MAC, not IP" is the single-sentence L2 adjacency rule the exam loves.', cmd: 'arp -n $(route -n get default | awk \'/gateway/ {print $2}\')', expect: 'A single line showing the gateway\'s IP and MAC. This is the handoff point between your LAN and the rest of the world.' }
+  ],
+  wrap: 'ARP is no longer abstract. Head back and drill Switch Features & VLANs / Cabling & Topology — the L2 questions will make more sense.'
+};
+const _subnetLab = {
+  title: 'Subnetting Your Own Network',
+  objective: '1.4',
+  duration: '~15 min',
+  intro: 'We\'ll subnet YOUR real network instead of a textbook example. You\'ll pull your real IP and mask, compute the network, broadcast, and usable range, and confirm it matches what ipcalc says.',
+  steps: [
+    { narration: 'Pull your real IPv4 address and netmask. en0 is usually Wi-Fi on macOS; if nothing shows up, try en1 or run "ifconfig" with no args to find the right interface.', cmd: 'ifconfig en0 | grep "inet "', expect: 'A line like "inet 192.168.1.47 netmask 0xffffff00 broadcast 192.168.1.255". That netmask in hex is /24.' },
+    { narration: 'Convert the hex mask to CIDR. 0xffffff00 = 255.255.255.0 = /24. 0xffff0000 = 255.255.0.0 = /16. Count the 1 bits in the mask — that\'s your prefix length. This is a classic exam question.', cmd: 'echo "0xffffff00 → 255.255.255.0 → /24  (24 one-bits in the mask)"', expect: 'The printed conversion. Practice this until hex-to-CIDR is instant: ff = 8 bits, so 3x ff = /24, 4x ff = /32.' },
+    { narration: 'Now compute network and broadcast by hand using your real IP. For 192.168.1.47/24: network = 192.168.1.0, broadcast = 192.168.1.255, usable = .1 to .254 (2^8 - 2 = 254 hosts). Replace the numbers with YOUR IP.', cmd: 'echo "My IP: 192.168.1.47/24 → network 192.168.1.0, broadcast 192.168.1.255, usable 192.168.1.1-.254 (254 hosts)"', expect: 'Your own subnet math written out. This is exactly the format the exam wants.' },
+    { narration: 'Check your work with ipcalc. brew install ipcalc if you don\'t have it. Pass it your real CIDR block — the output should match what you just wrote down.', cmd: 'ipcalc 192.168.1.0/24', expect: 'A colored table showing Address, Netmask, Wildcard, Network, Broadcast, HostMin, HostMax, and Hosts/Net. All fields should match your by-hand calculation.' },
+    { narration: 'Now try a harder one. /26 gives you 4 subnets per /24 — each with 62 usable hosts. ipcalc will show you the block boundaries. This is the kind of variable-length mask the exam throws at you.', cmd: 'ipcalc 192.168.1.0/26', expect: 'A smaller block: network 192.168.1.0, broadcast 192.168.1.63, HostMin .1, HostMax .62, 62 hosts total. The next /26 block starts at 192.168.1.64.' },
+    { narration: 'Optional IPv6 side. IPv6 doesn\'t do ARP (it uses NDP) and doesn\'t do subnetting the same way — prefixes are almost always /64 for LANs. Check your real IPv6 address.', cmd: 'ifconfig en0 | grep inet6', expect: 'One or more inet6 lines. A link-local address starts with fe80:: and only works on the local segment. A global address is routable on the public IPv6 internet.' }
+  ],
+  wrap: 'You\'ve now subnetted a real network with your own IP. Head back and grind the Subnetting Trainer — after this lab the drills feel a lot less abstract.'
+};
+const _monitoringLab = {
+  title: 'Network Monitoring with netstat, lsof, and tcpdump',
+  objective: '3.2',
+  duration: '~15 min',
+  intro: 'Monitoring is what happens AFTER you\'ve deployed the network and things start going wrong. This lab walks you through the four tools every ops team lives in: netstat for counters, lsof for connection-to-process mapping, nettop for live rates, and tcpdump for packet-level truth.',
+  steps: [
+    { narration: 'Protocol counters. netstat -s dumps per-protocol statistics — TCP retransmits, UDP checksum errors, ICMP drops. If a link is flaky, retransmits and errors climb here.', cmd: 'netstat -s | head -40', expect: 'Blocks labeled tcp:, udp:, ip:, icmp: with counters like "packets sent", "retransmitted", "bad checksums". Rising retransmit counts are the #1 sign of a lossy link.' },
+    { narration: 'Every active network socket on your machine. This is netstat -an: all (a) connections, numeric (n) addresses — no DNS lookups, so it\'s fast.', cmd: 'netstat -an | head -30', expect: 'A table with Proto, Recv-Q, Send-Q, Local Address, Foreign Address, state. States include LISTEN (waiting), ESTABLISHED (active), TIME_WAIT (recently closed), CLOSE_WAIT (problem).' },
+    { narration: 'lsof maps network sockets to processes. Now you can see WHICH app is responsible for each connection — the missing piece netstat doesn\'t give you on macOS.', cmd: 'lsof -i -P -n | head -20', expect: 'Rows with COMMAND (process name), PID, USER, NAME (the local:foreign address). Great for "why is port 5432 open? oh, postgres".' },
+    { narration: 'Narrow to a specific port. This answers "who is listening on port 443?" in one command — way faster than grepping netstat.', cmd: 'lsof -i :443', expect: 'Zero or more rows showing processes with an active connection to or from port 443. If nothing prints, nothing on your machine is using 443 right now.' },
+    { narration: 'Live throughput by process. nettop is the macOS equivalent of iftop — it shows bytes/sec per process, refreshed every second. Hit q to quit.', cmd: 'nettop -P -L 1', expect: 'A snapshot table with processes and their current bytes_in / bytes_out / packets_in / packets_out. -L 1 = one sample and exit so this doesn\'t hang your terminal.' },
+    { narration: 'Finally, packet-level truth. tcpdump captures real packets on the wire. This filter grabs 10 DNS packets (port 53) on any interface. May prompt for sudo.', cmd: 'sudo tcpdump -i any -n -c 10 port 53', expect: 'Ten lines, each one a DNS query or reply: timestamp, source → destination, A? google.com (or similar). This is the ground truth every other tool is approximating.' }
+  ],
+  wrap: 'You\'ve just seen the four layers of network observability: counters (netstat -s), connection tables (netstat -an / lsof), live rates (nettop), and raw packets (tcpdump). Head back and drill Network Monitoring & Observability.'
+};
+const _troubleshootingLab = {
+  title: 'The 7-Step Troubleshooting Methodology — Live',
+  objective: '5.1',
+  duration: '~20 min',
+  intro: 'This is THE exam topic that gets graded as methodology, not trivia. You\'ll walk through all 7 CompTIA steps against a real (hypothetical) outage: "I can\'t reach google.com." No commands here will break your network permanently — we just query, we don\'t modify.',
+  steps: [
+    { narration: 'STEP 1 — Identify the problem. Reproduce it with a ping. "I can\'t reach google.com" is vague; "ping google.com returns cannot resolve host" is specific. Always reproduce before theorizing.', cmd: 'ping -c 2 google.com', expect: 'Either four reply lines (no problem) or "cannot resolve google.com: Unknown host" (the reproducible symptom). The exact error message is your starting data.' },
+    { narration: 'STEP 2 — Establish a theory of probable cause. If ping by NAME fails, is it DNS or is it the whole network? Test raw IP to eliminate DNS as a variable. 8.8.8.8 is Google\'s public resolver — known-good, never changes.', cmd: 'ping -c 2 8.8.8.8', expect: 'Four reply lines. If THIS works but ping google.com didn\'t, the network is fine and the problem is DNS. If THIS fails too, the problem is upstream (gateway, ISP, airplane mode).' },
+    { narration: 'STEP 3 — Test the theory. Ask a specific DNS server directly with nslookup. If Cloudflare\'s 1.1.1.1 can resolve it but your default resolver can\'t, your configured DNS is broken.', cmd: 'nslookup google.com 1.1.1.1', expect: 'A "Non-authoritative answer" block with google.com\'s IP addresses. This confirms DNS works GLOBALLY — the issue is localized to your machine\'s DNS config.' },
+    { narration: 'STEP 3 (continued) — Confirm with your CURRENT resolver. No server argument = use whatever is in /etc/resolv.conf or System Settings. If this hangs or errors, your local DNS is the root cause.', cmd: 'nslookup google.com', expect: 'Either the same "Non-authoritative answer" (your DNS is fine, theory rejected, go back to step 2) or a timeout / "connection refused" (theory confirmed, DNS is broken).' },
+    { narration: 'STEP 4 — Establish a plan of action. Plan in English BEFORE you type. "I\'ll change the DNS resolver on Wi-Fi to 1.1.1.1, retest, and if it works I\'ll also document why the original resolver failed." Write the plan down. The exam grades this step.', cmd: 'echo "Plan: 1) set DNS to 1.1.1.1  2) retest  3) verify  4) document root cause  5) set DNS back or keep new one"', expect: 'Your plan on screen. Yes, this is trivial — but on the exam "what do you do BEFORE implementing?" the answer is always "establish a plan".' },
+    { narration: 'STEP 5 — Implement the solution. networksetup is the macOS way to change DNS from the CLI. Replace "Wi-Fi" with your interface name if different. SKIP this step if the outage is hypothetical — the rest of the lab still works.', cmd: 'networksetup -getdnsservers Wi-Fi', expect: 'Either a list of DNS servers (e.g. 192.168.1.1) or "There aren\'t any DNS Servers set on Wi-Fi." (meaning DHCP is handing them out). We\'re only READING here, not writing — -setdnsservers is the write command.' },
+    { narration: 'STEP 6 — Verify full functionality. Retest the original failing command. If it works now, the solution is confirmed. If it doesn\'t, the theory was wrong — loop back to step 2.', cmd: 'ping -c 2 google.com', expect: 'Four reply lines (if the fix worked). This is the end-to-end confirmation the exam asks about — don\'t skip this step even when it feels redundant.' },
+    { narration: 'STEP 7 — Document findings. Write down the symptom, root cause, fix, and verification. This is the step everyone skips and the exam ALWAYS tests. 30 seconds of typing saves 30 minutes the next time the same thing happens.', cmd: 'echo "INCIDENT: ping google.com failed → root cause: local DNS misconfig → fix: set resolver to 1.1.1.1 → verified: ping google.com OK → 2026-04-11"', expect: 'One line of incident documentation. In real ops this goes into a ticket, a wiki, or a runbook. On the exam: know that step 7 exists and what it\'s called.' }
+  ],
+  wrap: 'You\'ve just walked all 7 steps of the CompTIA methodology against a real command sequence. The exam scenario questions are now a template match — find the step in the question, name it, pick the next step. Head back and drill Troubleshooting Methodology.'
+};
 const guidedLabs = {
-  'Network Naming (DNS & DHCP)':      _dnsLab,
-  'DNS Records & DNSSEC':             _dnsLab,
-  'Routing Protocols':                _routingLab,
-  'Network Troubleshooting & Tools':  _routingLab,
-  'CompTIA Troubleshooting Methodology': _routingLab,
-  'Port Numbers':                     _portsLab,
-  'TCP/IP Applications':              _portsLab
+  'Network Naming (DNS & DHCP)':         _dnsLab,
+  'DNS Records & DNSSEC':                _dnsLab,
+  'Routing Protocols':                   _routingLab,
+  'Port Numbers':                        _portsLab,
+  'TCP/IP Applications':                 _portsLab,
+  'Securing TCP/IP':                     _tlsLab,
+  'PKI & Certificate Management':        _tlsLab,
+  'Switch Features & VLANs':             _arpLab,
+  'Cabling & Topology':                  _arpLab,
+  'Subnetting & IP Addressing':          _subnetLab,
+  'IPv6':                                _subnetLab,
+  'Network Monitoring & Observability':  _monitoringLab,
+  'Network Operations':                  _monitoringLab,
+  'CompTIA Troubleshooting Methodology': _troubleshootingLab,
+  'Network Troubleshooting & Tools':     _troubleshootingLab
 };
 
 // Copy a command to clipboard with visual feedback on the button.
@@ -5449,7 +5534,12 @@ function renderPortLabsList() {
   const primaryKeys = {
     'DNS Records & Recursive Resolution': 'DNS Records & DNSSEC',
     'Routing & Your Real Default Gateway': 'Routing Protocols',
-    'Ports & Listening Services': 'Port Numbers'
+    'Ports & Listening Services': 'Port Numbers',
+    'TLS Handshake & Secure Protocols': 'Securing TCP/IP',
+    'ARP & Layer 2 Adjacency': 'Switch Features & VLANs',
+    'Subnetting Your Own Network': 'Subnetting & IP Addressing',
+    'Network Monitoring with netstat, lsof, and tcpdump': 'Network Monitoring & Observability',
+    'The 7-Step Troubleshooting Methodology — Live': 'CompTIA Troubleshooting Methodology'
   };
   const seen = new Set();
   const labs = [];
