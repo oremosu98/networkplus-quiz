@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.16.1', js.includes("const APP_VERSION = '4.16.1"));
+test('APP_VERSION is 4.16.2', js.includes("const APP_VERSION = '4.16.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.16.1', sw.includes('netplus-v4.16.1'));
+test('SW cache bumped to v4.16.2', sw.includes('netplus-v4.16.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.16.1', sw.includes('netplus-v4.16.1'));
-test('APP_VERSION bumped to 4.16.1', js.includes("APP_VERSION = '4.16.1'"));
+test('SW cache bumped to v4.16.2', sw.includes('netplus-v4.16.2'));
+test('APP_VERSION bumped to 4.16.2', js.includes("APP_VERSION = '4.16.2'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -606,6 +606,11 @@ test('CSS: .port-term-num', css.includes('.port-term-num'));
 test('CSS: .port-lab-card', css.includes('.port-lab-card'));
 test('CSS: .port-lab-start', css.includes('.port-lab-start'));
 test('CSS: .port-terminal-intro', css.includes('.port-terminal-intro'));
+
+// ── Guided Lab Back button return page fix (v4.16.2) ──
+console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');
+test('openGuidedLab includes page-ports in return pages', /openGuidedLab[\s\S]{0,800}pages = \[[^\]]*'page-ports'/.test(js));
+test('openGuidedLab fallback is page-ports', /openGuidedLab[\s\S]{0,900}\|\| 'page-ports'/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

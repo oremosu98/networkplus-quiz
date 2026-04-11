@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.16.1';
+const APP_VERSION = '4.16.2';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4732,8 +4732,8 @@ function openGuidedLab(topicName) {
   if (!lab) { showErrorToast('No lab available for this topic yet.'); return; }
 
   // Remember which page we came from so Back works
-  const pages = ['page-topic-dive', 'page-quiz', 'page-review', 'page-results', 'page-exam-results'];
-  guidedLabReturnPage = pages.find(p => document.getElementById(p) && document.getElementById(p).classList.contains('active')) || 'page-topic-dive';
+  const pages = ['page-topic-dive', 'page-ports', 'page-quiz', 'page-review', 'page-results', 'page-exam-results'];
+  guidedLabReturnPage = pages.find(p => document.getElementById(p) && document.getElementById(p).classList.contains('active')) || 'page-ports';
 
   const titleEl = document.getElementById('lab-title');
   const metaEl = document.getElementById('lab-meta');
