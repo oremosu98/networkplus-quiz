@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.17', js.includes("const APP_VERSION = '4.17"));
+test('APP_VERSION is 4.18', js.includes("const APP_VERSION = '4.18"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.17', sw.includes('netplus-v4.17'));
+test('SW cache bumped to v4.18', sw.includes('netplus-v4.18'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.17', sw.includes('netplus-v4.17'));
-test('APP_VERSION bumped to 4.17', js.includes("APP_VERSION = '4.17'"));
+test('SW cache bumped to v4.18', sw.includes('netplus-v4.18'));
+test('APP_VERSION bumped to 4.18', js.includes("APP_VERSION = '4.18'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -649,6 +649,84 @@ test('primaryKeys: ARP launch key', /primaryKeys[\s\S]{0,700}'ARP & Layer 2 Adja
 test('primaryKeys: Subnet launch key', /primaryKeys[\s\S]{0,800}'Subnetting Your Own Network'[\s\S]{0,80}'Subnetting & IP Addressing'/.test(js));
 test('primaryKeys: Monitoring launch key', /primaryKeys[\s\S]{0,900}'Network Monitoring with[\s\S]{0,80}'Network Monitoring & Observability'/.test(js));
 test('primaryKeys: Troubleshooting launch key', /primaryKeys[\s\S]{0,1000}'The 7-Step Troubleshooting[\s\S]{0,80}'CompTIA Troubleshooting Methodology'/.test(js));
+
+// ── Topology Builder Tier 1 (v4.18 / #74) ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 1 (v4.18 / #74) ──\x1b[0m');
+// Storage keys
+test('STORAGE.TOPOLOGIES key', js.includes("TOPOLOGIES: 'nplus_topologies'"));
+test('STORAGE.TOPOLOGY_DRAFT key', js.includes("TOPOLOGY_DRAFT: 'nplus_topology_draft'"));
+// Constants
+test('TB_MAX_DEVICES = 15', js.includes('const TB_MAX_DEVICES = 15'));
+test('TB_MAX_SAVES = 5', js.includes('const TB_MAX_SAVES = 5'));
+test('TB_DEVICE_TYPES defined', js.includes('const TB_DEVICE_TYPES = {'));
+// Device type coverage (all 7)
+test('Device type: router', /TB_DEVICE_TYPES[\s\S]{0,1500}router:\s*\{/.test(js));
+test('Device type: switch', /TB_DEVICE_TYPES[\s\S]{0,1500}switch:\s*\{/.test(js));
+test('Device type: wap', /TB_DEVICE_TYPES[\s\S]{0,1500}wap:\s*\{/.test(js));
+test('Device type: pc', /TB_DEVICE_TYPES[\s\S]{0,1500}pc:\s*\{/.test(js));
+test('Device type: server', /TB_DEVICE_TYPES[\s\S]{0,1500}server:\s*\{/.test(js));
+test('Device type: firewall', /TB_DEVICE_TYPES[\s\S]{0,1500}firewall:\s*\{/.test(js));
+test('Device type: cloud', /TB_DEVICE_TYPES[\s\S]{0,1500}cloud:\s*\{/.test(js));
+// Core functions
+test('openTopologyBuilder function', js.includes('function openTopologyBuilder('));
+test('tbForceOpen function', js.includes('function tbForceOpen('));
+test('tbNewState function', js.includes('function tbNewState('));
+test('tbRenderPalette function', js.includes('function tbRenderPalette('));
+test('tbRenderCanvas function', js.includes('function tbRenderCanvas('));
+test('tbAttachCanvasHandlers function', js.includes('function tbAttachCanvasHandlers('));
+test('tbClientToSvg function', js.includes('function tbClientToSvg('));
+test('tbAddDevice function', js.includes('function tbAddDevice('));
+test('tbOnDeviceMouseDown function', js.includes('function tbOnDeviceMouseDown('));
+test('tbOnMouseMove function', js.includes('function tbOnMouseMove('));
+test('tbOnMouseUp function', js.includes('function tbOnMouseUp('));
+test('tbAddCable function', js.includes('function tbAddCable('));
+test('tbAttachKeyHandler function', js.includes('function tbAttachKeyHandler('));
+test('tbDeleteSelected function', js.includes('function tbDeleteSelected('));
+test('tbSaveDraft function', js.includes('function tbSaveDraft('));
+test('tbLoadDraft function', js.includes('function tbLoadDraft('));
+test('tbSaveTopology function', js.includes('function tbSaveTopology('));
+test('tbLoadTopology function', js.includes('function tbLoadTopology('));
+test('tbNewTopology function', js.includes('function tbNewTopology('));
+test('tbLoadAllSaves function', js.includes('function tbLoadAllSaves('));
+test('tbRefreshLoadSelect function', js.includes('function tbRefreshLoadSelect('));
+// Behavior details
+test('Device cap enforced in tbAddDevice', /tbAddDevice[\s\S]{0,400}devices\.length >= TB_MAX_DEVICES/.test(js));
+test('Cable dedupe prevents duplicate cables', /tbAddCable[\s\S]{0,500}already cabled/.test(js));
+test('Cable dedupe prevents self-loop', /tbAddCable[\s\S]{0,200}fromId === toId/.test(js));
+test('Delete cascades: cables removed with device', /tbDeleteSelected[\s\S]{0,600}cables = tbState\.cables\.filter/.test(js));
+test('Save FIFO caps at TB_MAX_SAVES', /tbSaveTopology[\s\S]{0,800}length > TB_MAX_SAVES/.test(js));
+test('Save requires at least one device', /tbSaveTopology[\s\S]{0,300}Add at least one device/.test(js));
+test('Draft auto-saves on add device', /tbAddDevice[\s\S]{0,400}tbSaveDraft\(\)/.test(js));
+test('Draft auto-saves on move', /tbOnMouseUp[\s\S]{0,400}tbSaveDraft\(\)/.test(js));
+test('Mobile nudge triggers below 900px', /openTopologyBuilder[\s\S]{0,600}innerWidth < 900/.test(js));
+test('Mobile override via tbForceOpen', /tbForceOpen[\s\S]{0,100}tbMobileOverride = true/.test(js));
+test('Keyboard: Delete/Backspace triggers delete', /tbAttachKeyHandler[\s\S]{0,600}(Delete|Backspace)/.test(js));
+test('Keyboard: Escape clears selection', /tbAttachKeyHandler[\s\S]{0,700}Escape/.test(js));
+test('Keyboard handler skips inputs', /tbAttachKeyHandler[\s\S]{0,500}tagName === 'INPUT'/.test(js));
+// HTML wiring
+test('HTML: setup menu button for topology-builder', html.includes("showPage('topology-builder')"));
+test('HTML: #page-topology-builder exists', html.includes('id="page-topology-builder"'));
+test('HTML: #tb-canvas SVG exists', html.includes('id="tb-canvas"'));
+test('HTML: #tb-palette-items container', html.includes('id="tb-palette-items"'));
+test('HTML: #tb-devices-layer', html.includes('id="tb-devices-layer"'));
+test('HTML: #tb-cables-layer', html.includes('id="tb-cables-layer"'));
+test('HTML: #tb-mobile-nudge', html.includes('id="tb-mobile-nudge"'));
+test('HTML: #tb-device-count pill', html.includes('id="tb-device-count"'));
+test('HTML: #tb-load-select dropdown', html.includes('id="tb-load-select"'));
+test('HTML: Save button wired to tbSaveTopology', html.includes('tbSaveTopology()'));
+test('HTML: New button wired to tbNewTopology', html.includes('tbNewTopology()'));
+test('HTML: Delete button wired to tbDeleteSelected', html.includes('tbDeleteSelected()'));
+// CSS hooks
+test('CSS: .tb-canvas', css.includes('.tb-canvas'));
+test('CSS: .tb-palette', css.includes('.tb-palette '));
+test('CSS: .tb-palette-item', css.includes('.tb-palette-item'));
+test('CSS: .tb-device-selected', css.includes('.tb-device-selected'));
+test('CSS: .tb-device-pending', css.includes('.tb-device-pending'));
+test('CSS: .tb-cable', css.includes('.tb-cable'));
+test('CSS: .tb-cable-selected', css.includes('.tb-cable-selected'));
+test('CSS: .tb-mobile-nudge', css.includes('.tb-mobile-nudge'));
+test('CSS: .tb-workspace grid', css.includes('.tb-workspace'));
+test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');

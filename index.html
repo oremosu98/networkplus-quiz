@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.17</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.18</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -287,6 +287,8 @@
     <button class="btn btn-tool btn-full" onclick="showPage('ports');startPortDrill()">&#9889; Port Drill</button>
     <button class="btn btn-tool btn-full" onclick="showPage('analytics');renderAnalytics()">&#128202; Analytics</button>
   </div>
+
+  <button class="btn btn-tool btn-full" id="topology-builder-btn" style="margin-top:10px" onclick="showPage('topology-builder');openTopologyBuilder()">&#128295; Topology Builder</button>
 
 </div>
 
@@ -735,6 +737,70 @@
   <div id="lab-intro" class="lab-intro"></div>
   <div id="lab-steps" class="lab-steps"></div>
   <div id="lab-wrap"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOPOLOGY BUILDER (v4.18 / #74)
+══════════════════════════════════════════ -->
+<div id="page-topology-builder" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <h2 style="margin:0">&#128295; Topology Builder</h2>
+    <span id="tb-device-count" class="tb-count-pill">0 / 15 devices</span>
+  </div>
+
+  <div id="tb-mobile-nudge" class="tb-mobile-nudge is-hidden">
+    <div class="tb-mobile-nudge-icon">&#128187;</div>
+    <h3>Topology Builder works best on a desktop</h3>
+    <p>Drag and drop + precise cable wiring don&rsquo;t translate well to small screens. Grab a laptop or external monitor for the best experience.</p>
+    <button class="btn btn-ghost" onclick="tbForceOpen()">Open Anyway</button>
+  </div>
+
+  <div id="tb-main" class="tb-main">
+    <!-- Toolbar -->
+    <div class="tb-toolbar">
+      <button class="btn btn-ghost tb-tool-btn" onclick="tbNewTopology()" title="New topology">&#128196; New</button>
+      <button class="btn btn-ghost tb-tool-btn" onclick="tbSaveTopology()" title="Save current topology">&#128190; Save</button>
+      <select id="tb-load-select" class="tb-load-select" onchange="tbLoadTopology(this.value)" aria-label="Load saved topology">
+        <option value="">&#128194; Load&hellip;</option>
+      </select>
+      <button class="btn btn-ghost tb-tool-btn" onclick="tbDeleteSelected()" title="Delete selected (Del)" id="tb-delete-btn">&#128465; Delete</button>
+      <span class="tb-toolbar-spacer"></span>
+      <span id="tb-status" class="tb-status">Drag a device from the palette &rarr;</span>
+    </div>
+
+    <!-- Main area: palette + canvas -->
+    <div class="tb-workspace">
+      <!-- Palette -->
+      <div class="tb-palette" id="tb-palette">
+        <div class="tb-palette-head">Devices</div>
+        <div id="tb-palette-items"></div>
+        <div class="tb-palette-hint">
+          <strong>Drag</strong> onto canvas<br>
+          <strong>Click</strong> device A &rarr; device B to cable<br>
+          <strong>Del</strong> / Backspace to remove
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div class="tb-canvas-wrap">
+        <svg id="tb-canvas" class="tb-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <pattern id="tb-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(124,111,247,0.08)" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#tb-grid)"/>
+          <g id="tb-cables-layer"></g>
+          <g id="tb-devices-layer"></g>
+        </svg>
+        <div id="tb-empty-hint" class="tb-empty-hint">
+          <div style="font-size:48px;margin-bottom:8px">&#128295;</div>
+          <div>Start by dragging a device from the palette</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════

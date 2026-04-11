@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.17';
+const APP_VERSION = '4.18';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -41,6 +41,8 @@ const STORAGE = {
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
   GH_REPORTED: 'nplus_gh_reported',
+  TOPOLOGIES: 'nplus_topologies',
+  TOPOLOGY_DRAFT: 'nplus_topology_draft',
 };
 
 // ── STATE ──
@@ -4771,6 +4773,432 @@ function openGuidedLab(topicName) {
   }
 
   showPage('guided-lab');
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — Tier 1 (v4.18 / #74)
+// SVG canvas + device palette + cables + save/load
+// Tier 2 (config panels) and Tier 3 (AI coach) ship later.
+// ══════════════════════════════════════════
+
+const TB_MAX_DEVICES = 15;
+const TB_MAX_SAVES = 5;
+const TB_CANVAS_W = 1200;
+const TB_CANVAS_H = 700;
+
+// Device type catalog. Adding a new type = one entry here.
+const TB_DEVICE_TYPES = {
+  router:   { label: 'Router',   icon: '\u{1F310}', color: '#7c6ff7', short: 'R' },
+  switch:   { label: 'Switch',   icon: '\u{1F500}', color: '#22c55e', short: 'SW' },
+  wap:      { label: 'WAP',      icon: '\u{1F4E1}', color: '#06b6d4', short: 'AP' },
+  pc:       { label: 'PC',       icon: '\u{1F4BB}', color: '#f59e0b', short: 'PC' },
+  server:   { label: 'Server',   icon: '\u{1F5A5}', color: '#ef4444', short: 'SRV' },
+  firewall: { label: 'Firewall', icon: '\u{1F6E1}', color: '#eab308', short: 'FW' },
+  cloud:    { label: 'Cloud',    icon: '\u{2601}',  color: '#94a3b8', short: 'WAN' },
+};
+
+// Topology builder state (prefixed tb* to avoid collision with PBQ topoDevices).
+let tbState = { id: null, name: 'Untitled', devices: [], cables: [], created: 0, updated: 0 };
+let tbSelectedId = null;        // currently selected device id OR cable id
+let tbPendingCableFrom = null;  // device id of first click when wiring
+let tbDragging = null;          // { id, offsetX, offsetY } while dragging a placed device
+let tbPaletteDrag = null;       // { type } while dragging from palette
+let tbMobileOverride = false;   // user hit "Open Anyway"
+
+// Public entry point wired to the menu button.
+function openTopologyBuilder() {
+  // Mobile nudge check
+  const nudge = document.getElementById('tb-mobile-nudge');
+  const main = document.getElementById('tb-main');
+  const isNarrow = window.innerWidth < 900;
+  if (isNarrow && !tbMobileOverride) {
+    nudge.classList.remove('is-hidden');
+    main.classList.add('is-hidden');
+    return;
+  }
+  nudge.classList.add('is-hidden');
+  main.classList.remove('is-hidden');
+
+  // Load draft if present, else start fresh
+  const draft = tbLoadDraft();
+  tbState = draft || tbNewState();
+
+  tbRenderPalette();
+  tbRenderCanvas();
+  tbRefreshLoadSelect();
+  tbUpdateStatus('Drag a device from the palette \u2192');
+  tbUpdateDeviceCount();
+  tbAttachCanvasHandlers();
+  tbAttachKeyHandler();
+}
+
+function tbForceOpen() {
+  tbMobileOverride = true;
+  openTopologyBuilder();
+}
+
+function tbNewState() {
+  return { id: 'topo_' + Date.now(), name: 'Untitled', devices: [], cables: [], created: Date.now(), updated: Date.now() };
+}
+
+// ── Palette ──
+function tbRenderPalette() {
+  const root = document.getElementById('tb-palette-items');
+  if (!root) return;
+  root.innerHTML = Object.entries(TB_DEVICE_TYPES).map(([type, meta]) => `
+    <div class="tb-palette-item" data-tb-type="${type}" draggable="true"
+         style="--tb-device-color:${meta.color}">
+      <div class="tb-palette-icon">${meta.icon}</div>
+      <div class="tb-palette-label">${escHtml(meta.label)}</div>
+    </div>
+  `).join('');
+  // HTML5 drag events
+  root.querySelectorAll('.tb-palette-item').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      const type = el.getAttribute('data-tb-type');
+      tbPaletteDrag = { type };
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', type);
+      el.classList.add('tb-palette-item-dragging');
+    });
+    el.addEventListener('dragend', () => {
+      tbPaletteDrag = null;
+      el.classList.remove('tb-palette-item-dragging');
+    });
+  });
+}
+
+// ── Canvas rendering ──
+function tbRenderCanvas() {
+  const devLayer = document.getElementById('tb-devices-layer');
+  const cabLayer = document.getElementById('tb-cables-layer');
+  const emptyHint = document.getElementById('tb-empty-hint');
+  if (!devLayer || !cabLayer) return;
+
+  // Cables first (drawn under devices)
+  cabLayer.innerHTML = tbState.cables.map(c => {
+    const from = tbState.devices.find(d => d.id === c.from);
+    const to = tbState.devices.find(d => d.id === c.to);
+    if (!from || !to) return '';
+    const selected = tbSelectedId === c.id ? ' tb-cable-selected' : '';
+    return `<line class="tb-cable${selected}" data-tb-cable="${c.id}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />`;
+  }).join('');
+
+  // Devices
+  devLayer.innerHTML = tbState.devices.map(d => {
+    const meta = TB_DEVICE_TYPES[d.type];
+    if (!meta) return '';
+    const selected = tbSelectedId === d.id ? ' tb-device-selected' : '';
+    const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
+    return `
+      <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
+        <rect class="tb-device-bg" x="-36" y="-30" width="72" height="60" rx="10" ry="10"
+              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
+        <text class="tb-device-icon" y="-2" text-anchor="middle" font-size="24">${meta.icon}</text>
+        <text class="tb-device-label" y="20" text-anchor="middle" font-size="11" fill="#e2e8f0">${escHtml(meta.label)}</text>
+      </g>
+    `;
+  }).join('');
+
+  // Empty hint visibility
+  if (emptyHint) emptyHint.classList.toggle('is-hidden', tbState.devices.length > 0);
+
+  // Attach per-device click/drag handlers (inline for simplicity)
+  devLayer.querySelectorAll('.tb-device').forEach(g => {
+    const id = g.getAttribute('data-tb-device');
+    g.addEventListener('mousedown', (e) => tbOnDeviceMouseDown(e, id));
+    g.addEventListener('click', (e) => { e.stopPropagation(); });
+  });
+  cabLayer.querySelectorAll('.tb-cable').forEach(line => {
+    const id = line.getAttribute('data-tb-cable');
+    line.addEventListener('click', (e) => {
+      e.stopPropagation();
+      tbSelectedId = id;
+      tbRenderCanvas();
+      tbUpdateStatus('Cable selected. Press Del to remove.');
+    });
+  });
+}
+
+// ── Canvas mouse/drop/click handlers ──
+let tbCanvasHandlersAttached = false;
+function tbAttachCanvasHandlers() {
+  if (tbCanvasHandlersAttached) return;
+  tbCanvasHandlersAttached = true;
+  const svg = document.getElementById('tb-canvas');
+  const wrap = document.querySelector('.tb-canvas-wrap');
+  if (!svg || !wrap) return;
+
+  // HTML5 drop from palette
+  wrap.addEventListener('dragover', (e) => {
+    if (tbPaletteDrag) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }
+  });
+  wrap.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (!tbPaletteDrag) return;
+    const { x, y } = tbClientToSvg(svg, e.clientX, e.clientY);
+    tbAddDevice(tbPaletteDrag.type, x, y);
+    tbPaletteDrag = null;
+  });
+
+  // Click empty canvas → deselect
+  svg.addEventListener('click', (e) => {
+    if (e.target.tagName === 'rect' || e.target.tagName === 'svg') {
+      tbSelectedId = null;
+      tbPendingCableFrom = null;
+      tbRenderCanvas();
+      tbUpdateStatus('Drag a device from the palette \u2192');
+    }
+  });
+
+  // Window-level mousemove/up for dragging placed devices
+  window.addEventListener('mousemove', tbOnMouseMove);
+  window.addEventListener('mouseup', tbOnMouseUp);
+}
+
+function tbClientToSvg(svg, clientX, clientY) {
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: clientX, y: clientY };
+  const { x, y } = pt.matrixTransform(ctm.inverse());
+  return { x: Math.max(50, Math.min(TB_CANVAS_W - 50, x)), y: Math.max(40, Math.min(TB_CANVAS_H - 40, y)) };
+}
+
+function tbAddDevice(type, x, y) {
+  if (tbState.devices.length >= TB_MAX_DEVICES) {
+    showErrorToast(`Device cap reached (${TB_MAX_DEVICES}). Delete one to add more.`);
+    return;
+  }
+  const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  tbState.devices.push({ id, type, x: Math.round(x), y: Math.round(y) });
+  tbState.updated = Date.now();
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbSaveDraft();
+}
+
+function tbOnDeviceMouseDown(e, id) {
+  e.stopPropagation();
+  e.preventDefault();
+  const dev = tbState.devices.find(d => d.id === id);
+  if (!dev) return;
+
+  // Cable wiring flow: first click sets pending, second click completes
+  if (tbPendingCableFrom && tbPendingCableFrom !== id) {
+    tbAddCable(tbPendingCableFrom, id);
+    tbPendingCableFrom = null;
+    tbSelectedId = null;
+    tbRenderCanvas();
+    return;
+  }
+
+  // Otherwise: start drag (on mousedown) + queue potential "start cable" on click
+  const svg = document.getElementById('tb-canvas');
+  const { x: sx, y: sy } = tbClientToSvg(svg, e.clientX, e.clientY);
+  tbDragging = { id, offsetX: sx - dev.x, offsetY: sy - dev.y, moved: false, startX: dev.x, startY: dev.y };
+  tbSelectedId = id;
+  tbRenderCanvas();
+}
+
+function tbOnMouseMove(e) {
+  if (!tbDragging) return;
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+  const { x, y } = tbClientToSvg(svg, e.clientX, e.clientY);
+  const dev = tbState.devices.find(d => d.id === tbDragging.id);
+  if (!dev) return;
+  const nx = Math.round(x - tbDragging.offsetX);
+  const ny = Math.round(y - tbDragging.offsetY);
+  if (Math.abs(nx - tbDragging.startX) > 3 || Math.abs(ny - tbDragging.startY) > 3) tbDragging.moved = true;
+  dev.x = Math.max(50, Math.min(TB_CANVAS_W - 50, nx));
+  dev.y = Math.max(40, Math.min(TB_CANVAS_H - 40, ny));
+  tbRenderCanvas();
+}
+
+function tbOnMouseUp(e) {
+  if (!tbDragging) return;
+  const { id, moved } = tbDragging;
+  tbDragging = null;
+  if (moved) {
+    tbState.updated = Date.now();
+    tbSaveDraft();
+    tbUpdateStatus('Moved. Click another device to wire a cable.');
+  } else {
+    // Treat as a click → start cable wiring from this device
+    if (tbPendingCableFrom === id) {
+      tbPendingCableFrom = null;
+      tbUpdateStatus('Cable cancelled.');
+    } else {
+      tbPendingCableFrom = id;
+      tbUpdateStatus('Click a second device to draw the cable, or click again to cancel.');
+    }
+    tbRenderCanvas();
+  }
+}
+
+function tbAddCable(fromId, toId) {
+  // Prevent self-loops and duplicates
+  if (fromId === toId) return;
+  const dup = tbState.cables.find(c =>
+    (c.from === fromId && c.to === toId) || (c.from === toId && c.to === fromId));
+  if (dup) {
+    showErrorToast('Those devices are already cabled.');
+    return;
+  }
+  const id = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  tbState.cables.push({ id, from: fromId, to: toId });
+  tbState.updated = Date.now();
+  tbUpdateStatus('Cable drawn. Keep building.');
+  tbSaveDraft();
+}
+
+// ── Keyboard: Delete / Backspace / Escape ──
+let tbKeyHandlerAttached = false;
+function tbAttachKeyHandler() {
+  if (tbKeyHandlerAttached) return;
+  tbKeyHandlerAttached = true;
+  window.addEventListener('keydown', (e) => {
+    const page = document.getElementById('page-topology-builder');
+    if (!page || !page.classList.contains('active')) return;
+    // Don't hijack if user is typing in an input
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (tbSelectedId) { e.preventDefault(); tbDeleteSelected(); }
+    } else if (e.key === 'Escape') {
+      tbSelectedId = null;
+      tbPendingCableFrom = null;
+      tbRenderCanvas();
+      tbUpdateStatus('Cancelled.');
+    }
+  });
+}
+
+function tbDeleteSelected() {
+  if (!tbSelectedId) {
+    tbUpdateStatus('Nothing selected.');
+    return;
+  }
+  // Device?
+  const devIdx = tbState.devices.findIndex(d => d.id === tbSelectedId);
+  if (devIdx >= 0) {
+    const id = tbSelectedId;
+    tbState.devices.splice(devIdx, 1);
+    // Cascade: remove any cables touching this device
+    tbState.cables = tbState.cables.filter(c => c.from !== id && c.to !== id);
+    tbSelectedId = null;
+    tbState.updated = Date.now();
+    tbRenderCanvas();
+    tbUpdateDeviceCount();
+    tbSaveDraft();
+    tbUpdateStatus('Device removed.');
+    return;
+  }
+  // Cable?
+  const cabIdx = tbState.cables.findIndex(c => c.id === tbSelectedId);
+  if (cabIdx >= 0) {
+    tbState.cables.splice(cabIdx, 1);
+    tbSelectedId = null;
+    tbState.updated = Date.now();
+    tbRenderCanvas();
+    tbSaveDraft();
+    tbUpdateStatus('Cable removed.');
+  }
+}
+
+// ── Save / load / draft ──
+function tbLoadDraft() {
+  try {
+    const raw = localStorage.getItem(STORAGE.TOPOLOGY_DRAFT);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+function tbSaveDraft() {
+  try { localStorage.setItem(STORAGE.TOPOLOGY_DRAFT, JSON.stringify(tbState)); } catch (_) {}
+}
+function tbLoadAllSaves() {
+  try {
+    const raw = localStorage.getItem(STORAGE.TOPOLOGIES);
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) { return []; }
+}
+function tbPersistAllSaves(list) {
+  try { localStorage.setItem(STORAGE.TOPOLOGIES, JSON.stringify(list)); } catch (_) {}
+}
+
+function tbSaveTopology() {
+  if (tbState.devices.length === 0) {
+    showErrorToast('Add at least one device before saving.');
+    return;
+  }
+  const name = prompt('Name this topology:', tbState.name === 'Untitled' ? '' : tbState.name);
+  if (name === null) return;
+  tbState.name = name.trim() || 'Untitled';
+  tbState.updated = Date.now();
+  let saves = tbLoadAllSaves();
+  // Upsert by id
+  const existing = saves.findIndex(s => s.id === tbState.id);
+  if (existing >= 0) {
+    saves[existing] = { ...tbState };
+  } else {
+    saves.push({ ...tbState });
+    // FIFO evict oldest if over cap
+    if (saves.length > TB_MAX_SAVES) {
+      saves.sort((a, b) => (a.updated || 0) - (b.updated || 0));
+      saves = saves.slice(-TB_MAX_SAVES);
+    }
+  }
+  tbPersistAllSaves(saves);
+  tbRefreshLoadSelect();
+  tbUpdateStatus(`Saved \u201C${tbState.name}\u201D`);
+}
+
+function tbRefreshLoadSelect() {
+  const sel = document.getElementById('tb-load-select');
+  if (!sel) return;
+  const saves = tbLoadAllSaves();
+  sel.innerHTML = '<option value="">\u{1F4C2} Load\u2026</option>' +
+    saves.map(s => `<option value="${s.id}">${escHtml(s.name)} (${s.devices.length}d)</option>`).join('');
+}
+
+function tbLoadTopology(id) {
+  if (!id) return;
+  const saves = tbLoadAllSaves();
+  const found = saves.find(s => s.id === id);
+  if (!found) return;
+  tbState = JSON.parse(JSON.stringify(found));
+  tbSelectedId = null;
+  tbPendingCableFrom = null;
+  tbSaveDraft();
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbUpdateStatus(`Loaded \u201C${tbState.name}\u201D`);
+  // Reset select so the same item can be reloaded
+  const sel = document.getElementById('tb-load-select');
+  if (sel) sel.value = '';
+}
+
+function tbNewTopology() {
+  if (tbState.devices.length > 0) {
+    if (!confirm('Discard the current topology and start fresh?')) return;
+  }
+  tbState = tbNewState();
+  tbSelectedId = null;
+  tbPendingCableFrom = null;
+  tbSaveDraft();
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbUpdateStatus('New topology. Drag a device from the palette \u2192');
+}
+
+// ── Status / counter helpers ──
+function tbUpdateStatus(msg) {
+  const el = document.getElementById('tb-status');
+  if (el) el.textContent = msg;
+}
+function tbUpdateDeviceCount() {
+  const el = document.getElementById('tb-device-count');
+  if (el) el.textContent = `${tbState.devices.length} / ${TB_MAX_DEVICES} devices`;
 }
 
 // ══════════════════════════════════════════
