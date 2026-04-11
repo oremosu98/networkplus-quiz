@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.18.2', js.includes("const APP_VERSION = '4.18.2"));
+test('APP_VERSION is 4.18.3', js.includes("const APP_VERSION = '4.18.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.18.2', sw.includes('netplus-v4.18.2'));
+test('SW cache bumped to v4.18.3', sw.includes('netplus-v4.18.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.18.2', sw.includes('netplus-v4.18.2'));
-test('APP_VERSION bumped to 4.18.2', js.includes("APP_VERSION = '4.18.2'"));
+test('SW cache bumped to v4.18.3', sw.includes('netplus-v4.18.3'));
+test('APP_VERSION bumped to 4.18.3', js.includes("APP_VERSION = '4.18.3'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -659,7 +659,7 @@ test('STORAGE.TOPOLOGY_DRAFT key', js.includes("TOPOLOGY_DRAFT: 'nplus_topology_
 test('TB_MAX_DEVICES = 30', js.includes('const TB_MAX_DEVICES = 30'));
 test('TB_MAX_SAVES = 5', js.includes('const TB_MAX_SAVES = 5'));
 test('TB_DEVICE_TYPES defined', js.includes('const TB_DEVICE_TYPES = {'));
-// Device type coverage (13 total after v4.18.2)
+// Device type coverage (13 total after v4.18.3)
 test('Device type: router', /TB_DEVICE_TYPES[\s\S]{0,3000}router:\s*\{/.test(js));
 test('Device type: switch', /TB_DEVICE_TYPES[\s\S]{0,3000}switch:\s*\{/.test(js));
 test('Device type: wap', /TB_DEVICE_TYPES[\s\S]{0,3000}wap:\s*\{/.test(js));
@@ -734,8 +734,8 @@ test('CSS: .tb-mobile-nudge', css.includes('.tb-mobile-nudge'));
 test('CSS: .tb-workspace grid', css.includes('.tb-workspace'));
 test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 
-// ── Topology Builder polish (v4.18.2) ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.18.2) ──\x1b[0m');
+// ── Topology Builder polish (v4.18.3) ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.18.3) ──\x1b[0m');
 test('Canvas dimensions bumped to 1400x820', js.includes('TB_CANVAS_W = 1400') && js.includes('TB_CANVAS_H = 820'));
 test('Canvas viewBox 1400x820 in HTML', html.includes('viewBox="0 0 1400 820"'));
 test('Device rect enlarged (124x96)', /tb-device-bg[\s\S]{0,300}width="124" height="96"/.test(js));
@@ -750,8 +750,8 @@ test('tbClearCanvas preserves id/name', /tbClearCanvas[\s\S]{0,600}devices = \[\
 test('tbClearCanvas confirms before wiping', /tbClearCanvas[\s\S]{0,600}confirm\(/.test(js));
 test('Canvas min-height bumped to 720', css.includes('min-height: 720px'));
 
-// ── Topology Builder v4.18.2: SVG icons, cables, device cap 30, new types ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.18.2 ──\x1b[0m');
+// ── Topology Builder v4.18.3: SVG icons, cables, device cap 30, new types ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.18.3 ──\x1b[0m');
 test('tbDeviceIcon function', js.includes('function tbDeviceIcon('));
 test('tbEdgePoint helper', js.includes('function tbEdgePoint('));
 test('Cables use tbEdgePoint (edge-to-edge)', /cabLayer\.innerHTML[\s\S]{0,800}tbEdgePoint/.test(js));
@@ -770,6 +770,19 @@ test('Icon: wlc shape', /case 'wlc':/.test(js));
 test('Icon: printer shape', /case 'printer':/.test(js));
 test('Icon: voip shape', /case 'voip':/.test(js));
 test('Icon: iot shape', /case 'iot':/.test(js));
+
+// ── Topology Builder v4.18.3: discoverable wiring UX ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.18.3 (wiring UX) ──\x1b[0m');
+test('How-to strip in HTML', html.includes('tb-howto-strip'));
+test('How-to step: click A then click B', /Click<\/strong> device A[\s\S]{0,200}click<\/strong> device B/.test(html));
+test('Wire overlay element in HTML', html.includes('id="tb-wire-overlay"'));
+test('Wire overlay starts hidden', /tb-wire-overlay[\s\S]{0,200}is-hidden/.test(html));
+test('tbUpdateWireOverlay function', js.includes('function tbUpdateWireOverlay('));
+test('tbUpdateWireOverlay called by status', /tbUpdateStatus[\s\S]{0,200}tbUpdateWireOverlay/.test(js));
+test('tbUpdateWireOverlay called by render', /tbRenderCanvas[\s\S]{0,3000}tbUpdateWireOverlay/.test(js));
+test('CSS: .tb-howto-strip', css.includes('.tb-howto-strip'));
+test('CSS: .tb-wire-overlay', css.includes('.tb-wire-overlay'));
+test('CSS: wire overlay pulse keyframes', css.includes('@keyframes tb-wire-pulse'));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');

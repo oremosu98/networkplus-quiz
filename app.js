@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.18.2';
+const APP_VERSION = '4.18.3';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5027,6 +5027,8 @@ function tbRenderCanvas() {
 
   // Empty hint visibility
   if (emptyHint) emptyHint.classList.toggle('is-hidden', tbState.devices.length > 0);
+  // Keep the wiring overlay in sync with pending state every render.
+  tbUpdateWireOverlay();
 
   // Attach per-device click/drag handlers (inline for simplicity)
   devLayer.querySelectorAll('.tb-device').forEach(g => {
@@ -5339,10 +5341,17 @@ function tbClearCanvas() {
 function tbUpdateStatus(msg) {
   const el = document.getElementById('tb-status');
   if (el) el.textContent = msg;
+  tbUpdateWireOverlay();
 }
 function tbUpdateDeviceCount() {
   const el = document.getElementById('tb-device-count');
   if (el) el.textContent = `${tbState.devices.length} / ${TB_MAX_DEVICES} devices`;
+}
+// Show/hide the big floating "Wiring..." banner based on tbPendingCableFrom.
+function tbUpdateWireOverlay() {
+  const el = document.getElementById('tb-wire-overlay');
+  if (!el) return;
+  el.classList.toggle('is-hidden', !tbPendingCableFrom);
 }
 
 // ══════════════════════════════════════════
