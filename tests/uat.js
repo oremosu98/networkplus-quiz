@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.16', js.includes("const APP_VERSION = '4.16"));
+test('APP_VERSION is 4.16.1', js.includes("const APP_VERSION = '4.16.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.16', sw.includes('netplus-v4.16'));
+test('SW cache bumped to v4.16.1', sw.includes('netplus-v4.16.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,11 +480,11 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.16.x', sw.includes('netplus-v4.16.'));
-test('APP_VERSION bumped to 4.16', js.includes("APP_VERSION = '4.16'"));
+test('SW cache bumped to v4.16.1', sw.includes('netplus-v4.16.1'));
+test('APP_VERSION bumped to 4.16.1', js.includes("APP_VERSION = '4.16.1'"));
 
-// ── Secure Pairs Port Drill mode (v4.16 #30) ──
-console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16 #30) ──\x1b[0m');
+// ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
+console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
 test('STORAGE.PORT_PAIRS_BEST key', js.includes("PORT_PAIRS_BEST:"));
 test('securePairs dataset defined', js.includes('const securePairs = ['));
 test('Pairs: HTTP↔HTTPS', /HTTP[\s\S]{0,200}HTTPS[\s\S]{0,80}443/.test(js));
@@ -533,8 +533,8 @@ test('startBulkQuiz runs validation pipeline', /startBulkQuiz[\s\S]{0,3000}aiVal
 test('startBulkQuiz forces Mixed topic', /startBulkQuiz[\s\S]{0,800}activeQuizTopic = MIXED_TOPIC/.test(js));
 test('startBulkQuiz clears progress bar at end', /startBulkQuiz[\s\S]{0,2500}fill\.style\.width = '100%'/.test(js));
 
-// ── Try It In Terminal + Guided Labs (v4.16 #68, #69) ──
-console.log('\n\x1b[1m── TRY IT IN TERMINAL + GUIDED LABS (v4.16 #68, #69) ──\x1b[0m');
+// ── Try It In Terminal + Guided Labs (v4.16.1 #68, #69) ──
+console.log('\n\x1b[1m── TRY IT IN TERMINAL + GUIDED LABS (v4.16.1 #68, #69) ──\x1b[0m');
 test('portCommands map defined', js.includes('const portCommands = {'));
 test('portCommands: HTTPS → curl', /'HTTPS':\s*\{\s*cmd:\s*'curl -I https:\/\/example\.com'/.test(js));
 test('portCommands: DNS → dig', /'DNS':\s*\{\s*cmd:\s*'dig google\.com'/.test(js));
@@ -581,6 +581,31 @@ test('CSS: .lab-step', css.includes('.lab-step {'));
 test('CSS: .lab-step-expect', css.includes('.lab-step-expect'));
 test('CSS: .lab-wrap', css.includes('.lab-wrap '));
 test('CSS: .lab-meta-pill', css.includes('.lab-meta-pill'));
+
+// ── Dedicated Port Drill panels for Terminal + Labs (v4.16.1) ──
+console.log('\n\x1b[1m── DEDICATED PORT DRILL PANELS (v4.16.1) ──\x1b[0m');
+test('HTML: #port-terminal-panel', html.includes('id="port-terminal-panel"'));
+test('HTML: #port-terminal-list', html.includes('id="port-terminal-list"'));
+test('HTML: Try It In Terminal summary', html.includes('Try It In Terminal'));
+test('HTML: #port-labs-panel', html.includes('id="port-labs-panel"'));
+test('HTML: #port-labs-list', html.includes('id="port-labs-list"'));
+test('HTML: Guided Terminal Labs summary', html.includes('Guided Terminal Labs'));
+test('renderPortTerminalList function', js.includes('function renderPortTerminalList('));
+test('renderPortLabsList function', js.includes('function renderPortLabsList('));
+test('startPortDrill calls renderPortTerminalList', /startPortDrill\(\)[\s\S]{0,800}renderPortTerminalList\(\)/.test(js));
+test('startPortDrill calls renderPortLabsList', /startPortDrill\(\)[\s\S]{0,900}renderPortLabsList\(\)/.test(js));
+test('renderPortTerminalList uses portCategories', /renderPortTerminalList[\s\S]{0,800}portCategories\.forEach/.test(js));
+test('renderPortTerminalList uses portCommands', /renderPortTerminalList[\s\S]{0,800}portCommands\[proto\]/.test(js));
+test('renderPortTerminalList uses _terminalCardHtml', /renderPortTerminalList[\s\S]{0,1200}_terminalCardHtml/.test(js));
+test('renderPortLabsList dedupes by lab title', /renderPortLabsList[\s\S]{0,600}seen\.has\(lab\.title\)/.test(js));
+test('renderPortLabsList uses primaryKeys map', /renderPortLabsList[\s\S]{0,400}primaryKeys = \{/.test(js));
+test('renderPortLabsList launches openGuidedLab', /renderPortLabsList[\s\S]{0,2000}openGuidedLab\(/.test(js));
+test('CSS: .port-term-row', css.includes('.port-term-row'));
+test('CSS: .port-term-group', css.includes('.port-term-group '));
+test('CSS: .port-term-num', css.includes('.port-term-num'));
+test('CSS: .port-lab-card', css.includes('.port-lab-card'));
+test('CSS: .port-lab-start', css.includes('.port-lab-start'));
+test('CSS: .port-terminal-intro', css.includes('.port-terminal-intro'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

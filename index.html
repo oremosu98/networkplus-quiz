@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.15</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.16.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -664,6 +664,16 @@
         </div>
       </div>
       <div id="port-ref-list" class="port-ref-list" aria-live="polite"></div>
+    </details>
+    <details id="port-terminal-panel" class="port-ref">
+      <summary class="port-ref-summary">&#128187; Try It In Terminal &middot; Live command for every port</summary>
+      <p class="port-terminal-intro">Run these on macOS / iOS Terminal to see each protocol actually do something. Tap the clipboard icon to copy.</p>
+      <div id="port-terminal-list" class="port-terminal-list" aria-live="polite"></div>
+    </details>
+    <details id="port-labs-panel" class="port-ref">
+      <summary class="port-ref-summary">&#128421;&#65039; Guided Terminal Labs &middot; Coached walkthroughs</summary>
+      <p class="port-terminal-intro">Full coached walkthroughs where you run real commands step-by-step and I explain what you\'re seeing. Each lab is ~15 minutes.</p>
+      <div id="port-labs-list" class="port-labs-list" aria-live="polite"></div>
     </details>
   </div>
   <div id="port-game" class="port-game is-hidden">

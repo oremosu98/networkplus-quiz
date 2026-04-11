@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.16';
+const APP_VERSION = '4.16.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5403,6 +5403,76 @@ function startPortDrill() {
   setPortMode(portMode);
   renderPortFocusInfo();
   renderPortReference();
+  renderPortTerminalList();
+  renderPortLabsList();
+}
+
+// v4.16.1 — dedicated "Try It In Terminal" section on Port Drill pregame.
+// Reuses portCommands + portCategories to show all curated commands grouped
+// by category in a standalone scrollable panel (parallel to Port Reference).
+function renderPortTerminalList() {
+  const list = document.getElementById('port-terminal-list');
+  if (!list) return;
+  const byProto = {};
+  portData.forEach(p => { byProto[p.proto] = p; });
+  let html = '';
+  portCategories.forEach(cat => {
+    const protosWithCmd = cat.protos.filter(proto => portCommands[proto] && byProto[proto]);
+    if (protosWithCmd.length === 0) return;
+    html += `<div class="port-term-group">
+      <div class="port-term-group-head">${escHtml(cat.name)} <span class="port-term-group-count">${protosWithCmd.length}</span></div>`;
+    protosWithCmd.forEach(proto => {
+      const p = byProto[proto];
+      const cmd = portCommands[proto];
+      html += `<div class="port-term-row">
+        <div class="port-term-head">
+          <span class="port-term-num">${p.port}</span>
+          <span class="port-term-proto">${escHtml(p.proto)}</span>
+          <span class="port-term-tp">${escHtml(p.tp)}</span>
+        </div>
+        ${_terminalCardHtml(cmd.cmd, cmd.note)}
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  list.innerHTML = html;
+}
+
+// v4.16.1 — dedicated "Guided Terminal Labs" section on Port Drill pregame.
+// Dedupes the guidedLabs map (multiple topic keys → one lab) and renders
+// one launcher card per unique lab.
+function renderPortLabsList() {
+  const list = document.getElementById('port-labs-list');
+  if (!list) return;
+  // Stable launch keys — use the primary topic alias for each lab so the
+  // button passes a predictable topicName to openGuidedLab().
+  const primaryKeys = {
+    'DNS Records & Recursive Resolution': 'DNS Records & DNSSEC',
+    'Routing & Your Real Default Gateway': 'Routing Protocols',
+    'Ports & Listening Services': 'Port Numbers'
+  };
+  const seen = new Set();
+  const labs = [];
+  Object.keys(guidedLabs).forEach(key => {
+    const lab = guidedLabs[key];
+    if (seen.has(lab.title)) return;
+    seen.add(lab.title);
+    const launchKey = primaryKeys[lab.title] || key;
+    labs.push({ key: launchKey, lab });
+  });
+  list.innerHTML = labs.map(({ key, lab }) => {
+    const keyAttr = escHtml(key).replace(/'/g, '&#39;');
+    return `<div class="port-lab-card">
+      <div class="port-lab-title">&#128421;&#65039; ${escHtml(lab.title)}</div>
+      <div class="port-lab-meta">
+        <span class="lab-meta-pill">Obj ${escHtml(lab.objective)}</span>
+        <span class="lab-meta-pill">${escHtml(lab.duration)}</span>
+        <span class="lab-meta-pill">${lab.steps.length} steps</span>
+      </div>
+      <p class="port-lab-intro">${escHtml(lab.intro)}</p>
+      <button type="button" class="btn btn-primary port-lab-start" onclick="openGuidedLab('${keyAttr}')">&#128421;&#65039; Start Lab</button>
+    </div>`;
+  }).join('');
 }
 
 function beginPortDrill() {
