@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.19.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.20.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -762,7 +762,7 @@
       <div class="tb-intro-icon">&#128295;</div>
       <div class="tb-intro-body">
         <div class="tb-intro-title">Design your own network &mdash; visually</div>
-        <div class="tb-intro-text">Drag routers, switches, WAPs, firewalls, load balancers, IDS/IPS, WLCs, servers, PCs, printers, VoIP phones, IoT devices, cloud nodes, and <strong>public web / file / cloud servers</strong> onto the canvas to sketch real network layouts &mdash; including DMZ / screened subnet designs. Pick a cable type (Cat6, Cat5e, Fiber, Coax, Console), wire devices together, save up to 5 topologies, and come back any time. Tier 2 adds device configuration + validation, Tier 3 adds an AI coach that walks through what you built.</div>
+        <div class="tb-intro-text">Drag routers, switches, WAPs, firewalls, load balancers, IDS/IPS, WLCs, servers, PCs, printers, VoIP phones, IoT devices, cloud nodes, and <strong>public web / file / cloud servers</strong> onto the canvas to sketch real network layouts &mdash; including DMZ / screened subnet designs. Pick a cable type (Cat6, Cat5e, Fiber, Coax, Console), wire devices together, save up to 5 topologies, and come back any time. <strong>Tier 2 (new):</strong> pick a scenario, hit <strong>&#127891; Grade</strong> for an instant design review against 12 rules, and <strong>&#128247; Export PNG</strong> to save your topology as an image. Tier 3 adds an AI coach that walks through what you built.</div>
       </div>
     </div>
 
@@ -773,11 +773,23 @@
       <select id="tb-load-select" class="tb-load-select" onchange="tbLoadTopology(this.value)" aria-label="Load saved topology">
         <option value="">&#128194; Load&hellip;</option>
       </select>
+      <select id="tb-scenario-select" class="tb-load-select tb-scenario-select" onchange="tbSetScenario(this.value)" aria-label="Select scenario">
+        <option value="free">&#127919; Free Build</option>
+        <option value="small-office">&#127970; Small Office</option>
+        <option value="dmz">&#128274; DMZ / Screened Subnet</option>
+        <option value="enterprise">&#127970; Enterprise + IDS/LB</option>
+        <option value="branch-wireless">&#128246; Branch + Wireless</option>
+      </select>
+      <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology" id="tb-grade-btn">&#127891; Grade</button>
+      <button class="btn btn-ghost tb-tool-btn" onclick="tbExportPNG()" title="Export topology as PNG image" id="tb-export-btn">&#128247; Export PNG</button>
       <button class="btn btn-ghost tb-tool-btn" onclick="tbDeleteSelected()" title="Delete selected (Del)" id="tb-delete-btn">&#128465; Delete</button>
       <button class="btn btn-ghost tb-tool-btn" onclick="tbClearCanvas()" title="Clear all devices from canvas" id="tb-clear-btn">&#129529; Clear</button>
       <span class="tb-toolbar-spacer"></span>
       <span id="tb-status" class="tb-status">Drag a device from the palette &rarr;</span>
     </div>
+
+    <!-- Scenario requirements panel (hidden in Free Build) -->
+    <div id="tb-scenario-panel" class="tb-scenario-panel is-hidden"></div>
 
     <!-- How-to strip: persistent, high-contrast, teaches the wire flow -->
     <div class="tb-howto-strip">
@@ -824,6 +836,18 @@
           <div>Start by dragging a device from the palette</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Grade modal (Tier 2) -->
+  <div id="tb-grade-modal" class="tb-grade-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="tb-grade-modal-title">
+    <div class="tb-grade-backdrop" onclick="tbCloseGradeModal()"></div>
+    <div class="tb-grade-card">
+      <div class="tb-grade-card-head">
+        <h3 id="tb-grade-modal-title" style="margin:0">&#127891; Topology Grade</h3>
+        <button type="button" class="tb-grade-close" onclick="tbCloseGradeModal()" aria-label="Close grade panel">&times;</button>
+      </div>
+      <div id="tb-grade-body" class="tb-grade-body"></div>
     </div>
   </div>
 </div>

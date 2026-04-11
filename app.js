@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.19.1';
+const APP_VERSION = '4.20.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4996,6 +4996,7 @@ function openTopologyBuilder() {
   tbRenderPalette();
   tbRenderCanvas();
   tbRefreshLoadSelect();
+  tbRenderScenarioPanel();
   tbUpdateStatus('Drag a device from the palette \u2192');
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
@@ -5439,6 +5440,431 @@ function tbUpdateWireOverlay() {
   const el = document.getElementById('tb-wire-overlay');
   if (!el) return;
   el.classList.toggle('is-hidden', !tbPendingCableFrom);
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER TIER 2 — Auto-Grader + Scenarios + PNG Export
+// ══════════════════════════════════════════
+
+// ── Graph helpers used by the rules engine ──
+function tbNeighborsOf(state, deviceId) {
+  return state.cables
+    .filter(c => c.from === deviceId || c.to === deviceId)
+    .map(c => state.devices.find(d => d.id === (c.from === deviceId ? c.to : c.from)))
+    .filter(Boolean);
+}
+function tbHasType(state, type) { return state.devices.some(d => d.type === type); }
+function tbDevicesOfType(state, type) { return state.devices.filter(d => d.type === type); }
+function tbIsConnectedTo(state, deviceId, type) {
+  return tbNeighborsOf(state, deviceId).some(d => d.type === type);
+}
+function tbIsPublicType(type) { return type && type.indexOf('public-') === 0; }
+
+// ── Rules engine ──
+// severity: 'critical' (-20), 'warning' (-10), 'info' (-5)
+// test(state) must return true if the rule passes.
+const TB_GRADE_RULES = [
+  {
+    id: 'min-devices',
+    severity: 'info',
+    label: 'At least 3 devices placed',
+    hint: 'A useful study topology has at least a handful of devices to reason about.',
+    test: s => s.devices.length >= 3,
+  },
+  {
+    id: 'no-orphans',
+    severity: 'warning',
+    label: 'No orphan devices (every device wired to something)',
+    hint: 'Every placed device should be connected to at least one cable — orphan devices look like mistakes.',
+    test: s => s.devices.every(d => tbNeighborsOf(s, d.id).length > 0),
+  },
+  {
+    id: 'has-firewall',
+    severity: 'critical',
+    label: 'At least one firewall present',
+    hint: 'A defensible network design needs a firewall to enforce trust boundaries.',
+    test: s => tbHasType(s, 'firewall'),
+  },
+  {
+    id: 'cloud-behind-firewall',
+    severity: 'critical',
+    label: 'Internet/cloud node wired directly to a firewall',
+    hint: 'The WAN/cloud must connect through a firewall — never directly to a switch or endpoint.',
+    test: s => {
+      const clouds = tbDevicesOfType(s, 'cloud');
+      if (!clouds.length) return true;
+      return clouds.every(c => tbIsConnectedTo(s, c.id, 'firewall'));
+    },
+  },
+  {
+    id: 'dmz-exists-if-public',
+    severity: 'critical',
+    label: 'DMZ switch present when public servers exist',
+    hint: 'Public-facing services need a DMZ switch of their own — a regular internal switch is not isolation.',
+    test: s => {
+      const hasPublics = s.devices.some(d => tbIsPublicType(d.type));
+      return !hasPublics || tbHasType(s, 'dmz-switch');
+    },
+  },
+  {
+    id: 'public-on-dmz',
+    severity: 'critical',
+    label: 'Public servers sit on a DMZ switch (not an internal switch)',
+    hint: 'Wire public-web/file/cloud servers to a dmz-switch, not a regular switch, to keep them in the screened subnet.',
+    test: s => {
+      const publics = s.devices.filter(d => tbIsPublicType(d.type));
+      if (!publics.length) return true;
+      return publics.every(p => {
+        const neighbors = tbNeighborsOf(s, p.id);
+        if (!neighbors.length) return false;
+        const onDmz = neighbors.some(n => n.type === 'dmz-switch');
+        const onRegularSwitch = neighbors.some(n => n.type === 'switch');
+        return onDmz && !onRegularSwitch;
+      });
+    },
+  },
+  {
+    id: 'dmz-behind-firewall',
+    severity: 'critical',
+    label: 'DMZ switch wired to a firewall',
+    hint: 'The DMZ must sit behind a firewall so inbound traffic can be inspected before reaching public servers.',
+    test: s => {
+      const dmzs = tbDevicesOfType(s, 'dmz-switch');
+      if (!dmzs.length) return true;
+      return dmzs.every(d => tbIsConnectedTo(s, d.id, 'firewall'));
+    },
+  },
+  {
+    id: 'internal-behind-firewall',
+    severity: 'warning',
+    label: 'Internal switch reaches the WAN through a firewall or router',
+    hint: 'Your internal LAN should never wire straight to the cloud — put a firewall or router in the path.',
+    test: s => {
+      const sws = tbDevicesOfType(s, 'switch');
+      if (!sws.length) return true;
+      return sws.every(sw => tbIsConnectedTo(s, sw.id, 'firewall') || tbIsConnectedTo(s, sw.id, 'router'));
+    },
+  },
+  {
+    id: 'wlc-wired-to-wap',
+    severity: 'warning',
+    label: 'WLC has line-of-sight to at least one WAP',
+    hint: 'A wireless LAN controller is only useful if it can reach the APs it manages (directly or via a switch).',
+    test: s => {
+      const wlcs = tbDevicesOfType(s, 'wlc');
+      if (!wlcs.length) return true;
+      return wlcs.every(w => {
+        if (tbIsConnectedTo(s, w.id, 'wap')) return true;
+        // 2-hop: WLC → switch → WAP
+        const neighbors = tbNeighborsOf(s, w.id);
+        return neighbors.some(n => tbNeighborsOf(s, n.id).some(nn => nn.type === 'wap'));
+      });
+    },
+  },
+  {
+    id: 'lb-fronts-servers',
+    severity: 'warning',
+    label: 'Load balancer fronts at least 2 servers',
+    hint: 'A load balancer with fewer than 2 backends has nothing to balance — add more servers or drop the LB.',
+    test: s => {
+      const lbs = tbDevicesOfType(s, 'load-balancer');
+      if (!lbs.length) return true;
+      return lbs.every(lb => {
+        const neighbors = tbNeighborsOf(s, lb.id);
+        const serverCount = neighbors.filter(n => n.type === 'server' || tbIsPublicType(n.type)).length;
+        return serverCount >= 2;
+      });
+    },
+  },
+  {
+    id: 'ids-positioned',
+    severity: 'info',
+    label: 'IDS/IPS positioned on a monitored path',
+    hint: 'Park the IDS/IPS next to a firewall, router, or internal switch so it can see the traffic it is monitoring.',
+    test: s => {
+      const idss = tbDevicesOfType(s, 'ids');
+      if (!idss.length) return true;
+      return idss.every(i => {
+        const neighbors = tbNeighborsOf(s, i.id);
+        return neighbors.some(n => n.type === 'firewall' || n.type === 'switch' || n.type === 'router');
+      });
+    },
+  },
+  {
+    id: 'endpoints-on-internal',
+    severity: 'warning',
+    label: 'Endpoints (PC, printer, VoIP, IoT) live on the internal LAN, not the DMZ',
+    hint: 'User endpoints belong on the internal switch. Parking them on the DMZ switch exposes them to the internet.',
+    test: s => {
+      const endpoints = s.devices.filter(d => ['pc', 'printer', 'voip', 'iot'].indexOf(d.type) >= 0);
+      return endpoints.every(e => {
+        const neighbors = tbNeighborsOf(s, e.id);
+        if (!neighbors.length) return true; // orphan rule catches this
+        return !neighbors.some(n => n.type === 'dmz-switch');
+      });
+    },
+  },
+];
+
+const TB_ALL_RULE_IDS = TB_GRADE_RULES.map(r => r.id);
+
+// ── Scenario catalog ──
+// `ruleIds` picks which rules apply (free build = all).
+// `requires` adds per-device-count hard requirements (also counted as critical failures).
+// `type: 'public-*'` matches any public-web/file/cloud.
+const TB_SCENARIOS = [
+  {
+    id: 'free',
+    title: 'Free Build',
+    description: 'Design anything you like. The grader applies every baseline design rule.',
+    requirements: [
+      'Place any devices from the palette and wire them',
+      'All general design rules apply (firewall, DMZ, placement, etc.)',
+    ],
+    ruleIds: TB_ALL_RULE_IDS,
+    requires: [],
+  },
+  {
+    id: 'small-office',
+    title: 'Small Office',
+    description: 'A small business with internet access, a firewall, and a handful of PCs + a printer on the internal LAN.',
+    requirements: [
+      'Cloud/WAN → Firewall → Internal switch',
+      'At least 2 PCs on the internal switch',
+      'At least 1 printer on the internal switch',
+      'No public servers required',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'has-firewall', 'cloud-behind-firewall', 'internal-behind-firewall', 'endpoints-on-internal'],
+    requires: [
+      { type: 'cloud',    min: 1 },
+      { type: 'firewall', min: 1 },
+      { type: 'switch',   min: 1 },
+      { type: 'pc',       min: 2 },
+      { type: 'printer',  min: 1 },
+    ],
+  },
+  {
+    id: 'dmz',
+    title: 'DMZ / Screened Subnet',
+    description: 'A network with public-facing servers segregated from the internal LAN by a DMZ switch.',
+    requirements: [
+      'Cloud/WAN → Firewall → DMZ switch with public servers',
+      'DMZ switch → Firewall → Internal switch (screened subnet)',
+      'At least one public-web, public-file, or public-cloud server',
+      'Internal endpoints live only on the internal switch',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'has-firewall', 'cloud-behind-firewall', 'dmz-exists-if-public', 'public-on-dmz', 'dmz-behind-firewall', 'internal-behind-firewall', 'endpoints-on-internal'],
+    requires: [
+      { type: 'cloud',      min: 1 },
+      { type: 'firewall',   min: 1 },
+      { type: 'dmz-switch', min: 1 },
+      { type: 'switch',     min: 1 },
+      { type: 'public-*',   min: 1 },
+    ],
+  },
+  {
+    id: 'enterprise',
+    title: 'Enterprise w/ IDS + Load Balancer',
+    description: 'Enterprise-grade screened subnet with IDS/IPS monitoring and a load balancer fronting multiple servers.',
+    requirements: [
+      'Everything from the DMZ scenario',
+      'IDS/IPS positioned next to a firewall, switch, or router',
+      'Load balancer fronting at least 2 servers',
+    ],
+    ruleIds: TB_ALL_RULE_IDS,
+    requires: [
+      { type: 'cloud',         min: 1 },
+      { type: 'firewall',      min: 2 },
+      { type: 'dmz-switch',    min: 1 },
+      { type: 'switch',        min: 1 },
+      { type: 'ids',           min: 1 },
+      { type: 'load-balancer', min: 1 },
+      { type: 'server',        min: 2 },
+    ],
+  },
+  {
+    id: 'branch-wireless',
+    title: 'Branch Office w/ Wireless',
+    description: 'A branch office dominated by wireless — WLC managing multiple WAPs for laptop users.',
+    requirements: [
+      'Cloud/WAN → Firewall → Internal switch',
+      'WLC connected to the switch, managing at least 2 WAPs',
+      'At least 2 PCs on the network',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'has-firewall', 'cloud-behind-firewall', 'internal-behind-firewall', 'wlc-wired-to-wap', 'endpoints-on-internal'],
+    requires: [
+      { type: 'cloud',    min: 1 },
+      { type: 'firewall', min: 1 },
+      { type: 'switch',   min: 1 },
+      { type: 'wlc',      min: 1 },
+      { type: 'wap',      min: 2 },
+      { type: 'pc',       min: 2 },
+    ],
+  },
+];
+
+let tbSelectedScenario = 'free';
+
+function tbSetScenario(id) {
+  const scen = TB_SCENARIOS.find(s => s.id === id);
+  if (!scen) return;
+  tbSelectedScenario = id;
+  tbRenderScenarioPanel();
+  tbUpdateStatus(`Scenario: ${scen.title}`);
+}
+
+function tbRenderScenarioPanel() {
+  const el = document.getElementById('tb-scenario-panel');
+  if (!el) return;
+  const scen = TB_SCENARIOS.find(s => s.id === tbSelectedScenario);
+  if (!scen || scen.id === 'free') {
+    el.classList.add('is-hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('is-hidden');
+  el.innerHTML = `
+    <div class="tb-scenario-head">
+      <div class="tb-scenario-title">\u{1F3AF} ${escHtml(scen.title)}</div>
+      <div class="tb-scenario-desc">${escHtml(scen.description)}</div>
+    </div>
+    <ul class="tb-scenario-reqs">
+      ${scen.requirements.map(r => `<li>${escHtml(r)}</li>`).join('')}
+    </ul>
+  `;
+}
+
+// ── Grader entry point ──
+function tbGradeTopology() {
+  if (tbState.devices.length === 0) {
+    showErrorToast('Add some devices before grading.');
+    return;
+  }
+  const scen = TB_SCENARIOS.find(s => s.id === tbSelectedScenario) || TB_SCENARIOS[0];
+  const rules = TB_GRADE_RULES.filter(r => scen.ruleIds.indexOf(r.id) >= 0);
+  const results = rules.map(rule => ({
+    id: rule.id,
+    passed: !!rule.test(tbState),
+    severity: rule.severity,
+    label: rule.label,
+    hint: rule.hint,
+  }));
+  // Scenario device-count requirements → synthetic critical rules
+  const requireResults = (scen.requires || []).map(req => {
+    let count;
+    let label;
+    if (req.type === 'public-*') {
+      count = tbState.devices.filter(d => tbIsPublicType(d.type)).length;
+      label = 'Public server';
+    } else {
+      count = tbState.devices.filter(d => d.type === req.type).length;
+      label = (TB_DEVICE_TYPES[req.type] && TB_DEVICE_TYPES[req.type].label) || req.type;
+    }
+    const plural = req.min > 1 ? 's' : '';
+    return {
+      id: `req-${req.type}`,
+      passed: count >= req.min,
+      severity: 'critical',
+      label: `Scenario requires ${req.min}+ ${label}${plural} (you have ${count})`,
+      hint: `This scenario cannot be satisfied without at least ${req.min} ${label}${plural}.`,
+    };
+  });
+  const allResults = [...requireResults, ...results];
+  const deductions = { critical: 20, warning: 10, info: 5 };
+  let score = 100;
+  allResults.filter(r => !r.passed).forEach(r => { score -= (deductions[r.severity] || 10); });
+  score = Math.max(0, score);
+  const grade = score >= 93 ? 'A' : score >= 87 ? 'A-' : score >= 80 ? 'B+' : score >= 73 ? 'B' : score >= 65 ? 'C+' : score >= 58 ? 'C' : score >= 50 ? 'D' : 'F';
+  tbShowGradeModal({ score, grade, results: allResults, scenario: scen });
+  tbUpdateStatus(`Graded: ${grade} (${score}/100)`);
+}
+
+function tbShowGradeModal({ score, grade, results, scenario }) {
+  const modal = document.getElementById('tb-grade-modal');
+  const body = document.getElementById('tb-grade-body');
+  if (!modal || !body) return;
+  const fails = results.filter(r => !r.passed);
+  const passes = results.filter(r => r.passed);
+  const critical = fails.filter(r => r.severity === 'critical');
+  const warnings = fails.filter(r => r.severity === 'warning');
+  const info = fails.filter(r => r.severity === 'info');
+  const gradeColor = score >= 87 ? '#22c55e' : score >= 70 ? '#eab308' : '#ef4444';
+  const mkItem = r => `<div class="tb-grade-item"><div class="tb-grade-item-label">${escHtml(r.label)}</div><div class="tb-grade-item-hint">${escHtml(r.hint)}</div></div>`;
+  const mkPass = r => `<div class="tb-grade-item tb-grade-item-pass">\u2713 ${escHtml(r.label)}</div>`;
+  body.innerHTML = `
+    <div class="tb-grade-hero">
+      <div class="tb-grade-circle" style="border-color:${gradeColor};color:${gradeColor}">
+        <div class="tb-grade-letter">${grade}</div>
+        <div class="tb-grade-score">${score}/100</div>
+      </div>
+      <div class="tb-grade-summary">
+        <div class="tb-grade-scenario">${escHtml(scenario.title)}</div>
+        <div class="tb-grade-counts">
+          <span class="tb-grade-count tb-grade-count-pass">\u2713 ${passes.length} passed</span>
+          ${critical.length ? `<span class="tb-grade-count tb-grade-count-crit">\u2717 ${critical.length} critical</span>` : ''}
+          ${warnings.length ? `<span class="tb-grade-count tb-grade-count-warn">\u26A0 ${warnings.length} warnings</span>` : ''}
+          ${info.length ? `<span class="tb-grade-count tb-grade-count-info">\u2139 ${info.length} info</span>` : ''}
+        </div>
+      </div>
+    </div>
+    ${critical.length ? `<div class="tb-grade-section tb-grade-crit"><div class="tb-grade-section-title">\u2717 Critical issues</div>${critical.map(mkItem).join('')}</div>` : ''}
+    ${warnings.length ? `<div class="tb-grade-section tb-grade-warn"><div class="tb-grade-section-title">\u26A0 Warnings</div>${warnings.map(mkItem).join('')}</div>` : ''}
+    ${info.length ? `<div class="tb-grade-section tb-grade-info"><div class="tb-grade-section-title">\u2139 Suggestions</div>${info.map(mkItem).join('')}</div>` : ''}
+    ${passes.length ? `<div class="tb-grade-section tb-grade-pass"><div class="tb-grade-section-title">\u2713 Passed</div>${passes.map(mkPass).join('')}</div>` : ''}
+  `;
+  modal.classList.remove('is-hidden');
+}
+
+function tbCloseGradeModal() {
+  const modal = document.getElementById('tb-grade-modal');
+  if (modal) modal.classList.add('is-hidden');
+}
+
+// ── PNG export ──
+function tbExportPNG() {
+  if (tbState.devices.length === 0) {
+    showErrorToast('Nothing to export yet.');
+    return;
+  }
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('width', TB_CANVAS_W);
+  clone.setAttribute('height', TB_CANVAS_H);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  // Dark background (grid is transparent)
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bgRect.setAttribute('width', '100%');
+  bgRect.setAttribute('height', '100%');
+  bgRect.setAttribute('fill', '#0b1020');
+  clone.insertBefore(bgRect, clone.firstChild);
+  const xml = new XMLSerializer().serializeToString(clone);
+  let svg64;
+  try { svg64 = btoa(unescape(encodeURIComponent(xml))); }
+  catch (_) { showErrorToast('Export failed (encoding).'); return; }
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = TB_CANVAS_W;
+    canvas.height = TB_CANVAS_H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    canvas.toBlob(blob => {
+      if (!blob) { showErrorToast('Export failed.'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = (tbState.name || 'topology').replace(/[^a-z0-9]+/gi, '_').toLowerCase() || 'topology';
+      a.download = `${safeName}_${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      tbUpdateStatus(`Exported ${a.download}`);
+    }, 'image/png');
+  };
+  img.onerror = () => showErrorToast('PNG export failed to rasterize.');
+  img.src = `data:image/svg+xml;base64,${svg64}`;
 }
 
 // ══════════════════════════════════════════

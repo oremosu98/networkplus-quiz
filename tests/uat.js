@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.19.1', js.includes("const APP_VERSION = '4.19.1"));
+test('APP_VERSION is 4.20.0', js.includes("const APP_VERSION = '4.20.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.19.1', sw.includes('netplus-v4.19.1'));
+test('SW cache bumped to v4.20.0', sw.includes('netplus-v4.20.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.19.1', sw.includes('netplus-v4.19.1'));
-test('APP_VERSION bumped to 4.19.1', js.includes("APP_VERSION = '4.19.1'"));
+test('SW cache bumped to v4.20.0', sw.includes('netplus-v4.20.0'));
+test('APP_VERSION bumped to 4.20.0', js.includes("APP_VERSION = '4.20.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -832,6 +832,59 @@ test('Cable visible layer is pointer-events none', /tb-cable tb-cable-\$\{cableT
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');
 test('openGuidedLab includes page-ports in return pages', /openGuidedLab[\s\S]{0,800}pages = \[[^\]]*'page-ports'/.test(js));
 test('openGuidedLab fallback is page-ports', /openGuidedLab[\s\S]{0,900}\|\| 'page-ports'/.test(js));
+
+// ── Topology Builder Tier 2 (v4.20.0) — Grader + Scenarios + Export ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 2 (v4.20.0) ──\x1b[0m');
+// Rules engine
+test('TB_GRADE_RULES defined', /const TB_GRADE_RULES = \[/.test(js));
+test('Rule: has-firewall', /id: 'has-firewall'/.test(js));
+test('Rule: cloud-behind-firewall', /id: 'cloud-behind-firewall'/.test(js));
+test('Rule: public-on-dmz', /id: 'public-on-dmz'/.test(js));
+test('Rule: dmz-exists-if-public', /id: 'dmz-exists-if-public'/.test(js));
+test('Rule: dmz-behind-firewall', /id: 'dmz-behind-firewall'/.test(js));
+test('Rule: wlc-wired-to-wap', /id: 'wlc-wired-to-wap'/.test(js));
+test('Rule: lb-fronts-servers', /id: 'lb-fronts-servers'/.test(js));
+test('Rule: endpoints-on-internal', /id: 'endpoints-on-internal'/.test(js));
+test('Graph helper: tbNeighborsOf', /function tbNeighborsOf/.test(js));
+test('Graph helper: tbIsConnectedTo', /function tbIsConnectedTo/.test(js));
+// Scenarios
+test('TB_SCENARIOS defined', /const TB_SCENARIOS = \[/.test(js));
+test('Scenario: free', /id: 'free'/.test(js));
+test('Scenario: small-office', /id: 'small-office'/.test(js));
+test('Scenario: dmz', /id: 'dmz',/.test(js));
+test('Scenario: enterprise', /id: 'enterprise'/.test(js));
+test('Scenario: branch-wireless', /id: 'branch-wireless'/.test(js));
+test('tbSetScenario defined', /function tbSetScenario/.test(js));
+test('tbRenderScenarioPanel defined', /function tbRenderScenarioPanel/.test(js));
+// Grader + modal
+test('tbGradeTopology defined', /function tbGradeTopology/.test(js));
+test('tbShowGradeModal defined', /function tbShowGradeModal/.test(js));
+test('tbCloseGradeModal defined', /function tbCloseGradeModal/.test(js));
+test('Grader letter-grade mapping', /score >= 93 \? 'A' : score >= 87 \? 'A-'/.test(js));
+test('Grader deductions map', /critical: 20, warning: 10, info: 5/.test(js));
+// PNG export
+test('tbExportPNG defined', /function tbExportPNG/.test(js));
+test('PNG export serializes SVG', /XMLSerializer\(\)\.serializeToString/.test(js));
+test('PNG export uses canvas.toBlob', /canvas\.toBlob\(blob =>/.test(js));
+// HTML wiring
+test('HTML: scenario selector', html.includes('id="tb-scenario-select"'));
+test('HTML: scenario panel', html.includes('id="tb-scenario-panel"'));
+test('HTML: grade button', html.includes('id="tb-grade-btn"'));
+test('HTML: export button', html.includes('id="tb-export-btn"'));
+test('HTML: grade modal', html.includes('id="tb-grade-modal"'));
+test('HTML: grade body', html.includes('id="tb-grade-body"'));
+test('HTML: scenario option dmz', html.includes('value="dmz"'));
+test('HTML: scenario option enterprise', html.includes('value="enterprise"'));
+// CSS
+test('CSS: .tb-grade-modal', css.includes('.tb-grade-modal'));
+test('CSS: .tb-grade-card', css.includes('.tb-grade-card'));
+test('CSS: .tb-grade-circle', css.includes('.tb-grade-circle'));
+test('CSS: .tb-grade-section', css.includes('.tb-grade-section'));
+test('CSS: .tb-scenario-panel', css.includes('.tb-scenario-panel'));
+test('CSS: .tb-scenario-reqs', css.includes('.tb-scenario-reqs'));
+test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
+// openTopologyBuilder calls tbRenderScenarioPanel
+test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
