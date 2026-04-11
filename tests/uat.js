@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.18', js.includes("const APP_VERSION = '4.18"));
+test('APP_VERSION is 4.18.1', js.includes("const APP_VERSION = '4.18.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.18', sw.includes('netplus-v4.18'));
+test('SW cache bumped to v4.18.1', sw.includes('netplus-v4.18.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.18', sw.includes('netplus-v4.18'));
-test('APP_VERSION bumped to 4.18', js.includes("APP_VERSION = '4.18'"));
+test('SW cache bumped to v4.18.1', sw.includes('netplus-v4.18.1'));
+test('APP_VERSION bumped to 4.18.1', js.includes("APP_VERSION = '4.18.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -727,6 +727,23 @@ test('CSS: .tb-cable-selected', css.includes('.tb-cable-selected'));
 test('CSS: .tb-mobile-nudge', css.includes('.tb-mobile-nudge'));
 test('CSS: .tb-workspace grid', css.includes('.tb-workspace'));
 test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
+
+// ── Topology Builder polish (v4.18.1) ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.18.1) ──\x1b[0m');
+test('Canvas dimensions bumped to 1400x820', js.includes('TB_CANVAS_W = 1400') && js.includes('TB_CANVAS_H = 820'));
+test('Canvas viewBox 1400x820 in HTML', html.includes('viewBox="0 0 1400 820"'));
+test('Device rect enlarged (124x96)', /tb-device-bg[\s\S]{0,300}width="124" height="96"/.test(js));
+test('Device icon font enlarged (40)', /tb-device-icon[\s\S]{0,200}font-size="40"/.test(js));
+test('Device label font enlarged (16)', /tb-device-label[\s\S]{0,200}font-size="16"/.test(js));
+test('Intro banner in HTML', html.includes('tb-intro-banner'));
+test('Intro banner title line', html.includes('Design your own network'));
+test('CSS: .tb-intro-banner', css.includes('.tb-intro-banner'));
+test('CSS: page-topology-builder max-width override', css.includes('#page-topology-builder { max-width'));
+test('Clear button in HTML', html.includes('tbClearCanvas()'));
+test('tbClearCanvas function', js.includes('function tbClearCanvas('));
+test('tbClearCanvas preserves id/name', /tbClearCanvas[\s\S]{0,600}devices = \[\][\s\S]{0,200}cables = \[\]/.test(js));
+test('tbClearCanvas confirms before wiping', /tbClearCanvas[\s\S]{0,600}confirm\(/.test(js));
+test('Canvas min-height bumped to 720', css.includes('min-height: 720px'));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');

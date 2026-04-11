@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.18';
+const APP_VERSION = '4.18.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4783,8 +4783,8 @@ function openGuidedLab(topicName) {
 
 const TB_MAX_DEVICES = 15;
 const TB_MAX_SAVES = 5;
-const TB_CANVAS_W = 1200;
-const TB_CANVAS_H = 700;
+const TB_CANVAS_W = 1400;
+const TB_CANVAS_H = 820;
 
 // Device type catalog. Adding a new type = one entry here.
 const TB_DEVICE_TYPES = {
@@ -4892,10 +4892,10 @@ function tbRenderCanvas() {
     const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
     return `
       <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
-        <rect class="tb-device-bg" x="-36" y="-30" width="72" height="60" rx="10" ry="10"
-              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
-        <text class="tb-device-icon" y="-2" text-anchor="middle" font-size="24">${meta.icon}</text>
-        <text class="tb-device-label" y="20" text-anchor="middle" font-size="11" fill="#e2e8f0">${escHtml(meta.label)}</text>
+        <rect class="tb-device-bg" x="-62" y="-48" width="124" height="96" rx="12" ry="12"
+              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2.5"/>
+        <text class="tb-device-icon" y="-4" text-anchor="middle" font-size="40">${meta.icon}</text>
+        <text class="tb-device-label" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
       </g>
     `;
   }).join('');
@@ -4962,7 +4962,7 @@ function tbClientToSvg(svg, clientX, clientY) {
   const ctm = svg.getScreenCTM();
   if (!ctm) return { x: clientX, y: clientY };
   const { x, y } = pt.matrixTransform(ctm.inverse());
-  return { x: Math.max(50, Math.min(TB_CANVAS_W - 50, x)), y: Math.max(40, Math.min(TB_CANVAS_H - 40, y)) };
+  return { x: Math.max(75, Math.min(TB_CANVAS_W - 75, x)), y: Math.max(60, Math.min(TB_CANVAS_H - 60, y)) };
 }
 
 function tbAddDevice(type, x, y) {
@@ -5011,8 +5011,8 @@ function tbOnMouseMove(e) {
   const nx = Math.round(x - tbDragging.offsetX);
   const ny = Math.round(y - tbDragging.offsetY);
   if (Math.abs(nx - tbDragging.startX) > 3 || Math.abs(ny - tbDragging.startY) > 3) tbDragging.moved = true;
-  dev.x = Math.max(50, Math.min(TB_CANVAS_W - 50, nx));
-  dev.y = Math.max(40, Math.min(TB_CANVAS_H - 40, ny));
+  dev.x = Math.max(75, Math.min(TB_CANVAS_W - 75, nx));
+  dev.y = Math.max(60, Math.min(TB_CANVAS_H - 60, ny));
   tbRenderCanvas();
 }
 
@@ -5189,6 +5189,25 @@ function tbNewTopology() {
   tbRenderCanvas();
   tbUpdateDeviceCount();
   tbUpdateStatus('New topology. Drag a device from the palette \u2192');
+}
+
+// Clear wipes devices + cables from the CURRENT topology but keeps its
+// id/name, unlike tbNewTopology which creates a fresh topology entirely.
+function tbClearCanvas() {
+  if (tbState.devices.length === 0 && tbState.cables.length === 0) {
+    tbUpdateStatus('Canvas is already empty.');
+    return;
+  }
+  if (!confirm('Clear all devices and cables from this topology? The name will be kept.')) return;
+  tbState.devices = [];
+  tbState.cables = [];
+  tbState.updated = Date.now();
+  tbSelectedId = null;
+  tbPendingCableFrom = null;
+  tbSaveDraft();
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbUpdateStatus('Canvas cleared. Drag a device to start again.');
 }
 
 // ── Status / counter helpers ──
