@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.20.0';
+const APP_VERSION = '4.21.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -43,6 +43,7 @@ const STORAGE = {
   GH_REPORTED: 'nplus_gh_reported',
   TOPOLOGIES: 'nplus_topologies',
   TOPOLOGY_DRAFT: 'nplus_topology_draft',
+  TB_COACH_CACHE: 'nplus_tb_coach_cache',
 };
 
 // ── STATE ──
@@ -5865,6 +5866,241 @@ function tbExportPNG() {
   };
   img.onerror = () => showErrorToast('PNG export failed to rasterize.');
   img.src = `data:image/svg+xml;base64,${svg64}`;
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER TIER 3 — AI Coach
+// ══════════════════════════════════════════
+
+// Compact text description of the current topology for the LLM.
+// Grouped by device type with per-device neighbor lists. Cable types are
+// shown inline as "--type->" so the coach can comment on cabling choices.
+function tbSerializeTopology(state) {
+  if (!state.devices.length) return '(empty)';
+  // Group devices by type and assign per-type index so each gets a stable label.
+  const byType = {};
+  state.devices.forEach(d => {
+    if (!byType[d.type]) byType[d.type] = [];
+    byType[d.type].push(d);
+  });
+  const labelFor = {};
+  Object.keys(byType).forEach(type => {
+    byType[type].forEach((d, i) => {
+      const meta = TB_DEVICE_TYPES[type];
+      const base = (meta && meta.label) || type;
+      labelFor[d.id] = byType[type].length > 1 ? `${base} #${i + 1}` : base;
+    });
+  });
+  // Inventory lines
+  const inv = Object.keys(byType).map(type => {
+    const meta = TB_DEVICE_TYPES[type];
+    return `- ${(meta && meta.label) || type} × ${byType[type].length}`;
+  }).join('\n');
+  // Connection lines — for each device list its neighbors and the cable type
+  const conn = state.devices.map(d => {
+    const cables = state.cables.filter(c => c.from === d.id || c.to === d.id);
+    if (!cables.length) return `- ${labelFor[d.id]} → (not connected)`;
+    const nbrs = cables.map(c => {
+      const otherId = c.from === d.id ? c.to : c.from;
+      const other = state.devices.find(x => x.id === otherId);
+      if (!other) return null;
+      const ct = (TB_CABLE_TYPES[c.type] && TB_CABLE_TYPES[c.type].label) || 'Cat6';
+      return `${labelFor[other.id]} (${ct})`;
+    }).filter(Boolean);
+    return `- ${labelFor[d.id]} → ${nbrs.join(', ')}`;
+  }).join('\n');
+  return `Topology: "${state.name || 'Untitled'}"\n${state.devices.length} devices, ${state.cables.length} cables\n\nINVENTORY:\n${inv}\n\nCONNECTIONS:\n${conn}`;
+}
+
+// Cheap hash so we can cache coach responses per topology + scenario.
+function tbTopologyHash(state, scenarioId) {
+  const payload = JSON.stringify({
+    s: scenarioId,
+    d: state.devices.map(d => ({ t: d.type, x: Math.round(d.x / 20), y: Math.round(d.y / 20) })),
+    c: state.cables.map(c => ({ f: c.from, t: c.to, k: c.type || 'cat6' })).sort((a, b) => (a.f + a.t).localeCompare(b.f + b.t)),
+  });
+  let h = 0;
+  for (let i = 0; i < payload.length; i++) {
+    h = ((h << 5) - h) + payload.charCodeAt(i);
+    h |= 0;
+  }
+  return 'coach_' + (h >>> 0).toString(36);
+}
+
+function tbLoadCoachCache() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.TB_COACH_CACHE) || '{}'); }
+  catch (_) { return {}; }
+}
+function tbSaveCoachCache(cache) {
+  // Keep only the 10 most recent entries to bound localStorage.
+  const entries = Object.entries(cache).sort((a, b) => (b[1].t || 0) - (a[1].t || 0)).slice(0, 10);
+  const trimmed = Object.fromEntries(entries);
+  try { localStorage.setItem(STORAGE.TB_COACH_CACHE, JSON.stringify(trimmed)); } catch (_) {}
+}
+
+// Coach entry point. Fetches from cache or calls Claude Haiku.
+async function tbCoachTopology() {
+  if (tbState.devices.length === 0) {
+    showErrorToast('Add some devices before asking the Coach.');
+    return;
+  }
+  const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
+  if (!key) {
+    showErrorToast('Add your Anthropic API key in Settings (gear icon) to use the Coach.');
+    return;
+  }
+  const scen = TB_SCENARIOS.find(s => s.id === tbSelectedScenario) || TB_SCENARIOS[0];
+  const hash = tbTopologyHash(tbState, scen.id);
+
+  // Cache hit → show instantly
+  const cache = tbLoadCoachCache();
+  if (cache[hash] && cache[hash].payload) {
+    tbShowCoachModal(cache[hash].payload, scen, /*cached=*/true);
+    return;
+  }
+
+  // Show modal in loading state
+  tbShowCoachModalLoading(scen);
+
+  const serialized = tbSerializeTopology(tbState);
+  const prompt = `You are a CompTIA Network+ (N10-009) instructor reviewing a student's network topology design. Be direct, specific, and tie observations to N10-009 exam objectives where relevant. The student picked this scenario:
+
+Scenario: ${scen.title}
+${scen.description}
+
+Here is their topology:
+
+${serialized}
+
+Respond with ONLY a JSON object (no preamble, no markdown fences) with these keys:
+{
+  "tour": "A 2-3 sentence plain-English walkthrough of the design, as if narrating it to a student who can't see the canvas.",
+  "strengths": ["2-4 things they got right, tied to N10-009 objectives when possible"],
+  "concerns": ["2-4 design issues or questionable choices — things the static grader might miss"],
+  "upgrades": ["2-3 concrete upgrade suggestions with rationale"],
+  "objectives": ["2-4 N10-009 objectives this topology exercises, formatted as 'X.Y — Name'"],
+  "studyTip": "1 sentence pointing them toward what to drill next based on this design."
+}
+
+Keep the total response under 500 words. Respond with ONLY the JSON object.`;
+
+  try {
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      tbShowCoachModalError(`API returned ${res.status}. ${errText.slice(0, 160)}`);
+      return;
+    }
+    const data = await res.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || '';
+    // Strip any markdown fences the model might wrap around JSON.
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    let payload;
+    try {
+      payload = JSON.parse(cleaned);
+    } catch (e) {
+      // Last-ditch: find the first {...} block.
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      if (m) {
+        try { payload = JSON.parse(m[0]); } catch (_) {}
+      }
+    }
+    if (!payload || !payload.tour) {
+      tbShowCoachModalError('Coach returned an unexpected response. Try again.');
+      return;
+    }
+    // Cache and render
+    cache[hash] = { t: Date.now(), payload };
+    tbSaveCoachCache(cache);
+    tbShowCoachModal(payload, scen, /*cached=*/false);
+  } catch (e) {
+    tbShowCoachModalError(e && e.message ? e.message : 'Network error.');
+  }
+}
+
+function tbShowCoachModalLoading(scenario) {
+  const modal = document.getElementById('tb-coach-modal');
+  const body = document.getElementById('tb-coach-body');
+  if (!modal || !body) return;
+  modal.classList.remove('is-hidden');
+  body.innerHTML = `
+    <div class="tb-coach-loading">
+      <div class="tb-coach-spinner"></div>
+      <div class="tb-coach-loading-text">
+        <strong>Coach is analyzing your topology\u2026</strong>
+        <div class="tb-coach-loading-sub">Scenario: ${escHtml(scenario.title)} &middot; usually takes 3\u20135 seconds</div>
+      </div>
+    </div>
+  `;
+}
+
+function tbShowCoachModalError(msg) {
+  const body = document.getElementById('tb-coach-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="tb-coach-error">
+      <div class="tb-coach-error-title">\u26A0 Coach couldn't reach the API</div>
+      <div class="tb-coach-error-msg">${escHtml(msg)}</div>
+      <button type="button" class="btn btn-ghost" onclick="tbCoachTopology()" style="margin-top:12px">Retry</button>
+    </div>
+  `;
+}
+
+function tbShowCoachModal(payload, scenario, cached) {
+  const modal = document.getElementById('tb-coach-modal');
+  const body = document.getElementById('tb-coach-body');
+  if (!modal || !body) return;
+  modal.classList.remove('is-hidden');
+  const list = arr => Array.isArray(arr) && arr.length
+    ? `<ul class="tb-coach-list">${arr.map(x => `<li>${escHtml(String(x))}</li>`).join('')}</ul>`
+    : '<div class="tb-coach-empty">(none)</div>';
+  const cachedBadge = cached ? '<span class="tb-coach-cached">cached</span>' : '';
+  body.innerHTML = `
+    <div class="tb-coach-head">
+      <div class="tb-coach-scenario">${escHtml(scenario.title)} ${cachedBadge}</div>
+      <div class="tb-coach-tour">${escHtml(payload.tour || '')}</div>
+    </div>
+
+    <div class="tb-coach-section tb-coach-strengths">
+      <div class="tb-coach-section-title">\u2713 Strengths</div>
+      ${list(payload.strengths)}
+    </div>
+
+    <div class="tb-coach-section tb-coach-concerns">
+      <div class="tb-coach-section-title">\u26A0 Concerns</div>
+      ${list(payload.concerns)}
+    </div>
+
+    <div class="tb-coach-section tb-coach-upgrades">
+      <div class="tb-coach-section-title">\u2191 Upgrade suggestions</div>
+      ${list(payload.upgrades)}
+    </div>
+
+    <div class="tb-coach-section tb-coach-objectives">
+      <div class="tb-coach-section-title">\u{1F4DA} N10-009 objectives exercised</div>
+      ${list(payload.objectives)}
+    </div>
+
+    ${payload.studyTip ? `
+      <div class="tb-coach-tip">
+        <strong>\u{1F3AF} Study next:</strong> ${escHtml(payload.studyTip)}
+      </div>
+    ` : ''}
+  `;
+}
+
+function tbCloseCoachModal() {
+  const modal = document.getElementById('tb-coach-modal');
+  if (modal) modal.classList.add('is-hidden');
 }
 
 // ══════════════════════════════════════════

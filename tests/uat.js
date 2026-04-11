@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.20.0', js.includes("const APP_VERSION = '4.20.0"));
+test('APP_VERSION is 4.21.0', js.includes("const APP_VERSION = '4.21.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.20.0', sw.includes('netplus-v4.20.0'));
+test('SW cache bumped to v4.21.0', sw.includes('netplus-v4.21.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.20.0', sw.includes('netplus-v4.20.0'));
-test('APP_VERSION bumped to 4.20.0', js.includes("APP_VERSION = '4.20.0'"));
+test('SW cache bumped to v4.21.0', sw.includes('netplus-v4.21.0'));
+test('APP_VERSION bumped to 4.21.0', js.includes("APP_VERSION = '4.21.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -885,6 +885,50 @@ test('CSS: .tb-scenario-reqs', css.includes('.tb-scenario-reqs'));
 test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
 // openTopologyBuilder calls tbRenderScenarioPanel
 test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
+
+// ── Topology Builder Tier 3 (v4.21.0) — AI Coach ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.21.0) ──\x1b[0m');
+// Core functions
+test('tbSerializeTopology defined', /function tbSerializeTopology/.test(js));
+test('tbTopologyHash defined', /function tbTopologyHash/.test(js));
+test('tbCoachTopology async defined', /async function tbCoachTopology/.test(js));
+test('tbShowCoachModal defined', /function tbShowCoachModal\(/.test(js));
+test('tbShowCoachModalLoading defined', /function tbShowCoachModalLoading/.test(js));
+test('tbShowCoachModalError defined', /function tbShowCoachModalError/.test(js));
+test('tbCloseCoachModal defined', /function tbCloseCoachModal/.test(js));
+// Cache
+test('STORAGE.TB_COACH_CACHE key', js.includes("TB_COACH_CACHE: 'nplus_tb_coach_cache'"));
+test('tbLoadCoachCache defined', /function tbLoadCoachCache/.test(js));
+test('tbSaveCoachCache defined', /function tbSaveCoachCache/.test(js));
+test('Coach cache trims to 10 entries', /\.slice\(0, 10\)/.test(js));
+// API call shape
+test('Coach calls CLAUDE_API_URL', /tbCoachTopology[\s\S]{0,4000}CLAUDE_API_URL/.test(js));
+test('Coach uses CLAUDE_MODEL', /tbCoachTopology[\s\S]{0,4000}CLAUDE_MODEL/.test(js));
+test('Coach guards missing API key', /tbCoachTopology[\s\S]{0,1500}Add your Anthropic API key/.test(js));
+test('Coach strips markdown fences', /replace\(\/\^```/.test(js));
+test('Coach prompt mentions N10-009', /tbCoachTopology[\s\S]{0,4000}N10-009/.test(js));
+test('Coach prompt asks for JSON keys', /"tour"[\s\S]{0,400}"strengths"[\s\S]{0,400}"concerns"[\s\S]{0,400}"upgrades"/.test(js));
+// Serializer
+test('Serializer groups devices by type', /const byType = \{\}/.test(js));
+test('Serializer emits INVENTORY section', /INVENTORY:/.test(js));
+test('Serializer emits CONNECTIONS section', /CONNECTIONS:/.test(js));
+// HTML wiring
+test('HTML: coach button', html.includes('id="tb-coach-btn"'));
+test('HTML: coach modal', html.includes('id="tb-coach-modal"'));
+test('HTML: coach body', html.includes('id="tb-coach-body"'));
+test('HTML: coach button onclick', html.includes('onclick="tbCoachTopology()"'));
+// CSS
+test('CSS: .tb-coach-loading', css.includes('.tb-coach-loading'));
+test('CSS: .tb-coach-spinner', css.includes('.tb-coach-spinner'));
+test('CSS: .tb-coach-error', css.includes('.tb-coach-error'));
+test('CSS: .tb-coach-head', css.includes('.tb-coach-head'));
+test('CSS: .tb-coach-strengths', css.includes('.tb-coach-strengths'));
+test('CSS: .tb-coach-concerns', css.includes('.tb-coach-concerns'));
+test('CSS: .tb-coach-upgrades', css.includes('.tb-coach-upgrades'));
+test('CSS: .tb-coach-objectives', css.includes('.tb-coach-objectives'));
+test('CSS: .tb-coach-tip', css.includes('.tb-coach-tip'));
+test('CSS: .tb-tool-btn-coach', css.includes('.tb-tool-btn-coach'));
+test('CSS: tb-coach-spin keyframes', css.includes('@keyframes tb-coach-spin'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
