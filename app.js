@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.19.0';
+const APP_VERSION = '4.19.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4791,6 +4791,7 @@ const TB_CANVAS_H = 820;
 const TB_DEVICE_TYPES = {
   router:        { label: 'Router',        color: '#7c6ff7', short: 'R'    },
   switch:        { label: 'Switch',        color: '#22c55e', short: 'SW'   },
+  'dmz-switch':  { label: 'DMZ Switch',    color: '#f43f5e', short: 'DMZ'  },
   wap:           { label: 'WAP',           color: '#06b6d4', short: 'AP'   },
   pc:            { label: 'PC',            color: '#f59e0b', short: 'PC'   },
   server:        { label: 'Server',        color: '#ef4444', short: 'SRV'  },
@@ -4846,6 +4847,12 @@ function tbDeviceIcon(type, color) {
       return `<g transform="translate(0,-10)">
         <rect x="-30" y="-8" width="60" height="20" rx="3" ${f}/>
         ${[-22,-14,-6,2,10,18].map(x => `<rect x="${x}" y="-2" width="4" height="8" fill="${color}"/>`).join('')}
+      </g>`;
+    case 'dmz-switch':
+      return `<g transform="translate(0,-10)">
+        <rect x="-30" y="-8" width="60" height="20" rx="3" ${f}/>
+        ${[-22,-14,-6,2,10,18].map(x => `<rect x="${x}" y="-2" width="4" height="8" fill="${color}"/>`).join('')}
+        <text y="-14" text-anchor="middle" font-size="8" font-weight="800" fill="${color}">DMZ</text>
       </g>`;
     case 'wap':
       return `<g transform="translate(0,-12)">
@@ -5076,9 +5083,12 @@ function tbRenderCanvas() {
     const my = (p1.y + p2.y) / 2 + 16;
     const dAttr = `M ${p1.x} ${p1.y} Q ${mx} ${my} ${p2.x} ${p2.y}`;
     const dashAttr = meta.dash ? ` stroke-dasharray="${meta.dash}"` : '';
-    // Two-layer stroke: dark sheath (shadow) + inner colored conductor.
+    // Three-layer render: dark sheath (shadow), inner colored conductor,
+    // and a fat transparent hitbox on top so clicks land easily even on a
+    // thin curved path. Only the hitbox carries the click handler.
     return `<path class="tb-cable-sheath" d="${dAttr}" stroke="#0b1020" stroke-width="${meta.width + 5}" stroke-linecap="round" fill="none" opacity="0.7" pointer-events="none" />
-<path class="tb-cable tb-cable-${cableType}${selected}" data-tb-cable="${c.id}" d="${dAttr}" stroke="${meta.color}" stroke-width="${meta.width}" stroke-linecap="round" fill="none"${dashAttr} />`;
+<path class="tb-cable tb-cable-${cableType}${selected}" d="${dAttr}" stroke="${meta.color}" stroke-width="${meta.width}" stroke-linecap="round" fill="none"${dashAttr} pointer-events="none" />
+<path class="tb-cable-hit" data-tb-cable="${c.id}" d="${dAttr}" stroke="transparent" stroke-width="20" stroke-linecap="round" fill="none" />`;
   }).join('');
 
   // Devices
@@ -5108,13 +5118,16 @@ function tbRenderCanvas() {
     g.addEventListener('mousedown', (e) => tbOnDeviceMouseDown(e, id));
     g.addEventListener('click', (e) => { e.stopPropagation(); });
   });
-  cabLayer.querySelectorAll('.tb-cable').forEach(line => {
-    const id = line.getAttribute('data-tb-cable');
-    line.addEventListener('click', (e) => {
+  // Click handlers bind to the fat transparent hitbox, not the visible
+  // colored conductor, so thin stroke paths are easy to target.
+  cabLayer.querySelectorAll('.tb-cable-hit').forEach(hit => {
+    const id = hit.getAttribute('data-tb-cable');
+    hit.style.cursor = 'pointer';
+    hit.addEventListener('click', (e) => {
       e.stopPropagation();
       tbSelectedId = id;
       tbRenderCanvas();
-      tbUpdateStatus('Cable selected. Press Del to remove.');
+      tbUpdateStatus('Cable selected. Press Del/Backspace to remove.');
     });
   });
 }

@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.19.0', js.includes("const APP_VERSION = '4.19.0"));
+test('APP_VERSION is 4.19.1', js.includes("const APP_VERSION = '4.19.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.19.0', sw.includes('netplus-v4.19.0'));
+test('SW cache bumped to v4.19.1', sw.includes('netplus-v4.19.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.19.0', sw.includes('netplus-v4.19.0'));
-test('APP_VERSION bumped to 4.19.0', js.includes("APP_VERSION = '4.19.0'"));
+test('SW cache bumped to v4.19.1', sw.includes('netplus-v4.19.1'));
+test('APP_VERSION bumped to 4.19.1', js.includes("APP_VERSION = '4.19.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -659,7 +659,7 @@ test('STORAGE.TOPOLOGY_DRAFT key', js.includes("TOPOLOGY_DRAFT: 'nplus_topology_
 test('TB_MAX_DEVICES = 30', js.includes('const TB_MAX_DEVICES = 30'));
 test('TB_MAX_SAVES = 5', js.includes('const TB_MAX_SAVES = 5'));
 test('TB_DEVICE_TYPES defined', js.includes('const TB_DEVICE_TYPES = {'));
-// Device type coverage (13 total after v4.19.0)
+// Device type coverage (13 total after v4.19.1)
 test('Device type: router', /TB_DEVICE_TYPES[\s\S]{0,3000}router:\s*\{/.test(js));
 test('Device type: switch', /TB_DEVICE_TYPES[\s\S]{0,3000}switch:\s*\{/.test(js));
 test('Device type: wap', /TB_DEVICE_TYPES[\s\S]{0,3000}wap:\s*\{/.test(js));
@@ -734,8 +734,8 @@ test('CSS: .tb-mobile-nudge', css.includes('.tb-mobile-nudge'));
 test('CSS: .tb-workspace grid', css.includes('.tb-workspace'));
 test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 
-// ── Topology Builder polish (v4.19.0) ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.19.0) ──\x1b[0m');
+// ── Topology Builder polish (v4.19.1) ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.19.1) ──\x1b[0m');
 test('Canvas dimensions bumped to 1400x820', js.includes('TB_CANVAS_W = 1400') && js.includes('TB_CANVAS_H = 820'));
 test('Canvas viewBox 1400x820 in HTML', html.includes('viewBox="0 0 1400 820"'));
 test('Device rect compact (96x72) for 30-device fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
@@ -750,8 +750,8 @@ test('tbClearCanvas preserves id/name', /tbClearCanvas[\s\S]{0,600}devices = \[\
 test('tbClearCanvas confirms before wiping', /tbClearCanvas[\s\S]{0,600}confirm\(/.test(js));
 test('Canvas min-height bumped to 720', css.includes('min-height: 720px'));
 
-// ── Topology Builder v4.19.0: SVG icons, cables, device cap 30, new types ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 ──\x1b[0m');
+// ── Topology Builder v4.19.1: SVG icons, cables, device cap 30, new types ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 ──\x1b[0m');
 test('tbDeviceIcon function', js.includes('function tbDeviceIcon('));
 test('tbEdgePoint helper', js.includes('function tbEdgePoint('));
 test('Cables use tbEdgePoint (edge-to-edge)', /cabLayer\.innerHTML[\s\S]{0,800}tbEdgePoint/.test(js));
@@ -771,8 +771,8 @@ test('Icon: printer shape', /case 'printer':/.test(js));
 test('Icon: voip shape', /case 'voip':/.test(js));
 test('Icon: iot shape', /case 'iot':/.test(js));
 
-// ── Topology Builder v4.19.0: discoverable wiring UX ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 (wiring UX) ──\x1b[0m');
+// ── Topology Builder v4.19.1: discoverable wiring UX ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 (wiring UX) ──\x1b[0m');
 test('How-to strip in HTML', html.includes('tb-howto-strip'));
 test('How-to step: click A then click B', /Click<\/strong> device A[\s\S]{0,200}click<\/strong> device B/.test(html));
 test('Wire overlay element in HTML', html.includes('id="tb-wire-overlay"'));
@@ -784,8 +784,8 @@ test('CSS: .tb-howto-strip', css.includes('.tb-howto-strip'));
 test('CSS: .tb-wire-overlay', css.includes('.tb-wire-overlay'));
 test('CSS: wire overlay pulse keyframes', css.includes('@keyframes tb-wire-pulse'));
 
-// ── Topology Builder v4.19.0: cable picker, public servers, compact devices ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 ──\x1b[0m');
+// ── Topology Builder v4.19.1: cable picker, public servers, compact devices ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 ──\x1b[0m');
 // Cable types
 test('TB_CABLE_TYPES map', js.includes('const TB_CABLE_TYPES = {'));
 test('Cable type: cat6', /TB_CABLE_TYPES[\s\S]{0,500}cat6:/.test(js));
@@ -819,6 +819,14 @@ test('Intro banner mentions Cat6', html.includes('Cat6'));
 // Device shrink bounds
 test('tbOnMouseMove clamp padding 55/45', /Math\.max\(55,[\s\S]{0,300}Math\.max\(45/.test(js));
 test('HALF_W = 48, HALF_H = 36', /HALF_W = 48, HALF_H = 36/.test(js));
+
+// ── v4.19.1: DMZ switch + cable click hitbox ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 ──\x1b[0m');
+test('Device type: dmz-switch', /TB_DEVICE_TYPES[\s\S]{0,3000}'dmz-switch':/.test(js));
+test('Icon: dmz-switch shape', /case 'dmz-switch':/.test(js));
+test('Cable fat hitbox layer', /tb-cable-hit/.test(js));
+test('Cable hitbox click handler', /querySelectorAll\('\.tb-cable-hit'\)/.test(js));
+test('Cable visible layer is pointer-events none', /tb-cable tb-cable-\$\{cableType\}[\s\S]{0,300}pointer-events="none"/.test(js));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');
