@@ -140,7 +140,7 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - Priority field: 🔴 High, 🟡 Medium, 🟢 Low / Quick Win
 - `tests/tech-debt.js` runs in CI on every push — breaches auto-create issues with `tech-debt` + `priority: medium` labels, added to board in Backlog
 - Auto-reported bugs get `bug` + `priority: high` labels, added to board in Backlog
-- Weekly cadence: Tuesdays for bugs, Thursdays for tech debt
+- Weekly cadence: **Tuesdays** for bugs, **Thursdays** for tech debt
 - Tighten tech debt thresholds as debt is paid down
 
 ### Feature Ideas tracker
@@ -150,7 +150,7 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - Effort field: XS / S / M / L / XL
 - Tie-in field: Cert SaaS Vision / Quiz App Only / Both
 - Tied to product vision doc at `~/Desktop/Dev Projects/product-vision/PRODUCT-VISION.md`
-- No weekly cadence — this is a long-term idea backlog, not an active sprint queue
+- Weekly cadence: **Fridays** for shipping features — pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day (code → UAT → version bump → CLAUDE.md row → push → green-light verify). Don't start anything that can't realistically ship the same Friday; split larger ideas across multiple Fridays.
 - Promote to Board #1 (as `tech-debt` or regular work) only when actually scheduled
 
 ### Routing rules
@@ -162,6 +162,19 @@ Two Kanban boards, each with distinct purpose — never mix them.
 ### Auto-add to boards
 - `.github/workflows/auto-add-to-board.yml` listens for `issues.opened/labeled/reopened` and routes via GraphQL: `tech-debt`/`bug` → Board #1, `feature-idea` → Board #2
 - Requires repo secret `PROJECT_TOKEN` (a PAT with `project` scope) — without it the GraphQL `addProjectV2ItemById` call fails because the default `GITHUB_TOKEN` does not carry the `project` scope
+
+### Auto-archive closed issues (JIRA-style "done disappears")
+- `.github/workflows/auto-archive-done.yml` listens for `issues.closed` and calls `archiveProjectV2Item` on every board that contains the issue
+- Uses the `issue.projectItems` reverse-lookup so it works for any board the issue is on (not hardcoded to Board #1 or #2)
+- Archived items still exist in the board's **Archive** section — nothing is deleted, just hidden from the default view
+- Same `PROJECT_TOKEN` secret as auto-add; falls back to `GITHUB_TOKEN` if unset (which will fail with insufficient scopes — that's intentional so the issue surfaces loudly)
+
+### Board #2 (Feature Ideas) custom fields
+- **Epic** (single-select, 6 options): 🟣 Study Technique · 🔵 Focus & ADHD · 🟠 Exam Day · 🟢 Memorization · 🟡 Port Drill · 🩷 UX Polish — use board Group-by to get JIRA-style swimlanes
+- **Priority** (4 tiers): 🔥 Must Have · ⭐ Should Have · 💡 Nice to Have · 🧊 Someday
+- **Effort** (5 tiers): XS (<1 day) · S · M · L · XL
+- **Tie-in**: Cert SaaS Vision · Quiz App Only · Both
+- Every feature-idea issue also carries a matching `epic:*` label for list-view filtering (redundant by design — the label survives even if the board is rebuilt)
 
 ## Infrastructure Template
 A reusable infrastructure blueprint lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Product vision and architecture visuals live at `~/Desktop/Dev Projects/product-vision/`. Update both when we refine the approach here.

@@ -1,0 +1,84 @@
+name: Auto-archive closed issues from project boards
+
+# JIRA-style "done disappears" behavior: when an issue is closed, archive
+# its item on every Projects V2 board it lives on so it drops off the
+# visible board immediately. Archived items still exist in the board's
+# Archive section — nothing is deleted, just hidden.
+#
+# Trigger: issues.closed
+# Scope: every board the issue is a member of (queried dynamically, no hardcoded project IDs)
+# Auth: uses PROJECT_TOKEN (PAT with project scope) — secrets.GITHUB_TOKEN doesn't have it
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Archive issue on all project boards
+        uses: actions/github-script@v8
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Fetch every ProjectV2 item this issue belongs to.
+            // `projectItems` is the modern reverse-lookup from issue to boards.
+            let items;
+            try {
+              const data = await github.graphql(
+                `query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      projectItems(first: 20) {
+                        nodes {
+                          id
+                          isArchived
+                          project { id title number }
+                        }
+                      }
+                    }
+                  }
+                }`,
+                { owner, repo, number: issueNumber }
+              );
+              items = data.repository.issue.projectItems.nodes || [];
+            } catch (e) {
+              core.setFailed(`Failed to look up project items for issue #${issueNumber}: ${e.message}`);
+              return;
+            }
+
+            if (items.length === 0) {
+              core.info(`Issue #${issueNumber} is not on any project board — nothing to archive`);
+              return;
+            }
+
+            let archivedCount = 0;
+            for (const item of items) {
+              if (item.isArchived) {
+                core.info(`Issue #${issueNumber} already archived on "${item.project.title}" — skipping`);
+                continue;
+              }
+              try {
+                await github.graphql(
+                  `mutation($projectId: ID!, $itemId: ID!) {
+                    archiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
+                      item { id isArchived }
+                    }
+                  }`,
+                  { projectId: item.project.id, itemId: item.id }
+                );
+                archivedCount++;
+                core.info(`Archived issue #${issueNumber} on "${item.project.title}" (board #${item.project.number})`);
+              } catch (e) {
+                core.warning(`Failed to archive issue #${issueNumber} on "${item.project.title}": ${e.message}`);
+              }
+            }
+
+            core.info(`Done — archived issue #${issueNumber} on ${archivedCount} board(s)`);
