@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.15';
+const APP_VERSION = '4.16';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4684,7 +4684,93 @@ function renderTopicDive(guide, topicName) {
         <p class="td-memory-text">${escHtml(guide.memoryTrick || '')}</p>
       </div>
     </div>
+
+    ${_renderTopicTerminalSection(topicName)}
+    ${_renderTopicLabSection(topicName)}
   `;
+}
+
+// v4.16 / #68 — "Try it in Terminal" static section appended to the
+// AI-generated topic dive. Only renders if the topic has curated commands.
+function _renderTopicTerminalSection(topicName) {
+  const cmds = topicCommands[topicName];
+  if (!cmds || cmds.length === 0) return '';
+  const cards = cmds.map(c => _terminalCardHtml(c.cmd, c.note)).join('');
+  return `<div class="td-section td-terminal">
+    <div class="td-section-icon">💻</div>
+    <div class="td-section-body">
+      <h3>Try It In Terminal</h3>
+      <p class="td-terminal-intro">Run these on macOS / iOS Terminal to see this topic live:</p>
+      <div class="td-terminal-list">${cards}</div>
+    </div>
+  </div>`;
+}
+
+// v4.16 / #69 — Guided Lab callout. Shows a single button that opens a
+// full guided walkthrough page. Only renders if the topic has a lab.
+function _renderTopicLabSection(topicName) {
+  const lab = guidedLabs[topicName];
+  if (!lab) return '';
+  const topicAttr = escHtml(topicName).replace(/'/g, '&#39;');
+  return `<div class="td-section td-lab-callout">
+    <div class="td-section-icon">🖥️</div>
+    <div class="td-section-body">
+      <h3>Guided Terminal Lab</h3>
+      <p>Want to go deeper? There\'s a coached walkthrough for this topic — ${escHtml(lab.title)} (${escHtml(lab.duration)}).</p>
+      <button type="button" class="btn btn-primary td-lab-btn" onclick="openGuidedLab('${topicAttr}')">🖥️ Start Guided Lab</button>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// GUIDED TERMINAL LAB PAGE (v4.16 / #69)
+// ══════════════════════════════════════════
+let guidedLabReturnPage = 'page-topic-dive';
+
+function openGuidedLab(topicName) {
+  const lab = guidedLabs[topicName];
+  if (!lab) { showErrorToast('No lab available for this topic yet.'); return; }
+
+  // Remember which page we came from so Back works
+  const pages = ['page-topic-dive', 'page-quiz', 'page-review', 'page-results', 'page-exam-results'];
+  guidedLabReturnPage = pages.find(p => document.getElementById(p) && document.getElementById(p).classList.contains('active')) || 'page-topic-dive';
+
+  const titleEl = document.getElementById('lab-title');
+  const metaEl = document.getElementById('lab-meta');
+  const introEl = document.getElementById('lab-intro');
+  const stepsEl = document.getElementById('lab-steps');
+  const wrapEl = document.getElementById('lab-wrap');
+
+  if (!titleEl) return;
+
+  titleEl.textContent = '🖥️ ' + lab.title;
+  metaEl.innerHTML = `<span class="lab-meta-pill">Obj ${escHtml(lab.objective)}</span><span class="lab-meta-pill">${escHtml(lab.duration)}</span><span class="lab-meta-pill">${lab.steps.length} steps</span>`;
+  introEl.innerHTML = `<p>${escHtml(lab.intro)}</p>`;
+
+  stepsEl.innerHTML = lab.steps.map((s, i) => `
+    <div class="lab-step">
+      <div class="lab-step-head">
+        <span class="lab-step-num">Step ${i + 1}</span>
+        <span class="lab-step-count">of ${lab.steps.length}</span>
+      </div>
+      <p class="lab-step-narration">${escHtml(s.narration)}</p>
+      ${_terminalCardHtml(s.cmd, null)}
+      <div class="lab-step-expect"><strong>What you should see:</strong> ${escHtml(s.expect)}</div>
+    </div>
+  `).join('');
+
+  wrapEl.innerHTML = `<div class="lab-wrap">${escHtml(lab.wrap)}</div>`;
+
+  const backBtn = document.getElementById('lab-back-btn');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      document.getElementById('page-guided-lab').classList.remove('active');
+      document.getElementById(guidedLabReturnPage).classList.add('active');
+      window.scrollTo(0, 0);
+    };
+  }
+
+  showPage('guided-lab');
 }
 
 // ══════════════════════════════════════════
@@ -4998,6 +5084,221 @@ function resetPortStats() {
 }
 
 // ══════════════════════════════════════════
+// TRY IT IN TERMINAL (v4.16 / #68) — curated shell commands that demo
+// each protocol and each exam topic live. Memorization sticks harder when
+// you've seen the port actually do something once.
+// ══════════════════════════════════════════
+const portCommands = {
+  'HTTP':        { cmd: 'curl -I http://example.com',                                     note: 'See the HTTP/1.1 200 status line and server headers.' },
+  'HTTPS':       { cmd: 'curl -I https://example.com',                                    note: 'Same request, but over TLS. Watch for HTTP/2 200.' },
+  'DNS':         { cmd: 'dig google.com',                                                 note: 'Look at the ANSWER SECTION — that\'s the A record.' },
+  'SSH':         { cmd: 'ssh -v user@hostname',                                           note: 'Use -v to watch the key-exchange handshake.' },
+  'Telnet':      { cmd: 'nc -zv towel.blinkenlights.nl 23',                               note: 'Telnet is plaintext and mostly dead — check reachability with netcat instead.' },
+  'FTP Control': { cmd: 'ftp ftp.gnu.org',                                                note: 'Anonymous FTP. Type ls once connected.' },
+  'FTP Data':    { cmd: 'ftp ftp.gnu.org',                                                note: 'FTP opens port 21 for control and port 20 for data transfer.' },
+  'SMTP':        { cmd: 'openssl s_client -connect smtp.gmail.com:587 -starttls smtp',    note: 'Port 587 with STARTTLS. Type QUIT to exit.' },
+  'SMTP TLS':    { cmd: 'openssl s_client -connect smtp.gmail.com:587 -starttls smtp',    note: 'SMTP submission with STARTTLS upgrade.' },
+  'POP3':        { cmd: 'openssl s_client -connect pop.gmail.com:995',                    note: 'POP3S = POP3 over SSL (port 995).' },
+  'IMAP':        { cmd: 'openssl s_client -connect imap.gmail.com:993',                   note: 'IMAPS = IMAP over SSL (port 993).' },
+  'NTP':         { cmd: 'sntp time.apple.com',                                            note: 'Get the current time from an NTP server. Offset = local clock drift.' },
+  'SNMP':        { cmd: 'snmpwalk -v2c -c public demo.snmplabs.com system',               note: 'Walk the system MIB on a public demo SNMP agent.' },
+  'LDAP':        { cmd: 'ldapsearch -x -H ldap://ldap.forumsys.com -b dc=example,dc=com', note: 'Anonymous bind to a public LDAP test server.' },
+  'LDAPS':       { cmd: 'openssl s_client -connect ldap.google.com:636',                  note: 'TLS-wrapped LDAP. See the cert chain.' },
+  'DHCP Client': { cmd: 'ipconfig getpacket en0',                                         note: 'macOS: decode the DHCP packet your client received (lease, gateway, DNS).' },
+  'DHCP Server': { cmd: 'ipconfig getpacket en0',                                         note: 'Shows what the DHCP server handed to your client.' },
+  'Kerberos':    { cmd: 'nc -zv kerberos.mit.edu 88',                                     note: 'Check reachability on the canonical Kerberos server.' },
+  'RDP':         { cmd: 'nc -zv example.com 3389',                                        note: 'Most hosts block 3389 — "Connection refused" is expected.' },
+  'MySQL':       { cmd: 'nc -zv localhost 3306',                                          note: 'Check if a local MySQL/MariaDB server is listening.' },
+  'VNC':         { cmd: 'nc -zv localhost 5900',                                          note: 'Check if VNC screen-sharing is listening locally.' },
+  'SIP':         { cmd: 'nc -zv -u sip.example.com 5060',                                 note: 'SIP signalling on UDP 5060 — the VoIP handshake.' },
+  'SIP TLS':     { cmd: 'openssl s_client -connect sip.example.com:5061',                 note: 'TLS-wrapped SIP — handshake visible.' },
+  'SMB':         { cmd: 'nc -zv localhost 445',                                           note: 'SMB file sharing (Windows/macOS File Sharing uses this).' },
+  'TFTP':        { cmd: 'tftp 192.168.1.1',                                               note: 'Stateless UDP/69 — often used for router firmware. Interactive prompt.' },
+  'Syslog':      { cmd: 'logger -p user.info "hello syslog"',                             note: 'Send a message to your local syslog daemon (UDP/514).' },
+  'BGP':         { cmd: 'whois -h whois.radb.net AS15169',                                note: 'Query a BGP routing registry for Google\'s ASN.' },
+  'FTPS':        { cmd: 'openssl s_client -connect ftp.example.com:990',                  note: 'FTPS = FTP over implicit SSL/TLS.' },
+  'OpenVPN':     { cmd: 'nc -zv -u vpn.example.com 1194',                                 note: 'OpenVPN default is UDP/1194.' },
+  'IKE/IPsec':   { cmd: 'nc -zv -u vpn.example.com 500',                                  note: 'IKE phase 1 uses UDP/500. NAT-T uses 4500.' },
+  'L2TP':        { cmd: 'nc -zv -u vpn.example.com 1701',                                 note: 'L2TP over UDP/1701 — usually paired with IPsec.' },
+  'NFS':         { cmd: 'nc -zv nfs-server.example.com 2049',                             note: 'NFSv4 consolidates everything on port 2049.' },
+  'iSCSI':       { cmd: 'nc -zv storage.example.com 3260',                                note: 'Block-level storage over IP. Default target port 3260.' },
+  'RADIUS Auth': { cmd: 'nc -zv -u radius.example.com 1812',                              note: 'RADIUS auth over UDP/1812. Accounting is 1813.' },
+  'RADIUS Acct': { cmd: 'nc -zv -u radius.example.com 1813',                              note: 'RADIUS accounting — separate port from auth (1812).' },
+  'IPsec NAT-T': { cmd: 'nc -zv -u vpn.example.com 4500',                                 note: 'NAT traversal lets IPsec punch through NAT using UDP/4500.' },
+  'TACACS+':     { cmd: 'nc -zv tacacs.example.com 49',                                   note: 'Cisco AAA — encrypts the full payload, unlike RADIUS.' }
+};
+
+// Topic-level command packs shown inside the Topic Deep Dive panel.
+// Keyed by canonical topic name (topicResources key).
+const topicCommands = {
+  'Network Naming (DNS & DHCP)': [
+    { cmd: 'dig google.com',        note: 'Basic A record lookup — the most common DNS query.' },
+    { cmd: 'dig AAAA google.com',   note: 'IPv6 (quad-A) record.' },
+    { cmd: 'dig MX google.com',     note: 'Mail exchanger records — where SMTP delivers for this domain.' },
+    { cmd: 'dig +trace google.com', note: 'Walk the recursive resolution chain live: root → .com → Google.' },
+    { cmd: 'nslookup google.com',   note: 'Legacy DNS tool — still on the exam.' }
+  ],
+  'DNS Records & DNSSEC': [
+    { cmd: 'dig +dnssec google.com', note: 'Include DNSSEC RRSIG signatures in the answer.' },
+    { cmd: 'dig NS google.com',      note: 'Authoritative nameservers for the zone.' },
+    { cmd: 'dig TXT google.com',     note: 'TXT records — SPF, DKIM and DMARC live here.' },
+    { cmd: 'dig CNAME www.github.com', note: 'Canonical name alias — follow the redirect chain.' }
+  ],
+  'Network Troubleshooting & Tools': [
+    { cmd: 'ping -c 5 1.1.1.1',             note: 'Basic reachability + round-trip time.' },
+    { cmd: 'traceroute -I 8.8.8.8',         note: 'ICMP traceroute — some firewalls block the UDP default.' },
+    { cmd: 'ping -c 3 -s 1472 -D 1.1.1.1',  note: 'Don\'t-fragment MTU test: 1472 payload + 28 headers = 1500.' },
+    { cmd: 'nslookup google.com 1.1.1.1',   note: 'Force a query through Cloudflare instead of your default resolver.' }
+  ],
+  'CompTIA Troubleshooting Methodology': [
+    { cmd: 'ping google.com',       note: 'Step 3 — tests DNS and routing in one shot.' },
+    { cmd: 'ping 8.8.8.8',          note: 'Isolates DNS failure from routing failure.' },
+    { cmd: 'traceroute google.com', note: 'Step 3 — where does the path break down?' },
+    { cmd: 'route -n get default',  note: 'Step 2 — is the default gateway configured correctly?' }
+  ],
+  'Routing Protocols': [
+    { cmd: 'netstat -rn',                      note: 'Your local routing table.' },
+    { cmd: 'traceroute 8.8.8.8',               note: 'Watch every router hop — dynamic routing in action.' },
+    { cmd: 'whois -h whois.radb.net AS15169',  note: 'BGP routing registry lookup for Google\'s ASN.' }
+  ],
+  'NAT & IP Services': [
+    { cmd: 'ifconfig en0 | grep "inet "', note: 'Your private IP (RFC1918: 10.x / 172.16-31.x / 192.168.x).' },
+    { cmd: 'curl ifconfig.me',            note: 'Your public IP — the one your NAT router translates you to.' },
+    { cmd: 'curl -4 ifconfig.co',         note: 'Same, forced IPv4.' }
+  ],
+  'Port Numbers': [
+    { cmd: 'netstat -an | grep LISTEN',   note: 'Every port your machine is listening on.' },
+    { cmd: 'lsof -i -P -n | grep LISTEN', note: 'Same listing, plus the process name.' },
+    { cmd: 'nmap -sT localhost',          note: 'TCP connect scan on yourself — see what\'s open.' }
+  ],
+  'Subnetting & IP Addressing': [
+    { cmd: 'ifconfig en0',               note: 'See your IP and netmask in one place.' },
+    { cmd: 'ipcalc 192.168.1.0/24',      note: 'Subnet calculator. Install with brew install ipcalc if missing.' }
+  ],
+  'Securing TCP/IP': [
+    { cmd: 'openssl s_client -connect google.com:443', note: 'Dump the TLS cert chain from a live HTTPS connection.' },
+    { cmd: 'curl -vI https://example.com',              note: 'Verbose curl — watch the TLS handshake inline.' }
+  ],
+  'IPv6': [
+    { cmd: 'ifconfig en0 | grep inet6',  note: 'Your link-local and (maybe) global IPv6 addresses.' },
+    { cmd: 'dig AAAA google.com',        note: 'Query IPv6 (AAAA) records.' },
+    { cmd: 'ping6 google.com',           note: 'Ping over IPv6. Some macOS versions use ping -6.' }
+  ],
+  'Network Monitoring & Observability': [
+    { cmd: 'netstat -s',  note: 'Protocol-level counters (dropped packets, resets, errors).' },
+    { cmd: 'lsof -i',     note: 'Every open network connection on your machine.' }
+  ],
+  'Switch Features & VLANs': [
+    { cmd: 'arp -a',                     note: 'Your ARP cache — L2 neighbour discovery.' },
+    { cmd: 'ifconfig en0 | grep ether',  note: 'Your MAC address. First 3 bytes = OUI (vendor ID).' }
+  ],
+  'Wireless Networking': [
+    { cmd: 'networksetup -listallhardwareports', note: 'List all network interfaces including Wi-Fi.' },
+    { cmd: 'networksetup -getairportnetwork en0', note: 'Current SSID on the Wi-Fi interface.' }
+  ],
+  'IPsec & VPN Protocols': [
+    { cmd: 'nc -zv -u vpn.example.com 500',  note: 'IKE phase 1 — UDP/500.' },
+    { cmd: 'nc -zv -u vpn.example.com 4500', note: 'IPsec NAT-T — UDP/4500.' }
+  ],
+  'TCP/IP Applications': [
+    { cmd: 'curl -I https://example.com',      note: 'HTTP/HTTPS — the textbook application-layer protocol.' },
+    { cmd: 'dig google.com',                   note: 'DNS — the app that makes every other app work.' },
+    { cmd: 'sntp time.apple.com',              note: 'NTP — the app that keeps every clock on the network in sync.' }
+  ]
+};
+
+// Guided Terminal Labs (v4.16 / #69) — structured, coached walkthroughs
+// a user runs alongside a Claude Code session. Keyed by topic name.
+// Multiple topics can share a lab (DNS lab serves both DNS topics, etc.).
+const _dnsLab = {
+  title: 'DNS Records & Recursive Resolution',
+  objective: '1.6',
+  duration: '~15 min',
+  intro: 'We\'ll walk through DNS record types and the recursive resolution chain using dig. Run each command, read what comes back, and the record types will stop being abstract.',
+  steps: [
+    { narration: 'Start with a basic lookup. This is the most common DNS query — hostname to IPv4 address.',             cmd: 'dig google.com',            expect: 'An "ANSWER SECTION" containing one or more A records pointing google.com at an IPv4 address.' },
+    { narration: 'Now ask for the IPv6 version. AAAA (pronounced "quad-A") is the IPv6 equivalent of an A record.',      cmd: 'dig AAAA google.com',       expect: 'AAAA record(s) in the ANSWER SECTION showing an IPv6 address like 2607:f8b0:...' },
+    { narration: 'MX records tell SMTP where to deliver mail for a domain. This is objective 1.6 — DNS record types.',   cmd: 'dig MX google.com',         expect: 'A list of mail exchangers with priority values. Lower priority wins.' },
+    { narration: 'NS records list the authoritative nameservers — the servers Google designates as the source of truth for google.com.', cmd: 'dig NS google.com',          expect: 'Four ns*.google.com entries.' },
+    { narration: 'TXT records hold arbitrary text. In practice they carry SPF, DKIM, and DMARC records for email security (ties into objective 4.3).', cmd: 'dig TXT google.com',        expect: 'Several TXT entries including one that starts with "v=spf1".' },
+    { narration: 'Here\'s the real magic. +trace makes dig walk the full recursive chain live — root (.) → .com → Google\'s authoritative nameservers. This is what happens every time you type a URL into a browser (unless the answer is cached).', cmd: 'dig +trace google.com',     expect: 'A multi-stage walk: 13 root nameservers → .com gTLD nameservers → ns*.google.com → final A record.' },
+    { narration: 'Finally, the legacy tool. nslookup is still on the N10-009 exam, so make sure you\'ve seen it at least once.', cmd: 'nslookup google.com',       expect: 'A Non-authoritative answer with an IP address.' }
+  ],
+  wrap: 'Great — you\'ve now seen every DNS record type the exam will throw at you, and watched recursive resolution happen live. Head back to the app and fire the DNS drill to lock it in.'
+};
+const _routingLab = {
+  title: 'Routing & Your Real Default Gateway',
+  objective: '2.2 / 5.1',
+  duration: '~15 min',
+  intro: 'We\'ll trace how packets actually leave your machine and reach the internet — using YOUR real network, not a textbook diagram. The whole point: hop 1 of every traceroute from your machine is literally the router on your desk.',
+  steps: [
+    { narration: 'Pull your real default gateway. Write down the gateway IP — that\'s the router your packets hand off to.',                                                 cmd: 'route -n get default',       expect: 'A block of text including "gateway: x.x.x.x" — that\'s the router.' },
+    { narration: 'Now look at the full routing table. Find the "default" entry (destination 0.0.0.0 or default). That\'s where packets go when nothing more specific matches.', cmd: 'netstat -rn',                expect: 'A table with destinations, gateways, flags, and interfaces. Look for the "default" row.' },
+    { narration: 'ARP cache. Find the row with your gateway\'s IP — you\'ll see its MAC address. L2 adjacency: you reach the gateway by MAC, not IP, because it\'s on the same LAN.', cmd: 'arp -a',                     expect: 'Several lines like "? (192.168.1.1) at aa:bb:cc:... on en0". Your gateway should be one of them.' },
+    { narration: 'Traceroute to Google. Every line is a router. Hop 1 = your default gateway. Hops 2-3 = your ISP. Later hops cross the public internet.',                    cmd: 'traceroute 8.8.8.8',         expect: '10-15 hops, each with three RTT measurements. Some hops may show * * * if they filter ICMP.' },
+    { narration: 'Ping Google\'s DNS. TTL in the reply tells you roughly how many hops the packet has crossed: starting TTL (usually 64 or 128) minus the TTL you see = hop count.', cmd: 'ping -c 4 8.8.8.8',          expect: 'Four replies with round-trip times and a TTL value (usually around 117 from Google).' },
+    { narration: 'Finally, ping your own gateway. TTL should be very close to the starting value (usually 64) — because it\'s 1 hop away.',                                   cmd: 'ping -c 3 $(route -n get default | awk \'/gateway/ {print $2}\')', expect: 'Three replies with sub-millisecond RTT and TTL of ~64. 0% packet loss.' }
+  ],
+  wrap: 'You\'ve now seen dynamic routing happen on your own network. Head back and drill the Routing Protocols topic.'
+};
+const _portsLab = {
+  title: 'Ports & Listening Services',
+  objective: '1.4 / 1.5',
+  duration: '~15 min',
+  intro: 'We\'ll see real protocols running on real ports — on your own machine and on the internet. This is the lab that makes "port 443 = HTTPS" stop being a flashcard and start being muscle memory.',
+  steps: [
+    { narration: 'First, see every port your own machine is listening on. Every LISTEN line is a service waiting for connections. Notice IPv4 (tcp4) and IPv6 (tcp6) variants.', cmd: 'netstat -an | grep LISTEN',                      expect: 'A list of local addresses in the form *.port or 127.0.0.1.port with state LISTEN.' },
+    { narration: 'Same data, but with process names. Now you can see which app owns each listening port — ControlCenter on 7000, mdnsresponder on 5353, etc.',                  cmd: 'lsof -i -P -n | grep LISTEN',                    expect: 'Rows showing COMMAND, PID, USER, and the address:port with LISTEN.' },
+    { narration: 'Now hit a live HTTPS server. Port 443, TLS-wrapped HTTP. The -I flag sends a HEAD request so you only get headers, not the full body.',                       cmd: 'curl -I https://example.com',                    expect: 'HTTP/2 200, a Content-Type line, and several other response headers.' },
+    { narration: 'SMTP submission on port 587 with STARTTLS. This is what every modern email client uses to SEND mail. Watch the TLS handshake happen, then type QUIT to exit.', cmd: 'openssl s_client -connect smtp.gmail.com:587 -starttls smtp', expect: 'A cert chain dump, then a "250-smtp.gmail.com at your service" banner, waiting for input.' },
+    { narration: 'Netcat scan — quickly check if specific ports are open on a remote host. scanme.nmap.org is nmap\'s official test server (free to scan, permitted by policy).', cmd: 'nc -zv scanme.nmap.org 22 80 443',               expect: 'Three lines indicating "succeeded" or "open" (or "refused" if one is closed).' },
+    { narration: 'Full TCP connect scan on yourself. This is what an attacker sees from port scanning — every open listening port on your machine.',                            cmd: 'nmap -sT localhost',                             expect: 'A list of open ports with service names (e.g. 22/tcp ssh, 5353/tcp ...). Install nmap with brew install nmap if missing.' }
+  ],
+  wrap: 'Now fire the Port Drill mode — you\'ve just seen a bunch of these ports actually DO something, which makes them stick.'
+};
+const guidedLabs = {
+  'Network Naming (DNS & DHCP)':      _dnsLab,
+  'DNS Records & DNSSEC':             _dnsLab,
+  'Routing Protocols':                _routingLab,
+  'Network Troubleshooting & Tools':  _routingLab,
+  'CompTIA Troubleshooting Methodology': _routingLab,
+  'Port Numbers':                     _portsLab,
+  'TCP/IP Applications':              _portsLab
+};
+
+// Copy a command to clipboard with visual feedback on the button.
+function copyCmd(event, cmd) {
+  event.stopPropagation();
+  event.preventDefault();
+  navigator.clipboard.writeText(cmd).then(() => {
+    const btn = event.currentTarget;
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = '\u2713';
+    btn.classList.add('terminal-card-copied');
+    setTimeout(() => {
+      btn.textContent = old;
+      btn.classList.remove('terminal-card-copied');
+    }, 1200);
+  }).catch(() => showErrorToast('Copy failed — select the command manually.'));
+}
+
+// Render a single terminal-card HTML block for a {cmd, note} object.
+function _terminalCardHtml(cmd, note) {
+  const safeCmd = escHtml(cmd);
+  const cmdAttr = escHtml(cmd).replace(/'/g, '&#39;');
+  const noteHtml = note ? `<div class="terminal-card-note">${escHtml(note)}</div>` : '';
+  return `<div class="terminal-card">
+    <div class="terminal-card-head">
+      <span class="terminal-card-prompt">$</span>
+      <code class="terminal-card-cmd">${safeCmd}</code>
+      <button type="button" class="terminal-card-copy" onclick="copyCmd(event, '${cmdAttr}')" aria-label="Copy command">&#128203;</button>
+    </div>
+    ${noteHtml}
+  </div>`;
+}
+
+// ══════════════════════════════════════════
 // PORT REFERENCE PANEL (v4.11) — studyable cheatsheet of all 40 ports
 // ══════════════════════════════════════════
 const portCategories = [
@@ -5018,12 +5319,21 @@ let portSortMode = 'category'; // 'category' | 'number' | 'name'
 
 function _portCard(p) {
   // portData is static/controlled — no user input, no escaping needed
-  return `<div class="port-ref-card" data-proto="${p.proto.toLowerCase()}" data-port="${p.port}">
-    <div class="port-ref-num">${p.port}</div>
-    <div class="port-ref-meta">
-      <div class="port-ref-proto">${p.proto}</div>
-      <div class="port-ref-tp">${p.tp}</div>
+  const cmdEntry = portCommands[p.proto];
+  const hasCmd = !!cmdEntry;
+  const cmdRow = hasCmd ? `<div class="port-ref-cmd">
+    <code class="port-ref-cmd-text">${escHtml(cmdEntry.cmd)}</code>
+    <button type="button" class="port-ref-cmd-copy" onclick="copyCmd(event, '${escHtml(cmdEntry.cmd).replace(/'/g, '&#39;')}')" aria-label="Copy command">&#128203;</button>
+  </div>` : '';
+  return `<div class="port-ref-card ${hasCmd ? 'port-ref-card-has-cmd' : ''}" data-proto="${p.proto.toLowerCase()}" data-port="${p.port}">
+    <div class="port-ref-card-top">
+      <div class="port-ref-num">${p.port}</div>
+      <div class="port-ref-meta">
+        <div class="port-ref-proto">${p.proto}</div>
+        <div class="port-ref-tp">${p.tp}</div>
+      </div>
     </div>
+    ${cmdRow}
   </div>`;
 }
 

@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.15', js.includes("const APP_VERSION = '4.15"));
+test('APP_VERSION is 4.16', js.includes("const APP_VERSION = '4.16"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.15', sw.includes('netplus-v4.15'));
+test('SW cache bumped to v4.16', sw.includes('netplus-v4.16'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,11 +480,11 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.15.x', sw.includes('netplus-v4.15.'));
-test('APP_VERSION bumped to 4.15', js.includes("APP_VERSION = '4.15'"));
+test('SW cache bumped to v4.16.x', sw.includes('netplus-v4.16.'));
+test('APP_VERSION bumped to 4.16', js.includes("APP_VERSION = '4.16'"));
 
-// ── Secure Pairs Port Drill mode (v4.15 #30) ──
-console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.15 #30) ──\x1b[0m');
+// ── Secure Pairs Port Drill mode (v4.16 #30) ──
+console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16 #30) ──\x1b[0m');
 test('STORAGE.PORT_PAIRS_BEST key', js.includes("PORT_PAIRS_BEST:"));
 test('securePairs dataset defined', js.includes('const securePairs = ['));
 test('Pairs: HTTP↔HTTPS', /HTTP[\s\S]{0,200}HTTPS[\s\S]{0,80}443/.test(js));
@@ -532,6 +532,55 @@ test('startBulkQuiz has retry logic', /startBulkQuiz[\s\S]{0,2000}MAX_RETRIES/.t
 test('startBulkQuiz runs validation pipeline', /startBulkQuiz[\s\S]{0,3000}aiValidateQuestions[\s\S]{0,200}validateQuestions/.test(js));
 test('startBulkQuiz forces Mixed topic', /startBulkQuiz[\s\S]{0,800}activeQuizTopic = MIXED_TOPIC/.test(js));
 test('startBulkQuiz clears progress bar at end', /startBulkQuiz[\s\S]{0,2500}fill\.style\.width = '100%'/.test(js));
+
+// ── Try It In Terminal + Guided Labs (v4.16 #68, #69) ──
+console.log('\n\x1b[1m── TRY IT IN TERMINAL + GUIDED LABS (v4.16 #68, #69) ──\x1b[0m');
+test('portCommands map defined', js.includes('const portCommands = {'));
+test('portCommands: HTTPS → curl', /'HTTPS':\s*\{\s*cmd:\s*'curl -I https:\/\/example\.com'/.test(js));
+test('portCommands: DNS → dig', /'DNS':\s*\{\s*cmd:\s*'dig google\.com'/.test(js));
+test('portCommands: NTP → sntp', /'NTP':\s*\{\s*cmd:\s*'sntp time\.apple\.com'/.test(js));
+test('portCommands: SMTP → openssl starttls', /'SMTP':[\s\S]{0,200}openssl s_client[\s\S]{0,120}starttls smtp/.test(js));
+test('topicCommands map defined', js.includes('const topicCommands = {'));
+test('topicCommands: DNS topic has dig +trace', /'Network Naming \(DNS & DHCP\)'[\s\S]{0,800}dig \+trace google\.com/.test(js));
+test('topicCommands: Port Numbers has netstat LISTEN', /'Port Numbers'[\s\S]{0,600}netstat -an \| grep LISTEN/.test(js));
+test('topicCommands: Troubleshooting has MTU ping', /ping -c 3 -s 1472 -D/.test(js));
+test('guidedLabs map defined', js.includes('const guidedLabs = {'));
+test('guidedLabs: DNS lab', js.includes('_dnsLab') && js.includes('DNS Records & Recursive Resolution'));
+test('guidedLabs: Routing lab', js.includes('_routingLab') && js.includes('Routing & Your Real Default Gateway'));
+test('guidedLabs: Ports lab', js.includes('_portsLab') && js.includes('Ports & Listening Services'));
+test('guidedLabs: DNS alias 1', /'Network Naming \(DNS & DHCP\)':\s*_dnsLab/.test(js));
+test('guidedLabs: DNS alias 2', /'DNS Records & DNSSEC':\s*_dnsLab/.test(js));
+test('guidedLabs: Routing alias', /'Routing Protocols':\s*_routingLab/.test(js));
+test('guidedLabs: Ports alias', /'Port Numbers':\s*_portsLab/.test(js));
+test('Lab has steps array with narration/cmd/expect', /steps:\s*\[[\s\S]*?narration:[\s\S]*?cmd:[\s\S]*?expect:/.test(js));
+test('copyCmd function defined', js.includes('function copyCmd(event, cmd)'));
+test('copyCmd uses clipboard API', /copyCmd[\s\S]{0,300}navigator\.clipboard\.writeText/.test(js));
+test('_terminalCardHtml helper', js.includes('function _terminalCardHtml('));
+test('_portCard renders command row', js.includes('port-ref-card-has-cmd'));
+test('_portCard reads portCommands', /_portCard[\s\S]{0,300}portCommands\[p\.proto\]/.test(js));
+test('_renderTopicTerminalSection function', js.includes('function _renderTopicTerminalSection('));
+test('_renderTopicLabSection function', js.includes('function _renderTopicLabSection('));
+test('renderTopicDive calls terminal section', /renderTopicDive[\s\S]{0,3000}_renderTopicTerminalSection\(topicName\)/.test(js));
+test('renderTopicDive calls lab section', /renderTopicDive[\s\S]{0,3000}_renderTopicLabSection\(topicName\)/.test(js));
+test('openGuidedLab function defined', js.includes('function openGuidedLab('));
+test('openGuidedLab sets title', /openGuidedLab[\s\S]{0,1500}titleEl\.textContent[\s\S]{0,80}lab\.title/.test(js));
+test('openGuidedLab uses showPage guided-lab', /openGuidedLab[\s\S]{0,2000}showPage\('guided-lab'\)/.test(js));
+test('HTML: #page-guided-lab', html.includes('id="page-guided-lab"'));
+test('HTML: #lab-title', html.includes('id="lab-title"'));
+test('HTML: #lab-intro', html.includes('id="lab-intro"'));
+test('HTML: #lab-steps', html.includes('id="lab-steps"'));
+test('HTML: #lab-back-btn', html.includes('id="lab-back-btn"'));
+test('CSS: .terminal-card', css.includes('.terminal-card {'));
+test('CSS: .terminal-card-copy', css.includes('.terminal-card-copy'));
+test('CSS: .terminal-card-prompt', css.includes('.terminal-card-prompt'));
+test('CSS: .port-ref-card-has-cmd', css.includes('.port-ref-card-has-cmd'));
+test('CSS: .port-ref-cmd', css.includes('.port-ref-cmd '));
+test('CSS: .td-terminal', css.includes('.td-terminal '));
+test('CSS: .td-lab-callout', css.includes('.td-lab-callout'));
+test('CSS: .lab-step', css.includes('.lab-step {'));
+test('CSS: .lab-step-expect', css.includes('.lab-step-expect'));
+test('CSS: .lab-wrap', css.includes('.lab-wrap '));
+test('CSS: .lab-meta-pill', css.includes('.lab-meta-pill'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
