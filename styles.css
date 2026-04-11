@@ -1394,6 +1394,8 @@ input::placeholder { color: var(--text-dim); }
   border-radius: 12px;
   padding: 12px;
   display: flex; flex-direction: column;
+  max-height: 760px;
+  overflow-y: auto;
 }
 .tb-palette-head {
   font-size: 11px; font-weight: 700; letter-spacing: .08em;
@@ -1415,6 +1417,7 @@ input::placeholder { color: var(--text-dim); }
 .tb-palette-item:active { cursor: grabbing; }
 .tb-palette-item-dragging { opacity: .5; }
 .tb-palette-icon { font-size: 20px; line-height: 1; }
+.tb-palette-icon-svg { flex-shrink: 0; display: block; }
 .tb-palette-label { font-size: 12px; font-weight: 600; color: var(--text); }
 .tb-palette-hint {
   margin-top: 14px; padding-top: 12px;
@@ -1469,17 +1472,20 @@ input::placeholder { color: var(--text-dim); }
 
 /* Cables */
 .tb-cable {
-  stroke: rgba(226, 232, 240, .6);
-  stroke-width: 3;
+  stroke: var(--accent-light);
+  stroke-width: 6;
   stroke-linecap: round;
   cursor: pointer;
-  transition: stroke .12s, stroke-width .12s;
+  opacity: 0.9;
+  transition: stroke .12s, stroke-width .12s, opacity .12s;
+  filter: drop-shadow(0 0 3px rgba(124, 111, 247, .45));
 }
-.tb-cable:hover { stroke: var(--accent-light); stroke-width: 4; }
+.tb-cable:hover { stroke-width: 8; opacity: 1; }
 .tb-cable-selected {
-  stroke: var(--accent-light);
-  stroke-width: 4;
-  filter: drop-shadow(0 0 4px rgba(124, 111, 247, .8));
+  stroke: #fbbf24;
+  stroke-width: 8;
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, .85));
 }
 
 @media (max-width: 900px) {

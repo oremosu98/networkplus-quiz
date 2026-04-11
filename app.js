@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.18.1';
+const APP_VERSION = '4.18.2';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4781,21 +4781,140 @@ function openGuidedLab(topicName) {
 // Tier 2 (config panels) and Tier 3 (AI coach) ship later.
 // ══════════════════════════════════════════
 
-const TB_MAX_DEVICES = 15;
+const TB_MAX_DEVICES = 30;
 const TB_MAX_SAVES = 5;
 const TB_CANVAS_W = 1400;
 const TB_CANVAS_H = 820;
 
 // Device type catalog. Adding a new type = one entry here.
+// `icon` is the key used by tbDeviceIcon() to render an inline SVG shape.
 const TB_DEVICE_TYPES = {
-  router:   { label: 'Router',   icon: '\u{1F310}', color: '#7c6ff7', short: 'R' },
-  switch:   { label: 'Switch',   icon: '\u{1F500}', color: '#22c55e', short: 'SW' },
-  wap:      { label: 'WAP',      icon: '\u{1F4E1}', color: '#06b6d4', short: 'AP' },
-  pc:       { label: 'PC',       icon: '\u{1F4BB}', color: '#f59e0b', short: 'PC' },
-  server:   { label: 'Server',   icon: '\u{1F5A5}', color: '#ef4444', short: 'SRV' },
-  firewall: { label: 'Firewall', icon: '\u{1F6E1}', color: '#eab308', short: 'FW' },
-  cloud:    { label: 'Cloud',    icon: '\u{2601}',  color: '#94a3b8', short: 'WAN' },
+  router:        { label: 'Router',        color: '#7c6ff7', short: 'R'   },
+  switch:        { label: 'Switch',        color: '#22c55e', short: 'SW'  },
+  wap:           { label: 'WAP',           color: '#06b6d4', short: 'AP'  },
+  pc:            { label: 'PC',            color: '#f59e0b', short: 'PC'  },
+  server:        { label: 'Server',        color: '#ef4444', short: 'SRV' },
+  firewall:      { label: 'Firewall',      color: '#eab308', short: 'FW'  },
+  cloud:         { label: 'Cloud',         color: '#94a3b8', short: 'WAN' },
+  'load-balancer': { label: 'Load Balancer', color: '#ec4899', short: 'LB' },
+  ids:           { label: 'IDS/IPS',       color: '#f97316', short: 'IDS' },
+  wlc:           { label: 'WLC',           color: '#14b8a6', short: 'WLC' },
+  printer:       { label: 'Printer',       color: '#a3a3a3', short: 'PRN' },
+  voip:          { label: 'VoIP Phone',    color: '#0ea5e9', short: 'VoIP'},
+  iot:           { label: 'IoT Device',    color: '#84cc16', short: 'IoT' },
 };
+
+// Inline SVG icon for each device type. Drawn inside a box roughly 56x40
+// centered near (0, -10) so the label at y=30 has room. `color` colors stroke/fill.
+function tbDeviceIcon(type, color) {
+  const s = `stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
+  const f = `fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2"`;
+  switch (type) {
+    case 'router':
+      return `<g transform="translate(0,-12)">
+        <rect x="-28" y="-6" width="56" height="22" rx="4" ${f}/>
+        <circle cx="-16" cy="5" r="2" fill="${color}"/>
+        <circle cx="-8"  cy="5" r="2" fill="${color}"/>
+        <circle cx="0"   cy="5" r="2" fill="${color}"/>
+        <circle cx="8"   cy="5" r="2" fill="${color}"/>
+        <circle cx="16"  cy="5" r="2" fill="${color}"/>
+        <path d="M -20 -6 L -20 -16 M 20 -6 L 20 -16" ${s}/>
+        <path d="M -24 -18 L -16 -18 M 16 -18 L 24 -18" ${s}/>
+      </g>`;
+    case 'switch':
+      return `<g transform="translate(0,-10)">
+        <rect x="-30" y="-8" width="60" height="20" rx="3" ${f}/>
+        ${[-22,-14,-6,2,10,18].map(x => `<rect x="${x}" y="-2" width="4" height="8" fill="${color}"/>`).join('')}
+      </g>`;
+    case 'wap':
+      return `<g transform="translate(0,-12)">
+        <path d="M -22 -4 A 22 22 0 0 1 22 -4" ${s}/>
+        <path d="M -14 2 A 14 14 0 0 1 14 2" ${s}/>
+        <path d="M -6 8 A 6 6 0 0 1 6 8" ${s}/>
+        <circle cx="0" cy="14" r="3" fill="${color}"/>
+      </g>`;
+    case 'pc':
+      return `<g transform="translate(0,-12)">
+        <rect x="-24" y="-14" width="48" height="32" rx="3" ${f}/>
+        <rect x="-22" y="-12" width="44" height="26" rx="1" fill="${color}" fill-opacity="0.6"/>
+        <rect x="-8" y="20" width="16" height="3" fill="${color}"/>
+      </g>`;
+    case 'server':
+      return `<g transform="translate(0,-12)">
+        <rect x="-22" y="-14" width="44" height="12" rx="2" ${f}/>
+        <rect x="-22" y="0"   width="44" height="12" rx="2" ${f}/>
+        <circle cx="-14" cy="-8" r="1.5" fill="${color}"/>
+        <circle cx="-14" cy="6"  r="1.5" fill="${color}"/>
+        <rect x="-6" y="-10" width="22" height="4" fill="${color}" fill-opacity="0.6"/>
+        <rect x="-6" y="4"   width="22" height="4" fill="${color}" fill-opacity="0.6"/>
+      </g>`;
+    case 'firewall':
+      return `<g transform="translate(0,-12)">
+        <rect x="-28" y="-14" width="56" height="32" rx="2" ${f}/>
+        <path d="M -28 -4 L 28 -4 M -28 8 L 28 8 M -14 -14 L -14 -4 M 0 -4 L 0 8 M 14 -14 L 14 -4 M -14 8 L -14 18 M 14 8 L 14 18" ${s}/>
+      </g>`;
+    case 'cloud':
+      return `<g transform="translate(0,-10)">
+        <path d="M -24 6 A 10 10 0 0 1 -14 -6 A 14 14 0 0 1 14 -10 A 10 10 0 0 1 22 8 L -22 8 A 8 8 0 0 1 -24 6 Z" ${f}/>
+      </g>`;
+    case 'load-balancer':
+      return `<g transform="translate(0,-12)">
+        <rect x="-28" y="-8" width="56" height="18" rx="3" ${f}/>
+        <path d="M 0 10 L 0 16 M 0 16 L -14 22 M 0 16 L 0 22 M 0 16 L 14 22" ${s}/>
+        <text y="4" text-anchor="middle" font-size="10" font-weight="700" fill="${color}">LB</text>
+      </g>`;
+    case 'ids':
+      return `<g transform="translate(0,-12)">
+        <rect x="-26" y="-10" width="52" height="20" rx="3" ${f}/>
+        <path d="M -14 0 Q 0 -8 14 0 Q 0 8 -14 0 Z" ${s}/>
+        <circle cx="0" cy="0" r="3" fill="${color}"/>
+      </g>`;
+    case 'wlc':
+      return `<g transform="translate(0,-12)">
+        <rect x="-26" y="0" width="52" height="18" rx="3" ${f}/>
+        <path d="M -14 -4 A 14 14 0 0 1 14 -4" ${s}/>
+        <path d="M -8 -8 A 8 8 0 0 1 8 -8" ${s}/>
+        <text y="14" text-anchor="middle" font-size="9" font-weight="700" fill="${color}">WLC</text>
+      </g>`;
+    case 'printer':
+      return `<g transform="translate(0,-12)">
+        <rect x="-18" y="-14" width="36" height="8" ${f}/>
+        <rect x="-24" y="-6"  width="48" height="16" rx="2" ${f}/>
+        <rect x="-16" y="6"   width="32" height="12" ${f}/>
+        <circle cx="16" cy="0" r="2" fill="${color}"/>
+      </g>`;
+    case 'voip':
+      return `<g transform="translate(0,-12)">
+        <rect x="-20" y="-14" width="40" height="32" rx="3" ${f}/>
+        <rect x="-14" y="-10" width="28" height="8" fill="${color}" fill-opacity="0.6"/>
+        ${[0,1,2].map(r => [0,1,2].map(c => `<circle cx="${-8+c*8}" cy="${2+r*5}" r="1.5" fill="${color}"/>`).join('')).join('')}
+      </g>`;
+    case 'iot':
+      return `<g transform="translate(0,-12)">
+        <rect x="-20" y="-10" width="40" height="22" rx="4" ${f}/>
+        <circle cx="0" cy="1" r="6" ${s}/>
+        <circle cx="0" cy="1" r="2" fill="${color}"/>
+        <circle cx="-14" cy="-6" r="1.5" fill="${color}"/>
+      </g>`;
+    default:
+      return `<circle r="18" ${f}/>`;
+  }
+}
+
+// Edge-intersection helper: from device center (cx,cy) toward target (tx,ty),
+// return the point where the ray hits the device's rect edge (halfW x halfH).
+function tbEdgePoint(cx, cy, tx, ty, halfW, halfH) {
+  const dx = tx - cx, dy = ty - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+  if (absDx * halfH > absDy * halfW) {
+    const sign = dx > 0 ? 1 : -1;
+    return { x: cx + sign * halfW, y: cy + dy * halfW / absDx };
+  } else {
+    const sign = dy > 0 ? 1 : -1;
+    return { x: cx + dx * halfH / absDy, y: cy + sign * halfH };
+  }
+}
 
 // Topology builder state (prefixed tb* to avoid collision with PBQ topoDevices).
 let tbState = { id: null, name: 'Untitled', devices: [], cables: [], created: 0, updated: 0 };
@@ -4848,7 +4967,9 @@ function tbRenderPalette() {
   root.innerHTML = Object.entries(TB_DEVICE_TYPES).map(([type, meta]) => `
     <div class="tb-palette-item" data-tb-type="${type}" draggable="true"
          style="--tb-device-color:${meta.color}">
-      <div class="tb-palette-icon">${meta.icon}</div>
+      <svg class="tb-palette-icon-svg" viewBox="-32 -28 64 56" width="48" height="42" aria-hidden="true">
+        ${tbDeviceIcon(type, meta.color)}
+      </svg>
       <div class="tb-palette-label">${escHtml(meta.label)}</div>
     </div>
   `).join('');
@@ -4875,13 +4996,17 @@ function tbRenderCanvas() {
   const emptyHint = document.getElementById('tb-empty-hint');
   if (!devLayer || !cabLayer) return;
 
-  // Cables first (drawn under devices)
+  // Cables first (drawn under devices). Edge-to-edge, not center-to-center,
+  // so the stroke isn't hidden behind the device rect.
+  const HALF_W = 62, HALF_H = 48;
   cabLayer.innerHTML = tbState.cables.map(c => {
     const from = tbState.devices.find(d => d.id === c.from);
     const to = tbState.devices.find(d => d.id === c.to);
     if (!from || !to) return '';
     const selected = tbSelectedId === c.id ? ' tb-cable-selected' : '';
-    return `<line class="tb-cable${selected}" data-tb-cable="${c.id}" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" />`;
+    const p1 = tbEdgePoint(from.x, from.y, to.x, to.y, HALF_W, HALF_H);
+    const p2 = tbEdgePoint(to.x, to.y, from.x, from.y, HALF_W, HALF_H);
+    return `<line class="tb-cable${selected}" data-tb-cable="${c.id}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" />`;
   }).join('');
 
   // Devices
@@ -4894,8 +5019,8 @@ function tbRenderCanvas() {
       <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
         <rect class="tb-device-bg" x="-62" y="-48" width="124" height="96" rx="12" ry="12"
               fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2.5"/>
-        <text class="tb-device-icon" y="-4" text-anchor="middle" font-size="40">${meta.icon}</text>
-        <text class="tb-device-label" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
+        ${tbDeviceIcon(d.type, meta.color)}
+        <text class="tb-device-label" y="34" text-anchor="middle" font-size="16" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
       </g>
     `;
   }).join('');
