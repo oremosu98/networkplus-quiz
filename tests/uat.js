@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.18.3', js.includes("const APP_VERSION = '4.18.3"));
+test('APP_VERSION is 4.19.0', js.includes("const APP_VERSION = '4.19.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.18.3', sw.includes('netplus-v4.18.3'));
+test('SW cache bumped to v4.19.0', sw.includes('netplus-v4.19.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.18.3', sw.includes('netplus-v4.18.3'));
-test('APP_VERSION bumped to 4.18.3', js.includes("APP_VERSION = '4.18.3'"));
+test('SW cache bumped to v4.19.0', sw.includes('netplus-v4.19.0'));
+test('APP_VERSION bumped to 4.19.0', js.includes("APP_VERSION = '4.19.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -659,7 +659,7 @@ test('STORAGE.TOPOLOGY_DRAFT key', js.includes("TOPOLOGY_DRAFT: 'nplus_topology_
 test('TB_MAX_DEVICES = 30', js.includes('const TB_MAX_DEVICES = 30'));
 test('TB_MAX_SAVES = 5', js.includes('const TB_MAX_SAVES = 5'));
 test('TB_DEVICE_TYPES defined', js.includes('const TB_DEVICE_TYPES = {'));
-// Device type coverage (13 total after v4.18.3)
+// Device type coverage (13 total after v4.19.0)
 test('Device type: router', /TB_DEVICE_TYPES[\s\S]{0,3000}router:\s*\{/.test(js));
 test('Device type: switch', /TB_DEVICE_TYPES[\s\S]{0,3000}switch:\s*\{/.test(js));
 test('Device type: wap', /TB_DEVICE_TYPES[\s\S]{0,3000}wap:\s*\{/.test(js));
@@ -734,12 +734,12 @@ test('CSS: .tb-mobile-nudge', css.includes('.tb-mobile-nudge'));
 test('CSS: .tb-workspace grid', css.includes('.tb-workspace'));
 test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 
-// ── Topology Builder polish (v4.18.3) ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.18.3) ──\x1b[0m');
+// ── Topology Builder polish (v4.19.0) ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.19.0) ──\x1b[0m');
 test('Canvas dimensions bumped to 1400x820', js.includes('TB_CANVAS_W = 1400') && js.includes('TB_CANVAS_H = 820'));
 test('Canvas viewBox 1400x820 in HTML', html.includes('viewBox="0 0 1400 820"'));
-test('Device rect enlarged (124x96)', /tb-device-bg[\s\S]{0,300}width="124" height="96"/.test(js));
-test('Device label font enlarged (16)', /tb-device-label[\s\S]{0,200}font-size="16"/.test(js));
+test('Device rect compact (96x72) for 30-device fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
+test('Device label font 13', /tb-device-label[\s\S]{0,200}font-size="13"/.test(js));
 test('Intro banner in HTML', html.includes('tb-intro-banner'));
 test('Intro banner title line', html.includes('Design your own network'));
 test('CSS: .tb-intro-banner', css.includes('.tb-intro-banner'));
@@ -750,8 +750,8 @@ test('tbClearCanvas preserves id/name', /tbClearCanvas[\s\S]{0,600}devices = \[\
 test('tbClearCanvas confirms before wiping', /tbClearCanvas[\s\S]{0,600}confirm\(/.test(js));
 test('Canvas min-height bumped to 720', css.includes('min-height: 720px'));
 
-// ── Topology Builder v4.18.3: SVG icons, cables, device cap 30, new types ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.18.3 ──\x1b[0m');
+// ── Topology Builder v4.19.0: SVG icons, cables, device cap 30, new types ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 ──\x1b[0m');
 test('tbDeviceIcon function', js.includes('function tbDeviceIcon('));
 test('tbEdgePoint helper', js.includes('function tbEdgePoint('));
 test('Cables use tbEdgePoint (edge-to-edge)', /cabLayer\.innerHTML[\s\S]{0,800}tbEdgePoint/.test(js));
@@ -760,7 +760,7 @@ test('tbRenderPalette uses SVG icon', /tbRenderPalette[\s\S]{0,600}tb-palette-ic
 test('Intro banner mentions load balancer', html.includes('load balancer'));
 test('Intro banner mentions IoT', html.includes('IoT'));
 test('Device count pill reflects 30 cap', html.includes('0 / 30 devices'));
-test('CSS: cable stroke 6 accent-light', /\.tb-cable\s*\{[\s\S]{0,300}stroke-width:\s*6/.test(css));
+test('CSS: .tb-cable interactive rule', /\.tb-cable\s*\{[\s\S]{0,400}cursor:\s*pointer/.test(css));
 test('CSS: palette scrollable', /\.tb-palette\s*\{[\s\S]{0,400}overflow-y:\s*auto/.test(css));
 test('CSS: .tb-palette-icon-svg rule', css.includes('.tb-palette-icon-svg'));
 test('Icon: router shape', /case 'router':/.test(js));
@@ -771,8 +771,8 @@ test('Icon: printer shape', /case 'printer':/.test(js));
 test('Icon: voip shape', /case 'voip':/.test(js));
 test('Icon: iot shape', /case 'iot':/.test(js));
 
-// ── Topology Builder v4.18.3: discoverable wiring UX ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.18.3 (wiring UX) ──\x1b[0m');
+// ── Topology Builder v4.19.0: discoverable wiring UX ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 (wiring UX) ──\x1b[0m');
 test('How-to strip in HTML', html.includes('tb-howto-strip'));
 test('How-to step: click A then click B', /Click<\/strong> device A[\s\S]{0,200}click<\/strong> device B/.test(html));
 test('Wire overlay element in HTML', html.includes('id="tb-wire-overlay"'));
@@ -783,6 +783,42 @@ test('tbUpdateWireOverlay called by render', /tbRenderCanvas[\s\S]{0,3000}tbUpda
 test('CSS: .tb-howto-strip', css.includes('.tb-howto-strip'));
 test('CSS: .tb-wire-overlay', css.includes('.tb-wire-overlay'));
 test('CSS: wire overlay pulse keyframes', css.includes('@keyframes tb-wire-pulse'));
+
+// ── Topology Builder v4.19.0: cable picker, public servers, compact devices ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.0 ──\x1b[0m');
+// Cable types
+test('TB_CABLE_TYPES map', js.includes('const TB_CABLE_TYPES = {'));
+test('Cable type: cat6', /TB_CABLE_TYPES[\s\S]{0,500}cat6:/.test(js));
+test('Cable type: cat5e', /TB_CABLE_TYPES[\s\S]{0,500}cat5e:/.test(js));
+test('Cable type: fiber', /TB_CABLE_TYPES[\s\S]{0,500}fiber:/.test(js));
+test('Cable type: coax', /TB_CABLE_TYPES[\s\S]{0,500}coax:/.test(js));
+test('Cable type: console', /TB_CABLE_TYPES[\s\S]{0,500}console:/.test(js));
+test('tbSelectedCableType default cat6', js.includes("let tbSelectedCableType = 'cat6'"));
+test('tbSelectCableType function', js.includes('function tbSelectCableType('));
+test('tbAddCable stamps cable type', /tbAddCable[\s\S]{0,600}type: cableType/.test(js));
+// Public server device types
+test('Device type: public-web', /TB_DEVICE_TYPES[\s\S]{0,3000}'public-web':/.test(js));
+test('Device type: public-file', /TB_DEVICE_TYPES[\s\S]{0,3000}'public-file':/.test(js));
+test('Device type: public-cloud', /TB_DEVICE_TYPES[\s\S]{0,3000}'public-cloud':/.test(js));
+test('Icon: public-web shape', /case 'public-web':/.test(js));
+test('Icon: public-file shape', /case 'public-file':/.test(js));
+test('Icon: public-cloud shape', /case 'public-cloud':/.test(js));
+// Palette cable picker
+test('HTML: tb-palette-cables container', html.includes('id="tb-palette-cables"'));
+test('HTML: palette Cables head', html.includes('tb-palette-head-cables'));
+test('CSS: .tb-cable-chip', css.includes('.tb-cable-chip'));
+test('CSS: .tb-cable-chip-active', css.includes('.tb-cable-chip-active'));
+test('tbRenderPalette populates cable chips', /tbRenderPalette[\s\S]{0,1500}tb-palette-cables/.test(js));
+// Realistic cables: curved path + sheath layer
+test('Cables use <path> with Q curve', /cabLayer\.innerHTML[\s\S]{0,1500}M \$\{p1\.x\} \$\{p1\.y\} Q/.test(js));
+test('Cables have sheath layer', /tb-cable-sheath/.test(js));
+test('Cable stroke width from meta', /cabLayer\.innerHTML[\s\S]{0,2000}meta\.width/.test(js));
+// Intro mentions DMZ + cable types
+test('Intro banner mentions DMZ / screened subnet', /DMZ|screened subnet/i.test(html));
+test('Intro banner mentions Cat6', html.includes('Cat6'));
+// Device shrink bounds
+test('tbOnMouseMove clamp padding 55/45', /Math\.max\(55,[\s\S]{0,300}Math\.max\(45/.test(js));
+test('HALF_W = 48, HALF_H = 36', /HALF_W = 48, HALF_H = 36/.test(js));
 
 // ── Guided Lab Back button return page fix (v4.16.2) ──
 console.log('\n\x1b[1m── GUIDED LAB BACK FIX (v4.16.2) ──\x1b[0m');

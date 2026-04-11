@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.18.3';
+const APP_VERSION = '4.19.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4789,20 +4789,41 @@ const TB_CANVAS_H = 820;
 // Device type catalog. Adding a new type = one entry here.
 // `icon` is the key used by tbDeviceIcon() to render an inline SVG shape.
 const TB_DEVICE_TYPES = {
-  router:        { label: 'Router',        color: '#7c6ff7', short: 'R'   },
-  switch:        { label: 'Switch',        color: '#22c55e', short: 'SW'  },
-  wap:           { label: 'WAP',           color: '#06b6d4', short: 'AP'  },
-  pc:            { label: 'PC',            color: '#f59e0b', short: 'PC'  },
-  server:        { label: 'Server',        color: '#ef4444', short: 'SRV' },
-  firewall:      { label: 'Firewall',      color: '#eab308', short: 'FW'  },
-  cloud:         { label: 'Cloud',         color: '#94a3b8', short: 'WAN' },
+  router:        { label: 'Router',        color: '#7c6ff7', short: 'R'    },
+  switch:        { label: 'Switch',        color: '#22c55e', short: 'SW'   },
+  wap:           { label: 'WAP',           color: '#06b6d4', short: 'AP'   },
+  pc:            { label: 'PC',            color: '#f59e0b', short: 'PC'   },
+  server:        { label: 'Server',        color: '#ef4444', short: 'SRV'  },
+  firewall:      { label: 'Firewall',      color: '#eab308', short: 'FW'   },
+  cloud:         { label: 'Cloud',         color: '#94a3b8', short: 'WAN'  },
   'load-balancer': { label: 'Load Balancer', color: '#ec4899', short: 'LB' },
-  ids:           { label: 'IDS/IPS',       color: '#f97316', short: 'IDS' },
-  wlc:           { label: 'WLC',           color: '#14b8a6', short: 'WLC' },
-  printer:       { label: 'Printer',       color: '#a3a3a3', short: 'PRN' },
-  voip:          { label: 'VoIP Phone',    color: '#0ea5e9', short: 'VoIP'},
-  iot:           { label: 'IoT Device',    color: '#84cc16', short: 'IoT' },
+  ids:           { label: 'IDS/IPS',       color: '#f97316', short: 'IDS'  },
+  wlc:           { label: 'WLC',           color: '#14b8a6', short: 'WLC'  },
+  printer:       { label: 'Printer',       color: '#a3a3a3', short: 'PRN'  },
+  voip:          { label: 'VoIP Phone',    color: '#0ea5e9', short: 'VoIP' },
+  iot:           { label: 'IoT Device',    color: '#84cc16', short: 'IoT'  },
+  'public-web':  { label: 'Public Web',    color: '#fde047', short: 'WEB'  },
+  'public-file': { label: 'Public File',   color: '#fb923c', short: 'FILE' },
+  'public-cloud':{ label: 'Public Cloud',  color: '#38bdf8', short: 'PUB'  },
 };
+
+// Cable type catalog for the palette picker.
+// `width`/`color`/`dash` drive rendering; `label` shows in the palette chip.
+const TB_CABLE_TYPES = {
+  cat6:    { label: 'Cat6',    color: '#a78bfa', width: 7, dash: ''    },
+  cat5e:   { label: 'Cat5e',   color: '#3b82f6', width: 6, dash: ''    },
+  fiber:   { label: 'Fiber',   color: '#f59e0b', width: 5, dash: ''    },
+  coax:    { label: 'Coax',    color: '#0f172a', width: 9, dash: ''    },
+  console: { label: 'Console', color: '#ef4444', width: 5, dash: '6 4' },
+};
+let tbSelectedCableType = 'cat6';
+
+function tbSelectCableType(type) {
+  if (!TB_CABLE_TYPES[type]) return;
+  tbSelectedCableType = type;
+  tbRenderPalette();
+  tbUpdateStatus(`Cable type set to ${TB_CABLE_TYPES[type].label}. Click device A \u2192 device B to wire.`);
+}
 
 // Inline SVG icon for each device type. Drawn inside a box roughly 56x40
 // centered near (0, -10) so the label at y=30 has room. `color` colors stroke/fill.
@@ -4896,6 +4917,29 @@ function tbDeviceIcon(type, color) {
         <circle cx="0" cy="1" r="2" fill="${color}"/>
         <circle cx="-14" cy="-6" r="1.5" fill="${color}"/>
       </g>`;
+    case 'public-web':
+      return `<g transform="translate(0,-12)">
+        <circle cx="0" cy="0" r="18" ${f}/>
+        <ellipse cx="0" cy="0" rx="18" ry="7" ${s}/>
+        <line x1="-18" y1="0" x2="18" y2="0" ${s}/>
+        <line x1="0" y1="-18" x2="0" y2="18" ${s}/>
+        <path d="M 0 -18 Q -10 0 0 18 Q 10 0 0 -18" ${s}/>
+        <text y="26" text-anchor="middle" font-size="8" font-weight="800" fill="${color}">WWW</text>
+      </g>`;
+    case 'public-file':
+      return `<g transform="translate(0,-12)">
+        <rect x="-22" y="-14" width="44" height="12" rx="2" ${f}/>
+        <rect x="-22" y="0"   width="44" height="12" rx="2" ${f}/>
+        <circle cx="-14" cy="-8" r="1.5" fill="${color}"/>
+        <circle cx="-14" cy="6"  r="1.5" fill="${color}"/>
+        <path d="M 6 -10 L 12 -10 L 14 -8 L 18 -8 L 18 -4 L 6 -4 Z" ${s}/>
+        <path d="M 6 4 L 12 4 L 14 6 L 18 6 L 18 10 L 6 10 Z" ${s}/>
+      </g>`;
+    case 'public-cloud':
+      return `<g transform="translate(0,-10)">
+        <path d="M -24 6 A 10 10 0 0 1 -14 -6 A 14 14 0 0 1 14 -10 A 10 10 0 0 1 22 8 L -22 8 A 8 8 0 0 1 -24 6 Z" ${f}/>
+        <path d="M -6 -2 L 0 -8 L 6 -2 M 0 -8 L 0 6" ${s}/>
+      </g>`;
     default:
       return `<circle r="18" ${f}/>`;
   }
@@ -4973,6 +5017,24 @@ function tbRenderPalette() {
       <div class="tb-palette-label">${escHtml(meta.label)}</div>
     </div>
   `).join('');
+
+  // Cables sub-panel: selectable chips so new cables adopt the chosen type.
+  const cableRoot = document.getElementById('tb-palette-cables');
+  if (cableRoot) {
+    cableRoot.innerHTML = Object.entries(TB_CABLE_TYPES).map(([type, meta]) => {
+      const active = tbSelectedCableType === type ? ' tb-cable-chip-active' : '';
+      const dashStyle = meta.dash ? `stroke-dasharray:${meta.dash};` : '';
+      return `<button type="button" class="tb-cable-chip${active}" data-tb-cable-type="${type}"
+                      onclick="tbSelectCableType('${type}')"
+                      style="--tb-cable-color:${meta.color}"
+                      aria-label="Select ${escHtml(meta.label)} cable">
+        <svg class="tb-cable-chip-swatch" viewBox="0 0 40 10" width="40" height="10" aria-hidden="true">
+          <line x1="2" y1="5" x2="38" y2="5" stroke="${meta.color}" stroke-width="${Math.min(meta.width, 7)}" stroke-linecap="round" style="${dashStyle}"/>
+        </svg>
+        <span class="tb-cable-chip-label">${escHtml(meta.label)}</span>
+      </button>`;
+    }).join('');
+  }
   // HTML5 drag events
   root.querySelectorAll('.tb-palette-item').forEach(el => {
     el.addEventListener('dragstart', (e) => {
@@ -4997,8 +5059,9 @@ function tbRenderCanvas() {
   if (!devLayer || !cabLayer) return;
 
   // Cables first (drawn under devices). Edge-to-edge, not center-to-center,
-  // so the stroke isn't hidden behind the device rect.
-  const HALF_W = 62, HALF_H = 48;
+  // so the stroke isn't hidden behind the device rect. Devices shrank in
+  // v4.19 so 30 fit comfortably — HALF_W/HALF_H shrank with them.
+  const HALF_W = 48, HALF_H = 36;
   cabLayer.innerHTML = tbState.cables.map(c => {
     const from = tbState.devices.find(d => d.id === c.from);
     const to = tbState.devices.find(d => d.id === c.to);
@@ -5006,7 +5069,16 @@ function tbRenderCanvas() {
     const selected = tbSelectedId === c.id ? ' tb-cable-selected' : '';
     const p1 = tbEdgePoint(from.x, from.y, to.x, to.y, HALF_W, HALF_H);
     const p2 = tbEdgePoint(to.x, to.y, from.x, from.y, HALF_W, HALF_H);
-    return `<line class="tb-cable${selected}" data-tb-cable="${c.id}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" />`;
+    const cableType = c.type || 'cat6';
+    const meta = TB_CABLE_TYPES[cableType] || TB_CABLE_TYPES.cat6;
+    // Slight downward drape via quadratic curve — cables sag a bit.
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2 + 16;
+    const dAttr = `M ${p1.x} ${p1.y} Q ${mx} ${my} ${p2.x} ${p2.y}`;
+    const dashAttr = meta.dash ? ` stroke-dasharray="${meta.dash}"` : '';
+    // Two-layer stroke: dark sheath (shadow) + inner colored conductor.
+    return `<path class="tb-cable-sheath" d="${dAttr}" stroke="#0b1020" stroke-width="${meta.width + 5}" stroke-linecap="round" fill="none" opacity="0.7" pointer-events="none" />
+<path class="tb-cable tb-cable-${cableType}${selected}" data-tb-cable="${c.id}" d="${dAttr}" stroke="${meta.color}" stroke-width="${meta.width}" stroke-linecap="round" fill="none"${dashAttr} />`;
   }).join('');
 
   // Devices
@@ -5017,10 +5089,10 @@ function tbRenderCanvas() {
     const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
     return `
       <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
-        <rect class="tb-device-bg" x="-62" y="-48" width="124" height="96" rx="12" ry="12"
-              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2.5"/>
-        ${tbDeviceIcon(d.type, meta.color)}
-        <text class="tb-device-label" y="34" text-anchor="middle" font-size="16" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
+        <rect class="tb-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"
+              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
+        <g transform="scale(0.72) translate(0, 4)">${tbDeviceIcon(d.type, meta.color)}</g>
+        <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
       </g>
     `;
   }).join('');
@@ -5138,8 +5210,8 @@ function tbOnMouseMove(e) {
   const nx = Math.round(x - tbDragging.offsetX);
   const ny = Math.round(y - tbDragging.offsetY);
   if (Math.abs(nx - tbDragging.startX) > 3 || Math.abs(ny - tbDragging.startY) > 3) tbDragging.moved = true;
-  dev.x = Math.max(75, Math.min(TB_CANVAS_W - 75, nx));
-  dev.y = Math.max(60, Math.min(TB_CANVAS_H - 60, ny));
+  dev.x = Math.max(55, Math.min(TB_CANVAS_W - 55, nx));
+  dev.y = Math.max(45, Math.min(TB_CANVAS_H - 45, ny));
   tbRenderCanvas();
 }
 
@@ -5174,9 +5246,11 @@ function tbAddCable(fromId, toId) {
     return;
   }
   const id = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-  tbState.cables.push({ id, from: fromId, to: toId });
+  const cableType = tbSelectedCableType || 'cat6';
+  tbState.cables.push({ id, from: fromId, to: toId, type: cableType });
   tbState.updated = Date.now();
-  tbUpdateStatus('Cable drawn. Keep building.');
+  const label = (TB_CABLE_TYPES[cableType] || {}).label || 'Cat6';
+  tbUpdateStatus(`${label} cable drawn. Keep building.`);
   tbSaveDraft();
 }
 

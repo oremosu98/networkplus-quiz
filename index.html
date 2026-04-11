@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.18.3</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.19.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -762,7 +762,7 @@
       <div class="tb-intro-icon">&#128295;</div>
       <div class="tb-intro-body">
         <div class="tb-intro-title">Design your own network &mdash; visually</div>
-        <div class="tb-intro-text">Drag routers, switches, WAPs, firewalls, load balancers, IDS/IPS, WLCs, servers, PCs, printers, VoIP phones, IoT devices, and cloud nodes onto the canvas to sketch real network layouts. Wire them up with cables, save up to 5 topologies, and come back to them anytime. Tier 2 adds device configuration + validation, Tier 3 adds an AI coach that walks through what you built.</div>
+        <div class="tb-intro-text">Drag routers, switches, WAPs, firewalls, load balancers, IDS/IPS, WLCs, servers, PCs, printers, VoIP phones, IoT devices, cloud nodes, and <strong>public web / file / cloud servers</strong> onto the canvas to sketch real network layouts &mdash; including DMZ / screened subnet designs. Pick a cable type (Cat6, Cat5e, Fiber, Coax, Console), wire devices together, save up to 5 topologies, and come back any time. Tier 2 adds device configuration + validation, Tier 3 adds an AI coach that walks through what you built.</div>
       </div>
     </div>
 
@@ -792,9 +792,12 @@
       <div class="tb-palette" id="tb-palette">
         <div class="tb-palette-head">Devices</div>
         <div id="tb-palette-items"></div>
+        <div class="tb-palette-head tb-palette-head-cables">Cables</div>
+        <div id="tb-palette-cables"></div>
         <div class="tb-palette-hint">
-          <strong>Drag</strong> onto canvas<br>
-          <strong>Click</strong> device A &rarr; device B to cable<br>
+          <strong>Drag</strong> a device onto canvas<br>
+          <strong>Pick</strong> a cable type above<br>
+          <strong>Click</strong> device A &rarr; device B to wire<br>
           <strong>Del</strong> / Backspace to remove
         </div>
       </div>

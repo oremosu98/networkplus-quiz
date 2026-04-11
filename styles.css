@@ -1418,6 +1418,37 @@ input::placeholder { color: var(--text-dim); }
 .tb-palette-item-dragging { opacity: .5; }
 .tb-palette-icon { font-size: 20px; line-height: 1; }
 .tb-palette-icon-svg { flex-shrink: 0; display: block; }
+
+/* Cable type picker chips (palette "Cables" sub-section) */
+.tb-palette-head-cables { margin-top: 14px; }
+#tb-palette-cables {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.tb-cable-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  background: rgba(15, 23, 42, .5);
+  border: 1px solid rgba(124, 111, 247, .22);
+  border-left: 3px solid var(--tb-cable-color, rgba(124,111,247,.5));
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s, transform .12s, border-color .12s;
+}
+.tb-cable-chip:hover { background: rgba(15, 23, 42, .85); transform: translateX(2px); }
+.tb-cable-chip-active {
+  background: rgba(124, 111, 247, .2);
+  border-color: var(--tb-cable-color, var(--accent));
+  box-shadow: 0 0 0 1px var(--tb-cable-color, var(--accent)) inset;
+}
+.tb-cable-chip-swatch { flex-shrink: 0; }
+.tb-cable-chip-label { flex: 1; }
 .tb-palette-label { font-size: 12px; font-weight: 600; color: var(--text); }
 .tb-palette-hint {
   margin-top: 14px; padding-top: 12px;
@@ -1471,22 +1502,20 @@ input::placeholder { color: var(--text-dim); }
 .tb-device-icon { pointer-events: none; }
 
 /* Cables */
+/* Cables: realistic two-layer paths. Stroke color + width come from
+   inline SVG attrs (per cable type), CSS only handles interaction state. */
 .tb-cable {
-  stroke: var(--accent-light);
-  stroke-width: 6;
-  stroke-linecap: round;
   cursor: pointer;
-  opacity: 0.9;
-  transition: stroke .12s, stroke-width .12s, opacity .12s;
-  filter: drop-shadow(0 0 3px rgba(124, 111, 247, .45));
+  transition: filter .12s, opacity .12s;
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55));
 }
-.tb-cable:hover { stroke-width: 8; opacity: 1; }
+.tb-cable:hover { opacity: 1; filter: drop-shadow(0 0 6px rgba(255,255,255,.4)); }
+.tb-cable-sheath { pointer-events: none; }
 .tb-cable-selected {
-  stroke: #fbbf24;
-  stroke-width: 8;
-  opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(251, 191, 36, .85));
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, .9));
 }
+.tb-cable-selected.tb-cable { stroke: #fbbf24 !important; }
 
 /* How-to strip — persistent wiring/movement instructions */
 .tb-howto-strip {
