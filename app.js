@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.23.0';
+const APP_VERSION = '4.23.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5246,8 +5246,7 @@ function tbRenderCanvas() {
       tbUpdateStatus('Cable selected. Press Del/Backspace to remove.');
     });
   });
-  // Attach double-click to open config panel on devices
-  tbAttachDoubleClick();
+  // Double-click detection is handled inside tbOnDeviceMouseDown (timestamp-based)
 }
 
 // ── Canvas mouse/drop/click handlers ──
@@ -5322,9 +5321,24 @@ function tbAddDevice(type, x, y) {
   tbSaveDraft();
 }
 
+let tbLastClickDevId = null;
+let tbLastClickTime = 0;
+
 function tbOnDeviceMouseDown(e, id) {
   e.stopPropagation();
-  e.preventDefault();
+  // Detect double-click manually (native dblclick is unreliable because
+  // tbRenderCanvas destroys + recreates DOM nodes between clicks)
+  const now = Date.now();
+  if (tbLastClickDevId === id && now - tbLastClickTime < 400) {
+    tbLastClickDevId = null;
+    tbLastClickTime = 0;
+    tbDragging = null;
+    tbOpenConfigPanel(id);
+    return;
+  }
+  tbLastClickDevId = id;
+  tbLastClickTime = now;
+
   const dev = tbState.devices.find(d => d.id === id);
   if (!dev) return;
 
@@ -6728,19 +6742,11 @@ function tbProcessCliCommand(dev, cmd) {
   return `Unknown command: "${cmd}". Try: show arp, show ip route, show interfaces, ping <ip>`;
 }
 
-// ── Double-click to open config ──
-// Hooked into tbRenderCanvas device handler
-function tbAttachDoubleClick() {
-  const devLayer = document.getElementById('tb-devices-layer');
-  if (!devLayer) return;
-  devLayer.querySelectorAll('.tb-device').forEach(g => {
-    g.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      const id = g.getAttribute('data-tb-device');
-      tbOpenConfigPanel(id);
-    });
-  });
-}
+// Double-click detection moved into tbOnDeviceMouseDown (manual timestamp
+// check) because native dblclick cannot fire reliably — tbRenderCanvas
+// destroys and recreates device DOM nodes after every mousedown, so the
+// second click lands on a fresh element that never saw the first click.
+// The old tbAttachDoubleClick() per-element listener approach is removed.
 
 // ══════════════════════════════════════════
 // TOPOLOGY BUILDER — Subnet & Simulation Engine

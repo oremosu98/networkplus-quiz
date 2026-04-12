@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.23.0', js.includes("const APP_VERSION = '4.23.0"));
+test('APP_VERSION is 4.23.1', js.includes("const APP_VERSION = '4.23.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.23.0', sw.includes('netplus-v4.23.0'));
+test('SW cache bumped to v4.23.1', sw.includes('netplus-v4.23.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.23.0', sw.includes('netplus-v4.23.0'));
-test('APP_VERSION bumped to 4.23.0', js.includes("APP_VERSION = '4.23.0'"));
+test('SW cache bumped to v4.23.1', sw.includes('netplus-v4.23.1'));
+test('APP_VERSION bumped to 4.23.1', js.includes("APP_VERSION = '4.23.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -886,8 +886,8 @@ test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
 // openTopologyBuilder calls tbRenderScenarioPanel
 test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
 
-// ── Topology Builder Tier 3 (v4.23.0) — AI Coach ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.23.0) ──\x1b[0m');
+// ── Topology Builder Tier 3 (v4.23.1) — AI Coach ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.23.1) ──\x1b[0m');
 // Core functions
 test('tbSerializeTopology defined', /function tbSerializeTopology/.test(js));
 test('tbTopologyHash defined', /function tbTopologyHash/.test(js));
@@ -930,8 +930,8 @@ test('CSS: .tb-coach-tip', css.includes('.tb-coach-tip'));
 test('CSS: .tb-tool-btn-coach', css.includes('.tb-tool-btn-coach'));
 test('CSS: tb-coach-spin keyframes', css.includes('@keyframes tb-coach-spin'));
 
-// ── Network Simulator (v4.23.0) — Config Panel, Sim Engine, CLI, AI Gen ──
-console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.23.0) ──\x1b[0m');
+// ── Network Simulator (v4.23.1) — Config Panel, Sim Engine, CLI, AI Gen ──
+console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.23.1) ──\x1b[0m');
 // Foundation
 test('TB_MAX_DEVICES bumped to 50', js.includes('const TB_MAX_DEVICES = 50'));
 test('TB_IFACE_DEFAULTS defined', js.includes('const TB_IFACE_DEFAULTS'));
@@ -948,8 +948,8 @@ test('tbRenderRoutingTab function', js.includes('function tbRenderRoutingTab('))
 test('tbRenderVlansTab function', js.includes('function tbRenderVlansTab('));
 test('tbRenderDhcpTab function', js.includes('function tbRenderDhcpTab('));
 test('tbRenderCliTab function', js.includes('function tbRenderCliTab('));
-test('tbAttachDoubleClick function', js.includes('function tbAttachDoubleClick('));
-test('Double-click wired into tbRenderCanvas', /tbRenderCanvas[\s\S]{0,5000}tbAttachDoubleClick\(\)/.test(js));
+test('Double-click detection vars', js.includes('tbLastClickDevId') && js.includes('tbLastClickTime'));
+test('Double-click opens config panel in mousedown', /tbOnDeviceMouseDown[\s\S]{0,600}tbOpenConfigPanel\(id\)/.test(js));
 // IP utilities
 test('tbIpToArr function', js.includes('function tbIpToArr('));
 test('tbSubnetOf function', js.includes('function tbSubnetOf('));
@@ -1006,7 +1006,7 @@ test('CSS: .tb-cli-output', css.includes('.tb-cli-output'));
 test('CSS: .tb-iface-table', css.includes('.tb-iface-table'));
 test('CSS: .tb-tool-btn-ai', css.includes('.tb-tool-btn-ai'));
 test('CSS: .tb-explain-btn', css.includes('.tb-explain-btn'));
-// v4.23.0 additions
+// v4.23.1 additions
 // Overview tab
 test('tbRenderOverviewTab function', js.includes('function tbRenderOverviewTab('));
 test('Overview tab in switch', /case 'overview':[\s\S]{0,100}tbRenderOverviewTab/.test(js));
