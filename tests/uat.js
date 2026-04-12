@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.0"));
+test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.1'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1443,6 +1443,18 @@ test('Lab: stp-loop-prevention defined', js.includes("id: 'stp-loop-prevention'"
 test('Lab: stp-loop-prevention has autoSetup', /stp-loop-prevention[\s\S]{0,500}autoSetup/.test(js));
 test('Lab: stp-loop-prevention checks bridge priority', /priority.*4096|bridgePriority/.test(js));
 test('Total TB_LABS count >= 14', (js.match(/id: 'ospf|id: 'dns-inf|id: 'stp-loop|id: 'static-|id: 'acl-|id: 'site-to|id: 'wireless-|id: 'cloud-vpc|id: 'network-hard|id: 'troubleshoot|id: 'multi-site|id: 'basic-lan|id: 'vlan-seg|id: 'dhcp-|id: 'dmz-|id: 'arp-mac/g) || []).length >= 14);
+
+// ── v4.30.0 — Lab Device Highlighting ──
+console.log('\n\x1b[1m── v4.30.0 LAB DEVICE HIGHLIGHTING ──\x1b[0m');
+test('Lab highlight: _highlightIds tracked', js.includes('_highlightIds'));
+test('Lab highlight: bold term extraction from instructions', js.includes('match(/\\*\\*([^*]+)\\*\\*/g)'));
+test('Lab highlight: matches device hostnames', js.includes('matchHostnames'));
+test('Lab highlight: matches device type labels', js.includes('matchTypes'));
+test('Lab highlight: cleared when step passes', /!passed[\s\S]{0,50}_highlightIds|_highlightIds = \[\][\s\S]{0,50}!passed/.test(js));
+test('Lab highlight: triggers canvas re-render', /tbRenderCanvas\(\)/.test(js));
+test('Lab highlight: tb-device-lab-target class on devices', js.includes('tb-device-lab-target'));
+test('CSS: .tb-device-lab-target animation', css.includes('.tb-device-lab-target'));
+test('CSS: @keyframes tbLabTargetPulse', css.includes('tbLabTargetPulse'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

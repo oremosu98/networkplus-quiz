@@ -1502,6 +1502,13 @@ input::placeholder { color: var(--text-dim); }
   stroke-width: 3;
   filter: drop-shadow(0 0 8px rgba(34, 197, 94, .7));
 }
+.tb-device-lab-target .tb-device-bg {
+  animation: tbLabTargetPulse 1.5s ease-in-out infinite;
+}
+@keyframes tbLabTargetPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, .3)); stroke-width: 2; }
+  50% { filter: drop-shadow(0 0 14px rgba(251, 191, 36, .8)); stroke-width: 3.5; fill-opacity: .35; }
+}
 .tb-device-label { font-weight: 600; pointer-events: none; }
 .tb-device-icon { pointer-events: none; }
 

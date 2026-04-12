@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.30.0';
+const APP_VERSION = '4.30.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5351,6 +5351,7 @@ function tbRenderCanvas() {
     if (!meta) return '';
     const selected = tbSelectedId === d.id ? ' tb-device-selected' : '';
     const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
+    const labTarget = (tbActiveLab?._highlightIds?.includes(d.id)) ? ' tb-device-lab-target' : '';
     // Device health badge — shows config status
     const isEndpoint = ['pc','server','printer','voip','iot'].includes(d.type);
     const isRoutable = ['router','firewall','isp-router'].includes(d.type);
@@ -5364,7 +5365,7 @@ function tbRenderCanvas() {
     else if (hasCable) healthColor = '#ef4444';
     const healthBadge = healthColor ? `<circle cx="40" cy="-28" r="5" fill="${healthColor}" stroke="#0f172a" stroke-width="1.5" class="tb-health-badge"/>` : '';
     return `
-      <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
+      <g class="tb-device${selected}${pending}${labTarget}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
         <rect class="tb-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"
               fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
         <g transform="scale(0.72) translate(0, 4)">${tbDeviceIcon(d.type, meta.color)}</g>
@@ -10855,6 +10856,39 @@ function tbRenderLabStep() {
 
   // Highlight the Next button when step is complete
   nextBtn.classList.toggle('tb-lab-next-ready', passed);
+
+  // Auto-detect target devices from step instruction bold text and highlight them
+  // Extracts **Bold Terms** from instruction, matches against device hostnames and type labels
+  tbActiveLab._highlightIds = [];
+  if (!passed) {
+    const boldTerms = (step.instruction.match(/\*\*([^*]+)\*\*/g) || []).map(m => m.replace(/\*\*/g, '').trim().toLowerCase());
+    if (boldTerms.length) {
+      const typeLabels = {};
+      Object.entries(TB_DEVICE_TYPES).forEach(([k, v]) => { typeLabels[v.label.toLowerCase()] = k; typeLabels[v.short.toLowerCase()] = k; });
+      // Also match plural forms (e.g. "Routers" → "router", "2 PCs" → "pc")
+      const matchTypes = new Set();
+      const matchHostnames = new Set();
+      boldTerms.forEach(term => {
+        // Direct type label match (e.g. "Router", "Switch", "DNS Server")
+        if (typeLabels[term]) { matchTypes.add(typeLabels[term]); return; }
+        // Plural/quantified match (e.g. "3 Routers", "2 PCs")
+        const stripped = term.replace(/^[\d\s]+/, '').replace(/s$/, '').trim();
+        if (typeLabels[stripped]) { matchTypes.add(typeLabels[stripped]); return; }
+        // Hostname match (e.g. "SW-Core", "R1", "PC2")
+        matchHostnames.add(term);
+      });
+      tbState.devices.forEach(d => {
+        if (matchTypes.has(d.type)) { tbActiveLab._highlightIds.push(d.id); return; }
+        const hn = (d.hostname || '').toLowerCase();
+        if (matchHostnames.has(hn)) { tbActiveLab._highlightIds.push(d.id); return; }
+        // Partial hostname match (e.g. bold "R1" matches hostname "R1")
+        for (const h of matchHostnames) {
+          if (hn === h || hn.startsWith(h + '-') || h.startsWith(hn)) { tbActiveLab._highlightIds.push(d.id); break; }
+        }
+      });
+    }
+  }
+  tbRenderCanvas();
 }
 
 function tbLabNext() {
