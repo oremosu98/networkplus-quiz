@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.27.0';
+const APP_VERSION = '4.28.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4928,6 +4928,8 @@ function tbMigrateState(state) {
     d.vpcConfig = d.vpcConfig || null;
     d.vpnConfig = d.vpnConfig || null;
     d.saseConfig = d.saseConfig || null;
+    // VXLAN overlay
+    d.vxlanConfig = d.vxlanConfig || [];
   });
   // Auto-bind cables to interfaces if not already bound
   state.cables.forEach(c => {
@@ -6564,6 +6566,7 @@ function tbOpenConfigPanel(deviceId) {
     if (tab === 'vpc-config') t.classList.toggle('is-hidden', !isVpc);
     if (tab === 'vpn') t.classList.toggle('is-hidden', !isVpnEndpoint);
     if (tab === 'sase') t.classList.toggle('is-hidden', !isSase);
+    if (tab === 'vxlan') t.classList.toggle('is-hidden', !isSwitch && !isRouter);
   });
   tbSwitchConfigTab('overview');
   // Show sim toolbar
@@ -6597,6 +6600,7 @@ function tbSwitchConfigTab(tab) {
     case 'vpc-config': body.innerHTML = tbRenderVpcConfigTab(dev); break;
     case 'vpn': body.innerHTML = tbRenderVpnTab(dev); break;
     case 'sase': body.innerHTML = tbRenderSaseTab(dev); break;
+    case 'vxlan': body.innerHTML = tbRenderVxlanTab(dev); break;
     default: body.innerHTML = '';
   }
 }
@@ -6671,6 +6675,7 @@ function tbRenderOverviewTab(dev) {
     ${dev.nacls?.length ? `<div class="tb-ov-stat"><span>NACLs</span><strong>${dev.nacls.length}</strong></div>` : ''}
     ${dev.vpnConfig ? `<div class="tb-ov-stat"><span>VPN</span><strong style="color:${dev.vpnConfig.tunnelStatus==='up'?'#22c55e':'#ef4444'}">${dev.vpnConfig.tunnelStatus.toUpperCase()}</strong></div>` : ''}
     ${dev.vpcConfig?.peerings?.length ? `<div class="tb-ov-stat"><span>Peerings</span><strong>${dev.vpcConfig.peerings.length}</strong></div>` : ''}
+    ${dev.vxlanConfig?.length ? `<div class="tb-ov-stat"><span>VXLAN Tunnels</span><strong>${dev.vxlanConfig.length}</strong></div>` : ''}
   </div>
   ${routeCount > 0 ? `<div class="tb-ov-section-label">Routing Table</div><div style="max-height:120px;overflow-y:auto;margin-bottom:8px;font-family:'Fira Code',monospace;font-size:10px;background:rgba(0,0,0,.2);border-radius:6px;padding:6px">${dev.routingTable.map(r => `<div style="padding:2px 0"><span style="color:${r.type==='connected'?'#22c55e':'#60a5fa'};font-weight:700">${r.type==='connected'?'C':'S'}</span> ${escHtml(r.network)}/${tbMaskToCidr(r.mask)} via ${escHtml(r.nextHop||r.iface)}</div>`).join('')}</div>` : ''}
   ${ifaceCards ? `<div class="tb-ov-section-label">Connected Interfaces</div>${ifaceCards}` : '<div style="color:#64748b;font-size:11px">No connected interfaces. Wire this device to others first.</div>'}
@@ -6883,6 +6888,72 @@ function tbDelVlan(idx) {
   tbState.updated = Date.now();
   tbSaveDraft();
   tbSwitchConfigTab('vlans');
+}
+
+// ── VXLAN Tab ──
+function tbRenderVxlanTab(dev) {
+  const tunnels = dev.vxlanConfig || [];
+  const rows = tunnels.map((t, i) => `<div class="tb-vxlan-row">
+    <div class="tb-vxlan-row-head">
+      <strong>VNI ${t.vni}</strong>
+      <span class="tb-cloud-badge" style="background:rgba(139,92,246,.2);color:#a78bfa">VTEP ${escHtml(t.vtepIp || '—')}</span>
+      <button class="btn btn-ghost" onclick="tbRemoveVxlan(${i})" style="font-size:11px;color:#ef4444;padding:1px 4px">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px">
+      <div><label style="font-size:9px">VNI (1-16777215)</label>
+        <input type="number" value="${t.vni}" onchange="tbSetVxlanField(${i},'vni',parseInt(this.value))" min="1" max="16777215" style="width:100%"></div>
+      <div><label style="font-size:9px">VTEP Source IP</label>
+        <input type="text" value="${escHtml(t.vtepIp || '')}" onchange="tbSetVxlanField(${i},'vtepIp',this.value)" placeholder="e.g. 10.0.0.1" style="width:100%"></div>
+      <div><label style="font-size:9px">Mapped VLAN ID</label>
+        <input type="number" value="${t.mappedVlan || ''}" onchange="tbSetVxlanField(${i},'mappedVlan',parseInt(this.value)||0)" placeholder="e.g. 10" style="width:100%"></div>
+      <div><label style="font-size:9px">Multicast Group</label>
+        <input type="text" value="${escHtml(t.mcastGroup || '')}" onchange="tbSetVxlanField(${i},'mcastGroup',this.value)" placeholder="239.1.1.1" style="width:100%"></div>
+    </div>
+    <div style="margin-top:4px">
+      <label style="font-size:9px">Remote VTEPs (comma-separated IPs)</label>
+      <input type="text" value="${escHtml((t.remoteVteps || []).join(', '))}" onchange="tbSetVxlanField(${i},'remoteVteps',this.value.split(',').map(s=>s.trim()).filter(Boolean))" placeholder="10.0.0.2, 10.0.0.3" style="width:100%">
+    </div>
+    <div style="margin-top:4px;display:flex;gap:8px;align-items:center">
+      <label style="font-size:9px">Flood & Learn</label>
+      <input type="checkbox" ${t.floodAndLearn ? 'checked' : ''} onchange="tbSetVxlanField(${i},'floodAndLearn',this.checked)">
+      <label style="font-size:9px;margin-left:8px">BGP EVPN</label>
+      <input type="checkbox" ${t.bgpEvpn ? 'checked' : ''} onchange="tbSetVxlanField(${i},'bgpEvpn',this.checked)">
+    </div>
+  </div>`).join('');
+
+  return `<div style="margin-bottom:6px;font-weight:600;font-size:12px">VXLAN Tunnels</div>
+    <div style="font-size:10px;color:#64748b;margin-bottom:8px">Virtual eXtensible LAN — Layer 2 overlay over Layer 3 underlay. Each VNI maps a VLAN to a VXLAN segment (up to 16M segments vs 4094 VLANs). VTEPs encapsulate/decapsulate frames in UDP port 4789.</div>
+    ${rows || '<div style="color:#64748b;font-size:11px;margin-bottom:8px">No VXLAN tunnels configured.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddVxlan()" style="font-size:11px;margin-top:6px">+ Add VXLAN Tunnel</button>`;
+}
+
+function tbAddVxlan() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.vxlanConfig) dev.vxlanConfig = [];
+  const nextVni = dev.vxlanConfig.length > 0 ? Math.max(...dev.vxlanConfig.map(v => v.vni)) + 1 : 10000;
+  dev.vxlanConfig.push({ vni: nextVni, vtepIp: '', mappedVlan: 0, mcastGroup: '', remoteVteps: [], floodAndLearn: true, bgpEvpn: false });
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('vxlan');
+}
+
+function tbRemoveVxlan(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.vxlanConfig) return;
+  dev.vxlanConfig.splice(idx, 1);
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('vxlan');
+}
+
+function tbSetVxlanField(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.vxlanConfig || !dev.vxlanConfig[idx]) return;
+  dev.vxlanConfig[idx][field] = value;
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  if (field === 'vni' || field === 'vtepIp') tbSwitchConfigTab('vxlan');
 }
 
 // ── DHCP Tab ──
@@ -7534,6 +7605,19 @@ function tbProcessCliCommand(dev, cmd) {
       `  IdP:          ${s.identityProvider || '—'}\n` +
       `  FWaaS Rules:  ${s.fwaasPolicies?.length || 0}`;
   }
+  // VXLAN
+  if (cmd === 'show vxlan' || cmd === 'show nve' || cmd === 'show vxlan vtep') {
+    if (!dev.vxlanConfig || dev.vxlanConfig.length === 0) return 'No VXLAN tunnels configured on this device.';
+    return dev.vxlanConfig.map(t =>
+      `VNI ${t.vni}\n` +
+      `  VTEP Source:   ${t.vtepIp || '—'}\n` +
+      `  Mapped VLAN:   ${t.mappedVlan || '—'}\n` +
+      `  Multicast:     ${t.mcastGroup || '—'}\n` +
+      `  Remote VTEPs:  ${(t.remoteVteps || []).join(', ') || 'none'}\n` +
+      `  Flood&Learn:   ${t.floodAndLearn ? 'Yes' : 'No'}\n` +
+      `  BGP EVPN:      ${t.bgpEvpn ? 'Enabled' : 'Disabled'}`
+    ).join('\n\n');
+  }
   // help
   if (cmd === 'help' || cmd === '?') {
     return 'Available commands:\n' +
@@ -7541,6 +7625,7 @@ function tbProcessCliCommand(dev, cmd) {
       '  show ip route           - Routing table\n' +
       '  show mac address-table  - MAC table (switches)\n' +
       '  show vlan brief         - VLAN database (switches)\n' +
+      '  show vxlan              - VXLAN tunnels & VTEPs\n' +
       '  show interfaces         - Interface status\n' +
       '  show security-groups    - Security group rules\n' +
       '  show nacl               - Network ACL rules\n' +
@@ -8142,6 +8227,14 @@ function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
       dhcpServer: dd.dhcpServer || null,
       dhcpRelay: dd.dhcpRelay || null,
       acls: [],
+      // Cloud properties — copy from AI payload if provided
+      securityGroups: dd.securityGroups || [],
+      nacls: dd.nacls || [],
+      vpcConfig: dd.vpcConfig || null,
+      vpnConfig: dd.vpnConfig || null,
+      saseConfig: dd.saseConfig || null,
+      // VXLAN overlay
+      vxlanConfig: dd.vxlanConfig || [],
     };
     tbRebuildConnectedRoutes(device);
     hostnameToId[dd.hostname] = id;
@@ -8193,6 +8286,14 @@ DEVICE TYPE GUIDE:
 - load-balancer: Sits in front of server farms.
 - ids: IDS/IPS — inline or mirrored for traffic inspection.
 - public-web, public-file, public-cloud: DMZ-facing servers.
+- When the user says "data center" or "data centre", use onprem-dc for on-prem DCs. For cloud DCs, use vpc + cloud-subnet + servers.
+- When connecting DCs via VPN, you NEED: vpg (VPN Gateway) wired between both DCs with matching vpnConfig (same PSK, IKE, encryption, hash, DH group).
+
+VXLAN SUPPORT:
+- Switches and routers can have vxlanConfig array for VXLAN overlay tunnels.
+- Each entry: { vni: 10000, vtepIp: "10.0.0.1", mappedVlan: 10, mcastGroup: "239.1.1.1", remoteVteps: ["10.0.0.2"], floodAndLearn: true, bgpEvpn: false }
+- VNI (VXLAN Network Identifier) range: 1-16777215. Maps a VLAN to a VXLAN segment for L2 extension over L3.
+- Include vxlanConfig when user mentions VXLAN, overlay, data center interconnect (DCI), or fabric.
 
 TOPOLOGY TYPES — when the user asks for a physical topology, follow these EXACT patterns:
 - STAR: One central device (switch or router) at center (x:700,y:400). All other devices radiate outward in a circle around it. Every device connects ONLY to the center.
@@ -8215,7 +8316,8 @@ SCHEMA:
       "routingTable": [{"type": "static", "network": "10.0.0.0", "mask": "255.255.0.0", "nextHop": "192.168.1.2", "iface": "Gi0/0"}],
       "securityGroups": [{"name": "web-sg", "rules": [{"direction": "inbound", "protocol": "tcp", "port": "443", "source": "0.0.0.0/0", "action": "allow"}]}],
       "vpcConfig": {"cidr": "10.0.0.0/16", "peerings": []},
-      "vpnConfig": {"peerIp": "", "psk": "secret123", "ikeVersion": "IKEv2", "encryption": "AES-256", "hashAlgo": "SHA-256", "dhGroup": 14}
+      "vpnConfig": {"peerIp": "", "psk": "secret123", "ikeVersion": "IKEv2", "encryption": "AES-256", "hashAlgo": "SHA-256", "dhGroup": 14},
+      "vxlanConfig": [{"vni": 10000, "vtepIp": "10.0.0.1", "mappedVlan": 10, "mcastGroup": "239.1.1.1", "remoteVteps": ["10.0.0.2"], "floodAndLearn": true, "bgpEvpn": false}]
     }
   ],
   "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
@@ -8252,6 +8354,168 @@ function tbSerializeForAiContext() {
   return `DEVICES (${tbState.devices.length}):\n${devList}\n\nCABLES (${tbState.cables.length}):\n${cblList}`;
 }
 
+// Deep AI generation: post-process + validate + auto-fix generated topology
+function tbDeepValidateAndFix(state, scenario) {
+  const fixes = [];
+  const routers = state.devices.filter(d => d.type === 'router' || d.type === 'firewall' || d.type === 'isp-router');
+  const endpoints = state.devices.filter(d => ['pc','server','printer','voip','iot'].includes(d.type));
+  const vpgs = state.devices.filter(d => d.type === 'vpg');
+  const dcs = state.devices.filter(d => d.type === 'onprem-dc');
+
+  // Fix 1: Routers/firewalls with connected cables must have IPs on those interfaces
+  routers.forEach(r => {
+    r.interfaces.forEach(ifc => {
+      if (ifc.cableId && !ifc.ip) {
+        // Auto-assign from unused 10.x.x.x space
+        const usedIps = new Set(state.devices.flatMap(d => d.interfaces.map(i => i.ip)).filter(Boolean));
+        for (let sub = 1; sub < 255; sub++) {
+          const candidate = `10.255.${sub}.1`;
+          if (!usedIps.has(candidate)) { ifc.ip = candidate; ifc.mask = '255.255.255.252'; fixes.push(`Auto-assigned ${candidate} to ${r.hostname}:${ifc.name}`); break; }
+        }
+      }
+    });
+    tbRebuildConnectedRoutes(r);
+  });
+
+  // Fix 2: Endpoints with IPs but no gateway — try to find nearest router
+  endpoints.forEach(ep => {
+    ep.interfaces.forEach(ifc => {
+      if (ifc.ip && !ifc.gateway) {
+        // Walk cables to find connected router
+        const cable = state.cables.find(c => (c.from === ep.id || c.to === ep.id));
+        if (cable) {
+          const nextId = cable.from === ep.id ? cable.to : cable.from;
+          const nextDev = state.devices.find(d => d.id === nextId);
+          // If next device is a switch, walk one more hop
+          let routerDev = nextDev;
+          if (nextDev && nextDev.type.includes('switch')) {
+            const uplink = state.cables.find(c => (c.from === nextDev.id || c.to === nextDev.id) && c.id !== cable.id);
+            if (uplink) {
+              const upId = uplink.from === nextDev.id ? uplink.to : uplink.from;
+              const upDev = state.devices.find(d => d.id === upId);
+              if (upDev && (upDev.type === 'router' || upDev.type === 'firewall')) routerDev = upDev;
+            }
+          }
+          if (routerDev && (routerDev.type === 'router' || routerDev.type === 'firewall' || routerDev.type === 'isp-router')) {
+            const routerIp = routerDev.interfaces.find(i => i.ip)?.ip;
+            if (routerIp) { ifc.gateway = routerIp; fixes.push(`Auto-set gateway on ${ep.hostname} → ${routerIp}`); }
+          }
+        }
+      }
+    });
+  });
+
+  // Fix 3: VPN endpoints need matching vpnConfig
+  if (vpgs.length > 0 || dcs.length > 0) {
+    const vpnEndpoints = [...vpgs, ...dcs];
+    vpnEndpoints.forEach(ep => {
+      if (!ep.vpnConfig) {
+        ep.vpnConfig = { peerIp: '', psk: 'AutoPSK123!', ikeVersion: 'IKEv2', encryption: 'AES-256', hashAlgo: 'SHA-256', dhGroup: 14, localSubnet: '', remoteSubnet: '', status: 'down' };
+        fixes.push(`Auto-initialized VPN config on ${ep.hostname}`);
+      }
+    });
+    // Try to match VPG ↔ DC pairs via cables
+    vpgs.forEach(vpg => {
+      const vpgCables = state.cables.filter(c => c.from === vpg.id || c.to === vpg.id);
+      vpgCables.forEach(cable => {
+        const peerId = cable.from === vpg.id ? cable.to : cable.from;
+        const peer = state.devices.find(d => d.id === peerId);
+        if (peer && (peer.type === 'onprem-dc' || peer.type === 'vpg') && peer.vpnConfig) {
+          // Sync crypto params so tunnel can negotiate
+          if (!vpg.vpnConfig.psk || vpg.vpnConfig.psk === 'AutoPSK123!') {
+            const sharedPsk = peer.vpnConfig.psk || 'SharedSecret123';
+            vpg.vpnConfig.psk = sharedPsk;
+            peer.vpnConfig.psk = sharedPsk;
+            vpg.vpnConfig.ikeVersion = peer.vpnConfig.ikeVersion || 'IKEv2';
+            vpg.vpnConfig.encryption = peer.vpnConfig.encryption || 'AES-256';
+            vpg.vpnConfig.hashAlgo = peer.vpnConfig.hashAlgo || 'SHA-256';
+            vpg.vpnConfig.dhGroup = peer.vpnConfig.dhGroup || 14;
+            peer.vpnConfig.ikeVersion = vpg.vpnConfig.ikeVersion;
+            peer.vpnConfig.encryption = vpg.vpnConfig.encryption;
+            peer.vpnConfig.hashAlgo = vpg.vpnConfig.hashAlgo;
+            peer.vpnConfig.dhGroup = vpg.vpnConfig.dhGroup;
+            fixes.push(`Synced VPN crypto params between ${vpg.hostname} ↔ ${peer.hostname}`);
+          }
+        }
+      });
+    });
+  }
+
+  // Fix 4: VPCs should have vpcConfig
+  state.devices.filter(d => d.type === 'vpc').forEach(vpc => {
+    if (!vpc.vpcConfig) {
+      vpc.vpcConfig = { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default', peerings: [] };
+      fixes.push(`Auto-initialized VPC config on ${vpc.hostname}`);
+    }
+  });
+
+  // Fix 5: Devices stacked at default position (400,400) — spread them out
+  const stacked = state.devices.filter(d => d.x === 400 && d.y === 400);
+  if (stacked.length > 1) {
+    const cols = Math.ceil(Math.sqrt(stacked.length));
+    stacked.forEach((d, i) => {
+      d.x = 200 + (i % cols) * 200;
+      d.y = 200 + Math.floor(i / cols) * 180;
+    });
+    fixes.push(`Spread ${stacked.length} overlapping devices across canvas`);
+  }
+
+  // Fix 6: Ensure cross-subnet routing — add static routes on routers for subnets they don't directly connect to
+  if (routers.length > 1) {
+    routers.forEach(r => {
+      const connectedNets = new Set(r.routingTable.filter(rt => rt.type === 'connected').map(rt => rt.network));
+      // Check if any other router has subnets this router doesn't know about
+      routers.forEach(other => {
+        if (other.id === r.id) return;
+        const otherNets = other.routingTable.filter(rt => rt.type === 'connected');
+        otherNets.forEach(net => {
+          if (!connectedNets.has(net.network) && !r.routingTable.some(rt => rt.network === net.network)) {
+            // Find a next-hop — look for a shared cable/subnet between these two routers
+            const shared = r.interfaces.find(ifc => ifc.ip && other.interfaces.some(oi => oi.ip && tbSameSubnet(ifc.ip, oi.ip, ifc.mask)));
+            if (shared) {
+              const nextHop = other.interfaces.find(oi => oi.ip && tbSameSubnet(shared.ip, oi.ip, shared.mask))?.ip;
+              if (nextHop) {
+                r.routingTable.push({ type: 'static', network: net.network, mask: net.mask, nextHop, iface: shared.name });
+                fixes.push(`Added static route on ${r.hostname}: ${net.network} via ${nextHop}`);
+              }
+            }
+          }
+        });
+      });
+    });
+  }
+
+  return fixes;
+}
+
+// Semantic pre-processing: expand shorthand descriptions into detailed instructions
+function tbExpandScenario(scenario) {
+  let expanded = scenario;
+  // Map common shorthand to explicit device types
+  const expansions = [
+    [/\bdata cent(er|re)s?\b/gi, 'on-premises data center(s) (use onprem-dc device type)'],
+    [/\bDC[s]?\b/g, 'data center(s) (onprem-dc)'],
+    [/\bconnected via VPN\b/gi, 'connected via VPN Gateway (vpg) devices with matching IPSec vpnConfig (same PSK, IKE, encryption, hash, DH group)'],
+    [/\bVPN tunnel\b/gi, 'IPSec VPN via VPN Gateway (vpg) with vpnConfig'],
+    [/\bsite.to.site\b/gi, 'site-to-site IPSec VPN (use vpg + onprem-dc with vpnConfig)'],
+    [/\boverlay\b/gi, 'VXLAN overlay (include vxlanConfig on switches)'],
+    [/\bfabric\b/gi, 'data center fabric (spine-leaf with VXLAN overlay)'],
+    [/\bspine.leaf\b/gi, 'spine-leaf topology: spine switches at top, leaf switches at bottom, every leaf connects to every spine (partial mesh)'],
+    [/\bDCI\b/g, 'Data Center Interconnect (VXLAN overlay between DCs)'],
+    [/\bSD.WAN\b/gi, 'SD-WAN (use router devices with VXLAN/IPSec overlays)'],
+    [/\b3.tier\b/gi, 'three-tier architecture (core routers → distribution switches → access switches → endpoints)'],
+    [/\bcollapsed core\b/gi, 'collapsed core (combined core/distribution layer into single switches)'],
+    [/\bHA\b/g, 'high availability (redundant paths, dual firewalls/routers)'],
+    [/\bredundant\b/gi, 'redundant (use dual devices with cross-connections for failover)'],
+    [/\bZTNA\b/gi, 'Zero Trust Network Access (use sase-edge device with ZTNA policy)'],
+    [/\bwireless\b/gi, 'wireless (use wap + wlc devices)'],
+  ];
+  expansions.forEach(([re, replacement]) => {
+    if (re.test(expanded)) expanded = expanded.replace(re, replacement);
+  });
+  return expanded;
+}
+
 async function tbGenerateAiTopology() {
   const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
   if (!key) { showErrorToast('Add your Anthropic API key in Settings to use AI generation.'); return; }
@@ -8266,10 +8530,12 @@ async function tbGenerateAiTopology() {
       `Then describe what you want:\n\n` +
       `Examples:\n` +
       `• ADD a DMZ segment with 2 public servers and a firewall\n` +
-      `• ADD a VPN connection to an on-prem data center\n` +
+      `• ADD 2 data centres connected via VPN\n` +
       `• ADD 5 PCs and a printer to the existing switch\n` +
+      `• ADD a VXLAN overlay between the spine switches\n` +
       `• NEW enterprise network with 3 VLANs and DMZ\n` +
-      `• NEW star-bus topology with 4 switches`
+      `• NEW spine-leaf fabric with VXLAN overlay\n` +
+      `• NEW 2 data centres connected via site-to-site VPN`
     );
     if (!choice) return;
     const trimmed = choice.trim();
@@ -8282,16 +8548,18 @@ async function tbGenerateAiTopology() {
       mode = 'new';
       var scenario = newMatch[1] || trimmed;
     } else {
-      // Default to add if there are existing devices and user didn't specify
       mode = 'add';
       var scenario = trimmed;
     }
   } else {
-    var scenario = prompt('Describe the network you want to build.\n\nExamples:\n• "Enterprise network with 3 VLANs, DMZ, 2 firewalls, IDS, load balancer"\n• "Star-bus hybrid topology with 4 switches, 12 PCs"\n• "AWS VPC with public/private subnets, NAT gateway, VPN to on-prem DC"\n• "Ring topology with 5 routers running OSPF"\n• "Full mesh between 4 routers with BGP"\n• "ISP edge with 3 customer sites connected via VPN"\n\nBe as detailed as you want:');
+    var scenario = prompt('Describe the network you want to build.\n\nExamples:\n• "Enterprise network with 3 VLANs, DMZ, 2 firewalls, IDS, load balancer"\n• "2 data centres connected via site-to-site VPN"\n• "Spine-leaf data center fabric with VXLAN"\n• "Star-bus hybrid topology with 4 switches, 12 PCs"\n• "AWS VPC with public/private subnets, NAT gateway, VPN to on-prem DC"\n• "Ring topology with 5 routers"\n• "Full mesh between 4 routers"\n• "ISP edge with 3 customer sites connected via VPN"\n\nBe as detailed as you want — complex is fine:');
     if (!scenario) return;
   }
 
-  showErrorToast(mode === 'add' ? 'Adding to topology... (5-10 seconds)' : 'Generating topology... (5-10 seconds)');
+  // Phase 1: Semantic expansion — map shorthand to explicit device types/configs
+  const expandedScenario = tbExpandScenario(scenario);
+
+  showErrorToast(mode === 'add' ? 'AI generating... Phase 1/2: Building topology' : 'AI generating... Phase 1/2: Building topology');
   try {
     const basePrompt = tbAiBasePrompt();
     let genPrompt;
@@ -8299,7 +8567,6 @@ async function tbGenerateAiTopology() {
     if (mode === 'add') {
       const existingContext = tbSerializeForAiContext();
       const existingHostnames = tbState.devices.map(d => d.hostname);
-      // Figure out what regions of the canvas are occupied so AI can avoid overlap
       const usedXs = tbState.devices.map(d => d.x);
       const usedYs = tbState.devices.map(d => d.y);
       const maxX = Math.max(...usedXs, 100);
@@ -8326,8 +8593,10 @@ IMPORTANT RULES FOR ADD MODE:
 - Use hostnames that don't conflict with existing ones.
 - Make sure IP addressing is compatible with existing subnets. Look at existing IPs to pick non-conflicting addresses.
 - If the user wants to connect to an existing device, use that device's hostname in the cable definition and pick an interface name that might be free.
+- For VPN connections: create vpg devices and include vpnConfig with matching crypto parameters on both VPN endpoints.
+- For VXLAN: include vxlanConfig arrays on switches/routers with matching VNIs and VTEP IPs.
 
-USER REQUEST: Add the following to the existing topology: ${scenario}
+USER REQUEST: Add the following to the existing topology: ${expandedScenario}
 
 Generate JSON with ONLY the new devices and cables.`;
     } else {
@@ -8335,7 +8604,7 @@ Generate JSON with ONLY the new devices and cables.`;
 
 ${basePrompt}
 
-USER REQUEST: ${scenario}
+USER REQUEST: ${expandedScenario}
 
 Generate the complete topology JSON now.`;
     }
@@ -8357,31 +8626,35 @@ Generate the complete topology JSON now.`;
     if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology. Try a simpler description (e.g. "small office with 3 PCs and a server").'); return; }
 
     if (mode === 'add') {
-      // MERGE into existing state
       const hostnameToId = {};
-      // Pre-populate with existing hostname→id mapping so cables can reference them
       tbState.devices.forEach(d => { hostnameToId[d.hostname] = d.id; });
       tbBuildFromAiPayload(payload, tbState, hostnameToId);
       tbMigrateState(tbState);
-      tbSelectedId = null;
-      tbPendingCableFrom = null;
-      tbSaveDraft();
-      tbRenderCanvas();
-      tbUpdateDeviceCount();
-      tbUpdateStatus(`AI added ${payload.devices.length} device(s) to topology`);
     } else {
-      // Fresh topology
       const newState = tbNewState();
       newState.name = scenario.slice(0, 40);
       const hostnameToId = {};
       tbBuildFromAiPayload(payload, newState, hostnameToId);
       tbState = newState;
-      tbSelectedId = null;
-      tbPendingCableFrom = null;
-      tbSaveDraft();
-      tbRenderCanvas();
-      tbUpdateDeviceCount();
-      tbUpdateStatus(`AI generated: "${newState.name}"`);
+    }
+
+    // Phase 2: Deep validation + auto-fix
+    showErrorToast('Phase 2/2: Validating & fixing...');
+    const fixes = tbDeepValidateAndFix(tbState, scenario);
+    tbMigrateState(tbState);
+    tbSelectedId = null;
+    tbPendingCableFrom = null;
+    tbSaveDraft();
+    tbRenderCanvas();
+    tbUpdateDeviceCount();
+    const fixMsg = fixes.length > 0 ? ` (${fixes.length} auto-fixes applied)` : '';
+    if (mode === 'add') {
+      tbUpdateStatus(`AI added ${payload.devices.length} device(s)${fixMsg}`);
+    } else {
+      tbUpdateStatus(`AI generated: "${tbState.name}"${fixMsg}`);
+    }
+    if (fixes.length > 0) {
+      console.log('AI Deep Generation fixes:', fixes);
     }
   } catch (e) {
     showErrorToast('AI generation error: ' + (e.message || 'unknown'));

@@ -2433,6 +2433,19 @@ input::placeholder { color: var(--text-dim); }
   border-radius: 2px;
   transition: width 0.4s ease;
 }
+.tb-vxlan-row {
+  background: rgba(139,92,246,.08);
+  border: 1px solid rgba(139,92,246,.2);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+.tb-vxlan-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
 .tb-lab-badge-auto {
   font-size: 9px;
   font-weight: 700;

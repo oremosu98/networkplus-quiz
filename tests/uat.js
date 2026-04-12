@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.27.0', js.includes("const APP_VERSION = '4.27.0"));
+test('APP_VERSION is 4.28.0', js.includes("const APP_VERSION = '4.28.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.27.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.27.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.27.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.28.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1224,6 +1224,46 @@ test('CSS: .tb-lab-hint-body', css.includes('.tb-lab-hint-body'));
 test('CSS: .tb-lab-progress-bar', css.includes('.tb-lab-progress-bar'));
 test('CSS: .tb-lab-progress-fill', css.includes('.tb-lab-progress-fill'));
 test('CSS: .tb-lab-badge-auto', css.includes('.tb-lab-badge-auto'));
+
+// ── v4.28.0 — VXLAN, Deep AI Gen, Cloud prop fix ──
+console.log('\n\x1b[1m── v4.28.0 VXLAN + DEEP AI GEN ──\x1b[0m');
+// Cloud properties in build payload
+test('tbBuildFromAiPayload copies securityGroups', /securityGroups: dd\.securityGroups/.test(js));
+test('tbBuildFromAiPayload copies vpnConfig', /vpnConfig: dd\.vpnConfig/.test(js));
+test('tbBuildFromAiPayload copies vpcConfig', /vpcConfig: dd\.vpcConfig/.test(js));
+test('tbBuildFromAiPayload copies saseConfig', /saseConfig: dd\.saseConfig/.test(js));
+test('tbBuildFromAiPayload copies vxlanConfig', /vxlanConfig: dd\.vxlanConfig/.test(js));
+// VXLAN
+test('tbRenderVxlanTab function', js.includes('function tbRenderVxlanTab('));
+test('tbAddVxlan function', js.includes('function tbAddVxlan('));
+test('tbRemoveVxlan function', js.includes('function tbRemoveVxlan('));
+test('tbSetVxlanField function', js.includes('function tbSetVxlanField('));
+test('Migration: vxlanConfig default', js.includes('d.vxlanConfig = d.vxlanConfig || []'));
+test('VXLAN tab in config panel switch', /case 'vxlan':/.test(js));
+test('VXLAN tab visibility for switches/routers', /vxlan.*isSwitch.*isRouter|vxlan.*!isSwitch && !isRouter/.test(js));
+test('CLI: show vxlan command', /show vxlan/.test(js));
+test('VXLAN help in CLI', /show vxlan.*VXLAN/.test(js));
+test('HTML: VXLAN tab button', html.includes('data-tb-tab="vxlan"'));
+test('CSS: .tb-vxlan-row', css.includes('.tb-vxlan-row'));
+test('Overview shows VXLAN tunnel count', /VXLAN Tunnels/.test(js));
+// Deep AI generation
+test('tbDeepValidateAndFix function', js.includes('function tbDeepValidateAndFix('));
+test('tbExpandScenario function', js.includes('function tbExpandScenario('));
+test('Deep gen: auto-assign router IPs', /Auto-assigned.*to.*hostname/.test(js));
+test('Deep gen: auto-set gateways', /Auto-set gateway/.test(js));
+test('Deep gen: VPN crypto sync', /Synced VPN crypto/.test(js));
+test('Deep gen: VPC config init', /Auto-initialized VPC config/.test(js));
+test('Deep gen: spread overlapping devices', /Spread.*overlapping devices/.test(js));
+test('Deep gen: cross-subnet routing', /Added static route/.test(js));
+test('Expand: data centre → onprem-dc', /data cent.*onprem-dc/.test(js));
+test('Expand: VPN tunnel → vpg', /VPN tunnel.*vpg/.test(js));
+test('Expand: spine-leaf', /spine.leaf.*spine.*leaf/.test(js));
+test('Expand: fabric → VXLAN', /fabric.*VXLAN/.test(js));
+test('AI prompt mentions VXLAN', /VXLAN SUPPORT/.test(js));
+test('AI prompt mentions vxlanConfig schema', /vxlanConfig.*vni/.test(js));
+test('AI prompt mentions data centre mapping', /data cent.*onprem-dc/.test(js));
+test('Phase 2 deep validation runs after generate', /Phase 2.*Validating/.test(js));
+test('Deep gen fix count in status', /auto-fixes applied/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
