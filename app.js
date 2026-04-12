@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.28.1';
+const APP_VERSION = '4.29.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -5312,11 +5312,19 @@ function tbRenderCanvas() {
     const my = (p1.y + p2.y) / 2 + 16;
     const dAttr = `M ${p1.x} ${p1.y} Q ${mx} ${my} ${p2.x} ${p2.y}`;
     const dashAttr = meta.dash ? ` stroke-dasharray="${meta.dash}"` : '';
+    // Cable status: check if both ends have IPs on connected interfaces
+    let cableStatus = '';
+    const fromIfc = from.interfaces?.find(i => i.cableId === c.id);
+    const toIfc = to.interfaces?.find(i => i.cableId === c.id);
+    const fromHasIp = fromIfc?.ip || from.type === 'switch' || from.type === 'dmz-switch' || from.type === 'cloud';
+    const toHasIp = toIfc?.ip || to.type === 'switch' || to.type === 'dmz-switch' || to.type === 'cloud';
+    if (fromHasIp && toHasIp) cableStatus = ' tb-cable-healthy';
+    else if (fromHasIp || toHasIp) cableStatus = ' tb-cable-partial';
     // Three-layer render: dark sheath (shadow), inner colored conductor,
     // and a fat transparent hitbox on top so clicks land easily even on a
     // thin curved path. Only the hitbox carries the click handler.
     return `<path class="tb-cable-sheath" d="${dAttr}" stroke="#0b1020" stroke-width="${meta.width + 5}" stroke-linecap="round" fill="none" opacity="0.7" pointer-events="none" />
-<path class="tb-cable tb-cable-${cableType}${selected}" d="${dAttr}" stroke="${meta.color}" stroke-width="${meta.width}" stroke-linecap="round" fill="none"${dashAttr} pointer-events="none" />
+<path class="tb-cable tb-cable-${cableType}${selected}${cableStatus}" d="${dAttr}" stroke="${meta.color}" stroke-width="${meta.width}" stroke-linecap="round" fill="none"${dashAttr} pointer-events="none" />
 <path class="tb-cable-hit" data-tb-cable="${c.id}" d="${dAttr}" stroke="transparent" stroke-width="20" stroke-linecap="round" fill="none" />`;
   }).join('');
 
@@ -5326,12 +5334,25 @@ function tbRenderCanvas() {
     if (!meta) return '';
     const selected = tbSelectedId === d.id ? ' tb-device-selected' : '';
     const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
+    // Device health badge — shows config status
+    const isEndpoint = ['pc','server','printer','voip','iot'].includes(d.type);
+    const isRoutable = ['router','firewall','isp-router'].includes(d.type);
+    const isSwitch = d.type === 'switch' || d.type === 'dmz-switch';
+    const hasCable = tbState.cables.some(c => c.from === d.id || c.to === d.id);
+    const hasIp = d.interfaces?.some(i => i.ip);
+    const hasGw = d.interfaces?.some(i => i.gateway);
+    let healthColor = '';
+    if (hasCable && ((isEndpoint && hasIp && hasGw) || (isRoutable && hasIp) || (isSwitch && hasCable) || (!isEndpoint && !isRoutable && !isSwitch))) healthColor = '#22c55e';
+    else if (hasCable && (hasIp || isSwitch)) healthColor = '#f59e0b';
+    else if (hasCable) healthColor = '#ef4444';
+    const healthBadge = healthColor ? `<circle cx="40" cy="-28" r="5" fill="${healthColor}" stroke="#0f172a" stroke-width="1.5" class="tb-health-badge"/>` : '';
     return `
       <g class="tb-device${selected}${pending}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
         <rect class="tb-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"
               fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
         <g transform="scale(0.72) translate(0, 4)">${tbDeviceIcon(d.type, meta.color)}</g>
         <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">${escHtml(d.hostname || meta.label)}</text>
+        ${healthBadge}
       </g>
     `;
   }).join('');
@@ -5620,6 +5641,8 @@ function tbLoadDraft() {
 }
 function tbSaveDraft() {
   try { localStorage.setItem(STORAGE.TOPOLOGY_DRAFT, JSON.stringify(tbState)); } catch (_) {}
+  // Live lab step validation — re-evaluate the current step every time state changes
+  if (tbActiveLab) tbRenderLabStep();
 }
 function tbLoadAllSaves() {
   try {
@@ -9502,6 +9525,560 @@ const TB_LABS = [
       },
     ]
   },
+  // ── v4.29.0 Labs ──
+  {
+    id: 'static-routing',
+    title: 'Static Routing Between Subnets',
+    objective: '1.4',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Build a 3-subnet network with 2 routers. Configure static routes so all subnets can communicate. This is the #1 tested concept on the Network+ exam.',
+    steps: [
+      {
+        title: 'Build the core — 2 routers, 2 switches',
+        instruction: 'Create **Router R1**, **Router R2**, **Switch SW1**, and **Switch SW2**. Cable R1 ↔ R2 (backbone link), R1 ↔ SW1 (LAN A), and R2 ↔ SW2 (LAN B). This gives you 3 subnets: LAN A, the point-to-point backbone, and LAN B.',
+        hint: 'The backbone between routers is its own subnet (e.g. 10.0.0.0/30). LANs are /24 subnets.',
+        check: (s) => s.devices.filter(d => d.type === 'router').length >= 2 && s.devices.filter(d => d.type === 'switch').length >= 2 && s.cables.length >= 3,
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router').length;
+          const switches = s.devices.filter(d => d.type === 'switch').length;
+          if (routers < 2) return `${routers}/2 routers placed.`;
+          if (switches < 2) return `${switches}/2 switches placed.`;
+          if (s.cables.length < 3) return `${s.cables.length}/3 cables. Need: R1↔R2, R1↔SW1, R2↔SW2.`;
+          return null;
+        },
+      },
+      {
+        title: 'Add endpoints to each LAN',
+        instruction: 'Add **2 PCs** to SW1 (LAN A) and **2 PCs** to SW2 (LAN B). Cable each PC to its local switch. You should now have 7 cables total.',
+        hint: 'Each LAN needs its own set of PCs connected to the local switch, not to the routers.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 4 && s.cables.length >= 7,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          if (pcs < 4) return `${pcs}/4 PCs placed.`;
+          if (s.cables.length < 7) return `${s.cables.length}/7 cables.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure R1 interfaces',
+        instruction: 'Double-click **R1** → Interfaces tab.\n\n• **LAN A interface** (connected to SW1): `192.168.1.1/24`\n• **Backbone interface** (connected to R2): `10.0.0.1/30`\n\nR1 needs IPs on **both** connected interfaces. A router without IPs is just an expensive paperweight!',
+        hint: 'A /30 subnet gives exactly 2 usable IPs — perfect for a point-to-point link between routers.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.filter(i => i.ip).length >= 2; },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          const ipCount = r.interfaces.filter(i => i.ip).length;
+          return ipCount < 2 ? `R1 has ${ipCount}/2 interfaces with IPs. Both connected interfaces need IPs.` : null;
+        },
+      },
+      {
+        title: 'Configure R2 interfaces',
+        instruction: 'Double-click **R2** → Interfaces tab.\n\n• **LAN B interface** (connected to SW2): `192.168.2.1/24`\n• **Backbone interface** (connected to R1): `10.0.0.2/30`\n\nNote: R2\'s backbone IP must be in the **same /30 subnet** as R1\'s (10.0.0.1 and 10.0.0.2 share 10.0.0.0/30).',
+        hint: 'Both backbone IPs must be in the same subnet. 10.0.0.1/30 and 10.0.0.2/30 share the same network (10.0.0.0/30).',
+        check: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          return routers.length >= 2 && routers[1].interfaces.filter(i => i.ip).length >= 2;
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          if (routers.length < 2) return 'Need 2 routers.';
+          const ipCount = routers[1].interfaces.filter(i => i.ip).length;
+          return ipCount < 2 ? `R2 has ${ipCount}/2 interfaces with IPs.` : null;
+        },
+      },
+      {
+        title: 'Add static routes on both routers',
+        instruction: 'Each router knows its connected subnets, but NOT the remote LAN. Fix this with **static routes**:\n\n• **R1** → Routing tab: Add `192.168.2.0/24` via `10.0.0.2`\n• **R2** → Routing tab: Add `192.168.1.0/24` via `10.0.0.1`\n\nThis tells each router where to send packets destined for the other LAN.',
+        hint: 'Static routes format: destination network + next-hop IP. The next-hop must be directly reachable (on a connected subnet).',
+        check: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          return routers.length >= 2 && routers.every(r => r.routingTable && r.routingTable.some(rt => rt.type === 'static'));
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          const r1Statics = (routers[0]?.routingTable || []).filter(r => r.type === 'static').length;
+          const r2Statics = (routers[1]?.routingTable || []).filter(r => r.type === 'static').length;
+          if (r1Statics === 0 && r2Statics === 0) return 'Neither router has static routes. Add them in the Routing tab.';
+          if (r1Statics === 0) return 'R1 has no static routes — it can\'t reach LAN B.';
+          if (r2Statics === 0) return 'R2 has no static routes — it can\'t reach LAN A.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure PC IPs and gateways',
+        instruction: 'Set IPs on all 4 PCs:\n\n• **LAN A PCs**: `192.168.1.10`, `192.168.1.11`, gateway `192.168.1.1`\n• **LAN B PCs**: `192.168.2.10`, `192.168.2.11`, gateway `192.168.2.1`\n\nThe gateway MUST point to the local router. Without it, PCs don\'t know where to send cross-subnet traffic.',
+        hint: 'Every endpoint needs: (1) IP in same subnet as its local router interface, (2) gateway = that router interface IP.',
+        check: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          return pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway)).length >= 4;
+        },
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const withBoth = pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway)).length;
+          return withBoth < 4 ? `${withBoth}/4 PCs have both IP and gateway configured.` : null;
+        },
+      },
+      {
+        title: 'Test — Ping across subnets',
+        instruction: 'Open **Ping** → select a LAN A PC as source and a LAN B PC as destination. Hit Ping and watch the packet traverse R1 → R2. Check the **Sim Log** to see each hop. Then run `show ip route` on R1\'s CLI to verify your routing table. Try `traceroute 192.168.2.10` from PC1 to see all hops.',
+        hint: 'If ping fails: check that both routers have static routes AND that PC gateways point to the correct router.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'acl-traffic-filter',
+    title: 'ACL Traffic Filtering',
+    objective: '4.3',
+    difficulty: 'Advanced',
+    duration: '15 min',
+    description: 'Configure Access Control Lists on a firewall to permit web traffic but deny all other traffic. Learn how ACLs filter packets by protocol, port, and IP address.',
+    steps: [
+      {
+        title: 'Build the network — Internet, Firewall, LAN',
+        instruction: 'Create: **1 Internet/WAN cloud**, **1 Firewall**, **1 Switch**, **2 PCs**, **1 Server**. Cable: Cloud ↔ Firewall ↔ Switch, PCs and Server to Switch. This simulates a corporate network with a perimeter firewall.',
+        hint: 'The firewall sits between the untrusted Internet and your internal LAN — it inspects and filters all traffic crossing the boundary.',
+        check: (s) => s.devices.some(d => d.type === 'firewall') && s.devices.some(d => d.type === 'server') && s.cables.length >= 5,
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'firewall')) return 'No firewall placed. Drag one from the palette.';
+          if (!s.devices.some(d => d.type === 'server')) return 'No server placed. You need a server to protect.';
+          if (s.cables.length < 5) return `${s.cables.length}/5 cables. Connect all devices.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure Firewall interfaces',
+        instruction: 'Double-click the **Firewall** → Interfaces tab. Set:\n\n• **eth0** (outside/WAN-facing): `203.0.113.1/24`\n• **eth1** (inside/LAN-facing): `192.168.1.1/24`\n\nThe firewall needs IPs on both zones to route and filter traffic between them.',
+        hint: 'Firewalls operate at Layer 3+ — they need IPs to route and inspect packets. The outside interface uses a public IP range.',
+        check: (s) => { const fw = s.devices.find(d => d.type === 'firewall'); return fw && fw.interfaces.filter(i => i.ip).length >= 2; },
+        feedback: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          if (!fw) return 'No firewall found.';
+          const ipCount = fw.interfaces.filter(i => i.ip).length;
+          return ipCount < 2 ? `Firewall has ${ipCount}/2 IPs. Both inside and outside interfaces need IPs.` : null;
+        },
+      },
+      {
+        title: 'Configure Server and PC IPs',
+        instruction: 'Set the **Server** IP to `192.168.1.100` (gateway `192.168.1.1`). Set PCs to `192.168.1.10` and `192.168.1.11` (same gateway). All internal devices use the firewall\'s inside interface as their gateway.',
+        hint: 'The firewall is the default gateway for ALL internal devices — it controls what traffic enters and leaves the network.',
+        check: (s) => {
+          const srv = s.devices.find(d => d.type === 'server');
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          return srv && srv.interfaces.some(i => i.ip) && pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway)).length >= 2;
+        },
+        feedback: (s) => {
+          const srv = s.devices.find(d => d.type === 'server');
+          if (!srv || !srv.interfaces.some(i => i.ip)) return 'Server needs an IP address.';
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const configured = pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway)).length;
+          return configured < 2 ? `${configured}/2 PCs fully configured (need IP + gateway).` : null;
+        },
+      },
+      {
+        title: 'Add ACL rules on the Firewall',
+        instruction: 'Double-click **Firewall** → **ACLs** tab. Create rules:\n\n1. **ALLOW** TCP port **80** (HTTP) from `0.0.0.0/0`\n2. **ALLOW** TCP port **443** (HTTPS) from `0.0.0.0/0`\n3. **DENY** all other inbound traffic\n\nACLs are processed **top-down, first match wins**. Order matters!',
+        hint: 'ACLs on the exam: standard ACLs filter by source IP only. Extended ACLs filter by source, destination, protocol, and port. These are extended ACLs.',
+        check: (s) => { const fw = s.devices.find(d => d.type === 'firewall'); return fw && fw.acls && fw.acls.length >= 2; },
+        feedback: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          if (!fw) return 'No firewall found.';
+          const count = (fw.acls || []).length;
+          return count < 2 ? `Firewall has ${count} ACL rules. Add at least 2 rules (allow HTTP + HTTPS).` : null;
+        },
+      },
+      {
+        title: 'Verify with CLI commands',
+        instruction: 'Open the **Firewall CLI** and run:\n\n• `show acl` — view your configured rules\n• `show ip route` — verify routing between zones\n\nIn a real network, you\'d test by sending HTTP traffic through the firewall and confirming HTTPS passes while other protocols are blocked.',
+        hint: 'On the Network+ exam, know that implicit DENY ALL exists at the end of every ACL. If no rule matches, traffic is dropped.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'site-to-site-vpn',
+    title: 'Site-to-Site VPN',
+    objective: '3.3',
+    difficulty: 'Advanced',
+    duration: '20 min',
+    description: 'Connect two on-premises data centers over a VPN tunnel. Configure VPN gateways with matching crypto parameters and verify the tunnel negotiates successfully.',
+    autoSetup: (state) => {
+      // Pre-build two DCs and a cloud, but leave VPN unconfigured
+      const dc1 = { id: 'd_vpnlab_dc1', type: 'onprem-dc', x: 200, y: 400, hostname: 'DC-East',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '10.1.0.1', mask: '255.255.255.0', mac: 'AA:BB:CC:01:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const dc2 = { id: 'd_vpnlab_dc2', type: 'onprem-dc', x: 1100, y: 400, hostname: 'DC-West',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '10.2.0.1', mask: '255.255.255.0', mac: 'AA:BB:CC:02:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const vpg1 = { id: 'd_vpnlab_vpg1', type: 'vpg', x: 450, y: 400, hostname: 'VPG-East',
+        interfaces: [{ name: 'tun0', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:03:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+                     { name: 'tun1', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:03:02:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const vpg2 = { id: 'd_vpnlab_vpg2', type: 'vpg', x: 850, y: 400, hostname: 'VPG-West',
+        interfaces: [{ name: 'tun0', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:04:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+                     { name: 'tun1', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:04:02:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const cloud = { id: 'd_vpnlab_cloud', type: 'cloud', x: 650, y: 200, hostname: 'Internet',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:05:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+                     { name: 'eth1', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:05:02:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      state.devices.push(dc1, dc2, vpg1, vpg2, cloud);
+      // Cable: DC1 ↔ VPG1, VPG1 ↔ Cloud, Cloud ↔ VPG2, VPG2 ↔ DC2
+      const c1 = { id: 'c_vpnlab_1', from: dc1.id, to: vpg1.id, type: 'fiber', fromIface: 'eth0', toIface: 'tun0' };
+      const c2 = { id: 'c_vpnlab_2', from: vpg1.id, to: cloud.id, type: 'fiber', fromIface: 'tun1', toIface: 'eth0' };
+      const c3 = { id: 'c_vpnlab_3', from: cloud.id, to: vpg2.id, type: 'fiber', fromIface: 'eth1', toIface: 'tun1' };
+      const c4 = { id: 'c_vpnlab_4', from: vpg2.id, to: dc2.id, type: 'fiber', fromIface: 'tun0', toIface: 'eth0' };
+      dc1.interfaces[0].cableId = c1.id; vpg1.interfaces[0].cableId = c1.id;
+      vpg1.interfaces[1].cableId = c2.id; cloud.interfaces[0].cableId = c2.id;
+      cloud.interfaces[1].cableId = c3.id; vpg2.interfaces[1].cableId = c3.id;
+      vpg2.interfaces[0].cableId = c4.id; dc2.interfaces[0].cableId = c4.id;
+      state.cables.push(c1, c2, c3, c4);
+    },
+    steps: [
+      {
+        title: 'Survey the pre-built network',
+        instruction: 'You have **2 data centers** (DC-East and DC-West) connected through **VPN Gateways** across the **Internet**. The topology is wired but the VPN tunnel is **not configured**.\n\nExplore: double-click each device to see its current config. Notice that VPG-East and VPG-West have no VPN configuration yet.',
+        hint: 'A VPN creates an encrypted tunnel over a public network. The VPN gateways handle encryption/decryption at each end.',
+        check: (s) => s.devices.some(d => d.type === 'vpg') && s.devices.some(d => d.type === 'onprem-dc'),
+        feedback: () => null,
+      },
+      {
+        title: 'Configure VPN on VPG-East',
+        instruction: 'Double-click **VPG-East** → **VPN/IPSec** tab. Configure:\n\n• Pre-shared key: `MySecretKey123`\n• IKE version: `IKEv2`\n• Encryption: `AES-256`\n• Hash: `SHA-256`\n• DH Group: `14`\n\nThese are the **Phase 1 (IKE)** parameters. Both ends MUST match exactly or the tunnel won\'t come up!',
+        hint: 'IKE (Internet Key Exchange) negotiates the security association. Both peers must agree on encryption, hash, and DH group. Any mismatch = tunnel fails.',
+        check: (s) => {
+          const vpg = s.devices.find(d => d.hostname === 'VPG-East' || (d.type === 'vpg' && d.vpnConfig && d.vpnConfig.psk));
+          return vpg && vpg.vpnConfig && vpg.vpnConfig.psk && vpg.vpnConfig.psk.length > 0;
+        },
+        feedback: (s) => {
+          const vpg = s.devices.find(d => d.type === 'vpg');
+          if (!vpg) return 'No VPN Gateway found.';
+          if (!vpg.vpnConfig || !vpg.vpnConfig.psk) return 'VPG-East has no VPN config. Open VPN/IPSec tab and set the pre-shared key.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure VPN on VPG-West — matching params!',
+        instruction: 'Double-click **VPG-West** → **VPN/IPSec** tab. Set the **exact same** parameters:\n\n• Pre-shared key: `MySecretKey123`\n• IKE version: `IKEv2`\n• Encryption: `AES-256`\n• Hash: `SHA-256`\n• DH Group: `14`\n\n**Critical**: If even ONE parameter differs (e.g., SHA-256 vs SHA-384), the tunnel will fail to negotiate.',
+        hint: 'Common VPN troubleshooting: mismatched PSK, different encryption algorithms, or wrong IKE version. Always verify both sides match.',
+        check: (s) => {
+          const vpgs = s.devices.filter(d => d.type === 'vpg');
+          return vpgs.filter(v => v.vpnConfig && v.vpnConfig.psk && v.vpnConfig.psk.length > 0).length >= 2;
+        },
+        feedback: (s) => {
+          const vpgs = s.devices.filter(d => d.type === 'vpg');
+          const configured = vpgs.filter(v => v.vpnConfig && v.vpnConfig.psk);
+          if (configured.length < 2) return `${configured.length}/2 VPN gateways have VPN config. Configure VPG-West too.`;
+          // Check matching
+          if (configured.length === 2 && configured[0].vpnConfig.psk !== configured[1].vpnConfig.psk) return 'Pre-shared keys don\'t match! Both VPGs must use the same PSK.';
+          if (configured.length === 2 && configured[0].vpnConfig.encryption !== configured[1].vpnConfig.encryption) return 'Encryption algorithms don\'t match!';
+          return null;
+        },
+      },
+      {
+        title: 'Negotiate the VPN tunnel',
+        instruction: 'Click **VPG-East** → VPN tab → **Negotiate Tunnel** button. The system will check if both endpoints have matching crypto params.\n\n• ✅ Green animation = tunnel UP\n• ❌ Red animation = mismatch detected\n\nIf it fails, check the error message — it tells you exactly which parameter mismatched. Fix it and try again.',
+        hint: 'In real networks, use `show crypto isakmp sa` and `show crypto ipsec sa` to troubleshoot VPN tunnels.',
+        check: (s) => {
+          const vpgs = s.devices.filter(d => d.type === 'vpg');
+          return vpgs.some(v => v.vpnConfig && v.vpnConfig.status === 'up');
+        },
+        feedback: (s) => {
+          const vpgs = s.devices.filter(d => d.type === 'vpg');
+          const up = vpgs.filter(v => v.vpnConfig && v.vpnConfig.status === 'up');
+          if (up.length === 0) return 'VPN tunnel is not up yet. Click Negotiate Tunnel in the VPN tab.';
+          return null;
+        },
+      },
+      {
+        title: 'Verify — show VPN status',
+        instruction: 'Open the CLI on **VPG-East** and run `show vpn`. You should see the tunnel status, peer IP, and crypto parameters.\n\nThen try `show vpn` on **DC-East** to see the VPN status from the data center side.\n\nOn the **Network+ exam**, VPN questions focus on: IPSec vs SSL VPN, IKEv1 vs IKEv2, tunnel vs transport mode, and crypto parameter matching.',
+        hint: 'IPSec has two modes: tunnel mode (encrypts entire packet + new IP header, used for site-to-site) and transport mode (encrypts only payload, used for host-to-host).',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'wireless-network',
+    title: 'Wireless Network with WLC',
+    objective: '2.4',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Deploy a wireless network with access points managed by a Wireless LAN Controller. Understand the difference between autonomous and lightweight APs.',
+    steps: [
+      {
+        title: 'Build the wired backbone',
+        instruction: 'Create: **1 Router**, **1 Switch**, **1 WLC (Wireless LAN Controller)**. Cable: Router ↔ Switch ↔ WLC. The WLC centralizes management of all access points — SSIDs, security policies, channel assignments, and roaming.',
+        hint: 'Autonomous APs are configured individually. Controller-based (lightweight) APs get their config from the WLC — much easier to manage at scale.',
+        check: (s) => s.devices.some(d => d.type === 'router') && s.devices.some(d => d.type === 'switch') && s.devices.some(d => d.type === 'wlc') && s.cables.length >= 2,
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'router')) return 'No router. Drag one from the palette.';
+          if (!s.devices.some(d => d.type === 'switch')) return 'No switch.';
+          if (!s.devices.some(d => d.type === 'wlc')) return 'No WLC (Wireless LAN Controller). Find it in the palette.';
+          if (s.cables.length < 2) return `${s.cables.length}/2 cables. Connect Router↔Switch↔WLC.`;
+          return null;
+        },
+      },
+      {
+        title: 'Add Wireless Access Points',
+        instruction: 'Add **3 WAPs** (Wireless Access Points) and connect each one to the **Switch**. In a controller-based deployment, APs connect to the wired network and create a **CAPWAP tunnel** back to the WLC for management traffic.\n\nPosition them spread across the canvas to simulate physical coverage areas.',
+        hint: 'CAPWAP (Control And Provisioning of Wireless Access Points) is the protocol between lightweight APs and the WLC. It runs on UDP ports 5246 (control) and 5247 (data).',
+        check: (s) => s.devices.filter(d => d.type === 'wap').length >= 3 && s.cables.length >= 5,
+        feedback: (s) => {
+          const waps = s.devices.filter(d => d.type === 'wap').length;
+          if (waps < 3) return `${waps}/3 WAPs placed. Add ${3 - waps} more.`;
+          if (s.cables.length < 5) return `${s.cables.length}/5 cables. Connect each WAP to the switch.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure Router as gateway',
+        instruction: 'Double-click the **Router** → Interfaces tab. Set the LAN interface to `192.168.1.1/24`. This is the default gateway for all wireless clients. In enterprise wireless, the router handles **inter-VLAN routing** and DHCP.',
+        hint: 'Wireless clients get IPs from DHCP and use the router as their gateway, just like wired clients. The AP is transparent at Layer 3.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          if (!r.interfaces.some(i => i.ip)) return 'Router needs an IP on its LAN interface.';
+          return null;
+        },
+      },
+      {
+        title: 'Add wireless clients',
+        instruction: 'Add **2-3 PCs** (representing wireless laptops/phones). Don\'t cable them — wireless clients connect through the **WAPs**, not with physical cables.\n\nSet their IPs: `192.168.1.50`, `192.168.1.51`, `192.168.1.52` with gateway `192.168.1.1`.',
+        hint: 'On the exam: wireless clients associate with an AP, authenticate (WPA2/WPA3), get an IP via DHCP, and then communicate through the AP as if wired.',
+        check: (s) => {
+          const uncabledPcs = s.devices.filter(d => d.type === 'pc' && !s.cables.some(c => c.from === d.id || c.to === d.id));
+          return uncabledPcs.filter(p => p.interfaces.some(i => i.ip)).length >= 2;
+        },
+        feedback: (s) => {
+          const uncabledPcs = s.devices.filter(d => d.type === 'pc' && !s.cables.some(c => c.from === d.id || c.to === d.id));
+          if (uncabledPcs.length < 2) return `${uncabledPcs.length} uncabled PCs found. Add PCs without cables to represent wireless clients.`;
+          const withIp = uncabledPcs.filter(p => p.interfaces.some(i => i.ip)).length;
+          return withIp < 2 ? `${withIp}/2 wireless clients have IPs. Configure them.` : null;
+        },
+      },
+      {
+        title: 'Review — Wireless concepts',
+        instruction: 'Your wireless network is complete! Review these **Network+ exam** wireless concepts:\n\n• **802.11ax** (Wi-Fi 6): OFDMA, MU-MIMO, BSS Coloring, 2.4/5 GHz\n• **WPA3**: SAE (replaces PSK), 192-bit security mode, PMF mandatory\n• **Channel planning**: 2.4 GHz non-overlapping channels: 1, 6, 11\n• **CAPWAP**: Control plane (5246) + Data plane (5247)\n• **Roaming**: Client moves between APs, WLC handles seamless handoff\n\nRun `show arp` on the router to see learned MAC addresses.',
+        hint: 'Exam tip: know the frequency bands — 2.4 GHz (longer range, more interference), 5 GHz (shorter range, less interference), 6 GHz (Wi-Fi 6E only).',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'cloud-vpc-security',
+    title: 'Cloud VPC with Security Groups',
+    objective: '1.8',
+    difficulty: 'Advanced',
+    duration: '18 min',
+    description: 'Design a cloud VPC architecture with public and private subnets, an Internet Gateway, NAT Gateway, and security groups. Learn cloud-native networking for Network+.',
+    steps: [
+      {
+        title: 'Create the VPC and Internet Gateway',
+        instruction: 'Drag a **VPC** and an **Internet Gateway (IGW)** onto the canvas. Cable them together. The VPC is your isolated virtual network in the cloud, and the IGW gives it a path to the internet.\n\nDouble-click the VPC → VPC Config tab → set CIDR to `10.0.0.0/16`.',
+        hint: 'A VPC is like a virtual data center in the cloud. The CIDR block defines the entire IP address range available for subnets.',
+        check: (s) => s.devices.some(d => d.type === 'vpc') && s.devices.some(d => d.type === 'igw') && s.cables.length >= 1,
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'vpc')) return 'No VPC placed. Find it in the palette.';
+          if (!s.devices.some(d => d.type === 'igw')) return 'No Internet Gateway placed.';
+          if (s.cables.length < 1) return 'Connect the IGW to the VPC.';
+          const vpc = s.devices.find(d => d.type === 'vpc');
+          if (vpc && (!vpc.vpcConfig || !vpc.vpcConfig.cidr)) return 'VPC needs a CIDR block. Double-click → VPC Config tab.';
+          return null;
+        },
+      },
+      {
+        title: 'Create public and private subnets',
+        instruction: 'Add **2 Cloud Subnets**: one for public-facing resources (web servers) and one for private resources (databases).\n\nCable both subnets to the VPC. The public subnet routes to the IGW; the private subnet does NOT.',
+        hint: 'Public subnet = route table has 0.0.0.0/0 → IGW. Private subnet = no internet route (or route to NAT only).',
+        check: (s) => s.devices.filter(d => d.type === 'cloud-subnet').length >= 2,
+        feedback: (s) => {
+          const subs = s.devices.filter(d => d.type === 'cloud-subnet').length;
+          return subs < 2 ? `${subs}/2 cloud subnets placed. Add ${2 - subs} more.` : null;
+        },
+      },
+      {
+        title: 'Add a NAT Gateway',
+        instruction: 'Add a **NAT Gateway** and cable it to the **public subnet**. The NAT Gateway allows private subnet resources to reach the internet (e.g., for software updates) without being directly accessible from outside.\n\nNAT translates private IPs to a public IP for outbound traffic only.',
+        hint: 'NAT Gateway = outbound-only internet access. Internet Gateway = bidirectional. Private subnets use NAT GW; public subnets use IGW.',
+        check: (s) => s.devices.some(d => d.type === 'nat-gw'),
+        feedback: (s) => !s.devices.some(d => d.type === 'nat-gw') ? 'No NAT Gateway placed. Drag one from the palette.' : null,
+      },
+      {
+        title: 'Deploy servers into subnets',
+        instruction: 'Add a **Server** (web server) to the public subnet and another **Server** (database) to the private subnet. Cable each to its subnet.\n\nSet IPs:\n• Web server: `10.0.1.10/24`, gateway `10.0.1.1`\n• DB server: `10.0.2.10/24`, gateway `10.0.2.1`',
+        hint: 'Public subnet servers have public IP + security group. Private subnet servers only have private IPs and are only reachable from within the VPC.',
+        check: (s) => {
+          const servers = s.devices.filter(d => d.type === 'server');
+          return servers.filter(srv => srv.interfaces.some(i => i.ip)).length >= 2;
+        },
+        feedback: (s) => {
+          const servers = s.devices.filter(d => d.type === 'server');
+          const withIp = servers.filter(srv => srv.interfaces.some(i => i.ip)).length;
+          return withIp < 2 ? `${withIp}/2 servers have IPs. Configure both.` : null;
+        },
+      },
+      {
+        title: 'Configure Security Groups',
+        instruction: 'Double-click the **web server** → **Security Groups** tab. Add a security group "web-sg" with rules:\n\n• **Inbound**: Allow TCP 443 (HTTPS) from `0.0.0.0/0`\n• **Inbound**: Allow TCP 80 (HTTP) from `0.0.0.0/0`\n\nSecurity Groups are **stateful** — if inbound is allowed, the return traffic is automatically allowed. No need for explicit outbound rules.',
+        hint: 'Security Groups vs NACLs: SGs are stateful + instance-level. NACLs are stateless + subnet-level. Know both for the exam!',
+        check: (s) => {
+          const servers = s.devices.filter(d => d.type === 'server');
+          return servers.some(srv => srv.securityGroups && srv.securityGroups.length > 0);
+        },
+        feedback: (s) => {
+          const servers = s.devices.filter(d => d.type === 'server');
+          const hasSg = servers.some(srv => srv.securityGroups && srv.securityGroups.length > 0);
+          return !hasSg ? 'No security groups configured on any server. Double-click web server → Security Groups tab.' : null;
+        },
+      },
+      {
+        title: 'Grade and review',
+        instruction: 'Click **Grade** in the toolbar to evaluate your design. Look for:\n\n• ✅ IGW connected to VPC\n• ✅ NAT GW in a subnet\n• ✅ Security groups on servers\n\n**Key exam concepts**:\n• VPC peering: connect VPCs without traversing the internet\n• Transit Gateway: hub-and-spoke for multi-VPC\n• Security Groups: stateful, allow-only, instance-level\n• NACLs: stateless, allow/deny, subnet-level, numbered rules',
+        hint: 'On the exam: "Which is stateful?" → Security Group. "Which uses rule numbers?" → NACL. "Which is instance-level?" → Security Group.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'network-hardening',
+    title: 'Network Hardening & Best Practices',
+    objective: '4.1',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Harden a network by implementing security best practices: disable unused ports, configure management VLANs, and deploy IDS/IPS. Covers Network+ security fundamentals.',
+    autoSetup: (state) => {
+      // Pre-build a basic network with security gaps
+      const r1 = { id: 'd_harden_r1', type: 'router', x: 650, y: 150, hostname: 'R-Core',
+        interfaces: [
+          { name: 'Gi0/0', cableId: null, ip: '192.168.1.1', mask: '255.255.255.0', mac: 'AA:BB:CC:10:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          { name: 'Gi0/1', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:10:02:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+        ],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const sw1 = { id: 'd_harden_sw1', type: 'switch', x: 400, y: 350, hostname: 'SW-Access',
+        interfaces: Array.from({ length: 24 }, (_, i) => ({
+          name: `Fa0/${i + 1}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:BB:CC:11:${String(i+1).padStart(2,'0')}:01`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [],
+        })),
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const pc1 = { id: 'd_harden_pc1', type: 'pc', x: 200, y: 550, hostname: 'PC-Admin',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '192.168.1.10', mask: '255.255.255.0', mac: 'AA:BB:CC:12:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.1', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const pc2 = { id: 'd_harden_pc2', type: 'pc', x: 400, y: 550, hostname: 'PC-User',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '192.168.1.11', mask: '255.255.255.0', mac: 'AA:BB:CC:13:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.1', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      const srv = { id: 'd_harden_srv', type: 'server', x: 600, y: 550, hostname: 'SRV-Files',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '192.168.1.100', mask: '255.255.255.0', mac: 'AA:BB:CC:14:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.1', enabled: true, subInterfaces: [] }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [] };
+      state.devices.push(r1, sw1, pc1, pc2, srv);
+      // Cables
+      const c1 = { id: 'c_harden_1', from: r1.id, to: sw1.id, type: 'cat6', fromIface: 'Gi0/0', toIface: 'Fa0/1' };
+      const c2 = { id: 'c_harden_2', from: sw1.id, to: pc1.id, type: 'cat6', fromIface: 'Fa0/2', toIface: 'eth0' };
+      const c3 = { id: 'c_harden_3', from: sw1.id, to: pc2.id, type: 'cat6', fromIface: 'Fa0/3', toIface: 'eth0' };
+      const c4 = { id: 'c_harden_4', from: sw1.id, to: srv.id, type: 'cat6', fromIface: 'Fa0/4', toIface: 'eth0' };
+      r1.interfaces[0].cableId = c1.id; sw1.interfaces[0].cableId = c1.id;
+      sw1.interfaces[1].cableId = c2.id; pc1.interfaces[0].cableId = c2.id;
+      sw1.interfaces[2].cableId = c3.id; pc2.interfaces[0].cableId = c3.id;
+      sw1.interfaces[3].cableId = c4.id; srv.interfaces[0].cableId = c4.id;
+      state.cables.push(c1, c2, c3, c4);
+    },
+    steps: [
+      {
+        title: 'Survey the insecure network',
+        instruction: 'This network has several security issues:\n\n• All devices on **VLAN 1** (default) — management traffic mixed with user traffic\n• **20 unused switch ports** are active — an attacker could plug into any of them\n• **No IDS/IPS** to detect threats\n• **No firewall** at the perimeter\n\nLet\'s fix these one by one. Start by exploring the switch — double-click it and check the Interfaces tab.',
+        hint: 'VLAN 1 should never be used for production traffic — it\'s the default and can\'t be deleted, making it a target.',
+        check: (s) => s.devices.some(d => d.type === 'switch'),
+        feedback: () => null,
+      },
+      {
+        title: 'Create a management VLAN',
+        instruction: 'Double-click **SW-Access** → **VLANs** tab. Add **VLAN 99** (name: "Management"). Then go to Interfaces → set the **router-facing port** (Fa0/1) to **trunk** mode. Set admin PC port to VLAN 99.\n\nManagement traffic (SSH, SNMP, syslog) should be on its own VLAN, isolated from user traffic.',
+        hint: 'Management VLAN best practice: use a VLAN other than 1, restrict access with ACLs, and only allow authorized admin workstations.',
+        check: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          return sw && sw.vlanDb && sw.vlanDb.some(v => v.id === 99);
+        },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return 'No switch found.';
+          if (!sw.vlanDb || !sw.vlanDb.some(v => v.id === 99)) return 'VLAN 99 not created yet. Add it in the VLANs tab.';
+          return null;
+        },
+      },
+      {
+        title: 'Disable unused switch ports',
+        instruction: 'Go to **SW-Access** → Interfaces tab. Find ports that have **no cable** (Fa0/5 through Fa0/24). Disable them by toggling their **enabled** status to off.\n\nEvery open port is an attack vector. An unused port in an enabled state lets anyone plug in and join your network. Disabling unused ports is basic security hygiene.',
+        hint: 'On the exam: "shutdown" disables a port. "no shutdown" enables it. Port security and 802.1X are additional protections.',
+        check: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return false;
+          const unusedPorts = sw.interfaces.filter(i => !i.cableId);
+          const disabledCount = unusedPorts.filter(i => !i.enabled).length;
+          return disabledCount >= 10;
+        },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return 'No switch found.';
+          const unusedPorts = sw.interfaces.filter(i => !i.cableId);
+          const disabledCount = unusedPorts.filter(i => !i.enabled).length;
+          return `${disabledCount}/${unusedPorts.length} unused ports disabled. Disable at least 10.`;
+        },
+      },
+      {
+        title: 'Add an IDS to the network',
+        instruction: 'Drag an **IDS** (Intrusion Detection System) onto the canvas and connect it to the switch. The IDS monitors network traffic for malicious patterns and generates alerts.\n\n**IDS vs IPS**:\n• IDS = passive — detects and alerts (mirror port)\n• IPS = inline — detects and **blocks** (sits in traffic path)\n\nFor this lab, we\'re using IDS in monitoring mode.',
+        hint: 'IDS/IPS placement: typically between the firewall and internal network, or on a SPAN/mirror port. Signature-based detects known attacks; anomaly-based detects unusual patterns.',
+        check: (s) => s.devices.some(d => d.type === 'ids') && s.cables.some(c => {
+          const ids = s.devices.find(d => d.type === 'ids');
+          return ids && (c.from === ids.id || c.to === ids.id);
+        }),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'ids')) return 'No IDS placed. Drag one from the palette.';
+          const ids = s.devices.find(d => d.type === 'ids');
+          const hasCable = s.cables.some(c => c.from === ids.id || c.to === ids.id);
+          return !hasCable ? 'IDS needs to be connected to the switch to monitor traffic.' : null;
+        },
+      },
+      {
+        title: 'Add a perimeter firewall',
+        instruction: 'Add a **Firewall** between the router and the internet. Cable: Internet ↔ Firewall ↔ Router (update the R-Core connection). Configure the firewall with IPs on both interfaces.\n\nThe firewall inspects ALL traffic crossing the network boundary. Without it, the router alone has no security filtering.',
+        hint: 'Defense in depth: Firewall at perimeter + IDS on internal network + VLANs for segmentation + disabled ports = multiple security layers.',
+        check: (s) => s.devices.some(d => d.type === 'firewall') && s.cables.some(c => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          return fw && (c.from === fw.id || c.to === fw.id);
+        }),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'firewall')) return 'No firewall placed.';
+          const fw = s.devices.find(d => d.type === 'firewall');
+          const hasCable = s.cables.some(c => c.from === fw.id || c.to === fw.id);
+          return !hasCable ? 'Firewall is not connected. Cable it between the internet and router.' : null;
+        },
+      },
+      {
+        title: 'Review — Hardening checklist',
+        instruction: 'Your network is now hardened! Review the **Network+ security checklist**:\n\n✅ Management VLAN separated from user traffic\n✅ Unused ports disabled (prevents unauthorized access)\n✅ IDS monitoring for threats\n✅ Perimeter firewall filtering traffic\n\n**Exam topics to review**:\n• 802.1X (port-based NAC)\n• DHCP snooping (prevents rogue DHCP)\n• Dynamic ARP Inspection (prevents ARP spoofing)\n• BPDU Guard (prevents STP manipulation)\n• MAC filtering / port security',
+        hint: 'Remember: security is layers. No single control is enough. The exam loves asking about defense-in-depth strategies.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
 ];
 
 let tbActiveLab = null;  // { labId, stepIdx }
@@ -9565,6 +10142,12 @@ function tbRenderLabStep() {
   nextBtn.textContent = isLast ? 'Finish Lab ✓' : 'Next ▶';
   // Check if step condition is met
   const passed = step.check(tbState);
+  // Track whether this step JUST became complete (for celebration)
+  const stepKey = `${tbActiveLab.labId}_${tbActiveLab.stepIdx}`;
+  if (passed && !tbActiveLab._completedSteps) tbActiveLab._completedSteps = new Set();
+  const justCompleted = passed && tbActiveLab._completedSteps && !tbActiveLab._completedSteps.has(stepKey);
+  if (passed && tbActiveLab._completedSteps) tbActiveLab._completedSteps.add(stepKey);
+
   const stepEl = document.getElementById('tb-lab-step');
   // Convert markdown: **bold**, `code`, \n\n to <br> for multi-paragraph
   let instrHtml = step.instruction.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -9587,12 +10170,18 @@ function tbRenderLabStep() {
   const pct = Math.round(((tbActiveLab.stepIdx + (passed ? 1 : 0)) / lab.steps.length) * 100);
   const progressBar = `<div class="tb-lab-progress-bar"><div class="tb-lab-progress-fill" style="width:${pct}%"></div></div>`;
 
+  // Celebration class for animation
+  const checkClass = justCompleted ? 'tb-lab-step-check tb-lab-step-just-completed' : 'tb-lab-step-check';
+
   stepEl.innerHTML = `<div class="tb-lab-step-title">${escHtml(step.title)}</div>
     ${progressBar}
     <div class="tb-lab-step-instr">${instrHtml}</div>
     ${hintHtml}
     ${feedbackHtml}
-    ${passed ? '<div class="tb-lab-step-check">✓ Step complete!</div>' : '<div class="tb-lab-step-pending">Complete the step above, then click Next.</div>'}`;
+    ${passed ? `<div class="${checkClass}">✓ Step complete!${!isLast ? ' Click Next ▶ to continue.' : ' Click Finish to complete the lab!'}</div>` : '<div class="tb-lab-step-pending">Complete the step above — the panel updates live as you work.</div>'}`;
+
+  // Highlight the Next button when step is complete
+  nextBtn.classList.toggle('tb-lab-next-ready', passed);
 }
 
 function tbLabNext() {

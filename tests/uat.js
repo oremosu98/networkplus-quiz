@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.28.1', js.includes("const APP_VERSION = '4.28.1"));
+test('APP_VERSION is 4.29.0', js.includes("const APP_VERSION = '4.29.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.1'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.29.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.1'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.28.1'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.29.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.29.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -755,7 +755,7 @@ console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 ──\x1b[0m');
 test('tbDeviceIcon function', js.includes('function tbDeviceIcon('));
 test('tbEdgePoint helper', js.includes('function tbEdgePoint('));
 test('Cables use tbEdgePoint (edge-to-edge)', /cabLayer\.innerHTML[\s\S]{0,800}tbEdgePoint/.test(js));
-test('tbRenderCanvas uses tbDeviceIcon instead of emoji text', /devLayer\.innerHTML[\s\S]{0,800}tbDeviceIcon\(/.test(js));
+test('tbRenderCanvas uses tbDeviceIcon instead of emoji text', /devLayer\.innerHTML[\s\S]{0,2000}tbDeviceIcon\(/.test(js));
 test('tbRenderPalette uses SVG icon', /tbRenderPalette[\s\S]{0,600}tb-palette-icon-svg/.test(js));
 test('Intro banner mentions Ping', html.includes('Ping'));
 test('Intro banner mentions DHCP', html.includes('DHCP'));
@@ -1225,8 +1225,8 @@ test('CSS: .tb-lab-progress-bar', css.includes('.tb-lab-progress-bar'));
 test('CSS: .tb-lab-progress-fill', css.includes('.tb-lab-progress-fill'));
 test('CSS: .tb-lab-badge-auto', css.includes('.tb-lab-badge-auto'));
 
-// ── v4.28.1 — VXLAN, Deep AI Gen, Cloud prop fix ──
-console.log('\n\x1b[1m── v4.28.1 VXLAN + DEEP AI GEN ──\x1b[0m');
+// ── v4.29.0 — VXLAN, Deep AI Gen, Cloud prop fix ──
+console.log('\n\x1b[1m── v4.29.0 VXLAN + DEEP AI GEN ──\x1b[0m');
 // Cloud properties in build payload
 test('tbBuildFromAiPayload copies securityGroups', /securityGroups: dd\.securityGroups/.test(js));
 test('tbBuildFromAiPayload copies vpnConfig', /vpnConfig: dd\.vpnConfig/.test(js));
@@ -1265,8 +1265,8 @@ test('AI prompt mentions data centre mapping', /data cent.*onprem-dc/.test(js));
 test('Phase 2 deep validation runs after generate', /Phase 2.*Validating/.test(js));
 test('Deep gen fix count in status', /auto-fixes applied/.test(js));
 
-// ── v4.28.1 — AI Generation Reliability Fix ──
-console.log('\n\x1b[1m── v4.28.1 AI GEN RELIABILITY ──\x1b[0m');
+// ── v4.29.0 — AI Generation Reliability Fix ──
+console.log('\n\x1b[1m── v4.29.0 AI GEN RELIABILITY ──\x1b[0m');
 // Retry mechanism
 test('AI gen uses 8192 max_tokens', /max_tokens.*8192/.test(js) || js.includes('8192'));
 test('AI gen retry with simplified prompt', js.includes('Retrying with simplified prompt'));
@@ -1280,6 +1280,47 @@ test('Parser handles truncated JSON (open brace count)', /opens > closes/.test(j
 // Prompt improvements
 test('Base prompt starts with CRITICAL JSON instruction', /CRITICAL.*Output ONLY valid JSON/.test(js));
 test('Semantic expansion is concise (no verbose text)', !js.includes('VPN Gateway (vpg) devices with matching IPSec vpnConfig (same PSK, IKE, encryption, hash, DH group)'));
+
+// ── v4.29.0 — Interactive Labs + Builder Enhancements ──
+console.log('\n\x1b[1m── v4.29.0 INTERACTIVE LABS + BUILDER ──\x1b[0m');
+// Live lab validation
+test('tbSaveDraft triggers tbRenderLabStep for live validation', js.includes('if (tbActiveLab) tbRenderLabStep()'));
+test('Step completion tracking (_completedSteps)', js.includes('_completedSteps'));
+test('Just-completed celebration class', js.includes('tb-lab-step-just-completed'));
+test('Next button ready state', js.includes('tb-lab-next-ready'));
+test('Live update hint in pending text', /updates live as you work/.test(js));
+// Cable status coloring
+test('Cable healthy class computed', js.includes('tb-cable-healthy'));
+test('Cable partial class computed', js.includes('tb-cable-partial'));
+// Device health badges
+test('Health badge SVG on devices', js.includes('tb-health-badge'));
+test('Health badge green for configured devices', /#22c55e/.test(js) && js.includes('healthColor'));
+test('Health badge amber for partial config', /#f59e0b/.test(js) && js.includes('healthColor'));
+test('Health badge red for unconfigured', /#ef4444/.test(js) && js.includes('healthColor'));
+// CSS: interactive features
+test('CSS: .tb-lab-step-just-completed animation', css.includes('.tb-lab-step-just-completed'));
+test('CSS: .tb-lab-next-ready pulse', css.includes('.tb-lab-next-ready'));
+test('CSS: .tb-cable-healthy', css.includes('.tb-cable-healthy'));
+test('CSS: .tb-cable-partial', css.includes('.tb-cable-partial'));
+test('CSS: @keyframes tbLabCelebrate', css.includes('tbLabCelebrate'));
+test('CSS: @keyframes tbNextPulse', css.includes('tbNextPulse'));
+// New labs (5 new)
+test('Lab: static-routing defined', js.includes("id: 'static-routing'"));
+test('Lab: static-routing has 7 steps', /static-routing[\s\S]{0,5000}steps:\s*\[/.test(js));
+test('Lab: acl-traffic-filter defined', js.includes("id: 'acl-traffic-filter'"));
+test('Lab: acl-traffic-filter checks ACL rules', /fw\.acls.*\.length >= 2/.test(js));
+test('Lab: site-to-site-vpn defined', js.includes("id: 'site-to-site-vpn'"));
+test('Lab: site-to-site-vpn has autoSetup', /site-to-site-vpn[\s\S]{0,500}autoSetup/.test(js));
+test('Lab: site-to-site-vpn checks VPN status', /vpnConfig\.status === .up./.test(js));
+test('Lab: wireless-network defined', js.includes("id: 'wireless-network'"));
+test('Lab: wireless-network checks uncabled PCs', js.includes('uncabledPcs'));
+test('Lab: cloud-vpc-security defined', js.includes("id: 'cloud-vpc-security'"));
+test('Lab: cloud-vpc-security checks security groups', /securityGroups.*\.length > 0/.test(js));
+test('Lab: network-hardening defined', js.includes("id: 'network-hardening'"));
+test('Lab: network-hardening has autoSetup', /network-hardening[\s\S]{0,500}autoSetup/.test(js));
+test('Lab: network-hardening checks disabled ports', /disabledCount >= 10/.test(js));
+test('Lab: network-hardening checks VLAN 99', /vlanDb.*some.*id === 99/.test(js));
+test('Total TB_LABS count >= 11', (js.match(/id: '/g) || []).length >= 11);
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
