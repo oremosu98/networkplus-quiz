@@ -6283,6 +6283,7 @@ function tbOpenConfigPanel(deviceId) {
   const meta = TB_DEVICE_TYPES[dev.type] || {};
   title.textContent = `${dev.hostname || meta.label} (${meta.label})`;
   panel.classList.remove('is-hidden');
+  document.querySelector('.tb-workspace')?.classList.add('tb-config-open');
   // Show/hide tabs based on device type
   const isSwitch = dev.type.indexOf('switch') >= 0;
   const isRouter = dev.type === 'router' || dev.type === 'firewall';
@@ -6301,6 +6302,7 @@ function tbOpenConfigPanel(deviceId) {
 function tbCloseConfigPanel() {
   tbConfigPanelDeviceId = null;
   document.getElementById('tb-config-panel')?.classList.add('is-hidden');
+  document.querySelector('.tb-workspace')?.classList.remove('tb-config-open');
 }
 
 function tbSwitchConfigTab(tab) {
@@ -6374,7 +6376,7 @@ function tbRenderOverviewTab(dev) {
   const gwInfo = isEndpoint && dev.interfaces[0]?.gateway ? `<div class="tb-ov-stat"><span>Gateway</span><code>${escHtml(dev.interfaces[0].gateway)}</code></div>` : '';
 
   return `<div class="tb-ov-hero">
-    <div class="tb-ov-icon">${tbDeviceIcon(dev.type, meta.color)}</div>
+    <div class="tb-ov-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-28 -20 56 40">${tbDeviceIcon(dev.type, meta.color)}</svg></div>
     <div class="tb-ov-hero-info">
       <input type="text" class="tb-ov-hostname" value="${escHtml(dev.hostname||'')}" onchange="tbSetHostname(this.value)" placeholder="Hostname">
       <span class="tb-ov-type-badge" style="border-color:${meta.color};color:${meta.color}">${meta.label}</span>
