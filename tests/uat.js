@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.24.0', js.includes("const APP_VERSION = '4.24.0"));
+test('APP_VERSION is 4.25.0', js.includes("const APP_VERSION = '4.25.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.24.0', sw.includes('netplus-v4.24.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.25.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.24.0', sw.includes('netplus-v4.24.0'));
-test('APP_VERSION bumped to 4.24.0', js.includes("APP_VERSION = '4.24.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.25.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.25.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -886,8 +886,8 @@ test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
 // openTopologyBuilder calls tbRenderScenarioPanel
 test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
 
-// ── Topology Builder Tier 3 (v4.24.0) — AI Coach ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.24.0) ──\x1b[0m');
+// ── Topology Builder Tier 3 (v4.25.0) — AI Coach ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.25.0) ──\x1b[0m');
 // Core functions
 test('tbSerializeTopology defined', /function tbSerializeTopology/.test(js));
 test('tbTopologyHash defined', /function tbTopologyHash/.test(js));
@@ -930,8 +930,8 @@ test('CSS: .tb-coach-tip', css.includes('.tb-coach-tip'));
 test('CSS: .tb-tool-btn-coach', css.includes('.tb-tool-btn-coach'));
 test('CSS: tb-coach-spin keyframes', css.includes('@keyframes tb-coach-spin'));
 
-// ── Network Simulator (v4.24.0) — Config Panel, Sim Engine, CLI, AI Gen ──
-console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.24.0) ──\x1b[0m');
+// ── Network Simulator (v4.25.0) — Config Panel, Sim Engine, CLI, AI Gen ──
+console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.25.0) ──\x1b[0m');
 // Foundation
 test('TB_MAX_DEVICES bumped to 50', js.includes('const TB_MAX_DEVICES = 50'));
 test('TB_IFACE_DEFAULTS defined', js.includes('const TB_IFACE_DEFAULTS'));
@@ -1006,12 +1006,12 @@ test('CSS: .tb-cli-output', css.includes('.tb-cli-output'));
 test('CSS: .tb-iface-table', css.includes('.tb-iface-table'));
 test('CSS: .tb-tool-btn-ai', css.includes('.tb-tool-btn-ai'));
 test('CSS: .tb-explain-btn', css.includes('.tb-explain-btn'));
-// v4.24.0 additions
+// v4.25.0 additions
 // Overview tab
 test('tbRenderOverviewTab function', js.includes('function tbRenderOverviewTab('));
 test('Overview tab in switch', /case 'overview':[\s\S]{0,100}tbRenderOverviewTab/.test(js));
 test('HTML: overview tab button', html.includes('data-tb-tab="overview"'));
-test('Config opens on overview tab', /tbOpenConfigPanel[\s\S]{0,1200}tbSwitchConfigTab\('overview'\)/.test(js));
+test('Config opens on overview tab', /tbOpenConfigPanel[\s\S]{0,2000}tbSwitchConfigTab\('overview'\)/.test(js));
 // Ping dropdown (device-to-device)
 test('Ping destination is select dropdown', html.includes('id="tb-ping-dst"'));
 test('Ping dst is select not input', /select id="tb-ping-dst"/.test(html));
@@ -1051,8 +1051,8 @@ test('CSS: .tb-iface-trunk-detail', css.includes('.tb-iface-trunk-detail'));
 // Sim toolbar shows on openTopologyBuilder
 test('Sim toolbar shown on open', /openTopologyBuilder[\s\S]{0,1500}tb-sim-toolbar/.test(js));
 
-// ── v4.24.0 — Explain modal, CLI commands, AI topology improvements ──
-console.log('\n\x1b[1m── SIMULATOR ENHANCEMENTS (v4.24.0) ──\x1b[0m');
+// ── v4.25.0 — Explain modal, CLI commands, AI topology improvements ──
+console.log('\n\x1b[1m── SIMULATOR ENHANCEMENTS (v4.25.0) ──\x1b[0m');
 // Explain modal
 test('tbCloseExplainModal function', js.includes('function tbCloseExplainModal('));
 test('Explain shows modal not sim log', /tbExplainDevice[\s\S]{0,800}tb-explain-modal/.test(js));
@@ -1073,6 +1073,91 @@ test('netstat simulates listening ports', /netstat[\s\S]{0,600}LISTEN/.test(js))
 test('AI prompt supports topology types', /star.*bus.*mesh|topology type/i.test(js));
 test('AI JSON comment stripping fallback', js.includes('noComments') && js.includes("replace(/\\/\\/"));
 test('AI invalid topology gives helpful message', /Try a simpler description/.test(js));
+
+// ── v4.25.0 — Cloud Networking ──
+console.log('\n\x1b[1m── CLOUD NETWORKING ──\x1b[0m');
+// Device types
+test('Device type: vpc', js.includes("'vpc':"));
+test('Device type: cloud-subnet', js.includes("'cloud-subnet':"));
+test('Device type: igw', js.includes("'igw':"));
+test('Device type: nat-gw', js.includes("'nat-gw':"));
+test('Device type: tgw', js.includes("'tgw':"));
+test('Device type: vpg', js.includes("'vpg':"));
+test('Device type: onprem-dc', js.includes("'onprem-dc':"));
+test('Device type: sase-edge', js.includes("'sase-edge':"));
+// Interface defaults for cloud types
+test('Iface defaults: vpc eni', /vpc.*naming.*eni/.test(js));
+test('Iface defaults: tgw att', /tgw.*naming.*att/.test(js));
+test('Iface defaults: vpg tun', /vpg.*naming.*tun/.test(js));
+// Migration
+test('Migration: securityGroups default', js.includes('d.securityGroups = d.securityGroups || []'));
+test('Migration: nacls default', js.includes('d.nacls = d.nacls || []'));
+test('Migration: vpcConfig default', js.includes('d.vpcConfig = d.vpcConfig || null'));
+test('Migration: vpnConfig default', js.includes('d.vpnConfig = d.vpnConfig || null'));
+test('Migration: saseConfig default', js.includes('d.saseConfig = d.saseConfig || null'));
+// Config panel tab renderers
+test('tbRenderSecurityGroupsTab function', js.includes('function tbRenderSecurityGroupsTab('));
+test('tbRenderNaclsTab function', js.includes('function tbRenderNaclsTab('));
+test('tbRenderVpcConfigTab function', js.includes('function tbRenderVpcConfigTab('));
+test('tbRenderVpnTab function', js.includes('function tbRenderVpnTab('));
+test('tbRenderSaseTab function', js.includes('function tbRenderSaseTab('));
+// CRUD helpers
+test('tbAddSecurityGroup function', js.includes('function tbAddSecurityGroup('));
+test('tbRemoveSecurityGroup function', js.includes('function tbRemoveSecurityGroup('));
+test('tbAddSgRule function', js.includes('function tbAddSgRule('));
+test('tbAddNaclRule function', js.includes('function tbAddNaclRule('));
+test('tbSetVpcField function', js.includes('function tbSetVpcField('));
+test('tbSetVpnField function', js.includes('function tbSetVpnField('));
+test('tbNegotiateVpn function', js.includes('function tbNegotiateVpn('));
+test('tbCheckVpnTunnel function', js.includes('function tbCheckVpnTunnel('));
+test('tbSetSaseField function', js.includes('function tbSetSaseField('));
+test('tbAddFwaas function', js.includes('function tbAddFwaas('));
+// Simulation helpers
+test('tbCidrContains function', js.includes('function tbCidrContains('));
+test('tbEvalSecurityGroups function', js.includes('function tbEvalSecurityGroups('));
+test('tbEvalNacl function', js.includes('function tbEvalNacl('));
+test('SG stateful: implicit deny', /tbEvalSecurityGroups[\s\S]{0,800}allowed: false/.test(js));
+test('NACL stateless: first match wins', /tbEvalNacl[\s\S]{0,600}sort.*ruleNumber/.test(js));
+// CLI commands
+test('CLI: show security-groups', /show security-groups/.test(js));
+test('CLI: show nacl', /show nacl/.test(js));
+test('CLI: show vpn-status', /show vpn-status/.test(js));
+test('CLI: show sase', /show sase/.test(js));
+// VPN tunnel check
+test('VPN checks PSK match', /psk.*mismatch|PSK mismatch/.test(js));
+test('VPN checks IKE version', /IKE version mismatch/.test(js));
+test('VPN checks encryption', /Encryption mismatch/.test(js));
+test('VPN checks DH group', /DH group mismatch/.test(js));
+// Grading rules
+test('Grade rule: igw-on-vpc', /id: 'igw-on-vpc'/.test(js));
+test('Grade rule: nat-gw-needs-subnet', /id: 'nat-gw-needs-subnet'/.test(js));
+test('Grade rule: vpg-has-peer', /id: 'vpg-has-peer'/.test(js));
+test('Grade rule: tgw-connects-vpcs', /id: 'tgw-connects-vpcs'/.test(js));
+test('Grade rule: cloud-has-sg', /id: 'cloud-has-sg'/.test(js));
+test('Grade rule: subnet-has-nacl', /id: 'subnet-has-nacl'/.test(js));
+// Scenarios
+test('Scenario: cloud-vpc', /id: 'cloud-vpc'/.test(js));
+test('Scenario: hybrid-cloud', /id: 'hybrid-cloud'/.test(js));
+test('Scenario: multi-vpc', /id: 'multi-vpc'/.test(js));
+test('Scenario: sase-arch', /id: 'sase-arch'/.test(js));
+// HTML wiring
+test('HTML: SG tab button', html.includes('data-tb-tab="security-groups"'));
+test('HTML: NACL tab button', html.includes('data-tb-tab="nacls"'));
+test('HTML: VPC Config tab button', html.includes('data-tb-tab="vpc-config"'));
+test('HTML: VPN tab button', html.includes('data-tb-tab="vpn"'));
+test('HTML: SASE tab button', html.includes('data-tb-tab="sase"'));
+test('HTML: cloud-vpc scenario option', html.includes('value="cloud-vpc"'));
+test('HTML: hybrid-cloud scenario option', html.includes('value="hybrid-cloud"'));
+test('HTML: explain modal', html.includes('id="tb-explain-modal"'));
+// CSS
+test('CSS: .tb-sg-table', css.includes('.tb-sg-table'));
+test('CSS: .tb-sg-row-allow', css.includes('.tb-sg-row-allow'));
+test('CSS: .tb-nacl-row-deny', css.includes('.tb-nacl-row-deny'));
+test('CSS: .tb-cloud-card', css.includes('.tb-cloud-card'));
+test('CSS: .tb-cloud-badge', css.includes('.tb-cloud-badge'));
+// Labs
+test('Lab: cloud-vpc-lab', /id: 'cloud-vpc-lab'/.test(js));
+test('Lab: sase-zero-trust', /id: 'sase-zero-trust'/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

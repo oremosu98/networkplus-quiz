@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.24.0';
+const APP_VERSION = '4.25.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4807,6 +4807,15 @@ const TB_DEVICE_TYPES = {
   'public-web':  { label: 'Public Web',    color: '#fde047', short: 'WEB'  },
   'public-file': { label: 'Public File',   color: '#fb923c', short: 'FILE' },
   'public-cloud':{ label: 'Public Cloud',  color: '#38bdf8', short: 'PUB'  },
+  // ── Cloud Networking device types ──
+  'vpc':          { label: 'VPC',            color: '#8b5cf6', short: 'VPC'  },
+  'cloud-subnet': { label: 'Cloud Subnet',  color: '#a78bfa', short: 'SUB'  },
+  'igw':          { label: 'Internet GW',    color: '#2dd4bf', short: 'IGW'  },
+  'nat-gw':       { label: 'NAT Gateway',   color: '#34d399', short: 'NAT'  },
+  'tgw':          { label: 'Transit GW',     color: '#f472b6', short: 'TGW'  },
+  'vpg':          { label: 'VPN Gateway',    color: '#fb923c', short: 'VPG'  },
+  'onprem-dc':    { label: 'On-Prem DC',    color: '#78716c', short: 'DC'   },
+  'sase-edge':    { label: 'SASE Edge',      color: '#e879f9', short: 'SASE' },
 };
 
 // Cable type catalog for the palette picker.
@@ -4843,6 +4852,15 @@ const TB_IFACE_DEFAULTS = {
   'public-web':  { count: 1,  naming: () => 'eth0' },
   'public-file': { count: 1,  naming: () => 'eth0' },
   'public-cloud':{ count: 1,  naming: () => 'eth0' },
+  // Cloud networking
+  'vpc':          { count: 4,  naming: i => `eni${i}` },
+  'cloud-subnet': { count: 2,  naming: i => `eni${i}` },
+  'igw':          { count: 2,  naming: i => `eni${i}` },
+  'nat-gw':       { count: 2,  naming: i => `eni${i}` },
+  'tgw':          { count: 6,  naming: i => `att${i}` },
+  'vpg':          { count: 2,  naming: i => `tun${i}` },
+  'onprem-dc':    { count: 4,  naming: i => `eth${i}` },
+  'sase-edge':    { count: 4,  naming: i => `zt${i}` },
 };
 
 // Generate a deterministic MAC from a device ID + interface index.
@@ -4902,6 +4920,12 @@ function tbMigrateState(state) {
     d.dhcpServer = d.dhcpServer || null;
     d.dhcpRelay = d.dhcpRelay || null;
     d.acls = d.acls || [];
+    // Cloud networking defaults
+    d.securityGroups = d.securityGroups || [];
+    d.nacls = d.nacls || [];
+    d.vpcConfig = d.vpcConfig || null;
+    d.vpnConfig = d.vpnConfig || null;
+    d.saseConfig = d.saseConfig || null;
   });
   // Auto-bind cables to interfaces if not already bound
   state.cables.forEach(c => {
@@ -5059,6 +5083,75 @@ function tbDeviceIcon(type, color) {
       return `<g transform="translate(0,-10)">
         <path d="M -24 6 A 10 10 0 0 1 -14 -6 A 14 14 0 0 1 14 -10 A 10 10 0 0 1 22 8 L -22 8 A 8 8 0 0 1 -24 6 Z" ${f}/>
         <path d="M -6 -2 L 0 -8 L 6 -2 M 0 -8 L 0 6" ${s}/>
+      </g>`;
+    // ── Cloud Networking icons ──
+    case 'vpc':
+      return `<g transform="translate(0,-10)">
+        <rect x="-24" y="-14" width="48" height="28" rx="6" stroke="${color}" stroke-width="2" stroke-dasharray="4 2" fill="none"/>
+        <line x1="-12" y1="-4" x2="12" y2="-4" ${s}/>
+        <line x1="-12" y1="4" x2="12" y2="4" ${s}/>
+        <line x1="-6" y1="-12" x2="-6" y2="12" ${s}/>
+        <line x1="6" y1="-12" x2="6" y2="12" ${s}/>
+        <text y="24" text-anchor="middle" font-size="7" font-weight="800" fill="${color}">VPC</text>
+      </g>`;
+    case 'cloud-subnet':
+      return `<g transform="translate(0,-10)">
+        <rect x="-20" y="-10" width="40" height="20" rx="3" ${f}/>
+        <line x1="-10" y1="0" x2="10" y2="0" ${s}/>
+        <line x1="0" y1="-8" x2="0" y2="8" ${s}/>
+        <text y="20" text-anchor="middle" font-size="6" font-weight="800" fill="${color}">/24</text>
+      </g>`;
+    case 'igw':
+      return `<g transform="translate(0,-10)">
+        <circle cx="0" cy="0" r="14" ${f}/>
+        <ellipse cx="0" cy="0" rx="14" ry="5" ${s}/>
+        <line x1="0" y1="-14" x2="0" y2="14" ${s}/>
+        <path d="M -22 0 L -16 0 M -22 -3 L -16 0 L -22 3" ${s}/>
+        <path d="M 22 0 L 16 0 M 22 -3 L 16 0 L 22 3" ${s}/>
+      </g>`;
+    case 'nat-gw':
+      return `<g transform="translate(0,-10)">
+        <rect x="-18" y="-10" width="36" height="20" rx="4" ${f}/>
+        <path d="M -8 4 L -8 -4 L 8 -4" ${s}/>
+        <path d="M 4 -8 L 8 -4 L 4 0" ${s}/>
+        <text y="20" text-anchor="middle" font-size="6" font-weight="800" fill="${color}">NAT</text>
+      </g>`;
+    case 'tgw':
+      return `<g transform="translate(0,-10)">
+        <circle cx="0" cy="0" r="8" ${f}/>
+        <line x1="0" y1="-16" x2="0" y2="-8" ${s}/>
+        <line x1="0" y1="8" x2="0" y2="16" ${s}/>
+        <line x1="-16" y1="0" x2="-8" y2="0" ${s}/>
+        <line x1="8" y1="0" x2="16" y2="0" ${s}/>
+        <line x1="-11" y1="-11" x2="-6" y2="-6" ${s}/>
+        <line x1="6" y1="6" x2="11" y2="11" ${s}/>
+        <circle cx="0" cy="-16" r="3" ${f}/>
+        <circle cx="0" cy="16" r="3" ${f}/>
+        <circle cx="-16" cy="0" r="3" ${f}/>
+        <circle cx="16" cy="0" r="3" ${f}/>
+      </g>`;
+    case 'vpg':
+      return `<g transform="translate(0,-10)">
+        <rect x="-16" y="-12" width="32" height="24" rx="4" ${f}/>
+        <path d="M -4 -4 A 4 4 0 1 1 4 -4 L 4 2 L -4 2 Z" ${s}/>
+        <circle cx="0" cy="-5" r="2" fill="${color}"/>
+        <line x1="-22" y1="0" x2="-16" y2="0" stroke="${color}" stroke-width="2" stroke-dasharray="3 2"/>
+        <line x1="16" y1="0" x2="22" y2="0" stroke="${color}" stroke-width="2" stroke-dasharray="3 2"/>
+      </g>`;
+    case 'onprem-dc':
+      return `<g transform="translate(0,-12)">
+        <path d="M -20 -8 L 0 -18 L 20 -8 L 20 12 L -20 12 Z" ${f}/>
+        <rect x="-14" y="-4" width="28" height="6" rx="1" stroke="${color}" stroke-width="1.5" fill="rgba(0,0,0,.3)"/>
+        <rect x="-14" y="4" width="28" height="6" rx="1" stroke="${color}" stroke-width="1.5" fill="rgba(0,0,0,.3)"/>
+        <circle cx="-8" cy="-1" r="1.5" fill="${color}"/>
+        <circle cx="-8" cy="7" r="1.5" fill="${color}"/>
+      </g>`;
+    case 'sase-edge':
+      return `<g transform="translate(0,-10)">
+        <path d="M 0 -16 L 18 -4 L 14 16 L -14 16 L -18 -4 Z" ${f}/>
+        <path d="M -10 4 A 6 6 0 0 1 -4 -2 A 8 8 0 0 1 6 -4 A 6 6 0 0 1 10 2 L -8 2 Z" stroke="${color}" stroke-width="1.5" fill="none"/>
+        <circle cx="0" cy="8" r="2" fill="${color}"/>
+        <line x1="0" y1="10" x2="0" y2="14" ${s}/>
       </g>`;
     default:
       return `<circle r="18" ${f}/>`;
@@ -5781,6 +5874,73 @@ const TB_GRADE_RULES = [
       });
     },
   },
+  // ── Cloud networking rules ──
+  {
+    id: 'igw-on-vpc',
+    severity: 'critical',
+    label: 'Internet Gateway must be connected to a VPC',
+    hint: 'Wire the Internet Gateway directly to the VPC device it serves.',
+    test: s => {
+      const igws = s.devices.filter(d => d.type === 'igw');
+      if (!igws.length) return true;
+      return igws.every(igw => tbNeighborsOf(s, igw.id).some(n => n.type === 'vpc'));
+    },
+  },
+  {
+    id: 'nat-gw-needs-subnet',
+    severity: 'warning',
+    label: 'NAT Gateway should be connected to a Cloud Subnet',
+    hint: 'Place the NAT Gateway in a public subnet so private subnets can reach the internet.',
+    test: s => {
+      const nats = s.devices.filter(d => d.type === 'nat-gw');
+      if (!nats.length) return true;
+      return nats.every(ng => tbNeighborsOf(s, ng.id).some(n => n.type === 'cloud-subnet'));
+    },
+  },
+  {
+    id: 'vpg-has-peer',
+    severity: 'warning',
+    label: 'VPN Gateway should be connected to an On-Prem DC',
+    hint: 'Wire the VPN Gateway to an On-Prem Data Center to establish the IPSec tunnel.',
+    test: s => {
+      const vpgs = s.devices.filter(d => d.type === 'vpg');
+      if (!vpgs.length) return true;
+      return vpgs.every(v => tbNeighborsOf(s, v.id).some(n => n.type === 'onprem-dc'));
+    },
+  },
+  {
+    id: 'tgw-connects-vpcs',
+    severity: 'info',
+    label: 'Transit Gateway should connect 2+ VPCs',
+    hint: 'The Transit Gateway is a hub — it should bridge multiple VPCs together.',
+    test: s => {
+      const tgws = s.devices.filter(d => d.type === 'tgw');
+      if (!tgws.length) return true;
+      return tgws.every(t => tbNeighborsOf(s, t.id).filter(n => n.type === 'vpc').length >= 2);
+    },
+  },
+  {
+    id: 'cloud-has-sg',
+    severity: 'warning',
+    label: 'Cloud instances should have Security Groups',
+    hint: 'Add at least one Security Group to control inbound/outbound traffic at the instance level.',
+    test: s => {
+      const cloudInst = s.devices.filter(d => ['vpc','cloud-subnet','igw','nat-gw','tgw','vpg','sase-edge'].indexOf(d.type) >= 0);
+      if (!cloudInst.length) return true;
+      return cloudInst.some(d => d.securityGroups && d.securityGroups.length > 0);
+    },
+  },
+  {
+    id: 'subnet-has-nacl',
+    severity: 'info',
+    label: 'Cloud Subnets should have NACL rules',
+    hint: 'Configure Network ACLs on subnets for stateless perimeter filtering.',
+    test: s => {
+      const subs = s.devices.filter(d => d.type === 'cloud-subnet');
+      if (!subs.length) return true;
+      return subs.every(d => d.nacls && d.nacls.length > 0);
+    },
+  },
 ];
 
 const TB_ALL_RULE_IDS = TB_GRADE_RULES.map(r => r.id);
@@ -5876,6 +6036,74 @@ const TB_SCENARIOS = [
       { type: 'wlc',      min: 1 },
       { type: 'wap',      min: 2 },
       { type: 'pc',       min: 2 },
+    ],
+  },
+  // ── Cloud Networking Scenarios ──
+  {
+    id: 'cloud-vpc',
+    title: 'Cloud VPC Architecture',
+    description: 'Design a cloud VPC with public and private subnets, internet gateway, NAT gateway, and security controls.',
+    requirements: [
+      'VPC with Internet Gateway for public access',
+      'NAT Gateway in public subnet for private outbound',
+      'Security groups on cloud resources',
+      'At least 2 cloud subnets (public + private)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'igw-on-vpc', 'nat-gw-needs-subnet', 'cloud-has-sg', 'subnet-has-nacl'],
+    requires: [
+      { type: 'vpc',          min: 1 },
+      { type: 'cloud-subnet', min: 2 },
+      { type: 'igw',          min: 1 },
+      { type: 'nat-gw',       min: 1 },
+    ],
+  },
+  {
+    id: 'hybrid-cloud',
+    title: 'Hybrid Cloud (VPN)',
+    description: 'Connect an on-premises data center to a cloud VPC via IPSec VPN tunnel with matching crypto parameters.',
+    requirements: [
+      'On-premises DC with internal network',
+      'Cloud VPC with VPN Gateway',
+      'IPSec tunnel between VPN GW and On-Prem DC',
+      'Matching crypto parameters on both endpoints',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'vpg-has-peer', 'igw-on-vpc'],
+    requires: [
+      { type: 'vpc',       min: 1 },
+      { type: 'vpg',       min: 1 },
+      { type: 'onprem-dc', min: 1 },
+    ],
+  },
+  {
+    id: 'multi-vpc',
+    title: 'Multi-VPC with Transit Gateway',
+    description: 'Connect multiple VPCs through a Transit Gateway hub — the cloud equivalent of a backbone router.',
+    requirements: [
+      'Transit Gateway connecting 2+ VPCs',
+      'Each VPC has at least one subnet',
+      'Internet Gateway on at least one VPC',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'tgw-connects-vpcs', 'igw-on-vpc', 'cloud-has-sg'],
+    requires: [
+      { type: 'vpc', min: 2 },
+      { type: 'tgw', min: 1 },
+      { type: 'cloud-subnet', min: 2 },
+      { type: 'igw', min: 1 },
+    ],
+  },
+  {
+    id: 'sase-arch',
+    title: 'SASE Architecture',
+    description: 'Design a Secure Access Service Edge with zero trust, SWG, CASB, and FWaaS protecting cloud and on-prem resources.',
+    requirements: [
+      'SASE Edge node with ZTNA configured',
+      'Cloud VPC with resources behind SASE',
+      'On-Prem DC connected via VPN or SASE',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'cloud-has-sg'],
+    requires: [
+      { type: 'sase-edge', min: 1 },
+      { type: 'vpc',       min: 1 },
     ],
   },
 ];
@@ -6302,11 +6530,22 @@ function tbOpenConfigPanel(deviceId) {
   const isSwitch = dev.type.indexOf('switch') >= 0;
   const isRouter = dev.type === 'router' || dev.type === 'firewall';
   const isServer = dev.type === 'server';
+  const CLOUD_TYPES = ['vpc','cloud-subnet','igw','nat-gw','tgw','vpg','sase-edge'];
+  const isCloudDevice = CLOUD_TYPES.indexOf(dev.type) >= 0;
+  const isVpc = dev.type === 'vpc';
+  const isSubnet = dev.type === 'cloud-subnet';
+  const isVpnEndpoint = dev.type === 'vpg' || dev.type === 'onprem-dc';
+  const isSase = dev.type === 'sase-edge';
   document.querySelectorAll('.tb-config-tab').forEach(t => {
     const tab = t.getAttribute('data-tb-tab');
-    if (tab === 'routing') t.classList.toggle('is-hidden', !isRouter);
+    if (tab === 'routing') t.classList.toggle('is-hidden', !isRouter && !isVpnEndpoint);
     if (tab === 'vlans') t.classList.toggle('is-hidden', !isSwitch);
     if (tab === 'dhcp') t.classList.toggle('is-hidden', !isRouter && !isServer);
+    if (tab === 'security-groups') t.classList.toggle('is-hidden', !isCloudDevice && dev.type !== 'server' && dev.type !== 'pc');
+    if (tab === 'nacls') t.classList.toggle('is-hidden', !isSubnet);
+    if (tab === 'vpc-config') t.classList.toggle('is-hidden', !isVpc);
+    if (tab === 'vpn') t.classList.toggle('is-hidden', !isVpnEndpoint);
+    if (tab === 'sase') t.classList.toggle('is-hidden', !isSase);
   });
   tbSwitchConfigTab('overview');
   // Show sim toolbar
@@ -6335,6 +6574,11 @@ function tbSwitchConfigTab(tab) {
     case 'vlans': body.innerHTML = tbRenderVlansTab(dev); break;
     case 'dhcp': body.innerHTML = tbRenderDhcpTab(dev); break;
     case 'cli': body.innerHTML = tbRenderCliTab(dev); break;
+    case 'security-groups': body.innerHTML = tbRenderSecurityGroupsTab(dev); break;
+    case 'nacls': body.innerHTML = tbRenderNaclsTab(dev); break;
+    case 'vpc-config': body.innerHTML = tbRenderVpcConfigTab(dev); break;
+    case 'vpn': body.innerHTML = tbRenderVpnTab(dev); break;
+    case 'sase': body.innerHTML = tbRenderSaseTab(dev); break;
     default: body.innerHTML = '';
   }
 }
@@ -6669,6 +6913,366 @@ function tbSetDhcpRelay(val) {
 
 // ── CLI Tab ──
 let tbCliHistory = [];
+// ══════════════════════════════════════════
+// CLOUD NETWORKING — Security Groups, NACLs, VPC, VPN/IPSec, SASE
+// ══════════════════════════════════════════
+
+function tbRenderSecurityGroupsTab(dev) {
+  const sgs = dev.securityGroups || [];
+  let html = '<div style="font-weight:600;font-size:12px;margin-bottom:8px">Security Groups <span style="font-weight:400;font-size:10px;color:#64748b">(stateful)</span></div>';
+  if (!sgs.length) {
+    html += '<div style="color:#64748b;font-size:11px;margin-bottom:8px">No security groups. Traffic is unrestricted.</div>';
+  }
+  sgs.forEach((sg, si) => {
+    html += `<div class="tb-cloud-card">
+      <div class="tb-cloud-card-head">
+        <input type="text" value="${escHtml(sg.name)}" onchange="tbSetSgField(${si},'name',this.value)" style="flex:1;font-weight:600;font-size:11px;background:transparent;border:none;color:var(--text);padding:0">
+        <button class="btn btn-ghost" onclick="tbRemoveSecurityGroup(${si})" style="font-size:10px;color:#ef4444;padding:2px 6px">&times;</button>
+      </div>
+      <table class="tb-sg-table"><thead><tr><th>Dir</th><th>Proto</th><th>Port</th><th>Source/Dest</th><th></th></tr></thead><tbody>`;
+    sg.rules.forEach((r, ri) => {
+      html += `<tr class="tb-sg-row-allow">
+        <td><select onchange="tbSetSgRuleField(${si},${ri},'direction',this.value)" style="font-size:10px"><option value="inbound"${r.direction==='inbound'?' selected':''}>In</option><option value="outbound"${r.direction==='outbound'?' selected':''}>Out</option></select></td>
+        <td><select onchange="tbSetSgRuleField(${si},${ri},'protocol',this.value)" style="font-size:10px"><option value="all"${r.protocol==='all'?' selected':''}>All</option><option value="tcp"${r.protocol==='tcp'?' selected':''}>TCP</option><option value="udp"${r.protocol==='udp'?' selected':''}>UDP</option><option value="icmp"${r.protocol==='icmp'?' selected':''}>ICMP</option></select></td>
+        <td><input type="text" value="${escHtml(String(r.port||'all'))}" onchange="tbSetSgRuleField(${si},${ri},'port',this.value)" style="width:40px;font-size:10px"></td>
+        <td><input type="text" value="${escHtml(r.source||r.destination||'0.0.0.0/0')}" onchange="tbSetSgRuleField(${si},${ri},'${r.direction==='inbound'?'source':'destination'}',this.value)" style="width:90px;font-size:10px"></td>
+        <td><button class="btn btn-ghost" onclick="tbRemoveSgRule(${si},${ri})" style="font-size:9px;color:#ef4444;padding:1px 4px">&times;</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        <button class="btn btn-ghost" onclick="tbAddSgRule(${si},'inbound')" style="font-size:10px">+ Inbound</button>
+        <button class="btn btn-ghost" onclick="tbAddSgRule(${si},'outbound')" style="font-size:10px">+ Outbound</button>
+      </div>
+    </div>`;
+  });
+  html += '<button class="btn btn-ghost" onclick="tbAddSecurityGroup()" style="font-size:11px;margin-top:8px">+ Add Security Group</button>';
+  html += '<div style="font-size:9px;color:#64748b;margin-top:8px">Security Groups are <strong>stateful</strong> — return traffic is automatically allowed. Rules are allow-only (implicit deny-all).</div>';
+  return html;
+}
+
+function tbAddSecurityGroup() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.securityGroups.push({ name: `sg-${dev.securityGroups.length + 1}`, rules: [
+    { direction: 'outbound', protocol: 'all', port: 'all', destination: '0.0.0.0/0', action: 'allow' }
+  ]});
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('security-groups');
+}
+function tbRemoveSecurityGroup(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.securityGroups.splice(idx, 1);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('security-groups');
+}
+function tbAddSgRule(sgIdx, direction) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.securityGroups[sgIdx]) return;
+  const r = { direction, protocol: 'tcp', port: '443', action: 'allow' };
+  if (direction === 'inbound') r.source = '0.0.0.0/0'; else r.destination = '0.0.0.0/0';
+  dev.securityGroups[sgIdx].rules.push(r);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('security-groups');
+}
+function tbRemoveSgRule(sgIdx, ruleIdx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.securityGroups[sgIdx]) return;
+  dev.securityGroups[sgIdx].rules.splice(ruleIdx, 1);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('security-groups');
+}
+function tbSetSgField(sgIdx, field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.securityGroups[sgIdx]) return;
+  dev.securityGroups[sgIdx][field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbSetSgRuleField(sgIdx, ruleIdx, field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.securityGroups[sgIdx] || !dev.securityGroups[sgIdx].rules[ruleIdx]) return;
+  dev.securityGroups[sgIdx].rules[ruleIdx][field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── NACLs Tab (stateless, subnet-level) ──
+function tbRenderNaclsTab(dev) {
+  const nacls = dev.nacls || [];
+  let html = '<div style="font-weight:600;font-size:12px;margin-bottom:8px">Network ACLs <span style="font-weight:400;font-size:10px;color:#64748b">(stateless)</span></div>';
+
+  ['inbound', 'outbound'].forEach(dir => {
+    const rules = nacls.filter(r => r.direction === dir).sort((a, b) => a.ruleNumber - b.ruleNumber);
+    html += `<div style="font-weight:600;font-size:11px;margin:12px 0 4px;text-transform:capitalize">${dir} Rules</div>
+      <table class="tb-sg-table"><thead><tr><th>#</th><th>Proto</th><th>Port</th><th>${dir === 'inbound' ? 'Source' : 'Dest'}</th><th>Action</th><th></th></tr></thead><tbody>`;
+    rules.forEach((r, ri) => {
+      const realIdx = nacls.indexOf(r);
+      html += `<tr class="${r.action === 'allow' ? 'tb-sg-row-allow' : 'tb-nacl-row-deny'}">
+        <td><input type="number" value="${r.ruleNumber}" onchange="tbSetNaclField(${realIdx},'ruleNumber',parseInt(this.value))" style="width:40px;font-size:10px"></td>
+        <td><select onchange="tbSetNaclField(${realIdx},'protocol',this.value)" style="font-size:10px"><option value="all"${r.protocol==='all'?' selected':''}>All</option><option value="tcp"${r.protocol==='tcp'?' selected':''}>TCP</option><option value="udp"${r.protocol==='udp'?' selected':''}>UDP</option><option value="icmp"${r.protocol==='icmp'?' selected':''}>ICMP</option></select></td>
+        <td><input type="text" value="${escHtml(String(r.port||'all'))}" onchange="tbSetNaclField(${realIdx},'port',this.value)" style="width:40px;font-size:10px"></td>
+        <td><input type="text" value="${escHtml(r.source||r.destination||'0.0.0.0/0')}" onchange="tbSetNaclField(${realIdx},'${dir === 'inbound' ? 'source' : 'destination'}',this.value)" style="width:80px;font-size:10px"></td>
+        <td><select onchange="tbSetNaclField(${realIdx},'action',this.value)" style="font-size:10px"><option value="allow"${r.action==='allow'?' selected':''}>Allow</option><option value="deny"${r.action==='deny'?' selected':''}>Deny</option></select></td>
+        <td><button class="btn btn-ghost" onclick="tbRemoveNaclRule(${realIdx})" style="font-size:9px;color:#ef4444;padding:1px 4px">&times;</button></td>
+      </tr>`;
+    });
+    // Implicit deny-all row (not editable)
+    html += `<tr style="opacity:.4"><td>*</td><td>All</td><td>All</td><td>0.0.0.0/0</td><td>Deny</td><td></td></tr>`;
+    html += `</tbody></table>
+      <button class="btn btn-ghost" onclick="tbAddNaclRule('${dir}')" style="font-size:10px;margin-top:4px">+ Add ${dir} rule</button>`;
+  });
+  html += '<div style="font-size:9px;color:#64748b;margin-top:8px">NACLs are <strong>stateless</strong> — both inbound and outbound rules are evaluated independently. Rules are processed in order by rule number (lowest first, first match wins).</div>';
+  return html;
+}
+
+function tbAddNaclRule(direction) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  const existing = dev.nacls.filter(r => r.direction === direction);
+  const nextNum = existing.length ? Math.max(...existing.map(r => r.ruleNumber)) + 100 : 100;
+  const r = { ruleNumber: nextNum, direction, protocol: 'tcp', port: '443', action: 'allow' };
+  if (direction === 'inbound') r.source = '0.0.0.0/0'; else r.destination = '0.0.0.0/0';
+  dev.nacls.push(r);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('nacls');
+}
+function tbRemoveNaclRule(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.nacls.splice(idx, 1);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('nacls');
+}
+function tbSetNaclField(idx, field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.nacls[idx]) return;
+  dev.nacls[idx][field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── VPC Config Tab ──
+function tbRenderVpcConfigTab(dev) {
+  const vpc = dev.vpcConfig || { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default' };
+  if (!dev.vpcConfig) { dev.vpcConfig = vpc; tbState.updated = Date.now(); tbSaveDraft(); }
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">VPC Configuration</div>
+    <label>CIDR Block</label>
+    <input type="text" value="${escHtml(vpc.cidr)}" onchange="tbSetVpcField('cidr',this.value)" placeholder="10.0.0.0/16">
+    <div style="font-size:9px;color:#64748b;margin-bottom:8px">/16 = 65,536 IPs &middot; /24 = 256 IPs &middot; /28 = 16 IPs</div>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${vpc.dnsSupport ? 'checked' : ''} onchange="tbSetVpcField('dnsSupport',this.checked)"> DNS Resolution Support</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${vpc.dnsHostnames ? 'checked' : ''} onchange="tbSetVpcField('dnsHostnames',this.checked)"> DNS Hostnames</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${vpc.flowLogs ? 'checked' : ''} onchange="tbSetVpcField('flowLogs',this.checked)"> VPC Flow Logs</label>
+    <label>Tenancy</label>
+    <select onchange="tbSetVpcField('tenancy',this.value)">
+      <option value="default"${vpc.tenancy==='default' ? ' selected' : ''}>Default (shared)</option>
+      <option value="dedicated"${vpc.tenancy==='dedicated' ? ' selected' : ''}>Dedicated</option>
+    </select>
+    <div style="margin-top:16px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+      <div style="font-weight:600;font-size:11px;margin-bottom:6px">Connected Subnets</div>
+      ${tbState.devices.filter(d => d.type === 'cloud-subnet' && tbState.cables.some(c => (c.from === dev.id && c.to === d.id) || (c.from === d.id && c.to === dev.id)))
+        .map(s => `<div class="tb-cloud-badge">${escHtml(s.hostname)} ${s.vpcConfig ? '(' + s.vpcConfig.cidr + ')' : ''}</div>`).join('') || '<div style="font-size:10px;color:#64748b">No subnets connected. Wire a Cloud Subnet to this VPC.</div>'}
+    </div>`;
+}
+function tbSetVpcField(field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.vpcConfig) dev.vpcConfig = { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default' };
+  dev.vpcConfig[field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── VPN / IPSec Tab ──
+function tbRenderVpnTab(dev) {
+  const vpn = dev.vpnConfig || { tunnelStatus: 'down', peerIp: '', psk: '', ikeVersion: 'IKEv2', encryption: 'AES-256', hashAlgo: 'SHA-256', dhGroup: 14, localSubnets: '', remoteSubnets: '' };
+  if (!dev.vpnConfig) { dev.vpnConfig = vpn; tbState.updated = Date.now(); tbSaveDraft(); }
+  const statusDot = vpn.tunnelStatus === 'up' ? '#22c55e' : vpn.tunnelStatus === 'negotiating' ? '#eab308' : '#ef4444';
+  const statusLabel = vpn.tunnelStatus === 'up' ? 'UP' : vpn.tunnelStatus === 'negotiating' ? 'NEGOTIATING' : 'DOWN';
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">IPSec VPN Tunnel</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px;border-radius:6px;background:rgba(${vpn.tunnelStatus==='up'?'34,197,94':'239,68,68'},.1)">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${statusDot}"></span>
+      <span style="font-weight:700;font-size:12px">${statusLabel}</span>
+    </div>
+    <label>Peer IP Address</label>
+    <input type="text" value="${escHtml(vpn.peerIp)}" onchange="tbSetVpnField('peerIp',this.value)" placeholder="e.g. 203.0.113.1">
+    <label>Pre-Shared Key</label>
+    <input type="password" value="${escHtml(vpn.psk)}" onchange="tbSetVpnField('psk',this.value)" placeholder="Shared secret">
+    <div style="font-weight:600;font-size:11px;margin:12px 0 6px">IKE Phase 1</div>
+    <label>IKE Version</label>
+    <select onchange="tbSetVpnField('ikeVersion',this.value)">
+      <option value="IKEv1"${vpn.ikeVersion==='IKEv1' ? ' selected' : ''}>IKEv1</option>
+      <option value="IKEv2"${vpn.ikeVersion==='IKEv2' ? ' selected' : ''}>IKEv2</option>
+    </select>
+    <label>Encryption</label>
+    <select onchange="tbSetVpnField('encryption',this.value)">
+      <option value="AES-128"${vpn.encryption==='AES-128' ? ' selected' : ''}>AES-128</option>
+      <option value="AES-256"${vpn.encryption==='AES-256' ? ' selected' : ''}>AES-256</option>
+      <option value="3DES"${vpn.encryption==='3DES' ? ' selected' : ''}>3DES (legacy)</option>
+    </select>
+    <label>Hash Algorithm</label>
+    <select onchange="tbSetVpnField('hashAlgo',this.value)">
+      <option value="SHA-1"${vpn.hashAlgo==='SHA-1' ? ' selected' : ''}>SHA-1 (weak)</option>
+      <option value="SHA-256"${vpn.hashAlgo==='SHA-256' ? ' selected' : ''}>SHA-256</option>
+      <option value="SHA-384"${vpn.hashAlgo==='SHA-384' ? ' selected' : ''}>SHA-384</option>
+    </select>
+    <label>DH Group</label>
+    <select onchange="tbSetVpnField('dhGroup',parseInt(this.value))">
+      <option value="2"${vpn.dhGroup===2 ? ' selected' : ''}>Group 2 (1024-bit, weak)</option>
+      <option value="5"${vpn.dhGroup===5 ? ' selected' : ''}>Group 5 (1536-bit)</option>
+      <option value="14"${vpn.dhGroup===14 ? ' selected' : ''}>Group 14 (2048-bit)</option>
+      <option value="19"${vpn.dhGroup===19 ? ' selected' : ''}>Group 19 (256-bit ECP)</option>
+      <option value="20"${vpn.dhGroup===20 ? ' selected' : ''}>Group 20 (384-bit ECP)</option>
+    </select>
+    <div style="font-weight:600;font-size:11px;margin:12px 0 6px">Phase 2 — Traffic Selectors</div>
+    <label>Local Subnets</label>
+    <input type="text" value="${escHtml(vpn.localSubnets)}" onchange="tbSetVpnField('localSubnets',this.value)" placeholder="10.0.0.0/16">
+    <label>Remote Subnets</label>
+    <input type="text" value="${escHtml(vpn.remoteSubnets)}" onchange="tbSetVpnField('remoteSubnets',this.value)" placeholder="192.168.0.0/24">
+    <button class="btn btn-ghost" onclick="tbNegotiateVpn()" style="margin-top:12px;font-size:11px;width:100%">Negotiate Tunnel</button>`;
+}
+function tbSetVpnField(field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.vpnConfig) dev.vpnConfig = { tunnelStatus: 'down', peerIp: '', psk: '', ikeVersion: 'IKEv2', encryption: 'AES-256', hashAlgo: 'SHA-256', dhGroup: 14, localSubnets: '', remoteSubnets: '' };
+  dev.vpnConfig[field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbNegotiateVpn() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.vpnConfig) return;
+  // Find peer device (connected vpg or onprem-dc)
+  const peerTypes = dev.type === 'vpg' ? ['onprem-dc'] : ['vpg'];
+  let peer = null;
+  for (const c of tbState.cables) {
+    const otherId = c.from === dev.id ? c.to : c.to === dev.id ? c.from : null;
+    if (!otherId) continue;
+    const other = tbState.devices.find(d => d.id === otherId);
+    if (other && peerTypes.indexOf(other.type) >= 0) { peer = other; break; }
+  }
+  if (!peer) { showErrorToast('No VPN peer found. Wire this device to a ' + peerTypes.join('/') + '.'); return; }
+  if (!peer.vpnConfig) { showErrorToast(`${peer.hostname} has no VPN config. Double-click it and configure VPN first.`); return; }
+  const result = tbCheckVpnTunnel(dev, peer);
+  dev.vpnConfig.tunnelStatus = result.up ? 'up' : 'down';
+  peer.vpnConfig.tunnelStatus = result.up ? 'up' : 'down';
+  tbState.updated = Date.now(); tbSaveDraft();
+  if (result.up) {
+    showErrorToast(`VPN tunnel UP between ${dev.hostname} and ${peer.hostname}`);
+    tbAnimatePacket(tbState, dev.id, peer.id, true);
+  } else {
+    showErrorToast(`VPN tunnel FAILED: ${result.reason}`);
+    tbAnimatePacket(tbState, dev.id, peer.id, false);
+  }
+  tbSwitchConfigTab('vpn');
+}
+function tbCheckVpnTunnel(dev, peer) {
+  const a = dev.vpnConfig, b = peer.vpnConfig;
+  if (!a || !b) return { up: false, reason: 'Missing VPN config on one or both endpoints' };
+  if (!a.psk || !b.psk) return { up: false, reason: 'Pre-shared key not set on both endpoints' };
+  if (a.psk !== b.psk) return { up: false, reason: 'Pre-shared key mismatch' };
+  if (a.ikeVersion !== b.ikeVersion) return { up: false, reason: 'IKE version mismatch (' + a.ikeVersion + ' vs ' + b.ikeVersion + ')' };
+  if (a.encryption !== b.encryption) return { up: false, reason: 'Encryption mismatch (' + a.encryption + ' vs ' + b.encryption + ')' };
+  if (a.hashAlgo !== b.hashAlgo) return { up: false, reason: 'Hash algorithm mismatch (' + a.hashAlgo + ' vs ' + b.hashAlgo + ')' };
+  if (a.dhGroup !== b.dhGroup) return { up: false, reason: 'DH group mismatch (' + a.dhGroup + ' vs ' + b.dhGroup + ')' };
+  return { up: true, reason: 'Tunnel established — crypto parameters match' };
+}
+
+// ── SASE Tab ──
+function tbRenderSaseTab(dev) {
+  const sase = dev.saseConfig || { ztnaPolicy: 'verify-always', swgEnabled: true, casbEnabled: false, fwaasPolicies: [], identityProvider: '', mfaRequired: true };
+  if (!dev.saseConfig) { dev.saseConfig = sase; tbState.updated = Date.now(); tbSaveDraft(); }
+  let fwaasHtml = '';
+  sase.fwaasPolicies.forEach((p, i) => {
+    fwaasHtml += `<tr class="${p.action === 'allow' ? 'tb-sg-row-allow' : 'tb-nacl-row-deny'}">
+      <td><select onchange="tbSetFwaasField(${i},'protocol',this.value)" style="font-size:10px"><option value="all"${p.protocol==='all'?' selected':''}>All</option><option value="tcp"${p.protocol==='tcp'?' selected':''}>TCP</option><option value="udp"${p.protocol==='udp'?' selected':''}>UDP</option></select></td>
+      <td><input type="text" value="${escHtml(String(p.port||'all'))}" onchange="tbSetFwaasField(${i},'port',this.value)" style="width:40px;font-size:10px"></td>
+      <td><input type="text" value="${escHtml(p.source||'0.0.0.0/0')}" onchange="tbSetFwaasField(${i},'source',this.value)" style="width:80px;font-size:10px"></td>
+      <td><select onchange="tbSetFwaasField(${i},'action',this.value)" style="font-size:10px"><option value="allow"${p.action==='allow'?' selected':''}>Allow</option><option value="deny"${p.action==='deny'?' selected':''}>Deny</option></select></td>
+      <td><button class="btn btn-ghost" onclick="tbRemoveFwaas(${i})" style="font-size:9px;color:#ef4444;padding:1px 4px">&times;</button></td>
+    </tr>`;
+  });
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">SASE — Secure Access Service Edge</div>
+    <label>ZTNA Policy (Zero Trust Network Access)</label>
+    <select onchange="tbSetSaseField('ztnaPolicy',this.value)">
+      <option value="verify-always"${sase.ztnaPolicy==='verify-always' ? ' selected' : ''}>Verify Always (strictest)</option>
+      <option value="verify-once"${sase.ztnaPolicy==='verify-once' ? ' selected' : ''}>Verify Once per Session</option>
+      <option value="disabled"${sase.ztnaPolicy==='disabled' ? ' selected' : ''}>Disabled</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:8px"><input type="checkbox" ${sase.swgEnabled ? 'checked' : ''} onchange="tbSetSaseField('swgEnabled',this.checked)"> Secure Web Gateway (SWG)</label>
+    <div style="font-size:9px;color:#64748b;margin-bottom:4px">Inspects outbound web traffic, blocks malicious URLs</div>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${sase.casbEnabled ? 'checked' : ''} onchange="tbSetSaseField('casbEnabled',this.checked)"> Cloud Access Security Broker (CASB)</label>
+    <div style="font-size:9px;color:#64748b;margin-bottom:4px">Monitors SaaS app usage, enforces data policies</div>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" ${sase.mfaRequired ? 'checked' : ''} onchange="tbSetSaseField('mfaRequired',this.checked)"> MFA Required</label>
+    <label>Identity Provider</label>
+    <input type="text" value="${escHtml(sase.identityProvider)}" onchange="tbSetSaseField('identityProvider',this.value)" placeholder="e.g. Okta, Azure AD, Auth0">
+    <div style="font-weight:600;font-size:11px;margin:12px 0 6px">FWaaS — Firewall as a Service</div>
+    <table class="tb-sg-table"><thead><tr><th>Proto</th><th>Port</th><th>Source</th><th>Action</th><th></th></tr></thead><tbody>
+      ${fwaasHtml}
+    </tbody></table>
+    <button class="btn btn-ghost" onclick="tbAddFwaas()" style="font-size:10px;margin-top:4px">+ Add FWaaS Rule</button>`;
+}
+function tbSetSaseField(field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.saseConfig) dev.saseConfig = { ztnaPolicy: 'verify-always', swgEnabled: true, casbEnabled: false, fwaasPolicies: [], identityProvider: '', mfaRequired: true };
+  dev.saseConfig[field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbAddFwaas() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.saseConfig) return;
+  dev.saseConfig.fwaasPolicies.push({ protocol: 'tcp', port: '443', source: '0.0.0.0/0', action: 'allow' });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('sase');
+}
+function tbRemoveFwaas(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.saseConfig) return;
+  dev.saseConfig.fwaasPolicies.splice(idx, 1);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('sase');
+}
+function tbSetFwaasField(idx, field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.saseConfig || !dev.saseConfig.fwaasPolicies[idx]) return;
+  dev.saseConfig.fwaasPolicies[idx][field] = val;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── Security Group / NACL Evaluation (used by ping simulation) ──
+function tbCidrContains(cidr, ip) {
+  if (!cidr || cidr === '0.0.0.0/0') return true;
+  const parts = cidr.split('/');
+  if (parts.length !== 2) return false;
+  const netArr = tbIpToArr(parts[0]);
+  const ipArr = tbIpToArr(ip);
+  if (!netArr || !ipArr) return false;
+  const bits = parseInt(parts[1]);
+  const mask = bits === 0 ? 0 : (~((1 << (32 - bits)) - 1)) >>> 0;
+  const netInt = (netArr[0] << 24 | netArr[1] << 16 | netArr[2] << 8 | netArr[3]) >>> 0;
+  const ipInt = (ipArr[0] << 24 | ipArr[1] << 16 | ipArr[2] << 8 | ipArr[3]) >>> 0;
+  return (netInt & mask) === (ipInt & mask);
+}
+
+function tbEvalSecurityGroups(dev, protocol, port, srcIp, direction) {
+  if (!dev.securityGroups || !dev.securityGroups.length) return { allowed: true, matchedRule: null, sgName: 'none' };
+  for (const sg of dev.securityGroups) {
+    for (const rule of sg.rules) {
+      if (rule.direction !== direction) continue;
+      if (rule.protocol !== 'all' && rule.protocol !== protocol) continue;
+      if (rule.port !== 'all' && String(rule.port) !== String(port)) continue;
+      const cidrField = direction === 'inbound' ? rule.source : rule.destination;
+      if (tbCidrContains(cidrField, srcIp)) {
+        return { allowed: true, matchedRule: rule, sgName: sg.name };
+      }
+    }
+  }
+  return { allowed: false, matchedRule: null, sgName: dev.securityGroups[0]?.name || '?' };
+}
+
+function tbEvalNacl(dev, protocol, port, srcIp, direction) {
+  if (!dev.nacls || !dev.nacls.length) return { allowed: true, matchedRule: null };
+  const rules = dev.nacls.filter(r => r.direction === direction).sort((a, b) => a.ruleNumber - b.ruleNumber);
+  for (const rule of rules) {
+    if (rule.protocol !== 'all' && rule.protocol !== protocol) continue;
+    if (rule.port !== 'all' && String(rule.port) !== String(port)) continue;
+    const cidrField = direction === 'inbound' ? rule.source : rule.destination;
+    if (tbCidrContains(cidrField, srcIp)) {
+      return { allowed: rule.action === 'allow', matchedRule: rule };
+    }
+  }
+  return { allowed: false, matchedRule: null };
+}
+
 function tbRenderCliTab(dev) {
   const output = tbCliHistory.length ? tbCliHistory.join('\n') : `${dev.hostname || '?'}# Type a command below\n\nAvailable commands:\n  show arp\n  show ip route\n  show mac address-table\n  show vlan brief\n  show interfaces\n  show ip interface brief\n  ping <ip>\n  arp <ip>`;
   return `<div class="tb-cli-output" id="tb-cli-output">${escHtml(output)}</div>
@@ -6798,6 +7402,55 @@ function tbProcessCliCommand(dev, cmd) {
     });
     return out.trim();
   }
+  // Cloud CLI commands
+  if (cmd === 'show security-groups' || cmd === 'show sg') {
+    if (!dev.securityGroups?.length) return 'No security groups configured.';
+    let out = '';
+    dev.securityGroups.forEach(sg => {
+      out += `\nSecurity Group: ${sg.name}\n`;
+      out += 'Dir       Proto  Port   Source/Dest        Action\n';
+      out += '--------  -----  -----  -----------------  ------\n';
+      sg.rules.forEach(r => {
+        out += `${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
+      });
+    });
+    return out.trim();
+  }
+  if (cmd === 'show nacl' || cmd === 'show nacls' || cmd === 'show network-acl') {
+    if (!dev.nacls?.length) return 'No NACLs configured.';
+    let out = 'Rule#  Dir       Proto  Port   Source/Dest        Action\n';
+    out +=    '-----  --------  -----  -----  -----------------  ------\n';
+    [...dev.nacls].sort((a,b) => a.ruleNumber - b.ruleNumber).forEach(r => {
+      out += `${String(r.ruleNumber).padEnd(6)} ${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
+    });
+    out += '*      inbound   All    All    0.0.0.0/0          deny\n';
+    out += '*      outbound  All    All    0.0.0.0/0          deny\n';
+    return out.trim();
+  }
+  if (cmd === 'show vpn-status' || cmd === 'show vpn' || cmd === 'show crypto') {
+    if (!dev.vpnConfig) return 'No VPN configuration on this device.';
+    const v = dev.vpnConfig;
+    return `VPN/IPSec Tunnel Status\n` +
+      `  Tunnel:     ${v.tunnelStatus === 'up' ? 'UP' : v.tunnelStatus === 'negotiating' ? 'NEGOTIATING' : 'DOWN'}\n` +
+      `  Peer IP:    ${v.peerIp || 'Not set'}\n` +
+      `  IKE:        ${v.ikeVersion}\n` +
+      `  Encryption: ${v.encryption}\n` +
+      `  Hash:       ${v.hashAlgo}\n` +
+      `  DH Group:   ${v.dhGroup}\n` +
+      `  Local:      ${v.localSubnets || '—'}\n` +
+      `  Remote:     ${v.remoteSubnets || '—'}`;
+  }
+  if (cmd === 'show sase' || cmd === 'show ztna') {
+    if (!dev.saseConfig) return 'No SASE configuration on this device.';
+    const s = dev.saseConfig;
+    return `SASE Edge Configuration\n` +
+      `  ZTNA Policy:  ${s.ztnaPolicy}\n` +
+      `  SWG:          ${s.swgEnabled ? 'Enabled' : 'Disabled'}\n` +
+      `  CASB:         ${s.casbEnabled ? 'Enabled' : 'Disabled'}\n` +
+      `  MFA:          ${s.mfaRequired ? 'Required' : 'Optional'}\n` +
+      `  IdP:          ${s.identityProvider || '—'}\n` +
+      `  FWaaS Rules:  ${s.fwaasPolicies?.length || 0}`;
+  }
   // help
   if (cmd === 'help' || cmd === '?') {
     return 'Available commands:\n' +
@@ -6806,6 +7459,10 @@ function tbProcessCliCommand(dev, cmd) {
       '  show mac address-table  - MAC table (switches)\n' +
       '  show vlan brief         - VLAN database (switches)\n' +
       '  show interfaces         - Interface status\n' +
+      '  show security-groups    - Security group rules\n' +
+      '  show nacl               - Network ACL rules\n' +
+      '  show vpn-status         - VPN/IPSec tunnel info\n' +
+      '  show sase               - SASE edge config\n' +
       '  ping <ip>               - Ping a host\n' +
       '  arp <ip>                - Send ARP request\n' +
       '  traceroute <ip>         - Trace path to host\n' +
@@ -7361,7 +8018,7 @@ async function tbGenerateAiTopology() {
     const genPrompt = `You are a Network+ instructor. Generate a network topology as a JSON object matching this schema:
 
 {
-  "devices": [{"type": "<one of: router, switch, dmz-switch, firewall, cloud, pc, server, printer, voip, iot, wap, wlc, load-balancer, ids, public-web, public-file, public-cloud>", "hostname": "R1", "x": 400, "y": 200, "interfaces": [{"name": "Gi0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "vlan": 1, "mode": "access", "gateway": ""}]}],
+  "devices": [{"type": "<one of: router, switch, dmz-switch, firewall, cloud, pc, server, printer, voip, iot, wap, wlc, load-balancer, ids, public-web, public-file, public-cloud, vpc, cloud-subnet, igw, nat-gw, tgw, vpg, onprem-dc, sase-edge>", "hostname": "R1", "x": 400, "y": 200, "interfaces": [{"name": "Gi0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "vlan": 1, "mode": "access", "gateway": ""}]}],
   "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
 }
 
@@ -7626,6 +8283,40 @@ const TB_LABS = [
       { title: 'Send an ARP request', instruction: 'Click **Ping/ARP** in the toolbar. Select **PC1** as source and **PC2** as destination. Click **ARP**. Watch the simulation log — PC1 broadcasts "Who has 192.168.1.11?" and PC2 replies with its MAC.', check: () => true },
       { title: 'Check ARP and MAC tables', instruction: 'Open PC1\'s CLI: `show arp` — you should see PC2\'s MAC. Open the Switch CLI: `show mac address-table` — it learned both PC1 and PC2\'s MACs on their respective ports.', check: () => true },
       { title: 'Understand the broadcast domain', instruction: 'Now send an ARP from PC1 to PC3. Notice in the log that the ARP request was **broadcast to all ports** but only PC3 replies. This is how L2 broadcast domains work — every device on the switch sees the broadcast.', check: () => true },
+    ]
+  },
+  // ── Cloud Networking Lab ──
+  {
+    id: 'cloud-vpc-lab',
+    title: 'Cloud VPC with Security Controls',
+    objective: '1.8',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Build a cloud VPC with public/private subnets, security groups, NACLs, and an IPSec VPN to an on-prem data center.',
+    steps: [
+      { title: 'Create a VPC', instruction: 'Drag a **VPC** device onto the canvas. Double-click it → **VPC Config** tab. Set CIDR to `10.0.0.0/16`. Enable DNS Support and DNS Hostnames.', check: (s) => s.devices.some(d => d.type === 'vpc' && d.vpcConfig && d.vpcConfig.cidr) },
+      { title: 'Add Public & Private Subnets', instruction: 'Drag 2 **Cloud Subnet** devices. Wire both to the VPC. Name one "Public Subnet" and one "Private Subnet".', check: (s) => s.devices.filter(d => d.type === 'cloud-subnet').length >= 2 },
+      { title: 'Attach an Internet Gateway', instruction: 'Drag an **Internet GW** and wire it to the VPC. This gives the VPC a path to the internet.', check: (s) => s.devices.some(d => d.type === 'igw') },
+      { title: 'Add a NAT Gateway', instruction: 'Drag a **NAT Gateway** and wire it to the Public Subnet. Private subnet instances will use this for outbound internet access without being directly reachable.', check: (s) => s.devices.some(d => d.type === 'nat-gw') },
+      { title: 'Configure Security Groups', instruction: 'Double-click the **VPC** → **Security Groups** tab. Add a Security Group named "web-sg". Add an inbound rule: TCP port 443 from `0.0.0.0/0`. Security groups are **stateful** — return traffic is auto-allowed.', check: (s) => s.devices.some(d => d.securityGroups && d.securityGroups.length > 0) },
+      { title: 'Configure NACLs', instruction: 'Double-click the **Public Subnet** → **NACLs** tab. Add inbound rules: #100 Allow TCP/443, #200 Allow TCP/80. NACLs are **stateless** — you must add matching outbound rules too! Add outbound: #100 Allow All.', check: (s) => s.devices.some(d => d.type === 'cloud-subnet' && d.nacls && d.nacls.length > 0) },
+      { title: 'Connect On-Prem via VPN', instruction: 'Drag a **VPN Gateway** and an **On-Prem DC**. Wire VPG to VPC, wire VPG to On-Prem DC. Configure matching IPSec parameters on both (IKEv2, AES-256, SHA-256, same PSK). Click **Negotiate Tunnel** to verify it comes up!', check: (s) => s.devices.some(d => d.type === 'vpg') && s.devices.some(d => d.type === 'onprem-dc') },
+    ]
+  },
+  {
+    id: 'sase-zero-trust',
+    title: 'SASE & Zero Trust Architecture',
+    objective: '4.1',
+    difficulty: 'Advanced',
+    duration: '12 min',
+    description: 'Design a SASE architecture with zero trust network access, secure web gateway, and firewall-as-a-service.',
+    steps: [
+      { title: 'Create Cloud Infrastructure', instruction: 'Add a **VPC**, **Cloud Subnet**, and **Internet GW**. Wire IGW → VPC → Subnet. Set VPC CIDR to `10.0.0.0/16`.', check: (s) => s.devices.some(d => d.type === 'vpc') && s.devices.some(d => d.type === 'igw') },
+      { title: 'Add SASE Edge', instruction: 'Drag a **SASE Edge** device and wire it between the Internet GW and the VPC. All traffic passes through SASE for inspection.', check: (s) => s.devices.some(d => d.type === 'sase-edge') },
+      { title: 'Configure Zero Trust', instruction: 'Double-click the SASE Edge → **SASE** tab. Set ZTNA Policy to "Verify Always", enable SWG and CASB, set Identity Provider to "Azure AD", enable MFA.', check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.ztnaPolicy === 'verify-always') },
+      { title: 'Add FWaaS Rules', instruction: 'In the SASE tab, add FWaaS rules: Allow TCP/443 from `0.0.0.0/0`, Allow TCP/80, Deny ALL from `0.0.0.0/0`. This creates a cloud-based firewall.', check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.fwaasPolicies && d.saseConfig.fwaasPolicies.length >= 2) },
+      { title: 'Connect On-Prem', instruction: 'Add an **On-Prem DC** and **VPN Gateway**. Wire VPG to VPC and to On-Prem DC. Configure matching IPSec on both sides and negotiate the tunnel.', check: (s) => s.devices.some(d => d.type === 'onprem-dc') },
+      { title: 'Review CLI Output', instruction: 'Double-click the SASE Edge → CLI. Type `show sase` to verify your configuration. Type `show security-groups` on the VPC to check instance-level controls.', check: () => true },
     ]
   },
 ];

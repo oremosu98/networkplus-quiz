@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.24.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.25.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -779,6 +779,10 @@
         <option value="dmz">&#128274; DMZ / Screened Subnet</option>
         <option value="enterprise">&#127970; Enterprise + IDS/LB</option>
         <option value="branch-wireless">&#128246; Branch + Wireless</option>
+        <option value="cloud-vpc">&#9729; Cloud VPC</option>
+        <option value="hybrid-cloud">&#128279; Hybrid Cloud (VPN)</option>
+        <option value="multi-vpc">&#128300; Multi-VPC + Transit GW</option>
+        <option value="sase-arch">&#128737; SASE Architecture</option>
       </select>
       <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology against design rules" id="tb-grade-btn">&#127891; Grade</button>
       <button class="btn btn-tool tb-tool-btn tb-tool-btn-coach" onclick="tbCoachTopology()" title="Ask the AI Coach to review your topology" id="tb-coach-btn">&#129302; Coach</button>
@@ -855,6 +859,11 @@
           <button class="tb-config-tab" data-tb-tab="vlans" onclick="tbSwitchConfigTab('vlans')">VLANs</button>
           <button class="tb-config-tab" data-tb-tab="dhcp" onclick="tbSwitchConfigTab('dhcp')">DHCP</button>
           <button class="tb-config-tab" data-tb-tab="cli" onclick="tbSwitchConfigTab('cli')">CLI</button>
+          <button class="tb-config-tab" data-tb-tab="security-groups" onclick="tbSwitchConfigTab('security-groups')">Security Groups</button>
+          <button class="tb-config-tab" data-tb-tab="nacls" onclick="tbSwitchConfigTab('nacls')">NACLs</button>
+          <button class="tb-config-tab" data-tb-tab="vpc-config" onclick="tbSwitchConfigTab('vpc-config')">VPC Config</button>
+          <button class="tb-config-tab" data-tb-tab="vpn" onclick="tbSwitchConfigTab('vpn')">VPN/IPSec</button>
+          <button class="tb-config-tab" data-tb-tab="sase" onclick="tbSwitchConfigTab('sase')">SASE</button>
         </div>
         <div id="tb-config-body" class="tb-config-body"></div>
       </div>
