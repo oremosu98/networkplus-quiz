@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.23.1';
+const APP_VERSION = '4.24.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -6739,7 +6739,81 @@ function tbProcessCliCommand(dev, cmd) {
     const result = tbSimARP(tbState, dev.id, targetIp);
     return result.log.join('\n');
   }
-  return `Unknown command: "${cmd}". Try: show arp, show ip route, show interfaces, ping <ip>`;
+  // traceroute — hop-by-hop path to destination
+  if (cmd.startsWith('traceroute ') || cmd.startsWith('tracert ')) {
+    const dstIp = cmd.split(' ').slice(1).join(' ').trim();
+    if (!dstIp) return 'Usage: traceroute <ip>';
+    return tbTraceroute(dev, dstIp);
+  }
+  // ipconfig / ifconfig — show interface configuration
+  if (cmd === 'ipconfig' || cmd === 'ifconfig' || cmd === 'ipconfig /all' || cmd === 'ifconfig -a') {
+    let out = '';
+    dev.interfaces.forEach(ifc => {
+      const status = ifc.enabled ? (ifc.cableId ? 'up' : 'down (no cable)') : 'admin down';
+      out += `\n${ifc.name}:\n`;
+      out += `  Status:       ${status}\n`;
+      out += `  IPv4 Address: ${ifc.ip || 'Not configured'}\n`;
+      out += `  Subnet Mask:  ${ifc.mask || '—'}\n`;
+      out += `  MAC Address:  ${ifc.mac}\n`;
+      out += `  Default GW:   ${ifc.gateway || '—'}\n`;
+      out += `  VLAN:         ${ifc.vlan}  Mode: ${ifc.mode}\n`;
+    });
+    if (dev.dhcpServer) out += `\nDHCP Server: Enabled (pool ${dev.dhcpServer.rangeStart} - ${dev.dhcpServer.rangeEnd})\n`;
+    return out.trim();
+  }
+  // netstat — show connections and listening ports
+  if (cmd === 'netstat' || cmd === 'netstat -an' || cmd === 'ss -tuln') {
+    let out = 'Proto  Local Address          Foreign Address        State\n';
+    out +=    '-----  -------------------    -------------------    -----\n';
+    dev.interfaces.forEach(ifc => {
+      if (ifc.ip && ifc.enabled && ifc.cableId) {
+        // Simulate common listening services based on device type
+        if (dev.type === 'server' || dev.type === 'public-web') {
+          out += `tcp    ${ifc.ip}:80             0.0.0.0:*              LISTEN\n`;
+          out += `tcp    ${ifc.ip}:443            0.0.0.0:*              LISTEN\n`;
+        }
+        if (dev.type === 'server' || dev.type === 'public-file') {
+          out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
+          out += `tcp    ${ifc.ip}:21             0.0.0.0:*              LISTEN\n`;
+        }
+        if (dev.dhcpServer) {
+          out += `udp    ${ifc.ip}:67             0.0.0.0:*              LISTEN\n`;
+        }
+        if (dev.type === 'router' || dev.type === 'firewall') {
+          out += `udp    ${ifc.ip}:161            0.0.0.0:*              LISTEN\n`;
+          out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
+        }
+        if (dev.type === 'voip') {
+          out += `udp    ${ifc.ip}:5060           0.0.0.0:*              LISTEN\n`;
+        }
+        if (dev.type === 'printer') {
+          out += `tcp    ${ifc.ip}:9100           0.0.0.0:*              LISTEN\n`;
+          out += `tcp    ${ifc.ip}:631            0.0.0.0:*              LISTEN\n`;
+        }
+        // Show ARP-established connections
+        dev.arpTable.forEach(a => {
+          out += `tcp    ${ifc.ip}:${30000 + Math.floor(Math.random()*20000)}       ${a.ip}:80              ESTABLISHED\n`;
+        });
+      }
+    });
+    return out.trim();
+  }
+  // help
+  if (cmd === 'help' || cmd === '?') {
+    return 'Available commands:\n' +
+      '  show arp                - ARP table\n' +
+      '  show ip route           - Routing table\n' +
+      '  show mac address-table  - MAC table (switches)\n' +
+      '  show vlan brief         - VLAN database (switches)\n' +
+      '  show interfaces         - Interface status\n' +
+      '  ping <ip>               - Ping a host\n' +
+      '  arp <ip>                - Send ARP request\n' +
+      '  traceroute <ip>         - Trace path to host\n' +
+      '  ipconfig                - Show IP configuration\n' +
+      '  netstat                 - Show connections & ports\n' +
+      '  help                    - This help message';
+  }
+  return `Unknown command: "${cmd}". Type "help" for available commands.`;
 }
 
 // Double-click detection moved into tbOnDeviceMouseDown (manual timestamp
@@ -6973,6 +7047,71 @@ function tbSimPing(state, srcDeviceId, dstIp, ttl) {
   log.push(...fwdResult.log);
   const path = [dev.id, ...(fwdResult.path || [])];
   return { log, success: fwdResult.success, path };
+}
+
+// ── Traceroute Simulation ──
+function tbTraceroute(dev, dstIp) {
+  const lines = [`traceroute to ${dstIp}, 30 hops max\n`];
+  let currentDev = dev;
+  const visited = new Set();
+  let hop = 1;
+
+  for (; hop <= 30; hop++) {
+    if (visited.has(currentDev.id)) { lines.push(`${hop}  *** Loop detected`); break; }
+    visited.add(currentDev.id);
+
+    // Check if destination is directly connected
+    const directIfc = currentDev.interfaces.find(ifc =>
+      ifc.ip && ifc.enabled && tbSameSubnet(ifc.ip, dstIp, ifc.mask));
+    if (directIfc) {
+      // Check if destination device actually exists
+      const dstDev = tbState.devices.find(d => d.interfaces.some(i => i.ip === dstIp));
+      if (dstDev) {
+        const rtt = (1 + Math.random() * 3).toFixed(1);
+        lines.push(`${hop}  ${dstDev.hostname} (${dstIp})  ${rtt} ms`);
+        lines.push(`\nTrace complete.`);
+        return lines.join('\n');
+      }
+      lines.push(`${hop}  ${dstIp}  * * * (host unreachable)`);
+      return lines.join('\n');
+    }
+
+    // Find next hop via routing table or gateway
+    let nextHopIp = null;
+    if (currentDev.routingTable.length) {
+      let bestLen = -1;
+      for (const route of currentDev.routingTable) {
+        const rCidr = parseInt(tbMaskToCidr(route.mask));
+        if (tbSameSubnet(dstIp, route.network, route.mask) && rCidr > bestLen) {
+          bestLen = rCidr;
+          nextHopIp = route.nextHop;
+        }
+      }
+    }
+    if (!nextHopIp) {
+      const gwIfc = currentDev.interfaces.find(ifc => ifc.gateway && ifc.enabled);
+      if (gwIfc) nextHopIp = gwIfc.gateway;
+    }
+
+    if (!nextHopIp) {
+      lines.push(`${hop}  * * * (no route to host)`);
+      return lines.join('\n');
+    }
+
+    // Find the next hop device
+    const nextDev = tbState.devices.find(d => d.interfaces.some(i => i.ip === nextHopIp));
+    if (!nextDev) {
+      lines.push(`${hop}  * * * (next hop ${nextHopIp} unreachable)`);
+      return lines.join('\n');
+    }
+
+    const rtt = (1 + Math.random() * 5).toFixed(1);
+    lines.push(`${hop}  ${nextDev.hostname} (${nextHopIp})  ${rtt} ms`);
+    currentDev = nextDev;
+  }
+
+  if (hop > 30) lines.push('*** Max hops exceeded');
+  return lines.join('\n');
 }
 
 // ── DHCP DORA Simulation ──
@@ -7235,10 +7374,12 @@ Rules:
 - If DHCP is needed, configure dhcpServer on the router/server
 - Include routing tables on routers for cross-subnet connectivity
 - Max 30 devices
+- Support ANY topology type the user asks for: star (central switch/router, all devices connect to it), bus (linear chain), ring (circular chain), mesh (every device connects to every other), star-bus/hybrid (multiple star clusters linked together), point-to-point, etc. When the user asks for a topology type, arrange devices and cables in that physical pattern.
+- CRITICAL: Always generate valid JSON. Never include comments, trailing commas, or non-JSON text in your response.
 
 User request: ${scenario}
 
-Respond with ONLY the JSON object, no markdown fences.`;
+Respond with ONLY the raw JSON object. No markdown code fences, no explanation, no text before or after the JSON.`;
 
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
@@ -7256,8 +7397,18 @@ Respond with ONLY the JSON object, no markdown fences.`;
     const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
     let payload;
     try { payload = JSON.parse(cleaned); }
-    catch (_) { const m = cleaned.match(/\{[\s\S]*\}/); if (m) try { payload = JSON.parse(m[0]); } catch (_) {} }
-    if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology.'); return; }
+    catch (_) {
+      // Try extracting JSON object from surrounding text
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      if (m) try { payload = JSON.parse(m[0]); } catch (_) {}
+      // Try stripping single-line comments (// ...)
+      if (!payload) {
+        const noComments = cleaned.replace(/\/\/[^\n]*/g, '').replace(/,\s*([}\]])/g, '$1');
+        try { payload = JSON.parse(noComments); }
+        catch (_) { const m2 = noComments.match(/\{[\s\S]*\}/); if (m2) try { payload = JSON.parse(m2[0]); } catch (_) {} }
+      }
+    }
+    if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology. Try a simpler description (e.g. "small office with 3 PCs and a server").'); return; }
 
     // Build new tbState from AI response
     const newState = tbNewState();
@@ -7338,11 +7489,25 @@ Respond with ONLY the JSON object, no markdown fences.`;
 }
 
 // AI device walkthrough — explain a device's role and config
+function tbCloseExplainModal() {
+  const m = document.getElementById('tb-explain-modal');
+  if (m) m.classList.add('is-hidden');
+}
+
 async function tbExplainDevice(deviceId) {
   const dev = tbState.devices.find(d => d.id === deviceId);
   if (!dev) return;
   const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
   if (!key) { showErrorToast('Add your Anthropic API key in Settings.'); return; }
+
+  // Show modal immediately in loading state
+  const modal = document.getElementById('tb-explain-modal');
+  const body = document.getElementById('tb-explain-body');
+  const title = document.getElementById('tb-explain-modal-title');
+  if (!modal || !body) return;
+  title.textContent = `💡 ${dev.hostname} (${TB_DEVICE_TYPES[dev.type]?.label || dev.type})`;
+  body.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-dim)"><div class="tb-coach-spinner" style="margin:0 auto 12px"></div>AI is analyzing this device…</div>';
+  modal.classList.remove('is-hidden');
 
   const serialized = tbSerializeTopology(tbState);
   const devDetail = JSON.stringify({
@@ -7352,7 +7517,6 @@ async function tbExplainDevice(deviceId) {
     dhcpServer: dev.dhcpServer,
   }, null, 2);
 
-  showErrorToast('AI analyzing device... (3-5 seconds)');
   try {
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
@@ -7367,12 +7531,14 @@ async function tbExplainDevice(deviceId) {
         messages: [{ role: 'user', content: `You are a Network+ instructor. Explain this device's role in the network in 2-3 paragraphs. Include what N10-009 concepts it demonstrates.\n\nFull topology:\n${serialized}\n\nDevice detail:\n${devDetail}\n\nKeep it under 200 words. No JSON, just plain text.` }]
       })
     });
-    if (!res.ok) { showErrorToast(`API error: ${res.status}`); return; }
+    if (!res.ok) { body.innerHTML = `<div style="padding:20px;color:var(--red)">API error: ${res.status}. Check your API key in Settings.</div>`; return; }
     const data = await res.json();
     const text = (data.content && data.content[0] && data.content[0].text) || 'No response.';
-    tbShowSimLog([`── AI Walkthrough: ${dev.hostname} ──`, '', text]);
+    // Render explanation in the modal with nice formatting
+    const paragraphs = text.split('\n').filter(l => l.trim()).map(p => `<p style="margin:0 0 12px;line-height:1.6">${p}</p>`).join('');
+    body.innerHTML = `<div style="padding:20px">${paragraphs}</div>`;
   } catch (e) {
-    showErrorToast('AI error: ' + (e.message || ''));
+    body.innerHTML = `<div style="padding:20px;color:var(--red)">Error: ${e.message || 'Unknown error'}</div>`;
   }
 }
 
