@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.21.0', js.includes("const APP_VERSION = '4.21.0"));
+test('APP_VERSION is 4.22.0', js.includes("const APP_VERSION = '4.22.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.21.0', sw.includes('netplus-v4.21.0'));
+test('SW cache bumped to v4.22.0', sw.includes('netplus-v4.22.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.21.0', sw.includes('netplus-v4.21.0'));
-test('APP_VERSION bumped to 4.21.0', js.includes("APP_VERSION = '4.21.0'"));
+test('SW cache bumped to v4.22.0', sw.includes('netplus-v4.22.0'));
+test('APP_VERSION bumped to 4.22.0', js.includes("APP_VERSION = '4.22.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -656,7 +656,7 @@ console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 1 (v4.18 / #74) ──\x1b[0m
 test('STORAGE.TOPOLOGIES key', js.includes("TOPOLOGIES: 'nplus_topologies'"));
 test('STORAGE.TOPOLOGY_DRAFT key', js.includes("TOPOLOGY_DRAFT: 'nplus_topology_draft'"));
 // Constants
-test('TB_MAX_DEVICES = 30', js.includes('const TB_MAX_DEVICES = 30'));
+test('TB_MAX_DEVICES = 50', js.includes('const TB_MAX_DEVICES = 50'));
 test('TB_MAX_SAVES = 5', js.includes('const TB_MAX_SAVES = 5'));
 test('TB_DEVICE_TYPES defined', js.includes('const TB_DEVICE_TYPES = {'));
 // Device type coverage (13 total after v4.19.1)
@@ -702,7 +702,7 @@ test('Cable dedupe prevents self-loop', /tbAddCable[\s\S]{0,200}fromId === toId/
 test('Delete cascades: cables removed with device', /tbDeleteSelected[\s\S]{0,600}cables = tbState\.cables\.filter/.test(js));
 test('Save FIFO caps at TB_MAX_SAVES', /tbSaveTopology[\s\S]{0,800}length > TB_MAX_SAVES/.test(js));
 test('Save requires at least one device', /tbSaveTopology[\s\S]{0,300}Add at least one device/.test(js));
-test('Draft auto-saves on add device', /tbAddDevice[\s\S]{0,400}tbSaveDraft\(\)/.test(js));
+test('Draft auto-saves on add device', /tbAddDevice[\s\S]{0,800}tbSaveDraft\(\)/.test(js));
 test('Draft auto-saves on move', /tbOnMouseUp[\s\S]{0,400}tbSaveDraft\(\)/.test(js));
 test('Mobile nudge triggers below 900px', /openTopologyBuilder[\s\S]{0,600}innerWidth < 900/.test(js));
 test('Mobile override via tbForceOpen', /tbForceOpen[\s\S]{0,100}tbMobileOverride = true/.test(js));
@@ -741,7 +741,7 @@ test('Canvas viewBox 1400x820 in HTML', html.includes('viewBox="0 0 1400 820"'))
 test('Device rect compact (96x72) for 30-device fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
 test('Device label font 13', /tb-device-label[\s\S]{0,200}font-size="13"/.test(js));
 test('Intro banner in HTML', html.includes('tb-intro-banner'));
-test('Intro banner title line', html.includes('Design your own network'));
+test('Intro banner title line', html.includes('Build, configure'));
 test('CSS: .tb-intro-banner', css.includes('.tb-intro-banner'));
 test('CSS: page-topology-builder max-width override', css.includes('#page-topology-builder { max-width'));
 test('Clear button in HTML', html.includes('tbClearCanvas()'));
@@ -757,9 +757,9 @@ test('tbEdgePoint helper', js.includes('function tbEdgePoint('));
 test('Cables use tbEdgePoint (edge-to-edge)', /cabLayer\.innerHTML[\s\S]{0,800}tbEdgePoint/.test(js));
 test('tbRenderCanvas uses tbDeviceIcon instead of emoji text', /devLayer\.innerHTML[\s\S]{0,800}tbDeviceIcon\(/.test(js));
 test('tbRenderPalette uses SVG icon', /tbRenderPalette[\s\S]{0,600}tb-palette-icon-svg/.test(js));
-test('Intro banner mentions load balancer', html.includes('load balancer'));
-test('Intro banner mentions IoT', html.includes('IoT'));
-test('Device count pill reflects 30 cap', html.includes('0 / 30 devices'));
+test('Intro banner mentions Ping', html.includes('Ping'));
+test('Intro banner mentions DHCP', html.includes('DHCP'));
+test('Device count pill reflects 50 cap', html.includes('0 / 50 devices'));
 test('CSS: .tb-cable interactive rule', /\.tb-cable\s*\{[\s\S]{0,400}cursor:\s*pointer/.test(css));
 test('CSS: palette scrollable', /\.tb-palette\s*\{[\s\S]{0,400}overflow-y:\s*auto/.test(css));
 test('CSS: .tb-palette-icon-svg rule', css.includes('.tb-palette-icon-svg'));
@@ -795,7 +795,7 @@ test('Cable type: coax', /TB_CABLE_TYPES[\s\S]{0,500}coax:/.test(js));
 test('Cable type: console', /TB_CABLE_TYPES[\s\S]{0,500}console:/.test(js));
 test('tbSelectedCableType default cat6', js.includes("let tbSelectedCableType = 'cat6'"));
 test('tbSelectCableType function', js.includes('function tbSelectCableType('));
-test('tbAddCable stamps cable type', /tbAddCable[\s\S]{0,600}type: cableType/.test(js));
+test('tbAddCable stamps cable type', /tbAddCable[\s\S]{0,1400}type: cableType/.test(js));
 // Public server device types
 test('Device type: public-web', /TB_DEVICE_TYPES[\s\S]{0,3000}'public-web':/.test(js));
 test('Device type: public-file', /TB_DEVICE_TYPES[\s\S]{0,3000}'public-file':/.test(js));
@@ -815,7 +815,7 @@ test('Cables have sheath layer', /tb-cable-sheath/.test(js));
 test('Cable stroke width from meta', /cabLayer\.innerHTML[\s\S]{0,2000}meta\.width/.test(js));
 // Intro mentions DMZ + cable types
 test('Intro banner mentions DMZ / screened subnet', /DMZ|screened subnet/i.test(html));
-test('Intro banner mentions Cat6', html.includes('Cat6'));
+test('Intro banner mentions AI Generate', html.includes('AI Generate'));
 // Device shrink bounds
 test('tbOnMouseMove clamp padding 55/45', /Math\.max\(55,[\s\S]{0,300}Math\.max\(45/.test(js));
 test('HALF_W = 48, HALF_H = 36', /HALF_W = 48, HALF_H = 36/.test(js));
@@ -886,8 +886,8 @@ test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
 // openTopologyBuilder calls tbRenderScenarioPanel
 test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
 
-// ── Topology Builder Tier 3 (v4.21.0) — AI Coach ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.21.0) ──\x1b[0m');
+// ── Topology Builder Tier 3 (v4.22.0) — AI Coach ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.22.0) ──\x1b[0m');
 // Core functions
 test('tbSerializeTopology defined', /function tbSerializeTopology/.test(js));
 test('tbTopologyHash defined', /function tbTopologyHash/.test(js));
@@ -929,6 +929,85 @@ test('CSS: .tb-coach-objectives', css.includes('.tb-coach-objectives'));
 test('CSS: .tb-coach-tip', css.includes('.tb-coach-tip'));
 test('CSS: .tb-tool-btn-coach', css.includes('.tb-tool-btn-coach'));
 test('CSS: tb-coach-spin keyframes', css.includes('@keyframes tb-coach-spin'));
+
+// ── Network Simulator (v4.22.0) — Config Panel, Sim Engine, CLI, AI Gen ──
+console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.22.0) ──\x1b[0m');
+// Foundation
+test('TB_MAX_DEVICES bumped to 50', js.includes('const TB_MAX_DEVICES = 50'));
+test('TB_IFACE_DEFAULTS defined', js.includes('const TB_IFACE_DEFAULTS'));
+test('tbGenerateMac function', js.includes('function tbGenerateMac('));
+test('tbAutoHostname function', js.includes('function tbAutoHostname('));
+test('tbGenerateInterfaces function', js.includes('function tbGenerateInterfaces('));
+test('tbMigrateState function', js.includes('function tbMigrateState('));
+// Config Panel
+test('tbOpenConfigPanel function', js.includes('function tbOpenConfigPanel('));
+test('tbCloseConfigPanel function', js.includes('function tbCloseConfigPanel('));
+test('tbSwitchConfigTab function', js.includes('function tbSwitchConfigTab('));
+test('tbRenderIfacesTab function', js.includes('function tbRenderIfacesTab('));
+test('tbRenderRoutingTab function', js.includes('function tbRenderRoutingTab('));
+test('tbRenderVlansTab function', js.includes('function tbRenderVlansTab('));
+test('tbRenderDhcpTab function', js.includes('function tbRenderDhcpTab('));
+test('tbRenderCliTab function', js.includes('function tbRenderCliTab('));
+test('tbAttachDoubleClick function', js.includes('function tbAttachDoubleClick('));
+test('Double-click wired into tbRenderCanvas', /tbRenderCanvas[\s\S]{0,5000}tbAttachDoubleClick\(\)/.test(js));
+// IP utilities
+test('tbIpToArr function', js.includes('function tbIpToArr('));
+test('tbSubnetOf function', js.includes('function tbSubnetOf('));
+test('tbBroadcastOf function', js.includes('function tbBroadcastOf('));
+test('tbSameSubnet function', js.includes('function tbSameSubnet('));
+test('tbMaskToCidr function', js.includes('function tbMaskToCidr('));
+// Broadcast domain
+test('tbGetBroadcastDomain function', js.includes('function tbGetBroadcastDomain('));
+// ARP simulation
+test('tbSimARP function', js.includes('function tbSimARP('));
+// Ping simulation
+test('tbSimPing function', js.includes('function tbSimPing('));
+// DHCP simulation
+test('tbSimDHCP function', js.includes('function tbSimDHCP('));
+// Packet animation
+test('tbAnimatePacket function', js.includes('function tbAnimatePacket('));
+// CLI
+test('tbCliExec function', js.includes('function tbCliExec('));
+test('tbProcessCliCommand function', js.includes('function tbProcessCliCommand('));
+test('CLI supports show arp', /show arp/.test(js));
+test('CLI supports show ip route', /show ip route/.test(js));
+test('CLI supports ping command', /cmd\.startsWith\('ping '\)/.test(js));
+// AI generation
+test('tbGenerateAiTopology async function', /async function tbGenerateAiTopology/.test(js));
+test('tbExplainDevice async function', /async function tbExplainDevice/.test(js));
+// Simulation UI
+test('tbOpenPingDialog function', js.includes('function tbOpenPingDialog('));
+test('tbExecPing function', js.includes('function tbExecPing('));
+test('tbShowSimLog function', js.includes('function tbShowSimLog('));
+test('tbClearSimLog function', js.includes('function tbClearSimLog('));
+test('tbOpenDhcpDialog function', js.includes('function tbOpenDhcpDialog('));
+// Routing helpers
+test('tbRebuildConnectedRoutes function', js.includes('function tbRebuildConnectedRoutes('));
+test('tbAddStaticRoute function', js.includes('function tbAddStaticRoute('));
+// VLAN helpers
+test('tbAddVlan function', js.includes('function tbAddVlan('));
+// Cable unbind
+test('tbUnbindCable function', js.includes('function tbUnbindCable('));
+// HTML wiring
+test('HTML: config panel exists', html.includes('id="tb-config-panel"'));
+test('HTML: config panel tabs', html.includes('data-tb-tab="ifaces"'));
+test('HTML: sim toolbar exists', html.includes('id="tb-sim-toolbar"'));
+test('HTML: ping modal exists', html.includes('id="tb-ping-modal"'));
+test('HTML: sim log panel exists', html.includes('id="tb-sim-log"'));
+test('HTML: anim layer in SVG', html.includes('id="tb-anim-layer"'));
+test('HTML: AI Generate button', html.includes('id="tb-ai-gen-btn"'));
+test('HTML: Explain button in config panel', html.includes('tbExplainDevice(tbConfigPanelDeviceId)'));
+test('HTML: howto mentions double-click', html.includes('Double-click'));
+// CSS
+test('CSS: .tb-config-panel', css.includes('.tb-config-panel'));
+test('CSS: .tb-sim-toolbar', css.includes('.tb-sim-toolbar'));
+test('CSS: .tb-sim-log', css.includes('.tb-sim-log'));
+test('CSS: .tb-cli-output', css.includes('.tb-cli-output'));
+test('CSS: .tb-iface-table', css.includes('.tb-iface-table'));
+test('CSS: .tb-tool-btn-ai', css.includes('.tb-tool-btn-ai'));
+test('CSS: .tb-explain-btn', css.includes('.tb-explain-btn'));
+// Sim toolbar shows on openTopologyBuilder
+test('Sim toolbar shown on open', /openTopologyBuilder[\s\S]{0,1500}tb-sim-toolbar/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.21.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.22.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -746,7 +746,7 @@
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
     <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2 style="margin:0">&#128295; Topology Builder</h2>
-    <span id="tb-device-count" class="tb-count-pill">0 / 30 devices</span>
+    <span id="tb-device-count" class="tb-count-pill">0 / 50 devices</span>
   </div>
 
   <div id="tb-mobile-nudge" class="tb-mobile-nudge is-hidden">
@@ -761,8 +761,8 @@
     <div class="tb-intro-banner">
       <div class="tb-intro-icon">&#128295;</div>
       <div class="tb-intro-body">
-        <div class="tb-intro-title">Design your own network &mdash; visually</div>
-        <div class="tb-intro-text">Drag routers, switches, WAPs, firewalls, load balancers, IDS/IPS, WLCs, servers, PCs, printers, VoIP phones, IoT devices, cloud nodes, and <strong>public web / file / cloud servers</strong> onto the canvas to sketch real network layouts &mdash; including DMZ / screened subnet designs. Pick a cable type (Cat6, Cat5e, Fiber, Coax, Console), wire devices together, save up to 5 topologies, and come back any time. Pick a scenario, hit <strong>&#127891; Grade</strong> for an instant design review against 12 rules, tap <strong>&#129302; Coach</strong> to get an AI instructor walkthrough of your design with N10-009 objective callouts, and <strong>&#128247; Export PNG</strong> to save your topology as an image.</div>
+        <div class="tb-intro-title">Build, configure &amp; simulate real networks</div>
+        <div class="tb-intro-text">Drag routers, switches, firewalls, PCs, servers and 17 device types onto the canvas, then <strong>double-click</strong> any device to configure IPs, subnet masks, VLANs, routing tables, DHCP, and use the built-in CLI. <strong>Ping</strong> between devices, run <strong>ARP</strong> requests, trigger <strong>DHCP DORA</strong> with relay support, and watch animated packets traverse the network. Use <strong>&#129302; AI Generate</strong> to create a full topology from a text description, or <strong>&#128161; Explain</strong> to get an AI walkthrough of any device. Grade designs with <strong>&#127891; Grade</strong>, get coaching with <strong>&#129302; Coach</strong>, and export with <strong>&#128247; Export PNG</strong>.</div>
       </div>
     </div>
 
@@ -783,6 +783,7 @@
       <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology against design rules" id="tb-grade-btn">&#127891; Grade</button>
       <button class="btn btn-tool tb-tool-btn tb-tool-btn-coach" onclick="tbCoachTopology()" title="Ask the AI Coach to review your topology" id="tb-coach-btn">&#129302; Coach</button>
       <button class="btn btn-ghost tb-tool-btn" onclick="tbExportPNG()" title="Export topology as PNG image" id="tb-export-btn">&#128247; Export PNG</button>
+      <button class="btn btn-tool tb-tool-btn tb-tool-btn-ai" onclick="tbGenerateAiTopology()" title="AI generates a full network topology from your description" id="tb-ai-gen-btn">&#129302; AI Generate</button>
       <button class="btn btn-ghost tb-tool-btn" onclick="tbDeleteSelected()" title="Delete selected (Del)" id="tb-delete-btn">&#128465; Delete</button>
       <button class="btn btn-ghost tb-tool-btn" onclick="tbClearCanvas()" title="Clear all devices from canvas" id="tb-clear-btn">&#129529; Clear</button>
       <span class="tb-toolbar-spacer"></span>
@@ -796,7 +797,8 @@
     <div class="tb-howto-strip">
       <div class="tb-howto-item"><span class="tb-howto-num">1</span> <strong>Drag</strong> a device from the palette onto the canvas</div>
       <div class="tb-howto-item"><span class="tb-howto-num">2</span> <strong>Click</strong> device A &rarr; then <strong>click</strong> device B to draw a cable between them</div>
-      <div class="tb-howto-item"><span class="tb-howto-num">3</span> <strong>Drag</strong> a placed device to move &middot; click to select &middot; <kbd>Del</kbd> to remove</div>
+      <div class="tb-howto-item"><span class="tb-howto-num">3</span> <strong>Double-click</strong> a device to configure IPs, VLANs, routing, DHCP &amp; CLI</div>
+      <div class="tb-howto-item"><span class="tb-howto-num">4</span> <strong>Drag</strong> to move &middot; <kbd>Del</kbd> to remove &middot; Use <strong>Ping/ARP/DHCP</strong> toolbar to simulate</div>
     </div>
 
     <!-- Main area: palette + canvas -->
@@ -831,11 +833,65 @@
           <rect width="100%" height="100%" fill="url(#tb-grid)"/>
           <g id="tb-cables-layer"></g>
           <g id="tb-devices-layer"></g>
+          <g id="tb-anim-layer"></g>
         </svg>
         <div id="tb-empty-hint" class="tb-empty-hint">
           <div style="font-size:48px;margin-bottom:8px">&#128295;</div>
           <div>Start by dragging a device from the palette</div>
         </div>
+      </div>
+
+      <!-- Config panel (slide-out right) -->
+      <div id="tb-config-panel" class="tb-config-panel is-hidden">
+        <div class="tb-config-head">
+          <span id="tb-config-title">Device</span>
+          <button type="button" class="btn btn-ghost tb-tool-btn tb-explain-btn" onclick="tbExplainDevice(tbConfigPanelDeviceId)" title="AI explains this device's role">&#128161; Explain</button>
+          <button type="button" class="tb-config-close" onclick="tbCloseConfigPanel()" aria-label="Close config">&times;</button>
+        </div>
+        <div class="tb-config-tabs">
+          <button class="tb-config-tab tb-config-tab-active" data-tb-tab="ifaces" onclick="tbSwitchConfigTab('ifaces')">Interfaces</button>
+          <button class="tb-config-tab" data-tb-tab="routing" onclick="tbSwitchConfigTab('routing')">Routing</button>
+          <button class="tb-config-tab" data-tb-tab="vlans" onclick="tbSwitchConfigTab('vlans')">VLANs</button>
+          <button class="tb-config-tab" data-tb-tab="dhcp" onclick="tbSwitchConfigTab('dhcp')">DHCP</button>
+          <button class="tb-config-tab" data-tb-tab="cli" onclick="tbSwitchConfigTab('cli')">CLI</button>
+        </div>
+        <div id="tb-config-body" class="tb-config-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulation toolbar -->
+  <div id="tb-sim-toolbar" class="tb-sim-toolbar is-hidden">
+    <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenPingDialog()" title="Ping between devices">&#128225; Ping</button>
+    <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenArpDialog()" title="ARP request">&#128203; ARP</button>
+    <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenDhcpDialog()" title="DHCP request">&#128260; DHCP</button>
+    <button class="btn btn-ghost tb-tool-btn" onclick="tbClearSimLog()" title="Clear simulation log">&#128465; Clear Log</button>
+    <div id="tb-sim-status" class="tb-sim-status"></div>
+  </div>
+
+  <!-- Simulation log panel -->
+  <div id="tb-sim-log" class="tb-sim-log is-hidden">
+    <div class="tb-sim-log-head">
+      <span>&#128203; Simulation Log</span>
+      <button type="button" class="tb-config-close" onclick="document.getElementById('tb-sim-log').classList.add('is-hidden')">&times;</button>
+    </div>
+    <pre id="tb-sim-log-content" class="tb-sim-log-content"></pre>
+  </div>
+
+  <!-- Ping dialog modal -->
+  <div id="tb-ping-modal" class="tb-grade-modal is-hidden" role="dialog">
+    <div class="tb-grade-backdrop" onclick="document.getElementById('tb-ping-modal').classList.add('is-hidden')"></div>
+    <div class="tb-grade-card" style="max-width:400px">
+      <div class="tb-grade-card-head">
+        <h3 style="margin:0">&#128225; Ping</h3>
+        <button type="button" class="tb-grade-close" onclick="document.getElementById('tb-ping-modal').classList.add('is-hidden')">&times;</button>
+      </div>
+      <div class="tb-grade-body" style="padding:20px">
+        <label style="display:block;margin-bottom:8px;font-weight:600">Source device:</label>
+        <select id="tb-ping-src" class="tb-load-select" style="width:100%;margin-bottom:12px"></select>
+        <label style="display:block;margin-bottom:8px;font-weight:600">Destination IP:</label>
+        <input id="tb-ping-dst" type="text" class="subnet-input" placeholder="e.g. 192.168.1.1" style="width:100%;margin-bottom:16px">
+        <button class="btn tb-tool-btn-primary" onclick="tbExecPing()" style="width:100%">&#128225; Send Ping</button>
       </div>
     </div>
   </div>

@@ -1768,6 +1768,28 @@ input::placeholder { color: var(--text-dim); }
   background: linear-gradient(135deg, rgba(14,165,233,.42), rgba(14,165,233,.22));
   box-shadow: 0 4px 14px rgba(14,165,233,.35);
 }
+.tb-tool-btn-ai {
+  background: linear-gradient(135deg, rgba(168,85,247,.28), rgba(168,85,247,.14));
+  border: 1px solid rgba(168,85,247,.55);
+  color: #e9d5ff;
+  font-weight: 700;
+}
+.tb-tool-btn-ai:hover {
+  background: linear-gradient(135deg, rgba(168,85,247,.42), rgba(168,85,247,.22));
+  box-shadow: 0 4px 14px rgba(168,85,247,.35);
+}
+.tb-explain-btn {
+  font-size: 12px;
+  padding: 2px 8px;
+  margin-left: auto;
+  margin-right: 8px;
+  color: #fde68a;
+  border: 1px solid rgba(253,224,71,.3);
+  border-radius: 6px;
+}
+.tb-explain-btn:hover {
+  background: rgba(253,224,71,.12);
+}
 
 .tb-coach-loading {
   display: flex;
@@ -1870,4 +1892,260 @@ input::placeholder { color: var(--text-dim); }
   font-size: 13px;
   line-height: 1.55;
   color: #e2e8f0;
+}
+
+/* ══════════════════════════════════════════
+   TOPOLOGY BUILDER — Network Simulator UI
+   ══════════════════════════════════════════ */
+
+/* Config panel — slide-out right inside .tb-workspace */
+.tb-config-panel {
+  width: 360px;
+  min-width: 320px;
+  background: var(--surface);
+  border-left: 2px solid rgba(124,111,247,.3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: 720px;
+  transition: width .2s;
+}
+.tb-config-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(124,111,247,.12);
+  border-bottom: 1px solid rgba(124,111,247,.2);
+  font-weight: 700;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+.tb-config-close {
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+.tb-config-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(124,111,247,.2);
+  overflow-x: auto;
+}
+.tb-config-tab {
+  flex: 1;
+  padding: 7px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.tb-config-tab:hover { color: #e2e8f0; }
+.tb-config-tab-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tb-config-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 12px;
+}
+.tb-config-body label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 3px;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+.tb-config-body input[type="text"],
+.tb-config-body select {
+  width: 100%;
+  padding: 5px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(124,111,247,.25);
+  background: rgba(0,0,0,.25);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-family: 'Fira Code', monospace;
+  margin-bottom: 6px;
+}
+
+/* Interface table inside config panel */
+.tb-iface-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.tb-iface-table th {
+  text-align: left;
+  padding: 4px 5px;
+  border-bottom: 1px solid rgba(124,111,247,.2);
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.tb-iface-table td {
+  padding: 3px 5px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  vertical-align: middle;
+}
+.tb-iface-table input {
+  width: 100%;
+  padding: 3px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(124,111,247,.2);
+  background: rgba(0,0,0,.2);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-family: 'Fira Code', monospace;
+}
+.tb-iface-table .tb-iface-name {
+  color: var(--accent);
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+}
+.tb-iface-table .tb-iface-cable {
+  color: #94a3b8;
+  font-size: 10px;
+}
+.tb-iface-status-up { color: #22c55e; }
+.tb-iface-status-down { color: #ef4444; }
+
+/* Routing table in config */
+.tb-route-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  align-items: center;
+}
+.tb-route-row input {
+  flex: 1;
+  min-width: 0;
+}
+.tb-route-type {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.tb-route-type-connected { background: rgba(34,197,94,.2); color: #22c55e; }
+.tb-route-type-static { background: rgba(59,130,246,.2); color: #3b82f6; }
+
+/* VLAN database in config */
+.tb-vlan-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgba(0,0,0,.15);
+}
+.tb-vlan-id {
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Fira Code', monospace;
+  min-width: 32px;
+}
+
+/* CLI tab in config */
+.tb-cli-output {
+  background: #0b1020;
+  color: #7ee787;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  padding: 10px;
+  border-radius: 6px;
+  min-height: 140px;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+.tb-cli-input-row {
+  display: flex;
+  gap: 6px;
+}
+.tb-cli-input-row input {
+  flex: 1;
+  font-family: 'Fira Code', monospace;
+}
+.tb-cli-input-row button {
+  padding: 5px 12px;
+  font-size: 11px;
+}
+
+/* Simulation toolbar */
+.tb-sim-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(14, 165, 233, .08);
+  border: 1px solid rgba(14, 165, 233, .2);
+  border-radius: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.tb-sim-status {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: auto;
+}
+
+/* Simulation log */
+.tb-sim-log {
+  margin-top: 10px;
+  background: var(--surface);
+  border: 1px solid rgba(124,111,247,.2);
+  border-radius: 8px;
+  max-height: 260px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tb-sim-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(124,111,247,.15);
+}
+.tb-sim-log-content {
+  padding: 10px 12px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #e2e8f0;
+  overflow-y: auto;
+  flex: 1;
+  margin: 0;
+  line-height: 1.6;
+}
+.tb-sim-log-arp { color: #f59e0b; }
+.tb-sim-log-icmp { color: #22c55e; }
+.tb-sim-log-dhcp { color: #3b82f6; }
+.tb-sim-log-err { color: #ef4444; }
+
+/* Packet animation dot */
+@keyframes tb-packet-move {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+.tb-packet-dot {
+  r: 6;
+  filter: drop-shadow(0 0 6px currentColor);
 }

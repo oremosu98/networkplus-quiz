@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.21.0';
+const APP_VERSION = '4.22.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4782,7 +4782,7 @@ function openGuidedLab(topicName) {
 // Tier 2 (config panels) and Tier 3 (AI coach) ship later.
 // ══════════════════════════════════════════
 
-const TB_MAX_DEVICES = 30;
+const TB_MAX_DEVICES = 50;
 const TB_MAX_SAVES = 5;
 const TB_CANVAS_W = 1400;
 const TB_CANVAS_H = 820;
@@ -4819,6 +4819,118 @@ const TB_CABLE_TYPES = {
   console: { label: 'Console', color: '#ef4444', width: 5, dash: '6 4' },
 };
 let tbSelectedCableType = 'cat6';
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — Network Simulator Foundation
+// ══════════════════════════════════════════
+
+// Interface defaults per device type: how many ports, naming convention.
+const TB_IFACE_DEFAULTS = {
+  router:        { count: 4,  naming: i => `Gi0/${i}` },
+  switch:        { count: 24, naming: i => `Fa0/${i + 1}` },
+  'dmz-switch':  { count: 24, naming: i => `Fa0/${i + 1}` },
+  firewall:      { count: 4,  naming: i => `eth${i}` },
+  wap:           { count: 1,  naming: () => 'eth0' },
+  pc:            { count: 1,  naming: () => 'eth0' },
+  server:        { count: 2,  naming: i => `eth${i}` },
+  cloud:         { count: 4,  naming: i => `wan${i}` },
+  printer:       { count: 1,  naming: () => 'eth0' },
+  voip:          { count: 1,  naming: () => 'eth0' },
+  iot:           { count: 1,  naming: () => 'eth0' },
+  'load-balancer': { count: 4, naming: i => `eth${i}` },
+  ids:           { count: 2,  naming: i => `eth${i}` },
+  wlc:           { count: 2,  naming: i => `eth${i}` },
+  'public-web':  { count: 1,  naming: () => 'eth0' },
+  'public-file': { count: 1,  naming: () => 'eth0' },
+  'public-cloud':{ count: 1,  naming: () => 'eth0' },
+};
+
+// Generate a deterministic MAC from a device ID + interface index.
+// Format: XX:XX:XX:YY:YY:ZZ where XX comes from a hash of deviceId, YY:ZZ from ifaceIdx.
+function tbGenerateMac(deviceId, ifaceIdx) {
+  let h = 0x2A;
+  for (let i = 0; i < deviceId.length; i++) h = ((h << 5) - h + deviceId.charCodeAt(i)) | 0;
+  const a = (h >>> 24) & 0xFE; // clear multicast bit
+  const b = (h >>> 16) & 0xFF;
+  const c = (h >>> 8) & 0xFF;
+  const hex = x => x.toString(16).padStart(2, '0').toUpperCase();
+  return `${hex(a | 0x02)}:${hex(b)}:${hex(c)}:00:${hex(ifaceIdx)}:${hex((h ^ ifaceIdx) & 0xFF)}`;
+}
+
+// Auto-hostname: R1, SW2, PC3 etc based on existing devices of same type.
+function tbAutoHostname(type, devices) {
+  const short = (TB_DEVICE_TYPES[type] && TB_DEVICE_TYPES[type].short) || type.toUpperCase().slice(0, 3);
+  const count = devices.filter(d => d.type === type).length;
+  return `${short}${count + 1}`;
+}
+
+// Create default interfaces for a device.
+function tbGenerateInterfaces(type, deviceId) {
+  const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
+  const ifaces = [];
+  for (let i = 0; i < def.count; i++) {
+    ifaces.push({
+      name: def.naming(i),
+      cableId: null,
+      ip: '',
+      mask: '255.255.255.0',
+      mac: tbGenerateMac(deviceId, i),
+      vlan: 1,
+      mode: 'access',     // 'access' | 'trunk'
+      trunkAllowed: [1],
+      gateway: '',
+      enabled: true,
+      subInterfaces: [],  // router-on-a-stick: [{name, vlan, ip, mask}]
+    });
+  }
+  return ifaces;
+}
+
+// Migrate old topology state (pre-simulator) to new format.
+// Called on every load so old saves get interfaces/MACs auto-generated.
+function tbMigrateState(state) {
+  if (!state || !state.devices) return state;
+  state.devices.forEach(d => {
+    if (!d.interfaces) {
+      d.interfaces = tbGenerateInterfaces(d.type, d.id);
+      d.hostname = tbAutoHostname(d.type, state.devices.filter(x => x !== d));
+    }
+    d.routingTable = d.routingTable || [];
+    d.arpTable = d.arpTable || [];
+    d.macTable = d.macTable || [];
+    d.vlanDb = d.vlanDb || (d.type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : []);
+    d.dhcpServer = d.dhcpServer || null;
+    d.dhcpRelay = d.dhcpRelay || null;
+    d.acls = d.acls || [];
+  });
+  // Auto-bind cables to interfaces if not already bound
+  state.cables.forEach(c => {
+    if (c.fromIface === undefined || c.fromIface === null) {
+      const fromDev = state.devices.find(d => d.id === c.from);
+      if (fromDev) {
+        const avail = fromDev.interfaces.find(ifc => !ifc.cableId);
+        if (avail) { avail.cableId = c.id; c.fromIface = avail.name; }
+        else c.fromIface = null;
+      }
+    }
+    if (c.toIface === undefined || c.toIface === null) {
+      const toDev = state.devices.find(d => d.id === c.to);
+      if (toDev) {
+        const avail = toDev.interfaces.find(ifc => !ifc.cableId);
+        if (avail) { avail.cableId = c.id; c.toIface = avail.name; }
+        else c.toIface = null;
+      }
+    }
+  });
+  state.simLog = state.simLog || [];
+  return state;
+}
+
+// Simulation state (not persisted)
+let tbConfigPanelDeviceId = null;
+let tbSimRunning = false;
+let tbSimLog = [];
+let tbSimAnimations = [];
 
 function tbSelectCableType(type) {
   if (!TB_CABLE_TYPES[type]) return;
@@ -5002,6 +5114,8 @@ function openTopologyBuilder() {
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
   tbAttachKeyHandler();
+  // Always show sim toolbar when topology builder is open
+  document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
 }
 
 function tbForceOpen() {
@@ -5104,7 +5218,7 @@ function tbRenderCanvas() {
         <rect class="tb-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"
               fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
         <g transform="scale(0.72) translate(0, 4)">${tbDeviceIcon(d.type, meta.color)}</g>
-        <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">${escHtml(meta.label)}</text>
+        <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">${escHtml(d.hostname || meta.label)}</text>
       </g>
     `;
   }).join('');
@@ -5132,6 +5246,8 @@ function tbRenderCanvas() {
       tbUpdateStatus('Cable selected. Press Del/Backspace to remove.');
     });
   });
+  // Attach double-click to open config panel on devices
+  tbAttachDoubleClick();
 }
 
 // ── Canvas mouse/drop/click handlers ──
@@ -5185,7 +5301,21 @@ function tbAddDevice(type, x, y) {
     return;
   }
   const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-  tbState.devices.push({ id, type, x: Math.round(x), y: Math.round(y) });
+  const hostname = tbAutoHostname(type, tbState.devices);
+  const interfaces = tbGenerateInterfaces(type, id);
+  const vlanDb = type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [];
+  tbState.devices.push({
+    id, type, x: Math.round(x), y: Math.round(y),
+    hostname,
+    interfaces,
+    routingTable: [],
+    arpTable: [],
+    macTable: [],
+    vlanDb,
+    dhcpServer: null,
+    dhcpRelay: null,
+    acls: [],
+  });
   tbState.updated = Date.now();
   tbRenderCanvas();
   tbUpdateDeviceCount();
@@ -5260,12 +5390,31 @@ function tbAddCable(fromId, toId) {
     showErrorToast('Those devices are already cabled.');
     return;
   }
+  // Find available interfaces on each device
+  const fromDev = tbState.devices.find(d => d.id === fromId);
+  const toDev = tbState.devices.find(d => d.id === toId);
+  const fromIface = fromDev && fromDev.interfaces ? fromDev.interfaces.find(ifc => !ifc.cableId) : null;
+  const toIface = toDev && toDev.interfaces ? toDev.interfaces.find(ifc => !ifc.cableId) : null;
+  if (fromDev && fromDev.interfaces && !fromIface) {
+    showErrorToast(`${fromDev.hostname || TB_DEVICE_TYPES[fromDev.type].label} has no free ports.`);
+    return;
+  }
+  if (toDev && toDev.interfaces && !toIface) {
+    showErrorToast(`${toDev.hostname || TB_DEVICE_TYPES[toDev.type].label} has no free ports.`);
+    return;
+  }
   const id = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
   const cableType = tbSelectedCableType || 'cat6';
-  tbState.cables.push({ id, from: fromId, to: toId, type: cableType });
+  if (fromIface) fromIface.cableId = id;
+  if (toIface) toIface.cableId = id;
+  tbState.cables.push({
+    id, from: fromId, to: toId, type: cableType,
+    fromIface: fromIface ? fromIface.name : null,
+    toIface: toIface ? toIface.name : null,
+  });
   tbState.updated = Date.now();
   const label = (TB_CABLE_TYPES[cableType] || {}).label || 'Cat6';
-  tbUpdateStatus(`${label} cable drawn. Keep building.`);
+  tbUpdateStatus(`${label} cable drawn (${fromIface ? fromIface.name : '?'} → ${toIface ? toIface.name : '?'}). Keep building.`);
   tbSaveDraft();
 }
 
@@ -5290,6 +5439,17 @@ function tbAttachKeyHandler() {
   });
 }
 
+// Release interface bindings when a cable is removed.
+function tbUnbindCable(cable) {
+  if (!cable) return;
+  [cable.from, cable.to].forEach(devId => {
+    const dev = tbState.devices.find(d => d.id === devId);
+    if (dev && dev.interfaces) {
+      dev.interfaces.forEach(ifc => { if (ifc.cableId === cable.id) ifc.cableId = null; });
+    }
+  });
+}
+
 function tbDeleteSelected() {
   if (!tbSelectedId) {
     tbUpdateStatus('Nothing selected.');
@@ -5299,8 +5459,9 @@ function tbDeleteSelected() {
   const devIdx = tbState.devices.findIndex(d => d.id === tbSelectedId);
   if (devIdx >= 0) {
     const id = tbSelectedId;
+    // Unbind interfaces on connected devices before removing cables
+    tbState.cables.filter(c => c.from === id || c.to === id).forEach(c => tbUnbindCable(c));
     tbState.devices.splice(devIdx, 1);
-    // Cascade: remove any cables touching this device
     tbState.cables = tbState.cables.filter(c => c.from !== id && c.to !== id);
     tbSelectedId = null;
     tbState.updated = Date.now();
@@ -5313,6 +5474,7 @@ function tbDeleteSelected() {
   // Cable?
   const cabIdx = tbState.cables.findIndex(c => c.id === tbSelectedId);
   if (cabIdx >= 0) {
+    tbUnbindCable(tbState.cables[cabIdx]);
     tbState.cables.splice(cabIdx, 1);
     tbSelectedId = null;
     tbState.updated = Date.now();
@@ -5326,7 +5488,7 @@ function tbDeleteSelected() {
 function tbLoadDraft() {
   try {
     const raw = localStorage.getItem(STORAGE.TOPOLOGY_DRAFT);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? tbMigrateState(JSON.parse(raw)) : null;
   } catch (_) { return null; }
 }
 function tbSaveDraft() {
@@ -5382,7 +5544,7 @@ function tbLoadTopology(id) {
   const saves = tbLoadAllSaves();
   const found = saves.find(s => s.id === id);
   if (!found) return;
-  tbState = JSON.parse(JSON.stringify(found));
+  tbState = tbMigrateState(JSON.parse(JSON.stringify(found)));
   tbSelectedId = null;
   tbPendingCableFrom = null;
   tbSaveDraft();
@@ -6101,6 +6263,978 @@ function tbShowCoachModal(payload, scenario, cached) {
 function tbCloseCoachModal() {
   const modal = document.getElementById('tb-coach-modal');
   if (modal) modal.classList.add('is-hidden');
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — Config Panel, Simulation Engine, CLI
+// ══════════════════════════════════════════
+
+// ── Config Panel ──
+let tbActiveConfigTab = 'ifaces';
+
+function tbOpenConfigPanel(deviceId) {
+  const dev = tbState.devices.find(d => d.id === deviceId);
+  if (!dev) return;
+  tbConfigPanelDeviceId = deviceId;
+  const panel = document.getElementById('tb-config-panel');
+  const title = document.getElementById('tb-config-title');
+  if (!panel || !title) return;
+  const meta = TB_DEVICE_TYPES[dev.type] || {};
+  title.textContent = `${dev.hostname || meta.label} (${meta.label})`;
+  panel.classList.remove('is-hidden');
+  // Show/hide tabs based on device type
+  const isSwitch = dev.type.indexOf('switch') >= 0;
+  const isRouter = dev.type === 'router' || dev.type === 'firewall';
+  const isServer = dev.type === 'server';
+  document.querySelectorAll('.tb-config-tab').forEach(t => {
+    const tab = t.getAttribute('data-tb-tab');
+    if (tab === 'routing') t.classList.toggle('is-hidden', !isRouter);
+    if (tab === 'vlans') t.classList.toggle('is-hidden', !isSwitch);
+    if (tab === 'dhcp') t.classList.toggle('is-hidden', !isRouter && !isServer);
+  });
+  tbSwitchConfigTab(tbActiveConfigTab);
+  // Show sim toolbar
+  document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
+}
+
+function tbCloseConfigPanel() {
+  tbConfigPanelDeviceId = null;
+  document.getElementById('tb-config-panel')?.classList.add('is-hidden');
+}
+
+function tbSwitchConfigTab(tab) {
+  tbActiveConfigTab = tab;
+  document.querySelectorAll('.tb-config-tab').forEach(t => {
+    t.classList.toggle('tb-config-tab-active', t.getAttribute('data-tb-tab') === tab);
+  });
+  const body = document.getElementById('tb-config-body');
+  if (!body) return;
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) { body.innerHTML = ''; return; }
+  switch (tab) {
+    case 'ifaces': body.innerHTML = tbRenderIfacesTab(dev); break;
+    case 'routing': body.innerHTML = tbRenderRoutingTab(dev); break;
+    case 'vlans': body.innerHTML = tbRenderVlansTab(dev); break;
+    case 'dhcp': body.innerHTML = tbRenderDhcpTab(dev); break;
+    case 'cli': body.innerHTML = tbRenderCliTab(dev); break;
+    default: body.innerHTML = '';
+  }
+}
+
+// ── Interfaces Tab ──
+function tbRenderIfacesTab(dev) {
+  const rows = dev.interfaces.map((ifc, i) => {
+    const cable = ifc.cableId ? tbState.cables.find(c => c.id === ifc.cableId) : null;
+    const peerDevId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
+    const peerDev = peerDevId ? tbState.devices.find(d => d.id === peerDevId) : null;
+    const cableLbl = peerDev ? `→ ${peerDev.hostname || '?'}` : '(free)';
+    const statusCls = ifc.enabled ? 'tb-iface-status-up' : 'tb-iface-status-down';
+    const statusTxt = ifc.enabled ? 'UP' : 'DN';
+    return `<tr>
+      <td><span class="tb-iface-name">${escHtml(ifc.name)}</span><br><span class="tb-iface-cable">${escHtml(cableLbl)}</span></td>
+      <td><input type="text" value="${escHtml(ifc.ip)}" placeholder="IP" onchange="tbSetIfaceField(${i},'ip',this.value)" style="width:100px"></td>
+      <td><input type="text" value="${escHtml(ifc.mask)}" placeholder="Mask" onchange="tbSetIfaceField(${i},'mask',this.value)" style="width:100px"></td>
+      <td><input type="text" value="${ifc.vlan}" onchange="tbSetIfaceField(${i},'vlan',parseInt(this.value)||1)" style="width:36px;text-align:center"></td>
+      <td><select onchange="tbSetIfaceField(${i},'mode',this.value)" style="width:60px"><option value="access"${ifc.mode==='access'?' selected':''}>Acc</option><option value="trunk"${ifc.mode==='trunk'?' selected':''}>Trunk</option></select></td>
+      <td><span class="${statusCls}" style="cursor:pointer;font-weight:700" onclick="tbToggleIface(${i})">${statusTxt}</span></td>
+    </tr>`;
+  }).join('');
+
+  const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
+  const gwRow = isEndpoint ? `<div style="margin-top:8px"><label>Default Gateway</label><input type="text" value="${escHtml(dev.interfaces[0]?.gateway || '')}" onchange="tbSetGateway(this.value)" placeholder="e.g. 192.168.1.1"></div>` : '';
+
+  return `<div style="margin-bottom:6px"><label>Hostname</label><input type="text" value="${escHtml(dev.hostname||'')}" onchange="tbSetHostname(this.value)"></div>
+    <table class="tb-iface-table"><thead><tr><th>Port</th><th>IP Address</th><th>Mask</th><th>VLAN</th><th>Mode</th><th>St</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="font-size:10px;color:#64748b">MAC addresses auto-assigned. ${dev.interfaces.length} ports total.</div>
+    ${gwRow}`;
+}
+
+function tbSetIfaceField(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.interfaces[idx]) return;
+  dev.interfaces[idx][field] = value;
+  // If IP changed on a router/firewall, rebuild connected routes
+  if (field === 'ip' || field === 'mask') tbRebuildConnectedRoutes(dev);
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbRenderCanvas();
+}
+
+function tbSetHostname(val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.hostname = val.trim() || tbAutoHostname(dev.type, tbState.devices.filter(d => d !== dev));
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbRenderCanvas();
+  const title = document.getElementById('tb-config-title');
+  if (title) title.textContent = `${dev.hostname} (${(TB_DEVICE_TYPES[dev.type]||{}).label})`;
+}
+
+function tbSetGateway(val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.interfaces[0]) return;
+  dev.interfaces[0].gateway = val.trim();
+  tbState.updated = Date.now();
+  tbSaveDraft();
+}
+
+function tbToggleIface(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.interfaces[idx]) return;
+  dev.interfaces[idx].enabled = !dev.interfaces[idx].enabled;
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('ifaces');
+}
+
+// Rebuild connected routes when interface IPs change
+function tbRebuildConnectedRoutes(dev) {
+  if (dev.type !== 'router' && dev.type !== 'firewall') return;
+  dev.routingTable = dev.routingTable.filter(r => r.type !== 'connected');
+  dev.interfaces.forEach(ifc => {
+    if (ifc.ip && ifc.mask && ifc.enabled) {
+      const net = tbSubnetOf(ifc.ip, ifc.mask);
+      if (net) dev.routingTable.push({ network: net, mask: ifc.mask, nextHop: null, iface: ifc.name, type: 'connected' });
+    }
+  });
+}
+
+// ── Routing Tab ──
+function tbRenderRoutingTab(dev) {
+  const rows = dev.routingTable.map((r, i) => {
+    const typeCls = r.type === 'connected' ? 'tb-route-type-connected' : 'tb-route-type-static';
+    const del = r.type === 'static' ? `<button class="btn btn-ghost" onclick="tbDelRoute(${i})" style="padding:2px 6px;font-size:11px">&times;</button>` : '';
+    return `<div class="tb-route-row">
+      <span class="tb-route-type ${typeCls}">${r.type === 'connected' ? 'C' : 'S'}</span>
+      <span style="flex:1;font-family:'Fira Code',monospace;font-size:11px">${escHtml(r.network)}/${tbMaskToCidr(r.mask)} via ${r.nextHop || r.iface}</span>
+      ${del}
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:8px;font-weight:600;font-size:12px">Routing Table</div>
+    ${rows || '<div style="color:#64748b;font-size:11px">No routes. Assign IPs to interfaces to generate connected routes.</div>'}
+    <div style="margin-top:12px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+      <div style="font-weight:600;font-size:11px;margin-bottom:6px">Add Static Route</div>
+      <div class="tb-route-row">
+        <input type="text" id="tb-route-net" placeholder="Network" style="flex:1">
+        <input type="text" id="tb-route-mask" placeholder="Mask" style="flex:1">
+        <input type="text" id="tb-route-nh" placeholder="Next Hop" style="flex:1">
+        <button class="btn btn-ghost" onclick="tbAddStaticRoute()" style="padding:4px 10px;font-size:11px">+</button>
+      </div>
+    </div>`;
+}
+
+function tbAddStaticRoute() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  const net = document.getElementById('tb-route-net')?.value.trim();
+  const mask = document.getElementById('tb-route-mask')?.value.trim() || '255.255.255.0';
+  const nh = document.getElementById('tb-route-nh')?.value.trim();
+  if (!net || !nh) { showErrorToast('Network and Next Hop required.'); return; }
+  dev.routingTable.push({ network: net, mask, nextHop: nh, iface: '', type: 'static' });
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('routing');
+}
+
+function tbDelRoute(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.routingTable.splice(idx, 1);
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('routing');
+}
+
+// ── VLANs Tab ──
+function tbRenderVlansTab(dev) {
+  const rows = dev.vlanDb.map((v, i) => `<div class="tb-vlan-row">
+    <span class="tb-vlan-id">VLAN ${v.id}</span>
+    <span style="flex:1">${escHtml(v.name)}</span>
+    ${v.id !== 1 ? `<button class="btn btn-ghost" onclick="tbDelVlan(${i})" style="padding:2px 6px;font-size:11px">&times;</button>` : ''}
+  </div>`).join('');
+
+  // Ports per VLAN summary
+  const portSummary = dev.vlanDb.map(v => {
+    const ports = dev.interfaces.filter(ifc => ifc.mode === 'access' && ifc.vlan === v.id);
+    return ports.length ? `<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">VLAN ${v.id}: ${ports.map(p=>p.name).join(', ')}</div>` : '';
+  }).join('');
+
+  return `<div style="margin-bottom:8px;font-weight:600;font-size:12px">VLAN Database</div>
+    ${rows}
+    <div style="margin-top:8px">${portSummary}</div>
+    <div style="margin-top:10px;border-top:1px solid rgba(124,111,247,.15);padding-top:8px">
+      <div style="font-weight:600;font-size:11px;margin-bottom:4px">Add VLAN</div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="tb-vlan-id" placeholder="ID" style="width:50px">
+        <input type="text" id="tb-vlan-name" placeholder="Name" style="flex:1">
+        <button class="btn btn-ghost" onclick="tbAddVlan()" style="padding:4px 10px;font-size:11px">+</button>
+      </div>
+    </div>`;
+}
+
+function tbAddVlan() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  const id = parseInt(document.getElementById('tb-vlan-id')?.value) || 0;
+  const name = document.getElementById('tb-vlan-name')?.value.trim() || `VLAN${id}`;
+  if (id < 2 || id > 4094) { showErrorToast('VLAN ID must be 2-4094.'); return; }
+  if (dev.vlanDb.some(v => v.id === id)) { showErrorToast('VLAN already exists.'); return; }
+  dev.vlanDb.push({ id, name });
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('vlans');
+}
+
+function tbDelVlan(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.vlanDb.splice(idx, 1);
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  tbSwitchConfigTab('vlans');
+}
+
+// ── DHCP Tab ──
+function tbRenderDhcpTab(dev) {
+  const pool = dev.dhcpServer;
+  if (!pool) {
+    return `<div style="color:#64748b;font-size:11px;margin-bottom:8px">No DHCP pool configured.</div>
+      <button class="btn btn-ghost" onclick="tbEnableDhcp()" style="font-size:11px">Enable DHCP Server</button>
+      ${dev.type === 'router' ? `<div style="margin-top:16px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+        <label>DHCP Relay (ip helper-address)</label>
+        <input type="text" value="${escHtml(dev.dhcpRelay?.helperAddress || '')}" onchange="tbSetDhcpRelay(this.value)" placeholder="e.g. 10.0.0.5">
+        <div style="font-size:10px;color:#64748b">Forward DHCP Discover to a remote server.</div>
+      </div>` : ''}`;
+  }
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">DHCP Pool</div>
+    <label>Pool Name</label><input type="text" value="${escHtml(pool.name||'')}" onchange="tbSetDhcpField('name',this.value)">
+    <label>Network</label><input type="text" value="${escHtml(pool.network||'')}" onchange="tbSetDhcpField('network',this.value)" placeholder="192.168.1.0">
+    <label>Mask</label><input type="text" value="${escHtml(pool.mask||'')}" onchange="tbSetDhcpField('mask',this.value)" placeholder="255.255.255.0">
+    <label>Default Gateway</label><input type="text" value="${escHtml(pool.gateway||'')}" onchange="tbSetDhcpField('gateway',this.value)">
+    <label>Range Start</label><input type="text" value="${escHtml(pool.rangeStart||'')}" onchange="tbSetDhcpField('rangeStart',this.value)" placeholder="192.168.1.100">
+    <label>Range End</label><input type="text" value="${escHtml(pool.rangeEnd||'')}" onchange="tbSetDhcpField('rangeEnd',this.value)" placeholder="192.168.1.200">
+    <label>DNS Server</label><input type="text" value="${escHtml(pool.dns||'')}" onchange="tbSetDhcpField('dns',this.value)" placeholder="8.8.8.8">
+    <button class="btn btn-ghost" onclick="tbDisableDhcp()" style="margin-top:8px;font-size:11px;color:#ef4444">Disable DHCP</button>
+    ${dev.type === 'router' ? `<div style="margin-top:12px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+      <label>DHCP Relay (ip helper-address)</label>
+      <input type="text" value="${escHtml(dev.dhcpRelay?.helperAddress || '')}" onchange="tbSetDhcpRelay(this.value)" placeholder="e.g. 10.0.0.5">
+    </div>` : ''}`;
+}
+
+function tbEnableDhcp() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.dhcpServer = { name: 'POOL1', network: '', mask: '255.255.255.0', gateway: '', rangeStart: '', rangeEnd: '', dns: '8.8.8.8' };
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('dhcp');
+}
+function tbDisableDhcp() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.dhcpServer = null;
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('dhcp');
+}
+function tbSetDhcpField(field, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.dhcpServer) return;
+  dev.dhcpServer[field] = val.trim();
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbSetDhcpRelay(val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.dhcpRelay = val.trim() ? { helperAddress: val.trim() } : null;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── CLI Tab ──
+let tbCliHistory = [];
+function tbRenderCliTab(dev) {
+  const output = tbCliHistory.length ? tbCliHistory.join('\n') : `${dev.hostname || '?'}# Type a command below\n\nAvailable commands:\n  show arp\n  show ip route\n  show mac address-table\n  show vlan brief\n  show interfaces\n  show ip interface brief\n  ping <ip>\n  arp <ip>`;
+  return `<div class="tb-cli-output" id="tb-cli-output">${escHtml(output)}</div>
+    <div class="tb-cli-input-row">
+      <input type="text" id="tb-cli-input" placeholder="${dev.hostname || '?'}#" onkeydown="if(event.key==='Enter')tbCliExec()">
+      <button class="btn btn-ghost" onclick="tbCliExec()">Run</button>
+    </div>`;
+}
+
+function tbCliExec() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  const input = document.getElementById('tb-cli-input');
+  if (!input) return;
+  const cmd = input.value.trim().toLowerCase();
+  input.value = '';
+  if (!cmd) return;
+  const prompt = `${dev.hostname || '?'}# `;
+  tbCliHistory.push(prompt + cmd);
+  tbCliHistory.push(tbProcessCliCommand(dev, cmd));
+  // Keep last 80 lines
+  if (tbCliHistory.length > 80) tbCliHistory = tbCliHistory.slice(-80);
+  const out = document.getElementById('tb-cli-output');
+  if (out) { out.textContent = tbCliHistory.join('\n'); out.scrollTop = out.scrollHeight; }
+}
+
+function tbProcessCliCommand(dev, cmd) {
+  if (cmd === 'show arp' || cmd === 'show arp table') {
+    if (!dev.arpTable.length) return 'ARP table is empty. Run a ping first.';
+    const hdr = 'Protocol  Address         Age  Hardware Addr     Type\n';
+    return hdr + dev.arpTable.map(e => `Internet  ${(e.ip||'').padEnd(15)} ${String(e.age||0).padEnd(4)} ${e.mac}   ARPA`).join('\n');
+  }
+  if (cmd === 'show ip route') {
+    if (!dev.routingTable.length) return 'No routes. Assign IPs to interfaces first.';
+    return dev.routingTable.map(r => {
+      const code = r.type === 'connected' ? 'C' : 'S';
+      return `${code}    ${r.network}/${tbMaskToCidr(r.mask)} via ${r.nextHop || r.iface}`;
+    }).join('\n');
+  }
+  if (cmd === 'show mac address-table' || cmd === 'show mac-address-table') {
+    if (!dev.macTable.length) return 'MAC address table is empty.';
+    const hdr = 'VLAN  MAC Address       Type    Port\n';
+    return hdr + dev.macTable.map(e => `${String(e.vlan).padEnd(5)} ${e.mac}  dynamic ${e.port}`).join('\n');
+  }
+  if (cmd === 'show vlan brief' || cmd === 'show vlans') {
+    if (!dev.vlanDb || !dev.vlanDb.length) return 'No VLAN database (not a switch).';
+    const hdr = 'VLAN  Name                 Ports\n' + '----  ----                 -----\n';
+    return hdr + dev.vlanDb.map(v => {
+      const ports = dev.interfaces.filter(ifc => ifc.mode === 'access' && ifc.vlan === v.id).map(p=>p.name).join(', ');
+      return `${String(v.id).padEnd(5)} ${(v.name||'').padEnd(20)} ${ports}`;
+    }).join('\n');
+  }
+  if (cmd === 'show interfaces' || cmd === 'show ip interface brief') {
+    const hdr = 'Interface       IP Address      Status  VLAN  Mode\n';
+    return hdr + dev.interfaces.map(ifc => {
+      return `${(ifc.name||'').padEnd(15)} ${(ifc.ip||'unassigned').padEnd(15)} ${ifc.enabled?'up  ':'down'} ${String(ifc.vlan).padEnd(5)} ${ifc.mode}`;
+    }).join('\n');
+  }
+  if (cmd.startsWith('ping ')) {
+    const dstIp = cmd.slice(5).trim();
+    if (!dstIp) return 'Usage: ping <ip>';
+    const result = tbSimPing(tbState, dev.id, dstIp);
+    return result.log.join('\n');
+  }
+  if (cmd.startsWith('arp ')) {
+    const targetIp = cmd.slice(4).trim();
+    if (!targetIp) return 'Usage: arp <ip>';
+    const result = tbSimARP(tbState, dev.id, targetIp);
+    return result.log.join('\n');
+  }
+  return `Unknown command: "${cmd}". Try: show arp, show ip route, show interfaces, ping <ip>`;
+}
+
+// ── Double-click to open config ──
+// Hooked into tbRenderCanvas device handler
+function tbAttachDoubleClick() {
+  const devLayer = document.getElementById('tb-devices-layer');
+  if (!devLayer) return;
+  devLayer.querySelectorAll('.tb-device').forEach(g => {
+    g.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      const id = g.getAttribute('data-tb-device');
+      tbOpenConfigPanel(id);
+    });
+  });
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — Subnet & Simulation Engine
+// ══════════════════════════════════════════
+
+// IP utility helpers
+function tbIpToArr(ip) {
+  if (!ip) return null;
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) return null;
+  return parts;
+}
+function tbArrToIp(arr) { return arr.join('.'); }
+function tbSubnetOf(ip, mask) {
+  const ipA = tbIpToArr(ip), mA = tbIpToArr(mask);
+  if (!ipA || !mA) return null;
+  return tbArrToIp(ipA.map((o, i) => o & mA[i]));
+}
+function tbBroadcastOf(ip, mask) {
+  const ipA = tbIpToArr(ip), mA = tbIpToArr(mask);
+  if (!ipA || !mA) return null;
+  return tbArrToIp(ipA.map((o, i) => (o & mA[i]) | (~mA[i] & 255)));
+}
+function tbSameSubnet(ip1, ip2, mask) {
+  return tbSubnetOf(ip1, mask) === tbSubnetOf(ip2, mask);
+}
+function tbMaskToCidr(mask) {
+  const a = tbIpToArr(mask);
+  if (!a) return '24';
+  return String(a.reduce((c, o) => c + o.toString(2).split('').filter(b => b === '1').length, 0));
+}
+
+// Find all devices reachable at L2 from a given device/interface within a VLAN
+function tbGetBroadcastDomain(state, srcDeviceId, vlan) {
+  const visited = new Set();
+  const members = []; // [{deviceId, ifaceName}]
+  const queue = [srcDeviceId];
+  visited.add(srcDeviceId);
+  while (queue.length) {
+    const devId = queue.shift();
+    const dev = state.devices.find(d => d.id === devId);
+    if (!dev || !dev.interfaces) continue;
+    // Collect interfaces on this device in the target VLAN
+    dev.interfaces.forEach(ifc => {
+      const inVlan = (ifc.mode === 'access' && ifc.vlan === vlan) || (ifc.mode === 'trunk' && ifc.trunkAllowed.indexOf(vlan) >= 0);
+      if (inVlan && ifc.cableId && ifc.enabled) {
+        members.push({ deviceId: devId, ifaceName: ifc.name, mac: ifc.mac, ip: ifc.ip });
+        // Walk the cable to the peer device
+        const cable = state.cables.find(c => c.id === ifc.cableId);
+        if (cable) {
+          const peerId = cable.from === devId ? cable.to : cable.from;
+          if (!visited.has(peerId)) {
+            // Check peer's interface is also in this VLAN (or trunk carrying it)
+            const peer = state.devices.find(d => d.id === peerId);
+            if (peer && peer.interfaces) {
+              const peerIface = peer.interfaces.find(pi => pi.cableId === cable.id);
+              if (peerIface && peerIface.enabled) {
+                const peerInVlan = (peerIface.mode === 'access' && peerIface.vlan === vlan) ||
+                                   (peerIface.mode === 'trunk' && peerIface.trunkAllowed.indexOf(vlan) >= 0);
+                if (peerInVlan) {
+                  visited.add(peerId);
+                  queue.push(peerId);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  return members;
+}
+
+// ── ARP Simulation ──
+function tbSimARP(state, srcDeviceId, targetIp) {
+  const log = [];
+  const dev = state.devices.find(d => d.id === srcDeviceId);
+  if (!dev) { log.push('[ERR] Source device not found.'); return { log, resolved: null }; }
+
+  // Find source interface (first with an IP in the same subnet as targetIp, or first with an IP)
+  let srcIface = dev.interfaces.find(ifc => ifc.ip && ifc.enabled && tbSameSubnet(ifc.ip, targetIp, ifc.mask));
+  if (!srcIface) srcIface = dev.interfaces.find(ifc => ifc.ip && ifc.enabled);
+  if (!srcIface) { log.push('[ERR] No interface with an IP address on source device.'); return { log, resolved: null }; }
+
+  // Check ARP table cache first
+  const cached = dev.arpTable.find(e => e.ip === targetIp);
+  if (cached) {
+    log.push(`[ARP] Cache hit: ${targetIp} → ${cached.mac}`);
+    return { log, resolved: cached.mac };
+  }
+
+  const vlan = srcIface.vlan || 1;
+  log.push(`[ARP] ${dev.hostname} (${srcIface.name}) sends ARP Request: Who has ${targetIp}? Tell ${srcIface.ip}`);
+  log.push(`[ARP] Broadcasting on VLAN ${vlan}...`);
+
+  // Get broadcast domain
+  const domain = tbGetBroadcastDomain(state, srcDeviceId, vlan);
+
+  // Search for the target IP in the domain
+  let resolvedMac = null;
+  let responder = null;
+  for (const member of domain) {
+    if (member.deviceId === srcDeviceId) continue;
+    const peerDev = state.devices.find(d => d.id === member.deviceId);
+    if (!peerDev) continue;
+    const matchIface = peerDev.interfaces.find(ifc => ifc.ip === targetIp && ifc.enabled);
+    if (matchIface) {
+      resolvedMac = matchIface.mac;
+      responder = peerDev;
+      log.push(`[ARP] ${peerDev.hostname} (${matchIface.name}) replies: ${targetIp} is at ${matchIface.mac}`);
+      // Update ARP tables on both sides
+      dev.arpTable.push({ ip: targetIp, mac: matchIface.mac, iface: srcIface.name, age: 0 });
+      peerDev.arpTable.push({ ip: srcIface.ip, mac: srcIface.mac, iface: matchIface.name, age: 0 });
+      // Update switch MAC tables along the path
+      domain.forEach(m => {
+        const sw = state.devices.find(d => d.id === m.deviceId);
+        if (sw && sw.type.indexOf('switch') >= 0) {
+          if (!sw.macTable.find(e => e.mac === matchIface.mac)) {
+            sw.macTable.push({ mac: matchIface.mac, vlan, port: m.ifaceName });
+          }
+          if (!sw.macTable.find(e => e.mac === srcIface.mac)) {
+            sw.macTable.push({ mac: srcIface.mac, vlan, port: m.ifaceName });
+          }
+        }
+      });
+      break;
+    }
+  }
+
+  if (!resolvedMac) {
+    log.push(`[ARP] No response for ${targetIp} — host unreachable in VLAN ${vlan}.`);
+  }
+  tbSaveDraft();
+  return { log, resolved: resolvedMac, srcDevice: dev, responder };
+}
+
+// ── Ping Simulation ──
+function tbSimPing(state, srcDeviceId, dstIp, ttl) {
+  const log = [];
+  ttl = ttl || 64;
+  const dev = state.devices.find(d => d.id === srcDeviceId);
+  if (!dev) { log.push('[ERR] Source device not found.'); return { log, success: false }; }
+
+  // Find outgoing interface
+  let outIface = null;
+  let nextHopIp = dstIp;
+  let directDelivery = false;
+
+  // Check if destination is on a directly connected subnet
+  for (const ifc of dev.interfaces) {
+    if (ifc.ip && ifc.enabled && tbSameSubnet(ifc.ip, dstIp, ifc.mask)) {
+      outIface = ifc;
+      directDelivery = true;
+      break;
+    }
+  }
+
+  // If not direct, check routing table
+  if (!outIface && dev.routingTable.length) {
+    // Longest prefix match
+    let bestLen = -1;
+    for (const route of dev.routingTable) {
+      const rCidr = parseInt(tbMaskToCidr(route.mask));
+      if (tbSameSubnet(dstIp, route.network, route.mask) && rCidr > bestLen) {
+        bestLen = rCidr;
+        nextHopIp = route.nextHop || dstIp;
+        outIface = dev.interfaces.find(ifc => ifc.name === route.iface && ifc.enabled) || dev.interfaces.find(ifc => ifc.ip && ifc.enabled);
+      }
+    }
+  }
+
+  // If not direct and no route, try default gateway (endpoints)
+  if (!outIface) {
+    const gwIface = dev.interfaces.find(ifc => ifc.gateway && ifc.enabled);
+    if (gwIface) {
+      outIface = gwIface;
+      nextHopIp = gwIface.gateway;
+    }
+  }
+
+  if (!outIface || !outIface.ip) {
+    log.push(`[ICMP] ${dev.hostname}: Destination unreachable — no route to ${dstIp}`);
+    return { log, success: false };
+  }
+
+  log.push(`[ICMP] ${dev.hostname} → ping ${dstIp} (via ${outIface.name}, TTL=${ttl})`);
+
+  // ARP for the next hop (or destination if direct)
+  const arpTarget = directDelivery ? dstIp : nextHopIp;
+  const arpResult = tbSimARP(state, dev.id, arpTarget);
+  log.push(...arpResult.log);
+
+  if (!arpResult.resolved) {
+    log.push(`[ICMP] ${dev.hostname}: Destination host unreachable (ARP failed for ${arpTarget})`);
+    return { log, success: false, path: [dev.id] };
+  }
+
+  if (directDelivery) {
+    // Destination is on our subnet — delivered
+    const dstDev = state.devices.find(d => d.interfaces && d.interfaces.some(ifc => ifc.ip === dstIp));
+    if (dstDev) {
+      log.push(`[ICMP] Reply from ${dstDev.hostname} (${dstIp}): bytes=64 TTL=${ttl}`);
+      return { log, success: true, path: [dev.id, dstDev.id] };
+    }
+    log.push(`[ICMP] Reply from ${dstIp}: bytes=64 TTL=${ttl}`);
+    return { log, success: true, path: [dev.id] };
+  }
+
+  // Forward to next hop router
+  const nextHopDev = state.devices.find(d => d.interfaces && d.interfaces.some(ifc => ifc.ip === nextHopIp));
+  if (!nextHopDev) {
+    log.push(`[ICMP] ${dev.hostname}: Next hop ${nextHopIp} unreachable.`);
+    return { log, success: false, path: [dev.id] };
+  }
+
+  if (ttl <= 1) {
+    log.push(`[ICMP] TTL expired in transit at ${nextHopDev.hostname}.`);
+    return { log, success: false, path: [dev.id, nextHopDev.id] };
+  }
+
+  // Recursive: next hop router pings the destination
+  log.push(`[ICMP] → Forwarded to ${nextHopDev.hostname} (${nextHopIp})`);
+  const fwdResult = tbSimPing(state, nextHopDev.id, dstIp, ttl - 1);
+  log.push(...fwdResult.log);
+  const path = [dev.id, ...(fwdResult.path || [])];
+  return { log, success: fwdResult.success, path };
+}
+
+// ── DHCP DORA Simulation ──
+function tbSimDHCP(state, clientDeviceId) {
+  const log = [];
+  const client = state.devices.find(d => d.id === clientDeviceId);
+  if (!client) { log.push('[ERR] Client device not found.'); return { log, success: false }; }
+  const clientIface = client.interfaces.find(ifc => ifc.enabled);
+  if (!clientIface) { log.push('[ERR] No enabled interface on client.'); return { log, success: false }; }
+
+  const vlan = clientIface.vlan || 1;
+  log.push(`[DHCP] ${client.hostname} sends DHCP Discover (broadcast on VLAN ${vlan})`);
+
+  // Find DHCP server in broadcast domain
+  const domain = tbGetBroadcastDomain(state, clientDeviceId, vlan);
+  let server = null;
+  let serverDev = null;
+
+  for (const member of domain) {
+    const d = state.devices.find(x => x.id === member.deviceId);
+    if (d && d.dhcpServer && d.dhcpServer.network) {
+      server = d.dhcpServer;
+      serverDev = d;
+      break;
+    }
+  }
+
+  // If no server found, check for DHCP relay
+  if (!server) {
+    for (const member of domain) {
+      const d = state.devices.find(x => x.id === member.deviceId);
+      if (d && d.dhcpRelay && d.dhcpRelay.helperAddress) {
+        log.push(`[DHCP] ${d.hostname} relays Discover to ${d.dhcpRelay.helperAddress} (ip helper-address)`);
+        // Find the server at the helper address
+        const relayTarget = state.devices.find(x => x.interfaces && x.interfaces.some(ifc => ifc.ip === d.dhcpRelay.helperAddress));
+        if (relayTarget && relayTarget.dhcpServer) {
+          server = relayTarget.dhcpServer;
+          serverDev = relayTarget;
+          log.push(`[DHCP] Relay reached ${serverDev.hostname} (${d.dhcpRelay.helperAddress})`);
+        }
+        break;
+      }
+    }
+  }
+
+  if (!server || !serverDev) {
+    log.push('[DHCP] No DHCP server found. Request timed out.');
+    return { log, success: false };
+  }
+
+  // Generate an IP from the pool
+  const startArr = tbIpToArr(server.rangeStart);
+  const endArr = tbIpToArr(server.rangeEnd);
+  if (!startArr || !endArr) {
+    log.push('[DHCP] Server pool range is invalid.');
+    return { log, success: false };
+  }
+
+  // Find first available IP (check all device interfaces)
+  const usedIps = new Set();
+  state.devices.forEach(d => d.interfaces && d.interfaces.forEach(ifc => { if (ifc.ip) usedIps.add(ifc.ip); }));
+  let offeredIp = null;
+  for (let last = startArr[3]; last <= endArr[3]; last++) {
+    const candidate = `${startArr[0]}.${startArr[1]}.${startArr[2]}.${last}`;
+    if (!usedIps.has(candidate)) { offeredIp = candidate; break; }
+  }
+
+  if (!offeredIp) {
+    log.push('[DHCP] Server pool exhausted — no addresses available.');
+    return { log, success: false };
+  }
+
+  log.push(`[DHCP] ${serverDev.hostname} sends DHCP Offer: ${offeredIp}`);
+  log.push(`[DHCP] ${client.hostname} sends DHCP Request for ${offeredIp}`);
+  log.push(`[DHCP] ${serverDev.hostname} sends DHCP ACK: ${offeredIp} (mask ${server.mask}, gw ${server.gateway}, dns ${server.dns})`);
+
+  // Assign the IP to the client
+  clientIface.ip = offeredIp;
+  clientIface.mask = server.mask || '255.255.255.0';
+  if (server.gateway) clientIface.gateway = server.gateway;
+
+  log.push(`[DHCP] ${client.hostname} configured: IP=${offeredIp} Mask=${clientIface.mask} GW=${clientIface.gateway || 'none'}`);
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  return { log, success: true };
+}
+
+// ── Packet Animation ──
+function tbAnimatePacket(path, color, label) {
+  if (!path || path.length < 2) return;
+  const animLayer = document.getElementById('tb-anim-layer');
+  if (!animLayer) return;
+  color = color || '#22c55e';
+
+  const animate = (idx) => {
+    if (idx >= path.length - 1) return;
+    const fromDev = tbState.devices.find(d => d.id === path[idx]);
+    const toDev = tbState.devices.find(d => d.id === path[idx + 1]);
+    if (!fromDev || !toDev) return;
+
+    const HALF_W = 48, HALF_H = 36;
+    const p1 = tbEdgePoint(fromDev.x, fromDev.y, toDev.x, toDev.y, HALF_W, HALF_H);
+    const p2 = tbEdgePoint(toDev.x, toDev.y, fromDev.x, fromDev.y, HALF_W, HALF_H);
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2 + 16;
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('r', '6');
+    dot.setAttribute('fill', color);
+    dot.setAttribute('cx', p1.x);
+    dot.setAttribute('cy', p1.y);
+    dot.style.filter = `drop-shadow(0 0 6px ${color})`;
+    animLayer.appendChild(dot);
+
+    // Animate along quadratic bezier
+    const duration = 400;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const u = 1 - t;
+      const x = u * u * p1.x + 2 * u * t * mx + t * t * p2.x;
+      const y = u * u * p1.y + 2 * u * t * my + t * t * p2.y;
+      dot.setAttribute('cx', x);
+      dot.setAttribute('cy', y);
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        setTimeout(() => { dot.remove(); animate(idx + 1); }, 100);
+      }
+    };
+    requestAnimationFrame(step);
+  };
+  animate(0);
+}
+
+// ── Simulation UI Triggers ──
+function tbOpenPingDialog() {
+  const modal = document.getElementById('tb-ping-modal');
+  const srcSelect = document.getElementById('tb-ping-src');
+  if (!modal || !srcSelect) return;
+  srcSelect.innerHTML = tbState.devices
+    .filter(d => d.interfaces && d.interfaces.some(ifc => ifc.ip))
+    .map(d => `<option value="${d.id}">${escHtml(d.hostname)} (${d.interfaces.find(i=>i.ip)?.ip || '?'})</option>`)
+    .join('');
+  modal.classList.remove('is-hidden');
+}
+function tbOpenArpDialog() {
+  // Reuse ping dialog for ARP
+  tbOpenPingDialog();
+}
+function tbOpenDhcpDialog() {
+  // Find devices without IPs that could request DHCP
+  const clients = tbState.devices.filter(d =>
+    ['pc','printer','voip','iot'].indexOf(d.type) >= 0 &&
+    d.interfaces && d.interfaces.some(ifc => !ifc.ip && ifc.enabled)
+  );
+  if (!clients.length) {
+    showErrorToast('No unconfigured endpoints found. All devices already have IPs.');
+    return;
+  }
+  // Run DHCP for each unconfigured client
+  const allLogs = [];
+  clients.forEach(c => {
+    const result = tbSimDHCP(tbState, c.id);
+    allLogs.push(...result.log, '');
+  });
+  tbShowSimLog(allLogs);
+  // Refresh config panel if open
+  if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
+}
+
+function tbExecPing() {
+  const srcId = document.getElementById('tb-ping-src')?.value;
+  const dstIp = document.getElementById('tb-ping-dst')?.value.trim();
+  document.getElementById('tb-ping-modal')?.classList.add('is-hidden');
+  if (!srcId || !dstIp) { showErrorToast('Select a source and enter a destination IP.'); return; }
+  const result = tbSimPing(tbState, srcId, dstIp);
+  tbShowSimLog(result.log);
+  // Animate the packet path
+  if (result.path && result.path.length >= 2) {
+    tbAnimatePacket(result.path, result.success ? '#22c55e' : '#ef4444', 'ICMP');
+  }
+  // Refresh config panel if open
+  if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
+}
+
+function tbShowSimLog(logLines) {
+  const panel = document.getElementById('tb-sim-log');
+  const content = document.getElementById('tb-sim-log-content');
+  if (!panel || !content) return;
+  panel.classList.remove('is-hidden');
+  const existing = content.textContent;
+  const timestamp = new Date().toLocaleTimeString();
+  content.textContent = (existing ? existing + '\n' : '') + `── ${timestamp} ──\n` + logLines.join('\n') + '\n';
+  content.scrollTop = content.scrollHeight;
+}
+
+function tbClearSimLog() {
+  const content = document.getElementById('tb-sim-log-content');
+  if (content) content.textContent = '';
+  // Clear ARP/MAC tables on all devices
+  tbState.devices.forEach(d => { d.arpTable = []; d.macTable = []; });
+  tbState.updated = Date.now();
+  tbSaveDraft();
+  showErrorToast('Simulation log and ARP/MAC tables cleared.');
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — AI Topology Generation + Walkthrough
+// ══════════════════════════════════════════
+
+async function tbGenerateAiTopology() {
+  const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
+  if (!key) { showErrorToast('Add your Anthropic API key in Settings to use AI generation.'); return; }
+
+  const scenario = prompt('Describe the network you want (e.g. "small office with 5 PCs, a printer, DHCP server, DMZ with web server"):');
+  if (!scenario) return;
+
+  showErrorToast('Generating topology... (3-5 seconds)');
+  try {
+    const genPrompt = `You are a Network+ instructor. Generate a network topology as a JSON object matching this schema:
+
+{
+  "devices": [{"type": "<one of: router, switch, dmz-switch, firewall, cloud, pc, server, printer, voip, iot, wap, wlc, load-balancer, ids, public-web, public-file, public-cloud>", "hostname": "R1", "x": 400, "y": 200, "interfaces": [{"name": "Gi0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "vlan": 1, "mode": "access", "gateway": ""}]}],
+  "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
+}
+
+Rules:
+- Place devices spread across a 1400x820 canvas (x: 100-1300, y: 100-720)
+- Use proper IP addressing (192.168.x.x for internal, 10.x.x.x for DMZ)
+- Routers need IPs on all connected interfaces
+- PCs/printers/endpoints need IPs + default gateways
+- Switches don't need IPs (unless management VLAN)
+- If DHCP is needed, configure dhcpServer on the router/server
+- Include routing tables on routers for cross-subnet connectivity
+- Max 30 devices
+
+User request: ${scenario}
+
+Respond with ONLY the JSON object, no markdown fences.`;
+
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 3000, messages: [{ role: 'user', content: genPrompt }] })
+    });
+    if (!res.ok) { showErrorToast(`AI generation failed: ${res.status}`); return; }
+    const data = await res.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || '';
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    let payload;
+    try { payload = JSON.parse(cleaned); }
+    catch (_) { const m = cleaned.match(/\{[\s\S]*\}/); if (m) try { payload = JSON.parse(m[0]); } catch (_) {} }
+    if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology.'); return; }
+
+    // Build new tbState from AI response
+    const newState = tbNewState();
+    newState.name = scenario.slice(0, 40);
+    const hostnameToId = {};
+    payload.devices.forEach(dd => {
+      const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
+      const ifaces = (dd.interfaces || []).map((aiIfc, idx) => ({
+        name: aiIfc.name || `eth${idx}`,
+        cableId: null,
+        ip: aiIfc.ip || '',
+        mask: aiIfc.mask || '255.255.255.0',
+        mac: tbGenerateMac(id, idx),
+        vlan: aiIfc.vlan || 1,
+        mode: aiIfc.mode || 'access',
+        trunkAllowed: aiIfc.trunkAllowed || [1],
+        gateway: aiIfc.gateway || '',
+        enabled: true,
+        subInterfaces: [],
+      }));
+      // Ensure minimum interfaces
+      const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
+      while (ifaces.length < def.count) {
+        ifaces.push({
+          name: def.naming(ifaces.length), cableId: null, ip: '', mask: '255.255.255.0',
+          mac: tbGenerateMac(id, ifaces.length), vlan: 1, mode: 'access', trunkAllowed: [1],
+          gateway: '', enabled: true, subInterfaces: [],
+        });
+      }
+      const device = {
+        id, type, x: dd.x || 400, y: dd.y || 400,
+        hostname: dd.hostname || tbAutoHostname(type, newState.devices),
+        interfaces: ifaces,
+        routingTable: dd.routingTable || [],
+        arpTable: [], macTable: [],
+        vlanDb: type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [],
+        dhcpServer: dd.dhcpServer || null,
+        dhcpRelay: dd.dhcpRelay || null,
+        acls: [],
+      };
+      // Rebuild connected routes for routers
+      tbRebuildConnectedRoutes(device);
+      hostnameToId[dd.hostname] = id;
+      newState.devices.push(device);
+    });
+
+    // Build cables
+    (payload.cables || []).forEach(cc => {
+      const fromId = hostnameToId[cc.fromHostname];
+      const toId = hostnameToId[cc.toHostname];
+      if (!fromId || !toId) return;
+      const cableId = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      const fromDev = newState.devices.find(d => d.id === fromId);
+      const toDev = newState.devices.find(d => d.id === toId);
+      const fromIfc = fromDev?.interfaces.find(i => i.name === cc.fromIface && !i.cableId);
+      const toIfc = toDev?.interfaces.find(i => i.name === cc.toIface && !i.cableId);
+      if (fromIfc) fromIfc.cableId = cableId;
+      if (toIfc) toIfc.cableId = cableId;
+      newState.cables.push({
+        id: cableId, from: fromId, to: toId,
+        type: cc.type || 'cat6',
+        fromIface: fromIfc ? fromIfc.name : null,
+        toIface: toIfc ? toIfc.name : null,
+      });
+    });
+
+    tbState = newState;
+    tbSelectedId = null;
+    tbPendingCableFrom = null;
+    tbSaveDraft();
+    tbRenderCanvas();
+    tbUpdateDeviceCount();
+    tbUpdateStatus(`AI generated: "${newState.name}"`);
+  } catch (e) {
+    showErrorToast('AI generation error: ' + (e.message || 'unknown'));
+  }
+}
+
+// AI device walkthrough — explain a device's role and config
+async function tbExplainDevice(deviceId) {
+  const dev = tbState.devices.find(d => d.id === deviceId);
+  if (!dev) return;
+  const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
+  if (!key) { showErrorToast('Add your Anthropic API key in Settings.'); return; }
+
+  const serialized = tbSerializeTopology(tbState);
+  const devDetail = JSON.stringify({
+    hostname: dev.hostname, type: dev.type,
+    interfaces: dev.interfaces.map(i => ({ name: i.name, ip: i.ip, mask: i.mask, vlan: i.vlan, mode: i.mode, gateway: i.gateway })),
+    routingTable: dev.routingTable,
+    dhcpServer: dev.dhcpServer,
+  }, null, 2);
+
+  showErrorToast('AI analyzing device... (3-5 seconds)');
+  try {
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL, max_tokens: 800,
+        messages: [{ role: 'user', content: `You are a Network+ instructor. Explain this device's role in the network in 2-3 paragraphs. Include what N10-009 concepts it demonstrates.\n\nFull topology:\n${serialized}\n\nDevice detail:\n${devDetail}\n\nKeep it under 200 words. No JSON, just plain text.` }]
+      })
+    });
+    if (!res.ok) { showErrorToast(`API error: ${res.status}`); return; }
+    const data = await res.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || 'No response.';
+    tbShowSimLog([`── AI Walkthrough: ${dev.hostname} ──`, '', text]);
+  } catch (e) {
+    showErrorToast('AI error: ' + (e.message || ''));
+  }
 }
 
 // ══════════════════════════════════════════
