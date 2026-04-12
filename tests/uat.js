@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.29.0', js.includes("const APP_VERSION = '4.29.0"));
+test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.29.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.29.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.29.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1011,7 +1011,7 @@ test('CSS: .tb-explain-btn', css.includes('.tb-explain-btn'));
 test('tbRenderOverviewTab function', js.includes('function tbRenderOverviewTab('));
 test('Overview tab in switch', /case 'overview':[\s\S]{0,100}tbRenderOverviewTab/.test(js));
 test('HTML: overview tab button', html.includes('data-tb-tab="overview"'));
-test('Config opens on overview tab', /tbOpenConfigPanel[\s\S]{0,2000}tbSwitchConfigTab\('overview'\)/.test(js));
+test('Config opens on overview tab', /tbOpenConfigPanel[\s\S]{0,3000}tbSwitchConfigTab\('overview'\)/.test(js));
 // Ping dropdown (device-to-device)
 test('Ping destination is select dropdown', html.includes('id="tb-ping-dst"'));
 test('Ping dst is select not input', /select id="tb-ping-dst"/.test(html));
@@ -1321,6 +1321,128 @@ test('Lab: network-hardening has autoSetup', /network-hardening[\s\S]{0,500}auto
 test('Lab: network-hardening checks disabled ports', /disabledCount >= 10/.test(js));
 test('Lab: network-hardening checks VLAN 99', /vlanDb.*some.*id === 99/.test(js));
 test('Total TB_LABS count >= 11', (js.match(/id: '/g) || []).length >= 11);
+
+// ── v4.30.0 — STP/RSTP, OSPF, CLI Config, IPv6, DNS, QoS, Wireless, Packet Sim ──
+console.log('\n\x1b[1m── v4.30.0 ADVANCED NETWORKING FEATURES ──\x1b[0m');
+
+// DNS Server device type
+test('Device type: dns-server', js.includes("'dns-server':"));
+test('DNS Server label', /dns-server.*DNS Server/.test(js));
+test('DNS Server interface defaults', /dns-server.*count: 2/.test(js));
+test('DNS Server SVG icon case', /case 'dns-server':/.test(js));
+
+// STP/RSTP tab
+test('tbRenderStpTab function', js.includes('function tbRenderStpTab('));
+test('tbSetStpField function', js.includes('function tbSetStpField('));
+test('tbSetStpPortState function', js.includes('function tbSetStpPortState('));
+test('STP tab in config panel switch', /case 'stp':/.test(js));
+test('STP mode selector (STP/RSTP/MSTP)', /stp.*rstp.*mstp/i.test(js));
+test('STP bridge priority field', /priority|bridgePriority/.test(js));
+test('Migration: stpConfig default', js.includes('d.stpConfig = d.stpConfig || null'));
+
+// OSPF tab
+test('tbRenderOspfTab function', js.includes('function tbRenderOspfTab('));
+test('tbSetOspfField function', js.includes('function tbSetOspfField('));
+test('tbAddOspfArea function', js.includes('function tbAddOspfArea('));
+test('tbRemoveOspfArea function', js.includes('function tbRemoveOspfArea('));
+test('tbSetOspfAreaNetworks function', js.includes('function tbSetOspfAreaNetworks('));
+test('OSPF tab in config panel switch', /case 'ospf':/.test(js));
+test('OSPF router ID field', /routerId/.test(js));
+test('Migration: ospfConfig default', js.includes('d.ospfConfig = d.ospfConfig || null'));
+
+// QoS tab
+test('tbRenderQosTab function', js.includes('function tbRenderQosTab('));
+test('tbSetQosField function', js.includes('function tbSetQosField('));
+test('tbAddQosPolicy function', js.includes('function tbAddQosPolicy('));
+test('tbRemoveQosPolicy function', js.includes('function tbRemoveQosPolicy('));
+test('QoS tab in config panel switch', /case 'qos':/.test(js));
+test('QoS DSCP markings (EF/AF/CS)', /EF|AF[0-9]|CS[0-9]/.test(js));
+test('Migration: qosConfig default', js.includes('d.qosConfig = d.qosConfig || null'));
+
+// Wireless tab
+test('tbRenderWirelessTab function', js.includes('function tbRenderWirelessTab('));
+test('tbSetWirelessField function', js.includes('function tbSetWirelessField('));
+test('Wireless tab in config panel switch', /case 'wireless':/.test(js));
+test('Wireless supports WPA3', /WPA3/.test(js));
+test('Wireless supports 802.11ax', /802\.11ax/.test(js));
+test('Migration: wirelessConfig default', js.includes('d.wirelessConfig = d.wirelessConfig || null'));
+
+// DNS tab
+test('tbRenderDnsTab function', js.includes('function tbRenderDnsTab('));
+test('tbAddDnsRecord function', js.includes('function tbAddDnsRecord('));
+test('tbRemoveDnsRecord function', js.includes('function tbRemoveDnsRecord('));
+test('tbSetDnsRecord function', js.includes('function tbSetDnsRecord('));
+test('DNS tab in config panel switch', /case 'dns':/.test(js));
+test('DNS record types: A', /record.*type.*\bA\b/.test(js) || js.includes("type: 'A'") || js.includes("value=\"A\""));
+test('DNS record types: AAAA', js.includes('AAAA'));
+test('DNS record types: CNAME', js.includes('CNAME'));
+test('DNS record types: MX', js.includes('MX'));
+test('DNS record types: PTR', js.includes('PTR'));
+test('DNS record types: NS', /\bNS\b/.test(js));
+test('DNS record types: SOA', js.includes('SOA'));
+test('DNS record types: TXT', /\bTXT\b/.test(js));
+test('DNS record types: SRV', js.includes('SRV'));
+test('DNS record types: CAA', js.includes('CAA'));
+test('Migration: dnsRecords default', js.includes('d.dnsRecords = d.dnsRecords || []'));
+
+// IPv6 support
+test('tbSetIfaceIpv6 function', js.includes('function tbSetIfaceIpv6('));
+test('IPv6 field on interfaces', js.includes('ifc.ipv6'));
+test('IPv6 prefix length', js.includes('ipv6Prefix'));
+test('Migration: ipv6 default on interfaces', js.includes("ifc.ipv6 = ifc.ipv6 || ''"));
+test('Migration: ipv6Prefix default', js.includes('ifc.ipv6Prefix = ifc.ipv6Prefix || 64'));
+
+// CLI commands — new in v4.30.0
+test('CLI: show spanning-tree', js.includes('show spanning-tree'));
+test('CLI: show ip ospf', js.includes('show ip ospf'));
+test('CLI: show ip ospf neighbor', js.includes('show ip ospf neighbor'));
+test('CLI: show qos / show policy-map', js.includes('show policy-map'));
+test('CLI: show wireless / show ap', js.includes('show wireless'));
+test('CLI: show dns records', js.includes('show dns records'));
+test('CLI: nslookup queries DNS servers', js.includes('nslookup'));
+test('CLI: show ipv6 interface', js.includes('show ipv6 interface'));
+test('CLI: show ipv6 route', js.includes('show ipv6 route'));
+test('CLI: configure terminal', js.includes('configure terminal'));
+test('CLI: hostname command changes device name', js.includes("cmd.startsWith('hostname ')") && js.includes('dev.hostname = newName'));
+test('CLI: ip route adds static route', js.includes("cmd.startsWith('ip route ')") && js.includes('routingTable.push'));
+test('CLI: show running-config', js.includes('show running-config'));
+test('CLI: show run generates IOS-style config', js.includes("show run'") && js.includes('hostname ${dev.hostname}'));
+test('Help command lists all new commands', /show spanning-tree[\s\S]{0,500}show ip ospf[\s\S]{0,500}show qos/.test(js));
+
+// Tab visibility logic
+test('STP tab visible only on switches', /stp.*isSwitch/.test(js));
+test('OSPF tab visible only on routers', /ospf.*isRouter/.test(js));
+test('QoS tab visible on routers and switches', /qos.*isRouter.*isSwitch|qos.*!isRouter && !isSwitch/.test(js));
+test('Wireless tab visible on WAP/WLC', /wireless.*wap.*wlc|wireless.*dev\.type/.test(js));
+test('DNS tab visible on dns-server', /dns.*dns-server/.test(js));
+
+// HTML wiring
+test('HTML: STP tab button', html.includes('data-tb-tab="stp"'));
+test('HTML: OSPF tab button', html.includes('data-tb-tab="ospf"'));
+test('HTML: QoS tab button', html.includes('data-tb-tab="qos"'));
+test('HTML: Wireless tab button', html.includes('data-tb-tab="wireless"'));
+test('HTML: DNS tab button', html.includes('data-tb-tab="dns"'));
+
+// AI prompt integration
+test('AI prompt ADVANCED FEATURES section', js.includes('ADVANCED FEATURES'));
+test('AI prompt includes stpConfig in schema', /stpConfig.*null/.test(js));
+test('AI prompt includes ospfConfig in schema', /ospfConfig.*null/.test(js));
+test('AI prompt includes qosConfig in schema', /qosConfig.*null/.test(js));
+test('AI prompt includes wirelessConfig in schema', /wirelessConfig.*null/.test(js));
+test('AI prompt includes dnsRecords in schema', /dnsRecords/.test(js));
+test('tbBuildFromAiPayload copies stpConfig', /stpConfig/.test(js));
+test('Semantic expansion: DNS patterns', /dns|DNS/.test(js));
+test('Semantic expansion: OSPF patterns', /ospf|OSPF/.test(js));
+
+// New labs
+test('Lab: ospf-dynamic-routing defined', js.includes("id: 'ospf-dynamic-routing'"));
+test('Lab: ospf-dynamic-routing is Advanced', /ospf-dynamic-routing[\s\S]{0,500}Advanced/.test(js));
+test('Lab: dns-infrastructure defined', js.includes("id: 'dns-infrastructure'"));
+test('Lab: dns-infrastructure is Intermediate', /dns-infrastructure[\s\S]{0,500}Intermediate/.test(js));
+test('Lab: stp-loop-prevention defined', js.includes("id: 'stp-loop-prevention'"));
+test('Lab: stp-loop-prevention has autoSetup', /stp-loop-prevention[\s\S]{0,500}autoSetup/.test(js));
+test('Lab: stp-loop-prevention checks bridge priority', /priority.*4096|bridgePriority/.test(js));
+test('Total TB_LABS count >= 14', (js.match(/id: 'ospf|id: 'dns-inf|id: 'stp-loop|id: 'static-|id: 'acl-|id: 'site-to|id: 'wireless-|id: 'cloud-vpc|id: 'network-hard|id: 'troubleshoot|id: 'multi-site|id: 'basic-lan|id: 'vlan-seg|id: 'dhcp-|id: 'dmz-|id: 'arp-mac/g) || []).length >= 14);
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

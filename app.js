@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.29.0';
+const APP_VERSION = '4.30.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4817,6 +4817,7 @@ const TB_DEVICE_TYPES = {
   'vpg':          { label: 'VPN Gateway',    color: '#fb923c', short: 'VPG'  },
   'onprem-dc':    { label: 'On-Prem DC',    color: '#78716c', short: 'DC'   },
   'sase-edge':    { label: 'SASE Edge',      color: '#e879f9', short: 'SASE' },
+  'dns-server':   { label: 'DNS Server',     color: '#06b6d4', short: 'DNS'  },
 };
 
 // Cable type catalog for the palette picker.
@@ -4863,6 +4864,7 @@ const TB_IFACE_DEFAULTS = {
   'vpg':          { count: 2,  naming: i => `tun${i}` },
   'onprem-dc':    { count: 4,  naming: i => `eth${i}` },
   'sase-edge':    { count: 4,  naming: i => `zt${i}` },
+  'dns-server':   { count: 2,  naming: i => `eth${i}` },
 };
 
 // Generate a deterministic MAC from a device ID + interface index.
@@ -4930,6 +4932,14 @@ function tbMigrateState(state) {
     d.saseConfig = d.saseConfig || null;
     // VXLAN overlay
     d.vxlanConfig = d.vxlanConfig || [];
+    // v4.30.0 — STP, OSPF, IPv6, DNS, QoS, Wireless
+    d.stpConfig = d.stpConfig || null;
+    d.ospfConfig = d.ospfConfig || null;
+    d.qosConfig = d.qosConfig || null;
+    d.wirelessConfig = d.wirelessConfig || null;
+    d.dnsRecords = d.dnsRecords || [];
+    // IPv6 on interfaces
+    d.interfaces.forEach(ifc => { ifc.ipv6 = ifc.ipv6 || ''; ifc.ipv6Prefix = ifc.ipv6Prefix || 64; });
   });
   // Auto-bind cables to interfaces if not already bound
   state.cables.forEach(c => {
@@ -5172,6 +5182,13 @@ function tbDeviceIcon(type, color) {
         <path d="M -10 4 A 6 6 0 0 1 -4 -2 A 8 8 0 0 1 6 -4 A 6 6 0 0 1 10 2 L -8 2 Z" stroke="${color}" stroke-width="1.5" fill="none"/>
         <circle cx="0" cy="8" r="2" fill="${color}"/>
         <line x1="0" y1="10" x2="0" y2="14" ${s}/>
+      </g>`;
+    case 'dns-server':
+      return `<g transform="translate(0,-10)">
+        <rect x="-14" y="-14" width="28" height="28" rx="3" ${f}/>
+        <text x="0" y="2" text-anchor="middle" font-size="10" font-weight="900" fill="${color}">DNS</text>
+        <line x1="-8" y1="10" x2="8" y2="10" ${s}/>
+        <circle cx="-6" cy="14" r="1.5" fill="${color}"/><circle cx="0" cy="14" r="1.5" fill="${color}"/><circle cx="6" cy="14" r="1.5" fill="${color}"/>
       </g>`;
     default:
       return `<circle r="18" ${f}/>`;
@@ -6590,6 +6607,11 @@ function tbOpenConfigPanel(deviceId) {
     if (tab === 'vpn') t.classList.toggle('is-hidden', !isVpnEndpoint);
     if (tab === 'sase') t.classList.toggle('is-hidden', !isSase);
     if (tab === 'vxlan') t.classList.toggle('is-hidden', !isSwitch && !isRouter);
+    if (tab === 'stp') t.classList.toggle('is-hidden', !isSwitch);
+    if (tab === 'ospf') t.classList.toggle('is-hidden', !isRouter);
+    if (tab === 'qos') t.classList.toggle('is-hidden', !isRouter && !isSwitch);
+    if (tab === 'wireless') t.classList.toggle('is-hidden', dev.type !== 'wap' && dev.type !== 'wlc');
+    if (tab === 'dns') t.classList.toggle('is-hidden', dev.type !== 'dns-server' && !isServer);
   });
   tbSwitchConfigTab('overview');
   // Show sim toolbar
@@ -6624,6 +6646,11 @@ function tbSwitchConfigTab(tab) {
     case 'vpn': body.innerHTML = tbRenderVpnTab(dev); break;
     case 'sase': body.innerHTML = tbRenderSaseTab(dev); break;
     case 'vxlan': body.innerHTML = tbRenderVxlanTab(dev); break;
+    case 'stp': body.innerHTML = tbRenderStpTab(dev); break;
+    case 'ospf': body.innerHTML = tbRenderOspfTab(dev); break;
+    case 'qos': body.innerHTML = tbRenderQosTab(dev); break;
+    case 'wireless': body.innerHTML = tbRenderWirelessTab(dev); break;
+    case 'dns': body.innerHTML = tbRenderDnsTab(dev); break;
     default: body.innerHTML = '';
   }
 }
@@ -6751,10 +6778,21 @@ function tbRenderIfacesTab(dev) {
   const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
   const gwRow = isEndpoint ? `<div style="margin-top:8px"><label>Default Gateway</label><input type="text" value="${escHtml(dev.interfaces[0]?.gateway || '')}" onchange="tbSetGateway(this.value)" placeholder="e.g. 192.168.1.1"></div>` : '';
 
+  // IPv6 section
+  const ipv6Rows = dev.interfaces.filter(i => i.cableId || i.ipv6).map((ifc, idx) => {
+    const realIdx = dev.interfaces.indexOf(ifc);
+    return `<div style="display:flex;gap:4px;align-items:center;font-size:10px;padding:2px 0">
+      <span style="width:50px;font-weight:600">${ifc.name}</span>
+      <input type="text" value="${escHtml(ifc.ipv6||'')}" onchange="tbSetIfaceIpv6(${realIdx},this.value)" placeholder="2001:db8::1" style="flex:1;font-size:10px">
+      <span style="color:#64748b">/${ifc.ipv6Prefix || 64}</span>
+    </div>`;
+  }).join('');
+
   return `<div style="margin-bottom:6px"><label>Hostname</label><input type="text" value="${escHtml(dev.hostname||'')}" onchange="tbSetHostname(this.value)"></div>
     <table class="tb-iface-table"><thead><tr><th>Port</th><th>IP</th><th>Mask</th><th>VL</th><th>Mode</th>${isSwitch?'<th>DTP</th>':'<th></th>'}<th>St</th></tr></thead><tbody>${rows}</tbody></table>
     <div style="font-size:10px;color:#64748b">MAC: auto-assigned. ${dev.interfaces.length} ports. ${isSwitch ? 'Set mode to Trunk to configure allowed VLANs + native VLAN.' : ''}</div>
-    ${gwRow}`;
+    ${gwRow}
+    ${ipv6Rows ? `<div style="margin-top:10px;border-top:1px solid rgba(124,111,247,.15);padding-top:8px"><div style="font-weight:600;font-size:11px;margin-bottom:4px">IPv6 Addresses</div>${ipv6Rows}<div style="font-size:9px;color:#64748b;margin-top:4px">Link-local: fe80::, Global: 2001:db8::, ULA: fd00::</div></div>` : ''}`;
 }
 
 // Helper: set trunk allowed VLANs (comma-separated)
@@ -6795,6 +6833,12 @@ function tbSetGateway(val) {
   dev.interfaces[0].gateway = val.trim();
   tbState.updated = Date.now();
   tbSaveDraft();
+}
+
+function tbSetIfaceIpv6(idx, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.interfaces[idx]) return;
+  dev.interfaces[idx].ipv6 = val.trim(); tbState.updated = Date.now(); tbSaveDraft();
 }
 
 function tbToggleIface(idx) {
@@ -6977,6 +7021,233 @@ function tbSetVxlanField(idx, field, value) {
   tbState.updated = Date.now();
   tbSaveDraft();
   if (field === 'vni' || field === 'vtepIp') tbSwitchConfigTab('vxlan');
+}
+
+// ── STP Tab ──
+function tbRenderStpTab(dev) {
+  const stp = dev.stpConfig || { priority: 32768, mode: 'rstp', portStates: {} };
+  if (!dev.stpConfig) { dev.stpConfig = stp; }
+  const portRows = dev.interfaces.filter(i => i.cableId).map(ifc => {
+    const st = stp.portStates[ifc.name] || 'forwarding';
+    const stColor = st === 'forwarding' ? '#22c55e' : st === 'blocking' ? '#ef4444' : st === 'learning' ? '#f59e0b' : '#60a5fa';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:11px">
+      <span style="width:50px;font-weight:600">${ifc.name}</span>
+      <span style="color:${stColor};font-weight:700">${st.toUpperCase()}</span>
+      <select onchange="tbSetStpPortState('${ifc.name}',this.value)" style="font-size:10px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:3px;padding:1px 4px">
+        ${['forwarding','blocking','learning','listening','disabled'].map(s => `<option value="${s}"${s===st?' selected':''}>${s}</option>`).join('')}
+      </select></div>`;
+  }).join('');
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">Spanning Tree Protocol</div>
+    <label>Mode</label>
+    <select onchange="tbSetStpField('mode',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${['stp','rstp','mstp'].map(m => `<option value="${m}"${m===stp.mode?' selected':''}>${m.toUpperCase()}</option>`).join('')}
+    </select>
+    <label>Bridge Priority (0-65535, increments of 4096)</label>
+    <input type="number" value="${stp.priority}" min="0" max="65535" step="4096" onchange="tbSetStpField('priority',parseInt(this.value))" style="width:100%">
+    <div style="font-size:10px;color:#64748b;margin:4px 0">Lower priority = more likely to become Root Bridge. Default: 32768.</div>
+    <div style="font-size:10px;color:#94a3b8;margin:2px 0">Root Bridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || 'unknown'}</div>
+    <div style="margin-top:12px;font-weight:600;font-size:11px">Port States</div>
+    ${portRows || '<div style="font-size:10px;color:#64748b">No connected ports.</div>'}
+    <div style="font-size:10px;color:#64748b;margin-top:8px">STP port states: Blocking → Listening → Learning → Forwarding. RSTP converges in ~1-2 seconds vs STP ~30-50 seconds.</div>`;
+}
+function tbSetStpField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.stpConfig) dev.stpConfig = { priority: 32768, mode: 'rstp', portStates: {} };
+  dev.stpConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('stp');
+}
+function tbSetStpPortState(ifName, state) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.stpConfig) dev.stpConfig = { priority: 32768, mode: 'rstp', portStates: {} };
+  dev.stpConfig.portStates[ifName] = state; tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('stp');
+}
+
+// ── OSPF Tab ──
+function tbRenderOspfTab(dev) {
+  const ospf = dev.ospfConfig || { routerId: '', areas: [], enabled: false };
+  if (!dev.ospfConfig) { dev.ospfConfig = ospf; }
+  const areaRows = ospf.areas.map((a, i) => `<div style="display:flex;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+    <span style="font-size:10px;font-weight:700;width:60px">Area ${a.id}</span>
+    <input type="text" value="${escHtml(a.networks?.join(', ') || '')}" onchange="tbSetOspfAreaNetworks(${i},this.value)" placeholder="192.168.1.0/24, 10.0.0.0/30" style="flex:1;font-size:10px">
+    <button onclick="tbRemoveOspfArea(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:12px">✕</button>
+  </div>`).join('');
+  // Discover OSPF neighbors from cables
+  const neighbors = [];
+  if (ospf.enabled) {
+    tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
+      const peerId = c.from === dev.id ? c.to : c.from;
+      const peer = tbState.devices.find(d => d.id === peerId);
+      if (peer && peer.ospfConfig && peer.ospfConfig.enabled) {
+        const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
+        neighbors.push(`${peer.hostname} (${peerIp}) — ${peer.ospfConfig.routerId || 'no RID'}`);
+      }
+    });
+  }
+  const neighborHtml = neighbors.length ? neighbors.map(n => `<div style="font-size:10px;color:#22c55e">● ${n}</div>`).join('') : '<div style="font-size:10px;color:#64748b">No OSPF neighbors discovered.</div>';
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">OSPF Configuration</div>
+    <label><input type="checkbox" ${ospf.enabled?'checked':''} onchange="tbSetOspfField('enabled',this.checked)"> Enable OSPF</label>
+    <label>Router ID</label>
+    <input type="text" value="${escHtml(ospf.routerId)}" onchange="tbSetOspfField('routerId',this.value)" placeholder="1.1.1.1" style="width:100%">
+    <div style="font-size:10px;color:#64748b;margin:2px 0">Unique ID for this router in the OSPF domain. Usually the highest loopback IP.</div>
+    <div style="margin-top:10px;font-weight:600;font-size:11px">Areas</div>
+    ${areaRows || '<div style="font-size:10px;color:#64748b">No areas configured.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddOspfArea()" style="font-size:10px;margin-top:4px">+ Add Area</button>
+    <div style="margin-top:12px;font-weight:600;font-size:11px">Discovered Neighbors</div>
+    ${neighborHtml}
+    <div style="font-size:10px;color:#64748b;margin-top:8px">OSPF uses Dijkstra\'s SPF algorithm to find shortest paths. Area 0 is the backbone — all other areas must connect to it.</div>`;
+}
+function tbSetOspfField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.ospfConfig) dev.ospfConfig = { routerId: '', areas: [], enabled: false };
+  dev.ospfConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('ospf');
+}
+function tbAddOspfArea() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.ospfConfig) dev.ospfConfig = { routerId: '', areas: [], enabled: false };
+  const nextId = dev.ospfConfig.areas.length === 0 ? 0 : Math.max(...dev.ospfConfig.areas.map(a => a.id)) + 1;
+  dev.ospfConfig.areas.push({ id: nextId, networks: [] }); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('ospf');
+}
+function tbRemoveOspfArea(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.ospfConfig) return; dev.ospfConfig.areas.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('ospf');
+}
+function tbSetOspfAreaNetworks(idx, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.ospfConfig?.areas?.[idx]) return;
+  dev.ospfConfig.areas[idx].networks = value.split(',').map(s => s.trim()).filter(Boolean);
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── QoS Tab ──
+function tbRenderQosTab(dev) {
+  const qos = dev.qosConfig || { enabled: false, policies: [] };
+  if (!dev.qosConfig) { dev.qosConfig = qos; }
+  const policyRows = qos.policies.map((p, i) => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="text" value="${escHtml(p.name||'')}" onchange="tbSetQosPolicy(${i},'name',this.value)" placeholder="Policy name" style="flex:1;font-size:10px">
+      <select onchange="tbSetQosPolicy(${i},'dscp',this.value)" style="font-size:10px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:3px;padding:2px">
+        ${['default','af11','af21','af31','af41','ef','cs1','cs2','cs3','cs4','cs5','cs6','cs7'].map(d => `<option value="${d}"${d===p.dscp?' selected':''}>${d.toUpperCase()}</option>`).join('')}
+      </select>
+      <select onchange="tbSetQosPolicy(${i},'queue',this.value)" style="font-size:10px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:3px;padding:2px">
+        ${['best-effort','priority','bandwidth','fair'].map(q => `<option value="${q}"${q===p.queue?' selected':''}>${q}</option>`).join('')}
+      </select>
+      <button onclick="tbRemoveQosPolicy(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer">✕</button>
+    </div>
+    <div style="margin-top:2px;color:#64748b">Match: ${escHtml(p.match||'any')} → DSCP ${(p.dscp||'default').toUpperCase()} → ${p.queue||'best-effort'} queue</div>
+  </div>`).join('');
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">Quality of Service</div>
+    <label><input type="checkbox" ${qos.enabled?'checked':''} onchange="tbSetQosField('enabled',this.checked)"> Enable QoS</label>
+    <div style="font-size:10px;color:#64748b;margin:4px 0">DSCP markings prioritize traffic. EF (Expedited Forwarding) = voice. AF (Assured Forwarding) = data classes. CS = backward-compatible with IP Precedence.</div>
+    <div style="margin-top:10px;font-weight:600;font-size:11px">Policies</div>
+    ${policyRows || '<div style="font-size:10px;color:#64748b">No QoS policies.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddQosPolicy()" style="font-size:10px;margin-top:4px">+ Add Policy</button>
+    <div style="font-size:10px;color:#64748b;margin-top:10px"><strong>Queue types:</strong> Priority (strict, for voice/video), Bandwidth (guaranteed %), Fair (WFQ, equal sharing), Best-effort (default, no guarantees).</div>`;
+}
+function tbSetQosField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.qosConfig) dev.qosConfig = { enabled: false, policies: [] };
+  dev.qosConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('qos');
+}
+function tbAddQosPolicy() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.qosConfig) dev.qosConfig = { enabled: false, policies: [] };
+  dev.qosConfig.policies.push({ name: '', dscp: 'default', queue: 'best-effort', match: 'any' });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('qos');
+}
+function tbRemoveQosPolicy(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.qosConfig) return; dev.qosConfig.policies.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('qos');
+}
+function tbSetQosPolicy(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.qosConfig?.policies?.[idx]) return; dev.qosConfig.policies[idx][field] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── Wireless Tab ──
+function tbRenderWirelessTab(dev) {
+  const wc = dev.wirelessConfig || { ssid: '', security: 'wpa3-personal', channel: 'auto', band: '5ghz', txPower: 'auto', mode: '802.11ax' };
+  if (!dev.wirelessConfig) { dev.wirelessConfig = wc; }
+  const channels24 = ['auto','1','6','11'];
+  const channels5 = ['auto','36','40','44','48','149','153','157','161','165'];
+  const chList = wc.band === '2.4ghz' ? channels24 : channels5;
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">Wireless Configuration</div>
+    <label>SSID</label>
+    <input type="text" value="${escHtml(wc.ssid)}" onchange="tbSetWirelessField('ssid',this.value)" placeholder="Corp-WiFi" style="width:100%">
+    <label>Security</label>
+    <select onchange="tbSetWirelessField('security',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${['open','wep','wpa2-personal','wpa2-enterprise','wpa3-personal','wpa3-enterprise'].map(s => `<option value="${s}"${s===wc.security?' selected':''}>${s.toUpperCase()}</option>`).join('')}
+    </select>
+    <label>802.11 Mode</label>
+    <select onchange="tbSetWirelessField('mode',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${['802.11a','802.11b','802.11g','802.11n','802.11ac','802.11ax'].map(m => `<option value="${m}"${m===wc.mode?' selected':''}>${m} ${m==='802.11ax'?'(Wi-Fi 6)':m==='802.11ac'?'(Wi-Fi 5)':''}</option>`).join('')}
+    </select>
+    <label>Band</label>
+    <select onchange="tbSetWirelessField('band',this.value);tbSwitchConfigTab('wireless')" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${['2.4ghz','5ghz','6ghz'].map(b => `<option value="${b}"${b===wc.band?' selected':''}>${b}</option>`).join('')}
+    </select>
+    <label>Channel</label>
+    <select onchange="tbSetWirelessField('channel',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${chList.map(c => `<option value="${c}"${c===wc.channel?' selected':''}>${c}</option>`).join('')}
+    </select>
+    <label>TX Power</label>
+    <select onchange="tbSetWirelessField('txPower',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+      ${['auto','high','medium','low'].map(p => `<option value="${p}"${p===wc.txPower?' selected':''}>${p}</option>`).join('')}
+    </select>
+    <div style="font-size:10px;color:#64748b;margin-top:10px"><strong>2.4 GHz non-overlapping:</strong> 1, 6, 11. <strong>5 GHz UNII-1:</strong> 36, 40, 44, 48. <strong>DFS channels:</strong> 52-144 (radar detection required). <strong>WPA3-Enterprise</strong> uses 192-bit security with CNSA suite.</div>`;
+}
+function tbSetWirelessField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.wirelessConfig) dev.wirelessConfig = { ssid: '', security: 'wpa3-personal', channel: 'auto', band: '5ghz', txPower: 'auto', mode: '802.11ax' };
+  dev.wirelessConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── DNS Tab ──
+function tbRenderDnsTab(dev) {
+  const records = dev.dnsRecords || [];
+  const recordRows = records.map((r, i) => `<div style="display:flex;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px">
+    <select onchange="tbSetDnsRecord(${i},'type',this.value)" style="width:55px;font-size:10px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:3px;padding:1px">
+      ${['A','AAAA','CNAME','MX','PTR','NS','SOA','TXT','SRV','CAA'].map(t => `<option value="${t}"${t===r.type?' selected':''}>${t}</option>`).join('')}
+    </select>
+    <input type="text" value="${escHtml(r.name||'')}" onchange="tbSetDnsRecord(${i},'name',this.value)" placeholder="hostname" style="flex:1;font-size:10px">
+    <input type="text" value="${escHtml(r.value||'')}" onchange="tbSetDnsRecord(${i},'value',this.value)" placeholder="${r.type==='MX'?'10 mail.example.com':r.type==='SRV'?'10 5 5060 sip.example.com':'value'}" style="flex:1.5;font-size:10px">
+    <input type="number" value="${r.ttl||3600}" onchange="tbSetDnsRecord(${i},'ttl',parseInt(this.value))" style="width:50px;font-size:10px" title="TTL (seconds)">
+    <button onclick="tbRemoveDnsRecord(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:11px">✕</button>
+  </div>`).join('');
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">DNS Records</div>
+    <div style="font-size:10px;color:#64748b;margin-bottom:8px">Configure DNS zone records. Each record maps a name to a value with a TTL (Time To Live).</div>
+    <div style="display:flex;gap:4px;padding:3px 0;font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px">
+      <span style="width:55px">Type</span><span style="flex:1">Name</span><span style="flex:1.5">Value</span><span style="width:50px">TTL</span><span style="width:16px"></span>
+    </div>
+    ${recordRows || '<div style="font-size:10px;color:#64748b;padding:4px 0">No DNS records. Click + to add.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddDnsRecord()" style="font-size:10px;margin-top:6px">+ Add Record</button>
+    <div style="margin-top:12px;font-size:10px;color:#64748b;line-height:1.5">
+      <strong>Record types:</strong><br>
+      <strong>A</strong> — Maps hostname → IPv4 address<br>
+      <strong>AAAA</strong> — Maps hostname → IPv6 address<br>
+      <strong>CNAME</strong> — Alias → canonical name (cannot coexist with other records for same name)<br>
+      <strong>MX</strong> — Mail exchange (priority + mail server hostname)<br>
+      <strong>PTR</strong> — Reverse lookup (IP → hostname, in in-addr.arpa zone)<br>
+      <strong>NS</strong> — Authoritative nameserver for this zone<br>
+      <strong>SOA</strong> — Start of Authority (primary NS, admin email, serial, refresh/retry/expire/min-TTL)<br>
+      <strong>TXT</strong> — Arbitrary text (SPF, DKIM, DMARC, domain verification)<br>
+      <strong>SRV</strong> — Service locator (priority weight port target) for SIP, LDAP, etc.<br>
+      <strong>CAA</strong> — Certificate Authority Authorization (controls which CAs can issue certs)
+    </div>`;
+}
+function tbAddDnsRecord() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.dnsRecords) dev.dnsRecords = [];
+  dev.dnsRecords.push({ type: 'A', name: '', value: '', ttl: 3600 });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('dns');
+}
+function tbRemoveDnsRecord(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.dnsRecords) return; dev.dnsRecords.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('dns');
+}
+function tbSetDnsRecord(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.dnsRecords?.[idx]) return; dev.dnsRecords[idx][field] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
 }
 
 // ── DHCP Tab ──
@@ -7641,19 +7912,147 @@ function tbProcessCliCommand(dev, cmd) {
       `  BGP EVPN:      ${t.bgpEvpn ? 'Enabled' : 'Disabled'}`
     ).join('\n\n');
   }
+  // STP
+  if (cmd === 'show spanning-tree' || cmd === 'show stp') {
+    const stp = dev.stpConfig;
+    if (!stp) return 'STP not configured on this device.';
+    const portLines = Object.entries(stp.portStates || {}).map(([name, state]) =>
+      `  ${name.padEnd(10)} ${state.toUpperCase()}`).join('\n') || '  (no port states)';
+    return `Spanning Tree Protocol: ${(stp.mode || 'rstp').toUpperCase()}\n` +
+      `Bridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\n` +
+      `Root Bridge: ${stp.priority <= 4096 ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort States:\n${portLines}`;
+  }
+  // OSPF
+  if (cmd === 'show ip ospf' || cmd === 'show ospf' || cmd === 'show ip ospf neighbor') {
+    const ospf = dev.ospfConfig;
+    if (!ospf || !ospf.enabled) return 'OSPF is not enabled on this device.';
+    let out = `OSPF Router ID: ${ospf.routerId || '(not set)'}\nAreas: ${ospf.areas.map(a => `Area ${a.id} [${(a.networks||[]).join(', ')}]`).join(', ') || 'none'}\n`;
+    if (cmd.includes('neighbor')) {
+      out += '\nNeighbor ID       State       Address         Interface\n';
+      tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
+        const peerId = c.from === dev.id ? c.to : c.from;
+        const peer = tbState.devices.find(d => d.id === peerId);
+        if (peer?.ospfConfig?.enabled) {
+          const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
+          const localIfc = dev.interfaces.find(i => i.cableId === c.id);
+          out += `${(peer.ospfConfig.routerId || '?').padEnd(18)}FULL        ${peerIp.padEnd(16)}${localIfc?.name || '?'}\n`;
+        }
+      });
+    }
+    return out;
+  }
+  // QoS
+  if (cmd === 'show qos' || cmd === 'show policy-map' || cmd === 'show mls qos') {
+    const qos = dev.qosConfig;
+    if (!qos || !qos.enabled) return 'QoS is not enabled on this device.';
+    if (!qos.policies.length) return 'QoS enabled but no policies configured.';
+    return 'QoS Policies:\n' + qos.policies.map(p =>
+      `  Policy: ${p.name || '(unnamed)'}\n    Match: ${p.match || 'any'}\n    DSCP: ${(p.dscp||'default').toUpperCase()}\n    Queue: ${p.queue || 'best-effort'}`
+    ).join('\n\n');
+  }
+  // Wireless
+  if (cmd === 'show wireless' || cmd === 'show ap' || cmd === 'show wlan') {
+    const wc = dev.wirelessConfig;
+    if (!wc) return 'No wireless configuration on this device.';
+    return `SSID:     ${wc.ssid || '(not set)'}\nSecurity: ${(wc.security || 'open').toUpperCase()}\nMode:     ${wc.mode || '802.11ax'}\nBand:     ${wc.band || '5ghz'}\nChannel:  ${wc.channel || 'auto'}\nTX Power: ${wc.txPower || 'auto'}`;
+  }
+  // DNS
+  if (cmd === 'show dns' || cmd === 'show dns records' || cmd === 'show zone') {
+    if (!dev.dnsRecords || !dev.dnsRecords.length) return 'No DNS records configured on this device.';
+    const header = 'TYPE   NAME                 VALUE                          TTL\n' + '─'.repeat(70);
+    const rows = dev.dnsRecords.map(r =>
+      `${(r.type||'A').padEnd(7)}${(r.name||'').padEnd(21)}${(r.value||'').padEnd(31)}${r.ttl||3600}`
+    ).join('\n');
+    return header + '\n' + rows;
+  }
+  // nslookup / dig (queries DNS servers in the topology)
+  if (cmd.startsWith('nslookup ') || cmd.startsWith('dig ')) {
+    const query = cmd.replace(/^(nslookup|dig)\s+/, '').trim();
+    const dnsServers = tbState.devices.filter(d => (d.type === 'dns-server' || d.type === 'server') && d.dnsRecords && d.dnsRecords.length > 0);
+    if (!dnsServers.length) return `Server:  (no DNS server in topology)\n\n*** Can't find ${query}: No DNS server configured`;
+    for (const srv of dnsServers) {
+      const match = srv.dnsRecords.find(r => r.name === query || r.name === query + '.');
+      if (match) {
+        const srvIp = srv.interfaces.find(i => i.ip)?.ip || '?';
+        return `Server:  ${srvIp}\nName:    ${match.name}\nType:    ${match.type}\nValue:   ${match.value}\nTTL:     ${match.ttl || 3600}`;
+      }
+    }
+    return `Server:  ${dnsServers[0].interfaces.find(i => i.ip)?.ip || '?'}\n\n*** Can't find ${query}: Non-existent domain (NXDOMAIN)`;
+  }
+  // IPv6
+  if (cmd === 'show ipv6 interface' || cmd === 'show ipv6 interface brief') {
+    const lines = dev.interfaces.filter(i => i.ipv6).map(i =>
+      `${i.name.padEnd(12)} ${i.ipv6}/${i.ipv6Prefix || 64}  ${i.enabled ? 'up' : 'down'}`);
+    return lines.length ? 'Interface    IPv6 Address                      Status\n' + lines.join('\n') : 'No IPv6 addresses configured.';
+  }
+  if (cmd === 'show ipv6 route') {
+    const v6Routes = dev.interfaces.filter(i => i.ipv6).map(i => `C  ${i.ipv6}/${i.ipv6Prefix || 64} directly connected, ${i.name}`);
+    return v6Routes.length ? 'IPv6 Routing Table:\n' + v6Routes.join('\n') : 'No IPv6 routes.';
+  }
+  // Config mode simulation
+  if (cmd === 'configure terminal' || cmd === 'config t' || cmd === 'conf t') {
+    return `${dev.hostname}(config)# Configuration mode entered.\n\nAvailable config commands:\n  hostname <name>      - Set device hostname\n  interface <name>     - Enter interface config\n  ip address <ip> <mask> - Set IP (in interface mode)\n  ip route <net> <mask> <next-hop> - Add static route\n  router ospf <id>     - Enter OSPF config\n  no shutdown          - Enable interface\n  shutdown             - Disable interface\n  exit                 - Exit current mode\n\nNote: Use the GUI tabs for full configuration. CLI config mode is for exam practice.`;
+  }
+  if (cmd.startsWith('hostname ')) {
+    const newName = cmd.replace('hostname ', '').trim();
+    if (newName) { dev.hostname = newName; tbState.updated = Date.now(); tbSaveDraft(); tbRenderCanvas(); return `Hostname changed to "${newName}".`; }
+    return 'Usage: hostname <name>';
+  }
+  if (cmd.startsWith('ip route ')) {
+    const parts = cmd.replace('ip route ', '').trim().split(/\s+/);
+    if (parts.length >= 3) {
+      dev.routingTable.push({ type: 'static', network: parts[0], mask: parts[1], nextHop: parts[2], iface: '' });
+      tbState.updated = Date.now(); tbSaveDraft();
+      return `Static route added: ${parts[0]} ${parts[1]} via ${parts[2]}`;
+    }
+    return 'Usage: ip route <network> <mask> <next-hop>';
+  }
+  if (cmd === 'show running-config' || cmd === 'show run') {
+    let cfg = `!\nhostname ${dev.hostname}\n!`;
+    dev.interfaces.forEach(i => {
+      cfg += `\ninterface ${i.name}\n`;
+      if (i.ip) cfg += `  ip address ${i.ip} ${i.mask}\n`;
+      if (i.ipv6) cfg += `  ipv6 address ${i.ipv6}/${i.ipv6Prefix || 64}\n`;
+      if (!i.enabled) cfg += `  shutdown\n`;
+      cfg += `!`;
+    });
+    if (dev.routingTable.filter(r => r.type === 'static').length) {
+      dev.routingTable.filter(r => r.type === 'static').forEach(r => { cfg += `\nip route ${r.network} ${r.mask} ${r.nextHop}`; });
+      cfg += '\n!';
+    }
+    if (dev.ospfConfig?.enabled) {
+      cfg += `\nrouter ospf 1\n  router-id ${dev.ospfConfig.routerId || '0.0.0.0'}`;
+      (dev.ospfConfig.areas || []).forEach(a => { (a.networks || []).forEach(n => { cfg += `\n  network ${n} area ${a.id}`; }); });
+      cfg += '\n!';
+    }
+    return cfg;
+  }
   // help
   if (cmd === 'help' || cmd === '?') {
     return 'Available commands:\n' +
       '  show arp                - ARP table\n' +
       '  show ip route           - Routing table\n' +
+      '  show ipv6 interface     - IPv6 addresses\n' +
+      '  show ipv6 route         - IPv6 routing table\n' +
       '  show mac address-table  - MAC table (switches)\n' +
       '  show vlan brief         - VLAN database (switches)\n' +
       '  show vxlan              - VXLAN tunnels & VTEPs\n' +
+      '  show spanning-tree      - STP status & port states\n' +
+      '  show ip ospf            - OSPF config & areas\n' +
+      '  show ip ospf neighbor   - OSPF neighbor table\n' +
+      '  show qos                - QoS policies\n' +
+      '  show wireless           - Wireless AP config\n' +
+      '  show dns records        - DNS zone records\n' +
       '  show interfaces         - Interface status\n' +
+      '  show running-config     - Full device config\n' +
       '  show security-groups    - Security group rules\n' +
       '  show nacl               - Network ACL rules\n' +
       '  show vpn-status         - VPN/IPSec tunnel info\n' +
       '  show sase               - SASE edge config\n' +
+      '  configure terminal      - Enter config mode\n' +
+      '  hostname <name>         - Change device name\n' +
+      '  ip route <n> <m> <nh>   - Add static route\n' +
+      '  nslookup <name>         - DNS lookup\n' +
       '  ping <ip>               - Ping a host\n' +
       '  arp <ip>                - Send ARP request\n' +
       '  traceroute <ip>         - Trace path to host\n' +
@@ -8292,6 +8691,12 @@ function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
       saseConfig: dd.saseConfig || null,
       // VXLAN overlay
       vxlanConfig: dd.vxlanConfig || [],
+      // v4.30.0 — STP, OSPF, IPv6, DNS, QoS, Wireless
+      stpConfig: dd.stpConfig || null,
+      ospfConfig: dd.ospfConfig || null,
+      qosConfig: dd.qosConfig || null,
+      wirelessConfig: dd.wirelessConfig || null,
+      dnsRecords: dd.dnsRecords || [],
     };
     tbRebuildConnectedRoutes(device);
     hostnameToId[dd.hostname] = id;
@@ -8351,8 +8756,15 @@ DEVICE TYPE GUIDE:
 VXLAN SUPPORT:
 - Switches and routers can have vxlanConfig array for VXLAN overlay tunnels.
 - Each entry: { vni: 10000, vtepIp: "10.0.0.1", mappedVlan: 10, mcastGroup: "239.1.1.1", remoteVteps: ["10.0.0.2"], floodAndLearn: true, bgpEvpn: false }
-- VNI (VXLAN Network Identifier) range: 1-16777215. Maps a VLAN to a VXLAN segment for L2 extension over L3.
-- Include vxlanConfig when user mentions VXLAN, overlay, data center interconnect (DCI), or fabric.
+- Include vxlanConfig when user mentions VXLAN, overlay, DCI, or fabric.
+
+ADVANCED FEATURES (include when relevant):
+- dns-server: DNS server device type. Include dnsRecords array: [{ type: "A", name: "web.corp.local", value: "192.168.1.100", ttl: 3600 }]. Record types: A, AAAA, CNAME, MX, PTR, NS, SOA, TXT, SRV, CAA.
+- stpConfig on switches: { priority: 32768, mode: "rstp", portStates: {} }. Include when user mentions STP, spanning tree, or loop prevention.
+- ospfConfig on routers: { routerId: "1.1.1.1", areas: [{ id: 0, networks: ["192.168.1.0/24"] }], enabled: true }. Include when user mentions OSPF, dynamic routing, or link-state.
+- qosConfig on routers/switches: { enabled: true, policies: [{ name: "voice", dscp: "ef", queue: "priority", match: "udp 5060" }] }. Include when user mentions QoS, priority, or voice.
+- wirelessConfig on wap/wlc: { ssid: "Corp-WiFi", security: "wpa3-enterprise", channel: "auto", band: "5ghz", mode: "802.11ax" }.
+- IPv6: interfaces can have ipv6 field (e.g. "2001:db8::1") and ipv6Prefix (default 64). Include when user mentions IPv6 or dual-stack.
 
 TOPOLOGY TYPES — when the user asks for a physical topology, follow these EXACT patterns:
 - STAR: One central device (switch or router) at center (x:700,y:400). All other devices radiate outward in a circle around it. Every device connects ONLY to the center.
@@ -8376,7 +8788,9 @@ SCHEMA:
       "securityGroups": [{"name": "web-sg", "rules": [{"direction": "inbound", "protocol": "tcp", "port": "443", "source": "0.0.0.0/0", "action": "allow"}]}],
       "vpcConfig": {"cidr": "10.0.0.0/16", "peerings": []},
       "vpnConfig": {"peerIp": "", "psk": "secret123", "ikeVersion": "IKEv2", "encryption": "AES-256", "hashAlgo": "SHA-256", "dhGroup": 14},
-      "vxlanConfig": [{"vni": 10000, "vtepIp": "10.0.0.1", "mappedVlan": 10, "mcastGroup": "239.1.1.1", "remoteVteps": ["10.0.0.2"], "floodAndLearn": true, "bgpEvpn": false}]
+      "vxlanConfig": [{"vni": 10000, "vtepIp": "10.0.0.1", "mappedVlan": 10, "mcastGroup": "239.1.1.1", "remoteVteps": ["10.0.0.2"], "floodAndLearn": true, "bgpEvpn": false}],
+      "stpConfig": null, "ospfConfig": null, "qosConfig": null, "wirelessConfig": null,
+      "dnsRecords": [{"type": "A", "name": "web.corp.local", "value": "192.168.1.100", "ttl": 3600}]
     }
   ],
   "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
@@ -8567,7 +8981,15 @@ function tbExpandScenario(scenario) {
     [/\bHA\b/g, 'high availability (dual devices, redundant paths)'],
     [/\bredundant\b/gi, 'redundant (dual devices with cross-connections)'],
     [/\bZTNA\b/gi, 'Zero Trust (sase-edge with ZTNA)'],
-    [/\bwireless\b/gi, 'wireless (wap + wlc)'],
+    [/\bwireless\b/gi, 'wireless (wap + wlc with wirelessConfig)'],
+    [/\bDNS\b/g, 'DNS (dns-server with dnsRecords)'],
+    [/\bOSPF\b/g, 'OSPF (routers with ospfConfig enabled)'],
+    [/\bdynamic routing\b/gi, 'OSPF dynamic routing (ospfConfig on routers)'],
+    [/\bSTP\b/g, 'STP (switches with stpConfig)'],
+    [/\bspanning tree\b/gi, 'Spanning Tree (switches with stpConfig)'],
+    [/\bQoS\b/g, 'QoS (routers with qosConfig)'],
+    [/\bIPv6\b/g, 'IPv6 (interfaces with ipv6 addresses)'],
+    [/\bdual.stack\b/gi, 'dual-stack IPv4+IPv6 (interfaces with both ip and ipv6)'],
   ];
   expansions.forEach(([re, replacement]) => {
     if (re.test(expanded)) expanded = expanded.replace(re, replacement);
@@ -10076,6 +10498,257 @@ const TB_LABS = [
         hint: 'Remember: security is layers. No single control is enough. The exam loves asking about defense-in-depth strategies.',
         check: () => true,
         feedback: () => null,
+      },
+    ]
+  },
+  // ── v4.30.0 Labs ──
+  {
+    id: 'ospf-dynamic-routing',
+    title: 'OSPF Dynamic Routing',
+    objective: '1.4',
+    difficulty: 'Advanced',
+    duration: '18 min',
+    description: 'Configure OSPF on a multi-router network. Learn how dynamic routing protocols discover neighbors, build link-state databases, and calculate shortest paths using Dijkstra\'s algorithm.',
+    steps: [
+      {
+        title: 'Build a 3-router backbone',
+        instruction: 'Create **3 Routers** (R1, R2, R3) and connect them: R1 ↔ R2, R2 ↔ R3, R1 ↔ R3. This creates a triangle — when one link fails, traffic can reroute through the other path. Add a **Switch** + **2 PCs** to R1 and R3.',
+        hint: 'OSPF excels in redundant topologies — it recalculates routes automatically when links go down.',
+        check: (s) => s.devices.filter(d => d.type === 'router').length >= 3 && s.cables.length >= 5,
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router').length;
+          if (routers < 3) return `${routers}/3 routers placed.`;
+          if (s.cables.length < 5) return `${s.cables.length}/5+ cables needed.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure router IPs',
+        instruction: 'Set IPs on all router interfaces:\n\n• **R1-R2 link**: 10.0.12.1/30 ↔ 10.0.12.2/30\n• **R2-R3 link**: 10.0.23.1/30 ↔ 10.0.23.2/30\n• **R1-R3 link**: 10.0.13.1/30 ↔ 10.0.13.2/30\n• **R1 LAN**: 192.168.1.1/24\n• **R3 LAN**: 192.168.3.1/24',
+        hint: 'Point-to-point links use /30 (2 usable IPs). LAN segments use /24.',
+        check: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          return routers.every(r => r.interfaces.filter(i => i.ip).length >= 2);
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          const incomplete = routers.filter(r => r.interfaces.filter(i => i.ip).length < 2);
+          return incomplete.length ? `${incomplete.map(r=>r.hostname).join(', ')} need more IPs on interfaces.` : null;
+        },
+      },
+      {
+        title: 'Enable OSPF on all routers',
+        instruction: 'Double-click each router → **OSPF** tab:\n\n1. Check **Enable OSPF**\n2. Set **Router ID** (R1: 1.1.1.1, R2: 2.2.2.2, R3: 3.3.3.3)\n3. **Add Area 0** (backbone area)\n4. Add all connected networks to Area 0\n\nOSPF routers exchange LSAs (Link-State Advertisements) and build a complete map of the network.',
+        hint: 'All routers in OSPF Area 0 form full adjacency. Router ID must be unique — typically the highest loopback IP.',
+        check: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          return routers.filter(r => r.ospfConfig && r.ospfConfig.enabled).length >= 3;
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          const enabled = routers.filter(r => r.ospfConfig?.enabled);
+          return enabled.length < 3 ? `${enabled.length}/3 routers have OSPF enabled.` : null;
+        },
+      },
+      {
+        title: 'Set OSPF Router IDs',
+        instruction: 'Each OSPF router needs a unique **Router ID**. Check the OSPF tab — the Router ID field should be set to a unique IP (e.g., 1.1.1.1 for R1).\n\nOSPF uses the Router ID to identify neighbors and prevent routing loops.',
+        hint: 'If no Router ID is set, OSPF uses the highest loopback IP, or the highest physical IP.',
+        check: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          return routers.filter(r => r.ospfConfig?.routerId).length >= 3;
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          const withRid = routers.filter(r => r.ospfConfig?.routerId);
+          return withRid.length < 3 ? `${withRid.length}/3 routers have Router IDs set.` : null;
+        },
+      },
+      {
+        title: 'Verify OSPF neighbors',
+        instruction: 'Open R1\'s **CLI** and run:\n\n• `show ip ospf` — see OSPF config and areas\n• `show ip ospf neighbor` — see discovered neighbors\n• `show running-config` — see full config in IOS format\n\n**Key exam concepts**: OSPF states (Down → Init → 2-Way → ExStart → Exchange → Loading → Full). DR/BDR election on broadcast segments. Hello timer = 10s, Dead timer = 40s.',
+        hint: 'OSPF neighbor states: FULL = fully adjacent (exchanged full LSDB). 2-WAY = bidirectional Hello received but not yet exchanged LSAs.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'dns-infrastructure',
+    title: 'DNS Infrastructure & Records',
+    objective: '1.6',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Build a DNS infrastructure with a DNS server, configure all major record types (A, AAAA, CNAME, MX, PTR, NS, SOA, TXT, SRV), and test name resolution with nslookup.',
+    steps: [
+      {
+        title: 'Build the network with a DNS server',
+        instruction: 'Create: **1 Router**, **1 Switch**, **1 DNS Server**, **2 PCs**, **1 Server** (web server). Cable them all to the switch, switch to router.\n\nThe DNS Server will resolve hostnames to IPs for all clients on the network.',
+        hint: 'DNS is a hierarchical system: Root → TLD (.com) → Authoritative (example.com) → Record (www.example.com).',
+        check: (s) => (s.devices.some(d => d.type === 'dns-server') || s.devices.filter(d => d.type === 'server').length >= 2) && s.cables.length >= 4,
+        feedback: (s) => {
+          const hasDns = s.devices.some(d => d.type === 'dns-server') || s.devices.filter(d => d.type === 'server').length >= 2;
+          if (!hasDns) return 'Need a DNS Server (or 2 servers — one as DNS). Drag from palette.';
+          if (s.cables.length < 4) return `${s.cables.length}/4+ cables needed.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure IPs on all devices',
+        instruction: 'Set IPs:\n• Router: `192.168.1.1/24`\n• DNS Server: `192.168.1.5/24`, gateway `192.168.1.1`\n• Web Server: `192.168.1.100/24`, gateway `192.168.1.1`\n• PCs: `192.168.1.10`, `.11`, gateway `192.168.1.1`',
+        hint: 'DNS clients need to know the DNS server IP. In production, this is often provided via DHCP (option 6).',
+        check: (s) => {
+          const allWithIp = s.devices.filter(d => d.interfaces.some(i => i.ip));
+          return allWithIp.length >= 4;
+        },
+        feedback: (s) => {
+          const allWithIp = s.devices.filter(d => d.interfaces.some(i => i.ip));
+          return allWithIp.length < 4 ? `${allWithIp.length}/4+ devices have IPs.` : null;
+        },
+      },
+      {
+        title: 'Add A and AAAA records',
+        instruction: 'Double-click the **DNS Server** → **DNS** tab. Add these records:\n\n• **A** record: name `web.corp.local` → value `192.168.1.100`\n• **A** record: name `dns.corp.local` → value `192.168.1.5`\n• **AAAA** record: name `web.corp.local` → value `2001:db8::100`\n\n**A** maps hostname → IPv4. **AAAA** maps hostname → IPv6.',
+        hint: 'A records are the most common DNS record type. AAAA records are the IPv6 equivalent — "quad-A" because IPv6 addresses are 4x longer than IPv4.',
+        check: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          return dns && dns.dnsRecords && dns.dnsRecords.filter(r => r.type === 'A' || r.type === 'AAAA').length >= 2;
+        },
+        feedback: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          if (!dns) return 'No DNS server with records found. Double-click the DNS server → DNS tab.';
+          const aCount = (dns.dnsRecords || []).filter(r => r.type === 'A' || r.type === 'AAAA').length;
+          return aCount < 2 ? `${aCount}/2 A/AAAA records. Add more.` : null;
+        },
+      },
+      {
+        title: 'Add CNAME, MX, and TXT records',
+        instruction: 'Continue adding records:\n\n• **CNAME**: name `www.corp.local` → value `web.corp.local` (alias)\n• **MX**: name `corp.local` → value `10 mail.corp.local` (mail exchange, priority 10)\n• **TXT**: name `corp.local` → value `v=spf1 include:_spf.corp.local ~all` (SPF record for email auth)\n\nCNAME creates an alias. MX directs email. TXT stores arbitrary data (SPF, DKIM, DMARC).',
+        hint: 'CNAME cannot coexist with other records for the same name (except RRSIG/NSEC). MX priority: lower number = higher priority.',
+        check: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          return dns && dns.dnsRecords && dns.dnsRecords.some(r => r.type === 'CNAME') && dns.dnsRecords.some(r => r.type === 'MX');
+        },
+        feedback: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          if (!dns?.dnsRecords) return 'No DNS records found.';
+          if (!dns.dnsRecords.some(r => r.type === 'CNAME')) return 'Missing CNAME record.';
+          if (!dns.dnsRecords.some(r => r.type === 'MX')) return 'Missing MX record.';
+          return null;
+        },
+      },
+      {
+        title: 'Add PTR, NS, SOA, SRV, and CAA records',
+        instruction: 'Complete the zone with:\n\n• **PTR**: name `100.1.168.192.in-addr.arpa` → value `web.corp.local` (reverse lookup)\n• **NS**: name `corp.local` → value `dns.corp.local` (authoritative nameserver)\n• **SOA**: name `corp.local` → value `dns.corp.local admin.corp.local 2024010101` (Start of Authority)\n• **SRV**: name `_sip._tcp.corp.local` → value `10 5 5060 sip.corp.local` (service locator)\n• **CAA**: name `corp.local` → value `0 issue "letsencrypt.org"` (certificate authority auth)',
+        hint: 'PTR is the reverse of A — used by tools like nslookup for reverse DNS. SOA defines zone authority and refresh timers. SRV format: priority weight port target.',
+        check: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          return dns && dns.dnsRecords && dns.dnsRecords.length >= 7;
+        },
+        feedback: (s) => {
+          const dns = s.devices.find(d => d.type === 'dns-server' || (d.type === 'server' && d.dnsRecords?.length > 0));
+          const count = dns?.dnsRecords?.length || 0;
+          return count < 7 ? `${count}/7+ DNS records configured. Add the remaining record types.` : null;
+        },
+      },
+      {
+        title: 'Test DNS with nslookup',
+        instruction: 'Open a **PC\'s CLI** and run:\n\n• `nslookup web.corp.local` — should resolve to 192.168.1.100\n• `nslookup www.corp.local` — should follow CNAME → A record\n• `nslookup nonexistent.corp.local` — should return NXDOMAIN\n• `show dns records` on the DNS server to see all configured records\n\n**Exam tip**: Know the difference between recursive and iterative queries. Clients use recursive (ask once, get answer). DNS servers use iterative (query root → TLD → authoritative).',
+        hint: 'DNS uses UDP port 53 for queries and TCP port 53 for zone transfers (AXFR/IXFR). DNSSEC adds digital signatures to prevent spoofing.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'stp-loop-prevention',
+    title: 'STP & Loop Prevention',
+    objective: '2.3',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Configure Spanning Tree Protocol on a redundant switch topology. Understand root bridge election, port states, and how STP prevents broadcast storms.',
+    autoSetup: (state) => {
+      // Pre-build 3 switches in a triangle + router + PCs
+      const r1 = { id: 'd_stp_r1', type: 'router', x: 650, y: 100, hostname: 'R1',
+        interfaces: [{ name: 'Gi0/0', cableId: null, ip: '192.168.1.1', mask: '255.255.255.0', mac: 'AA:00:00:01:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: null, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] };
+      const makeSw = (id, x, y, name, portCount) => ({
+        id, type: 'switch', x, y, hostname: name,
+        interfaces: Array.from({ length: portCount }, (_, i) => ({
+          name: `Fa0/${i + 1}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:00:${id.slice(-2)}:${String(i+1).padStart(2,'0')}:01:01`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64,
+        })),
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: { priority: 32768, mode: 'rstp', portStates: {} }, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] });
+      const sw1 = makeSw('d_stp_sw1', 400, 350, 'SW-Core', 24);
+      const sw2 = makeSw('d_stp_sw2', 900, 350, 'SW-Dist1', 24);
+      const sw3 = makeSw('d_stp_sw3', 650, 550, 'SW-Dist2', 24);
+      state.devices.push(r1, sw1, sw2, sw3);
+      // Triangle of switches + router to SW-Core
+      const cables = [
+        { id: 'c_stp_1', from: r1.id, to: sw1.id, type: 'cat6', fromIface: 'Gi0/0', toIface: 'Fa0/1' },
+        { id: 'c_stp_2', from: sw1.id, to: sw2.id, type: 'fiber', fromIface: 'Fa0/23', toIface: 'Fa0/23' },
+        { id: 'c_stp_3', from: sw2.id, to: sw3.id, type: 'fiber', fromIface: 'Fa0/24', toIface: 'Fa0/24' },
+        { id: 'c_stp_4', from: sw3.id, to: sw1.id, type: 'fiber', fromIface: 'Fa0/23', toIface: 'Fa0/24' },
+      ];
+      cables.forEach(c => {
+        const fromDev = state.devices.find(d => d.id === c.from);
+        const toDev = state.devices.find(d => d.id === c.to);
+        const fromIfc = fromDev.interfaces.find(i => i.name === c.fromIface);
+        const toIfc = toDev.interfaces.find(i => i.name === c.toIface);
+        if (fromIfc) fromIfc.cableId = c.id;
+        if (toIfc) toIfc.cableId = c.id;
+      });
+      state.cables.push(...cables);
+    },
+    steps: [
+      {
+        title: 'Explore the redundant topology',
+        instruction: 'You have **3 switches** (SW-Core, SW-Dist1, SW-Dist2) connected in a **triangle** via fiber uplinks. This creates **physical redundancy** but also a **Layer 2 loop**.\n\nWithout STP, broadcast frames would circulate endlessly → **broadcast storm** → network crash.\n\nDouble-click each switch to see its current STP configuration.',
+        hint: 'A broadcast storm can consume 100% of bandwidth in seconds. STP is the protocol that prevents this by blocking redundant paths.',
+        check: (s) => s.devices.filter(d => d.type === 'switch').length >= 3,
+        feedback: () => null,
+      },
+      {
+        title: 'Set SW-Core as Root Bridge',
+        instruction: 'Double-click **SW-Core** → **STP** tab. Set **Bridge Priority** to **4096** (lowest = root bridge).\n\nThe switch with the **lowest Bridge ID** (priority + MAC) becomes the Root Bridge. All other switches calculate their shortest path to the root.\n\nLeave SW-Dist1 and SW-Dist2 at default priority (32768).',
+        hint: 'Root Bridge election: compare priority first, then MAC address. Best practice: manually set the core switch as root with the lowest priority.',
+        check: (s) => {
+          const core = s.devices.find(d => d.hostname === 'SW-Core' || (d.type === 'switch' && d.stpConfig?.priority <= 4096));
+          return core && core.stpConfig && core.stpConfig.priority <= 4096;
+        },
+        feedback: (s) => {
+          const core = s.devices.find(d => d.hostname === 'SW-Core');
+          if (!core?.stpConfig) return 'SW-Core has no STP config. Double-click → STP tab.';
+          if (core.stpConfig.priority > 4096) return `SW-Core priority is ${core.stpConfig.priority}. Set it to 4096 to make it Root Bridge.`;
+          return null;
+        },
+      },
+      {
+        title: 'Block a redundant port',
+        instruction: 'On **SW-Dist2** → STP tab, set the port connected to **SW-Dist1** (Fa0/24) to **blocking** state.\n\nSTP blocks one port in the triangle to break the loop. Traffic can still reach SW-Dist2 via SW-Core. If the SW-Core ↔ SW-Dist2 link fails, the blocked port transitions to forwarding (convergence).\n\nPort roles: **Root Port** (toward root bridge), **Designated Port** (away from root), **Blocked Port** (redundant, loop prevention).',
+        hint: 'RSTP converges in 1-2 seconds. Classic STP takes 30-50 seconds (listening 15s + learning 15s). That\'s why RSTP replaced STP in modern networks.',
+        check: (s) => {
+          const sw = s.devices.find(d => d.hostname === 'SW-Dist2' || (d.type === 'switch' && d.stpConfig?.portStates && Object.values(d.stpConfig.portStates).includes('blocking')));
+          return sw && sw.stpConfig && Object.values(sw.stpConfig.portStates || {}).includes('blocking');
+        },
+        feedback: (s) => {
+          const switches = s.devices.filter(d => d.type === 'switch');
+          const hasBlocking = switches.some(sw => sw.stpConfig && Object.values(sw.stpConfig.portStates || {}).includes('blocking'));
+          return !hasBlocking ? 'No port is in blocking state. Set one redundant port to BLOCKING in the STP tab.' : null;
+        },
+      },
+      {
+        title: 'Add PCs and verify',
+        instruction: 'Add **2 PCs** — connect one to SW-Dist1 and one to SW-Dist2. Set IPs (192.168.1.10, .11) with gateway 192.168.1.1.\n\nRun `show spanning-tree` on each switch to see STP status.\n\n**Network+ exam STP concepts**:\n• BPDU (Bridge Protocol Data Unit) — hello frames sent every 2 seconds\n• BPDU Guard — shuts down port if BPDU received (edge/access ports)\n• Root Guard — prevents downstream switches from becoming root\n• PortFast — skips listening/learning on access ports (30s → 0s)',
+        hint: 'PortFast should ONLY be enabled on edge/access ports (connected to PCs/servers). Never on switch-to-switch links — it would bypass STP and create loops.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          return pcs < 2 ? `${pcs}/2 PCs placed. Add ${2 - pcs} more.` : null;
+        },
       },
     ]
   },
