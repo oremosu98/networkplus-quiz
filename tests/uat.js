@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.22.0', js.includes("const APP_VERSION = '4.22.0"));
+test('APP_VERSION is 4.23.0', js.includes("const APP_VERSION = '4.23.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.22.0', sw.includes('netplus-v4.22.0'));
+test('SW cache bumped to v4.23.0', sw.includes('netplus-v4.23.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.22.0', sw.includes('netplus-v4.22.0'));
-test('APP_VERSION bumped to 4.22.0', js.includes("APP_VERSION = '4.22.0'"));
+test('SW cache bumped to v4.23.0', sw.includes('netplus-v4.23.0'));
+test('APP_VERSION bumped to 4.23.0', js.includes("APP_VERSION = '4.23.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -886,8 +886,8 @@ test('CSS: .tb-tool-btn-primary', css.includes('.tb-tool-btn-primary'));
 // openTopologyBuilder calls tbRenderScenarioPanel
 test('openTopologyBuilder renders scenario panel', /openTopologyBuilder[\s\S]{0,800}tbRenderScenarioPanel/.test(js));
 
-// ── Topology Builder Tier 3 (v4.22.0) — AI Coach ──
-console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.22.0) ──\x1b[0m');
+// ── Topology Builder Tier 3 (v4.23.0) — AI Coach ──
+console.log('\n\x1b[1m── TOPOLOGY BUILDER TIER 3 (v4.23.0) ──\x1b[0m');
 // Core functions
 test('tbSerializeTopology defined', /function tbSerializeTopology/.test(js));
 test('tbTopologyHash defined', /function tbTopologyHash/.test(js));
@@ -930,8 +930,8 @@ test('CSS: .tb-coach-tip', css.includes('.tb-coach-tip'));
 test('CSS: .tb-tool-btn-coach', css.includes('.tb-tool-btn-coach'));
 test('CSS: tb-coach-spin keyframes', css.includes('@keyframes tb-coach-spin'));
 
-// ── Network Simulator (v4.22.0) — Config Panel, Sim Engine, CLI, AI Gen ──
-console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.22.0) ──\x1b[0m');
+// ── Network Simulator (v4.23.0) — Config Panel, Sim Engine, CLI, AI Gen ──
+console.log('\n\x1b[1m── NETWORK SIMULATOR (v4.23.0) ──\x1b[0m');
 // Foundation
 test('TB_MAX_DEVICES bumped to 50', js.includes('const TB_MAX_DEVICES = 50'));
 test('TB_IFACE_DEFAULTS defined', js.includes('const TB_IFACE_DEFAULTS'));
@@ -1006,6 +1006,48 @@ test('CSS: .tb-cli-output', css.includes('.tb-cli-output'));
 test('CSS: .tb-iface-table', css.includes('.tb-iface-table'));
 test('CSS: .tb-tool-btn-ai', css.includes('.tb-tool-btn-ai'));
 test('CSS: .tb-explain-btn', css.includes('.tb-explain-btn'));
+// v4.23.0 additions
+// Overview tab
+test('tbRenderOverviewTab function', js.includes('function tbRenderOverviewTab('));
+test('Overview tab in switch', /case 'overview':[\s\S]{0,100}tbRenderOverviewTab/.test(js));
+test('HTML: overview tab button', html.includes('data-tb-tab="overview"'));
+test('Config opens on overview tab', /tbOpenConfigPanel[\s\S]{0,1200}tbSwitchConfigTab\('overview'\)/.test(js));
+// Ping dropdown (device-to-device)
+test('Ping destination is select dropdown', html.includes('id="tb-ping-dst"'));
+test('Ping dst is select not input', /select id="tb-ping-dst"/.test(html));
+test('tbFilterPingDst function', js.includes('function tbFilterPingDst('));
+test('tbExecArp function', js.includes('function tbExecArp('));
+test('ARP button in ping modal', html.includes('tbExecArp()'));
+// VLAN Trunking/DTP
+test('DTP mode select in interfaces tab', /dtp/.test(js));
+test('tbSetTrunkAllowed function', js.includes('function tbSetTrunkAllowed('));
+test('Trunk allowed VLANs input', /Allowed VLANs/.test(js));
+test('Native VLAN input', /Native VLAN/.test(js));
+// Guided Labs
+test('TB_LABS defined', js.includes('const TB_LABS'));
+test('Lab: basic-lan', /id: 'basic-lan'/.test(js));
+test('Lab: vlan-segmentation', /id: 'vlan-segmentation'/.test(js));
+test('Lab: dhcp-setup', /id: 'dhcp-setup'/.test(js));
+test('Lab: dmz-firewall', /id: 'dmz-firewall'/.test(js));
+test('Lab: arp-investigation', /id: 'arp-investigation'/.test(js));
+test('tbOpenLabPicker function', js.includes('function tbOpenLabPicker('));
+test('tbStartLab function', js.includes('function tbStartLab('));
+test('tbRenderLabStep function', js.includes('function tbRenderLabStep('));
+test('tbLabNext function', js.includes('function tbLabNext('));
+test('tbLabPrev function', js.includes('function tbLabPrev('));
+test('tbEndLab function', js.includes('function tbEndLab('));
+test('HTML: lab picker modal', html.includes('id="tb-lab-picker"'));
+test('HTML: lab panel', html.includes('id="tb-lab-panel"'));
+test('HTML: lab step container', html.includes('id="tb-lab-step"'));
+test('HTML: labs button in toolbar', html.includes('tbOpenLabPicker()'));
+// CSS
+test('CSS: .tb-ov-hero', css.includes('.tb-ov-hero'));
+test('CSS: .tb-ov-iface-card', css.includes('.tb-ov-iface-card'));
+test('CSS: .tb-ov-stats-grid', css.includes('.tb-ov-stats-grid'));
+test('CSS: .tb-lab-card', css.includes('.tb-lab-card'));
+test('CSS: .tb-lab-panel', css.includes('.tb-lab-panel'));
+test('CSS: .tb-lab-step-check', css.includes('.tb-lab-step-check'));
+test('CSS: .tb-iface-trunk-detail', css.includes('.tb-iface-trunk-detail'));
 // Sim toolbar shows on openTopologyBuilder
 test('Sim toolbar shown on open', /openTopologyBuilder[\s\S]{0,1500}tb-sim-toolbar/.test(js));
 

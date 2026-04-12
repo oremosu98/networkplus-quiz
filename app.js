@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.22.0';
+const APP_VERSION = '4.23.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -6270,12 +6270,13 @@ function tbCloseCoachModal() {
 // ══════════════════════════════════════════
 
 // ── Config Panel ──
-let tbActiveConfigTab = 'ifaces';
+let tbActiveConfigTab = 'overview';
 
 function tbOpenConfigPanel(deviceId) {
   const dev = tbState.devices.find(d => d.id === deviceId);
   if (!dev) return;
   tbConfigPanelDeviceId = deviceId;
+  tbCliHistory = []; // reset CLI on device switch
   const panel = document.getElementById('tb-config-panel');
   const title = document.getElementById('tb-config-title');
   if (!panel || !title) return;
@@ -6292,7 +6293,7 @@ function tbOpenConfigPanel(deviceId) {
     if (tab === 'vlans') t.classList.toggle('is-hidden', !isSwitch);
     if (tab === 'dhcp') t.classList.toggle('is-hidden', !isRouter && !isServer);
   });
-  tbSwitchConfigTab(tbActiveConfigTab);
+  tbSwitchConfigTab('overview');
   // Show sim toolbar
   document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
 }
@@ -6312,6 +6313,7 @@ function tbSwitchConfigTab(tab) {
   const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
   if (!dev) { body.innerHTML = ''; return; }
   switch (tab) {
+    case 'overview': body.innerHTML = tbRenderOverviewTab(dev); break;
     case 'ifaces': body.innerHTML = tbRenderIfacesTab(dev); break;
     case 'routing': body.innerHTML = tbRenderRoutingTab(dev); break;
     case 'vlans': body.innerHTML = tbRenderVlansTab(dev); break;
@@ -6321,8 +6323,84 @@ function tbSwitchConfigTab(tab) {
   }
 }
 
+// ── Overview Tab — visual device dashboard ──
+function tbRenderOverviewTab(dev) {
+  const meta = TB_DEVICE_TYPES[dev.type] || {};
+  const upPorts = dev.interfaces.filter(i => i.enabled && i.cableId);
+  const downPorts = dev.interfaces.filter(i => !i.enabled || !i.cableId);
+  const hasIp = dev.interfaces.some(i => i.ip);
+  const isSwitch = dev.type.indexOf('switch') >= 0;
+  const isRouter = dev.type === 'router' || dev.type === 'firewall';
+
+  // Build port status LEDs
+  const portLeds = dev.interfaces.map(ifc => {
+    const connected = ifc.cableId && ifc.enabled;
+    const color = connected ? (ifc.ip ? '#22c55e' : '#facc15') : '#64748b';
+    const tip = `${ifc.name}: ${connected ? (ifc.ip || 'no IP') : 'down'}`;
+    return `<span class="tb-ov-led" style="background:${color}" title="${escHtml(tip)}"></span>`;
+  }).join('');
+
+  // Interface summary cards
+  const ifaceCards = dev.interfaces.filter(i => i.cableId).map(ifc => {
+    const cable = tbState.cables.find(c => c.id === ifc.cableId);
+    const peerId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
+    const peer = peerId ? tbState.devices.find(d => d.id === peerId) : null;
+    const cType = cable ? (TB_CABLE_TYPES[cable.type] || {}).label || 'Cat6' : '';
+    const statusColor = ifc.enabled ? '#22c55e' : '#ef4444';
+    const modeLabel = ifc.mode === 'trunk' ? 'TRUNK' : `Access VLAN ${ifc.vlan}`;
+    return `<div class="tb-ov-iface-card">
+      <div class="tb-ov-iface-head">
+        <span class="tb-ov-iface-dot" style="background:${statusColor}"></span>
+        <strong>${escHtml(ifc.name)}</strong>
+        <span class="tb-ov-iface-mode">${modeLabel}</span>
+      </div>
+      <div class="tb-ov-iface-detail">
+        ${ifc.ip ? `<span>IP: <code>${escHtml(ifc.ip)}/${tbMaskToCidr(ifc.mask)}</code></span>` : '<span style="color:#64748b">No IP</span>'}
+        <span>MAC: <code>${ifc.mac || '?'}</code></span>
+        ${peer ? `<span>&rarr; <strong>${escHtml(peer.hostname || '?')}</strong> (${cType})</span>` : ''}
+        ${ifc.mode === 'trunk' ? `<span>Allowed: ${(ifc.trunkAllowed||[1]).join(',')}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Quick stats
+  const routeCount = dev.routingTable ? dev.routingTable.length : 0;
+  const arpCount = dev.arpTable ? dev.arpTable.length : 0;
+  const vlanCount = dev.vlanDb ? dev.vlanDb.length : 0;
+  const dhcpStatus = dev.dhcpServer ? 'Enabled' : (dev.dhcpRelay ? 'Relay' : 'Off');
+
+  // Build hostname edit and gateway for endpoints
+  const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
+  const gwInfo = isEndpoint && dev.interfaces[0]?.gateway ? `<div class="tb-ov-stat"><span>Gateway</span><code>${escHtml(dev.interfaces[0].gateway)}</code></div>` : '';
+
+  return `<div class="tb-ov-hero">
+    <div class="tb-ov-icon">${tbDeviceIcon(dev.type, meta.color)}</div>
+    <div class="tb-ov-hero-info">
+      <input type="text" class="tb-ov-hostname" value="${escHtml(dev.hostname||'')}" onchange="tbSetHostname(this.value)" placeholder="Hostname">
+      <span class="tb-ov-type-badge" style="border-color:${meta.color};color:${meta.color}">${meta.label}</span>
+    </div>
+  </div>
+  <div class="tb-ov-leds-row">${portLeds}<span style="color:#64748b;font-size:10px;margin-left:6px">${upPorts.length}/${dev.interfaces.length} ports up</span></div>
+  <div class="tb-ov-stats-grid">
+    ${isRouter ? `<div class="tb-ov-stat"><span>Routes</span><strong>${routeCount}</strong></div>` : ''}
+    <div class="tb-ov-stat"><span>ARP</span><strong>${arpCount}</strong></div>
+    ${isSwitch ? `<div class="tb-ov-stat"><span>VLANs</span><strong>${vlanCount}</strong></div>` : ''}
+    ${isSwitch ? `<div class="tb-ov-stat"><span>MAC Table</span><strong>${dev.macTable ? dev.macTable.length : 0}</strong></div>` : ''}
+    <div class="tb-ov-stat"><span>DHCP</span><strong>${dhcpStatus}</strong></div>
+    ${gwInfo}
+  </div>
+  ${ifaceCards ? `<div class="tb-ov-section-label">Connected Interfaces</div>${ifaceCards}` : '<div style="color:#64748b;font-size:11px">No connected interfaces. Wire this device to others first.</div>'}
+  <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+    <button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab('ifaces')">Edit Interfaces</button>
+    ${isRouter ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'routing\')">Routing Table</button>' : ''}
+    ${isSwitch ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'vlans\')">VLAN Config</button>' : ''}
+    <button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab('cli')">Open CLI</button>
+  </div>`;
+}
+
 // ── Interfaces Tab ──
 function tbRenderIfacesTab(dev) {
+  const isSwitch = dev.type.indexOf('switch') >= 0;
   const rows = dev.interfaces.map((ifc, i) => {
     const cable = ifc.cableId ? tbState.cables.find(c => c.id === ifc.cableId) : null;
     const peerDevId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
@@ -6330,23 +6408,49 @@ function tbRenderIfacesTab(dev) {
     const cableLbl = peerDev ? `→ ${peerDev.hostname || '?'}` : '(free)';
     const statusCls = ifc.enabled ? 'tb-iface-status-up' : 'tb-iface-status-down';
     const statusTxt = ifc.enabled ? 'UP' : 'DN';
+    // DTP mode (only for switches)
+    const dtpOpts = isSwitch ? `<select onchange="tbSetIfaceField(${i},'dtp',this.value)" style="width:52px" title="DTP mode">
+      <option value="on"${(ifc.dtp||'on')==='on'?' selected':''}>On</option>
+      <option value="desirable"${ifc.dtp==='desirable'?' selected':''}>Desir</option>
+      <option value="auto"${ifc.dtp==='auto'?' selected':''}>Auto</option>
+      <option value="noneg"${ifc.dtp==='noneg'?' selected':''}>NoNeg</option>
+    </select>` : '';
+    // Trunk allowed VLANs (only when trunk mode)
+    const trunkInfo = ifc.mode === 'trunk' ? `<div class="tb-iface-trunk-detail">
+      <label style="font-size:10px;margin:0">Allowed VLANs:</label>
+      <input type="text" value="${(ifc.trunkAllowed||[1]).join(',')}" onchange="tbSetTrunkAllowed(${i},this.value)" style="width:100%;font-size:10px" placeholder="1,10,20" title="Comma-separated VLAN IDs">
+      <label style="font-size:10px;margin:0">Native VLAN:</label>
+      <input type="text" value="${ifc.nativeVlan || 1}" onchange="tbSetIfaceField(${i},'nativeVlan',parseInt(this.value)||1)" style="width:50px;font-size:10px" title="Native VLAN (untagged)">
+    </div>` : '';
     return `<tr>
       <td><span class="tb-iface-name">${escHtml(ifc.name)}</span><br><span class="tb-iface-cable">${escHtml(cableLbl)}</span></td>
-      <td><input type="text" value="${escHtml(ifc.ip)}" placeholder="IP" onchange="tbSetIfaceField(${i},'ip',this.value)" style="width:100px"></td>
-      <td><input type="text" value="${escHtml(ifc.mask)}" placeholder="Mask" onchange="tbSetIfaceField(${i},'mask',this.value)" style="width:100px"></td>
-      <td><input type="text" value="${ifc.vlan}" onchange="tbSetIfaceField(${i},'vlan',parseInt(this.value)||1)" style="width:36px;text-align:center"></td>
-      <td><select onchange="tbSetIfaceField(${i},'mode',this.value)" style="width:60px"><option value="access"${ifc.mode==='access'?' selected':''}>Acc</option><option value="trunk"${ifc.mode==='trunk'?' selected':''}>Trunk</option></select></td>
+      <td><input type="text" value="${escHtml(ifc.ip)}" placeholder="IP" onchange="tbSetIfaceField(${i},'ip',this.value)" style="width:90px"></td>
+      <td><input type="text" value="${escHtml(ifc.mask)}" placeholder="Mask" onchange="tbSetIfaceField(${i},'mask',this.value)" style="width:90px"></td>
+      <td><input type="text" value="${ifc.vlan}" onchange="tbSetIfaceField(${i},'vlan',parseInt(this.value)||1)" style="width:32px;text-align:center"></td>
+      <td><select onchange="tbSetIfaceField(${i},'mode',this.value);tbSwitchConfigTab('ifaces')" style="width:56px"><option value="access"${ifc.mode==='access'?' selected':''}>Acc</option><option value="trunk"${ifc.mode==='trunk'?' selected':''}>Trunk</option></select></td>
+      <td>${dtpOpts}</td>
       <td><span class="${statusCls}" style="cursor:pointer;font-weight:700" onclick="tbToggleIface(${i})">${statusTxt}</span></td>
-    </tr>`;
+    </tr>
+    ${trunkInfo ? `<tr><td colspan="7" style="padding:2px 5px 6px">${trunkInfo}</td></tr>` : ''}`;
   }).join('');
 
   const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
   const gwRow = isEndpoint ? `<div style="margin-top:8px"><label>Default Gateway</label><input type="text" value="${escHtml(dev.interfaces[0]?.gateway || '')}" onchange="tbSetGateway(this.value)" placeholder="e.g. 192.168.1.1"></div>` : '';
 
   return `<div style="margin-bottom:6px"><label>Hostname</label><input type="text" value="${escHtml(dev.hostname||'')}" onchange="tbSetHostname(this.value)"></div>
-    <table class="tb-iface-table"><thead><tr><th>Port</th><th>IP Address</th><th>Mask</th><th>VLAN</th><th>Mode</th><th>St</th></tr></thead><tbody>${rows}</tbody></table>
-    <div style="font-size:10px;color:#64748b">MAC addresses auto-assigned. ${dev.interfaces.length} ports total.</div>
+    <table class="tb-iface-table"><thead><tr><th>Port</th><th>IP</th><th>Mask</th><th>VL</th><th>Mode</th>${isSwitch?'<th>DTP</th>':'<th></th>'}<th>St</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="font-size:10px;color:#64748b">MAC: auto-assigned. ${dev.interfaces.length} ports. ${isSwitch ? 'Set mode to Trunk to configure allowed VLANs + native VLAN.' : ''}</div>
     ${gwRow}`;
+}
+
+// Helper: set trunk allowed VLANs (comma-separated)
+function tbSetTrunkAllowed(idx, val) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.interfaces[idx]) return;
+  const vlans = val.split(',').map(v => parseInt(v.trim())).filter(v => v > 0 && v <= 4094);
+  dev.interfaces[idx].trunkAllowed = vlans.length ? vlans : [1];
+  tbState.updated = Date.now();
+  tbSaveDraft();
 }
 
 function tbSetIfaceField(idx, field, value) {
@@ -6999,15 +7103,25 @@ function tbAnimatePacket(path, color, label) {
 function tbOpenPingDialog() {
   const modal = document.getElementById('tb-ping-modal');
   const srcSelect = document.getElementById('tb-ping-src');
-  if (!modal || !srcSelect) return;
-  srcSelect.innerHTML = tbState.devices
-    .filter(d => d.interfaces && d.interfaces.some(ifc => ifc.ip))
+  const dstSelect = document.getElementById('tb-ping-dst');
+  if (!modal || !srcSelect || !dstSelect) return;
+  const devicesWithIp = tbState.devices.filter(d => d.interfaces && d.interfaces.some(ifc => ifc.ip));
+  srcSelect.innerHTML = devicesWithIp
     .map(d => `<option value="${d.id}">${escHtml(d.hostname)} (${d.interfaces.find(i=>i.ip)?.ip || '?'})</option>`)
     .join('');
+  tbFilterPingDst();
   modal.classList.remove('is-hidden');
 }
+function tbFilterPingDst() {
+  const srcId = document.getElementById('tb-ping-src')?.value;
+  const dstSelect = document.getElementById('tb-ping-dst');
+  if (!dstSelect) return;
+  const devicesWithIp = tbState.devices.filter(d => d.interfaces && d.interfaces.some(ifc => ifc.ip) && d.id !== srcId);
+  dstSelect.innerHTML = devicesWithIp
+    .map(d => `<option value="${d.id}">${escHtml(d.hostname)} (${d.interfaces.find(i=>i.ip)?.ip || '?'})</option>`)
+    .join('');
+}
 function tbOpenArpDialog() {
-  // Reuse ping dialog for ARP
   tbOpenPingDialog();
 }
 function tbOpenDhcpDialog() {
@@ -7033,16 +7147,33 @@ function tbOpenDhcpDialog() {
 
 function tbExecPing() {
   const srcId = document.getElementById('tb-ping-src')?.value;
-  const dstIp = document.getElementById('tb-ping-dst')?.value.trim();
+  const dstId = document.getElementById('tb-ping-dst')?.value;
   document.getElementById('tb-ping-modal')?.classList.add('is-hidden');
-  if (!srcId || !dstIp) { showErrorToast('Select a source and enter a destination IP.'); return; }
+  if (!srcId || !dstId) { showErrorToast('Select source and destination devices.'); return; }
+  const dstDev = tbState.devices.find(d => d.id === dstId);
+  const dstIp = dstDev?.interfaces?.find(i => i.ip)?.ip;
+  if (!dstIp) { showErrorToast('Destination has no IP address configured.'); return; }
   const result = tbSimPing(tbState, srcId, dstIp);
   tbShowSimLog(result.log);
-  // Animate the packet path
   if (result.path && result.path.length >= 2) {
     tbAnimatePacket(result.path, result.success ? '#22c55e' : '#ef4444', 'ICMP');
   }
-  // Refresh config panel if open
+  if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
+}
+
+function tbExecArp() {
+  const srcId = document.getElementById('tb-ping-src')?.value;
+  const dstId = document.getElementById('tb-ping-dst')?.value;
+  document.getElementById('tb-ping-modal')?.classList.add('is-hidden');
+  if (!srcId || !dstId) { showErrorToast('Select source and destination devices.'); return; }
+  const dstDev = tbState.devices.find(d => d.id === dstId);
+  const dstIp = dstDev?.interfaces?.find(i => i.ip)?.ip;
+  if (!dstIp) { showErrorToast('Destination has no IP address configured.'); return; }
+  const result = tbSimARP(tbState, srcId, dstIp);
+  tbShowSimLog(result.log);
+  if (result.path && result.path.length >= 2) {
+    tbAnimatePacket(result.path, '#3b82f6', 'ARP');
+  }
   if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
 }
 
@@ -7235,6 +7366,181 @@ async function tbExplainDevice(deviceId) {
   } catch (e) {
     showErrorToast('AI error: ' + (e.message || ''));
   }
+}
+
+// ══════════════════════════════════════════
+// TOPOLOGY BUILDER — Guided Topology Labs
+// ══════════════════════════════════════════
+
+const TB_LABS = [
+  {
+    id: 'basic-lan',
+    title: 'Basic LAN Setup',
+    objective: '1.2',
+    difficulty: 'Beginner',
+    duration: '10 min',
+    description: 'Build a simple LAN with a router, switch, and 3 PCs. Configure IPs and verify connectivity with ping.',
+    steps: [
+      { title: 'Drop a Router onto the canvas', instruction: 'Drag a **Router** from the palette onto the canvas. This will be your default gateway.', check: (s) => s.devices.some(d => d.type === 'router') },
+      { title: 'Drop a Switch', instruction: 'Drag a **Switch** onto the canvas below the router. Switches operate at Layer 2 and forward frames based on MAC addresses.', check: (s) => s.devices.some(d => d.type === 'switch' || d.type === 'dmz-switch') },
+      { title: 'Connect Router to Switch', instruction: 'Click the **Router**, then click the **Switch** to draw a cable between them. This creates a trunk link.', check: (s) => s.cables.length >= 1 },
+      { title: 'Add 3 PCs', instruction: 'Drag **3 PCs** onto the canvas and connect each one to the Switch.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 3 && s.cables.length >= 4 },
+      { title: 'Configure Router IP', instruction: 'Double-click the **Router** and go to the **Interfaces** tab. Set the connected interface IP to `192.168.1.1` with mask `255.255.255.0`.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); } },
+      { title: 'Configure PC IPs', instruction: 'Double-click each **PC** and set their IPs to `192.168.1.10`, `192.168.1.11`, and `192.168.1.12` with mask `255.255.255.0`. Set the **Default Gateway** to `192.168.1.1`.', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 3 },
+      { title: 'Test Connectivity!', instruction: 'Use the **Ping** button in the toolbar. Select PC1 as source and PC2 as destination. You should see a successful ping in the simulation log! Try pinging the router too.', check: () => true },
+    ]
+  },
+  {
+    id: 'vlan-segmentation',
+    title: 'VLAN Segmentation',
+    objective: '2.1',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Segment a network using VLANs. Configure access ports, trunk ports, and verify isolation between VLANs.',
+    steps: [
+      { title: 'Build the base network', instruction: 'Create: 1 Router, 1 Switch, 4 PCs. Connect all PCs to the Switch and the Switch to the Router.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 4 && s.devices.some(d => d.type === 'switch') && s.cables.length >= 5 },
+      { title: 'Create VLANs on the Switch', instruction: 'Double-click the **Switch** → **VLANs** tab. Add **VLAN 10** (name: Sales) and **VLAN 20** (name: Engineering).', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.vlanDb && sw.vlanDb.length >= 3; } },
+      { title: 'Assign access ports to VLANs', instruction: 'Go to the **Interfaces** tab on the Switch. Set 2 PC-facing ports to **VLAN 10** (access mode) and the other 2 to **VLAN 20**.', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.filter(i => i.vlan === 10).length >= 2; } },
+      { title: 'Configure the trunk port', instruction: 'Set the Switch port facing the Router to **Trunk** mode. Set allowed VLANs to `1,10,20`.', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.some(i => i.mode === 'trunk'); } },
+      { title: 'Configure Router sub-interfaces', instruction: 'Double-click the **Router** → **Interfaces** tab. Set the connected interface IP to `192.168.10.1/24` (VLAN 10 gateway). Add a static route or second IP for `192.168.20.1/24` for VLAN 20.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); } },
+      { title: 'Configure PC IPs per VLAN', instruction: 'VLAN 10 PCs: `192.168.10.10`, `192.168.10.11` (gateway `192.168.10.1`). VLAN 20 PCs: `192.168.20.10`, `192.168.20.11` (gateway `192.168.20.1`).', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 4 },
+      { title: 'Test VLAN isolation', instruction: 'Ping between two PCs in **VLAN 10** — it should succeed. Ping from VLAN 10 to VLAN 20 — it requires the router (inter-VLAN routing). Check the simulation log to see how traffic flows through the router!', check: () => true },
+    ]
+  },
+  {
+    id: 'dhcp-setup',
+    title: 'DHCP Server & Relay',
+    objective: '1.6',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Set up a DHCP server to automatically assign IPs, then configure DHCP relay to serve a remote subnet.',
+    steps: [
+      { title: 'Build two subnets', instruction: 'Create: 1 Router, 2 Switches, 1 Server, 4 PCs. Connect Switch1 + Server + 2 PCs to the Router on one side, and Switch2 + 2 PCs on the other side.', check: (s) => s.devices.filter(d => d.type === 'switch').length >= 2 && s.devices.some(d => d.type === 'server') },
+      { title: 'Configure Router interfaces', instruction: 'Double-click the Router. Set the interface facing Switch1 to `192.168.1.1/24` and the interface facing Switch2 to `192.168.2.1/24`. This creates two subnets.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.filter(i => i.ip).length >= 2; } },
+      { title: 'Configure the DHCP Server', instruction: 'Double-click the **Server** → **DHCP** tab. Enable DHCP with network `192.168.1.0`, mask `255.255.255.0`, gateway `192.168.1.1`, range `192.168.1.100`-`192.168.1.200`. Set the server IP to `192.168.1.5`.', check: (s) => { const srv = s.devices.find(d => d.type === 'server'); return srv && srv.dhcpServer; } },
+      { title: 'Test DHCP for Subnet 1', instruction: 'Leave the PCs on Switch1 **without IPs**. Click **DHCP** in the simulation toolbar. The PCs should receive IPs from the DHCP server via DORA (Discover, Offer, Request, Acknowledge).', check: () => true },
+      { title: 'Configure DHCP Relay', instruction: 'Double-click the **Router** → **DHCP** tab. Set the **ip helper-address** to `192.168.1.5` (the DHCP server). This tells the router to forward DHCP Discover broadcasts from Subnet 2 to the server.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.dhcpRelay; } },
+      { title: 'Test DHCP Relay for Subnet 2', instruction: 'Leave the PCs on Switch2 without IPs. Click **DHCP** again. Watch the simulation log — you\'ll see the router relaying the Discover message across subnets. The DHCP server responds with an Offer containing a `192.168.2.x` address if configured, or a `192.168.1.x` address.', check: () => true },
+    ]
+  },
+  {
+    id: 'dmz-firewall',
+    title: 'DMZ & Firewall Design',
+    objective: '4.5',
+    difficulty: 'Advanced',
+    duration: '20 min',
+    description: 'Design a screened subnet (DMZ) with firewalls protecting public servers from the internal network.',
+    steps: [
+      { title: 'Place the perimeter firewall', instruction: 'Drag a **Cloud** (internet) and a **Firewall** onto the canvas. Connect the Cloud to the Firewall. This firewall faces the internet.', check: (s) => s.devices.some(d => d.type === 'firewall') && s.devices.some(d => d.type === 'cloud') },
+      { title: 'Create the DMZ segment', instruction: 'Drag a **DMZ Switch** and connect it to the Firewall. Then place a **Public Web Server** and **Public File Server** on the DMZ switch.', check: (s) => s.devices.some(d => d.type === 'dmz-switch') && s.devices.some(d => d.type.startsWith('public-')) },
+      { title: 'Add internal network', instruction: 'Drag a regular **Switch** and connect it to the Firewall. Add 2+ PCs and a **Server** to the internal switch. This is your protected LAN.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2 && s.cables.length >= 6 },
+      { title: 'Configure DMZ addressing', instruction: 'Firewall DMZ interface: `10.0.1.1/24`. Public servers: `10.0.1.10`, `10.0.1.11`. Firewall internal interface: `192.168.1.1/24`. PCs: `192.168.1.10+`. Internet-facing: `203.0.113.1/24`.', check: (s) => { const fw = s.devices.find(d => d.type === 'firewall'); return fw && fw.interfaces.filter(i => i.ip).length >= 2; } },
+      { title: 'Grade your design', instruction: 'Select the **DMZ / Screened Subnet** scenario from the toolbar dropdown, then hit **Grade**. Aim for an A — all public servers must be on the DMZ switch, not the internal switch. This is a critical security rule!', check: () => true },
+      { title: 'Get AI Coach review', instruction: 'Hit **Coach** for an AI walkthrough of your DMZ design. The coach will explain the security implications and map it to N10-009 objectives (4.5 Physical Security, 4.1 Security Concepts).', check: () => true },
+    ]
+  },
+  {
+    id: 'arp-investigation',
+    title: 'ARP & MAC Learning',
+    objective: '2.1',
+    difficulty: 'Beginner',
+    duration: '10 min',
+    description: 'Watch how ARP broadcasts resolve IPs to MACs and how switches learn MAC addresses.',
+    steps: [
+      { title: 'Build a simple LAN', instruction: 'Create: 1 Switch, 3 PCs. Connect all PCs to the Switch. Set IPs: PC1=`192.168.1.10`, PC2=`192.168.1.11`, PC3=`192.168.1.12`. Mask: `255.255.255.0`.', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 3 },
+      { title: 'Check the Switch MAC table', instruction: 'Double-click the **Switch** → **CLI** tab. Type `show mac address-table`. It should be empty — no frames have been sent yet.', check: () => true },
+      { title: 'Send an ARP request', instruction: 'Click **Ping/ARP** in the toolbar. Select **PC1** as source and **PC2** as destination. Click **ARP**. Watch the simulation log — PC1 broadcasts "Who has 192.168.1.11?" and PC2 replies with its MAC.', check: () => true },
+      { title: 'Check ARP and MAC tables', instruction: 'Open PC1\'s CLI: `show arp` — you should see PC2\'s MAC. Open the Switch CLI: `show mac address-table` — it learned both PC1 and PC2\'s MACs on their respective ports.', check: () => true },
+      { title: 'Understand the broadcast domain', instruction: 'Now send an ARP from PC1 to PC3. Notice in the log that the ARP request was **broadcast to all ports** but only PC3 replies. This is how L2 broadcast domains work — every device on the switch sees the broadcast.', check: () => true },
+    ]
+  },
+];
+
+let tbActiveLab = null;  // { labId, stepIdx }
+
+function tbOpenLabPicker() {
+  const modal = document.getElementById('tb-lab-picker');
+  const body = document.getElementById('tb-lab-picker-body');
+  if (!modal || !body) return;
+  body.innerHTML = TB_LABS.map(lab => `<div class="tb-lab-card" onclick="tbStartLab('${lab.id}')">
+    <div class="tb-lab-card-head">
+      <strong>${escHtml(lab.title)}</strong>
+      <span class="tb-lab-diff tb-lab-diff-${lab.difficulty.toLowerCase()}">${lab.difficulty}</span>
+    </div>
+    <div class="tb-lab-card-meta">
+      <span>Obj ${lab.objective}</span> &middot; <span>${lab.duration}</span> &middot; <span>${lab.steps.length} steps</span>
+    </div>
+    <div class="tb-lab-card-desc">${escHtml(lab.description)}</div>
+  </div>`).join('');
+  modal.classList.remove('is-hidden');
+}
+
+function tbStartLab(labId) {
+  const lab = TB_LABS.find(l => l.id === labId);
+  if (!lab) return;
+  document.getElementById('tb-lab-picker')?.classList.add('is-hidden');
+  // Clear canvas for lab
+  if (tbState.devices.length > 0 && !confirm('Starting a lab will clear your current canvas. Continue?')) return;
+  tbState = tbNewState();
+  tbState.name = lab.title;
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbSaveDraft();
+  tbActiveLab = { labId, stepIdx: 0 };
+  tbRenderLabStep();
+  document.getElementById('tb-lab-panel')?.classList.remove('is-hidden');
+}
+
+function tbRenderLabStep() {
+  if (!tbActiveLab) return;
+  const lab = TB_LABS.find(l => l.id === tbActiveLab.labId);
+  if (!lab) return;
+  const step = lab.steps[tbActiveLab.stepIdx];
+  document.getElementById('tb-lab-title').textContent = lab.title;
+  document.getElementById('tb-lab-progress').textContent = `Step ${tbActiveLab.stepIdx + 1} / ${lab.steps.length}`;
+  document.getElementById('tb-lab-prev').classList.toggle('is-hidden', tbActiveLab.stepIdx === 0);
+  const isLast = tbActiveLab.stepIdx === lab.steps.length - 1;
+  const nextBtn = document.getElementById('tb-lab-next');
+  nextBtn.textContent = isLast ? 'Finish Lab ✓' : 'Next ▶';
+  // Check if step condition is met
+  const passed = step.check(tbState);
+  const stepEl = document.getElementById('tb-lab-step');
+  // Convert **bold** markdown to <strong>
+  const instrHtml = step.instruction.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  stepEl.innerHTML = `<div class="tb-lab-step-title">${escHtml(step.title)}</div>
+    <div class="tb-lab-step-instr">${instrHtml}</div>
+    ${passed ? '<div class="tb-lab-step-check">✓ Step complete!</div>' : '<div class="tb-lab-step-pending">Complete the step above, then click Next.</div>'}`;
+}
+
+function tbLabNext() {
+  if (!tbActiveLab) return;
+  const lab = TB_LABS.find(l => l.id === tbActiveLab.labId);
+  if (!lab) return;
+  // Check current step
+  const step = lab.steps[tbActiveLab.stepIdx];
+  if (!step.check(tbState) && tbActiveLab.stepIdx < lab.steps.length - 1) {
+    showErrorToast('Complete the current step before moving on.');
+    return;
+  }
+  if (tbActiveLab.stepIdx < lab.steps.length - 1) {
+    tbActiveLab.stepIdx++;
+    tbRenderLabStep();
+  } else {
+    // Lab complete
+    tbEndLab();
+    showErrorToast('Lab complete! Great work. 🎉');
+  }
+}
+
+function tbLabPrev() {
+  if (!tbActiveLab || tbActiveLab.stepIdx <= 0) return;
+  tbActiveLab.stepIdx--;
+  tbRenderLabStep();
+}
+
+function tbEndLab() {
+  tbActiveLab = null;
+  document.getElementById('tb-lab-panel')?.classList.add('is-hidden');
 }
 
 // ══════════════════════════════════════════
