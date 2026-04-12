@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.26.0', js.includes("const APP_VERSION = '4.26.0"));
+test('APP_VERSION is 4.27.0', js.includes("const APP_VERSION = '4.27.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.26.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.27.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.26.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.26.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.27.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.27.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1186,6 +1186,44 @@ test('AI prompt supports star layout', /star[\s\S]{0,200}bus[\s\S]{0,200}ring[\s
 test('AI prompt max 50 devices', /max.*50|up to 50/i.test(js));
 // Migration includes peerings default
 test('Migration: peerings default on vpcConfig', /peerings/.test(js));
+
+// ── v4.27.0 — AI Add-to-Existing, Interactive Labs ──
+console.log('\n\x1b[1m── v4.27.0 AI ADD-TO-EXISTING + INTERACTIVE LABS ──\x1b[0m');
+// AI Add-to-Existing mode
+test('tbParseAiTopologyJson function', js.includes('function tbParseAiTopologyJson('));
+test('tbBuildFromAiPayload function', js.includes('function tbBuildFromAiPayload('));
+test('tbAiBasePrompt function', js.includes('function tbAiBasePrompt('));
+test('tbSerializeForAiContext function', js.includes('function tbSerializeForAiContext('));
+test('AI generate detects existing devices', /hasExisting.*devices\.length > 0/.test(js));
+test('AI generate ADD mode merges into state', /mode === 'add'[\s\S]{0,500}tbBuildFromAiPayload\(payload, tbState/.test(js));
+test('AI generate NEW mode creates fresh state', /mode.*!==.*add[\s\S]{0,300}tbNewState|mode.*new[\s\S]{0,300}tbNewState/.test(js) || /const newState = tbNewState/.test(js));
+test('AI add prompt includes existing topology', /EXISTING TOPOLOGY[\s\S]{0,200}DO NOT recreate/.test(js));
+test('AI add prompt warns about hostname conflicts', /EXISTING HOSTNAMES[\s\S]{0,100}already taken/.test(js));
+test('AI add prompt calculates device cap', /deviceCap.*50 - tbState\.devices\.length/.test(js));
+// Interactive lab features
+test('Lab steps have hint field', /hint:.*'/.test(js) && /tbToggleLabHint/.test(js));
+test('Lab steps have feedback function', /feedback:.*\(s\) =>/.test(js));
+test('tbToggleLabHint function', js.includes('function tbToggleLabHint('));
+test('Lab render shows hints', /tb-lab-hint-toggle/.test(js));
+test('Lab render shows feedback', /tb-lab-step-feedback/.test(js));
+test('Lab render shows progress bar', /tb-lab-progress-bar/.test(js));
+test('Lab autoSetup support in tbStartLab', /lab\.autoSetup[\s\S]{0,100}autoSetup\(tbState\)/.test(js));
+test('Lab: troubleshoot-connectivity', /id: 'troubleshoot-connectivity'/.test(js));
+test('Lab: multi-site-wan', /id: 'multi-site-wan'/.test(js));
+test('Troubleshoot lab has autoSetup', /troubleshoot-connectivity[\s\S]{0,2000}autoSetup/.test(js));
+test('Troubleshoot lab pre-builds broken network', js.includes("192.168.2.20"));
+test('Troubleshoot lab checks PC2 fix', /PC2[\s\S]{0,200}192\.168\.1\./.test(js));
+test('Multi-site lab uses ISP Router', /multi-site-wan[\s\S]{0,2000}isp-router/.test(js));
+test('Lab hintsUsed tracking', /hintsUsed/.test(js));
+test('Lab picker shows Pre-built badge', /tb-lab-badge-auto/.test(js));
+// CSS
+test('CSS: .tb-lab-step-feedback', css.includes('.tb-lab-step-feedback'));
+test('CSS: .tb-lab-hint', css.includes('.tb-lab-hint'));
+test('CSS: .tb-lab-hint-toggle', css.includes('.tb-lab-hint-toggle'));
+test('CSS: .tb-lab-hint-body', css.includes('.tb-lab-hint-body'));
+test('CSS: .tb-lab-progress-bar', css.includes('.tb-lab-progress-bar'));
+test('CSS: .tb-lab-progress-fill', css.includes('.tb-lab-progress-fill'));
+test('CSS: .tb-lab-badge-auto', css.includes('.tb-lab-badge-auto'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

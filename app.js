@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.26.0';
+const APP_VERSION = '4.27.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -8089,19 +8089,89 @@ function tbClearSimLog() {
 // TOPOLOGY BUILDER — AI Topology Generation + Walkthrough
 // ══════════════════════════════════════════
 
-async function tbGenerateAiTopology() {
-  const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
-  if (!key) { showErrorToast('Add your Anthropic API key in Settings to use AI generation.'); return; }
+// Shared: parse AI topology JSON from raw text
+function tbParseAiTopologyJson(text) {
+  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  let payload;
+  try { payload = JSON.parse(cleaned); }
+  catch (_) {
+    const m = cleaned.match(/\{[\s\S]*\}/);
+    if (m) try { payload = JSON.parse(m[0]); } catch (_) {}
+    if (!payload) {
+      const noComments = cleaned.replace(/\/\/[^\n]*/g, '').replace(/,\s*([}\]])/g, '$1');
+      try { payload = JSON.parse(noComments); }
+      catch (_) { const m2 = noComments.match(/\{[\s\S]*\}/); if (m2) try { payload = JSON.parse(m2[0]); } catch (_) {} }
+    }
+  }
+  return payload;
+}
 
-  const scenario = prompt('Describe the network you want to build.\n\nExamples:\n• "Enterprise network with 3 VLANs, DMZ, 2 firewalls, IDS, load balancer"\n• "Star-bus hybrid topology with 4 switches, 12 PCs"\n• "AWS VPC with public/private subnets, NAT gateway, VPN to on-prem DC"\n• "Ring topology with 5 routers running OSPF"\n• "Full mesh between 4 routers with BGP"\n• "ISP edge with 3 customer sites connected via VPN"\n\nBe as detailed as you want:');
-  if (!scenario) return;
+// Shared: build devices + cables from AI payload into a target state
+function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
+  payload.devices.forEach(dd => {
+    const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
+    const ifaces = (dd.interfaces || []).map((aiIfc, idx) => ({
+      name: aiIfc.name || `eth${idx}`,
+      cableId: null,
+      ip: aiIfc.ip || '',
+      mask: aiIfc.mask || '255.255.255.0',
+      mac: tbGenerateMac(id, idx),
+      vlan: aiIfc.vlan || 1,
+      mode: aiIfc.mode || 'access',
+      trunkAllowed: aiIfc.trunkAllowed || [1],
+      gateway: aiIfc.gateway || '',
+      enabled: true,
+      subInterfaces: [],
+    }));
+    const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
+    while (ifaces.length < def.count) {
+      ifaces.push({
+        name: def.naming(ifaces.length), cableId: null, ip: '', mask: '255.255.255.0',
+        mac: tbGenerateMac(id, ifaces.length), vlan: 1, mode: 'access', trunkAllowed: [1],
+        gateway: '', enabled: true, subInterfaces: [],
+      });
+    }
+    const device = {
+      id, type, x: dd.x || 400, y: dd.y || 400,
+      hostname: dd.hostname || tbAutoHostname(type, targetState.devices),
+      interfaces: ifaces,
+      routingTable: dd.routingTable || [],
+      arpTable: [], macTable: [],
+      vlanDb: type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [],
+      dhcpServer: dd.dhcpServer || null,
+      dhcpRelay: dd.dhcpRelay || null,
+      acls: [],
+    };
+    tbRebuildConnectedRoutes(device);
+    hostnameToId[dd.hostname] = id;
+    targetState.devices.push(device);
+  });
 
-  showErrorToast('Generating topology... (5-10 seconds)');
-  try {
-    const validTypes = Object.keys(TB_DEVICE_TYPES).join(', ');
-    const genPrompt = `You are an expert network architect and CompTIA Network+ instructor. Generate a detailed, realistic network topology as a JSON object.
+  (payload.cables || []).forEach(cc => {
+    const fromId = hostnameToId[cc.fromHostname];
+    const toId = hostnameToId[cc.toHostname];
+    if (!fromId || !toId) return;
+    const cableId = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+    const fromDev = targetState.devices.find(d => d.id === fromId);
+    const toDev = targetState.devices.find(d => d.id === toId);
+    const fromIfc = fromDev?.interfaces.find(i => i.name === cc.fromIface && !i.cableId);
+    const toIfc = toDev?.interfaces.find(i => i.name === cc.toIface && !i.cableId);
+    if (fromIfc) fromIfc.cableId = cableId;
+    if (toIfc) toIfc.cableId = cableId;
+    targetState.cables.push({
+      id: cableId, from: fromId, to: toId,
+      type: cc.type || 'cat6',
+      fromIface: fromIfc ? fromIfc.name : null,
+      toIface: toIfc ? toIfc.name : null,
+    });
+  });
+}
 
-VALID DEVICE TYPES: ${validTypes}
+// The base prompt shared between new and add-to-existing modes
+function tbAiBasePrompt() {
+  const validTypes = Object.keys(TB_DEVICE_TYPES).join(', ');
+  return `VALID DEVICE TYPES: ${validTypes}
 
 DEVICE TYPE GUIDE:
 - router: Internal routers (Gi0/x interfaces). Always need IPs on all connected interfaces.
@@ -8161,13 +8231,114 @@ RULES:
 7. Include securityGroups on cloud devices if the user mentions security, firewalls, or access control.
 8. Include vpcConfig with cidr on VPC devices. Include vpnConfig on vpg and onprem-dc devices.
 9. Cable types: cat6 (default), cat5e, fiber (for backbone/long-distance), coax, console (management).
-10. Max 50 devices. Be generous with device count — real networks are complex.
+10. Max 50 devices total. Be generous with device count — real networks are complex.
 11. Use realistic hostnames: R1/R2 for routers, SW1/SW2 for switches, FW1 for firewalls, ISP1 for ISP routers, PC1-PC5 for PCs, SRV1 for servers, etc.
-12. CRITICAL: Output ONLY valid JSON. No comments, no trailing commas, no markdown fences, no text before or after.
+12. CRITICAL: Output ONLY valid JSON. No comments, no trailing commas, no markdown fences, no text before or after.`;
+}
+
+// Serialize existing topology for context in "add to existing" mode
+function tbSerializeForAiContext() {
+  const devList = tbState.devices.map(d => {
+    const ifcSummary = d.interfaces.filter(i => i.ip || i.cableId).map(i =>
+      `${i.name}${i.ip ? '=' + i.ip + '/' + (tbMaskToCidr ? tbMaskToCidr(i.mask) : i.mask) : '(no ip)'}${i.cableId ? ' [cabled]' : ''}`
+    ).join(', ');
+    return `  ${d.hostname} (${d.type}) at x:${d.x},y:${d.y} — interfaces: ${ifcSummary || 'none configured'}`;
+  }).join('\n');
+  const cblList = tbState.cables.map(c => {
+    const fd = tbState.devices.find(d => d.id === c.from);
+    const td = tbState.devices.find(d => d.id === c.to);
+    return `  ${fd?.hostname || '?'}:${c.fromIface || '?'} ↔ ${td?.hostname || '?'}:${c.toIface || '?'} (${c.type})`;
+  }).join('\n');
+  return `DEVICES (${tbState.devices.length}):\n${devList}\n\nCABLES (${tbState.cables.length}):\n${cblList}`;
+}
+
+async function tbGenerateAiTopology() {
+  const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
+  if (!key) { showErrorToast('Add your Anthropic API key in Settings to use AI generation.'); return; }
+
+  const hasExisting = tbState.devices.length > 0;
+  let mode = 'new';
+  if (hasExisting) {
+    const choice = prompt(
+      `You have ${tbState.devices.length} device(s) on the canvas.\n\n` +
+      `Type ADD to add to the existing topology\n` +
+      `Type NEW to start from scratch\n\n` +
+      `Then describe what you want:\n\n` +
+      `Examples:\n` +
+      `• ADD a DMZ segment with 2 public servers and a firewall\n` +
+      `• ADD a VPN connection to an on-prem data center\n` +
+      `• ADD 5 PCs and a printer to the existing switch\n` +
+      `• NEW enterprise network with 3 VLANs and DMZ\n` +
+      `• NEW star-bus topology with 4 switches`
+    );
+    if (!choice) return;
+    const trimmed = choice.trim();
+    const addMatch = trimmed.match(/^add\b\s*(.*)/i);
+    const newMatch = trimmed.match(/^new\b\s*(.*)/i);
+    if (addMatch) {
+      mode = 'add';
+      var scenario = addMatch[1] || trimmed;
+    } else if (newMatch) {
+      mode = 'new';
+      var scenario = newMatch[1] || trimmed;
+    } else {
+      // Default to add if there are existing devices and user didn't specify
+      mode = 'add';
+      var scenario = trimmed;
+    }
+  } else {
+    var scenario = prompt('Describe the network you want to build.\n\nExamples:\n• "Enterprise network with 3 VLANs, DMZ, 2 firewalls, IDS, load balancer"\n• "Star-bus hybrid topology with 4 switches, 12 PCs"\n• "AWS VPC with public/private subnets, NAT gateway, VPN to on-prem DC"\n• "Ring topology with 5 routers running OSPF"\n• "Full mesh between 4 routers with BGP"\n• "ISP edge with 3 customer sites connected via VPN"\n\nBe as detailed as you want:');
+    if (!scenario) return;
+  }
+
+  showErrorToast(mode === 'add' ? 'Adding to topology... (5-10 seconds)' : 'Generating topology... (5-10 seconds)');
+  try {
+    const basePrompt = tbAiBasePrompt();
+    let genPrompt;
+
+    if (mode === 'add') {
+      const existingContext = tbSerializeForAiContext();
+      const existingHostnames = tbState.devices.map(d => d.hostname);
+      // Figure out what regions of the canvas are occupied so AI can avoid overlap
+      const usedXs = tbState.devices.map(d => d.x);
+      const usedYs = tbState.devices.map(d => d.y);
+      const maxX = Math.max(...usedXs, 100);
+      const maxY = Math.max(...usedYs, 100);
+      const minX = Math.min(...usedXs, 1300);
+      const minY = Math.min(...usedYs, 720);
+      const deviceCap = 50 - tbState.devices.length;
+
+      genPrompt = `You are an expert network architect. You are ADDING new devices and cables to an EXISTING network topology. Do NOT re-create existing devices.
+
+${basePrompt}
+
+EXISTING TOPOLOGY (DO NOT recreate these — they already exist):
+${existingContext}
+
+EXISTING HOSTNAMES (already taken, use different names): ${existingHostnames.join(', ')}
+
+OCCUPIED CANVAS REGION: roughly x:${minX}-${maxX}, y:${minY}-${maxY}. Place NEW devices in EMPTY areas to avoid overlap. Good options: ${maxX < 900 ? 'right side (x:900-1300)' : minX > 400 ? 'left side (x:100-400)' : 'bottom area (y:500-720)'} or any unoccupied area.
+
+IMPORTANT RULES FOR ADD MODE:
+- Output ONLY the NEW devices and cables. Do NOT include existing devices.
+- You can reference existing device hostnames in cables (fromHostname/toHostname) to connect new devices to the existing topology.
+- Max ${deviceCap} new devices (${tbState.devices.length} already exist, limit is 50).
+- Use hostnames that don't conflict with existing ones.
+- Make sure IP addressing is compatible with existing subnets. Look at existing IPs to pick non-conflicting addresses.
+- If the user wants to connect to an existing device, use that device's hostname in the cable definition and pick an interface name that might be free.
+
+USER REQUEST: Add the following to the existing topology: ${scenario}
+
+Generate JSON with ONLY the new devices and cables.`;
+    } else {
+      genPrompt = `You are an expert network architect and CompTIA Network+ instructor. Generate a detailed, realistic network topology as a JSON object.
+
+${basePrompt}
 
 USER REQUEST: ${scenario}
 
 Generate the complete topology JSON now.`;
+    }
 
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
@@ -8182,95 +8353,36 @@ Generate the complete topology JSON now.`;
     if (!res.ok) { showErrorToast(`AI generation failed: ${res.status}`); return; }
     const data = await res.json();
     const text = (data.content && data.content[0] && data.content[0].text) || '';
-    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-    let payload;
-    try { payload = JSON.parse(cleaned); }
-    catch (_) {
-      // Try extracting JSON object from surrounding text
-      const m = cleaned.match(/\{[\s\S]*\}/);
-      if (m) try { payload = JSON.parse(m[0]); } catch (_) {}
-      // Try stripping single-line comments (// ...)
-      if (!payload) {
-        const noComments = cleaned.replace(/\/\/[^\n]*/g, '').replace(/,\s*([}\]])/g, '$1');
-        try { payload = JSON.parse(noComments); }
-        catch (_) { const m2 = noComments.match(/\{[\s\S]*\}/); if (m2) try { payload = JSON.parse(m2[0]); } catch (_) {} }
-      }
-    }
+    const payload = tbParseAiTopologyJson(text);
     if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology. Try a simpler description (e.g. "small office with 3 PCs and a server").'); return; }
 
-    // Build new tbState from AI response
-    const newState = tbNewState();
-    newState.name = scenario.slice(0, 40);
-    const hostnameToId = {};
-    payload.devices.forEach(dd => {
-      const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-      const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
-      const ifaces = (dd.interfaces || []).map((aiIfc, idx) => ({
-        name: aiIfc.name || `eth${idx}`,
-        cableId: null,
-        ip: aiIfc.ip || '',
-        mask: aiIfc.mask || '255.255.255.0',
-        mac: tbGenerateMac(id, idx),
-        vlan: aiIfc.vlan || 1,
-        mode: aiIfc.mode || 'access',
-        trunkAllowed: aiIfc.trunkAllowed || [1],
-        gateway: aiIfc.gateway || '',
-        enabled: true,
-        subInterfaces: [],
-      }));
-      // Ensure minimum interfaces
-      const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
-      while (ifaces.length < def.count) {
-        ifaces.push({
-          name: def.naming(ifaces.length), cableId: null, ip: '', mask: '255.255.255.0',
-          mac: tbGenerateMac(id, ifaces.length), vlan: 1, mode: 'access', trunkAllowed: [1],
-          gateway: '', enabled: true, subInterfaces: [],
-        });
-      }
-      const device = {
-        id, type, x: dd.x || 400, y: dd.y || 400,
-        hostname: dd.hostname || tbAutoHostname(type, newState.devices),
-        interfaces: ifaces,
-        routingTable: dd.routingTable || [],
-        arpTable: [], macTable: [],
-        vlanDb: type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [],
-        dhcpServer: dd.dhcpServer || null,
-        dhcpRelay: dd.dhcpRelay || null,
-        acls: [],
-      };
-      // Rebuild connected routes for routers
-      tbRebuildConnectedRoutes(device);
-      hostnameToId[dd.hostname] = id;
-      newState.devices.push(device);
-    });
-
-    // Build cables
-    (payload.cables || []).forEach(cc => {
-      const fromId = hostnameToId[cc.fromHostname];
-      const toId = hostnameToId[cc.toHostname];
-      if (!fromId || !toId) return;
-      const cableId = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-      const fromDev = newState.devices.find(d => d.id === fromId);
-      const toDev = newState.devices.find(d => d.id === toId);
-      const fromIfc = fromDev?.interfaces.find(i => i.name === cc.fromIface && !i.cableId);
-      const toIfc = toDev?.interfaces.find(i => i.name === cc.toIface && !i.cableId);
-      if (fromIfc) fromIfc.cableId = cableId;
-      if (toIfc) toIfc.cableId = cableId;
-      newState.cables.push({
-        id: cableId, from: fromId, to: toId,
-        type: cc.type || 'cat6',
-        fromIface: fromIfc ? fromIfc.name : null,
-        toIface: toIfc ? toIfc.name : null,
-      });
-    });
-
-    tbState = newState;
-    tbSelectedId = null;
-    tbPendingCableFrom = null;
-    tbSaveDraft();
-    tbRenderCanvas();
-    tbUpdateDeviceCount();
-    tbUpdateStatus(`AI generated: "${newState.name}"`);
+    if (mode === 'add') {
+      // MERGE into existing state
+      const hostnameToId = {};
+      // Pre-populate with existing hostname→id mapping so cables can reference them
+      tbState.devices.forEach(d => { hostnameToId[d.hostname] = d.id; });
+      tbBuildFromAiPayload(payload, tbState, hostnameToId);
+      tbMigrateState(tbState);
+      tbSelectedId = null;
+      tbPendingCableFrom = null;
+      tbSaveDraft();
+      tbRenderCanvas();
+      tbUpdateDeviceCount();
+      tbUpdateStatus(`AI added ${payload.devices.length} device(s) to topology`);
+    } else {
+      // Fresh topology
+      const newState = tbNewState();
+      newState.name = scenario.slice(0, 40);
+      const hostnameToId = {};
+      tbBuildFromAiPayload(payload, newState, hostnameToId);
+      tbState = newState;
+      tbSelectedId = null;
+      tbPendingCableFrom = null;
+      tbSaveDraft();
+      tbRenderCanvas();
+      tbUpdateDeviceCount();
+      tbUpdateStatus(`AI generated: "${newState.name}"`);
+    }
   } catch (e) {
     showErrorToast('AI generation error: ' + (e.message || 'unknown'));
   }
@@ -8343,30 +8455,177 @@ const TB_LABS = [
     duration: '10 min',
     description: 'Build a simple LAN with a router, switch, and 3 PCs. Configure IPs and verify connectivity with ping.',
     steps: [
-      { title: 'Drop a Router onto the canvas', instruction: 'Drag a **Router** from the palette onto the canvas. This will be your default gateway.', check: (s) => s.devices.some(d => d.type === 'router') },
-      { title: 'Drop a Switch', instruction: 'Drag a **Switch** onto the canvas below the router. Switches operate at Layer 2 and forward frames based on MAC addresses.', check: (s) => s.devices.some(d => d.type === 'switch' || d.type === 'dmz-switch') },
-      { title: 'Connect Router to Switch', instruction: 'Click the **Router**, then click the **Switch** to draw a cable between them. This creates a trunk link.', check: (s) => s.cables.length >= 1 },
-      { title: 'Add 3 PCs', instruction: 'Drag **3 PCs** onto the canvas and connect each one to the Switch.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 3 && s.cables.length >= 4 },
-      { title: 'Configure Router IP', instruction: 'Double-click the **Router** and go to the **Interfaces** tab. Set the connected interface IP to `192.168.1.1` with mask `255.255.255.0`.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); } },
-      { title: 'Configure PC IPs', instruction: 'Double-click each **PC** and set their IPs to `192.168.1.10`, `192.168.1.11`, and `192.168.1.12` with mask `255.255.255.0`. Set the **Default Gateway** to `192.168.1.1`.', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 3 },
-      { title: 'Test Connectivity!', instruction: 'Use the **Ping** button in the toolbar. Select PC1 as source and PC2 as destination. You should see a successful ping in the simulation log! Try pinging the router too.', check: () => true },
+      {
+        title: 'Drop a Router onto the canvas',
+        instruction: 'Drag a **Router** from the palette onto the canvas. This will be your default gateway — the device that routes traffic between subnets.',
+        hint: 'Find "Router" in the device palette on the left. Click and drag it onto the canvas.',
+        check: (s) => s.devices.some(d => d.type === 'router'),
+        feedback: (s) => s.devices.some(d => d.type === 'router') ? null : 'No router found. Drag a Router from the palette onto the canvas.',
+      },
+      {
+        title: 'Drop a Switch',
+        instruction: 'Drag a **Switch** onto the canvas below the router. Switches operate at **Layer 2** and forward frames based on MAC addresses. Unlike hubs, switches learn which MAC is on which port.',
+        hint: 'A switch connects multiple devices at Layer 2. It is NOT a router — it does not route between subnets.',
+        check: (s) => s.devices.some(d => d.type === 'switch' || d.type === 'dmz-switch'),
+        feedback: (s) => s.devices.some(d => d.type === 'switch' || d.type === 'dmz-switch') ? null : 'No switch found. Drag a Switch from the palette.',
+      },
+      {
+        title: 'Connect Router to Switch',
+        instruction: 'Click the **Router**, then click the **Switch** to draw a cable between them. This cable will carry traffic between your LAN and the router.',
+        hint: 'Click on one device, then click on another device — a cable is drawn automatically between available interfaces.',
+        check: (s) => s.cables.length >= 1,
+        feedback: (s) => {
+          if (s.cables.length === 0) return 'No cables found. Click one device, then click another to cable them.';
+          const c = s.cables[0];
+          const hasR = s.devices.find(d => d.id === c.from)?.type === 'router' || s.devices.find(d => d.id === c.to)?.type === 'router';
+          return hasR ? null : 'Cable exists but does not connect to the router. Connect the router to the switch.';
+        },
+      },
+      {
+        title: 'Add 3 PCs and wire them',
+        instruction: 'Drag **3 PCs** onto the canvas and connect **each one** to the Switch. In a star topology, all endpoints connect to the central switch.',
+        hint: 'You need 3 PCs and at least 4 cables total (1 router-switch + 3 PC-switch).',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 3 && s.cables.length >= 4,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          const cables = s.cables.length;
+          if (pcs < 3) return `Only ${pcs}/3 PCs placed. Add ${3 - pcs} more.`;
+          if (cables < 4) return `Only ${cables}/4 cables. Connect each PC to the switch.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure Router IP',
+        instruction: 'Double-click the **Router** → **Interfaces** tab. Set the connected interface IP to `192.168.1.1` with mask `255.255.255.0`. This IP becomes the **default gateway** for all PCs.',
+        hint: 'The router interface IP is what PCs use as their gateway. Without it, the router cannot route traffic.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          if (!r.interfaces.some(i => i.ip)) return 'Router has no IP configured. Double-click it → Interfaces tab → set an IP.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure PC IPs + gateways',
+        instruction: 'Double-click each **PC** and set their IPs to `192.168.1.10`, `.11`, `.12` with mask `255.255.255.0`. Set each PC\'s **gateway** to `192.168.1.1` (the router). Without a gateway, PCs cannot reach other subnets!',
+        hint: 'Each PC needs: (1) a unique IP in the same subnet as the router, (2) the gateway field pointing to the router IP.',
+        check: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          return pcs.filter(p => p.interfaces.some(i => i.ip)).length >= 3;
+        },
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const withIp = pcs.filter(p => p.interfaces.some(i => i.ip));
+          const withGw = pcs.filter(p => p.interfaces.some(i => i.gateway));
+          if (withIp.length < 3) return `${withIp.length}/3 PCs have IPs. Configure the rest.`;
+          if (withGw.length < 3) return `${withGw.length}/3 PCs have gateways. Set gateway to the router IP (192.168.1.1).`;
+          return null;
+        },
+      },
+      {
+        title: 'Test Connectivity — Ping!',
+        instruction: 'Click **Ping** in the toolbar. Select **PC1 → PC2** and hit **Ping**. Watch the packet animate across the network! Then try **PC1 → Router**. Open the **Sim Log** to see each hop. Finally, try `show arp` in PC1\'s CLI to see the learned MAC addresses.',
+        hint: 'Ping validates Layer 3 connectivity. ARP resolves IPs to MACs first, then ICMP packets flow.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
   {
     id: 'vlan-segmentation',
-    title: 'VLAN Segmentation',
+    title: 'VLAN Network Segmentation',
     objective: '2.1',
     difficulty: 'Intermediate',
     duration: '15 min',
     description: 'Segment a network using VLANs. Configure access ports, trunk ports, and verify isolation between VLANs.',
     steps: [
-      { title: 'Build the base network', instruction: 'Create: 1 Router, 1 Switch, 4 PCs. Connect all PCs to the Switch and the Switch to the Router.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 4 && s.devices.some(d => d.type === 'switch') && s.cables.length >= 5 },
-      { title: 'Create VLANs on the Switch', instruction: 'Double-click the **Switch** → **VLANs** tab. Add **VLAN 10** (name: Sales) and **VLAN 20** (name: Engineering).', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.vlanDb && sw.vlanDb.length >= 3; } },
-      { title: 'Assign access ports to VLANs', instruction: 'Go to the **Interfaces** tab on the Switch. Set 2 PC-facing ports to **VLAN 10** (access mode) and the other 2 to **VLAN 20**.', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.filter(i => i.vlan === 10).length >= 2; } },
-      { title: 'Configure the trunk port', instruction: 'Set the Switch port facing the Router to **Trunk** mode. Set allowed VLANs to `1,10,20`.', check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.some(i => i.mode === 'trunk'); } },
-      { title: 'Configure Router sub-interfaces', instruction: 'Double-click the **Router** → **Interfaces** tab. Set the connected interface IP to `192.168.10.1/24` (VLAN 10 gateway). Add a static route or second IP for `192.168.20.1/24` for VLAN 20.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); } },
-      { title: 'Configure PC IPs per VLAN', instruction: 'VLAN 10 PCs: `192.168.10.10`, `192.168.10.11` (gateway `192.168.10.1`). VLAN 20 PCs: `192.168.20.10`, `192.168.20.11` (gateway `192.168.20.1`).', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 4 },
-      { title: 'Test VLAN isolation', instruction: 'Ping between two PCs in **VLAN 10** — it should succeed. Ping from VLAN 10 to VLAN 20 — it requires the router (inter-VLAN routing). Check the simulation log to see how traffic flows through the router!', check: () => true },
+      {
+        title: 'Build the base network',
+        instruction: 'Create: **1 Router, 1 Switch, 4 PCs**. Connect all PCs to the Switch and the Switch to the Router. This gives us a flat network that we\'ll segment with VLANs.',
+        hint: 'You need 5 cables minimum: 1 router-switch + 4 PC-switch.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 4 && s.devices.some(d => d.type === 'switch') && s.cables.length >= 5,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          const sw = s.devices.some(d => d.type === 'switch');
+          if (pcs < 4) return `${pcs}/4 PCs placed.`;
+          if (!sw) return 'No switch found.';
+          if (s.cables.length < 5) return `${s.cables.length}/5 cables.`;
+          return null;
+        },
+      },
+      {
+        title: 'Create VLANs 10 & 20',
+        instruction: 'Double-click the **Switch** → **VLANs** tab. Add **VLAN 10** (name: "Sales") and **VLAN 20** (name: "Engineering"). VLANs create **separate broadcast domains** on the same physical switch — traffic from VLAN 10 cannot reach VLAN 20 without a router.',
+        hint: 'VLAN 1 (default) already exists. You need to add two more. Each VLAN is like a virtual switch within the physical switch.',
+        check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.vlanDb && sw.vlanDb.length >= 3; },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return 'No switch found.';
+          const count = sw.vlanDb ? sw.vlanDb.length : 0;
+          if (count < 3) return `Switch has ${count} VLANs (need 3: default + VLAN 10 + VLAN 20).`;
+          const has10 = sw.vlanDb.some(v => v.id === 10);
+          const has20 = sw.vlanDb.some(v => v.id === 20);
+          if (!has10) return 'Missing VLAN 10 — add it in the VLANs tab.';
+          if (!has20) return 'Missing VLAN 20 — add it in the VLANs tab.';
+          return null;
+        },
+      },
+      {
+        title: 'Assign access ports',
+        instruction: 'Switch → **Interfaces** tab. Set **2 PC-facing ports** to VLAN 10 (access mode) and **2 ports** to VLAN 20. An **access port** carries traffic for only ONE VLAN — the switch strips the VLAN tag before sending frames to the end device.',
+        hint: 'In the Interfaces tab, change the VLAN dropdown for each port. Access mode = single VLAN. The PC never sees the VLAN tag.',
+        check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.filter(i => i.vlan === 10).length >= 2; },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return 'No switch found.';
+          const v10 = sw.interfaces.filter(i => i.vlan === 10).length;
+          const v20 = sw.interfaces.filter(i => i.vlan === 20).length;
+          return `VLAN 10 ports: ${v10}/2, VLAN 20 ports: ${v20}/2. Assign ports in the Interfaces tab.`;
+        },
+      },
+      {
+        title: 'Configure the trunk port',
+        instruction: 'Set the Switch port **facing the Router** to **Trunk** mode. Set allowed VLANs to `1,10,20`. A **trunk port** carries traffic for MULTIPLE VLANs using 802.1Q tags — the router needs to see which VLAN each frame belongs to.',
+        hint: 'Trunk vs Access: trunk = multi-VLAN with tags, access = single VLAN without tags. The uplink to the router MUST be a trunk for inter-VLAN routing.',
+        check: (s) => { const sw = s.devices.find(d => d.type === 'switch'); return sw && sw.interfaces.some(i => i.mode === 'trunk'); },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.type === 'switch');
+          if (!sw) return 'No switch found.';
+          const trunk = sw.interfaces.find(i => i.mode === 'trunk');
+          if (!trunk) return 'No trunk port found. Change the router-facing port to Trunk mode.';
+          return null;
+        },
+      },
+      {
+        title: 'Router-on-a-Stick',
+        instruction: 'Double-click the **Router** → **Interfaces** tab. Set the connected interface IP to `192.168.10.1/24` (VLAN 10 gateway). This pattern is called **Router-on-a-Stick** — one physical interface handles multiple VLANs via sub-interfaces or secondary addresses.',
+        hint: 'The router needs at least one IP in the VLAN 10 subnet to serve as its gateway.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.some(i => i.ip); },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          if (!r.interfaces.some(i => i.ip)) return 'Router has no IP. Set an IP on the trunk-facing interface.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure PCs per VLAN',
+        instruction: 'VLAN 10 PCs: `192.168.10.10`, `.11` (gateway `192.168.10.1`). VLAN 20 PCs: `192.168.20.10`, `.11` (gateway `192.168.20.1`). Each VLAN uses a **different subnet** — that\'s how VLANs map to IP addressing.',
+        hint: 'VLAN 10 = 192.168.10.0/24, VLAN 20 = 192.168.20.0/24. PCs in different VLANs MUST be in different subnets.',
+        check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 4,
+        feedback: (s) => {
+          const withIp = s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length;
+          return withIp < 4 ? `${withIp}/4 PCs have IPs configured.` : null;
+        },
+      },
+      {
+        title: 'Test VLAN isolation',
+        instruction: 'Ping **within** VLAN 10 (PC to PC) — should succeed directly. Then ping **across** VLANs (VLAN 10 PC → VLAN 20 PC) — this traffic MUST go through the router. Open the **Sim Log** to see the path. Try `show mac address-table` on the switch to see per-port VLAN assignments.',
+        hint: 'Same-VLAN traffic is switched (Layer 2). Cross-VLAN traffic is routed (Layer 3). This is inter-VLAN routing.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
   {
@@ -8377,12 +8636,69 @@ const TB_LABS = [
     duration: '15 min',
     description: 'Set up a DHCP server to automatically assign IPs, then configure DHCP relay to serve a remote subnet.',
     steps: [
-      { title: 'Build two subnets', instruction: 'Create: 1 Router, 2 Switches, 1 Server, 4 PCs. Connect Switch1 + Server + 2 PCs to the Router on one side, and Switch2 + 2 PCs on the other side.', check: (s) => s.devices.filter(d => d.type === 'switch').length >= 2 && s.devices.some(d => d.type === 'server') },
-      { title: 'Configure Router interfaces', instruction: 'Double-click the Router. Set the interface facing Switch1 to `192.168.1.1/24` and the interface facing Switch2 to `192.168.2.1/24`. This creates two subnets.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.filter(i => i.ip).length >= 2; } },
-      { title: 'Configure the DHCP Server', instruction: 'Double-click the **Server** → **DHCP** tab. Enable DHCP with network `192.168.1.0`, mask `255.255.255.0`, gateway `192.168.1.1`, range `192.168.1.100`-`192.168.1.200`. Set the server IP to `192.168.1.5`.', check: (s) => { const srv = s.devices.find(d => d.type === 'server'); return srv && srv.dhcpServer; } },
-      { title: 'Test DHCP for Subnet 1', instruction: 'Leave the PCs on Switch1 **without IPs**. Click **DHCP** in the simulation toolbar. The PCs should receive IPs from the DHCP server via DORA (Discover, Offer, Request, Acknowledge).', check: () => true },
-      { title: 'Configure DHCP Relay', instruction: 'Double-click the **Router** → **DHCP** tab. Set the **ip helper-address** to `192.168.1.5` (the DHCP server). This tells the router to forward DHCP Discover broadcasts from Subnet 2 to the server.', check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.dhcpRelay; } },
-      { title: 'Test DHCP Relay for Subnet 2', instruction: 'Leave the PCs on Switch2 without IPs. Click **DHCP** again. Watch the simulation log — you\'ll see the router relaying the Discover message across subnets. The DHCP server responds with an Offer containing a `192.168.2.x` address if configured, or a `192.168.1.x` address.', check: () => true },
+      {
+        title: 'Build two subnets',
+        instruction: 'Create: **1 Router, 2 Switches, 1 Server, 4 PCs**. Connect Switch1 + Server + 2 PCs on one side of the Router, and Switch2 + 2 PCs on the other. The router separates two broadcast domains.',
+        hint: 'The router needs TWO interfaces — one facing each switch/subnet.',
+        check: (s) => s.devices.filter(d => d.type === 'switch').length >= 2 && s.devices.some(d => d.type === 'server'),
+        feedback: (s) => {
+          const swCount = s.devices.filter(d => d.type === 'switch').length;
+          const hasSrv = s.devices.some(d => d.type === 'server');
+          if (swCount < 2) return `${swCount}/2 switches placed.`;
+          if (!hasSrv) return 'No server found. Drag a Server from the palette.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure Router interfaces',
+        instruction: 'Double-click the Router. Set the interface facing Switch1 to `192.168.1.1/24` and the interface facing Switch2 to `192.168.2.1/24`. The router now bridges two subnets — **192.168.1.0/24** and **192.168.2.0/24**.',
+        hint: 'Each interface must be in a different subnet. That\'s what makes a router a router — it connects different networks.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.interfaces.filter(i => i.ip).length >= 2; },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          const ips = r.interfaces.filter(i => i.ip).length;
+          return ips < 2 ? `Router has ${ips}/2 interfaces configured with IPs.` : null;
+        },
+      },
+      {
+        title: 'Configure DHCP Server',
+        instruction: 'Double-click the **Server** → **DHCP** tab. Enable DHCP with: network `192.168.1.0`, mask `255.255.255.0`, gateway `192.168.1.1`, range `192.168.1.100`-`192.168.1.200`. Set the server static IP to `192.168.1.5`. The DHCP server uses the **DORA** process: Discover → Offer → Request → Acknowledge.',
+        hint: 'The DHCP server itself needs a static IP (not DHCP-assigned). Set it in the Interfaces tab first, then configure the DHCP pool in the DHCP tab.',
+        check: (s) => { const srv = s.devices.find(d => d.type === 'server'); return srv && srv.dhcpServer; },
+        feedback: (s) => {
+          const srv = s.devices.find(d => d.type === 'server');
+          if (!srv) return 'No server found.';
+          if (!srv.dhcpServer) return 'DHCP not configured. Double-click the Server → DHCP tab → enable and configure the pool.';
+          return null;
+        },
+      },
+      {
+        title: 'Test DHCP — watch DORA!',
+        instruction: 'Make sure PCs on Switch1 have **no IP** (clear them if set). Click **DHCP** in the toolbar. Watch the Sim Log — you\'ll see the full **DORA** exchange:\n\n1. **Discover**: PC broadcasts "I need an IP!"\n2. **Offer**: Server says "Here\'s 192.168.1.100"\n3. **Request**: PC says "I\'ll take it"\n4. **Acknowledge**: Server confirms the lease\n\nVerify the PCs got IPs by double-clicking them.',
+        hint: 'DHCP Discover uses broadcast (255.255.255.255) because the client has no IP yet. The server offers from its pool.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Configure DHCP Relay',
+        instruction: 'PCs on Switch2 are in a **different broadcast domain** — DHCP Discovers won\'t reach the server! Fix: double-click the **Router** → **DHCP** tab → set **ip helper-address** to `192.168.1.5`. The router will now **relay** (unicast forward) DHCP broadcasts from Subnet 2 to the server.',
+        hint: 'DHCP Relay (ip helper-address) converts broadcast to unicast. Without it, DHCP only works within the same broadcast domain.',
+        check: (s) => { const r = s.devices.find(d => d.type === 'router'); return r && r.dhcpRelay; },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.type === 'router');
+          if (!r) return 'No router found.';
+          if (!r.dhcpRelay) return 'DHCP Relay not configured. Router → DHCP tab → set ip helper-address to the server IP.';
+          return null;
+        },
+      },
+      {
+        title: 'Test DHCP Relay across subnets',
+        instruction: 'Clear IPs on Switch2 PCs. Click **DHCP** again. Watch the Sim Log — the router intercepts the Discover broadcast, relays it as unicast to the DHCP server at `192.168.1.5`. The server responds with an offer. Without the relay, these PCs would never get an IP! Verify by checking PC interfaces.',
+        hint: 'The relay works because the router changes the giaddr field in the DHCP packet to its own interface IP (192.168.2.1), telling the server which subnet the request came from.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
   {
@@ -8393,12 +8709,66 @@ const TB_LABS = [
     duration: '20 min',
     description: 'Design a screened subnet (DMZ) with firewalls protecting public servers from the internal network.',
     steps: [
-      { title: 'Place the perimeter firewall', instruction: 'Drag a **Cloud** (internet) and a **Firewall** onto the canvas. Connect the Cloud to the Firewall. This firewall faces the internet.', check: (s) => s.devices.some(d => d.type === 'firewall') && s.devices.some(d => d.type === 'cloud') },
-      { title: 'Create the DMZ segment', instruction: 'Drag a **DMZ Switch** and connect it to the Firewall. Then place a **Public Web Server** and **Public File Server** on the DMZ switch.', check: (s) => s.devices.some(d => d.type === 'dmz-switch') && s.devices.some(d => d.type.startsWith('public-')) },
-      { title: 'Add internal network', instruction: 'Drag a regular **Switch** and connect it to the Firewall. Add 2+ PCs and a **Server** to the internal switch. This is your protected LAN.', check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2 && s.cables.length >= 6 },
-      { title: 'Configure DMZ addressing', instruction: 'Firewall DMZ interface: `10.0.1.1/24`. Public servers: `10.0.1.10`, `10.0.1.11`. Firewall internal interface: `192.168.1.1/24`. PCs: `192.168.1.10+`. Internet-facing: `203.0.113.1/24`.', check: (s) => { const fw = s.devices.find(d => d.type === 'firewall'); return fw && fw.interfaces.filter(i => i.ip).length >= 2; } },
-      { title: 'Grade your design', instruction: 'Select the **DMZ / Screened Subnet** scenario from the toolbar dropdown, then hit **Grade**. Aim for an A — all public servers must be on the DMZ switch, not the internal switch. This is a critical security rule!', check: () => true },
-      { title: 'Get AI Coach review', instruction: 'Hit **Coach** for an AI walkthrough of your DMZ design. The coach will explain the security implications and map it to N10-009 objectives (4.5 Physical Security, 4.1 Security Concepts).', check: () => true },
+      {
+        title: 'Place the perimeter firewall',
+        instruction: 'Drag an **Internet/WAN** (cloud) and a **Firewall** onto the canvas. Connect the Cloud to the Firewall. The firewall is your **perimeter security device** — it inspects all traffic entering and leaving your network. In the real world, this would be a Palo Alto, Fortinet, or Cisco ASA.',
+        hint: 'The firewall needs at least 3 zones: Outside (internet), DMZ (semi-trusted), Inside (trusted). Each zone is a different interface.',
+        check: (s) => s.devices.some(d => d.type === 'firewall') && s.devices.some(d => d.type === 'cloud'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'cloud')) return 'No Internet/WAN cloud found.';
+          if (!s.devices.some(d => d.type === 'firewall')) return 'No Firewall found.';
+          return null;
+        },
+      },
+      {
+        title: 'Create the DMZ segment',
+        instruction: 'Drag a **DMZ Switch** and connect it to the Firewall. Then place a **Public Web Server** and **Public File Server** on the DMZ switch. The DMZ (Demilitarized Zone) is a **semi-trusted zone** — it holds servers that must be internet-accessible but should NOT have direct access to your internal network.',
+        hint: 'DMZ = screened subnet. Public servers go here so a compromise doesn\'t directly expose internal resources.',
+        check: (s) => s.devices.some(d => d.type === 'dmz-switch') && s.devices.some(d => d.type.startsWith('public-')),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'dmz-switch')) return 'No DMZ Switch found.';
+          if (!s.devices.some(d => d.type.startsWith('public-'))) return 'No public servers found. Add a Public Web Server or Public File Server.';
+          return null;
+        },
+      },
+      {
+        title: 'Build the internal LAN',
+        instruction: 'Drag a regular **Switch** and connect it to the Firewall (different interface than DMZ). Add **2+ PCs** and a **Server** to the internal switch. This is your **trusted zone** — highest security, most restricted access from outside.',
+        hint: 'The firewall now has 3 interfaces: eth0 → Internet, eth1 → DMZ, eth2 → Internal. Each with different security policies.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2 && s.cables.length >= 6,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          if (pcs < 2) return `${pcs}/2 internal PCs.`;
+          if (s.cables.length < 6) return `${s.cables.length}/6 cables.`;
+          return null;
+        },
+      },
+      {
+        title: 'Configure 3-zone addressing',
+        instruction: 'Set IPs on the Firewall:\n• **Outside** (internet-facing): `203.0.113.1/24`\n• **DMZ**: `10.0.1.1/24`\n• **Inside**: `192.168.1.1/24`\n\nPublic servers: `10.0.1.10`, `10.0.1.11` (gateway `10.0.1.1`).\nInternal PCs: `192.168.1.10+` (gateway `192.168.1.1`).',
+        hint: 'Three different subnets, three different security zones. The firewall is the gateway for all three.',
+        check: (s) => { const fw = s.devices.find(d => d.type === 'firewall'); return fw && fw.interfaces.filter(i => i.ip).length >= 2; },
+        feedback: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          if (!fw) return 'No firewall found.';
+          const ips = fw.interfaces.filter(i => i.ip).length;
+          return ips < 3 ? `Firewall has ${ips}/3 interfaces with IPs. Configure all 3 zones.` : null;
+        },
+      },
+      {
+        title: 'Grade your DMZ design',
+        instruction: 'Select the **DMZ / Screened Subnet** scenario from the toolbar dropdown, then hit **Grade**. Critical rule: **ALL public servers MUST be on the DMZ switch**, not the internal switch. If a public server is on the internal network, an attacker who compromises it gets direct LAN access — that\'s the whole point of a DMZ!',
+        hint: 'Common mistake: putting public servers on the internal switch. The grader checks for this.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Get AI Coach review',
+        instruction: 'Hit **Coach** for an AI-powered walkthrough of your design. The coach analyzes your topology against N10-009 objectives 4.5 (Physical Security) and 4.1 (Security Concepts). It will highlight strengths and suggest improvements — like adding an IDS for traffic inspection or a second firewall for defense-in-depth.',
+        hint: 'Defense-in-depth: multiple layers of security. Consider adding an IDS between the firewall and DMZ for packet inspection.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
   {
@@ -8409,14 +8779,50 @@ const TB_LABS = [
     duration: '10 min',
     description: 'Watch how ARP broadcasts resolve IPs to MACs and how switches learn MAC addresses.',
     steps: [
-      { title: 'Build a simple LAN', instruction: 'Create: 1 Switch, 3 PCs. Connect all PCs to the Switch. Set IPs: PC1=`192.168.1.10`, PC2=`192.168.1.11`, PC3=`192.168.1.12`. Mask: `255.255.255.0`.', check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 3 },
-      { title: 'Check the Switch MAC table', instruction: 'Double-click the **Switch** → **CLI** tab. Type `show mac address-table`. It should be empty — no frames have been sent yet.', check: () => true },
-      { title: 'Send an ARP request', instruction: 'Click **Ping/ARP** in the toolbar. Select **PC1** as source and **PC2** as destination. Click **ARP**. Watch the simulation log — PC1 broadcasts "Who has 192.168.1.11?" and PC2 replies with its MAC.', check: () => true },
-      { title: 'Check ARP and MAC tables', instruction: 'Open PC1\'s CLI: `show arp` — you should see PC2\'s MAC. Open the Switch CLI: `show mac address-table` — it learned both PC1 and PC2\'s MACs on their respective ports.', check: () => true },
-      { title: 'Understand the broadcast domain', instruction: 'Now send an ARP from PC1 to PC3. Notice in the log that the ARP request was **broadcast to all ports** but only PC3 replies. This is how L2 broadcast domains work — every device on the switch sees the broadcast.', check: () => true },
+      {
+        title: 'Build a simple LAN',
+        instruction: 'Create: **1 Switch, 3 PCs**. Connect all PCs to the Switch. Set IPs: PC1=`192.168.1.10`, PC2=`192.168.1.11`, PC3=`192.168.1.12`. Mask: `255.255.255.0`. All devices MUST be in the same subnet for ARP to work — ARP is a **Layer 2 broadcast** protocol that doesn\'t cross routers.',
+        hint: 'ARP maps IP → MAC within a broadcast domain. You don\'t need a router for this lab since all devices are on the same subnet.',
+        check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip)).length >= 3,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const withIp = pcs.filter(p => p.interfaces.some(i => i.ip)).length;
+          if (pcs.length < 3) return `${pcs.length}/3 PCs placed.`;
+          if (withIp < 3) return `${withIp}/3 PCs have IPs.`;
+          return null;
+        },
+      },
+      {
+        title: 'Verify empty MAC table',
+        instruction: 'Double-click the **Switch** → **CLI** tab. Type `show mac address-table`. It should be **empty** — no frames have been sent yet, so the switch hasn\'t learned any MACs. Switches start with a blank table and learn dynamically.',
+        hint: 'MAC tables are populated by examining the SOURCE MAC of incoming frames. No traffic = no entries.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Send an ARP request',
+        instruction: 'Click **Ping/ARP** in the toolbar. Select **PC1** as source and **PC2** as destination. Click **ARP** (not Ping). Watch the Sim Log:\n\n1. PC1 sends an **ARP Request** (broadcast to FF:FF:FF:FF:FF:FF): "Who has 192.168.1.11? Tell 192.168.1.10"\n2. The switch floods this frame out ALL ports (broadcast behavior)\n3. PC2 recognizes its IP and sends an **ARP Reply** (unicast) with its MAC\n4. PC1 stores the mapping in its ARP cache',
+        hint: 'ARP Request = broadcast (everyone hears it). ARP Reply = unicast (only the requester gets it).',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Inspect tables after ARP',
+        instruction: 'Now check what was learned:\n• PC1 CLI: `show arp` — you should see PC2\'s IP→MAC mapping\n• Switch CLI: `show mac address-table` — it learned **both** PC1 and PC2\'s MACs on their respective ports\n\nThe switch learned MACs from the **source** of each frame it saw (the ARP request from PC1, the ARP reply from PC2).',
+        hint: 'Switches learn from source MACs, forward based on destination MACs. This is the fundamental L2 forwarding model.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Observe broadcast flooding',
+        instruction: 'Send another ARP: **PC1 → PC3**. Check the Sim Log — the ARP request was **broadcast to ALL ports** on the switch (including PC2\'s port), but only PC3 replies. This is the broadcast domain in action. All devices on a switch (same VLAN) share one broadcast domain — that\'s why VLANs exist, to segment broadcasts! Try `show arp` on PC1 to see both PC2 and PC3 cached.',
+        hint: 'Broadcast storms happen when too many devices share a broadcast domain. VLANs solve this by creating separate broadcast domains.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
-  // ── Cloud Networking Lab ──
+  // ── Cloud Networking Labs ──
   {
     id: 'cloud-vpc-lab',
     title: 'Cloud VPC with Security Controls',
@@ -8425,13 +8831,77 @@ const TB_LABS = [
     duration: '15 min',
     description: 'Build a cloud VPC with public/private subnets, security groups, NACLs, and an IPSec VPN to an on-prem data center.',
     steps: [
-      { title: 'Create a VPC', instruction: 'Drag a **VPC** device onto the canvas. Double-click it → **VPC Config** tab. Set CIDR to `10.0.0.0/16`. Enable DNS Support and DNS Hostnames.', check: (s) => s.devices.some(d => d.type === 'vpc' && d.vpcConfig && d.vpcConfig.cidr) },
-      { title: 'Add Public & Private Subnets', instruction: 'Drag 2 **Cloud Subnet** devices. Wire both to the VPC. Name one "Public Subnet" and one "Private Subnet".', check: (s) => s.devices.filter(d => d.type === 'cloud-subnet').length >= 2 },
-      { title: 'Attach an Internet Gateway', instruction: 'Drag an **Internet GW** and wire it to the VPC. This gives the VPC a path to the internet.', check: (s) => s.devices.some(d => d.type === 'igw') },
-      { title: 'Add a NAT Gateway', instruction: 'Drag a **NAT Gateway** and wire it to the Public Subnet. Private subnet instances will use this for outbound internet access without being directly reachable.', check: (s) => s.devices.some(d => d.type === 'nat-gw') },
-      { title: 'Configure Security Groups', instruction: 'Double-click the **VPC** → **Security Groups** tab. Add a Security Group named "web-sg". Add an inbound rule: TCP port 443 from `0.0.0.0/0`. Security groups are **stateful** — return traffic is auto-allowed.', check: (s) => s.devices.some(d => d.securityGroups && d.securityGroups.length > 0) },
-      { title: 'Configure NACLs', instruction: 'Double-click the **Public Subnet** → **NACLs** tab. Add inbound rules: #100 Allow TCP/443, #200 Allow TCP/80. NACLs are **stateless** — you must add matching outbound rules too! Add outbound: #100 Allow All.', check: (s) => s.devices.some(d => d.type === 'cloud-subnet' && d.nacls && d.nacls.length > 0) },
-      { title: 'Connect On-Prem via VPN', instruction: 'Drag a **VPN Gateway** and an **On-Prem DC**. Wire VPG to VPC, wire VPG to On-Prem DC. Configure matching IPSec parameters on both (IKEv2, AES-256, SHA-256, same PSK). Click **Negotiate Tunnel** to verify it comes up!', check: (s) => s.devices.some(d => d.type === 'vpg') && s.devices.some(d => d.type === 'onprem-dc') },
+      {
+        title: 'Create a VPC',
+        instruction: 'Drag a **VPC** device onto the canvas. Double-click it → **VPC Config** tab. Set CIDR to `10.0.0.0/16`. Enable **DNS Support** and **DNS Hostnames**. A VPC is a logically isolated section of the cloud — think of it as your own private data center in AWS/Azure.',
+        hint: '/16 gives you 65,534 usable IPs — enough to subdivide into many subnets.',
+        check: (s) => s.devices.some(d => d.type === 'vpc' && d.vpcConfig && d.vpcConfig.cidr),
+        feedback: (s) => {
+          const vpc = s.devices.find(d => d.type === 'vpc');
+          if (!vpc) return 'No VPC found. Drag one from the palette.';
+          if (!vpc.vpcConfig || !vpc.vpcConfig.cidr) return 'VPC CIDR not set. Double-click VPC → VPC Config → set CIDR.';
+          return null;
+        },
+      },
+      {
+        title: 'Add Subnets',
+        instruction: 'Drag **2 Cloud Subnets** and wire both to the VPC. Name one "Public-Subnet" and one "Private-Subnet". Public subnets have a route to an Internet Gateway. Private subnets do NOT — they\'re isolated from direct internet access.',
+        hint: 'Subnet naming matters for clarity. Public = internet-routable. Private = internal only (uses NAT for outbound).',
+        check: (s) => s.devices.filter(d => d.type === 'cloud-subnet').length >= 2,
+        feedback: (s) => {
+          const count = s.devices.filter(d => d.type === 'cloud-subnet').length;
+          return count < 2 ? `${count}/2 subnets placed. Add ${2 - count} more Cloud Subnet(s).` : null;
+        },
+      },
+      {
+        title: 'Attach Internet Gateway',
+        instruction: 'Drag an **Internet Gateway** and wire it to the VPC. An IGW is the VPC\'s door to the internet. Without it, nothing in the VPC can reach the outside world. In AWS, you also need a route table entry (0.0.0.0/0 → IGW).',
+        hint: 'IGW is horizontally scaled, redundant, and highly available. It performs 1:1 NAT for instances with public IPs.',
+        check: (s) => s.devices.some(d => d.type === 'igw'),
+        feedback: (s) => s.devices.some(d => d.type === 'igw') ? null : 'No Internet Gateway found.',
+      },
+      {
+        title: 'Add NAT Gateway',
+        instruction: 'Drag a **NAT Gateway** and wire it to the **Public Subnet**. The NAT GW allows private subnet instances to make **outbound** internet requests (e.g., software updates) without being directly reachable from the internet. It\'s one-way: out is OK, inbound from internet is blocked.',
+        hint: 'NAT GW lives in the PUBLIC subnet (it needs internet access itself) but serves the PRIVATE subnet.',
+        check: (s) => s.devices.some(d => d.type === 'nat-gw'),
+        feedback: (s) => s.devices.some(d => d.type === 'nat-gw') ? null : 'No NAT Gateway found.',
+      },
+      {
+        title: 'Configure Security Groups (stateful)',
+        instruction: 'Double-click the **VPC** → **Security Groups** tab. Add a group named "web-sg". Add an **inbound** rule: Protocol `tcp`, Port `443`, Source `0.0.0.0/0`, Action `allow`. Security Groups are **stateful** — if you allow inbound 443, the return traffic is automatically allowed. You only need to define the initiating direction.',
+        hint: 'Stateful = tracks connections. Stateless (NACLs) = does not track. SGs are instance-level, NACLs are subnet-level.',
+        check: (s) => s.devices.some(d => d.securityGroups && d.securityGroups.length > 0),
+        feedback: (s) => {
+          const withSg = s.devices.find(d => d.securityGroups && d.securityGroups.length > 0);
+          if (!withSg) return 'No Security Groups configured. Double-click VPC → Security Groups tab → Add a group.';
+          const sg = withSg.securityGroups[0];
+          if (!sg.rules || sg.rules.length === 0) return 'Security Group exists but has no rules. Add an inbound allow rule for TCP/443.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure NACLs (stateless)',
+        instruction: 'Double-click **Public Subnet** → **NACLs** tab. Add inbound rules:\n• Rule #100: Allow TCP/443\n• Rule #200: Allow TCP/80\n\nNACLs are **stateless** — you MUST add matching outbound rules too! Add outbound Rule #100: Allow All. NACLs evaluate rules by number (lowest first), first match wins. There\'s an implicit deny-all at the end.',
+        hint: 'NACL gotcha: forgetting outbound rules. Since NACLs don\'t track state, return traffic for an allowed inbound connection will be DENIED if no outbound rule permits it.',
+        check: (s) => s.devices.some(d => d.type === 'cloud-subnet' && d.nacls && d.nacls.length > 0),
+        feedback: (s) => {
+          const sub = s.devices.find(d => d.type === 'cloud-subnet' && d.nacls && d.nacls.length > 0);
+          if (!sub) return 'No NACLs configured on any subnet. Double-click a Cloud Subnet → NACLs tab.';
+          return null;
+        },
+      },
+      {
+        title: 'VPN to On-Prem (IPSec)',
+        instruction: 'Drag a **VPN Gateway** and an **On-Prem DC**. Wire VPG → VPC and VPG → On-Prem DC. Double-click both and go to the **VPN** tab. Set matching parameters on BOTH sides:\n• IKEv2, AES-256, SHA-256, DH Group 14, same PSK (e.g., "MySecret123")\n\nClick **Negotiate Tunnel** on either side. If all 5 crypto params match + PSK matches, the tunnel comes UP (green). Mismatches show specific error messages.',
+        hint: 'IPSec Phase 1 (IKE) negotiates the security association. Both sides MUST agree on: IKE version, encryption algorithm, hash algorithm, DH group, and pre-shared key.',
+        check: (s) => s.devices.some(d => d.type === 'vpg') && s.devices.some(d => d.type === 'onprem-dc'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'vpg')) return 'No VPN Gateway found.';
+          if (!s.devices.some(d => d.type === 'onprem-dc')) return 'No On-Prem DC found.';
+          return null;
+        },
+      },
     ]
   },
   {
@@ -8442,12 +8912,247 @@ const TB_LABS = [
     duration: '12 min',
     description: 'Design a SASE architecture with zero trust network access, secure web gateway, and firewall-as-a-service.',
     steps: [
-      { title: 'Create Cloud Infrastructure', instruction: 'Add a **VPC**, **Cloud Subnet**, and **Internet GW**. Wire IGW → VPC → Subnet. Set VPC CIDR to `10.0.0.0/16`.', check: (s) => s.devices.some(d => d.type === 'vpc') && s.devices.some(d => d.type === 'igw') },
-      { title: 'Add SASE Edge', instruction: 'Drag a **SASE Edge** device and wire it between the Internet GW and the VPC. All traffic passes through SASE for inspection.', check: (s) => s.devices.some(d => d.type === 'sase-edge') },
-      { title: 'Configure Zero Trust', instruction: 'Double-click the SASE Edge → **SASE** tab. Set ZTNA Policy to "Verify Always", enable SWG and CASB, set Identity Provider to "Azure AD", enable MFA.', check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.ztnaPolicy === 'verify-always') },
-      { title: 'Add FWaaS Rules', instruction: 'In the SASE tab, add FWaaS rules: Allow TCP/443 from `0.0.0.0/0`, Allow TCP/80, Deny ALL from `0.0.0.0/0`. This creates a cloud-based firewall.', check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.fwaasPolicies && d.saseConfig.fwaasPolicies.length >= 2) },
-      { title: 'Connect On-Prem', instruction: 'Add an **On-Prem DC** and **VPN Gateway**. Wire VPG to VPC and to On-Prem DC. Configure matching IPSec on both sides and negotiate the tunnel.', check: (s) => s.devices.some(d => d.type === 'onprem-dc') },
-      { title: 'Review CLI Output', instruction: 'Double-click the SASE Edge → CLI. Type `show sase` to verify your configuration. Type `show security-groups` on the VPC to check instance-level controls.', check: () => true },
+      {
+        title: 'Cloud foundation',
+        instruction: 'Add a **VPC**, **Cloud Subnet**, and **Internet GW**. Wire IGW → VPC → Subnet. Set VPC CIDR to `10.0.0.0/16`. This is your cloud infrastructure that SASE will protect.',
+        hint: 'SASE (Secure Access Service Edge) combines network security functions (SWG, CASB, FWaaS, ZTNA) into a single cloud-delivered service.',
+        check: (s) => s.devices.some(d => d.type === 'vpc') && s.devices.some(d => d.type === 'igw'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'vpc')) return 'No VPC found.';
+          if (!s.devices.some(d => d.type === 'igw')) return 'No Internet Gateway found.';
+          return null;
+        },
+      },
+      {
+        title: 'Add SASE Edge',
+        instruction: 'Drag a **SASE Edge** device and wire it between the Internet GW and the VPC. In a real deployment, all traffic passes through the SASE edge for inspection — it\'s the policy enforcement point for your entire network.',
+        hint: 'SASE replaces traditional VPN + firewall + proxy with a unified cloud service. Think Zscaler, Palo Alto Prisma, or Cisco Umbrella.',
+        check: (s) => s.devices.some(d => d.type === 'sase-edge'),
+        feedback: (s) => s.devices.some(d => d.type === 'sase-edge') ? null : 'No SASE Edge device found.',
+      },
+      {
+        title: 'Configure Zero Trust (ZTNA)',
+        instruction: 'Double-click SASE Edge → **SASE** tab. Configure:\n• **ZTNA Policy**: "Verify Always" (every request is authenticated, every session validated)\n• **SWG**: Enabled (Secure Web Gateway — URL filtering, malware scanning)\n• **CASB**: Enabled (Cloud Access Security Broker — shadow IT detection)\n• **Identity Provider**: "Azure AD"\n• **MFA**: Enabled\n\nZero Trust means: **never trust, always verify**. No implicit trust based on network location.',
+        hint: 'The three pillars of Zero Trust: (1) Verify explicitly, (2) Least-privilege access, (3) Assume breach.',
+        check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.ztnaPolicy === 'verify-always'),
+        feedback: (s) => {
+          const sase = s.devices.find(d => d.type === 'sase-edge');
+          if (!sase) return 'No SASE Edge device found.';
+          if (!sase.saseConfig) return 'SASE not configured. Double-click the SASE Edge → SASE tab.';
+          if (sase.saseConfig.ztnaPolicy !== 'verify-always') return `ZTNA Policy is "${sase.saseConfig.ztnaPolicy}" — set it to "Verify Always".`;
+          if (!sase.saseConfig.swg) return 'SWG is disabled. Enable it.';
+          if (!sase.saseConfig.casb) return 'CASB is disabled. Enable it.';
+          return null;
+        },
+      },
+      {
+        title: 'Add FWaaS rules',
+        instruction: 'In the SASE tab, add **FWaaS** (Firewall as a Service) rules:\n1. Allow TCP/443 from `0.0.0.0/0` (HTTPS traffic)\n2. Allow TCP/80 from `0.0.0.0/0` (HTTP)\n3. Deny ALL from `0.0.0.0/0` (default deny)\n\nFWaaS replaces on-prem firewalls with cloud-native packet filtering. Rules are processed top-to-bottom.',
+        hint: 'Order matters! Allow rules must come before the deny-all. This is the same as traditional ACL processing.',
+        check: (s) => s.devices.some(d => d.saseConfig && d.saseConfig.fwaasPolicies && d.saseConfig.fwaasPolicies.length >= 2),
+        feedback: (s) => {
+          const sase = s.devices.find(d => d.saseConfig);
+          if (!sase || !sase.saseConfig) return 'SASE not configured.';
+          const rules = sase.saseConfig.fwaasPolicies || [];
+          return rules.length < 2 ? `${rules.length}/2 FWaaS rules added. Add more rules in the SASE tab.` : null;
+        },
+      },
+      {
+        title: 'Hybrid connectivity (VPN)',
+        instruction: 'Add an **On-Prem DC** and **VPN Gateway**. Wire VPG to VPC and to On-Prem DC. Configure matching **IPSec** on both sides and **negotiate the tunnel**. In a SASE world, this VPN might be replaced by ZTNA agent-based access, but IPSec site-to-site tunnels remain common for legacy integration.',
+        hint: 'SASE doesn\'t eliminate VPNs overnight — most enterprises run hybrid (SASE + traditional VPN) during migration.',
+        check: (s) => s.devices.some(d => d.type === 'onprem-dc'),
+        feedback: (s) => s.devices.some(d => d.type === 'onprem-dc') ? null : 'No On-Prem DC found.',
+      },
+      {
+        title: 'Verify via CLI',
+        instruction: 'Double-click SASE Edge → **CLI**. Type `show sase` to see your full SASE configuration (ZTNA policy, SWG, CASB, FWaaS rules). Then check `show security-groups` on the VPC for instance-level controls. You\'ve built a complete Zero Trust architecture with: **ZTNA** (identity verification), **SWG** (web filtering), **CASB** (cloud app control), **FWaaS** (network filtering), and **IPSec VPN** (site-to-site connectivity).',
+        hint: 'On the exam, remember: SASE = convergence of network + security in the cloud. ZTNA replaces VPN for user access.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  // ── New interactive labs ──
+  {
+    id: 'troubleshoot-connectivity',
+    title: 'Troubleshoot: Why Can\'t I Ping?',
+    objective: '5.3',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'A pre-built network has connectivity issues. Use CLI tools to diagnose and fix them — just like a real helpdesk scenario.',
+    autoSetup: (s) => {
+      // Pre-build a broken network for the student to fix
+      const rId = 'd_auto_r1', swId = 'd_auto_sw1', pc1Id = 'd_auto_pc1', pc2Id = 'd_auto_pc2', pc3Id = 'd_auto_pc3';
+      s.devices = [
+        { id: rId, type: 'router', x: 700, y: 150, hostname: 'R1',
+          interfaces: [
+            { name: 'Gi0/0', cableId: 'c_auto_1', ip: '192.168.1.1', mask: '255.255.255.0', mac: 'AA:BB:CC:00:00:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Gi0/1', cableId: null, ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:00:00:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          ],
+          routingTable: [{ type: 'connected', network: '192.168.1.0', mask: '255.255.255.0', nextHop: null, iface: 'Gi0/0' }],
+          arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: swId, type: 'switch', x: 700, y: 350, hostname: 'SW1',
+          interfaces: [
+            { name: 'Fa0/0', cableId: 'c_auto_1', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:00:01:00', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/1', cableId: 'c_auto_2', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:00:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/2', cableId: 'c_auto_3', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:00:01:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/3', cableId: 'c_auto_4', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:00:01:03', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          ].concat(Array.from({length: 20}, (_, i) => ({ name: `Fa0/${i+4}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:BB:CC:00:01:${(i+4).toString(16).padStart(2,'0')}`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }))),
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [] },
+        // PC1: correct config
+        { id: pc1Id, type: 'pc', x: 400, y: 550, hostname: 'PC1',
+          interfaces: [{ name: 'eth0', cableId: 'c_auto_2', ip: '192.168.1.10', mask: '255.255.255.0', mac: 'AA:BB:CC:00:02:00', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        // PC2: WRONG subnet — 192.168.2.x instead of 192.168.1.x (the bug!)
+        { id: pc2Id, type: 'pc', x: 700, y: 550, hostname: 'PC2',
+          interfaces: [{ name: 'eth0', cableId: 'c_auto_3', ip: '192.168.2.20', mask: '255.255.255.0', mac: 'AA:BB:CC:00:03:00', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.2.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        // PC3: correct IP but WRONG gateway
+        { id: pc3Id, type: 'pc', x: 1000, y: 550, hostname: 'PC3',
+          interfaces: [{ name: 'eth0', cableId: 'c_auto_4', ip: '192.168.1.30', mask: '255.255.255.0', mac: 'AA:BB:CC:00:04:00', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.254', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+      ];
+      s.cables = [
+        { id: 'c_auto_1', from: rId, to: swId, type: 'cat6', fromIface: 'Gi0/0', toIface: 'Fa0/0' },
+        { id: 'c_auto_2', from: pc1Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/1' },
+        { id: 'c_auto_3', from: pc2Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/2' },
+        { id: 'c_auto_4', from: pc3Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/3' },
+      ];
+      s.name = 'Troubleshoot: Broken LAN';
+    },
+    steps: [
+      {
+        title: 'Survey the network',
+        instruction: 'A user reports **PC2 and PC3 cannot access the network**. PC1 works fine. The network has been pre-built for you. Start by examining: double-click each PC and check the **Overview** tab to see their IP configurations. Compare them to the router\'s config. What do you notice?',
+        hint: 'Look at the subnet. PC1 is on 192.168.1.0/24 — are the other PCs on the same subnet? Check gateways too.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Diagnose PC2',
+        instruction: 'Double-click **PC2** → **CLI**. Run `ipconfig` to see its IP. Then try `ping 192.168.1.1` (the router). It fails! Now compare PC2\'s IP to the router\'s subnet. **Find the bug and fix it**: PC2 is on the wrong subnet. Change its IP to `192.168.1.20/24` and gateway to `192.168.1.1`.',
+        hint: 'PC2 is on 192.168.2.0/24 but the router is on 192.168.1.0/24. They\'re in different subnets — ARP won\'t resolve across subnets without a router for that subnet.',
+        check: (s) => {
+          const pc2 = s.devices.find(d => d.hostname === 'PC2');
+          return pc2 && pc2.interfaces.some(i => i.ip && i.ip.startsWith('192.168.1.'));
+        },
+        feedback: (s) => {
+          const pc2 = s.devices.find(d => d.hostname === 'PC2');
+          if (!pc2) return 'PC2 not found.';
+          const ifc = pc2.interfaces[0];
+          if (ifc.ip.startsWith('192.168.2.')) return `PC2 is still on ${ifc.ip} (wrong subnet). Change it to 192.168.1.x.`;
+          if (ifc.gateway !== '192.168.1.1') return `PC2 IP is fixed but gateway is ${ifc.gateway || 'empty'}. Set it to 192.168.1.1.`;
+          return null;
+        },
+      },
+      {
+        title: 'Diagnose PC3',
+        instruction: 'PC3 has the right subnet but still can\'t reach beyond the switch. Double-click PC3 → check the **gateway**. It\'s pointing to `192.168.1.254` but the router is at `192.168.1.1`! Fix the gateway. This is a common real-world issue — wrong default gateway means the PC can ping local hosts but not remote ones.',
+        hint: 'Same-subnet traffic doesn\'t need a gateway (Layer 2 switching). Cross-subnet traffic needs the correct gateway.',
+        check: (s) => {
+          const pc3 = s.devices.find(d => d.hostname === 'PC3');
+          return pc3 && pc3.interfaces.some(i => i.gateway === '192.168.1.1');
+        },
+        feedback: (s) => {
+          const pc3 = s.devices.find(d => d.hostname === 'PC3');
+          if (!pc3) return 'PC3 not found.';
+          const ifc = pc3.interfaces[0];
+          if (ifc.gateway === '192.168.1.254') return 'PC3 gateway is still 192.168.1.254 (wrong). Change it to 192.168.1.1.';
+          if (ifc.gateway !== '192.168.1.1') return `PC3 gateway is "${ifc.gateway}". Set it to 192.168.1.1.`;
+          return null;
+        },
+      },
+      {
+        title: 'Verify your fixes',
+        instruction: 'Now test! Use **Ping**: PC2 → R1 (should work now). PC3 → R1 (should work). PC1 → PC2 (should work). PC1 → PC3 (should work). Check the Sim Log to see the successful path. If any ping fails, re-check the IP/subnet/gateway of the failing device. You\'ve just completed a real troubleshooting workflow: **identify → diagnose → fix → verify**.',
+        hint: 'The CompTIA troubleshooting methodology: 1) Identify the problem, 2) Establish a theory, 3) Test the theory, 4) Establish a plan of action, 5) Implement, 6) Verify, 7) Document.',
+        check: (s) => {
+          const pc2 = s.devices.find(d => d.hostname === 'PC2');
+          const pc3 = s.devices.find(d => d.hostname === 'PC3');
+          const pc2ok = pc2 && pc2.interfaces.some(i => i.ip && i.ip.startsWith('192.168.1.') && i.gateway === '192.168.1.1');
+          const pc3ok = pc3 && pc3.interfaces.some(i => i.gateway === '192.168.1.1');
+          return pc2ok && pc3ok;
+        },
+        feedback: (s) => {
+          const pc2 = s.devices.find(d => d.hostname === 'PC2');
+          const pc3 = s.devices.find(d => d.hostname === 'PC3');
+          const issues = [];
+          if (pc2 && !pc2.interfaces.some(i => i.ip && i.ip.startsWith('192.168.1.'))) issues.push('PC2 still has wrong IP subnet');
+          if (pc2 && !pc2.interfaces.some(i => i.gateway === '192.168.1.1')) issues.push('PC2 gateway not set to 192.168.1.1');
+          if (pc3 && !pc3.interfaces.some(i => i.gateway === '192.168.1.1')) issues.push('PC3 gateway not set to 192.168.1.1');
+          return issues.length ? issues.join('. ') + '.' : null;
+        },
+      },
+    ]
+  },
+  {
+    id: 'multi-site-wan',
+    title: 'Multi-Site WAN with ISP',
+    objective: '1.2',
+    difficulty: 'Advanced',
+    duration: '20 min',
+    description: 'Connect 3 office sites through an ISP router with proper routing, NAT concepts, and WAN links.',
+    steps: [
+      {
+        title: 'Create the ISP core',
+        instruction: 'Drag an **Internet/WAN** cloud and an **ISP Router** onto the canvas. Connect them. The ISP Router represents your service provider\'s edge — it peers with your customer routers. Set ISP Router\'s interface facing the cloud to `203.0.113.1/24`.',
+        hint: 'ISP routers use public IP space (203.0.113.x is documentation range — safe for labs).',
+        check: (s) => s.devices.some(d => d.type === 'isp-router') && s.devices.some(d => d.type === 'cloud'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'cloud')) return 'No Internet/WAN cloud.';
+          if (!s.devices.some(d => d.type === 'isp-router')) return 'No ISP Router. Drag one from the palette.';
+          return null;
+        },
+      },
+      {
+        title: 'Build Site A — HQ',
+        instruction: 'Add a **Router** (R-HQ), **Switch**, **2 PCs**, and a **Server**. Wire: ISP → R-HQ → Switch → PCs/Server. ISP-facing interface: `10.0.1.1/30`. Internal: `192.168.10.1/24`. PCs: `192.168.10.10+`. Use **fiber** for the ISP→R-HQ cable (long distance WAN link).',
+        hint: '/30 on WAN links = 2 usable IPs (point-to-point). /24 on LANs = 254 hosts.',
+        check: (s) => {
+          const rHQ = s.devices.find(d => d.type === 'router' && d.interfaces.some(i => i.ip && i.ip.startsWith('192.168.10.')));
+          return !!rHQ && s.devices.filter(d => d.type === 'pc').length >= 2;
+        },
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router');
+          if (routers.length < 1) return 'No site router found. Add a Router for HQ.';
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          if (pcs < 2) return `${pcs}/2 PCs placed for Site A.`;
+          return null;
+        },
+      },
+      {
+        title: 'Build Sites B & C',
+        instruction: 'Repeat for **Site B** (R-Branch1, Switch, 2 PCs, subnet `192.168.20.0/24`, WAN `10.0.2.1/30`) and **Site C** (R-Branch2, Switch, 2 PCs, subnet `192.168.30.0/24`, WAN `10.0.3.1/30`). Wire each site router to the ISP Router with **fiber** cables.',
+        hint: 'Each site gets its own subnet. The ISP router connects all three WAN links.',
+        check: (s) => s.devices.filter(d => d.type === 'router').length >= 3,
+        feedback: (s) => {
+          const routers = s.devices.filter(d => d.type === 'router').length;
+          return routers < 3 ? `${routers}/3 site routers placed. Add routers for each site.` : null;
+        },
+      },
+      {
+        title: 'Configure ISP routing',
+        instruction: 'The ISP Router needs routes to all 3 site LANs. Double-click the ISP Router → **Routing** tab. Add static routes:\n• `192.168.10.0/24` → next hop `10.0.1.1`\n• `192.168.20.0/24` → next hop `10.0.2.1`\n• `192.168.30.0/24` → next hop `10.0.3.1`\n\nEach site router also needs a default route (`0.0.0.0/0`) pointing to the ISP.',
+        hint: 'Without routing tables, routers only know about directly connected subnets. Static routes tell them where to forward packets for remote networks.',
+        check: (s) => {
+          const isp = s.devices.find(d => d.type === 'isp-router');
+          return isp && isp.routingTable && isp.routingTable.filter(r => r.type === 'static').length >= 2;
+        },
+        feedback: (s) => {
+          const isp = s.devices.find(d => d.type === 'isp-router');
+          if (!isp) return 'No ISP Router found.';
+          const statics = (isp.routingTable || []).filter(r => r.type === 'static').length;
+          return statics < 3 ? `ISP has ${statics}/3 static routes. Add routes for all site subnets.` : null;
+        },
+      },
+      {
+        title: 'Test cross-site connectivity',
+        instruction: 'Ping from a **Site A PC** to a **Site B PC**. Watch the path in the Sim Log — it should go: PC → R-HQ → ISP → R-Branch1 → SW → PC. Try `traceroute` from PC1\'s CLI: `traceroute 192.168.20.10`. You should see each hop with its IP. If it fails, check routing tables on intermediate routers with `show ip route`.',
+        hint: 'traceroute shows every Layer 3 hop. Each router decrements TTL and sends Time Exceeded when TTL=0.',
+        check: () => true,
+        feedback: () => null,
+      },
     ]
   },
 ];
@@ -8464,7 +9169,7 @@ function tbOpenLabPicker() {
       <span class="tb-lab-diff tb-lab-diff-${lab.difficulty.toLowerCase()}">${lab.difficulty}</span>
     </div>
     <div class="tb-lab-card-meta">
-      <span>Obj ${lab.objective}</span> &middot; <span>${lab.duration}</span> &middot; <span>${lab.steps.length} steps</span>
+      <span>Obj ${lab.objective}</span> &middot; <span>${lab.duration}</span> &middot; <span>${lab.steps.length} steps</span>${lab.autoSetup ? ' &middot; <span class="tb-lab-badge-auto">Pre-built</span>' : ''}
     </div>
     <div class="tb-lab-card-desc">${escHtml(lab.description)}</div>
   </div>`).join('');
@@ -8479,12 +9184,25 @@ function tbStartLab(labId) {
   if (tbState.devices.length > 0 && !confirm('Starting a lab will clear your current canvas. Continue?')) return;
   tbState = tbNewState();
   tbState.name = lab.title;
+  // Auto-setup: pre-build topology for troubleshooting/scenario labs
+  if (lab.autoSetup) {
+    lab.autoSetup(tbState);
+    tbMigrateState(tbState);
+  }
   tbRenderCanvas();
   tbUpdateDeviceCount();
   tbSaveDraft();
-  tbActiveLab = { labId, stepIdx: 0 };
+  tbActiveLab = { labId, stepIdx: 0, hintsUsed: 0 };
   tbRenderLabStep();
   document.getElementById('tb-lab-panel')?.classList.remove('is-hidden');
+}
+
+function tbToggleLabHint() {
+  const el = document.getElementById('tb-lab-hint-content');
+  if (el) {
+    el.classList.toggle('is-hidden');
+    if (!el.classList.contains('is-hidden') && tbActiveLab) tbActiveLab.hintsUsed++;
+  }
 }
 
 function tbRenderLabStep() {
@@ -8501,10 +9219,32 @@ function tbRenderLabStep() {
   // Check if step condition is met
   const passed = step.check(tbState);
   const stepEl = document.getElementById('tb-lab-step');
-  // Convert **bold** markdown to <strong>
-  const instrHtml = step.instruction.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Convert markdown: **bold**, `code`, \n\n to <br> for multi-paragraph
+  let instrHtml = step.instruction.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  instrHtml = instrHtml.replace(/\n\n/g, '<br><br>');
+  // Build feedback section
+  let feedbackHtml = '';
+  if (!passed && step.feedback) {
+    const fb = step.feedback(tbState);
+    if (fb) feedbackHtml = `<div class="tb-lab-step-feedback">⚠ ${fb}</div>`;
+  }
+  // Build hint section
+  let hintHtml = '';
+  if (step.hint) {
+    hintHtml = `<div class="tb-lab-hint">
+      <button class="btn btn-ghost tb-lab-hint-toggle" onclick="tbToggleLabHint()">💡 Show Hint</button>
+      <div id="tb-lab-hint-content" class="tb-lab-hint-body is-hidden">${step.hint}</div>
+    </div>`;
+  }
+  // Progress bar
+  const pct = Math.round(((tbActiveLab.stepIdx + (passed ? 1 : 0)) / lab.steps.length) * 100);
+  const progressBar = `<div class="tb-lab-progress-bar"><div class="tb-lab-progress-fill" style="width:${pct}%"></div></div>`;
+
   stepEl.innerHTML = `<div class="tb-lab-step-title">${escHtml(step.title)}</div>
+    ${progressBar}
     <div class="tb-lab-step-instr">${instrHtml}</div>
+    ${hintHtml}
+    ${feedbackHtml}
     ${passed ? '<div class="tb-lab-step-check">✓ Step complete!</div>' : '<div class="tb-lab-step-pending">Complete the step above, then click Next.</div>'}`;
 }
 

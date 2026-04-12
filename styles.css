@@ -2391,6 +2391,59 @@ input::placeholder { color: var(--text-dim); }
   color: #94a3b8;
   font-style: italic;
 }
+.tb-lab-step-feedback {
+  font-size: 11px;
+  color: #f59e0b;
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.25);
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin: 6px 0;
+}
+.tb-lab-hint { margin: 8px 0 4px; }
+.tb-lab-hint-toggle {
+  font-size: 11px;
+  color: #60a5fa;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(96,165,250,.1);
+  border: 1px solid rgba(96,165,250,.25);
+}
+.tb-lab-hint-toggle:hover { background: rgba(96,165,250,.2); }
+.tb-lab-hint-body {
+  font-size: 11px;
+  color: #93c5fd;
+  background: rgba(96,165,250,.08);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.tb-lab-progress-bar {
+  height: 4px;
+  background: rgba(255,255,255,.1);
+  border-radius: 2px;
+  margin: 6px 0 10px;
+  overflow: hidden;
+}
+.tb-lab-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c6ff7, #22c55e);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.tb-lab-badge-auto {
+  font-size: 9px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245,158,11,.15);
+  border: 1px solid rgba(245,158,11,.3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
 .tb-lab-nav {
   display: flex;
   align-items: center;
