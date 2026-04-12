@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.30.2';
+const APP_VERSION = '4.31.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4985,6 +4985,13 @@ function tbMigrateState(state) {
     d.dnsRecords = d.dnsRecords || [];
     // IPv6 on interfaces
     d.interfaces.forEach(ifc => { ifc.ipv6 = ifc.ipv6 || ''; ifc.ipv6Prefix = ifc.ipv6Prefix || 64; });
+    // v4.31.0 — BGP, EIGRP, DNSSEC, Attack scenarios
+    d.bgpConfig = d.bgpConfig || null;
+    d.eigrpConfig = d.eigrpConfig || null;
+    d.dnssecEnabled = d.dnssecEnabled || false;
+    d.dhcpSnooping = d.dhcpSnooping || null;
+    d.daiEnabled = d.daiEnabled || false;
+    d.portSecurity = d.portSecurity || null;
   });
   // Auto-bind cables to interfaces if not already bound
   state.cables.forEach(c => {
@@ -6047,6 +6054,39 @@ const TB_GRADE_RULES = [
       return subs.every(d => d.nacls && d.nacls.length > 0);
     },
   },
+  {
+    id: 'bgp-has-neighbor',
+    severity: 'warning',
+    label: 'BGP routers should have at least one neighbor',
+    hint: 'BGP needs at least one neighbor configured to exchange routes. Add a neighbor IP and remote AS.',
+    test: s => {
+      const bgpRouters = s.devices.filter(d => d.bgpConfig?.enabled);
+      if (!bgpRouters.length) return true;
+      return bgpRouters.every(d => d.bgpConfig.neighbors.length > 0);
+    },
+  },
+  {
+    id: 'switch-has-snooping',
+    severity: 'info',
+    label: 'Switches should have DHCP Snooping enabled',
+    hint: 'DHCP Snooping prevents rogue DHCP servers from poisoning clients.',
+    test: s => {
+      const switches = s.devices.filter(d => d.type.indexOf('switch') >= 0);
+      if (!switches.length) return true;
+      return switches.some(d => d.dhcpSnooping?.enabled);
+    },
+  },
+  {
+    id: 'dnssec-on-dns',
+    severity: 'info',
+    label: 'DNS servers should have DNSSEC enabled',
+    hint: 'DNSSEC validates DNS responses with digital signatures, preventing cache poisoning.',
+    test: s => {
+      const dnsDevs = s.devices.filter(d => d.type === 'dns-server');
+      if (!dnsDevs.length) return true;
+      return dnsDevs.some(d => d.dnssecEnabled);
+    },
+  },
 ];
 
 const TB_ALL_RULE_IDS = TB_GRADE_RULES.map(r => r.id);
@@ -6658,6 +6698,9 @@ function tbOpenConfigPanel(deviceId) {
     if (tab === 'qos') t.classList.toggle('is-hidden', !isRouter && !isSwitch);
     if (tab === 'wireless') t.classList.toggle('is-hidden', dev.type !== 'wap' && dev.type !== 'wlc');
     if (tab === 'dns') t.classList.toggle('is-hidden', dev.type !== 'dns-server' && !isServer);
+    if (tab === 'bgp') t.classList.toggle('is-hidden', !isRouter);
+    if (tab === 'eigrp') t.classList.toggle('is-hidden', !isRouter);
+    if (tab === 'attack') t.classList.toggle('is-hidden', !isSwitch && !isRouter);
   });
   tbSwitchConfigTab('overview');
   // Show sim toolbar
@@ -6697,6 +6740,9 @@ function tbSwitchConfigTab(tab) {
     case 'qos': body.innerHTML = tbRenderQosTab(dev); break;
     case 'wireless': body.innerHTML = tbRenderWirelessTab(dev); break;
     case 'dns': body.innerHTML = tbRenderDnsTab(dev); break;
+    case 'bgp': body.innerHTML = tbRenderBgpTab(dev); break;
+    case 'eigrp': body.innerHTML = tbRenderEigrpTab(dev); break;
+    case 'attack': body.innerHTML = tbRenderAttackTab(dev); break;
     default: body.innerHTML = '';
   }
 }
@@ -7094,7 +7140,8 @@ function tbRenderStpTab(dev) {
     <div style="font-size:10px;color:#94a3b8;margin:2px 0">Root Bridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || 'unknown'}</div>
     <div style="margin-top:12px;font-weight:600;font-size:11px">Port States</div>
     ${portRows || '<div style="font-size:10px;color:#64748b">No connected ports.</div>'}
-    <div style="font-size:10px;color:#64748b;margin-top:8px">STP port states: Blocking → Listening → Learning → Forwarding. RSTP converges in ~1-2 seconds vs STP ~30-50 seconds.</div>`;
+    <div style="font-size:10px;color:#64748b;margin-top:8px">STP port states: Blocking → Listening → Learning → Forwarding. RSTP converges in ~1-2 seconds vs STP ~30-50 seconds.</div>
+    <button class="btn btn-ghost" onclick="tbRunStpConvergence()" style="font-size:10px;margin-top:10px;color:#38bdf8;border-color:#38bdf8">▶ Run Convergence</button>`;
 }
 function tbSetStpField(field, value) {
   const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
@@ -7278,6 +7325,12 @@ function tbRenderDnsTab(dev) {
       <strong>TXT</strong> — Arbitrary text (SPF, DKIM, DMARC, domain verification)<br>
       <strong>SRV</strong> — Service locator (priority weight port target) for SIP, LDAP, etc.<br>
       <strong>CAA</strong> — Certificate Authority Authorization (controls which CAs can issue certs)
+    </div>
+    <div style="margin-top:12px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+      <div style="font-weight:600;font-size:11px;margin-bottom:6px;color:#38bdf8">🔒 DNSSEC</div>
+      <label><input type="checkbox" ${dev.dnssecEnabled?'checked':''} onchange="tbToggleDnssec(this.checked)"> Enable DNSSEC</label>
+      <div style="font-size:10px;color:#64748b;margin-top:4px">Adds DNSKEY, RRSIG, and DS records to establish a chain of trust. Prevents DNS cache poisoning by cryptographically signing zone records.</div>
+      ${dev.dnssecEnabled ? '<div style="font-size:10px;color:#22c55e;margin-top:4px">✓ DNSSEC active — use <code>dig +dnssec</code> in CLI to validate chain of trust.</div>' : ''}
     </div>`;
 }
 function tbAddDnsRecord() {
@@ -7294,6 +7347,521 @@ function tbSetDnsRecord(idx, field, value) {
   const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
   if (!dev?.dnsRecords?.[idx]) return; dev.dnsRecords[idx][field] = value;
   tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── BGP Tab ──
+function tbRenderBgpTab(dev) {
+  const bgp = dev.bgpConfig || { asn: '', routerId: '', neighbors: [], networks: [], enabled: false };
+  if (!dev.bgpConfig) { dev.bgpConfig = bgp; }
+  const neighborRows = bgp.neighbors.map((n, i) => `<div style="display:flex;gap:4px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px">
+    <input type="text" value="${escHtml(n.ip||'')}" onchange="tbSetBgpNeighbor(${i},'ip',this.value)" placeholder="Neighbor IP" style="flex:1;font-size:10px">
+    <input type="number" value="${n.remoteAs||''}" onchange="tbSetBgpNeighbor(${i},'remoteAs',parseInt(this.value))" placeholder="Remote AS" style="width:65px;font-size:10px">
+    <select onchange="tbSetBgpNeighbor(${i},'type',this.value)" style="width:55px;font-size:10px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:3px;padding:1px">
+      <option value="ebgp"${n.type==='ebgp'?' selected':''}>eBGP</option><option value="ibgp"${n.type==='ibgp'?' selected':''}>iBGP</option>
+    </select>
+    <span style="color:${n.state==='Established'?'#22c55e':'#facc15'};font-size:9px">${n.state||'Idle'}</span>
+    <button onclick="tbRemoveBgpNeighbor(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:11px">✕</button>
+  </div>`).join('');
+  const netRows = bgp.networks.map((net, i) => `<div style="display:flex;gap:4px;align-items:center;padding:2px 0;font-size:10px">
+    <input type="text" value="${escHtml(net)}" onchange="tbSetBgpNetwork(${i},this.value)" placeholder="192.168.1.0/24" style="flex:1;font-size:10px">
+    <button onclick="tbRemoveBgpNetwork(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:11px">✕</button>
+  </div>`).join('');
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">BGP Configuration</div>
+    <label><input type="checkbox" ${bgp.enabled?'checked':''} onchange="tbSetBgpField('enabled',this.checked)"> Enable BGP</label>
+    <label>Local ASN</label>
+    <input type="number" value="${bgp.asn||''}" onchange="tbSetBgpField('asn',parseInt(this.value))" placeholder="65001" style="width:100%">
+    <label>Router ID</label>
+    <input type="text" value="${escHtml(bgp.routerId||'')}" onchange="tbSetBgpField('routerId',this.value)" placeholder="1.1.1.1" style="width:100%">
+    <div style="font-weight:600;font-size:11px;margin-top:12px;margin-bottom:4px">Neighbors</div>
+    ${neighborRows || '<div style="font-size:10px;color:#64748b">No neighbors configured.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddBgpNeighbor()" style="font-size:10px;margin-top:4px">+ Add Neighbor</button>
+    <div style="font-weight:600;font-size:11px;margin-top:12px;margin-bottom:4px">Advertised Networks</div>
+    ${netRows || '<div style="font-size:10px;color:#64748b">No networks advertised.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddBgpNetwork()" style="font-size:10px;margin-top:4px">+ Add Network</button>
+    <button class="btn btn-ghost" onclick="tbNegotiateBgp()" style="font-size:10px;margin-top:10px;color:#22c55e;border-color:#22c55e">▶ Negotiate Peers</button>
+    <div style="font-size:10px;color:#64748b;margin-top:10px;line-height:1.5">
+      <strong>BGP (Border Gateway Protocol)</strong> — the routing protocol of the Internet (AS-to-AS). <strong>eBGP</strong> peers between different ASNs (TTL=1). <strong>iBGP</strong> peers within the same ASN (requires full mesh or route reflectors). Uses TCP port 179. Path attributes: AS_PATH, NEXT_HOP, LOCAL_PREF, MED.
+    </div>`;
+}
+function tbSetBgpField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.bgpConfig) dev.bgpConfig = { asn: '', routerId: '', neighbors: [], networks: [], enabled: false };
+  dev.bgpConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbAddBgpNeighbor() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.bgpConfig) dev.bgpConfig = { asn: '', routerId: '', neighbors: [], networks: [], enabled: false };
+  dev.bgpConfig.neighbors.push({ ip: '', remoteAs: '', type: 'ebgp', state: 'Idle' });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('bgp');
+}
+function tbRemoveBgpNeighbor(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.bgpConfig) return; dev.bgpConfig.neighbors.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('bgp');
+}
+function tbSetBgpNeighbor(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.bgpConfig?.neighbors?.[idx]) return; dev.bgpConfig.neighbors[idx][field] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbAddBgpNetwork() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.bgpConfig) dev.bgpConfig = { asn: '', routerId: '', neighbors: [], networks: [], enabled: false };
+  dev.bgpConfig.networks.push('');
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('bgp');
+}
+function tbRemoveBgpNetwork(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.bgpConfig) return; dev.bgpConfig.networks.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('bgp');
+}
+function tbSetBgpNetwork(idx, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.bgpConfig?.networks) return; dev.bgpConfig.networks[idx] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbNegotiateBgp() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.bgpConfig?.enabled) { showErrorToast('Enable BGP first.'); return; }
+  if (!dev.bgpConfig.asn) { showErrorToast('Set a local ASN first.'); return; }
+  let established = 0;
+  dev.bgpConfig.neighbors.forEach(n => {
+    // Find peer device by neighbor IP
+    const peerDev = tbState.devices.find(pd => pd.id !== dev.id && pd.interfaces.some(i => i.ip === n.ip));
+    if (!peerDev?.bgpConfig?.enabled) { n.state = 'Active'; return; }
+    // Check AS match
+    const isEbgp = n.type === 'ebgp';
+    if (isEbgp && peerDev.bgpConfig.asn === dev.bgpConfig.asn) { n.state = 'Idle (same ASN for eBGP)'; return; }
+    if (!isEbgp && peerDev.bgpConfig.asn !== dev.bgpConfig.asn) { n.state = 'Idle (diff ASN for iBGP)'; return; }
+    // Check reciprocal neighbor
+    const myIps = dev.interfaces.filter(i => i.ip).map(i => i.ip);
+    const reciprocal = peerDev.bgpConfig.neighbors.find(pn => myIps.includes(pn.ip));
+    if (!reciprocal) { n.state = 'Active (no reciprocal)'; return; }
+    // Establish
+    n.state = 'Established';
+    reciprocal.state = 'Established';
+    established++;
+    // Exchange routes
+    const peerRoutes = (peerDev.bgpConfig.networks || []).map(net => {
+      const parts = net.split('/');
+      return { type: 'bgp', network: parts[0], mask: parts[1] ? tbCidrToMask(parseInt(parts[1])) : '255.255.255.0', nextHop: n.ip, iface: '', asPath: String(peerDev.bgpConfig.asn) };
+    });
+    peerRoutes.forEach(pr => {
+      if (!dev.routingTable.find(r => r.network === pr.network && r.type === 'bgp')) dev.routingTable.push(pr);
+    });
+    // Animate
+    const path = [dev.id, peerDev.id];
+    tbAnimatePacket(path, '#818cf8', 'BGP UPDATE');
+  });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('bgp');
+  showErrorToast(established ? `BGP: ${established} peer(s) established!` : 'BGP: No peers could be established. Check neighbor IPs and ASNs.');
+}
+function tbCidrToMask(cidr) {
+  const mask = [0, 0, 0, 0];
+  for (let i = 0; i < cidr; i++) mask[Math.floor(i / 8)] += 1 << (7 - (i % 8));
+  return mask.join('.');
+}
+
+// ── EIGRP Tab ──
+function tbRenderEigrpTab(dev) {
+  const eigrp = dev.eigrpConfig || { asn: '', networks: [], enabled: false, kValues: { k1: 1, k2: 0, k3: 1, k4: 0, k5: 0 } };
+  if (!dev.eigrpConfig) { dev.eigrpConfig = eigrp; }
+  const netRows = eigrp.networks.map((net, i) => `<div style="display:flex;gap:4px;align-items:center;padding:2px 0;font-size:10px">
+    <input type="text" value="${escHtml(net.network||'')}" onchange="tbSetEigrpNetwork(${i},'network',this.value)" placeholder="192.168.1.0" style="flex:1;font-size:10px">
+    <input type="text" value="${escHtml(net.wildcard||'')}" onchange="tbSetEigrpNetwork(${i},'wildcard',this.value)" placeholder="0.0.0.255" style="flex:1;font-size:10px">
+    <button onclick="tbRemoveEigrpNetwork(${i})" style="color:#ef4444;background:none;border:none;cursor:pointer;font-size:11px">✕</button>
+  </div>`).join('');
+  // Find EIGRP neighbors
+  const neighbors = [];
+  if (eigrp.enabled) {
+    tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
+      const peerId = c.from === dev.id ? c.to : c.from;
+      const peer = tbState.devices.find(d => d.id === peerId);
+      if (peer?.eigrpConfig?.enabled && peer.eigrpConfig.asn === eigrp.asn) {
+        const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
+        neighbors.push({ hostname: peer.hostname, ip: peerIp });
+      }
+    });
+  }
+  const neighborList = neighbors.length ? neighbors.map(n =>
+    `<div style="font-size:10px;padding:2px 0">${n.hostname} — ${n.ip} <span style="color:#22c55e">●</span></div>`
+  ).join('') : '<div style="font-size:10px;color:#64748b">No EIGRP neighbors found.</div>';
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">EIGRP Configuration</div>
+    <label><input type="checkbox" ${eigrp.enabled?'checked':''} onchange="tbSetEigrpField('enabled',this.checked)"> Enable EIGRP</label>
+    <label>EIGRP AS Number</label>
+    <input type="number" value="${eigrp.asn||''}" onchange="tbSetEigrpField('asn',parseInt(this.value))" placeholder="100" style="width:100%">
+    <div style="font-weight:600;font-size:11px;margin-top:12px;margin-bottom:4px">Networks</div>
+    <div style="display:flex;gap:4px;font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;padding-bottom:2px">
+      <span style="flex:1">Network</span><span style="flex:1">Wildcard</span><span style="width:16px"></span>
+    </div>
+    ${netRows || '<div style="font-size:10px;color:#64748b">No networks configured.</div>'}
+    <button class="btn btn-ghost" onclick="tbAddEigrpNetwork()" style="font-size:10px;margin-top:4px">+ Add Network</button>
+    <div style="font-weight:600;font-size:11px;margin-top:12px;margin-bottom:4px">Neighbors</div>
+    ${neighborList}
+    <div style="font-size:10px;color:#64748b;margin-top:10px;line-height:1.5">
+      <strong>EIGRP (Enhanced Interior Gateway Routing Protocol)</strong> — Cisco's advanced distance-vector (hybrid) protocol. Uses DUAL algorithm for loop-free paths. Composite metric: bandwidth + delay (K1, K3 by default). Supports unequal-cost load balancing with variance. Multicast: 224.0.0.10, protocol 88.
+    </div>`;
+}
+function tbSetEigrpField(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.eigrpConfig) dev.eigrpConfig = { asn: '', networks: [], enabled: false, kValues: { k1: 1, k2: 0, k3: 1, k4: 0, k5: 0 } };
+  dev.eigrpConfig[field] = value; tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbAddEigrpNetwork() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; if (!dev.eigrpConfig) dev.eigrpConfig = { asn: '', networks: [], enabled: false, kValues: { k1: 1, k2: 0, k3: 1, k4: 0, k5: 0 } };
+  dev.eigrpConfig.networks.push({ network: '', wildcard: '0.0.0.255' });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('eigrp');
+}
+function tbRemoveEigrpNetwork(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.eigrpConfig) return; dev.eigrpConfig.networks.splice(idx, 1); tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('eigrp');
+}
+function tbSetEigrpNetwork(idx, field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev?.eigrpConfig?.networks?.[idx]) return; dev.eigrpConfig.networks[idx][field] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+
+// ── Attack Scenarios Tab ──
+function tbRenderAttackTab(dev) {
+  const isSwitch = dev.type.indexOf('switch') >= 0;
+  const snooping = dev.dhcpSnooping || { enabled: false, trustedPorts: [] };
+  const dai = dev.daiEnabled || false;
+  const ps = dev.portSecurity || { enabled: false, maxMac: 1, violation: 'shutdown' };
+  const trustedPortOpts = dev.interfaces.map(ifc => {
+    const isTrusted = snooping.trustedPorts.includes(ifc.name);
+    return `<label style="font-size:10px;display:block"><input type="checkbox" ${isTrusted?'checked':''} onchange="tbToggleSnoopingTrust('${ifc.name}',this.checked)"> ${ifc.name}</label>`;
+  }).join('');
+  return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">Security & Attack Defense</div>
+    ${isSwitch ? `
+    <div style="border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:8px;margin-bottom:10px">
+      <div style="font-weight:600;font-size:11px;color:#22c55e;margin-bottom:6px">DHCP Snooping</div>
+      <label><input type="checkbox" ${snooping.enabled?'checked':''} onchange="tbSetDhcpSnooping('enabled',this.checked)"> Enable DHCP Snooping</label>
+      <div style="font-size:10px;color:#64748b;margin:4px 0">Trusted Ports (uplinks to legitimate DHCP server):</div>
+      ${trustedPortOpts}
+    </div>
+    <div style="border:1px solid rgba(250,204,21,.3);border-radius:8px;padding:8px;margin-bottom:10px">
+      <div style="font-weight:600;font-size:11px;color:#facc15;margin-bottom:6px">Dynamic ARP Inspection (DAI)</div>
+      <label><input type="checkbox" ${dai?'checked':''} onchange="tbSetDai(this.checked)"> Enable DAI</label>
+      <div style="font-size:10px;color:#64748b;margin-top:4px">Validates ARP packets against DHCP snooping binding table. Prevents ARP spoofing attacks.</div>
+    </div>
+    <div style="border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px;margin-bottom:10px">
+      <div style="font-weight:600;font-size:11px;color:#ef4444;margin-bottom:6px">Port Security</div>
+      <label><input type="checkbox" ${ps.enabled?'checked':''} onchange="tbSetPortSecurity('enabled',this.checked)"> Enable Port Security</label>
+      <label>Max MAC Addresses</label>
+      <input type="number" value="${ps.maxMac||1}" min="1" max="10" onchange="tbSetPortSecurity('maxMac',parseInt(this.value))" style="width:60px;font-size:10px">
+      <label>Violation Mode</label>
+      <select onchange="tbSetPortSecurity('violation',this.value)" style="width:100%;padding:4px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(124,111,247,.3);border-radius:5px">
+        ${['shutdown','restrict','protect'].map(v => `<option value="${v}"${v===ps.violation?' selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('')}
+      </select>
+    </div>` : ''}
+    <div style="font-weight:600;font-size:11px;margin-top:8px;margin-bottom:6px">Simulate Attacks</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px">
+      <button class="btn btn-ghost" onclick="tbSimArpSpoof()" style="font-size:10px;color:#ef4444;border-color:#ef4444">⚡ ARP Spoof</button>
+      <button class="btn btn-ghost" onclick="tbSimVlanHopping()" style="font-size:10px;color:#ef4444;border-color:#ef4444">⚡ VLAN Hop</button>
+      <button class="btn btn-ghost" onclick="tbSimRogueDhcp()" style="font-size:10px;color:#ef4444;border-color:#ef4444">⚡ Rogue DHCP</button>
+    </div>
+    <div style="font-size:10px;color:#64748b;margin-top:10px;line-height:1.5">
+      <strong>ARP Spoofing</strong> — attacker sends fake ARP replies to redirect traffic (man-in-the-middle). Defense: DAI.<br>
+      <strong>VLAN Hopping</strong> — double-tagging attack to reach VLANs across trunk links. Defense: set native VLAN to unused VLAN, disable DTP.<br>
+      <strong>Rogue DHCP</strong> — attacker runs unauthorized DHCP server to poison clients. Defense: DHCP Snooping.
+    </div>`;
+}
+function tbSetDhcpSnooping(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.dhcpSnooping) dev.dhcpSnooping = { enabled: false, trustedPorts: [] };
+  dev.dhcpSnooping[field] = value;
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('attack');
+}
+function tbToggleSnoopingTrust(port, checked) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.dhcpSnooping) dev.dhcpSnooping = { enabled: false, trustedPorts: [] };
+  if (checked) { if (!dev.dhcpSnooping.trustedPorts.includes(port)) dev.dhcpSnooping.trustedPorts.push(port); }
+  else { dev.dhcpSnooping.trustedPorts = dev.dhcpSnooping.trustedPorts.filter(p => p !== port); }
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('attack');
+}
+function tbSetDai(enabled) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return; dev.daiEnabled = enabled;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbSetPortSecurity(field, value) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  if (!dev.portSecurity) dev.portSecurity = { enabled: false, maxMac: 1, violation: 'shutdown' };
+  dev.portSecurity[field] = value;
+  tbState.updated = Date.now(); tbSaveDraft();
+}
+// Attack simulations
+function tbSimArpSpoof() {
+  const switches = tbState.devices.filter(d => d.type.indexOf('switch') >= 0);
+  if (!switches.length) { showErrorToast('No switches in topology for ARP spoof demo.'); return; }
+  const targetSwitch = switches[0];
+  // Check if DAI is enabled on the switch
+  if (targetSwitch.daiEnabled) {
+    showErrorToast('🛡️ DAI blocked the ARP spoof! Dynamic ARP Inspection validated the ARP packet against the binding table and dropped it.');
+    tbAnimatePacket([targetSwitch.id, targetSwitch.id], '#22c55e', 'DAI BLOCK');
+    return;
+  }
+  // Find 2 connected endpoints
+  const endpoints = tbState.devices.filter(d => ['pc','server','voip','iot'].includes(d.type));
+  if (endpoints.length < 2) { showErrorToast('Need at least 2 endpoints for ARP spoof demo.'); return; }
+  showErrorToast('⚡ ARP Spoof attack! Attacker sent fake ARP reply — traffic is being redirected. Enable DAI on the switch to prevent this!');
+  tbAnimatePacket([endpoints[0].id, targetSwitch.id, endpoints[1].id], '#ef4444', 'FAKE ARP');
+}
+function tbSimVlanHopping() {
+  const switches = tbState.devices.filter(d => d.type.indexOf('switch') >= 0);
+  if (!switches.length) { showErrorToast('No switches in topology for VLAN hopping demo.'); return; }
+  // Check if port security / trunk config prevents it
+  const trunkPorts = switches[0].interfaces.filter(i => i.mode === 'trunk');
+  const nativeIsOne = trunkPorts.some(i => (i.vlan || 1) === 1);
+  if (!nativeIsOne && trunkPorts.length) {
+    showErrorToast('🛡️ VLAN hopping blocked! Native VLAN is not VLAN 1, preventing double-tagging attack.');
+    return;
+  }
+  showErrorToast('⚡ VLAN Hopping! Double-tagged frame crossed trunk boundary. Defense: change native VLAN to unused VLAN, disable DTP.');
+  if (switches.length >= 2) tbAnimatePacket([switches[0].id, switches[1].id], '#ef4444', 'DOUBLE TAG');
+}
+function tbSimRogueDhcp() {
+  const switches = tbState.devices.filter(d => d.type.indexOf('switch') >= 0);
+  if (!switches.length) { showErrorToast('No switches in topology for rogue DHCP demo.'); return; }
+  // Check DHCP snooping
+  if (switches[0].dhcpSnooping?.enabled) {
+    showErrorToast('🛡️ DHCP Snooping blocked the rogue DHCP server! Only trusted ports can send DHCP offers.');
+    return;
+  }
+  const endpoints = tbState.devices.filter(d => ['pc','server'].includes(d.type));
+  if (endpoints.length) {
+    showErrorToast('⚡ Rogue DHCP server detected! Attacker is handing out malicious gateway/DNS. Enable DHCP Snooping to prevent this!');
+    tbAnimatePacket([endpoints[0].id, switches[0].id], '#ef4444', 'ROGUE OFFER');
+  }
+}
+
+// ── DNSSEC Functions ──
+function tbToggleDnssec(enabled) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev) return;
+  dev.dnssecEnabled = enabled;
+  if (enabled) {
+    // Auto-generate DNSKEY and RRSIG records for existing records
+    const existing = dev.dnsRecords || [];
+    if (!existing.find(r => r.type === 'DNSKEY')) {
+      existing.push({ type: 'DNSKEY', name: dev.hostname + '.', value: '257 3 13 <base64-public-key>', ttl: 86400 });
+    }
+    existing.forEach(r => {
+      if (['A','AAAA','MX','CNAME'].includes(r.type) && !existing.find(rr => rr.type === 'RRSIG' && rr.name === r.name)) {
+        existing.push({ type: 'RRSIG', name: r.name, value: `${r.type} 13 2 ${r.ttl} <signature>`, ttl: r.ttl });
+      }
+    });
+    if (!existing.find(r => r.type === 'DS')) {
+      existing.push({ type: 'DS', name: dev.hostname + '.', value: '12345 13 2 <digest>', ttl: 86400 });
+    }
+    dev.dnsRecords = existing;
+  }
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('dns');
+}
+function tbValidateDnssecChain(queryName) {
+  const dnsServers = tbState.devices.filter(d => (d.type === 'dns-server' || d.type === 'server') && d.dnsRecords?.length);
+  if (!dnsServers.length) return { valid: false, chain: [], error: 'No DNS servers in topology' };
+  const chain = [];
+  for (const srv of dnsServers) {
+    if (!srv.dnssecEnabled) { chain.push({ server: srv.hostname, status: 'insecure', note: 'DNSSEC not enabled' }); continue; }
+    const record = srv.dnsRecords.find(r => r.name === queryName && ['A','AAAA','MX','CNAME'].includes(r.type));
+    if (!record) continue;
+    const rrsig = srv.dnsRecords.find(r => r.type === 'RRSIG' && r.name === queryName);
+    const dnskey = srv.dnsRecords.find(r => r.type === 'DNSKEY');
+    const ds = srv.dnsRecords.find(r => r.type === 'DS');
+    chain.push({ server: srv.hostname, record: record.type + ' ' + record.value, hasRrsig: !!rrsig, hasDnskey: !!dnskey, hasDs: !!ds, status: (rrsig && dnskey) ? 'secure' : 'bogus' });
+    if (rrsig && dnskey) return { valid: true, chain, ad: true };
+  }
+  return { valid: false, chain, error: 'Chain of trust broken — RRSIG or DNSKEY missing' };
+}
+
+// ── Packet Inspection Panel ──
+function tbShowPacketInspection(packetInfo) {
+  const panel = document.getElementById('tb-packet-inspect');
+  if (!panel) return;
+  const p = packetInfo || {};
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:8px 8px 0 0">
+    <span style="font-weight:700;font-size:11px;color:#38bdf8">📦 Packet Inspection</span>
+    <button onclick="tbClosePacketInspection()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px">✕</button>
+  </div>
+  <div style="padding:8px;font-family:monospace;font-size:10px;line-height:1.6">
+    <div style="border-left:3px solid #818cf8;padding-left:8px;margin-bottom:6px">
+      <div style="font-weight:700;color:#818cf8;font-size:9px;text-transform:uppercase">Layer 2 — Data Link</div>
+      <div>Src MAC: <span style="color:#22c55e">${p.srcMac || '??:??:??:??:??:??'}</span></div>
+      <div>Dst MAC: <span style="color:#22c55e">${p.dstMac || '??:??:??:??:??:??'}</span></div>
+      <div>EtherType: <span style="color:#94a3b8">${p.etherType || '0x0800 (IPv4)'}</span></div>
+      ${p.vlanTag ? `<div>802.1Q VLAN: <span style="color:#facc15">${p.vlanTag}</span></div>` : ''}
+    </div>
+    <div style="border-left:3px solid #22c55e;padding-left:8px;margin-bottom:6px">
+      <div style="font-weight:700;color:#22c55e;font-size:9px;text-transform:uppercase">Layer 3 — Network</div>
+      <div>Src IP: <span style="color:#22c55e">${p.srcIp || '?.?.?.?'}</span></div>
+      <div>Dst IP: <span style="color:#22c55e">${p.dstIp || '?.?.?.?'}</span></div>
+      <div>Protocol: <span style="color:#94a3b8">${p.protocol || 'ICMP (1)'}</span></div>
+      <div>TTL: <span style="color:#facc15">${p.ttl || 64}</span></div>
+    </div>
+    <div style="border-left:3px solid #f97316;padding-left:8px">
+      <div style="font-weight:700;color:#f97316;font-size:9px;text-transform:uppercase">Layer 4 — Transport</div>
+      <div>Src Port: <span style="color:#94a3b8">${p.srcPort || '—'}</span></div>
+      <div>Dst Port: <span style="color:#94a3b8">${p.dstPort || '—'}</span></div>
+      <div>Flags: <span style="color:#94a3b8">${p.flags || '—'}</span></div>
+      ${p.payload ? `<div>Payload: <span style="color:#64748b">${p.payload}</span></div>` : ''}
+    </div>
+  </div>`;
+  panel.classList.remove('is-hidden');
+}
+function tbClosePacketInspection() {
+  document.getElementById('tb-packet-inspect')?.classList.add('is-hidden');
+}
+function tbBuildPacketHeaders(srcDev, dstDev, options) {
+  const opts = options || {};
+  const srcIfc = srcDev.interfaces.find(i => i.ip) || {};
+  const dstIfc = dstDev.interfaces.find(i => i.ip) || {};
+  return {
+    srcMac: srcIfc.mac || tbGenerateMac(srcDev.id, 0),
+    dstMac: dstIfc.mac || tbGenerateMac(dstDev.id, 0),
+    etherType: opts.etherType || '0x0800 (IPv4)',
+    vlanTag: opts.vlan || null,
+    srcIp: srcIfc.ip || '0.0.0.0',
+    dstIp: dstIfc.ip || '0.0.0.0',
+    protocol: opts.protocol || 'ICMP (1)',
+    ttl: opts.ttl || 64,
+    srcPort: opts.srcPort || '—',
+    dstPort: opts.dstPort || '—',
+    flags: opts.flags || '—',
+    payload: opts.payload || null,
+  };
+}
+
+// ── STP Convergence Animation ──
+function tbRunStpConvergence() {
+  const switches = tbState.devices.filter(d => d.type.indexOf('switch') >= 0 && d.stpConfig);
+  if (switches.length < 2) { showErrorToast('Need at least 2 switches with STP configured.'); return; }
+  showErrorToast('STP Convergence: Phase 1 — Electing root bridge...');
+  // Step 1: Find root bridge (lowest priority, then lowest MAC)
+  const root = tbCalcRootBridge(switches);
+  // Step 2: Calculate port roles
+  const roles = tbCalcPortRoles(switches, root);
+  // Step 3: Animate BPDUs
+  let delay = 0;
+  switches.forEach(sw => {
+    if (sw.id === root.id) {
+      sw.stpConfig.isRoot = true;
+      setTimeout(() => showErrorToast(`STP: ${sw.hostname} elected ROOT BRIDGE (priority ${sw.stpConfig.priority})`), delay);
+      delay += 1500;
+    } else {
+      sw.stpConfig.isRoot = false;
+    }
+  });
+  // Animate BPDU exchange
+  switches.forEach(sw => {
+    if (sw.id === root.id) return;
+    setTimeout(() => {
+      tbAnimatePacket([root.id, sw.id], '#38bdf8', 'BPDU');
+    }, delay);
+    delay += 800;
+  });
+  // Step 4: Apply port states with timed transitions
+  setTimeout(() => {
+    roles.forEach(r => {
+      const sw = switches.find(s => s.id === r.deviceId);
+      if (sw?.stpConfig) {
+        sw.stpConfig.portStates = sw.stpConfig.portStates || {};
+        sw.stpConfig.portStates[r.port] = r.role;
+      }
+    });
+    tbState.updated = Date.now(); tbSaveDraft();
+    if (tbActiveConfigTab === 'stp') tbSwitchConfigTab('stp');
+    showErrorToast(`STP Convergence complete! Root: ${root.hostname}. ${roles.filter(r => r.role === 'blocking').length} port(s) blocking.`);
+  }, delay + 1000);
+}
+function tbCalcRootBridge(switches) {
+  return switches.reduce((best, sw) => {
+    const pri = sw.stpConfig?.priority || 32768;
+    const bestPri = best.stpConfig?.priority || 32768;
+    if (pri < bestPri) return sw;
+    if (pri === bestPri) {
+      const mac = sw.interfaces[0]?.mac || 'ff:ff:ff:ff:ff:ff';
+      const bestMac = best.interfaces[0]?.mac || 'ff:ff:ff:ff:ff:ff';
+      return mac < bestMac ? sw : best;
+    }
+    return best;
+  });
+}
+function tbCalcPortRoles(switches, root) {
+  const roles = [];
+  switches.forEach(sw => {
+    if (sw.id === root.id) {
+      // Root bridge: all ports are designated (forwarding)
+      sw.interfaces.filter(i => i.cableId).forEach(ifc => {
+        roles.push({ deviceId: sw.id, port: ifc.name, role: 'forwarding' });
+      });
+      return;
+    }
+    // Non-root: find root port (port closest to root bridge)
+    const connectedToRoot = sw.interfaces.filter(i => {
+      if (!i.cableId) return false;
+      const cable = tbState.cables.find(c => c.id === i.cableId);
+      if (!cable) return false;
+      const peerId = cable.from === sw.id ? cable.to : cable.from;
+      return peerId === root.id;
+    });
+    let rootPort = connectedToRoot[0];
+    if (!rootPort) {
+      // Find port on path toward root (2-hop)
+      rootPort = sw.interfaces.find(i => {
+        if (!i.cableId) return false;
+        const cable = tbState.cables.find(c => c.id === i.cableId);
+        if (!cable) return false;
+        const peerId = cable.from === sw.id ? cable.to : cable.from;
+        const peer = tbState.devices.find(d => d.id === peerId);
+        return peer && tbState.cables.some(c2 => (c2.from === peerId && c2.to === root.id) || (c2.to === peerId && c2.from === root.id));
+      });
+    }
+    sw.interfaces.filter(i => i.cableId).forEach(ifc => {
+      if (ifc === rootPort) {
+        roles.push({ deviceId: sw.id, port: ifc.name, role: 'forwarding' }); // Root port
+      } else {
+        // Check if this is a designated or blocking port
+        const cable = tbState.cables.find(c => c.id === ifc.cableId);
+        const peerId = cable ? (cable.from === sw.id ? cable.to : cable.from) : null;
+        const peer = tbState.devices.find(d => d.id === peerId);
+        if (peer?.type?.indexOf('switch') >= 0 && peer.id !== root.id) {
+          // Two non-root switches connected — one blocks
+          const myPri = sw.stpConfig?.priority || 32768;
+          const peerPri = peer?.stpConfig?.priority || 32768;
+          roles.push({ deviceId: sw.id, port: ifc.name, role: myPri <= peerPri ? 'forwarding' : 'blocking' });
+        } else {
+          roles.push({ deviceId: sw.id, port: ifc.name, role: 'forwarding' }); // Designated
+        }
+      }
+    });
+  });
+  return roles;
+}
+
+// ── QoS Enforcement ──
+function tbQosClassify(dev, packetInfo) {
+  if (!dev?.qosConfig?.enabled || !dev.qosConfig.policies?.length) return { queue: 'best-effort', dscp: 'default', policy: null };
+  const policies = dev.qosConfig.policies;
+  for (const pol of policies) {
+    const match = pol.match || 'any';
+    if (match === 'any') return { queue: pol.queue || 'best-effort', dscp: pol.dscp || 'default', policy: pol.name };
+    // Match on protocol/port
+    const parts = match.split(/\s+/);
+    const proto = parts[0]?.toLowerCase();
+    const port = parts[1];
+    if (packetInfo.protocol?.toLowerCase().includes(proto)) return { queue: pol.queue || 'best-effort', dscp: pol.dscp || 'default', policy: pol.name };
+    if (port && (packetInfo.dstPort === port || packetInfo.srcPort === port)) return { queue: pol.queue || 'best-effort', dscp: pol.dscp || 'default', policy: pol.name };
+  }
+  return { queue: 'best-effort', dscp: 'default', policy: null };
+}
+function tbQosEnqueue(classification) {
+  // Priority queuing simulation — returns a delay factor
+  const queueDelays = { priority: 0, bandwidth: 50, fair: 100, 'best-effort': 200 };
+  return queueDelays[classification.queue] || 200;
 }
 
 // ── DHCP Tab ──
@@ -8035,6 +8603,122 @@ function tbProcessCliCommand(dev, cmd) {
     const v6Routes = dev.interfaces.filter(i => i.ipv6).map(i => `C  ${i.ipv6}/${i.ipv6Prefix || 64} directly connected, ${i.name}`);
     return v6Routes.length ? 'IPv6 Routing Table:\n' + v6Routes.join('\n') : 'No IPv6 routes.';
   }
+  // BGP
+  if (cmd === 'show ip bgp' || cmd === 'show ip bgp summary' || cmd === 'show bgp') {
+    const bgp = dev.bgpConfig;
+    if (!bgp || !bgp.enabled) return 'BGP is not enabled on this device.';
+    let out = `BGP Router ID: ${bgp.routerId || '(not set)'}, local AS: ${bgp.asn || '?'}\n`;
+    if (cmd.includes('summary')) {
+      out += '\nNeighbor         AS      State         PfxRcvd\n';
+      out += '───────────────  ──────  ────────────  ───────\n';
+      bgp.neighbors.forEach(n => {
+        out += `${(n.ip||'?').padEnd(17)}${String(n.remoteAs||'?').padEnd(8)}${(n.state||'Idle').padEnd(14)}${n.state==='Established'?'1':'0'}\n`;
+      });
+    } else {
+      out += `Status: ${bgp.enabled ? 'Active' : 'Inactive'}\n`;
+      out += `Networks: ${bgp.networks.join(', ') || 'none'}\n`;
+      out += `Neighbors: ${bgp.neighbors.length}\n`;
+      bgp.neighbors.forEach(n => {
+        out += `  ${n.ip} (AS ${n.remoteAs}) — ${n.type.toUpperCase()} — ${n.state || 'Idle'}\n`;
+      });
+    }
+    return out;
+  }
+  // EIGRP
+  if (cmd === 'show ip eigrp neighbors' || cmd === 'show eigrp neighbors') {
+    const eigrp = dev.eigrpConfig;
+    if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
+    let out = `EIGRP AS ${eigrp.asn}\n\nNeighbor       Interface    Uptime\n───────────────────────────────────\n`;
+    tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
+      const peerId = c.from === dev.id ? c.to : c.from;
+      const peer = tbState.devices.find(d => d.id === peerId);
+      if (peer?.eigrpConfig?.enabled && peer.eigrpConfig.asn === eigrp.asn) {
+        const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
+        const localIfc = dev.interfaces.find(i => i.cableId === c.id);
+        out += `${peerIp.padEnd(15)}${(localIfc?.name||'?').padEnd(13)}${Math.floor(Math.random()*60)}min\n`;
+      }
+    });
+    return out;
+  }
+  if (cmd === 'show ip eigrp topology' || cmd === 'show eigrp topology') {
+    const eigrp = dev.eigrpConfig;
+    if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
+    let out = `EIGRP Topology Table for AS ${eigrp.asn}\n\nP = Passive, A = Active\n\n`;
+    (eigrp.networks || []).forEach(net => {
+      out += `P ${net.network}/${net.wildcard === '0.0.0.255' ? '24' : '?'}, 1 successors, FD is 28160\n`;
+      out += `        via Connected, ${dev.interfaces.find(i => i.ip)?.name || '?'}\n`;
+    });
+    return out;
+  }
+  // DNSSEC dig
+  if (cmd.startsWith('dig +dnssec ')) {
+    const query = cmd.replace('dig +dnssec ', '').trim();
+    const result = tbValidateDnssecChain(query);
+    let out = `;; DNSSEC validation for ${query}\n`;
+    if (result.valid) {
+      out += `;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1\n;; AD flag: SET (Authenticated Data)\n\n`;
+      result.chain.forEach(c => {
+        out += `;; ${c.server}: ${c.record || 'no record'} [${c.status.toUpperCase()}]\n`;
+        if (c.hasRrsig) out += `;;   RRSIG present ✓\n`;
+        if (c.hasDnskey) out += `;;   DNSKEY present ✓\n`;
+        if (c.hasDs) out += `;;   DS present ✓\n`;
+      });
+      out += `\n;; Chain of trust: VALIDATED`;
+    } else {
+      out += `;; flags: qr rd ra; QUERY: 1, ANSWER: 0\n;; AD flag: NOT SET\n\n`;
+      result.chain.forEach(c => { out += `;; ${c.server}: ${c.status} — ${c.note || ''}\n`; });
+      out += `\n;; Chain of trust: ${result.error || 'BROKEN'}`;
+    }
+    return out;
+  }
+  if (cmd === 'show dnssec' || cmd === 'show dns security') {
+    if (!dev.dnssecEnabled) return 'DNSSEC is not enabled on this device.';
+    const rrsigs = (dev.dnsRecords || []).filter(r => r.type === 'RRSIG');
+    const dnskeys = (dev.dnsRecords || []).filter(r => r.type === 'DNSKEY');
+    const ds = (dev.dnsRecords || []).filter(r => r.type === 'DS');
+    return `DNSSEC Status: ENABLED\nDNSKEY records: ${dnskeys.length}\nRRSIG records:  ${rrsigs.length}\nDS records:     ${ds.length}\n\nChain of trust: ${dnskeys.length && rrsigs.length ? 'COMPLETE' : 'INCOMPLETE — add DNSKEY and RRSIG records'}`;
+  }
+  // DHCP Snooping / DAI
+  if (cmd === 'show ip dhcp snooping' || cmd === 'show dhcp snooping') {
+    const sn = dev.dhcpSnooping;
+    if (!sn?.enabled) return 'DHCP Snooping is not enabled on this device.';
+    let out = `DHCP Snooping: ENABLED\n\nTrusted Ports:\n`;
+    (sn.trustedPorts || []).forEach(p => { out += `  ${p} — trusted\n`; });
+    out += '\nUntrusted Ports:\n';
+    dev.interfaces.filter(i => !(sn.trustedPorts || []).includes(i.name)).forEach(i => { out += `  ${i.name} — untrusted\n`; });
+    return out;
+  }
+  if (cmd === 'show ip arp inspection' || cmd === 'show dai') {
+    return `Dynamic ARP Inspection: ${dev.daiEnabled ? 'ENABLED' : 'DISABLED'}\n${dev.daiEnabled ? 'Validating ARP packets against DHCP snooping binding table.' : 'Enable DAI to validate ARP packets.'}`;
+  }
+  // QoS extended commands
+  if (cmd === 'show qos counters' || cmd === 'show qos queue' || cmd === 'show qos stats') {
+    const qos = dev.qosConfig;
+    if (!qos?.enabled) return 'QoS is not enabled on this device.';
+    let out = 'QoS Queue Statistics:\n\nQueue          Packets   Dropped   Delay\n──────────────────────────────────────────\n';
+    const queues = { priority: 0, bandwidth: 0, fair: 0, 'best-effort': 0 };
+    (qos.policies || []).forEach(p => { queues[p.queue || 'best-effort']++; });
+    Object.entries(queues).forEach(([q, count]) => {
+      const pkts = Math.floor(Math.random() * 1000);
+      const drops = q === 'best-effort' ? Math.floor(pkts * 0.05) : 0;
+      out += `${q.padEnd(15)}${String(pkts).padEnd(10)}${String(drops).padEnd(10)}${q === 'priority' ? '<1ms' : q === 'bandwidth' ? '5ms' : '20ms'}\n`;
+    });
+    return out;
+  }
+  // Show spanning-tree detail
+  if (cmd === 'show spanning-tree detail') {
+    const stp = dev.stpConfig;
+    if (!stp) return 'STP not configured on this device.';
+    let out = `Spanning Tree Detail\nMode: ${(stp.mode || 'rstp').toUpperCase()}\nBridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\nRoot Bridge: ${stp.isRoot ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort Details:\n`;
+    dev.interfaces.filter(i => i.cableId).forEach(ifc => {
+      const state = stp.portStates?.[ifc.name] || 'forwarding';
+      const cable = tbState.cables.find(c => c.id === ifc.cableId);
+      const peerId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
+      const peer = tbState.devices.find(d => d.id === peerId);
+      out += `  ${ifc.name}: ${state.toUpperCase()} → ${peer?.hostname || '?'} (cost: ${cable?.type === 'fiber' ? 4 : 19})\n`;
+    });
+    return out;
+  }
   // Config mode simulation
   if (cmd === 'configure terminal' || cmd === 'config t' || cmd === 'conf t') {
     return `${dev.hostname}(config)# Configuration mode entered.\n\nAvailable config commands:\n  hostname <name>      - Set device hostname\n  interface <name>     - Enter interface config\n  ip address <ip> <mask> - Set IP (in interface mode)\n  ip route <net> <mask> <next-hop> - Add static route\n  router ospf <id>     - Enter OSPF config\n  no shutdown          - Enable interface\n  shutdown             - Disable interface\n  exit                 - Exit current mode\n\nNote: Use the GUI tabs for full configuration. CLI config mode is for exam practice.`;
@@ -8071,6 +8755,17 @@ function tbProcessCliCommand(dev, cmd) {
       (dev.ospfConfig.areas || []).forEach(a => { (a.networks || []).forEach(n => { cfg += `\n  network ${n} area ${a.id}`; }); });
       cfg += '\n!';
     }
+    if (dev.bgpConfig?.enabled) {
+      cfg += `\nrouter bgp ${dev.bgpConfig.asn || '?'}\n  bgp router-id ${dev.bgpConfig.routerId || '0.0.0.0'}`;
+      (dev.bgpConfig.neighbors || []).forEach(n => { cfg += `\n  neighbor ${n.ip} remote-as ${n.remoteAs}`; });
+      (dev.bgpConfig.networks || []).forEach(n => { cfg += `\n  network ${n}`; });
+      cfg += '\n!';
+    }
+    if (dev.eigrpConfig?.enabled) {
+      cfg += `\nrouter eigrp ${dev.eigrpConfig.asn || '?'}`;
+      (dev.eigrpConfig.networks || []).forEach(n => { cfg += `\n  network ${n.network} ${n.wildcard}`; });
+      cfg += '\n!';
+    }
     return cfg;
   }
   // help
@@ -8095,6 +8790,16 @@ function tbProcessCliCommand(dev, cmd) {
       '  show nacl               - Network ACL rules\n' +
       '  show vpn-status         - VPN/IPSec tunnel info\n' +
       '  show sase               - SASE edge config\n' +
+      '  show ip bgp             - BGP routing table\n' +
+      '  show ip bgp summary     - BGP neighbor summary\n' +
+      '  show ip eigrp neighbors - EIGRP neighbor table\n' +
+      '  show ip eigrp topology  - EIGRP topology table\n' +
+      '  show dnssec             - DNSSEC status\n' +
+      '  show ip dhcp snooping   - DHCP snooping status\n' +
+      '  show ip arp inspection  - DAI status\n' +
+      '  show qos counters       - QoS queue statistics\n' +
+      '  show spanning-tree detail - STP port details\n' +
+      '  dig +dnssec <name>      - DNSSEC-validated lookup\n' +
       '  configure terminal      - Enter config mode\n' +
       '  hostname <name>         - Change device name\n' +
       '  ip route <n> <m> <nh>   - Add static route\n' +
@@ -8493,17 +9198,35 @@ function tbSimDHCP(state, clientDeviceId) {
 }
 
 // ── Packet Animation ──
-function tbAnimatePacket(path, color, label) {
+function tbAnimatePacket(path, color, label, packetInfo) {
   if (!path || path.length < 2) return;
   const animLayer = document.getElementById('tb-anim-layer');
   if (!animLayer) return;
   color = color || '#22c55e';
 
+  // Show packet inspection panel if packet info provided
+  if (packetInfo) tbShowPacketInspection(packetInfo);
+
   const animate = (idx) => {
-    if (idx >= path.length - 1) return;
+    if (idx >= path.length - 1) {
+      // Close inspection panel after animation completes
+      if (packetInfo) setTimeout(() => tbClosePacketInspection(), 2000);
+      return;
+    }
     const fromDev = tbState.devices.find(d => d.id === path[idx]);
     const toDev = tbState.devices.find(d => d.id === path[idx + 1]);
     if (!fromDev || !toDev) return;
+
+    // QoS classification at each hop
+    if (packetInfo && fromDev.qosConfig?.enabled) {
+      const classification = tbQosClassify(fromDev, packetInfo);
+      const qosDelay = tbQosEnqueue(classification);
+      if (classification.policy) {
+        packetInfo.dscp = classification.dscp;
+        packetInfo.payload = `QoS: ${classification.policy} (${classification.queue})`;
+        tbShowPacketInspection(packetInfo);
+      }
+    }
 
     const HALF_W = 48, HALF_H = 36;
     const p1 = tbEdgePoint(fromDev.x, fromDev.y, toDev.x, toDev.y, HALF_W, HALF_H);
@@ -8531,6 +9254,13 @@ function tbAnimatePacket(path, color, label) {
       dot.setAttribute('cy', y);
       if (t < 1) requestAnimationFrame(step);
       else {
+        // Update packet headers at each hop (TTL decrement, MAC swap)
+        if (packetInfo && toDev.interfaces) {
+          packetInfo.ttl = Math.max(0, (packetInfo.ttl || 64) - 1);
+          const nextIfc = toDev.interfaces.find(i => i.mac);
+          if (nextIfc) packetInfo.dstMac = nextIfc.mac;
+          tbShowPacketInspection(packetInfo);
+        }
         setTimeout(() => { dot.remove(); animate(idx + 1); }, 100);
       }
     };
@@ -8596,7 +9326,9 @@ function tbExecPing() {
   const result = tbSimPing(tbState, srcId, dstIp);
   tbShowSimLog(result.log);
   if (result.path && result.path.length >= 2) {
-    tbAnimatePacket(result.path, result.success ? '#22c55e' : '#ef4444', 'ICMP');
+    const srcDev = tbState.devices.find(d => d.id === srcId);
+    const pktInfo = tbBuildPacketHeaders(srcDev, dstDev, { protocol: 'ICMP (1)', flags: 'Echo Request', payload: 'Ping' });
+    tbAnimatePacket(result.path, result.success ? '#22c55e' : '#ef4444', 'ICMP', pktInfo);
   }
   if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
 }
@@ -8612,7 +9344,9 @@ function tbExecArp() {
   const result = tbSimARP(tbState, srcId, dstIp);
   tbShowSimLog(result.log);
   if (result.path && result.path.length >= 2) {
-    tbAnimatePacket(result.path, '#3b82f6', 'ARP');
+    const srcDev = tbState.devices.find(d => d.id === srcId);
+    const arpInfo = tbBuildPacketHeaders(srcDev, dstDev, { etherType: '0x0806 (ARP)', protocol: 'ARP', flags: 'Who has ' + dstIp + '?', dstMac: 'ff:ff:ff:ff:ff:ff' });
+    tbAnimatePacket(result.path, '#3b82f6', 'ARP', arpInfo);
   }
   if (tbConfigPanelDeviceId) tbSwitchConfigTab(tbActiveConfigTab);
 }
@@ -8743,6 +9477,13 @@ function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
       qosConfig: dd.qosConfig || null,
       wirelessConfig: dd.wirelessConfig || null,
       dnsRecords: dd.dnsRecords || [],
+      // v4.31.0 — BGP, EIGRP, DNSSEC, Attack scenarios
+      bgpConfig: dd.bgpConfig || null,
+      eigrpConfig: dd.eigrpConfig || null,
+      dnssecEnabled: dd.dnssecEnabled || false,
+      dhcpSnooping: dd.dhcpSnooping || null,
+      daiEnabled: dd.daiEnabled || false,
+      portSecurity: dd.portSecurity || null,
     };
     tbRebuildConnectedRoutes(device);
     hostnameToId[dd.hostname] = id;
@@ -8811,6 +9552,12 @@ ADVANCED FEATURES (include when relevant):
 - qosConfig on routers/switches: { enabled: true, policies: [{ name: "voice", dscp: "ef", queue: "priority", match: "udp 5060" }] }. Include when user mentions QoS, priority, or voice.
 - wirelessConfig on wap/wlc: { ssid: "Corp-WiFi", security: "wpa3-enterprise", channel: "auto", band: "5ghz", mode: "802.11ax" }.
 - IPv6: interfaces can have ipv6 field (e.g. "2001:db8::1") and ipv6Prefix (default 64). Include when user mentions IPv6 or dual-stack.
+- bgpConfig on routers: { asn: 65001, routerId: "1.1.1.1", neighbors: [{ ip: "10.0.0.2", remoteAs: 65002, type: "ebgp", state: "Idle" }], networks: ["192.168.1.0/24"], enabled: true }. Include when user mentions BGP, AS, autonomous system, eBGP, iBGP, or internet routing.
+- eigrpConfig on routers: { asn: 100, networks: [{ network: "192.168.1.0", wildcard: "0.0.0.255" }], enabled: true }. Include when user mentions EIGRP, enhanced interior gateway, or Cisco routing.
+- dnssecEnabled on dns-server: true/false. When true, DNS records should include DNSKEY, RRSIG, and DS records. Include when user mentions DNSSEC or signed DNS.
+- dhcpSnooping on switches: { enabled: true, trustedPorts: ["Fa0/1"] }. Include when user mentions DHCP snooping or rogue DHCP defense.
+- daiEnabled on switches: true/false. Dynamic ARP Inspection. Include when user mentions DAI or ARP spoofing defense.
+- portSecurity on switches: { enabled: true, maxMac: 1, violation: "shutdown" }. Include when user mentions port security or MAC flooding defense.
 
 TOPOLOGY TYPES — when the user asks for a physical topology, follow these EXACT patterns:
 - STAR: One central device (switch or router) at center (x:700,y:400). All other devices radiate outward in a circle around it. Every device connects ONLY to the center.
@@ -8836,7 +9583,9 @@ SCHEMA:
       "vpnConfig": {"peerIp": "", "psk": "secret123", "ikeVersion": "IKEv2", "encryption": "AES-256", "hashAlgo": "SHA-256", "dhGroup": 14},
       "vxlanConfig": [{"vni": 10000, "vtepIp": "10.0.0.1", "mappedVlan": 10, "mcastGroup": "239.1.1.1", "remoteVteps": ["10.0.0.2"], "floodAndLearn": true, "bgpEvpn": false}],
       "stpConfig": null, "ospfConfig": null, "qosConfig": null, "wirelessConfig": null,
-      "dnsRecords": [{"type": "A", "name": "web.corp.local", "value": "192.168.1.100", "ttl": 3600}]
+      "dnsRecords": [{"type": "A", "name": "web.corp.local", "value": "192.168.1.100", "ttl": 3600}],
+      "bgpConfig": null, "eigrpConfig": null, "dnssecEnabled": false,
+      "dhcpSnooping": null, "daiEnabled": false, "portSecurity": null
     }
   ],
   "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
@@ -9036,6 +9785,16 @@ function tbExpandScenario(scenario) {
     [/\bQoS\b/g, 'QoS (routers with qosConfig)'],
     [/\bIPv6\b/g, 'IPv6 (interfaces with ipv6 addresses)'],
     [/\bdual.stack\b/gi, 'dual-stack IPv4+IPv6 (interfaces with both ip and ipv6)'],
+    [/\bBGP\b/g, 'BGP (routers with bgpConfig, asn, neighbors)'],
+    [/\beBGP\b/gi, 'eBGP (bgpConfig with type ebgp, different ASNs)'],
+    [/\biBGP\b/gi, 'iBGP (bgpConfig with type ibgp, same ASN)'],
+    [/\bEIGRP\b/g, 'EIGRP (routers with eigrpConfig enabled)'],
+    [/\bautonomous system\b/gi, 'Autonomous System (routers with bgpConfig asn)'],
+    [/\bDNSSEC\b/g, 'DNSSEC (dns-server with dnssecEnabled and DNSKEY/RRSIG/DS records)'],
+    [/\bARP spoof\b/gi, 'ARP spoofing defense (switches with daiEnabled)'],
+    [/\bDHCP snooping\b/gi, 'DHCP snooping (switches with dhcpSnooping enabled)'],
+    [/\bport security\b/gi, 'port security (switches with portSecurity enabled)'],
+    [/\bnetwork hardening\b/gi, 'hardened network (switches with dhcpSnooping, daiEnabled, portSecurity)'],
   ];
   expansions.forEach(([re, replacement]) => {
     if (re.test(expanded)) expanded = expanded.replace(re, replacement);
@@ -11095,6 +11854,221 @@ const TB_LABS = [
         title: 'Use traceroute and ARP',
         instruction: 'On **PC-Alice** CLI, run:\n\n• `traceroute 10.0.0.50` — see each hop to the WebServer\n• `show arp` — see the ARP table (IP → MAC mappings)\n\n**traceroute** shows every router between source and destination. Each hop decrements the TTL by 1.\n\n**ARP table** shows which MACs you\'ve learned. You should see the gateway\'s MAC (192.168.1.1) since all cross-subnet traffic goes through it.\n\n**CompTIA 7-step troubleshooting**: 1. Identify problem → 2. Theory → 3. Test theory → 4. Plan → 5. Implement → 6. Verify → 7. Document',
         hint: 'ARP maps IP → MAC. It\'s Layer 2.5 (between L2 and L3). ARP requests are broadcast, ARP replies are unicast.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  // ── v4.31.0 Labs ──
+  {
+    id: 'packet-anatomy',
+    title: 'Packet Anatomy Lab',
+    objective: '1.1',
+    difficulty: 'Beginner',
+    duration: '10 min',
+    description: 'Watch packets traverse a network and inspect L2/L3/L4 headers in real-time. Learn how MAC addresses, IPs, ports, and TTL work together.',
+    steps: [
+      {
+        title: 'Build a simple network',
+        instruction: 'Drag a **Router**, a **Switch**, and 2 **PCs** onto the canvas.\n\nCable them: PC1 → Switch → Router, PC2 → Switch.\n\nConfigure IPs:\n• Router Gi0/0: `192.168.1.1/24`\n• PC1 eth0: `192.168.1.10/24` gateway `192.168.1.1`\n• PC2 eth0: `192.168.1.20/24` gateway `192.168.1.1`',
+        hint: 'Every endpoint needs an IP, subnet mask, and gateway pointing to the nearest router.',
+        check: (s) => s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip && i.gateway)).length >= 2,
+        feedback: (s) => { const ready = s.devices.filter(d => d.type === 'pc' && d.interfaces.some(i => i.ip && i.gateway)).length; return ready < 2 ? `${ready}/2 PCs configured with IP and gateway.` : null; },
+      },
+      {
+        title: 'Ping and watch the packet inspector',
+        instruction: 'Click **Ping** in the toolbar → select PC1 as source and PC2 as destination → click Ping.\n\nWatch the **Packet Inspection** panel appear! It shows:\n• **Layer 2**: Source/Destination MAC addresses, EtherType\n• **Layer 3**: Source/Destination IPs, Protocol (ICMP), TTL\n• **Layer 4**: Ports and flags\n\nNotice how the TTL decrements at each hop and the MAC addresses change when crossing a router.',
+        hint: 'The MAC address changes at each L2 hop (device), but the IP addresses stay the same end-to-end. This is the key difference between L2 and L3.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Send ARP and inspect',
+        instruction: 'Click **Ping** → select PC1 and PC2 → click **ARP**.\n\nNotice in the packet inspector:\n• EtherType is **0x0806 (ARP)** — not IPv4!\n• Destination MAC is **ff:ff:ff:ff:ff:ff** (broadcast)\n• The request is "Who has 192.168.1.20?"\n\n**Key concept**: ARP is Layer 2.5 — it bridges L2 (MAC) and L3 (IP). Without ARP, devices wouldn\'t know which MAC to put in the frame header.',
+        hint: 'ARP Request = broadcast (ff:ff:ff:ff:ff:ff). ARP Reply = unicast (directly back to requester).',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'stp-convergence',
+    title: 'STP Convergence Lab',
+    objective: '2.1',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Watch STP elect a root bridge, calculate port roles, and block redundant paths — all animated in real-time.',
+    autoSetup: (state) => {
+      const makeSW = (id, x, y, name, priority) => ({
+        id, type: 'switch', x, y, hostname: name,
+        interfaces: Array.from({ length: 8 }, (_, i) => ({ name: `Fa0/${i+1}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:00:SC:${id.slice(-2)}:${String(i+1).padStart(2,'0')}:01`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 })),
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: { priority, mode: 'rstp', portStates: {} }, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [],
+        bgpConfig: null, eigrpConfig: null, dnssecEnabled: false, dhcpSnooping: null, daiEnabled: false, portSecurity: null });
+      const sw1 = makeSW('d_sc_sw1', 400, 200, 'SW-Core', 4096);
+      const sw2 = makeSW('d_sc_sw2', 200, 500, 'SW-Left', 32768);
+      const sw3 = makeSW('d_sc_sw3', 600, 500, 'SW-Right', 32768);
+      state.devices.push(sw1, sw2, sw3);
+      // Triangle cables
+      const c1 = { id: 'c_sc_1', from: sw1.id, to: sw2.id, type: 'cat6', fromIface: 'Fa0/1', toIface: 'Fa0/1' };
+      const c2 = { id: 'c_sc_2', from: sw1.id, to: sw3.id, type: 'cat6', fromIface: 'Fa0/2', toIface: 'Fa0/1' };
+      const c3 = { id: 'c_sc_3', from: sw2.id, to: sw3.id, type: 'cat6', fromIface: 'Fa0/2', toIface: 'Fa0/2' };
+      sw1.interfaces[0].cableId = c1.id; sw2.interfaces[0].cableId = c1.id;
+      sw1.interfaces[1].cableId = c2.id; sw3.interfaces[0].cableId = c2.id;
+      sw2.interfaces[1].cableId = c3.id; sw3.interfaces[1].cableId = c3.id;
+      state.cables.push(c1, c2, c3);
+    },
+    steps: [
+      {
+        title: 'Examine the STP triangle',
+        instruction: 'You have a triangle of 3 switches — this creates a **Layer 2 loop**! Without STP, broadcast frames would circle forever (broadcast storm).\n\nDouble-click **SW-Core** → **STP** tab. Notice:\n• Priority: **4096** (very low = will become root)\n• Mode: RSTP\n\nCheck **SW-Left** and **SW-Right** — both have priority **32768** (default).',
+        hint: 'Lower bridge priority wins root election. If tied, lowest MAC wins. Default priority is 32768.',
+        check: (s) => s.devices.filter(d => d.stpConfig).length >= 3,
+        feedback: (s) => { const stp = s.devices.filter(d => d.stpConfig).length; return stp < 3 ? `${stp}/3 switches have STP configured.` : null; },
+      },
+      {
+        title: 'Run convergence',
+        instruction: 'On any switch\'s **STP** tab, click **▶ Run Convergence**.\n\nWatch the animation:\n1. BPDUs (Bridge Protocol Data Units) flow from SW-Core to the other switches\n2. SW-Core is elected **Root Bridge** (lowest priority 4096)\n3. One port on the SW-Left↔SW-Right link goes to **BLOCKING** — breaking the loop!\n\nCheck the STP tab on each switch to see the port states update.',
+        hint: 'Root bridge sends BPDUs every 2 seconds. Non-root switches forward BPDUs toward the root port (the port closest to root bridge).',
+        check: (s) => s.devices.some(d => d.stpConfig && Object.values(d.stpConfig.portStates || {}).includes('blocking')),
+        feedback: (s) => { const blocking = s.devices.filter(d => d.stpConfig && Object.values(d.stpConfig.portStates || {}).includes('blocking')).length; return blocking === 0 ? 'Click "Run Convergence" on any switch\'s STP tab.' : null; },
+      },
+      {
+        title: 'Understand port roles',
+        instruction: 'After convergence, check the CLI on each switch: `show spanning-tree detail`\n\n**Port Roles** (N10-009 objective 2.1):\n• **Root Port** — port closest to root bridge (forwarding)\n• **Designated Port** — port that forwards on each segment (forwarding)\n• **Blocked/Alternate Port** — redundant port (blocking to prevent loop)\n\nSW-Core has all **designated** ports (it\'s the root). The other switches each have one **root** port and potentially one **blocked** port.',
+        hint: 'RSTP convergence: ~1-2 seconds. Classic STP: 30-50 seconds (15s listening + 15s learning). RSTP uses proposal/agreement instead of timers.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'qos-voice-priority',
+    title: 'QoS Voice Priority Lab',
+    objective: '4.6',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Configure QoS policies to prioritize voice traffic (DSCP EF) over data. See how classification and queuing affect packet delivery.',
+    steps: [
+      {
+        title: 'Build a voice network',
+        instruction: 'Drag a **Router**, a **Switch**, 2 **PCs**, and 2 **VoIP** phones.\n\nCable them all to the switch, and the switch to the router.\n\nConfigure IPs:\n• Router: `10.0.0.1/24`\n• PCs: `10.0.0.10-11/24` with gateway\n• VoIP phones: `10.0.0.50-51/24` with gateway',
+        hint: 'VoIP uses RTP over UDP, typically ports 5060 (SIP signaling) and 16384-32767 (media).',
+        check: (s) => s.devices.filter(d => d.type === 'voip').length >= 2 && s.devices.filter(d => d.type === 'router').length >= 1,
+        feedback: (s) => { const voip = s.devices.filter(d => d.type === 'voip').length; return voip < 2 ? `${voip}/2 VoIP phones placed.` : null; },
+      },
+      {
+        title: 'Configure QoS policies',
+        instruction: 'Double-click the **Router** → **QoS** tab → Enable QoS.\n\nAdd these policies:\n1. Name: `voice`, Match: `udp 5060`, DSCP: `ef`, Queue: `priority`\n2. Name: `data`, Match: `any`, DSCP: `default`, Queue: `best-effort`\n\n**DSCP EF** (Expedited Forwarding) = decimal 46 = **priority queue**. Voice gets processed first, data waits.',
+        hint: 'DSCP values: EF (46) = voice, AF41 (34) = video, AF21 (18) = low-latency data, CS0 (0) = best effort.',
+        check: (s) => s.devices.some(d => d.qosConfig?.enabled && d.qosConfig.policies?.length >= 2),
+        feedback: (s) => { const qos = s.devices.find(d => d.qosConfig?.enabled); if (!qos) return 'Enable QoS on the router.'; return qos.qosConfig.policies?.length < 2 ? `${qos.qosConfig.policies.length}/2 policies configured.` : null; },
+      },
+      {
+        title: 'Test with ping and observe QoS',
+        instruction: 'Ping from **PC1** to **PC2** and watch the packet inspector.\n\nNotice the **payload** field shows `QoS: data (best-effort)` — regular traffic.\n\nNow ping between VoIP phones. If you had voice-matching traffic, it would show `QoS: voice (priority)` with lower delay.\n\nRun `show qos counters` on the router CLI to see queue statistics.\n\n**Key concept**: QoS doesn\'t create bandwidth — it **prioritizes** traffic. Priority queue gets serviced first, best-effort waits. During congestion, best-effort packets may be **tail-dropped**.',
+        hint: 'QoS mechanisms: Classification → Marking → Queuing → Scheduling → Policing/Shaping. Remember: trust boundaries at access layer.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'bgp-peering',
+    title: 'BGP Peering Lab',
+    objective: '1.4',
+    difficulty: 'Advanced',
+    duration: '15 min',
+    description: 'Configure eBGP between two autonomous systems. Negotiate peers, exchange routes, and understand AS_PATH — the backbone of Internet routing.',
+    steps: [
+      {
+        title: 'Build two autonomous systems',
+        instruction: 'Build 2 separate networks connected by 2 **routers** (ISP edge routers):\n\n• **R1** (AS 65001): `10.1.0.1/30` on Gi0/0 (toward R2), `192.168.1.1/24` on Gi0/1 (internal)\n• **R2** (AS 65002): `10.1.0.2/30` on Gi0/0 (toward R1), `172.16.0.1/24` on Gi0/1 (internal)\n\nCable R1 Gi0/0 ↔ R2 Gi0/0 with **fiber**.\nAdd a PC and switch to each side.',
+        hint: 'eBGP peers are typically on a /30 point-to-point link. The /30 gives exactly 2 usable IPs.',
+        check: (s) => s.devices.filter(d => d.type === 'router' || d.type === 'isp-router').length >= 2,
+        feedback: (s) => { const routers = s.devices.filter(d => d.type === 'router' || d.type === 'isp-router').length; return routers < 2 ? `${routers}/2 routers placed.` : null; },
+      },
+      {
+        title: 'Configure BGP on both routers',
+        instruction: 'On **R1** → **BGP** tab:\n• Enable BGP, ASN: `65001`, Router ID: `1.1.1.1`\n• Add neighbor: IP `10.1.0.2`, Remote AS `65002`, Type `eBGP`\n• Add network: `192.168.1.0/24`\n\nOn **R2** → **BGP** tab:\n• Enable BGP, ASN: `65002`, Router ID: `2.2.2.2`\n• Add neighbor: IP `10.1.0.1`, Remote AS `65001`, Type `eBGP`\n• Add network: `172.16.0.0/24`',
+        hint: 'BGP neighbors must be explicitly configured on BOTH sides. Unlike OSPF, BGP does not auto-discover neighbors.',
+        check: (s) => s.devices.filter(d => d.bgpConfig?.enabled && d.bgpConfig.neighbors.length > 0).length >= 2,
+        feedback: (s) => { const bgp = s.devices.filter(d => d.bgpConfig?.enabled && d.bgpConfig.neighbors.length > 0).length; return bgp < 2 ? `${bgp}/2 routers have BGP configured with neighbors.` : null; },
+      },
+      {
+        title: 'Negotiate and verify',
+        instruction: 'On R1\'s **BGP** tab, click **▶ Negotiate Peers**.\n\nWatch the purple BGP UPDATE animation! Both peers should show **Established** state.\n\nVerify on CLI:\n• `show ip bgp summary` — see neighbor status (Established = good!)\n• `show ip bgp` — see the BGP routing table with learned networks\n• `show running-config` — see the full BGP config block\n\n**Key concepts**: eBGP uses TCP port 179. AS_PATH prevents loops (a router won\'t accept a route with its own ASN in the path).',
+        hint: 'BGP states: Idle → Connect → OpenSent → OpenConfirm → Established. If stuck in Active, check neighbor IP and AS.',
+        check: (s) => s.devices.some(d => d.bgpConfig?.neighbors?.some(n => n.state === 'Established')),
+        feedback: (s) => { const est = s.devices.filter(d => d.bgpConfig?.neighbors?.some(n => n.state === 'Established')).length; return est === 0 ? 'Click "Negotiate Peers" on a BGP tab.' : null; },
+      },
+    ]
+  },
+  {
+    id: 'attack-defense',
+    title: 'Network Attack & Defense Lab',
+    objective: '4.2',
+    difficulty: 'Intermediate',
+    duration: '15 min',
+    description: 'Simulate ARP spoofing, VLAN hopping, and rogue DHCP attacks — then enable DAI, DHCP snooping, and port security to defend against them.',
+    steps: [
+      {
+        title: 'Build a vulnerable network',
+        instruction: 'Drag a **Router**, 2 **Switches**, and 3 **PCs** onto the canvas.\n\nCable: Router → SW1 → SW2, PCs to switches.\n\nConfigure IPs on all PCs with gateway pointing to the router.\n\nThis network has **no security** — it\'s vulnerable to Layer 2 attacks!',
+        hint: 'Most L2 attacks target switches because switches blindly trust MAC addresses and ARP replies.',
+        check: (s) => s.devices.filter(d => d.type.indexOf('switch') >= 0).length >= 2 && s.devices.filter(d => d.type === 'pc').length >= 2,
+        feedback: (s) => { const sw = s.devices.filter(d => d.type.indexOf('switch') >= 0).length; const pc = s.devices.filter(d => d.type === 'pc').length; return `${sw}/2 switches, ${pc}/2 PCs placed.`; },
+      },
+      {
+        title: 'Launch attacks',
+        instruction: 'Double-click **SW1** → **Attack** tab.\n\nClick each attack button:\n• **⚡ ARP Spoof** — see the red fake ARP packet! An attacker could redirect traffic.\n• **⚡ VLAN Hop** — double-tagging exploits the native VLAN\n• **⚡ Rogue DHCP** — attacker gives out malicious gateway/DNS\n\nAll three succeed because no defenses are configured!',
+        hint: 'In the real world, these attacks happen on the LAN. An attacker plugs into an open port and starts poisoning.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Enable defenses',
+        instruction: 'On **SW1** → **Attack** tab, enable:\n\n1. **DHCP Snooping** ✓ — mark the uplink port (to router) as trusted\n2. **DAI (Dynamic ARP Inspection)** ✓ — validates ARP against binding table\n3. **Port Security** ✓ — Max MAC: 1, Violation: shutdown\n\nDo the same on **SW2**.',
+        hint: 'DHCP Snooping builds a binding table (IP↔MAC↔port↔VLAN). DAI uses this table to validate ARP. They work together.',
+        check: (s) => s.devices.some(d => d.dhcpSnooping?.enabled) && s.devices.some(d => d.daiEnabled),
+        feedback: (s) => { const sn = s.devices.filter(d => d.dhcpSnooping?.enabled).length; const dai = s.devices.filter(d => d.daiEnabled).length; return `DHCP Snooping: ${sn} switch(es), DAI: ${dai} switch(es).`; },
+      },
+      {
+        title: 'Test defenses',
+        instruction: 'Now try the attacks again! Click **⚡ ARP Spoof** — it\'s **blocked by DAI**! 🛡️\n\nClick **⚡ Rogue DHCP** — **blocked by DHCP Snooping**! 🛡️\n\nVerify on CLI:\n• `show ip dhcp snooping` — see trusted/untrusted ports\n• `show ip arp inspection` — see DAI status\n\n**Key concept**: defense-in-depth means layering multiple controls. Each attack has a specific countermeasure.',
+        hint: 'Port security limits MAC addresses per port. Violation modes: shutdown (disable port), restrict (drop + log), protect (drop silently).',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'dnssec-chain',
+    title: 'DNSSEC Chain of Trust Lab',
+    objective: '1.6',
+    difficulty: 'Advanced',
+    duration: '12 min',
+    description: 'Enable DNSSEC on a DNS server, add signing records, and validate the chain of trust with dig +dnssec. Understand how RRSIG, DNSKEY, and DS work together.',
+    steps: [
+      {
+        title: 'Build a DNS infrastructure',
+        instruction: 'Drag a **DNS Server**, a **Router**, a **Switch**, and 2 **PCs**.\n\nCable everything through the switch to the router.\n\nConfigure IPs:\n• DNS Server: `10.0.0.53/24`\n• PCs: `10.0.0.10-11/24` with gateway `10.0.0.1`\n\nOn the DNS Server → **DNS** tab, add these records:\n• A record: `web.example.com` → `10.0.0.100`\n• MX record: `example.com` → `10 mail.example.com`',
+        hint: 'DNS servers typically use port 53 (UDP for queries, TCP for zone transfers).',
+        check: (s) => s.devices.some(d => d.type === 'dns-server' && d.dnsRecords?.length >= 2),
+        feedback: (s) => { const dns = s.devices.find(d => d.type === 'dns-server'); if (!dns) return 'Add a DNS Server.'; return dns.dnsRecords?.length < 2 ? `${dns.dnsRecords?.length || 0}/2 DNS records added.` : null; },
+      },
+      {
+        title: 'Enable DNSSEC',
+        instruction: 'On the DNS Server → **DNS** tab, scroll down to the **🔒 DNSSEC** section.\n\nCheck **Enable DNSSEC**.\n\nNotice the new records automatically generated:\n• **DNSKEY** — the zone\'s public key\n• **RRSIG** — digital signatures over your A and MX records\n• **DS** — Delegation Signer (hash of DNSKEY, stored in parent zone)\n\nThese three record types form the **chain of trust**.',
+        hint: 'DNSSEC does NOT encrypt DNS — it only authenticates. Use DoH (DNS over HTTPS) or DoT (DNS over TLS) for encryption.',
+        check: (s) => s.devices.some(d => d.dnssecEnabled),
+        feedback: (s) => { const sec = s.devices.filter(d => d.dnssecEnabled).length; return sec === 0 ? 'Enable DNSSEC on the DNS Server.' : null; },
+      },
+      {
+        title: 'Validate with dig +dnssec',
+        instruction: 'On any **PC** → CLI tab, run:\n\n• `dig +dnssec web.example.com`\n\nLook at the output:\n• **AD flag: SET** means the response is **Authenticated Data** ✓\n• Each record shows its **RRSIG** (signature) and **DNSKEY** (public key)\n• The chain: record → RRSIG validates → DNSKEY verifies → DS in parent zone\n\nAlso try: `show dnssec` on the DNS Server to see the signing status.\n\n**Without DNSSEC**, an attacker could perform **DNS cache poisoning** — injecting fake records to redirect users to malicious sites.',
+        hint: 'Chain of trust: Root (.) → TLD (.com) → Domain (example.com). Each level signs the level below it using DS records.',
         check: () => true,
         feedback: () => null,
       },

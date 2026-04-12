@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.2"));
+test('APP_VERSION is 4.31.0', js.includes("const APP_VERSION = '4.31.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.2'));
+test('SW cache bumped to v4.31.0', sw.includes('netplus-v4.31.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.2'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.2'"));
+test('SW cache bumped to v4.31.0 (2)', sw.includes('netplus-v4.31.0'));
+test('APP_VERSION bumped to 4.31.0 (2)', js.includes("APP_VERSION = '4.31.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1494,6 +1494,142 @@ test('evaluateMilestones checks labs_all', /maybe\('labs_all'/.test(js));
 test('Progress page shows lab completion stats', /Labs completed/.test(js));
 test('Progress page shows difficulty breakdown', /Beginner[\s\S]{0,20}Intermediate[\s\S]{0,20}Advanced/.test(js) || /labsByDiff/.test(js));
 test('Progress page lab coverage bar', /ps-coverage-fill[\s\S]{0,50}labPct/.test(js));
+
+// ═══════════════════════════════════════════
+// v4.31.0 — BGP, EIGRP, DNSSEC, Packet Inspection, STP Convergence, QoS Enforcement, Attack Scenarios
+// ═══════════════════════════════════════════
+console.log('\n\x1b[36m── v4.31.0: A+ Features ──\x1b[0m');
+
+// BGP
+test('BGP: tbRenderBgpTab function exists', js.includes('function tbRenderBgpTab'));
+test('BGP: tbSetBgpField function exists', js.includes('function tbSetBgpField'));
+test('BGP: tbAddBgpNeighbor function exists', js.includes('function tbAddBgpNeighbor'));
+test('BGP: tbNegotiateBgp function exists', js.includes('function tbNegotiateBgp'));
+test('BGP: bgpConfig migration default', js.includes("d.bgpConfig = d.bgpConfig || null"));
+test('BGP: tab button in HTML', html.includes('data-tb-tab="bgp"'));
+test('BGP: tab visibility for routers', js.includes("tab === 'bgp'") && js.includes('!isRouter'));
+test('BGP: tab case in switch', js.includes("case 'bgp':") && js.includes('tbRenderBgpTab'));
+test('BGP: AI prompt includes bgpConfig', js.includes('bgpConfig on routers'));
+test('BGP: tbBuildFromAiPayload copies bgpConfig', js.includes('bgpConfig: dd.bgpConfig || null'));
+test('BGP: CLI show ip bgp', js.includes("show ip bgp'") || js.includes("show ip bgp summary"));
+test('BGP: CLI show ip bgp summary output', js.includes('Neighbor') && js.includes('PfxRcvd'));
+test('BGP: semantic expansion for BGP', /BGP.*bgpConfig/.test(js));
+test('BGP: show running-config includes BGP', js.includes("router bgp"));
+test('BGP: negotiate establishes peers', js.includes("n.state = 'Established'"));
+test('BGP: route exchange on negotiation', js.includes("type: 'bgp'") && js.includes('asPath'));
+test('BGP: bgp-peering lab exists', js.includes("id: 'bgp-peering'"));
+test('BGP: bgp-peering lab is advanced', /bgp-peering[\s\S]{0,200}Advanced/.test(js));
+
+// EIGRP
+test('EIGRP: tbRenderEigrpTab function exists', js.includes('function tbRenderEigrpTab'));
+test('EIGRP: tbSetEigrpField function exists', js.includes('function tbSetEigrpField'));
+test('EIGRP: tbAddEigrpNetwork function exists', js.includes('function tbAddEigrpNetwork'));
+test('EIGRP: eigrpConfig migration default', js.includes("d.eigrpConfig = d.eigrpConfig || null"));
+test('EIGRP: tab button in HTML', html.includes('data-tb-tab="eigrp"'));
+test('EIGRP: tab visibility for routers', js.includes("tab === 'eigrp'") && js.includes('!isRouter'));
+test('EIGRP: tab case in switch', js.includes("case 'eigrp':") && js.includes('tbRenderEigrpTab'));
+test('EIGRP: AI prompt includes eigrpConfig', js.includes('eigrpConfig on routers'));
+test('EIGRP: CLI show ip eigrp neighbors', js.includes("show ip eigrp neighbors"));
+test('EIGRP: CLI show ip eigrp topology', js.includes("show ip eigrp topology"));
+test('EIGRP: show running-config includes EIGRP', js.includes("router eigrp"));
+test('EIGRP: semantic expansion for EIGRP', /EIGRP.*eigrpConfig/.test(js));
+
+// DNSSEC
+test('DNSSEC: tbToggleDnssec function exists', js.includes('function tbToggleDnssec'));
+test('DNSSEC: tbValidateDnssecChain function exists', js.includes('function tbValidateDnssecChain'));
+test('DNSSEC: dnssecEnabled migration default', js.includes("d.dnssecEnabled = d.dnssecEnabled || false"));
+test('DNSSEC: toggle in DNS tab', js.includes('tbToggleDnssec'));
+test('DNSSEC: DNSKEY auto-generation', js.includes("type: 'DNSKEY'"));
+test('DNSSEC: RRSIG auto-generation', js.includes("type: 'RRSIG'"));
+test('DNSSEC: DS record auto-generation', js.includes("type: 'DS'"));
+test('DNSSEC: CLI dig +dnssec', js.includes("dig +dnssec"));
+test('DNSSEC: CLI show dnssec', js.includes("show dnssec"));
+test('DNSSEC: chain of trust validation', js.includes('Chain of trust'));
+test('DNSSEC: AD flag in output', js.includes('AD flag'));
+test('DNSSEC: AI prompt includes dnssecEnabled', js.includes('dnssecEnabled'));
+test('DNSSEC: dnssec-chain lab exists', js.includes("id: 'dnssec-chain'"));
+test('DNSSEC: dnssec-chain lab is advanced', /dnssec-chain[\s\S]{0,200}Advanced/.test(js));
+test('DNSSEC: grade rule for DNS servers', js.includes("id: 'dnssec-on-dns'"));
+
+// Packet Inspection
+test('Packet Inspection: tbShowPacketInspection function exists', js.includes('function tbShowPacketInspection'));
+test('Packet Inspection: tbClosePacketInspection function exists', js.includes('function tbClosePacketInspection'));
+test('Packet Inspection: tbBuildPacketHeaders function exists', js.includes('function tbBuildPacketHeaders'));
+test('Packet Inspection: panel div in HTML', html.includes('tb-packet-inspect'));
+test('Packet Inspection: CSS for panel', css.includes('.tb-packet-inspect'));
+test('Packet Inspection: L2 header display', js.includes('Layer 2') && js.includes('Src MAC'));
+test('Packet Inspection: L3 header display', js.includes('Layer 3') && js.includes('Src IP'));
+test('Packet Inspection: L4 header display', js.includes('Layer 4') && js.includes('Src Port'));
+test('Packet Inspection: TTL decrement during animation', js.includes('packetInfo.ttl') && js.includes('- 1'));
+test('Packet Inspection: MAC swap at each hop', js.includes('packetInfo.dstMac'));
+test('Packet Inspection: ping calls tbBuildPacketHeaders', js.includes('tbBuildPacketHeaders(srcDev, dstDev'));
+test('Packet Inspection: ARP uses broadcast MAC', js.includes("dstMac: 'ff:ff:ff:ff:ff:ff'"));
+test('Packet Inspection: packet-anatomy lab exists', js.includes("id: 'packet-anatomy'"));
+test('Packet Inspection: packet-anatomy lab is beginner', /packet-anatomy[\s\S]{0,200}Beginner/.test(js));
+
+// STP Convergence
+test('STP Convergence: tbRunStpConvergence function exists', js.includes('function tbRunStpConvergence'));
+test('STP Convergence: tbCalcRootBridge function exists', js.includes('function tbCalcRootBridge'));
+test('STP Convergence: tbCalcPortRoles function exists', js.includes('function tbCalcPortRoles'));
+test('STP Convergence: Run Convergence button in STP tab', js.includes('tbRunStpConvergence()'));
+test('STP Convergence: root bridge election by priority', js.includes('pri < bestPri'));
+test('STP Convergence: BPDU animation', js.includes("'BPDU'"));
+test('STP Convergence: blocking port assignment', js.includes("'forwarding' : 'blocking'"));
+test('STP Convergence: forwarding port assignment', js.includes("role: 'forwarding'"));
+test('STP Convergence: CLI show spanning-tree detail', js.includes('show spanning-tree detail'));
+test('STP Convergence: stp-convergence lab exists', js.includes("id: 'stp-convergence'"));
+test('STP Convergence: stp-convergence lab has autoSetup', /stp-convergence[\s\S]{0,300}autoSetup/.test(js));
+
+// QoS Enforcement
+test('QoS Enforcement: tbQosClassify function exists', js.includes('function tbQosClassify'));
+test('QoS Enforcement: tbQosEnqueue function exists', js.includes('function tbQosEnqueue'));
+test('QoS Enforcement: classification by policy match', js.includes('pol.match') && js.includes('classification'));
+test('QoS Enforcement: priority queue has lowest delay', js.includes("priority: 0"));
+test('QoS Enforcement: QoS applied during packet animation', js.includes('tbQosClassify(fromDev, packetInfo)'));
+test('QoS Enforcement: CLI show qos counters', js.includes("show qos counters"));
+test('QoS Enforcement: CLI show qos queue', js.includes("show qos queue"));
+test('QoS Enforcement: qos-voice-priority lab exists', js.includes("id: 'qos-voice-priority'"));
+test('QoS Enforcement: qos-voice-priority lab is intermediate', /qos-voice-priority[\s\S]{0,200}Intermediate/.test(js));
+
+// Attack Scenarios
+test('Attack: tbRenderAttackTab function exists', js.includes('function tbRenderAttackTab'));
+test('Attack: tbSimArpSpoof function exists', js.includes('function tbSimArpSpoof'));
+test('Attack: tbSimVlanHopping function exists', js.includes('function tbSimVlanHopping'));
+test('Attack: tbSimRogueDhcp function exists', js.includes('function tbSimRogueDhcp'));
+test('Attack: DHCP Snooping config', js.includes('function tbSetDhcpSnooping'));
+test('Attack: DAI config', js.includes('function tbSetDai'));
+test('Attack: Port Security config', js.includes('function tbSetPortSecurity'));
+test('Attack: dhcpSnooping migration default', js.includes("d.dhcpSnooping = d.dhcpSnooping || null"));
+test('Attack: daiEnabled migration default', js.includes("d.daiEnabled = d.daiEnabled || false"));
+test('Attack: portSecurity migration default', js.includes("d.portSecurity = d.portSecurity || null"));
+test('Attack: DAI blocks ARP spoof', js.includes('DAI blocked'));
+test('Attack: DHCP snooping blocks rogue', js.includes('DHCP Snooping blocked'));
+test('Attack: tab button in HTML', html.includes('data-tb-tab="attack"'));
+test('Attack: tab case in switch', js.includes("case 'attack':") && js.includes('tbRenderAttackTab'));
+test('Attack: CLI show ip dhcp snooping', js.includes("show ip dhcp snooping"));
+test('Attack: CLI show ip arp inspection', js.includes("show ip arp inspection"));
+test('Attack: attack-defense lab exists', js.includes("id: 'attack-defense'"));
+test('Attack: attack-defense lab is intermediate', /attack-defense[\s\S]{0,200}Intermediate/.test(js));
+test('Attack: grade rule for switch snooping', js.includes("id: 'switch-has-snooping'"));
+test('Attack: grade rule for BGP neighbors', js.includes("id: 'bgp-has-neighbor'"));
+test('Attack: semantic expansion for ARP spoof', /ARP spoof.*daiEnabled/.test(js));
+test('Attack: semantic expansion for DHCP snooping', /DHCP snooping.*dhcpSnooping/.test(js));
+test('Attack: AI prompt includes dhcpSnooping', js.includes('dhcpSnooping on switches'));
+test('Attack: AI prompt includes daiEnabled', js.includes('daiEnabled on switches'));
+test('Attack: AI prompt includes portSecurity', js.includes('portSecurity on switches'));
+
+// Cross-cutting
+test('Version: APP_VERSION is 4.31.0', js.includes("APP_VERSION = '4.31.0'"));
+test('Version: HTML badge is v4.31.0', html.includes('v4.31.0'));
+test('Version: SW cache is netplus-v4.31.0', sw.includes('netplus-v4.31.0'));
+test('Help command includes BGP', js.includes('show ip bgp') && js.includes('BGP'));
+test('Help command includes EIGRP', js.includes('show ip eigrp'));
+test('Help command includes DNSSEC', js.includes('dig +dnssec'));
+test('Help command includes DHCP snooping', js.includes('show ip dhcp snooping'));
+test('Schema includes bgpConfig', js.includes('"bgpConfig": null'));
+test('Schema includes eigrpConfig', js.includes('"eigrpConfig": null'));
+test('Schema includes dnssecEnabled', js.includes('"dnssecEnabled": false'));
+test('Total labs >= 28', (js.match(/id: '/g) || []).length >= 28);
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
