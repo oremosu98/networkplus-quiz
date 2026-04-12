@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.30.1';
+const APP_VERSION = '4.30.2';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -44,6 +44,7 @@ const STORAGE = {
   TOPOLOGIES: 'nplus_topologies',
   TOPOLOGY_DRAFT: 'nplus_topology_draft',
   TB_COACH_CACHE: 'nplus_tb_coach_cache',
+  LAB_COMPLETIONS: 'nplus_lab_completions',
 };
 
 // ── STATE ──
@@ -808,6 +809,34 @@ function _renderProgressSummary(rows) {
       <div class="ps-l">Topics touched &middot; ${coveragePct}%</div>
       <div class="ps-coverage-bar"><div class="ps-coverage-fill" style="width:${coveragePct}%"></div></div>
     </div>`;
+  // Lab progress section
+  try {
+    const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
+    const totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
+    const labsDone = Object.keys(labCompletions).filter(k => (typeof TB_LABS !== 'undefined') ? TB_LABS.some(l => l.id === k) : true).length;
+    const labPct = totalLabs ? Math.round((labsDone / totalLabs) * 100) : 0;
+    const labsByDiff = { Beginner: { done: 0, total: 0 }, Intermediate: { done: 0, total: 0 }, Advanced: { done: 0, total: 0 } };
+    if (typeof TB_LABS !== 'undefined') {
+      TB_LABS.forEach(l => {
+        const d = l.difficulty || 'Intermediate';
+        if (!labsByDiff[d]) labsByDiff[d] = { done: 0, total: 0 };
+        labsByDiff[d].total++;
+        if (labCompletions[l.id]) labsByDiff[d].done++;
+      });
+    }
+    el.innerHTML += `
+      <div class="ps-lab-section" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="ps-stat" style="min-width:auto"><div class="ps-n">🧪 ${labsDone}<span class="ps-n-sub">/${totalLabs}</span></div><div class="ps-l">Labs completed &middot; ${labPct}%</div>
+            <div class="ps-coverage-bar" style="margin-top:4px"><div class="ps-coverage-fill" style="width:${labPct}%;background:var(--accent)"></div></div>
+          </div>
+          ${Object.entries(labsByDiff).filter(([,v]) => v.total > 0).map(([diff, v]) => {
+            const icon = diff === 'Beginner' ? '🟢' : diff === 'Intermediate' ? '🟡' : '🔴';
+            return `<div class="ps-stat" style="min-width:auto"><div class="ps-n">${icon} ${v.done}/${v.total}</div><div class="ps-l">${diff}</div></div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } catch (_) {}
 }
 
 function _renderProgressGrouped(rows) {
@@ -2881,7 +2910,12 @@ const MILESTONE_DEFS = [
   { id: 'daily_challenge_7',label: 'Daily disciple',      desc: '7-day Daily Challenge streak',           icon: '📅' },
   { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' },
   // ── v4.13: Hardcore exam (#48) ──
-  { id: 'hardcore_pass',    label: 'Hardcore pass',       desc: 'Score 720+ on a Hardcore exam simulation', icon: '🔥' }
+  { id: 'hardcore_pass',    label: 'Hardcore pass',       desc: 'Score 720+ on a Hardcore exam simulation', icon: '🔥' },
+  // ── v4.30.2: Lab milestones ──
+  { id: 'first_lab',        label: 'Lab rat',             desc: 'Complete your first topology lab',         icon: '🧪' },
+  { id: 'labs_5',            label: 'Lab regular',         desc: 'Complete 5 different labs',                icon: '🔬' },
+  { id: 'labs_10',           label: 'Lab master',          desc: 'Complete 10 different labs',               icon: '🏗️' },
+  { id: 'labs_all',          label: 'Lab completionist',   desc: 'Complete every available lab',             icon: '🧬' },
 ];
 
 function evaluateMilestones() {
@@ -2976,6 +3010,17 @@ function evaluateMilestones() {
   const dc = getDailyChallenge();
   maybe('daily_challenge_7',  dc.bestStreak >= 7);
   maybe('daily_challenge_30', dc.bestStreak >= 30);
+
+  // Lab completion milestones
+  try {
+    const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
+    const labsDone = Object.keys(labCompletions).length;
+    const totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
+    maybe('first_lab', labsDone >= 1);
+    maybe('labs_5',    labsDone >= 5);
+    maybe('labs_10',   labsDone >= 10);
+    maybe('labs_all',  labsDone >= totalLabs);
+  } catch (_) {}
 
   return newlyUnlocked;
 }
@@ -10753,6 +10798,308 @@ const TB_LABS = [
       },
     ]
   },
+  // ── v4.30.2: 4 new beginner labs ──
+  {
+    id: 'ip-addressing-101',
+    title: 'IP Addressing 101',
+    objective: '1.5',
+    difficulty: 'Beginner',
+    duration: '10 min',
+    description: 'Learn the fundamentals of IPv4 addressing — IPs, subnet masks, and default gateways. Build a minimal network and make two PCs talk to each other.',
+    steps: [
+      {
+        title: 'Place your first devices',
+        instruction: 'Drag a **Router** and a **Switch** onto the canvas, then connect them with a cable.\n\nThe router is your **default gateway** — it\'s the door to other networks. The switch connects devices on the same network.',
+        hint: 'Every network needs at least one router (gateway) and one switch (to connect multiple devices).',
+        check: (s) => s.devices.some(d => d.type === 'router') && s.devices.some(d => d.type === 'switch') && s.cables.length >= 1,
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'router')) return 'Add a Router to the canvas.';
+          if (!s.devices.some(d => d.type === 'switch')) return 'Add a Switch to the canvas.';
+          if (s.cables.length < 1) return 'Connect the Router to the Switch with a cable.';
+          return null;
+        },
+      },
+      {
+        title: 'Add two PCs',
+        instruction: 'Drag **2 PCs** onto the canvas and cable each one to the **Switch**.\n\nPCs connect to switches — never directly to a router. The switch handles local traffic; the router handles traffic leaving the network.',
+        hint: 'In a real office, dozens of PCs plug into switches. The switch forwards frames using MAC addresses (Layer 2).',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2 && s.cables.length >= 3,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          if (pcs < 2) return `${pcs}/2 PCs placed.`;
+          if (s.cables.length < 3) return 'Cable both PCs to the switch.';
+          return null;
+        },
+      },
+      {
+        title: 'Give the Router an IP',
+        instruction: 'Double-click the **Router** → **Interfaces** tab. Set the connected interface IP to **192.168.1.1** with mask **255.255.255.0**.\n\nThis IP becomes the **default gateway** for every device on this network. Think of it as the network\'s "front door."',
+        hint: '192.168.1.0/24 gives you 254 usable addresses (192.168.1.1 — 192.168.1.254). The .1 is traditionally the gateway.',
+        check: (s) => {
+          const router = s.devices.find(d => d.type === 'router');
+          return router && router.interfaces.some(i => i.ip === '192.168.1.1');
+        },
+        feedback: (s) => {
+          const router = s.devices.find(d => d.type === 'router');
+          if (!router) return 'No router found.';
+          const hasIp = router.interfaces.some(i => i.ip);
+          return hasIp ? 'Set the router IP to exactly 192.168.1.1.' : 'Open the router config and set an IP on the connected interface.';
+        },
+      },
+      {
+        title: 'Configure PC IPs and gateways',
+        instruction: 'Double-click each **PC** → **Interfaces** tab:\n\n• **PC1**: IP **192.168.1.10**, mask 255.255.255.0, gateway **192.168.1.1**\n• **PC2**: IP **192.168.1.11**, mask 255.255.255.0, gateway **192.168.1.1**\n\nBoth PCs point to the router as their gateway. The mask /24 tells them "anything in 192.168.1.x is local — everything else, send to the gateway."',
+        hint: 'Without a gateway, a PC can only talk to devices on its own subnet. With a gateway, it can reach the entire internet.',
+        check: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          return pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway)).length >= 2;
+        },
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const configured = pcs.filter(p => p.interfaces.some(i => i.ip && i.gateway));
+          return configured.length < 2 ? `${configured.length}/2 PCs have both IP and gateway set.` : null;
+        },
+      },
+      {
+        title: 'Test connectivity',
+        instruction: 'Open PC1\'s **CLI** tab and run:\n\n• `ipconfig` — see your IP, mask, and gateway\n• `ping 192.168.1.11` — test if PC2 is reachable\n• `ping 192.168.1.1` — test if the gateway is reachable\n\n**Key exam concept**: If `ping gateway` works but `ping remote` fails → routing problem. If `ping gateway` fails → local config problem (wrong IP, mask, or cable).',
+        hint: 'Ping sends ICMP Echo Request packets. A reply means Layer 3 connectivity is working.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'cable-types-topology',
+    title: 'Cable Types & Topologies',
+    objective: '1.3',
+    difficulty: 'Beginner',
+    duration: '8 min',
+    description: 'Learn the difference between Cat5e, Cat6, Fiber, Coax, and Console cables by building a star topology and using each cable type where it belongs.',
+    steps: [
+      {
+        title: 'Build a star topology',
+        instruction: 'Place **1 Router** in the center and **1 Switch** below it. Connect them with a **Fiber** cable (select Fiber from the cable palette before clicking).\n\nThis is a **star topology** — all devices radiate out from a central hub/switch. It\'s the most common LAN design because one failed cable only affects one device.',
+        hint: 'Star topology: easy to troubleshoot (isolate the one bad cable), but the central switch is a single point of failure.',
+        check: (s) => s.devices.some(d => d.type === 'router') && s.devices.some(d => d.type === 'switch') && s.cables.some(c => c.type === 'fiber'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'router')) return 'Add a Router.';
+          if (!s.devices.some(d => d.type === 'switch')) return 'Add a Switch.';
+          if (!s.cables.some(c => c.type === 'fiber')) return 'Connect them using a Fiber cable (select "Fiber" in the cable palette first).';
+          return null;
+        },
+      },
+      {
+        title: 'Add PCs with Cat6',
+        instruction: 'Add **3 PCs** and connect each to the **Switch** using **Cat6** cables.\n\n**Cable comparison**:\n• **Cat5e** — 1 Gbps, 100m max, older standard\n• **Cat6** — 10 Gbps (up to 55m), better shielding, current standard\n• **Fiber** — up to 100 Gbps, kilometers of reach, immune to EMI\n• **Coax** — used for cable internet (DOCSIS) and older networks\n• **Console** — management port (blue rollover cable, serial access)',
+        hint: 'On the exam: Cat6 supports 10GBASE-T up to 55m. Cat6a extends 10G to the full 100m. Fiber uses light, not electrical signals.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 3 && s.cables.filter(c => c.type === 'cat6').length >= 3,
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          const cat6 = s.cables.filter(c => c.type === 'cat6').length;
+          if (pcs < 3) return `${pcs}/3 PCs placed.`;
+          if (cat6 < 3) return `${cat6}/3 Cat6 cables used. Select Cat6 in the cable palette before connecting.`;
+          return null;
+        },
+      },
+      {
+        title: 'Add a server with Cat5e',
+        instruction: 'Add a **Server** and connect it to the switch using a **Cat5e** cable.\n\nCat5e is fine for a 1 Gbps server connection — you\'d only upgrade to Cat6 if you needed 10 Gbps.\n\n**Exam tip**: "e" in Cat5e stands for "enhanced" — it has better crosstalk specs than Cat5 (which is obsolete).',
+        hint: 'Cat5e: 4 twisted pairs, RJ-45 connector, T568A or T568B wiring standard. Maximum run = 100 meters.',
+        check: (s) => s.devices.some(d => d.type === 'server') && s.cables.some(c => c.type === 'cat5e'),
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'server')) return 'Add a Server to the canvas.';
+          if (!s.cables.some(c => c.type === 'cat5e')) return 'Connect it using a Cat5e cable.';
+          return null;
+        },
+      },
+      {
+        title: 'Add a console connection',
+        instruction: 'Add a **PC** near the router and connect it to the **Router** using a **Console** cable (the dashed blue cable in the palette).\n\nConsole cables provide **out-of-band management** — you can configure the router even when the network is completely down. They use a **serial/RS-232** connection, not Ethernet.\n\n**Exam key**: console cable = rollover cable = light blue = RJ-45 to DB-9.',
+        hint: 'Out-of-band management means the management path is separate from the data path. If the network goes down, you can still manage devices via console.',
+        check: (s) => s.cables.some(c => c.type === 'console'),
+        feedback: (s) => !s.cables.some(c => c.type === 'console') ? 'Use a Console cable to connect a PC to the Router.' : null,
+      },
+      {
+        title: 'Review your topology',
+        instruction: 'You\'ve built a **star topology** using 4 different cable types:\n\n• **Fiber** (Router ↔ Switch) — backbone link, high speed\n• **Cat6** (Switch ↔ PCs) — workstation drops\n• **Cat5e** (Switch ↔ Server) — standard server connection\n• **Console** (PC ↔ Router) — out-of-band management\n\n**Other topologies to know for the exam**:\n• **Bus** — single cable, all devices share it (legacy)\n• **Ring** — token passing, each device connects to two neighbors\n• **Mesh** — every device connects to every other device (redundant)\n• **Hybrid** — combination of two or more topologies',
+        hint: 'Star-bus = star topology using a shared bus backbone. This is what most modern networks actually are.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'first-firewall',
+    title: 'Your First Firewall',
+    objective: '4.2',
+    difficulty: 'Beginner',
+    duration: '10 min',
+    description: 'Place a firewall between the Internet and your LAN. Learn why firewalls exist, where they go in the network, and how ACL rules control traffic flow.',
+    steps: [
+      {
+        title: 'Build Internet → Firewall → Switch',
+        instruction: 'Place these 3 devices and cable them in a chain:\n\n**Internet/WAN** → **Firewall** → **Switch**\n\nThe firewall sits between the untrusted Internet and your trusted LAN. ALL traffic must pass through it — that\'s the chokepoint where security rules are enforced.',
+        hint: 'A firewall inspects every packet against its rule set. No rule match = implicit deny (drop the packet).',
+        check: (s) => s.devices.some(d => d.type === 'cloud') && s.devices.some(d => d.type === 'firewall') && s.devices.some(d => d.type === 'switch') && s.cables.length >= 2,
+        feedback: (s) => {
+          if (!s.devices.some(d => d.type === 'cloud')) return 'Add an Internet/WAN device.';
+          if (!s.devices.some(d => d.type === 'firewall')) return 'Add a Firewall.';
+          if (!s.devices.some(d => d.type === 'switch')) return 'Add a Switch.';
+          if (s.cables.length < 2) return 'Cable: Internet → Firewall → Switch.';
+          return null;
+        },
+      },
+      {
+        title: 'Add LAN devices',
+        instruction: 'Add **2 PCs** and **1 Server** to the switch.\n\nThese represent your internal network — employee workstations and a web server. The firewall protects them from direct Internet exposure.',
+        hint: 'Defense in depth: firewall is the first layer. You should also have host-based firewalls on each PC/server.',
+        check: (s) => s.devices.filter(d => d.type === 'pc').length >= 2 && s.devices.some(d => d.type === 'server'),
+        feedback: (s) => {
+          const pcs = s.devices.filter(d => d.type === 'pc').length;
+          if (pcs < 2) return `${pcs}/2 PCs placed.`;
+          if (!s.devices.some(d => d.type === 'server')) return 'Add a Server.';
+          return null;
+        },
+      },
+      {
+        title: 'Configure IPs',
+        instruction: 'Set IPs on the **Firewall** (both interfaces) and the **PCs** + **Server**:\n\n• Firewall outside interface: **203.0.113.1** (public IP, toward Internet)\n• Firewall inside interface: **192.168.1.1** (LAN gateway)\n• PCs: **192.168.1.10**, **192.168.1.11** with gateway **192.168.1.1**\n• Server: **192.168.1.100** with gateway **192.168.1.1**',
+        hint: '192.168.x.x is RFC 1918 private address space — not routable on the Internet. The firewall performs NAT to translate private → public.',
+        check: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          return fw && fw.interfaces.filter(i => i.ip).length >= 2 && pcs.filter(p => p.interfaces.some(i => i.ip)).length >= 2;
+        },
+        feedback: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          if (!fw) return 'No firewall found.';
+          const fwIps = fw.interfaces.filter(i => i.ip).length;
+          if (fwIps < 2) return `Firewall has ${fwIps}/2 interfaces with IPs.`;
+          const pcs = s.devices.filter(d => d.type === 'pc');
+          const configured = pcs.filter(p => p.interfaces.some(i => i.ip)).length;
+          if (configured < 2) return `${configured}/2 PCs have IPs.`;
+          return null;
+        },
+      },
+      {
+        title: 'Add firewall ACL rules',
+        instruction: 'Double-click the **Firewall** → **Security Groups** tab.\n\nAdd a security group called "LAN-Rules" with these inbound rules:\n• Allow TCP port **80** (HTTP)\n• Allow TCP port **443** (HTTPS)\n\n**Key concept**: firewalls use an **implicit deny** — anything not explicitly allowed is blocked. So these 2 rules allow web traffic and block everything else.',
+        hint: 'ACL = Access Control List. Rules are processed top to bottom. First match wins. "Implicit deny all" is the invisible last rule.',
+        check: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          return fw && fw.securityGroups && fw.securityGroups.length > 0 && fw.securityGroups.some(sg => sg.rules && sg.rules.length >= 2);
+        },
+        feedback: (s) => {
+          const fw = s.devices.find(d => d.type === 'firewall');
+          if (!fw) return 'No firewall found.';
+          if (!fw.securityGroups || fw.securityGroups.length === 0) return 'Add a security group on the firewall.';
+          const rules = fw.securityGroups.reduce((a, sg) => a + (sg.rules?.length || 0), 0);
+          return rules < 2 ? `${rules}/2 ACL rules added. Add allow rules for port 80 and 443.` : null;
+        },
+      },
+      {
+        title: 'Review firewall concepts',
+        instruction: 'Run `show security-groups` on the **Firewall** CLI to see your rules.\n\n**Network+ firewall types**:\n• **Packet filtering** — inspects headers only (src/dst IP, port, protocol)\n• **Stateful inspection** — tracks connection state (SYN→SYN-ACK→ACK)\n• **Application layer / proxy** — inspects payload content (Layer 7)\n• **NGFW** (Next-Gen) — combines stateful + IDS/IPS + application awareness\n• **WAF** — Web Application Firewall, protects web servers specifically\n\n**Firewall zones**: outside (untrusted), inside (trusted), DMZ (semi-trusted)',
+        hint: 'Stateful firewalls remember "I saw an outbound SYN to 8.8.8.8:443" so they automatically allow the reply — you don\'t need an explicit inbound rule for return traffic.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
+  {
+    id: 'troubleshooting-101',
+    title: 'Troubleshooting with CLI Tools',
+    objective: '5.2',
+    difficulty: 'Beginner',
+    duration: '12 min',
+    description: 'Use ping, traceroute, ipconfig, and arp on a pre-built network to diagnose connectivity. Learn the CompTIA troubleshooting methodology hands-on.',
+    autoSetup: (state) => {
+      // Pre-build a working 2-subnet network
+      const r1 = { id: 'd_ts101_r1', type: 'router', x: 650, y: 200, hostname: 'GW-Router',
+        interfaces: [
+          { name: 'Gi0/0', cableId: null, ip: '192.168.1.1', mask: '255.255.255.0', mac: 'AA:00:TS:01:00:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 },
+          { name: 'Gi0/1', cableId: null, ip: '10.0.0.1', mask: '255.255.255.0', mac: 'AA:00:TS:01:00:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 },
+        ],
+        routingTable: [{ type: 'static', network: '10.0.0.0', mask: '255.255.255.0', nextHop: '10.0.0.1', iface: 'Gi0/1' }],
+        arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: null, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] };
+      const sw1 = { id: 'd_ts101_sw1', type: 'switch', x: 400, y: 400, hostname: 'SW-Office',
+        interfaces: Array.from({ length: 8 }, (_, i) => ({
+          name: `Fa0/${i + 1}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:00:TS:02:${String(i+1).padStart(2,'0')}:01`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64,
+        })),
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: null, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] };
+      const makePC = (id, x, y, name, ip) => ({
+        id, type: 'pc', x, y, hostname: name,
+        interfaces: [{ name: 'eth0', cableId: null, ip, mask: '255.255.255.0', mac: `AA:00:TS:${id.slice(-2)}:01:01`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '192.168.1.1', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: null, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] });
+      const srv = { id: 'd_ts101_srv', type: 'server', x: 900, y: 400, hostname: 'WebServer',
+        interfaces: [{ name: 'eth0', cableId: null, ip: '10.0.0.50', mask: '255.255.255.0', mac: 'AA:00:TS:SV:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '10.0.0.1', enabled: true, subInterfaces: [], ipv6: '', ipv6Prefix: 64 }],
+        routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [],
+        securityGroups: [], nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null, vxlanConfig: [],
+        stpConfig: null, ospfConfig: null, qosConfig: null, wirelessConfig: null, dnsRecords: [] };
+      const pc1 = makePC('d_ts101_p1', 250, 550, 'PC-Alice', '192.168.1.10');
+      const pc2 = makePC('d_ts101_p2', 550, 550, 'PC-Bob', '192.168.1.11');
+      state.devices.push(r1, sw1, pc1, pc2, srv);
+      const cables = [
+        { id: 'c_ts101_1', from: r1.id, to: sw1.id, type: 'cat6' },
+        { id: 'c_ts101_2', from: sw1.id, to: pc1.id, type: 'cat6' },
+        { id: 'c_ts101_3', from: sw1.id, to: pc2.id, type: 'cat6' },
+        { id: 'c_ts101_4', from: r1.id, to: srv.id, type: 'fiber' },
+      ];
+      cables.forEach((c, ci) => {
+        const fromDev = state.devices.find(d => d.id === c.from);
+        const toDev = state.devices.find(d => d.id === c.to);
+        const fromIfc = fromDev.interfaces.find(i => !i.cableId);
+        const toIfc = toDev.interfaces.find(i => !i.cableId);
+        if (fromIfc) fromIfc.cableId = c.id;
+        if (toIfc) toIfc.cableId = c.id;
+      });
+      state.cables.push(...cables);
+    },
+    steps: [
+      {
+        title: 'Explore the pre-built network',
+        instruction: 'You have a working network with:\n• **GW-Router** — gateway between two subnets (192.168.1.0/24 and 10.0.0.0/24)\n• **SW-Office** — office switch\n• **PC-Alice** (192.168.1.10) and **PC-Bob** (192.168.1.11) — on the office LAN\n• **WebServer** (10.0.0.50) — on a separate server subnet\n\nDouble-click **PC-Alice** → **Overview** tab to see its configuration.',
+        hint: 'Two subnets means cross-subnet traffic must go through the router. Same-subnet traffic stays on the switch.',
+        check: (s) => s.devices.length >= 5,
+        feedback: () => null,
+      },
+      {
+        title: 'Use ipconfig to check your settings',
+        instruction: 'Double-click **PC-Alice** → **CLI** tab. Run:\n\n• `ipconfig` — see IP, mask, gateway, MAC\n\nVerify: IP is 192.168.1.10, gateway is 192.168.1.1.\n\n**Exam tip**: `ipconfig` is the FIRST command in the CompTIA troubleshooting methodology. Always verify the basics before digging deeper.',
+        hint: 'On Windows: ipconfig. On Linux/Mac: ifconfig or ip addr. They show the same info — IP, mask, gateway.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Ping a local device',
+        instruction: 'On **PC-Alice** CLI, run:\n\n• `ping 192.168.1.11` — ping PC-Bob (same subnet)\n• `ping 192.168.1.1` — ping the gateway\n\n**Same-subnet ping**: PC-Alice ARPs for PC-Bob\'s MAC → switch forwards → direct delivery. No router involved.\n\n**Gateway ping**: Verifies Layer 3 connectivity to the router.',
+        hint: 'If ping to gateway fails: check IP, mask, cable. If ping to gateway works but remote fails: routing issue.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Ping across subnets',
+        instruction: 'On **PC-Alice** CLI, run:\n\n• `ping 10.0.0.50` — ping the WebServer (different subnet!)\n\nThis ping crosses subnets: PC-Alice → Switch → Router → WebServer. The router looks up 10.0.0.0/24 in its routing table and forwards the packet.\n\n**Troubleshooting flow**: If this fails, run `ping 192.168.1.1` first. If gateway ping works, the problem is routing. If gateway fails, the problem is local.',
+        hint: 'Cross-subnet traffic: src PC ARPs for the gateway MAC (not the destination MAC), sends frame to gateway, router re-encapsulates and forwards.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Use traceroute and ARP',
+        instruction: 'On **PC-Alice** CLI, run:\n\n• `traceroute 10.0.0.50` — see each hop to the WebServer\n• `show arp` — see the ARP table (IP → MAC mappings)\n\n**traceroute** shows every router between source and destination. Each hop decrements the TTL by 1.\n\n**ARP table** shows which MACs you\'ve learned. You should see the gateway\'s MAC (192.168.1.1) since all cross-subnet traffic goes through it.\n\n**CompTIA 7-step troubleshooting**: 1. Identify problem → 2. Theory → 3. Test theory → 4. Plan → 5. Implement → 6. Verify → 7. Document',
+        hint: 'ARP maps IP → MAC. It\'s Layer 2.5 (between L2 and L3). ARP requests are broadcast, ARP replies are unicast.',
+        check: () => true,
+        feedback: () => null,
+      },
+    ]
+  },
 ];
 
 let tbActiveLab = null;  // { labId, stepIdx }
@@ -10918,6 +11265,20 @@ function tbLabPrev() {
 }
 
 function tbEndLab() {
+  // Track lab completion
+  if (tbActiveLab) {
+    try {
+      const completions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
+      if (!completions[tbActiveLab.labId]) {
+        completions[tbActiveLab.labId] = { firstCompleted: new Date().toISOString(), count: 0 };
+      }
+      completions[tbActiveLab.labId].count = (completions[tbActiveLab.labId].count || 0) + 1;
+      completions[tbActiveLab.labId].lastCompleted = new Date().toISOString();
+      localStorage.setItem(STORAGE.LAB_COMPLETIONS, JSON.stringify(completions));
+    } catch (_) {}
+    // Evaluate lab milestones
+    evaluateMilestones();
+  }
   tbActiveLab = null;
   document.getElementById('tb-lab-panel')?.classList.add('is-hidden');
 }

@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.1"));
+test('APP_VERSION is 4.30.0', js.includes("const APP_VERSION = '4.30.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.1'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.1'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.1'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.30.2'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.30.2'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1455,6 +1455,45 @@ test('Lab highlight: triggers canvas re-render', /tbRenderCanvas\(\)/.test(js));
 test('Lab highlight: tb-device-lab-target class on devices', js.includes('tb-device-lab-target'));
 test('CSS: .tb-device-lab-target animation', css.includes('.tb-device-lab-target'));
 test('CSS: @keyframes tbLabTargetPulse', css.includes('tbLabTargetPulse'));
+
+// ── v4.30.2 — 4 New Beginner Labs + Lab Milestones + Progress ──
+console.log('\n\x1b[1m── v4.30.2 BEGINNER LABS + LAB MILESTONES ──\x1b[0m');
+// New beginner labs
+test('Lab: ip-addressing-101 defined', js.includes("id: 'ip-addressing-101'"));
+test('Lab: ip-addressing-101 is Beginner', /ip-addressing-101[\s\S]{0,500}Beginner/.test(js));
+test('Lab: ip-addressing-101 has 5 steps', /ip-addressing-101[\s\S]{0,500}steps:/.test(js));
+test('Lab: ip-addressing-101 teaches gateway', /default gateway/i.test(js));
+test('Lab: cable-types-topology defined', js.includes("id: 'cable-types-topology'"));
+test('Lab: cable-types-topology is Beginner', /cable-types-topology[\s\S]{0,500}Beginner/.test(js));
+test('Lab: cable-types-topology uses fiber', /cable-types-topology[\s\S]{0,3000}fiber/.test(js));
+test('Lab: cable-types-topology uses cat5e', /cable-types-topology[\s\S]{0,5000}cat5e/.test(js));
+test('Lab: cable-types-topology uses console', /cable-types-topology[\s\S]{0,8000}console/.test(js));
+test('Lab: first-firewall defined', js.includes("id: 'first-firewall'"));
+test('Lab: first-firewall is Beginner', /first-firewall[\s\S]{0,500}Beginner/.test(js));
+test('Lab: first-firewall checks security groups', /first-firewall[\s\S]{0,6000}securityGroups/.test(js));
+test('Lab: troubleshooting-101 defined', js.includes("id: 'troubleshooting-101'"));
+test('Lab: troubleshooting-101 is Beginner', /troubleshooting-101[\s\S]{0,500}Beginner/.test(js));
+test('Lab: troubleshooting-101 has autoSetup', /troubleshooting-101[\s\S]{0,500}autoSetup/.test(js));
+test('Lab: troubleshooting-101 teaches CLI tools', /ipconfig.*ping.*traceroute/s.test(js));
+test('Total beginner labs >= 6', (js.match(/difficulty: 'Beginner'/g) || []).length >= 6);
+test('Total TB_LABS count >= 22', (() => { const m = js.match(/id: '(ip-addr|cable-type|first-fire|troubleshoot-101|ospf|dns-inf|stp-loop|static-|acl-|site-to|wireless-|cloud-vpc|network-hard|troubleshoot-conn|multi-site|basic-lan|vlan-seg|dhcp-|dmz-|arp-|sase-|cloud-vpc-lab)/g); return m && m.length >= 22; })());
+// Lab completion tracking
+test('STORAGE.LAB_COMPLETIONS key', js.includes("LAB_COMPLETIONS: 'nplus_lab_completions'"));
+test('tbEndLab tracks completion in localStorage', /tbEndLab[\s\S]{0,500}LAB_COMPLETIONS/.test(js));
+test('tbEndLab increments completion count', /completions.*count.*\+.*1|count.*\+ 1/.test(js));
+test('tbEndLab calls evaluateMilestones', /tbEndLab[\s\S]{0,800}evaluateMilestones/.test(js));
+// Lab milestones
+test('Milestone: first_lab defined', js.includes("id: 'first_lab'"));
+test('Milestone: labs_5 defined', js.includes("id: 'labs_5'"));
+test('Milestone: labs_10 defined', js.includes("id: 'labs_10'"));
+test('Milestone: labs_all defined', js.includes("id: 'labs_all'"));
+test('evaluateMilestones checks lab completions', /evaluateMilestones[\s\S]*LAB_COMPLETIONS/.test(js));
+test('evaluateMilestones checks labs_5', /maybe\('labs_5'/.test(js));
+test('evaluateMilestones checks labs_all', /maybe\('labs_all'/.test(js));
+// Lab progress in progress page
+test('Progress page shows lab completion stats', /Labs completed/.test(js));
+test('Progress page shows difficulty breakdown', /Beginner[\s\S]{0,20}Intermediate[\s\S]{0,20}Advanced/.test(js) || /labsByDiff/.test(js));
+test('Progress page lab coverage bar', /ps-coverage-fill[\s\S]{0,50}labPct/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
