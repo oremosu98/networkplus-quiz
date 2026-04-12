@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.28.0';
+const APP_VERSION = '4.28.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -8176,19 +8176,53 @@ function tbClearSimLog() {
 
 // Shared: parse AI topology JSON from raw text
 function tbParseAiTopologyJson(text) {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  if (!text || !text.trim()) return null;
+  // Strip markdown fences (```json ... ```) anywhere in the text
+  const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
   let payload;
-  try { payload = JSON.parse(cleaned); }
-  catch (_) {
-    const m = cleaned.match(/\{[\s\S]*\}/);
-    if (m) try { payload = JSON.parse(m[0]); } catch (_) {}
-    if (!payload) {
-      const noComments = cleaned.replace(/\/\/[^\n]*/g, '').replace(/,\s*([}\]])/g, '$1');
-      try { payload = JSON.parse(noComments); }
-      catch (_) { const m2 = noComments.match(/\{[\s\S]*\}/); if (m2) try { payload = JSON.parse(m2[0]); } catch (_) {} }
+
+  // Stage 1: Direct parse
+  try { payload = JSON.parse(cleaned); } catch (_) {}
+  if (payload) return payload;
+
+  // Stage 2: Extract the outermost { ... } block (greedy — gets the largest JSON object)
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  if (m) try { payload = JSON.parse(m[0]); } catch (_) {}
+  if (payload) return payload;
+
+  // Stage 3: Strip // comments + trailing commas, then direct parse
+  const noComments = cleaned.replace(/\/\/[^\n]*/g, '').replace(/,\s*([}\]])/g, '$1');
+  try { payload = JSON.parse(noComments); } catch (_) {}
+  if (payload) return payload;
+
+  // Stage 4: Extract { ... } from comment-stripped text
+  const m2 = noComments.match(/\{[\s\S]*\}/);
+  if (m2) try { payload = JSON.parse(m2[0]); } catch (_) {}
+  if (payload) return payload;
+
+  // Stage 5: Handle truncated JSON — if response was cut off mid-array/object,
+  // try to close open brackets/braces to salvage a partial result
+  if (m) {
+    let truncated = m[0];
+    // Count open vs close braces/brackets
+    const opens = (truncated.match(/\{/g) || []).length;
+    const closes = (truncated.match(/\}/g) || []).length;
+    const openBrackets = (truncated.match(/\[/g) || []).length;
+    const closeBrackets = (truncated.match(/\]/g) || []).length;
+    if (opens > closes || openBrackets > closeBrackets) {
+      // Strip any trailing partial value (after last comma or opening bracket)
+      truncated = truncated.replace(/,\s*"[^"]*"?\s*:?\s*[^,}\]]*$/, '');
+      truncated = truncated.replace(/,\s*\{[^}]*$/, '');
+      truncated = truncated.replace(/,\s*$/, '');
+      // Close open brackets/braces
+      for (let i = 0; i < openBrackets - closeBrackets; i++) truncated += ']';
+      for (let i = 0; i < opens - closes; i++) truncated += '}';
+      try { payload = JSON.parse(truncated); } catch (_) {
+        console.warn('[AI Topology] Truncation repair failed:', truncated.substring(truncated.length - 100));
+      }
     }
   }
-  return payload;
+  return payload || null;
 }
 
 // Shared: build devices + cables from AI payload into a target state
@@ -8264,7 +8298,9 @@ function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
 // The base prompt shared between new and add-to-existing modes
 function tbAiBasePrompt() {
   const validTypes = Object.keys(TB_DEVICE_TYPES).join(', ');
-  return `VALID DEVICE TYPES: ${validTypes}
+  return `CRITICAL: Output ONLY valid JSON. No comments, no trailing commas, no markdown fences (\`\`\`), no text before or after the JSON. Just the raw JSON object.
+
+VALID DEVICE TYPES: ${validTypes}
 
 DEVICE TYPE GUIDE:
 - router: Internal routers (Gi0/x interfaces). Always need IPs on all connected interfaces.
@@ -8493,22 +8529,22 @@ function tbExpandScenario(scenario) {
   let expanded = scenario;
   // Map common shorthand to explicit device types
   const expansions = [
-    [/\bdata cent(er|re)s?\b/gi, 'on-premises data center(s) (use onprem-dc device type)'],
-    [/\bDC[s]?\b/g, 'data center(s) (onprem-dc)'],
-    [/\bconnected via VPN\b/gi, 'connected via VPN Gateway (vpg) devices with matching IPSec vpnConfig (same PSK, IKE, encryption, hash, DH group)'],
-    [/\bVPN tunnel\b/gi, 'IPSec VPN via VPN Gateway (vpg) with vpnConfig'],
-    [/\bsite.to.site\b/gi, 'site-to-site IPSec VPN (use vpg + onprem-dc with vpnConfig)'],
-    [/\boverlay\b/gi, 'VXLAN overlay (include vxlanConfig on switches)'],
-    [/\bfabric\b/gi, 'data center fabric (spine-leaf with VXLAN overlay)'],
-    [/\bspine.leaf\b/gi, 'spine-leaf topology: spine switches at top, leaf switches at bottom, every leaf connects to every spine (partial mesh)'],
-    [/\bDCI\b/g, 'Data Center Interconnect (VXLAN overlay between DCs)'],
-    [/\bSD.WAN\b/gi, 'SD-WAN (use router devices with VXLAN/IPSec overlays)'],
-    [/\b3.tier\b/gi, 'three-tier architecture (core routers → distribution switches → access switches → endpoints)'],
-    [/\bcollapsed core\b/gi, 'collapsed core (combined core/distribution layer into single switches)'],
-    [/\bHA\b/g, 'high availability (redundant paths, dual firewalls/routers)'],
-    [/\bredundant\b/gi, 'redundant (use dual devices with cross-connections for failover)'],
-    [/\bZTNA\b/gi, 'Zero Trust Network Access (use sase-edge device with ZTNA policy)'],
-    [/\bwireless\b/gi, 'wireless (use wap + wlc devices)'],
+    [/\bdata cent(er|re)s?\b/gi, 'onprem-dc(s)'],
+    [/\bDC[s]?\b/g, 'onprem-dc(s)'],
+    [/\bconnected via VPN\b/gi, 'connected via vpg devices with vpnConfig'],
+    [/\bVPN tunnel\b/gi, 'VPN via vpg with vpnConfig'],
+    [/\bsite.to.site\b/gi, 'site-to-site VPN (vpg + onprem-dc)'],
+    [/\boverlay\b/gi, 'VXLAN overlay (vxlanConfig on switches)'],
+    [/\bfabric\b/gi, 'spine-leaf with VXLAN'],
+    [/\bspine.leaf\b/gi, 'spine switches at top, leaf switches at bottom, each leaf connects to each spine'],
+    [/\bDCI\b/g, 'Data Center Interconnect (VXLAN between DCs)'],
+    [/\bSD.WAN\b/gi, 'SD-WAN (routers with VXLAN/IPSec)'],
+    [/\b3.tier\b/gi, 'three-tier (core routers → distribution switches → access switches → endpoints)'],
+    [/\bcollapsed core\b/gi, 'collapsed core (combined core/distribution switches)'],
+    [/\bHA\b/g, 'high availability (dual devices, redundant paths)'],
+    [/\bredundant\b/gi, 'redundant (dual devices with cross-connections)'],
+    [/\bZTNA\b/gi, 'Zero Trust (sase-edge with ZTNA)'],
+    [/\bwireless\b/gi, 'wireless (wap + wlc)'],
   ];
   expansions.forEach(([re, replacement]) => {
     if (re.test(expanded)) expanded = expanded.replace(re, replacement);
@@ -8609,21 +8645,59 @@ USER REQUEST: ${expandedScenario}
 Generate the complete topology JSON now.`;
     }
 
-    const res = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 4096, messages: [{ role: 'user', content: genPrompt }] })
-    });
-    if (!res.ok) { showErrorToast(`AI generation failed: ${res.status}`); return; }
-    const data = await res.json();
-    const text = (data.content && data.content[0] && data.content[0].text) || '';
-    const payload = tbParseAiTopologyJson(text);
-    if (!payload || !payload.devices) { showErrorToast('AI returned invalid topology. Try a simpler description (e.g. "small office with 3 PCs and a server").'); return; }
+    // Helper: call the AI and parse the response
+    async function _tbCallAiAndParse(promptText, maxTok) {
+      const r = await fetch(CLAUDE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTok, messages: [{ role: 'user', content: promptText }] })
+      });
+      if (!r.ok) return { error: r.status };
+      const d = await r.json();
+      const stopReason = d.stop_reason || '';
+      const txt = (d.content && d.content[0] && d.content[0].text) || '';
+      console.log('[AI Topology] stop_reason:', stopReason, 'response length:', txt.length);
+      console.log('[AI Topology] raw response (first 500 chars):', txt.substring(0, 500));
+      if (stopReason === 'max_tokens') console.warn('[AI Topology] Response was TRUNCATED — max_tokens reached');
+      return { text: txt, stopReason, parsed: tbParseAiTopologyJson(txt) };
+    }
+
+    // Attempt 1: full prompt with 8192 tokens
+    let result = await _tbCallAiAndParse(genPrompt, 8192);
+    if (result.error) { showErrorToast(`AI generation failed: ${result.error}`); return; }
+    let payload = result.parsed;
+
+    // If parse failed or truncated, retry with a simplified prompt + more tokens
+    if (!payload || !payload.devices) {
+      console.warn('[AI Topology] First attempt failed, retrying with simplified prompt...');
+      showErrorToast('Retrying with simplified prompt...');
+      const retryPrompt = `You are a network architect. Generate a JSON topology for: "${scenario}"
+
+VALID DEVICE TYPES: ${Object.keys(TB_DEVICE_TYPES).join(', ')}
+- "data center"/"data centre" → use type "onprem-dc"
+- VPN between DCs → use type "vpg" (VPN Gateway) wired between DCs, include vpnConfig on vpg and onprem-dc devices
+- vpnConfig example: {"peerIp":"","psk":"Secret123","ikeVersion":"IKEv2","encryption":"AES-256","hashAlgo":"SHA-256","dhGroup":14}
+
+OUTPUT FORMAT — ONLY valid JSON, nothing else:
+{"devices":[{"type":"onprem-dc","hostname":"DC1","x":200,"y":400,"interfaces":[{"name":"eth0","ip":"10.1.1.1","mask":"255.255.255.0","gateway":""}],"routingTable":[],"vpnConfig":null}],"cables":[{"fromHostname":"DC1","fromIface":"eth0","toHostname":"VPG1","toIface":"tun0","type":"fiber"}]}
+
+Generate the topology now. ONLY JSON output.`;
+      const retry = await _tbCallAiAndParse(retryPrompt, 8192);
+      if (retry.error) { showErrorToast(`AI retry failed: ${retry.error}`); return; }
+      payload = retry.parsed;
+      if (payload && payload.devices) console.log('[AI Topology] Retry succeeded!');
+    }
+
+    if (!payload || !payload.devices) {
+      console.error('[AI Topology] Both attempts failed. Raw response:', result.text);
+      showErrorToast('AI returned invalid topology. Check browser console for details. Try a simpler description.');
+      return;
+    }
 
     if (mode === 'add') {
       const hostnameToId = {};

@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.28.0', js.includes("const APP_VERSION = '4.28.0"));
+test('APP_VERSION is 4.28.1', js.includes("const APP_VERSION = '4.28.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.28.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.28.1'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.28.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1179,7 +1179,7 @@ test('Peering is bidirectional', /peerDev\.vpcConfig\.peerings\.push/.test(js));
 test('Overview shows routing table', /tbRenderOverviewTab[\s\S]{0,3000}routingTable/.test(js));
 test('Overview shows route count stat', /routeCount/.test(js));
 // AI Generate prompt v2
-test('AI prompt max_tokens bumped to 4096', /max_tokens: 4096/.test(js));
+test('AI prompt max_tokens bumped to 8192', js.includes('genPrompt, 8192'));
 test('AI prompt mentions DEVICE TYPE GUIDE', /DEVICE TYPE GUIDE/.test(js));
 test('AI prompt mentions TOPOLOGY TYPES', /TOPOLOGY TYPES/.test(js));
 test('AI prompt supports star layout', /star[\s\S]{0,200}bus[\s\S]{0,200}ring[\s\S]{0,200}mesh/i.test(js));
@@ -1225,8 +1225,8 @@ test('CSS: .tb-lab-progress-bar', css.includes('.tb-lab-progress-bar'));
 test('CSS: .tb-lab-progress-fill', css.includes('.tb-lab-progress-fill'));
 test('CSS: .tb-lab-badge-auto', css.includes('.tb-lab-badge-auto'));
 
-// ── v4.28.0 — VXLAN, Deep AI Gen, Cloud prop fix ──
-console.log('\n\x1b[1m── v4.28.0 VXLAN + DEEP AI GEN ──\x1b[0m');
+// ── v4.28.1 — VXLAN, Deep AI Gen, Cloud prop fix ──
+console.log('\n\x1b[1m── v4.28.1 VXLAN + DEEP AI GEN ──\x1b[0m');
 // Cloud properties in build payload
 test('tbBuildFromAiPayload copies securityGroups', /securityGroups: dd\.securityGroups/.test(js));
 test('tbBuildFromAiPayload copies vpnConfig', /vpnConfig: dd\.vpnConfig/.test(js));
@@ -1264,6 +1264,22 @@ test('AI prompt mentions vxlanConfig schema', /vxlanConfig.*vni/.test(js));
 test('AI prompt mentions data centre mapping', /data cent.*onprem-dc/.test(js));
 test('Phase 2 deep validation runs after generate', /Phase 2.*Validating/.test(js));
 test('Deep gen fix count in status', /auto-fixes applied/.test(js));
+
+// ── v4.28.1 — AI Generation Reliability Fix ──
+console.log('\n\x1b[1m── v4.28.1 AI GEN RELIABILITY ──\x1b[0m');
+// Retry mechanism
+test('AI gen uses 8192 max_tokens', /max_tokens.*8192/.test(js) || js.includes('8192'));
+test('AI gen retry with simplified prompt', js.includes('Retrying with simplified prompt'));
+test('AI gen logs stop_reason', js.includes('stop_reason'));
+test('AI gen logs raw response', js.includes('AI Topology] raw response'));
+test('AI gen truncation warning', js.includes('Response was TRUNCATED'));
+test('AI gen console error on both failures', js.includes('Both attempts failed'));
+// Parser improvements
+test('Parser Stage 5 truncation repair', js.includes('Truncation repair failed'));
+test('Parser handles truncated JSON (open brace count)', /opens > closes/.test(js));
+// Prompt improvements
+test('Base prompt starts with CRITICAL JSON instruction', /CRITICAL.*Output ONLY valid JSON/.test(js));
+test('Semantic expansion is concise (no verbose text)', !js.includes('VPN Gateway (vpg) devices with matching IPSec vpnConfig (same PSK, IKE, encryption, hash, DH group)'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
