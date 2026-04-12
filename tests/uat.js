@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.25.0', js.includes("const APP_VERSION = '4.25.0"));
+test('APP_VERSION is 4.26.0', js.includes("const APP_VERSION = '4.26.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.25.0'));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.26.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.25.0'));
-test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.25.0'"));
+test('SW cache bumped to v4.25.0', sw.includes('netplus-v4.26.0'));
+test('APP_VERSION bumped to 4.25.0', js.includes("APP_VERSION = '4.26.0'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1158,6 +1158,34 @@ test('CSS: .tb-cloud-badge', css.includes('.tb-cloud-badge'));
 // Labs
 test('Lab: cloud-vpc-lab', /id: 'cloud-vpc-lab'/.test(js));
 test('Lab: sase-zero-trust', /id: 'sase-zero-trust'/.test(js));
+
+// ── v4.26.0 — ISP Router, WAN icon, VPC Peering, Routing in Overview, AI Prompt v2 ──
+console.log('\n\x1b[1m── v4.26.0 ENHANCEMENTS ──\x1b[0m');
+// ISP Router device type
+test('Device type: isp-router', js.includes("'isp-router':"));
+test('ISP Router label', /isp-router.*ISP Router/.test(js));
+test('ISP Router iface defaults', /isp-router.*count: 6/.test(js));
+test('ISP Router SVG icon case', /case 'isp-router':/.test(js));
+test('ISP Router included in isRouter checks', /isRouter.*isp-router/.test(js));
+// Internet/WAN icon update
+test('Cloud device renamed to Internet/WAN', /cloud:.*Internet\/WAN/.test(js));
+test('Cloud short label is WAN', /cloud:.*short: 'WAN'/.test(js));
+// VPC Peering
+test('tbAddVpcPeering function', js.includes('function tbAddVpcPeering('));
+test('tbRemoveVpcPeering function', js.includes('function tbRemoveVpcPeering('));
+test('VPC peerings array in config', /peerings/.test(js));
+test('Peering is bidirectional', /peerDev\.vpcConfig\.peerings\.push/.test(js));
+// Routing table in overview tab for all devices
+test('Overview shows routing table', /tbRenderOverviewTab[\s\S]{0,3000}routingTable/.test(js));
+test('Overview shows route count stat', /routeCount/.test(js));
+// AI Generate prompt v2
+test('AI prompt max_tokens bumped to 4096', /max_tokens: 4096/.test(js));
+test('AI prompt mentions DEVICE TYPE GUIDE', /DEVICE TYPE GUIDE/.test(js));
+test('AI prompt mentions TOPOLOGY TYPES', /TOPOLOGY TYPES/.test(js));
+test('AI prompt supports star layout', /star[\s\S]{0,200}bus[\s\S]{0,200}ring[\s\S]{0,200}mesh/i.test(js));
+test('AI prompt max 50 devices', /max.*50|up to 50/i.test(js));
+// Migration includes peerings default
+test('Migration: peerings default on vpcConfig', /peerings/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

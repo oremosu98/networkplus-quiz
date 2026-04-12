@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.25.0';
+const APP_VERSION = '4.26.0';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4797,7 +4797,8 @@ const TB_DEVICE_TYPES = {
   pc:            { label: 'PC',            color: '#f59e0b', short: 'PC'   },
   server:        { label: 'Server',        color: '#ef4444', short: 'SRV'  },
   firewall:      { label: 'Firewall',      color: '#eab308', short: 'FW'   },
-  cloud:         { label: 'Cloud',         color: '#94a3b8', short: 'WAN'  },
+  cloud:         { label: 'Internet/WAN',   color: '#60a5fa', short: 'WAN'  },
+  'isp-router':  { label: 'ISP Router',     color: '#818cf8', short: 'ISP'  },
   'load-balancer': { label: 'Load Balancer', color: '#ec4899', short: 'LB' },
   ids:           { label: 'IDS/IPS',       color: '#f97316', short: 'IDS'  },
   wlc:           { label: 'WLC',           color: '#14b8a6', short: 'WLC'  },
@@ -4843,6 +4844,7 @@ const TB_IFACE_DEFAULTS = {
   pc:            { count: 1,  naming: () => 'eth0' },
   server:        { count: 2,  naming: i => `eth${i}` },
   cloud:         { count: 4,  naming: i => `wan${i}` },
+  'isp-router':  { count: 6,  naming: i => `Gi0/${i}` },
   printer:       { count: 1,  naming: () => 'eth0' },
   voip:          { count: 1,  naming: () => 'eth0' },
   iot:           { count: 1,  naming: () => 'eth0' },
@@ -5020,7 +5022,23 @@ function tbDeviceIcon(type, color) {
       </g>`;
     case 'cloud':
       return `<g transform="translate(0,-10)">
-        <path d="M -24 6 A 10 10 0 0 1 -14 -6 A 14 14 0 0 1 14 -10 A 10 10 0 0 1 22 8 L -22 8 A 8 8 0 0 1 -24 6 Z" ${f}/>
+        <circle cx="0" cy="-2" r="16" ${f}/>
+        <ellipse cx="0" cy="-2" rx="16" ry="6" ${s}/>
+        <line x1="0" y1="-18" x2="0" y2="14" ${s}/>
+        <line x1="-16" y1="-2" x2="16" y2="-2" ${s}/>
+        <path d="M 0 -18 Q -9 -2 0 14 Q 9 -2 0 -18" ${s}/>
+        <text y="22" text-anchor="middle" font-size="6" font-weight="800" fill="${color}">WAN</text>
+      </g>`;
+    case 'isp-router':
+      return `<g transform="translate(0,-12)">
+        <rect x="-22" y="-14" width="44" height="28" rx="6" ${f}/>
+        <circle cx="-10" cy="-4" r="3" fill="${color}"/>
+        <circle cx="0" cy="-4" r="3" fill="${color}"/>
+        <circle cx="10" cy="-4" r="3" fill="${color}"/>
+        <line x1="-18" y1="4" x2="18" y2="4" ${s}/>
+        <path d="M -8 8 L 0 12 L 8 8" ${s}/>
+        <path d="M -8 12 L 0 8 L 8 12" ${s}/>
+        <text y="26" text-anchor="middle" font-size="6" font-weight="800" fill="${color}">ISP</text>
       </g>`;
     case 'load-balancer':
       return `<g transform="translate(0,-12)">
@@ -6528,7 +6546,7 @@ function tbOpenConfigPanel(deviceId) {
   document.querySelector('.tb-workspace')?.classList.add('tb-config-open');
   // Show/hide tabs based on device type
   const isSwitch = dev.type.indexOf('switch') >= 0;
-  const isRouter = dev.type === 'router' || dev.type === 'firewall';
+  const isRouter = dev.type === 'router' || dev.type === 'firewall' || dev.type === 'isp-router';
   const isServer = dev.type === 'server';
   const CLOUD_TYPES = ['vpc','cloud-subnet','igw','nat-gw','tgw','vpg','sase-edge'];
   const isCloudDevice = CLOUD_TYPES.indexOf(dev.type) >= 0;
@@ -6590,7 +6608,8 @@ function tbRenderOverviewTab(dev) {
   const downPorts = dev.interfaces.filter(i => !i.enabled || !i.cableId);
   const hasIp = dev.interfaces.some(i => i.ip);
   const isSwitch = dev.type.indexOf('switch') >= 0;
-  const isRouter = dev.type === 'router' || dev.type === 'firewall';
+  const isRouter = dev.type === 'router' || dev.type === 'firewall' || dev.type === 'isp-router';
+  const isCloudDev = ['vpc','cloud-subnet','igw','nat-gw','tgw','vpg','sase-edge'].indexOf(dev.type) >= 0;
 
   // Build port status LEDs
   const portLeds = dev.interfaces.map(ifc => {
@@ -6642,18 +6661,25 @@ function tbRenderOverviewTab(dev) {
   </div>
   <div class="tb-ov-leds-row">${portLeds}<span style="color:#64748b;font-size:10px;margin-left:6px">${upPorts.length}/${dev.interfaces.length} ports up</span></div>
   <div class="tb-ov-stats-grid">
-    ${isRouter ? `<div class="tb-ov-stat"><span>Routes</span><strong>${routeCount}</strong></div>` : ''}
+    <div class="tb-ov-stat"><span>Routes</span><strong>${routeCount}</strong></div>
     <div class="tb-ov-stat"><span>ARP</span><strong>${arpCount}</strong></div>
     ${isSwitch ? `<div class="tb-ov-stat"><span>VLANs</span><strong>${vlanCount}</strong></div>` : ''}
     ${isSwitch ? `<div class="tb-ov-stat"><span>MAC Table</span><strong>${dev.macTable ? dev.macTable.length : 0}</strong></div>` : ''}
     <div class="tb-ov-stat"><span>DHCP</span><strong>${dhcpStatus}</strong></div>
     ${gwInfo}
+    ${dev.securityGroups?.length ? `<div class="tb-ov-stat"><span>SGs</span><strong>${dev.securityGroups.length}</strong></div>` : ''}
+    ${dev.nacls?.length ? `<div class="tb-ov-stat"><span>NACLs</span><strong>${dev.nacls.length}</strong></div>` : ''}
+    ${dev.vpnConfig ? `<div class="tb-ov-stat"><span>VPN</span><strong style="color:${dev.vpnConfig.tunnelStatus==='up'?'#22c55e':'#ef4444'}">${dev.vpnConfig.tunnelStatus.toUpperCase()}</strong></div>` : ''}
+    ${dev.vpcConfig?.peerings?.length ? `<div class="tb-ov-stat"><span>Peerings</span><strong>${dev.vpcConfig.peerings.length}</strong></div>` : ''}
   </div>
+  ${routeCount > 0 ? `<div class="tb-ov-section-label">Routing Table</div><div style="max-height:120px;overflow-y:auto;margin-bottom:8px;font-family:'Fira Code',monospace;font-size:10px;background:rgba(0,0,0,.2);border-radius:6px;padding:6px">${dev.routingTable.map(r => `<div style="padding:2px 0"><span style="color:${r.type==='connected'?'#22c55e':'#60a5fa'};font-weight:700">${r.type==='connected'?'C':'S'}</span> ${escHtml(r.network)}/${tbMaskToCidr(r.mask)} via ${escHtml(r.nextHop||r.iface)}</div>`).join('')}</div>` : ''}
   ${ifaceCards ? `<div class="tb-ov-section-label">Connected Interfaces</div>${ifaceCards}` : '<div style="color:#64748b;font-size:11px">No connected interfaces. Wire this device to others first.</div>'}
   <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
     <button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab('ifaces')">Edit Interfaces</button>
     ${isRouter ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'routing\')">Routing Table</button>' : ''}
     ${isSwitch ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'vlans\')">VLAN Config</button>' : ''}
+    ${isCloudDev ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'security-groups\')">Security Groups</button>' : ''}
+    ${dev.type === 'vpc' ? '<button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab(\'vpc-config\')">VPC Config</button>' : ''}
     <button class="btn btn-ghost tb-ov-action" onclick="tbSwitchConfigTab('cli')">Open CLI</button>
   </div>`;
 }
@@ -7046,8 +7072,25 @@ function tbSetNaclField(idx, field, val) {
 
 // ── VPC Config Tab ──
 function tbRenderVpcConfigTab(dev) {
-  const vpc = dev.vpcConfig || { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default' };
+  const vpc = dev.vpcConfig || { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default', peerings: [] };
   if (!dev.vpcConfig) { dev.vpcConfig = vpc; tbState.updated = Date.now(); tbSaveDraft(); }
+  if (!vpc.peerings) vpc.peerings = [];
+  // Find other VPCs for peering
+  const otherVpcs = tbState.devices.filter(d => d.type === 'vpc' && d.id !== dev.id);
+  const peerHtml = vpc.peerings.map((p, i) => {
+    const peerDev = tbState.devices.find(d => d.id === p.peerId);
+    const statusDot = p.status === 'active' ? '#22c55e' : '#eab308';
+    return `<div class="tb-cloud-card" style="padding:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusDot}"></span>
+        <span style="flex:1;font-size:11px;font-weight:600">${peerDev ? escHtml(peerDev.hostname) : 'Unknown'} ${peerDev?.vpcConfig ? '(' + peerDev.vpcConfig.cidr + ')' : ''}</span>
+        <span style="font-size:9px;color:#64748b">${p.status}</span>
+        <button class="btn btn-ghost" onclick="tbRemoveVpcPeering(${i})" style="font-size:9px;color:#ef4444;padding:1px 4px">&times;</button>
+      </div>
+    </div>`;
+  }).join('');
+  const peerOptions = otherVpcs.filter(v => !vpc.peerings.some(p => p.peerId === v.id))
+    .map(v => `<option value="${v.id}">${escHtml(v.hostname)} ${v.vpcConfig ? '(' + v.vpcConfig.cidr + ')' : ''}</option>`).join('');
   return `<div style="font-weight:600;font-size:12px;margin-bottom:8px">VPC Configuration</div>
     <label>CIDR Block</label>
     <input type="text" value="${escHtml(vpc.cidr)}" onchange="tbSetVpcField('cidr',this.value)" placeholder="10.0.0.0/16">
@@ -7061,6 +7104,15 @@ function tbRenderVpcConfigTab(dev) {
       <option value="dedicated"${vpc.tenancy==='dedicated' ? ' selected' : ''}>Dedicated</option>
     </select>
     <div style="margin-top:16px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
+      <div style="font-weight:600;font-size:11px;margin-bottom:6px">VPC Peering Connections</div>
+      ${peerHtml || '<div style="font-size:10px;color:#64748b;margin-bottom:6px">No peering connections.</div>'}
+      ${peerOptions ? `<div style="display:flex;gap:4px;margin-top:6px">
+        <select id="tb-vpc-peer-select" style="flex:1;font-size:10px"><option value="">Select VPC to peer with…</option>${peerOptions}</select>
+        <button class="btn btn-ghost" onclick="tbAddVpcPeering()" style="font-size:10px">+ Peer</button>
+      </div>` : '<div style="font-size:10px;color:#64748b">No other VPCs available for peering.</div>'}
+      <div style="font-size:9px;color:#64748b;margin-top:4px">VPC Peering allows direct routing between VPCs without a Transit Gateway. Non-transitive — each pair must be peered individually.</div>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid rgba(124,111,247,.15);padding-top:10px">
       <div style="font-weight:600;font-size:11px;margin-bottom:6px">Connected Subnets</div>
       ${tbState.devices.filter(d => d.type === 'cloud-subnet' && tbState.cables.some(c => (c.from === dev.id && c.to === d.id) || (c.from === d.id && c.to === dev.id)))
         .map(s => `<div class="tb-cloud-badge">${escHtml(s.hostname)} ${s.vpcConfig ? '(' + s.vpcConfig.cidr + ')' : ''}</div>`).join('') || '<div style="font-size:10px;color:#64748b">No subnets connected. Wire a Cloud Subnet to this VPC.</div>'}
@@ -7069,9 +7121,40 @@ function tbRenderVpcConfigTab(dev) {
 function tbSetVpcField(field, val) {
   const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
   if (!dev) return;
-  if (!dev.vpcConfig) dev.vpcConfig = { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default' };
+  if (!dev.vpcConfig) dev.vpcConfig = { cidr: '10.0.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default', peerings: [] };
   dev.vpcConfig[field] = val;
   tbState.updated = Date.now(); tbSaveDraft();
+}
+function tbAddVpcPeering() {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.vpcConfig) return;
+  const sel = document.getElementById('tb-vpc-peer-select');
+  if (!sel || !sel.value) return;
+  const peerId = sel.value;
+  const peerDev = tbState.devices.find(d => d.id === peerId);
+  if (!peerDev) return;
+  if (!dev.vpcConfig.peerings) dev.vpcConfig.peerings = [];
+  if (!peerDev.vpcConfig) peerDev.vpcConfig = { cidr: '10.1.0.0/16', dnsSupport: true, dnsHostnames: true, flowLogs: false, tenancy: 'default', peerings: [] };
+  if (!peerDev.vpcConfig.peerings) peerDev.vpcConfig.peerings = [];
+  // Add peering on both sides
+  dev.vpcConfig.peerings.push({ peerId, status: 'active' });
+  peerDev.vpcConfig.peerings.push({ peerId: dev.id, status: 'active' });
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('vpc-config');
+  showErrorToast(`VPC Peering established: ${dev.hostname} ↔ ${peerDev.hostname}`);
+}
+function tbRemoveVpcPeering(idx) {
+  const dev = tbState.devices.find(d => d.id === tbConfigPanelDeviceId);
+  if (!dev || !dev.vpcConfig || !dev.vpcConfig.peerings) return;
+  const peering = dev.vpcConfig.peerings[idx];
+  if (peering) {
+    // Remove reciprocal peering on the other VPC
+    const peer = tbState.devices.find(d => d.id === peering.peerId);
+    if (peer?.vpcConfig?.peerings) {
+      peer.vpcConfig.peerings = peer.vpcConfig.peerings.filter(p => p.peerId !== dev.id);
+    }
+  }
+  dev.vpcConfig.peerings.splice(idx, 1);
+  tbState.updated = Date.now(); tbSaveDraft(); tbSwitchConfigTab('vpc-config');
 }
 
 // ── VPN / IPSec Tab ──
@@ -8010,33 +8093,81 @@ async function tbGenerateAiTopology() {
   const key = (localStorage.getItem(STORAGE.KEY) || '').trim();
   if (!key) { showErrorToast('Add your Anthropic API key in Settings to use AI generation.'); return; }
 
-  const scenario = prompt('Describe the network you want (e.g. "small office with 5 PCs, a printer, DHCP server, DMZ with web server"):');
+  const scenario = prompt('Describe the network you want to build.\n\nExamples:\n• "Enterprise network with 3 VLANs, DMZ, 2 firewalls, IDS, load balancer"\n• "Star-bus hybrid topology with 4 switches, 12 PCs"\n• "AWS VPC with public/private subnets, NAT gateway, VPN to on-prem DC"\n• "Ring topology with 5 routers running OSPF"\n• "Full mesh between 4 routers with BGP"\n• "ISP edge with 3 customer sites connected via VPN"\n\nBe as detailed as you want:');
   if (!scenario) return;
 
-  showErrorToast('Generating topology... (3-5 seconds)');
+  showErrorToast('Generating topology... (5-10 seconds)');
   try {
-    const genPrompt = `You are a Network+ instructor. Generate a network topology as a JSON object matching this schema:
+    const validTypes = Object.keys(TB_DEVICE_TYPES).join(', ');
+    const genPrompt = `You are an expert network architect and CompTIA Network+ instructor. Generate a detailed, realistic network topology as a JSON object.
 
+VALID DEVICE TYPES: ${validTypes}
+
+DEVICE TYPE GUIDE:
+- router: Internal routers (Gi0/x interfaces). Always need IPs on all connected interfaces.
+- isp-router: ISP/provider edge router connecting to the wider internet. Use this when the user mentions ISP, provider, or internet routing. Has Gi0/x interfaces.
+- switch: Layer 2 switch (Fa0/x interfaces, 24 ports). No IP needed unless management VLAN.
+- dmz-switch: Switch in the DMZ zone. Same as switch but for DMZ segments.
+- firewall: Perimeter security device (eth0-3). Needs IPs, does routing between zones.
+- cloud: The Internet/WAN cloud. Represents the public internet or WAN connection. One per topology unless multi-ISP.
+- vpc: AWS/Azure Virtual Private Cloud. A logical container. Wire subnets and gateways to it.
+- cloud-subnet: A subnet inside a VPC. Wire to the parent VPC.
+- igw: Internet Gateway — gives a VPC internet access. Wire to the VPC.
+- nat-gw: NAT Gateway — outbound-only internet for private subnets.
+- tgw: Transit Gateway — hub connecting multiple VPCs.
+- vpg: VPN Gateway (cloud side of IPSec tunnel). Wire to VPC and to onprem-dc.
+- onprem-dc: On-premises data center. Wire to vpg for hybrid cloud.
+- sase-edge: SASE (Secure Access Service Edge) — zero trust, SWG, CASB.
+- pc, server, printer, voip, iot: End devices. Need IP + gateway.
+- wap: Wireless access point. wlc: Wireless LAN controller.
+- load-balancer: Sits in front of server farms.
+- ids: IDS/IPS — inline or mirrored for traffic inspection.
+- public-web, public-file, public-cloud: DMZ-facing servers.
+
+TOPOLOGY TYPES — when the user asks for a physical topology, follow these EXACT patterns:
+- STAR: One central device (switch or router) at center (x:700,y:400). All other devices radiate outward in a circle around it. Every device connects ONLY to the center.
+- BUS: Devices arranged in a horizontal line (same y, increasing x). Each device connects to the next in the chain (A→B→C→D). Terminators at both ends.
+- RING: Devices arranged in a circle. Each connects to the next, and the last connects back to the first (A→B→C→D→A).
+- MESH (full): Every device connects to every other device. Arrange in a circle for clarity.
+- PARTIAL MESH: Most devices connect to most others but not all.
+- STAR-BUS / HYBRID: Multiple star clusters (each with a central switch + endpoints), linked together via backbone cables between the central switches.
+- POINT-TO-POINT: Two devices connected directly.
+- When combining topology types, follow the physical layout described above for device placement coordinates.
+
+SCHEMA:
 {
-  "devices": [{"type": "<one of: router, switch, dmz-switch, firewall, cloud, pc, server, printer, voip, iot, wap, wlc, load-balancer, ids, public-web, public-file, public-cloud, vpc, cloud-subnet, igw, nat-gw, tgw, vpg, onprem-dc, sase-edge>", "hostname": "R1", "x": 400, "y": 200, "interfaces": [{"name": "Gi0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "vlan": 1, "mode": "access", "gateway": ""}]}],
+  "devices": [
+    {
+      "type": "<device_type>",
+      "hostname": "R1",
+      "x": 400, "y": 200,
+      "interfaces": [{"name": "Gi0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "vlan": 1, "mode": "access", "gateway": ""}],
+      "routingTable": [{"type": "static", "network": "10.0.0.0", "mask": "255.255.0.0", "nextHop": "192.168.1.2", "iface": "Gi0/0"}],
+      "securityGroups": [{"name": "web-sg", "rules": [{"direction": "inbound", "protocol": "tcp", "port": "443", "source": "0.0.0.0/0", "action": "allow"}]}],
+      "vpcConfig": {"cidr": "10.0.0.0/16", "peerings": []},
+      "vpnConfig": {"peerIp": "", "psk": "secret123", "ikeVersion": "IKEv2", "encryption": "AES-256", "hashAlgo": "SHA-256", "dhGroup": 14}
+    }
+  ],
   "cables": [{"fromHostname": "R1", "fromIface": "Gi0/0", "toHostname": "SW1", "toIface": "Fa0/1", "type": "cat6"}]
 }
 
-Rules:
-- Place devices spread across a 1400x820 canvas (x: 100-1300, y: 100-720)
-- Use proper IP addressing (192.168.x.x for internal, 10.x.x.x for DMZ)
-- Routers need IPs on all connected interfaces
-- PCs/printers/endpoints need IPs + default gateways
-- Switches don't need IPs (unless management VLAN)
-- If DHCP is needed, configure dhcpServer on the router/server
-- Include routing tables on routers for cross-subnet connectivity
-- Max 30 devices
-- Support ANY topology type the user asks for: star (central switch/router, all devices connect to it), bus (linear chain), ring (circular chain), mesh (every device connects to every other), star-bus/hybrid (multiple star clusters linked together), point-to-point, etc. When the user asks for a topology type, arrange devices and cables in that physical pattern.
-- CRITICAL: Always generate valid JSON. Never include comments, trailing commas, or non-JSON text in your response.
+RULES:
+1. Canvas is 1400x820. Spread devices across x:100-1300, y:100-720. Don't cluster everything in one spot.
+2. IP addressing: 192.168.x.x for internal, 10.x.x.x for DMZ/cloud, 172.16.x.x for management, 203.0.113.x for public/ISP-facing.
+3. Every router/firewall/isp-router interface that connects to another device MUST have an IP.
+4. Every endpoint (pc, server, printer, voip, iot) MUST have an IP and a gateway pointing to its nearest router.
+5. Switches generally don't need IPs unless management VLAN is configured.
+6. Include routingTable on routers for cross-subnet reachability (connected routes auto-generate, add static routes for remote subnets).
+7. Include securityGroups on cloud devices if the user mentions security, firewalls, or access control.
+8. Include vpcConfig with cidr on VPC devices. Include vpnConfig on vpg and onprem-dc devices.
+9. Cable types: cat6 (default), cat5e, fiber (for backbone/long-distance), coax, console (management).
+10. Max 50 devices. Be generous with device count — real networks are complex.
+11. Use realistic hostnames: R1/R2 for routers, SW1/SW2 for switches, FW1 for firewalls, ISP1 for ISP routers, PC1-PC5 for PCs, SRV1 for servers, etc.
+12. CRITICAL: Output ONLY valid JSON. No comments, no trailing commas, no markdown fences, no text before or after.
 
-User request: ${scenario}
+USER REQUEST: ${scenario}
 
-Respond with ONLY the raw JSON object. No markdown code fences, no explanation, no text before or after the JSON.`;
+Generate the complete topology JSON now.`;
 
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
@@ -8046,7 +8177,7 @@ Respond with ONLY the raw JSON object. No markdown code fences, no explanation, 
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 3000, messages: [{ role: 'user', content: genPrompt }] })
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 4096, messages: [{ role: 'user', content: genPrompt }] })
     });
     if (!res.ok) { showErrorToast(`AI generation failed: ${res.status}`); return; }
     const data = await res.json();
