@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.31.0';
+const APP_VERSION = '4.31.1';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -1259,10 +1259,23 @@ async function startQuiz() {
     // Enhancement 2 + 4: Programmatic validation + reported question exclusion
     questions = validateQuestions(questions);
     if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
+    // Enforce exact question count: truncate extras, backfill if too few
+    if (questions.length > qCount) {
+      questions = questions.slice(0, qCount);
+    } else if (questions.length < qCount && questions.length >= Math.ceil(qCount / 2)) {
+      // Acceptable shortfall — validation removed some; continue with what we have
+    } else if (questions.length < Math.ceil(qCount / 2)) {
+      // Too many filtered — retry once with a larger request to compensate
+      document.getElementById('loading-msg').textContent = 'Some questions failed validation, generating more\u2026';
+      const extra = await fetchQuestions(key, activeQuizTopic, diff, qCount);
+      const extraValidated = validateQuestions(await aiValidateQuestions(key, extra));
+      questions = questions.concat(extraValidated).slice(0, qCount);
+      if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
+    }
   } catch(e) {
     const cached = getCachedQuestions(activeQuizTopic, diff, qCount);
     if (cached) {
-      questions = cached;
+      questions = cached.slice(0, qCount);
       showCacheNotice(true);
     } else {
       showPage('setup');
@@ -3384,6 +3397,8 @@ async function startBulkQuiz(count) {
     collected = await aiValidateQuestions(key, collected);
     collected = validateQuestions(collected);
     if (collected.length === 0) throw new Error('All generated questions failed validation. Try again.');
+    // Enforce target count — truncate extras from AI
+    if (collected.length > count) collected = collected.slice(0, count);
   } catch(e) {
     showPage('setup');
     errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');

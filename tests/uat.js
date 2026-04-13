@@ -227,7 +227,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.31.0', js.includes("const APP_VERSION = '4.31.0"));
+test('APP_VERSION is 4.31.1', js.includes("const APP_VERSION = '4.31.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -240,7 +240,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.31.0', sw.includes('netplus-v4.31.0'));
+test('SW cache bumped to v4.31.1', sw.includes('netplus-v4.31.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: setPortMode handles family', js.includes("portMode = 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="port-mode-family"'));
@@ -480,8 +480,8 @@ test('Family Q updates per-port adaptive stats', /allOptions\.forEach[\s\S]*?upd
 test('CSS: .port-opt-multi', css.includes('.port-opt-multi'));
 test('CSS: .port-opt-selected', css.includes('.port-opt-selected'));
 test('CSS: .port-submit-family', css.includes('.port-submit-family'));
-test('SW cache bumped to v4.31.0 (2)', sw.includes('netplus-v4.31.0'));
-test('APP_VERSION bumped to 4.31.0 (2)', js.includes("APP_VERSION = '4.31.0'"));
+test('SW cache bumped to v4.31.1 (2)', sw.includes('netplus-v4.31.1'));
+test('APP_VERSION bumped to 4.31.1 (2)', js.includes("APP_VERSION = '4.31.1'"));
 
 // ── Secure Pairs Port Drill mode (v4.16.1 #30) ──
 console.log('\n\x1b[1m── SECURE PAIRS PORT DRILL (v4.16.1 #30) ──\x1b[0m');
@@ -1619,9 +1619,9 @@ test('Attack: AI prompt includes daiEnabled', js.includes('daiEnabled on switche
 test('Attack: AI prompt includes portSecurity', js.includes('portSecurity on switches'));
 
 // Cross-cutting
-test('Version: APP_VERSION is 4.31.0', js.includes("APP_VERSION = '4.31.0'"));
-test('Version: HTML badge is v4.31.0', html.includes('v4.31.0'));
-test('Version: SW cache is netplus-v4.31.0', sw.includes('netplus-v4.31.0'));
+test('Version: APP_VERSION is 4.31.1', js.includes("APP_VERSION = '4.31.1'"));
+test('Version: HTML badge is v4.31.1', html.includes('v4.31.1'));
+test('Version: SW cache is netplus-v4.31.1', sw.includes('netplus-v4.31.1'));
 test('Help command includes BGP', js.includes('show ip bgp') && js.includes('BGP'));
 test('Help command includes EIGRP', js.includes('show ip eigrp'));
 test('Help command includes DNSSEC', js.includes('dig +dnssec'));
