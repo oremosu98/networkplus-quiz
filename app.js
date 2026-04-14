@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.31.1';
+const APP_VERSION = '4.38.7';
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -17,6 +17,19 @@ const EXAM_TOPIC = 'Exam Simulation';
 const DEFAULT_DIFF = 'Exam Level';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+// AI validator runs the second-pass quality check over generated questions.
+// Upgraded to Sonnet because the semantic failure modes still slipping past
+// the programmatic validator (premise-answer contradictions, explanation-answer
+// mismatches, "no correct answer" questions) require deeper reasoning than
+// Haiku reliably provides.
+const CLAUDE_VALIDATOR_MODEL = 'claude-sonnet-4-6';
+// AI "teacher" — any call site where the output is study content the user
+// will trust as authoritative (explainFurther, topic deep dive, topic brief,
+// subnet coach, port drill coach, topology coach, device explainer). These
+// are upgraded to Sonnet because users treat them as the teacher — a hallucinated
+// port/OSI layer/subnet mask here is worse than in a quiz question because
+// there is no validation layer after the fact.
+const CLAUDE_TEACHER_MODEL = 'claude-sonnet-4-6';
 
 const STORAGE = {
   THEME: 'nplus_theme',
@@ -44,7 +57,19 @@ const STORAGE = {
   TOPOLOGIES: 'nplus_topologies',
   TOPOLOGY_DRAFT: 'nplus_topology_draft',
   TB_COACH_CACHE: 'nplus_tb_coach_cache',
+  AI_CACHE: 'nplus_ai_cache',
   LAB_COMPLETIONS: 'nplus_lab_completions',
+  SUBNET_MASTERY: 'nplus_subnet_mastery',
+  SUBNET_LESSONS: 'nplus_subnet_lessons',
+  PORT_MASTERY: 'nplus_port_mastery',
+  PORT_LESSONS: 'nplus_port_lessons',
+  FIX_CHALLENGES: 'nplus_fix_challenges',
+  AB_MASTERY: 'nplus_ab_mastery',
+  AB_LESSONS: 'nplus_ab_lessons',
+  OS_MASTERY: 'nplus_os_mastery',
+  OS_LESSONS: 'nplus_os_lessons',
+  CB_MASTERY: 'nplus_cb_mastery',
+  CB_LESSONS: 'nplus_cb_lessons',
 };
 
 // ── STATE ──
@@ -458,6 +483,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderStreakDefender();
   renderDailyChallengeCard();
   renderTodaysFocus();
+  renderTodaySection();
   initMonitorGesture();
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');
@@ -500,6 +526,8 @@ function syncChipAriaPressed(groupSelector) {
 // NAVIGATION
 // ══════════════════════════════════════════
 function showPage(name) {
+  // Stop ambient packets when leaving topology builder
+  if (name !== 'topology-builder' && typeof tbStopAmbient === 'function') tbStopAmbient();
   const current = document.querySelector('.page.active');
   const next = document.getElementById('page-' + name);
   const activate = () => {
@@ -549,6 +577,7 @@ function goSetup() {
   renderStreakDefender();
   renderDailyChallengeCard();
   renderTodaysFocus();
+  renderTodaySection();
   showPage('setup');
 }
 
@@ -579,7 +608,7 @@ function renderHistoryPanel() {
   panel.classList.remove('is-hidden');
   list.innerHTML = h.slice(0,8).map(e => {
     const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--blue)' : 'var(--red)';
     const tag   = e.mode === 'exam' ? '<span class="mode-tag">EXAM</span>' : '';
     return `<div class="history-row">
       <div class="h-info">
@@ -680,7 +709,7 @@ function renderStatsCard() {
   card.classList.remove('is-hidden');
   const streakData = getStreakData();
   const todayQs = getTodayQuestionCount();
-  const avgColor = stats.avgPct >= 80 ? 'var(--green)' : stats.avgPct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  const avgColor = stats.avgPct >= 80 ? 'var(--green)' : stats.avgPct >= 60 ? 'var(--blue)' : 'var(--red)';
   const streakIcon = streakData.currentStreak > 0 ? '\ud83d\udd25' : '\ud83d\udcab';
   grid.innerHTML = `
     <div class="sstat"><div class="sv">${stats.totalQ.toLocaleString()}</div><div class="sl">Questions</div></div>
@@ -771,7 +800,7 @@ function _progressRowHtml(row) {
     ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
   } else {
     if (pct >= 80) { ragClass = 'rag-green'; color = 'var(--green)'; }
-    else if (pct >= 60) { ragClass = 'rag-yellow'; color = 'var(--yellow)'; }
+    else if (pct >= 60) { ragClass = 'rag-blue'; color = 'var(--blue)'; }
     else { ragClass = 'rag-red'; color = 'var(--red)'; }
     metaRight = total + 'Q · ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
   }
@@ -780,7 +809,8 @@ function _progressRowHtml(row) {
   const objBadge = obj ? `<span class="topic-obj-badge" title="N10-009 objective ${obj}">${obj}</span>` : '';
   // Show the same short label the user picks from on the setup page
   const display = label || t;
-  return `<div class="topic-row" onclick="drillTopic('${escHtml(t).replace(/'/g, "\\'")}')">
+  const safeTopicId = escHtml(t).replace(/'/g, "\\'");
+  return `<div class="topic-row" onclick="drillTopic('${safeTopicId}')">
     <div class="topic-rag ${ragClass}"></div>
     <div class="topic-info">
       <div class="topic-name-line">${objBadge}<span class="topic-name">${escHtml(display)}</span></div>
@@ -788,6 +818,7 @@ function _progressRowHtml(row) {
       <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
     </div>
     <div class="topic-pct-lbl" style="color:${color}">${pctTxt}</div>
+    <button class="topic-play-btn" onclick="event.stopPropagation();focusTopic('${safeTopicId}')" title="Start quiz on this topic" aria-label="Start quiz on ${escHtml(display)}">&#9654;</button>
   </div>`;
 }
 
@@ -800,15 +831,14 @@ function _renderProgressSummary(rows) {
   const touched = total - buckets.untouched;
   const coveragePct = total ? Math.round((touched / total) * 100) : 0;
   el.innerHTML = `
-    <div class="ps-stat ps-strong"><div class="ps-n">${buckets.strong}</div><div class="ps-l">&#128994; Strong</div></div>
-    <div class="ps-stat ps-solid"><div class="ps-n">${buckets.solid}</div><div class="ps-l">&#128993; Solid</div></div>
-    <div class="ps-stat ps-weak"><div class="ps-n">${buckets.weak}</div><div class="ps-l">&#128308; Weak</div></div>
-    <div class="ps-stat ps-untouched"><div class="ps-n">${buckets.untouched}</div><div class="ps-l">&#9898; Untouched</div></div>
-    <div class="ps-stat ps-coverage">
-      <div class="ps-n">${touched}<span class="ps-n-sub">/${total}</span></div>
-      <div class="ps-l">Topics touched &middot; ${coveragePct}%</div>
-      <div class="ps-coverage-bar"><div class="ps-coverage-fill" style="width:${coveragePct}%"></div></div>
-    </div>`;
+    <div class="ps-row">
+      <div class="ps-stat ps-strong"><div class="ps-n">${buckets.strong}</div><div class="ps-l">&#128994; Strong</div></div>
+      <div class="ps-stat ps-solid"><div class="ps-n">${buckets.solid}</div><div class="ps-l">&#128309; Solid</div></div>
+      <div class="ps-stat ps-weak"><div class="ps-n">${buckets.weak}</div><div class="ps-l">&#128308; Weak</div></div>
+      <div class="ps-stat ps-untouched"><div class="ps-n">${buckets.untouched}</div><div class="ps-l">&#9898; Untouched</div></div>
+      <div class="ps-stat"><div class="ps-n">${touched}<span class="ps-n-sub">/${total}</span></div><div class="ps-l">Coverage &middot; ${coveragePct}%</div></div>
+    </div>
+    <div class="ps-coverage-bar"><div class="ps-coverage-fill" style="width:${coveragePct}%"></div></div>`;
   // Lab progress section
   try {
     const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
@@ -825,16 +855,12 @@ function _renderProgressSummary(rows) {
       });
     }
     el.innerHTML += `
-      <div class="ps-lab-section" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <div class="ps-stat" style="min-width:auto"><div class="ps-n">🧪 ${labsDone}<span class="ps-n-sub">/${totalLabs}</span></div><div class="ps-l">Labs completed &middot; ${labPct}%</div>
-            <div class="ps-coverage-bar" style="margin-top:4px"><div class="ps-coverage-fill" style="width:${labPct}%;background:var(--accent)"></div></div>
-          </div>
-          ${Object.entries(labsByDiff).filter(([,v]) => v.total > 0).map(([diff, v]) => {
-            const icon = diff === 'Beginner' ? '🟢' : diff === 'Intermediate' ? '🟡' : '🔴';
-            return `<div class="ps-stat" style="min-width:auto"><div class="ps-n">${icon} ${v.done}/${v.total}</div><div class="ps-l">${diff}</div></div>`;
-          }).join('')}
-        </div>
+      <div class="ps-lab-row">
+        <div class="ps-stat" style="border:none"><div class="ps-n">🧪 ${labsDone}<span class="ps-n-sub">/${totalLabs}</span></div><div class="ps-l">Labs &middot; ${labPct}%</div></div>
+        ${Object.entries(labsByDiff).filter(([,v]) => v.total > 0).map(([diff, v]) => {
+          const icon = diff === 'Beginner' ? '🟢' : diff === 'Intermediate' ? '🟡' : '🔴';
+          return `<div class="ps-stat" style="border:none"><div class="ps-n">${icon} ${v.done}<span class="ps-n-sub">/${v.total}</span></div><div class="ps-l">${diff}</div></div>`;
+        }).join('')}
       </div>`;
   } catch (_) {}
 }
@@ -855,13 +881,15 @@ function _renderProgressGrouped(rows) {
     const avg = touched.length ? Math.round(touched.reduce((a, r) => a + r.pct, 0) / touched.length) : null;
     let avgColor = 'var(--text-dim)';
     if (avg !== null) {
-      avgColor = avg >= 80 ? 'var(--green)' : (avg >= 60 ? 'var(--yellow)' : 'var(--red)');
+      avgColor = avg >= 80 ? 'var(--green)' : (avg >= 60 ? 'var(--blue)' : 'var(--red)');
     }
     const weightPct = Math.round(DOMAIN_WEIGHTS[dk] * 100);
+    const barColor = avg !== null ? (avg >= 80 ? 'var(--green)' : avg >= 60 ? 'var(--blue)' : 'var(--red)') : 'var(--surface3)';
     html += `<details class="progress-domain" open>
       <summary class="progress-domain-head">
         <span class="pd-name">${DOMAIN_LABELS[dk]}</span>
         <span class="pd-weight">${weightPct}% of exam</span>
+        <span class="pd-bar"><span class="pd-bar-fill" style="width:${avg !== null ? avg : 0}%;background:${barColor}"></span></span>
         <span class="pd-avg" style="color:${avgColor}">${avg !== null ? avg + '%' : '—'}</span>
         <span class="pd-count">${visible.length}/${groupRows.length}</span>
       </summary>
@@ -907,6 +935,9 @@ function drillTopic(t) {
   // Reveal the selected chip: open its collapsed domain accordion, scroll to
   // it, and flash briefly so the landing target is obvious.
   requestAnimationFrame(() => {
+    // Open the Custom Quiz section so topic chips are visible (v4.32)
+    const customSection = document.getElementById('custom-quiz-section');
+    if (customSection && !customSection.open) customSection.open = true;
     const chip = document.querySelector('#topic-group .chip.on');
     if (!chip) return;
     const domainGroup = chip.closest('details.topic-domain-group');
@@ -986,8 +1017,8 @@ function _scoreTopicNeed(topic, historyEntries, now) {
   let reason, color;
   if (wrongCount > 0) { reason = wrongCount + ' wrong answer' + (wrongCount > 1 ? 's' : '') + ' banked'; color = 'var(--red)'; }
   else if (recentAvg < 60) { reason = Math.round(recentAvg) + '% avg \u2014 needs work'; color = 'var(--red)'; }
-  else if (daysSince >= interval) { reason = Math.round(daysSince) + 'd ago \u2014 due for review'; color = 'var(--yellow)'; }
-  else if (recentAvg < 80) { reason = Math.round(recentAvg) + '% avg \u2014 room to improve'; color = 'var(--yellow)'; }
+  else if (daysSince >= interval) { reason = Math.round(daysSince) + 'd ago \u2014 due for review'; color = 'var(--blue)'; }
+  else if (recentAvg < 80) { reason = Math.round(recentAvg) + '% avg \u2014 room to improve'; color = 'var(--blue)'; }
   else { reason = Math.round(recentAvg) + '% avg \u2014 keep sharp'; color = 'var(--green)'; }
   return { score, reason, color };
 }
@@ -1116,11 +1147,32 @@ function renderWrongBankBtn() {
   const bank = loadWrongBank();
   if (bank.length === 0) {
     row.classList.add('is-hidden');
-    return;
+  } else {
+    row.classList.remove('is-hidden');
+    const badge = btn.querySelector('.wrong-count-badge');
+    if (badge) badge.textContent = bank.length;
   }
-  row.classList.remove('is-hidden');
-  const badge = btn.querySelector('.wrong-count-badge');
-  if (badge) badge.textContent = bank.length;
+  // Also update the preset tile version (v4.32)
+  const wrongTile = document.getElementById('wrong-preset-tile');
+  const wrongSub = document.getElementById('wrong-preset-sub');
+  if (wrongTile) {
+    if (bank.length === 0) {
+      wrongTile.classList.add('is-hidden');
+    } else {
+      wrongTile.classList.remove('is-hidden');
+      if (wrongSub) wrongSub.textContent = bank.length + ' wrong answer' + (bank.length !== 1 ? 's' : '') + ' saved';
+    }
+  }
+}
+
+function renderTodaySection() {
+  const section = document.getElementById('today-section');
+  if (!section) return;
+  // Show the section if any child card is visible
+  const children = section.querySelectorAll('#daily-goal-card, #streak-defender, #daily-challenge-card, #todays-focus, #session-banner, #weak-banner');
+  const anyVisible = Array.from(children).some(c => !c.classList.contains('is-hidden'));
+  // Daily goal card is always visible, so the section is always shown
+  section.classList.remove('is-hidden');
 }
 
 function clearWrongBank() {
@@ -1220,6 +1272,14 @@ function validateApiKey(key) {
   return null;
 }
 
+// Auto-open collapsed sections and scroll to error when API key is missing (v4.32)
+function showSetupError() {
+  const cqs = document.getElementById('custom-quiz-section'); if (cqs && !cqs.open) cqs.open = true;
+  const adv = document.getElementById('advanced-section'); if (adv && !adv.open) adv.open = true;
+  const errBox = document.getElementById('setup-err');
+  if (errBox) errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // ══════════════════════════════════════════
 // START REGULAR QUIZ
 // ══════════════════════════════════════════
@@ -1228,7 +1288,11 @@ async function startQuiz() {
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
+  if (keyErr) {
+    errBox.textContent = keyErr; errBox.classList.remove('is-hidden');
+    showSetupError();
+    return;
+  }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
   examMode = false;
@@ -1303,7 +1367,7 @@ async function startExam() {
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); showSetupError(); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
 
@@ -1445,12 +1509,14 @@ Step 2: INDEPENDENTLY determine which option is factually correct by reasoning t
 Step 3: Set the "answer" field to the letter of the option you verified in Step 2.
 Step 4: Write the explanation referencing that SAME letter and option text.
 Step 5: CROSS-CHECK: Re-read the option text at your chosen answer letter. Does it match what your explanation says? If not, fix the answer field.
+Step 6: PREMISE-ANSWER CONSISTENCY CHECK: Re-read the question stem. Does the correct answer CONTRADICT any fact explicitly stated in the stem? If the stem says "both devices are on VLAN 30", the answer CANNOT be "they are on different VLANs." If you find a contradiction, rewrite the question or change the answer so the stem and answer are logically consistent.
 
 MANDATORY RULES:
 - The "answer" field must ALWAYS match the letter whose option text is factually correct
 - The "explanation" must explicitly reference why the correct option is right and why at least one wrong option is wrong
 - If you notice ANY mismatch between answer letter, option text, and explanation — fix it before outputting
 - Never output a question where the explanation and the answer field disagree
+- NEVER write a question where the correct answer contradicts a fact stated in the question stem. If the question says something IS the case, the answer cannot say it ISN'T. This is the most common AI question-writing error — check for it explicitly.
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"type":"mcq","question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
@@ -2020,6 +2086,10 @@ function finish() {
     const entryMode = dailyChallengeMode ? 'daily' : (sessionMode ? 'session' : 'quiz');
     saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
   }
+  // v4.38.7: real-time weak spots refresh. goSetup() already re-renders the
+  // chips when the user navigates back to setup, but calling it here keeps
+  // the DOM consistent in case the user navigates via a direct page switch.
+  try { renderTodaysFocus(); } catch (_) {}
 
   // Daily challenge completion hook — count any finished daily-challenge run
   if (dailyChallengeMode) {
@@ -2376,6 +2446,10 @@ function submitExam() {
 
   updateStreak();
   saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam', hardcore: examHardcore });
+  // v4.38.7: exam runs push per-topic data into the wrong bank via
+  // addToWrongBank as each wrong answer is recorded; refresh the weak-spots
+  // card so the next setup view already reflects the new signal.
+  try { renderTodaysFocus(); } catch (_) {}
 
   const scoreEl = document.getElementById('exam-scaled-score');
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';
@@ -2929,6 +3003,23 @@ const MILESTONE_DEFS = [
   { id: 'labs_5',            label: 'Lab regular',         desc: 'Complete 5 different labs',                icon: '🔬' },
   { id: 'labs_10',           label: 'Lab master',          desc: 'Complete 10 different labs',               icon: '🏗️' },
   { id: 'labs_all',          label: 'Lab completionist',   desc: 'Complete every available lab',             icon: '🧬' },
+  // ── v4.37.0: Fix This Network milestones ──
+  { id: 'fix_first',         label: 'First responder',     desc: 'Complete your first Fix This Network challenge', icon: '🔧' },
+  { id: 'fix_5',             label: 'Network medic',       desc: 'Complete 5 Fix This Network challenges',   icon: '🩺' },
+  { id: 'fix_all_easy',      label: 'Easy sweep',          desc: 'Complete every Easy Fix challenge',         icon: '🧹' },
+  // ── v4.38.0: Acronym / OSI / Cable drill milestones ──
+  { id: 'ab_first',          label: 'Acronym rookie',      desc: 'Answer your first Acronym Blitz question',  icon: '💡' },
+  { id: 'ab_50',             label: 'Acronym adept',       desc: 'Answer 50 Acronym Blitz questions',         icon: '📖' },
+  { id: 'ab_all_seen',       label: 'Acronym encyclopedia',desc: 'See every acronym at least once',           icon: '📚' },
+  { id: 'ab_streak_15',      label: 'Acronym streak',      desc: 'Reach a 15 streak in Acronym Blitz',        icon: '⚡' },
+  { id: 'os_first',          label: 'OSI initiate',        desc: 'Answer your first OSI Sorter question',     icon: '🌐' },
+  { id: 'os_50',             label: 'OSI scholar',         desc: 'Answer 50 OSI Sorter questions',            icon: '🎓' },
+  { id: 'os_all_seen',       label: 'OSI master',          desc: 'See every OSI item at least once',          icon: '🗺️' },
+  { id: 'os_streak_10',      label: 'OSI streak',          desc: 'Reach a 10 streak in OSI Sorter',           icon: '🔥' },
+  { id: 'cb_first',          label: 'Cable spotter',       desc: 'Answer your first Cable ID question',       icon: '🔌' },
+  { id: 'cb_50',             label: 'Cable expert',        desc: 'Answer 50 Cable ID questions',              icon: '🏅' },
+  { id: 'cb_all_seen',       label: 'Cable encyclopedia',  desc: 'See every cable and connector at least once', icon: '📕' },
+  { id: 'cb_streak_10',      label: 'Cable streak',        desc: 'Reach a 10 streak in Cable ID',             icon: '⛓️' },
 ];
 
 function evaluateMilestones() {
@@ -3033,6 +3124,51 @@ function evaluateMilestones() {
     maybe('labs_5',    labsDone >= 5);
     maybe('labs_10',   labsDone >= 10);
     maybe('labs_all',  labsDone >= totalLabs);
+  } catch (_) {}
+
+  // Acronym Blitz milestones
+  try {
+    const abM = (typeof getAbMastery === 'function') ? getAbMastery() : { totalAnswered: 0, perItem: {} };
+    maybe('ab_first', abM.totalAnswered >= 1);
+    maybe('ab_50', abM.totalAnswered >= 50);
+    const abSeenCount = Object.values(abM.perItem).filter(p => p.seen > 0).length;
+    const abTotalItems = (typeof AB_DATA !== 'undefined') ? AB_DATA.length : 120;
+    maybe('ab_all_seen', abSeenCount >= abTotalItems && abTotalItems > 0);
+    maybe('ab_streak_15', Object.values(abM.perItem).some(p => p.streak >= 15));
+  } catch (_) {}
+
+  // OSI Sorter milestones
+  try {
+    const osM = (typeof getOsMastery === 'function') ? getOsMastery() : { totalAnswered: 0, perItem: {} };
+    maybe('os_first', osM.totalAnswered >= 1);
+    maybe('os_50', osM.totalAnswered >= 50);
+    const osSeenCount = Object.values(osM.perItem).filter(p => p.seen > 0).length;
+    const osTotalItems = (typeof OS_DATA !== 'undefined') ? OS_DATA.length : 50;
+    maybe('os_all_seen', osSeenCount >= osTotalItems && osTotalItems > 0);
+    maybe('os_streak_10', Object.values(osM.perItem).some(p => p.streak >= 10));
+  } catch (_) {}
+
+  // Cable & Connector ID milestones
+  try {
+    const cbM = (typeof getCbMastery === 'function') ? getCbMastery() : { totalAnswered: 0, perItem: {} };
+    maybe('cb_first', cbM.totalAnswered >= 1);
+    maybe('cb_50', cbM.totalAnswered >= 50);
+    const cbSeenCount = Object.values(cbM.perItem).filter(p => p.seen > 0).length;
+    const cbTotalItems = ((typeof CB_CABLES !== 'undefined') ? CB_CABLES.length : 15) + ((typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS.length : 13);
+    maybe('cb_all_seen', cbSeenCount >= cbTotalItems && cbTotalItems > 0);
+    maybe('cb_streak_10', Object.values(cbM.perItem).some(p => p.streak >= 10));
+  } catch (_) {}
+
+  // Fix This Network milestones
+  try {
+    const fixSaved = JSON.parse(localStorage.getItem(STORAGE.FIX_CHALLENGES) || '{}');
+    const fixDone = Object.keys(fixSaved).length;
+    maybe('fix_first', fixDone >= 1);
+    maybe('fix_5',     fixDone >= 5);
+    if (typeof TB_FIX_CHALLENGES !== 'undefined') {
+      const easyIds = TB_FIX_CHALLENGES.filter(c => c.difficulty === 'Easy').map(c => c.id);
+      maybe('fix_all_easy', easyIds.length > 0 && easyIds.every(id => fixSaved[id]));
+    }
   } catch (_) {}
 
   return newlyUnlocked;
@@ -3212,43 +3348,165 @@ async function startDailyChallenge() {
   startQuiz();
 }
 
-// ── Today's Focus chip row (weakest topics surfaced as one-tap) ──
-function getTodaysFocusTopics(limit = 2) {
-  // Combine wrong-bank counts + low-accuracy history topics, rank, return topN
+// ── Weak Spots v2 (v4.38.7) — robust, real-time ranking ──
+// Previous heuristic was +2 per wrong-bank entry and a flat +pct gap for
+// topics under 75% — no recency, no confidence interval, no difficulty
+// weighting, no domain importance. This rewrite scores every topic with a
+// real model so the front-page "🎯 Weak spots" chips actually point at the
+// topic most worth drilling *right now*. The four signals combined:
+//
+//   1. Recent wrongs (half-life 7d)        — exponential decay over wrong-bank
+//      entries, difficulty-weighted via diffWeight(), half-credit for entries
+//      that have already been re-answered correctly once (rightCount >= 1).
+//   2. Accuracy gap (Bayesian posterior)    — recency-decayed weighted
+//      correct/total from history (14-day half-life, exam boost 1.3x,
+//      difficulty-weighted), smoothed with a Beta(2,2) prior so fresh topics
+//      don't instantly flag on one bad run. Gap = max(0, 0.85 - posterior).
+//   3. Staleness                           — topics untouched >14 days start
+//      accruing up to a 2.0 multiplier so a topic you studied once and never
+//      revisited doesn't fade off the radar.
+//   4. Domain importance                   — multiplied by DOMAIN_WEIGHTS /
+//      average (0.2), so a weak Troubleshooting topic (24%) outranks a weak
+//      Security topic (14%) at equal raw badness — matches the real N10-009
+//      domain distribution.
+//
+// Topics with zero signal (no wrong-bank, no history) are *excluded* — they
+// are "untouched", not "weak". This keeps the chip row pointing at what you
+// studied badly, not what you haven't studied yet (that's what Study Plan is
+// for). Real-time: the calculation reads localStorage fresh every render and
+// is called from finish(), submitExam(), and goSetup() so any quiz or exam
+// completion updates the front-page chips immediately.
+const WEAK_HALF_LIFE_WRONGS_MS = 7  * 86400000; // 7d recency half-life for wrong bank
+const WEAK_HALF_LIFE_HIST_MS   = 14 * 86400000; // 14d half-life for history accuracy
+const WEAK_TARGET_ACC          = 0.85;          // mastery threshold (Bayesian gap = 0.85 - posterior)
+const WEAK_STALENESS_DAYS      = 14;            // untouched grace period
+const WEAK_STALENESS_CAP       = 2.0;           // max staleness multiplier
+const WEAK_AVG_DOMAIN_WEIGHT   = 0.2;           // avg of the 5 DOMAIN_WEIGHTS values
+
+function _weakDecay(ageMs, halfLifeMs) {
+  if (ageMs <= 0) return 1;
+  return Math.pow(0.5, ageMs / halfLifeMs);
+}
+function _weakDomainMultiplier(topicName) {
+  const dom = TOPIC_DOMAINS[topicName];
+  if (!dom) return 1.0;
+  const w = DOMAIN_WEIGHTS[dom] || WEAK_AVG_DOMAIN_WEIGHT;
+  return w / WEAK_AVG_DOMAIN_WEIGHT; // range ~0.7 (security) to ~1.2 (troubleshooting)
+}
+function computeWeakSpotScores() {
   const bank = loadWrongBank();
-  const hist = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 3);
-  const score = {};
-  // +2 per banked wrong from this topic
+  const hist = loadHistory().filter(e =>
+    e.topic && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC
+  );
+  const now = Date.now();
+  const topicData = {};
+  const touch = t => {
+    if (!topicData[t]) topicData[t] = {
+      topic: t,
+      wrongsRecent: 0,    // decayed, difficulty-weighted wrong-bank count
+      wrongsRaw: 0,       // untouched count for display
+      wCorrect: 0,        // weighted correct answers (history)
+      wTotal: 0,          // weighted question volume (history)
+      lastTouch: 0,       // max of history & wrong-bank timestamps
+      totalQuestions: 0   // raw total across history (for display)
+    };
+    return topicData[t];
+  };
+
   bank.forEach(w => {
-    if (w.topic && w.topic !== MIXED_TOPIC && w.topic !== EXAM_TOPIC) {
-      score[w.topic] = (score[w.topic] || 0) + 2;
-    }
+    if (!w.topic || w.topic === MIXED_TOPIC || w.topic === EXAM_TOPIC) return;
+    const d = touch(w.topic);
+    const ts = w.addedDate ? new Date(w.addedDate).getTime() : now;
+    const age = Math.max(0, now - ts);
+    const decay = _weakDecay(age, WEAK_HALF_LIFE_WRONGS_MS);
+    const dw = diffWeight(w.difficulty);
+    // Half-credit once an entry has been re-answered correctly once (one more
+    // right answer and it graduates out of the bank entirely — don't keep
+    // punishing the topic for a nearly-learned mistake).
+    const graduationDiscount = (w.rightCount || 0) >= 1 ? 0.5 : 1.0;
+    d.wrongsRecent += decay * dw * graduationDiscount;
+    d.wrongsRaw += 1;
+    if (ts > d.lastTouch) d.lastTouch = ts;
   });
-  // + weight for low-accuracy topics from history
-  const acc = {};
+
   hist.forEach(e => {
-    if (!acc[e.topic]) acc[e.topic] = { c: 0, t: 0 };
-    acc[e.topic].c += e.score;
-    acc[e.topic].t += e.total;
+    const d = touch(e.topic);
+    const ts = new Date(e.date).getTime();
+    const age = Math.max(0, now - ts);
+    const decay = _weakDecay(age, WEAK_HALF_LIFE_HIST_MS);
+    const dw = diffWeight(e.difficulty);
+    const modeBoost = (e.mode === 'exam') ? 1.3 : 1.0;
+    const w = decay * dw * modeBoost;
+    d.wCorrect += (e.score || 0) * w;
+    d.wTotal   += (e.total || 0) * w;
+    d.totalQuestions += (e.total || 0);
+    if (ts > d.lastTouch) d.lastTouch = ts;
   });
-  Object.entries(acc).forEach(([t, s]) => {
-    const pct = s.c / s.t;
-    if (pct < 0.75) score[t] = (score[t] || 0) + Math.round((0.75 - pct) * 20);
+
+  const rows = [];
+  Object.values(topicData).forEach(d => {
+    // Require at least *some* signal — a single fading wrong-bank entry or a
+    // thin history footprint. Everything below this is indistinguishable
+    // from untouched.
+    if (d.wTotal < 1 && d.wrongsRecent < 0.5) return;
+    // Bayesian posterior mean with Beta(2,2) prior. Prior acts like 2 correct
+    // and 2 wrong "ghost" answers, smoothing tiny samples toward 0.5 so a
+    // single bad 5-Q run doesn't instantly dominate the ranking.
+    const posterior = (d.wCorrect + 2) / (d.wTotal + 4);
+    const accGap = Math.max(0, WEAK_TARGET_ACC - posterior);
+    // Staleness: days past the untouched grace period, normalized.
+    const daysSince = d.lastTouch ? (now - d.lastTouch) / 86400000 : 9999;
+    const stalenessRaw = Math.max(0, (daysSince - WEAK_STALENESS_DAYS) / WEAK_STALENESS_DAYS);
+    const staleness = Math.min(WEAK_STALENESS_CAP, stalenessRaw);
+    const domainMul = _weakDomainMultiplier(d.topic);
+    // Combined score. Weights chosen so recent wrongs dominate when fresh,
+    // accuracy gap dominates when you've built real volume, and staleness
+    // keeps slowly-decaying topics on the radar.
+    const base =
+      d.wrongsRecent * 3.0 +
+      accGap         * 25.0 +
+      staleness      * 2.0;
+    const score = base * domainMul;
+    if (score <= 0) return;
+    rows.push({
+      topic: d.topic,
+      score,
+      posterior,
+      accuracyGap: accGap,
+      wrongsRecent: d.wrongsRecent,
+      wrongsRaw: d.wrongsRaw,
+      staleness,
+      daysSince: Math.round(daysSince),
+      domainMul,
+      totalQuestions: d.totalQuestions
+    });
   });
-  return Object.entries(score)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([t]) => t);
+  rows.sort((a, b) => b.score - a.score);
+  return rows;
+}
+// Backward-compat shim — existing callers (Focused preset, etc.) still expect
+// just the top N topic names. New detail-view code uses computeWeakSpotScores
+// directly.
+function getTodaysFocusTopics(limit = 2) {
+  return computeWeakSpotScores().slice(0, limit).map(r => r.topic);
 }
 function renderTodaysFocus() {
   const row = document.getElementById('todays-focus');
   if (!row) return;
-  const topics = getTodaysFocusTopics(2);
-  if (topics.length === 0) { row.classList.add('is-hidden'); return; }
+  const top = computeWeakSpotScores().slice(0, 2);
+  if (top.length === 0) { row.classList.add('is-hidden'); return; }
   row.innerHTML = `
     <span class="tf-label">🎯 Weak spots:</span>
     <div class="tf-chips">
-      ${topics.map(t => `<button type="button" class="tf-chip" onclick="focusTopic('${t.replace(/'/g, "\\'")}')">${escHtml(t)} →</button>`).join('')}
+      ${top.map(r => {
+        const pct = Math.round(r.posterior * 100);
+        const parts = [`~${pct}% accuracy`];
+        if (r.wrongsRaw > 0) parts.push(`${r.wrongsRaw} recent wrong${r.wrongsRaw === 1 ? '' : 's'}`);
+        if (r.daysSince > WEAK_STALENESS_DAYS && r.daysSince < 9000) parts.push(`${r.daysSince}d stale`);
+        const title = parts.join(' · ');
+        const safeTopic = r.topic.replace(/'/g, "\\'");
+        return `<button type="button" class="tf-chip" title="${escHtml(title)}" onclick="focusTopic('${safeTopic}')">${escHtml(r.topic)} →</button>`;
+      }).join('')}
     </div>
   `;
   row.classList.remove('is-hidden');
@@ -3347,7 +3605,7 @@ async function startBulkQuiz(count) {
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); showSetupError(); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
   examMode = false;
@@ -3551,7 +3809,7 @@ async function startSession() {
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
   const keyErr = validateApiKey(key);
-  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); return; }
+  if (keyErr) { errBox.textContent = keyErr; errBox.classList.remove('is-hidden'); showSetupError(); return; }
   apiKey = key;
   localStorage.setItem(STORAGE.KEY, key);
 
@@ -3605,7 +3863,7 @@ async function runSessionStep() {
 function renderSessionTransition() {
   const prev   = sessionResults[sessionResults.length - 1];
   const next   = sessionPlan[sessionStep];
-  const color  = prev.pct >= 80 ? 'var(--green)' : prev.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+  const color  = prev.pct >= 80 ? 'var(--green)' : prev.pct >= 60 ? 'var(--blue)' : 'var(--red)';
   const emoji  = prev.pct >= 80 ? '\u2705' : prev.pct >= 60 ? '\ud83d\udcaa' : '\ud83d\udcda';
 
   document.getElementById('st-emoji').textContent   = emoji;
@@ -3633,7 +3891,7 @@ function renderSessionComplete() {
 
   const scResults = document.getElementById('sc-results');
   scResults.innerHTML = sessionResults.map(r => {
-    const c = r.pct >= 80 ? 'var(--green)' : r.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const c = r.pct >= 80 ? 'var(--green)' : r.pct >= 60 ? 'var(--blue)' : 'var(--red)';
     return `<div class="session-result-row">
       <div>
         <div class="session-result-topic">${escHtml(r.topic)}</div>
@@ -3921,6 +4179,265 @@ const topoScenarios = [
 ];
 
 // ══════════════════════════════════════════
+// GROUND TRUTH TABLES — deterministic N10-009 facts (v4.38.4)
+// Catches factual errors no amount of keyword scoring can.
+// Covers the high-frequency deterministic question patterns: port numbers,
+// OSI layers, wireless encryption security status.
+// ══════════════════════════════════════════
+const GT_PORTS = {
+  ftp: 21, ssh: 22, telnet: 23, smtp: 25, dns: 53, tftp: 69,
+  http: 80, pop3: 110, ntp: 123, imap: 143, snmp: 161,
+  ldap: 389, https: 443, smb: 445, syslog: 514, smtps: 465,
+  ldaps: 636, ftps: 990, imaps: 993, pop3s: 995,
+  rdp: 3389, mysql: 3306, sip: 5060, sqlserver: 1433,
+  mssql: 1433, dhcp: 67, kerberos: 88
+};
+const GT_OSI = {
+  // L7
+  http: 7, https: 7, ftp: 7, sftp: 7, smtp: 7, pop3: 7, imap: 7,
+  dns: 7, dhcp: 7, snmp: 7, telnet: 7, ssh: 7, ntp: 7, tftp: 7, ldap: 7,
+  // L4
+  tcp: 4, udp: 4,
+  // L3
+  ip: 3, ipv4: 3, ipv6: 3, icmp: 3, ospf: 3, bgp: 3, eigrp: 3, rip: 3, igmp: 3,
+  // L2
+  ethernet: 2, arp: 2, ppp: 2, stp: 2
+};
+// Wireless encryption: broken = reject if marked as secure/recommended
+const GT_WIFI_BROKEN = ['wep'];
+const GT_WIFI_DEPRECATED = ['wpa']; // original WPA (not WPA2/3)
+// Ethernet physical-layer conflation traps (v4.38.6).
+// Haiku (and occasionally Sonnet) conflate auto-negotiation with Auto-MDIX
+// because they're co-marketed on modern gear. They are distinct features:
+//   - Auto-negotiation (IEEE 802.3u, clause 28): speed + duplex over FLP bursts
+//   - Auto-MDIX (IEEE 802.3ab, clause 40): MDI/MDIX pin detection, crossover
+// Every entry here is a (topic, correct feature) truth pair that the teacher
+// prompt stuffs in as AUTHORITATIVE FACTS whenever any of the trigger keywords
+// show up in the question/topic text.
+const GT_ETHERNET = {
+  'auto-negotiation': 'negotiates SPEED and DUPLEX only (IEEE 802.3u clause 28). It does NOT detect cable pinout or MDI/MDIX.',
+  'auto-mdix': 'detects MDI/MDIX pin assignments and automatically swaps TX/RX so straight-through and crossover cables are interchangeable (IEEE 802.3ab clause 40). This is a DIFFERENT feature from auto-negotiation.',
+  'mdi/mdix': 'MDI/MDIX pin assignment detection is handled by Auto-MDIX, not auto-negotiation. Auto-negotiation only handles speed and duplex.',
+  'straight-through vs crossover': 'Auto-MDIX (not auto-negotiation) is the feature that lets devices work with either cable type automatically.',
+  'duplex mismatch': 'A duplex mismatch causes late collisions and runt frames on the half-duplex side, and FCS/CRC errors on the full-duplex side. Fix by setting both ends to auto-negotiate or both to the same fixed duplex.',
+  'PoE standards': 'PoE (802.3af) = 15.4W, PoE+ (802.3at) = 30W, PoE++ / 4PPoE (802.3bt Type 3) = 60W, 802.3bt Type 4 = 100W. All power is sourced at the PSE (switch/injector), measured at the PD minus cable loss.'
+};
+
+function _groundTruthOk(q) {
+  if (getQType(q) !== 'mcq') return true;
+  const stem = q.question.toLowerCase();
+  const ansText = (q.options[q.answer] || '').toLowerCase();
+
+  // ── Port check: "which port does X use" / "what port is X" ──
+  const protoList = Object.keys(GT_PORTS).join('|');
+  const portForProtoRe = new RegExp('(?:what|which)\\s+(?:port|tcp|udp).*?\\b(' + protoList + ')\\b', 'i');
+  const m1 = stem.match(portForProtoRe);
+  if (m1) {
+    const proto = m1[1].toLowerCase();
+    const truePort = GT_PORTS[proto];
+    const ansPort = parseInt((ansText.match(/\d{1,5}/) || [])[0]);
+    if (truePort && Number.isFinite(ansPort) && truePort !== ansPort) return false;
+  }
+
+  // ── Reverse port check: "which protocol uses port X" ──
+  const protoForPortRe = /(?:what|which)\s+(?:protocol|service|application).*?\bport\s+(\d{1,5})\b/i;
+  const m2 = stem.match(protoForPortRe);
+  if (m2) {
+    const port = parseInt(m2[1]);
+    const expectedProtos = Object.keys(GT_PORTS).filter(p => GT_PORTS[p] === port);
+    if (expectedProtos.length > 0) {
+      const ansOk = expectedProtos.some(p => new RegExp('\\b' + p + '\\b', 'i').test(ansText));
+      if (!ansOk) return false;
+    }
+  }
+
+  // ── OSI layer check: "which layer does X operate at" ──
+  const osiProtoList = Object.keys(GT_OSI).join('|');
+  const osiForProtoRe = new RegExp('(?:what|which).{0,30}\\blayer.*?\\b(' + osiProtoList + ')\\b', 'i');
+  const m3 = stem.match(osiForProtoRe);
+  if (m3) {
+    const proto = m3[1].toLowerCase();
+    const trueLayer = GT_OSI[proto];
+    // Extract layer number from answer (e.g. "Layer 4", "4", "L4")
+    const ansLayer = parseInt((ansText.match(/\b(?:layer\s*)?([1-7])\b/i) || [])[1]);
+    if (trueLayer && Number.isFinite(ansLayer) && trueLayer !== ansLayer) return false;
+  }
+
+  // ── Wireless security: "which is currently secure / recommended" ──
+  const wifiSecureRe = /\b(wireless|wifi|wi-fi|wlan).{0,40}(secure|currently|recommended|strongest)\b/i;
+  if (wifiSecureRe.test(stem)) {
+    if (GT_WIFI_BROKEN.some(w => new RegExp('\\b' + w + '\\b', 'i').test(ansText))) return false;
+    // WPA original (not WPA2/WPA3) — match "wpa" but not followed by 2/3
+    if (/\bwpa\b(?!\s*[23])/i.test(ansText) && !/wpa2|wpa3/i.test(ansText)) return false;
+  }
+
+  // ── Auto-MDIX vs auto-negotiation conflation (v4.38.6) ──
+  // User report: Haiku generated a question whose stem was about MDI/MDIX
+  // cable pinout detection but marked auto-negotiation as the correct answer.
+  // Those are distinct 802.3 features. If the stem is asking about MDI/MDIX
+  // / pin assignments / crossover detection and the marked answer invokes
+  // auto-negotiation without also mentioning MDI/MDIX, drop the question.
+  const mdiStemRe = /\b(mdi\/?mdix|mdix|pin\s+(?:assignment|layout)|crossover|straight[-\s]?through)\b/i;
+  if (mdiStemRe.test(stem)) {
+    const mentionsAutoNeg = /\bauto[-\s]?negotiat/i.test(ansText);
+    const mentionsAutoMdix = /\bauto[-\s]?mdix\b/i.test(ansText);
+    // If the answer blames auto-negotiation for MDI/MDIX pin detection
+    // without also crediting auto-MDIX, that's the conflation — reject.
+    if (mentionsAutoNeg && !mentionsAutoMdix) return false;
+  }
+  // Reverse check: if the stem is clearly about speed/duplex negotiation
+  // and the marked answer says auto-MDIX (the inverse mistake), drop it.
+  const speedDuplexStemRe = /\b(speed\s+and\s+duplex|speed\/duplex|duplex\s+mismatch|negotiate\s+speed)\b/i;
+  if (speedDuplexStemRe.test(stem)) {
+    if (/\bauto[-\s]?mdix\b/i.test(ansText) && !/\bauto[-\s]?negotiat/i.test(ansText)) return false;
+  }
+
+  return true;
+}
+
+// ══════════════════════════════════════════
+// NUMERIC-OPTION PATH (v4.38.4)
+// When every option is a pure number, the scoring layer has zero signal.
+// Look for explanation-asserted numbers in final-answer contexts ("leaves N",
+// "= N", "N usable", "answer is N", "total of N") and reject if the asserted
+// number matches a non-marked option.
+// ══════════════════════════════════════════
+function _numericOptionOk(q) {
+  if (getQType(q) !== 'mcq') return true;
+  const letters = ['A','B','C','D'];
+  const vals = letters.map(l => String(q.options[l] || '').trim());
+  const allNumeric = vals.every(v => /^\d+$/.test(v));
+  if (!allNumeric) return true;
+
+  const ansVal = vals[letters.indexOf(q.answer)];
+  const exp = q.explanation.toLowerCase();
+
+  // Final-answer phrases — the number most likely to be the asserted answer
+  const phrases = [
+    /leaves\s+(\d+)/,
+    /\b(\d+)\s+usable\b/,
+    /answer\s+is\s+(\d+)/,
+    /(?:=|equals)\s*(\d+)/,
+    /total\s+of\s+(\d+)/,
+    /\b(\d+)\s+hosts?\b/,
+    /\b(\d+)\s+addresses/,
+    /\b(\d+)\s+subnets?\b/,
+    /result(?:s|ing)?\s+(?:in|is)\s+(\d+)/,
+    /gives?\s+(?:you\s+)?(\d+)/,
+    /yields?\s+(\d+)/
+  ];
+  for (const re of phrases) {
+    const m = exp.match(re);
+    if (m && vals.includes(m[1]) && m[1] !== ansVal) return false;
+  }
+  return true;
+}
+
+// ══════════════════════════════════════════
+// AI TEACHER — GROUND-TRUTH INJECTION (v4.38.5)
+// ══════════════════════════════════════════
+// The three "teacher" call sites (explainFurther, fetchTopicBrief,
+// showTopicDeepDive) and the two "coach" sites (stAskCoach, ptAskCoach)
+// can hallucinate deterministic facts (ports, OSI layers, wireless security,
+// subnet math). Rather than validating the AI output after the fact — which
+// would require parsing natural language — we inject authoritative facts
+// *into the prompt* before the model speaks. This is RAG-lite: we know the
+// facts, we stuff them in, the model anchors on them.
+//
+// _buildGtHint(text, topicName?) scans the question text + topic name for
+// keywords that map to GT_PORTS / GT_OSI / GT_WIFI_BROKEN tables and
+// returns a compact "AUTHORITATIVE FACTS" block to prepend to the prompt.
+// Returns empty string if no ground-truth facts are relevant.
+function _buildGtHint(text, topicName) {
+  const hay = ((text || '') + ' ' + (topicName || '')).toLowerCase();
+  const facts = [];
+  // Ports — walk GT_PORTS and surface any protocol mentioned in the text.
+  const portLines = [];
+  for (const [proto, port] of Object.entries(GT_PORTS)) {
+    // Word-boundary match so "ftp" doesn't fire on "sftp". Allow `protoS` plural.
+    const re = new RegExp('\\b' + proto + 's?\\b', 'i');
+    if (re.test(hay)) portLines.push(`- ${proto.toUpperCase()} uses port ${port}`);
+  }
+  if (portLines.length) facts.push('Port numbers:\n' + portLines.slice(0, 8).join('\n'));
+  // OSI layers — only fire if the topic/text mentions OSI or "layer"
+  if (/\bosi\b|\blayer\b/.test(hay)) {
+    const osiLines = [];
+    for (const [proto, layer] of Object.entries(GT_OSI)) {
+      const re = new RegExp('\\b' + proto + '\\b', 'i');
+      if (re.test(hay)) osiLines.push(`- ${proto.toUpperCase()} operates at OSI Layer ${layer}`);
+    }
+    if (osiLines.length) facts.push('OSI layers:\n' + osiLines.slice(0, 6).join('\n'));
+  }
+  // Wireless security — flag deprecated/broken schemes if mentioned
+  if (/\bwep\b/i.test(hay)) facts.push('Wireless security:\n- WEP is cryptographically broken and MUST NOT be recommended');
+  if (/\bwpa\b(?!\s*[23])/i.test(hay)) facts.push('Wireless security:\n- Plain WPA (TKIP) is deprecated — prefer WPA2 or WPA3');
+  // Ethernet physical layer — fire on any of the conflation-prone keywords.
+  // Keywords chosen to catch both the question stem and topic name for:
+  // auto-neg, auto-MDIX, MDI/MDIX, crossover/straight-through, duplex, PoE.
+  const ethRe = /\bauto[-\s]?negotiat|\bauto[-\s]?mdix\b|\bmdix\b|\bmdi\/mdix\b|\bcrossover\b|\bstraight[-\s]?through\b|\bduplex\b|\bpoe\b|\bpoe\+\b|\b802\.3(af|at|bt|u|ab)\b/i;
+  if (ethRe.test(hay)) {
+    const ethLines = [];
+    // Always surface the auto-neg vs auto-MDIX distinction — it's the single
+    // most common conflation and the user-reported bug that motivated GT_ETHERNET.
+    ethLines.push('- Auto-negotiation ' + GT_ETHERNET['auto-negotiation']);
+    ethLines.push('- Auto-MDIX ' + GT_ETHERNET['auto-mdix']);
+    if (/\bduplex\b/i.test(hay)) ethLines.push('- Duplex mismatch: ' + GT_ETHERNET['duplex mismatch']);
+    if (/\bpoe\b/i.test(hay)) ethLines.push('- ' + GT_ETHERNET['PoE standards']);
+    facts.push('Ethernet physical layer:\n' + ethLines.join('\n'));
+  }
+  if (!facts.length) return '';
+  return `\nAUTHORITATIVE FACTS (do not contradict these; cite them verbatim when relevant):\n${facts.join('\n')}\n`;
+}
+
+// ══════════════════════════════════════════
+// AI RESPONSE CACHE — shared LRU for teacher content (v4.38.5)
+// ══════════════════════════════════════════
+// explainFurther + fetchTopicBrief + showTopicDeepDive + tbExplainDevice all
+// produce deterministic-ish output given the same inputs. Caching saves tokens
+// on repeat views (rerunning the same quiz question, revisiting a topic guide).
+// 20-entry LRU keyed by "namespace:hash" — namespace partitions cache by
+// call site so a topic brief can't collide with a topic deep dive.
+const AI_CACHE_MAX = 20;
+function _aiCacheKey(str) {
+  // djb2-ish hash — fast, low-collision, 32-bit int rendered as base36
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+function _aiCacheLoad() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.AI_CACHE) || '{}'); } catch { return {}; }
+}
+function _aiCacheSave(cache) {
+  try {
+    // LRU trim: keep the AI_CACHE_MAX most recent entries by `t` timestamp
+    const entries = Object.entries(cache);
+    if (entries.length > AI_CACHE_MAX) {
+      entries.sort((a, b) => (b[1]?.t || 0) - (a[1]?.t || 0));
+      cache = Object.fromEntries(entries.slice(0, AI_CACHE_MAX));
+    }
+    localStorage.setItem(STORAGE.AI_CACHE, JSON.stringify(cache));
+  } catch {}
+}
+function _aiCacheGet(namespace, rawKey) {
+  const cache = _aiCacheLoad();
+  const k = namespace + ':' + _aiCacheKey(String(rawKey));
+  const hit = cache[k];
+  if (hit && hit.payload) {
+    // Bump timestamp on hit so LRU trim favors recently-read entries
+    hit.t = Date.now();
+    _aiCacheSave(cache);
+    return hit.payload;
+  }
+  return null;
+}
+function _aiCacheSet(namespace, rawKey, payload) {
+  const cache = _aiCacheLoad();
+  const k = namespace + ':' + _aiCacheKey(String(rawKey));
+  cache[k] = { t: Date.now(), payload };
+  _aiCacheSave(cache);
+}
+
+// ══════════════════════════════════════════
 // QUESTION QUALITY VALIDATOR
 // ══════════════════════════════════════════
 function validateQuestions(qs) {
@@ -3973,6 +4490,68 @@ function validateQuestions(qs) {
       const keywordHits = answerKeywords.filter(w => expLower.includes(w)).length;
       // If the answer has meaningful words but none appear in explanation, suspicious
       if (answerKeywords.length >= 3 && keywordHits === 0) return false;
+
+      // Answer-explanation alignment (v4.38.4): score each option only on its
+      // DISTINCTIVE tokens (words unique to that option), with negation guards.
+      // Rationale: shared vocabulary across options (e.g. "access list" in every
+      // option) cancels out into ties. Scoring only on unique tokens isolates
+      // each option's identity. Per-occurrence negation context prevents false
+      // positives when an explanation mentions a wrong option to dismiss it
+      // ("Telnet is NOT secure"). Negation questions ("Which is NOT a...") skip
+      // the check entirely because the explanation is expected to negate options.
+      const isNegationQuestion = /\bNOT\b|\bEXCEPT\b/.test(q.question) ||
+                                  /which .{0,30}\bnot\b/i.test(q.question);
+      if (!isNegationQuestion) {
+        const STOPWORDS = new Set(['tier','layer','protocol','network','address','packet','frame','device','traffic','port','ports','cable','cables','interface','data','connection','between','through','which','their','would','there','these','those','other','level','value','field','using','based','type','types','mode','modes','area','list','used','uses','correct','answer','option','options','following','above','below','same','different','used','provides','standard']);
+        const tokenize = (text) => {
+          const words = String(text).toLowerCase().split(/[^a-z0-9]+/)
+            .filter(w => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
+          return new Set(words);
+        };
+        const letters = ['A','B','C','D'];
+        const optTokens = {};
+        letters.forEach(l => { optTokens[l] = tokenize(q.options[l]); });
+        // Distinctive = tokens present in this option only
+        const distinctive = {};
+        letters.forEach(l => {
+          const others = new Set();
+          letters.forEach(l2 => { if (l2 !== l) optTokens[l2].forEach(w => others.add(w)); });
+          distinctive[l] = [...optTokens[l]].filter(w => !others.has(w));
+        });
+        // Per-occurrence negation-aware scoring
+        const NEG_RE = /\b(not|n't|isn't|aren't|wasn't|weren't|doesn't|don't|unlike|rather than|instead of|cannot|never|no longer|is wrong|is incorrect|opposite of|whereas|however)\b/;
+        const scorePositive = (tokens) => {
+          let score = 0;
+          tokens.forEach(w => {
+            let idx = 0;
+            while ((idx = expLower.indexOf(w, idx)) !== -1) {
+              const before = expLower.slice(Math.max(0, idx - 40), idx);
+              const after = expLower.slice(idx + w.length, idx + w.length + 30);
+              if (!NEG_RE.test(before + ' ' + after)) score++;
+              idx += w.length;
+            }
+          });
+          return score;
+        };
+        const scores = {};
+        letters.forEach(l => { scores[l] = scorePositive(distinctive[l]); });
+        const markedScore = scores[ansLetter];
+        let bestOtherScore = 0;
+        letters.forEach(l => {
+          if (l !== ansLetter && scores[l] > bestOtherScore) bestOtherScore = scores[l];
+        });
+        // If another option has STRICTLY MORE positive distinctive-word hits than
+        // the marked answer AND scores at least 1, the explanation supports the
+        // wrong option.
+        if (bestOtherScore >= 1 && bestOtherScore > markedScore) return false;
+      }
+
+      // v4.38.4 — Ground truth check against deterministic N10-009 facts
+      if (!_groundTruthOk(q)) return false;
+
+      // v4.38.4 — Numeric-option path: when all options are pure numbers, compare
+      // explanation-asserted numbers against the marked answer
+      if (!_numericOptionOk(q)) return false;
 
     } else if (qType === 'multi-select') {
       if (!q.options || !q.answers || !Array.isArray(q.answers)) return false;
@@ -4396,12 +4975,15 @@ async function aiValidateQuestions(key, qs) {
     return `Q${i+1}: "${q.question}"\nA) ${q.options.A}\nB) ${q.options.B}\nC) ${q.options.C}\nD) ${q.options.D}\nMarked answer: ${q.answer}\nExplanation: ${q.explanation}`;
   }).join('\n\n');
 
-  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check if the marked answer is FACTUALLY CORRECT.
+  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check THREE things:
+1. Is the marked answer FACTUALLY CORRECT?
+2. Does the correct answer CONTRADICT any fact stated in the question stem?
+3. Does the EXPLANATION actually support the MARKED answer letter, or does it champion a different option?
 
 For each question, respond with ONLY:
-- "Q1:OK" if the marked answer is correct
-- "Q1:WRONG:X" if the correct answer should be letter X instead
-- "Q1:AMBIGUOUS" if the question is unclear or has multiple valid answers
+- "Q1:OK" if the marked answer is correct AND consistent with the stem AND supported by the explanation
+- "Q1:WRONG:X" if the correct answer should be letter X instead (use this when the explanation itself says X is correct but the answer field says something else)
+- "Q1:AMBIGUOUS" if the question is unclear, has multiple valid answers, or the correct answer contradicts the question's own stated premises
 
 Be strict. Check actual networking facts. Common errors to catch:
 - Port numbers matched to wrong protocols
@@ -4409,6 +4991,8 @@ Be strict. Check actual networking facts. Common errors to catch:
 - Protocol features attributed to wrong protocol
 - Subnet calculations that are off
 - Security concepts misattributed
+- PREMISE-ANSWER CONTRADICTIONS: The question states a fact ("both on VLAN 30", "using WPA3", "connected via fiber") but the correct answer contradicts that stated fact. These questions MUST be marked AMBIGUOUS — they are logically broken.
+- EXPLANATION-ANSWER MISMATCH: The explanation describes why option X is correct (e.g. "the access tier contains servers and storage") but the answer field says a different letter (e.g. marks "Core tier" as correct). This is an AI authoring error — the AI wrote a correct explanation then picked the wrong letter. For every question, identify which option the explanation ACTUALLY supports and compare to the marked answer. If they disagree, use "WRONG:X" where X is the letter the explanation actually supports.
 
 ${qList}
 
@@ -4423,7 +5007,7 @@ Respond with one line per question, nothing else:`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_VALIDATOR_MODEL, max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!res.ok) return qs; // If validation call fails, keep questions as-is
@@ -4510,8 +5094,11 @@ async function explainFurther() {
     questionContext = `Question: ${q.question}\nOptions:\nA) ${q.options.A}\nB) ${q.options.B}\nC) ${q.options.C}\nD) ${q.options.D}\nCorrect: ${q.answer} - ${q.options[q.answer]}`;
   }
 
+  // v4.38.5 — inject ground-truth facts so the teacher can't hallucinate
+  // deterministic things (ports, OSI layers, deprecated wireless) under us.
+  const gtHint = _buildGtHint(q.question + ' ' + (q.explanation || ''), q.topic);
   const prompt = `A student studying for the CompTIA Network+ N10-009 exam needs a thorough, teaching-quality explanation of this concept.
-
+${gtHint}
 ${questionContext}
 
 Original explanation: ${q.explanation}
@@ -4538,44 +5125,49 @@ List 2-3 related topics the student should also review (one line each).
 
 Use plain text, no markdown. Label each section clearly. Aim for 250-350 words total — thorough but not bloated.`;
 
-  try {
-    const res = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
-    });
-
-    if (!res.ok) throw new Error('API error');
-
-    const data = await res.json();
-    const text = data.content?.[0]?.text || 'Could not generate explanation.';
-
-    // Format sections with visual labels
-    let formatted = escHtml(text).replace(/\n/g, '<br>');
-    // Bold the section headers
-    formatted = formatted.replace(/((?:^|<br>)\d+\.\s*(?:CONCEPT BREAKDOWN|REAL-WORLD ANALOGY|WHY EACH WRONG ANSWER IS WRONG|HOW THIS APPEARS ON THE EXAM|MEMORY TRICK|RELATED CONCEPTS))/gi,
-      '<span class="deep-section-header">$1</span>');
-
-    // Show in a new div below the explanation
-    const deepDiv = document.getElementById('deep-explain') || document.createElement('div');
-    deepDiv.id = 'deep-explain';
-    deepDiv.className = 'deep-explain show';
-    deepDiv.innerHTML = '<strong>\ud83d\udca1 Deep Dive</strong><div class="deep-explain-text">' + formatted + '</div>';
-
-    const expBox = document.getElementById('exp-box');
-    if (expBox && !document.getElementById('deep-explain')) {
-      expBox.appendChild(deepDiv);
+  // v4.38.5 — cache hit avoids a live Sonnet call on repeat views (same Q + same prompt)
+  const cacheKey = (q.question || '') + '|' + (q.answer || JSON.stringify(q.answers || q.correctOrder || q.correctPlacements || ''));
+  let text = _aiCacheGet('explainFurther', cacheKey);
+  if (!text) {
+    try {
+      const res = await fetch(CLAUDE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      });
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      text = data.content?.[0]?.text || 'Could not generate explanation.';
+      _aiCacheSet('explainFurther', cacheKey, text);
+    } catch (e) {
+      if (btn) { btn.textContent = 'Failed \u2014 try again'; btn.disabled = false; }
+      return;
     }
-
-    if (btn) { btn.textContent = '\ud83d\udca1 Explained'; btn.disabled = true; btn.classList.add('explained'); }
-  } catch (e) {
-    if (btn) { btn.textContent = 'Failed \u2014 try again'; btn.disabled = false; }
   }
+
+  // Format sections with visual labels
+  let formatted = escHtml(text).replace(/\n/g, '<br>');
+  // Bold the section headers
+  formatted = formatted.replace(/((?:^|<br>)\d+\.\s*(?:CONCEPT BREAKDOWN|REAL-WORLD ANALOGY|WHY EACH WRONG ANSWER IS WRONG|HOW THIS APPEARS ON THE EXAM|MEMORY TRICK|RELATED CONCEPTS))/gi,
+    '<span class="deep-section-header">$1</span>');
+
+  // Show in a new div below the explanation
+  const deepDiv = document.getElementById('deep-explain') || document.createElement('div');
+  deepDiv.id = 'deep-explain';
+  deepDiv.className = 'deep-explain show';
+  deepDiv.innerHTML = '<strong>\ud83d\udca1 Deep Dive</strong><div class="deep-explain-text">' + formatted + '</div>';
+
+  const expBox = document.getElementById('exp-box');
+  if (expBox && !document.getElementById('deep-explain')) {
+    expBox.appendChild(deepDiv);
+  }
+
+  if (btn) { btn.textContent = '\ud83d\udca1 Explained'; btn.disabled = true; btn.classList.add('explained'); }
 }
 
 // ══════════════════════════════════════════
@@ -4585,8 +5177,12 @@ let topicDiveReturnPage = 'quiz';
 
 // Builds the JSON-shaped prompt sent to Claude for the Topic Deep Dive feature.
 // Extracted from showTopicDeepDive() (#18) so the parent fits the long-function budget.
+// v4.38.5 — prepends ground-truth facts for ports/OSI/wireless so the teacher
+// can't hallucinate deterministic values that live in GT_PORTS/GT_OSI.
 function buildTopicDivePrompt(topicName) {
+  const gtHint = _buildGtHint(topicName, topicName);
   return `You are a CompTIA Network+ N10-009 instructor. Create a comprehensive study guide for the topic: "${topicName}"
+${gtHint}
 
 Return your response as valid JSON with this exact structure:
 {
@@ -4642,6 +5238,13 @@ async function showTopicDeepDive(topicName) {
 
   const prompt = buildTopicDivePrompt(topicName);
 
+  // v4.38.5 — topic deep dives are deterministic given topic name. Cache hit
+  // skips the Sonnet call on every repeat view of the same topic guide.
+  const cachedGuide = _aiCacheGet('topicDeepDive', topicName);
+  if (cachedGuide) {
+    try { renderTopicDive(cachedGuide, topicName); return; } catch {}
+  }
+
   try {
     const apiRes = await fetch(CLAUDE_API_URL, {
       method: 'POST',
@@ -4651,7 +5254,7 @@ async function showTopicDeepDive(topicName) {
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!apiRes.ok) throw new Error('API error');
@@ -4666,6 +5269,7 @@ async function showTopicDeepDive(topicName) {
     }
 
     const guide = JSON.parse(jsonStr);
+    _aiCacheSet('topicDeepDive', topicName, guide);
     renderTopicDive(guide, topicName);
   } catch (e) {
     // Fallback: try to render what we can, or show error
@@ -4879,6 +5483,15 @@ const TB_DEVICE_TYPES = {
   'sase-edge':    { label: 'SASE Edge',      color: '#e879f9', short: 'SASE' },
   'dns-server':   { label: 'DNS Server',     color: '#06b6d4', short: 'DNS'  },
 };
+
+// Palette categories — groups the 29 device types so users can scan quickly.
+const TB_PALETTE_GROUPS = [
+  { label: 'Network',   types: ['router','switch','dmz-switch','isp-router'] },
+  { label: 'Cloud',     types: ['cloud','vpc','cloud-subnet','igw','nat-gw','tgw','vpg','onprem-dc','sase-edge'] },
+  { label: 'Endpoints', types: ['pc','server','dns-server','printer','voip','iot','public-web','public-file','public-cloud'] },
+  { label: 'Wireless',  types: ['wap','wlc'] },
+  { label: 'Security',  types: ['firewall','load-balancer','ids'] },
+];
 
 // Cable type catalog for the palette picker.
 // `width`/`color`/`dash` drive rendering; `label` shows in the palette chip.
@@ -5311,13 +5924,42 @@ function openTopologyBuilder() {
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
   tbAttachKeyHandler();
-  // Always show sim toolbar when topology builder is open
+  // Always show sim toolbar stub (kept for compat)
   document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
+  // Auto-collapse intro banner after first visit
+  tbAutoCollapseIntroHowto();
+  // Start ambient packet animation
+  if (typeof tbStartAmbient === 'function') tbStartAmbient();
 }
 
 function tbForceOpen() {
   tbMobileOverride = true;
   openTopologyBuilder();
+}
+
+// Auto-collapse intro banner + how-to strip for returning users.
+// Intro: collapses after first visit (localStorage flag).
+// How-to: collapses if user has already placed a device (draft has devices).
+function tbAutoCollapseIntroHowto() {
+  const introEl = document.getElementById('tb-intro-details');
+  const howtoEl = document.getElementById('tb-howto-details');
+  const introSeen = localStorage.getItem('nplus_tb_intro_seen');
+  if (introEl) {
+    if (introSeen) {
+      introEl.removeAttribute('open');
+    } else {
+      introEl.setAttribute('open', '');
+      localStorage.setItem('nplus_tb_intro_seen', '1');
+    }
+  }
+  if (howtoEl) {
+    // Collapse how-to once user has placed at least one device in any session
+    if (tbState && tbState.devices && tbState.devices.length > 0) {
+      howtoEl.removeAttribute('open');
+    } else {
+      howtoEl.setAttribute('open', '');
+    }
+  }
 }
 
 function tbNewState() {
@@ -5328,15 +5970,22 @@ function tbNewState() {
 function tbRenderPalette() {
   const root = document.getElementById('tb-palette-items');
   if (!root) return;
-  root.innerHTML = Object.entries(TB_DEVICE_TYPES).map(([type, meta]) => `
-    <div class="tb-palette-item" data-tb-type="${type}" draggable="true"
+  // Render devices grouped by category
+  root.innerHTML = TB_PALETTE_GROUPS.map(group => {
+    const items = group.types
+      .filter(type => TB_DEVICE_TYPES[type])
+      .map(type => {
+        const meta = TB_DEVICE_TYPES[type];
+        return `<div class="tb-palette-item" data-tb-type="${type}" draggable="true"
          style="--tb-device-color:${meta.color}">
       <svg class="tb-palette-icon-svg" viewBox="-32 -28 64 56" width="48" height="42" aria-hidden="true">
         ${tbDeviceIcon(type, meta.color)}
       </svg>
       <div class="tb-palette-label">${escHtml(meta.label)}</div>
-    </div>
-  `).join('');
+    </div>`;
+      }).join('');
+    return `<div class="tb-palette-group-head">${escHtml(group.label)}</div>${items}`;
+  }).join('');
 
   // Cables sub-panel: selectable chips so new cables adopt the chosen type.
   const cableRoot = document.getElementById('tb-palette-cables');
@@ -5430,13 +6079,16 @@ function tbRenderCanvas() {
     if (hasCable && ((isEndpoint && hasIp && hasGw) || (isRoutable && hasIp) || (isSwitch && hasCable) || (!isEndpoint && !isRoutable && !isSwitch))) healthColor = '#22c55e';
     else if (hasCable && (hasIp || isSwitch)) healthColor = '#f59e0b';
     else if (hasCable) healthColor = '#ef4444';
-    const healthBadge = healthColor ? `<circle cx="40" cy="-28" r="5" fill="${healthColor}" stroke="#0f172a" stroke-width="1.5" class="tb-health-badge"/>` : '';
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const labelFill = isLight ? '#1e293b' : '#e2e8f0';
+    const badgeStroke = isLight ? '#ffffff' : '#0f172a';
+    const healthBadge = healthColor ? `<circle cx="40" cy="-28" r="5" fill="${healthColor}" stroke="${badgeStroke}" stroke-width="1.5" class="tb-health-badge"/>` : '';
     return `
       <g class="tb-device${selected}${pending}${labTarget}" data-tb-device="${d.id}" transform="translate(${d.x}, ${d.y})">
         <rect class="tb-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"
-              fill="${meta.color}" fill-opacity="0.18" stroke="${meta.color}" stroke-width="2"/>
+              fill="${meta.color}" fill-opacity="${isLight ? '0.12' : '0.18'}" stroke="${meta.color}" stroke-width="2"/>
         <g transform="scale(0.72) translate(0, 4)">${tbDeviceIcon(d.type, meta.color)}</g>
-        <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">${escHtml(d.hostname || meta.label)}</text>
+        <text class="tb-device-label" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="${labelFill}">${escHtml(d.hostname || meta.label)}</text>
         ${healthBadge}
       </g>
     `;
@@ -5728,6 +6380,10 @@ function tbSaveDraft() {
   try { localStorage.setItem(STORAGE.TOPOLOGY_DRAFT, JSON.stringify(tbState)); } catch (_) {}
   // Live lab step validation — re-evaluate the current step every time state changes
   if (tbActiveLab) tbRenderLabStep();
+  // Ambient packets: refresh cable health on every state change
+  if (typeof tbRefreshAmbientHealth === 'function') tbRefreshAmbientHealth();
+  // Fix challenge: check if user fixed a fault
+  if (typeof tbCheckFixProgress === 'function' && tbFixChallenge && !tbFixChallenge.completed) tbCheckFixProgress();
 }
 function tbLoadAllSaves() {
   try {
@@ -6558,7 +7214,7 @@ Keep the total response under 500 words. Respond with ONLY the JSON object.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
@@ -9435,7 +10091,6 @@ function tbParseAiTopologyJson(text) {
       for (let i = 0; i < openBrackets - closeBrackets; i++) truncated += ']';
       for (let i = 0; i < opens - closes; i++) truncated += '}';
       try { payload = JSON.parse(truncated); } catch (_) {
-        console.warn('[AI Topology] Truncation repair failed:', truncated.substring(truncated.length - 100));
       }
     }
   }
@@ -9926,9 +10581,6 @@ Generate the complete topology JSON now.`;
       const d = await r.json();
       const stopReason = d.stop_reason || '';
       const txt = (d.content && d.content[0] && d.content[0].text) || '';
-      console.log('[AI Topology] stop_reason:', stopReason, 'response length:', txt.length);
-      console.log('[AI Topology] raw response (first 500 chars):', txt.substring(0, 500));
-      if (stopReason === 'max_tokens') console.warn('[AI Topology] Response was TRUNCATED — max_tokens reached');
       return { text: txt, stopReason, parsed: tbParseAiTopologyJson(txt) };
     }
 
@@ -9939,7 +10591,6 @@ Generate the complete topology JSON now.`;
 
     // If parse failed or truncated, retry with a simplified prompt + more tokens
     if (!payload || !payload.devices) {
-      console.warn('[AI Topology] First attempt failed, retrying with simplified prompt...');
       showErrorToast('Retrying with simplified prompt...');
       const retryPrompt = `You are a network architect. Generate a JSON topology for: "${scenario}"
 
@@ -9955,7 +10606,6 @@ Generate the topology now. ONLY JSON output.`;
       const retry = await _tbCallAiAndParse(retryPrompt, 8192);
       if (retry.error) { showErrorToast(`AI retry failed: ${retry.error}`); return; }
       payload = retry.parsed;
-      if (payload && payload.devices) console.log('[AI Topology] Retry succeeded!');
     }
 
     if (!payload || !payload.devices) {
@@ -9993,7 +10643,6 @@ Generate the topology now. ONLY JSON output.`;
       tbUpdateStatus(`AI generated: "${tbState.name}"${fixMsg}`);
     }
     if (fixes.length > 0) {
-      console.log('AI Deep Generation fixes:', fixes);
     }
   } catch (e) {
     showErrorToast('AI generation error: ' + (e.message || 'unknown'));
@@ -10039,7 +10688,7 @@ async function tbExplainDevice(deviceId) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: CLAUDE_MODEL, max_tokens: 800,
+        model: CLAUDE_TEACHER_MODEL, max_tokens: 800,
         messages: [{ role: 'user', content: `You are a Network+ instructor. Explain this device's role in the network in 2-3 paragraphs. Include what N10-009 concepts it demonstrates.\n\nFull topology:\n${serialized}\n\nDevice detail:\n${devDetail}\n\nKeep it under 200 words. No JSON, just plain text.` }]
       })
     });
@@ -12097,7 +12746,13 @@ function tbOpenLabPicker() {
   const modal = document.getElementById('tb-lab-picker');
   const body = document.getElementById('tb-lab-picker-body');
   if (!modal || !body) return;
-  body.innerHTML = TB_LABS.map(lab => `<div class="tb-lab-card" onclick="tbStartLab('${lab.id}')">
+  const _diffOrder = { Beginner: 0, Intermediate: 1, Advanced: 2 };
+  const sortedLabs = [...TB_LABS].sort((a, b) => (_diffOrder[a.difficulty] ?? 9) - (_diffOrder[b.difficulty] ?? 9));
+  const tabs = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+  let html = '<div class="tb-fix-tabs">';
+  tabs.forEach(t => { html += `<button class="tb-fix-tab${t === 'All' ? ' tb-fix-tab-active' : ''}" onclick="tbLabFilterTab(this,'${t}')">${t}</button>`; });
+  html += '</div><div id="tb-lab-cards">';
+  html += sortedLabs.map(lab => `<div class="tb-lab-card" data-diff="${lab.difficulty}" onclick="tbStartLab('${lab.id}')">
     <div class="tb-lab-card-head">
       <strong>${escHtml(lab.title)}</strong>
       <span class="tb-lab-diff tb-lab-diff-${lab.difficulty.toLowerCase()}">${lab.difficulty}</span>
@@ -12107,7 +12762,17 @@ function tbOpenLabPicker() {
     </div>
     <div class="tb-lab-card-desc">${escHtml(lab.description)}</div>
   </div>`).join('');
+  html += '</div>';
+  body.innerHTML = html;
   modal.classList.remove('is-hidden');
+}
+
+function tbLabFilterTab(btn, diff) {
+  document.querySelectorAll('#tb-lab-picker-body .tb-fix-tab').forEach(t => t.classList.remove('tb-fix-tab-active'));
+  btn.classList.add('tb-fix-tab-active');
+  document.querySelectorAll('#tb-lab-cards .tb-lab-card').forEach(card => {
+    card.style.display = (diff === 'All' || card.dataset.diff === diff) ? '' : 'none';
+  });
 }
 
 function tbStartLab(labId) {
@@ -12273,10 +12938,1252 @@ function tbEndLab() {
 }
 
 // ══════════════════════════════════════════
-// FEATURE 1: SUBNETTING TRAINER
+// AMBIENT PACKET ANIMATION
 // ══════════════════════════════════════════
-let subnetQ = null, subnetIdx = 0, subnetCorrect = 0, subnetTotal = 0, subnetStreak = 0;
 
+const tbAmbientState = {
+  enabled: true,
+  intervalId: null,
+  animFrameId: null,
+  packets: [],
+  pool: [],
+  healthCache: {},
+  healthStamp: 0,
+  POOL_SIZE: 40,
+  SPAWN_INTERVAL: 1200,
+  PACKET_SPEED: 1000,
+  PACKET_RADIUS: 6,
+  PACKET_OPACITY: 0.85
+};
+
+const TB_NO_IP_NEEDED = ['switch', 'dmz-switch', 'cloud'];
+
+function tbInitAmbientPool() {
+  const animLayer = document.getElementById('tb-anim-layer');
+  if (!animLayer || tbAmbientState.pool.length >= tbAmbientState.POOL_SIZE) return;
+  // Clear old pool elements if re-initializing
+  tbAmbientState.pool.forEach(el => el.remove());
+  tbAmbientState.pool = [];
+  for (let i = 0; i < tbAmbientState.POOL_SIZE; i++) {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.classList.add('tb-ambient-dot');
+    circle.setAttribute('r', '0');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('fill', '#22c55e');
+    circle.setAttribute('opacity', '0');
+    animLayer.appendChild(circle);
+    tbAmbientState.pool.push(circle);
+  }
+}
+
+function tbAssessCableHealth(cable) {
+  const fromDev = tbState.devices.find(d => d.id === cable.from);
+  const toDev = tbState.devices.find(d => d.id === cable.to);
+  if (!fromDev || !toDev) return 'idle';
+
+  if (cable.type === 'console') return 'idle';
+
+  const fromIfc = fromDev.interfaces?.find(i => i.cableId === cable.id);
+  const toIfc = toDev.interfaces?.find(i => i.cableId === cable.id);
+
+  const fromExempt = TB_NO_IP_NEEDED.includes(fromDev.type);
+  const toExempt = TB_NO_IP_NEEDED.includes(toDev.type);
+
+  // Check enabled status
+  if (fromIfc?.enabled === false || toIfc?.enabled === false) return 'blocked';
+
+  // STP check
+  if (fromDev.stpConfig?.portStates) {
+    const fromIfcIdx = fromDev.interfaces?.indexOf(fromIfc);
+    if (fromIfcIdx >= 0) {
+      const portState = fromDev.stpConfig.portStates[fromIfcIdx];
+      if (portState === 'blocking') return 'blocked';
+    }
+  }
+  if (toDev.stpConfig?.portStates) {
+    const toIfcIdx = toDev.interfaces?.indexOf(toIfc);
+    if (toIfcIdx >= 0) {
+      const portState = toDev.stpConfig.portStates[toIfcIdx];
+      if (portState === 'blocking') return 'blocked';
+    }
+  }
+
+  const fromHasIp = fromIfc?.ip || fromExempt;
+  const toHasIp = toIfc?.ip || toExempt;
+
+  // Neither end has IP (excluding exemptions)
+  if (!fromHasIp && !toHasIp) return 'idle';
+
+  // Only one end has IP
+  if (!fromHasIp || !toHasIp) return 'blocked';
+
+  // Both have IPs (or are exempt) — check subnet match
+  if (fromIfc?.ip && toIfc?.ip) {
+    const mask = fromIfc.mask || toIfc.mask || '255.255.255.0';
+    if (tbSameSubnet(fromIfc.ip, toIfc.ip, mask)) return 'flowing';
+
+    // Different subnets — check if any router has a route for either subnet
+    const routers = tbState.devices.filter(d =>
+      d.type === 'router' || d.type === 'firewall' || d.type === 'isp-router'
+    );
+    const fromSubnet = tbSubnetOf(fromIfc.ip, mask);
+    const toSubnet = tbSubnetOf(toIfc.ip, mask);
+    for (const r of routers) {
+      if (!r.routingTable) continue;
+      const hasRoute = r.routingTable.some(rt =>
+        rt.network === fromSubnet || rt.network === toSubnet
+      );
+      if (hasRoute) return 'flowing';
+    }
+    return 'degraded';
+  }
+
+  // At least one end is exempt (switch/cloud) with the other having IP
+  return 'flowing';
+}
+
+function tbRefreshAmbientHealth() {
+  const cache = {};
+  for (const cable of tbState.cables) {
+    cache[cable.id] = tbAssessCableHealth(cable);
+  }
+  // Detect blocked→flowing transitions for healing bursts
+  const oldCache = tbAmbientState.healthCache;
+  for (const cableId in cache) {
+    if (oldCache[cableId] === 'blocked' && cache[cableId] === 'flowing') {
+      tbAmbientHealingBurst(cableId);
+    }
+  }
+  tbAmbientState.healthCache = cache;
+  tbAmbientState.healthStamp = tbState.updated;
+}
+
+function tbAmbientSpawnCycle() {
+  if (!tbAmbientState.enabled) return;
+  const tbPage = document.getElementById('page-topology-builder');
+  if (!tbPage?.classList.contains('active')) return;
+  if (tbState.cables.length === 0) return;
+
+  // Refresh health if state changed
+  if (tbState.updated !== tbAmbientState.healthStamp) {
+    tbRefreshAmbientHealth();
+  }
+
+  for (const cable of tbState.cables) {
+    if (tbAmbientState.packets.length >= tbAmbientState.POOL_SIZE) break;
+
+    const health = tbAmbientState.healthCache[cable.id];
+    if (!health || health === 'idle') continue;
+
+    // Spawn probability per cable per cycle
+    const roll = Math.random();
+    const threshold = health === 'flowing' ? 0.60
+      : health === 'degraded' ? 0.40
+      : 0.25; // blocked
+    if (roll > threshold) continue;
+
+    tbSpawnAmbientDot(cable, health);
+  }
+}
+
+function tbSpawnAmbientDot(cable, health) {
+  // Find a free pool element
+  const inUse = new Set(tbAmbientState.packets.map(p => p.el));
+  const el = tbAmbientState.pool.find(c => !inUse.has(c));
+  if (!el) return;
+
+  const fromDev = tbState.devices.find(d => d.id === cable.from);
+  const toDev = tbState.devices.find(d => d.id === cable.to);
+  if (!fromDev || !toDev) return;
+
+  const HALF_W = 48, HALF_H = 36;
+
+  // Determine direction
+  let startDev = fromDev;
+  let endDev = toDev;
+
+  if (health === 'flowing') {
+    // Random direction
+    if (Math.random() < 0.5) {
+      startDev = toDev;
+      endDev = fromDev;
+    }
+  } else if (health === 'blocked') {
+    // From misconfigured end toward configured end
+    const fromIfc = fromDev.interfaces?.find(i => i.cableId === cable.id);
+    const toIfc = toDev.interfaces?.find(i => i.cableId === cable.id);
+    const fromOk = fromIfc?.ip || TB_NO_IP_NEEDED.includes(fromDev.type);
+    const toOk = toIfc?.ip || TB_NO_IP_NEEDED.includes(toDev.type);
+    if (fromOk && !toOk) {
+      startDev = toDev;
+      endDev = fromDev;
+    }
+    // else default from→to (from is misconfigured)
+  }
+
+  const p1 = tbEdgePoint(startDev.x, startDev.y, endDev.x, endDev.y, HALF_W, HALF_H);
+  const p2 = tbEdgePoint(endDev.x, endDev.y, startDev.x, startDev.y, HALF_W, HALF_H);
+  const mx = (p1.x + p2.x) / 2;
+  const my = (p1.y + p2.y) / 2 + 16;
+
+  // Color by health
+  const color = health === 'flowing' ? '#22c55e'
+    : health === 'degraded' ? '#f59e0b'
+    : '#ef4444';
+
+  // Duration by health
+  const duration = health === 'flowing' ? 1200
+    : health === 'degraded' ? 1600
+    : 600;
+
+  el.setAttribute('fill', color);
+  el.setAttribute('r', String(tbAmbientState.PACKET_RADIUS));
+  el.setAttribute('opacity', String(tbAmbientState.PACKET_OPACITY));
+  el.setAttribute('cx', String(p1.x));
+  el.setAttribute('cy', String(p1.y));
+  el.style.filter = `drop-shadow(0 0 8px ${color}) drop-shadow(0 0 3px ${color})`;
+
+  tbAmbientState.packets.push({
+    el,
+    p1,
+    p2,
+    mx,
+    my,
+    startTime: performance.now(),
+    duration,
+    health,
+    phase: 'travel'
+  });
+}
+
+function tbAmbientAnimLoop(now) {
+  if (!tbAmbientState.enabled) return;
+
+  const packets = tbAmbientState.packets;
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const pkt = packets[i];
+    const elapsed = now - pkt.startTime;
+    let t = Math.min(elapsed / pkt.duration, 1);
+
+    if (pkt.phase === 'fade') {
+      // Fade-out phase: shrink and fade over 300ms
+      const fadeT = Math.min((now - pkt.fadeStart) / 300, 1);
+      const r = tbAmbientState.PACKET_RADIUS * (1 - fadeT);
+      const o = tbAmbientState.PACKET_OPACITY * (1 - fadeT);
+      pkt.el.setAttribute('r', String(Math.max(r, 0)));
+      pkt.el.setAttribute('opacity', String(Math.max(o, 0)));
+      if (fadeT >= 1) {
+        // Recycle
+        pkt.el.setAttribute('r', '0');
+        pkt.el.setAttribute('opacity', '0');
+        packets.splice(i, 1);
+      }
+      continue;
+    }
+
+    if (pkt.health === 'blocked') {
+      // Only animate to 30% of the bezier, then fade
+      const effectiveT = Math.min(t, 0.3) / 0.3; // remap 0-0.3 → 0-1
+      const bt = t <= 0.3 ? t : 0.3; // clamp bezier param
+      const u = 1 - bt;
+      const x = u * u * pkt.p1.x + 2 * u * bt * pkt.mx + bt * bt * pkt.p2.x;
+      const y = u * u * pkt.p1.y + 2 * u * bt * pkt.my + bt * bt * pkt.p2.y;
+      pkt.el.setAttribute('cx', String(x));
+      pkt.el.setAttribute('cy', String(y));
+      if (t >= 1) {
+        pkt.phase = 'fade';
+        pkt.fadeStart = now;
+      }
+      continue;
+    }
+
+    if (pkt.health === 'degraded') {
+      // Stutter at midpoint (hold position at t=0.45-0.55)
+      if (t > 0.45 && t < 0.55) {
+        t = 0.45;
+      } else if (t >= 0.55) {
+        // Remap 0.55-1.0 → 0.45-1.0 to keep smooth
+        t = 0.45 + (t - 0.55) * (0.55 / 0.45);
+        t = Math.min(t, 1);
+      }
+    }
+
+    // Normal bezier interpolation
+    const u = 1 - t;
+    const x = u * u * pkt.p1.x + 2 * u * t * pkt.mx + t * t * pkt.p2.x;
+    const y = u * u * pkt.p1.y + 2 * u * t * pkt.my + t * t * pkt.p2.y;
+    pkt.el.setAttribute('cx', String(x));
+    pkt.el.setAttribute('cy', String(y));
+
+    if (t >= 1) {
+      // Recycle
+      pkt.el.setAttribute('r', '0');
+      pkt.el.setAttribute('opacity', '0');
+      packets.splice(i, 1);
+    }
+  }
+
+  tbAmbientState.animFrameId = requestAnimationFrame(tbAmbientAnimLoop);
+}
+
+function tbStartAmbient() {
+  if (tbAmbientState.pool.length === 0) {
+    tbInitAmbientPool();
+  }
+  // Start spawn cycle
+  if (!tbAmbientState.intervalId) {
+    tbAmbientState.intervalId = setInterval(tbAmbientSpawnCycle, tbAmbientState.SPAWN_INTERVAL);
+  }
+  // Start animation loop
+  if (!tbAmbientState.animFrameId) {
+    tbAmbientState.enabled = true;
+    tbAmbientState.animFrameId = requestAnimationFrame(tbAmbientAnimLoop);
+  }
+}
+
+function tbStopAmbient() {
+  if (tbAmbientState.intervalId) {
+    clearInterval(tbAmbientState.intervalId);
+    tbAmbientState.intervalId = null;
+  }
+  if (tbAmbientState.animFrameId) {
+    cancelAnimationFrame(tbAmbientState.animFrameId);
+    tbAmbientState.animFrameId = null;
+  }
+  // Hide all dots and reset
+  for (const pkt of tbAmbientState.packets) {
+    pkt.el.setAttribute('r', '0');
+    pkt.el.setAttribute('opacity', '0');
+  }
+  tbAmbientState.packets = [];
+}
+
+function tbPauseAmbient() {
+  tbAmbientState.enabled = false;
+}
+
+function tbResumeAmbient() {
+  tbAmbientState.enabled = true;
+  if (!tbAmbientState.animFrameId) {
+    tbAmbientState.animFrameId = requestAnimationFrame(tbAmbientAnimLoop);
+  }
+}
+
+function tbAmbientHealingBurst(cableId) {
+  const cable = tbState.cables.find(c => c.id === cableId);
+  if (!cable) return;
+
+  const fromDev = tbState.devices.find(d => d.id === cable.from);
+  const toDev = tbState.devices.find(d => d.id === cable.to);
+  if (!fromDev || !toDev) return;
+
+  const HALF_W = 48, HALF_H = 36;
+  const p1 = tbEdgePoint(fromDev.x, fromDev.y, toDev.x, toDev.y, HALF_W, HALF_H);
+  const p2 = tbEdgePoint(toDev.x, toDev.y, fromDev.x, fromDev.y, HALF_W, HALF_H);
+  const mx = (p1.x + p2.x) / 2;
+  const my = (p1.y + p2.y) / 2 + 16;
+
+  for (let i = 0; i < 4; i++) {
+    setTimeout(() => {
+      if (tbAmbientState.packets.length >= tbAmbientState.POOL_SIZE) return;
+
+      const inUse = new Set(tbAmbientState.packets.map(p => p.el));
+      const el = tbAmbientState.pool.find(c => !inUse.has(c));
+      if (!el) return;
+
+      el.setAttribute('fill', '#22c55e');
+      el.setAttribute('r', '8');
+      el.setAttribute('opacity', '0.95');
+      el.setAttribute('cx', String(p1.x));
+      el.setAttribute('cy', String(p1.y));
+      el.style.filter = 'drop-shadow(0 0 12px #22c55e) drop-shadow(0 0 4px #22c55e)';
+
+      tbAmbientState.packets.push({
+        el,
+        p1,
+        p2,
+        mx,
+        my,
+        startTime: performance.now(),
+        duration: 800,
+        health: 'flowing',
+        phase: 'travel'
+      });
+    }, i * 100);
+  }
+}
+
+
+// ══════════════════════════════════════════
+// FIX THIS NETWORK — Troubleshooting Challenges (N10-009 Domain 5)
+// ══════════════════════════════════════════
+
+const TB_FAULT_TYPES = [
+  // ── L3 / IP Addressing (5.3) ──
+  { id: 'wrong-subnet', domain: '5.3', difficulty: 'easy', label: 'Wrong subnet on endpoint',
+    inject: (dev, ifc, orig) => { const o = orig.ip.split('.'); o[2] = String((parseInt(o[2]) + 10) % 256); ifc.ip = o.join('.'); },
+    detect: (dev, ifc, orig) => ifc.ip === orig.ip ? null : `${dev.hostname} has IP ${ifc.ip} — should be ${orig.ip}` },
+  { id: 'wrong-gateway', domain: '5.3', difficulty: 'easy', label: 'Incorrect default gateway',
+    inject: (dev, ifc, orig) => { const o = orig.gateway.split('.'); o[3] = String((parseInt(o[3]) + 100) % 256); ifc.gateway = o.join('.'); },
+    detect: (dev, ifc, orig) => ifc.gateway === orig.gateway ? null : `${dev.hostname} gateway is ${ifc.gateway} — should be ${orig.gateway}` },
+  { id: 'wrong-mask', domain: '5.3', difficulty: 'easy', label: 'Mismatched subnet mask',
+    inject: (dev, ifc) => { ifc.mask = '255.255.0.0'; },
+    detect: (dev, ifc, orig) => ifc.mask === orig.mask ? null : `${dev.hostname} mask is ${ifc.mask} — should be ${orig.mask}` },
+  { id: 'duplicate-ip', domain: '5.3', difficulty: 'easy', label: 'Duplicate IP address',
+    inject: (dev, ifc, orig, state) => { const other = state.devices.find(d => d.id !== dev.id && d.interfaces?.some(i => i.ip)); if (other) { const oi = other.interfaces.find(i => i.ip); ifc.ip = oi.ip; } },
+    detect: (dev, ifc, orig) => ifc.ip === orig.ip ? null : `${dev.hostname} has duplicate IP ${ifc.ip} — should be ${orig.ip}` },
+  { id: 'missing-ip', domain: '5.3', difficulty: 'easy', label: 'Unconfigured interface',
+    inject: (dev, ifc) => { ifc.ip = ''; ifc.mask = ''; },
+    detect: (dev, ifc, orig) => ifc.ip === orig.ip ? null : `${dev.hostname} interface has no IP — needs ${orig.ip}` },
+  // ── L2 / Switching (5.3) ──
+  { id: 'wrong-vlan', domain: '5.3', difficulty: 'medium', label: 'Port on wrong VLAN',
+    inject: (dev, ifc) => { ifc.vlan = ifc.vlan === 10 ? 99 : 10; },
+    detect: (dev, ifc, orig) => ifc.vlan === orig.vlan ? null : `${dev.hostname} port is on VLAN ${ifc.vlan} — should be VLAN ${orig.vlan}` },
+  { id: 'trunk-not-set', domain: '5.3', difficulty: 'medium', label: 'Trunk port set to access',
+    inject: (dev, ifc) => { ifc.mode = 'access'; },
+    detect: (dev, ifc, orig) => ifc.mode === orig.mode ? null : `${dev.hostname} port mode is ${ifc.mode} — should be ${orig.mode}` },
+  { id: 'trunk-missing-vlan', domain: '5.3', difficulty: 'medium', label: 'VLAN not in trunk allowed',
+    inject: (dev, ifc) => { ifc.trunkAllowed = '1'; },
+    detect: (dev, ifc, orig) => ifc.trunkAllowed === orig.trunkAllowed ? null : `${dev.hostname} trunk allows "${ifc.trunkAllowed}" — should allow "${orig.trunkAllowed}"` },
+  { id: 'port-disabled', domain: '5.2', difficulty: 'easy', label: 'Interface disabled',
+    inject: (dev, ifc) => { ifc.enabled = false; },
+    detect: (dev, ifc) => ifc.enabled !== false ? null : `${dev.hostname} interface is administratively disabled` },
+  // ── Routing (5.3) ──
+  { id: 'missing-route', domain: '5.3', difficulty: 'medium', label: 'Missing static route',
+    inject: (dev) => { if (dev.routingTable?.length) dev.routingTable = []; },
+    detect: (dev, ifc, orig) => { if (!orig.routingTable?.length) return null; return dev.routingTable?.length >= orig.routingTable.length ? null : `${dev.hostname} is missing static routes (has ${dev.routingTable?.length || 0}, needs ${orig.routingTable.length})`; } },
+  { id: 'wrong-next-hop', domain: '5.3', difficulty: 'medium', label: 'Wrong next hop on route',
+    inject: (dev) => { if (dev.routingTable?.length) { const rt = dev.routingTable[0]; const o = rt.nextHop.split('.'); o[3] = String((parseInt(o[3]) + 50) % 256); rt.nextHop = o.join('.'); } },
+    detect: (dev, ifc, orig) => { if (!orig.routingTable?.length) return null; const rt = dev.routingTable?.[0]; const ort = orig.routingTable[0]; return (rt && rt.nextHop === ort.nextHop) ? null : `${dev.hostname} route next-hop is wrong — should be ${ort.nextHop}`; } },
+  // ── DHCP (5.3) ──
+  { id: 'dhcp-wrong-pool', domain: '5.3', difficulty: 'medium', label: 'DHCP pool wrong subnet',
+    inject: (dev) => { if (dev.dhcpServer) { const o = dev.dhcpServer.poolStart.split('.'); o[2] = String((parseInt(o[2]) + 10) % 256); dev.dhcpServer.poolStart = o.join('.'); } },
+    detect: (dev, ifc, orig) => { if (!orig.dhcpServer) return null; return dev.dhcpServer?.poolStart === orig.dhcpServer.poolStart ? null : `${dev.hostname} DHCP pool starts at ${dev.dhcpServer?.poolStart} — should be ${orig.dhcpServer.poolStart}`; } },
+  // ── Security (5.4) ──
+  { id: 'acl-blocks-traffic', domain: '5.4', difficulty: 'hard', label: 'ACL blocking traffic',
+    inject: (dev) => { if (!dev.acls) dev.acls = []; dev.acls.unshift({ action: 'deny', proto: 'ip', src: '0.0.0.0/0', dst: '0.0.0.0/0' }); },
+    detect: (dev, ifc, orig) => { const deny = dev.acls?.find(a => a.action === 'deny' && a.src === '0.0.0.0/0' && a.dst === '0.0.0.0/0'); return deny ? `${dev.hostname} has a deny-all ACL blocking all traffic` : null; } },
+  // ── VPN (5.3) ──
+  { id: 'vpn-crypto-mismatch', domain: '5.3', difficulty: 'hard', label: 'VPN crypto mismatch',
+    inject: (dev) => { if (dev.vpnConfig) dev.vpnConfig.encryption = dev.vpnConfig.encryption === 'aes-256' ? '3des' : 'aes-256'; },
+    detect: (dev, ifc, orig) => { if (!orig.vpnConfig) return null; return dev.vpnConfig?.encryption === orig.vpnConfig.encryption ? null : `${dev.hostname} VPN encryption is ${dev.vpnConfig?.encryption} — should be ${orig.vpnConfig.encryption}`; } },
+  { id: 'vpn-wrong-psk', domain: '5.3', difficulty: 'hard', label: 'VPN PSK mismatch',
+    inject: (dev) => { if (dev.vpnConfig) dev.vpnConfig.psk = 'wrong-key-12345'; },
+    detect: (dev, ifc, orig) => { if (!orig.vpnConfig) return null; return dev.vpnConfig?.psk === orig.vpnConfig.psk ? null : `${dev.hostname} VPN pre-shared key doesn't match peer`; } },
+  // ── Wireless (5.4) ──
+  { id: 'wap-wrong-security', domain: '5.4', difficulty: 'easy', label: 'WAP using deprecated WEP',
+    inject: (dev) => { if (dev.wirelessConfig) dev.wirelessConfig.security = 'wep'; },
+    detect: (dev, ifc, orig) => { if (!orig.wirelessConfig) return null; return dev.wirelessConfig?.security !== 'wep' ? null : `${dev.hostname} is using WEP — upgrade to WPA2/WPA3`; } },
+];
+
+let tbFixChallenge = null;
+
+const TB_FIX_CHALLENGES = [
+  // ── EASY (1-2 faults) ──
+  { id: 'fix-broken-lan', title: 'The Broken LAN', difficulty: 'Easy', objective: '5.3', duration: '5 min',
+    description: 'A small office LAN — 2 of 3 PCs can\'t reach the router.',
+    faultIds: ['wrong-subnet', 'wrong-gateway'],
+    symptom: '🎫 Help Desk Ticket #1042: "Two users in the office report no internet. One user works fine."',
+    autoSetup: (state) => {
+      const r = { id: 'fx_r1', type: 'router', x: 700, y: 150, hostname: 'R-GW', interfaces: [{name:'Gi0/0',cableId:'fx_c1',ip:'192.168.1.1',mask:'255.255.255.0',mac:'aa:bb:cc:00:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx_sw1', type: 'switch', x: 700, y: 350, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx_c1',ip:'',mask:'',mac:'aa:bb:cc:00:01:00',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx_c2',ip:'',mask:'',mac:'aa:bb:cc:00:01:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx_c3',ip:'',mask:'',mac:'aa:bb:cc:00:01:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx_c4',ip:'',mask:'',mac:'aa:bb:cc:00:01:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx_pc1', type: 'pc', x: 400, y: 550, hostname: 'PC1-OK', interfaces: [{name:'eth0',cableId:'fx_c2',ip:'192.168.1.10',mask:'255.255.255.0',mac:'aa:bb:cc:00:02:01',vlan:1,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx_pc2', type: 'pc', x: 700, y: 550, hostname: 'PC2', interfaces: [{name:'eth0',cableId:'fx_c3',ip:'192.168.1.20',mask:'255.255.255.0',mac:'aa:bb:cc:00:02:02',vlan:1,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx_pc3', type: 'pc', x: 1000, y: 550, hostname: 'PC3', interfaces: [{name:'eth0',cableId:'fx_c4',ip:'192.168.1.30',mask:'255.255.255.0',mac:'aa:bb:cc:00:02:03',vlan:1,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2, pc3);
+      state.cables.push({ id:'fx_c1',from:'fx_r1',to:'fx_sw1',type:'cat6'}, { id:'fx_c2',from:'fx_pc1',to:'fx_sw1',type:'cat6'}, { id:'fx_c3',from:'fx_pc2',to:'fx_sw1',type:'cat6'}, { id:'fx_c4',from:'fx_pc3',to:'fx_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-subnet', deviceId: 'fx_pc2', ifaceIdx: 0 },
+      { faultId: 'wrong-gateway', deviceId: 'fx_pc3', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-subnet': ['Try pinging from PC2 to the router. Does it respond?', 'Check PC2\'s IP. Is it in the same /24 subnet as the router (192.168.1.x)?'], 'wrong-gateway': ['PC3 can\'t reach anything outside its subnet. What setting controls cross-subnet traffic?', 'Check PC3\'s gateway. Does it point to the router\'s IP (192.168.1.1)?'] },
+  },
+  { id: 'fix-silent-pc', title: 'The Silent PC', difficulty: 'Easy', objective: '5.3', duration: '5 min',
+    description: 'One PC has no connectivity at all — not even to the local switch.',
+    faultIds: ['missing-ip', 'port-disabled'],
+    symptom: '🎫 Ticket #1087: "My computer shows \'No network access\'. I can\'t even ping the switch."',
+    autoSetup: (state) => {
+      const r = { id: 'fx2_r1', type: 'router', x: 700, y: 150, hostname: 'R1', interfaces: [{name:'Gi0/0',cableId:'fx2_c1',ip:'10.0.1.1',mask:'255.255.255.0',mac:'aa:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx2_sw1', type: 'switch', x: 700, y: 350, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx2_c1',ip:'',mask:'',mac:'aa:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx2_c2',ip:'',mask:'',mac:'aa:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx2_c3',ip:'',mask:'',mac:'aa:00:00:02:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx2_pc1', type: 'pc', x: 500, y: 550, hostname: 'PC-OK', interfaces: [{name:'eth0',cableId:'fx2_c2',ip:'10.0.1.10',mask:'255.255.255.0',mac:'aa:00:00:03:00:01',vlan:1,mode:'access',gateway:'10.0.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx2_pc2', type: 'pc', x: 900, y: 550, hostname: 'PC-Silent', interfaces: [{name:'eth0',cableId:'fx2_c3',ip:'10.0.1.20',mask:'255.255.255.0',mac:'aa:00:00:03:00:02',vlan:1,mode:'access',gateway:'10.0.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2);
+      state.cables.push({ id:'fx2_c1',from:'fx2_r1',to:'fx2_sw1',type:'cat6'}, { id:'fx2_c2',from:'fx2_pc1',to:'fx2_sw1',type:'cat6'}, { id:'fx2_c3',from:'fx2_pc2',to:'fx2_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'missing-ip', deviceId: 'fx2_pc2', ifaceIdx: 0 },
+      { faultId: 'port-disabled', deviceId: 'fx2_pc2', ifaceIdx: 0 },
+    ],
+    hints: { 'missing-ip': ['Run `ipconfig` on PC-Silent. Does it have an IP?', 'Configure an IP in the 10.0.1.x/24 range on PC-Silent.'], 'port-disabled': ['The interface might be administratively down. Check the Interfaces tab.', 'Look for an "enabled" toggle on the port connected to the switch.'] },
+  },
+  { id: 'fix-duplicate-ip', title: 'Duplicate Address Detected', difficulty: 'Easy', objective: '5.3', duration: '4 min',
+    description: 'Two devices have the same IP — both are intermittently losing connectivity.',
+    faultIds: ['duplicate-ip'],
+    symptom: '🎫 Ticket #1103: "Two people keep losing their network connection randomly — it works sometimes and fails other times."',
+    autoSetup: (state) => {
+      const r = { id: 'fx3_r1', type: 'router', x: 700, y: 150, hostname: 'R1', interfaces: [{name:'Gi0/0',cableId:'fx3_c1',ip:'172.16.0.1',mask:'255.255.255.0',mac:'bb:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx3_sw1', type: 'switch', x: 700, y: 350, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx3_c1',ip:'',mask:'',mac:'bb:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx3_c2',ip:'',mask:'',mac:'bb:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx3_c3',ip:'',mask:'',mac:'bb:00:00:02:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx3_pc1', type: 'pc', x: 500, y: 550, hostname: 'PC-A', interfaces: [{name:'eth0',cableId:'fx3_c2',ip:'172.16.0.10',mask:'255.255.255.0',mac:'bb:00:00:03:00:01',vlan:1,mode:'access',gateway:'172.16.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx3_pc2', type: 'pc', x: 900, y: 550, hostname: 'PC-B', interfaces: [{name:'eth0',cableId:'fx3_c3',ip:'172.16.0.20',mask:'255.255.255.0',mac:'bb:00:00:03:00:02',vlan:1,mode:'access',gateway:'172.16.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2);
+      state.cables.push({ id:'fx3_c1',from:'fx3_r1',to:'fx3_sw1',type:'cat6'}, { id:'fx3_c2',from:'fx3_pc1',to:'fx3_sw1',type:'cat6'}, { id:'fx3_c3',from:'fx3_pc2',to:'fx3_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [{ faultId: 'duplicate-ip', deviceId: 'fx3_pc2', ifaceIdx: 0 }],
+    hints: { 'duplicate-ip': ['Run `ipconfig` on both PCs. Compare their IPs.', 'Two devices on the same subnet must have UNIQUE IPs.'] },
+  },
+  { id: 'fix-wrong-mask', title: 'Wrong Mask Mayhem', difficulty: 'Easy', objective: '5.3', duration: '5 min',
+    description: 'A PC has a mismatched subnet mask — it can\'t ping the gateway.',
+    faultIds: ['wrong-mask', 'wrong-gateway'],
+    symptom: '🎫 Ticket #1120: "My PC shows connected but I can\'t reach the gateway. Other PCs on the same switch work fine."',
+    autoSetup: (state) => {
+      const r = { id: 'fx4_r1', type: 'router', x: 700, y: 150, hostname: 'R1', interfaces: [{name:'Gi0/0',cableId:'fx4_c1',ip:'192.168.10.1',mask:'255.255.255.0',mac:'cc:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx4_sw1', type: 'switch', x: 700, y: 350, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx4_c1',ip:'',mask:'',mac:'cc:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx4_c2',ip:'',mask:'',mac:'cc:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx4_c3',ip:'',mask:'',mac:'cc:00:00:02:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx4_pc1', type: 'pc', x: 500, y: 550, hostname: 'PC-OK', interfaces: [{name:'eth0',cableId:'fx4_c2',ip:'192.168.10.10',mask:'255.255.255.0',mac:'cc:00:00:03:00:01',vlan:1,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx4_pc2', type: 'pc', x: 900, y: 550, hostname: 'PC-Broken', interfaces: [{name:'eth0',cableId:'fx4_c3',ip:'192.168.10.20',mask:'255.255.255.0',mac:'cc:00:00:03:00:02',vlan:1,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2);
+      state.cables.push({ id:'fx4_c1',from:'fx4_r1',to:'fx4_sw1',type:'cat6'}, { id:'fx4_c2',from:'fx4_pc1',to:'fx4_sw1',type:'cat6'}, { id:'fx4_c3',from:'fx4_pc2',to:'fx4_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-mask', deviceId: 'fx4_pc2', ifaceIdx: 0 },
+      { faultId: 'wrong-gateway', deviceId: 'fx4_pc2', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-mask': ['What subnet mask is PC-Broken using? Compare it with PC-OK.', 'A /16 mask and a /24 mask define very different networks, even with the same IP.'], 'wrong-gateway': ['Even with the right IP and mask, a wrong gateway means no cross-subnet routing.', 'The gateway should be the router\'s interface IP on this subnet.'] },
+  },
+  { id: 'fix-insecure-wifi', title: 'Insecure Wireless', difficulty: 'Easy', objective: '5.4', duration: '3 min',
+    description: 'A WAP is running deprecated WEP encryption.',
+    faultIds: ['wap-wrong-security'],
+    symptom: '🎫 Security Audit: "Access point AP-Office is using WEP. This must be upgraded immediately."',
+    autoSetup: (state) => {
+      const r = { id: 'fx5_r1', type: 'router', x: 700, y: 150, hostname: 'R1', interfaces: [{name:'Gi0/0',cableId:'fx5_c1',ip:'10.10.1.1',mask:'255.255.255.0',mac:'dd:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx5_sw1', type: 'switch', x: 700, y: 350, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx5_c1',ip:'',mask:'',mac:'dd:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx5_c2',ip:'',mask:'',mac:'dd:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const wap = { id: 'fx5_wap', type: 'wap', x: 400, y: 550, hostname: 'AP-Office', interfaces: [{name:'eth0',cableId:'fx5_c2',ip:'10.10.1.50',mask:'255.255.255.0',mac:'dd:00:00:03:00:01',vlan:1,mode:'access',gateway:'10.10.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[], wirelessConfig:{ ssid:'Office-WiFi', security:'wpa3-personal', channel:'6', band:'5ghz', txPower:'auto', mode:'802.11ax' } };
+      state.devices.push(r, sw, wap);
+      state.cables.push({ id:'fx5_c1',from:'fx5_r1',to:'fx5_sw1',type:'cat6'}, { id:'fx5_c2',from:'fx5_wap',to:'fx5_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [{ faultId: 'wap-wrong-security', deviceId: 'fx5_wap', ifaceIdx: 0 }],
+    hints: { 'wap-wrong-security': ['Double-click AP-Office and check the Wireless tab.', 'WEP is deprecated and cracked in minutes. Set security to WPA2 or WPA3.'] },
+  },
+  // ── MEDIUM (2-3 faults) ──
+  { id: 'fix-vlan-isolation', title: 'VLAN Isolation Failure', difficulty: 'Medium', objective: '5.3', duration: '10 min',
+    description: 'VLANs are misconfigured — a trunk port is set to access mode and a PC is on the wrong VLAN.',
+    faultIds: ['wrong-vlan', 'trunk-not-set'],
+    symptom: '🎫 Ticket #2001: "Sales team can\'t reach the printer anymore. IT team has no issues. This broke after the switch firmware upgrade."',
+    autoSetup: (state) => {
+      const r = { id: 'fx6_r1', type: 'router', x: 700, y: 100, hostname: 'R-Core', interfaces: [{name:'Gi0/0',cableId:'fx6_c1',ip:'192.168.10.1',mask:'255.255.255.0',mac:'ee:00:00:01:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx6_sw1', type: 'switch', x: 700, y: 300, hostname: 'SW-Floor1', interfaces: [{name:'Fa0/0',cableId:'fx6_c1',ip:'',mask:'',mac:'ee:00:00:02:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20',subInterfaces:[]},{name:'Fa0/1',cableId:'fx6_c2',ip:'',mask:'',mac:'ee:00:00:02:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx6_c3',ip:'',mask:'',mac:'ee:00:00:02:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx6_c4',ip:'',mask:'',mac:'ee:00:00:02:00:04',vlan:20,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Sales'},{id:20,name:'IT'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx6_pc1', type: 'pc', x: 400, y: 500, hostname: 'PC-Sales1', interfaces: [{name:'eth0',cableId:'fx6_c2',ip:'192.168.10.10',mask:'255.255.255.0',mac:'ee:00:00:03:00:01',vlan:10,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx6_pc2', type: 'pc', x: 700, y: 500, hostname: 'PC-Sales2', interfaces: [{name:'eth0',cableId:'fx6_c3',ip:'192.168.10.20',mask:'255.255.255.0',mac:'ee:00:00:03:00:02',vlan:10,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx6_pc3', type: 'pc', x: 1000, y: 500, hostname: 'PC-IT', interfaces: [{name:'eth0',cableId:'fx6_c4',ip:'192.168.20.10',mask:'255.255.255.0',mac:'ee:00:00:03:00:03',vlan:20,mode:'access',gateway:'192.168.20.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2, pc3);
+      state.cables.push({ id:'fx6_c1',from:'fx6_r1',to:'fx6_sw1',type:'cat6'}, { id:'fx6_c2',from:'fx6_pc1',to:'fx6_sw1',type:'cat6'}, { id:'fx6_c3',from:'fx6_pc2',to:'fx6_sw1',type:'cat6'}, { id:'fx6_c4',from:'fx6_pc3',to:'fx6_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-vlan', deviceId: 'fx6_sw1', ifaceIdx: 2 },
+      { faultId: 'trunk-not-set', deviceId: 'fx6_sw1', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-vlan': ['PC-Sales2 is on which VLAN? Check the switch port.', 'Sales devices should all be on VLAN 10.'], 'trunk-not-set': ['The uplink to the router carries multiple VLANs. What port mode should it be?', 'An access port only carries one VLAN. For inter-VLAN routing, the router link needs to be a trunk.'] },
+  },
+  { id: 'fix-routing-blackhole', title: 'Routing Black Hole', difficulty: 'Medium', objective: '5.3', duration: '10 min',
+    description: 'Two subnets can\'t reach each other — the router is missing a static route.',
+    faultIds: ['missing-route', 'wrong-next-hop'],
+    symptom: '🎫 Ticket #2050: "Branch office users can\'t access HQ file server. Both offices were working yesterday."',
+    autoSetup: (state) => {
+      const r1 = { id: 'fx7_r1', type: 'router', x: 400, y: 250, hostname: 'R-HQ', interfaces: [{name:'Gi0/0',cableId:'fx7_c1',ip:'10.1.1.1',mask:'255.255.255.0',mac:'ff:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx7_c3',ip:'10.0.0.1',mask:'255.255.255.252',mac:'ff:00:00:01:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.2.2.0',mask:'255.255.255.0',nextHop:'10.0.0.2',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r2 = { id: 'fx7_r2', type: 'router', x: 1000, y: 250, hostname: 'R-Branch', interfaces: [{name:'Gi0/0',cableId:'fx7_c2',ip:'10.2.2.1',mask:'255.255.255.0',mac:'ff:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx7_c3',ip:'10.0.0.2',mask:'255.255.255.252',mac:'ff:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.1.1.0',mask:'255.255.255.0',nextHop:'10.0.0.1',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw1 = { id: 'fx7_sw1', type: 'switch', x: 400, y: 450, hostname: 'SW-HQ', interfaces: [{name:'Fa0/0',cableId:'fx7_c1',ip:'',mask:'',mac:'ff:00:00:03:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx7_c4',ip:'',mask:'',mac:'ff:00:00:03:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx7_pc1', type: 'pc', x: 400, y: 600, hostname: 'FileServer', interfaces: [{name:'eth0',cableId:'fx7_c4',ip:'10.1.1.10',mask:'255.255.255.0',mac:'ff:00:00:04:00:01',vlan:1,mode:'access',gateway:'10.1.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx7_sw2', type: 'switch', x: 1000, y: 450, hostname: 'SW-Branch', interfaces: [{name:'Fa0/0',cableId:'fx7_c2',ip:'',mask:'',mac:'ff:00:00:05:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx7_c5',ip:'',mask:'',mac:'ff:00:00:05:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx7_pc2', type: 'pc', x: 1000, y: 600, hostname: 'PC-Branch', interfaces: [{name:'eth0',cableId:'fx7_c5',ip:'10.2.2.10',mask:'255.255.255.0',mac:'ff:00:00:06:00:01',vlan:1,mode:'access',gateway:'10.2.2.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r1, r2, sw1, sw2, pc1, pc2);
+      state.cables.push({ id:'fx7_c1',from:'fx7_r1',to:'fx7_sw1',type:'cat6'}, { id:'fx7_c2',from:'fx7_r2',to:'fx7_sw2',type:'cat6'}, { id:'fx7_c3',from:'fx7_r1',to:'fx7_r2',type:'fiber'}, { id:'fx7_c4',from:'fx7_pc1',to:'fx7_sw1',type:'cat6'}, { id:'fx7_c5',from:'fx7_pc2',to:'fx7_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'missing-route', deviceId: 'fx7_r2' },
+      { faultId: 'wrong-next-hop', deviceId: 'fx7_r1' },
+    ],
+    hints: { 'missing-route': ['R-Branch needs to know how to reach 10.1.1.0/24. Check its routing table.', 'Add a static route: network 10.1.1.0, mask 255.255.255.0, next hop 10.0.0.1'], 'wrong-next-hop': ['R-HQ has a route to 10.2.2.0/24 — but is the next hop correct?', 'The next hop should be R-Branch\'s WAN interface: 10.0.0.2'] },
+  },
+  // ── HARD (3-4 faults) ──
+  { id: 'fix-acl-lockout', title: 'Locked Out by Security', difficulty: 'Hard', objective: '5.4', duration: '15 min',
+    description: 'A firewall ACL is blocking legitimate traffic, a VLAN is wrong, and a port is disabled.',
+    faultIds: ['acl-blocks-traffic', 'wrong-vlan', 'port-disabled'],
+    symptom: '🎫 Ticket #3001: "After the security audit changes, multiple departments lost access. The firewall, switch, and one workstation all seem affected."',
+    autoSetup: (state) => {
+      const fw = { id: 'fx8_fw', type: 'firewall', x: 700, y: 100, hostname: 'FW-Main', interfaces: [{name:'eth0',cableId:'fx8_c1',ip:'10.0.0.1',mask:'255.255.255.0',mac:'ab:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx8_sw1', type: 'switch', x: 700, y: 300, hostname: 'SW-Core', interfaces: [{name:'Fa0/0',cableId:'fx8_c1',ip:'',mask:'',mac:'ab:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx8_c2',ip:'',mask:'',mac:'ab:00:00:02:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx8_c3',ip:'',mask:'',mac:'ab:00:00:02:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx8_c4',ip:'',mask:'',mac:'ab:00:00:02:00:04',vlan:20,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Staff'},{id:20,name:'Guest'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx8_pc1', type: 'pc', x: 400, y: 500, hostname: 'PC-Staff1', interfaces: [{name:'eth0',cableId:'fx8_c2',ip:'10.0.0.10',mask:'255.255.255.0',mac:'ab:00:00:03:00:01',vlan:10,mode:'access',gateway:'10.0.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx8_pc2', type: 'pc', x: 700, y: 500, hostname: 'PC-Staff2', interfaces: [{name:'eth0',cableId:'fx8_c3',ip:'10.0.0.20',mask:'255.255.255.0',mac:'ab:00:00:03:00:02',vlan:10,mode:'access',gateway:'10.0.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx8_pc3', type: 'pc', x: 1000, y: 500, hostname: 'PC-Guest', interfaces: [{name:'eth0',cableId:'fx8_c4',ip:'10.0.0.30',mask:'255.255.255.0',mac:'ab:00:00:03:00:03',vlan:20,mode:'access',gateway:'10.0.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(fw, sw, pc1, pc2, pc3);
+      state.cables.push({ id:'fx8_c1',from:'fx8_fw',to:'fx8_sw1',type:'cat6'}, { id:'fx8_c2',from:'fx8_pc1',to:'fx8_sw1',type:'cat6'}, { id:'fx8_c3',from:'fx8_pc2',to:'fx8_sw1',type:'cat6'}, { id:'fx8_c4',from:'fx8_pc3',to:'fx8_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'acl-blocks-traffic', deviceId: 'fx8_fw' },
+      { faultId: 'wrong-vlan', deviceId: 'fx8_sw1', ifaceIdx: 2 },
+      { faultId: 'port-disabled', deviceId: 'fx8_pc2', ifaceIdx: 0 },
+    ],
+    hints: { 'acl-blocks-traffic': ['Check the firewall ACL rules. Is there a deny-all rule?', 'A deny ip 0.0.0.0/0 → 0.0.0.0/0 blocks ALL traffic. Remove it.'], 'wrong-vlan': ['PC-Staff2\'s switch port — is it on the correct VLAN?', 'Staff devices should be on VLAN 10, not VLAN 99.'], 'port-disabled': ['PC-Staff2 has no link light. Is the interface enabled?', 'Check the Interfaces tab — the port may be administratively shut down.'] },
+  },
+  // ── MEDIUM (continued) ──
+  { id: 'fix-dns', title: 'DNS Nightmare', difficulty: 'Medium', objective: '5.3', duration: '10 min',
+    description: 'A DNS server has a missing IP and a PC has the wrong gateway — name resolution is broken across the network.',
+    faultIds: ['wrong-gateway', 'missing-ip'],
+    symptom: '🎫 Ticket #2100: "Users can\'t reach any websites by name. DNS is supposed to be internal but nothing resolves."',
+    autoSetup: (state) => {
+      const r = { id: 'fx9_r1', type: 'router', x: 700, y: 100, hostname: 'R-GW', interfaces: [{name:'Gi0/0',cableId:'fx9_c1',ip:'192.168.50.1',mask:'255.255.255.0',mac:'a1:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx9_sw1', type: 'switch', x: 700, y: 300, hostname: 'SW1', interfaces: [{name:'Fa0/0',cableId:'fx9_c1',ip:'',mask:'',mac:'a1:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx9_c2',ip:'',mask:'',mac:'a1:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx9_c3',ip:'',mask:'',mac:'a1:00:00:02:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx9_c4',ip:'',mask:'',mac:'a1:00:00:02:00:04',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const dns = { id: 'fx9_dns', type: 'dns-server', x: 400, y: 500, hostname: 'DNS-Server', interfaces: [{name:'eth0',cableId:'fx9_c2',ip:'192.168.50.10',mask:'255.255.255.0',mac:'a1:00:00:03:00:01',vlan:1,mode:'access',gateway:'192.168.50.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx9_pc1', type: 'pc', x: 700, y: 500, hostname: 'PC-User1', interfaces: [{name:'eth0',cableId:'fx9_c3',ip:'192.168.50.20',mask:'255.255.255.0',mac:'a1:00:00:04:00:01',vlan:1,mode:'access',gateway:'192.168.50.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx9_pc2', type: 'pc', x: 1000, y: 500, hostname: 'PC-User2', interfaces: [{name:'eth0',cableId:'fx9_c4',ip:'192.168.50.30',mask:'255.255.255.0',mac:'a1:00:00:04:00:02',vlan:1,mode:'access',gateway:'192.168.50.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, dns, pc1, pc2);
+      state.cables.push({ id:'fx9_c1',from:'fx9_r1',to:'fx9_sw1',type:'cat6'}, { id:'fx9_c2',from:'fx9_dns',to:'fx9_sw1',type:'cat6'}, { id:'fx9_c3',from:'fx9_pc1',to:'fx9_sw1',type:'cat6'}, { id:'fx9_c4',from:'fx9_pc2',to:'fx9_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-gateway', deviceId: 'fx9_pc2', ifaceIdx: 0 },
+      { faultId: 'missing-ip', deviceId: 'fx9_dns', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-gateway': ['PC-User2 can ping on the local subnet but not reach external resources. What setting routes traffic out?', 'Verify PC-User2\'s default gateway — it should point to R-GW at 192.168.50.1.'], 'missing-ip': ['The DNS server has no IP configured. How will clients resolve names without reaching it?', 'Configure DNS-Server\'s eth0 with 192.168.50.10 / 255.255.255.0 so clients can send queries to it.'] },
+  },
+  { id: 'fix-dhcp', title: 'DHCP Disaster', difficulty: 'Medium', objective: '5.3', duration: '10 min',
+    description: 'The DHCP server hands out addresses from the wrong pool, and a trunk port is set to access mode — clients get bad IPs and inter-VLAN traffic is dropped.',
+    faultIds: ['dhcp-wrong-pool', 'trunk-not-set'],
+    symptom: '🎫 Ticket #2150: "PCs that used to auto-configure are getting 192.168.99.x addresses instead of the expected range and can\'t reach the internet."',
+    autoSetup: (state) => {
+      const r = { id: 'fx10_r1', type: 'router', x: 700, y: 100, hostname: 'R-DHCP', interfaces: [{name:'Gi0/0',cableId:'fx10_c1',ip:'192.168.10.1',mask:'255.255.255.0',mac:'a2:00:00:01:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Clients'}],dhcpServer:{ poolStart:'192.168.10.100', poolEnd:'192.168.10.200', mask:'255.255.255.0', gateway:'192.168.10.1', dns:'192.168.10.1' },dhcpRelay:null,acls:[] };
+      const sw = { id: 'fx10_sw1', type: 'switch', x: 700, y: 300, hostname: 'SW-Main', interfaces: [{name:'Fa0/0',cableId:'fx10_c1',ip:'',mask:'',mac:'a2:00:00:02:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10',subInterfaces:[]},{name:'Fa0/1',cableId:'fx10_c2',ip:'',mask:'',mac:'a2:00:00:02:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx10_c3',ip:'',mask:'',mac:'a2:00:00:02:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx10_c4',ip:'',mask:'',mac:'a2:00:00:02:00:04',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Clients'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx10_pc1', type: 'pc', x: 400, y: 500, hostname: 'PC-Client1', interfaces: [{name:'eth0',cableId:'fx10_c2',ip:'192.168.10.10',mask:'255.255.255.0',mac:'a2:00:00:03:00:01',vlan:10,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx10_pc2', type: 'pc', x: 700, y: 500, hostname: 'PC-Client2', interfaces: [{name:'eth0',cableId:'fx10_c3',ip:'192.168.10.20',mask:'255.255.255.0',mac:'a2:00:00:03:00:02',vlan:10,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx10_pc3', type: 'pc', x: 1000, y: 500, hostname: 'PC-Client3', interfaces: [{name:'eth0',cableId:'fx10_c4',ip:'192.168.10.30',mask:'255.255.255.0',mac:'a2:00:00:03:00:03',vlan:10,mode:'access',gateway:'192.168.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw, pc1, pc2, pc3);
+      state.cables.push({ id:'fx10_c1',from:'fx10_r1',to:'fx10_sw1',type:'cat6'}, { id:'fx10_c2',from:'fx10_pc1',to:'fx10_sw1',type:'cat6'}, { id:'fx10_c3',from:'fx10_pc2',to:'fx10_sw1',type:'cat6'}, { id:'fx10_c4',from:'fx10_pc3',to:'fx10_sw1',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'dhcp-wrong-pool', deviceId: 'fx10_r1' },
+      { faultId: 'trunk-not-set', deviceId: 'fx10_sw1', ifaceIdx: 0 },
+    ],
+    hints: { 'dhcp-wrong-pool': ['Double-click R-DHCP and check the DHCP tab. What pool start address is configured?', 'The DHCP pool should start at 192.168.10.100 — not an address on the wrong subnet.'], 'trunk-not-set': ['The router uplink carries VLAN 10 traffic. What port mode supports multiple VLANs?', 'SW-Main\'s Fa0/0 uplink must be set to trunk mode so VLAN 10 frames can reach the router.'] },
+  },
+  { id: 'fix-trunk-trouble', title: 'Trunk Trouble', difficulty: 'Medium', objective: '5.3', duration: '12 min',
+    description: 'Inter-VLAN routing is broken: a trunk is missing a VLAN, a PC is on the wrong VLAN, and a static route is missing on the router.',
+    faultIds: ['trunk-missing-vlan', 'wrong-vlan', 'missing-route'],
+    symptom: '🎫 Ticket #2200: "The Engineering team can reach HR but HR cannot reach Engineering, and nobody can reach the server in VLAN 30."',
+    autoSetup: (state) => {
+      const r = { id: 'fx11_r1', type: 'router', x: 700, y: 80, hostname: 'R-Core', interfaces: [{name:'Gi0/0',cableId:'fx11_c1',ip:'192.168.1.1',mask:'255.255.255.0',mac:'a3:00:00:01:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20,30',subInterfaces:[]}], routingTable:[{network:'192.168.30.0',mask:'255.255.255.0',nextHop:'192.168.1.2',iface:'Gi0/0'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Engineering'},{id:20,name:'HR'},{id:30,name:'Servers'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw1 = { id: 'fx11_sw1', type: 'switch', x: 400, y: 280, hostname: 'SW-Left', interfaces: [{name:'Fa0/0',cableId:'fx11_c1',ip:'',mask:'',mac:'a3:00:00:02:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20,30',subInterfaces:[]},{name:'Fa0/1',cableId:'fx11_c2',ip:'',mask:'',mac:'a3:00:00:02:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx11_c3',ip:'',mask:'',mac:'a3:00:00:02:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx11_c5',ip:'',mask:'',mac:'a3:00:00:02:00:04',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20,30',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Engineering'},{id:20,name:'HR'},{id:30,name:'Servers'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx11_sw2', type: 'switch', x: 1000, y: 280, hostname: 'SW-Right', interfaces: [{name:'Fa0/0',cableId:'fx11_c4',ip:'',mask:'',mac:'a3:00:00:03:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20',subInterfaces:[]},{name:'Fa0/1',cableId:'fx11_c6',ip:'',mask:'',mac:'a3:00:00:03:00:02',vlan:20,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx11_c7',ip:'',mask:'',mac:'a3:00:00:03:00:03',vlan:20,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/3',cableId:'fx11_c5',ip:'',mask:'',mac:'a3:00:00:03:00:04',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20,30',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Engineering'},{id:20,name:'HR'},{id:30,name:'Servers'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx11_pc1', type: 'pc', x: 200, y: 480, hostname: 'PC-Eng1', interfaces: [{name:'eth0',cableId:'fx11_c2',ip:'192.168.10.10',mask:'255.255.255.0',mac:'a3:00:00:04:00:01',vlan:10,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx11_pc2', type: 'pc', x: 500, y: 480, hostname: 'PC-Eng2', interfaces: [{name:'eth0',cableId:'fx11_c3',ip:'192.168.10.20',mask:'255.255.255.0',mac:'a3:00:00:04:00:02',vlan:10,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx11_pc3', type: 'pc', x: 900, y: 480, hostname: 'PC-HR1', interfaces: [{name:'eth0',cableId:'fx11_c6',ip:'192.168.20.10',mask:'255.255.255.0',mac:'a3:00:00:05:00:01',vlan:20,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc4 = { id: 'fx11_pc4', type: 'pc', x: 1200, y: 480, hostname: 'PC-HR2', interfaces: [{name:'eth0',cableId:'fx11_c7',ip:'192.168.20.20',mask:'255.255.255.0',mac:'a3:00:00:05:00:02',vlan:20,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r, sw1, sw2, pc1, pc2, pc3, pc4);
+      state.cables.push({ id:'fx11_c1',from:'fx11_r1',to:'fx11_sw1',type:'cat6'}, { id:'fx11_c2',from:'fx11_pc1',to:'fx11_sw1',type:'cat6'}, { id:'fx11_c3',from:'fx11_pc2',to:'fx11_sw1',type:'cat6'}, { id:'fx11_c4',from:'fx11_r1',to:'fx11_sw2',type:'cat6'}, { id:'fx11_c5',from:'fx11_sw1',to:'fx11_sw2',type:'fiber'}, { id:'fx11_c6',from:'fx11_pc3',to:'fx11_sw2',type:'cat6'}, { id:'fx11_c7',from:'fx11_pc4',to:'fx11_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'trunk-missing-vlan', deviceId: 'fx11_sw2', ifaceIdx: 0 },
+      { faultId: 'wrong-vlan', deviceId: 'fx11_sw2', ifaceIdx: 1 },
+      { faultId: 'missing-route', deviceId: 'fx11_r1' },
+    ],
+    hints: { 'trunk-missing-vlan': ['SW-Right\'s uplink to the router only allows certain VLANs. Is VLAN 30 included?', 'Edit SW-Right Fa0/0 trunkAllowed to include 1,10,20,30 so VLAN 30 can traverse the trunk.'], 'wrong-vlan': ['PC-HR1 is on which VLAN? Does that match HR\'s expected VLAN (20)?', 'Check SW-Right Fa0/1 — the port for PC-HR1 should be VLAN 20, not 99.'], 'missing-route': ['R-Core has routes for VLAN 10 and 20. Does it have a route for the 192.168.30.0/24 server subnet?', 'Add a static route to 192.168.30.0/24 via next-hop 192.168.1.2 on R-Core.'] },
+  },
+  // ── HARD (continued) ──
+  { id: 'fix-ospf', title: 'OSPF Outage', difficulty: 'Hard', objective: '5.4', duration: '15 min',
+    description: 'A multi-router OSPF network is broken: one router has a wrong subnet on its interface, a static route is missing, and a port is disabled.',
+    faultIds: ['wrong-subnet', 'missing-route', 'port-disabled'],
+    symptom: '🎫 Ticket #3050: "After the network expansion, two of our four office subnets became unreachable. Routers were reconfigured last night."',
+    autoSetup: (state) => {
+      const r1 = { id: 'fx12_r1', type: 'router', x: 700, y: 100, hostname: 'R-North', interfaces: [{name:'Gi0/0',cableId:'fx12_c1',ip:'10.1.0.1',mask:'255.255.255.0',mac:'b1:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx12_c4',ip:'10.0.12.1',mask:'255.255.255.252',mac:'b1:00:00:01:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/2',cableId:'fx12_c5',ip:'10.0.13.1',mask:'255.255.255.252',mac:'b1:00:00:01:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.2.0.0',mask:'255.255.255.0',nextHop:'10.0.12.2',iface:'Gi0/1'},{network:'10.3.0.0',mask:'255.255.255.0',nextHop:'10.0.13.2',iface:'Gi0/2'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r2 = { id: 'fx12_r2', type: 'router', x: 300, y: 400, hostname: 'R-West', interfaces: [{name:'Gi0/0',cableId:'fx12_c2',ip:'10.2.0.1',mask:'255.255.255.0',mac:'b1:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx12_c4',ip:'10.0.12.2',mask:'255.255.255.252',mac:'b1:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/2',cableId:'fx12_c6',ip:'10.0.23.1',mask:'255.255.255.252',mac:'b1:00:00:02:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.1.0.0',mask:'255.255.255.0',nextHop:'10.0.12.1',iface:'Gi0/1'},{network:'10.3.0.0',mask:'255.255.255.0',nextHop:'10.0.23.2',iface:'Gi0/2'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r3 = { id: 'fx12_r3', type: 'router', x: 1100, y: 400, hostname: 'R-East', interfaces: [{name:'Gi0/0',cableId:'fx12_c3',ip:'10.3.0.1',mask:'255.255.255.0',mac:'b1:00:00:03:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx12_c5',ip:'10.0.13.2',mask:'255.255.255.252',mac:'b1:00:00:03:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/2',cableId:'fx12_c6',ip:'10.0.23.2',mask:'255.255.255.252',mac:'b1:00:00:03:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.1.0.0',mask:'255.255.255.0',nextHop:'10.0.13.1',iface:'Gi0/1'},{network:'10.2.0.0',mask:'255.255.255.0',nextHop:'10.0.23.1',iface:'Gi0/2'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw1 = { id: 'fx12_sw1', type: 'switch', x: 300, y: 600, hostname: 'SW-West', interfaces: [{name:'Fa0/0',cableId:'fx12_c2',ip:'',mask:'',mac:'b1:00:00:04:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx12_c7',ip:'',mask:'',mac:'b1:00:00:04:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx12_c8',ip:'',mask:'',mac:'b1:00:00:04:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx12_sw2', type: 'switch', x: 1100, y: 600, hostname: 'SW-East', interfaces: [{name:'Fa0/0',cableId:'fx12_c3',ip:'',mask:'',mac:'b1:00:00:05:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx12_c9',ip:'',mask:'',mac:'b1:00:00:05:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx12_c10',ip:'',mask:'',mac:'b1:00:00:05:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx12_pc1', type: 'pc', x: 100, y: 750, hostname: 'PC-West1', interfaces: [{name:'eth0',cableId:'fx12_c7',ip:'10.2.0.10',mask:'255.255.255.0',mac:'b1:00:00:06:00:01',vlan:1,mode:'access',gateway:'10.2.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx12_pc2', type: 'pc', x: 400, y: 750, hostname: 'PC-West2', interfaces: [{name:'eth0',cableId:'fx12_c8',ip:'10.2.0.20',mask:'255.255.255.0',mac:'b1:00:00:06:00:02',vlan:1,mode:'access',gateway:'10.2.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx12_pc3', type: 'pc', x: 900, y: 750, hostname: 'PC-East1', interfaces: [{name:'eth0',cableId:'fx12_c9',ip:'10.3.0.10',mask:'255.255.255.0',mac:'b1:00:00:07:00:01',vlan:1,mode:'access',gateway:'10.3.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc4 = { id: 'fx12_pc4', type: 'pc', x: 1200, y: 750, hostname: 'PC-East2', interfaces: [{name:'eth0',cableId:'fx12_c10',ip:'10.3.0.20',mask:'255.255.255.0',mac:'b1:00:00:07:00:02',vlan:1,mode:'access',gateway:'10.3.0.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r1, r2, r3, sw1, sw2, pc1, pc2, pc3, pc4);
+      state.cables.push({ id:'fx12_c1',from:'fx12_r1',to:'fx12_sw1',type:'fiber'}, { id:'fx12_c2',from:'fx12_r2',to:'fx12_sw1',type:'cat6'}, { id:'fx12_c3',from:'fx12_r3',to:'fx12_sw2',type:'cat6'}, { id:'fx12_c4',from:'fx12_r1',to:'fx12_r2',type:'fiber'}, { id:'fx12_c5',from:'fx12_r1',to:'fx12_r3',type:'fiber'}, { id:'fx12_c6',from:'fx12_r2',to:'fx12_r3',type:'fiber'}, { id:'fx12_c7',from:'fx12_pc1',to:'fx12_sw1',type:'cat6'}, { id:'fx12_c8',from:'fx12_pc2',to:'fx12_sw1',type:'cat6'}, { id:'fx12_c9',from:'fx12_pc3',to:'fx12_sw2',type:'cat6'}, { id:'fx12_c10',from:'fx12_pc4',to:'fx12_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-subnet', deviceId: 'fx12_r2', ifaceIdx: 0 },
+      { faultId: 'missing-route', deviceId: 'fx12_r3' },
+      { faultId: 'port-disabled', deviceId: 'fx12_r1', ifaceIdx: 2 },
+    ],
+    hints: { 'wrong-subnet': ['R-West\'s LAN interface IP — is it in the correct 10.2.0.x subnet?', 'The IP on R-West Gi0/0 has been shifted to the wrong /8 octet. Correct it back to 10.2.0.1.'], 'missing-route': ['R-East can reach 10.1.0.0/24 and 10.2.0.0/24. What about 10.3.0.0/24 from other routers?', 'Check R-East\'s routing table — it is missing a return route. Add routes so all subnets are reachable.'], 'port-disabled': ['R-North\'s Gi0/2 interface connects to R-East. Is it up?', 'Enable Gi0/2 on R-North in the Interfaces tab — it was administratively shut down during maintenance.'] },
+  },
+  { id: 'fix-vpn', title: 'VPN Meltdown', difficulty: 'Hard', objective: '5.4', duration: '15 min',
+    description: 'A site-to-site VPN is down: encryption algorithms don\'t match, the pre-shared key is wrong, and a PC has the wrong gateway.',
+    faultIds: ['vpn-crypto-mismatch', 'vpn-wrong-psk', 'wrong-gateway'],
+    symptom: '🎫 Ticket #3100: "Remote site users cannot access HQ resources. VPN was working before the router firmware update last weekend."',
+    autoSetup: (state) => {
+      const r1 = { id: 'fx13_r1', type: 'router', x: 350, y: 200, hostname: 'R-HQ', interfaces: [{name:'Gi0/0',cableId:'fx13_c1',ip:'192.168.1.1',mask:'255.255.255.0',mac:'c1:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx13_c3',ip:'203.0.113.1',mask:'255.255.255.252',mac:'c1:00:00:01:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.10.10.0',mask:'255.255.255.0',nextHop:'203.0.113.2',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[], vpnConfig:{ peerIp:'203.0.113.2', psk:'Secr3tK3y!', encryption:'aes-256', hash:'sha-256', ikeVersion:'2', dhGroup:'14', localSubnet:'192.168.1.0/24', remoteSubnet:'10.10.10.0/24', status:'down' } };
+      const r2 = { id: 'fx13_r2', type: 'router', x: 1050, y: 200, hostname: 'R-Remote', interfaces: [{name:'Gi0/0',cableId:'fx13_c2',ip:'10.10.10.1',mask:'255.255.255.0',mac:'c1:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx13_c3',ip:'203.0.113.2',mask:'255.255.255.252',mac:'c1:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'192.168.1.0',mask:'255.255.255.0',nextHop:'203.0.113.1',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[], vpnConfig:{ peerIp:'203.0.113.1', psk:'Secr3tK3y!', encryption:'aes-256', hash:'sha-256', ikeVersion:'2', dhGroup:'14', localSubnet:'10.10.10.0/24', remoteSubnet:'192.168.1.0/24', status:'down' } };
+      const sw1 = { id: 'fx13_sw1', type: 'switch', x: 350, y: 400, hostname: 'SW-HQ', interfaces: [{name:'Fa0/0',cableId:'fx13_c1',ip:'',mask:'',mac:'c1:00:00:03:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx13_c4',ip:'',mask:'',mac:'c1:00:00:03:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx13_sw2', type: 'switch', x: 1050, y: 400, hostname: 'SW-Remote', interfaces: [{name:'Fa0/0',cableId:'fx13_c2',ip:'',mask:'',mac:'c1:00:00:04:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx13_c5',ip:'',mask:'',mac:'c1:00:00:04:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const cloud = { id: 'fx13_cloud', type: 'cloud', x: 700, y: 200, hostname: 'Internet', interfaces: [{name:'wan0',cableId:'fx13_c3',ip:'',mask:'',mac:'c1:00:00:05:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx13_pc1', type: 'pc', x: 350, y: 580, hostname: 'PC-HQ', interfaces: [{name:'eth0',cableId:'fx13_c4',ip:'192.168.1.10',mask:'255.255.255.0',mac:'c1:00:00:06:00:01',vlan:1,mode:'access',gateway:'192.168.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx13_pc2', type: 'pc', x: 1050, y: 580, hostname: 'PC-Remote', interfaces: [{name:'eth0',cableId:'fx13_c5',ip:'10.10.10.10',mask:'255.255.255.0',mac:'c1:00:00:06:00:02',vlan:1,mode:'access',gateway:'10.10.10.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r1, r2, sw1, sw2, cloud, pc1, pc2);
+      state.cables.push({ id:'fx13_c1',from:'fx13_r1',to:'fx13_sw1',type:'cat6'}, { id:'fx13_c2',from:'fx13_r2',to:'fx13_sw2',type:'cat6'}, { id:'fx13_c3',from:'fx13_r1',to:'fx13_r2',type:'fiber'}, { id:'fx13_c4',from:'fx13_pc1',to:'fx13_sw1',type:'cat6'}, { id:'fx13_c5',from:'fx13_pc2',to:'fx13_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'vpn-crypto-mismatch', deviceId: 'fx13_r1' },
+      { faultId: 'vpn-wrong-psk', deviceId: 'fx13_r2' },
+      { faultId: 'wrong-gateway', deviceId: 'fx13_pc1', ifaceIdx: 0 },
+    ],
+    hints: { 'vpn-crypto-mismatch': ['VPN tunnels require both peers to use the same encryption algorithm. Check R-HQ\'s VPN/IPSec tab.', 'R-HQ\'s encryption was changed to 3DES after the firmware update. Set it back to AES-256 to match R-Remote.'], 'vpn-wrong-psk': ['Both VPN endpoints must share the exact same pre-shared key. Check R-Remote\'s PSK.', 'R-Remote\'s PSK was reset to a default during the update. Correct it to match R-HQ\'s key.'], 'wrong-gateway': ['PC-HQ can ping locally but not reach the remote site. What routes traffic to the VPN?', 'PC-HQ\'s default gateway was changed and now points to the wrong IP. Fix it to 192.168.1.1.'] },
+  },
+  { id: 'fix-bgp', title: 'BGP Blackout', difficulty: 'Hard', objective: '5.4', duration: '15 min',
+    description: 'A multi-site BGP network has a wrong next-hop, an ACL blocking traffic, and a missing IP on a branch router.',
+    faultIds: ['wrong-next-hop', 'acl-blocks-traffic', 'missing-ip'],
+    symptom: '🎫 Ticket #3150: "Branch A can reach the ISP but not Branch B. Branch B\'s router also lost its peering session after the config push."',
+    autoSetup: (state) => {
+      const isp = { id: 'fx14_isp', type: 'router', x: 700, y: 150, hostname: 'R-ISP', interfaces: [{name:'Gi0/0',cableId:'fx14_c1',ip:'198.51.100.1',mask:'255.255.255.252',mac:'d1:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx14_c2',ip:'198.51.100.5',mask:'255.255.255.252',mac:'d1:00:00:01:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.1.1.0',mask:'255.255.255.0',nextHop:'198.51.100.2',iface:'Gi0/0'},{network:'10.2.2.0',mask:'255.255.255.0',nextHop:'198.51.100.6',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r1 = { id: 'fx14_r1', type: 'router', x: 300, y: 400, hostname: 'R-BranchA', interfaces: [{name:'Gi0/0',cableId:'fx14_c3',ip:'10.1.1.1',mask:'255.255.255.0',mac:'d1:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx14_c1',ip:'198.51.100.2',mask:'255.255.255.252',mac:'d1:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.2.2.0',mask:'255.255.255.0',nextHop:'198.51.100.1',iface:'Gi0/1'},{network:'0.0.0.0',mask:'0.0.0.0',nextHop:'198.51.100.1',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r2 = { id: 'fx14_r2', type: 'router', x: 1100, y: 400, hostname: 'R-BranchB', interfaces: [{name:'Gi0/0',cableId:'fx14_c4',ip:'10.2.2.1',mask:'255.255.255.0',mac:'d1:00:00:03:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx14_c2',ip:'198.51.100.6',mask:'255.255.255.252',mac:'d1:00:00:03:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'10.1.1.0',mask:'255.255.255.0',nextHop:'198.51.100.5',iface:'Gi0/1'},{network:'0.0.0.0',mask:'0.0.0.0',nextHop:'198.51.100.5',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw1 = { id: 'fx14_sw1', type: 'switch', x: 300, y: 600, hostname: 'SW-BranchA', interfaces: [{name:'Fa0/0',cableId:'fx14_c3',ip:'',mask:'',mac:'d1:00:00:04:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx14_c5',ip:'',mask:'',mac:'d1:00:00:04:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx14_c6',ip:'',mask:'',mac:'d1:00:00:04:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx14_sw2', type: 'switch', x: 1100, y: 600, hostname: 'SW-BranchB', interfaces: [{name:'Fa0/0',cableId:'fx14_c4',ip:'',mask:'',mac:'d1:00:00:05:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/1',cableId:'fx14_c7',ip:'',mask:'',mac:'d1:00:00:05:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx14_c8',ip:'',mask:'',mac:'d1:00:00:05:00:03',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx14_pc1', type: 'pc', x: 150, y: 750, hostname: 'PC-A1', interfaces: [{name:'eth0',cableId:'fx14_c5',ip:'10.1.1.10',mask:'255.255.255.0',mac:'d1:00:00:06:00:01',vlan:1,mode:'access',gateway:'10.1.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx14_pc2', type: 'pc', x: 400, y: 750, hostname: 'PC-A2', interfaces: [{name:'eth0',cableId:'fx14_c6',ip:'10.1.1.20',mask:'255.255.255.0',mac:'d1:00:00:06:00:02',vlan:1,mode:'access',gateway:'10.1.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx14_pc3', type: 'pc', x: 950, y: 750, hostname: 'PC-B1', interfaces: [{name:'eth0',cableId:'fx14_c7',ip:'10.2.2.10',mask:'255.255.255.0',mac:'d1:00:00:07:00:01',vlan:1,mode:'access',gateway:'10.2.2.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc4 = { id: 'fx14_pc4', type: 'pc', x: 1200, y: 750, hostname: 'PC-B2', interfaces: [{name:'eth0',cableId:'fx14_c8',ip:'10.2.2.20',mask:'255.255.255.0',mac:'d1:00:00:07:00:02',vlan:1,mode:'access',gateway:'10.2.2.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(isp, r1, r2, sw1, sw2, pc1, pc2, pc3, pc4);
+      state.cables.push({ id:'fx14_c1',from:'fx14_isp',to:'fx14_r1',type:'fiber'}, { id:'fx14_c2',from:'fx14_isp',to:'fx14_r2',type:'fiber'}, { id:'fx14_c3',from:'fx14_r1',to:'fx14_sw1',type:'cat6'}, { id:'fx14_c4',from:'fx14_r2',to:'fx14_sw2',type:'cat6'}, { id:'fx14_c5',from:'fx14_pc1',to:'fx14_sw1',type:'cat6'}, { id:'fx14_c6',from:'fx14_pc2',to:'fx14_sw1',type:'cat6'}, { id:'fx14_c7',from:'fx14_pc3',to:'fx14_sw2',type:'cat6'}, { id:'fx14_c8',from:'fx14_pc4',to:'fx14_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-next-hop', deviceId: 'fx14_r1' },
+      { faultId: 'acl-blocks-traffic', deviceId: 'fx14_r2' },
+      { faultId: 'missing-ip', deviceId: 'fx14_r2', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-next-hop': ['R-BranchA has a route to 10.2.2.0/24. Is the next-hop pointing to the ISP?', 'The next-hop on R-BranchA\'s route to Branch B should be 198.51.100.1 (R-ISP Gi0/0).'], 'acl-blocks-traffic': ['R-BranchB was hardened during the config push. Check its ACL list for an overly broad deny rule.', 'A deny-all ACL entry on R-BranchB is blocking all inbound and outbound traffic. Remove it.'], 'missing-ip': ['R-BranchB\'s LAN interface — does it have an IP address configured?', 'Gi0/0 on R-BranchB is missing its IP. Set it to 10.2.2.1 / 255.255.255.0.'] },
+  },
+  { id: 'fix-perfect-storm', title: 'The Perfect Storm', difficulty: 'Hard', objective: '5.5', duration: '20 min',
+    description: 'Everything is broken at once: a wrong subnet, a port on the wrong VLAN, a disabled interface, and a wrong gateway — all in one network.',
+    faultIds: ['wrong-subnet', 'wrong-vlan', 'port-disabled', 'wrong-gateway'],
+    symptom: '🎫 Ticket #3200 (Critical): "Complete network outage after weekend maintenance. Multiple teams report total loss of connectivity. Escalate immediately."',
+    autoSetup: (state) => {
+      const r1 = { id: 'fx15_r1', type: 'router', x: 350, y: 150, hostname: 'R-Site1', interfaces: [{name:'Gi0/0',cableId:'fx15_c1',ip:'172.16.1.1',mask:'255.255.255.0',mac:'e1:00:00:01:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx15_c5',ip:'172.16.0.1',mask:'255.255.255.252',mac:'e1:00:00:01:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'172.16.2.0',mask:'255.255.255.0',nextHop:'172.16.0.2',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Staff'},{id:20,name:'Mgmt'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const r2 = { id: 'fx15_r2', type: 'router', x: 1050, y: 150, hostname: 'R-Site2', interfaces: [{name:'Gi0/0',cableId:'fx15_c2',ip:'172.16.2.1',mask:'255.255.255.0',mac:'e1:00:00:02:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Gi0/1',cableId:'fx15_c5',ip:'172.16.0.2',mask:'255.255.255.252',mac:'e1:00:00:02:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'172.16.1.0',mask:'255.255.255.0',nextHop:'172.16.0.1',iface:'Gi0/1'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Staff'},{id:20,name:'Mgmt'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const fw = { id: 'fx15_fw', type: 'firewall', x: 700, y: 150, hostname: 'FW-Core', interfaces: [{name:'eth0',cableId:'fx15_c5',ip:'172.16.0.3',mask:'255.255.255.252',mac:'e1:00:00:03:00:01',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'eth1',cableId:'fx15_c6',ip:'172.16.3.1',mask:'255.255.255.0',mac:'e1:00:00:03:00:02',vlan:1,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[{network:'172.16.1.0',mask:'255.255.255.0',nextHop:'172.16.0.1',iface:'eth0'},{network:'172.16.2.0',mask:'255.255.255.0',nextHop:'172.16.0.2',iface:'eth0'}],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw1 = { id: 'fx15_sw1', type: 'switch', x: 350, y: 380, hostname: 'SW-Site1', interfaces: [{name:'Fa0/0',cableId:'fx15_c1',ip:'',mask:'',mac:'e1:00:00:04:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20',subInterfaces:[]},{name:'Fa0/1',cableId:'fx15_c7',ip:'',mask:'',mac:'e1:00:00:04:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx15_c8',ip:'',mask:'',mac:'e1:00:00:04:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Staff'},{id:20,name:'Mgmt'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const sw2 = { id: 'fx15_sw2', type: 'switch', x: 1050, y: 380, hostname: 'SW-Site2', interfaces: [{name:'Fa0/0',cableId:'fx15_c2',ip:'',mask:'',mac:'e1:00:00:05:00:01',vlan:1,mode:'trunk',gateway:'',enabled:true,trunkAllowed:'1,10,20',subInterfaces:[]},{name:'Fa0/1',cableId:'fx15_c9',ip:'',mask:'',mac:'e1:00:00:05:00:02',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]},{name:'Fa0/2',cableId:'fx15_c10',ip:'',mask:'',mac:'e1:00:00:05:00:03',vlan:10,mode:'access',gateway:'',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[{id:1,name:'default'},{id:10,name:'Staff'},{id:20,name:'Mgmt'}],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc1 = { id: 'fx15_pc1', type: 'pc', x: 200, y: 570, hostname: 'PC-S1-A', interfaces: [{name:'eth0',cableId:'fx15_c7',ip:'172.16.1.10',mask:'255.255.255.0',mac:'e1:00:00:06:00:01',vlan:10,mode:'access',gateway:'172.16.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc2 = { id: 'fx15_pc2', type: 'pc', x: 450, y: 570, hostname: 'PC-S1-B', interfaces: [{name:'eth0',cableId:'fx15_c8',ip:'172.16.1.20',mask:'255.255.255.0',mac:'e1:00:00:06:00:02',vlan:10,mode:'access',gateway:'172.16.1.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc3 = { id: 'fx15_pc3', type: 'pc', x: 900, y: 570, hostname: 'PC-S2-A', interfaces: [{name:'eth0',cableId:'fx15_c9',ip:'172.16.2.10',mask:'255.255.255.0',mac:'e1:00:00:07:00:01',vlan:10,mode:'access',gateway:'172.16.2.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      const pc4 = { id: 'fx15_pc4', type: 'pc', x: 1150, y: 570, hostname: 'PC-S2-B', interfaces: [{name:'eth0',cableId:'fx15_c10',ip:'172.16.2.20',mask:'255.255.255.0',mac:'e1:00:00:07:00:02',vlan:10,mode:'access',gateway:'172.16.2.1',enabled:true,trunkAllowed:'',subInterfaces:[]}], routingTable:[],arpTable:[],macTable:[],vlanDb:[],dhcpServer:null,dhcpRelay:null,acls:[] };
+      state.devices.push(r1, r2, fw, sw1, sw2, pc1, pc2, pc3, pc4);
+      state.cables.push({ id:'fx15_c1',from:'fx15_r1',to:'fx15_sw1',type:'cat6'}, { id:'fx15_c2',from:'fx15_r2',to:'fx15_sw2',type:'cat6'}, { id:'fx15_c5',from:'fx15_r1',to:'fx15_r2',type:'fiber'}, { id:'fx15_c6',from:'fx15_fw',to:'fx15_sw1',type:'cat6'}, { id:'fx15_c7',from:'fx15_pc1',to:'fx15_sw1',type:'cat6'}, { id:'fx15_c8',from:'fx15_pc2',to:'fx15_sw1',type:'cat6'}, { id:'fx15_c9',from:'fx15_pc3',to:'fx15_sw2',type:'cat6'}, { id:'fx15_c10',from:'fx15_pc4',to:'fx15_sw2',type:'cat6'});
+    },
+    faultTargets: (state) => [
+      { faultId: 'wrong-subnet', deviceId: 'fx15_r2', ifaceIdx: 0 },
+      { faultId: 'wrong-vlan', deviceId: 'fx15_sw2', ifaceIdx: 1 },
+      { faultId: 'port-disabled', deviceId: 'fx15_r1', ifaceIdx: 1 },
+      { faultId: 'wrong-gateway', deviceId: 'fx15_pc4', ifaceIdx: 0 },
+    ],
+    hints: { 'wrong-subnet': ['R-Site2\'s LAN interface IP — is it in the correct 172.16.2.x subnet?', 'Check R-Site2 Gi0/0: its IP octet was shifted during maintenance. Correct it to 172.16.2.1.'], 'wrong-vlan': ['PC-S2-A connects to SW-Site2 Fa0/1. Is that port on the right VLAN for Staff (VLAN 10)?', 'SW-Site2 Fa0/1 was moved to VLAN 99 during the audit. Change it back to VLAN 10.'], 'port-disabled': ['R-Site1\'s WAN link (Gi0/1) connects to R-Site2. Is it showing as up?', 'Gi0/1 on R-Site1 was administratively shut down during maintenance. Re-enable it in the Interfaces tab.'], 'wrong-gateway': ['PC-S2-B can ping its local subnet but not reach Site 1. What IP should its gateway be?', 'PC-S2-B\'s gateway was changed to a non-existent IP. Set it back to 172.16.2.1 (R-Site2).'] },
+  },
+];
+
+// ── Fix Challenge Engine ──
+
+function tbOpenFixPicker() {
+  const modal = document.getElementById('tb-fix-picker');
+  const body = document.getElementById('tb-fix-picker-body');
+  if (!modal || !body) return;
+
+  const saved = JSON.parse(localStorage.getItem(STORAGE.FIX_CHALLENGES) || '{}');
+  const tabs = ['Easy', 'Medium', 'Hard'];
+  const _diffOrder = { Easy: 0, Medium: 1, Hard: 2 };
+
+  let html = '<div class="tb-fix-tabs">';
+  tabs.forEach(t => { html += `<button class="tb-fix-tab${t === 'Easy' ? ' tb-fix-tab-active' : ''}" onclick="tbFixFilterTab(this,'${t}')">${t}</button>`; });
+  html += '</div><div id="tb-fix-cards">';
+
+  const sorted = [...TB_FIX_CHALLENGES].sort((a, b) => (_diffOrder[a.difficulty] ?? 9) - (_diffOrder[b.difficulty] ?? 9));
+  sorted.forEach(ch => {
+    const s = saved[ch.id];
+    const bestHtml = s ? `<span class="tb-fix-best">Best: ${s.bestScore} pts</span>` : '';
+    const completedClass = s ? ' tb-fix-card-done' : '';
+    html += `<div class="tb-fix-card${completedClass}" data-diff="${ch.difficulty}" ${ch.difficulty !== 'Easy' ? 'style="display:none"' : ''}>
+      <div class="tb-fix-card-head">
+        <strong>${escHtml(ch.title)}</strong>
+        <span class="tb-fix-diff tb-fix-diff-${ch.difficulty.toLowerCase()}">${ch.difficulty}</span>
+      </div>
+      <div class="tb-fix-card-meta">Obj ${ch.objective} · ${ch.duration} · ${ch.faultIds.length} fault${ch.faultIds.length > 1 ? 's' : ''} ${bestHtml}</div>
+      <div class="tb-fix-card-desc">${escHtml(ch.description)}</div>
+      <button class="btn tb-fix-start-btn" onclick="tbStartFixChallenge('${ch.id}')">🔧 Start Challenge</button>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+  modal.classList.remove('is-hidden');
+}
+
+function tbFixFilterTab(btn, diff) {
+  document.querySelectorAll('.tb-fix-tab').forEach(t => t.classList.remove('tb-fix-tab-active'));
+  btn.classList.add('tb-fix-tab-active');
+  document.querySelectorAll('.tb-fix-card').forEach(card => {
+    card.style.display = card.dataset.diff === diff ? '' : 'none';
+  });
+}
+
+function tbStartFixChallenge(id) {
+  const ch = TB_FIX_CHALLENGES.find(c => c.id === id);
+  if (!ch) return;
+  document.getElementById('tb-fix-picker')?.classList.add('is-hidden');
+  if (tbState.devices.length > 0 && !confirm('Starting a challenge will clear your current canvas. Continue?')) return;
+  if (tbActiveLab) tbEndLab();
+
+  // Build working topology
+  tbState = tbNewState();
+  tbState.name = ch.title;
+  ch.autoSetup(tbState);
+  tbMigrateState(tbState);
+
+  // Snapshot correct values BEFORE injecting faults
+  const targets = ch.faultTargets(tbState);
+  const faults = [];
+  for (const t of targets) {
+    const dev = tbState.devices.find(d => d.id === t.deviceId);
+    if (!dev) continue;
+    const ifc = t.ifaceIdx !== undefined ? dev.interfaces?.[t.ifaceIdx] : dev.interfaces?.[0];
+    const faultType = TB_FAULT_TYPES.find(f => f.id === t.faultId);
+    if (!faultType) continue;
+    // Deep snapshot of correct values
+    const origIfc = ifc ? JSON.parse(JSON.stringify(ifc)) : {};
+    const origDev = JSON.parse(JSON.stringify({ routingTable: dev.routingTable, dhcpServer: dev.dhcpServer, vpnConfig: dev.vpnConfig, wirelessConfig: dev.wirelessConfig, acls: dev.acls }));
+    const orig = { ...origIfc, ...origDev };
+    faults.push({ faultId: t.faultId, deviceId: t.deviceId, ifaceIdx: t.ifaceIdx, orig, fixed: false, hintsUsed: 0, fixedAt: null });
+  }
+
+  // Inject faults
+  for (const f of faults) {
+    const dev = tbState.devices.find(d => d.id === f.deviceId);
+    if (!dev) continue;
+    const ifc = f.ifaceIdx !== undefined ? dev.interfaces?.[f.ifaceIdx] : dev.interfaces?.[0];
+    const faultType = TB_FAULT_TYPES.find(ft => ft.id === f.faultId);
+    if (faultType) faultType.inject(dev, ifc, f.orig, tbState);
+  }
+
+  tbFixChallenge = {
+    challengeId: id,
+    faults,
+    startTime: Date.now(),
+    totalHintsUsed: 0,
+    score: null,
+    completed: false,
+    _timerInterval: null,
+  };
+
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbSaveDraft();
+  tbRenderFixPanel();
+  const fixPanel = document.getElementById('tb-fix-panel');
+  if (fixPanel) {
+    // Reset position for fresh challenge
+    fixPanel.style.top = '';
+    fixPanel.style.left = '';
+    fixPanel.style.right = '';
+    fixPanel.style.position = '';
+    fixPanel.classList.remove('is-hidden');
+  }
+  tbInitFixPanelDrag();
+
+  // Start timer
+  tbFixChallenge._timerInterval = setInterval(() => {
+    if (!tbFixChallenge || tbFixChallenge.completed) return;
+    const el = document.getElementById('tb-fix-timer');
+    if (el) {
+      const elapsed = Math.floor((Date.now() - tbFixChallenge.startTime) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    }
+  }, 1000);
+}
+
+function tbRenderFixPanel() {
+  if (!tbFixChallenge) return;
+  const ch = TB_FIX_CHALLENGES.find(c => c.id === tbFixChallenge.challengeId);
+  if (!ch) return;
+
+  const panel = document.getElementById('tb-fix-panel');
+  if (!panel) return;
+
+  const fixedCount = tbFixChallenge.faults.filter(f => f.fixed).length;
+  const totalFaults = tbFixChallenge.faults.length;
+  const pct = totalFaults > 0 ? Math.round((fixedCount / totalFaults) * 100) : 0;
+
+  let faultsHtml = '';
+  tbFixChallenge.faults.forEach((f, i) => {
+    const fType = TB_FAULT_TYPES.find(ft => ft.id === f.faultId);
+    const statusIcon = f.fixed ? '✅' : '❌';
+    const statusClass = f.fixed ? 'tb-fix-fault-fixed' : 'tb-fix-fault-broken';
+    const hintList = ch.hints?.[f.faultId] || [];
+    const maxHints = hintList.length;
+    const shownHints = Math.min(f.hintsUsed, maxHints);
+
+    let hintHtml = '';
+    for (let h = 0; h < shownHints; h++) {
+      hintHtml += `<div class="tb-fix-hint-text">💡 ${escHtml(hintList[h])}</div>`;
+    }
+    if (!f.fixed && shownHints < maxHints) {
+      const cost = shownHints === 0 ? '(free)' : '(-50 pts)';
+      hintHtml += `<button class="btn btn-ghost tb-fix-hint-btn" onclick="tbShowFixHint(${i})">Show Hint ${cost}</button>`;
+    }
+
+    faultsHtml += `<div class="tb-fix-fault-row ${statusClass}" id="tb-fix-fault-${i}">
+      <div class="tb-fix-fault-head"><span class="tb-fix-fault-icon">${statusIcon}</span> <span>${fType ? fType.label : f.faultId}</span> <span class="tb-fix-fault-obj">Obj ${fType?.domain || '5.3'}</span></div>
+      <div class="tb-fix-hint-area">${hintHtml}</div>
+    </div>`;
+  });
+
+  const symptomHtml = `<div class="tb-fix-symptom">${ch.symptom}</div>`;
+  const progressHtml = `<div class="tb-fix-progress-wrap"><div class="tb-fix-progress-bar"><div class="tb-fix-progress-fill" style="width:${pct}%"></div></div><span class="tb-fix-progress-text">${fixedCount} / ${totalFaults} fixed</span></div>`;
+  const toolsHtml = `<div class="tb-fix-tools">🔧 Use: <strong>CLI</strong> · <strong>Ping</strong> · <strong>Traceroute</strong> · <strong>ipconfig</strong> · <strong>show commands</strong> · <strong>Config panels</strong></div>`;
+  const hasUnfixed = tbFixChallenge.faults.some(f => !f.fixed);
+  const giveUpHtml = hasUnfixed && !tbFixChallenge.revealed
+    ? `<button class="btn tb-fix-giveup-btn" onclick="tbRevealFixAnswers()">🏳️ Give Up &amp; Reveal Answers</button>`
+    : '';
+
+  document.getElementById('tb-fix-title').textContent = ch.title;
+  document.getElementById('tb-fix-body').innerHTML = symptomHtml + progressHtml + faultsHtml + toolsHtml + giveUpHtml;
+}
+
+function tbShowFixHint(faultIdx) {
+  if (!tbFixChallenge || faultIdx >= tbFixChallenge.faults.length) return;
+  const f = tbFixChallenge.faults[faultIdx];
+  if (f.fixed) return;
+  if (f.hintsUsed > 0) tbFixChallenge.totalHintsUsed++;
+  f.hintsUsed++;
+  tbRenderFixPanel();
+}
+
+function tbCheckFixProgress() {
+  if (!tbFixChallenge || tbFixChallenge.completed) return;
+  let anyNewFix = false;
+
+  for (const f of tbFixChallenge.faults) {
+    if (f.fixed) continue;
+    const faultType = TB_FAULT_TYPES.find(ft => ft.id === f.faultId);
+    if (!faultType) continue;
+    const dev = tbState.devices.find(d => d.id === f.deviceId);
+    if (!dev) continue;
+    const ifc = f.ifaceIdx !== undefined ? dev.interfaces?.[f.ifaceIdx] : dev.interfaces?.[0];
+    const result = faultType.detect(dev, ifc, f.orig);
+    if (result === null) {
+      f.fixed = true;
+      f.fixedAt = Date.now();
+      anyNewFix = true;
+      tbShowFixToast(faultType.label, faultType.domain);
+    }
+  }
+
+  if (anyNewFix) {
+    tbRenderFixPanel();
+    // Check if all fixed
+    if (tbFixChallenge.faults.every(f => f.fixed)) {
+      setTimeout(() => tbEndFixChallenge(), 600);
+    }
+  }
+}
+
+function tbShowFixToast(label, domain) {
+  // Remove any existing toast
+  document.querySelectorAll('.tb-fix-toast').forEach(t => t.remove());
+  const toast = document.createElement('div');
+  toast.className = 'tb-fix-toast';
+  toast.innerHTML = `<span class="tb-fix-toast-icon">✅</span><span class="tb-fix-toast-text"><strong>Fault Fixed!</strong> ${escHtml(label)}</span><span class="tb-fix-toast-obj">Obj ${domain}</span>`;
+  document.getElementById('page-topology-builder')?.appendChild(toast);
+  setTimeout(() => toast.classList.add('tb-fix-toast-show'), 10);
+  setTimeout(() => { toast.classList.remove('tb-fix-toast-show'); setTimeout(() => toast.remove(), 400); }, 3500);
+}
+
+function tbEndFixChallenge() {
+  if (!tbFixChallenge) return;
+  tbFixChallenge.completed = true;
+  if (tbFixChallenge._timerInterval) clearInterval(tbFixChallenge._timerInterval);
+
+  const score = tbCalcFixScore(tbFixChallenge);
+  tbFixChallenge.score = score;
+
+  // Save result
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE.FIX_CHALLENGES) || '{}');
+    const prev = saved[tbFixChallenge.challengeId] || {};
+    saved[tbFixChallenge.challengeId] = {
+      bestScore: Math.max(prev.bestScore || 0, score.score),
+      bestTime: prev.bestTime ? Math.min(prev.bestTime, score.time) : score.time,
+      completions: (prev.completions || 0) + 1,
+      firstCompleted: prev.firstCompleted || new Date().toISOString(),
+      lastCompleted: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE.FIX_CHALLENGES, JSON.stringify(saved));
+  } catch (_) {}
+
+  // Milestones
+  evaluateMilestones();
+
+  // Confetti!
+  if (typeof launchConfetti === 'function') launchConfetti();
+
+  // Show completion modal
+  tbShowFixComplete(score);
+}
+
+function tbCalcFixScore(challenge) {
+  const BASE = 1000;
+  const faultBonus = challenge.faults.length * 100;
+  const hintPenalty = challenge.totalHintsUsed * 50;
+  const elapsedSec = Math.floor((Date.now() - challenge.startTime) / 1000);
+  const timePenalty = Math.max(0, Math.floor(elapsedSec / 30) * 10);
+  const score = Math.max(0, BASE + faultBonus - hintPenalty - timePenalty);
+  const m = Math.floor(elapsedSec / 60);
+  const s = elapsedSec % 60;
+  return { score, maxScore: BASE + faultBonus, time: elapsedSec, timeStr: `${m}:${String(s).padStart(2, '0')}`, hintsUsed: challenge.totalHintsUsed, faultCount: challenge.faults.length };
+}
+
+function tbShowFixComplete(score) {
+  const modal = document.getElementById('tb-fix-complete');
+  if (!modal) return;
+  const ch = TB_FIX_CHALLENGES.find(c => c.id === tbFixChallenge?.challengeId);
+  const pct = score.maxScore > 0 ? Math.round((score.score / score.maxScore) * 100) : 0;
+  const grade = pct >= 93 ? 'A' : pct >= 87 ? 'A-' : pct >= 80 ? 'B+' : pct >= 73 ? 'B' : pct >= 65 ? 'C+' : pct >= 58 ? 'C' : pct >= 50 ? 'D' : 'F';
+  const gradeColor = pct >= 80 ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#ef4444';
+
+  let perFaultHtml = '';
+  if (tbFixChallenge?.faults) {
+    tbFixChallenge.faults.forEach(f => {
+      const ft = TB_FAULT_TYPES.find(t => t.id === f.faultId);
+      const timeToFix = f.fixedAt ? Math.round((f.fixedAt - tbFixChallenge.startTime) / 1000) : '—';
+      perFaultHtml += `<div class="tb-fix-complete-fault"><span>✅ ${ft?.label || f.faultId}</span><span>${timeToFix}s · ${f.hintsUsed} hint${f.hintsUsed !== 1 ? 's' : ''}</span></div>`;
+    });
+  }
+
+  // Collect unique objectives
+  const objs = [...new Set(tbFixChallenge?.faults.map(f => TB_FAULT_TYPES.find(t => t.id === f.faultId)?.domain).filter(Boolean))];
+
+  modal.querySelector('.tb-fix-complete-body').innerHTML = `
+    <div class="tb-fix-complete-hero">
+      <div class="tb-fix-complete-grade" style="border-color:${gradeColor};color:${gradeColor}">${grade}</div>
+      <div class="tb-fix-complete-score">${score.score} / ${score.maxScore}</div>
+      <div class="tb-fix-complete-title">${ch ? escHtml(ch.title) : 'Challenge'} Complete!</div>
+    </div>
+    <div class="tb-fix-complete-stats">
+      <div class="tb-fix-complete-stat"><span class="tb-fix-complete-val">⏱ ${score.timeStr}</span><span class="tb-fix-complete-label">Time</span></div>
+      <div class="tb-fix-complete-stat"><span class="tb-fix-complete-val">🔧 ${score.faultCount}</span><span class="tb-fix-complete-label">Faults</span></div>
+      <div class="tb-fix-complete-stat"><span class="tb-fix-complete-val">💡 ${score.hintsUsed}</span><span class="tb-fix-complete-label">Hints</span></div>
+    </div>
+    <div class="tb-fix-complete-faults">${perFaultHtml}</div>
+    <div class="tb-fix-complete-objs">N10-009 Objectives: ${objs.map(o => `<span class="tb-fix-obj-badge">${o}</span>`).join(' ')}</div>
+    <div class="tb-fix-complete-actions">
+      <button class="btn tb-tool-btn-fix" onclick="document.getElementById('tb-fix-complete').classList.add('is-hidden');tbOpenFixPicker()">Next Challenge</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('tb-fix-complete').classList.add('is-hidden')">Close</button>
+    </div>`;
+  modal.classList.remove('is-hidden');
+}
+
+function tbRevealFixAnswers() {
+  if (!tbFixChallenge || tbFixChallenge.completed) return;
+  if (!confirm('This will reveal all answers, apply the fixes, and end the challenge with 0 points. Continue?')) return;
+
+  tbFixChallenge.revealed = true;
+  if (tbFixChallenge._timerInterval) clearInterval(tbFixChallenge._timerInterval);
+
+  const ch = TB_FIX_CHALLENGES.find(c => c.id === tbFixChallenge.challengeId);
+  const reveals = [];
+
+  // Build the reveal data and auto-fix each fault
+  for (const f of tbFixChallenge.faults) {
+    const fType = TB_FAULT_TYPES.find(ft => ft.id === f.faultId);
+    if (!fType) continue;
+    const dev = tbState.devices.find(d => d.id === f.deviceId);
+    if (!dev) continue;
+    const ifc = f.ifaceIdx !== undefined ? dev.interfaces?.[f.ifaceIdx] : dev.interfaces?.[0];
+
+    // Build what-was-wrong + what-is-correct
+    const diagnosis = fType.detect(dev, ifc, f.orig);
+    const reveal = { faultLabel: fType.label, domain: fType.domain, device: dev.hostname, diagnosis: diagnosis || 'Already fixed' };
+
+    // Build detailed fix instructions from orig snapshot
+    const fixes = [];
+    if (f.orig.ip !== undefined && ifc && ifc.ip !== f.orig.ip) { fixes.push(`IP: ${ifc.ip || '(empty)'} → ${f.orig.ip}`); ifc.ip = f.orig.ip; }
+    if (f.orig.mask !== undefined && ifc && ifc.mask !== f.orig.mask) { fixes.push(`Mask: ${ifc.mask || '(empty)'} → ${f.orig.mask}`); ifc.mask = f.orig.mask; }
+    if (f.orig.gateway !== undefined && ifc && ifc.gateway !== f.orig.gateway) { fixes.push(`Gateway: ${ifc.gateway || '(empty)'} → ${f.orig.gateway}`); ifc.gateway = f.orig.gateway; }
+    if (f.orig.vlan !== undefined && ifc && ifc.vlan !== f.orig.vlan) { fixes.push(`VLAN: ${ifc.vlan} → ${f.orig.vlan}`); ifc.vlan = f.orig.vlan; }
+    if (f.orig.mode !== undefined && ifc && ifc.mode !== f.orig.mode) { fixes.push(`Port mode: ${ifc.mode} → ${f.orig.mode}`); ifc.mode = f.orig.mode; }
+    if (f.orig.trunkAllowed !== undefined && ifc && ifc.trunkAllowed !== f.orig.trunkAllowed) { fixes.push(`Trunk allowed: "${ifc.trunkAllowed}" → "${f.orig.trunkAllowed}"`); ifc.trunkAllowed = f.orig.trunkAllowed; }
+    if (f.orig.enabled !== undefined && ifc && ifc.enabled !== f.orig.enabled) { fixes.push(`Interface: ${ifc.enabled ? 'enabled' : 'disabled'} → ${f.orig.enabled ? 'enabled' : 'disabled'}`); ifc.enabled = f.orig.enabled; }
+    if (f.orig.routingTable?.length && dev.routingTable?.length !== f.orig.routingTable.length) {
+      dev.routingTable = JSON.parse(JSON.stringify(f.orig.routingTable));
+      fixes.push(`Routes restored: ${f.orig.routingTable.map(r => `${r.network}/${r.mask || r.cidr} via ${r.nextHop}`).join(', ')}`);
+    }
+    if (f.orig.dhcpServer && dev.dhcpServer?.poolStart !== f.orig.dhcpServer.poolStart) {
+      dev.dhcpServer = JSON.parse(JSON.stringify(f.orig.dhcpServer));
+      fixes.push(`DHCP pool: → ${f.orig.dhcpServer.poolStart}`);
+    }
+    if (f.orig.vpnConfig) {
+      if (dev.vpnConfig?.encryption !== f.orig.vpnConfig.encryption) { fixes.push(`VPN encryption: ${dev.vpnConfig?.encryption} → ${f.orig.vpnConfig.encryption}`); dev.vpnConfig.encryption = f.orig.vpnConfig.encryption; }
+      if (dev.vpnConfig?.psk !== f.orig.vpnConfig.psk) { fixes.push(`VPN PSK: restored correct key`); dev.vpnConfig.psk = f.orig.vpnConfig.psk; }
+    }
+    if (f.orig.wirelessConfig?.security && dev.wirelessConfig?.security !== f.orig.wirelessConfig.security) {
+      fixes.push(`Wireless: ${dev.wirelessConfig.security} → ${f.orig.wirelessConfig.security}`);
+      dev.wirelessConfig.security = f.orig.wirelessConfig.security;
+    }
+    // Remove injected ACL deny-all
+    if (f.faultId === 'acl-blocks-traffic' && dev.acls) {
+      const denyIdx = dev.acls.findIndex(a => a.action === 'deny' && a.src === '0.0.0.0/0' && a.dst === '0.0.0.0/0');
+      if (denyIdx !== -1) { dev.acls.splice(denyIdx, 1); fixes.push('Removed deny-all ACL rule'); }
+    }
+    if (fixes.length === 0) fixes.push('(was already correct)');
+    reveal.fixes = fixes;
+    reveal.hints = ch?.hints?.[f.faultId] || [];
+    reveals.push(reveal);
+
+    f.fixed = true;
+    f.fixedAt = Date.now();
+  }
+
+  // Refresh canvas to show corrected state
+  tbRenderCanvas();
+  tbSaveDraft();
+  if (typeof tbRefreshAmbientHealth === 'function') tbRefreshAmbientHealth();
+
+  // Show the reveal modal
+  tbShowFixReveal(reveals, ch);
+}
+
+function tbShowFixReveal(reveals, ch) {
+  const modal = document.getElementById('tb-fix-complete');
+  if (!modal) return;
+
+  let revealHtml = '';
+  reveals.forEach((r, i) => {
+    let hintsHtml = '';
+    if (r.hints.length) {
+      hintsHtml = `<div class="tb-fix-reveal-hints"><strong>Hints:</strong> ${r.hints.map(h => `<div class="tb-fix-hint-text">💡 ${escHtml(h)}</div>`).join('')}</div>`;
+    }
+    revealHtml += `<div class="tb-fix-reveal-fault">
+      <div class="tb-fix-reveal-fault-head">
+        <span class="tb-fix-reveal-num">${i + 1}</span>
+        <span class="tb-fix-reveal-label">${escHtml(r.faultLabel)}</span>
+        <span class="tb-fix-obj-badge">Obj ${r.domain}</span>
+      </div>
+      <div class="tb-fix-reveal-device">📍 ${escHtml(r.device)}</div>
+      <div class="tb-fix-reveal-diagnosis">❌ ${escHtml(r.diagnosis)}</div>
+      <div class="tb-fix-reveal-fixes">${r.fixes.map(f => `<div class="tb-fix-reveal-fix">✅ ${escHtml(f)}</div>`).join('')}</div>
+      ${hintsHtml}
+    </div>`;
+  });
+
+  modal.querySelector('.tb-fix-complete-body').innerHTML = `
+    <div class="tb-fix-reveal-hero">
+      <div class="tb-fix-reveal-icon">📖</div>
+      <div class="tb-fix-reveal-title">${ch ? escHtml(ch.title) : 'Challenge'} — Answer Reveal</div>
+      <div class="tb-fix-reveal-subtitle">All faults have been corrected on the canvas. Study the fixes below.</div>
+    </div>
+    <div class="tb-fix-reveal-list">${revealHtml}</div>
+    <div class="tb-fix-reveal-tip">💡 <strong>Exam tip:</strong> On the CompTIA N10-009, Domain 5 (Troubleshooting) is 22% of the exam. Practice identifying these faults by symptom, not by reveal!</div>
+    <div class="tb-fix-complete-actions">
+      <button class="btn tb-tool-btn-fix" onclick="document.getElementById('tb-fix-complete').classList.add('is-hidden');tbCloseFixChallenge();tbOpenFixPicker()">Try Another</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('tb-fix-complete').classList.add('is-hidden');tbCloseFixChallenge()">Close</button>
+    </div>`;
+  modal.classList.remove('is-hidden');
+
+  // Hide the HUD panel
+  document.getElementById('tb-fix-panel')?.classList.add('is-hidden');
+}
+
+function tbCloseFixChallenge() {
+  if (tbFixChallenge?._timerInterval) clearInterval(tbFixChallenge._timerInterval);
+  tbFixChallenge = null;
+  const panel = document.getElementById('tb-fix-panel');
+  if (panel) {
+    panel.classList.add('is-hidden');
+    // Reset position for next challenge
+    panel.style.top = '';
+    panel.style.left = '';
+    panel.style.right = '';
+  }
+}
+
+// ── Draggable Fix Panel ──
+function tbInitFixPanelDrag() {
+  const panel = document.getElementById('tb-fix-panel');
+  const head = panel?.querySelector('.tb-fix-panel-head');
+  if (!panel || !head) return;
+  head.style.cursor = 'grab';
+  let isDragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+  head.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return; // Don't drag when clicking close btn
+    isDragging = true;
+    head.style.cursor = 'grabbing';
+    const rect = panel.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+    // Switch from right-positioned to left-positioned for smooth dragging
+    panel.style.right = 'auto';
+    panel.style.left = origLeft + 'px';
+    panel.style.top = origTop + 'px';
+    panel.style.position = 'fixed';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    panel.style.left = Math.max(0, Math.min(window.innerWidth - 100, origLeft + dx)) + 'px';
+    panel.style.top = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy)) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    head.style.cursor = 'grab';
+  });
+
+  // Touch support for mobile
+  head.addEventListener('touchstart', e => {
+    if (e.target.closest('button')) return;
+    isDragging = true;
+    const touch = e.touches[0];
+    const rect = panel.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop = rect.top;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    panel.style.right = 'auto';
+    panel.style.left = origLeft + 'px';
+    panel.style.top = origTop + 'px';
+    panel.style.position = 'fixed';
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    panel.style.left = Math.max(0, Math.min(window.innerWidth - 100, origLeft + dx)) + 'px';
+    panel.style.top = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy)) + 'px';
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => { isDragging = false; });
+}
+
+// ── Fix Challenge Milestones ──
+// Integrated into evaluateMilestones() via the try/catch block pattern
+
+// ══════════════════════════════════════════
+// SUBNET MASTERY — Interactive Learning + Adaptive Practice + Dashboard
+// ══════════════════════════════════════════
+
+// ── Utilities (kept from v1, extended) ──
 function cidrToMask(cidr) {
   const bits = '1'.repeat(cidr) + '0'.repeat(32 - cidr);
   return [bits.slice(0,8), bits.slice(8,16), bits.slice(16,24), bits.slice(24,32)].map(b => parseInt(b, 2)).join('.');
@@ -12290,114 +14197,772 @@ function getSubnetAddr(ipArr, maskArr) { return ipArr.map((o,i) => o & maskArr[i
 function getBroadcastAddr(ipArr, maskArr) { return ipArr.map((o,i) => (o & maskArr[i]) | (~maskArr[i] & 255)); }
 function hostCount(cidr) { return cidr >= 31 ? (cidr === 31 ? 2 : 1) : Math.pow(2, 32 - cidr) - 2; }
 function randOctet() { return Math.floor(Math.random() * 254) + 1; }
-function randCidr() { return [24,25,26,27,28,29,30,16,20,22,23][Math.floor(Math.random() * 11)]; }
+function blockSize(cidr) { return Math.pow(2, 32 - cidr); }
+function maskToWildcard(mask) { return mask.split('.').map(o => 255 - parseInt(o)).join('.'); }
+function wildcardToMask(wc) { return wc.split('.').map(o => 255 - parseInt(o)).join('.'); }
+function ipToBinaryStr(ipStr) { return ipStr.split('.').map(o => parseInt(o).toString(2).padStart(8,'0')).join('.'); }
+function cidrForHosts(needed) { for (let p = 2; p <= 24; p++) { if (Math.pow(2,p) - 2 >= needed) return 32 - p; } return 8; }
+function nthSubnet(networkArr, origCidr, newCidr, n) {
+  const bs = blockSize(newCidr);
+  const startIp = networkArr[0]*16777216 + networkArr[1]*65536 + networkArr[2]*256 + networkArr[3];
+  const nthIp = startIp + n * bs;
+  return [(nthIp>>>24)&255, (nthIp>>>16)&255, (nthIp>>>8)&255, nthIp&255];
+}
+function classOfIp(ipArr) { if (ipArr[0] < 128) return 'A'; if (ipArr[0] < 192) return 'B'; if (ipArr[0] < 224) return 'C'; return 'D'; }
+function defaultMaskForClass(cls) { return cls==='A'?'/8':cls==='B'?'/16':'/24'; }
+function randCidrForLevel(level) {
+  if (level === 'beginner') return [24,25,26,27,28,29,30][Math.floor(Math.random()*7)];
+  if (level === 'intermediate') return [16,20,22,23,24,25,26,27,28,29,30][Math.floor(Math.random()*11)];
+  return [8,10,12,14,16,18,20,22,23,24,25,26,27,28,29,30][Math.floor(Math.random()*16)];
+}
 
-function genSubnetQuestion() {
-  const types = ['cidr_to_mask','mask_to_cidr','find_subnet','find_broadcast','host_count','usable_range'];
-  const type = types[Math.floor(Math.random() * types.length)];
-  const cidr = randCidr();
+// ── State ──
+let stQ = null, stIdx = 0, stCorrect = 0, stTotal = 0, stStreak = 0;
+let stMode = 'drill'; // 'drill' | 'timed' | 'focus'
+let stFocusCat = null; // category id when mode=focus
+let stTimerInterval = null, stTimerValue = 60;
+let stQuestionStartTime = 0;
+let stActiveLesson = null;
+
+// ── Question Categories ──
+const ST_CATEGORIES = {
+  masks:      { label: 'Masks & CIDR',       icon: '\ud83c\udfad', color: '#7c6ff7', types: ['cidr_to_mask','mask_to_cidr','mask_to_wildcard','wildcard_to_mask','binary_to_mask'] },
+  addressing: { label: 'Network & Broadcast', icon: '\ud83c\udfef', color: '#22c55e', types: ['find_subnet','find_broadcast','usable_first','usable_last'] },
+  counting:   { label: 'Host & Subnet Math',  icon: '\ud83e\uddee', color: '#f59e0b', types: ['host_count','hosts_needed_cidr','subnet_count','block_size_q'] },
+  membership: { label: 'Subnet Membership',   icon: '\ud83d\udccd', color: '#0ea5e9', types: ['same_subnet','which_subnet','nth_subnet'] },
+  design:     { label: 'Design & VLSM',       icon: '\ud83d\udcd0', color: '#ec4899', types: ['vlsm_pick','best_fit_mask'] },
+  advanced:   { label: 'Advanced',            icon: '\ud83d\ude80', color: '#f97316', types: ['supernet_aggregate','classful_default','ipv6_prefix_count'] },
+};
+const ST_CAT_IDS = Object.keys(ST_CATEGORIES);
+
+// ── Mastery / Adaptive Engine ──
+function getSubnetMastery() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE.SUBNET_MASTERY) || 'null');
+    if (raw && raw.categories) return raw;
+  } catch {}
+  const m = { categories: {}, types: {}, currentLevel: 'beginner', totalAnswered: 0, totalCorrect: 0 };
+  ST_CAT_IDS.forEach(c => { m.categories[c] = { box: 1, seen: 0, correct: 0, lastSeen: null, streak: 0 }; });
+  return m;
+}
+function saveSubnetMastery(m) { try { localStorage.setItem(STORAGE.SUBNET_MASTERY, JSON.stringify(m)); } catch {} }
+
+function updateSubnetMastery(category, type, wasCorrect) {
+  const m = getSubnetMastery();
+  m.totalAnswered++;
+  if (wasCorrect) m.totalCorrect++;
+  if (!m.categories[category]) m.categories[category] = { box: 1, seen: 0, correct: 0, lastSeen: null, streak: 0 };
+  const cat = m.categories[category];
+  cat.seen++;
+  cat.lastSeen = new Date().toISOString();
+  if (wasCorrect) { cat.correct++; cat.streak++; if (cat.box < 5) cat.box++; }
+  else { cat.streak = 0; cat.box = 1; }
+  if (!m.types[type]) m.types[type] = { seen: 0, correct: 0 };
+  m.types[type].seen++;
+  if (wasCorrect) m.types[type].correct++;
+  // Level-up check
+  m.currentLevel = stComputeLevel(m);
+  saveSubnetMastery(m);
+  return m;
+}
+
+function stComputeLevel(m) {
+  if (m.totalAnswered < 15) return 'beginner';
+  const acc = m.totalCorrect / m.totalAnswered;
+  if (m.totalAnswered >= 60 && acc >= 0.80) return 'expert';
+  if (m.totalAnswered >= 40 && acc >= 0.70) return 'advanced';
+  if (m.totalAnswered >= 15 && acc >= 0.60) return 'intermediate';
+  return 'beginner';
+}
+
+function stPickCategory(m) {
+  if (stMode === 'focus' && stFocusCat) return stFocusCat;
+  const weights = ST_CAT_IDS.map(c => {
+    const cat = m.categories[c] || { box: 1, seen: 0, correct: 0 };
+    if (cat.seen === 0) return 2.0;
+    const acc = cat.correct / cat.seen;
+    const boxW = 1 / cat.box;
+    return (1 + (1 - acc) * 3) * boxW;
+  });
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) { r -= weights[i]; if (r <= 0) return ST_CAT_IDS[i]; }
+  return ST_CAT_IDS[0];
+}
+
+function stPickType(category, level) {
+  const cat = ST_CATEGORIES[category];
+  if (!cat) return 'cidr_to_mask';
+  // Filter types by difficulty level
+  const easyTypes = ['cidr_to_mask','mask_to_cidr','host_count','block_size_q','find_subnet','binary_to_mask','classful_default'];
+  const medTypes = ['mask_to_wildcard','wildcard_to_mask','find_broadcast','usable_first','usable_last','hosts_needed_cidr','subnet_count','same_subnet','which_subnet','ipv6_prefix_count'];
+  const hardTypes = ['nth_subnet','vlsm_pick','best_fit_mask','supernet_aggregate'];
+  let pool = cat.types;
+  if (level === 'beginner') pool = pool.filter(t => easyTypes.includes(t));
+  else if (level === 'intermediate') pool = pool.filter(t => easyTypes.includes(t) || medTypes.includes(t));
+  // if pool empty, fall back to all types in category
+  if (pool.length === 0) pool = cat.types;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ── Question Generator (20+ types) ──
+function genSubnetQuestion(optCat, optLevel) {
+  const m = getSubnetMastery();
+  const level = optLevel || m.currentLevel;
+  const category = optCat || stPickCategory(m);
+  const type = stPickType(category, level);
+  const cidr = randCidrForLevel(level);
   const ip = [randOctet(), randOctet(), randOctet(), randOctet()];
-  // For /16 and /20 adjust
-  if (cidr <= 16) { ip[2] = randOctet(); ip[3] = randOctet(); }
+  if (cidr <= 16) { ip[2] = Math.floor(Math.random()*256); ip[3] = Math.floor(Math.random()*256); }
   const ipStr = arrToIp(ip);
   const mask = cidrToMask(cidr);
   const maskArr = cidrToMaskArr(cidr);
   const subnet = getSubnetAddr(ip, maskArr);
   const broadcast = getBroadcastAddr(ip, maskArr);
   const hosts = hostCount(cidr);
+  const bs = blockSize(cidr);
 
-  switch(type) {
+  const base = { category, type, difficulty: level };
+
+  switch (type) {
     case 'cidr_to_mask':
-      return { q: `What is the subnet mask for /${cidr}?`, answer: mask, hint: `Count ${cidr} bits set to 1` };
+      return { ...base, q: `What is the subnet mask for /${cidr}?`, answer: mask, altAnswers: [],
+        steps: [`CIDR /${cidr} means ${cidr} bits set to 1`, `Binary: ${'1'.repeat(cidr)}${'0'.repeat(32-cidr)}`, `Group into octets and convert to decimal`, `Result: ${mask}`] };
     case 'mask_to_cidr':
-      return { q: `What is the CIDR notation for subnet mask ${mask}?`, answer: `/${cidr}`, altAnswer: String(cidr), hint: 'Count the number of 1-bits' };
+      return { ...base, q: `What is the CIDR notation for subnet mask ${mask}?`, answer: `/${cidr}`, altAnswers: [String(cidr)],
+        steps: [`Convert each octet to binary`, `Binary: ${ipToBinaryStr(mask)}`, `Count the consecutive 1-bits`, `Total 1-bits: ${cidr} \u2192 /${cidr}`] };
+    case 'mask_to_wildcard':
+      return { ...base, q: `What is the wildcard mask for ${mask}?`, answer: maskToWildcard(mask), altAnswers: [],
+        steps: [`Wildcard = 255.255.255.255 minus subnet mask`, `255 - ${maskArr[0]} = ${255-maskArr[0]}`, `255 - ${maskArr[1]} = ${255-maskArr[1]}`, `255 - ${maskArr[2]} = ${255-maskArr[2]}`, `255 - ${maskArr[3]} = ${255-maskArr[3]}`, `Result: ${maskToWildcard(mask)}`] };
+    case 'wildcard_to_mask':
+      { const wc = maskToWildcard(mask);
+        return { ...base, q: `What subnet mask corresponds to wildcard mask ${wc}?`, answer: mask, altAnswers: [],
+          steps: [`Subnet mask = 255.255.255.255 minus wildcard`, `Each octet: 255 - wildcard octet`, `Result: ${mask}`] }; }
+    case 'binary_to_mask':
+      { const binMask = ipToBinaryStr(mask);
+        return { ...base, q: `Convert this binary mask to dotted decimal: ${binMask}`, answer: mask, altAnswers: [],
+          steps: [`Split into 4 octets of 8 bits`, `Convert each group from binary to decimal`, `Result: ${mask}`] }; }
     case 'find_subnet':
-      return { q: `What is the network/subnet address for ${ipStr}/${cidr}?`, answer: arrToIp(subnet), hint: `AND the IP with the mask ${mask}` };
+      return { ...base, q: `What is the network address for ${ipStr}/${cidr}?`, answer: arrToIp(subnet), altAnswers: [],
+        steps: [`IP: ${ipStr}`, `Mask: ${mask}`, `AND each octet: ${ip.map((o,i) => `${o} AND ${maskArr[i]} = ${o & maskArr[i]}`).join(', ')}`, `Network: ${arrToIp(subnet)}`] };
     case 'find_broadcast':
-      return { q: `What is the broadcast address for ${ipStr}/${cidr}?`, answer: arrToIp(broadcast), hint: 'Fill host bits with 1s' };
+      return { ...base, q: `What is the broadcast address for ${ipStr}/${cidr}?`, answer: arrToIp(broadcast), altAnswers: [],
+        steps: [`Network: ${arrToIp(subnet)}`, `Host bits: ${32-cidr}`, `Fill all host bits with 1`, `Broadcast: ${arrToIp(broadcast)}`] };
+    case 'usable_first':
+      { if (cidr >= 31) return genSubnetQuestion(category, level);
+        const first = subnet.slice(); first[3]++;
+        return { ...base, q: `What is the first usable host IP in ${arrToIp(subnet)}/${cidr}?`, answer: arrToIp(first), altAnswers: [],
+          steps: [`Network address: ${arrToIp(subnet)}`, `First usable = network + 1`, `Result: ${arrToIp(first)}`] }; }
+    case 'usable_last':
+      { if (cidr >= 31) return genSubnetQuestion(category, level);
+        const last = broadcast.slice(); last[3]--;
+        return { ...base, q: `What is the last usable host IP in ${ipStr}/${cidr}?`, answer: arrToIp(last), altAnswers: [],
+          steps: [`Broadcast: ${arrToIp(broadcast)}`, `Last usable = broadcast - 1`, `Result: ${arrToIp(last)}`] }; }
     case 'host_count':
-      return { q: `How many usable host addresses in a /${cidr} network?`, answer: String(hosts), hint: `2^${32-cidr} - 2` };
-    case 'usable_range':
-      if (cidr >= 31) return genSubnetQuestion(); // /31 and /32 have no usable range — regenerate
-      const first = subnet.slice(); first[3] += 1;
-      const last = broadcast.slice(); last[3] -= 1;
-      return { q: `What is the first usable IP in ${arrToIp(subnet)}/${cidr}?`, answer: arrToIp(first), hint: 'Network address + 1' };
+      return { ...base, q: `How many usable host addresses in a /${cidr} network?`, answer: String(hosts), altAnswers: [],
+        steps: [`Host bits: 32 - ${cidr} = ${32-cidr}`, `Total addresses: 2^${32-cidr} = ${bs}`, `Subtract network and broadcast: ${bs} - 2 = ${hosts}`] };
+    case 'hosts_needed_cidr':
+      { const need = [10,14,25,30,50,60,100,200,500][Math.floor(Math.random()*9)];
+        const ans = cidrForHosts(need);
+        return { ...base, q: `You need ${need} usable hosts. What is the smallest prefix length (CIDR)?`, answer: `/${ans}`, altAnswers: [String(ans)],
+          steps: [`Need ${need} hosts`, `Formula: 2^n - 2 \u2265 ${need}`, `Solve: n = ${32-ans}, so 2^${32-ans} - 2 = ${hostCount(ans)} hosts`, `CIDR: /${ans}`] }; }
+    case 'subnet_count':
+      { const origCidr = cidr <= 24 ? cidr : 24;
+        const newCidr = origCidr + [1,2,3,4][Math.floor(Math.random()*4)];
+        if (newCidr > 30) return genSubnetQuestion(category, level);
+        const count = Math.pow(2, newCidr - origCidr);
+        return { ...base, q: `How many /${newCidr} subnets can you create from a /${origCidr} network?`, answer: String(count), altAnswers: [],
+          steps: [`Borrowed bits: ${newCidr} - ${origCidr} = ${newCidr - origCidr}`, `Subnets: 2^${newCidr - origCidr} = ${count}`] }; }
+    case 'block_size_q':
+      return { ...base, q: `What is the block size (total addresses) for a /${cidr} network?`, answer: String(bs), altAnswers: [],
+        steps: [`Host bits: 32 - ${cidr} = ${32-cidr}`, `Block size: 2^${32-cidr} = ${bs}`, `Or: 256 - ${maskArr[3]} = ${256-maskArr[3]} (for last octet)`] };
+    case 'same_subnet':
+      { const ip2 = ip.slice();
+        const sameNet = Math.random() < 0.5;
+        if (sameNet) {
+          // Keep in same subnet: just change host bits
+          const hostBits = 32 - cidr;
+          if (hostBits <= 1) return genSubnetQuestion(category, level);
+          ip2[3] = subnet[3] + 1 + Math.floor(Math.random() * Math.min(bs - 2, 253));
+          if (ip2[3] > 254) ip2[3] = subnet[3] + 1;
+        } else {
+          // Different subnet: jump by block size
+          ip2[3] = (subnet[3] + bs + Math.floor(Math.random()*50)) & 255;
+          if (cidr <= 24) ip2[2] = (subnet[2] + 1 + Math.floor(Math.random()*5)) & 255;
+        }
+        const m2 = cidrToMaskArr(cidr);
+        const s1 = arrToIp(getSubnetAddr(ip, m2));
+        const s2 = arrToIp(getSubnetAddr(ip2, m2));
+        const ans = s1 === s2 ? 'Yes' : 'No';
+        return { ...base, q: `Are ${ipStr} and ${arrToIp(ip2)} in the same /${cidr} subnet?`, answer: ans, altAnswers: ans==='Yes'?['yes','YES']:['no','NO'], inputType: 'mcq', options: ['Yes','No'],
+          steps: [`${ipStr} \u2192 network: ${s1}`, `${arrToIp(ip2)} \u2192 network: ${s2}`, `Same network? ${ans}`] }; }
+    case 'which_subnet':
+      return { ...base, q: `Which subnet does ${ipStr}/${cidr} belong to?`, answer: arrToIp(subnet), altAnswers: [],
+        steps: [`Apply mask ${mask} to ${ipStr}`, `AND each octet`, `Result: ${arrToIp(subnet)}`] };
+    case 'nth_subnet':
+      { const origC = cidr <= 24 ? cidr : 24;
+        const newC = origC + 2;
+        if (newC > 30) return genSubnetQuestion(category, level);
+        const maxN = Math.pow(2, newC - origC);
+        const n = Math.floor(Math.random() * maxN);
+        const baseNet = getSubnetAddr(ip, cidrToMaskArr(origC));
+        const nthNet = nthSubnet(baseNet, origC, newC, n);
+        const ordinal = n === 0 ? '1st' : n === 1 ? '2nd' : n === 2 ? '3rd' : (n+1)+'th';
+        return { ...base, q: `What is the ${ordinal} subnet when ${arrToIp(baseNet)}/${origC} is divided into /${newC}s?`, answer: arrToIp(nthNet), altAnswers: [],
+          steps: [`Block size of /${newC}: ${blockSize(newC)}`, `${ordinal} subnet starts at offset ${n} \u00d7 ${blockSize(newC)} = ${n * blockSize(newC)}`, `Network: ${arrToIp(nthNet)}`] }; }
+    case 'vlsm_pick':
+      { const needs = [100,50,25,10].sort((a,b) => b-a);
+        const target = needs[Math.floor(Math.random()*needs.length)];
+        const ans = cidrForHosts(target);
+        return { ...base, q: `In a VLSM design, what prefix length should you assign to a department needing ${target} hosts?`, answer: `/${ans}`, altAnswers: [String(ans)],
+          steps: [`Need ${target} hosts`, `Smallest CIDR: find n where 2^n - 2 \u2265 ${target}`, `n = ${32-ans}, CIDR = /${ans}, giving ${hostCount(ans)} usable hosts`] }; }
+    case 'best_fit_mask':
+      { const need = [5,12,20,50,100][Math.floor(Math.random()*5)];
+        const ans = cidrForHosts(need);
+        return { ...base, q: `A company needs ${need} hosts per subnet. What mask wastes the fewest addresses?`, answer: cidrToMask(ans), altAnswers: [`/${ans}`,String(ans)],
+          steps: [`Need ${need} hosts`, `Smallest CIDR: /${ans}`, `Gives ${hostCount(ans)} usable hosts (wastes ${hostCount(ans)-need})`, `Mask: ${cidrToMask(ans)}`] }; }
+    case 'supernet_aggregate':
+      { const base24 = Math.floor(Math.random()*4)*4;
+        const nets = [0,1,2,3].map(i => `192.168.${base24+i}.0/24`);
+        return { ...base, q: `Summarize these routes into one: ${nets.join(', ')}`, answer: `192.168.${base24}.0/22`, altAnswers: [],
+          steps: [`4 contiguous /24 networks`, `4 = 2^2, so borrow 2 bits from /24`, `Supernet: /24 - 2 = /22`, `Result: 192.168.${base24}.0/22`] }; }
+    case 'classful_default':
+      { const cls = ['A','B','C'][Math.floor(Math.random()*3)];
+        const defMask = cls==='A'?'255.0.0.0':cls==='B'?'255.255.0.0':'255.255.255.0';
+        const sampleIp = cls==='A'?`${10+Math.floor(Math.random()*117)}.0.0.0`:cls==='B'?`${128+Math.floor(Math.random()*63)}.${Math.floor(Math.random()*256)}.0.0`:`${192+Math.floor(Math.random()*31)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.0`;
+        return { ...base, q: `What is the default subnet mask for the Class ${cls} address ${sampleIp}?`, answer: defMask, altAnswers: [defaultMaskForClass(cls)],
+          steps: [`Class ${cls}: first octet range ${cls==='A'?'1-126':cls==='B'?'128-191':'192-223'}`, `Default mask: ${defMask}`] }; }
+    case 'ipv6_prefix_count':
+      { const from = 48, to = 64;
+        const count = Math.pow(2, to - from);
+        return { ...base, q: `How many /64 subnets fit inside a /48 IPv6 prefix?`, answer: String(count), altAnswers: ['65536'],
+          steps: [`Difference: 64 - 48 = 16 bits`, `Subnets: 2^16 = ${count}`] }; }
     default:
-      return { q: `What is the subnet mask for /${cidr}?`, answer: mask, hint: '' };
+      return genSubnetQuestion('masks', level);
   }
 }
 
-function startSubnetTrainer() {
-  subnetIdx = 0; subnetCorrect = 0; subnetTotal = 0; subnetStreak = 0;
-  nextSubnetQuestion();
-}
-
-function nextSubnetQuestion() {
-  subnetIdx++;
-  subnetQ = genSubnetQuestion();
-  document.getElementById('subnet-q-num').textContent = 'Q' + subnetIdx;
-  document.getElementById('subnet-question').textContent = subnetQ.q;
-  document.getElementById('subnet-answer').value = '';
-  document.getElementById('subnet-feedback').innerHTML = '';
-  document.getElementById('subnet-feedback').className = 'subnet-feedback';
-  document.getElementById('subnet-next-btn').classList.add('is-hidden');
-  document.getElementById('subnet-submit-btn').classList.remove('is-hidden');
-  document.getElementById('subnet-answer').disabled = false;
-  document.getElementById('subnet-answer').focus();
-  document.getElementById('subnet-score').textContent = subnetCorrect + ' / ' + subnetTotal;
-  document.getElementById('subnet-streak-lbl').textContent = '\ud83d\udd25 ' + subnetStreak;
-}
-
+// ── Legacy compat wrappers (called by evaluateMilestones, analytics) ──
 function getSubnetStats() {
   try { return JSON.parse(localStorage.getItem(STORAGE.SUBNET_STATS) || '{"seen":0,"correct":0}'); } catch { return { seen: 0, correct: 0 }; }
 }
 function updateSubnetStat(wasCorrect) {
-  try {
-    const s = getSubnetStats();
-    s.seen++;
-    if (wasCorrect) s.correct++;
-    localStorage.setItem(STORAGE.SUBNET_STATS, JSON.stringify(s));
-  } catch {}
+  try { const s = getSubnetStats(); s.seen++; if (wasCorrect) s.correct++; localStorage.setItem(STORAGE.SUBNET_STATS, JSON.stringify(s)); } catch {}
 }
 
-function checkSubnetAnswer() {
-  if (!subnetQ) return;
-  const input = document.getElementById('subnet-answer').value.trim();
-  if (!input) return;
-  subnetTotal++;
-  const fb = document.getElementById('subnet-feedback');
-  const correct = input === subnetQ.answer || (subnetQ.altAnswer && input === subnetQ.altAnswer);
-  updateSubnetStat(correct);
-  if (correct) {
-    subnetCorrect++;
-    subnetStreak++;
-    fb.innerHTML = '<strong>\u2705 Correct!</strong> ' + escHtml(subnetQ.answer);
-    fb.className = 'subnet-feedback subnet-correct';
-  } else {
-    subnetStreak = 0;
-    fb.innerHTML = '<strong>\u274c Wrong.</strong> Your answer: ' + escHtml(input) + '<br>Correct: <strong>' + escHtml(subnetQ.answer) + '</strong>' + (subnetQ.hint ? '<br><em>Hint: ' + escHtml(subnetQ.hint) + '</em>' : '');
-    fb.className = 'subnet-feedback subnet-wrong';
-  }
-  document.getElementById('subnet-score').textContent = subnetCorrect + ' / ' + subnetTotal;
-  document.getElementById('subnet-streak-lbl').textContent = '\ud83d\udd25 ' + subnetStreak;
-  document.getElementById('subnet-submit-btn').classList.add('is-hidden');
-  document.getElementById('subnet-next-btn').classList.remove('is-hidden');
-  document.getElementById('subnet-answer').disabled = true;
+// ── Lessons System ──
+const SUBNET_LESSONS = [
+  { id: 'binary', title: 'Binary & Powers of 2', icon: '\ud83d\udcbb', desc: 'The foundation: converting between binary and decimal.', prereq: null,
+    theory: [
+      'Every IP address is a 32-bit binary number displayed as 4 decimal octets.',
+      'Each octet is 8 bits. The bit positions from left to right have values: <strong>128, 64, 32, 16, 8, 4, 2, 1</strong>.',
+      'Example: the binary <code>11000000</code> = 128 + 64 = <strong>192</strong>.',
+      'Memorize the powers of 2: 2\u00b9=2, 2\u00b2=4, 2\u00b3=8, 2\u2074=16, 2\u2075=32, 2\u2076=64, 2\u2077=128, 2\u2078=256.',
+    ],
+    practice: 'binary' },
+  { id: 'ip_anatomy', title: 'IP Address Structure', icon: '\ud83c\udf10', desc: 'Octets, dotted decimal, network vs host bits.', prereq: 'binary',
+    theory: [
+      'An IPv4 address is 32 bits split into 4 octets: <code>192.168.1.100</code>.',
+      'The address has two parts: <strong>network portion</strong> (identifies the network) and <strong>host portion</strong> (identifies the device).',
+      'The subnet mask determines where the split happens. A /24 means the first 24 bits are network, the last 8 are host.',
+      'Class A (/8): 1-126.x.x.x \u2014 Class B (/16): 128-191.x.x.x \u2014 Class C (/24): 192-223.x.x.x',
+    ],
+    practice: 'masks' },
+  { id: 'masks_cidr', title: 'Subnet Masks & CIDR', icon: '\ud83c\udfad', desc: 'Converting between CIDR, dotted-decimal masks, and binary.', prereq: 'ip_anatomy',
+    theory: [
+      'A subnet mask is a 32-bit number with all 1s on the left (network) and all 0s on the right (host).',
+      'CIDR notation /<em>n</em> tells you how many 1-bits are in the mask. /24 = 24 ones followed by 8 zeros.',
+      '/24 = <code>11111111.11111111.11111111.00000000</code> = <strong>255.255.255.0</strong>',
+      '/27 = <code>11111111.11111111.11111111.11100000</code> = <strong>255.255.255.224</strong>',
+      '<strong>Trick:</strong> The "interesting octet" is the one that isn\'t 255 or 0. For /27, it\'s the 4th octet: 256 - 32 = 224.',
+    ],
+    practice: 'masks' },
+  { id: 'and_operation', title: 'The AND Operation', icon: '\u2696\ufe0f', desc: 'How ANDing an IP with its mask gives you the network address.', prereq: 'masks_cidr',
+    theory: [
+      'To find which network an IP belongs to, AND each bit of the IP with the corresponding bit of the mask.',
+      '<strong>AND rules:</strong> 1 AND 1 = 1, everything else = 0.',
+      'Example: 192.168.1.100 /26',
+      'IP:   <code>11000000.10101000.00000001.01<span style="color:var(--red)">100100</span></code>',
+      'Mask: <code>11111111.11111111.11111111.11<span style="color:var(--red)">000000</span></code>',
+      'AND:  <code>11000000.10101000.00000001.01<span style="color:var(--red)">000000</span></code> = <strong>192.168.1.64</strong>',
+      'The host bits (red) are zeroed out, giving us the network address.',
+    ],
+    practice: 'addressing' },
+  { id: 'net_broadcast', title: 'Network & Broadcast', icon: '\ud83d\udce1', desc: 'Finding network address, broadcast, first/last usable host.', prereq: 'and_operation',
+    theory: [
+      'Every subnet has 3 key addresses:',
+      '1. <strong>Network address:</strong> all host bits = 0 (e.g., 192.168.1.64)',
+      '2. <strong>Broadcast address:</strong> all host bits = 1 (e.g., 192.168.1.127)',
+      '3. <strong>Usable range:</strong> network+1 to broadcast-1 (192.168.1.65 \u2013 192.168.1.126)',
+      '<strong>Quick method:</strong> Block size = 256 - mask octet. Network address is the nearest multiple of the block size that is \u2264 the IP. Broadcast = next network - 1.',
+      'For 192.168.1.100 /26: block = 64, networks at .0, .64, .128 \u2192 100 falls in .64 block \u2192 broadcast = .127',
+    ],
+    practice: 'addressing' },
+  { id: 'host_math', title: 'Counting Hosts & Blocks', icon: '\ud83e\uddee', desc: 'The 2^n - 2 formula, block sizes, and choosing the right mask.', prereq: 'net_broadcast',
+    theory: [
+      '<strong>Usable hosts</strong> = 2<sup>host bits</sup> - 2 (subtract network and broadcast addresses)',
+      '/24 = 2\u2078 - 2 = 254 hosts \u2022 /25 = 2\u2077 - 2 = 126 \u2022 /26 = 2\u2076 - 2 = 62 \u2022 /27 = 2\u2075 - 2 = 30 \u2022 /28 = 2\u2074 - 2 = 14 \u2022 /29 = 2\u00b3 - 2 = 6 \u2022 /30 = 2\u00b2 - 2 = 2',
+      '<strong>Block size</strong> = 2<sup>host bits</sup> (total addresses including network + broadcast)',
+      'To find the right mask for N hosts: find the smallest power of 2 that is \u2265 N + 2, then CIDR = 32 - that power.',
+      'Example: need 50 hosts \u2192 50+2=52 \u2192 next power of 2 is 64 = 2\u2076 \u2192 CIDR = 32-6 = /26',
+    ],
+    practice: 'counting' },
+  { id: 'subnetting', title: 'Subnetting a Network', icon: '\u2702\ufe0f', desc: 'Dividing a network into smaller subnets by borrowing bits.', prereq: 'host_math',
+    theory: [
+      'Subnetting = borrowing host bits to create more networks (at the cost of fewer hosts per network).',
+      'Example: split 192.168.1.0/24 into 4 subnets:',
+      'Borrow 2 bits: 2\u00b2 = 4 subnets. New CIDR: /24 + 2 = /26. Block size: 64.',
+      'Subnet 1: 192.168.1.0/26 (hosts .1\u2013.62)',
+      'Subnet 2: 192.168.1.64/26 (hosts .65\u2013.126)',
+      'Subnet 3: 192.168.1.128/26 (hosts .129\u2013.190)',
+      'Subnet 4: 192.168.1.192/26 (hosts .193\u2013.254)',
+      '<strong>Formula:</strong> # subnets = 2<sup>borrowed bits</sup>. # hosts/subnet = 2<sup>remaining host bits</sup> - 2.',
+    ],
+    practice: 'membership' },
+  { id: 'vlsm', title: 'VLSM', icon: '\ud83d\udcd0', desc: 'Variable Length Subnet Masking \u2014 different-sized subnets from one block.', prereq: 'subnetting',
+    theory: [
+      'Real networks have departments of different sizes. VLSM lets you allocate different-sized subnets from one address block.',
+      '<strong>Rule:</strong> Always allocate the largest subnet first, then work down.',
+      'Example: from 10.0.0.0/24, allocate for 100 hosts, 50 hosts, 25 hosts, and 10 hosts:',
+      '1. 100 hosts \u2192 /25 (126 usable) \u2192 10.0.0.0/25',
+      '2. 50 hosts \u2192 /26 (62 usable) \u2192 10.0.0.128/26',
+      '3. 25 hosts \u2192 /27 (30 usable) \u2192 10.0.0.192/27',
+      '4. 10 hosts \u2192 /28 (14 usable) \u2192 10.0.0.224/28',
+      'Each subnet starts right after the previous one ends.',
+    ],
+    practice: 'design' },
+  { id: 'supernetting', title: 'Supernetting & Aggregation', icon: '\ud83d\udce6', desc: 'Combining contiguous networks into a summary route.', prereq: 'vlsm',
+    theory: [
+      'Supernetting (route summarization) is the reverse of subnetting \u2014 combining multiple small networks into one larger route.',
+      'Example: 192.168.0.0/24, 192.168.1.0/24, 192.168.2.0/24, 192.168.3.0/24',
+      'These 4 contiguous /24s share the first 22 bits \u2192 summary route: <strong>192.168.0.0/22</strong>',
+      '<strong>Rule:</strong> You can only aggregate networks that are contiguous AND whose count is a power of 2.',
+      '2 networks = move CIDR left by 1, 4 = left by 2, 8 = left by 3, etc.',
+    ],
+    practice: 'advanced' },
+  { id: 'ipv6_basics', title: 'IPv6 Subnetting Basics', icon: '\ud83d\ude80', desc: 'IPv6 prefixes, /48 to /64 allocation.', prereq: 'supernetting',
+    theory: [
+      'IPv6 addresses are 128 bits in hexadecimal, split by colons: <code>2001:0db8:85a3::8a2e:0370:7334</code>.',
+      'Common allocations: ISP gets /32, organization gets <strong>/48</strong>, each LAN gets <strong>/64</strong>.',
+      'Subnetting from /48 to /64: 64 - 48 = 16 bits for subnets = 2\u00b9\u2076 = <strong>65,536 subnets</strong>.',
+      'Hosts per /64: 2\u2076\u2074 \u2248 18 quintillion (host counting is irrelevant in IPv6 \u2014 always use /64 for LANs).',
+      'For the exam: know the /48 \u2192 /64 math and that /128 = single host.',
+    ],
+    practice: 'advanced' },
+];
+
+function getLessonProgress() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.SUBNET_LESSONS) || '{}'); } catch { return {}; }
+}
+function saveLessonProgress(p) { try { localStorage.setItem(STORAGE.SUBNET_LESSONS, JSON.stringify(p)); } catch {} }
+function isLessonComplete(id) { const p = getLessonProgress(); return p[id] && p[id].passed; }
+function isLessonUnlocked(lesson) {
+  if (!lesson.prereq) return true;
+  return isLessonComplete(lesson.prereq);
 }
 
-// Allow Enter key in subnet input
-document.addEventListener('keydown', e => {
-  if (document.getElementById('page-subnet')?.classList.contains('active')) {
-    if (e.key === 'Enter') {
-      const nextBtn = document.getElementById('subnet-next-btn');
-      if (nextBtn && !nextBtn.classList.contains('is-hidden')) nextSubnetQuestion();
-      else checkSubnetAnswer();
+// ── Tab / Mode switching ──
+function startSubnetTrainer() {
+  setSubnetTab('learn');
+  stRenderLevelBadge();
+}
+
+function setSubnetTab(tabId) {
+  ['learn','practice','dashboard'].forEach(t => {
+    document.getElementById('st-tab-' + t)?.classList.toggle('is-hidden', t !== tabId);
+    document.getElementById('st-tab-btn-' + t)?.classList.toggle('st-tab-active', t === tabId);
+  });
+  if (tabId === 'learn') stRenderLessonSidebar();
+  if (tabId === 'practice') { stIdx = 0; stCorrect = 0; stTotal = 0; stStreak = 0; stNextQuestion(); stRenderHeatmap(); }
+  if (tabId === 'dashboard') stRenderDashboard();
+}
+
+function setSubnetMode(mode) {
+  stMode = mode;
+  ['drill','timed','focus'].forEach(m => {
+    document.getElementById('st-mode-' + m)?.classList.toggle('st-mode-active', m === mode);
+  });
+  document.getElementById('st-focus-picker')?.classList.toggle('is-hidden', mode !== 'focus');
+  document.getElementById('st-timer-wrap')?.classList.toggle('is-hidden', mode !== 'timed');
+  if (mode === 'focus') stRenderFocusPicker();
+  if (mode === 'timed') stStartTimer();
+  else stStopTimer();
+  stIdx = 0; stCorrect = 0; stTotal = 0; stStreak = 0;
+  stNextQuestion();
+}
+
+function stSetFocusCat(catId) {
+  stFocusCat = catId;
+  document.querySelectorAll('.st-focus-chip').forEach(c => c.classList.toggle('st-focus-chip-active', c.dataset.cat === catId));
+  stIdx = 0; stCorrect = 0; stTotal = 0; stStreak = 0;
+  stNextQuestion();
+}
+
+function stRenderFocusPicker() {
+  const el = document.getElementById('st-focus-picker');
+  if (!el) return;
+  el.innerHTML = ST_CAT_IDS.map(c => {
+    const cat = ST_CATEGORIES[c];
+    const active = stFocusCat === c ? ' st-focus-chip-active' : '';
+    return `<button class="st-focus-chip${active}" data-cat="${c}" onclick="stSetFocusCat('${c}')" style="--st-cat-color:${cat.color}">${cat.icon} ${escHtml(cat.label)}</button>`;
+  }).join('');
+}
+
+// ── Timed mode ──
+function stStartTimer() {
+  stStopTimer();
+  stTimerValue = 60;
+  const el = document.getElementById('st-timer');
+  if (el) el.textContent = '60';
+  stTimerInterval = setInterval(() => {
+    stTimerValue--;
+    const el = document.getElementById('st-timer');
+    if (el) { el.textContent = stTimerValue; el.classList.toggle('st-timer-warn', stTimerValue <= 10); }
+    if (stTimerValue <= 0) { stStopTimer(); stEndTimedChallenge(); }
+  }, 1000);
+}
+function stStopTimer() { if (stTimerInterval) { clearInterval(stTimerInterval); stTimerInterval = null; } }
+function stEndTimedChallenge() {
+  const card = document.getElementById('st-q-card');
+  if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\u23f0</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${stCorrect}</strong> out of <strong>${stTotal}</strong></div><button class="btn btn-primary" onclick="setSubnetMode('timed')">Try Again</button></div>`;
+}
+
+// ── Question Flow ──
+function stNextQuestion() {
+  stIdx++;
+  const m = getSubnetMastery();
+  stQ = genSubnetQuestion(stMode === 'focus' ? stFocusCat : null, m.currentLevel);
+  stQuestionStartTime = Date.now();
+
+  const qNum = document.getElementById('st-q-num');
+  const qText = document.getElementById('st-question');
+  const ansArea = document.getElementById('st-answer-area');
+  const fb = document.getElementById('st-feedback');
+  const nextBtn = document.getElementById('st-next-btn');
+  if (qNum) qNum.textContent = 'Q' + stIdx;
+  if (qText) qText.textContent = stQ.q;
+  if (fb) { fb.innerHTML = ''; fb.className = 'st-feedback'; }
+  if (nextBtn) nextBtn.classList.add('is-hidden');
+
+  // Render answer area based on type
+  if (ansArea) {
+    if (stQ.inputType === 'mcq' && stQ.options) {
+      ansArea.innerHTML = `<div class="st-mcq-grid">${stQ.options.map(o => `<button class="st-mcq-btn" onclick="stPickMcq(this,'${escHtml(o)}')">${escHtml(o)}</button>`).join('')}</div>`;
+    } else {
+      ansArea.innerHTML = `<div class="subnet-input-row"><input type="text" id="st-answer-input" class="subnet-input" placeholder="Type your answer\u2026" autocomplete="off" aria-label="Answer" /><button class="btn btn-primary" onclick="stCheckAnswer()" id="st-submit-btn">Check</button></div>`;
+      const inp = document.getElementById('st-answer-input');
+      if (inp) { inp.disabled = false; inp.focus(); }
     }
+  }
+
+  // Update stats strip
+  document.getElementById('st-score').textContent = stCorrect + ' / ' + stTotal;
+  document.getElementById('st-streak').textContent = '\ud83d\udd25 ' + stStreak;
+  const catBadge = document.getElementById('st-cat-badge');
+  if (catBadge && stQ.category) { const c = ST_CATEGORIES[stQ.category]; catBadge.textContent = c ? c.icon + ' ' + c.label : ''; catBadge.style.color = c ? c.color : ''; }
+  const diffBadge = document.getElementById('st-diff-badge');
+  if (diffBadge) diffBadge.textContent = stQ.difficulty ? stQ.difficulty.charAt(0).toUpperCase() + stQ.difficulty.slice(1) : '';
+  stRenderLevelBadge();
+}
+
+function stPickMcq(btn, answer) {
+  document.querySelectorAll('.st-mcq-btn').forEach(b => { b.disabled = true; });
+  stProcessAnswer(answer);
+}
+
+function stCheckAnswer() {
+  const inp = document.getElementById('st-answer-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.disabled = true;
+  document.getElementById('st-submit-btn')?.classList.add('is-hidden');
+  stProcessAnswer(val);
+}
+
+function stProcessAnswer(userAnswer) {
+  if (!stQ) return;
+  stTotal++;
+  const elapsed = ((Date.now() - stQuestionStartTime) / 1000).toFixed(1);
+  const isCorrect = userAnswer === stQ.answer || (stQ.altAnswers && stQ.altAnswers.includes(userAnswer));
+  updateSubnetStat(isCorrect);
+  const m = updateSubnetMastery(stQ.category, stQ.type, isCorrect);
+
+  if (isCorrect) { stCorrect++; stStreak++; }
+  else { stStreak = 0; }
+
+  document.getElementById('st-score').textContent = stCorrect + ' / ' + stTotal;
+  document.getElementById('st-streak').textContent = '\ud83d\udd25 ' + stStreak;
+  document.getElementById('st-next-btn')?.classList.remove('is-hidden');
+
+  // Render feedback
+  stRenderFeedback(stQ, userAnswer, isCorrect, elapsed);
+  stRenderHeatmap();
+  stRenderLevelBadge();
+
+  // Auto-advance in timed mode
+  if (stMode === 'timed' && isCorrect) { setTimeout(() => { if (stTimerValue > 0) stNextQuestion(); }, 800); }
+}
+
+function stRenderFeedback(q, userAnswer, isCorrect, elapsed) {
+  const fb = document.getElementById('st-feedback');
+  if (!fb) return;
+  let html = '';
+  if (isCorrect) {
+    html = `<div class="st-fb-correct"><strong>\u2705 Correct!</strong> <span class="st-fb-answer">${escHtml(q.answer)}</span><span class="st-fb-time">${elapsed}s</span></div>`;
+    if (stStreak >= 5) html += '<div class="st-fb-streak">\ud83d\udd25 ' + stStreak + ' streak!</div>';
+  } else {
+    html = `<div class="st-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(userAnswer)}</code></div>`;
+    html += `<div class="st-fb-correct-answer">Correct answer: <strong>${escHtml(q.answer)}</strong></div>`;
+    // Step-by-step walkthrough
+    if (q.steps && q.steps.length) {
+      html += '<div class="st-steps"><div class="st-steps-title">Step-by-step solution:</div>';
+      q.steps.forEach((s, i) => { html += `<div class="st-step" style="animation-delay:${i*150}ms"><span class="st-step-num">${i+1}</span> <span class="st-step-text">${s}</span></div>`; });
+      html += '</div>';
+    }
+    // Binary breakdown for addressing/masks questions
+    if (['find_subnet','find_broadcast','usable_first','usable_last','cidr_to_mask','mask_to_cidr','and_operation'].includes(q.type)) {
+      html += '<details class="st-binary-details"><summary>Show binary breakdown</summary>';
+      html += stRenderBinaryBreakdown(q);
+      html += '</details>';
+    }
+    // AI Coach button
+    html += `<button class="btn btn-ghost st-coach-btn" onclick="stAskCoach()">&#129302; Ask Coach to explain</button>`;
+    html += '<div id="st-coach-panel" class="st-coach-panel"></div>';
+  }
+  fb.innerHTML = html;
+  fb.className = 'st-feedback st-feedback-visible';
+}
+
+function stRenderBinaryBreakdown(q) {
+  // Extract IP and CIDR from question text
+  const ipMatch = q.q.match(/(\d+\.\d+\.\d+\.\d+)/);
+  const cidrMatch = q.q.match(/\/(\d+)/);
+  if (!ipMatch || !cidrMatch) return '';
+  const ipStr = ipMatch[1];
+  const cidr = parseInt(cidrMatch[1]);
+  const ipBin = ipStr.split('.').map(o => parseInt(o).toString(2).padStart(8,'0')).join('');
+  const maskBin = '1'.repeat(cidr) + '0'.repeat(32-cidr);
+  const andBin = ipBin.split('').map((b,i) => (b === '1' && maskBin[i] === '1') ? '1' : '0').join('');
+  const formatBin = b => b.match(/.{8}/g).join('.');
+  return `<div class="st-binary-grid">
+    <div class="st-bin-row"><span class="st-bin-label">IP</span><code class="st-bin-val">${formatBin(ipBin)}</code><span class="st-bin-dec">${ipStr}</span></div>
+    <div class="st-bin-row"><span class="st-bin-label">Mask</span><code class="st-bin-val">${formatBin(maskBin)}</code><span class="st-bin-dec">${cidrToMask(cidr)}</span></div>
+    <div class="st-bin-row st-bin-result"><span class="st-bin-label">AND</span><code class="st-bin-val">${formatBin(andBin)}</code><span class="st-bin-dec">${andBin.match(/.{8}/g).map(b=>parseInt(b,2)).join('.')}</span></div>
+    <div class="st-bin-boundary" style="left:calc(${cidr/32*100}%)"><span class="st-bin-boundary-label">\u2190 /${cidr}</span></div>
+  </div>`;
+}
+
+// ── AI Coach ──
+async function stAskCoach() {
+  const panel = document.getElementById('st-coach-panel');
+  if (!panel || !stQ) return;
+  const key = localStorage.getItem(STORAGE.KEY);
+  if (!key) { panel.innerHTML = '<div class="st-coach-msg">Set your API key in Settings to use the AI Coach.</div>'; return; }
+  panel.innerHTML = '<div class="st-coach-loading">\u23f3 Coach is thinking\u2026</div>';
+  try {
+    const userAns = document.getElementById('st-answer-input')?.value || '';
+    // v4.38.5 — inject the deterministic binary breakdown (IP / Mask / AND)
+    // for the current question so Sonnet has concrete facts to anchor on
+    // and can't hallucinate an incorrect calculation.
+    const ipMatch = stQ.q.match(/(\d+\.\d+\.\d+\.\d+)/);
+    const cidrMatch = stQ.q.match(/\/(\d+)/);
+    let gtBlock = '';
+    if (ipMatch && cidrMatch) {
+      const ipStr = ipMatch[1];
+      const cidr = parseInt(cidrMatch[1]);
+      const ipBin = ipStr.split('.').map(o => parseInt(o).toString(2).padStart(8,'0')).join('');
+      const maskBin = '1'.repeat(cidr) + '0'.repeat(32 - cidr);
+      const andBin = ipBin.split('').map((b, i) => (b === '1' && maskBin[i] === '1') ? '1' : '0').join('');
+      const netDotted = andBin.match(/.{8}/g).map(b => parseInt(b, 2)).join('.');
+      gtBlock = `\nAUTHORITATIVE FACTS (do not contradict):\n- IP ${ipStr} in binary: ${ipBin.match(/.{8}/g).join('.')}\n- /${cidr} mask in binary: ${maskBin.match(/.{8}/g).join('.')}\n- Network address (IP AND mask): ${netDotted}\n`;
+    }
+    const prompt = `You are a subnetting tutor helping a Network+ student. They were asked: "${stQ.q}"\nThey answered: "${userAns}" but the correct answer is: "${stQ.answer}".${gtBlock}\nIn 3-4 sentences, explain where they likely made their mistake using the binary/calculation approach. Be encouraging but precise. End with a one-sentence tip to avoid this mistake next time.`;
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Coach could not generate a response.';
+    panel.innerHTML = '<div class="st-coach-msg">' + text.split('\n').map(p => '<p>' + escHtml(p) + '</p>').join('') + '</div>';
+  } catch (e) {
+    panel.innerHTML = '<div class="st-coach-msg st-coach-error">Could not reach the AI Coach. Check your connection and API key.</div>';
+  }
+}
+
+// ── Lesson Rendering ──
+function stRenderLessonSidebar() {
+  const el = document.getElementById('st-lesson-sidebar');
+  if (!el) return;
+  const progress = getLessonProgress();
+  el.innerHTML = SUBNET_LESSONS.map((l, i) => {
+    const unlocked = isLessonUnlocked(l);
+    const done = progress[l.id] && progress[l.id].passed;
+    const active = stActiveLesson === l.id;
+    const icon = done ? '\u2705' : unlocked ? l.icon : '\ud83d\udd12';
+    const cls = `st-lesson-item${active ? ' st-lesson-active' : ''}${!unlocked ? ' st-lesson-locked' : ''}`;
+    return `<button class="${cls}" onclick="${unlocked ? `stOpenLesson('${l.id}')` : ''}" ${!unlocked ? 'disabled' : ''}>
+      <span class="st-lesson-icon">${icon}</span>
+      <span class="st-lesson-info"><span class="st-lesson-num">Lesson ${i+1}</span><span class="st-lesson-title">${escHtml(l.title)}</span></span>
+    </button>`;
+  }).join('');
+}
+
+function stOpenLesson(id) {
+  stActiveLesson = id;
+  stRenderLessonSidebar();
+  const lesson = SUBNET_LESSONS.find(l => l.id === id);
+  if (!lesson) return;
+  const main = document.getElementById('st-lesson-main');
+  if (!main) return;
+
+  let html = `<div class="st-lesson-header"><span class="st-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="st-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
+  // Theory
+  html += '<div class="st-lesson-theory">';
+  lesson.theory.forEach(t => { html += `<div class="st-theory-block">${t}</div>`; });
+  html += '</div>';
+  // Practice gate
+  html += '<div class="st-lesson-gate"><h4>\ud83c\udfaf Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
+  html += '<div id="st-gate-area"></div></div>';
+
+  main.innerHTML = html;
+  stRenderGate(lesson);
+}
+
+function stRenderGate(lesson) {
+  const area = document.getElementById('st-gate-area');
+  if (!area) return;
+  const cat = lesson.practice || 'masks';
+  let gateState = { questions: [], current: 0, correct: 0, total: 0 };
+  // Generate 5 gate questions
+  for (let i = 0; i < 5; i++) gateState.questions.push(genSubnetQuestion(cat, 'beginner'));
+  window._stGateState = gateState;
+  stRenderGateQuestion(area, gateState);
+}
+
+function stRenderGateQuestion(area, gs) {
+  if (gs.current >= 5) {
+    const passed = gs.correct >= 3;
+    area.innerHTML = `<div class="st-gate-result ${passed ? 'st-gate-pass' : 'st-gate-fail'}"><div style="font-size:32px;margin-bottom:8px">${passed ? '\ud83c\udf89' : '\ud83d\udcaa'}</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">${passed ? 'Lesson Complete!' : 'Keep Practicing'}</div><div style="font-size:14px;color:var(--text-mid)">${gs.correct}/5 correct${passed ? '' : ' \u2014 need 3 to pass'}</div>${!passed ? '<button class="btn btn-ghost" style="margin-top:12px" onclick="stOpenLesson(stActiveLesson)">Retry</button>' : ''}</div>`;
+    if (passed) {
+      const p = getLessonProgress();
+      p[stActiveLesson] = { passed: true, score: gs.correct, date: new Date().toISOString() };
+      saveLessonProgress(p);
+      stRenderLessonSidebar();
+    }
+    return;
+  }
+  const q = gs.questions[gs.current];
+  area.innerHTML = `<div class="st-gate-q"><div class="st-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">${escHtml(q.q)}</div><div class="subnet-input-row"><input type="text" id="st-gate-input" class="subnet-input" placeholder="Your answer\u2026" autocomplete="off" /><button class="btn btn-primary" onclick="stCheckGate()">Check</button></div><div id="st-gate-fb" class="st-feedback"></div></div>`;
+  document.getElementById('st-gate-input')?.focus();
+}
+
+function stCheckGate() {
+  const gs = window._stGateState;
+  if (!gs) return;
+  const inp = document.getElementById('st-gate-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.disabled = true;
+  const q = gs.questions[gs.current];
+  const correct = val === q.answer || (q.altAnswers && q.altAnswers.includes(val));
+  gs.total++;
+  if (correct) gs.correct++;
+  const fb = document.getElementById('st-gate-fb');
+  if (fb) {
+    fb.innerHTML = correct ? `<div class="st-fb-correct">\u2705 Correct! ${escHtml(q.answer)}</div>` : `<div class="st-fb-wrong">\u274c ${escHtml(q.answer)}</div>`;
+    fb.className = 'st-feedback st-feedback-visible';
+  }
+  gs.current++;
+  setTimeout(() => stRenderGateQuestion(document.getElementById('st-gate-area'), gs), 1200);
+}
+
+// ── Heatmap ──
+function stRenderHeatmap() {
+  const el = document.getElementById('st-heatmap');
+  if (!el) return;
+  const m = getSubnetMastery();
+  el.innerHTML = '<div class="st-heatmap-title">Category Accuracy</div><div class="st-heatmap-grid">' + ST_CAT_IDS.map(c => {
+    const cat = ST_CATEGORIES[c];
+    const d = m.categories[c] || { seen: 0, correct: 0, box: 1 };
+    const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+    const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="st-heat-cell" style="border-color:${cat.color}"><div class="st-heat-icon">${cat.icon}</div><div class="st-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="st-heat-label">${cat.label.split(' ')[0]}</div><div class="st-heat-box">Box ${d.box}/5</div></div>`;
+  }).join('') + '</div>';
+}
+
+// ── Level Badge ──
+function stRenderLevelBadge() {
+  const el = document.getElementById('st-level-badge');
+  if (!el) return;
+  const m = getSubnetMastery();
+  const colors = { beginner: '#22c55e', intermediate: '#f59e0b', advanced: '#f97316', expert: '#ef4444' };
+  el.textContent = m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1);
+  el.style.background = (colors[m.currentLevel] || '#7c6ff7') + '22';
+  el.style.color = colors[m.currentLevel] || '#7c6ff7';
+  el.style.borderColor = (colors[m.currentLevel] || '#7c6ff7') + '55';
+}
+
+// ── Dashboard ──
+function stRenderDashboard() {
+  const el = document.getElementById('st-dashboard-content');
+  if (!el) return;
+  const m = getSubnetMastery();
+  const acc = m.totalAnswered > 0 ? Math.round(m.totalCorrect / m.totalAnswered * 100) : 0;
+  const levelPcts = { beginner: 0, intermediate: 33, advanced: 66, expert: 100 };
+  const pct = levelPcts[m.currentLevel] || 0;
+  const nextLevel = m.currentLevel === 'beginner' ? 'Intermediate (60% acc, 15+ Qs)' : m.currentLevel === 'intermediate' ? 'Advanced (70% acc, 40+ Qs)' : m.currentLevel === 'advanced' ? 'Expert (80% acc, 60+ Qs)' : 'Maximum level reached!';
+
+  let html = '<div class="st-dash-hero">';
+  html += `<div class="st-dash-level"><div class="st-dash-level-title">${m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1)}</div><div class="st-dash-level-bar"><div class="st-dash-level-fill" style="width:${pct}%"></div></div><div class="st-dash-level-next">Next: ${nextLevel}</div></div>`;
+  html += `<div class="st-dash-stats"><div class="st-dash-stat"><div class="st-dash-stat-val">${m.totalAnswered}</div><div class="st-dash-stat-label">Questions</div></div><div class="st-dash-stat"><div class="st-dash-stat-val">${acc}%</div><div class="st-dash-stat-label">Accuracy</div></div><div class="st-dash-stat"><div class="st-dash-stat-val">${m.totalCorrect}</div><div class="st-dash-stat-label">Correct</div></div></div>`;
+  html += '</div>';
+
+  // Category mastery cards
+  html += '<h3 class="st-dash-heading">Category Mastery</h3><div class="st-dash-cats">';
+  ST_CAT_IDS.forEach(c => {
+    const cat = ST_CATEGORIES[c];
+    const d = m.categories[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
+    const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+    const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
+    html += `<div class="st-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="st-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="st-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="st-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>\ud83d\udd25 ${d.streak}</span></div></div>`;
+  });
+  html += '</div>';
+
+  // Lesson progress
+  html += '<h3 class="st-dash-heading">Lesson Progress</h3><div class="st-dash-lessons">';
+  const lp = getLessonProgress();
+  SUBNET_LESSONS.forEach((l, i) => {
+    const done = lp[l.id] && lp[l.id].passed;
+    html += `<div class="st-dash-lesson-row"><span>${done ? '\u2705' : '\u2b1c'}</span><span>Lesson ${i+1}: ${escHtml(l.title)}</span></div>`;
+  });
+  html += '</div>';
+
+  // Reset button
+  html += '<div style="margin-top:24px;text-align:center"><button class="btn btn-ghost" onclick="if(confirm(\'Reset all subnet mastery data?\')){ localStorage.removeItem(STORAGE.SUBNET_MASTERY); localStorage.removeItem(STORAGE.SUBNET_LESSONS); stRenderDashboard(); }" style="font-size:12px;color:var(--text-dim)">Reset Mastery Data</button></div>';
+
+  el.innerHTML = html;
+}
+
+// ── Enter key handler ──
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('page-subnet')?.classList.contains('active')) return;
+  if (e.key === 'Enter') {
+    // Practice tab
+    const nextBtn = document.getElementById('st-next-btn');
+    if (nextBtn && !nextBtn.classList.contains('is-hidden')) { stNextQuestion(); return; }
+    const submitBtn = document.getElementById('st-submit-btn');
+    if (submitBtn && !submitBtn.classList.contains('is-hidden')) { stCheckAnswer(); return; }
+    // Gate
+    const gateInput = document.getElementById('st-gate-input');
+    if (gateInput && !gateInput.disabled) { stCheckGate(); return; }
   }
 });
 
 // ══════════════════════════════════════════
-// FEATURE 2: PORT NUMBER SPEED DRILL
+// FEATURE 2: PORT MASTERY (revamped v4.36.0)
 // ══════════════════════════════════════════
 const portData = [
   {proto:'FTP Data',port:'20',tp:'TCP'},{proto:'FTP Control',port:'21',tp:'TCP'},{proto:'SSH',port:'22',tp:'TCP'},
@@ -12416,11 +14981,6 @@ const portData = [
   {proto:'IPsec NAT-T',port:'4500',tp:'UDP'},{proto:'VNC',port:'5900',tp:'TCP'}
 ];
 
-// Secure ↔ insecure protocol/port pairs (Port Drill: secure pairs mode, #30).
-// Each entry is one (insecure, secure) mapping. FTP and SMTP appear twice
-// because they each have two valid secure equivalents — the `qualifier` field
-// disambiguates them in the prompt, and `siblingProto` is excluded from
-// distractors so the alternate isn't presented as a "wrong" answer.
 const securePairs = [
   { insecure: { proto: 'HTTP',   port: '80',  tp: 'TCP' }, secure: { proto: 'HTTPS',           port: '443', tp: 'TCP' } },
   { insecure: { proto: 'FTP',    port: '21',  tp: 'TCP' }, secure: { proto: 'FTPS',            port: '990', tp: 'TCP' }, qualifier: 'over SSL/TLS', siblingProto: 'SFTP' },
@@ -12433,65 +14993,262 @@ const securePairs = [
   { insecure: { proto: 'IMAP',   port: '143', tp: 'TCP' }, secure: { proto: 'IMAPS',           port: '993', tp: 'TCP' } }
 ];
 
-let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
-let portMissed = []; // Track wrong answers for review
-let portMode = 'timed'; // 'timed' | 'endless' | 'family' | 'pairs'
+// ── Port Mastery: categories, mnemonics, lessons ──
+const PT_CATEGORIES = [
+  { id: 'web',       label: 'Web',              icon: '\uD83C\uDF10', color: '#60a5fa', protos: ['HTTP','HTTPS'] },
+  { id: 'email',     label: 'Email',            icon: '\uD83D\uDCE7', color: '#f472b6', protos: ['SMTP','POP3','IMAP','SMTP TLS'] },
+  { id: 'file',      label: 'File Transfer',    icon: '\uD83D\uDCC1', color: '#fb923c', protos: ['FTP Data','FTP Control','TFTP','FTPS','SMB','NFS','iSCSI'] },
+  { id: 'remote',    label: 'Remote Access',    icon: '\uD83D\uDDA5\uFE0F', color: '#a78bfa', protos: ['SSH','Telnet','RDP','VNC'] },
+  { id: 'name',      label: 'Name / Time',      icon: '\uD83D\uDD70\uFE0F', color: '#38bdf8', protos: ['DNS','NTP','NetBIOS Name','NetBIOS Session'] },
+  { id: 'config',    label: 'Network Config',   icon: '\u2699\uFE0F',  color: '#34d399', protos: ['DHCP Server','DHCP Client'] },
+  { id: 'auth',      label: 'Directory & Auth', icon: '\uD83D\uDD11', color: '#fbbf24', protos: ['Kerberos','LDAP','LDAPS','TACACS+','RADIUS Auth','RADIUS Acct'] },
+  { id: 'mgmt',      label: 'Management',       icon: '\uD83D\uDCCA', color: '#4ade80', protos: ['SNMP','SNMP Trap','Syslog'] },
+  { id: 'routing',   label: 'Routing',          icon: '\uD83D\uDEA6', color: '#e879f9', protos: ['BGP'] },
+  { id: 'db',        label: 'Database & Secure',icon: '\uD83D\uDDC4\uFE0F', color: '#f87171', protos: ['MySQL'] },
+  { id: 'voip',      label: 'VoIP',             icon: '\uD83D\uDCDE', color: '#2dd4bf', protos: ['SIP','SIP TLS'] },
+  { id: 'vpn',       label: 'VPN / Tunneling',  icon: '\uD83D\uDD12', color: '#818cf8', protos: ['IKE/IPsec','L2TP','OpenVPN','IPsec NAT-T'] }
+];
+const PT_CAT_IDS = PT_CATEGORIES.map(c => c.id);
+const _ptCatByProto = {};
+PT_CATEGORIES.forEach(c => c.protos.forEach(p => { _ptCatByProto[p] = c; }));
+function ptCatOf(proto) { return _ptCatByProto[proto] || PT_CATEGORIES[0]; }
 
-function setPortMode(mode) {
-  if (mode === 'endless') portMode = 'endless';
-  else if (mode === 'family') portMode = 'family';
-  else if (mode === 'pairs') portMode = 'pairs';
-  else portMode = 'timed';
-  // Update toggle button visuals
-  const timedBtn = document.getElementById('port-mode-timed');
-  const endlessBtn = document.getElementById('port-mode-endless');
-  const familyBtn = document.getElementById('port-mode-family');
-  const pairsBtn = document.getElementById('port-mode-pairs');
-  if (timedBtn && endlessBtn) {
-    timedBtn.classList.toggle('port-mode-active', portMode === 'timed');
-    endlessBtn.classList.toggle('port-mode-active', portMode === 'endless');
-    timedBtn.setAttribute('aria-pressed', String(portMode === 'timed'));
-    endlessBtn.setAttribute('aria-pressed', String(portMode === 'endless'));
+const PORT_MNEMONICS = {
+  'FTP Data':    'FTP Data = 20. Think "2-0 = data flows"',
+  'FTP Control': 'FTP Control = 21. Control channel is always one above data (20+1)',
+  'SSH':         'SSH = 22. "Secure Shell, double-two"',
+  'Telnet':      'Telnet = 23. One above SSH (22+1), and less secure',
+  'SMTP':        'SMTP = 25. "Send Mail To People" — 25 letters in that phrase (roughly!)',
+  'TACACS+':     'TACACS+ = 49. Think "4-9, the Cisco way"',
+  'DNS':         'DNS = 53. "Five-Three, DNS is the key"',
+  'DHCP Server': 'DHCP Server = 67. Server listens, client talks back on 68',
+  'DHCP Client': 'DHCP Client = 68. Always one above the server (67+1)',
+  'TFTP':        'TFTP = 69. "Trivial" — no auth, no frills, just 69',
+  'HTTP':        'HTTP = 80. The OG web port — "eighty for the web, baby"',
+  'Kerberos':    'Kerberos = 88. "8-8, authenticate"',
+  'POP3':        'POP3 = 110. "POP = 1-1-0, download and go"',
+  'NTP':         'NTP = 123. "1-2-3, sync the time for me"',
+  'IMAP':        'IMAP = 143. Keeps mail on the server — 143 = "I love you" in pager code',
+  'SNMP':        'SNMP = 161. Manages network devices — trap replies on 162',
+  'SNMP Trap':   'SNMP Trap = 162. One above SNMP (161+1) — traps are alerts going back',
+  'BGP':         'BGP = 179. "Border Gateway at 1-7-9"',
+  'LDAP':        'LDAP = 389. "3-8-9, directory is fine"',
+  'HTTPS':       'HTTPS = 443. "4-4-3, secure HTTP for me"',
+  'SMB':         'SMB = 445. File sharing on Windows — "4-4-5, sharing drives"',
+  'Syslog':      'Syslog = 514. "5-1-4, log everything more"',
+  'SMTP TLS':    'SMTP TLS = 587. Submission port with STARTTLS — "5-8-7, mail to heaven"',
+  'LDAPS':       'LDAPS = 636. Secure LDAP — "6-3-6, LDAP with a TLS fix"',
+  'FTPS':        'FTPS = 990. FTP over SSL — "9-9-0, secure FTP go"',
+  'iSCSI':       'iSCSI = 3260. Block storage over IP — "3-2-6-0, SAN over the network flow"',
+  'RADIUS Auth': 'RADIUS Auth = 1812. "The War of 1812 — fighting for authentication"',
+  'RADIUS Acct': 'RADIUS Acct = 1813. One above auth (1812+1) — accounting follows auth',
+  'MySQL':       'MySQL = 3306. "3-3-0-6, database picks"',
+  'RDP':         'RDP = 3389. "3-3-8-9, remote desktop time"',
+  'SIP':         'SIP = 5060. VoIP signaling — "5-0-6-0, SIP says hello"',
+  'SIP TLS':     'SIP TLS = 5061. Secure SIP — one above regular (5060+1)',
+  'IKE/IPsec':   'IKE/IPsec = 500. "5-0-0, VPN tunnel through"',
+  'L2TP':        'L2TP = 1701. "1-7-0-1, Layer 2 tunneling done"',
+  'OpenVPN':     'OpenVPN = 1194. "1-1-9-4, open VPN at the door"',
+  'NFS':         'NFS = 2049. Network File System — "2-0-4-9, Unix shares are fine"',
+  'NetBIOS Name':'NetBIOS Name = 137. Legacy Windows naming — the "1-3-7" trio starts here',
+  'NetBIOS Session':'NetBIOS Session = 139. NetBIOS sessions — "1-3-9, connect in time"',
+  'IPsec NAT-T': 'IPsec NAT-T = 4500. NAT traversal for IPsec — "4-5-0-0, NAT lets VPN through"',
+  'VNC':         'VNC = 5900. Screen sharing — "5-9-0-0, VNC in view"'
+};
+
+const PORT_LESSONS = [
+  { id: 'web', title: 'Web Protocols', icon: '\uD83C\uDF10', catId: 'web', desc: 'HTTP and HTTPS — the foundation of the modern internet.',
+    theory: [
+      '<strong>HTTP (Port 80/TCP)</strong> — HyperText Transfer Protocol. The original web protocol. Sends data in cleartext — anyone on the network can read it. Uses request-response model: client sends GET/POST, server replies with status code (200 OK, 404 Not Found, 301 Redirect).',
+      '<strong>HTTPS (Port 443/TCP)</strong> — HTTP over TLS. Encrypts the entire HTTP session. The browser verifies the server\'s certificate via PKI (chain of trust: leaf cert → intermediate CA → root CA). TLS 1.3 is the current standard. Look for the padlock icon.',
+      '<strong>Exam tip:</strong> HTTP = 80, HTTPS = 443. HTTPS uses TLS (not SSL — SSL is deprecated). The exam loves asking about the TLS handshake and certificate chain. Remember: HTTPS = HTTP + TLS on port 443.'
+    ] },
+  { id: 'email', title: 'Email Pipeline', icon: '\uD83D\uDCE7', catId: 'email', desc: 'How email actually flows from sender to inbox.',
+    theory: [
+      '<strong>SMTP (Port 25/TCP)</strong> — Simple Mail Transfer Protocol. Used for <em>sending</em> mail between servers (MTA to MTA). Port 25 is the relay port — many ISPs block it to prevent spam.',
+      '<strong>SMTP TLS / Submission (Port 587/TCP)</strong> — The port your email client uses to <em>submit</em> outgoing mail to your mail server. Uses STARTTLS to upgrade to encrypted. This is the modern replacement for port 25 on the client side.',
+      '<strong>POP3 (Port 110/TCP)</strong> — Post Office Protocol v3. Downloads mail and (by default) deletes from server. Simple but limited — single-device use.',
+      '<strong>IMAP (Port 143/TCP)</strong> — Internet Message Access Protocol. Keeps mail on the server, syncs across devices. The modern standard. 143 = "I love you" in pager code — a memory trick.',
+      '<strong>Exam tip:</strong> Know the flow: Client sends via 587 (SMTP submission) → server relays via 25 (SMTP) → recipient retrieves via 143 (IMAP) or 110 (POP3). Secure variants: SMTPS=465, POP3S=995, IMAPS=993.'
+    ] },
+  { id: 'file', title: 'File Transfer', icon: '\uD83D\uDCC1', catId: 'file', desc: 'Every way to move files across a network.',
+    theory: [
+      '<strong>FTP (Ports 20-21/TCP)</strong> — File Transfer Protocol. Port 21 = control channel (commands), Port 20 = data channel (file content). Active mode: server connects back to client on 20. Passive mode: client connects to a random high port (firewall-friendly).',
+      '<strong>TFTP (Port 69/UDP)</strong> — Trivial FTP. No authentication, no encryption, no directory listing. Used for firmware updates, PXE boot, and router config backups. UDP = fast but unreliable.',
+      '<strong>FTPS (Port 990/TCP)</strong> — FTP over SSL/TLS (implicit). Wraps FTP in encryption. Don\'t confuse with SFTP (port 22) which is FTP over SSH — completely different protocol.',
+      '<strong>SMB (Port 445/TCP)</strong> — Server Message Block. Windows file/printer sharing. The "Network Drive" protocol. Also used by Samba on Linux.',
+      '<strong>NFS (Port 2049/TCP/UDP)</strong> — Network File System. Unix/Linux file sharing. NFSv4 consolidated everything onto port 2049.',
+      '<strong>iSCSI (Port 3260/TCP)</strong> — Block-level storage over IP. Makes a remote disk appear local. Used in SANs (Storage Area Networks).',
+      '<strong>Exam tip:</strong> FTP uses TWO ports (20+21). TFTP is UDP/69. FTPS ≠ SFTP. SMB = Windows, NFS = Unix. iSCSI = SAN over Ethernet.'
+    ] },
+  { id: 'remote', title: 'Remote Access', icon: '\uD83D\uDDA5\uFE0F', catId: 'remote', desc: 'Controlling machines from a distance.',
+    theory: [
+      '<strong>SSH (Port 22/TCP)</strong> — Secure Shell. Encrypted remote access. Replaced Telnet for everything. Also provides SFTP (secure file transfer) and SCP (secure copy). Uses public-key authentication.',
+      '<strong>Telnet (Port 23/TCP)</strong> — The original remote terminal. Sends everything in <em>cleartext</em> — including passwords. Never use on production networks. Still on the exam because legacy systems exist.',
+      '<strong>RDP (Port 3389/TCP)</strong> — Remote Desktop Protocol. Microsoft\'s graphical remote access. Provides full GUI desktop over the network. Commonly targeted by attackers — always secure with NLA.',
+      '<strong>VNC (Port 5900/TCP)</strong> — Virtual Network Computing. Platform-independent screen sharing. Uses RFB protocol. Less efficient than RDP but works across OSes.',
+      '<strong>Exam tip:</strong> SSH=22 is the secure default for CLI access. Telnet=23 is insecure and deprecated. RDP=3389 is Microsoft-specific GUI. The "secure pair" pattern: Telnet(23) → SSH(22).'
+    ] },
+  { id: 'name', title: 'Name & Time Services', icon: '\uD83D\uDD70\uFE0F', catId: 'name', desc: 'DNS resolution and time synchronization.',
+    theory: [
+      '<strong>DNS (Port 53/TCP/UDP)</strong> — Domain Name System. Translates names to IPs. Uses UDP for queries (fast), TCP for zone transfers and large responses (>512 bytes). Recursive: client asks resolver, resolver walks the tree. Iterative: resolver asks root → TLD → authoritative.',
+      '<strong>NTP (Port 123/UDP)</strong> — Network Time Protocol. Syncs clocks across machines. Critical for Kerberos (which requires <5 min clock skew), log correlation, and certificate validation. Stratum 0 = atomic clock, Stratum 1 = directly connected.',
+      '<strong>NetBIOS Name (Port 137/UDP)</strong> — Legacy Windows naming service. Maps NetBIOS names to IPs on the LAN. Largely replaced by DNS but still tested.',
+      '<strong>NetBIOS Session (Port 139/TCP)</strong> — Legacy Windows file sharing sessions. Used by older SMB implementations. Modern SMB uses port 445 directly.',
+      '<strong>Exam tip:</strong> DNS=53 uses BOTH TCP and UDP. NTP=123 is UDP only. "1-2-3 sync the time" is your memory trick. NetBIOS 137/139 are legacy but still testable.'
+    ] },
+  { id: 'config', title: 'Network Configuration', icon: '\u2699\uFE0F', catId: 'config', desc: 'DHCP and automatic network setup.',
+    theory: [
+      '<strong>DHCP Server (Port 67/UDP)</strong> — Dynamic Host Configuration Protocol. The server listens on port 67. Assigns IP addresses, subnet masks, default gateways, and DNS servers automatically.',
+      '<strong>DHCP Client (Port 68/UDP)</strong> — The client sends from port 68. The DORA process: <strong>D</strong>iscover (broadcast "I need an IP") → <strong>O</strong>ffer (server proposes an IP) → <strong>R</strong>equest (client accepts) → <strong>A</strong>ck (server confirms). All using UDP because the client doesn\'t have an IP yet!',
+      '<strong>DHCP Relay</strong> — Routers can forward DHCP broadcasts across subnets using the <code>ip helper-address</code> command. Without this, you\'d need a DHCP server on every subnet.',
+      '<strong>Exam tip:</strong> Server=67, Client=68. Always a pair. DORA is the four-step handshake. DHCP uses UDP because the client has no IP address to establish a TCP connection. Lease renewal happens at 50% (T1) and 87.5% (T2) of the lease time.'
+    ] },
+  { id: 'auth', title: 'Directory & Authentication', icon: '\uD83D\uDD11', catId: 'auth', desc: 'AAA frameworks and directory services.',
+    theory: [
+      '<strong>Kerberos (Port 88/TCP/UDP)</strong> — Ticket-based authentication. Used by Active Directory. Flow: client → KDC for TGT (Ticket Granting Ticket) → KDC for service ticket → target server. Requires synchronized clocks (<5 min skew).',
+      '<strong>LDAP (Port 389/TCP)</strong> — Lightweight Directory Access Protocol. Queries directory services (Active Directory, OpenLDAP). Organizes data in a tree: DC=example,DC=com → OU=Users → CN=John.',
+      '<strong>LDAPS (Port 636/TCP)</strong> — LDAP over SSL/TLS. Encrypts the directory queries. The secure version of 389.',
+      '<strong>TACACS+ (Port 49/TCP)</strong> — Cisco\'s AAA protocol. Encrypts the <em>entire</em> packet payload. Separates authentication, authorization, and accounting. TCP-based for reliability.',
+      '<strong>RADIUS Auth (Port 1812/UDP)</strong> — Remote Authentication Dial-In User Service. Industry standard AAA. Only encrypts the password, not the full payload. UDP-based.',
+      '<strong>RADIUS Acct (Port 1813/UDP)</strong> — RADIUS accounting — tracks session data (duration, bytes). One port above auth (1812+1).',
+      '<strong>Exam tip:</strong> TACACS+ (49/TCP) encrypts everything, RADIUS (1812/UDP) only encrypts passwords. TACACS+=Cisco, RADIUS=industry standard. "War of 1812" = RADIUS auth port.'
+    ] },
+  { id: 'mgmt', title: 'Network Management', icon: '\uD83D\uDCCA', catId: 'mgmt', desc: 'Monitoring and logging your network.',
+    theory: [
+      '<strong>SNMP (Port 161/UDP)</strong> — Simple Network Management Protocol. Polls network devices for status (CPU, bandwidth, errors). Uses community strings for auth (v1/v2c) or username/password (v3). Manager asks, agent responds.',
+      '<strong>SNMP Trap (Port 162/UDP)</strong> — Unsolicited alert FROM the device TO the manager. "Something happened!" — link down, high CPU, fan failure. One above SNMP (161+1).',
+      '<strong>Syslog (Port 514/UDP)</strong> — Centralized logging. Devices send log messages to a syslog server. 8 severity levels: 0=Emergency to 7=Debug. "Every Awesome Cisco Engineer Will Need Icecream Daily" (Emerg/Alert/Crit/Error/Warning/Notice/Info/Debug).',
+      '<strong>Exam tip:</strong> SNMP v3 adds encryption + authentication (v1/v2c are cleartext). SNMP=161 (query), SNMP Trap=162 (alert). Syslog=514/UDP. Know the 8 severity levels.'
+    ] },
+  { id: 'routing', title: 'Routing Protocols', icon: '\uD83D\uDEA6', catId: 'routing', desc: 'BGP — the protocol that runs the internet.',
+    theory: [
+      '<strong>BGP (Port 179/TCP)</strong> — Border Gateway Protocol. The only EGP (Exterior Gateway Protocol) still in use. Routes between autonomous systems (AS). Every ISP, cloud provider, and CDN uses BGP.',
+      '<strong>How it works:</strong> BGP peers establish TCP connections on port 179. They exchange route advertisements with AS_PATH attributes. The best path is selected based on shortest AS_PATH, local preference, and other attributes.',
+      '<strong>eBGP vs iBGP:</strong> eBGP = between different autonomous systems (TTL=1 by default). iBGP = within the same AS (full mesh or route reflectors required).',
+      '<strong>Exam tip:</strong> BGP=179/TCP. It\'s the ONLY port you need for routing protocols on the N10-009 (OSPF, EIGRP, RIP don\'t use well-known ports the exam tests). BGP is a path-vector protocol.'
+    ] },
+  { id: 'db', title: 'Database & Secure Ports', icon: '\uD83D\uDDC4\uFE0F', catId: 'db', desc: 'Database access and the secure port pattern.',
+    theory: [
+      '<strong>MySQL (Port 3306/TCP)</strong> — Default port for MySQL and MariaDB database connections. Applications connect here to query data. In the real world, this port should NEVER be exposed to the internet.',
+      '<strong>The Secure Port Pattern:</strong> Many insecure protocols have a secure counterpart on a different port. The exam loves testing these pairs:',
+      '<code>HTTP(80) → HTTPS(443)</code> · <code>FTP(21) → FTPS(990)</code> · <code>Telnet(23) → SSH(22)</code> · <code>SMTP(25) → SMTPS(465)/Submission(587)</code> · <code>LDAP(389) → LDAPS(636)</code> · <code>POP3(110) → POP3S(995)</code> · <code>IMAP(143) → IMAPS(993)</code> · <code>SIP(5060) → SIPS(5061)</code>',
+      '<strong>Exam tip:</strong> When you see a question about "securing" a protocol, think: "same protocol + TLS wrapper on a different port." The secure port is almost always higher than the insecure one.'
+    ] },
+  { id: 'voip', title: 'Voice over IP', icon: '\uD83D\uDCDE', catId: 'voip', desc: 'SIP call signaling and VoIP.',
+    theory: [
+      '<strong>SIP (Port 5060/UDP)</strong> — Session Initiation Protocol. Handles VoIP call setup, teardown, and management (INVITE, BYE, REGISTER). SIP is the <em>signaling</em> protocol — it sets up the call but doesn\'t carry the actual voice.',
+      '<strong>SIP TLS (Port 5061/TCP)</strong> — Encrypted SIP signaling. One above regular SIP (5060+1). Used when call metadata privacy matters.',
+      '<strong>RTP (Real-time Transport Protocol)</strong> — Carries the actual voice/video data. Uses dynamic high ports (typically 16384-32767). Not a well-known port number but important to understand the SIP+RTP relationship.',
+      '<strong>Exam tip:</strong> SIP=5060 (signaling, UDP), SIP TLS=5061 (secure signaling, TCP). SIP sets up the call, RTP carries the audio. QoS (DSCP EF marking) prioritizes voice traffic.'
+    ] },
+  { id: 'vpn', title: 'VPN & Tunneling', icon: '\uD83D\uDD12', catId: 'vpn', desc: 'Encrypted tunnels across untrusted networks.',
+    theory: [
+      '<strong>IKE/IPsec (Port 500/UDP)</strong> — Internet Key Exchange. The negotiation protocol for IPsec VPNs. Phase 1 establishes the IKE SA (security association), Phase 2 negotiates the IPsec SA for data encryption. IKEv2 is the modern standard.',
+      '<strong>IPsec NAT-T (Port 4500/UDP)</strong> — NAT Traversal for IPsec. When either VPN endpoint is behind a NAT device, IPsec can\'t work natively (NAT modifies headers). NAT-T wraps ESP packets in UDP/4500 to traverse NAT.',
+      '<strong>L2TP (Port 1701/UDP)</strong> — Layer 2 Tunneling Protocol. Creates the tunnel but provides NO encryption on its own. Always paired with IPsec for security (L2TP/IPsec). The combo uses ports 1701 + 500 + 4500.',
+      '<strong>OpenVPN (Port 1194/UDP)</strong> — Open-source VPN using SSL/TLS. Can run on any port but defaults to UDP/1194. Popular for site-to-site and remote access VPNs.',
+      '<strong>Exam tip:</strong> IKE=500, NAT-T=4500, L2TP=1701, OpenVPN=1194. L2TP alone has NO encryption — it needs IPsec. IPsec has two modes: transport (encrypts payload) and tunnel (encrypts entire packet).'
+    ] }
+];
+
+// ── Port Mastery state ──
+let ptQ = null, ptIdx = 0, ptCorrect = 0, ptTotal = 0, ptStreak = 0;
+let ptMode = 'drill', ptFocusCat = null, ptTimerInterval = null, ptTimerValue = 30;
+let ptQuestionStartTime = 0, ptActiveLesson = null;
+// Legacy compat — keep these for milestones/analytics
+let portTimer = null, portTimeLeft = PORT_DRILL_SECONDS, portScore = 0, portCurrentQ = null;
+let portMissed = [];
+let portMode = 'timed';
+let portSortMode = 'category';
+
+// ── Port Mastery engine ──
+function getPortMastery() {
+  const raw = JSON.parse(localStorage.getItem(STORAGE.PORT_MASTERY) || 'null');
+  if (raw && raw.perPort) return raw;
+  const m = { currentLevel: 'beginner', totalAnswered: 0, totalCorrect: 0, perPort: {}, perCategory: {} };
+  portData.forEach(p => { m.perPort[p.proto] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
+  PT_CATEGORIES.forEach(c => { m.perCategory[c.id] = { seen: 0, correct: 0, box: 1, streak: 0 }; });
+  return m;
+}
+function savePortMastery(m) { try { localStorage.setItem(STORAGE.PORT_MASTERY, JSON.stringify(m)); } catch {} }
+
+function updatePortMastery(proto, wasCorrect) {
+  const m = getPortMastery();
+  const cat = ptCatOf(proto);
+  if (!m.perPort[proto]) m.perPort[proto] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
+  if (!m.perCategory[cat.id]) m.perCategory[cat.id] = { seen: 0, correct: 0, box: 1, streak: 0 };
+  const pp = m.perPort[proto];
+  const pc = m.perCategory[cat.id];
+  pp.seen++; pc.seen++; m.totalAnswered++;
+  if (wasCorrect) {
+    pp.correct++; pc.correct++; m.totalCorrect++;
+    pp.streak++; pc.streak++;
+    pp.box = Math.min(5, pp.box + 1);
+    if (pc.seen > 0 && pc.correct / pc.seen > 0.8) pc.box = Math.min(5, pc.box + 1);
+  } else {
+    pp.streak = 0; pc.streak = 0;
+    pp.box = 1;
+    if (pc.seen > 0 && pc.correct / pc.seen < 0.5) pc.box = 1;
   }
-  if (familyBtn) {
-    familyBtn.classList.toggle('port-mode-active', portMode === 'family');
-    familyBtn.setAttribute('aria-pressed', String(portMode === 'family'));
-  }
-  if (pairsBtn) {
-    pairsBtn.classList.toggle('port-mode-active', portMode === 'pairs');
-    pairsBtn.setAttribute('aria-pressed', String(portMode === 'pairs'));
-  }
-  // Swap pregame description + best label
-  const descEl = document.getElementById('port-mode-desc');
-  const bestLabelEl = document.getElementById('port-best-label');
-  const bestValEl = document.getElementById('port-best');
-  if (descEl) {
-    if (portMode === 'family') {
-      descEl.textContent = 'No timer. Each question asks you to select every port in a protocol family — one wrong submission ends the streak.';
-    } else if (portMode === 'pairs') {
-      descEl.textContent = 'No timer. Match insecure protocols (HTTP, FTP, Telnet, SMTP, LDAP, POP3, IMAP) to their secure equivalents — one wrong answer ends the streak.';
-    } else if (portMode === 'endless') {
-      descEl.textContent = 'No timer. Build the longest streak you can — one wrong answer ends the run.';
-    } else {
-      descEl.textContent = 'You have 30 seconds. Each correct answer = 1 point. Wrong answers lose 1 second.';
-    }
-  }
-  if (bestLabelEl) {
-    bestLabelEl.textContent = portMode === 'timed' ? 'BEST' : 'BEST STREAK';
-  }
-  if (bestValEl) {
-    const key = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
-      : portMode === 'pairs' ? STORAGE.PORT_PAIRS_BEST
-      : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
-      : STORAGE.PORT_BEST;
-    bestValEl.textContent = parseInt(localStorage.getItem(key) || '0');
-  }
-  // Hide the timer block entirely in non-timed modes
-  const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode !== 'timed');
+  pp.lastSeen = Date.now();
+  m.currentLevel = ptComputeLevel(m);
+  savePortMastery(m);
+  // Also update legacy PORT_STATS for backward compat
+  const stats = getPortStats();
+  if (!stats[proto]) stats[proto] = { seen: 0, correct: 0 };
+  stats[proto].seen++;
+  if (wasCorrect) stats[proto].correct++;
+  savePortStats(stats);
 }
 
-// ── Adaptive port focus (weighted selection based on per-port accuracy) ──
+function ptComputeLevel(m) {
+  const acc = m.totalAnswered > 0 ? m.totalCorrect / m.totalAnswered : 0;
+  if (m.totalAnswered >= 400 && acc >= 0.85) return 'expert';
+  if (m.totalAnswered >= 200 && acc >= 0.75) return 'advanced';
+  if (m.totalAnswered >= 50 && acc >= 0.60) return 'intermediate';
+  return 'beginner';
+}
+
+function ptPickPort(focusCat) {
+  const m = getPortMastery();
+  let pool = portData;
+  if (focusCat) {
+    const cat = PT_CATEGORIES.find(c => c.id === focusCat);
+    if (cat) pool = portData.filter(p => cat.protos.includes(p.proto));
+  }
+  const weights = pool.map(p => {
+    const pp = m.perPort[p.proto];
+    if (!pp || pp.seen === 0) return 1.2;
+    if (pp.seen < 3) return 1.0;
+    const acc = pp.correct / pp.seen;
+    // Leitner: lower boxes get higher weight
+    const boxW = (6 - (pp.box || 1)) / 5;
+    if (acc >= 0.95) return 0.3 + boxW * 0.3;
+    if (acc >= 0.85) return 0.7 + boxW * 0.5;
+    return 1.0 + ((1 - acc) * 4) + boxW;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+
+function ptPickCategory() {
+  const m = getPortMastery();
+  const weights = PT_CATEGORIES.map(c => {
+    const pc = m.perCategory[c.id];
+    if (!pc || pc.seen === 0) return 1.2;
+    const acc = pc.correct / pc.seen;
+    return 1.0 + ((1 - acc) * 3) + ((6 - (pc.box || 1)) / 5);
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < PT_CATEGORIES.length; i++) { r -= weights[i]; if (r <= 0) return PT_CATEGORIES[i]; }
+  return PT_CATEGORIES[PT_CATEGORIES.length - 1];
+}
+
+// ── Legacy compat helpers (still used by milestones, analytics, port reference) ──
 function getPortStats() {
   try { return JSON.parse(localStorage.getItem(STORAGE.PORT_STATS) || '{}'); } catch { return {}; }
 }
@@ -12507,15 +15264,11 @@ function updatePortStat(proto, wasCorrect) {
 }
 function portWeight(proto, stats) {
   const s = stats[proto];
-  // No data yet → baseline. Slight explore bonus on truly never-seen ports
   if (!s || s.seen === 0) return 1.2;
-  // Not enough samples to trust — treat as baseline
   if (s.seen < 3) return 1.0;
   const accuracy = s.correct / s.seen;
-  // Mastered → heavy downweight (still appears, just rarely)
   if (accuracy >= 0.95) return 0.3;
   if (accuracy >= 0.85) return 0.7;
-  // Struggling → boost proportional to miss rate. Max ~5x at 0% accuracy.
   return 1.0 + ((1 - accuracy) * 4);
 }
 function pickWeightedPort() {
@@ -12523,10 +15276,7 @@ function pickWeightedPort() {
   const weights = portData.map(p => portWeight(p.proto, stats));
   const total = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
-  for (let i = 0; i < portData.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return portData[i];
-  }
+  for (let i = 0; i < portData.length; i++) { r -= weights[i]; if (r <= 0) return portData[i]; }
   return portData[portData.length - 1];
 }
 function getWeakestPorts(limit = 3) {
@@ -12544,42 +15294,13 @@ function getPortStatsSummary() {
   const totalSeen = entries.reduce((a, b) => a + b.seen, 0);
   const totalCorrect = entries.reduce((a, b) => a + b.correct, 0);
   const uniqueSeen = entries.filter(e => e.seen > 0).length;
-  return {
-    totalSeen,
-    totalCorrect,
-    overallAccuracy: totalSeen > 0 ? totalCorrect / totalSeen : 0,
-    uniqueSeen,
-    totalPorts: portData.length
-  };
+  return { totalSeen, totalCorrect, overallAccuracy: totalSeen > 0 ? totalCorrect / totalSeen : 0, uniqueSeen, totalPorts: portData.length };
 }
-function renderPortFocusInfo() {
-  const infoEl = document.getElementById('port-focus-info');
-  const resetBtn = document.getElementById('port-reset-stats-btn');
-  if (!infoEl) return;
-  const summary = getPortStatsSummary();
-  if (summary.totalSeen < 5) {
-    infoEl.classList.add('is-hidden');
-    if (resetBtn) resetBtn.classList.add('is-hidden');
-    return;
-  }
-  const weak = getWeakestPorts(3);
-  const accPct = Math.round(summary.overallAccuracy * 100);
-  let html = `<div class="port-focus-title">🎯 <strong>Adaptive focus active</strong></div>`;
-  html += `<div class="port-focus-stats">${summary.uniqueSeen}/${summary.totalPorts} ports seen · ${accPct}% overall accuracy</div>`;
-  if (weak.length > 0) {
-    const weakList = weak.map(w => `<span class="port-focus-weak">${escHtml(w.proto)}</span>`).join(', ');
-    html += `<div class="port-focus-weak-line">Drilling: ${weakList}</div>`;
-  } else {
-    html += `<div class="port-focus-weak-line">No weak spots — mastery mode 💪</div>`;
-  }
-  infoEl.innerHTML = html;
-  infoEl.classList.remove('is-hidden');
-  if (resetBtn) resetBtn.classList.remove('is-hidden');
-}
+function renderPortFocusInfo() {} // Legacy stub — focus is now in Practice tab
 function resetPortStats() {
-  if (!confirm('Reset all port focus stats? Your best score will be kept.')) return;
-  try { localStorage.removeItem(STORAGE.PORT_STATS); } catch {}
-  renderPortFocusInfo();
+  if (!confirm('Reset all port mastery data? Your best score will be kept.')) return;
+  try { localStorage.removeItem(STORAGE.PORT_STATS); localStorage.removeItem(STORAGE.PORT_MASTERY); localStorage.removeItem(STORAGE.PORT_LESSONS); } catch {}
+  ptRenderDashboard();
 }
 
 // ══════════════════════════════════════════
@@ -12899,7 +15620,6 @@ const portCategories = [
   { name: 'VoIP',             protos: ['SIP','SIP TLS'] },
   { name: 'VPN / Tunneling',  protos: ['IKE/IPsec','L2TP','OpenVPN','IPsec NAT-T'] },
 ];
-let portSortMode = 'category'; // 'category' | 'number' | 'name'
 
 function _portCard(p) {
   // portData is static/controlled — no user input, no escaping needed
@@ -12978,408 +15698,530 @@ function filterPortReference() {
 }
 
 function startPortDrill() {
-  document.getElementById('port-pregame').classList.remove('is-hidden');
-  document.getElementById('port-game').classList.add('is-hidden');
-  document.getElementById('port-results').classList.add('is-hidden');
-  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
-  document.getElementById('port-score').textContent = '0';
-  // Re-apply current mode (also loads the correct best value)
-  setPortMode(portMode);
-  renderPortFocusInfo();
-  renderPortReference();
-  renderPortTerminalList();
-  renderPortLabsList();
+  setPortTab('learn');
+  ptRenderLevelBadge();
 }
 
-// v4.16.1 — dedicated "Try It In Terminal" section on Port Drill pregame.
-// Reuses portCommands + portCategories to show all curated commands grouped
-// by category in a standalone scrollable panel (parallel to Port Reference).
-function renderPortTerminalList() {
-  const list = document.getElementById('port-terminal-list');
-  if (!list) return;
-  const byProto = {};
-  portData.forEach(p => { byProto[p.proto] = p; });
-  let html = '';
-  portCategories.forEach(cat => {
-    const protosWithCmd = cat.protos.filter(proto => portCommands[proto] && byProto[proto]);
-    if (protosWithCmd.length === 0) return;
-    html += `<div class="port-term-group">
-      <div class="port-term-group-head">${escHtml(cat.name)} <span class="port-term-group-count">${protosWithCmd.length}</span></div>`;
-    protosWithCmd.forEach(proto => {
-      const p = byProto[proto];
-      const cmd = portCommands[proto];
-      html += `<div class="port-term-row">
-        <div class="port-term-head">
-          <span class="port-term-num">${p.port}</span>
-          <span class="port-term-proto">${escHtml(p.proto)}</span>
-          <span class="port-term-tp">${escHtml(p.tp)}</span>
-        </div>
-        ${_terminalCardHtml(cmd.cmd, cmd.note)}
-      </div>`;
-    });
-    html += `</div>`;
+// ── Tabs ──
+function setPortTab(tabId) {
+  ['learn','practice','dashboard'].forEach(t => {
+    const btn = document.getElementById('pt-tab-btn-' + t);
+    const panel = document.getElementById('pt-tab-' + t);
+    if (btn) { btn.classList.toggle('pt-tab-active', t === tabId); }
+    if (panel) { panel.classList.toggle('is-hidden', t !== tabId); }
   });
-  list.innerHTML = html;
+  if (tabId === 'learn') ptRenderLessonSidebar();
+  if (tabId === 'practice') { ptIdx = 0; ptCorrect = 0; ptTotal = 0; ptStreak = 0; ptNextQuestion(); ptRenderHeatmap(); renderPortReference(); }
+  if (tabId === 'dashboard') ptRenderDashboard();
 }
 
-// v4.16.1 — dedicated "Guided Terminal Labs" section on Port Drill pregame.
-// Dedupes the guidedLabs map (multiple topic keys → one lab) and renders
-// one launcher card per unique lab.
-function renderPortLabsList() {
-  const list = document.getElementById('port-labs-list');
-  if (!list) return;
-  // Stable launch keys — use the primary topic alias for each lab so the
-  // button passes a predictable topicName to openGuidedLab().
-  const primaryKeys = {
-    'DNS Records & Recursive Resolution': 'DNS Records & DNSSEC',
-    'Routing & Your Real Default Gateway': 'Routing Protocols',
-    'Ports & Listening Services': 'Port Numbers',
-    'TLS Handshake & Secure Protocols': 'Securing TCP/IP',
-    'ARP & Layer 2 Adjacency': 'Switch Features & VLANs',
-    'Subnetting Your Own Network': 'Subnetting & IP Addressing',
-    'Network Monitoring with netstat, lsof, and tcpdump': 'Network Monitoring & Observability',
-    'The 7-Step Troubleshooting Methodology — Live': 'CompTIA Troubleshooting Methodology'
-  };
-  const seen = new Set();
-  const labs = [];
-  Object.keys(guidedLabs).forEach(key => {
-    const lab = guidedLabs[key];
-    if (seen.has(lab.title)) return;
-    seen.add(lab.title);
-    const launchKey = primaryKeys[lab.title] || key;
-    labs.push({ key: launchKey, lab });
-  });
-  list.innerHTML = labs.map(({ key, lab }) => {
-    const keyAttr = escHtml(key).replace(/'/g, '&#39;');
-    return `<div class="port-lab-card">
-      <div class="port-lab-title">&#128421;&#65039; ${escHtml(lab.title)}</div>
-      <div class="port-lab-meta">
-        <span class="lab-meta-pill">Obj ${escHtml(lab.objective)}</span>
-        <span class="lab-meta-pill">${escHtml(lab.duration)}</span>
-        <span class="lab-meta-pill">${lab.steps.length} steps</span>
-      </div>
-      <p class="port-lab-intro">${escHtml(lab.intro)}</p>
-      <button type="button" class="btn btn-primary port-lab-start" onclick="openGuidedLab('${keyAttr}')">&#128421;&#65039; Start Lab</button>
-    </div>`;
+// ── Practice modes ──
+function setPortPracticeMode(mode) {
+  ptMode = mode;
+  document.querySelectorAll('.pt-mode-btn').forEach(b => b.classList.remove('pt-mode-active'));
+  const btn = document.getElementById('pt-mode-' + mode);
+  if (btn) btn.classList.add('pt-mode-active');
+  const timerW = document.getElementById('pt-timer-wrap');
+  if (timerW) timerW.classList.toggle('is-hidden', mode !== 'timed');
+  const fp = document.getElementById('pt-focus-picker');
+  if (fp) fp.classList.toggle('is-hidden', mode !== 'focus');
+  if (mode === 'focus') ptRenderFocusPicker();
+  if (mode === 'timed') ptStartTimer();
+  else ptStopTimer();
+  ptIdx = 0; ptCorrect = 0; ptTotal = 0; ptStreak = 0;
+  ptNextQuestion();
+}
+function ptSetFocusCat(catId) {
+  ptFocusCat = catId;
+  document.querySelectorAll('.pt-focus-chip').forEach(c => c.classList.toggle('pt-focus-chip-active', c.dataset.cat === catId));
+  ptNextQuestion();
+}
+function ptRenderFocusPicker() {
+  const el = document.getElementById('pt-focus-picker');
+  if (!el) return;
+  el.innerHTML = PT_CATEGORIES.map(c => {
+    const active = ptFocusCat === c.id ? ' pt-focus-chip-active' : '';
+    return `<button class="pt-focus-chip${active}" data-cat="${c.id}" onclick="ptSetFocusCat('${c.id}')" style="--pt-cat-color:${c.color}">${c.icon} ${escHtml(c.label)}</button>`;
   }).join('');
 }
-
-function beginPortDrill() {
-  portScore = 0;
-  portTimeLeft = PORT_DRILL_SECONDS;
-  portMissed = [];
-  document.getElementById('port-pregame').classList.add('is-hidden');
-  document.getElementById('port-game').classList.remove('is-hidden');
-  document.getElementById('port-results').classList.add('is-hidden');
-  const scoreLabelEl = document.querySelector('.port-score-label');
-  if (scoreLabelEl) scoreLabelEl.textContent = portMode === 'timed' ? 'SCORE' : 'STREAK';
-  document.getElementById('port-score').textContent = '0';
-  document.getElementById('port-timer').textContent = String(PORT_DRILL_SECONDS);
-  document.getElementById('port-timer').className = 'port-timer';
-  // Hide/show timer block per mode
-  const timerBlock = document.querySelector('.port-timer-block');
-  if (timerBlock) timerBlock.classList.toggle('is-hidden', portMode !== 'timed');
-  if (portMode === 'family') {
-    nextPortFamilyQ();
-  } else if (portMode === 'pairs') {
-    nextPortPairsQ();
-  } else {
-    nextPortQ();
-  }
-  if (portTimer) { clearInterval(portTimer); portTimer = null; }
-  if (portMode === 'timed') {
-    portTimer = setInterval(() => {
-      portTimeLeft--;
-      document.getElementById('port-timer').textContent = portTimeLeft;
-      if (portTimeLeft <= 10) document.getElementById('port-timer').className = 'port-timer port-timer-warn';
-      if (portTimeLeft <= 5) document.getElementById('port-timer').className = 'port-timer port-timer-danger';
-      if (portTimeLeft <= 0) endPortDrill();
-    }, 1000);
-  }
+function ptStartTimer() {
+  ptStopTimer();
+  ptTimerValue = 30;
+  const el = document.getElementById('pt-timer');
+  if (el) el.textContent = '30';
+  ptTimerInterval = setInterval(() => {
+    ptTimerValue--;
+    const el = document.getElementById('pt-timer');
+    if (el) { el.textContent = ptTimerValue; el.className = ptTimerValue <= 5 ? 'pt-timer pt-timer-danger' : ptTimerValue <= 10 ? 'pt-timer pt-timer-warn' : 'pt-timer'; }
+    if (ptTimerValue <= 0) { ptStopTimer(); ptEndTimedChallenge(); }
+  }, 1000);
+}
+function ptStopTimer() { if (ptTimerInterval) { clearInterval(ptTimerInterval); ptTimerInterval = null; } }
+function ptEndTimedChallenge() {
+  const card = document.getElementById('pt-q-card');
+  if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\u23f0</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${ptCorrect}</strong> out of <strong>${ptTotal}</strong></div><button class="btn btn-primary" onclick="setPortPracticeMode('timed')">Try Again</button></div>`;
 }
 
-// Categories with ≥2 protocols are eligible for family questions (#27).
-// Routing/Database have only 1 each so they're skipped.
-function getFamilyEligibleCategories() {
+// ── Question generation ──
+function ptNextQuestion() {
+  ptIdx++;
+  const m = getPortMastery();
+  let correct;
+  if (ptMode === 'focus' && ptFocusCat) {
+    correct = ptPickPort(ptFocusCat);
+  } else if (ptMode === 'family') {
+    ptGenFamilyQ(); return;
+  } else if (ptMode === 'pairs') {
+    ptGenPairsQ(); return;
+  } else {
+    correct = ptPickPort(null);
+  }
+  const cat = ptCatOf(correct.proto);
+  // 50/50: ask for port or protocol
+  const askPort = Math.random() < 0.5;
+  const wrongPool = portData.filter(p => p.port !== correct.port && p.proto !== correct.proto);
+  const wrongs = [];
+  while (wrongs.length < 3 && wrongPool.length > 0) {
+    const w = wrongPool.splice(Math.floor(Math.random() * wrongPool.length), 1)[0];
+    if (!wrongs.find(x => (askPort ? x.port : x.proto) === (askPort ? w.port : w.proto))) wrongs.push(w);
+  }
+  const opts = [correct, ...wrongs].sort(() => Math.random() - 0.5);
+  ptQ = { correct, cat, askPort, opts, type: 'single' };
+  ptQuestionStartTime = Date.now();
+
+  // Render
+  const numEl = document.getElementById('pt-q-num');
+  const qEl = document.getElementById('pt-question');
+  const catBadge = document.getElementById('pt-cat-badge');
+  if (numEl) numEl.textContent = 'Q' + ptIdx;
+  if (qEl) qEl.innerHTML = askPort
+    ? `What port is <strong>${escHtml(correct.proto)}</strong>?`
+    : `Port <strong>${correct.port}/${correct.tp}</strong> is for?`;
+  if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+  const ansArea = document.getElementById('pt-answer-area');
+  if (ansArea) {
+    ansArea.innerHTML = `<div class="pt-mcq-grid">${opts.map(o => {
+      const val = askPort ? `${o.port}/${o.tp}` : escHtml(o.proto);
+      const chosen = askPort ? o.port : o.proto;
+      const ans = askPort ? correct.port : correct.proto;
+      return `<button class="pt-mcq-btn" onclick="ptPickAnswer(this,'${escHtml(chosen)}','${escHtml(ans)}')">${val}</button>`;
+    }).join('')}</div>`;
+  }
+  const fb = document.getElementById('pt-feedback');
+  if (fb) fb.innerHTML = '';
+  const nb = document.getElementById('pt-next-btn');
+  if (nb) nb.classList.add('is-hidden');
+  document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
+  document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+  ptRenderLevelBadge();
+}
+
+function ptGenFamilyQ() {
   const byProto = {};
   portData.forEach(p => { byProto[p.proto] = p; });
-  return portCategories
-    .map(cat => ({ name: cat.name, ports: cat.protos.map(n => byProto[n]).filter(Boolean) }))
-    .filter(cat => cat.ports.length >= 2);
-}
-
-function nextPortQ() {
-  // Pick port question type:
-  //   50% "what port runs X?"
-  //   50% "what protocol uses port Y?"
-  // Family multi-select questions live in their own dedicated mode (#27),
-  // not interleaved here.
-  // Port selection for single-Q modes is weighted by per-port miss rate (adaptive focus).
-  const mode = Math.random() < 0.5 ? 'port' : 'proto';
-  const correct = pickWeightedPort();
-  portCurrentQ = { mode, correct };
-  // Generate 3 wrong options
-  const wrongPool = portData.filter(p => p.port !== correct.port);
-  const wrongs = [];
-  while (wrongs.length < 3) {
-    const w = wrongPool[Math.floor(Math.random() * wrongPool.length)];
-    if (!wrongs.find(x => (mode === 'port' ? x.port : x.proto) === (mode === 'port' ? w.port : w.proto))) wrongs.push(w);
-  }
-  const allOpts = [correct, ...wrongs].sort(() => Math.random() - 0.5);
-  if (mode === 'port') {
-    document.getElementById('port-prompt').innerHTML = 'What port is <strong>' + escHtml(correct.proto) + '</strong>?';
-    document.getElementById('port-options').innerHTML = allOpts.map(o =>
-      `<button class="port-opt" onclick="pickPort('${o.port}','${correct.port}')">${o.port}/${o.tp}</button>`
-    ).join('');
-  } else {
-    document.getElementById('port-prompt').innerHTML = 'Port <strong>' + correct.port + '/' + correct.tp + '</strong> is for?';
-    document.getElementById('port-options').innerHTML = allOpts.map(o =>
-      `<button class="port-opt" onclick="pickPort('${escHtml(o.proto)}','${escHtml(correct.proto)}')">${escHtml(o.proto)}</button>`
-    ).join('');
-  }
-}
-
-// Family multi-select question (#27) — "Which N ports are X-related?"
-function nextPortFamilyQ() {
-  const eligible = getFamilyEligibleCategories();
-  if (!eligible.length) { nextPortQ(); return; }
+  const eligible = PT_CATEGORIES.filter(c => c.protos.length >= 2);
+  if (!eligible.length) { ptNextQuestion(); return; }
   const cat = eligible[Math.floor(Math.random() * eligible.length)];
-  const correctPorts = cat.ports.slice();
+  const correctPorts = cat.protos.map(n => byProto[n]).filter(Boolean);
   const correctKeys = new Set(correctPorts.map(p => p.proto));
-  // Pick 4 distractors from outside this family (or fewer if pool is small)
   const wrongPool = portData.filter(p => !correctKeys.has(p.proto));
   const wrongs = [];
-  const distractorCount = Math.min(4, wrongPool.length);
-  while (wrongs.length < distractorCount) {
-    const w = wrongPool[Math.floor(Math.random() * wrongPool.length)];
+  while (wrongs.length < 4 && wrongPool.length > 0) {
+    const w = wrongPool.splice(Math.floor(Math.random() * wrongPool.length), 1)[0];
     if (!wrongs.find(x => x.proto === w.proto)) wrongs.push(w);
   }
   const allOpts = [...correctPorts, ...wrongs].sort(() => Math.random() - 0.5);
-  portCurrentQ = { mode: 'family', categoryName: cat.name, correctKeys, allOptions: allOpts };
-  // Varied phrasing — include the count hint to mirror CompTIA style
+  ptQ = { type: 'family', cat, correctKeys, allOpts, correctPorts };
+  ptQuestionStartTime = Date.now();
   const n = correctPorts.length;
-  const phrasings = [
-    `Select all <strong>${n}</strong> ports used by the <strong>${escHtml(cat.name)}</strong> family`,
-    `Which <strong>${n}</strong> ports are <strong>${escHtml(cat.name.toLowerCase())}</strong>-related?`,
-    `Pick the <strong>${n}</strong> ports that belong to the <strong>${escHtml(cat.name)}</strong> family`
-  ];
-  document.getElementById('port-prompt').innerHTML = phrasings[Math.floor(Math.random() * phrasings.length)];
-  const optsHtml = allOpts.map(o =>
-    `<button class="port-opt port-opt-multi" type="button" data-proto="${escHtml(o.proto)}" aria-pressed="false" onclick="togglePortFamilyPick(this)">${o.port}/${o.tp} <span class="port-opt-proto">${escHtml(o.proto)}</span></button>`
-  ).join('');
-  document.getElementById('port-options').innerHTML =
-    optsHtml +
-    `<button class="port-submit-family" type="button" onclick="submitPortFamilyAnswer()">Submit answer</button>`;
+  const numEl = document.getElementById('pt-q-num');
+  const qEl = document.getElementById('pt-question');
+  const catBadge = document.getElementById('pt-cat-badge');
+  if (numEl) numEl.textContent = 'Q' + ptIdx;
+  if (qEl) qEl.innerHTML = `Select all <strong>${n}</strong> ports in the <strong>${escHtml(cat.label)}</strong> family`;
+  if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+  const ansArea = document.getElementById('pt-answer-area');
+  if (ansArea) {
+    ansArea.innerHTML = `<div class="pt-mcq-grid">${allOpts.map(o =>
+      `<button class="pt-mcq-btn pt-mcq-multi" data-proto="${escHtml(o.proto)}" aria-pressed="false" onclick="this.classList.toggle('pt-mcq-selected');this.setAttribute('aria-pressed',String(this.classList.contains('pt-mcq-selected')))">${o.port}/${o.tp} <span style="font-size:11px;color:var(--text-dim);font-family:inherit">${escHtml(o.proto)}</span></button>`
+    ).join('')}<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="ptSubmitFamily()">Submit</button></div>`;
+  }
+  const fb = document.getElementById('pt-feedback');
+  if (fb) fb.innerHTML = '';
+  const nb = document.getElementById('pt-next-btn');
+  if (nb) nb.classList.add('is-hidden');
 }
 
-function togglePortFamilyPick(btn) {
-  const selected = btn.classList.toggle('port-opt-selected');
-  btn.setAttribute('aria-pressed', String(selected));
-}
-
-function submitPortFamilyAnswer() {
-  if (!portCurrentQ || portCurrentQ.mode !== 'family') return;
-  const { correctKeys, allOptions, categoryName } = portCurrentQ;
+function ptSubmitFamily() {
+  if (!ptQ || ptQ.type !== 'family') return;
+  const { correctKeys, allOpts, cat } = ptQ;
   const picked = new Set();
-  document.querySelectorAll('#port-options .port-opt-multi.port-opt-selected').forEach(b => {
-    picked.add(b.getAttribute('data-proto'));
-  });
-  // Exact-match scoring: every correct selected, no wrong selected
-  let allCorrect = picked.size === correctKeys.size;
-  if (allCorrect) {
-    for (const k of correctKeys) { if (!picked.has(k)) { allCorrect = false; break; } }
-  }
-  // Update per-port stats for every option in this question:
-  //   correct port & picked → positive; correct port & missed → negative
-  //   wrong port & picked → negative; wrong port & not picked → no update
-  allOptions.forEach(o => {
-    const isCorrect = correctKeys.has(o.proto);
+  document.querySelectorAll('#pt-answer-area .pt-mcq-selected').forEach(b => picked.add(b.getAttribute('data-proto')));
+  let isCorrect = picked.size === correctKeys.size;
+  if (isCorrect) { for (const k of correctKeys) { if (!picked.has(k)) { isCorrect = false; break; } } }
+  const elapsed = ((Date.now() - ptQuestionStartTime) / 1000).toFixed(1);
+  allOpts.forEach(o => {
+    const correct = correctKeys.has(o.proto);
     const wasPicked = picked.has(o.proto);
-    if (isCorrect) {
-      updatePortStat(o.proto, wasPicked);
-    } else if (wasPicked) {
-      updatePortStat(o.proto, false);
-    }
+    if (correct) updatePortMastery(o.proto, wasPicked);
+    else if (wasPicked) updatePortMastery(o.proto, false);
   });
-  if (allCorrect) {
-    portScore++;
-    document.getElementById('port-score').textContent = portScore;
-  } else {
-    // Build a single missed-review entry capturing the family attempt
-    const correctList = allOptions.filter(o => correctKeys.has(o.proto));
-    const yourList = allOptions.filter(o => picked.has(o.proto));
-    portMissed.push({
-      proto: `${categoryName} family`,
-      port: correctList.map(c => c.port).join(', '),
-      tp: 'multi',
-      yourAnswer: yourList.length ? yourList.map(y => `${y.port}/${escHtml(y.proto)}`).join(', ') : '(nothing selected)',
-      mode: 'family'
-    });
-    document.getElementById('port-prompt').classList.add('port-flash-wrong');
-    setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
-    // Family mode is endless-style: one wrong submission ends the streak.
-    // Endless single-Q mode normally never reaches this branch (family Qs only
-    // appear in family mode), but keep the guard for safety.
-    if (portMode === 'family' || portMode === 'endless') {
-      endPortDrill();
-      return;
-    }
-    portTimeLeft = Math.max(0, portTimeLeft - 1);
-    document.getElementById('port-timer').textContent = portTimeLeft;
-  }
-  if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
-  // In family mode, stay on family Qs; otherwise back to single-Q rotation
-  if (portMode === 'family') nextPortFamilyQ();
-  else nextPortQ();
+  ptTotal++;
+  if (isCorrect) { ptCorrect++; ptStreak++; } else { ptStreak = 0; if (ptMode === 'family' || ptMode === 'endless') { ptRenderFeedback(ptQ, 'family', isCorrect, elapsed); return; } }
+  ptRenderFeedback(ptQ, 'family', isCorrect, elapsed);
 }
 
-// Secure ↔ insecure pairs question (#30) — dedicated mode.
-// Two formats picked at random per question:
-//   port-pick:  "<Secure> is the secure version of <Insecure>. Which port does <Secure> use?"
-//   proto-pick: "Which protocol replaces <Insecure> (port N) <qualifier>?"
-// Both end the streak on a single wrong answer (handled in pickPort).
-function nextPortPairsQ() {
+function ptGenPairsQ() {
   const pair = securePairs[Math.floor(Math.random() * securePairs.length)];
-  // 50/50: ask for the port (pickType='port') vs ask for the protocol name (pickType='proto')
-  const pickType = Math.random() < 0.5 ? 'port' : 'proto';
+  const askPort = Math.random() < 0.5;
   const correct = pair.secure;
-  portCurrentQ = { mode: 'pairs', correct, pair };
-
-  // Build distractor pool from securePairs (both insecure and secure sides),
-  // dedup by the field we're answering (port number or protocol name), and
-  // exclude the correct answer + sibling protocol so duplicates don't appear.
   const distractorPool = [];
-  securePairs.forEach(p => {
-    distractorPool.push(p.insecure, p.secure);
-  });
-  const correctKey = pickType === 'port' ? correct.port : correct.proto;
+  securePairs.forEach(p => { distractorPool.push(p.insecure, p.secure); });
+  const correctKey = askPort ? correct.port : correct.proto;
   const siblingExclude = pair.siblingProto || null;
   const seen = new Set();
-  const filteredPool = distractorPool.filter(o => {
-    const key = pickType === 'port' ? o.port : o.proto;
+  const filtered = distractorPool.filter(o => {
+    const key = askPort ? o.port : o.proto;
     if (key === correctKey) return false;
-    if (pickType === 'proto' && siblingExclude && o.proto === siblingExclude) return false;
+    if (!askPort && siblingExclude && o.proto === siblingExclude) return false;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
   const wrongs = [];
-  while (wrongs.length < 3 && filteredPool.length > 0) {
-    const idx = Math.floor(Math.random() * filteredPool.length);
-    wrongs.push(filteredPool.splice(idx, 1)[0]);
+  while (wrongs.length < 3 && filtered.length > 0) wrongs.push(filtered.splice(Math.floor(Math.random() * filtered.length), 1)[0]);
+  const opts = [correct, ...wrongs].sort(() => Math.random() - 0.5);
+  ptQ = { type: 'pairs', correct, pair, askPort, opts };
+  ptQuestionStartTime = Date.now();
+  const numEl = document.getElementById('pt-q-num');
+  const qEl = document.getElementById('pt-question');
+  const catBadge = document.getElementById('pt-cat-badge');
+  if (numEl) numEl.textContent = 'Q' + ptIdx;
+  const qual = pair.qualifier ? ` <em>${escHtml(pair.qualifier)}</em>` : '';
+  if (qEl) qEl.innerHTML = askPort
+    ? `<strong>${escHtml(correct.proto)}</strong> is the secure version of <strong>${escHtml(pair.insecure.proto)}</strong>. Which port?`
+    : `Which protocol replaces <strong>${escHtml(pair.insecure.proto)}</strong> (port ${pair.insecure.port})${qual}?`;
+  if (catBadge) catBadge.textContent = '\uD83D\uDD12 Secure Pairs';
+  const ansArea = document.getElementById('pt-answer-area');
+  if (ansArea) {
+    ansArea.innerHTML = `<div class="pt-mcq-grid">${opts.map(o => {
+      const val = askPort ? `${o.port}/${o.tp}` : escHtml(o.proto);
+      const chosen = askPort ? o.port : o.proto;
+      const ans = askPort ? correct.port : correct.proto;
+      return `<button class="pt-mcq-btn" onclick="ptPickAnswer(this,'${escHtml(chosen)}','${escHtml(ans)}')">${val}</button>`;
+    }).join('')}</div>`;
   }
-  const allOpts = [correct, ...wrongs].sort(() => Math.random() - 0.5);
+  const fb = document.getElementById('pt-feedback');
+  if (fb) fb.innerHTML = '';
+  const nb = document.getElementById('pt-next-btn');
+  if (nb) nb.classList.add('is-hidden');
+}
 
-  if (pickType === 'port') {
-    document.getElementById('port-prompt').innerHTML =
-      `<strong>${escHtml(correct.proto)}</strong> is the secure version of <strong>${escHtml(pair.insecure.proto)}</strong>. Which port does ${escHtml(correct.proto)} use?`;
-    document.getElementById('port-options').innerHTML = allOpts.map(o =>
-      `<button class="port-opt" onclick="pickPort('${o.port}','${correct.port}')">${o.port}/${o.tp}</button>`
-    ).join('');
+function ptPickAnswer(btn, chosen, correct) {
+  const isCorrect = (chosen === correct);
+  const elapsed = ((Date.now() - ptQuestionStartTime) / 1000).toFixed(1);
+  document.querySelectorAll('.pt-mcq-btn').forEach(b => { b.disabled = true; });
+  if (ptQ && ptQ.correct) updatePortMastery(ptQ.correct.proto, isCorrect);
+  ptTotal++;
+  if (isCorrect) { ptCorrect++; ptStreak++; }
+  else {
+    ptStreak = 0;
+    if (ptMode === 'endless' || ptMode === 'pairs') { ptRenderFeedback(ptQ, chosen, isCorrect, elapsed); return; }
+    if (ptMode === 'timed') { ptTimerValue = Math.max(0, ptTimerValue - 1); const tel = document.getElementById('pt-timer'); if (tel) tel.textContent = ptTimerValue; }
+  }
+  ptRenderFeedback(ptQ, chosen, isCorrect, elapsed);
+  document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
+  document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+  ptRenderLevelBadge();
+  if (ptMode === 'timed' && isCorrect) { setTimeout(() => { if (ptTimerValue > 0) ptNextQuestion(); }, 800); }
+}
+
+// ── Feedback ──
+function ptRenderFeedback(q, userAnswer, isCorrect, elapsed) {
+  const fb = document.getElementById('pt-feedback');
+  if (!fb) return;
+  let html = '';
+  const proto = q.correct ? q.correct.proto : (q.correctPorts ? q.correctPorts.map(p => p.proto).join(', ') : '');
+  const cat = q.cat || (q.correct ? ptCatOf(q.correct.proto) : PT_CATEGORIES[0]);
+  if (isCorrect) {
+    html = `<div class="pt-fb-correct"><strong>\u2705 Correct!</strong> <span class="pt-fb-answer">${escHtml(proto)}</span><span class="pt-fb-time">${elapsed}s</span></div>`;
+    if (ptStreak >= 5) html += `<div class="pt-fb-streak">\uD83D\uDD25 ${ptStreak} streak!</div>`;
   } else {
-    const qual = pair.qualifier ? ` <em>${escHtml(pair.qualifier)}</em>` : '';
-    document.getElementById('port-prompt').innerHTML =
-      `Which protocol replaces <strong>${escHtml(pair.insecure.proto)}</strong> (port ${pair.insecure.port})${qual}?`;
-    document.getElementById('port-options').innerHTML = allOpts.map(o =>
-      `<button class="port-opt" onclick="pickPort('${escHtml(o.proto)}','${escHtml(correct.proto)}')">${escHtml(o.proto)}</button>`
-    ).join('');
+    html = `<div class="pt-fb-wrong"><strong>\u274c Incorrect.</strong></div>`;
+    if (q.correct) html += `<div class="pt-fb-correct-answer">Correct: <strong>${q.correct.port}/${q.correct.tp} (${escHtml(q.correct.proto)})</strong></div>`;
+    if (q.type === 'family' && q.correctPorts) {
+      html += `<div class="pt-fb-correct-answer">Correct ports: <strong>${q.correctPorts.map(p => p.port + '/' + escHtml(p.proto)).join(', ')}</strong></div>`;
+    }
+    // Step-by-step explanation
+    const steps = [];
+    if (q.correct) {
+      const c = q.correct;
+      steps.push(`${escHtml(c.proto)} uses port <strong>${c.port}/${c.tp}</strong>`);
+      steps.push(`It belongs to the <strong>${cat.icon} ${escHtml(cat.label)}</strong> family`);
+      const mnemonic = PORT_MNEMONICS[c.proto];
+      if (mnemonic) steps.push(`<strong>Memory hook:</strong> ${escHtml(mnemonic)}`);
+      // Show secure pair context if applicable
+      const pair = securePairs.find(p => p.secure.proto === c.proto || p.insecure.proto === c.proto);
+      if (pair) steps.push(`Secure pair: ${escHtml(pair.insecure.proto)} (${pair.insecure.port}) \u2192 ${escHtml(pair.secure.proto)} (${pair.secure.port})`);
+    }
+    if (steps.length > 0) {
+      html += '<div class="pt-steps"><div class="pt-steps-title">Why this is the answer:</div>';
+      steps.forEach((s, i) => { html += `<div class="pt-step" style="animation-delay:${i * 150}ms"><span class="pt-step-num">${i + 1}</span> <span class="pt-step-text">${s}</span></div>`; });
+      html += '</div>';
+    }
+    // AI Coach
+    html += `<div style="margin-top:10px"><button class="btn btn-ghost" onclick="ptAskCoach()" style="font-size:12px">\uD83E\uDD16 Ask Coach</button></div>`;
+    html += '<div id="pt-coach-panel" class="pt-coach-panel"></div>';
+  }
+  fb.innerHTML = html;
+  const nb = document.getElementById('pt-next-btn');
+  if (nb) nb.classList.remove('is-hidden');
+  ptRenderHeatmap();
+  ptRenderLevelBadge();
+  document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
+  document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+}
+
+async function ptAskCoach() {
+  const panel = document.getElementById('pt-coach-panel');
+  if (!panel || !ptQ) return;
+  const key = localStorage.getItem(STORAGE.KEY);
+  if (!key) { panel.innerHTML = '<div class="pt-coach-msg">Set your API key in Settings to use the AI Coach.</div>'; return; }
+  panel.innerHTML = '<div class="pt-coach-loading">\u23f3 Coach is thinking\u2026</div>';
+  const proto = ptQ.correct ? ptQ.correct.proto : '';
+  const port = ptQ.correct ? ptQ.correct.port : '';
+  try {
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: `I'm studying for CompTIA Network+ N10-009. I just got a port number question wrong.\n\nAUTHORITATIVE FACT (do not contradict): ${proto} uses port ${port}.\n\nGive me a concise, memorable explanation of what this protocol does, a memory trick to remember its port number, and one exam tip. Keep it under 100 words.` }] })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'No response received.';
+    panel.innerHTML = '<div class="pt-coach-msg">' + text.split('\n').map(p => '<p>' + escHtml(p) + '</p>').join('') + '</div>';
+  } catch {
+    panel.innerHTML = '<div class="pt-coach-msg pt-coach-error">Could not reach the AI Coach. Check your connection and API key.</div>';
   }
 }
 
-function pickPort(chosen, correct) {
-  const wasCorrect = (chosen === correct);
-  // Record per-port stat for adaptive focus (keyed on proto regardless of mode)
-  if (portCurrentQ && portCurrentQ.correct) {
-    updatePortStat(portCurrentQ.correct.proto, wasCorrect);
-  }
-  if (wasCorrect) {
-    portScore++;
-    document.getElementById('port-score').textContent = portScore;
-  } else {
-    // Log the miss for review
-    if (portCurrentQ) {
-      const c = portCurrentQ.correct;
-      portMissed.push({ proto: c.proto, port: c.port, tp: c.tp, yourAnswer: chosen, mode: portCurrentQ.mode });
-    }
-    // Flash red
-    document.getElementById('port-prompt').classList.add('port-flash-wrong');
-    setTimeout(() => document.getElementById('port-prompt').classList.remove('port-flash-wrong'), 200);
-    if (portMode === 'endless' || portMode === 'pairs') {
-      // One wrong answer ends an endless / pairs run immediately
-      endPortDrill();
-      return;
-    }
-    // Timed mode: lose 1 second penalty
-    portTimeLeft = Math.max(0, portTimeLeft - 1);
-    document.getElementById('port-timer').textContent = portTimeLeft;
-  }
-  if (portMode === 'timed' && portTimeLeft <= 0) { endPortDrill(); return; }
-  if (portMode === 'pairs') nextPortPairsQ();
-  else nextPortQ();
+// ── Lesson system ──
+function ptGetLessonProgress() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.PORT_LESSONS) || '{}'); } catch { return {}; }
+}
+function ptSaveLessonProgress(p) { try { localStorage.setItem(STORAGE.PORT_LESSONS, JSON.stringify(p)); } catch {} }
+function ptIsLessonComplete(id) { const p = ptGetLessonProgress(); return p[id] && p[id].passed; }
+
+function ptRenderLessonSidebar() {
+  const el = document.getElementById('pt-lesson-sidebar');
+  if (!el) return;
+  const progress = ptGetLessonProgress();
+  el.innerHTML = PORT_LESSONS.map((l, i) => {
+    const done = progress[l.id] && progress[l.id].passed;
+    const locked = i > 0 && !ptIsLessonComplete(PORT_LESSONS[i - 1].id);
+    const active = ptActiveLesson === l.id;
+    const icon = done ? '\u2705' : locked ? '\uD83D\uDD12' : l.icon;
+    return `<div class="pt-lesson-item${active ? ' pt-lesson-active' : ''}${locked ? ' pt-lesson-locked' : ''}" onclick="${locked ? '' : `ptOpenLesson('${l.id}')`}">
+      <span class="pt-lesson-icon">${icon}</span>
+      <span class="pt-lesson-info"><span class="pt-lesson-num">Lesson ${i + 1}</span><span class="pt-lesson-title">${escHtml(l.title)}</span></span>
+    </div>`;
+  }).join('');
 }
 
-function endPortDrill() {
-  if (portTimer) { clearInterval(portTimer); portTimer = null; }
-  document.getElementById('port-game').classList.add('is-hidden');
-  document.getElementById('port-pregame').classList.add('is-hidden');
-  document.getElementById('port-results').classList.remove('is-hidden');
-  document.getElementById('port-final-score').textContent = portScore;
-  // Label the final score per mode
-  const finalLabelEl = document.getElementById('port-final-label');
-  if (finalLabelEl) {
-    finalLabelEl.textContent = portMode === 'family' ? 'family streak'
-      : portMode === 'pairs' ? 'pairs streak'
-      : portMode === 'endless' ? 'streak length'
-      : 'ports matched';
-  }
-  const bestKey = portMode === 'family' ? STORAGE.PORT_FAMILY_BEST
-    : portMode === 'pairs' ? STORAGE.PORT_PAIRS_BEST
-    : portMode === 'endless' ? STORAGE.PORT_STREAK_BEST
-    : STORAGE.PORT_BEST;
-  const best = parseInt(localStorage.getItem(bestKey) || '0');
-  if (portScore > best) {
-    localStorage.setItem(bestKey, String(portScore));
-    document.getElementById('port-best').textContent = portScore;
-  }
-  // Perfect round milestone (timed mode only): scored as many as the port bank length within the timer
-  if (portMode === 'timed' && portMissed.length === 0 && portScore >= 40) {
-    unlockMilestone('perfect_port');
-  }
-  // Endless streak milestone: 25+ without a miss
-  if (portMode === 'endless' && portScore >= 25) {
-    unlockMilestone('streak_port_25');
-  }
-  // Render missed answers review
-  const reviewDiv = document.getElementById('port-missed-review');
-  if (reviewDiv) {
-    if (portMissed.length === 0) {
-      reviewDiv.innerHTML = '<div class="port-review-perfect">🎯 Perfect round — no wrong answers!</div>';
-    } else {
-      // Deduplicate by proto (may have missed same port twice). Family entries
-      // pre-include the family name in the proto field so they dedupe naturally.
-      const seen = new Set();
-      const unique = portMissed.filter(m => { if (seen.has(m.proto)) return false; seen.add(m.proto); return true; });
-      reviewDiv.innerHTML = '<h3 style="margin-bottom:10px">MISSED PORTS — LEARN THESE</h3>' +
-        unique.map(m => {
-          // Family-mode entries already contain a comma-separated port list and
-          // pre-escaped HTML in yourAnswer; render them without re-escaping.
-          if (m.mode === 'family') {
-            return `<div class="port-review-row">
-              <div class="port-review-proto">${escHtml(m.proto)}</div>
-              <div class="port-review-correct">${escHtml(m.port)}</div>
-              <div class="port-review-yours">You picked: <span class="port-review-wrong">${m.yourAnswer}</span></div>
-            </div>`;
-          }
-          const yourAns = `You picked: <span class="port-review-wrong">${escHtml(m.yourAnswer)}</span>`;
-          return `<div class="port-review-row">
-            <div class="port-review-proto">${escHtml(m.proto)}</div>
-            <div class="port-review-correct">${m.port}/${m.tp}</div>
-            <div class="port-review-yours">${yourAns}</div>
-          </div>`;
-        }).join('');
+function ptOpenLesson(id) {
+  ptActiveLesson = id;
+  ptRenderLessonSidebar();
+  const lesson = PORT_LESSONS.find(l => l.id === id);
+  if (!lesson) return;
+  const main = document.getElementById('pt-lesson-main');
+  if (!main) return;
+  let html = `<div class="pt-lesson-header"><span class="pt-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="pt-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
+  html += '<div class="pt-lesson-theory">';
+  lesson.theory.forEach(t => { html += `<div class="pt-theory-block">${t}</div>`; });
+  // Show terminal commands for this category's ports
+  const cat = PT_CATEGORIES.find(c => c.id === lesson.catId);
+  if (cat) {
+    const cmds = cat.protos.filter(p => portCommands[p]).map(p => ({ proto: p, ...portCommands[p], port: portData.find(d => d.proto === p) }));
+    if (cmds.length > 0) {
+      html += '<div class="pt-theory-block"><strong>\uD83D\uDCBB Try it in Terminal:</strong><div style="margin-top:8px">';
+      cmds.forEach(c => { if (c.port) html += `<div style="margin-bottom:6px;font-size:12px;color:var(--text-dim)">${c.port.port}/${c.port.tp} — ${escHtml(c.proto)}</div>` + _terminalCardHtml(c.cmd, c.note); });
+      html += '</div></div>';
     }
   }
+  html += '</div>';
+  html += '<div class="pt-lesson-gate"><h4>\uD83C\uDFAF Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
+  html += '<div id="pt-gate-area"></div></div>';
+  main.innerHTML = html;
+  ptRenderGate(lesson);
 }
+
+function ptRenderGate(lesson) {
+  const area = document.getElementById('pt-gate-area');
+  if (!area) return;
+  const cat = PT_CATEGORIES.find(c => c.id === lesson.catId);
+  const catProtos = cat ? cat.protos : [];
+  const pool = portData.filter(p => catProtos.includes(p.proto));
+  const gateState = { current: 0, correct: 0, total: 5, questions: [], lessonId: lesson.id };
+  for (let i = 0; i < 5; i++) {
+    const p = pool[Math.floor(Math.random() * pool.length)];
+    const askPort = Math.random() < 0.5;
+    gateState.questions.push({ correct: p, askPort });
+  }
+  ptRenderGateQuestion(area, gateState);
+}
+
+function ptRenderGateQuestion(area, gs) {
+  if (gs.current >= gs.total) {
+    const passed = gs.correct >= 3;
+    if (passed) {
+      const p = ptGetLessonProgress();
+      p[gs.lessonId] = { passed: true, date: Date.now() };
+      ptSaveLessonProgress(p);
+      ptRenderLessonSidebar();
+    }
+    area.innerHTML = `<div class="pt-gate-result ${passed ? 'pt-gate-pass' : 'pt-gate-fail'}">${passed ? '\u2705 Passed! ' + gs.correct + '/5 — Next lesson unlocked!' : '\u274c ' + gs.correct + '/5 — Need 3/5. Try again!'}</div>${!passed ? '<button class="btn btn-primary" style="margin-top:12px" onclick="ptOpenLesson(\'' + gs.lessonId + '\')">Retry</button>' : ''}`;
+    return;
+  }
+  const q = gs.questions[gs.current];
+  const wrongPool = portData.filter(p => p.port !== q.correct.port && p.proto !== q.correct.proto);
+  const wrongs = [];
+  while (wrongs.length < 3 && wrongPool.length > 0) {
+    const w = wrongPool.splice(Math.floor(Math.random() * wrongPool.length), 1)[0];
+    wrongs.push(w);
+  }
+  const opts = [q.correct, ...wrongs].sort(() => Math.random() - 0.5);
+  const prompt = q.askPort ? `What port is <strong>${escHtml(q.correct.proto)}</strong>?` : `Port <strong>${q.correct.port}/${q.correct.tp}</strong> is for?`;
+  area.innerHTML = `<div class="pt-gate-q"><div class="pt-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">${prompt}</div><div class="pt-mcq-grid">${opts.map(o => {
+    const val = q.askPort ? `${o.port}/${o.tp}` : escHtml(o.proto);
+    const chosen = q.askPort ? o.port : o.proto;
+    const ans = q.askPort ? q.correct.port : q.correct.proto;
+    return `<button class="pt-mcq-btn" onclick="ptCheckGate(this,'${escHtml(chosen)}','${escHtml(ans)}')">${val}</button>`;
+  }).join('')}</div><div id="pt-gate-fb" class="pt-feedback"></div></div>`;
+  // Store gate state on the area element
+  area._gs = gs;
+}
+
+function ptCheckGate(btn, chosen, correct) {
+  const area = document.getElementById('pt-gate-area');
+  if (!area || !area._gs) return;
+  const gs = area._gs;
+  const isCorrect = chosen === correct;
+  document.querySelectorAll('#pt-gate-area .pt-mcq-btn').forEach(b => { b.disabled = true; });
+  if (isCorrect) gs.correct++;
+  gs.current++;
+  const q = gs.questions[gs.current - 1];
+  if (q && q.correct) updatePortMastery(q.correct.proto, isCorrect);
+  const fb = document.getElementById('pt-gate-fb');
+  if (fb) {
+    fb.innerHTML = isCorrect
+      ? `<div class="pt-fb-correct">\u2705 Correct! ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`
+      : `<div class="pt-fb-wrong">\u274c ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`;
+  }
+  setTimeout(() => ptRenderGateQuestion(area, gs), 1200);
+}
+
+// ── Heatmap ──
+function ptRenderHeatmap() {
+  const el = document.getElementById('pt-heatmap');
+  if (!el) return;
+  const m = getPortMastery();
+  el.innerHTML = '<div class="pt-heatmap-title">Category Mastery</div><div class="pt-heatmap-grid">' + PT_CAT_IDS.map(c => {
+    const cat = PT_CATEGORIES.find(x => x.id === c);
+    const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
+    const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+    const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="pt-heat-cell" style="border-color:${cat.color}"><div class="pt-heat-icon">${cat.icon}</div><div class="pt-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="pt-heat-label">${cat.label.split(' ')[0]}</div><div class="pt-heat-box">Box ${d.box}/5</div></div>`;
+  }).join('') + '</div>';
+}
+
+// ── Level badge ──
+function ptRenderLevelBadge() {
+  const el = document.getElementById('pt-level-badge');
+  if (!el) return;
+  const m = getPortMastery();
+  el.textContent = m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1);
+}
+
+// ── Dashboard ──
+function ptRenderDashboard() {
+  const el = document.getElementById('pt-dashboard-content');
+  if (!el) return;
+  const m = getPortMastery();
+  const acc = m.totalAnswered > 0 ? Math.round(m.totalCorrect / m.totalAnswered * 100) : 0;
+  const level = m.currentLevel;
+  const nextLevel = level === 'expert' ? 'Mastered!' : level === 'advanced' ? 'Expert' : level === 'intermediate' ? 'Advanced' : 'Intermediate';
+  const thresholds = { beginner: { need: 50, accNeed: 60 }, intermediate: { need: 200, accNeed: 75 }, advanced: { need: 400, accNeed: 85 }, expert: { need: 400, accNeed: 85 } };
+  const th = thresholds[level];
+  const pct = Math.min(100, Math.round(m.totalAnswered / th.need * 100));
+
+  let html = '<div class="pt-dash-hero">';
+  html += `<div class="pt-dash-level"><div class="pt-dash-level-title">${level.charAt(0).toUpperCase() + level.slice(1)}</div><div class="pt-dash-level-bar"><div class="pt-dash-level-fill" style="width:${pct}%"></div></div><div class="pt-dash-level-next">Next: ${nextLevel}</div></div>`;
+  html += `<div class="pt-dash-stats"><div class="pt-dash-stat"><div class="pt-dash-stat-val">${m.totalAnswered}</div><div class="pt-dash-stat-label">Questions</div></div><div class="pt-dash-stat"><div class="pt-dash-stat-val">${acc}%</div><div class="pt-dash-stat-label">Accuracy</div></div><div class="pt-dash-stat"><div class="pt-dash-stat-val">${m.totalCorrect}</div><div class="pt-dash-stat-label">Correct</div></div></div>`;
+  html += '</div>';
+
+  // Category mastery cards
+  html += '<h3 class="pt-dash-heading">Category Mastery</h3><div class="pt-dash-cats">';
+  PT_CATEGORIES.forEach(cat => {
+    const d = m.perCategory[cat.id] || { seen: 0, correct: 0, box: 1, streak: 0 };
+    const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+    const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
+    html += `<div class="pt-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="pt-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="pt-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="pt-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>\uD83D\uDD25 ${d.streak}</span></div></div>`;
+  });
+  html += '</div>';
+
+  // Weakest ports
+  const weakPorts = Object.entries(m.perPort).filter(([, v]) => v.seen >= 3).map(([proto, v]) => ({ proto, acc: Math.round(v.correct / v.seen * 100), seen: v.seen, box: v.box })).sort((a, b) => a.acc - b.acc).slice(0, 5);
+  if (weakPorts.length > 0) {
+    html += '<h3 class="pt-dash-heading">Weakest Ports</h3><div class="pt-dash-weak">';
+    weakPorts.forEach(w => {
+      const p = portData.find(d => d.proto === w.proto);
+      html += `<div class="pt-dash-weak-row"><span class="pt-dash-weak-proto">${escHtml(w.proto)}</span><span class="pt-dash-weak-port">${p ? p.port : '?'}</span><span class="pt-dash-weak-acc" style="color:${w.acc >= 70 ? 'var(--green)' : 'var(--red)'}">${w.acc}%</span><span class="pt-dash-weak-seen">${w.seen} seen</span></div>`;
+    });
+    html += '</div>';
+  }
+
+  // Lesson progress
+  const lp = ptGetLessonProgress();
+  html += '<h3 class="pt-dash-heading">Lesson Progress</h3><div class="pt-dash-lessons">';
+  PORT_LESSONS.forEach((l, i) => {
+    const done = lp[l.id] && lp[l.id].passed;
+    html += `<div class="pt-dash-lesson-row"><span>${done ? '\u2705' : '\u2b1c'}</span><span>Lesson ${i + 1}: ${escHtml(l.title)}</span></div>`;
+  });
+  html += '</div>';
+
+  // Secure pairs matrix
+  html += '<h3 class="pt-dash-heading">Secure Pairs</h3><div class="pt-dash-pairs">';
+  const pairsDeduped = [];
+  const seenPairs = new Set();
+  securePairs.forEach(p => { const k = p.insecure.proto + '-' + p.secure.proto; if (!seenPairs.has(k)) { seenPairs.add(k); pairsDeduped.push(p); } });
+  pairsDeduped.forEach(p => {
+    const iData = m.perPort[p.insecure.proto] || { seen: 0, correct: 0 };
+    const sData = m.perPort[p.secure.proto] || m.perPort[portData.find(d => d.proto === p.secure.proto)?.proto] || { seen: 0, correct: 0 };
+    html += `<div class="pt-dash-pair-row"><span>${escHtml(p.insecure.proto)} (${p.insecure.port})</span><span>\u2192</span><span>${escHtml(p.secure.proto)} (${p.secure.port})</span></div>`;
+  });
+  html += '</div>';
+
+  html += '<div style="margin-top:24px;text-align:center"><button class="btn btn-ghost" onclick="if(confirm(\'Reset all port mastery data?\')){localStorage.removeItem(STORAGE.PORT_MASTERY);localStorage.removeItem(STORAGE.PORT_LESSONS);ptRenderDashboard();}" style="font-size:12px;color:var(--text-dim)">Reset Mastery Data</button></div>';
+  el.innerHTML = html;
+}
+
+// ── Legacy compat stubs (used by other parts of the app) ──
+function setPortMode(mode) { portMode = mode; }
+function beginPortDrill() { setPortTab('practice'); setPortPracticeMode(portMode === 'family' ? 'family' : portMode === 'pairs' ? 'pairs' : portMode === 'endless' ? 'endless' : 'drill'); }
+function endPortDrill() { ptStopTimer(); }
+function getFamilyEligibleCategories() {
+  const byProto = {};
+  portData.forEach(p => { byProto[p.proto] = p; });
+  return portCategories.map(cat => ({ name: cat.name, ports: cat.protos.map(n => byProto[n]).filter(Boolean) })).filter(cat => cat.ports.length >= 2);
+}
+// Legacy refs still used by Topic Deep Dive topic commands and guided labs
+function renderPortTerminalList() {}
+function renderPortLabsList() {}
+function nextPortQ() { ptNextQuestion(); }
+function nextPortFamilyQ() { ptGenFamilyQ(); }
+function togglePortFamilyPick(btn) { btn.classList.toggle('pt-mcq-selected'); }
+function submitPortFamilyAnswer() { ptSubmitFamily(); }
+function nextPortPairsQ() { ptGenPairsQ(); }
+function pickPort(chosen, correct) { ptPickAnswer(null, chosen, correct); }
 
 // ══════════════════════════════════════════
 // FEATURE 3: PRE-QUIZ TOPIC BRIEF
@@ -13390,7 +16232,19 @@ async function fetchTopicBrief(key, topicName) {
   if (!tb || !tbt) return;
   tb.classList.add('is-hidden');
   tbt.innerHTML = '';
+
+  // v4.38.5 — cache hit renders instantly without an API call
+  const cachedText = _aiCacheGet('topicBrief', topicName);
+  if (cachedText) {
+    tbt.innerHTML = escHtml(cachedText).replace(/\n/g, '<br>');
+    tb.classList.remove('is-hidden');
+    return;
+  }
+
+  // v4.38.5 — inject ground-truth port/OSI facts so briefs can't hallucinate
+  const gtHint = _buildGtHint(topicName, topicName);
   const prompt = `Give a concise study brief for the CompTIA Network+ N10-009 topic: "${topicName}".
+${gtHint}
 Include:
 - 3-4 key concepts to know (one line each)
 - 2 common exam traps for this topic
@@ -13406,12 +16260,13 @@ Keep it under 120 words. Use plain text, no markdown. Number each section.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) return;
     const data = await res.json();
     const text = data.content?.[0]?.text || '';
     if (text) {
+      _aiCacheSet('topicBrief', topicName, text);
       tbt.innerHTML = escHtml(text).replace(/\n/g, '<br>');
       tb.classList.remove('is-hidden');
     }
@@ -13421,85 +16276,98 @@ Keep it under 120 words. Use plain text, no markdown. Number each section.`;
 // ══════════════════════════════════════════
 // FEATURE 4: PERFORMANCE ANALYTICS DASHBOARD
 // ══════════════════════════════════════════
-function renderAnalytics() {
-  const h = loadHistory();
-  const container = document.getElementById('analytics-content');
-  if (!container) return;
-  if (h.length < 1) {
-    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
-    return;
-  }
 
-  let html = '';
+// ── Analytics sub-renderers (extracted from renderAnalytics) ──
 
-  // ═══════════════════════════════════════════
-  // HERO: Exam Readiness Score + countdown
-  // ═══════════════════════════════════════════
+function _renderAnaNav() {
+  return `<nav class="ana-nav" aria-label="Analytics sections">
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-readiness')?.scrollIntoView({behavior:'smooth',block:'start'})">Readiness</button>
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-trend')?.scrollIntoView({behavior:'smooth',block:'start'})">Trend</button>
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-topics')?.scrollIntoView({behavior:'smooth',block:'start'})">Topics</button>
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-activity')?.scrollIntoView({behavior:'smooth',block:'start'})">Activity</button>
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-drills')?.scrollIntoView({behavior:'smooth',block:'start'})">Drills</button>
+    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-milestones')?.scrollIntoView({behavior:'smooth',block:'start'})">Milestones</button>
+  </nav>`;
+}
+
+function _renderAnaReadiness(h) {
   const readiness = getReadinessScore();
   const examDateStr = getExamDate();
   const daysToExam = getDaysToExam();
   const forecast = getReadinessForecast();
 
-  if (readiness) {
-    const { predicted, domainAccuracy } = readiness;
-    let tier, tierColor, tierBg;
-    if (predicted >= 720)      { tier = '🟢 Exam Ready';   tierColor = 'var(--green)';  tierBg = 'rgba(34,197,94,.12)'; }
-    else if (predicted >= 650) { tier = '🟠 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.12)'; }
-    else if (predicted >= 500) { tier = '🟡 Building';     tierColor = 'var(--yellow)'; tierBg = 'rgba(251,191,36,.12)'; }
-    else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
-    const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
+  // All-Time Stats (merged into hero in v4.32)
+  const totalQ = h.reduce((a,e) => a + e.total, 0);
+  const totalCorrect = h.reduce((a,e) => a + e.score, 0);
+  const studyDays = new Set(h.map(e => new Date(e.date).toISOString().slice(0,10))).size;
 
-    let countdown = '';
-    if (daysToExam !== null && daysToExam >= 0) {
-      const emoji = daysToExam === 0 ? '🔥' : daysToExam <= 7 ? '⏰' : daysToExam <= 30 ? '📅' : '🗓️';
-      countdown = `<div class="ana-ready-countdown">${emoji} <strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'} to exam</div>`;
-    } else if (daysToExam !== null && daysToExam < 0) {
-      countdown = `<div class="ana-ready-countdown">✅ Exam was ${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</div>`;
-    }
+  if (!readiness) return '';
 
-    // Domain bar breakdown
-    const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
-      const pct = Math.round(domainAccuracy[d] || 0);
-      const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : pct > 0 ? 'var(--red)' : 'var(--surface3)';
-      const label = DOMAIN_LABELS[d];
-      return `<div class="ana-domain-row">
-        <div class="ana-domain-name">${label}</div>
-        <div class="ana-domain-weight">${Math.round(w * 100)}%</div>
-        <div class="ana-domain-bar"><div class="ana-domain-fill" style="width:${pct}%;background:${color}"></div></div>
-        <div class="ana-domain-pct" style="color:${color}">${pct > 0 ? pct + '%' : '—'}</div>
-      </div>`;
-    }).join('');
+  const { predicted, domainAccuracy } = readiness;
+  let tier, tierColor, tierBg;
+  if (predicted >= 720)      { tier = '🟢 Exam Ready';   tierColor = 'var(--green)';  tierBg = 'rgba(34,197,94,.12)'; }
+  else if (predicted >= 650) { tier = '🟠 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.12)'; }
+  else if (predicted >= 500) { tier = '🟡 Building';     tierColor = 'var(--yellow)'; tierBg = 'rgba(251,191,36,.12)'; }
+  else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
+  const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
 
-    html += `<div class="ana-card ana-ready-hero">
-      <div class="ana-ready-top">
-        <div>
-          <h3 style="margin:0">EXAM READINESS</h3>
-          <div class="ana-subtitle">CompTIA-domain-weighted · 720 = pass</div>
-        </div>
-        <div class="ana-ready-num" style="color:${tierColor}">${predicted}</div>
-      </div>
-      <div class="ana-ready-badge" style="background:${tierBg};color:${tierColor}">${tier}</div>
-      <div class="ana-ready-bar"><div class="ana-ready-bar-fill" style="width:${barPct}%;background:${tierColor}"></div></div>
-      ${countdown}
-      <div class="ana-domain-breakdown">
-        <div class="ana-domain-header">CompTIA domain breakdown</div>
-        ${domainBars}
-      </div>
-      <div class="ana-exam-date-row">
-        <label for="ana-exam-date-input" class="ana-exam-date-lbl">🎯 Your exam date:</label>
-        <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="Open date picker">
-          <span class="ana-exam-date-display">${examDateStr ? new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}</span>
-          <span class="ana-exam-date-icon">📅</span>
-          <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
-        </button>
-        ${examDateStr ? '<button class="ana-exam-date-clear" onclick="updateExamDate(\'\')" aria-label="Clear exam date">Clear</button>' : ''}
-      </div>
-    </div>`;
+  let countdown = '';
+  if (daysToExam !== null && daysToExam >= 0) {
+    const emoji = daysToExam === 0 ? '🔥' : daysToExam <= 7 ? '⏰' : daysToExam <= 30 ? '📅' : '🗓️';
+    countdown = `<div class="ana-ready-countdown">${emoji} <strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'} to exam</div>`;
+  } else if (daysToExam !== null && daysToExam < 0) {
+    countdown = `<div class="ana-ready-countdown">✅ Exam was ${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</div>`;
   }
 
-  // 1. Accuracy Trend (last 20 sessions)
+  // Domain bar breakdown
+  const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
+    const pct = Math.round(domainAccuracy[d] || 0);
+    const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : pct > 0 ? 'var(--red)' : 'var(--surface3)';
+    const label = DOMAIN_LABELS[d];
+    return `<div class="ana-domain-row">
+      <div class="ana-domain-name">${label}</div>
+      <div class="ana-domain-weight">${Math.round(w * 100)}%</div>
+      <div class="ana-domain-bar"><div class="ana-domain-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="ana-domain-pct" style="color:${color}">${pct > 0 ? pct + '%' : '—'}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="ana-card ana-ready-hero" id="ana-s-readiness">
+    <div class="ana-ready-top">
+      <div>
+        <h3 style="margin:0">EXAM READINESS</h3>
+        <div class="ana-subtitle">CompTIA-domain-weighted · 720 = pass</div>
+      </div>
+      <div class="ana-ready-num" style="color:${tierColor}">${predicted}</div>
+    </div>
+    <div class="ana-ready-badge" style="background:${tierBg};color:${tierColor}">${tier}</div>
+    <div class="ana-ready-bar"><div class="ana-ready-bar-fill" style="width:${barPct}%;background:${tierColor}"></div></div>
+    ${countdown}
+    <div class="ana-domain-breakdown">
+      <div class="ana-domain-header">CompTIA domain breakdown</div>
+      ${domainBars}
+    </div>
+    <div class="ana-hero-stats">
+      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${h.length}</div><div class="ana-hero-stat-lbl">Sessions</div></div>
+      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${totalQ.toLocaleString()}</div><div class="ana-hero-stat-lbl">Questions</div></div>
+      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${totalQ > 0 ? Math.round(totalCorrect/totalQ*100) : 0}%</div><div class="ana-hero-stat-lbl">Accuracy</div></div>
+      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${studyDays}</div><div class="ana-hero-stat-lbl">Study Days</div></div>
+    </div>
+    <div class="ana-exam-date-row">
+      <label for="ana-exam-date-input" class="ana-exam-date-lbl">🎯 Your exam date:</label>
+      <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="Open date picker">
+        <span class="ana-exam-date-display">${examDateStr ? new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}</span>
+        <span class="ana-exam-date-icon">📅</span>
+        <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+      </button>
+      ${examDateStr ? '<button class="ana-exam-date-clear" onclick="updateExamDate(\'\')" aria-label="Clear exam date">Clear</button>' : ''}
+    </div>
+  </div>`;
+}
+
+function _renderAnaTrend(h) {
   const recent = h.slice(0, 20).reverse();
-  html += `<div class="ana-card">
+  return `<div class="ana-card" id="ana-s-trend">
     <h3>ACCURACY TREND</h3>
     <div class="ana-subtitle">Last ${recent.length} sessions</div>
     <div class="ana-chart">
@@ -13507,7 +16375,7 @@ function renderAnalytics() {
       <div class="ana-chart-line" style="bottom:60%"><span class="ana-chart-lbl">60%</span></div>
       <div class="ana-chart-bars">
         ${recent.map((e, i) => {
-          const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+          const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--blue)' : 'var(--red)';
           const day = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
           return `<div class="ana-bar-wrap">
             <div class="ana-bar" style="height:${e.pct}%;background:${color};animation-delay:${i * 0.05}s">
@@ -13519,8 +16387,9 @@ function renderAnalytics() {
     </div>
     <div class="ana-avg">Average: <strong>${Math.round(h.reduce((a,e)=>a+e.pct,0)/h.length)}%</strong></div>
   </div>`;
+}
 
-  // 2. Difficulty Breakdown
+function _renderAnaDifficulty(h) {
   const diffs = {};
   h.forEach(e => {
     const d = e.difficulty || e.diff || DEFAULT_DIFF;
@@ -13528,12 +16397,12 @@ function renderAnalytics() {
     diffs[d].correct += e.score;
     diffs[d].total += e.total;
   });
-  html += `<div class="ana-card">
+  return `<div class="ana-card">
     <h3>DIFFICULTY BREAKDOWN</h3>
     <div class="ana-diff-grid">
       ${Object.entries(diffs).map(([d, v], idx) => {
         const pct = v.total > 0 ? Math.round(v.correct / v.total * 100) : 0;
-        const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
+        const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : 'var(--red)';
         return `<div class="ana-diff-item">
           <div class="ana-diff-name">${escHtml(d)}</div>
           <div class="ana-diff-bar"><div class="ana-diff-fill" style="width:${pct}%;background:${color};animation-delay:${idx * 0.15}s"></div></div>
@@ -13543,8 +16412,9 @@ function renderAnalytics() {
       }).join('')}
     </div>
   </div>`;
+}
 
-  // 3. Topic Mastery with Trends
+function _renderAnaTopics(h) {
   const topicStats = {};
   h.forEach(e => {
     if (!topicStats[e.topic]) topicStats[e.topic] = [];
@@ -13555,12 +16425,28 @@ function renderAnalytics() {
     const trend = pcts.length >= 2 ? pcts[0] - pcts[pcts.length - 1] : 0; // recent - oldest (reversed order in h)
     return { topic: t, avg, trend, sessions: pcts.length };
   }).sort((a,b) => a.avg - b.avg);
-  html += `<div class="ana-card">
+  const weakTopics = topicArr.filter(t => t.avg < 70);
+  const strongTopics = topicArr.filter(t => t.avg >= 70);
+  return `<div class="ana-card" id="ana-s-topics">
     <h3>TOPIC MASTERY</h3>
     <div class="ana-subtitle">${topicArr.length} topics studied</div>
+    ${weakTopics.length > 0 ? `<div class="ana-topic-alert">
+      <div class="ana-topic-alert-head">\u26a0\ufe0f ${weakTopics.length} topic${weakTopics.length > 1 ? 's' : ''} below 70% — tap to drill</div>
+      ${weakTopics.map((t, idx) => {
+        const color = t.avg >= 60 ? 'var(--blue)' : 'var(--red)';
+        const safeT = escHtml(t.topic).replace(/'/g, "\\'");
+        return `<div class="ana-topic-row ana-topic-row-weak ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
+          <div class="ana-topic-name">${escHtml(t.topic)}</div>
+          <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color};animation-delay:${idx * 0.06}s"></div></div>
+          <div class="ana-topic-pct" style="color:${color}">${t.avg}%</div>
+          <div class="ana-topic-trend" style="color:${t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)'}" title="Trend">${t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192'}</div>
+          <div class="ana-topic-sessions">${t.sessions}x</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
     <div class="ana-topics">
-      ${topicArr.map((t, idx) => {
-        const color = t.avg >= 80 ? 'var(--green)' : t.avg >= 60 ? 'var(--yellow)' : 'var(--red)';
+      ${strongTopics.map((t, idx) => {
+        const color = t.avg >= 80 ? 'var(--green)' : 'var(--yellow)';
         const trendIcon = t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192';
         const trendColor = t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)';
         const safeT = escHtml(t.topic).replace(/'/g, "\\'");
@@ -13574,8 +16460,9 @@ function renderAnalytics() {
       }).join('')}
     </div>
   </div>`;
+}
 
-  // 4. Study Activity Calendar (last 30 days) — tracks questions answered, not sessions
+function _renderAnaActivity(h) {
   const today = new Date();
   const dayMap = {};
   h.forEach(e => {
@@ -13591,7 +16478,7 @@ function renderAnalytics() {
   }
   const maxCount = Math.max(...days.map(d => d.count), 1);
   const totalQ30 = days.reduce((a, d) => a + d.count, 0);
-  html += `<div class="ana-card">
+  return `<div class="ana-card" id="ana-s-activity">
     <h3>STUDY ACTIVITY</h3>
     <div class="ana-subtitle">Last 30 days \u2014 ${totalQ30} questions answered</div>
     <div class="ana-calendar">
@@ -13616,92 +16503,37 @@ function renderAnalytics() {
       <span>More</span>
     </div>
   </div>`;
+}
 
-  // 5. Exam Score History
+function _renderAnaExams(h) {
   const exams = h.filter(e => e.mode === 'exam');
-  if (exams.length > 0) {
-    html += `<div class="ana-card">
-      <h3>EXAM SCORE HISTORY</h3>
-      <div class="ana-exams">
-        ${exams.map(e => {
-          const scaled = Math.round(100 + (e.score / e.total) * 800);
-          const pass = scaled >= 720;
-          const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
-          return `<div class="ana-exam-row">
-            <div class="ana-exam-score" style="color:${pass ? 'var(--green)' : 'var(--red)'}">${scaled}</div>
-            <div class="ana-exam-badge" style="background:${pass ? 'rgba(var(--green-rgb),.1)' : 'rgba(var(--red-rgb),.1)'};color:${pass ? 'var(--green)' : 'var(--red)'}">${pass ? 'PASS' : 'FAIL'}</div>
-            <div class="ana-exam-details">${e.score}/${e.total} correct (${e.pct}%)</div>
-            <div class="ana-exam-date">${date}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }
-
-  // 6. Priority Study Areas
-  const weak = topicArr.filter(t => t.avg < 70).slice(0, 5);
-  if (weak.length > 0) {
-    html += `<div class="ana-card ana-priority">
-      <h3>\u26a0\ufe0f PRIORITY STUDY AREAS</h3>
-      <div class="ana-subtitle">Topics below 70% accuracy</div>
-      <div class="ana-priority-list">
-        ${weak.map((t, i) => {
-          const safeT = escHtml(t.topic).replace(/'/g, "\\'");
-          return `<div class="ana-priority-item ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
-            <span class="ana-priority-rank">${i+1}</span>
-            <span class="ana-priority-name">${escHtml(t.topic)}</span>
-            <span class="ana-priority-pct" style="color:${t.avg >= 60 ? 'var(--yellow)' : 'var(--red)'}">${t.avg}%</span>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }
-
-  // 7. Weekly Volume Chart — questions answered per week
-  const weeks = [0,0,0,0];
-  const weekLabels = ['This Week','Last Week','2 Weeks Ago','3 Weeks Ago'];
-  h.forEach(e => {
-    const daysAgo = Math.floor((today - new Date(e.date)) / 86400000);
-    const weekIdx = Math.floor(daysAgo / 7);
-    if (weekIdx < 4) weeks[weekIdx] += (e.total || 0);
-  });
-  const maxWeek = Math.max(...weeks, 1);
-  html += `<div class="ana-card">
-    <h3>WEEKLY VOLUME</h3>
-    <div class="ana-subtitle">Questions answered per week</div>
-    <div class="ana-weekly">
-      ${weeks.map((w, i) => `<div class="ana-week-row">
-        <span class="ana-week-label">${weekLabels[i]}</span>
-        <div class="ana-week-bar"><div class="ana-week-fill" style="width:${(w/maxWeek)*100}%"></div></div>
-        <span class="ana-week-count">${w}</span>
-      </div>`).join('')}
+  if (exams.length === 0) return '';
+  return `<div class="ana-card">
+    <h3>EXAM SCORE HISTORY</h3>
+    <div class="ana-exams">
+      ${exams.map(e => {
+        const scaled = Math.round(100 + (e.score / e.total) * 800);
+        const pass = scaled >= 720;
+        const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+        return `<div class="ana-exam-row">
+          <div class="ana-exam-score" style="color:${pass ? 'var(--green)' : 'var(--red)'}">${scaled}</div>
+          <div class="ana-exam-badge" style="background:${pass ? 'rgba(var(--green-rgb),.1)' : 'rgba(var(--red-rgb),.1)'};color:${pass ? 'var(--green)' : 'var(--red)'}">${pass ? 'PASS' : 'FAIL'}</div>
+          <div class="ana-exam-details">${e.score}/${e.total} correct (${e.pct}%)</div>
+          <div class="ana-exam-date">${date}</div>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
+}
 
-  // 8. Summary Stats
-  const totalQ = h.reduce((a,e) => a + e.total, 0);
-  const totalCorrect = h.reduce((a,e) => a + e.score, 0);
-  const studyDays = new Set(h.map(e => new Date(e.date).toISOString().slice(0,10))).size;
-  html += `<div class="ana-card">
-    <h3>ALL-TIME STATS</h3>
-    <div class="ana-alltime">
-      <div class="ana-stat"><div class="ana-stat-val">${h.length}</div><div class="ana-stat-lbl">Sessions</div></div>
-      <div class="ana-stat"><div class="ana-stat-val">${totalQ.toLocaleString()}</div><div class="ana-stat-lbl">Questions</div></div>
-      <div class="ana-stat"><div class="ana-stat-val">${totalQ > 0 ? Math.round(totalCorrect/totalQ*100) : 0}%</div><div class="ana-stat-lbl">Overall Accuracy</div></div>
-      <div class="ana-stat"><div class="ana-stat-val">${studyDays}</div><div class="ana-stat-lbl">Study Days</div></div>
-    </div>
-  </div>`;
-
-  // ═══════════════════════════════════════════
-  // 9. Streak tracker — consecutive study days
-  // ═══════════════════════════════════════════
+function _renderAnaStreak() {
   const streak = getStreakData();
   const flameIcon = streak.currentStreak > 0 ? '🔥' : '💤';
   const streakMsg = streak.currentStreak === 0
     ? 'Study today to start a new streak'
     : streak.currentStreak === 1 ? 'First day — keep it going tomorrow!'
     : `${streak.currentStreak} days in a row`;
-  html += `<div class="ana-card">
+  return `<div class="ana-card">
     <h3>STUDY STREAK</h3>
     <div class="ana-streak-grid">
       <div class="ana-streak-big">
@@ -13716,29 +16548,26 @@ function renderAnalytics() {
       </div>
     </div>
   </div>`;
+}
 
-  // ═══════════════════════════════════════════
-  // 11. Subtopic weak spots (wrong-bank keyword mining)
-  // ═══════════════════════════════════════════
+function _renderAnaWeakSpots() {
   const weakSpots = mineSubtopicWeakSpots(8);
-  if (weakSpots.length > 0) {
-    const maxCount = weakSpots[0].count;
-    html += `<div class="ana-card">
-      <h3>SUBTOPIC WEAK SPOTS</h3>
-      <div class="ana-subtitle">Keywords appearing most in your wrong bank</div>
-      <div class="ana-weak-list">
-        ${weakSpots.map(w => `<div class="ana-weak-row">
-          <div class="ana-weak-kw">${escHtml(w.keyword)}</div>
-          <div class="ana-weak-bar"><div class="ana-weak-fill" style="width:${(w.count / maxCount) * 100}%"></div></div>
-          <div class="ana-weak-count">${w.count}x</div>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }
+  if (weakSpots.length === 0) return '';
+  const maxCount = weakSpots[0].count;
+  return `<div class="ana-card">
+    <h3>SUBTOPIC WEAK SPOTS</h3>
+    <div class="ana-subtitle">Keywords appearing most in your wrong bank</div>
+    <div class="ana-weak-list">
+      ${weakSpots.map(w => `<div class="ana-weak-row">
+        <div class="ana-weak-kw">${escHtml(w.keyword)}</div>
+        <div class="ana-weak-bar"><div class="ana-weak-fill" style="width:${(w.count / maxCount) * 100}%"></div></div>
+        <div class="ana-weak-count">${w.count}x</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
 
-  // ═══════════════════════════════════════════
-  // 12. Difficulty × Topic heatmap (where are the real leaks)
-  // ═══════════════════════════════════════════
+function _renderAnaHeatmap(h) {
   const diffTopic = {}; // { topic: { Foundational: {c,t}, 'Exam Level': {c,t}, ... } }
   const diffLevels = new Set();
   h.forEach(e => {
@@ -13752,141 +16581,177 @@ function renderAnalytics() {
   });
   const diffLevelArr = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Mixed'].filter(d => diffLevels.has(d));
   const heatTopics = Object.keys(diffTopic).sort();
-  if (heatTopics.length > 0 && diffLevelArr.length > 0) {
-    html += `<div class="ana-card">
-      <h3>DIFFICULTY × TOPIC HEATMAP</h3>
-      <div class="ana-subtitle">Find where strong topics break down at harder difficulty</div>
-      <div class="ana-heatmap">
-        <div class="ana-heat-head">
-          <div class="ana-heat-h-topic">Topic</div>
-          ${diffLevelArr.map(d => `<div class="ana-heat-h-diff">${d.replace(' / Tricky', '')}</div>`).join('')}
-        </div>
-        ${heatTopics.map(t => {
-          return `<div class="ana-heat-row">
-            <div class="ana-heat-topic">${escHtml(t)}</div>
-            ${diffLevelArr.map(d => {
-              const v = diffTopic[t][d];
-              if (!v || v.t === 0) return `<div class="ana-heat-cell ana-heat-empty">—</div>`;
-              const pct = Math.round((v.c / v.t) * 100);
-              const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
-              return `<div class="ana-heat-cell" style="color:${color};background:${color.replace('var(','rgba(').replace(')', ', 0.12)')}" title="${v.c}/${v.t} correct">${pct}%</div>`;
-            }).join('')}
-          </div>`;
-        }).join('')}
+  if (heatTopics.length === 0 || diffLevelArr.length === 0) return '';
+  return `<div class="ana-card">
+    <h3>DIFFICULTY × TOPIC HEATMAP</h3>
+    <div class="ana-subtitle">Find where strong topics break down at harder difficulty</div>
+    <div class="ana-heatmap">
+      <div class="ana-heat-head">
+        <div class="ana-heat-h-topic">Topic</div>
+        ${diffLevelArr.map(d => `<div class="ana-heat-h-diff">${d.replace(' / Tricky', '')}</div>`).join('')}
       </div>
-    </div>`;
-  }
+      ${heatTopics.map(t => {
+        return `<div class="ana-heat-row">
+          <div class="ana-heat-topic">${escHtml(t)}</div>
+          ${diffLevelArr.map(d => {
+            const v = diffTopic[t][d];
+            if (!v || v.t === 0) return `<div class="ana-heat-cell ana-heat-empty">—</div>`;
+            const pct = Math.round((v.c / v.t) * 100);
+            const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : 'var(--red)';
+            return `<div class="ana-heat-cell" style="color:${color};background:${color.replace('var(','rgba(').replace(')', ', 0.12)')}" title="${v.c}/${v.t} correct">${pct}%</div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
 
-  // ═══════════════════════════════════════════
-  // 13. MCQ vs PBQ performance breakdown
-  // ═══════════════════════════════════════════
+function _renderAnaQuestionTypes() {
   const typeStats = getTypeStats();
   const typeEntries = Object.entries(typeStats).filter(([, v]) => v.seen > 0);
-  if (typeEntries.length > 0) {
-    const typeLabels = { 'mcq': 'MCQ', 'multi-select': 'Multi-select', 'order': 'Order / Sequence', 'topology': 'Topology PBQ', 'cli-sim': 'CLI Simulation' };
-    typeEntries.sort((a, b) => b[1].seen - a[1].seen);
-    html += `<div class="ana-card">
-      <h3>QUESTION TYPE BREAKDOWN</h3>
-      <div class="ana-subtitle">Accuracy by MCQ vs performance-based question types</div>
-      <div class="ana-type-list">
-        ${typeEntries.map(([t, v]) => {
-          const pct = Math.round((v.correct / v.seen) * 100);
-          const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)';
-          const label = typeLabels[t] || t;
-          return `<div class="ana-type-row">
-            <div class="ana-type-name">${escHtml(label)}</div>
-            <div class="ana-type-bar"><div class="ana-type-fill" style="width:${pct}%;background:${color}"></div></div>
-            <div class="ana-type-pct" style="color:${color}">${pct}%</div>
-            <div class="ana-type-count">${v.correct}/${v.seen}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }
+  if (typeEntries.length === 0) return '';
+  const typeLabels = { 'mcq': 'MCQ', 'multi-select': 'Multi-select', 'order': 'Order / Sequence', 'topology': 'Topology PBQ', 'cli-sim': 'CLI Simulation' };
+  typeEntries.sort((a, b) => b[1].seen - a[1].seen);
+  return `<div class="ana-card">
+    <h3>QUESTION TYPE BREAKDOWN</h3>
+    <div class="ana-subtitle">Accuracy by MCQ vs performance-based question types</div>
+    <div class="ana-type-list">
+      ${typeEntries.map(([t, v]) => {
+        const pct = Math.round((v.correct / v.seen) * 100);
+        const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : 'var(--red)';
+        const label = typeLabels[t] || t;
+        return `<div class="ana-type-row">
+          <div class="ana-type-name">${escHtml(label)}</div>
+          <div class="ana-type-bar"><div class="ana-type-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="ana-type-pct" style="color:${color}">${pct}%</div>
+          <div class="ana-type-count">${v.correct}/${v.seen}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
 
-  // ═══════════════════════════════════════════
-  // 14. Exam-mode vs Quiz-mode comparison
-  // ═══════════════════════════════════════════
+function _renderAnaExamVsQuiz(h) {
   const quizEntries = h.filter(e => e.mode !== 'exam' && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
   const examEntries = h.filter(e => e.mode === 'exam');
-  if (quizEntries.length >= 2 && examEntries.length >= 1) {
-    const quizAvg = Math.round(quizEntries.reduce((a, e) => a + e.pct, 0) / quizEntries.length);
-    const examAvg = Math.round(examEntries.reduce((a, e) => a + e.pct, 0) / examEntries.length);
-    const delta = quizAvg - examAvg;
-    let insight, insightColor;
-    if (Math.abs(delta) <= 3)      { insight = 'Consistent performance across modes — good sign.'; insightColor = 'var(--green)'; }
-    else if (delta > 3)            { insight = `Quiz avg beats exam avg by ${delta} points — timed pressure is costing you. Practice more exam simulations.`; insightColor = 'var(--yellow)'; }
-    else                           { insight = `Exam avg beats quiz avg by ${Math.abs(delta)} points — you rise to the occasion.`; insightColor = 'var(--green)'; }
-    html += `<div class="ana-card">
-      <h3>EXAM vs QUIZ MODE</h3>
-      <div class="ana-subtitle">Does timed pressure hurt your performance?</div>
-      <div class="ana-mode-compare">
-        <div class="ana-mode-item">
-          <div class="ana-mode-val" style="color:var(--accent-light)">${quizAvg}%</div>
-          <div class="ana-mode-lbl">Quiz avg</div>
-          <div class="ana-mode-n">${quizEntries.length} sessions</div>
-        </div>
-        <div class="ana-mode-divider">vs</div>
-        <div class="ana-mode-item">
-          <div class="ana-mode-val" style="color:var(--accent-light)">${examAvg}%</div>
-          <div class="ana-mode-lbl">Exam avg</div>
-          <div class="ana-mode-n">${examEntries.length} sessions</div>
-        </div>
+  if (quizEntries.length < 2 || examEntries.length < 1) return '';
+  const quizAvg = Math.round(quizEntries.reduce((a, e) => a + e.pct, 0) / quizEntries.length);
+  const examAvg = Math.round(examEntries.reduce((a, e) => a + e.pct, 0) / examEntries.length);
+  const delta = quizAvg - examAvg;
+  let insight, insightColor;
+  if (Math.abs(delta) <= 3)      { insight = 'Consistent performance across modes — good sign.'; insightColor = 'var(--green)'; }
+  else if (delta > 3)            { insight = `Quiz avg beats exam avg by ${delta} points — timed pressure is costing you. Practice more exam simulations.`; insightColor = 'var(--yellow)'; }
+  else                           { insight = `Exam avg beats quiz avg by ${Math.abs(delta)} points — you rise to the occasion.`; insightColor = 'var(--green)'; }
+  return `<div class="ana-card">
+    <h3>EXAM vs QUIZ MODE</h3>
+    <div class="ana-subtitle">Does timed pressure hurt your performance?</div>
+    <div class="ana-mode-compare">
+      <div class="ana-mode-item">
+        <div class="ana-mode-val" style="color:var(--accent-light)">${quizAvg}%</div>
+        <div class="ana-mode-lbl">Quiz avg</div>
+        <div class="ana-mode-n">${quizEntries.length} sessions</div>
       </div>
-      <div class="ana-mode-insight" style="color:${insightColor}">${insight}</div>
-    </div>`;
-  }
+      <div class="ana-mode-divider">vs</div>
+      <div class="ana-mode-item">
+        <div class="ana-mode-val" style="color:var(--accent-light)">${examAvg}%</div>
+        <div class="ana-mode-lbl">Exam avg</div>
+        <div class="ana-mode-n">${examEntries.length} sessions</div>
+      </div>
+    </div>
+    <div class="ana-mode-insight" style="color:${insightColor}">${insight}</div>
+  </div>`;
+}
 
-  // ═══════════════════════════════════════════
-  // 15. Drill integration — Port Drill + Subnet Drill stats
-  // ═══════════════════════════════════════════
+function _renderAnaDrills() {
   const portSummary = (typeof getPortStatsSummary === 'function') ? getPortStatsSummary() : null;
   const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
   const portStreakBest = parseInt(localStorage.getItem(STORAGE.PORT_STREAK_BEST) || '0');
   const subnetStatsData = getSubnetStats();
   const hasPort = portSummary && portSummary.totalSeen > 0;
   const hasSubnet = subnetStatsData.seen > 0;
-  if (hasPort || hasSubnet || portBest > 0 || portStreakBest > 0) {
-    html += `<div class="ana-card">
-      <h3>PRACTICE DRILLS</h3>
-      <div class="ana-subtitle">Port Drill and Subnet Drill progress</div>
-      <div class="ana-drills-grid">`;
-    if (hasPort || portBest > 0 || portStreakBest > 0) {
-      const accPct = hasPort ? Math.round(portSummary.overallAccuracy * 100) : 0;
-      const accColor = accPct >= 80 ? 'var(--green)' : accPct >= 60 ? 'var(--yellow)' : 'var(--red)';
-      html += `<div class="ana-drill-card">
-        <div class="ana-drill-title">🔌 Port Drill</div>
-        <div class="ana-drill-stats">
-          <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Timed best</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val">${portStreakBest}</div><div class="ana-drill-lbl">Endless streak</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${accColor}">${accPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.uniqueSeen : 0}/${hasPort ? portSummary.totalPorts : 40}</div><div class="ana-drill-lbl">Ports seen</div></div>
-        </div>
-      </div>`;
-    }
-    if (hasSubnet) {
-      const subnetPct = Math.round((subnetStatsData.correct / subnetStatsData.seen) * 100);
-      const subColor = subnetPct >= 80 ? 'var(--green)' : subnetPct >= 60 ? 'var(--yellow)' : 'var(--red)';
-      html += `<div class="ana-drill-card">
-        <div class="ana-drill-title">🧮 Subnet Drill</div>
-        <div class="ana-drill-stats">
-          <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${subColor}">${subnetPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.correct}</div><div class="ana-drill-lbl">Correct</div></div>
-          <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.seen}</div><div class="ana-drill-lbl">Attempts</div></div>
-        </div>
-      </div>`;
-    }
-    html += `</div></div>`;
+  if (!hasPort && !hasSubnet && portBest <= 0 && portStreakBest <= 0) return '';
+  let html = `<div class="ana-card" id="ana-s-drills">
+    <h3>PRACTICE DRILLS</h3>
+    <div class="ana-subtitle">Port Drill and Subnet Drill progress</div>
+    <div class="ana-drills-grid">`;
+  if (hasPort || portBest > 0 || portStreakBest > 0) {
+    const accPct = hasPort ? Math.round(portSummary.overallAccuracy * 100) : 0;
+    const accColor = accPct >= 80 ? 'var(--green)' : accPct >= 60 ? 'var(--blue)' : 'var(--red)';
+    html += `<div class="ana-drill-card">
+      <div class="ana-drill-title">🔌 Port Drill</div>
+      <div class="ana-drill-stats">
+        <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Timed best</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${portStreakBest}</div><div class="ana-drill-lbl">Endless streak</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${accColor}">${accPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.uniqueSeen : 0}/${hasPort ? portSummary.totalPorts : 40}</div><div class="ana-drill-lbl">Ports seen</div></div>
+      </div>
+    </div>`;
   }
+  if (hasSubnet) {
+    const subnetPct = Math.round((subnetStatsData.correct / subnetStatsData.seen) * 100);
+    const subColor = subnetPct >= 80 ? 'var(--green)' : subnetPct >= 60 ? 'var(--blue)' : 'var(--red)';
+    html += `<div class="ana-drill-card">
+      <div class="ana-drill-title">🧮 Subnet Drill</div>
+      <div class="ana-drill-stats">
+        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${subColor}">${subnetPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.correct}</div><div class="ana-drill-lbl">Correct</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.seen}</div><div class="ana-drill-lbl">Attempts</div></div>
+      </div>
+    </div>`;
+  }
+  // Acronym Blitz drill card
+  const abMData = (typeof getAbMastery === 'function') ? getAbMastery() : null;
+  if (abMData && abMData.totalAnswered > 0) {
+    const abAcc = Math.round(abMData.totalCorrect / abMData.totalAnswered * 100);
+    const abColor = abAcc >= 80 ? 'var(--green)' : abAcc >= 60 ? 'var(--blue)' : 'var(--red)';
+    const abSeen = Object.values(abMData.perItem).filter(p => p.seen > 0).length;
+    html += `<div class="ana-drill-card">
+      <div class="ana-drill-title">💡 Acronym Blitz</div>
+      <div class="ana-drill-stats">
+        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${abColor}">${abAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${abMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${abSeen}/${typeof AB_DATA !== 'undefined' ? AB_DATA.length : '?'}</div><div class="ana-drill-lbl">Seen</div></div>
+      </div>
+    </div>`;
+  }
+  // OSI Sorter drill card
+  const osMData = (typeof getOsMastery === 'function') ? getOsMastery() : null;
+  if (osMData && osMData.totalAnswered > 0) {
+    const osAcc = Math.round(osMData.totalCorrect / osMData.totalAnswered * 100);
+    const osColor = osAcc >= 80 ? 'var(--green)' : osAcc >= 60 ? 'var(--blue)' : 'var(--red)';
+    html += `<div class="ana-drill-card">
+      <div class="ana-drill-title">🌐 OSI Sorter</div>
+      <div class="ana-drill-stats">
+        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${osColor}">${osAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${osMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${osMData.currentLevel}</div><div class="ana-drill-lbl">Level</div></div>
+      </div>
+    </div>`;
+  }
+  // Cable & Connector ID drill card
+  const cbMData = (typeof getCbMastery === 'function') ? getCbMastery() : null;
+  if (cbMData && cbMData.totalAnswered > 0) {
+    const cbAcc = Math.round(cbMData.totalCorrect / cbMData.totalAnswered * 100);
+    const cbColor = cbAcc >= 80 ? 'var(--green)' : cbAcc >= 60 ? 'var(--blue)' : 'var(--red)';
+    html += `<div class="ana-drill-card">
+      <div class="ana-drill-title">🔌 Cable & Connector ID</div>
+      <div class="ana-drill-stats">
+        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${cbColor}">${cbAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${cbMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
+        <div class="ana-drill-stat"><div class="ana-drill-val">${cbMData.currentLevel}</div><div class="ana-drill-lbl">Level</div></div>
+      </div>
+    </div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
 
-  // ═══════════════════════════════════════════
-  // 16. Milestones / achievements
-  // ═══════════════════════════════════════════
+function _renderAnaMilestones() {
   evaluateMilestones(); // unlock any newly-earned milestones on render
   const unlockedMap = getMilestones();
   const totalMilestones = MILESTONE_DEFS.length;
   const unlockedCount = MILESTONE_DEFS.filter(m => unlockedMap[m.id]).length;
-  html += `<div class="ana-card">
+  return `<div class="ana-card" id="ana-s-milestones">
     <h3>MILESTONES</h3>
     <div class="ana-subtitle">${unlockedCount}/${totalMilestones} unlocked</div>
     <div class="ana-milestones">
@@ -13900,7 +16765,37 @@ function renderAnalytics() {
       }).join('')}
     </div>
   </div>`;
+}
 
+// ── Analytics orchestrator ──
+
+function renderAnalytics() {
+  const h = loadHistory();
+  const container = document.getElementById('analytics-content');
+  if (!container) return;
+  if (h.length < 1) {
+    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
+    return;
+  }
+  let html = '';
+  html += _renderAnaNav();
+  html += _renderAnaReadiness(h);
+  html += _renderAnaTrend(h);
+  html += _renderAnaDifficulty(h);
+  html += _renderAnaTopics(h);
+  html += _renderAnaActivity(h);
+  html += _renderAnaExams(h);
+  // 6-8. Removed in v4.32: Priority Study Areas (merged into Topic Mastery),
+  //       Weekly Volume (redundant with calendar), All-Time Stats (merged into hero).
+  html += '<div class="ana-grid-2col">';
+  html += _renderAnaStreak();
+  html += _renderAnaWeakSpots();
+  html += _renderAnaHeatmap(h);
+  html += _renderAnaQuestionTypes();
+  html += _renderAnaExamVsQuiz(h);
+  html += '</div>';
+  html += _renderAnaDrills();
+  html += _renderAnaMilestones();
   container.innerHTML = html;
 }
 
@@ -13910,6 +16805,1487 @@ function updateExamDate(value) {
   renderAnalytics(); // re-render so forecast/countdown update
   renderReadinessCard(); // setup-page card may be affected by coverage/recency thresholds
 }
+
+// ══════════════════════════════════════════
+// SHARED DRILL SCAFFOLD
+// ══════════════════════════════════════════
+// Factory that returns reusable functions for any drill feature.
+// Config shape:
+//   prefix        – DOM id prefix ('ab','os','cb')
+//   storageKey    – STORAGE key for mastery data
+//   lessonsKey    – STORAGE key for lesson progress
+//   lessons       – array of lesson objects
+//   categories    – { catId: { label, icon, color } }
+//   catIds        – ordered array of category keys
+//   categoryField – mastery sub-object name ('perCategory' or 'perLayer')
+//   levelThresholds – [{ min, acc, level }] from hardest to easiest
+//   badgeColor    – CSS color for level badge
+//   initMastery   – fn() → fresh mastery object (with perItem/perCategory populated)
+//   heatmapTitle  – string heading for heatmap
+//   heatmapIter   – fn(catId, catObj) → { borderColor, pctLabel, boxLabel, cellLabel } per cell
+//   dashCatIter   – fn(m) → [{ color, heading, acc, seen, box }]  rows for dashboard
+//   dashHeading   – 'Category Mastery' or 'Layer Mastery'
+//   dashResetLabel– 'Reset all acronym mastery data?' etc.
+//   nextLevelText – fn(level) → string for "Next: …"
+//   gateQuestionHtml – fn(questionObj) → { questionText, opts:[{label,isCorrect}] }
+//   gateStateKey  – window['_abGateState'] key name
+//   endlessContainerId – DOM id of the card to replace on endless end ('ab-q-card')
+//   onPracticeTab – fn() called when practice tab is selected (starts questions)
+//   activeLesson  – { get(), set(id) } accessor for the drill's activeLesson variable
+//   streakVar     – { get(), set(v) } accessor for the drill's streak variable
+
+function createDrillScaffold(cfg) {
+
+  function getMastery() {
+    const raw = JSON.parse(localStorage.getItem(cfg.storageKey) || 'null');
+    if (raw && raw[cfg.categoryField]) return raw;
+    return cfg.initMastery();
+  }
+
+  function saveMastery(m) { try { localStorage.setItem(cfg.storageKey, JSON.stringify(m)); } catch {} }
+
+  function computeLevel(m) {
+    const acc = m.totalAnswered > 0 ? m.totalCorrect / m.totalAnswered : 0;
+    for (const t of cfg.levelThresholds) {
+      if (m.totalAnswered >= t.min && acc >= t.acc) return t.level;
+    }
+    return 'beginner';
+  }
+
+  function renderLevelBadge() {
+    const el = document.getElementById(cfg.prefix + '-level-badge');
+    if (!el) return;
+    const m = getMastery();
+    el.textContent = m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1);
+    el.style.background = typeof cfg.badgeColor === 'object' ? (cfg.badgeColor[m.currentLevel] || '#8b5cf6') : cfg.badgeColor;
+    el.style.color = '#fff';
+  }
+
+  function getLessonProgress() { try { return JSON.parse(localStorage.getItem(cfg.lessonsKey) || '{}'); } catch { return {}; } }
+  function saveLessonProgress(p) { try { localStorage.setItem(cfg.lessonsKey, JSON.stringify(p)); } catch {} }
+  function isLessonUnlocked(lesson) { if (!lesson.prereq) return true; const p = getLessonProgress(); return p[lesson.prereq] && p[lesson.prereq].passed; }
+
+  function renderLessonSidebar() {
+    const el = document.getElementById(cfg.prefix + '-lesson-sidebar');
+    if (!el) return;
+    const progress = getLessonProgress();
+    const openLessonFn = cfg.prefix === 'ab' ? 'abOpenLesson' : cfg.prefix === 'os' ? 'osOpenLesson' : 'cbOpenLesson';
+    el.innerHTML = cfg.lessons.map((l, i) => {
+      const unlocked = isLessonUnlocked(l);
+      const done = progress[l.id] && progress[l.id].passed;
+      const active = cfg.activeLesson.get() === l.id;
+      const icon = done ? '\u2705' : unlocked ? l.icon : '\uD83D\uDD12';
+      const cls = `${cfg.prefix}-lesson-item${active ? ` ${cfg.prefix}-lesson-active` : ''}${!unlocked ? ` ${cfg.prefix}-lesson-locked` : ''}`;
+      return `<button class="${cls}" onclick="${unlocked ? `${openLessonFn}('${l.id}')` : ''}" ${!unlocked ? 'disabled' : ''}>
+        <span class="${cfg.prefix}-lesson-icon">${icon}</span>
+        <span class="${cfg.prefix}-lesson-info"><span class="${cfg.prefix}-lesson-num">Lesson ${i+1}</span><span class="${cfg.prefix}-lesson-title">${escHtml(l.title)}</span></span>
+      </button>`;
+    }).join('');
+  }
+
+  function openLesson(id) {
+    cfg.activeLesson.set(id);
+    renderLessonSidebar();
+    const lesson = cfg.lessons.find(l => l.id === id);
+    if (!lesson) return;
+    const main = document.getElementById(cfg.prefix + '-lesson-main');
+    if (!main) return;
+    let html = `<div class="${cfg.prefix}-lesson-header">`;
+    if (cfg.prefix === 'ab') {
+      html += `<span class="${cfg.prefix}-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="${cfg.prefix}-lesson-desc">${escHtml(lesson.desc)}</p>`;
+    } else {
+      html += `<h3>${lesson.icon} ${escHtml(lesson.title)}</h3><p style="font-size:13px;color:var(--text-mid);margin-top:6px">${escHtml(lesson.desc)}</p>`;
+    }
+    html += `</div>`;
+    html += `<div class="${cfg.prefix}-lesson-theory">`;
+    lesson.theory.forEach(t => { html += `<div class="${cfg.prefix}-theory-block">${t}</div>`; });
+    html += '</div>';
+    html += `<div class="${cfg.prefix}-lesson-gate"><h4>\uD83C\uDFAF Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4><div id="${cfg.prefix}-gate-area"></div></div>`;
+    main.innerHTML = html;
+    cfg.renderGate(lesson);
+  }
+
+  function renderGateResult(area, gs) {
+    if (gs.current < 5) return false;
+    const passed = gs.correct >= 3;
+    const openLessonFn = cfg.prefix === 'ab' ? 'abOpenLesson' : cfg.prefix === 'os' ? 'osOpenLesson' : 'cbOpenLesson';
+    const activeLessonVar = cfg.prefix === 'ab' ? 'abActiveLesson' : cfg.prefix === 'os' ? 'osActiveLesson' : 'cbActiveLesson';
+    area.innerHTML = `<div class="${cfg.prefix}-gate-result ${passed ? cfg.prefix + '-gate-pass' : cfg.prefix + '-gate-fail'}"><div style="font-size:32px;margin-bottom:8px">${passed ? '\uD83C\uDF89' : '\uD83D\uDCAA'}</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">${passed ? 'Lesson Complete!' : 'Keep Practicing'}</div><div style="font-size:14px;color:var(--text-mid)">${gs.correct}/5 correct${passed ? '' : ' \u2014 need 3 to pass'}</div>${!passed ? `<button class="btn btn-ghost" style="margin-top:12px" onclick="${openLessonFn}(${activeLessonVar})">Retry</button>` : ''}</div>`;
+    if (passed) { const p = getLessonProgress(); p[cfg.activeLesson.get()] = { passed: true, date: new Date().toISOString() }; saveLessonProgress(p); renderLessonSidebar(); }
+    return true;
+  }
+
+  function checkGate(btn, isCorrect) {
+    const gs = window[cfg.gateStateKey];
+    if (!gs) return;
+    document.querySelectorAll('.' + cfg.prefix + '-mcq-btn').forEach(b => { b.disabled = true; });
+    if (isCorrect) gs.correct++;
+    gs.current++;
+    const fb = document.getElementById(cfg.prefix + '-gate-fb');
+    if (fb) { fb.innerHTML = isCorrect ? `<div class="${cfg.prefix}-fb-correct" style="margin-top:8px">\u2705 Correct!</div>` : `<div class="${cfg.prefix}-fb-wrong" style="margin-top:8px">\u274c Incorrect</div>`; }
+    const renderGateQFn = cfg.prefix === 'ab' ? abRenderGateQuestion : cfg.prefix === 'os' ? osRenderGateQuestion : cbRenderGateQuestion;
+    setTimeout(() => renderGateQFn(document.getElementById(cfg.prefix + '-gate-area'), gs), 1200);
+  }
+
+  function endEndless() {
+    const container = document.getElementById(cfg.endlessContainerId);
+    const setModeFn = cfg.prefix === 'ab' ? 'setAbMode' : cfg.prefix === 'os' ? 'setOsMode' : 'setCbMode';
+    const streak = cfg.streakVar.get();
+    const inner = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\uD83D\uDCA5</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Streak Ended!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You reached a streak of <strong>${streak}</strong></div><button class="btn btn-primary" onclick="${setModeFn}('endless')">Try Again</button></div>`;
+    if (container) container.innerHTML = cfg.endlessWrapHtml ? cfg.endlessWrapHtml(inner) : inner;
+  }
+
+  function setTab(tabId) {
+    ['learn','practice','dashboard'].forEach(t => {
+      document.getElementById(cfg.prefix + '-tab-btn-' + t)?.classList.toggle(cfg.prefix + '-tab-active', t === tabId);
+      document.getElementById(cfg.prefix + '-tab-' + t)?.classList.toggle('is-hidden', t !== tabId);
+    });
+    if (tabId === 'learn') renderLessonSidebar();
+    if (tabId === 'practice') cfg.onPracticeTab();
+    if (tabId === 'dashboard') renderDashboard();
+  }
+
+  function setMode(mode) {
+    cfg.modeVar.set(mode);
+    document.querySelectorAll('.' + cfg.prefix + '-mode-btn').forEach(b => b.classList.remove(cfg.prefix + '-mode-active'));
+    document.getElementById(cfg.prefix + '-mode-' + mode)?.classList.add(cfg.prefix + '-mode-active');
+    cfg.onModeChanged(mode);
+  }
+
+  function renderHeatmap() {
+    const el = document.getElementById(cfg.prefix + '-heatmap');
+    if (!el) return;
+    const m = getMastery();
+    el.innerHTML = `<div class="${cfg.prefix}-heatmap-title">${cfg.heatmapTitle}</div><div class="${cfg.prefix}-heatmap-grid">` + cfg.heatmapIter(m) + '</div>';
+  }
+
+  function renderDashboard() {
+    const el = document.getElementById(cfg.prefix + '-dashboard-content');
+    if (!el) return;
+    const m = getMastery();
+    const acc = m.totalAnswered > 0 ? Math.round(m.totalCorrect / m.totalAnswered * 100) : 0;
+    const levelPcts = { beginner: 0, intermediate: 33, advanced: 66, expert: 100 };
+    const pct = levelPcts[m.currentLevel] || 0;
+    const nextLevel = cfg.nextLevelText(m.currentLevel);
+    const renderDashFn = cfg.prefix === 'ab' ? 'abRenderDashboard' : cfg.prefix === 'os' ? 'osRenderDashboard' : 'cbRenderDashboard';
+    let html = `<div class="${cfg.prefix}-dash-hero">`;
+    html += `<div class="${cfg.prefix}-dash-level"><div class="${cfg.prefix}-dash-level-title">${m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1)}</div><div class="${cfg.prefix}-dash-level-bar"><div class="${cfg.prefix}-dash-level-fill" style="width:${pct}%"></div></div><div class="${cfg.prefix}-dash-level-next">Next: ${nextLevel}</div></div>`;
+    html += `<div class="${cfg.prefix}-dash-stats"><div class="${cfg.prefix}-dash-stat"><div class="${cfg.prefix}-dash-stat-val">${m.totalAnswered}</div><div class="${cfg.prefix}-dash-stat-label">Questions</div></div><div class="${cfg.prefix}-dash-stat"><div class="${cfg.prefix}-dash-stat-val">${acc}%</div><div class="${cfg.prefix}-dash-stat-label">Accuracy</div></div><div class="${cfg.prefix}-dash-stat"><div class="${cfg.prefix}-dash-stat-val">${m.totalCorrect}</div><div class="${cfg.prefix}-dash-stat-label">Correct</div></div></div>`;
+    html += '</div>';
+    html += `<h3 class="${cfg.prefix}-dash-heading">${cfg.dashHeading}</h3><div class="${cfg.prefix}-dash-cats">`;
+    html += cfg.dashCatIter(m);
+    html += '</div>';
+    html += `<div style="margin-top:24px;text-align:center"><button class="btn btn-ghost" onclick="if(confirm('${cfg.dashResetLabel}')){ localStorage.removeItem(${cfg.storageKeyExpr}); localStorage.removeItem(${cfg.lessonsKeyExpr}); ${renderDashFn}(); }" style="font-size:12px;color:var(--text-dim)">Reset Mastery Data</button></div>`;
+    el.innerHTML = html;
+  }
+
+  return {
+    getMastery, saveMastery, computeLevel, renderLevelBadge,
+    getLessonProgress, saveLessonProgress, isLessonUnlocked,
+    renderLessonSidebar, openLesson, renderGateResult, checkGate,
+    renderHeatmap, renderDashboard, endEndless,
+    setTab, setMode
+  };
+}
+
+// ══════════════════════════════════════════
+// FEATURE: ACRONYM BLITZ (ab-*)
+// ══════════════════════════════════════════
+
+const AB_DATA = [
+  // Core Protocols
+  {abbr:'TCP',full:'Transmission Control Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'TCP = Take Care of Packets (reliable, ordered delivery)'},
+  {abbr:'UDP',full:'User Datagram Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'UDP = Unreliable Delivery Protocol (fast but no guarantees)'},
+  {abbr:'IP',full:'Internet Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'IP = Its Position (addressing on the internet)'},
+  {abbr:'ICMP',full:'Internet Control Message Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'ICMP = I Can Message Problems (ping, traceroute)'},
+  {abbr:'ARP',full:'Address Resolution Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'ARP = Ask Router Please (MAC from IP)'},
+  {abbr:'HTTP',full:'HyperText Transfer Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'HTTP = How To Transfer Pages'},
+  {abbr:'HTTPS',full:'HyperText Transfer Protocol Secure',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'HTTPS = HTTP + Security (TLS encrypted)'},
+  {abbr:'FTP',full:'File Transfer Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'FTP = Files Travel Promptly'},
+  {abbr:'SFTP',full:'SSH File Transfer Protocol',cat:'protocols',obj:'1.5',diff:'medium',mnemonic:'SFTP = Secure Files Through Protection'},
+  {abbr:'TFTP',full:'Trivial File Transfer Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'TFTP = Tiny Files Transfer Protocol (no auth)'},
+  {abbr:'SMTP',full:'Simple Mail Transfer Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'SMTP = Send Mail To People'},
+  {abbr:'IMAP',full:'Internet Message Access Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'IMAP = I Manage All my Postmail (mail stays on server)'},
+  {abbr:'POP3',full:'Post Office Protocol version 3',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'POP3 = Pull Off and Pocket (downloads and deletes)'},
+  {abbr:'DNS',full:'Domain Name System',cat:'protocols',obj:'1.6',diff:'easy',mnemonic:'DNS = Domain Name Solver'},
+  {abbr:'DHCP',full:'Dynamic Host Configuration Protocol',cat:'protocols',obj:'1.6',diff:'easy',mnemonic:'DHCP = Dynamically Hands out Computer Parameters'},
+  {abbr:'NTP',full:'Network Time Protocol',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'NTP = Numbers Tell Precise (time sync)'},
+  {abbr:'SNMP',full:'Simple Network Management Protocol',cat:'protocols',obj:'3.1',diff:'medium',mnemonic:'SNMP = Supervise Network Machines Please'},
+  {abbr:'SSH',full:'Secure Shell',cat:'protocols',obj:'1.5',diff:'easy',mnemonic:'SSH = Securely Speak to Hosts'},
+  {abbr:'TLS',full:'Transport Layer Security',cat:'protocols',obj:'4.3',diff:'medium',mnemonic:'TLS = Traffic Locked Securely'},
+  // Switching
+  {abbr:'STP',full:'Spanning Tree Protocol',cat:'switching',obj:'2.1',diff:'medium',mnemonic:'STP = Stop The (loop) Problem'},
+  {abbr:'RSTP',full:'Rapid Spanning Tree Protocol',cat:'switching',obj:'2.1',diff:'medium',mnemonic:'RSTP = Really Speedy Tree Protocol'},
+  {abbr:'VLAN',full:'Virtual Local Area Network',cat:'switching',obj:'2.3',diff:'easy',mnemonic:'VLAN = Very Logical Area Network (segmentation)'},
+  {abbr:'VTP',full:'VLAN Trunking Protocol',cat:'switching',obj:'2.3',diff:'hard',mnemonic:'VTP = VLANs Travel & Propagate'},
+  {abbr:'DTP',full:'Dynamic Trunking Protocol',cat:'switching',obj:'2.3',diff:'hard',mnemonic:'DTP = Decides Trunk or Port'},
+  {abbr:'LACP',full:'Link Aggregation Control Protocol',cat:'switching',obj:'2.1',diff:'medium',mnemonic:'LACP = Links Are Combined for Performance'},
+  {abbr:'CDP',full:'Cisco Discovery Protocol',cat:'switching',obj:'2.1',diff:'medium',mnemonic:'CDP = Cisco Devices Publish (their info)'},
+  {abbr:'LLDP',full:'Link Layer Discovery Protocol',cat:'switching',obj:'2.1',diff:'medium',mnemonic:'LLDP = Learns about Linked Layer Devices Promptly'},
+  {abbr:'MAC',full:'Media Access Control',cat:'switching',obj:'2.1',diff:'easy',mnemonic:'MAC = Manufacturer Assigns Code (hardware address)'},
+  // Routing
+  {abbr:'OSPF',full:'Open Shortest Path First',cat:'routing',obj:'1.4',diff:'medium',mnemonic:'OSPF = Obviously Selects Path Fastest'},
+  {abbr:'EIGRP',full:'Enhanced Interior Gateway Routing Protocol',cat:'routing',obj:'1.4',diff:'medium',mnemonic:'EIGRP = Enhanced In Getting Routes Promptly'},
+  {abbr:'BGP',full:'Border Gateway Protocol',cat:'routing',obj:'1.4',diff:'medium',mnemonic:'BGP = Big Global Pathfinder (internet routing)'},
+  {abbr:'RIP',full:'Routing Information Protocol',cat:'routing',obj:'1.4',diff:'easy',mnemonic:'RIP = Really Inefficient Protocol (max 15 hops)'},
+  {abbr:'NAT',full:'Network Address Translation',cat:'routing',obj:'1.4',diff:'easy',mnemonic:'NAT = Numbers Are Translated (private to public)'},
+  {abbr:'PAT',full:'Port Address Translation',cat:'routing',obj:'1.4',diff:'medium',mnemonic:'PAT = Ports Also Translated (many-to-one NAT)'},
+  {abbr:'CIDR',full:'Classless Inter-Domain Routing',cat:'routing',obj:'1.4',diff:'medium',mnemonic:'CIDR = Clever IP Dividing Ranges (/24, /16 notation)'},
+  {abbr:'TTL',full:'Time to Live',cat:'routing',obj:'1.5',diff:'easy',mnemonic:'TTL = Timeout Then Leave (hop countdown)'},
+  {abbr:'VLSM',full:'Variable Length Subnet Masking',cat:'routing',obj:'1.4',diff:'hard',mnemonic:'VLSM = Very Logical Subnet Method'},
+  // Addressing
+  {abbr:'IPv4',full:'Internet Protocol version 4',cat:'addressing',obj:'1.4',diff:'easy',mnemonic:'IPv4 = Four octets, four billion addresses'},
+  {abbr:'IPv6',full:'Internet Protocol version 6',cat:'addressing',obj:'1.4',diff:'easy',mnemonic:'IPv6 = Six groups of hex, virtually unlimited'},
+  {abbr:'APIPA',full:'Automatic Private IP Addressing',cat:'addressing',obj:'1.6',diff:'medium',mnemonic:'APIPA = Automatically Picks IPs when DHCP Absent (169.254.x.x)'},
+  {abbr:'SLAAC',full:'Stateless Address Autoconfiguration',cat:'addressing',obj:'1.4',diff:'hard',mnemonic:'SLAAC = Self-Learning Address Auto Config (IPv6)'},
+  {abbr:'EUI-64',full:'Extended Unique Identifier 64-bit',cat:'addressing',obj:'1.4',diff:'hard',mnemonic:'EUI-64 = Embeds Unique Identifier (MAC into IPv6)'},
+  {abbr:'FQDN',full:'Fully Qualified Domain Name',cat:'addressing',obj:'1.6',diff:'medium',mnemonic:'FQDN = Full Qualified Detailed Name (host.domain.tld)'},
+  // Wireless
+  {abbr:'SSID',full:'Service Set Identifier',cat:'wireless',obj:'2.4',diff:'easy',mnemonic:'SSID = See Signal, Identify & Display (WiFi name)'},
+  {abbr:'BSSID',full:'Basic Service Set Identifier',cat:'wireless',obj:'2.4',diff:'medium',mnemonic:'BSSID = Base Station Set ID (AP MAC address)'},
+  {abbr:'WPA',full:'Wi-Fi Protected Access',cat:'wireless',obj:'4.3',diff:'easy',mnemonic:'WPA = WiFi Protection Activated'},
+  {abbr:'WPA2',full:'Wi-Fi Protected Access 2',cat:'wireless',obj:'4.3',diff:'easy',mnemonic:'WPA2 = WPA version 2 with AES'},
+  {abbr:'WPA3',full:'Wi-Fi Protected Access 3',cat:'wireless',obj:'4.3',diff:'medium',mnemonic:'WPA3 = WPA version 3 with SAE'},
+  {abbr:'WEP',full:'Wired Equivalent Privacy',cat:'wireless',obj:'4.3',diff:'easy',mnemonic:'WEP = Weak Encryption Protocol (deprecated!)'},
+  {abbr:'TKIP',full:'Temporal Key Integrity Protocol',cat:'wireless',obj:'4.3',diff:'hard',mnemonic:'TKIP = Temporary Keys Improve Privacy (WPA)'},
+  {abbr:'AES',full:'Advanced Encryption Standard',cat:'wireless',obj:'4.3',diff:'medium',mnemonic:'AES = Always Encrypting Strongly'},
+  {abbr:'SAE',full:'Simultaneous Authentication of Equals',cat:'wireless',obj:'4.3',diff:'hard',mnemonic:'SAE = Securely Authenticate Everyone (WPA3)'},
+  {abbr:'MIMO',full:'Multiple Input Multiple Output',cat:'wireless',obj:'2.4',diff:'medium',mnemonic:'MIMO = Many In, Many Out (antennas)'},
+  {abbr:'MU-MIMO',full:'Multi-User MIMO',cat:'wireless',obj:'2.4',diff:'hard',mnemonic:'MU-MIMO = Multiple Users, Multiple In Multiple Out'},
+  {abbr:'OFDMA',full:'Orthogonal Frequency Division Multiple Access',cat:'wireless',obj:'2.4',diff:'hard',mnemonic:'OFDMA = Organized Frequency Division for Multiple Access (WiFi 6)'},
+  // Security
+  {abbr:'IDS',full:'Intrusion Detection System',cat:'security',obj:'4.1',diff:'easy',mnemonic:'IDS = I Detect Suspicious (activity)'},
+  {abbr:'IPS',full:'Intrusion Prevention System',cat:'security',obj:'4.1',diff:'easy',mnemonic:'IPS = I Prevent & Stop (attacks)'},
+  {abbr:'ACL',full:'Access Control List',cat:'security',obj:'4.3',diff:'easy',mnemonic:'ACL = Allow or Cancel Listings (permit/deny rules)'},
+  {abbr:'AAA',full:'Authentication, Authorization, and Accounting',cat:'security',obj:'4.1',diff:'medium',mnemonic:'AAA = Are you who you say, Are you allowed, And what did you do?'},
+  {abbr:'RADIUS',full:'Remote Authentication Dial-In User Service',cat:'security',obj:'4.1',diff:'medium',mnemonic:'RADIUS = Remote Auth Delivers Integrated User Security'},
+  {abbr:'TACACS+',full:'Terminal Access Controller Access-Control System Plus',cat:'security',obj:'4.1',diff:'medium',mnemonic:'TACACS+ = Terminal Access Control And Command System Plus (Cisco)'},
+  {abbr:'PKI',full:'Public Key Infrastructure',cat:'security',obj:'4.3',diff:'medium',mnemonic:'PKI = Public Keys & Identity (certificates)'},
+  {abbr:'CA',full:'Certificate Authority',cat:'security',obj:'4.3',diff:'medium',mnemonic:'CA = Certifies Authenticity'},
+  {abbr:'MFA',full:'Multi-Factor Authentication',cat:'security',obj:'4.1',diff:'easy',mnemonic:'MFA = Multiple Factors Authenticate (something you know + have + are)'},
+  {abbr:'VPN',full:'Virtual Private Network',cat:'security',obj:'3.3',diff:'easy',mnemonic:'VPN = Very Private Networking'},
+  {abbr:'IPsec',full:'Internet Protocol Security',cat:'security',obj:'3.3',diff:'medium',mnemonic:'IPsec = IP is Secured (tunnel or transport mode)'},
+  {abbr:'DDoS',full:'Distributed Denial of Service',cat:'security',obj:'4.2',diff:'easy',mnemonic:'DDoS = Dozens Destroy Our Service'},
+  {abbr:'SIEM',full:'Security Information and Event Management',cat:'security',obj:'3.1',diff:'hard',mnemonic:'SIEM = See It, Evaluate It, Manage It (central security log)'},
+  {abbr:'ZTNA',full:'Zero Trust Network Access',cat:'security',obj:'4.1',diff:'hard',mnemonic:'ZTNA = Zero Trust, Never Assume'},
+  // Cloud
+  {abbr:'IaaS',full:'Infrastructure as a Service',cat:'cloud',obj:'1.8',diff:'easy',mnemonic:'IaaS = I acquire a Server (VMs in the cloud)'},
+  {abbr:'PaaS',full:'Platform as a Service',cat:'cloud',obj:'1.8',diff:'easy',mnemonic:'PaaS = Platform as a Service (dev platform)'},
+  {abbr:'SaaS',full:'Software as a Service',cat:'cloud',obj:'1.8',diff:'easy',mnemonic:'SaaS = Software as a Service (Gmail, Office 365)'},
+  {abbr:'VPC',full:'Virtual Private Cloud',cat:'cloud',obj:'1.8',diff:'medium',mnemonic:'VPC = Very Private Cloud (isolated network)'},
+  {abbr:'SDN',full:'Software-Defined Networking',cat:'cloud',obj:'1.8',diff:'medium',mnemonic:'SDN = Software Decides Networking (programmable)'},
+  {abbr:'NFV',full:'Network Functions Virtualization',cat:'cloud',obj:'1.8',diff:'hard',mnemonic:'NFV = Network Functions are Virtualized (virtual firewalls, routers)'},
+  {abbr:'SASE',full:'Secure Access Service Edge',cat:'cloud',obj:'4.1',diff:'hard',mnemonic:'SASE = Security And Services at the Edge'},
+  {abbr:'SD-WAN',full:'Software-Defined Wide Area Network',cat:'cloud',obj:'1.8',diff:'medium',mnemonic:'SD-WAN = Software Directs WAN traffic'},
+  // Management
+  {abbr:'SNMP',full:'Simple Network Management Protocol',cat:'management',obj:'3.1',diff:'easy',mnemonic:'SNMP = Supervise Network Machines Please'},
+  {abbr:'MIB',full:'Management Information Base',cat:'management',obj:'3.1',diff:'medium',mnemonic:'MIB = Managed Info Bank (SNMP database)'},
+  {abbr:'OID',full:'Object Identifier',cat:'management',obj:'3.1',diff:'hard',mnemonic:'OID = Object Identification (SNMP tree address)'},
+  {abbr:'NMS',full:'Network Management System',cat:'management',obj:'3.1',diff:'medium',mnemonic:'NMS = Network Management Station'},
+  {abbr:'RMON',full:'Remote Monitoring',cat:'management',obj:'3.1',diff:'hard',mnemonic:'RMON = Remote MONitoring (SNMP extension)'},
+  {abbr:'NetFlow',full:'Network Flow monitoring',cat:'management',obj:'3.1',diff:'medium',mnemonic:'NetFlow = Network traffic Flow analysis (Cisco)'},
+  {abbr:'IPAM',full:'IP Address Management',cat:'management',obj:'3.1',diff:'hard',mnemonic:'IPAM = IP Address Manager (DDI)'},
+  // Infrastructure
+  {abbr:'PoE',full:'Power over Ethernet',cat:'infrastructure',obj:'1.3',diff:'easy',mnemonic:'PoE = Power over Ethernet (48V on the cable)'},
+  {abbr:'UPS',full:'Uninterruptible Power Supply',cat:'infrastructure',obj:'3.3',diff:'easy',mnemonic:'UPS = Uninterrupted Power Source'},
+  {abbr:'PDU',full:'Power Distribution Unit',cat:'infrastructure',obj:'3.3',diff:'medium',mnemonic:'PDU = Power Distributes Uniformly (in a rack)'},
+  {abbr:'SFP',full:'Small Form-factor Pluggable',cat:'infrastructure',obj:'1.3',diff:'medium',mnemonic:'SFP = Small Fiber Plug (transceiver)'},
+  {abbr:'SFP+',full:'Enhanced Small Form-factor Pluggable',cat:'infrastructure',obj:'1.3',diff:'medium',mnemonic:'SFP+ = SFP Plus speed (10Gbps)'},
+  {abbr:'QSFP',full:'Quad Small Form-factor Pluggable',cat:'infrastructure',obj:'1.3',diff:'hard',mnemonic:'QSFP = Quad SFP (40/100Gbps)'},
+  {abbr:'RJ-45',full:'Registered Jack 45',cat:'infrastructure',obj:'1.3',diff:'easy',mnemonic:'RJ-45 = Regular Jack for 4 pairs, 5th(est) connector'},
+  {abbr:'NIC',full:'Network Interface Card',cat:'infrastructure',obj:'1.3',diff:'easy',mnemonic:'NIC = Network Interface Component'},
+  {abbr:'AP',full:'Access Point',cat:'infrastructure',obj:'2.4',diff:'easy',mnemonic:'AP = Airwave Portal (wireless entry)'},
+  {abbr:'WLC',full:'Wireless LAN Controller',cat:'infrastructure',obj:'2.4',diff:'medium',mnemonic:'WLC = WiFi Lan Commander'},
+  {abbr:'MTTR',full:'Mean Time to Repair',cat:'infrastructure',obj:'3.3',diff:'medium',mnemonic:'MTTR = Mean Time To Repair'},
+  {abbr:'MTBF',full:'Mean Time Between Failures',cat:'infrastructure',obj:'3.3',diff:'medium',mnemonic:'MTBF = Mean Time Between Failures'},
+  // Operations
+  {abbr:'SLA',full:'Service Level Agreement',cat:'operations',obj:'3.3',diff:'easy',mnemonic:'SLA = Service Level Agreement (uptime promises)'},
+  {abbr:'RPO',full:'Recovery Point Objective',cat:'operations',obj:'3.3',diff:'medium',mnemonic:'RPO = Restore Point Objective (data loss tolerance)'},
+  {abbr:'RTO',full:'Recovery Time Objective',cat:'operations',obj:'3.3',diff:'medium',mnemonic:'RTO = Restore Time Objective (downtime tolerance)'},
+  {abbr:'BCP',full:'Business Continuity Plan',cat:'operations',obj:'3.3',diff:'medium',mnemonic:'BCP = Business Continues, Period'},
+  {abbr:'DR',full:'Disaster Recovery',cat:'operations',obj:'3.3',diff:'easy',mnemonic:'DR = Disaster Recovery (getting systems back)'},
+  {abbr:'BYOD',full:'Bring Your Own Device',cat:'operations',obj:'4.1',diff:'easy',mnemonic:'BYOD = Bring Your Own Device (personal devices at work)'},
+  {abbr:'MDM',full:'Mobile Device Management',cat:'operations',obj:'4.1',diff:'medium',mnemonic:'MDM = Manage Devices for Me'},
+  {abbr:'QoS',full:'Quality of Service',cat:'operations',obj:'4.6',diff:'medium',mnemonic:'QoS = Queue & Optimize Streams'},
+  {abbr:'DSCP',full:'Differentiated Services Code Point',cat:'operations',obj:'4.6',diff:'hard',mnemonic:'DSCP = Data Service Classification Points (QoS marking)'},
+  {abbr:'CoS',full:'Class of Service',cat:'operations',obj:'4.6',diff:'hard',mnemonic:'CoS = Category of Service (L2 QoS)'},
+  {abbr:'SNTP',full:'Simple Network Time Protocol',cat:'operations',obj:'1.5',diff:'hard',mnemonic:'SNTP = Simplified NTP (less precision)'},
+  {abbr:'LDAP',full:'Lightweight Directory Access Protocol',cat:'operations',obj:'1.5',diff:'medium',mnemonic:'LDAP = Lookup Directory And People'},
+  {abbr:'SCADA',full:'Supervisory Control and Data Acquisition',cat:'operations',obj:'1.8',diff:'hard',mnemonic:'SCADA = Supervisory Control And Data Acquisition (industrial)'},
+  {abbr:'IoT',full:'Internet of Things',cat:'operations',obj:'1.8',diff:'easy',mnemonic:'IoT = Internet of Things (smart devices)'},
+];
+
+const AB_CATEGORIES = {
+  protocols:      { label: 'Core Protocols',    icon: '\uD83D\uDD17', color: '#60a5fa' },
+  switching:      { label: 'Switching',          icon: '\uD83D\uDD00', color: '#f472b6' },
+  routing:        { label: 'Routing',            icon: '\uD83D\uDEA6', color: '#fb923c' },
+  addressing:     { label: 'Addressing',         icon: '\uD83C\uDFE0', color: '#a78bfa' },
+  wireless:       { label: 'Wireless',           icon: '\uD83D\uDCF6', color: '#38bdf8' },
+  security:       { label: 'Security',           icon: '\uD83D\uDD12', color: '#f87171' },
+  cloud:          { label: 'Cloud',              icon: '\u2601\uFE0F', color: '#818cf8' },
+  management:     { label: 'Management',         icon: '\uD83D\uDCCA', color: '#4ade80' },
+  infrastructure: { label: 'Infrastructure',     icon: '\uD83C\uDFD7\uFE0F', color: '#fbbf24' },
+  operations:     { label: 'Operations',         icon: '\u2699\uFE0F', color: '#2dd4bf' },
+};
+const AB_CAT_IDS = Object.keys(AB_CATEGORIES);
+
+const AB_LESSONS = [
+  { id: 'protocols', title: 'Core Protocols', icon: '\uD83D\uDD17', catId: 'protocols', desc: 'TCP, UDP, HTTP, DNS, DHCP and the foundational acronyms.',
+    theory: [
+      '<strong>TCP (Transmission Control Protocol)</strong> — Reliable, connection-oriented Layer 4 protocol. Uses three-way handshake (SYN, SYN-ACK, ACK). Guarantees delivery, ordering, and error checking.',
+      '<strong>UDP (User Datagram Protocol)</strong> — Connectionless, "fire and forget" Layer 4 protocol. No handshake, no delivery guarantee. Used for DNS, DHCP, streaming, VoIP.',
+      '<strong>HTTP/HTTPS</strong> — Application layer protocols for the web. HTTP is cleartext on port 80, HTTPS adds TLS encryption on port 443. The "S" = Secure.',
+      '<strong>DNS (Domain Name System)</strong> — Translates domain names to IP addresses. Uses port 53 (UDP for queries, TCP for zone transfers).',
+      '<strong>DHCP (Dynamic Host Configuration Protocol)</strong> — Auto-assigns IP addresses via the DORA process: Discover, Offer, Request, Acknowledge.',
+    ] },
+  { id: 'switching', title: 'Switching Protocols', icon: '\uD83D\uDD00', catId: 'switching', desc: 'VLANs, STP, LACP and Layer 2 concepts.',
+    prereq: 'protocols',
+    theory: [
+      '<strong>VLAN (Virtual LAN)</strong> — Logically segments a switch into multiple broadcast domains without separate hardware. Tagged frames use 802.1Q.',
+      '<strong>STP / RSTP</strong> — Prevents Layer 2 loops by blocking redundant paths. RSTP converges faster than original STP. Root bridge election by lowest bridge priority + MAC.',
+      '<strong>LACP (Link Aggregation Control Protocol)</strong> — Combines multiple physical links into one logical channel (EtherChannel/LAG). Increases bandwidth and provides redundancy.',
+      '<strong>CDP / LLDP</strong> — Discovery protocols that announce device identity. CDP is Cisco proprietary, LLDP is the vendor-neutral IEEE 802.1AB standard.',
+    ] },
+  { id: 'routing', title: 'Routing & Addressing', icon: '\uD83D\uDEA6', catId: 'routing', desc: 'OSPF, BGP, NAT, CIDR and how packets find their way.',
+    prereq: 'switching',
+    theory: [
+      '<strong>OSPF (Open Shortest Path First)</strong> — Link-state IGP using Dijkstra algorithm. Area-based hierarchy. The most common enterprise routing protocol.',
+      '<strong>BGP (Border Gateway Protocol)</strong> — Path-vector EGP that routes between autonomous systems. Runs the internet. Uses port 179/TCP.',
+      '<strong>NAT / PAT</strong> — NAT translates private IPs to public. PAT (overload) maps many private IPs to one public IP using different ports.',
+      '<strong>CIDR</strong> — Classless Inter-Domain Routing replaces classful (A/B/C) addressing. Uses /notation (e.g., /24 = 256 addresses). Enables route summarization.',
+    ] },
+  { id: 'addressing', title: 'IP Addressing', icon: '\uD83C\uDFE0', catId: 'addressing', desc: 'IPv4, IPv6, APIPA, SLAAC and address assignment.',
+    prereq: 'routing',
+    theory: [
+      '<strong>IPv4</strong> — 32-bit addresses (4.3 billion). Four dotted-decimal octets. Private ranges: 10.x, 172.16-31.x, 192.168.x.',
+      '<strong>IPv6</strong> — 128-bit addresses in hexadecimal. Eight groups of four hex digits. Virtually unlimited addresses.',
+      '<strong>APIPA (169.254.x.x)</strong> — Automatic Private IP Addressing. Self-assigned when DHCP is unreachable. Link-local only.',
+      '<strong>SLAAC</strong> — Stateless Address Autoconfiguration. IPv6 hosts configure their own address using router advertisements + EUI-64 or random interface ID.',
+    ] },
+  { id: 'wireless', title: 'Wireless Security', icon: '\uD83D\uDCF6', catId: 'wireless', desc: 'WPA, WPA2, WPA3, and wireless standards.',
+    prereq: 'addressing',
+    theory: [
+      '<strong>WEP → WPA → WPA2 → WPA3</strong> — Evolution of wireless security. WEP is broken (RC4). WPA uses TKIP. WPA2 uses AES-CCMP. WPA3 uses SAE for key exchange.',
+      '<strong>SSID / BSSID</strong> — SSID is the network name you see. BSSID is the MAC address of the specific access point.',
+      '<strong>MIMO / MU-MIMO</strong> — Multiple Input Multiple Output uses multiple antennas. MU-MIMO serves multiple clients simultaneously (WiFi 5/6).',
+      '<strong>OFDMA</strong> — WiFi 6 (802.11ax) technology that divides channels into sub-carriers for multiple users simultaneously.',
+    ] },
+  { id: 'security', title: 'Network Security', icon: '\uD83D\uDD12', catId: 'security', desc: 'IDS/IPS, VPN, PKI, and security frameworks.',
+    prereq: 'wireless',
+    theory: [
+      '<strong>IDS vs IPS</strong> — IDS detects and alerts. IPS detects AND blocks. IDS is passive, IPS is inline.',
+      '<strong>AAA Framework</strong> — Authentication (who are you?), Authorization (what can you do?), Accounting (what did you do?). Implemented via RADIUS or TACACS+.',
+      '<strong>VPN / IPsec</strong> — VPN creates encrypted tunnels. IPsec operates at Layer 3 with two modes: tunnel (full encapsulation) and transport (payload only).',
+      '<strong>PKI</strong> — Public Key Infrastructure. CA issues certificates, binds public keys to identities. Used by HTTPS, VPN, email encryption.',
+    ] },
+  { id: 'cloud', title: 'Cloud & Virtualization', icon: '\u2601\uFE0F', catId: 'cloud', desc: 'IaaS, PaaS, SaaS, SDN, and cloud networking.',
+    prereq: 'security',
+    theory: [
+      '<strong>IaaS / PaaS / SaaS</strong> — Three cloud service models. IaaS = VMs + storage (AWS EC2). PaaS = dev platform (Heroku). SaaS = apps (Gmail, Office 365).',
+      '<strong>SDN / NFV</strong> — SDN separates control plane from data plane. NFV virtualizes network functions (firewalls, load balancers) as software.',
+      '<strong>VPC</strong> — Virtual Private Cloud. An isolated network within a public cloud. You control subnets, routing, security groups.',
+      '<strong>SASE / SD-WAN</strong> — SASE combines SD-WAN with security (ZTNA, SWG, CASB). SD-WAN provides intelligent WAN routing.',
+    ] },
+  { id: 'management', title: 'Network Management', icon: '\uD83D\uDCCA', catId: 'management', desc: 'SNMP, MIB, NMS, and monitoring tools.',
+    prereq: 'cloud',
+    theory: [
+      '<strong>SNMP</strong> — Polls devices via OIDs from the MIB. v1/v2c use community strings (cleartext). v3 adds encryption + authentication.',
+      '<strong>MIB (Management Information Base)</strong> — Hierarchical database of managed objects. Each object has an OID (Object Identifier) in dot notation.',
+      '<strong>NMS / NetFlow</strong> — NMS is the central console (SolarWinds, PRTG). NetFlow (Cisco) exports flow data for traffic analysis.',
+    ] },
+  { id: 'infrastructure', title: 'Physical Infrastructure', icon: '\uD83C\uDFD7\uFE0F', catId: 'infrastructure', desc: 'PoE, SFP, cabling, and physical components.',
+    prereq: 'management',
+    theory: [
+      '<strong>PoE (Power over Ethernet)</strong> — Delivers 48V DC power over Cat5e/Cat6 cables. PoE = 15.4W, PoE+ = 25.5W, PoE++ = up to 100W.',
+      '<strong>SFP / SFP+ / QSFP</strong> — Hot-pluggable transceivers. SFP = 1Gbps, SFP+ = 10Gbps, QSFP = 40-100Gbps. Convert copper-to-fiber or fiber-to-fiber.',
+      '<strong>UPS / PDU</strong> — UPS provides battery backup during outages. PDU distributes power in a rack. Both critical for uptime.',
+    ] },
+  { id: 'operations', title: 'IT Operations', icon: '\u2699\uFE0F', catId: 'operations', desc: 'SLA, RPO, RTO, QoS, and operational concepts.',
+    prereq: 'infrastructure',
+    theory: [
+      '<strong>SLA / RPO / RTO</strong> — SLA defines uptime promises (99.999% = 5.26 min/year downtime). RPO = max acceptable data loss. RTO = max acceptable recovery time.',
+      '<strong>BCP / DR</strong> — BCP keeps operations running during a disaster. DR focuses on restoring IT systems after a disaster.',
+      '<strong>QoS / DSCP / CoS</strong> — QoS prioritizes traffic. DSCP marks at Layer 3 (6-bit field in IP header). CoS marks at Layer 2 (802.1p, 3-bit field).',
+      '<strong>BYOD / MDM</strong> — BYOD = personal devices on corporate network. MDM enforces security policies on mobile devices (encryption, remote wipe).',
+    ] },
+];
+
+// ── Acronym Blitz state ──
+let abQ = null, abIdx = 0, abCorrect = 0, abTotal = 0, abStreak = 0;
+let abMode = 'adaptive', abFocusCat = null, abActiveLesson = null;
+let abQuestionStartTime = 0;
+
+// ── Acronym Blitz engine (scaffold-backed) ──
+const abScaffold = createDrillScaffold({
+  prefix: 'ab',
+  storageKey: STORAGE.AB_MASTERY,
+  lessonsKey: STORAGE.AB_LESSONS,
+  lessons: AB_LESSONS,
+  categoryField: 'perItem',
+  levelThresholds: [
+    { min: 400, acc: 0.85, level: 'expert' },
+    { min: 200, acc: 0.75, level: 'advanced' },
+    { min: 50,  acc: 0.60, level: 'intermediate' },
+  ],
+  badgeColor: { beginner: '#22c55e', intermediate: '#8b5cf6', advanced: '#f97316', expert: '#ef4444' },
+  initMastery() {
+    const m = { currentLevel: 'beginner', totalAnswered: 0, totalCorrect: 0, perItem: {}, perCategory: {} };
+    AB_DATA.forEach(a => { m.perItem[a.abbr] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
+    AB_CAT_IDS.forEach(c => { m.perCategory[c] = { seen: 0, correct: 0, box: 1, streak: 0 }; });
+    return m;
+  },
+  heatmapTitle: 'Category Accuracy',
+  heatmapIter(m) {
+    return AB_CAT_IDS.map(c => {
+      const cat = AB_CATEGORIES[c];
+      const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1 };
+      const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="ab-heat-cell" style="border-color:${cat.color}"><div class="ab-heat-icon">${cat.icon}</div><div class="ab-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="ab-heat-label">${cat.label.split(' ')[0]}</div><div class="ab-heat-box">Box ${d.box}/5</div></div>`;
+    }).join('');
+  },
+  dashHeading: 'Category Mastery',
+  dashResetLabel: 'Reset all acronym mastery data?',
+  storageKeyExpr: 'STORAGE.AB_MASTERY',
+  lessonsKeyExpr: 'STORAGE.AB_LESSONS',
+  nextLevelText(level) {
+    if (level === 'beginner') return 'Intermediate (60% acc, 50+ Qs)';
+    if (level === 'intermediate') return 'Advanced (75% acc, 200+ Qs)';
+    if (level === 'advanced') return 'Expert (85% acc, 400+ Qs)';
+    return 'Maximum level reached!';
+  },
+  dashCatIter(m) {
+    return AB_CAT_IDS.map(c => {
+      const cat = AB_CATEGORIES[c];
+      const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
+      const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="ab-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="ab-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="ab-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="ab-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+    }).join('');
+  },
+  gateStateKey: '_abGateState',
+  endlessContainerId: 'ab-q-card',
+  activeLesson: { get() { return abActiveLesson; }, set(id) { abActiveLesson = id; } },
+  streakVar: { get() { return abStreak; } },
+  modeVar: { get() { return abMode; }, set(v) { abMode = v; } },
+  renderGate: (lesson) => abRenderGate(lesson),
+  onPracticeTab() { abIdx = 0; abCorrect = 0; abTotal = 0; abStreak = 0; abNextQuestion(); abRenderHeatmap(); },
+  onModeChanged(mode) {
+    const fp = document.getElementById('ab-focus-picker');
+    if (fp) fp.classList.toggle('is-hidden', mode !== 'category');
+    if (mode === 'category') abRenderFocusPicker();
+    abIdx = 0; abCorrect = 0; abTotal = 0; abStreak = 0;
+    abNextQuestion();
+  },
+});
+// Expose scaffold functions as globals for onclick handlers
+const getAbMastery = abScaffold.getMastery;
+const saveAbMastery = abScaffold.saveMastery;
+const abComputeLevel = abScaffold.computeLevel;
+const abRenderLevelBadge = abScaffold.renderLevelBadge;
+const abGetLessonProgress = abScaffold.getLessonProgress;
+const abSaveLessonProgress = abScaffold.saveLessonProgress;
+const abIsLessonUnlocked = abScaffold.isLessonUnlocked;
+const abRenderLessonSidebar = abScaffold.renderLessonSidebar;
+function abOpenLesson(id) { abScaffold.openLesson(id); }
+const abRenderHeatmap = abScaffold.renderHeatmap;
+const abRenderDashboard = abScaffold.renderDashboard;
+const abEndEndless = abScaffold.endEndless;
+function setAbTab(tabId) { abScaffold.setTab(tabId); }
+function setAbMode(mode) { abScaffold.setMode(mode); }
+
+// AB drill-specific functions (not shared)
+function updateAbMastery(abbr, wasCorrect) {
+  const m = getAbMastery();
+  const item = AB_DATA.find(a => a.abbr === abbr);
+  const catId = item ? item.cat : 'protocols';
+  if (!m.perItem[abbr]) m.perItem[abbr] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
+  if (!m.perCategory[catId]) m.perCategory[catId] = { seen: 0, correct: 0, box: 1, streak: 0 };
+  const pi = m.perItem[abbr];
+  const pc = m.perCategory[catId];
+  pi.seen++; pc.seen++; m.totalAnswered++;
+  if (wasCorrect) {
+    pi.correct++; pc.correct++; m.totalCorrect++;
+    pi.streak++; pc.streak++;
+    pi.box = Math.min(5, pi.box + 1);
+    if (pc.seen > 0 && pc.correct / pc.seen > 0.8) pc.box = Math.min(5, pc.box + 1);
+  } else {
+    pi.streak = 0; pc.streak = 0;
+    pi.box = 1;
+    if (pc.seen > 0 && pc.correct / pc.seen < 0.5) pc.box = 1;
+  }
+  pi.lastSeen = Date.now();
+  m.currentLevel = abComputeLevel(m);
+  saveAbMastery(m);
+}
+
+function abPickItem(focusCat) {
+  let pool = AB_DATA;
+  if (focusCat) pool = AB_DATA.filter(a => a.cat === focusCat);
+  const m = getAbMastery();
+  const weights = pool.map(a => {
+    const pi = m.perItem[a.abbr];
+    if (!pi || pi.seen === 0) return 1.2;
+    if (pi.seen < 3) return 1.0;
+    const acc = pi.correct / pi.seen;
+    const boxW = (6 - (pi.box || 1)) / 5;
+    if (acc >= 0.95) return 0.3 + boxW * 0.3;
+    if (acc >= 0.85) return 0.7 + boxW * 0.5;
+    return 1.0 + ((1 - acc) * 4) + boxW;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+
+function startAcronymBlitz() { setAbTab('learn'); abRenderLevelBadge(); }
+
+function abSetFocusCat(catId) {
+  abFocusCat = catId;
+  document.querySelectorAll('.ab-focus-chip').forEach(c => c.classList.toggle('ab-focus-chip-active', c.dataset.cat === catId));
+  abNextQuestion();
+}
+
+function abRenderFocusPicker() {
+  const el = document.getElementById('ab-focus-picker');
+  if (!el) return;
+  el.innerHTML = AB_CAT_IDS.map(c => {
+    const cat = AB_CATEGORIES[c];
+    const active = abFocusCat === c ? ' ab-focus-chip-active' : '';
+    return `<button class="ab-focus-chip${active}" data-cat="${c}" onclick="abSetFocusCat('${c}')" style="--ab-cat-color:${cat.color}">${cat.icon} ${escHtml(cat.label)}</button>`;
+  }).join('');
+}
+
+function abNextQuestion() {
+  abIdx++;
+  const focusCat = abMode === 'category' ? abFocusCat : null;
+  const item = abPickItem(focusCat);
+  const cat = AB_CATEGORIES[item.cat];
+  let askExpand;
+  if (abMode === 'expand') askExpand = true;
+  else if (abMode === 'abbreviate') askExpand = false;
+  else askExpand = Math.random() < 0.5;
+
+  const wrongPool = AB_DATA.filter(a => a.abbr !== item.abbr);
+  const wrongs = [];
+  while (wrongs.length < 3 && wrongPool.length > 0) {
+    const w = wrongPool.splice(Math.floor(Math.random() * wrongPool.length), 1)[0];
+    if (askExpand) { if (!wrongs.find(x => x.full === w.full)) wrongs.push(w); }
+    else { if (!wrongs.find(x => x.abbr === w.abbr)) wrongs.push(w); }
+  }
+  const opts = [item, ...wrongs].sort(() => Math.random() - 0.5);
+  abQ = { item, askExpand, opts };
+  abQuestionStartTime = Date.now();
+
+  const numEl = document.getElementById('ab-q-num');
+  const qEl = document.getElementById('ab-question');
+  const catBadge = document.getElementById('ab-cat-badge');
+  if (numEl) numEl.textContent = 'Q' + abIdx;
+  if (qEl) qEl.innerHTML = askExpand
+    ? `What does <strong>${escHtml(item.abbr)}</strong> stand for?`
+    : `What is the abbreviation for <strong>${escHtml(item.full)}</strong>?`;
+  if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+
+  const ansArea = document.getElementById('ab-answer-area');
+  if (ansArea) {
+    ansArea.innerHTML = `<div class="ab-mcq-grid">${opts.map(o => {
+      const val = askExpand ? escHtml(o.full) : escHtml(o.abbr);
+      const chosen = askExpand ? o.full : o.abbr;
+      const correct = askExpand ? item.full : item.abbr;
+      return `<button class="ab-mcq-btn" onclick="abPickAnswer(this,'${escHtml(chosen)}','${escHtml(correct)}')">${val}</button>`;
+    }).join('')}</div>`;
+  }
+  document.getElementById('ab-feedback').innerHTML = '';
+  document.getElementById('ab-next-btn')?.classList.add('is-hidden');
+  document.getElementById('ab-score').textContent = abCorrect + ' / ' + abTotal;
+  document.getElementById('ab-streak').textContent = '\uD83D\uDD25 ' + abStreak;
+  abRenderLevelBadge();
+}
+
+function abPickAnswer(btn, chosen, correct) {
+  document.querySelectorAll('.ab-mcq-btn').forEach(b => { b.disabled = true; });
+  abTotal++;
+  const elapsed = ((Date.now() - abQuestionStartTime) / 1000).toFixed(1);
+  const isCorrect = chosen === correct;
+  updateAbMastery(abQ.item.abbr, isCorrect);
+  if (isCorrect) { abCorrect++; abStreak++; } else { abStreak = 0; if (abMode === 'endless') { abEndEndless(); return; } }
+  document.getElementById('ab-score').textContent = abCorrect + ' / ' + abTotal;
+  document.getElementById('ab-streak').textContent = '\uD83D\uDD25 ' + abStreak;
+  document.getElementById('ab-next-btn')?.classList.remove('is-hidden');
+
+  const fb = document.getElementById('ab-feedback');
+  if (fb) {
+    let html = '';
+    if (isCorrect) {
+      html = `<div class="ab-fb-correct"><strong>\u2705 Correct!</strong> ${escHtml(abQ.item.abbr)} = ${escHtml(abQ.item.full)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
+      if (abStreak >= 5) html += '<div class="ab-fb-streak">\uD83D\uDD25 ' + abStreak + ' streak!</div>';
+    } else {
+      html = `<div class="ab-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
+      html += `<div class="ab-fb-correct-answer">Correct: <strong>${escHtml(abQ.item.abbr)}</strong> = ${escHtml(abQ.item.full)}</div>`;
+    }
+    html += `<div class="ab-fb-mnemonic">\uD83D\uDCA1 ${escHtml(abQ.item.mnemonic)}</div>`;
+    fb.innerHTML = html;
+  }
+  abRenderHeatmap();
+  abRenderLevelBadge();
+  evaluateMilestones();
+}
+
+// AB gate (drill-specific question format)
+function abRenderGate(lesson) {
+  const area = document.getElementById('ab-gate-area');
+  if (!area) return;
+  const catItems = AB_DATA.filter(a => a.cat === lesson.catId);
+  const gs = { questions: [], current: 0, correct: 0, total: 0 };
+  for (let i = 0; i < 5; i++) {
+    const item = catItems[Math.floor(Math.random() * catItems.length)];
+    const wrongs = AB_DATA.filter(a => a.abbr !== item.abbr).sort(() => Math.random() - 0.5).slice(0, 3);
+    const opts = [item, ...wrongs].sort(() => Math.random() - 0.5);
+    gs.questions.push({ item, opts });
+  }
+  window._abGateState = gs;
+  abRenderGateQuestion(area, gs);
+}
+
+function abRenderGateQuestion(area, gs) {
+  if (abScaffold.renderGateResult(area, gs)) return;
+  const q = gs.questions[gs.current];
+  area.innerHTML = `<div class="ab-gate-q"><div class="ab-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">What does <strong>${escHtml(q.item.abbr)}</strong> stand for?</div><div class="ab-mcq-grid">${q.opts.map(o => `<button class="ab-mcq-btn" onclick="abCheckGate(this,'${escHtml(o.full)}','${escHtml(q.item.full)}')">${escHtml(o.full)}</button>`).join('')}</div><div id="ab-gate-fb" class="ab-feedback"></div></div>`;
+}
+
+function abCheckGate(btn, chosen, correct) {
+  const gs = window._abGateState;
+  if (!gs) return;
+  document.querySelectorAll('.ab-gate-q .ab-mcq-btn').forEach(b => { b.disabled = true; });
+  const isCorrect = chosen === correct;
+  if (isCorrect) gs.correct++;
+  gs.current++;
+  const fb = document.getElementById('ab-gate-fb');
+  if (fb) { fb.innerHTML = isCorrect ? `<div class="ab-fb-correct">\u2705 Correct!</div>` : `<div class="ab-fb-wrong">\u274c ${escHtml(correct)}</div>`; }
+  setTimeout(() => abRenderGateQuestion(document.getElementById('ab-gate-area'), gs), 1200);
+}
+
+// ══════════════════════════════════════════
+// FEATURE: OSI LAYER SORTER (os-*)
+// ══════════════════════════════════════════
+
+const OSI_LAYERS = [
+  { num: 7, name: 'Application',    color: '#3b82f6' },
+  { num: 6, name: 'Presentation',   color: '#6366f1' },
+  { num: 5, name: 'Session',        color: '#8b5cf6' },
+  { num: 4, name: 'Transport',      color: '#ec4899' },
+  { num: 3, name: 'Network',        color: '#f97316' },
+  { num: 2, name: 'Data Link',      color: '#84cc16' },
+  { num: 1, name: 'Physical',       color: '#22c55e' },
+];
+
+const OS_DATA = [
+  // Easy (15 common)
+  {name:'HTTP',layer:7,type:'protocol',diff:'easy'},{name:'HTTPS',layer:7,type:'protocol',diff:'easy'},
+  {name:'FTP',layer:7,type:'protocol',diff:'easy'},{name:'DNS',layer:7,type:'protocol',diff:'easy'},
+  {name:'TCP',layer:4,type:'protocol',diff:'easy'},{name:'UDP',layer:4,type:'protocol',diff:'easy'},
+  {name:'IP',layer:3,type:'protocol',diff:'easy'},{name:'ICMP',layer:3,type:'protocol',diff:'easy'},
+  {name:'ARP',layer:2,type:'protocol',diff:'easy'},{name:'Ethernet',layer:2,type:'protocol',diff:'easy'},
+  {name:'Switch',layer:2,type:'device',diff:'easy'},{name:'Router',layer:3,type:'device',diff:'easy'},
+  {name:'Hub',layer:1,type:'device',diff:'easy'},{name:'MAC Address',layer:2,type:'concept',diff:'easy'},
+  {name:'IP Address',layer:3,type:'concept',diff:'easy'},
+  // Medium (+20 trickier)
+  {name:'SMTP',layer:7,type:'protocol',diff:'medium'},{name:'POP3',layer:7,type:'protocol',diff:'medium'},
+  {name:'IMAP',layer:7,type:'protocol',diff:'medium'},{name:'SSH',layer:7,type:'protocol',diff:'medium'},
+  {name:'Telnet',layer:7,type:'protocol',diff:'medium'},{name:'SNMP',layer:7,type:'protocol',diff:'medium'},
+  {name:'TLS/SSL',layer:6,type:'protocol',diff:'medium'},{name:'JPEG/GIF/PNG',layer:6,type:'concept',diff:'medium'},
+  {name:'ASCII/Unicode',layer:6,type:'concept',diff:'medium'},{name:'NetBIOS',layer:5,type:'protocol',diff:'medium'},
+  {name:'RPC',layer:5,type:'protocol',diff:'medium'},{name:'Port Number',layer:4,type:'concept',diff:'medium'},
+  {name:'Segment',layer:4,type:'pdu',diff:'medium'},{name:'Packet',layer:3,type:'pdu',diff:'medium'},
+  {name:'Frame',layer:2,type:'pdu',diff:'medium'},{name:'Bits',layer:1,type:'pdu',diff:'medium'},
+  {name:'Firewall',layer:3,type:'device',diff:'medium'},{name:'NIC',layer:2,type:'device',diff:'medium'},
+  {name:'Repeater',layer:1,type:'device',diff:'medium'},{name:'Cable',layer:1,type:'concept',diff:'medium'},
+  // Hard (+15 edge cases)
+  {name:'DHCP',layer:7,type:'protocol',diff:'hard'},{name:'TFTP',layer:7,type:'protocol',diff:'hard'},
+  {name:'NTP',layer:7,type:'protocol',diff:'hard'},{name:'LDAP',layer:7,type:'protocol',diff:'hard'},
+  {name:'SIP',layer:5,type:'protocol',diff:'hard'},{name:'H.323',layer:5,type:'protocol',diff:'hard'},
+  {name:'OSPF',layer:3,type:'protocol',diff:'hard'},{name:'BGP',layer:3,type:'protocol',diff:'hard'},
+  {name:'MPLS',layer:2,type:'protocol',diff:'hard'},{name:'PPP',layer:2,type:'protocol',diff:'hard'},
+  {name:'WAP',layer:2,type:'device',diff:'hard'},{name:'Load Balancer',layer:7,type:'device',diff:'hard'},
+  {name:'Proxy Server',layer:7,type:'device',diff:'hard'},{name:'Modem',layer:1,type:'device',diff:'hard'},
+  {name:'Media Converter',layer:1,type:'device',diff:'hard'},
+];
+
+const OS_LESSONS = [
+  { id: 'layer7', title: 'Layer 7 — Application', icon: '\uD83C\uDF10', desc: 'HTTP, DNS, SMTP and user-facing protocols.',
+    theory: [
+      '<strong>Layer 7 (Application)</strong> is the closest to the end user. It provides network services directly to applications.',
+      'Common protocols: <code>HTTP</code>, <code>HTTPS</code>, <code>FTP</code>, <code>DNS</code>, <code>SMTP</code>, <code>POP3</code>, <code>IMAP</code>, <code>SSH</code>, <code>Telnet</code>, <code>SNMP</code>, <code>DHCP</code>, <code>TFTP</code>.',
+      '<strong>Exam tip:</strong> If a protocol has a name you recognize as a "service" (email, web, file transfer), it is almost always Layer 7.',
+    ] },
+  { id: 'layer6', title: 'Layer 6 — Presentation', icon: '\uD83C\uDFA8', desc: 'Data format translation, encryption, compression.',
+    prereq: 'layer7',
+    theory: [
+      '<strong>Layer 6 (Presentation)</strong> translates data between the application and the network. It handles encryption, compression, and data formatting.',
+      'Examples: <code>TLS/SSL</code> encryption, <code>JPEG/GIF/PNG</code> image formats, <code>ASCII/Unicode</code> character encoding.',
+      '<strong>Exam tip:</strong> Think "translator." If it is about converting data format, encrypting, or compressing — it is Layer 6.',
+    ] },
+  { id: 'layer5', title: 'Layer 5 — Session', icon: '\uD83D\uDD17', desc: 'Session establishment, maintenance, teardown.',
+    prereq: 'layer6',
+    theory: [
+      '<strong>Layer 5 (Session)</strong> manages sessions (dialogues) between applications. It establishes, maintains, and terminates connections.',
+      'Examples: <code>NetBIOS</code>, <code>RPC</code> (Remote Procedure Call), <code>SIP</code> (session setup for VoIP), <code>H.323</code>.',
+      '<strong>Exam tip:</strong> If it is about setting up or tearing down a session/connection between apps, think Layer 5.',
+    ] },
+  { id: 'layer4', title: 'Layer 4 — Transport', icon: '\uD83D\uDE9A', desc: 'TCP, UDP, segmentation, port numbers.',
+    prereq: 'layer5',
+    theory: [
+      '<strong>Layer 4 (Transport)</strong> provides end-to-end communication and error recovery. Uses port numbers to identify applications.',
+      'Protocols: <code>TCP</code> (reliable, ordered), <code>UDP</code> (fast, connectionless). PDU: <strong>Segment</strong> (TCP) / <strong>Datagram</strong> (UDP).',
+      '<strong>Exam tip:</strong> Port numbers, TCP, UDP, segmentation, flow control, error recovery = Layer 4.',
+    ] },
+  { id: 'layer3', title: 'Layer 3 — Network', icon: '\uD83C\uDF10', desc: 'IP, ICMP, routing, logical addressing.',
+    prereq: 'layer4',
+    theory: [
+      '<strong>Layer 3 (Network)</strong> handles logical addressing (IP addresses) and routing between networks.',
+      'Protocols: <code>IP</code>, <code>ICMP</code>, <code>OSPF</code>, <code>BGP</code>. Devices: <strong>Router</strong>, Layer 3 Switch, Firewall. PDU: <strong>Packet</strong>.',
+      '<strong>Exam tip:</strong> IP addresses, routing, routers = Layer 3. The router is the quintessential Layer 3 device.',
+    ] },
+  { id: 'layer2', title: 'Layer 2 — Data Link', icon: '\uD83D\uDD17', desc: 'MAC addresses, switches, frames, ARP.',
+    prereq: 'layer3',
+    theory: [
+      '<strong>Layer 2 (Data Link)</strong> handles physical addressing (MAC addresses) and provides reliable link-level communication.',
+      'Protocols: <code>ARP</code>, <code>Ethernet</code>, <code>PPP</code>, <code>MPLS</code>. Devices: <strong>Switch</strong>, Bridge, NIC. PDU: <strong>Frame</strong>.',
+      '<strong>Exam tip:</strong> MAC addresses, switches, frames, ARP = Layer 2. The switch is the quintessential Layer 2 device.',
+    ] },
+  { id: 'layer1', title: 'Layer 1 — Physical', icon: '\u26A1', desc: 'Cables, hubs, bits, electrical signals.',
+    prereq: 'layer2',
+    theory: [
+      '<strong>Layer 1 (Physical)</strong> deals with the actual transmission of raw bits over a physical medium (cables, radio, fiber).',
+      'Devices: <strong>Hub</strong>, Repeater, Modem, Media Converter. Concepts: Cables, Connectors, Voltage, Bits.',
+      '<strong>Exam tip:</strong> If it is about physical media (cables, connectors, signals, hubs) = Layer 1. PDU is <strong>Bits</strong>.',
+    ] },
+];
+
+// ── OSI Sorter state ──
+let osQ = null, osIdx = 0, osCorrect = 0, osTotal = 0, osStreak = 0;
+let osMode = 'sort', osDifficulty = 'easy', osActiveLesson = null;
+let osSortState = null, osSortSelectedItem = null;
+
+// ── OSI Sorter engine (scaffold-backed) ──
+const osScaffold = createDrillScaffold({
+  prefix: 'os',
+  storageKey: STORAGE.OS_MASTERY,
+  lessonsKey: STORAGE.OS_LESSONS,
+  lessons: OS_LESSONS,
+  categoryField: 'perLayer',
+  levelThresholds: [
+    { min: 300, acc: 0.85, level: 'expert' },
+    { min: 150, acc: 0.75, level: 'advanced' },
+    { min: 40,  acc: 0.60, level: 'intermediate' },
+  ],
+  badgeColor: '#06b6d4',
+  initMastery() {
+    const m = { currentLevel: 'beginner', totalAnswered: 0, totalCorrect: 0, perLayer: {}, perItem: {} };
+    for (let i = 1; i <= 7; i++) m.perLayer[i] = { seen: 0, correct: 0, box: 1, streak: 0 };
+    OS_DATA.forEach(d => { m.perItem[d.name] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
+    return m;
+  },
+  heatmapTitle: 'Layer Accuracy',
+  heatmapIter(m) {
+    return OSI_LAYERS.map(layer => {
+      const d = m.perLayer[layer.num] || { seen: 0, correct: 0, box: 1 };
+      const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="os-heat-cell" style="border-color:${layer.color}"><div class="os-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="os-heat-label">L${layer.num}</div><div class="os-heat-box">Box ${d.box}/5</div></div>`;
+    }).join('');
+  },
+  dashHeading: 'Layer Mastery',
+  dashResetLabel: 'Reset all OSI mastery data?',
+  storageKeyExpr: 'STORAGE.OS_MASTERY',
+  lessonsKeyExpr: 'STORAGE.OS_LESSONS',
+  nextLevelText(level) {
+    if (level === 'beginner') return 'Intermediate (60% acc, 40+ Qs)';
+    if (level === 'intermediate') return 'Advanced (75% acc, 150+ Qs)';
+    if (level === 'advanced') return 'Expert (85% acc, 300+ Qs)';
+    return 'Maximum level reached!';
+  },
+  dashCatIter(m) {
+    return OSI_LAYERS.map(layer => {
+      const d = m.perLayer[layer.num] || { seen: 0, correct: 0, box: 1, streak: 0 };
+      const layerAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const barColor = layerAcc >= 80 ? 'var(--green)' : layerAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="os-dash-cat-card" style="border-left:3px solid ${layer.color}"><div class="os-dash-cat-head">L${layer.num} ${layer.name}</div><div class="os-dash-cat-bar"><div style="width:${layerAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="os-dash-cat-stats"><span>${layerAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+    }).join('');
+  },
+  gateStateKey: '_osGateState',
+  endlessContainerId: 'os-practice-area',
+  endlessWrapHtml: (inner) => `<div class="subnet-card">${inner}</div>`,
+  activeLesson: { get() { return osActiveLesson; }, set(id) { osActiveLesson = id; } },
+  streakVar: { get() { return osStreak; } },
+  modeVar: { get() { return osMode; }, set(v) { osMode = v; } },
+  renderGate: (lesson) => osRenderGate(lesson),
+  onPracticeTab() { osIdx = 0; osCorrect = 0; osTotal = 0; osStreak = 0; osStartPractice(); osRenderHeatmap(); },
+  onModeChanged(mode) {
+    osIdx = 0; osCorrect = 0; osTotal = 0; osStreak = 0;
+    osStartPractice();
+  },
+});
+
+// Expose scaffold functions as globals for onclick handlers
+const getOsMastery = osScaffold.getMastery;
+const saveOsMastery = osScaffold.saveMastery;
+const osComputeLevel = osScaffold.computeLevel;
+const osRenderLevelBadge = osScaffold.renderLevelBadge;
+const osGetLessonProgress = osScaffold.getLessonProgress;
+const osSaveLessonProgress = osScaffold.saveLessonProgress;
+const osIsLessonUnlocked = osScaffold.isLessonUnlocked;
+const osRenderLessonSidebar = osScaffold.renderLessonSidebar;
+function osOpenLesson(id) { osScaffold.openLesson(id); }
+const osRenderHeatmap = osScaffold.renderHeatmap;
+const osRenderDashboard = osScaffold.renderDashboard;
+const osEndEndless = osScaffold.endEndless;
+function setOsTab(tabId) { osScaffold.setTab(tabId); }
+function setOsMode(mode) { osScaffold.setMode(mode); }
+
+// OS drill-specific functions (not shared)
+function updateOsMastery(itemName, wasCorrect) {
+  const m = getOsMastery();
+  const item = OS_DATA.find(d => d.name === itemName);
+  const layer = item ? item.layer : 1;
+  if (!m.perItem[itemName]) m.perItem[itemName] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
+  if (!m.perLayer[layer]) m.perLayer[layer] = { seen: 0, correct: 0, box: 1, streak: 0 };
+  const pi = m.perItem[itemName];
+  const pl = m.perLayer[layer];
+  pi.seen++; pl.seen++; m.totalAnswered++;
+  if (wasCorrect) { pi.correct++; pl.correct++; m.totalCorrect++; pi.streak++; pl.streak++; pi.box = Math.min(5, pi.box + 1); } else { pi.streak = 0; pl.streak = 0; pi.box = 1; }
+  pi.lastSeen = Date.now();
+  m.currentLevel = osComputeLevel(m);
+  saveOsMastery(m);
+}
+
+function startOsiSorter() { setOsTab('learn'); osRenderLevelBadge(); }
+
+function setOsDifficulty(diff) {
+  osDifficulty = diff;
+  document.querySelectorAll('.os-diff-btn').forEach(b => b.classList.remove('os-diff-active'));
+  document.getElementById('os-diff-' + diff)?.classList.add('os-diff-active');
+  osIdx = 0; osCorrect = 0; osTotal = 0; osStreak = 0;
+  osStartPractice();
+}
+
+function osGetPool() {
+  if (osDifficulty === 'easy') return OS_DATA.filter(d => d.diff === 'easy');
+  if (osDifficulty === 'medium') return OS_DATA.filter(d => d.diff === 'easy' || d.diff === 'medium');
+  return OS_DATA;
+}
+
+function osStartPractice() {
+  if (osMode === 'sort') osGenSortRound();
+  else osGenIdentifyQ();
+}
+
+// ── Sort mode ──
+function osGenSortRound() {
+  const pool = osGetPool();
+  const count = Math.min(pool.length, Math.floor(Math.random() * 4) + 5); // 5-8 items
+  const items = pool.sort(() => Math.random() - 0.5).slice(0, count);
+  osSortState = { items, placements: {} };
+  osSortSelectedItem = null;
+  osRenderSort();
+}
+
+function osRenderSort() {
+  const area = document.getElementById('os-practice-area');
+  if (!area) return;
+  const st = osSortState;
+  const placedNames = new Set(Object.values(st.placements));
+  // Item bank
+  let html = '<div class="os-sort-bank" id="os-sort-bank">';
+  st.items.forEach(item => {
+    const placed = placedNames.has(item.name);
+    const selected = osSortSelectedItem === item.name;
+    html += `<div class="os-sort-item${placed ? ' os-sort-placed' : ''}${selected ? ' os-sort-selected' : ''}" draggable="${!placed}" data-name="${escHtml(item.name)}" onclick="osClickItem('${escHtml(item.name)}')" ondragstart="osDragStart(event,'${escHtml(item.name)}')">${escHtml(item.name)}</div>`;
+  });
+  html += '</div>';
+  // Lanes
+  html += '<div class="os-lanes">';
+  OSI_LAYERS.forEach(layer => {
+    const laneItems = Object.entries(st.placements).filter(([, n]) => {
+      const itm = st.items.find(x => x.name === n);
+      return itm && Object.entries(st.placements).find(([k, v]) => v === n && parseInt(k) === layer.num);
+    });
+    const placedHere = Object.entries(st.placements).filter(([k]) => parseInt(k) === layer.num).map(([, v]) => v);
+    html += `<div class="os-lane" data-layer="${layer.num}" ondragover="osDragOver(event)" ondrop="osDrop(event,${layer.num})" onclick="osClickLane(${layer.num})">`;
+    html += `<div class="os-lane-num" style="background:${layer.color}">${layer.num}</div>`;
+    html += `<div class="os-lane-name">${layer.name}</div>`;
+    html += `<div class="os-lane-items">`;
+    placedHere.forEach(n => {
+      html += `<div class="os-sort-item" onclick="osReturnItem('${escHtml(n)}',${layer.num})" style="cursor:pointer">${escHtml(n)}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  // Check button
+  const allPlaced = st.items.every(item => Object.values(st.placements).includes(item.name));
+  if (allPlaced) {
+    html += '<button class="os-sort-check-btn" onclick="osCheckSort()">Check Answers</button>';
+  }
+  area.innerHTML = html;
+  document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
+  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  osRenderLevelBadge();
+}
+
+function osDragStart(e, name) { e.dataTransfer.setData('text/plain', name); }
+function osDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('os-lane-hover'); }
+function osDrop(e, layerNum) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('os-lane-hover');
+  const name = e.dataTransfer.getData('text/plain');
+  if (!name) return;
+  // Remove from any previous lane
+  Object.keys(osSortState.placements).forEach(k => { if (osSortState.placements[k] === name) delete osSortState.placements[k]; });
+  // Find an available slot key for this lane
+  const key = layerNum;
+  // Use name as value, layer as key — but multiple items per layer need unique keys
+  if (!osSortState.placements['_items']) osSortState.placements['_items'] = {};
+  osSortState.placements['_items'][name] = layerNum;
+  // Rebuild simple placements from _items
+  const items = osSortState.placements['_items'];
+  osSortState.placements = { '_items': items };
+  Object.entries(items).forEach(([n, l]) => { osSortState.placements[l + '_' + n] = n; });
+  osSortSelectedItem = null;
+  osRenderSort();
+}
+
+// Simplified placement tracking using _items sub-object
+function _osGetPlacements() {
+  if (!osSortState.placements['_items']) osSortState.placements['_items'] = {};
+  return osSortState.placements['_items'];
+}
+
+function osClickItem(name) {
+  const placements = _osGetPlacements();
+  if (placements[name] !== undefined) return; // already placed
+  if (osSortSelectedItem === name) { osSortSelectedItem = null; osRenderSort(); return; }
+  osSortSelectedItem = name;
+  osRenderSort();
+}
+
+function osClickLane(layerNum) {
+  if (!osSortSelectedItem) return;
+  const placements = _osGetPlacements();
+  placements[osSortSelectedItem] = layerNum;
+  osSortSelectedItem = null;
+  // Rebuild top-level placements
+  osSortState.placements = { '_items': placements };
+  Object.entries(placements).forEach(([n, l]) => { osSortState.placements[l + '_' + n] = n; });
+  osRenderSort();
+}
+
+function osReturnItem(name, layerNum) {
+  const placements = _osGetPlacements();
+  delete placements[name];
+  osSortState.placements = { '_items': placements };
+  Object.entries(placements).forEach(([n, l]) => { osSortState.placements[l + '_' + n] = n; });
+  osRenderSort();
+}
+
+function osCheckSort() {
+  const placements = _osGetPlacements();
+  const area = document.getElementById('os-practice-area');
+  if (!area) return;
+  let html = '<div class="os-lanes">';
+  let roundCorrect = 0;
+  let roundTotal = osSortState.items.length;
+  OSI_LAYERS.forEach(layer => {
+    const itemsHere = Object.entries(placements).filter(([, l]) => l === layer.num).map(([n]) => n);
+    const correctItems = itemsHere.filter(n => { const d = OS_DATA.find(x => x.name === n); return d && d.layer === layer.num; });
+    const wrongItems = itemsHere.filter(n => { const d = OS_DATA.find(x => x.name === n); return !d || d.layer !== layer.num; });
+    const isAllCorrect = itemsHere.length > 0 && wrongItems.length === 0;
+    const hasWrong = wrongItems.length > 0;
+    roundCorrect += correctItems.length;
+    html += `<div class="os-lane${isAllCorrect && itemsHere.length > 0 ? ' os-lane-correct' : ''}${hasWrong ? ' os-lane-wrong' : ''}" data-layer="${layer.num}">`;
+    html += `<div class="os-lane-num" style="background:${layer.color}">${layer.num}</div>`;
+    html += `<div class="os-lane-name">${layer.name}</div>`;
+    html += `<div class="os-lane-items">`;
+    itemsHere.forEach(n => {
+      const d = OS_DATA.find(x => x.name === n);
+      const correct = d && d.layer === layer.num;
+      html += `<div class="os-sort-item" style="border-color:${correct ? 'var(--green)' : 'var(--red)'}; background:${correct ? 'var(--green-bg)' : 'var(--red-bg)'}">${escHtml(n)} ${correct ? '\u2705' : '\u274c L' + (d ? d.layer : '?')}</div>`;
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  // Update mastery for each item
+  osSortState.items.forEach(item => {
+    const placedLayer = placements[item.name];
+    const correct = placedLayer === item.layer;
+    updateOsMastery(item.name, correct);
+    osTotal++;
+    if (correct) { osCorrect++; osStreak++; } else { osStreak = 0; }
+  });
+  html += `<div style="text-align:center;margin-top:16px;font-size:18px;font-weight:800">${roundCorrect}/${roundTotal} correct</div>`;
+  html += '<button class="os-sort-check-btn" onclick="osGenSortRound()" style="margin-top:12px">Next Round \u2192</button>';
+  area.innerHTML = html;
+  document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
+  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  osRenderHeatmap();
+  osRenderLevelBadge();
+  evaluateMilestones();
+}
+
+// ── Identify mode (MCQ) ──
+function osGenIdentifyQ() {
+  osIdx++;
+  const pool = osGetPool();
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  const layer = OSI_LAYERS.find(l => l.num === item.layer);
+  // Randomly ask "what layer?" or "which item at layer N?"
+  const askLayer = Math.random() < 0.5;
+  let opts, correctAnswer, question;
+  if (askLayer) {
+    question = `What OSI layer does <strong>${escHtml(item.name)}</strong> operate at?`;
+    correctAnswer = 'Layer ' + item.layer + ' (' + layer.name + ')';
+    const wrongLayers = OSI_LAYERS.filter(l => l.num !== item.layer).sort(() => Math.random() - 0.5).slice(0, 3);
+    opts = [{ label: correctAnswer, correct: true }, ...wrongLayers.map(l => ({ label: 'Layer ' + l.num + ' (' + l.name + ')', correct: false }))].sort(() => Math.random() - 0.5);
+  } else {
+    question = `Which of these operates at <strong>Layer ${item.layer} (${layer.name})</strong>?`;
+    correctAnswer = item.name;
+    const wrongItems = pool.filter(d => d.layer !== item.layer).sort(() => Math.random() - 0.5).slice(0, 3);
+    opts = [{ label: item.name, correct: true }, ...wrongItems.map(d => ({ label: d.name, correct: false }))].sort(() => Math.random() - 0.5);
+  }
+  osQ = { item, askLayer, opts, correctAnswer };
+  const area = document.getElementById('os-practice-area');
+  if (!area) return;
+  let html = `<div class="subnet-card"><div class="subnet-q-num">Q${osIdx}</div><div class="subnet-question">${question}</div>`;
+  html += '<div class="os-mcq-grid">';
+  opts.forEach(o => {
+    html += `<button class="os-mcq-btn" onclick="osPickIdentify(this,${o.correct},'${escHtml(o.label)}')">${escHtml(o.label)}</button>`;
+  });
+  html += '</div><div id="os-identify-fb"></div>';
+  html += `<button class="btn btn-primary btn-full is-hidden" id="os-next-btn" style="margin-top:14px" onclick="osGenIdentifyQ()">Next Question \u2192</button>`;
+  html += '</div>';
+  area.innerHTML = html;
+  document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
+  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  osRenderLevelBadge();
+}
+
+function osPickIdentify(btn, isCorrect, label) {
+  document.querySelectorAll('.os-mcq-btn').forEach(b => { b.disabled = true; });
+  osTotal++;
+  updateOsMastery(osQ.item.name, isCorrect);
+  if (isCorrect) { osCorrect++; osStreak++; } else { osStreak = 0; if (osMode === 'endless') { osEndEndless(); return; } }
+  document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
+  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  document.getElementById('os-next-btn')?.classList.remove('is-hidden');
+  const fb = document.getElementById('os-identify-fb');
+  if (fb) {
+    if (isCorrect) {
+      fb.innerHTML = `<div class="os-fb-correct" style="margin-top:12px"><strong>\u2705 Correct!</strong> ${escHtml(osQ.item.name)} = Layer ${osQ.item.layer} (${OSI_LAYERS.find(l => l.num === osQ.item.layer).name})</div>`;
+    } else {
+      fb.innerHTML = `<div class="os-fb-wrong" style="margin-top:12px"><strong>\u274c Incorrect.</strong></div><div class="os-fb-correct-answer">Correct: ${escHtml(osQ.correctAnswer)}</div>`;
+    }
+  }
+  osRenderHeatmap();
+  osRenderLevelBadge();
+  evaluateMilestones();
+}
+
+// OS gate (drill-specific question format)
+function osRenderGate(lesson) {
+  const area = document.getElementById('os-gate-area');
+  if (!area) return;
+  const layerNum = parseInt(lesson.id.replace('layer', ''));
+  const layerItems = OS_DATA.filter(d => d.layer === layerNum);
+  const gs = { questions: [], current: 0, correct: 0 };
+  for (let i = 0; i < 5; i++) {
+    const item = layerItems[Math.floor(Math.random() * layerItems.length)];
+    const wrongItems = OS_DATA.filter(d => d.layer !== layerNum).sort(() => Math.random() - 0.5).slice(0, 3);
+    gs.questions.push({ item, wrongItems });
+  }
+  window._osGateState = gs;
+  osRenderGateQuestion(area, gs);
+}
+
+function osRenderGateQuestion(area, gs) {
+  if (osScaffold.renderGateResult(area, gs)) return;
+  const q = gs.questions[gs.current];
+  const layer = OSI_LAYERS.find(l => l.num === q.item.layer);
+  const opts = [q.item, ...q.wrongItems].sort(() => Math.random() - 0.5);
+  area.innerHTML = `<div><div class="os-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">Which operates at <strong>Layer ${q.item.layer} (${layer.name})</strong>?</div><div class="os-mcq-grid">${opts.map(o => `<button class="os-mcq-btn" onclick="osCheckGate(this,${o.name === q.item.name})">${escHtml(o.name)}</button>`).join('')}</div><div id="os-gate-fb"></div></div>`;
+}
+
+function osCheckGate(btn, isCorrect) { osScaffold.checkGate(btn, isCorrect); }
+
+// ══════════════════════════════════════════
+// FEATURE: CABLE & CONNECTOR ID (cb-*)
+// ══════════════════════════════════════════
+
+const CB_CABLES = [
+  {name:'Cat 5e',cat:'twisted',speed:'1 Gbps',distance:'100m',connector:'RJ-45',standard:'TIA/EIA-568-B',tip:'Cat 5e = "enhanced" Cat 5, supports Gigabit Ethernet.'},
+  {name:'Cat 6',cat:'twisted',speed:'10 Gbps (55m) / 1 Gbps (100m)',distance:'55-100m',connector:'RJ-45',standard:'TIA/EIA-568-C',tip:'Cat 6 has tighter twists and a plastic separator to reduce crosstalk.'},
+  {name:'Cat 6a',cat:'twisted',speed:'10 Gbps',distance:'100m',connector:'RJ-45',standard:'ANSI/TIA-568.2-D',tip:'Cat 6a = "augmented" Cat 6, extends 10G to the full 100m.'},
+  {name:'Cat 7',cat:'twisted',speed:'10 Gbps',distance:'100m',connector:'GG45/TERA',standard:'ISO/IEC 11801',tip:'Cat 7 has individual pair shielding (S/FTP). Not TIA-recognized.'},
+  {name:'Cat 8',cat:'twisted',speed:'25-40 Gbps',distance:'30m',connector:'RJ-45',standard:'ANSI/TIA-568.2-D',tip:'Cat 8 is for short-run data center connections (top-of-rack).'},
+  {name:'Single-mode Fiber',cat:'fiber',speed:'100+ Gbps',distance:'Up to 80 km',connector:'LC/SC',standard:'OS1/OS2',tip:'Single-mode uses a tiny core (8-10 \u00b5m) and a laser. Long distance, expensive.'},
+  {name:'Multimode Fiber',cat:'fiber',speed:'10 Gbps (up to 400m)',distance:'Up to 2 km',connector:'LC/SC/ST',standard:'OM1-OM5',tip:'Multimode uses a larger core (50-62.5 \u00b5m) and LED. Shorter distance, cheaper.'},
+  {name:'RG-6 Coaxial',cat:'coaxial',speed:'Variable',distance:'Up to 500m',connector:'F-type',standard:'DOCSIS',tip:'RG-6 is the standard cable TV / internet coax. Better shielding than RG-59.'},
+  {name:'RG-59 Coaxial',cat:'coaxial',speed:'Variable',distance:'Up to 230m',connector:'BNC/F-type',standard:'Legacy',tip:'RG-59 was the original CCTV/video coax. Thinner shielding than RG-6.'},
+  {name:'Twinaxial (DAC)',cat:'special',speed:'10-100 Gbps',distance:'Up to 7m',connector:'SFP+/QSFP',standard:'IEEE 802.3',tip:'Twinaxial DAC is a low-cost, low-power short-run data center cable.'},
+  {name:'Direct Attach Copper',cat:'special',speed:'10-100 Gbps',distance:'Up to 7m',connector:'SFP+/QSFP',standard:'IEEE 802.3',tip:'DAC cables are pre-terminated copper assemblies for switch-to-switch connections.'},
+  {name:'Rollover/Console',cat:'special',speed:'N/A',distance:'Short',connector:'RJ-45 to DB-9',standard:'Cisco',tip:'Console cables connect a PC serial port to a network device CLI. Light blue.'},
+  {name:'Crossover Cable',cat:'twisted',speed:'Varies',distance:'100m',connector:'RJ-45',standard:'T-568A ↔ T-568B',tip:'Crossover swaps TX/RX pairs. Used PC-to-PC or switch-to-switch (before Auto-MDI/X).'},
+  {name:'Straight-through',cat:'twisted',speed:'Varies',distance:'100m',connector:'RJ-45',standard:'T-568B both ends',tip:'Standard patch cable. Both ends use the same pinout. Used for most connections.'},
+  {name:'Plenum Cable',cat:'special',speed:'Varies',distance:'Varies',connector:'Varies',standard:'NFPA 90A',tip:'Plenum-rated jacket produces less toxic smoke. Required in air-handling spaces above ceilings.'},
+];
+
+const CB_CONNECTORS = [
+  {name:'RJ-45',use:'Ethernet (Cat5e/6/6a/8)',pins:'8P8C',tip:'The standard Ethernet connector. 8 pins, 8 contacts.'},
+  {name:'RJ-11',use:'Telephone/DSL',pins:'6P2C/6P4C',tip:'Smaller than RJ-45. 6 positions, 2 or 4 contacts.'},
+  {name:'LC',use:'Fiber optic (SFP/SFP+)',pins:'Simplex/Duplex',tip:'Small form-factor fiber connector with a latch. Most common modern fiber connector.'},
+  {name:'SC',use:'Fiber optic',pins:'Simplex/Duplex',tip:'Square "Subscriber Connector." Push-pull mechanism. Larger than LC.'},
+  {name:'ST',use:'Fiber optic (legacy)',pins:'Simplex',tip:'Round bayonet-twist connector. Common in older multimode installations.'},
+  {name:'MTRJ',use:'Fiber optic',pins:'Duplex',tip:'Mechanical Transfer RJ. Small duplex fiber connector.'},
+  {name:'F-type',use:'Coaxial (cable TV/internet)',pins:'Single',tip:'Threaded coax connector. Standard for cable TV and DOCSIS modems.'},
+  {name:'BNC',use:'Coaxial (legacy/video)',pins:'Single',tip:'Bayonet Neill-Concelman. Twist-lock. Used in legacy 10BASE2 and CCTV.'},
+  {name:'SFP',use:'Fiber/Copper transceiver',pins:'Module',tip:'Hot-pluggable transceiver. 1 Gbps. Converts between fiber and copper.'},
+  {name:'SFP+',use:'10G transceiver',pins:'Module',tip:'Enhanced SFP for 10 Gbps. Same form factor as SFP.'},
+  {name:'QSFP+',use:'40G transceiver',pins:'Module',tip:'Quad SFP. 4x 10G lanes = 40 Gbps. Data center standard.'},
+  {name:'DB-9 (RS-232)',use:'Serial/Console',pins:'9-pin',tip:'D-subminiature 9-pin serial connector. Console cable endpoint.'},
+  {name:'USB Type-C',use:'Device connectivity/serial',pins:'24-pin',tip:'Reversible connector. Used for console access on newer network devices.'},
+];
+
+const CB_SCENARIOS = [
+  {q:'A hospital needs to run Ethernet cables through the ceiling air return space above patient rooms. Which cable type is required?',answer:'Plenum Cable',opts:['Plenum Cable','Cat 6','Single-mode Fiber','Cat 5e'],tip:'Plenum spaces require fire-retardant jacketing that produces minimal toxic smoke (NFPA 90A).'},
+  {q:'You need to connect two buildings 500m apart with 10 Gbps throughput. Which cable type should you use?',answer:'Single-mode Fiber',opts:['Single-mode Fiber','Cat 6a','Multimode Fiber','RG-6 Coaxial'],tip:'At 500m, only fiber works. Single-mode reaches 80km+ and supports 10G+ easily.'},
+  {q:'A data center needs to connect top-of-rack switches 3 meters apart at 100 Gbps. Which is the most cost-effective cable?',answer:'Twinaxial (DAC)',opts:['Twinaxial (DAC)','Single-mode Fiber','Cat 8','Cat 6a'],tip:'DAC/Twinaxial cables are the cheapest option for short-run (<7m) high-speed data center links.'},
+  {q:'You need to connect a laptop to a Cisco router console port for initial configuration. Which cable do you use?',answer:'Rollover/Console',opts:['Rollover/Console','Crossover Cable','Straight-through','Cat 6'],tip:'Console cables (rollover) connect a PC serial port to the router/switch console port for CLI access.'},
+  {q:'An office wants to upgrade from 1 Gbps to 10 Gbps Ethernet over existing conduit runs of 90 meters. Which minimum cable category is needed?',answer:'Cat 6a',opts:['Cat 6a','Cat 5e','Cat 6','Cat 7'],tip:'Cat 6a supports 10 Gbps up to 100m. Cat 6 only supports 10G up to 55m.'},
+  {q:'Which connector would you find on the end of a standard Ethernet patch cable?',answer:'RJ-45',opts:['RJ-45','RJ-11','LC','BNC'],tip:'RJ-45 (8P8C) is the standard connector for all Ethernet cables.'},
+  {q:'You are installing fiber optic cables in a new building. The cable runs are all under 300m and you want the most cost-effective solution. Which fiber type?',answer:'Multimode Fiber',opts:['Multimode Fiber','Single-mode Fiber','Cat 6a','Twinaxial (DAC)'],tip:'For runs under 2km, multimode fiber is cheaper (uses LEDs instead of lasers).'},
+  {q:'A technician needs to power an IP camera in a warehouse ceiling with no nearby power outlets. Which technology enables this?',answer:'PoE (Power over Ethernet)',opts:['PoE (Power over Ethernet)','Plenum Cable','USB Type-C','Crossover Cable'],tip:'PoE delivers 48V DC power over Cat5e+ cables, eliminating the need for separate power wiring.'},
+  {q:'Which cable uses a T-568A wiring scheme on one end and T-568B on the other?',answer:'Crossover Cable',opts:['Crossover Cable','Straight-through','Rollover/Console','Patch Cable'],tip:'Crossover cables swap the TX and RX pairs by using different pinout standards on each end.'},
+  {q:'You need a hot-swappable module to add a 10 Gbps fiber port to a switch. Which transceiver type?',answer:'SFP+',opts:['SFP+','SFP','QSFP+','GBIC'],tip:'SFP+ supports 10 Gbps and is the standard modern hot-pluggable transceiver.'},
+  {q:'What type of connector is commonly used for cable TV and DOCSIS internet connections?',answer:'F-type',opts:['F-type','BNC','RJ-45','SC'],tip:'F-type is the threaded coaxial connector standard for cable TV and cable internet (DOCSIS).'},
+  {q:'A network engineer needs to connect two switches directly without a hub. Before Auto-MDI/X, which cable was required?',answer:'Crossover Cable',opts:['Crossover Cable','Straight-through','Console Cable','Rollover'],tip:'Switch-to-switch required a crossover cable before Auto-MDI/X became standard.'},
+  {q:'Which fiber connector is the most common in modern SFP transceivers?',answer:'LC',opts:['LC','SC','ST','MTRJ'],tip:'LC (Lucent Connector) is the most common modern fiber connector — small, latched, duplex-capable.'},
+  {q:'You are troubleshooting slow speeds on a 10 Gbps link over a 70m Cat 6 cable. What is the likely problem?',answer:'Cat 6 only supports 10G up to 55m',opts:['Cat 6 only supports 10G up to 55m','Bad connector','Wrong VLAN','Duplex mismatch'],tip:'Cat 6 supports 10 Gbps only up to 55m. Beyond that, upgrade to Cat 6a.'},
+  {q:'Which cable type uses a larger 50-62.5 micrometer core and LED light source?',answer:'Multimode Fiber',opts:['Multimode Fiber','Single-mode Fiber','Cat 6a','Twinaxial'],tip:'Multimode fiber has a larger core (50-62.5\u00b5m) and uses LED, making it cheaper but shorter range.'},
+];
+
+const CB_CATEGORIES = {
+  twisted:    { label: 'Twisted Pair',   icon: '\uD83D\uDD17', color: '#60a5fa' },
+  fiber:      { label: 'Fiber Optic',    icon: '\uD83D\uDCA1', color: '#a78bfa' },
+  coaxial:    { label: 'Coaxial',        icon: '\uD83D\uDCE1', color: '#fb923c' },
+  connectors: { label: 'Connectors',     icon: '\uD83D\uDD0C', color: '#f472b6' },
+  special:    { label: 'Special',        icon: '\u2699\uFE0F', color: '#4ade80' },
+};
+const CB_CAT_IDS = Object.keys(CB_CATEGORIES);
+
+const CB_LESSONS = [
+  { id: 'twisted', title: 'Twisted Pair Cables', icon: '\uD83D\uDD17', catId: 'twisted', desc: 'Cat 5e through Cat 8 — speeds, distances, and differences.',
+    theory: [
+      '<strong>Twisted pair cables</strong> use copper wire pairs twisted together to reduce electromagnetic interference (EMI/crosstalk).',
+      '<strong>Cat 5e</strong> = 1 Gbps at 100m. The minimum for Gigabit Ethernet. "e" = enhanced crosstalk specs.',
+      '<strong>Cat 6</strong> = 10 Gbps at 55m, 1 Gbps at 100m. Tighter twists + plastic separator. <strong>Cat 6a</strong> = 10 Gbps at full 100m.',
+      '<strong>Cat 7</strong> = 10 Gbps, fully shielded (S/FTP). Not TIA-recognized. <strong>Cat 8</strong> = 25-40 Gbps at 30m — data center only.',
+      '<strong>Wiring standards:</strong> T-568A and T-568B differ in orange/green pair positioning. Both ends same = straight-through. Different ends = crossover.',
+    ] },
+  { id: 'fiber', title: 'Fiber Optic Cables', icon: '\uD83D\uDCA1', catId: 'fiber', desc: 'Single-mode vs multimode, connectors, and when to use each.',
+    prereq: 'twisted',
+    theory: [
+      '<strong>Fiber optic</strong> transmits data as light pulses through glass or plastic strands. Immune to EMI.',
+      '<strong>Single-mode (SMF)</strong>: tiny core (8-10 \u00b5m), laser source. Reaches 80+ km. More expensive. Color: yellow jacket.',
+      '<strong>Multimode (MMF)</strong>: larger core (50-62.5 \u00b5m), LED source. Reaches ~2 km. Cheaper. Color: orange/aqua jacket.',
+      '<strong>OM ratings:</strong> OM1 (62.5\u00b5m, orange), OM2 (50\u00b5m, orange), OM3 (50\u00b5m, aqua, 10G@300m), OM4 (50\u00b5m, aqua, 10G@400m), OM5 (lime green, supports WDM).',
+    ] },
+  { id: 'coaxial', title: 'Coaxial & Legacy', icon: '\uD83D\uDCE1', catId: 'coaxial', desc: 'RG-6, RG-59, and coaxial cable applications.',
+    prereq: 'fiber',
+    theory: [
+      '<strong>Coaxial cables</strong> have a central conductor surrounded by insulation, a braided shield, and an outer jacket.',
+      '<strong>RG-6</strong>: Standard for cable TV, satellite, and DOCSIS internet. Better shielding and lower signal loss than RG-59.',
+      '<strong>RG-59</strong>: Legacy CCTV and analog video. Thinner, less shielding. Short runs only.',
+      '<strong>Connectors:</strong> F-type (threaded, cable TV/internet) and BNC (bayonet twist-lock, legacy 10BASE2 and CCTV).',
+    ] },
+  { id: 'connectors', title: 'Connectors & Transceivers', icon: '\uD83D\uDD0C', catId: 'connectors', desc: 'RJ-45, LC, SC, SFP, and transceiver modules.',
+    prereq: 'coaxial',
+    theory: [
+      '<strong>RJ-45</strong> = 8P8C, standard Ethernet. <strong>RJ-11</strong> = 6P2C/4C, telephone/DSL.',
+      '<strong>Fiber connectors:</strong> LC (small, latched, SFP standard), SC (square push-pull), ST (round bayonet twist, legacy).',
+      '<strong>Transceivers:</strong> SFP = 1G, SFP+ = 10G, QSFP+ = 40G, QSFP28 = 100G. Hot-pluggable modules.',
+      '<strong>Exam tip:</strong> Know RJ-45 vs RJ-11 size difference, LC vs SC shape, and the SFP speed progression.',
+    ] },
+  { id: 'special', title: 'Specialty Cables', icon: '\u2699\uFE0F', catId: 'special', desc: 'Plenum, crossover, console, and DAC cables.',
+    prereq: 'connectors',
+    theory: [
+      '<strong>Plenum cable</strong>: fire-retardant jacket for air-handling spaces (above ceilings, under raised floors). Required by building code (NFPA 90A).',
+      '<strong>Crossover cable</strong>: Swaps TX/RX pairs (T-568A one end, T-568B other). For switch-to-switch or PC-to-PC (legacy). Auto-MDI/X makes these unnecessary on modern gear.',
+      '<strong>Console/Rollover cable</strong>: Light blue. RJ-45 to DB-9 serial. Used for initial CLI configuration of routers/switches.',
+      '<strong>Twinaxial/DAC</strong>: Pre-terminated copper assemblies for short-run (<7m) 10-100G data center links. Cheapest high-speed option.',
+    ] },
+];
+
+// ── Cable & Connector ID state ──
+let cbQ = null, cbIdx = 0, cbCorrect = 0, cbTotal = 0, cbStreak = 0;
+let cbMode = 'adaptive', cbActiveLesson = null;
+let cbQuestionStartTime = 0;
+
+// ── Cable & Connector engine (scaffold-backed) ──
+const cbScaffold = createDrillScaffold({
+  prefix: 'cb',
+  storageKey: STORAGE.CB_MASTERY,
+  lessonsKey: STORAGE.CB_LESSONS,
+  lessons: CB_LESSONS,
+  categoryField: 'perItem',
+  levelThresholds: [
+    { min: 200, acc: 0.85, level: 'expert' },
+    { min: 100, acc: 0.75, level: 'advanced' },
+    { min: 30,  acc: 0.60, level: 'intermediate' },
+  ],
+  badgeColor: '#22c55e',
+  initMastery() {
+    const m = { currentLevel: 'beginner', totalAnswered: 0, totalCorrect: 0, perItem: {}, perCategory: {} };
+    CB_CABLES.forEach(c => { m.perItem[c.name] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
+    CB_CONNECTORS.forEach(c => { m.perItem[c.name] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
+    CB_CAT_IDS.forEach(c => { m.perCategory[c] = { seen: 0, correct: 0, box: 1, streak: 0 }; });
+    return m;
+  },
+  heatmapTitle: 'Category Accuracy',
+  heatmapIter(m) {
+    return CB_CAT_IDS.map(c => {
+      const cat = CB_CATEGORIES[c];
+      const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1 };
+      const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="cb-heat-cell" style="border-color:${cat.color}"><div class="cb-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="cb-heat-label">${cat.label}</div><div class="cb-heat-box">Box ${d.box}/5</div></div>`;
+    }).join('');
+  },
+  dashHeading: 'Category Mastery',
+  dashResetLabel: 'Reset all cable mastery data?',
+  storageKeyExpr: 'STORAGE.CB_MASTERY',
+  lessonsKeyExpr: 'STORAGE.CB_LESSONS',
+  nextLevelText(level) {
+    if (level === 'beginner') return 'Intermediate (60% acc, 30+ Qs)';
+    if (level === 'intermediate') return 'Advanced (75% acc, 100+ Qs)';
+    if (level === 'advanced') return 'Expert (85% acc, 200+ Qs)';
+    return 'Maximum level reached!';
+  },
+  dashCatIter(m) {
+    return CB_CAT_IDS.map(c => {
+      const cat = CB_CATEGORIES[c];
+      const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
+      const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
+      const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
+      return `<div class="cb-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="cb-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="cb-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="cb-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+    }).join('');
+  },
+  gateStateKey: '_cbGateState',
+  endlessContainerId: 'cb-q-card',
+  activeLesson: { get() { return cbActiveLesson; }, set(id) { cbActiveLesson = id; } },
+  streakVar: { get() { return cbStreak; } },
+  modeVar: { get() { return cbMode; }, set(v) { cbMode = v; } },
+  renderGate: (lesson) => cbRenderGate(lesson),
+  onPracticeTab() { cbIdx = 0; cbCorrect = 0; cbTotal = 0; cbStreak = 0; cbNextQuestion(); cbRenderHeatmap(); },
+  onModeChanged(mode) {
+    cbIdx = 0; cbCorrect = 0; cbTotal = 0; cbStreak = 0;
+    cbNextQuestion();
+  },
+});
+
+// Expose scaffold functions as globals for onclick handlers
+const getCbMastery = cbScaffold.getMastery;
+const saveCbMastery = cbScaffold.saveMastery;
+const cbComputeLevel = cbScaffold.computeLevel;
+const cbRenderLevelBadge = cbScaffold.renderLevelBadge;
+const cbGetLessonProgress = cbScaffold.getLessonProgress;
+const cbSaveLessonProgress = cbScaffold.saveLessonProgress;
+const cbIsLessonUnlocked = cbScaffold.isLessonUnlocked;
+const cbRenderLessonSidebar = cbScaffold.renderLessonSidebar;
+function cbOpenLesson(id) { cbScaffold.openLesson(id); }
+const cbRenderHeatmap = cbScaffold.renderHeatmap;
+const cbRenderDashboard = cbScaffold.renderDashboard;
+const cbEndEndless = cbScaffold.endEndless;
+function setCbTab(tabId) { cbScaffold.setTab(tabId); }
+function setCbMode(mode) { cbScaffold.setMode(mode); }
+
+// CB drill-specific functions (not shared)
+function updateCbMastery(itemName, catId, wasCorrect) {
+  const m = getCbMastery();
+  if (!m.perItem[itemName]) m.perItem[itemName] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
+  if (!m.perCategory[catId]) m.perCategory[catId] = { seen: 0, correct: 0, box: 1, streak: 0 };
+  const pi = m.perItem[itemName];
+  const pc = m.perCategory[catId];
+  pi.seen++; pc.seen++; m.totalAnswered++;
+  if (wasCorrect) {
+    pi.correct++; pc.correct++; m.totalCorrect++;
+    pi.streak++; pc.streak++;
+    pi.box = Math.min(5, pi.box + 1);
+  } else { pi.streak = 0; pc.streak = 0; pi.box = 1; }
+  pi.lastSeen = Date.now();
+  m.currentLevel = cbComputeLevel(m);
+  saveCbMastery(m);
+}
+
+function startCableId() { setCbTab('learn'); cbRenderLevelBadge(); }
+
+function cbNextQuestion() {
+  cbIdx++;
+  cbQuestionStartTime = Date.now();
+
+  if (cbMode === 'scenario') { cbGenScenarioQ(); return; }
+  if (cbMode === 'specs') { cbGenSpecsQ(); return; }
+  // Adaptive and Endless: random question type
+  if (Math.random() < 0.5) cbGenCableQ(); else cbGenConnectorQ();
+}
+
+function cbGenCableQ() {
+  const m = getCbMastery();
+  const weights = CB_CABLES.map(c => {
+    const pi = m.perItem[c.name];
+    if (!pi || pi.seen === 0) return 1.2;
+    const acc = pi.correct / pi.seen;
+    const boxW = (6 - (pi.box || 1)) / 5;
+    return acc >= 0.95 ? 0.3 + boxW * 0.3 : 1.0 + ((1 - acc) * 4) + boxW;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  let cable = CB_CABLES[CB_CABLES.length - 1];
+  for (let i = 0; i < CB_CABLES.length; i++) { r -= weights[i]; if (r <= 0) { cable = CB_CABLES[i]; break; } }
+
+  // Question type: speed, distance, connector, or name-from-specs
+  const qTypes = ['speed','distance','connector','identify'];
+  const qt = qTypes[Math.floor(Math.random() * qTypes.length)];
+  let question, correct, opts, tip;
+  const cat = CB_CATEGORIES[cable.cat];
+
+  if (qt === 'speed') {
+    question = `What is the maximum speed of <strong>${escHtml(cable.name)}</strong>?`;
+    correct = cable.speed;
+    opts = [cable.speed, ...CB_CABLES.filter(c => c.speed !== cable.speed).map(c => c.speed).filter((v,i,a) => a.indexOf(v) === i).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  } else if (qt === 'distance') {
+    question = `What is the maximum distance for <strong>${escHtml(cable.name)}</strong>?`;
+    correct = cable.distance;
+    opts = [cable.distance, ...CB_CABLES.filter(c => c.distance !== cable.distance).map(c => c.distance).filter((v,i,a) => a.indexOf(v) === i).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  } else if (qt === 'connector') {
+    question = `What connector does <strong>${escHtml(cable.name)}</strong> use?`;
+    correct = cable.connector;
+    opts = [cable.connector, ...CB_CABLES.filter(c => c.connector !== cable.connector).map(c => c.connector).filter((v,i,a) => a.indexOf(v) === i).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  } else {
+    question = `Which cable supports <strong>${cable.speed}</strong> at <strong>${cable.distance}</strong>?`;
+    correct = cable.name;
+    opts = [cable.name, ...CB_CABLES.filter(c => c.name !== cable.name).map(c => c.name).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  }
+  tip = cable.tip;
+  cbQ = { correct, itemName: cable.name, catId: cable.cat, tip };
+  cbRenderQ(question, correct, opts);
+}
+
+function cbGenConnectorQ() {
+  const conn = CB_CONNECTORS[Math.floor(Math.random() * CB_CONNECTORS.length)];
+  const askUse = Math.random() < 0.5;
+  let question, correct, opts;
+  if (askUse) {
+    question = `What is the <strong>${escHtml(conn.name)}</strong> connector used for?`;
+    correct = conn.use;
+    opts = [conn.use, ...CB_CONNECTORS.filter(c => c.use !== conn.use).map(c => c.use).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  } else {
+    question = `Which connector is used for <strong>${escHtml(conn.use)}</strong>?`;
+    correct = conn.name;
+    opts = [conn.name, ...CB_CONNECTORS.filter(c => c.name !== conn.name).map(c => c.name).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  }
+  cbQ = { correct, itemName: conn.name, catId: 'connectors', tip: conn.tip };
+  cbRenderQ(question, correct, opts);
+}
+
+function cbGenSpecsQ() {
+  const cable = CB_CABLES[Math.floor(Math.random() * CB_CABLES.length)];
+  const question = `Which cable does <strong>${cable.speed}</strong> at <strong>${cable.distance}</strong>?`;
+  const opts = [cable.name, ...CB_CABLES.filter(c => c.name !== cable.name).map(c => c.name).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  cbQ = { correct: cable.name, itemName: cable.name, catId: cable.cat, tip: cable.tip };
+  cbRenderQ(question, cable.name, opts);
+}
+
+function cbGenScenarioQ() {
+  const sc = CB_SCENARIOS[Math.floor(Math.random() * CB_SCENARIOS.length)];
+  cbQ = { correct: sc.answer, itemName: sc.answer, catId: 'special', tip: sc.tip };
+  cbRenderQ(sc.q, sc.answer, sc.opts);
+}
+
+function cbRenderQ(question, correct, opts) {
+  const numEl = document.getElementById('cb-q-num');
+  const qEl = document.getElementById('cb-question');
+  const catBadge = document.getElementById('cb-cat-badge');
+  if (numEl) numEl.textContent = 'Q' + cbIdx;
+  if (qEl) qEl.innerHTML = question;
+  const cat = CB_CATEGORIES[cbQ.catId];
+  if (catBadge && cat) catBadge.textContent = cat.icon + ' ' + cat.label;
+
+  const ansArea = document.getElementById('cb-answer-area');
+  if (ansArea) {
+    ansArea.innerHTML = `<div class="cb-mcq-grid">${opts.map(o => {
+      return `<button class="cb-mcq-btn" onclick="cbPickAnswer(this,'${escHtml(o)}','${escHtml(correct)}')">${escHtml(o)}</button>`;
+    }).join('')}</div>`;
+  }
+  document.getElementById('cb-feedback').innerHTML = '';
+  document.getElementById('cb-next-btn')?.classList.add('is-hidden');
+  document.getElementById('cb-score').textContent = cbCorrect + ' / ' + cbTotal;
+  document.getElementById('cb-streak').textContent = '\uD83D\uDD25 ' + cbStreak;
+  cbRenderLevelBadge();
+}
+
+function cbPickAnswer(btn, chosen, correct) {
+  document.querySelectorAll('.cb-mcq-btn').forEach(b => { b.disabled = true; });
+  cbTotal++;
+  const elapsed = ((Date.now() - cbQuestionStartTime) / 1000).toFixed(1);
+  const isCorrect = chosen === correct;
+  updateCbMastery(cbQ.itemName, cbQ.catId, isCorrect);
+  if (isCorrect) { cbCorrect++; cbStreak++; } else { cbStreak = 0; if (cbMode === 'endless') { cbEndEndless(); return; } }
+  document.getElementById('cb-score').textContent = cbCorrect + ' / ' + cbTotal;
+  document.getElementById('cb-streak').textContent = '\uD83D\uDD25 ' + cbStreak;
+  document.getElementById('cb-next-btn')?.classList.remove('is-hidden');
+
+  const fb = document.getElementById('cb-feedback');
+  if (fb) {
+    let html = '';
+    if (isCorrect) {
+      html = `<div class="cb-fb-correct"><strong>\u2705 Correct!</strong> ${escHtml(correct)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
+      if (cbStreak >= 5) html += '<div class="cb-fb-streak">\uD83D\uDD25 ' + cbStreak + ' streak!</div>';
+    } else {
+      html = `<div class="cb-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
+      html += `<div class="cb-fb-correct-answer">Correct: <strong>${escHtml(correct)}</strong></div>`;
+    }
+    if (cbQ.tip) html += `<div class="cb-fb-tip">\uD83D\uDCA1 ${escHtml(cbQ.tip)}</div>`;
+    fb.innerHTML = html;
+  }
+  cbRenderHeatmap();
+  cbRenderLevelBadge();
+  evaluateMilestones();
+}
+
+// CB gate (drill-specific question format)
+function cbRenderGate(lesson) {
+  const area = document.getElementById('cb-gate-area');
+  if (!area) return;
+  const catItems = lesson.catId === 'connectors' ? CB_CONNECTORS : CB_CABLES.filter(c => c.cat === lesson.catId);
+  const gs = { questions: [], current: 0, correct: 0 };
+  for (let i = 0; i < 5; i++) {
+    const item = catItems[Math.floor(Math.random() * catItems.length)];
+    const allItems = lesson.catId === 'connectors' ? CB_CONNECTORS : CB_CABLES;
+    const wrongs = allItems.filter(c => c.name !== item.name).sort(() => Math.random() - 0.5).slice(0, 3);
+    gs.questions.push({ item, wrongs, correct: item.name });
+  }
+  window._cbGateState = gs;
+  cbRenderGateQuestion(area, gs);
+}
+
+function cbRenderGateQuestion(area, gs) {
+  if (cbScaffold.renderGateResult(area, gs)) return;
+  const q = gs.questions[gs.current];
+  const opts = [q.item, ...q.wrongs].sort(() => Math.random() - 0.5);
+  const question = q.item.speed ? `Which cable supports ${q.item.speed}?` : `What is ${q.item.name} used for?`;
+  area.innerHTML = `<div><div class="cb-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">${question}</div><div class="cb-mcq-grid">${opts.map(o => `<button class="cb-mcq-btn" onclick="cbCheckGate(this,${o.name === q.item.name})">${escHtml(o.name)}</button>`).join('')}</div><div id="cb-gate-fb"></div></div>`;
+}
+
+function cbCheckGate(btn, isCorrect) { cbScaffold.checkGate(btn, isCorrect); }
 
 // ══════════════════════════════════════════
 // UTIL
