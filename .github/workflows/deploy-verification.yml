@@ -1,0 +1,95 @@
+name: Deploy Verification
+
+# Runs the 8-check post-deploy verifier against the live Vercel URL.
+# Triggers:
+#   • push to main           — every deploy gets verified after Vercel propagates
+#   • cron 03:00 UTC nightly — catches CDN drift and intermittent issues
+#   • manual workflow_dispatch — for ad-hoc re-runs from the Actions tab
+#
+# On FAIL: opens an issue with labels `deploy-verification`, `bug`, `priority: high`.
+# On WARN: workflow stays green but report is in the run summary.
+# On PASS: silent (no inbox spam).
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Live URL health check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      # Vercel needs ~60-90s after a push to fully propagate to its CDN edge.
+      # Skip the wait for cron and manual runs — those run against
+      # whatever's already live.
+      - name: Wait 90s for Vercel CDN propagation
+        if: github.event_name == 'push'
+        run: sleep 90
+
+      - name: Run deploy verifier
+        id: verify
+        continue-on-error: true
+        run: node tests/deploy-verify.js
+
+      - name: Open issue on FAIL
+        if: steps.verify.outputs.status == 'FAIL'
+        uses: actions/github-script@v8
+        env:
+          REPORT_FILE: ${{ steps.verify.outputs.report_file }}
+          VERSION: ${{ steps.verify.outputs.version }}
+          SHORT_SHA: ${{ steps.verify.outputs.short_sha }}
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync(process.env.REPORT_FILE, 'utf8');
+            const title = `Deploy verification: v${process.env.VERSION} @ ${process.env.SHORT_SHA} — FAIL`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['deploy-verification', 'bug', 'priority: high']
+            });
+
+      - name: Open issue on script crash
+        if: steps.verify.outcome == 'failure' && steps.verify.outputs.status == ''
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Deploy verifier crashed — workflow run #${context.runId}`,
+              body: [
+                '## Deploy verifier crashed before producing a report',
+                '',
+                'The verification script exited non-zero without writing a report file.',
+                'Likely causes: network failure reaching Vercel, source-file parsing error, ',
+                'missing tools in the runner.',
+                '',
+                `**Workflow run:** ${runUrl}`,
+                '',
+                '@oremosu98 — investigate the run logs to determine root cause.'
+              ].join('\n'),
+              labels: ['deploy-verification', 'bug', 'priority: high']
+            });
+
+      # Only fail the actual workflow status on FAIL — WARN should not turn CI red.
+      - name: Mark job failed on FAIL
+        if: steps.verify.outputs.status == 'FAIL'
+        run: |
+          echo "Deploy verification failed — see issue created above."
+          exit 1
