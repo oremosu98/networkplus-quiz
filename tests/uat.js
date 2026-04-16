@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.1', js.includes("const APP_VERSION = '4.43.1"));
+test('APP_VERSION is 4.43.2', js.includes("const APP_VERSION = '4.43.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.1', sw.includes('netplus-v4.43.1'));
+test('SW cache bumped to v4.43.2', sw.includes('netplus-v4.43.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3746,6 +3746,25 @@ test('v4.43.1 #5: DHCP relay lab exists',
 })();
 test('v4.43.1 #5: new labs added to TB_LAB_CATEGORIES Troubleshooting',
   /'Troubleshooting':\s*\[[^\]]*'troubleshoot-vlan-isolation'[^\]]*'troubleshoot-dhcp-relay'/.test(js));
+
+// ── v4.43.2 TOPOLOGY BUILDER UI POLISH ──
+console.log('\n\x1b[1m── v4.43.2 TB UI POLISH ──\x1b[0m');
+// Fix 1: wiring banner light-mode contrast (white text on light mint was unreadable)
+test('v4.43.2 #1: light .tb-wire-overlay has explicit color',
+  /\[data-theme="light"\]\s*\.tb-wire-overlay\s*\{[^}]*\bcolor:/.test(css));
+test('v4.43.2 #1: light .tb-wire-overlay kbd override exists',
+  css.includes('[data-theme="light"] .tb-wire-overlay kbd'));
+// Fix 2: how-to row collapsed by default (regression guard against `open` returning)
+test('v4.43.2 #2: tb-howto-details NOT open by default',
+  !/<details id="tb-howto-details"[^>]*\bopen\b/.test(html));
+test('v4.43.2 #2: .tb-howto-item has min-width:0 + overflow-wrap (prevents overflow on expand)',
+  /\.tb-howto-item\s*\{[^}]*min-width:\s*0[\s\S]*?overflow-wrap:\s*break-word/.test(css));
+// Fix 3: palette height tracks canvas (was capped at 760 while canvas is 900+)
+test('v4.43.2 #3: .tb-palette min-height 900px (matches canvas)',
+  /\.tb-palette\s*\{[^}]*min-height:\s*900px/.test(css));
+test('v4.43.2 #3: .tb-palette max-height bumped from 760 to 1200',
+  /\.tb-palette\s*\{[^}]*max-height:\s*1200px/.test(css) &&
+  !/\.tb-palette\s*\{[^}]*max-height:\s*760px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

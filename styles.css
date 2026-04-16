@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.11
+   Network+ AI Quiz — styles.css  v4.43.2
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1502,14 +1502,16 @@ input::placeholder { color: var(--text-dim); }
   grid-template-columns: 200px 1fr 360px;
 }
 
-/* Palette */
+/* Palette — height tracks the canvas (min-height 900 matches .tb-canvas-wrap)
+   so the column doesn't dead-space below the scroll when canvas is taller. */
 .tb-palette {
   background: rgba(15, 23, 42, .4);
   border: 1px solid rgba(124, 111, 247, .18);
   border-radius: 12px;
   padding: 12px;
   display: flex; flex-direction: column;
-  max-height: 760px;
+  min-height: 900px;
+  max-height: 1200px;
   overflow-y: auto;
 }
 .tb-palette-head {
@@ -1665,6 +1667,8 @@ input::placeholder { color: var(--text-dim); }
   border: 1px solid var(--border);
   border-radius: 8px;
   line-height: 1.55;
+  min-width: 0;              /* grid-item shrink so long text wraps instead of overflowing */
+  overflow-wrap: break-word;
 }
 .tb-howto-num {
   display: inline-flex; align-items: center; justify-content: center;
@@ -3505,7 +3509,17 @@ input::placeholder { color: var(--text-dim); }
 [data-theme="light"] .tb-sim-log-head { border-bottom-color: rgba(99,85,224,.12); }
 
 /* ── Wire overlay ── */
-[data-theme="light"] .tb-wire-overlay { background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.3); }
+[data-theme="light"] .tb-wire-overlay {
+  background: linear-gradient(90deg, rgba(22,163,74,.16), rgba(124,111,247,.12));
+  border-color: #16a34a;
+  color: #14532d;  /* dark-green text — white text on light-theme mint was unreadable */
+  box-shadow: 0 6px 22px rgba(22,163,74,.22), 0 0 0 1px rgba(22,163,74,.3);
+}
+[data-theme="light"] .tb-wire-overlay kbd {
+  background: #ffffff;
+  border-color: rgba(22,163,74,.4);
+  color: #14532d;
+}
 
 /* ── Scenario panel ── */
 [data-theme="light"] .tb-scenario-panel { background: rgba(99,85,224,.04); border-color: rgba(99,85,224,.15); }
