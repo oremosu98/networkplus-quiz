@@ -941,6 +941,15 @@ input::placeholder { color: var(--text-dim); }
   .preset-tile { flex-direction: row; justify-content: flex-start; gap: 12px; text-align: left; }
 }
 
+/* ── Drills launcher page (v4.41.0) ── */
+.drills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.drills-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 22px 20px; cursor: pointer; transition: all .15s; font-family: inherit; text-align: left; color: var(--text); }
+.drills-tile:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.18); }
+.drills-tile:active { transform: scale(.98); }
+.drills-tile-icon { font-size: 32px; }
+.drills-tile-title { font-size: 17px; font-weight: 800; color: var(--text); }
+.drills-tile-sub { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
 /* ── Custom Quiz section (v4.32) ── */
 .custom-quiz-section { padding: 0; margin-bottom: 14px; }
 .custom-quiz-summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text); user-select: none; }
@@ -1486,7 +1495,7 @@ input::placeholder { color: var(--text-dim); }
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 12px;
-  min-height: 720px;
+  min-height: 900px;
 }
 .tb-workspace:has(.tb-config-panel:not(.is-hidden)),
 .tb-workspace.tb-config-open {
@@ -1578,11 +1587,11 @@ input::placeholder { color: var(--text-dim); }
   border: 1px solid rgba(124, 111, 247, .2);
   border-radius: 12px;
   overflow: hidden;
-  min-height: 720px;
+  min-height: 900px;
 }
 .tb-canvas {
   display: block; width: 100%; height: 100%;
-  min-height: 720px;
+  min-height: 900px;
   cursor: default;
 }
 .tb-canvas-wrap.tb-drop-active {
@@ -3606,3 +3615,483 @@ input::placeholder { color: var(--text-dim); }
 /* ── Misc hardcoded text colors ── */
 [data-theme="light"] .tb-grade-body { color: var(--text-mid); }
 [data-theme="light"] .tb-grade-backdrop { background: rgba(0,0,0,.3); }
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.42.0 — Animation pass: celebration toast, streak pulse, weak-spots
+   FLIP transition, and a global prefers-reduced-motion gate.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Milestone celebration toast — slides up from the top, distinct palette
+   from the red error toast (accent gradient, gold border) so users read it
+   as "good thing". Narrower than error toast so mini confetti peeks around. */
+.celebration-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-30px);
+  background: linear-gradient(135deg, rgba(124,111,247,.96), rgba(99,85,224,.96));
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity .35s ease, transform .35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(124,111,247,.45), 0 0 0 1px rgba(251,191,36,.55);
+  max-width: 92vw;
+  min-width: 240px;
+  text-align: center;
+}
+.celebration-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.celebration-toast-title { font-size: 15px; font-weight: 700; line-height: 1.25; }
+.celebration-toast-sub { font-size: 12px; opacity: 0.88; margin-top: 4px; font-weight: 500; }
+
+/* Streak pulse — scale + accent glow keyframe fired when renderStreakBadge
+   detects the _pendingStreakPulse flag set by finish()/submitExam(). */
+@keyframes streakPulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(251,146,60,.6); }
+  50%  { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(251,146,60,0); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(251,146,60,0); }
+}
+.streak-pulse { animation: streakPulse 900ms ease-out 1; }
+
+/* Weak Spots chip — give the chip a transform transition so the FLIP
+   rerank animation has something to ride on. The actual play is driven by
+   JS (transform set + cleared across frames), but the CSS transition is
+   what smooths it. */
+.tf-chip { transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color .2s, border-color .2s; }
+
+/* Accessibility gate — reduce or suppress motion for users who request it.
+   We keep *transitional* animations (short, functional) but kill long
+   decorative ones: the celebration slide, streak pulse, FLIP transform,
+   score count-up via animateCount (handled in JS by respecting the media
+   query through window.matchMedia — see app.js). */
+@media (prefers-reduced-motion: reduce) {
+  .celebration-toast,
+  .celebration-toast.show { transition: opacity .01ms linear !important; transform: translateX(-50%) translateY(0) !important; }
+  .streak-pulse { animation: none !important; }
+  .tf-chip { transition: background-color .2s, border-color .2s !important; }
+  /* Daily Goal + Grade ring transitions kept short but non-zero so the
+     final state is still painted. */
+  .dg-ring-fill, .grade-fill { transition: stroke-dashoffset .01ms linear, stroke .01ms linear !important; }
+}
+
+/* ─── v4.42.2 — Progress row trend arrow ─────────────────────────────── */
+/* Small inline arrow next to the % label. Tiny on purpose — it's a glance
+   signal, not a focal point. Color inherited from inline style set in JS. */
+.topic-trend {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: baseline;
+  line-height: 1;
+}
+
+/* ─── v4.42.2 — Analytics "open Progress page" CTA card ──────────────── */
+/* Replaces the deleted Topic Mastery card. Small, clearly a pointer, not
+   a dashboard in its own right — that's the whole design intent. */
+.ana-topics-cta {
+  text-align: center;
+}
+.ana-topics-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(124,111,247,.18), rgba(99,85,224,.14));
+  color: var(--accent-light);
+  border: 1px solid rgba(124,111,247,.35);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.ana-topics-cta-btn:hover {
+  background: linear-gradient(135deg, rgba(124,111,247,.28), rgba(99,85,224,.22));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124,111,247,.2);
+}
+.ana-topics-cta-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.ana-topics-cta-arrow {
+  font-size: 16px;
+  font-weight: 700;
+  transition: transform .15s ease;
+}
+.ana-topics-cta-btn:hover .ana-topics-cta-arrow {
+  transform: translateX(3px);
+}
+
+/* ─── v4.43.1 — AI Coach lab-aware header ────────────────────────────── */
+.tb-coach-lab-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, rgba(96,165,250,.2), rgba(59,130,246,.12));
+  color: var(--blue, #60a5fa);
+  border: 1px solid rgba(96,165,250,.3);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.tb-coach-cached-inline { margin-top: 4px; }
+
+/* ─── v4.43.1 — Subnet Trainer dashboard callouts ────────────────────── */
+.st-dash-callout {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--surface3);
+  background: var(--surface2);
+}
+.st-dash-callout-weak {
+  border-color: rgba(248,113,113,.35);
+  background: linear-gradient(135deg, rgba(248,113,113,.05), rgba(248,113,113,.02));
+}
+.st-dash-callout-stale {
+  border-color: rgba(251,146,60,.3);
+  background: linear-gradient(135deg, rgba(251,146,60,.05), rgba(251,146,60,.02));
+}
+.st-dash-callout-types {
+  border-color: rgba(124,111,247,.3);
+  background: linear-gradient(135deg, rgba(124,111,247,.05), rgba(124,111,247,.02));
+}
+.st-dash-callout-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-mid);
+  margin-bottom: 10px;
+}
+.st-dash-callout-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.st-dash-callout-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--surface3);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  color: var(--text);
+  font: inherit;
+}
+.st-dash-callout-row:hover {
+  background: var(--surface2);
+  border-color: rgba(124,111,247,.4);
+  transform: translateX(2px);
+}
+.st-dash-callout-icon { font-size: 18px; }
+.st-dash-callout-name { flex: 1; font-weight: 600; }
+.st-dash-callout-pct {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: var(--surface3);
+  border-radius: 99px;
+  color: var(--text-dim);
+}
+.st-dash-callout-weak .st-dash-callout-pct { color: var(--red); background: rgba(248,113,113,.1); }
+.st-dash-callout-stale .st-dash-callout-pct { color: var(--orange); background: rgba(251,146,60,.1); }
+.st-dash-callout-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-light);
+}
+.st-dash-callout-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.st-dash-callout-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.st-dash-callout-type-name { font-weight: 600; }
+.st-dash-callout-type-pct { color: var(--text-dim); font-size: 12px; }
+
+/* ─── v4.43.1 — Weak-spots → Subnet Trainer bridge ──────────────────── */
+.tf-bridges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tf-bridge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--accent-light);
+  background: rgba(124,111,247,.08);
+  border: 1px dashed rgba(124,111,247,.3);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.tf-bridge-btn:hover {
+  background: rgba(124,111,247,.15);
+  border-color: rgba(124,111,247,.5);
+  border-style: solid;
+}
+.tf-bridge-icon { font-size: 14px; }
+.tf-bridge-label { font-weight: 500; }
+.tf-bridge-arrow { font-size: 13px; opacity: .7; }
+
+/* ─── v4.43.1 — Topology Builder UI polish ─────────────────────────── */
+/* Compact hero (replaces wall-of-text intro banner) */
+.tb-hero {
+  margin: 0 0 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(124,111,247,.08), rgba(99,85,224,.04));
+  border: 1px solid rgba(124,111,247,.18);
+  border-radius: 10px;
+}
+.tb-hero-tagline {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.tb-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tb-hero-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--text-mid);
+  background: var(--surface2);
+  border: 1px solid var(--surface3);
+  border-radius: 99px;
+}
+
+/* Toolbar v2 — grouped with labels */
+.tb-toolbar-v2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--surface3);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.tb-tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px;
+  border-right: 1px solid var(--surface3);
+}
+.tb-tool-group:last-of-type { border-right: none; }
+.tb-tool-group-primary { padding-left: 0; }
+.tb-tool-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-dim);
+  padding-left: 2px;
+}
+.tb-tool-group-primary .tb-tool-btn { height: 36px; font-weight: 600; }
+.tb-tool-group > .tb-tool-btn,
+.tb-tool-group > .btn,
+.tb-tool-group > select {
+  /* each button sits as a row item after the label */
+}
+.tb-tool-group {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tb-tool-group .tb-tool-group-label {
+  width: 100%;
+  margin-bottom: 2px;
+}
+.tb-toolbar-v2 .tb-status {
+  margin-left: auto;
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Empty-state with primary CTAs */
+.tb-empty-hint-v2 {
+  padding: 40px 24px;
+  text-align: center;
+  max-width: 700px;
+  margin: 60px auto 0;
+}
+.tb-empty-icon { font-size: 64px; margin-bottom: 12px; }
+.tb-empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.tb-empty-sub {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+.tb-empty-ctas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.tb-empty-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--surface3);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.tb-empty-cta:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124,111,247,.4);
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(124,111,247,.15);
+}
+.tb-empty-cta-primary {
+  background: linear-gradient(135deg, rgba(124,111,247,.15), rgba(99,85,224,.08));
+  border-color: rgba(124,111,247,.35);
+}
+.tb-empty-cta-primary:hover {
+  background: linear-gradient(135deg, rgba(124,111,247,.25), rgba(99,85,224,.15));
+}
+.tb-empty-cta-icon { font-size: 32px; }
+.tb-empty-cta-title { font-size: 14px; font-weight: 700; }
+.tb-empty-cta-sub { font-size: 11px; color: var(--text-dim); }
+
+/* Lab picker — category groups */
+.tb-lab-picker-header { margin-bottom: 14px; }
+.tb-lab-picker-count {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.tb-lab-picker-count strong { color: var(--accent-light); }
+.tb-lab-picker-count-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+.tb-lab-category {
+  margin-bottom: 14px;
+  border: 1px solid var(--surface3);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.tb-lab-category-head {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tb-lab-category-head:hover { background: var(--surface2); }
+.tb-lab-category-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.tb-lab-category-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  padding: 8px 14px 14px;
+}
+.tb-lab-category-variants {
+  border-style: dashed;
+  background: var(--surface2);
+}
+.tb-lab-variant-groups {
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tb-lab-variant-group-head {
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+.tb-lab-variant-group-parent {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* ─── v4.43.0 — exam-convention keyword highlighting ─────────────────
+   Renders around CompTIA-exam trap words (NOT, EXCEPT, MOST, BEST, NEVER,
+   ALWAYS, ONLY, FIRST, LAST, LEAST, WORST, PRIMARY, NEXT, CANNOT). Subtle
+   chip styling so the keyword catches the eye without shouting. Original
+   case preserved — no text-transform, because upper-casing plain prose
+   occurrences would confuse users. */
+.exam-keyword {
+  font-weight: 700;
+  color: var(--accent-light);
+  background: rgba(124, 111, 247, 0.1);
+  padding: 0 4px;
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 rgba(124, 111, 247, 0.3);
+}
+/* Light theme — slightly darker accent so contrast stays readable on white */
+[data-theme="light"] .exam-keyword {
+  color: var(--accent);
+  background: rgba(124, 111, 247, 0.14);
+  box-shadow: inset 0 -1px 0 rgba(124, 111, 247, 0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No animation on the keyword — kept as a no-op for consistency with
+     other .v4.42.0 motion guards (if we add transitions later, they get
+     neutralized here). */
+}

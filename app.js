@@ -3,14 +3,44 @@
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.38.7';
+const APP_VERSION = '4.43.1';
+
+// v4.42.0: Animation state flags. finish() / submitExam() set these when
+// they detect a streak increment or weak-spots rerank while #page-setup is
+// hidden; goSetup() consumes them on the next render so the animation plays
+// against a live, visible DOM.
+let _pendingStreakPulse = false;
+let _pendingWeakSpotsOrder = null;
+
+// v4.42.1: Landing-page intro flags. Armed at module load (once per session)
+// so the first render of the readiness card and daily-goal ring plays a
+// fill-from-empty reveal animation. Each flag self-consumes on first real
+// render so returning from a quiz feels snappy, not ceremonial.
+let _readinessIntroArmed = true;
+let _dailyGoalIntroArmed = true;
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
+const EXAM_QUESTION_COUNT = 90;     // full CompTIA N10-009 exam length
+const EXAM_PASS_SCORE = 720;        // scaled score threshold for pass (CompTIA official)
+const EXAM_MAX_SCORE = 900;         // scaled score ceiling
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
 const REPORTS_CAP = 500;
 const PORT_DRILL_SECONDS = 30;
 const SESSION_TOPICS = 3;
 const SESSION_QUESTIONS = 7;
+const DOUBLE_CLICK_MS = 400;        // double-click detection window (topology canvas)
+const VXLAN_VNI_MAX = 16777215;     // 24-bit VNI range (RFC 7348)
+
+// ── AI API token budgets (v4.42.5) ─────────────────────────────────────
+// Max-token limits per call site, named for intent rather than scattered
+// magic numbers. Generation (Haiku) needs room for 18-Q batches; validation
+// and teacher calls are more compact.
+const MAX_TOKENS_GENERATION      = 8000;  // fetchQuestions — Haiku batch generation
+const MAX_TOKENS_VALIDATION      = 1000;  // aiValidateQuestions — Sonnet second-pass
+const MAX_TOKENS_TEACHER_DEFAULT = 1500;  // explainFurther, tbCoachTopology — standard teacher call
+const MAX_TOKENS_TEACHER_LONG    = 2000;  // showTopicDeepDive — longest teacher call
+const MAX_TOKENS_TEACHER_COACH   = 800;   // tbExplainDevice — focused coach call
+const MAX_TOKENS_TEACHER_BRIEF   = 400;   // stAskCoach, ptAskCoach, fetchTopicBrief — short teacher call
 
 const MIXED_TOPIC = 'Mixed \u2014 All Topics';
 const EXAM_TOPIC = 'Exam Simulation';
@@ -475,7 +505,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   renderHistoryPanel();
   renderStatsCard();
-  renderWeakBanner();
   renderStreakBadge();
   renderReadinessCard();
   renderSessionBanner();
@@ -484,6 +513,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDailyChallengeCard();
   renderTodaysFocus();
   renderTodaySection();
+  renderMarathonSection();
   initMonitorGesture();
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');
@@ -569,7 +599,6 @@ function goSetup() {
   navOpen = false;
   renderHistoryPanel();
   renderStatsCard();
-  renderWeakBanner();
   renderStreakBadge();
   renderReadinessCard();
   renderSessionBanner();
@@ -578,7 +607,22 @@ function goSetup() {
   renderDailyChallengeCard();
   renderTodaysFocus();
   renderTodaySection();
+  renderMarathonSection();
   showPage('setup');
+}
+
+// v4.41.0: Drills launcher (consolidated entry point for Port/Acronym/OSI/Cables drills).
+function showDrillsPage() {
+  showPage('drills');
+}
+
+// v4.41.0: Progressive disclosure — hide Marathon Mode until user has completed 1+ quiz.
+// First-run users shouldn't see "100 Question" options before they've taken 5.
+function renderMarathonSection() {
+  const section = document.getElementById('marathon-section');
+  if (!section) return;
+  const hasHistory = loadHistory().length > 0;
+  section.classList.toggle('is-hidden', !hasHistory);
 }
 
 function confirmBack() {
@@ -681,18 +725,43 @@ function renderDailyGoal() {
   const goalEl = document.getElementById('dg-goal-num');
   const msgEl  = document.getElementById('dg-msg');
   if (!fill || !pctEl) return;
-  fill.style.strokeDasharray = circumference;
-  fill.style.strokeDashoffset = offset;
   let color;
   if (pct >= 100)      color = 'var(--green)';
   else if (pct >= 60)  color = 'var(--accent)';
   else if (pct >= 25)  color = 'var(--yellow)';
   else                 color = 'var(--red)';
   fill.style.stroke = color;
-  pctEl.textContent = pct + '%';
   pctEl.style.color = color;
-  countEl.textContent = done;
   goalEl.textContent = goal;
+
+  // v4.42.1: first-render-per-session intro. Ring fills from empty
+  // (stroke-dashoffset = full circumference) → target offset using a slower
+  // 1.2s cubic-bezier reveal, slightly delayed so the readiness card leads.
+  // Count + percentage text roll up in parallel. Once consumed, subsequent
+  // calls use the instant hot-swap path so quiz-return updates stay snappy.
+  if (_dailyGoalIntroArmed) {
+    _dailyGoalIntroArmed = false;
+    fill.style.strokeDasharray = circumference;
+    fill.style.transition = 'none';
+    fill.style.strokeDashoffset = circumference; // empty ring
+    void fill.offsetWidth; // force reflow
+    pctEl.textContent = '0%';
+    countEl.textContent = '0';
+    setTimeout(() => {
+      fill.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      fill.style.strokeDashoffset = offset;
+      setTimeout(() => { fill.style.transition = ''; }, 1350);
+    }, 250);
+    setTimeout(() => {
+      animateCount('dg-progress-count', 0, done, 1000);
+      animateCount('dg-ring-pct', 0, pct, 1000, '%');
+    }, 300);
+  } else {
+    fill.style.strokeDasharray = circumference;
+    fill.style.strokeDashoffset = offset;
+    pctEl.textContent = pct + '%';
+    countEl.textContent = done;
+  }
   if (pct >= 100)      msgEl.textContent = '\ud83c\udf89 Goal smashed for today!';
   else if (pct >= 75)  msgEl.textContent = 'Almost there — push through!';
   else if (pct >= 40)  msgEl.textContent = 'Solid progress. Keep going.';
@@ -747,7 +816,7 @@ function _buildProgressRows() {
     const domainKey = TOPIC_DOMAINS[t] || 'concepts';
     const obj = (topicResources[t] && topicResources[t].obj) || '';
     if (entries.length === 0) {
-      return { t, label, pct: null, total: 0, attempts: 0, daysSince: null, lastDate: 0, domainKey, obj };
+      return { t, label, pct: null, total: 0, attempts: 0, daysSince: null, lastDate: 0, domainKey, obj, trend: 0 };
     }
     const totalQ   = entries.reduce((a, e) => a + e.total, 0);
     const wCorrect = entries.reduce((a, e) => a + e.score * diffWeight(e.difficulty), 0);
@@ -755,7 +824,15 @@ function _buildProgressRows() {
     const pct      = Math.round((wCorrect / wTotal) * 100);
     const lastDate = Math.max.apply(null, entries.map(e => new Date(e.date).getTime()));
     const daysSince = Math.round((now - lastDate) / 86400000);
-    return { t, label, pct, total: totalQ, attempts: entries.length, daysSince, lastDate, domainKey, obj };
+    // v4.42.2: trend — recent session accuracy minus oldest session accuracy.
+    // h is newest-first (so entries[0] is the most recent session for this
+    // topic, entries[last] is the oldest). Analytics' deleted Topic Mastery
+    // card used this exact algorithm; moving it here so trend lives next to
+    // the row it describes.
+    const trend = entries.length >= 2
+      ? entries[0].pct - entries[entries.length - 1].pct
+      : 0;
+    return { t, label, pct, total: totalQ, attempts: entries.length, daysSince, lastDate, domainKey, obj, trend };
   });
 }
 
@@ -794,7 +871,7 @@ function _progressRowMatches(row) {
 }
 
 function _progressRowHtml(row) {
-  const { t, label, pct, total, daysSince, obj } = row;
+  const { t, label, pct, total, daysSince, obj, trend } = row;
   let ragClass, color, metaRight;
   if (pct === null) {
     ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
@@ -807,6 +884,16 @@ function _progressRowHtml(row) {
   const barW = pct !== null ? pct : 0;
   const pctTxt = pct !== null ? pct + '%' : '—';
   const objBadge = obj ? `<span class="topic-obj-badge" title="N10-009 objective ${obj}">${obj}</span>` : '';
+  // v4.42.2: trend arrow (ported from deleted Analytics Topic Mastery card).
+  // Only renders when we have 2+ sessions to compare — matches the old
+  // behaviour and avoids showing a meaningless sideways arrow on 1-shot topics.
+  let trendHtml = '';
+  if (typeof trend === 'number' && pct !== null && row.attempts >= 2) {
+    const arrow = trend > 5 ? '\u2191' : trend < -5 ? '\u2193' : '\u2192';
+    const trendColor = trend > 5 ? 'var(--green)' : trend < -5 ? 'var(--red)' : 'var(--text-dim)';
+    const trendLbl = trend > 5 ? 'Improving' : trend < -5 ? 'Slipping' : 'Steady';
+    trendHtml = `<span class="topic-trend" style="color:${trendColor}" title="${trendLbl} — recent ${trend > 0 ? '+' : ''}${trend} vs first session" aria-label="Trend ${trendLbl}">${arrow}</span>`;
+  }
   // Show the same short label the user picks from on the setup page
   const display = label || t;
   const safeTopicId = escHtml(t).replace(/'/g, "\\'");
@@ -817,7 +904,7 @@ function _progressRowHtml(row) {
       <div class="topic-meta">${metaRight}</div>
       <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
     </div>
-    <div class="topic-pct-lbl" style="color:${color}">${pctTxt}</div>
+    <div class="topic-pct-lbl" style="color:${color}">${pctTxt}${trendHtml}</div>
     <button class="topic-play-btn" onclick="event.stopPropagation();focusTopic('${safeTopicId}')" title="Start quiz on this topic" aria-label="Start quiz on ${escHtml(display)}">&#9654;</button>
   </div>`;
 }
@@ -975,6 +1062,19 @@ function renderStreakBadge() {
     const best = s.best > s.current ? ' \u00b7 Best: ' + s.best : '';
     el.textContent = fire + ' ' + s.current + ' day streak' + best;
     el.classList.add('show');
+    // v4.42.0: if finish()/submitExam() flagged a streak increment while the
+    // setup page was hidden, consume the flag here and replay the pulse on
+    // the now-visible badge. `.streak-pulse` is cleared on animationend so
+    // the class doesn't persist and re-renders don't accidentally re-fire.
+    if (_pendingStreakPulse) {
+      _pendingStreakPulse = false;
+      el.classList.remove('streak-pulse');
+      // Force reflow so re-adding the class restarts the animation.
+      void el.offsetWidth;
+      el.classList.add('streak-pulse');
+      const clear = () => { el.classList.remove('streak-pulse'); el.removeEventListener('animationend', clear); };
+      el.addEventListener('animationend', clear);
+    }
   } else {
     el.classList.remove('show');
   }
@@ -1141,18 +1241,9 @@ function graduateFromBank(questionText) {
 }
 
 function renderWrongBankBtn() {
-  const row = document.getElementById('wrong-bank-row');
-  const btn = document.getElementById('wrong-bank-btn');
-  if (!row || !btn) return;
   const bank = loadWrongBank();
-  if (bank.length === 0) {
-    row.classList.add('is-hidden');
-  } else {
-    row.classList.remove('is-hidden');
-    const badge = btn.querySelector('.wrong-count-badge');
-    if (badge) badge.textContent = bank.length;
-  }
-  // Also update the preset tile version (v4.32)
+  // v4.41.0: legacy #wrong-bank-row removed. The preset tile is the only
+  // drill entry point; a Clear button lives inside Settings.
   const wrongTile = document.getElementById('wrong-preset-tile');
   const wrongSub = document.getElementById('wrong-preset-sub');
   if (wrongTile) {
@@ -1163,13 +1254,17 @@ function renderWrongBankBtn() {
       if (wrongSub) wrongSub.textContent = bank.length + ' wrong answer' + (bank.length !== 1 ? 's' : '') + ' saved';
     }
   }
+  // Settings → Clear Wrong Answers Bank count badge
+  const clearCount = document.getElementById('wrong-bank-clear-count');
+  if (clearCount) clearCount.textContent = bank.length;
 }
 
 function renderTodaySection() {
   const section = document.getElementById('today-section');
   if (!section) return;
-  // Show the section if any child card is visible
-  const children = section.querySelectorAll('#daily-goal-card, #streak-defender, #daily-challenge-card, #todays-focus, #session-banner, #weak-banner');
+  // Show the section if any child card is visible.
+  // v4.41.0: #weak-banner removed — Weak Spots chip row (#todays-focus) covers the same concept.
+  const children = section.querySelectorAll('#daily-goal-card, #streak-defender, #daily-challenge-card, #todays-focus, #session-banner');
   const anyVisible = Array.from(children).some(c => !c.classList.contains('is-hidden'));
   // Daily goal card is always visible, so the section is always shown
   section.classList.remove('is-hidden');
@@ -1240,27 +1335,10 @@ function getWeakTopic() {
   return weakest && lowestPct < 75 ? { topic: weakest, pct: Math.round(lowestPct) } : null;
 }
 
-function renderWeakBanner() {
-  const weak   = getWeakTopic();
-  const banner = document.getElementById('weak-banner');
-  if (!banner) return;
-  if (!weak) { banner.classList.add('is-hidden'); return; }
-  banner.classList.remove('is-hidden');
-  document.getElementById('weak-topic-name').textContent = weak.topic;
-  document.getElementById('weak-topic-pct').textContent  = weak.pct + '%';
-  document.getElementById('weak-drill-btn').onclick = () => {
-    topic = weak.topic;
-    document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === weak.topic));
-    syncChipAriaPressed('#topic-group');
-    diff = DEFAULT_DIFF;
-    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === DEFAULT_DIFF));
-    syncChipAriaPressed('#diff-group');
-    qCount = 10;
-    document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === '10'));
-    syncChipAriaPressed('#count-group');
-    startQuiz();
-  };
-}
+// v4.41.0: renderWeakBanner() removed — the amber #weak-banner is redundant
+// with the #todays-focus "Weak Spots" chip row which offers the same
+// drill-the-weakest-topic UX with better density and no layout jank.
+// getWeakTopic() is still used by applyPreset('focused') as a fallback.
 
 // ══════════════════════════════════════════
 // API KEY VALIDATION
@@ -1529,7 +1607,7 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }] })
   });
 
   if (!res.ok) {
@@ -1589,7 +1667,7 @@ function render() {
     else { pbqBadge.classList.add('is-hidden'); }
   }
 
-  document.getElementById('q-text').textContent = q.question;
+  setQuestionText(document.getElementById('q-text'), q.question);
 
   // Flag button
   const flagBtn = document.getElementById('quiz-flag-btn');
@@ -2042,6 +2120,9 @@ function renderResultsDifficultyBreakdown() {
 }
 
 function finish() {
+  // v4.42.0: snapshot streak BEFORE updateStreak so we can detect an
+  // increment and flag a pulse animation for the next goSetup() render.
+  const _prevStreakBefore = (function(){ try { return getStreak().current || 0; } catch (_) { return 0; } })();
   const total = questions.length;
   const pct   = total > 0 ? Math.round((score / total) * 100) : 0;
   const grade = pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
@@ -2081,15 +2162,35 @@ function finish() {
 
   updateStreak();
   renderStreakBadge();
+  // v4.42.0: if the streak incremented, flag a pulse for goSetup() to replay
+  // on the newly-visible streak badge. Can't animate here because #page-setup
+  // is hidden while we're on the results page.
+  try {
+    if ((getStreak().current || 0) > _prevStreakBefore) _pendingStreakPulse = true;
+  } catch (_) {}
 
   if (!wrongDrillMode) {
     const entryMode = dailyChallengeMode ? 'daily' : (sessionMode ? 'session' : 'quiz');
     saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
   }
-  // v4.38.7: real-time weak spots refresh. goSetup() already re-renders the
-  // chips when the user navigates back to setup, but calling it here keeps
-  // the DOM consistent in case the user navigates via a direct page switch.
-  try { renderTodaysFocus(); } catch (_) {}
+  // v4.42.0: refresh the homepage cards that depend on history state, so
+  // re-entering goSetup() renders them fresh. renderReadinessCard rolls the
+  // score from its previous value to the new one via animateCount. The
+  // renderTodaysFocus call that used to live here has moved — goSetup() is
+  // the only caller now, which lets the FLIP rerank animation capture real
+  // old positions instead of re-rendering to an already-updated DOM.
+  try { renderStatsCard(); } catch (_) {}
+  try { renderReadinessCard(); } catch (_) {}
+  // v4.42.0: fire milestone celebration toasts for anything we just unlocked.
+  // Pre-v4.42 evaluateMilestones was never called from finish() — milestones
+  // only unlocked lazily when the user opened Analytics. We now capture the
+  // newly-unlocked list and stagger celebration toasts + mini confetti.
+  try {
+    const _newlyUnlocked = evaluateMilestones();
+    if (_newlyUnlocked && _newlyUnlocked.length) {
+      _newlyUnlocked.forEach((id, i) => setTimeout(() => showMilestoneCelebration(id), 500 + i * 900));
+    }
+  } catch (_) {}
 
   // Daily challenge completion hook — count any finished daily-challenge run
   if (dailyChallengeMode) {
@@ -2209,7 +2310,7 @@ function renderExam() {
   flagBtn.textContent = ans.flagged ? '\u2691 Flagged' : '\u2691 Flag';
   flagBtn.setAttribute('aria-pressed', ans.flagged ? 'true' : 'false');
 
-  document.getElementById('exam-q-text').textContent = q.question;
+  setQuestionText(document.getElementById('exam-q-text'), q.question);
 
   const box = document.getElementById('exam-options');
   box.innerHTML = '';
@@ -2342,7 +2443,7 @@ function abandonExam() {
   if (confirm('Abandon this exam and return to the menu? All progress will be lost.')) {
     clearInterval(examTimer); examTimer = null; examMode = false;
     hideExamModal();
-    renderHistoryPanel(); renderWeakBanner();
+    renderHistoryPanel();
     showPage('setup');
   }
 }
@@ -2351,6 +2452,9 @@ function abandonExam() {
 // EXAM SUBMIT & RESULTS (with PBQ scoring)
 // ══════════════════════════════════════════
 function submitExam() {
+  // v4.42.0: snapshot streak BEFORE updateStreak so we can flag a pulse for
+  // goSetup() on increment.
+  const _prevStreakBefore = (function(){ try { return getStreak().current || 0; } catch (_) { return 0; } })();
   if (examTimer) { clearInterval(examTimer); examTimer = null; }
   hideExamModal();
 
@@ -2400,7 +2504,7 @@ function submitExam() {
 
   const pct = Math.round((correct / total) * 100);
   const scaledScore = Math.round(100 + (correct / total) * 800);
-  const passed      = scaledScore >= 720;
+  const passed      = scaledScore >= EXAM_PASS_SCORE;
 
   // Build log for review
   log = examQuestions.map((q, i) => {
@@ -2445,11 +2549,19 @@ function submitExam() {
   });
 
   updateStreak();
+  // v4.42.0: flag streak-pulse for goSetup() if the exam finish incremented
+  // the streak counter.
+  try {
+    if ((getStreak().current || 0) > _prevStreakBefore) _pendingStreakPulse = true;
+  } catch (_) {}
   saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam', hardcore: examHardcore });
-  // v4.38.7: exam runs push per-topic data into the wrong bank via
-  // addToWrongBank as each wrong answer is recorded; refresh the weak-spots
-  // card so the next setup view already reflects the new signal.
-  try { renderTodaysFocus(); } catch (_) {}
+  // v4.42.0: refresh the homepage cards that depend on history state so
+  // returning to setup renders them fresh with the new signal. The
+  // renderTodaysFocus call that used to live here has moved — goSetup() is
+  // the only caller now, which lets the FLIP rerank animation capture real
+  // old positions instead of re-rendering against an already-updated DOM.
+  try { renderStatsCard(); } catch (_) {}
+  try { renderReadinessCard(); } catch (_) {}
 
   const scoreEl = document.getElementById('exam-scaled-score');
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';
@@ -2464,7 +2576,7 @@ function submitExam() {
 
   document.getElementById('exam-result-msg').textContent = passed
     ? `Score ${scaledScore}/900 \u2014 above the 720 pass mark. Exam-ready!`
-    : `Score ${scaledScore}/900 \u2014 need ${720 - scaledScore} more points. Keep drilling!`;
+    : `Score ${scaledScore}/900 \u2014 need ${EXAM_PASS_SCORE - scaledScore} more points. Keep drilling!`;
 
   animateCount('exam-r-correct', 0, correct, 800);
   animateCount('exam-r-wrong', 0, wrong, 800);
@@ -2473,19 +2585,29 @@ function submitExam() {
 
   showPage('exam-results');
   if (passed) setTimeout(() => launchConfetti(), 400);
+  // v4.42.0: evaluate + celebrate unlocked milestones. Delayed 900ms so it
+  // doesn't collide with the exam-pass confetti burst; staggered by 900ms
+  // between individual milestones so each celebration is readable.
+  try {
+    const _newlyUnlocked = evaluateMilestones();
+    if (_newlyUnlocked && _newlyUnlocked.length) {
+      _newlyUnlocked.forEach((id, i) => setTimeout(() => showMilestoneCelebration(id), 900 + i * 900));
+    }
+  } catch (_) {}
 }
 
 // ══════════════════════════════════════════
 // ANIMATED SCORE COUNTER
 // ══════════════════════════════════════════
-function animateCount(elId, from, to, duration) {
+function animateCount(elId, from, to, duration, suffix) {
   const el = document.getElementById(elId);
-  if (!el || from === to) { if (el) el.textContent = to; return; }
+  const sfx = suffix || '';
+  if (!el || from === to) { if (el) el.textContent = to + sfx; return; }
   const start = performance.now();
   function step(now) {
     const t = Math.min((now - start) / duration, 1);
     const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
-    el.textContent = Math.round(from + (to - from) * ease);
+    el.textContent = Math.round(from + (to - from) * ease) + sfx;
     if (t < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -2576,6 +2698,130 @@ function launchConfetti() {
 }
 
 // ══════════════════════════════════════════
+// v4.42.0 — MILESTONE CELEBRATION (toast + mini confetti)
+// ══════════════════════════════════════════
+// Fires a subtle celebration burst when a milestone unlocks during a quiz or
+// exam finish. Separate from the exam-pass launchConfetti so the two can
+// co-exist (pass confetti fills the screen; mini confetti bursts around the
+// toast). Gated by prefers-reduced-motion via CSS: the keyframes become
+// zero-duration under that media query so the toast still appears but the
+// slide/burst is suppressed.
+function showMilestoneCelebration(milestoneId) {
+  try {
+    const def = (MILESTONE_DEFS || []).find(m => m.id === milestoneId);
+    if (!def) return;
+    showCelebrationToast(def.icon + ' ' + def.label, def.desc);
+    launchMiniConfetti();
+  } catch (_) { /* celebration is best-effort */ }
+}
+
+function showCelebrationToast(titleText, subText) {
+  try {
+    const toast = document.createElement('div');
+    toast.className = 'celebration-toast';
+    const title = document.createElement('div');
+    title.className = 'celebration-toast-title';
+    title.textContent = titleText || 'Milestone unlocked';
+    toast.appendChild(title);
+    if (subText) {
+      const sub = document.createElement('div');
+      sub.className = 'celebration-toast-sub';
+      sub.textContent = subText;
+      toast.appendChild(sub);
+    }
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => { try { toast.remove(); } catch (_) {} }, 400);
+    }, 3800);
+  } catch (_) { /* best-effort */ }
+}
+
+// Mini confetti burst — subtler than launchConfetti (fewer particles, shorter
+// duration, gold/accent palette, origin point at top-center so it lands near
+// the celebration toast instead of covering the page).
+function launchMiniConfetti() {
+  try {
+    let canvas = document.getElementById('confetti-canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'confetti-canvas';
+      document.body.appendChild(canvas);
+    }
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.classList.remove('is-hidden');
+
+    const PARTICLE_COUNT = 40;
+    const COLORS = ['#fbbf24','#f59e0b','#fde047','#7c6ff7','#22c55e'];
+    const originX = canvas.width / 2;
+    const originY = 80; // near the top where the toast lives
+    const particles = [];
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const angle = (Math.PI * 2 * i) / PARTICLE_COUNT + (Math.random() - 0.5) * 0.5;
+      const speed = Math.random() * 4 + 3;
+      particles.push({
+        x: originX,
+        y: originY,
+        w: Math.random() * 6 + 3,
+        h: Math.random() * 4 + 2,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        rot: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 12,
+        opacity: 1,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle'
+      });
+    }
+
+    let frame = 0;
+    const MAX_FRAMES = 80;
+
+    function animate() {
+      frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = 0;
+      particles.forEach(p => {
+        if (p.opacity <= 0) return;
+        alive++;
+        p.x += p.vx;
+        p.vy += 0.15;
+        p.y += p.vy;
+        p.rot += p.rotSpeed;
+        if (frame > MAX_FRAMES * 0.5) p.opacity -= 0.03;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+      if (alive > 0 && frame < MAX_FRAMES) {
+        requestAnimationFrame(animate);
+      } else {
+        // Only hide the canvas if launchConfetti isn't also running (defensive).
+        if (!canvas.dataset.fullConfettiActive) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.classList.add('is-hidden');
+        }
+      }
+    }
+    requestAnimationFrame(animate);
+  } catch (_) { /* best-effort */ }
+}
+
+// ══════════════════════════════════════════
 // REVIEW
 // ══════════════════════════════════════════
 function showReview(fromExam) {
@@ -2629,7 +2875,7 @@ function showReview(fromExam) {
     const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">📚 Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
 
     div.innerHTML = `
-      <div class="review-q">${i+1}. ${escHtml(q.question)}</div>
+      <div class="review-q">${i+1}. ${highlightExamKeywords(escHtml(q.question))}</div>
       ${typeBadge}${flagTag}${skippedTag}
       ${optsHtml}
       <div class="review-exp">${escHtml(q.explanation)}${resLink}</div>`;
@@ -2746,8 +2992,12 @@ const TOPIC_DOMAINS = {
   'Network Appliances & Device Functions': 'concepts',
   'DNS Records & DNSSEC':              'concepts',
   // Domain 2.0 — Network Implementation (20%)
-  'Routing Protocols':                 'implementation',
-  'Switch Features & VLANs':           'implementation',
+  'Routing Protocols':                 'implementation', // umbrella — kept for history continuity (v4.42.3)
+  'OSPF':                              'implementation', // v4.42.3: split from Routing Protocols (blueprint 2.1)
+  'BGP':                               'implementation', // v4.42.3: split from Routing Protocols (blueprint 2.1)
+  'Switch Features & VLANs':           'implementation', // umbrella — kept for history continuity (v4.42.3)
+  'VLAN Trunking':                     'implementation', // v4.42.3: split from Switch Features (blueprint 2.2)
+  'STP/RSTP':                          'implementation', // v4.42.3: split from Switch Features (blueprint 2.2)
   'Wireless Networking':               'implementation',
   'Ethernet Basics':                   'implementation',
   'Ethernet Standards':                'implementation',
@@ -2767,14 +3017,20 @@ const TOPIC_DOMAINS = {
   'Securing TCP/IP':                   'security',
   'Protecting Networks':               'security',
   'AAA & Authentication':              'security',
-  'IPsec & VPN Protocols':             'security',
+  'IPsec & VPN Protocols':             'security', // umbrella — kept for history continuity (v4.42.3)
+  'IPsec VPN':                         'security', // v4.42.3: split from IPsec & VPN Protocols (blueprint 4.4)
+  'SSL/TLS VPN':                       'security', // v4.42.3: split from IPsec & VPN Protocols (blueprint 4.4)
   'PKI & Certificate Management':      'security',
   'Firewalls, DMZ & Security Zones':   'security',
   'WPA3 & EAP Authentication':         'security',
   'Network Attacks & Threats':         'security',
   'Physical Security Controls':        'security',
   // Domain 5.0 — Network Troubleshooting (24%)
-  'Network Troubleshooting & Tools':   'troubleshooting',
+  'Network Troubleshooting & Tools':   'troubleshooting', // umbrella — kept for history continuity (v4.42.3)
+  'Cable Issues':                      'troubleshooting', // v4.42.3: split — blueprint 5.2 (cabling & physical interface issues)
+  'Service Issues':                    'troubleshooting', // v4.42.3: split — blueprint 5.3 (network service issues)
+  'Perf Issues':                       'troubleshooting', // v4.42.3: split — blueprint 5.4 (performance issues)
+  'Connection Issues':                 'troubleshooting', // v4.42.3: split — blueprint 5.5 (tool/protocol selection for connection troubleshooting)
   'CompTIA Troubleshooting Methodology': 'troubleshooting'
 };
 
@@ -2826,20 +3082,30 @@ function getReadinessScore() {
 
   // Domain-weighted accuracy — each CompTIA domain contributes its official weight.
   // Unstudied domains contribute 0, which drags the score down and incentivizes coverage.
+  //
+  // v4.42.4: Within-domain aggregation fix. Previously this computed the simple
+  // average of per-topic accuracies (`pctSum / count`), which gave equal weight
+  // to a topic with 2 questions and one with 200. The real CompTIA exam weights
+  // every question equally — so if you're 95% on OSPF (20 Q's) and 50% on BGP
+  // (4 Q's), your real-exam-equivalent implementation accuracy is (19+2)/(20+4)
+  // = 87.5%, not the simple average of 72.5%. The v4.42.3 catalog expansion
+  // made this flaw more visible because new child topics start with 0 questions
+  // while parent umbrellas have lots. Now aggregates weighted-correct /
+  // weighted-total across all topics in the domain, so question count properly
+  // influences domain-level accuracy.
   const domainBuckets = {};
-  Object.keys(DOMAIN_WEIGHTS).forEach(d => { domainBuckets[d] = { pctSum: 0, count: 0 }; });
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => { domainBuckets[d] = { wCorrect: 0, wTotal: 0 }; });
   studiedTopics.forEach(t => {
     const domain = TOPIC_DOMAINS[t];
     if (!domain) return; // topics not in map (e.g. Mixed) are excluded
-    const pct = (topicMap[t].wCorrect / topicMap[t].wTotal) * 100;
-    domainBuckets[domain].pctSum += pct;
-    domainBuckets[domain].count++;
+    domainBuckets[domain].wCorrect += topicMap[t].wCorrect;
+    domainBuckets[domain].wTotal   += topicMap[t].wTotal;
   });
   const domainAccuracy = {};
   let accuracyScore = 0;
   Object.keys(DOMAIN_WEIGHTS).forEach(d => {
     const bucket = domainBuckets[d];
-    const avg = bucket.count > 0 ? (bucket.pctSum / bucket.count) : 0;
+    const avg = bucket.wTotal > 0 ? (bucket.wCorrect / bucket.wTotal) * 100 : 0;
     domainAccuracy[d] = avg;
     accuracyScore += avg * DOMAIN_WEIGHTS[d];
   });
@@ -3022,7 +3288,19 @@ const MILESTONE_DEFS = [
   { id: 'cb_streak_10',      label: 'Cable streak',        desc: 'Reach a 10 streak in Cable ID',             icon: '⛓️' },
 ];
 
-function evaluateMilestones() {
+// ── Milestone evaluation — table-driven (v4.42.5) ───────────────────────
+// Previously `evaluateMilestones` was a 151-line function with 29 `maybe(id, cond)`
+// calls interleaved with context-building logic (fetching history, computing
+// weekMap, reading localStorage, defensive try/catch around optional drill APIs).
+// Refactored into three pieces:
+//   1. `_buildMilestoneCtx()` — gathers ALL the data once into one context object
+//   2. `MILESTONE_CHECKS` — declarative table of { id, check(ctx) } predicates
+//   3. `evaluateMilestones()` — tight loop, under 10 lines
+// Same 47 milestones, same behavior, same return shape. Table form makes it
+// trivial to add a new milestone (one entry) and keeps the function under the
+// 80-line threshold (#141).
+
+function _buildMilestoneCtx() {
   const h = loadHistory();
   const totalQs = h.reduce((a, e) => a + e.total, 0);
   const studied = new Set(h.filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC).map(e => e.topic));
@@ -3031,74 +3309,28 @@ function evaluateMilestones() {
   const streak = getStreakData();
   const allDomainsHit = new Set(Array.from(studied).map(t => TOPIC_DOMAINS[t]).filter(Boolean));
   const allTopicCount = Object.keys(TOPIC_DOMAINS).length;
-  const newlyUnlocked = [];
-  function maybe(id, cond) { if (cond && unlockMilestone(id)) newlyUnlocked.push(id); }
-
-  maybe('first_quiz',      h.length >= 1);
-  maybe('hundred_qs',      totalQs >= 100);
-  maybe('five_hundred_qs', totalQs >= 500);
-  maybe('thousand_qs',     totalQs >= 1000);
-  maybe('first_exam',      exams.length >= 1);
-  maybe('exam_pass',       exams.some(e => {
-    const scaled = Math.round(100 + (e.score / e.total) * 800);
-    return scaled >= 720;
-  }));
-  // Hardcore pass milestone (#48)
-  maybe('hardcore_pass',   exams.some(e => {
-    if (!e.hardcore) return false;
-    const scaled = Math.round(100 + (e.score / e.total) * 800);
-    return scaled >= 720;
-  }));
-  maybe('all_domains',     allDomainsHit.size >= 5);
-  maybe('all_topics',      studied.size >= allTopicCount);
-  maybe('streak_7',        streak.currentStreak >= 7);
-  maybe('streak_30',       streak.currentStreak >= 30);
-  maybe('ready_650',       readiness && readiness.predicted >= 650);
-  maybe('ready_720',       readiness && readiness.predicted >= 720);
-  // perfect_port handled in endPortDrill
-
-  // ── v4.10 expansion ──
-  // perfect_quiz: any quiz ≥ 10 Qs with 100% score
-  maybe('perfect_quiz',    h.some(e => e.total >= 10 && e.score === e.total));
-  maybe('five_exams',      exams.length >= 5);
-  maybe('ten_exams',       exams.length >= 10);
-  // Subnet drill milestones
   const subStats = (typeof getSubnetStats === 'function') ? getSubnetStats() : { seen: 0 };
-  maybe('first_subnet',    subStats.seen >= 1);
-  maybe('subnet_50',       subStats.seen >= 50);
-  // Port drill milestones
   const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
   const portStreakBest = parseInt(localStorage.getItem(STORAGE.PORT_STREAK_BEST) || '0');
-  maybe('first_port_drill', portBest > 0 || portStreakBest > 0);
-  if (typeof getPortStatsSummary === 'function') {
-    const ps = getPortStatsSummary();
-    maybe('all_ports_seen', ps.uniqueSeen >= ps.totalPorts && ps.totalPorts > 0);
-  }
-  // Session mode
-  maybe('first_session',   h.some(e => e.mode === 'session'));
-  // Time-of-day milestones — check each history entry's timestamp
-  maybe('night_owl',       h.some(e => {
-    const hr = new Date(e.date).getHours();
-    return hr >= 0 && hr < 5;
-  }));
-  maybe('early_bird',      h.some(e => new Date(e.date).getHours() < 7));
-  // Weekend warrior: same ISO-week has entries on both Sat (6) and Sun (0)
+  const portStats = (typeof getPortStatsSummary === 'function') ? getPortStatsSummary() : { uniqueSeen: 0, totalPorts: 0 };
+  const ddUses = parseInt(localStorage.getItem(STORAGE.DEEP_DIVE_USES) || '0');
+  const dc = getDailyChallenge();
+
+  // Time-of-day + weekend + diversity computations
+  const nightOwl = h.some(e => { const hr = new Date(e.date).getHours(); return hr >= 0 && hr < 5; });
+  const earlyBird = h.some(e => new Date(e.date).getHours() < 7);
   const weekMap = {};
   h.forEach(e => {
-    const d = new Date(e.date);
-    const dow = d.getDay();
+    const d = new Date(e.date), dow = d.getDay();
     if (dow !== 0 && dow !== 6) return;
-    // ISO week key: year + week number
     const yr = d.getFullYear();
     const start = new Date(yr, 0, 1);
-    const weekNum = Math.floor((d - start) / (7 * 86400000));
-    const key = yr + '-' + weekNum;
+    const key = yr + '-' + Math.floor((d - start) / (7 * 86400000));
     weekMap[key] = weekMap[key] || { sat: false, sun: false };
     if (dow === 6) weekMap[key].sat = true;
     if (dow === 0) weekMap[key].sun = true;
   });
-  maybe('weekend_warrior', Object.values(weekMap).some(w => w.sat && w.sun));
-  // Diversity: 5 different topics studied in a single day
+  const weekendWarrior = Object.values(weekMap).some(w => w.sat && w.sun);
   const dayTopics = {};
   h.forEach(e => {
     if (e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
@@ -3106,71 +3338,115 @@ function evaluateMilestones() {
     dayTopics[day] = dayTopics[day] || new Set();
     dayTopics[day].add(e.topic);
   });
-  maybe('diversity_5',     Object.values(dayTopics).some(s => s.size >= 5));
-  // Deep dive uses
-  const ddUses = parseInt(localStorage.getItem(STORAGE.DEEP_DIVE_USES) || '0');
-  maybe('deep_dive_10',    ddUses >= 10);
-  // Daily challenge streaks
-  const dc = getDailyChallenge();
-  maybe('daily_challenge_7',  dc.bestStreak >= 7);
-  maybe('daily_challenge_30', dc.bestStreak >= 30);
+  const diversity5 = Object.values(dayTopics).some(s => s.size >= 5);
 
-  // Lab completion milestones
+  // Drill mastery — defensive read (optional APIs that may not be loaded)
+  let labsDone = 0, totalLabs = 22;
   try {
-    const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
-    const labsDone = Object.keys(labCompletions).length;
-    const totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
-    maybe('first_lab', labsDone >= 1);
-    maybe('labs_5',    labsDone >= 5);
-    maybe('labs_10',   labsDone >= 10);
-    maybe('labs_all',  labsDone >= totalLabs);
+    labsDone = Object.keys(JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}')).length;
+    totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
   } catch (_) {}
-
-  // Acronym Blitz milestones
+  let abM = { totalAnswered: 0, perItem: {} }, abSeenCount = 0, abTotalItems = 0;
   try {
-    const abM = (typeof getAbMastery === 'function') ? getAbMastery() : { totalAnswered: 0, perItem: {} };
-    maybe('ab_first', abM.totalAnswered >= 1);
-    maybe('ab_50', abM.totalAnswered >= 50);
-    const abSeenCount = Object.values(abM.perItem).filter(p => p.seen > 0).length;
-    const abTotalItems = (typeof AB_DATA !== 'undefined') ? AB_DATA.length : 120;
-    maybe('ab_all_seen', abSeenCount >= abTotalItems && abTotalItems > 0);
-    maybe('ab_streak_15', Object.values(abM.perItem).some(p => p.streak >= 15));
+    abM = (typeof getAbMastery === 'function') ? getAbMastery() : abM;
+    abSeenCount = Object.values(abM.perItem).filter(p => p.seen > 0).length;
+    abTotalItems = (typeof AB_DATA !== 'undefined') ? AB_DATA.length : 120;
   } catch (_) {}
-
-  // OSI Sorter milestones
+  let osM = { totalAnswered: 0, perItem: {} }, osSeenCount = 0, osTotalItems = 0;
   try {
-    const osM = (typeof getOsMastery === 'function') ? getOsMastery() : { totalAnswered: 0, perItem: {} };
-    maybe('os_first', osM.totalAnswered >= 1);
-    maybe('os_50', osM.totalAnswered >= 50);
-    const osSeenCount = Object.values(osM.perItem).filter(p => p.seen > 0).length;
-    const osTotalItems = (typeof OS_DATA !== 'undefined') ? OS_DATA.length : 50;
-    maybe('os_all_seen', osSeenCount >= osTotalItems && osTotalItems > 0);
-    maybe('os_streak_10', Object.values(osM.perItem).some(p => p.streak >= 10));
+    osM = (typeof getOsMastery === 'function') ? getOsMastery() : osM;
+    osSeenCount = Object.values(osM.perItem).filter(p => p.seen > 0).length;
+    osTotalItems = (typeof OS_DATA !== 'undefined') ? OS_DATA.length : 50;
   } catch (_) {}
-
-  // Cable & Connector ID milestones
+  let cbM = { totalAnswered: 0, perItem: {} }, cbSeenCount = 0, cbTotalItems = 0;
   try {
-    const cbM = (typeof getCbMastery === 'function') ? getCbMastery() : { totalAnswered: 0, perItem: {} };
-    maybe('cb_first', cbM.totalAnswered >= 1);
-    maybe('cb_50', cbM.totalAnswered >= 50);
-    const cbSeenCount = Object.values(cbM.perItem).filter(p => p.seen > 0).length;
-    const cbTotalItems = ((typeof CB_CABLES !== 'undefined') ? CB_CABLES.length : 15) + ((typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS.length : 13);
-    maybe('cb_all_seen', cbSeenCount >= cbTotalItems && cbTotalItems > 0);
-    maybe('cb_streak_10', Object.values(cbM.perItem).some(p => p.streak >= 10));
+    cbM = (typeof getCbMastery === 'function') ? getCbMastery() : cbM;
+    cbSeenCount = Object.values(cbM.perItem).filter(p => p.seen > 0).length;
+    cbTotalItems = ((typeof CB_CABLES !== 'undefined') ? CB_CABLES.length : 15) + ((typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS.length : 13);
   } catch (_) {}
-
-  // Fix This Network milestones
+  let fixDone = 0, fixAllEasy = false;
   try {
     const fixSaved = JSON.parse(localStorage.getItem(STORAGE.FIX_CHALLENGES) || '{}');
-    const fixDone = Object.keys(fixSaved).length;
-    maybe('fix_first', fixDone >= 1);
-    maybe('fix_5',     fixDone >= 5);
+    fixDone = Object.keys(fixSaved).length;
     if (typeof TB_FIX_CHALLENGES !== 'undefined') {
       const easyIds = TB_FIX_CHALLENGES.filter(c => c.difficulty === 'Easy').map(c => c.id);
-      maybe('fix_all_easy', easyIds.length > 0 && easyIds.every(id => fixSaved[id]));
+      fixAllEasy = easyIds.length > 0 && easyIds.every(id => fixSaved[id]);
     }
   } catch (_) {}
 
+  return {
+    h, totalQs, studied, exams, readiness, streak, allDomainsHit, allTopicCount,
+    subStats, portBest, portStreakBest, portStats, ddUses, dc,
+    nightOwl, earlyBird, weekendWarrior, diversity5,
+    labsDone, totalLabs,
+    abM, abSeenCount, abTotalItems,
+    osM, osSeenCount, osTotalItems,
+    cbM, cbSeenCount, cbTotalItems,
+    fixDone, fixAllEasy,
+  };
+}
+
+// Helper: scaled exam score per CompTIA's 100-900 scale (used by exam_pass + hardcore_pass)
+function _scaledExamScore(e) { return Math.round(100 + (e.score / e.total) * 800); }
+
+const MILESTONE_CHECKS = [
+  { id: 'first_quiz',          check: c => c.h.length >= 1 },
+  { id: 'hundred_qs',          check: c => c.totalQs >= 100 },
+  { id: 'five_hundred_qs',     check: c => c.totalQs >= 500 },
+  { id: 'thousand_qs',         check: c => c.totalQs >= 1000 },
+  { id: 'first_exam',          check: c => c.exams.length >= 1 },
+  { id: 'exam_pass',           check: c => c.exams.some(e => _scaledExamScore(e) >= EXAM_PASS_SCORE) },
+  { id: 'hardcore_pass',       check: c => c.exams.some(e => e.hardcore && _scaledExamScore(e) >= EXAM_PASS_SCORE) },
+  { id: 'all_domains',         check: c => c.allDomainsHit.size >= 5 },
+  { id: 'all_topics',          check: c => c.studied.size >= c.allTopicCount },
+  { id: 'streak_7',            check: c => c.streak.currentStreak >= 7 },
+  { id: 'streak_30',           check: c => c.streak.currentStreak >= 30 },
+  { id: 'ready_650',           check: c => c.readiness && c.readiness.predicted >= 650 },
+  { id: 'ready_720',           check: c => c.readiness && c.readiness.predicted >= EXAM_PASS_SCORE },
+  { id: 'perfect_quiz',        check: c => c.h.some(e => e.total >= 10 && e.score === e.total) },
+  { id: 'five_exams',          check: c => c.exams.length >= 5 },
+  { id: 'ten_exams',           check: c => c.exams.length >= 10 },
+  { id: 'first_subnet',        check: c => c.subStats.seen >= 1 },
+  { id: 'subnet_50',           check: c => c.subStats.seen >= 50 },
+  { id: 'first_port_drill',    check: c => c.portBest > 0 || c.portStreakBest > 0 },
+  { id: 'all_ports_seen',      check: c => c.portStats.uniqueSeen >= c.portStats.totalPorts && c.portStats.totalPorts > 0 },
+  { id: 'first_session',       check: c => c.h.some(e => e.mode === 'session') },
+  { id: 'night_owl',           check: c => c.nightOwl },
+  { id: 'early_bird',          check: c => c.earlyBird },
+  { id: 'weekend_warrior',     check: c => c.weekendWarrior },
+  { id: 'diversity_5',         check: c => c.diversity5 },
+  { id: 'deep_dive_10',        check: c => c.ddUses >= 10 },
+  { id: 'daily_challenge_7',   check: c => c.dc.bestStreak >= 7 },
+  { id: 'daily_challenge_30',  check: c => c.dc.bestStreak >= 30 },
+  { id: 'first_lab',           check: c => c.labsDone >= 1 },
+  { id: 'labs_5',              check: c => c.labsDone >= 5 },
+  { id: 'labs_10',             check: c => c.labsDone >= 10 },
+  { id: 'labs_all',            check: c => c.labsDone >= c.totalLabs },
+  { id: 'ab_first',            check: c => c.abM.totalAnswered >= 1 },
+  { id: 'ab_50',               check: c => c.abM.totalAnswered >= 50 },
+  { id: 'ab_all_seen',         check: c => c.abSeenCount >= c.abTotalItems && c.abTotalItems > 0 },
+  { id: 'ab_streak_15',        check: c => Object.values(c.abM.perItem).some(p => p.streak >= 15) },
+  { id: 'os_first',            check: c => c.osM.totalAnswered >= 1 },
+  { id: 'os_50',               check: c => c.osM.totalAnswered >= 50 },
+  { id: 'os_all_seen',         check: c => c.osSeenCount >= c.osTotalItems && c.osTotalItems > 0 },
+  { id: 'os_streak_10',        check: c => Object.values(c.osM.perItem).some(p => p.streak >= 10) },
+  { id: 'cb_first',            check: c => c.cbM.totalAnswered >= 1 },
+  { id: 'cb_50',               check: c => c.cbM.totalAnswered >= 50 },
+  { id: 'cb_all_seen',         check: c => c.cbSeenCount >= c.cbTotalItems && c.cbTotalItems > 0 },
+  { id: 'cb_streak_10',        check: c => Object.values(c.cbM.perItem).some(p => p.streak >= 10) },
+  { id: 'fix_first',           check: c => c.fixDone >= 1 },
+  { id: 'fix_5',               check: c => c.fixDone >= 5 },
+  { id: 'fix_all_easy',        check: c => c.fixAllEasy },
+];
+
+function evaluateMilestones() {
+  const ctx = _buildMilestoneCtx();
+  const newlyUnlocked = [];
+  MILESTONE_CHECKS.forEach(m => {
+    try {
+      if (m.check(ctx) && unlockMilestone(m.id)) newlyUnlocked.push(m.id);
+    } catch (_) { /* individual check failures shouldn't break the whole eval */ }
+  });
   return newlyUnlocked;
 }
 
@@ -3490,11 +3766,71 @@ function computeWeakSpotScores() {
 function getTodaysFocusTopics(limit = 2) {
   return computeWeakSpotScores().slice(0, limit).map(r => r.topic);
 }
+
+// ── v4.43.1: Weak-spots → Subnet Trainer bridge ───────────────────────
+// The main-page weak-spots chip row historically only offered "drill this
+// topic in a quiz." For subnetting / IP-math topics though, the Subnet
+// Trainer with its step-by-step binary breakdowns is a far better surface
+// than a 10-Q MCQ drill. This map routes weak subnetting topics to the
+// Subnet Trainer.
+//
+// Deliberately scoped to Subnet Trainer only. Topology Builder is kept as
+// a standalone activity — not factored into weak-spots routing, because
+// topology labs are self-directed exploration rather than reactive drilling.
+const WEAK_SPOT_DRILL_BRIDGES = {
+  'Subnetting & IP Addressing': { kind: 'subnet', label: 'Drill in Subnet Trainer', icon: '🧮' },
+  'IPv6':                       { kind: 'subnet', label: 'Practice IPv6 math',       icon: '🧮' },
+  'NAT & IP Services':          { kind: 'subnet', label: 'Drill NAT / IP math',      icon: '🧮' },
+};
+
+// v4.43.1: Click handler for the weak-spot → Subnet Trainer bridge.
+function openWeakSpotBridge(kind) {
+  if (kind === 'subnet') {
+    showPage('subnet');
+    if (typeof startSubnetTrainer === 'function') startSubnetTrainer();
+  }
+}
 function renderTodaysFocus() {
   const row = document.getElementById('todays-focus');
   if (!row) return;
   const top = computeWeakSpotScores().slice(0, 2);
   if (top.length === 0) { row.classList.add('is-hidden'); return; }
+
+  // v4.42.0: FLIP (First-Last-Invert-Play) rerank animation. Capture the
+  // bounding rect of each existing chip by topic BEFORE we blow the DOM
+  // away, then after the rewrite measure new positions and apply an
+  // inverse transform + transition so the chips appear to slide from
+  // their old slot to their new one. Only runs when the row is visible
+  // (getBoundingClientRect on a hidden element returns all zeros, which
+  // would produce invisible no-op animations).
+  const oldRects = {};
+  if (!row.classList.contains('is-hidden')) {
+    row.querySelectorAll('.tf-chip[data-topic]').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        oldRects[el.getAttribute('data-topic')] = { x: r.left, y: r.top };
+      }
+    });
+  }
+
+  // v4.43.1: If any of the top weak topics has a bridge (subnet trainer
+  // route), render a small "Go deeper" row below the chips pointing at the
+  // specialized activity. De-duplicate — only show the bridge link once
+  // even if both top weak topics map to the same destination.
+  const bridges = [];
+  const seenBridges = new Set();
+  top.forEach(r => {
+    const bridge = WEAK_SPOT_DRILL_BRIDGES[r.topic];
+    if (!bridge) return;
+    const key = bridge.kind + '::' + (bridge.labId || '');
+    if (seenBridges.has(key)) return;
+    seenBridges.add(key);
+    bridges.push(bridge);
+  });
+  const bridgeHtml = bridges.map(b =>
+    `<button type="button" class="tf-bridge-btn" onclick="openWeakSpotBridge('${b.kind}')" title="${escHtml(b.label)}"><span class="tf-bridge-icon">${b.icon}</span><span class="tf-bridge-label">${escHtml(b.label)}</span><span class="tf-bridge-arrow">→</span></button>`
+  ).join('');
+
   row.innerHTML = `
     <span class="tf-label">🎯 Weak spots:</span>
     <div class="tf-chips">
@@ -3505,11 +3841,37 @@ function renderTodaysFocus() {
         if (r.daysSince > WEAK_STALENESS_DAYS && r.daysSince < 9000) parts.push(`${r.daysSince}d stale`);
         const title = parts.join(' · ');
         const safeTopic = r.topic.replace(/'/g, "\\'");
-        return `<button type="button" class="tf-chip" title="${escHtml(title)}" onclick="focusTopic('${safeTopic}')">${escHtml(r.topic)} →</button>`;
+        return `<button type="button" class="tf-chip" data-topic="${escHtml(r.topic)}" title="${escHtml(title)}" onclick="focusTopic('${safeTopic}')">${escHtml(r.topic)} →</button>`;
       }).join('')}
     </div>
+    ${bridges.length > 0 ? `<div class="tf-bridges">${bridgeHtml}</div>` : ''}
   `;
   row.classList.remove('is-hidden');
+
+  // Play FLIP: measure new positions, apply inverse transform, then clear it
+  // on the next frame so the CSS transition does its thing.
+  if (Object.keys(oldRects).length > 0) {
+    row.querySelectorAll('.tf-chip[data-topic]').forEach(el => {
+      const topic = el.getAttribute('data-topic');
+      const prev = oldRects[topic];
+      if (!prev) return;
+      const now = el.getBoundingClientRect();
+      const dx = prev.x - now.left;
+      const dy = prev.y - now.top;
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      // Force reflow, then release.
+      void el.offsetWidth;
+      el.style.transition = 'transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+      el.style.transform = '';
+      const cleanup = () => {
+        el.style.transition = '';
+        el.removeEventListener('transitionend', cleanup);
+      };
+      el.addEventListener('transitionend', cleanup);
+    });
+  }
 }
 function focusTopic(t) {
   topic = t;
@@ -3692,7 +4054,7 @@ function renderReadinessCard() {
   const { predicted, raw, worstTopic, worstPct } = data;
 
   let tierLabel, tierColor, tierBg;
-  if (predicted >= 720) {
+  if (predicted >= EXAM_PASS_SCORE) {
     tierLabel = '\ud83d\udfe2 Exam Ready'; tierColor = 'var(--green)'; tierBg = 'rgba(34,197,94,.15)';
   } else if (predicted >= 650) {
     tierLabel = '\ud83d\udfe0 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.15)';
@@ -3704,12 +4066,38 @@ function renderReadinessCard() {
 
   const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
 
-  numEl.textContent    = predicted;
+  // v4.42.1: first-render-per-session intro. Number counts from 0 → predicted
+  // over 1.4s, bar fills from empty using a slower 1.1s cubic-bezier reveal,
+  // then default transitions restore so subsequent updates (quiz return
+  // roll-ups from v4.42.0) stay snappy. The flag is consumed on first call
+  // with live data so returning from a quiz doesn't replay the intro.
+  if (_readinessIntroArmed) {
+    _readinessIntroArmed = false;
+    animateCount('readiness-num', 0, predicted, 1400);
+    barEl.style.transition = 'none';
+    barEl.style.width = '0%';
+    void barEl.offsetWidth; // force reflow so the next assignment animates
+    setTimeout(() => {
+      barEl.style.transition = 'width 1.1s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      barEl.style.width = barPct + '%';
+      setTimeout(() => { barEl.style.transition = ''; }, 1200);
+    }, 100);
+  } else {
+    // v4.42.0: animated roll-up of the readiness score so users see the
+    // number climb after a quiz instead of a silent hot-swap. animateCount
+    // already no-ops when the value is unchanged or NaN.
+    const oldReadinessVal = parseInt(numEl.textContent, 10);
+    if (!isNaN(oldReadinessVal) && oldReadinessVal !== predicted) {
+      animateCount('readiness-num', oldReadinessVal, predicted, 900);
+    } else {
+      numEl.textContent = predicted;
+    }
+    barEl.style.width = barPct + '%';
+  }
   numEl.style.color    = tierColor;
   badgeEl.textContent  = tierLabel;
   badgeEl.style.background = tierBg;
   badgeEl.style.color  = tierColor;
-  barEl.style.width    = barPct + '%';
   barEl.style.background = tierColor;
 
   if (worstTopic) {
@@ -4027,7 +4415,18 @@ const topicResources = {
   'Network Appliances & Device Functions': { obj: '1.2', title: 'Network Appliances', search: 'professor+messer+N10-009+network+appliances' },
   'Data Center Architectures': { obj: '1.8', title: 'DC Architectures', search: 'professor+messer+N10-009+three+tier+spine+leaf+data+center' },
   'Physical Security Controls': { obj: '4.5', title: 'Physical Security', search: 'professor+messer+N10-009+physical+security' },
-  'DNS Records & DNSSEC': { obj: '1.6', title: 'DNS Records & DNSSEC', search: 'professor+messer+N10-009+DNS+records+DNSSEC' }
+  'DNS Records & DNSSEC': { obj: '1.6', title: 'DNS Records & DNSSEC', search: 'professor+messer+N10-009+DNS+records+DNSSEC' },
+  // ── v4.42.3: catalog expansion (blueprint-anchored splits) ────────────
+  'OSPF':              { obj: '2.1', title: 'OSPF',               search: 'professor+messer+N10-009+OSPF' },
+  'BGP':               { obj: '2.1', title: 'BGP',                search: 'professor+messer+N10-009+BGP' },
+  'VLAN Trunking':     { obj: '2.2', title: 'VLAN Trunking',      search: 'professor+messer+N10-009+VLAN+trunking+802.1Q' },
+  'STP/RSTP':          { obj: '2.2', title: 'Spanning Tree',      search: 'professor+messer+N10-009+spanning+tree+STP+RSTP' },
+  'IPsec VPN':         { obj: '4.4', title: 'IPsec VPN',          search: 'professor+messer+N10-009+IPsec+VPN+IKE' },
+  'SSL/TLS VPN':       { obj: '4.4', title: 'SSL/TLS VPN',        search: 'professor+messer+N10-009+SSL+TLS+client+VPN' },
+  'Cable Issues':      { obj: '5.2', title: 'Cable & Physical Issues', search: 'professor+messer+N10-009+cable+physical+issues' },
+  'Service Issues':    { obj: '5.3', title: 'Network Service Issues',  search: 'professor+messer+N10-009+network+service+troubleshooting' },
+  'Perf Issues':       { obj: '5.4', title: 'Performance Issues', search: 'professor+messer+N10-009+network+performance+issues' },
+  'Connection Issues': { obj: '5.5', title: 'Connection Troubleshooting', search: 'professor+messer+N10-009+TCP+IP+connection+troubleshooting' }
 };
 
 // ══════════════════════════════════════════
@@ -4605,7 +5004,7 @@ function reportIssue() {
 function renderCliSim(q, box, ans) {
   const scenarioDiv = document.createElement('div');
   scenarioDiv.className = 'cli-scenario';
-  scenarioDiv.textContent = q.scenario;
+  setQuestionText(scenarioDiv, q.scenario);
   box.appendChild(scenarioDiv);
 
   const terminal = document.createElement('div');
@@ -4738,7 +5137,7 @@ function renderTopology(q, box, ans) {
 
   const scenarioDiv = document.createElement('div');
   scenarioDiv.className = 'topo-scenario';
-  scenarioDiv.textContent = q.scenario;
+  setQuestionText(scenarioDiv, q.scenario);
   box.appendChild(scenarioDiv);
 
   const palette = document.createElement('div');
@@ -5007,7 +5406,7 @@ Respond with one line per question, nothing else:`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_VALIDATOR_MODEL, max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_VALIDATOR_MODEL, max_tokens: MAX_TOKENS_VALIDATION, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!res.ok) return qs; // If validation call fails, keep questions as-is
@@ -5138,7 +5537,7 @@ Use plain text, no markdown. Label each section clearly. Aim for 250-350 words t
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
-        body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+        body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_DEFAULT, messages: [{ role: 'user', content: prompt }] })
       });
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
@@ -5254,7 +5653,7 @@ async function showTopicDeepDive(topicName) {
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_LONG, messages: [{ role: 'user', content: prompt }] })
     });
 
     if (!apiRes.ok) throw new Error('API error');
@@ -5398,9 +5797,19 @@ function openGuidedLab(topicName) {
   const lab = guidedLabs[topicName];
   if (!lab) { showErrorToast('No lab available for this topic yet.'); return; }
 
-  // Remember which page we came from so Back works
-  const pages = ['page-topic-dive', 'page-ports', 'page-quiz', 'page-review', 'page-results', 'page-exam-results'];
-  guidedLabReturnPage = pages.find(p => document.getElementById(p) && document.getElementById(p).classList.contains('active')) || 'page-ports';
+  // v4.42.5 (#72): Remember which page we came from so Back works. Previously
+  // used a whitelist of page IDs — any page not in the list (new ones added
+  // later) silently fell back to 'page-ports', which caused the v4.16.2 bug
+  // where Back dumped users on a stale Topic Deep Dive. Now finds the active
+  // page by class directly — any page can open a guided lab and Back will
+  // return to it correctly. Defensive fallback to 'page-ports' still in place
+  // for the edge case where no page carries the .active class yet.
+  const activePage = document.querySelector('.page.active');
+  const activeId = activePage && activePage.id;
+  // Don't capture the lab page itself as the return target (edge case where
+  // openGuidedLab is called from within the lab page — Back would then
+  // re-open the current page instead of actually going back).
+  guidedLabReturnPage = (activeId && activeId !== 'page-guided-lab') ? activeId : 'page-ports';
 
   const titleEl = document.getElementById('lab-title');
   const metaEl = document.getElementById('lab-meta');
@@ -5448,8 +5857,8 @@ function openGuidedLab(topicName) {
 
 const TB_MAX_DEVICES = 50;
 const TB_MAX_SAVES = 5;
-const TB_CANVAS_W = 1400;
-const TB_CANVAS_H = 820;
+const TB_CANVAS_W = 1800;
+const TB_CANVAS_H = 1100;
 
 // Device type catalog. Adding a new type = one entry here.
 // `icon` is the key used by tbDeviceIcon() to render an inline SVG shape.
@@ -6200,7 +6609,7 @@ function tbOnDeviceMouseDown(e, id) {
   // Detect double-click manually (native dblclick is unreliable because
   // tbRenderCanvas destroys + recreates DOM nodes between clicks)
   const now = Date.now();
-  if (tbLastClickDevId === id && now - tbLastClickTime < 400) {
+  if (tbLastClickDevId === id && now - tbLastClickTime < DOUBLE_CLICK_MS) {
     tbLastClickDevId = null;
     tbLastClickTime = 0;
     tbDragging = null;
@@ -7171,7 +7580,20 @@ async function tbCoachTopology() {
     return;
   }
   const scen = TB_SCENARIOS.find(s => s.id === tbSelectedScenario) || TB_SCENARIOS[0];
-  const hash = tbTopologyHash(tbState, scen.id);
+
+  // v4.43.1: If the user is mid-lab, the coach should behave like a tutor
+  // focused on their current step — not a generic topology reviewer. Inject
+  // the active lab + current step into the prompt so the coach can reference
+  // exact step goals instead of giving generic "nice design" feedback.
+  const activeLab = tbActiveLab ? TB_LABS.find(l => l.id === tbActiveLab.labId) : null;
+  const activeStep = (activeLab && activeLab.steps) ? activeLab.steps[tbActiveLab.stepIdx] : null;
+
+  // Cache key includes lab + step so returning to a previously-coached step
+  // is a cache hit, but advancing steps fetches fresh coaching.
+  const cacheContext = activeLab
+    ? scen.id + '::' + tbActiveLab.labId + '::step' + tbActiveLab.stepIdx
+    : scen.id;
+  const hash = tbTopologyHash(tbState, cacheContext);
 
   // Cache hit → show instantly
   const cache = tbLoadCoachCache();
@@ -7184,7 +7606,40 @@ async function tbCoachTopology() {
   tbShowCoachModalLoading(scen);
 
   const serialized = tbSerializeTopology(tbState);
-  const prompt = `You are a CompTIA Network+ (N10-009) instructor reviewing a student's network topology design. Be direct, specific, and tie observations to N10-009 exam objectives where relevant. The student picked this scenario:
+
+  // Build the prompt differently depending on whether a lab is active.
+  // Lab-aware mode: the coach knows the exact step the student is stuck on.
+  // Free-build mode: falls back to v4.21.0 behavior (scenario-based review).
+  let prompt;
+  if (activeLab && activeStep) {
+    const stepNum = tbActiveLab.stepIdx + 1;
+    const totalSteps = activeLab.steps.length;
+    const stripMd = s => String(s || '').replace(/\*\*/g, '').replace(/`/g, '');
+    prompt = `You are a CompTIA Network+ (N10-009) instructor helping a student complete a specific hands-on lab step. The student is stuck or wants a hint. Be a TUTOR, not a reviewer — reference the exact step goal, point at what's missing in their current topology, and nudge them toward the solution without just giving it away.
+
+LAB: ${activeLab.title} (N10-009 Obj ${activeLab.objective}, ${activeLab.difficulty})
+Lab overview: ${activeLab.description}
+
+STUDENT IS ON STEP ${stepNum} OF ${totalSteps}: "${stripMd(activeStep.title)}"
+Step goal: ${stripMd(activeStep.instruction)}
+Step hint (only reference if the student seems truly stuck): ${stripMd(activeStep.hint || '(no hint)')}
+
+CURRENT TOPOLOGY STATE:
+${serialized}
+
+Respond with ONLY a JSON object (no preamble, no markdown fences) with these keys:
+{
+  "tour": "A 1-2 sentence observation of the student's current progress on THIS SPECIFIC STEP. What have they done right so far? What's still missing to complete the step?",
+  "strengths": ["2-3 specific things they've done correctly, tied to the step goal or prior steps"],
+  "concerns": ["1-3 things blocking completion of THIS step — be specific about what's missing"],
+  "upgrades": ["2-3 concrete next actions to complete this step, in order. Reference the lab instruction directly — 'You need to configure VLAN 20 on the switch's VLANs tab' not generic advice."],
+  "objectives": ["1-3 N10-009 objectives this step exercises, formatted as 'X.Y — Name'"],
+  "studyTip": "1 sentence tying this step to a broader concept — what is this step really teaching, beyond the mechanical action?"
+}
+
+Keep the total response under 400 words. Respond with ONLY the JSON object.`;
+  } else {
+    prompt = `You are a CompTIA Network+ (N10-009) instructor reviewing a student's network topology design. Be direct, specific, and tie observations to N10-009 exam objectives where relevant. The student picked this scenario:
 
 Scenario: ${scen.title}
 ${scen.description}
@@ -7204,6 +7659,7 @@ Respond with ONLY a JSON object (no preamble, no markdown fences) with these key
 }
 
 Keep the total response under 500 words. Respond with ONLY the JSON object.`;
+  }
 
   try {
     const res = await fetch(CLAUDE_API_URL, {
@@ -7214,7 +7670,7 @@ Keep the total response under 500 words. Respond with ONLY the JSON object.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_DEFAULT, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
@@ -7285,10 +7741,22 @@ function tbShowCoachModal(payload, scenario, cached) {
     ? `<ul class="tb-coach-list">${arr.map(x => `<li>${escHtml(String(x))}</li>`).join('')}</ul>`
     : '<div class="tb-coach-empty">(none)</div>';
   const cachedBadge = cached ? '<span class="tb-coach-cached">cached</span>' : '';
+  // v4.43.1: If a lab is active, show the lab title + step position in the
+  // modal header so it's clear the coach is helping with a specific step,
+  // not doing a generic scenario review.
+  const activeLab = tbActiveLab ? TB_LABS.find(l => l.id === tbActiveLab.labId) : null;
+  const labHeader = activeLab
+    ? `<div class="tb-coach-lab-badge">🧪 Lab: ${escHtml(activeLab.title)} · Step ${tbActiveLab.stepIdx + 1} of ${activeLab.steps.length}</div>`
+    : '';
+  const scenarioLine = activeLab
+    ? '' // lab header already communicates context — skip scenario line
+    : `<div class="tb-coach-scenario">${escHtml(scenario.title)} ${cachedBadge}</div>`;
   body.innerHTML = `
     <div class="tb-coach-head">
-      <div class="tb-coach-scenario">${escHtml(scenario.title)} ${cachedBadge}</div>
+      ${labHeader}
+      ${scenarioLine}
       <div class="tb-coach-tour">${escHtml(payload.tour || '')}</div>
+      ${activeLab && cached ? `<div class="tb-coach-cached-inline">${cachedBadge}</div>` : ''}
     </div>
 
     <div class="tb-coach-section tb-coach-strengths">
@@ -7730,8 +8198,8 @@ function tbRenderVxlanTab(dev) {
       <button class="btn btn-ghost" onclick="tbRemoveVxlan(${i})" style="font-size:11px;color:#ef4444;padding:1px 4px">&times;</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px">
-      <div><label style="font-size:9px">VNI (1-16777215)</label>
-        <input type="number" value="${t.vni}" onchange="tbSetVxlanField(${i},'vni',parseInt(this.value))" min="1" max="16777215" style="width:100%"></div>
+      <div><label style="font-size:9px">VNI (1-${VXLAN_VNI_MAX})</label>
+        <input type="number" value="${t.vni}" onchange="tbSetVxlanField(${i},'vni',parseInt(this.value))" min="1" max="${VXLAN_VNI_MAX}" style="width:100%"></div>
       <div><label style="font-size:9px">VTEP Source IP</label>
         <input type="text" value="${escHtml(t.vtepIp || '')}" onchange="tbSetVxlanField(${i},'vtepIp',this.value)" placeholder="e.g. 10.0.0.1" style="width:100%"></div>
       <div><label style="font-size:9px">Mapped VLAN ID</label>
@@ -10262,7 +10730,7 @@ SCHEMA:
 }
 
 RULES:
-1. Canvas is 1400x820. Spread devices across x:100-1300, y:100-720. Don't cluster everything in one spot.
+1. Canvas is 1800x1100. Spread devices across x:150-1650, y:120-980. CRITICAL: keep at least 180px between any two devices in BOTH x and y directions. Use the full canvas — no clustering, no overlap. (Positions will be auto-relayouted post-generation, but providing well-spread initial positions makes the result cleaner.)
 2. IP addressing: 192.168.x.x for internal, 10.x.x.x for DMZ/cloud, 172.16.x.x for management, 203.0.113.x for public/ISP-facing.
 3. Every router/firewall/isp-router interface that connects to another device MUST have an IP.
 4. Every endpoint (pc, server, printer, voip, iot) MUST have an IP and a gateway pointing to its nearest router.
@@ -10387,15 +10855,12 @@ function tbDeepValidateAndFix(state, scenario) {
     }
   });
 
-  // Fix 5: Devices stacked at default position (400,400) — spread them out
-  const stacked = state.devices.filter(d => d.x === 400 && d.y === 400);
-  if (stacked.length > 1) {
-    const cols = Math.ceil(Math.sqrt(stacked.length));
-    stacked.forEach((d, i) => {
-      d.x = 200 + (i % cols) * 200;
-      d.y = 200 + Math.floor(i / cols) * 180;
-    });
-    fixes.push(`Spread ${stacked.length} overlapping devices across canvas`);
+  // Fix 5: Always run auto-layout to spread AI-generated topologies cleanly
+  // across the canvas. This replaces the old "stacked-at-(400,400)" detector
+  // because Haiku also produces gently-bunched layouts that look cramped.
+  const layoutMoved = tbAutoLayout(state);
+  if (layoutMoved > 0) {
+    fixes.push(`Auto-layout repositioned ${layoutMoved} device(s) for clarity`);
   }
 
   // Fix 6: Ensure cross-subnet routing — add static routes on routers for subnets they don't directly connect to
@@ -10424,6 +10889,155 @@ function tbDeepValidateAndFix(state, scenario) {
   }
 
   return fixes;
+}
+
+// Force-directed auto-layout for AI-generated topologies.
+// Spreads devices across the canvas using pair-wise repulsion + cable-spring
+// attraction, then a final hard-separation pass to guarantee no overlap.
+// Returns count of devices that moved more than a small threshold.
+function tbAutoLayout(state) {
+  const devices = state.devices;
+  if (!devices || devices.length < 2) return 0;
+
+  const PAD_X = 100;
+  const PAD_Y = 90;
+  const minX = PAD_X, maxX = TB_CANVAS_W - PAD_X;
+  const minY = PAD_Y, maxY = TB_CANVAS_H - PAD_Y;
+  const REPULSE = 9000;
+  const SPRING = 0.06;
+  const IDEAL_LINK = 200;
+  const DAMPING = 0.85;
+  const VEL_CAP = 30;
+  const ITERATIONS = 260;
+  const MIN_MOVE_THRESHOLD = 8;
+  const MIN_SEP = 150;
+
+  // Snapshot starting positions for move detection
+  const start = devices.map(d => ({ x: d.x, y: d.y }));
+
+  // Detect "stacked" / clustered seeds (many devices within a tight box).
+  // If so, seed with a grid so the simulation has somewhere to push from.
+  let xs = devices.map(d => d.x), ys = devices.map(d => d.y);
+  let spreadX = Math.max(...xs) - Math.min(...xs);
+  let spreadY = Math.max(...ys) - Math.min(...ys);
+  if (spreadX < 250 || spreadY < 200) {
+    const cols = Math.ceil(Math.sqrt(devices.length));
+    const rows = Math.ceil(devices.length / cols);
+    const stepX = (maxX - minX) / Math.max(1, cols - 1 || 1);
+    const stepY = (maxY - minY) / Math.max(1, rows - 1 || 1);
+    devices.forEach((d, i) => {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      d.x = cols === 1 ? (minX + maxX) / 2 : minX + c * stepX;
+      d.y = rows === 1 ? (minY + maxY) / 2 : minY + r * stepY;
+    });
+  }
+
+  // Build adjacency from cables
+  const adj = new Map();
+  devices.forEach(d => adj.set(d.id, new Set()));
+  (state.cables || []).forEach(c => {
+    if (adj.has(c.from) && adj.has(c.to)) {
+      adj.get(c.from).add(c.to);
+      adj.get(c.to).add(c.from);
+    }
+  });
+
+  // Velocity buffer
+  const vel = new Map();
+  devices.forEach(d => vel.set(d.id, { vx: 0, vy: 0 }));
+
+  for (let iter = 0; iter < ITERATIONS; iter++) {
+    // Pair-wise repulsion
+    for (let i = 0; i < devices.length; i++) {
+      const a = devices[i];
+      let fx = 0, fy = 0;
+      for (let j = 0; j < devices.length; j++) {
+        if (i === j) continue;
+        const b = devices[j];
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+        let dist2 = dx * dx + dy * dy;
+        if (dist2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; dist2 = 1; }
+        const dist = Math.sqrt(dist2);
+        const force = REPULSE / dist2;
+        fx += (dx / dist) * force;
+        fy += (dy / dist) * force;
+      }
+      // Spring along cables
+      adj.get(a.id).forEach(nbId => {
+        const b = devices.find(d => d.id === nbId);
+        if (!b) return;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const delta = dist - IDEAL_LINK;
+        const force = SPRING * delta;
+        fx += (dx / dist) * force;
+        fy += (dy / dist) * force;
+      });
+      const v = vel.get(a.id);
+      v.vx = (v.vx + fx) * DAMPING;
+      v.vy = (v.vy + fy) * DAMPING;
+      if (v.vx > VEL_CAP) v.vx = VEL_CAP;
+      if (v.vx < -VEL_CAP) v.vx = -VEL_CAP;
+      if (v.vy > VEL_CAP) v.vy = VEL_CAP;
+      if (v.vy < -VEL_CAP) v.vy = -VEL_CAP;
+    }
+    // Apply + clamp
+    devices.forEach(d => {
+      const v = vel.get(d.id);
+      d.x += v.vx;
+      d.y += v.vy;
+      if (d.x < minX) d.x = minX;
+      if (d.x > maxX) d.x = maxX;
+      if (d.y < minY) d.y = minY;
+      if (d.y > maxY) d.y = maxY;
+    });
+  }
+
+  // Hard separation pass: guarantee no two devices closer than MIN_SEP
+  for (let pass = 0; pass < 30; pass++) {
+    let moved = false;
+    for (let i = 0; i < devices.length; i++) {
+      for (let j = i + 1; j < devices.length; j++) {
+        const a = devices[i], b = devices[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        if (dist < MIN_SEP) {
+          const push = (MIN_SEP - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x -= ux * push;
+          a.y -= uy * push;
+          b.x += ux * push;
+          b.y += uy * push;
+          if (a.x < minX) a.x = minX;
+          if (a.x > maxX) a.x = maxX;
+          if (a.y < minY) a.y = minY;
+          if (a.y > maxY) a.y = maxY;
+          if (b.x < minX) b.x = minX;
+          if (b.x > maxX) b.x = maxX;
+          if (b.y < minY) b.y = minY;
+          if (b.y > maxY) b.y = maxY;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+
+  // Round positions for cleaner integer coords
+  devices.forEach(d => { d.x = Math.round(d.x); d.y = Math.round(d.y); });
+
+  // Count meaningful moves
+  let movedCount = 0;
+  devices.forEach((d, i) => {
+    const dx = d.x - start[i].x;
+    const dy = d.y - start[i].y;
+    if (Math.sqrt(dx * dx + dy * dy) > MIN_MOVE_THRESHOLD) movedCount++;
+  });
+  return movedCount;
 }
 
 // Semantic pre-processing: expand shorthand descriptions into detailed instructions
@@ -10688,7 +11302,7 @@ async function tbExplainDevice(deviceId) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: CLAUDE_TEACHER_MODEL, max_tokens: 800,
+        model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_COACH,
         messages: [{ role: 'user', content: `You are a Network+ instructor. Explain this device's role in the network in 2-3 paragraphs. Include what N10-009 concepts it demonstrates.\n\nFull topology:\n${serialized}\n\nDevice detail:\n${devDetail}\n\nKeep it under 200 words. No JSON, just plain text.` }]
       })
     });
@@ -11343,6 +11957,211 @@ const TB_LABS = [
           if (pc2 && !pc2.interfaces.some(i => i.gateway === '192.168.1.1')) issues.push('PC2 gateway not set to 192.168.1.1');
           if (pc3 && !pc3.interfaces.some(i => i.gateway === '192.168.1.1')) issues.push('PC3 gateway not set to 192.168.1.1');
           return issues.length ? issues.join('. ') + '.' : null;
+        },
+      },
+    ]
+  },
+  // ── v4.43.1: Troubleshooting lab — VLAN Isolation Broken ────────────
+  {
+    id: 'troubleshoot-vlan-isolation',
+    title: 'Troubleshoot: VLAN Isolation Broken',
+    objective: '5.3',
+    difficulty: 'Intermediate',
+    duration: '10 min',
+    description: 'Sales and HR should be isolated in separate VLANs, but PC1 (Sales) suddenly can\'t ping PC2 (also Sales). One of the switch ports is misconfigured. Find and fix it.',
+    autoSetup: (s) => {
+      const swId = 'd_tsvlan_sw1', pc1Id = 'd_tsvlan_pc1', pc2Id = 'd_tsvlan_pc2', pc3Id = 'd_tsvlan_pc3', pc4Id = 'd_tsvlan_pc4';
+      s.devices = [
+        { id: swId, type: 'switch', x: 700, y: 200, hostname: 'SW-Sales-HR',
+          interfaces: [
+            // PC1 port: correct VLAN 10 (Sales)
+            { name: 'Fa0/1', cableId: 'c_tsvlan_1', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:10:01:01', vlan: 10, mode: 'access', trunkAllowed: [10], gateway: '', enabled: true, subInterfaces: [] },
+            // PC2 port: BUG — misconfigured to VLAN 20 (HR) instead of VLAN 10 (Sales)
+            { name: 'Fa0/2', cableId: 'c_tsvlan_2', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:10:01:02', vlan: 20, mode: 'access', trunkAllowed: [20], gateway: '', enabled: true, subInterfaces: [] },
+            // PC3 port: correct VLAN 20 (HR)
+            { name: 'Fa0/3', cableId: 'c_tsvlan_3', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:10:01:03', vlan: 20, mode: 'access', trunkAllowed: [20], gateway: '', enabled: true, subInterfaces: [] },
+            // PC4 port: correct VLAN 20 (HR)
+            { name: 'Fa0/4', cableId: 'c_tsvlan_4', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:10:01:04', vlan: 20, mode: 'access', trunkAllowed: [20], gateway: '', enabled: true, subInterfaces: [] },
+          ].concat(Array.from({length: 20}, (_, i) => ({ name: `Fa0/${i+5}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:BB:CC:10:01:${(i+5).toString(16).padStart(2,'0')}`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }))),
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }, { id: 10, name: 'Sales' }, { id: 20, name: 'HR' }], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: pc1Id, type: 'pc', x: 350, y: 400, hostname: 'PC1-Sales',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsvlan_1', ip: '192.168.10.10', mask: '255.255.255.0', mac: 'AA:BB:CC:10:02:01', vlan: 10, mode: 'access', trunkAllowed: [10], gateway: '192.168.10.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: pc2Id, type: 'pc', x: 600, y: 400, hostname: 'PC2-Sales',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsvlan_2', ip: '192.168.10.20', mask: '255.255.255.0', mac: 'AA:BB:CC:10:02:02', vlan: 10, mode: 'access', trunkAllowed: [10], gateway: '192.168.10.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: pc3Id, type: 'pc', x: 850, y: 400, hostname: 'PC3-HR',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsvlan_3', ip: '192.168.20.30', mask: '255.255.255.0', mac: 'AA:BB:CC:10:02:03', vlan: 20, mode: 'access', trunkAllowed: [20], gateway: '192.168.20.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: pc4Id, type: 'pc', x: 1100, y: 400, hostname: 'PC4-HR',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsvlan_4', ip: '192.168.20.40', mask: '255.255.255.0', mac: 'AA:BB:CC:10:02:04', vlan: 20, mode: 'access', trunkAllowed: [20], gateway: '192.168.20.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+      ];
+      s.cables = [
+        { id: 'c_tsvlan_1', from: pc1Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/1' },
+        { id: 'c_tsvlan_2', from: pc2Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/2' },
+        { id: 'c_tsvlan_3', from: pc3Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/3' },
+        { id: 'c_tsvlan_4', from: pc4Id, to: swId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/4' },
+      ];
+      s.name = 'Troubleshoot: VLAN Isolation Broken';
+    },
+    steps: [
+      {
+        title: 'Survey the network',
+        instruction: 'Two VLANs are defined: **VLAN 10 (Sales)** and **VLAN 20 (HR)**. PC1 and PC2 should both be in Sales. PC3 and PC4 should both be in HR. The user complaint: **PC1 can\'t ping PC2 even though they\'re both in Sales**. Start by double-clicking the switch and opening the **VLANs** tab to see the defined VLANs.',
+        hint: 'Two PCs in the same VLAN should communicate without a router. If they can\'t, either (a) they\'re in different VLANs, (b) one port is disabled, or (c) the physical link is down.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Check each port\'s VLAN assignment',
+        instruction: 'On the switch, open the **Interfaces** tab. Look at the **VLAN** column for each port connected to a PC. PC1 is on `Fa0/1`, PC2 is on `Fa0/2`, PC3 is on `Fa0/3`, PC4 is on `Fa0/4`. Find the port that\'s in the wrong VLAN.',
+        hint: 'PC1 and PC2 should both be in VLAN 10. If one of them shows VLAN 20 in the port config, that\'s the bug.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Fix the misconfigured port',
+        instruction: 'You should have found that **PC2\'s port (Fa0/2)** is set to **VLAN 20** but PC2 is a Sales PC — it should be in **VLAN 10**. Change `Fa0/2` to VLAN 10 in the switch\'s Interfaces tab.',
+        hint: 'In the Interfaces tab, click on the VLAN field for Fa0/2 and change it to 10.',
+        check: (s) => {
+          const sw = s.devices.find(d => d.hostname === 'SW-Sales-HR');
+          if (!sw) return false;
+          const port = sw.interfaces.find(i => i.name === 'Fa0/2');
+          return port && port.vlan === 10;
+        },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.hostname === 'SW-Sales-HR');
+          if (!sw) return 'Switch not found.';
+          const port = sw.interfaces.find(i => i.name === 'Fa0/2');
+          if (!port) return 'Port Fa0/2 not found.';
+          if (port.vlan === 20) return 'Fa0/2 is still VLAN 20. Change it to VLAN 10 (Sales).';
+          if (port.vlan !== 10) return `Fa0/2 is VLAN ${port.vlan}. Should be VLAN 10.`;
+          return null;
+        },
+      },
+      {
+        title: 'Verify with Ping',
+        instruction: 'Use the **Ping** tool in the toolbar. Ping PC1 → PC2. It should now succeed. Also verify isolation still works: PC1 → PC3 should **fail** (different VLANs, no inter-VLAN router configured). Perfect isolation is the whole point of VLANs.',
+        hint: 'VLANs isolate traffic at Layer 2. Same-VLAN = reachable. Cross-VLAN = needs a router or L3 switch.',
+        check: (s) => {
+          const sw = s.devices.find(d => d.hostname === 'SW-Sales-HR');
+          if (!sw) return false;
+          const pc1Port = sw.interfaces.find(i => i.name === 'Fa0/1');
+          const pc2Port = sw.interfaces.find(i => i.name === 'Fa0/2');
+          return pc1Port && pc2Port && pc1Port.vlan === 10 && pc2Port.vlan === 10;
+        },
+        feedback: (s) => {
+          const sw = s.devices.find(d => d.hostname === 'SW-Sales-HR');
+          const pc2Port = sw?.interfaces.find(i => i.name === 'Fa0/2');
+          if (!pc2Port || pc2Port.vlan !== 10) return 'PC2 port must be on VLAN 10 first — re-check step 3.';
+          return null;
+        },
+      },
+    ]
+  },
+  // ── v4.43.1: Troubleshooting lab — DHCP Relay Missing ────────────────
+  {
+    id: 'troubleshoot-dhcp-relay',
+    title: 'Troubleshoot: DHCP Not Working Across Subnets',
+    objective: '3.4',
+    difficulty: 'Intermediate',
+    duration: '12 min',
+    description: 'Client PCs in one subnet can\'t get IPs from a DHCP server in a different subnet. DHCP Discover messages are broadcast-only — they don\'t cross subnets without help. Diagnose and add the missing piece.',
+    autoSetup: (s) => {
+      const rId = 'd_tsdhcp_r1', swAId = 'd_tsdhcp_swa', swBId = 'd_tsdhcp_swb', srvId = 'd_tsdhcp_srv', pc1Id = 'd_tsdhcp_pc1', pc2Id = 'd_tsdhcp_pc2';
+      s.devices = [
+        { id: rId, type: 'router', x: 700, y: 150, hostname: 'R1',
+          interfaces: [
+            // Gi0/0 faces subnet A (DHCP server side) — has ip, working
+            { name: 'Gi0/0', cableId: 'c_tsdhcp_1', ip: '10.0.1.1', mask: '255.255.255.0', mac: 'AA:BB:CC:30:00:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            // Gi0/1 faces subnet B (client side) — has ip, working, but NO DHCP relay configured (the bug)
+            { name: 'Gi0/1', cableId: 'c_tsdhcp_2', ip: '10.0.2.1', mask: '255.255.255.0', mac: 'AA:BB:CC:30:00:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          ],
+          routingTable: [
+            { type: 'connected', network: '10.0.1.0', mask: '255.255.255.0', nextHop: null, iface: 'Gi0/0' },
+            { type: 'connected', network: '10.0.2.0', mask: '255.255.255.0', nextHop: null, iface: 'Gi0/1' },
+          ],
+          arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null /* BUG: should be { helperAddress: '10.0.1.100' } */, acls: [] },
+        { id: swAId, type: 'switch', x: 350, y: 350, hostname: 'SW-A',
+          interfaces: [
+            { name: 'Fa0/1', cableId: 'c_tsdhcp_1', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:30:01:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/2', cableId: 'c_tsdhcp_3', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:30:01:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          ].concat(Array.from({length: 20}, (_, i) => ({ name: `Fa0/${i+3}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:BB:CC:30:01:${(i+3).toString(16).padStart(2,'0')}`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }))),
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: swBId, type: 'switch', x: 1050, y: 350, hostname: 'SW-B',
+          interfaces: [
+            { name: 'Fa0/1', cableId: 'c_tsdhcp_2', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:30:02:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/2', cableId: 'c_tsdhcp_4', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:30:02:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+            { name: 'Fa0/3', cableId: 'c_tsdhcp_5', ip: '', mask: '255.255.255.0', mac: 'AA:BB:CC:30:02:03', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] },
+          ].concat(Array.from({length: 20}, (_, i) => ({ name: `Fa0/${i+4}`, cableId: null, ip: '', mask: '255.255.255.0', mac: `AA:BB:CC:30:02:${(i+4).toString(16).padStart(2,'0')}`, vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }))),
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [] },
+        // DHCP server in subnet A, pool serves subnet B (10.0.2.x)
+        { id: srvId, type: 'server', x: 200, y: 550, hostname: 'DHCP-SRV',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsdhcp_3', ip: '10.0.1.100', mask: '255.255.255.0', mac: 'AA:BB:CC:30:03:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '10.0.1.1', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [],
+          dhcpServer: { name: 'subnet-b-pool', network: '10.0.2.0', mask: '255.255.255.0', gateway: '10.0.2.1', rangeStart: '10.0.2.100', rangeEnd: '10.0.2.200', dns: '8.8.8.8' },
+          dhcpRelay: null, acls: [] },
+        // Client PCs in subnet B — no IPs, waiting for DHCP
+        { id: pc1Id, type: 'pc', x: 950, y: 550, hostname: 'PC1',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsdhcp_4', ip: '', mask: '', mac: 'AA:BB:CC:30:04:01', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+        { id: pc2Id, type: 'pc', x: 1200, y: 550, hostname: 'PC2',
+          interfaces: [{ name: 'eth0', cableId: 'c_tsdhcp_5', ip: '', mask: '', mac: 'AA:BB:CC:30:04:02', vlan: 1, mode: 'access', trunkAllowed: [1], gateway: '', enabled: true, subInterfaces: [] }],
+          routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+      ];
+      s.cables = [
+        { id: 'c_tsdhcp_1', from: rId, to: swAId, type: 'cat6', fromIface: 'Gi0/0', toIface: 'Fa0/1' },
+        { id: 'c_tsdhcp_2', from: rId, to: swBId, type: 'cat6', fromIface: 'Gi0/1', toIface: 'Fa0/1' },
+        { id: 'c_tsdhcp_3', from: srvId, to: swAId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/2' },
+        { id: 'c_tsdhcp_4', from: pc1Id, to: swBId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/2' },
+        { id: 'c_tsdhcp_5', from: pc2Id, to: swBId, type: 'cat6', fromIface: 'eth0', toIface: 'Fa0/3' },
+      ];
+      s.name = 'Troubleshoot: DHCP Relay Missing';
+    },
+    steps: [
+      {
+        title: 'Observe the problem',
+        instruction: 'PC1 and PC2 are in **subnet B (10.0.2.0/24)**. They have no IPs — they\'re supposed to get them via DHCP. The DHCP server **DHCP-SRV** is in **subnet A (10.0.1.0/24)**. Open the **DHCP** dialog in the toolbar, pick PC1, and try to DHCP-request. Watch it fail.',
+        hint: 'DHCP Discover messages are broadcast-only. By default routers do NOT forward broadcasts across subnets — that\'s actually a safety feature (otherwise every broadcast storm would hit every subnet).',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Understand why broadcasts don\'t cross',
+        instruction: 'DHCP works by **broadcast**: the client sends a DISCOVER to `255.255.255.255` asking "who can give me an IP?" Routers drop broadcasts by default — they don\'t forward them to other subnets. So the DISCOVER never reaches DHCP-SRV. The fix is a **DHCP Relay** (also called **ip helper-address** in Cisco IOS): you tell the router "when you see a DHCP broadcast on this interface, forward it as unicast to the DHCP server."',
+        hint: 'N10-009 objective 3.4 covers DHCP relay. Any cert question about "clients can\'t get IPs from a DHCP server in a different subnet" is asking about this.',
+        check: () => true,
+        feedback: () => null,
+      },
+      {
+        title: 'Configure DHCP Relay on the router',
+        instruction: 'Double-click **R1** → **DHCP** tab. Look at the **DHCP Relay (ip helper-address)** field at the bottom. Set it to **`10.0.1.100`** (the IP of DHCP-SRV). This tells R1 to forward DHCP broadcasts it receives to that specific server.',
+        hint: 'Helper-address takes the IP of the DHCP server, not the DHCP server\'s subnet. Exact: 10.0.1.100.',
+        check: (s) => {
+          const r = s.devices.find(d => d.hostname === 'R1');
+          return r && r.dhcpRelay && r.dhcpRelay.helperAddress === '10.0.1.100';
+        },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.hostname === 'R1');
+          if (!r) return 'R1 not found.';
+          if (!r.dhcpRelay || !r.dhcpRelay.helperAddress) return 'DHCP Relay not configured on R1 yet. Open R1\'s DHCP tab and set helper-address.';
+          if (r.dhcpRelay.helperAddress !== '10.0.1.100') return `Helper-address is "${r.dhcpRelay.helperAddress}". Should be the DHCP server\'s IP: 10.0.1.100.`;
+          return null;
+        },
+      },
+      {
+        title: 'Verify DHCP works now',
+        instruction: 'Re-open the **DHCP** dialog. Request DHCP from PC1. It should now succeed — PC1 gets an IP in the 10.0.2.100–200 range, gateway 10.0.2.1. Try PC2 too. You\'ve just deployed a DHCP relay, which is how every enterprise does centralized DHCP — one DHCP server in a management subnet, relays configured on every router interface facing client subnets.',
+        hint: 'If DHCP still fails, double-check: (a) helper-address is correct, (b) the DHCP server has a pool for 10.0.2.0/24, (c) both subnets are reachable from the router.',
+        check: (s) => {
+          const r = s.devices.find(d => d.hostname === 'R1');
+          return r && r.dhcpRelay && r.dhcpRelay.helperAddress === '10.0.1.100';
+        },
+        feedback: (s) => {
+          const r = s.devices.find(d => d.hostname === 'R1');
+          if (!r || !r.dhcpRelay || r.dhcpRelay.helperAddress !== '10.0.1.100') return 'Re-check step 3 — helper-address must be 10.0.1.100 before this verification step can pass.';
+          return null;
         },
       },
     ]
@@ -12742,17 +13561,45 @@ const TB_LABS = [
 
 let tbActiveLab = null;  // { labId, stepIdx }
 
+// ── v4.43.1: Lab catalog regroup ──────────────────────────────────────
+// Previously all 65 labs dumped into one alphabetized-by-difficulty list.
+// Users saw "65 labs" and expected breadth; they got 30 meaningful concept
+// labs + 35 auto-generated variants with cryptic IDs (c_auto_1, d_vpnlab_dc1,
+// etc.). This regroups by concept category and labels variants honestly
+// ("Free Build Config A/B/C/D") so users understand what they're looking at.
+const TB_LAB_CATEGORIES = {
+  'Fundamentals':    ['basic-lan', 'ip-addressing-101', 'cable-types-topology', 'arp-investigation', 'packet-anatomy'],
+  'Switching':       ['vlan-segmentation', 'stp-loop-prevention', 'stp-convergence'],
+  'Routing':         ['static-routing', 'ospf-dynamic-routing', 'bgp-peering', 'multi-site-wan'],
+  'Services':        ['dhcp-setup', 'dns-infrastructure', 'dnssec-chain'],
+  'Security':        ['first-firewall', 'dmz-firewall', 'acl-traffic-filter', 'attack-defense', 'network-hardening'],
+  'Cloud & WAN':     ['cloud-vpc-lab', 'cloud-vpc-security', 'sase-zero-trust', 'site-to-site-vpn'],
+  'Wireless & QoS':  ['wireless-network', 'qos-voice-priority'],
+  'Troubleshooting': ['troubleshoot-connectivity', 'troubleshooting-101', 'troubleshoot-vlan-isolation', 'troubleshoot-dhcp-relay'],
+};
+// Variant labs — auto-generated configs of a parent lab. Each gets a human
+// label so the picker doesn't show cryptic IDs.
+const TB_LAB_VARIANT_GROUPS = {
+  'Free Build variants':     { parent: 'basic-lan',             ids: ['c_auto_1', 'c_auto_2', 'c_auto_3', 'c_auto_4'] },
+  'Site-to-Site VPN variants': { parent: 'site-to-site-vpn',     ids: ['d_vpnlab_dc1', 'd_vpnlab_dc2', 'd_vpnlab_vpg1', 'd_vpnlab_vpg2', 'd_vpnlab_cloud', 'c_vpnlab_1', 'c_vpnlab_2', 'c_vpnlab_3', 'c_vpnlab_4'] },
+  'Hardening variants':      { parent: 'network-hardening',     ids: ['d_harden_r1', 'd_harden_sw1', 'd_harden_pc1', 'd_harden_pc2', 'd_harden_srv', 'c_harden_1', 'c_harden_2', 'c_harden_3', 'c_harden_4'] },
+  'STP variants':            { parent: 'stp-loop-prevention',   ids: ['d_stp_r1', 'c_stp_1', 'c_stp_2', 'c_stp_3', 'c_stp_4'] },
+  'STP Convergence variants': { parent: 'stp-convergence',      ids: ['c_sc_1', 'c_sc_2', 'c_sc_3'] },
+  'Troubleshooting variants': { parent: 'troubleshooting-101',  ids: ['d_ts101_r1', 'd_ts101_sw1', 'd_ts101_srv', 'c_ts101_1', 'c_ts101_2', 'c_ts101_3', 'c_ts101_4'] },
+};
+
 function tbOpenLabPicker() {
   const modal = document.getElementById('tb-lab-picker');
   const body = document.getElementById('tb-lab-picker-body');
   if (!modal || !body) return;
-  const _diffOrder = { Beginner: 0, Intermediate: 1, Advanced: 2 };
-  const sortedLabs = [...TB_LABS].sort((a, b) => (_diffOrder[a.difficulty] ?? 9) - (_diffOrder[b.difficulty] ?? 9));
-  const tabs = ['All', 'Beginner', 'Intermediate', 'Advanced'];
-  let html = '<div class="tb-fix-tabs">';
-  tabs.forEach(t => { html += `<button class="tb-fix-tab${t === 'All' ? ' tb-fix-tab-active' : ''}" onclick="tbLabFilterTab(this,'${t}')">${t}</button>`; });
-  html += '</div><div id="tb-lab-cards">';
-  html += sortedLabs.map(lab => `<div class="tb-lab-card" data-diff="${lab.difficulty}" onclick="tbStartLab('${lab.id}')">
+
+  // Build quick lookup maps
+  const labById = {};
+  TB_LABS.forEach(l => { labById[l.id] = l; });
+  const variantIds = new Set();
+  Object.values(TB_LAB_VARIANT_GROUPS).forEach(g => g.ids.forEach(id => variantIds.add(id)));
+
+  const renderCard = (lab) => `<div class="tb-lab-card" data-diff="${lab.difficulty}" onclick="tbStartLab('${lab.id}')">
     <div class="tb-lab-card-head">
       <strong>${escHtml(lab.title)}</strong>
       <span class="tb-lab-diff tb-lab-diff-${lab.difficulty.toLowerCase()}">${lab.difficulty}</span>
@@ -12761,7 +13608,61 @@ function tbOpenLabPicker() {
       <span>Obj ${lab.objective}</span> &middot; <span>${lab.duration}</span> &middot; <span>${lab.steps.length} steps</span>${lab.autoSetup ? ' &middot; <span class="tb-lab-badge-auto">Pre-built</span>' : ''}
     </div>
     <div class="tb-lab-card-desc">${escHtml(lab.description)}</div>
-  </div>`).join('');
+  </div>`;
+
+  // Count meaningful vs variants so the header can say "29 labs + 35 variants"
+  // instead of the inflated "65 labs" claim.
+  const meaningfulCount = Object.values(TB_LAB_CATEGORIES).flat().filter(id => labById[id]).length;
+  const variantCount = variantIds.size;
+
+  let html = `<div class="tb-lab-picker-header">
+    <div class="tb-lab-picker-count"><strong>${meaningfulCount}</strong> concept labs <span class="tb-lab-picker-count-sub">+ ${variantCount} auto-generated configs</span></div>
+    <div class="tb-fix-tabs">`;
+  ['All', 'Beginner', 'Intermediate', 'Advanced'].forEach(t => {
+    html += `<button class="tb-fix-tab${t === 'All' ? ' tb-fix-tab-active' : ''}" onclick="tbLabFilterTab(this,'${t}')">${t}</button>`;
+  });
+  html += '</div></div><div id="tb-lab-cards">';
+
+  // ── Render category groups ──
+  Object.entries(TB_LAB_CATEGORIES).forEach(([categoryName, labIds]) => {
+    const categoryLabs = labIds.map(id => labById[id]).filter(Boolean);
+    if (categoryLabs.length === 0) return;
+    html += `<details class="tb-lab-category" open>
+      <summary class="tb-lab-category-head">
+        <span class="tb-lab-category-name">${escHtml(categoryName)}</span>
+        <span class="tb-lab-category-count">${categoryLabs.length} lab${categoryLabs.length === 1 ? '' : 's'}</span>
+      </summary>
+      <div class="tb-lab-category-cards">${categoryLabs.map(renderCard).join('')}</div>
+    </details>`;
+  });
+
+  // ── Render variant groups (collapsed by default) ──
+  const variantEntries = Object.entries(TB_LAB_VARIANT_GROUPS)
+    .map(([groupName, group]) => ({ groupName, group, labs: group.ids.map(id => labById[id]).filter(Boolean) }))
+    .filter(e => e.labs.length > 0);
+  if (variantEntries.length > 0) {
+    html += '<details class="tb-lab-category tb-lab-category-variants"><summary class="tb-lab-category-head"><span class="tb-lab-category-name">Auto-generated configs</span><span class="tb-lab-category-count">' + variantCount + ' variants</span></summary><div class="tb-lab-variant-groups">';
+    variantEntries.forEach(({ groupName, group, labs }) => {
+      html += `<div class="tb-lab-variant-group">
+        <div class="tb-lab-variant-group-head"><strong>${escHtml(groupName)}</strong> <span class="tb-lab-variant-group-parent">based on ${escHtml(labById[group.parent]?.title || group.parent)}</span></div>
+        <div class="tb-lab-category-cards">${labs.map((lab, idx) => {
+          // Relabel cryptic IDs with human-readable variant names
+          const variantLetter = String.fromCharCode(65 + idx); // A, B, C...
+          const displayLab = { ...lab, title: `${groupName.replace(/ variants$/, '')} — Config ${variantLetter}` };
+          return renderCard(displayLab);
+        }).join('')}</div>
+      </div>`;
+    });
+    html += '</div></details>';
+  }
+
+  // ── Orphan labs (in TB_LABS but not in any category) — defensive fallback ──
+  const categorizedIds = new Set([...Object.values(TB_LAB_CATEGORIES).flat(), ...variantIds]);
+  const orphans = TB_LABS.filter(l => !categorizedIds.has(l.id));
+  if (orphans.length > 0) {
+    html += `<details class="tb-lab-category"><summary class="tb-lab-category-head"><span class="tb-lab-category-name">Other</span><span class="tb-lab-category-count">${orphans.length}</span></summary><div class="tb-lab-category-cards">${orphans.map(renderCard).join('')}</div></details>`;
+  }
+
   html += '</div>';
   body.innerHTML = html;
   modal.classList.remove('is-hidden');
@@ -14781,7 +15682,7 @@ async function stAskCoach() {
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_BRIEF, messages: [{ role: 'user', content: prompt }] })
     });
     const data = await res.json();
     const text = data.content?.[0]?.text || 'Coach could not generate a response.';
@@ -14906,6 +15807,15 @@ function stRenderLevelBadge() {
 }
 
 // ── Dashboard ──
+// v4.43.1: Jump from the dashboard's weak-categories callout straight into
+// a focused practice session on that category. Pairs with new "Weakest
+// Categories" + "Stale Categories" callouts added below.
+function stDashJumpToCategory(catId) {
+  setSubnetTab('practice');
+  setSubnetMode('focus');
+  stSetFocusCat(catId);
+}
+
 function stRenderDashboard() {
   const el = document.getElementById('st-dashboard-content');
   if (!el) return;
@@ -14919,6 +15829,57 @@ function stRenderDashboard() {
   html += `<div class="st-dash-level"><div class="st-dash-level-title">${m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1)}</div><div class="st-dash-level-bar"><div class="st-dash-level-fill" style="width:${pct}%"></div></div><div class="st-dash-level-next">Next: ${nextLevel}</div></div>`;
   html += `<div class="st-dash-stats"><div class="st-dash-stat"><div class="st-dash-stat-val">${m.totalAnswered}</div><div class="st-dash-stat-label">Questions</div></div><div class="st-dash-stat"><div class="st-dash-stat-val">${acc}%</div><div class="st-dash-stat-label">Accuracy</div></div><div class="st-dash-stat"><div class="st-dash-stat-val">${m.totalCorrect}</div><div class="st-dash-stat-label">Correct</div></div></div>`;
   html += '</div>';
+
+  // ── v4.43.1: Weakest categories callout (top-3, ≥5 seen, sorted by accuracy asc) ──
+  const now = Date.now();
+  const catRows = ST_CAT_IDS.map(c => {
+    const d = m.categories[c] || { seen: 0, correct: 0, lastSeen: null };
+    const accuracy = d.seen > 0 ? d.correct / d.seen : null;
+    const daysSince = d.lastSeen ? Math.floor((now - new Date(d.lastSeen).getTime()) / 86400000) : null;
+    return { id: c, cat: ST_CATEGORIES[c], seen: d.seen, accuracy, daysSince };
+  });
+  const weakest = catRows
+    .filter(r => r.seen >= 5 && r.accuracy !== null && r.accuracy < 0.75)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 3);
+  if (weakest.length > 0) {
+    html += '<div class="st-dash-callout st-dash-callout-weak"><div class="st-dash-callout-title">⚠️ Your weakest categories — drill these now</div><div class="st-dash-callout-rows">';
+    weakest.forEach(w => {
+      const pctNum = Math.round(w.accuracy * 100);
+      html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${w.id}')" title="Jump to focus drill on ${escHtml(w.cat.label)}"><span class="st-dash-callout-icon">${w.cat.icon}</span><span class="st-dash-callout-name">${escHtml(w.cat.label)}</span><span class="st-dash-callout-pct">${pctNum}%</span><span class="st-dash-callout-action">Drill →</span></button>`;
+    });
+    html += '</div></div>';
+  }
+
+  // ── v4.43.1: Stale categories callout (seen at least once, not seen >7 days) ──
+  const stale = catRows
+    .filter(r => r.seen >= 1 && r.daysSince !== null && r.daysSince > 7)
+    .sort((a, b) => b.daysSince - a.daysSince)
+    .slice(0, 3);
+  if (stale.length > 0) {
+    html += '<div class="st-dash-callout st-dash-callout-stale"><div class="st-dash-callout-title">🕐 Haven\'t touched in a while — refresh these</div><div class="st-dash-callout-rows">';
+    stale.forEach(s => {
+      html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${s.id}')" title="Jump to focus drill on ${escHtml(s.cat.label)}"><span class="st-dash-callout-icon">${s.cat.icon}</span><span class="st-dash-callout-name">${escHtml(s.cat.label)}</span><span class="st-dash-callout-pct">${s.daysSince}d stale</span><span class="st-dash-callout-action">Refresh →</span></button>`;
+    });
+    html += '</div></div>';
+  }
+
+  // ── v4.43.1: Weakest question types (granular signal — 21 types across 7 categories) ──
+  const typeRows = Object.entries(m.types || {})
+    .filter(([, v]) => v.seen >= 3)
+    .map(([t, v]) => ({ type: t, accuracy: v.correct / v.seen, seen: v.seen }))
+    .filter(r => r.accuracy < 0.7)
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 3);
+  if (typeRows.length > 0) {
+    html += '<div class="st-dash-callout st-dash-callout-types"><div class="st-dash-callout-title">🎯 Specific question types tripping you up</div><div class="st-dash-callout-type-list">';
+    typeRows.forEach(r => {
+      const pctNum = Math.round(r.accuracy * 100);
+      const humanType = r.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      html += `<div class="st-dash-callout-type-row"><span class="st-dash-callout-type-name">${escHtml(humanType)}</span><span class="st-dash-callout-type-pct">${pctNum}% on ${r.seen} attempts</span></div>`;
+    });
+    html += '</div></div>';
+  }
 
   // Category mastery cards
   html += '<h3 class="st-dash-heading">Category Mastery</h3><div class="st-dash-cats">';
@@ -15994,7 +16955,7 @@ async function ptAskCoach() {
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: `I'm studying for CompTIA Network+ N10-009. I just got a port number question wrong.\n\nAUTHORITATIVE FACT (do not contradict): ${proto} uses port ${port}.\n\nGive me a concise, memorable explanation of what this protocol does, a memory trick to remember its port number, and one exam tip. Keep it under 100 words.` }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_BRIEF, messages: [{ role: 'user', content: `I'm studying for CompTIA Network+ N10-009. I just got a port number question wrong.\n\nAUTHORITATIVE FACT (do not contradict): ${proto} uses port ${port}.\n\nGive me a concise, memorable explanation of what this protocol does, a memory trick to remember its port number, and one exam tip. Keep it under 100 words.` }] })
     });
     const data = await res.json();
     const text = data.content?.[0]?.text || 'No response received.';
@@ -16260,7 +17221,7 @@ Keep it under 120 words. Use plain text, no markdown. Number each section.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_BRIEF, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) return;
     const data = await res.json();
@@ -16283,7 +17244,6 @@ function _renderAnaNav() {
   return `<nav class="ana-nav" aria-label="Analytics sections">
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-readiness')?.scrollIntoView({behavior:'smooth',block:'start'})">Readiness</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-trend')?.scrollIntoView({behavior:'smooth',block:'start'})">Trend</button>
-    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-topics')?.scrollIntoView({behavior:'smooth',block:'start'})">Topics</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-activity')?.scrollIntoView({behavior:'smooth',block:'start'})">Activity</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-drills')?.scrollIntoView({behavior:'smooth',block:'start'})">Drills</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-milestones')?.scrollIntoView({behavior:'smooth',block:'start'})">Milestones</button>
@@ -16305,7 +17265,7 @@ function _renderAnaReadiness(h) {
 
   const { predicted, domainAccuracy } = readiness;
   let tier, tierColor, tierBg;
-  if (predicted >= 720)      { tier = '🟢 Exam Ready';   tierColor = 'var(--green)';  tierBg = 'rgba(34,197,94,.12)'; }
+  if (predicted >= EXAM_PASS_SCORE)      { tier = '🟢 Exam Ready';   tierColor = 'var(--green)';  tierBg = 'rgba(34,197,94,.12)'; }
   else if (predicted >= 650) { tier = '🟠 Getting Close'; tierColor = 'var(--orange)'; tierBg = 'rgba(251,146,60,.12)'; }
   else if (predicted >= 500) { tier = '🟡 Building';     tierColor = 'var(--yellow)'; tierBg = 'rgba(251,191,36,.12)'; }
   else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
@@ -16414,51 +17374,20 @@ function _renderAnaDifficulty(h) {
   </div>`;
 }
 
-function _renderAnaTopics(h) {
-  const topicStats = {};
-  h.forEach(e => {
-    if (!topicStats[e.topic]) topicStats[e.topic] = [];
-    topicStats[e.topic].push(e.pct);
-  });
-  const topicArr = Object.entries(topicStats).map(([t, pcts]) => {
-    const avg = Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);
-    const trend = pcts.length >= 2 ? pcts[0] - pcts[pcts.length - 1] : 0; // recent - oldest (reversed order in h)
-    return { topic: t, avg, trend, sessions: pcts.length };
-  }).sort((a,b) => a.avg - b.avg);
-  const weakTopics = topicArr.filter(t => t.avg < 70);
-  const strongTopics = topicArr.filter(t => t.avg >= 70);
-  return `<div class="ana-card" id="ana-s-topics">
-    <h3>TOPIC MASTERY</h3>
-    <div class="ana-subtitle">${topicArr.length} topics studied</div>
-    ${weakTopics.length > 0 ? `<div class="ana-topic-alert">
-      <div class="ana-topic-alert-head">\u26a0\ufe0f ${weakTopics.length} topic${weakTopics.length > 1 ? 's' : ''} below 70% — tap to drill</div>
-      ${weakTopics.map((t, idx) => {
-        const color = t.avg >= 60 ? 'var(--blue)' : 'var(--red)';
-        const safeT = escHtml(t.topic).replace(/'/g, "\\'");
-        return `<div class="ana-topic-row ana-topic-row-weak ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
-          <div class="ana-topic-name">${escHtml(t.topic)}</div>
-          <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color};animation-delay:${idx * 0.06}s"></div></div>
-          <div class="ana-topic-pct" style="color:${color}">${t.avg}%</div>
-          <div class="ana-topic-trend" style="color:${t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)'}" title="Trend">${t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192'}</div>
-          <div class="ana-topic-sessions">${t.sessions}x</div>
-        </div>`;
-      }).join('')}
-    </div>` : ''}
-    <div class="ana-topics">
-      ${strongTopics.map((t, idx) => {
-        const color = t.avg >= 80 ? 'var(--green)' : 'var(--yellow)';
-        const trendIcon = t.trend > 5 ? '\u2191' : t.trend < -5 ? '\u2193' : '\u2192';
-        const trendColor = t.trend > 5 ? 'var(--green)' : t.trend < -5 ? 'var(--red)' : 'var(--text-dim)';
-        const safeT = escHtml(t.topic).replace(/'/g, "\\'");
-        return `<div class="ana-topic-row ana-row-clickable" onclick="drillTopic('${safeT}')" title="Jump to this topic on the setup page">
-          <div class="ana-topic-name">${escHtml(t.topic)}</div>
-          <div class="ana-topic-bar"><div class="ana-topic-fill" style="width:${t.avg}%;background:${color};animation-delay:${idx * 0.06}s"></div></div>
-          <div class="ana-topic-pct" style="color:${color}">${t.avg}%</div>
-          <div class="ana-topic-trend" style="color:${trendColor}" title="Trend">${trendIcon}</div>
-          <div class="ana-topic-sessions">${t.sessions}x</div>
-        </div>`;
-      }).join('')}
-    </div>
+// v4.42.2: _renderAnaTopics (Topic Mastery card) deleted. Topic-level accuracy
+// now lives exclusively on the Progress page, which has filter/sort/search +
+// per-row drill buttons the flat Topic Mastery card never had. Trend arrows
+// (the one genuinely useful bit of Topic Mastery) moved into Progress rows
+// via _buildProgressRows + _progressRowHtml. This helper replaces it with a
+// compact CTA that points the user at the Progress page.
+function _renderAnaTopicsCta() {
+  return `<div class="ana-card ana-topics-cta">
+    <h3>TOPIC-LEVEL BREAKDOWN</h3>
+    <div class="ana-subtitle">Per-topic accuracy with domain grouping, search, filter + drill lives on the Progress page.</div>
+    <button type="button" class="ana-topics-cta-btn" onclick="showPage('progress');renderProgressPage()">
+      <span>\ud83d\udcc8 Open Progress page</span>
+      <span class="ana-topics-cta-arrow">\u2192</span>
+    </button>
   </div>`;
 }
 
@@ -16513,7 +17442,7 @@ function _renderAnaExams(h) {
     <div class="ana-exams">
       ${exams.map(e => {
         const scaled = Math.round(100 + (e.score / e.total) * 800);
-        const pass = scaled >= 720;
+        const pass = scaled >= EXAM_PASS_SCORE;
         const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
         return `<div class="ana-exam-row">
           <div class="ana-exam-score" style="color:${pass ? 'var(--green)' : 'var(--red)'}">${scaled}</div>
@@ -16782,7 +17711,7 @@ function renderAnalytics() {
   html += _renderAnaReadiness(h);
   html += _renderAnaTrend(h);
   html += _renderAnaDifficulty(h);
-  html += _renderAnaTopics(h);
+  html += _renderAnaTopicsCta();
   html += _renderAnaActivity(h);
   html += _renderAnaExams(h);
   // 6-8. Removed in v4.32: Priority Study Areas (merged into Topic Mastery),
@@ -16936,9 +17865,21 @@ function createDrillScaffold(cfg) {
   }
 
   function setTab(tabId) {
+    // v4.42.5 (#128): ARIA state sync for tab buttons + panels. Sets
+    // aria-selected on buttons (true on active, false on others) and
+    // tabindex on panels so keyboard users can focus the active panel.
     ['learn','practice','dashboard'].forEach(t => {
-      document.getElementById(cfg.prefix + '-tab-btn-' + t)?.classList.toggle(cfg.prefix + '-tab-active', t === tabId);
-      document.getElementById(cfg.prefix + '-tab-' + t)?.classList.toggle('is-hidden', t !== tabId);
+      const btn = document.getElementById(cfg.prefix + '-tab-btn-' + t);
+      const panel = document.getElementById(cfg.prefix + '-tab-' + t);
+      if (btn) {
+        btn.classList.toggle(cfg.prefix + '-tab-active', t === tabId);
+        btn.setAttribute('aria-selected', t === tabId ? 'true' : 'false');
+        btn.setAttribute('tabindex', t === tabId ? '0' : '-1');
+      }
+      if (panel) {
+        panel.classList.toggle('is-hidden', t !== tabId);
+        panel.setAttribute('tabindex', t === tabId ? '0' : '-1');
+      }
     });
     if (tabId === 'learn') renderLessonSidebar();
     if (tabId === 'practice') cfg.onPracticeTab();
@@ -16947,8 +17888,16 @@ function createDrillScaffold(cfg) {
 
   function setMode(mode) {
     cfg.modeVar.set(mode);
-    document.querySelectorAll('.' + cfg.prefix + '-mode-btn').forEach(b => b.classList.remove(cfg.prefix + '-mode-active'));
-    document.getElementById(cfg.prefix + '-mode-' + mode)?.classList.add(cfg.prefix + '-mode-active');
+    // v4.42.5 (#128): ARIA state sync for mode toggle buttons.
+    document.querySelectorAll('.' + cfg.prefix + '-mode-btn').forEach(b => {
+      b.classList.remove(cfg.prefix + '-mode-active');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    const activeBtn = document.getElementById(cfg.prefix + '-mode-' + mode);
+    if (activeBtn) {
+      activeBtn.classList.add(cfg.prefix + '-mode-active');
+      activeBtn.setAttribute('aria-pressed', 'true');
+    }
     cfg.onModeChanged(mode);
   }
 
@@ -17664,8 +18613,16 @@ function startOsiSorter() { setOsTab('learn'); osRenderLevelBadge(); }
 
 function setOsDifficulty(diff) {
   osDifficulty = diff;
-  document.querySelectorAll('.os-diff-btn').forEach(b => b.classList.remove('os-diff-active'));
-  document.getElementById('os-diff-' + diff)?.classList.add('os-diff-active');
+  // v4.42.5 (#128): ARIA state sync for difficulty toggle buttons.
+  document.querySelectorAll('.os-diff-btn').forEach(b => {
+    b.classList.remove('os-diff-active');
+    b.setAttribute('aria-pressed', 'false');
+  });
+  const active = document.getElementById('os-diff-' + diff);
+  if (active) {
+    active.classList.add('os-diff-active');
+    active.setAttribute('aria-pressed', 'true');
+  }
   osIdx = 0; osCorrect = 0; osTotal = 0; osStreak = 0;
   osStartPractice();
 }
@@ -18292,4 +19249,44 @@ function cbCheckGate(btn, isCorrect) { cbScaffold.checkGate(btn, isCorrect); }
 // ══════════════════════════════════════════
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── v4.43.0: exam-convention keyword highlighting ────────────────────
+// CompTIA exam stems use specific keywords that change the question's meaning
+// ("MOST secure", "BEST describes", "NOT a valid...", "EXCEPT for..."). Missing
+// these words is the #2 wrong-answer mode after "I didn't know it" — test-
+// takers skim and miss the negation or the superlative. Bolding them at render
+// time trains your eye to catch them on the real exam.
+//
+// Applied to: quiz question stems, exam question stems, review-page stems, CLI
+// sim scenario, topology scenario. NOT applied to: explanations, teacher
+// content (Topic Deep Dive / Explain Further / Topic Brief), analytics.
+//
+// Single words only — phrases are compositions and the eye catches context
+// once the keyword is lit up. Keywords chosen to minimize false-positive
+// highlighting of plain prose (e.g. omitted "all/any/none" which are too
+// common in non-exam usage).
+const EXAM_KEYWORDS = [
+  'not', 'except', 'cannot',                         // negation
+  'most', 'least', 'best', 'worst', 'primary',       // superlatives
+  'first', 'last', 'next',                           // sequence
+  'always', 'never', 'only'                          // absolutes
+];
+const _examKeywordRe = new RegExp('\\b(' + EXAM_KEYWORDS.join('|') + ')\\b', 'gi');
+
+// Takes already-escaped HTML text (output of escHtml) and wraps exam-convention
+// keywords in <strong class="exam-keyword">. Input must be HTML-escaped first
+// so the regex can't accidentally wrap anything inside HTML tags.
+function highlightExamKeywords(escapedText) {
+  if (!escapedText) return escapedText;
+  return String(escapedText).replace(_examKeywordRe, '<strong class="exam-keyword">$&</strong>');
+}
+
+// Single-entry helper for rendering question stems + scenario text. Escapes
+// the raw AI-generated text (XSS-safe), then applies keyword highlighting,
+// then sets innerHTML. Used by quiz / exam / review / CLI sim / topology
+// render paths.
+function setQuestionText(el, raw) {
+  if (!el) return;
+  el.innerHTML = highlightExamKeywords(escHtml(raw || ''));
 }

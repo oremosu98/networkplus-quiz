@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.38.7</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.43.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -92,17 +92,13 @@
       </div>
       <button class="btn btn-primary btn-full" onclick="startSession()">Start Study Plan &#9889;</button>
     </div>
-    <!-- Weak topic banner -->
-    <div id="weak-banner" class="weak-banner is-hidden">
-      <div class="wb-text">&#9888;&#65039; Weakest area: <strong id="weak-topic-name"></strong> &mdash; avg <span id="weak-topic-pct"></span>. Drill it now?</div>
-      <button class="weak-drill" id="weak-drill-btn">Drill Now</button>
-    </div>
+    <!-- v4.41.0: legacy amber weak-banner removed — Weak Spots chip row
+         (#todays-focus) already covers the same concept with better UX -->
   </div>
 
-  <!-- Tools nav bar -->
+  <!-- Tools nav bar (v4.41.0: consolidated — 4 drill buttons collapsed into a single "Drills" launcher) -->
   <div class="setup-nav-group" role="navigation" aria-label="Study tools">
     <nav class="setup-nav" aria-label="Core tools">
-      <span class="setup-nav-heading">Study Tools</span>
       <div class="setup-nav-row">
         <button class="setup-nav-btn" onclick="showPage('progress');renderProgressPage()">
           <span class="setup-nav-icon">&#128200;</span><span class="setup-nav-label">Progress</span>
@@ -114,24 +110,10 @@
           <span class="setup-nav-icon">&#128202;</span><span class="setup-nav-label">Analytics</span>
         </button>
         <button class="setup-nav-btn" id="topology-builder-btn" onclick="showPage('topology-builder');openTopologyBuilder()">
-          <span class="setup-nav-icon">&#128295;</span><span class="setup-nav-label">Builder</span>
+          <span class="setup-nav-icon">&#128295;</span><span class="setup-nav-label">Network Builder</span>
         </button>
-      </div>
-    </nav>
-    <nav class="setup-nav" aria-label="Interactive drills">
-      <span class="setup-nav-heading">Interactive Drills</span>
-      <div class="setup-nav-row">
-        <button class="setup-nav-btn" onclick="showPage('ports');startPortDrill()">
-          <span class="setup-nav-icon">&#9889;</span><span class="setup-nav-label">Port Drill</span>
-        </button>
-        <button class="setup-nav-btn" onclick="showPage('acronyms');startAcronymBlitz()">
-          <span class="setup-nav-icon">&#128161;</span><span class="setup-nav-label">Acronyms</span>
-        </button>
-        <button class="setup-nav-btn" onclick="showPage('osi-sorter');startOsiSorter()">
-          <span class="setup-nav-icon">&#127760;</span><span class="setup-nav-label">OSI Sorter</span>
-        </button>
-        <button class="setup-nav-btn" onclick="showPage('cables');startCableId()">
-          <span class="setup-nav-icon">&#128268;</span><span class="setup-nav-label">Cables</span>
+        <button class="setup-nav-btn" id="drills-launcher-btn" onclick="showDrillsPage()">
+          <span class="setup-nav-icon">&#127919;</span><span class="setup-nav-label">Drills</span>
         </button>
       </div>
     </nav>
@@ -148,12 +130,12 @@
       </button>
       <button type="button" class="preset-tile preset-featured" onclick="applyPreset('focused')">
         <span class="preset-icon">&#127919;</span>
-        <span class="preset-title">15-min Focused</span>
-        <span class="preset-sub">10 Qs &middot; Exam Level &middot; Your weakest</span>
+        <span class="preset-title">15-min Weak Spots</span>
+        <span class="preset-sub">10 Qs &middot; Exam Level &middot; Your weakest topic</span>
       </button>
       <button type="button" class="preset-tile" onclick="applyPreset('grind')">
         <span class="preset-icon">&#127947;</span>
-        <span class="preset-title">30-min Grind</span>
+        <span class="preset-title">30-min Deep Scan</span>
         <span class="preset-sub">20 Qs &middot; Exam Level &middot; Mixed</span>
       </button>
       <!-- Wrong Answers Drill — surfaces as a preset tile when bank has entries -->
@@ -164,23 +146,26 @@
       </button>
     </div>
 
-    <h4 class="presets-heading" style="margin-top:10px">Marathon Mode</h4>
-    <div class="quiz-presets" role="group" aria-label="Bulk mixed presets">
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk30')">
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">30 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk60')">
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">60 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk100')">
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">100 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
+    <!-- v4.41.0: Marathon Mode hidden until user has completed 1+ quiz (first-run progressive disclosure) -->
+    <div id="marathon-section" class="is-hidden">
+      <h4 class="presets-heading" style="margin-top:10px">Marathon Mode</h4>
+      <div class="quiz-presets" role="group" aria-label="Bulk mixed presets">
+        <button type="button" class="preset-tile" onclick="applyPreset('bulk30')">
+          <span class="preset-icon">&#128218;</span>
+          <span class="preset-title">30 Questions</span>
+          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+        </button>
+        <button type="button" class="preset-tile" onclick="applyPreset('bulk60')">
+          <span class="preset-icon">&#128218;</span>
+          <span class="preset-title">60 Questions</span>
+          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+        </button>
+        <button type="button" class="preset-tile" onclick="applyPreset('bulk100')">
+          <span class="preset-icon">&#128218;</span>
+          <span class="preset-title">100 Questions</span>
+          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -219,7 +204,11 @@
           <summary><span class="dom-name">2.0 Network Implementation</span><span class="dom-weight">20%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Routing Protocols">Routing Protocols</button>
+            <button class="chip" data-v="OSPF">OSPF</button>
+            <button class="chip" data-v="BGP">BGP</button>
             <button class="chip" data-v="Switch Features & VLANs">Switch & VLANs</button>
+            <button class="chip" data-v="VLAN Trunking">VLAN Trunking</button>
+            <button class="chip" data-v="STP/RSTP">STP/RSTP</button>
             <button class="chip" data-v="Wireless Networking">Wireless Networking</button>
             <button class="chip" data-v="Ethernet Basics">Ethernet Basics</button>
             <button class="chip" data-v="Ethernet Standards">Ethernet Standards</button>
@@ -250,6 +239,8 @@
             <button class="chip" data-v="Protecting Networks">Protecting Networks</button>
             <button class="chip" data-v="AAA & Authentication">AAA & Authentication</button>
             <button class="chip" data-v="IPsec & VPN Protocols">IPsec &amp; VPN Protocols</button>
+            <button class="chip" data-v="IPsec VPN">IPsec VPN</button>
+            <button class="chip" data-v="SSL/TLS VPN">SSL/TLS VPN</button>
             <button class="chip" data-v="PKI & Certificate Management">PKI &amp; Certificates</button>
             <button class="chip" data-v="Firewalls, DMZ & Security Zones">Firewalls &amp; DMZ</button>
             <button class="chip" data-v="WPA3 & EAP Authentication">WPA3 &amp; EAP</button>
@@ -263,6 +254,10 @@
           <div class="chip-grid">
             <button class="chip" data-v="Network Troubleshooting & Tools">Troubleshooting & Tools</button>
             <button class="chip" data-v="CompTIA Troubleshooting Methodology">7-Step Methodology</button>
+            <button class="chip" data-v="Cable Issues">Cable Issues</button>
+            <button class="chip" data-v="Service Issues">Service Issues</button>
+            <button class="chip" data-v="Perf Issues">Perf Issues</button>
+            <button class="chip" data-v="Connection Issues">Connection Issues</button>
           </div>
         </details>
       </div>
@@ -298,7 +293,7 @@
     <button class="btn btn-exam btn-full" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
     <label class="hardcore-toggle" for="hardcore-checkbox" title="Locked Question Order, No Flagging, No Navigator — Strict CompTIA Conditions">
       <input type="checkbox" id="hardcore-checkbox" onchange="setHardcoreMode(this.checked)">
-      <span>&#128293; Hardcore Mode <span class="hardcore-sub">&middot; Locked Order &middot; No Flagging &middot; No Navigator</span></span>
+      <span>&#128293; Strict Mode <span class="hardcore-sub">&middot; Locked Order &middot; No Flagging &middot; No Navigator</span></span>
     </label>
     <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:4px">Timed, no hints, scaled 100-900 score. Pass mark: 720</p>
   </div>
@@ -309,16 +304,12 @@
     <div id="history-list"></div>
   </div>
 
-  <!-- Legacy wrong-bank row (hidden — replaced by preset tile, kept for JS compat) -->
-  <div class="wrong-bank-row is-hidden" id="wrong-bank-row" style="display:none">
-    <button class="btn btn-full wrong-bank-btn" id="wrong-bank-btn" onclick="startWrongDrill()">
-      &#128308; Drill Wrong Answers <span class="wrong-count-badge">0</span>
-    </button>
-    <button class="btn btn-ghost wrong-bank-clear" id="wrong-bank-clear" onclick="clearWrongBank()" title="Clear all wrong answers" aria-label="Clear all wrong answers">&#128465; Clear</button>
-  </div>
+  <!-- v4.41.0: Legacy wrong-bank row deleted. The "Drill Mistakes" preset tile
+       (#wrong-preset-tile) handles the drill action; the Clear Wrong Answers
+       button now lives inside Settings below. -->
 
   <details class="card advanced-section" id="advanced-section">
-    <summary>&#9881;&#65039; Advanced <span class="adv-hint">(API key, data)</span></summary>
+    <summary>&#9881;&#65039; Settings <span class="adv-hint">(API key, data)</span></summary>
     <div class="advanced-body">
       <h4 style="margin:14px 0 6px;font-size:12px;color:var(--text-mid);letter-spacing:.05em;text-transform:uppercase">Anthropic API Key</h4>
       <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" />
@@ -331,6 +322,9 @@
           <input type="file" accept=".json" class="is-hidden" onchange="importData(event)" aria-label="Import data JSON file" />
         </label>
       </div>
+      <h4 style="margin:16px 0 6px;font-size:12px;color:var(--text-mid);letter-spacing:.05em;text-transform:uppercase">Wrong Answers Bank</h4>
+      <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
+      <p style="margin-top:6px;font-size:11px;color:var(--text-dim)">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
     </div>
   </details>
 
@@ -703,6 +697,42 @@
 </div>
 
 <!-- ══════════════════════════════════════════
+     DRILLS LAUNCHER (v4.41.0)
+     Single entry point for the 4 interactive drills —
+     keeps the setup nav clean while still giving drills
+     a first-class home.
+══════════════════════════════════════════ -->
+<div id="page-drills" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <h2 style="margin:0">&#127919; Interactive Drills</h2>
+  </div>
+  <p style="color:var(--text-dim);margin-bottom:18px;font-size:14px">Four fast-feedback drills for the muscle-memory parts of Network+. Pick one.</p>
+  <div class="drills-grid">
+    <button type="button" class="drills-tile" onclick="showPage('ports');startPortDrill()">
+      <span class="drills-tile-icon">&#9889;</span>
+      <span class="drills-tile-title">Port Drill</span>
+      <span class="drills-tile-sub">40 ports &middot; Timed, Endless, Family, Secure Pairs</span>
+    </button>
+    <button type="button" class="drills-tile" onclick="showPage('acronyms');startAcronymBlitz()">
+      <span class="drills-tile-icon">&#128161;</span>
+      <span class="drills-tile-title">Acronym Blitz</span>
+      <span class="drills-tile-sub">CompTIA acronym list &middot; Learn &amp; test</span>
+    </button>
+    <button type="button" class="drills-tile" onclick="showPage('osi-sorter');startOsiSorter()">
+      <span class="drills-tile-icon">&#127760;</span>
+      <span class="drills-tile-title">OSI Sorter</span>
+      <span class="drills-tile-sub">7 layers &middot; Sort protocols &amp; devices</span>
+    </button>
+    <button type="button" class="drills-tile" onclick="showPage('cables');startCableId()">
+      <span class="drills-tile-icon">&#128268;</span>
+      <span class="drills-tile-title">Cable ID</span>
+      <span class="drills-tile-sub">Cat5e/6/6a/7/8, fiber, coax, console</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      PORT MASTERY (revamped v4.36.1)
 ══════════════════════════════════════════ -->
 <div id="page-ports" class="page">
@@ -790,12 +820,12 @@
     <h2 style="margin:0">&#128161; Acronym Blitz</h2>
     <span id="ab-level-badge" class="ab-level-badge">Beginner</span>
   </div>
-  <div class="ab-tab-bar" role="tablist">
-    <button class="ab-tab-btn ab-tab-active" id="ab-tab-btn-learn" role="tab" onclick="setAbTab('learn')">&#128218; Learn</button>
-    <button class="ab-tab-btn" id="ab-tab-btn-practice" role="tab" onclick="setAbTab('practice')">&#127919; Practice</button>
-    <button class="ab-tab-btn" id="ab-tab-btn-dashboard" role="tab" onclick="setAbTab('dashboard')">&#128202; Dashboard</button>
+  <div class="ab-tab-bar" role="tablist" aria-label="Acronym Blitz tabs">
+    <button class="ab-tab-btn ab-tab-active" id="ab-tab-btn-learn" role="tab" aria-selected="true" aria-controls="ab-tab-learn" tabindex="0" onclick="setAbTab('learn')">&#128218; Learn</button>
+    <button class="ab-tab-btn" id="ab-tab-btn-practice" role="tab" aria-selected="false" aria-controls="ab-tab-practice" tabindex="-1" onclick="setAbTab('practice')">&#127919; Practice</button>
+    <button class="ab-tab-btn" id="ab-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="ab-tab-dashboard" tabindex="-1" onclick="setAbTab('dashboard')">&#128202; Dashboard</button>
   </div>
-  <div id="ab-tab-learn" class="ab-tab-panel">
+  <div id="ab-tab-learn" class="ab-tab-panel" role="tabpanel" aria-labelledby="ab-tab-btn-learn" tabindex="0">
     <div class="ab-learn-layout">
       <nav id="ab-lesson-sidebar" class="ab-lesson-sidebar" aria-label="Acronym lesson list"></nav>
       <div id="ab-lesson-main" class="ab-lesson-main">
@@ -803,21 +833,21 @@
       </div>
     </div>
   </div>
-  <div id="ab-tab-practice" class="ab-tab-panel is-hidden">
+  <div id="ab-tab-practice" class="ab-tab-panel is-hidden" role="tabpanel" aria-labelledby="ab-tab-btn-practice" tabindex="-1">
     <div class="ab-mode-bar" role="group" aria-label="Practice mode">
-      <button class="ab-mode-btn ab-mode-active" id="ab-mode-adaptive" onclick="setAbMode('adaptive')">&#127919; Adaptive</button>
-      <button class="ab-mode-btn" id="ab-mode-expand" onclick="setAbMode('expand')">&#128221; Expand</button>
-      <button class="ab-mode-btn" id="ab-mode-abbreviate" onclick="setAbMode('abbreviate')">&#128196; Abbreviate</button>
-      <button class="ab-mode-btn" id="ab-mode-category" onclick="setAbMode('category')">&#127993; Category</button>
-      <button class="ab-mode-btn" id="ab-mode-endless" onclick="setAbMode('endless')">&#128279; Endless</button>
+      <button class="ab-mode-btn ab-mode-active" id="ab-mode-adaptive" aria-pressed="true" onclick="setAbMode('adaptive')">&#127919; Adaptive</button>
+      <button class="ab-mode-btn" id="ab-mode-expand" aria-pressed="false" onclick="setAbMode('expand')">&#128221; Expand</button>
+      <button class="ab-mode-btn" id="ab-mode-abbreviate" aria-pressed="false" onclick="setAbMode('abbreviate')">&#128196; Abbreviate</button>
+      <button class="ab-mode-btn" id="ab-mode-category" aria-pressed="false" onclick="setAbMode('category')">&#127993; Category</button>
+      <button class="ab-mode-btn" id="ab-mode-endless" aria-pressed="false" onclick="setAbMode('endless')">&#128279; Endless</button>
     </div>
     <div id="ab-focus-picker" class="ab-focus-picker is-hidden"></div>
-    <div class="ab-stats-strip">
+    <div class="ab-stats-strip" aria-live="polite" aria-atomic="true">
       <span class="ab-stat"><span class="ab-stat-label">Score</span> <span id="ab-score">0 / 0</span></span>
       <span class="ab-stat"><span class="ab-stat-label">Streak</span> <span id="ab-streak">&#128293; 0</span></span>
       <span id="ab-cat-badge" class="ab-cat-badge"></span>
     </div>
-    <div class="subnet-card" id="ab-q-card">
+    <div class="subnet-card" id="ab-q-card" aria-live="polite">
       <div class="subnet-q-num" id="ab-q-num">Q1</div>
       <div class="subnet-question" id="ab-question">Loading&#8230;</div>
       <div id="ab-answer-area" class="ab-answer-area"></div>
@@ -826,7 +856,7 @@
     </div>
     <div id="ab-heatmap" class="ab-heatmap"></div>
   </div>
-  <div id="ab-tab-dashboard" class="ab-tab-panel is-hidden">
+  <div id="ab-tab-dashboard" class="ab-tab-panel is-hidden" role="tabpanel" aria-labelledby="ab-tab-btn-dashboard" tabindex="-1">
     <div id="ab-dashboard-content"></div>
   </div>
 </div>
@@ -840,12 +870,12 @@
     <h2 style="margin:0">&#127760; OSI Layer Sorter</h2>
     <span id="os-level-badge" class="os-level-badge">Beginner</span>
   </div>
-  <div class="os-tab-bar" role="tablist">
-    <button class="os-tab-btn os-tab-active" id="os-tab-btn-learn" role="tab" onclick="setOsTab('learn')">&#128218; Learn</button>
-    <button class="os-tab-btn" id="os-tab-btn-practice" role="tab" onclick="setOsTab('practice')">&#127919; Practice</button>
-    <button class="os-tab-btn" id="os-tab-btn-dashboard" role="tab" onclick="setOsTab('dashboard')">&#128202; Dashboard</button>
+  <div class="os-tab-bar" role="tablist" aria-label="OSI Layer Sorter tabs">
+    <button class="os-tab-btn os-tab-active" id="os-tab-btn-learn" role="tab" aria-selected="true" aria-controls="os-tab-learn" tabindex="0" onclick="setOsTab('learn')">&#128218; Learn</button>
+    <button class="os-tab-btn" id="os-tab-btn-practice" role="tab" aria-selected="false" aria-controls="os-tab-practice" tabindex="-1" onclick="setOsTab('practice')">&#127919; Practice</button>
+    <button class="os-tab-btn" id="os-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="os-tab-dashboard" tabindex="-1" onclick="setOsTab('dashboard')">&#128202; Dashboard</button>
   </div>
-  <div id="os-tab-learn" class="os-tab-panel">
+  <div id="os-tab-learn" class="os-tab-panel" role="tabpanel" aria-labelledby="os-tab-btn-learn" tabindex="0">
     <div class="os-learn-layout">
       <nav id="os-lesson-sidebar" class="os-lesson-sidebar" aria-label="OSI lesson list"></nav>
       <div id="os-lesson-main" class="os-lesson-main">
@@ -853,25 +883,25 @@
       </div>
     </div>
   </div>
-  <div id="os-tab-practice" class="os-tab-panel is-hidden">
+  <div id="os-tab-practice" class="os-tab-panel is-hidden" role="tabpanel" aria-labelledby="os-tab-btn-practice" tabindex="-1">
     <div class="os-mode-bar" role="group" aria-label="Practice mode">
-      <button class="os-mode-btn os-mode-active" id="os-mode-sort" onclick="setOsMode('sort')">&#128203; Sort</button>
-      <button class="os-mode-btn" id="os-mode-identify" onclick="setOsMode('identify')">&#127919; Identify</button>
-      <button class="os-mode-btn" id="os-mode-endless" onclick="setOsMode('endless')">&#128279; Endless</button>
+      <button class="os-mode-btn os-mode-active" id="os-mode-sort" aria-pressed="true" onclick="setOsMode('sort')">&#128203; Sort</button>
+      <button class="os-mode-btn" id="os-mode-identify" aria-pressed="false" onclick="setOsMode('identify')">&#127919; Identify</button>
+      <button class="os-mode-btn" id="os-mode-endless" aria-pressed="false" onclick="setOsMode('endless')">&#128279; Endless</button>
     </div>
     <div class="os-diff-bar" role="group" aria-label="Difficulty">
-      <button class="os-diff-btn os-diff-active" id="os-diff-easy" onclick="setOsDifficulty('easy')">Easy</button>
-      <button class="os-diff-btn" id="os-diff-medium" onclick="setOsDifficulty('medium')">Medium</button>
-      <button class="os-diff-btn" id="os-diff-hard" onclick="setOsDifficulty('hard')">Hard</button>
+      <button class="os-diff-btn os-diff-active" id="os-diff-easy" aria-pressed="true" onclick="setOsDifficulty('easy')">Easy</button>
+      <button class="os-diff-btn" id="os-diff-medium" aria-pressed="false" onclick="setOsDifficulty('medium')">Medium</button>
+      <button class="os-diff-btn" id="os-diff-hard" aria-pressed="false" onclick="setOsDifficulty('hard')">Hard</button>
     </div>
-    <div class="os-stats-strip">
+    <div class="os-stats-strip" aria-live="polite" aria-atomic="true">
       <span class="os-stat"><span class="os-stat-label">Score</span> <span id="os-score">0 / 0</span></span>
       <span class="os-stat"><span class="os-stat-label">Streak</span> <span id="os-streak">&#128293; 0</span></span>
     </div>
-    <div id="os-practice-area" class="os-practice-area"></div>
+    <div id="os-practice-area" class="os-practice-area" aria-live="polite"></div>
     <div id="os-heatmap" class="os-heatmap"></div>
   </div>
-  <div id="os-tab-dashboard" class="os-tab-panel is-hidden">
+  <div id="os-tab-dashboard" class="os-tab-panel is-hidden" role="tabpanel" aria-labelledby="os-tab-btn-dashboard" tabindex="-1">
     <div id="os-dashboard-content"></div>
   </div>
 </div>
@@ -885,12 +915,12 @@
     <h2 style="margin:0">&#128268; Cable &amp; Connector ID</h2>
     <span id="cb-level-badge" class="cb-level-badge">Beginner</span>
   </div>
-  <div class="cb-tab-bar" role="tablist">
-    <button class="cb-tab-btn cb-tab-active" id="cb-tab-btn-learn" role="tab" onclick="setCbTab('learn')">&#128218; Learn</button>
-    <button class="cb-tab-btn" id="cb-tab-btn-practice" role="tab" onclick="setCbTab('practice')">&#127919; Practice</button>
-    <button class="cb-tab-btn" id="cb-tab-btn-dashboard" role="tab" onclick="setCbTab('dashboard')">&#128202; Dashboard</button>
+  <div class="cb-tab-bar" role="tablist" aria-label="Cable &amp; Connector ID tabs">
+    <button class="cb-tab-btn cb-tab-active" id="cb-tab-btn-learn" role="tab" aria-selected="true" aria-controls="cb-tab-learn" tabindex="0" onclick="setCbTab('learn')">&#128218; Learn</button>
+    <button class="cb-tab-btn" id="cb-tab-btn-practice" role="tab" aria-selected="false" aria-controls="cb-tab-practice" tabindex="-1" onclick="setCbTab('practice')">&#127919; Practice</button>
+    <button class="cb-tab-btn" id="cb-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="cb-tab-dashboard" tabindex="-1" onclick="setCbTab('dashboard')">&#128202; Dashboard</button>
   </div>
-  <div id="cb-tab-learn" class="cb-tab-panel">
+  <div id="cb-tab-learn" class="cb-tab-panel" role="tabpanel" aria-labelledby="cb-tab-btn-learn" tabindex="0">
     <div class="cb-learn-layout">
       <nav id="cb-lesson-sidebar" class="cb-lesson-sidebar" aria-label="Cable lesson list"></nav>
       <div id="cb-lesson-main" class="cb-lesson-main">
@@ -898,19 +928,19 @@
       </div>
     </div>
   </div>
-  <div id="cb-tab-practice" class="cb-tab-panel is-hidden">
+  <div id="cb-tab-practice" class="cb-tab-panel is-hidden" role="tabpanel" aria-labelledby="cb-tab-btn-practice" tabindex="-1">
     <div class="cb-mode-bar" role="group" aria-label="Practice mode">
-      <button class="cb-mode-btn cb-mode-active" id="cb-mode-adaptive" onclick="setCbMode('adaptive')">&#127919; Adaptive</button>
-      <button class="cb-mode-btn" id="cb-mode-specs" onclick="setCbMode('specs')">&#128203; Match Specs</button>
-      <button class="cb-mode-btn" id="cb-mode-scenario" onclick="setCbMode('scenario')">&#127959; Scenario</button>
-      <button class="cb-mode-btn" id="cb-mode-endless" onclick="setCbMode('endless')">&#128279; Endless</button>
+      <button class="cb-mode-btn cb-mode-active" id="cb-mode-adaptive" aria-pressed="true" onclick="setCbMode('adaptive')">&#127919; Adaptive</button>
+      <button class="cb-mode-btn" id="cb-mode-specs" aria-pressed="false" onclick="setCbMode('specs')">&#128203; Match Specs</button>
+      <button class="cb-mode-btn" id="cb-mode-scenario" aria-pressed="false" onclick="setCbMode('scenario')">&#127959; Scenario</button>
+      <button class="cb-mode-btn" id="cb-mode-endless" aria-pressed="false" onclick="setCbMode('endless')">&#128279; Endless</button>
     </div>
-    <div class="cb-stats-strip">
+    <div class="cb-stats-strip" aria-live="polite" aria-atomic="true">
       <span class="cb-stat"><span class="cb-stat-label">Score</span> <span id="cb-score">0 / 0</span></span>
       <span class="cb-stat"><span class="cb-stat-label">Streak</span> <span id="cb-streak">&#128293; 0</span></span>
       <span id="cb-cat-badge" class="cb-cat-badge"></span>
     </div>
-    <div class="subnet-card" id="cb-q-card">
+    <div class="subnet-card" id="cb-q-card" aria-live="polite">
       <div class="subnet-q-num" id="cb-q-num">Q1</div>
       <div class="subnet-question" id="cb-question">Loading&#8230;</div>
       <div id="cb-answer-area" class="cb-answer-area"></div>
@@ -919,7 +949,7 @@
     </div>
     <div id="cb-heatmap" class="cb-heatmap"></div>
   </div>
-  <div id="cb-tab-dashboard" class="cb-tab-panel is-hidden">
+  <div id="cb-tab-dashboard" class="cb-tab-panel is-hidden" role="tabpanel" aria-labelledby="cb-tab-btn-dashboard" tabindex="-1">
     <div id="cb-dashboard-content"></div>
   </div>
 </div>
@@ -986,52 +1016,71 @@
   </div>
 
   <div id="tb-main" class="tb-main">
-    <!-- Intro banner (collapsible — auto-collapses after first visit) -->
-    <details id="tb-intro-details" class="tb-intro-details">
-      <summary class="tb-intro-summary">&#9432; About Topology Builder</summary>
-      <div class="tb-intro-banner">
-        <div class="tb-intro-icon">&#128295;</div>
-        <div class="tb-intro-body">
-          <div class="tb-intro-title">Build, configure &amp; simulate real networks</div>
-          <div class="tb-intro-text">Drag routers, switches, firewalls, PCs, servers and 29+ device types onto the canvas, then <strong>double-click</strong> any device to configure IPs, subnet masks, VLANs, routing tables, DHCP, and use the built-in CLI. <strong>Ping</strong> between devices, run <strong>ARP</strong> requests, trigger <strong>DHCP DORA</strong> with relay support, and watch animated packets traverse the network. Use <strong>&#129302; AI Generate</strong> to create a full topology from a text description, or <strong>&#128161; Explain</strong> to get an AI walkthrough of any device. Grade designs with <strong>&#127891; Grade</strong>, get coaching with <strong>&#129302; Coach</strong>, and export with <strong>&#128247; Export PNG</strong>.</div>
-        </div>
+    <!-- v4.43.1: Compact intro banner — 1-line value prop + feature pills. Previous wall-of-text replaced. -->
+    <div class="tb-hero">
+      <div class="tb-hero-tagline">Build, configure, and simulate real networks — with guided labs and an AI coach.</div>
+      <div class="tb-hero-pills">
+        <span class="tb-hero-pill">🎨 Design</span>
+        <span class="tb-hero-pill">🔬 Simulate (Ping · ARP · DHCP)</span>
+        <span class="tb-hero-pill">🧪 29 concept labs</span>
+        <span class="tb-hero-pill">🤖 AI Coach &amp; Generate</span>
+        <span class="tb-hero-pill">📷 Export PNG</span>
       </div>
-    </details>
+    </div>
 
-    <!-- Toolbar (unified: build + sim in one bar with group dividers) -->
-    <div class="tb-toolbar">
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbNewTopology()" title="New topology">&#128196; New</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbSaveTopology()" title="Save current topology">&#128190; Save</button>
-      <select id="tb-load-select" class="tb-load-select" onchange="tbLoadTopology(this.value)" aria-label="Load saved topology">
-        <option value="">&#128194; Load&hellip;</option>
-      </select>
-      <span class="tb-toolbar-divider"></span>
-      <select id="tb-scenario-select" class="tb-load-select tb-scenario-select" onchange="tbSetScenario(this.value)" aria-label="Select scenario">
-        <option value="free">&#127919; Free Build</option>
-        <option value="small-office">&#127970; Small Office</option>
-        <option value="dmz">&#128274; DMZ / Screened Subnet</option>
-        <option value="enterprise">&#127970; Enterprise + IDS/LB</option>
-        <option value="branch-wireless">&#128246; Branch + Wireless</option>
-        <option value="cloud-vpc">&#9729; Cloud VPC</option>
-        <option value="hybrid-cloud">&#128279; Hybrid Cloud (VPN)</option>
-        <option value="multi-vpc">&#128300; Multi-VPC + Transit GW</option>
-        <option value="sase-arch">&#128737; SASE Architecture</option>
-      </select>
-      <span class="tb-toolbar-divider"></span>
-      <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology against design rules" id="tb-grade-btn">&#127891; Grade</button>
-      <button class="btn btn-tool tb-tool-btn tb-tool-btn-coach" onclick="tbCoachTopology()" title="Ask the AI Coach to review your topology" id="tb-coach-btn">&#129302; Coach</button>
-      <button class="btn btn-tool tb-tool-btn tb-tool-btn-ai" onclick="tbGenerateAiTopology()" title="AI generates a full network topology from your description" id="tb-ai-gen-btn">&#129302; AI Generate</button>
-      <span class="tb-toolbar-divider"></span>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenPingDialog()" title="Ping / ARP between devices">&#128225; Ping</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenDhcpDialog()" title="DHCP request">&#128260; DHCP</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenLabPicker()" title="Guided topology labs">&#127891; Labs</button>
-      <button class="btn btn-ghost tb-tool-btn tb-tool-btn-fix" onclick="tbOpenFixPicker()" title="Fix This Network challenges">&#128295; Fix</button>
-      <span class="tb-toolbar-divider"></span>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbExportPNG()" title="Export topology as PNG image" id="tb-export-btn">&#128247; PNG</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbDeleteSelected()" title="Delete selected (Del)" id="tb-delete-btn">&#128465; Del</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbClearCanvas()" title="Clear all devices from canvas" id="tb-clear-btn">&#129529; Clear</button>
-      <button class="btn btn-ghost tb-tool-btn" onclick="tbClearSimLog()" title="Clear simulation log">&#128465; Log</button>
-      <span class="tb-toolbar-spacer"></span>
+    <!-- v4.43.1: Toolbar redesign — grouped with visible labels instead of scattered dividers.
+         Groups: Primary actions (Grade / Coach / AI) · Simulate · Labs · File · Utility -->
+    <div class="tb-toolbar tb-toolbar-v2">
+      <!-- Group: Primary actions -->
+      <div class="tb-tool-group tb-tool-group-primary">
+        <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology against design rules" id="tb-grade-btn">&#127891; Grade</button>
+        <button class="btn btn-tool tb-tool-btn tb-tool-btn-coach" onclick="tbCoachTopology()" title="Ask the AI Coach to review your topology" id="tb-coach-btn">&#129302; Coach</button>
+        <button class="btn btn-tool tb-tool-btn tb-tool-btn-ai" onclick="tbGenerateAiTopology()" title="AI generates a full network topology from your description" id="tb-ai-gen-btn">&#129302; AI Generate</button>
+      </div>
+      <!-- Group: Simulate -->
+      <div class="tb-tool-group">
+        <span class="tb-tool-group-label">Simulate</span>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenPingDialog()" title="Ping / ARP between devices">&#128225; Ping</button>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenDhcpDialog()" title="DHCP request">&#128260; DHCP</button>
+      </div>
+      <!-- Group: Practice (Labs + Fix) -->
+      <div class="tb-tool-group">
+        <span class="tb-tool-group-label">Practice</span>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbOpenLabPicker()" title="Guided topology labs">&#127891; Labs</button>
+        <button class="btn btn-ghost tb-tool-btn tb-tool-btn-fix" onclick="tbOpenFixPicker()" title="Fix This Network challenges">&#128295; Fix</button>
+      </div>
+      <!-- Group: File -->
+      <div class="tb-tool-group">
+        <span class="tb-tool-group-label">File</span>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbNewTopology()" title="New topology">&#128196; New</button>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbSaveTopology()" title="Save current topology">&#128190; Save</button>
+        <select id="tb-load-select" class="tb-load-select" onchange="tbLoadTopology(this.value)" aria-label="Load saved topology">
+          <option value="">&#128194; Load&hellip;</option>
+        </select>
+      </div>
+      <!-- Group: Scenario -->
+      <div class="tb-tool-group">
+        <span class="tb-tool-group-label">Scenario</span>
+        <select id="tb-scenario-select" class="tb-load-select tb-scenario-select" onchange="tbSetScenario(this.value)" aria-label="Select scenario">
+          <option value="free">&#127919; Free Build</option>
+          <option value="small-office">&#127970; Small Office</option>
+          <option value="dmz">&#128274; DMZ / Screened Subnet</option>
+          <option value="enterprise">&#127970; Enterprise + IDS/LB</option>
+          <option value="branch-wireless">&#128246; Branch + Wireless</option>
+          <option value="cloud-vpc">&#9729; Cloud VPC</option>
+          <option value="hybrid-cloud">&#128279; Hybrid Cloud (VPN)</option>
+          <option value="multi-vpc">&#128300; Multi-VPC + Transit GW</option>
+          <option value="sase-arch">&#128737; SASE Architecture</option>
+        </select>
+      </div>
+      <!-- Group: Utility -->
+      <div class="tb-tool-group">
+        <span class="tb-tool-group-label">Utility</span>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbExportPNG()" title="Export topology as PNG image" id="tb-export-btn">&#128247; PNG</button>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbDeleteSelected()" title="Delete selected (Del)" id="tb-delete-btn">&#128465; Del</button>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbClearCanvas()" title="Clear all devices from canvas" id="tb-clear-btn">&#129529; Clear</button>
+        <button class="btn btn-ghost tb-tool-btn" onclick="tbClearSimLog()" title="Clear log">&#128465; Log</button>
+      </div>
       <span id="tb-status" class="tb-status">Drag a device from the palette &rarr;</span>
     </div>
 
@@ -1072,7 +1121,7 @@
           <span class="tb-wire-overlay-icon">&#128279;</span>
           <span class="tb-wire-overlay-text"><strong>Wiring&hellip;</strong> click a second device to draw the cable, or press <kbd>Esc</kbd> to cancel.</span>
         </div>
-        <svg id="tb-canvas" class="tb-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 820" preserveAspectRatio="xMidYMid meet">
+        <svg id="tb-canvas" class="tb-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1100" preserveAspectRatio="xMidYMid meet">
           <defs>
             <pattern id="tb-grid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(124,111,247,0.08)" stroke-width="1"/>
@@ -1083,9 +1132,27 @@
           <g id="tb-devices-layer"></g>
           <g id="tb-anim-layer"></g>
         </svg>
-        <div id="tb-empty-hint" class="tb-empty-hint">
-          <div style="font-size:48px;margin-bottom:8px">&#128295;</div>
-          <div>Start by dragging a device from the palette</div>
+        <div id="tb-empty-hint" class="tb-empty-hint tb-empty-hint-v2">
+          <div class="tb-empty-icon">&#128295;</div>
+          <div class="tb-empty-title">Ready to build a network?</div>
+          <div class="tb-empty-sub">Pick a starting point &mdash; or drag a device from the palette on the left.</div>
+          <div class="tb-empty-ctas">
+            <button class="tb-empty-cta tb-empty-cta-primary" onclick="tbOpenLabPicker()" type="button">
+              <span class="tb-empty-cta-icon">&#127891;</span>
+              <span class="tb-empty-cta-title">Start a guided lab</span>
+              <span class="tb-empty-cta-sub">Step-by-step scaffolded build</span>
+            </button>
+            <button class="tb-empty-cta" onclick="tbGenerateAiTopology()" type="button">
+              <span class="tb-empty-cta-icon">&#129302;</span>
+              <span class="tb-empty-cta-title">AI Generate</span>
+              <span class="tb-empty-cta-sub">Describe it in plain English</span>
+            </button>
+            <button class="tb-empty-cta" onclick="tbOpenFixPicker()" type="button">
+              <span class="tb-empty-cta-icon">&#128295;</span>
+              <span class="tb-empty-cta-title">Fix a broken network</span>
+              <span class="tb-empty-cta-sub">Troubleshoot pre-built problems</span>
+            </button>
+          </div>
         </div>
       </div>
 

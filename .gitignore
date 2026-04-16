@@ -9,3 +9,8 @@ node_modules/
 test-results/
 playwright-report/
 blob-report/
+
+# Session handoffs from deleted chats — may contain leaked tokens/keys that
+# were pasted into prompts. Keep on disk locally but never commit.
+AI_QUIZ_HANDOFF.md
+*_HANDOFF.md

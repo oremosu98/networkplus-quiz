@@ -499,15 +499,19 @@ test.describe('Readiness Card', () => {
 });
 
 test.describe('Wrong Bank Behavior', () => {
-  test('wrong bank row hidden when bank is empty', async ({ page }) => {
+  // v4.41.0: legacy #wrong-bank-row deleted. The "Drill Mistakes" preset tile
+  // (#wrong-preset-tile) is now the only drill entry, and the Clear button
+  // moved into the Settings <details> section.
+
+  test('wrong-preset-tile hidden when bank is empty', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_wrong_bank'));
     await page.reload();
 
-    await expect(page.locator('#wrong-bank-row')).not.toBeVisible();
+    await expect(page.locator('#wrong-preset-tile')).not.toBeVisible();
   });
 
-  test('wrong bank row visible when bank has items', async ({ page }) => {
+  test('wrong-preset-tile visible when bank has items', async ({ page }) => {
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -520,11 +524,11 @@ test.describe('Wrong Bank Behavior', () => {
 
     await page.reload();
 
-    await expect(page.locator('#wrong-bank-row')).toBeVisible();
-    await expect(page.locator('.wrong-count-badge')).toContainText('1');
+    await expect(page.locator('#wrong-preset-tile')).toBeVisible();
+    await expect(page.locator('#wrong-preset-sub')).toContainText('1');
   });
 
-  test('clear button triggers confirm dialog', async ({ page }) => {
+  test('Settings clear button triggers confirm dialog', async ({ page }) => {
     await page.goto('/');
 
     // Set up wrong bank
@@ -537,6 +541,9 @@ test.describe('Wrong Bank Behavior', () => {
     });
     await page.reload();
 
+    // Open the Settings <details> section (v4.41.0: clear button lives here now)
+    await page.evaluate(() => { document.getElementById('advanced-section').open = true; });
+
     // Listen for dialog and dismiss it
     page.on('dialog', dialog => dialog.dismiss());
 
@@ -547,7 +554,7 @@ test.describe('Wrong Bank Behavior', () => {
     expect(bank).not.toBeNull();
   });
 
-  test('clear button removes bank when confirmed', async ({ page }) => {
+  test('Settings clear button removes bank when confirmed', async ({ page }) => {
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -559,6 +566,9 @@ test.describe('Wrong Bank Behavior', () => {
     });
     await page.reload();
 
+    // Open the Settings <details> section (v4.41.0: clear button lives here now)
+    await page.evaluate(() => { document.getElementById('advanced-section').open = true; });
+
     // Accept the dialog
     page.on('dialog', dialog => dialog.accept());
 
@@ -568,8 +578,8 @@ test.describe('Wrong Bank Behavior', () => {
     const bank = await page.evaluate(() => localStorage.getItem('nplus_wrong_bank'));
     expect(bank).toBeNull();
 
-    // Row should be hidden
-    await expect(page.locator('#wrong-bank-row')).not.toBeVisible();
+    // Preset tile should be hidden
+    await expect(page.locator('#wrong-preset-tile')).not.toBeVisible();
   });
 });
 
