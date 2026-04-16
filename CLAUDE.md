@@ -1,80 +1,269 @@
 # Network+ AI Quiz — Project Guide
 
+## Context
+- **Single-user app currently** (the user is the student prepping for real N10-009). Explains why items like per-user API cost telemetry are deferred.
+- **Future pivot**: paid multi-cert SaaS. Anything tagged `saas-gated` on either board is **frozen** until that trigger fires (see Conventions).
+- **Origin**: started as a Notion-native flashcard quiz (2026-03-28), pivoted to standalone web app on 2026-04-02. **Notion sync is not on the roadmap** — do not re-propose.
+- **External reviewer**: user periodically pastes OpenAI Codex feedback as a product-review signal — drove v4.40.0 label clarity and v4.41.0 homepage density.
+
 ## Architecture
-- **Type**: Static HTML/JS/CSS single-page app (no framework, no build step)
-- **AI**: Claude Haiku API (`claude-haiku-4-5-20251001`) via direct browser fetch with `anthropic-dangerous-direct-browser-access: true`
-- **Storage**: All data in localStorage (history, wrong bank, streaks, port drill scores, reported questions)
-- **Hosting**: Vercel (static deployment, `vercel.json` just has `{"version": 2}`)
-- **Offline**: Service worker with stale-while-revalidate caching
-- **PWA**: manifest.json, installable on mobile
+- **Type**: Static HTML/JS/CSS single-page app, no framework, no build step
+- **AI**: Three-way Claude model split, direct browser fetch with `anthropic-dangerous-direct-browser-access: true`. User supplies their own API key via Settings (stored under `STORAGE.KEY`).
+
+  | Model | Constant | Used for |
+  |---|---|---|
+  | Haiku 4.5 (`claude-haiku-4-5-20251001`) | `CLAUDE_MODEL` | Bulk generation: `fetchQuestions`, `tbGenerateAiTopology` |
+  | Sonnet 4.6 (`claude-sonnet-4-6`) | `CLAUDE_VALIDATOR_MODEL` | Semantic second-pass: `aiValidateQuestions` |
+  | Sonnet 4.6 | `CLAUDE_TEACHER_MODEL` | Authoritative teacher content (Tier A/B/C — see Key Patterns) |
+
+- **Storage**: All data in localStorage via the `STORAGE.*` namespace object (38 keys — see below)
+- **Hosting**: Vercel static deployment, prod URL https://networkplus-quiz-sable.vercel.app
+- **Offline**: Service worker with stale-while-revalidate caching. **Cache name MUST bump every deploy** — use `bump-version.js`, never hand-edit partial.
+- **PWA**: `manifest.json`, installable on mobile
 
 ## Files
 | File | Purpose | Size |
 |---|---|---|
-| `index.html` | All page structures (setup, loading, quiz, results, review, exam, session, subnet, ports, analytics) | ~500 lines |
-| `app.js` | All application logic — state, API calls, rendering, game logic, analytics | ~3200 lines |
-| `styles.css` | Full styling with dark/light theme support | ~550 lines |
-| `sw.js` | Service worker for offline caching | ~50 lines |
-| `manifest.json` | PWA manifest | ~20 lines |
-| `vercel.json` | Vercel config (minimal) | 3 lines |
-| `tests/uat.js` | Reusable UAT test suite | ~150 lines |
+| `index.html` | All page structures (30+ pages: setup, quiz, exam, results, review, subnet, ports, drills launcher, topology, analytics, progress, guided labs, …) | ~84 KB / 1,351 lines |
+| `app.js` | All app logic — state, AI calls, rendering, game loops, analytics, 5 activity sub-systems | **~1.15 MB / 19,292 lines** |
+| `styles.css` | Full dark/light theme styling + `@media (prefers-reduced-motion)` gate | ~238 KB / 4,097 lines |
+| `sw.js` | Service worker (stale-while-revalidate, shell-asset precache, 60-entry LRU cap) | 73 lines |
+| `manifest.json` | PWA manifest | 646 B |
+| `vercel.json` | Vercel config (minimal) | 806 B |
+| `tests/uat.js` | UAT suite — 2,458 assertions as of v4.43.1, embeds validation-audit gate | 3,776 lines |
+| `tests/tech-debt.js` | CI thresholds: long-function count, LOC, global count, etc. | 131 lines |
+| `tests/validation-audit.js` | 20-Q broken-corpus regression fixture (60% catch floor, 0 FP ceiling) | 533 lines |
+| `tests/deploy-verify.js` | Post-deploy smoke against prod | 300 lines |
+| `tests/e2e/app.spec.js` | Playwright E2E | — |
+
+**Reality check:** `app.js` size is the driver for [#138](https://github.com/oremosu98/networkplus-quiz/issues/138) (module split) — `saas-gated`, don't start without pivot trigger. `styles.css` growth drove [#55](https://github.com/oremosu98/networkplus-quiz/issues/55) — same gate.
 
 ## Key Patterns
 
 ### Page Navigation
-Pages are `<div class="page">` elements. `showPage(name)` toggles `.active` class. All pages defined in index.html.
+Pages are `<div class="page">` elements. `showPage(name)` toggles `.active`. All pages live in `index.html`.
 
 ### Quiz Flow
-`startQuiz()` → `fetchQuestions()` → `aiValidateQuestions()` → `validateQuestions()` → `injectPBQs()` → `render()`
+`startQuiz()` → `fetchQuestions()` (Haiku) → `aiValidateQuestions()` (Sonnet) → `validateQuestions()` (programmatic) → `injectPBQs()` → `render()`
 
 ### Question Types
 | Type | Format | Scoring |
 |---|---|---|
-| `mcq` | 4 options, 1 correct | `pick()` checks answer |
-| `multi-select` | 5 options, 2-3 correct | `submitMultiSelect()` checks answers array |
-| `order` | 4-5 items, arrange in sequence | `submitOrder()` checks correctOrder array |
-| `cli-sim` | Terminal UI + command buttons + diagnosis MCQ | Uses `pick()` for the MCQ part |
-| `topology` | Device palette + zone placement (drag or click) | `submitTopology()` checks correctPlacements map |
+| `mcq` | 4 options, 1 correct | `pick()` |
+| `multi-select` | 5 options, 2–3 correct | `submitMultiSelect()` |
+| `order` | 4–5 items, arrange in sequence | `submitOrder()` |
+| `cli-sim` | Terminal UI + command buttons + diagnosis MCQ | `pick()` for the MCQ part |
+| `topology` | Device palette + zone placement | `submitTopology()` |
 
 ### Exam Mode
-90 questions, 5 batches of 18, timed (90 min), scaled scoring 100-900. Uses `examQuestions[]` and `examAnswers[]` arrays. Flag/unflag, question navigator grid.
+`EXAM_QUESTION_COUNT = 90`, 5 batches of 18, 90-min timer, scaled 100–900 (`EXAM_PASS_SCORE = 720`, `EXAM_MAX_SCORE = 900`). Uses `examQuestions[]` + `examAnswers[]`. Flag/unflag, navigator grid. **Strict Mode** (`STORAGE.HARDCORE_EXAM`) hides flag + prev + navigator for realistic simulation.
 
-### AI Enhancement Pipeline
-1. **Prompt engineering**: 5-step self-verification protocol in fetchQuestions
-2. **AI second-pass validation**: `aiValidateQuestions()` sends questions back to verify, fixes or removes bad ones
-3. **Programmatic validation**: `validateQuestions()` checks for wrong-letter claims in explanations, keyword overlap, reported question exclusion
-4. **Explain Further**: 6-section deep dive on demand (concept breakdown, analogy, wrong answer analysis, exam tips, memory trick, related concepts)
+### AI Teacher Tiers
+Every Claude call site is tiered. Tier determines model, caching, and ground-truth injection.
 
-### Data Storage Keys (localStorage)
-| Key | Content |
+| Tier | Purpose | Sites | Model | Cache | GT injection |
+|---|---|---|---|---|---|
+| **A** | Authoritative study content (user trusts as truth) | `explainFurther()`, `showTopicDeepDive()` / `buildTopicDivePrompt()`, `fetchTopicBrief()` | Sonnet | `_aiCacheGet`/`Set`, djb2 hash, 20-entry LRU via `STORAGE.AI_CACHE` | `_buildGtHint(text, topicName)` prepends AUTHORITATIVE FACTS block |
+| **B** | Math-must-be-exact coach | `stAskCoach()` (subnet), `ptAskCoach()` (port drill) | Sonnet | None | Deterministic facts computed + stuffed into prompt (IP binary breakdown, proto→port) |
+| **C** | Topology coach | `tbCoachTopology()`, `tbExplainDevice()` | Sonnet | `STORAGE.TB_COACH_CACHE` (lab+step keyed) | None |
+| **Gen** | Bulk generation (cost-optimized) | `fetchQuestions()`, `tbGenerateAiTopology()` | Haiku | None | Via `aiValidateQuestions()` → `validateQuestions()` post-pass |
+
+### Ground Truth Tables
+Static N10-009 facts. **Dual-layer pattern**: used both for prompt injection (Tier A) AND programmatic reject in `validateQuestions()`.
+
+| Table | Entries | Covers |
+|---|---|---|
+| `GT_PORTS` | 27 | protocol → port number |
+| `GT_OSI` | 30 | protocol → OSI layer |
+| `GT_WIFI_BROKEN` | 1 | `['wep']` — broken auth |
+| `GT_WIFI_DEPRECATED` | 1 | `['wpa']` — original WPA |
+| `GT_ETHERNET` | 6 | auto-negotiation, auto-MDIX, MDI/MDIX, crossover/straight-through, duplex, PoE 802.3af/at/bt |
+
+- `_buildGtHint(text, topicName)` — scans question/topic for protocol keywords, prepends AUTHORITATIVE FACTS block to Tier A prompts.
+- `_groundTruthOk(q)` — programmatic guard called from `validateQuestions()`. Rejects questions with deterministically wrong answers before they reach the quiz UI.
+- **Adding a new fact**: update the GT table AND extend the corresponding regex in both `_buildGtHint` and `_groundTruthOk`. Both layers must know.
+
+### Validation Pipeline (4 layers)
+1. **Prompt self-verification** — 5-step check baked into the `fetchQuestions` system prompt
+2. **AI second-pass** — `aiValidateQuestions()` on Sonnet; fixes or removes semantically broken questions
+3. **Programmatic validator** — `validateQuestions()`:
+   - Unique-word scoring with negation guard (skips on NOT/EXCEPT/"which not"): tokenizes distractors minus stopwords, if any distractor beats marked answer in explanation keyword match → drop
+   - `_groundTruthOk(q)` against GT tables
+   - `_numericOptionOk(q)` for all-numeric options (subnet math, host counts, port numbers)
+   - Reported-question exclusion (`STORAGE.REPORTS`)
+4. **Regression gate** — `tests/validation-audit.js` runs a 20-Q broken-corpus fixture on every UAT run. `MIN_CATCH_RATE = 60`, `MAX_FP_RATE = 0`. UAT fails loud if either breached. **Do NOT tune `validateQuestions()` without running the audit first.**
+
+### Data Storage (localStorage)
+All keys centralized in the `STORAGE` namespace at `app.js:64–103`. 38 keys, all prefixed `nplus_`:
+
+| Category | Keys |
 |---|---|
-| `nplus_key` | Anthropic API key |
-| `nplus_history` | Array of quiz results (max 200) |
-| `nplus_streak` | Current/best streak data |
-| `nplus_wrong_bank` | Wrong answers for drill mode |
-| `nplus_theme` | `dark` or `light` |
-| `nplus_reports` | Reported question counts |
-| `nplus_port_best` | Port drill high score |
+| Core | `KEY`, `THEME`, `HISTORY`, `STREAK`, `WRONG_BANK`, `REPORTS`, `ERROR_LOG` |
+| Exam | `HARDCORE_EXAM`, `EXAM_DATE` |
+| Ports | `PORT_BEST`, `PORT_STREAK_BEST`, `PORT_FAMILY_BEST`, `PORT_PAIRS_BEST`, `PORT_STATS`, `PORT_MASTERY`, `PORT_LESSONS` |
+| Subnet | `SUBNET_STATS`, `SUBNET_MASTERY`, `SUBNET_LESSONS` |
+| Other drills | `AB_MASTERY`/`AB_LESSONS` (Acronym Blitz), `OS_MASTERY`/`OS_LESSONS` (OSI Sorter), `CB_MASTERY`/`CB_LESSONS` (Cable ID) |
+| Topology | `TOPOLOGIES`, `TOPOLOGY_DRAFT`, `TB_COACH_CACHE`, `LAB_COMPLETIONS`, `FIX_CHALLENGES` |
+| Goals + analytics | `TYPE_STATS`, `DAILY_GOAL`, `DAILY_CHALLENGE`, `MILESTONES`, `DEEP_DIVE_USES` |
+| AI | `AI_CACHE` (Tier A LRU) |
+| Monitoring | `GH_TOKEN`, `GH_REPORTED` |
+
+**Convention**: always access through `STORAGE.*`; never inline `localStorage.getItem('nplus_…')`. Export/Import Data (under Settings) walks the namespace.
+
+### Weak Spots v2 — `computeWeakSpotScores()`
+At `app.js:3672`. Drives the homepage `🎯 Weak spots` chip row + Subnet Trainer dashboard callouts. 4 combined signals:
+
+1. **Recency-decayed wrong-bank count** — exp decay with 7-day half-life (`WEAK_HALF_LIFE_WRONGS_MS`), `diffWeight()`-weighted (Hard 2.0× / Exam 1.5× / Found 1.0×), half-credit when `rightCount >= 1` (partial graduation)
+2. **Bayesian posterior accuracy gap** — recency-decayed weighted correct/total (14-day half-life via `WEAK_HALF_LIFE_HIST_MS`, 1.3× exam boost), Beta(2,2) prior: `posterior = (wCorrect + 2) / (wTotal + 4)`. Gap = `max(0, WEAK_TARGET_ACC - posterior)` where `WEAK_TARGET_ACC = 0.85`
+3. **Staleness** — after `WEAK_STALENESS_DAYS = 14` untouched, up to `WEAK_STALENESS_CAP = 2.0` multiplier
+4. **Domain importance** — `_weakDomainMultiplier(topic)` = `DOMAIN_WEIGHTS[dom] / WEAK_AVG_DOMAIN_WEIGHT` (0.7× security ↔ 1.2× troubleshooting)
+
+Final score = `(wrongsRecent * 3.0 + accGap * 25.0 + staleness * 2.0) * domainMul`. **Low-signal filter** excludes `wTotal < 1 && wrongsRecent < 0.5` (untouched, not weak). `renderTodaysFocus()` is refreshed in real time via hooks in `finish()`/`submitExam()`.
+
+### Readiness Score — `getReadinessScore()`
+At `app.js:3066`. Composite 420–870 scaled score.
+- **Signals (weighted 40 / 25 / 20 / 15)**: accuracy / coverage / recency / volume
+- **Accuracy** — within-domain question-count weighted (v4.42.4 fix — do NOT revert to `pctSum/count`), CompTIA domain weights 23/20/19/14/24 (`DOMAIN_WEIGHTS`), difficulty multipliers, exam-mode boost 1.3×
+- **Coverage** — studied topics / total (50), × 0.5 penalty under 5 topics
+- **Recency** — topics touched in last 14 days, 7-day boost 2×
+- **Volume** — total Qs answered, capped at 500
+
+Deferred tuning ([#139](https://github.com/oremosu98/networkplus-quiz/issues/139), `saas-gated`): recency denominator redundancy with coverage signal, no PBQ weighting, triple coverage-penalty. Revisit with real SaaS user data.
+
+### Catalog & Domain Weights
+- `TOPIC_DOMAINS` at `app.js:2979` — 50 topics → domain mapping (v4.42.3 expanded from 40)
+- `DOMAIN_WEIGHTS` at `app.js:2950` — 5 N10-009 domains: Fundamentals 0.23 / Implementation 0.20 / Operations 0.19 / Security 0.14 / Troubleshooting 0.24
+- `topicResources` — per-topic Professor Messer YouTube search URLs + N10-009 objective numbers
+- **Convention**: when splitting a topic (e.g. `Routing Protocols` → add `OSPF`, `BGP`), **keep the parent umbrella** in all 3 surfaces (`TOPIC_DOMAINS`, `topicResources`, HTML chip list) so old history entries aren't orphaned. UAT locks this.
+
+### Milestones
+- `MILESTONE_DEFS` at `app.js:3234` — 47 entries with `{id, icon, label, desc, ...}`
+- `MILESTONE_CHECKS` at `app.js:3392` — 47-entry declarative table: `{id, check: (ctx) => boolean}`
+- `_buildMilestoneCtx()` — gathers context once (history, exam stats, readiness, streak, per-activity mastery, day/time bookkeeping) with defensive try/catch
+- `evaluateMilestones()` — 10-line loop, calls `unlockMilestone(id)` on matching checks, returns newly-unlocked IDs
+- **Hook**: called from `finish()` AND `submitExam()` (not lazy — was a latent bug pre-v4.42.0 where milestones only unlocked if user opened Analytics). Newly-unlocked IDs fire `showMilestoneCelebration(id)` = toast + `launchMiniConfetti()`
+- **Adding a milestone**: one entry in `MILESTONE_DEFS`, one in `MILESTONE_CHECKS`. UAT regression-guards all 47 IDs.
+
+### Keyword Highlighting
+14-word exam-trap dictionary at `app.js:19269` (`EXAM_KEYWORDS`): NOT / EXCEPT / CANNOT / MOST / LEAST / BEST / WORST / PRIMARY / FIRST / LAST / NEXT / ALWAYS / NEVER / ONLY. **Deliberately excludes**: all / none / any / could / should / would / which (too common in prose). `setQuestionText(el, raw)` is the **single entry point** for all 5 question-stem render paths. **XSS-critical order**: `escHtml(raw)` → `highlightExamKeywords(escaped)` → `el.innerHTML`. Never reverse.
+
+### Animation Inventory
+| Pattern | Helper | Used for |
+|---|---|---|
+| Count-up | `animateCount(id, from, to, ms, suffix='')` | Readiness number, Daily Goal counters |
+| Rainbow confetti | `launchConfetti()` (150 particles, 8 colors) | Exam pass |
+| Gold mini-confetti | `launchMiniConfetti()` (40 particles, radial) | Milestone unlock — subtler celebration |
+| Celebration toast | `showCelebrationToast(title, sub)` → `showMilestoneCelebration(id)` | Milestone toasts, purple/gold gradient |
+| Streak pulse | `_pendingStreakPulse` flag set in `finish()`/`submitExam()`, consumed in `renderStreakBadge()` | `@keyframes streakPulse` scale 1→1.12→1 + orange ripple |
+| FLIP rerank | `renderTodaysFocus()` captures `oldRects` map keyed by `data-topic`, computes dx/dy, applies inverse transform, releases w/ `transition: transform 420ms cubic-bezier` | Weak-spots reranking after a quiz |
+| Intro fill | `_readinessIntroArmed` / `_dailyGoalIntroArmed` module flags, once-per-session | Landing-page reveal |
+
+**Accessibility gate**: all wrapped by `@media (prefers-reduced-motion: reduce)` in `styles.css` — transitions neutralized to `.01ms linear`, pulse animations killed, final state painted without motion.
+
+**FLIP guard**: `finish()` / `submitExam()` do NOT call `renderTodaysFocus()` directly. Only `goSetup()` does — so FLIP gets a real old→new delta to animate. UAT regression-guards this (see Conventions).
 
 ### Topic Resources
-`topicResources` object maps all 40 topics to Professor Messer N10-009 YouTube search URLs with exam objective numbers.
+`topicResources` object maps all 50 topics to Professor Messer N10-009 YouTube search URLs + objective numbers. Used by `showTopicDeepDive`, `getWeakTopic` fallback, and per-row Progress-page play buttons.
+
+## Feature Sub-Architectures
+
+### Topology Builder (~4,500 LOC in app.js)
+Canvas: `TB_CANVAS_W = 1800`, `TB_CANVAS_H = 1100` (v4.39.0 bump for AI-generated topologies). Key pieces:
+- `TB_LAB_CATEGORIES` at `app.js:13570` — groups the lab catalog by concept (Fundamentals / Switching / Routing / Services / Security / Cloud & WAN / Wireless & QoS / Troubleshooting). **29 concept labs + 35 auto-generated config variants** (honest count; previously inflated to "65 labs").
+- `tbActiveLab` state drives Coach context: when a lab is active, `tbCoachTopology()` prompts Claude as tutor with step N of M + step goal + hint. Cache key differentiated by lab+step.
+- `tbDeepValidateAndFix(state, scenario)` — AI-output guard, runs after every AI generation to catch malformed JSON, missing fields, bunched positioning.
+- `tbAutoLayout(state)` — force-directed post-pass. Detects clustered seeds (spread <250px), grid-seeds, runs 260 iterations (`REPULSE = 9000/dist²`, `SPRING = 0.06`, `IDEAL_LINK = 200`, velocity damping 0.85, cap 30), final hard-separation pass to `MIN_SEP = 150`.
+- `tbProcessCliCommand(dev, cmd)` — 452-line if/else chain, flagged in [#126](https://github.com/oremosu98/networkplus-quiz/issues/126).
+- L2/L3 simulation engine, packet-flow animation, "Fix This Network" challenges, PNG export, AI Generate v2, AI Coach.
+
+### Subnet Trainer
+- 21 granular question types (CIDR, VLSM, usable hosts, broadcast, gateway placement, NAT boundary, …). Adaptive difficulty, step-by-step feedback.
+- `stRenderDashboard()` shows 3 prescriptive callouts: **Weakest Categories** (<75% acc, ≥5 attempts), **Stale Categories** (>7 days), **Weakest Question Types** (<70% acc, ≥3 attempts). Each click-through jumps to `stDashJumpToCategory(catId)` = Practice tab + Focus mode + category pre-selected.
+- `stAskCoach()` — Tier B. Computes deterministic binary breakdown (IP / mask / IP AND mask) and stuffs into prompt as AUTHORITATIVE FACTS before asking Sonnet. AI can't hallucinate the math.
+- `WEAK_SPOT_DRILL_BRIDGES` at `app.js:3780` — main-app weak topics that route into Subnet Trainer (`Subnetting & IP Addressing`, `IPv6`, `NAT & IP Services`). Deduped. **Topology Builder deliberately excluded** — it's a standalone activity, not a reactive drill target.
+
+### Drills Launcher
+`#page-drills` wraps 4 drills consolidated from what was a 4-tile nav row (v4.41.0):
+1. **Port Drill** — `startPortDrill()` — 4 modes (Timed / Endless / Family / Secure Pairs)
+2. **Acronym Blitz** — `startAcronymBlitz()` — 130+ N10-009 acronyms
+3. **OSI Sorter** — `startOsiSorter()` — drag/click protocols onto correct OSI layer
+4. **Cable & Connector ID** — `startCableId()` — cable image → name
+
+Shared `createDrillScaffold(cfg)` at `app.js:17766` syncs `.active` / `aria-selected` / `aria-pressed` states across tabs + modes. All 3 newer drills (AB/OS/CB) have full ARIA coverage matching quiz/exam pages post-v4.42.5. Each drill has its own `*_MASTERY` + `*_LESSONS` localStorage keys.
+
+## Conventions
+
+### Testing Philosophy
+`tests/uat.js` preference order (baked into header comment post-v4.42.3-audit):
+1. **Behavioral smoke** — extract function bodies via `Function()` or `vm.runInNewContext`, feed fixtures, assert output
+2. **Structural regex** — assert a specific pattern exists or doesn't
+3. **Regression guards** — after deleting code, assert the deleted thing stays deleted
+4. **Dynamic consistency** — cross-check across surfaces (e.g. all `MILESTONE_CHECKS` IDs appear in `MILESTONE_DEFS`)
+5. **AVOID** pure function-name-presence (`js.includes('function foo(')`) — proves nothing beyond what downstream assertions already do
+6. **AVOID** hardcoding versions in 3+ places
+
+**Search before adding tests.** Suite is at 2,458 assertions; duplicates slip in easily.
+
+### Regression-Guard Tombstones
+After deleting dead code, add a UAT assertion that fails if it reappears. Keeps 3–4 versions, then retires. Currently guarded:
+- `function _renderAnaTopics` — must not reappear (v4.42.2)
+- `pctSum += pct; count++` readiness aggregation — must not come back (v4.42.4)
+- `#weak-banner` HTML — must not reappear (v4.41.0)
+- `renderTodaysFocus()` must NOT be called from `finish()`/`submitExam()` (FLIP guard, v4.42.0)
+- Bare `max_tokens: <literal>` — must not reappear (v4.42.5 magic-number extraction)
+- `openGuidedLab` whitelist array — must not reappear (v4.42.5 whitelist trap fix)
+
+### Progressive Disclosure
+- Marathon Mode (30 / 60 / 100-Q bulk presets) hidden until `loadHistory().length > 0`
+- 4 drills collapsed into a single `#page-drills` launcher (+1 click, cleaner first-visit)
+- Settings `<details>` houses Clear Wrong Answers + Export/Import (off-path for casual use)
+
+`is-hidden` is the standard CSS class for conditional visibility.
+
+### `saas-gated` Label
+Items tagged `saas-gated` on either board are **frozen** until paid-user SaaS pivot triggers. Do NOT pull without explicit pivot direction. Currently gated:
+- [#21](https://github.com/oremosu98/networkplus-quiz/issues/21) — Wrap 78 global variables into state objects
+- [#55](https://github.com/oremosu98/networkplus-quiz/issues/55) — Split `styles.css` monolith
+- [#123](https://github.com/oremosu98/networkplus-quiz/issues/123) — Social proof counter (needs real users)
+- [#135](https://github.com/oremosu98/networkplus-quiz/issues/135) — Per-user API cost telemetry (pointless at n=1)
+- [#136](https://github.com/oremosu98/networkplus-quiz/issues/136) — Entitlements + pricing-tier quotas
+- [#137](https://github.com/oremosu98/networkplus-quiz/issues/137) — Cost-floor model + usage distribution
+- [#138](https://github.com/oremosu98/networkplus-quiz/issues/138) — Module-split `app.js` (v5.0 trigger)
+- [#139](https://github.com/oremosu98/networkplus-quiz/issues/139) — Readiness-algorithm tuning
+
+### Magic-Number Constants (v4.42.5)
+11 named constants at `app.js:22–43`:
+- `EXAM_PASS_SCORE = 720`, `EXAM_QUESTION_COUNT = 90`, `EXAM_MAX_SCORE = 900`
+- `DOUBLE_CLICK_MS = 400` (topology canvas)
+- `VXLAN_VNI_MAX = 16777215` (RFC 7348)
+- `MAX_TOKENS_{GENERATION, VALIDATION, TEACHER_DEFAULT, TEACHER_LONG, TEACHER_COACH, TEACHER_BRIEF}`
+
+**UAT regression guard** `!/max_tokens:\s*\d+/.test(js)` fails loud if bare literals reappear in any AI call site.
 
 ## Deployment
-```bash
-# Requires nvm with node v20.20.2
-export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
-npx vercel --prod --yes
-```
+
+### Two paths — prefer push
+1. **Canonical (preferred)** — `git push origin main` → GitHub Actions runs UAT + Playwright + `tech-debt.js` → Vercel auto-deploys → `deploy-verification.yml` smoke-tests prod. **Branch protection requires the "UAT + Playwright" status check** before merge; admin bypass only for emergencies.
+2. **Local quick-ship (bypasses CI gates)**:
+   ```bash
+   export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+   cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
+   npx vercel --prod --yes
+   ```
+   **Do NOT use without committing first (or immediately after).** Git↔prod drift cost us 6 versions (v4.39→v4.43.1) before being caught in catchup commit `415cab6` on 2026-04-16. If circumstances force a local deploy, schedule a catchup commit before session ends.
 
 Production URL: https://networkplus-quiz-sable.vercel.app
 
+### Version bumps
+Use `node scripts/bump-version.js <new>` — updates `APP_VERSION` in `app.js` + `CACHE_NAME` in `sw.js` + version badge in `index.html` + `package.json` in one shot. **Do NOT hand-edit partial** — UAT has consistency assertions across all 4 surfaces.
+
+### Preview deployments
+Every feature branch auto-builds a preview at `https://networkplus-quiz-sable-git-<branch>-oremosu98.vercel.app`. Use for risky changes (SW rewrites, API contract changes, large refactors). Squash-merge to main auto-deletes the branch.
+
 ## Branching Strategy
-**Trunk-based** — direct commits to `main`, no `stage`/`preprod` branch. Vercel auto-deploys every push to main. Local UAT (`node tests/uat.js`) gates every push.
+**Trunk-based** — direct commits to `main`, no `stage`/`preprod` branch. Local UAT (`node tests/uat.js`) gates every push.
 
-For risky changes (SW rewrites, API contract changes, big refactors), use a feature branch — Vercel auto-builds a **preview deployment** at `https://networkplus-quiz-sable-git-<branch-name>-oremosu98.vercel.app`. Click around on the real CDN before merging, then squash-merge to main (auto-deletes the branch).
-
-**Add a `stage` branch only when one of these triggers fires:**
+**Add a `stage` branch only when one of these fires:**
 1. Paying users on the cert SaaS pivot (a broken deploy starts costing real money)
 2. A backend with DB migrations (need a non-prod target to run them against)
 3. A second person joins (contractor, partner, beta team needs a non-prod URL)
@@ -88,12 +277,19 @@ python3 -m http.server 3131
 # Open http://localhost:3131
 ```
 
-## UAT
+## Test Suite
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
 cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
-node tests/uat.js
+
+node tests/uat.js                # UAT (2,458 assertions; embeds validation-audit gate)
+node tests/tech-debt.js          # CI thresholds — long-function count, LOC, globals
+node tests/validation-audit.js   # 20-Q broken-corpus fixture, ≥60% catch / 0 FP
+node tests/deploy-verify.js      # Post-deploy smoke against prod
+npx playwright test              # E2E (tests/e2e/app.spec.js)
 ```
+
+`tests/tech-debt.js` runs in CI on every push — breaches auto-file issues on [Board #1](https://github.com/users/oremosu98/projects/1) with `tech-debt` + `priority: medium` labels. Scheduled weekly sweep on Thursdays.
 
 ## Version History
 
@@ -152,6 +348,9 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - New capability / UX enhancement / product direction → Board #2 with `feature-idea`
 - Every item is an individual issue — no master checklists
 
+### `saas-gated` convention
+A cross-board label marking items **frozen until the SaaS pivot triggers**. Exists on both Board #1 (tech-debt items that only pay off at scale, e.g. module split) and Board #2 (features that assume paid users, e.g. entitlements). **Do not pull a `saas-gated` issue without explicit pivot direction.** Full current list: see the *Conventions → `saas-gated` Label* section above.
+
 ### Auto-add to boards
 - `.github/workflows/auto-add-to-board.yml` listens for `issues.opened/labeled/reopened` and routes via GraphQL: `tech-debt`/`bug` → Board #1, `feature-idea` → Board #2
 - Requires repo secret `PROJECT_TOKEN` (a PAT with `project` scope) — without it the GraphQL `addProjectV2ItemById` call fails because the default `GITHUB_TOKEN` does not carry the `project` scope
@@ -169,13 +368,47 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - **Tie-in**: Cert SaaS Vision · Quiz App Only · Both
 - Every feature-idea issue also carries a matching `epic:*` label for list-view filtering (redundant by design — the label survives even if the board is rebuilt)
 
-## Infrastructure Template
-A reusable infrastructure blueprint lives at `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md`. Product vision and architecture visuals live at `~/Desktop/Dev Projects/product-vision/`. Update both when we refine the approach here.
+## External References
+
+Files outside the repo that shape decisions here. Update the relevant one when the approach evolves.
+
+| Path | Purpose |
+|---|---|
+| `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md` | Reusable infra blueprint (CI/CD, UAT, boards, cadence) — the template extracted from this repo for other projects |
+| `~/Desktop/Dev Projects/product-vision/PRODUCT-VISION.md` | Cert-prep SaaS vision — multi-cert platform plan, market positioning, tier structure |
+| `~/Desktop/Dev Projects/product-vision/FINANCIAL-PROJECTIONS.md` | SaaS revenue model, pricing scenarios, cost-floor math |
+| `~/Desktop/Dev Projects/managed-agents-architecture.html` | Visual: how Managed Agents would plug into this app (Anthropic feature, captured for future) |
+| `~/Desktop/Dev Projects/ai-user-agent-architecture.html` | Visual: deferred AI-user-agent plan (bot personas that file feature requests, triggered at 20-30 real users post-launch) |
+
+Also worth knowing — user maintains cross-project memory at `~/.claude/projects/-Users-simioremosu-Desktop/memory/MEMORY.md` with auto-surfacing notes (weekly cadence, cert-SaaS pivot plan, gh CLI setup, platform hygiene audit). These inject into relevant sessions automatically.
+
+## Weekly Cadence
+- **Tuesdays** — bug fixes (Board #1, `bug` label)
+- **Thursdays** — tech debt (Board #1, `tech-debt` label; automated sweep also scheduled)
+- **Fridays** — features (Board #2, pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day). **Don't start anything that can't realistically ship the same Friday** — split larger ideas across multiple Fridays.
 
 ## Common Gotchas
+
+**Code shape**
 - The `pick()` function targets `#options .option` — CLI sim diagnosis MCQ must be inside `#options` div
 - Topology scoring uses `correctPlacements` object mapping device→zone name (exact string match)
 - Exam answers init must include `cliRan: [], topoState: {}` for PBQ types
 - `hasAnswer` checks must include `Object.keys(a.topoState || {}).length > 0`
-- Service worker cache name must be bumped on every deploy or users get stale files
+- `setQuestionText(el, raw)` order is **escape-THEN-highlight** (`escHtml` → `highlightExamKeywords` → `innerHTML`). Reversing it is an XSS hole since question text is AI-generated.
+- The `_fnBody(src, name)` helper used by UAT extracts function bodies via brace-depth walking. **Prefix-match trap**: `tbShowCoach` will match `tbShowCoachModalLoading`. When writing UAT for a function, pick a name that's either unique or specify the exact suffix.
+
+**Testing**
+- Don't tune `validateQuestions()` without running `node tests/validation-audit.js` first — the `MIN_CATCH_RATE = 60` / `MAX_FP_RATE = 0` floor is CI-enforced inside UAT
+- Don't pull `saas-gated` items (see Conventions list) without explicit pivot direction
+- `tests/uat.js` prefers behavioral smoke over structural; see Testing Philosophy
+
+**Deploy**
+- Service worker cache name must be bumped on every deploy or users get stale files — use `scripts/bump-version.js`, never hand-edit partial
 - Vercel CLI requires nvm path export: `export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"`
+- If you're tempted to `vercel --prod` without committing, **commit and push immediately after** — git↔prod drift cost us 6 versions (v4.39→v4.43.1) before it got caught
+- Branch protection on `main` requires the "UAT + Playwright" status check; admin bypass works but defeats the point — only use for real emergencies
+
+**Infra**
+- `PROJECT_TOKEN` repo secret is a PAT with `project` scope (not the default `GITHUB_TOKEN`). Powers both `auto-add-to-board.yml` and `auto-archive-done.yml`. If rotated, update in GitHub repo secrets or both workflows fail loud.
+- `deploy-verification.yml` runs post-deploy against the public URL — legit failures mean prod is broken; stale-cache failures mean give CDN a minute and re-run.
+- When UAT fails mid-session, check `tests/validation-audit.js` first — a change to `validateQuestions()`, the GT tables, or the prompt can trip the regression gate without any UAT-level error being obvious.
