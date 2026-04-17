@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.7
+// Network+ AI Quiz — app.js  v4.43.8
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.7';
+const APP_VERSION = '4.43.8';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4816,6 +4816,97 @@ function _numericOptionOk(q) {
 }
 
 // ══════════════════════════════════════════
+// SUBNET-SIZING GUARD (v4.43.8)
+// ══════════════════════════════════════════
+// Catches questions of the form "needs at least N usable hosts, which subnet
+// mask should be used?" where the AI picks a wasteful /N instead of the
+// smallest subnet that satisfies the requirement. CompTIA convention is
+// "smallest satisfying subnet wins" — it minimises address waste while
+// meeting both host-count and subnet-count minimums.
+//
+// Real user bug (2026-04-17): parent 10.50.0.0/16, "5 subnets with at least
+// 4,000 usable hosts each" — both /19 (8190/subnet, 8 subnets) and /20
+// (4094/subnet, 16 subnets) satisfy the constraints. Correct answer is
+// /20 (smallest satisfying). Haiku marked /19 arguing "more headroom is
+// better." The unique-word check and _groundTruthOk both pass because
+// this isn't a factual error — it's a sub-optimal but not wrong answer.
+// This guard specifically checks the CompTIA sizing convention.
+function _smallestSubnetOk(q) {
+  if (getQType(q) !== 'mcq') return true;
+  if (!q.options || !q.answer) return true;
+  const stem = (q.question || '').toLowerCase();
+
+  // Activate only on host-count sizing questions
+  const sizingRe = /(?:at\s+least|minimum(?:\s+of)?|requires?|needs?|must\s+support)\s+([\d,]+)\s+(?:usable\s+)?(?:hosts?|devices?|endpoints?|users?|addresses?)/i;
+  const mHost = stem.match(sizingRe);
+  if (!mHost) return true;
+  const hostReq = parseInt(mHost[1].replace(/,/g, ''), 10);
+  if (!Number.isFinite(hostReq) || hostReq < 2) return true;
+
+  // Double-check that the question is asking for a subnet mask / CIDR / prefix
+  if (!/(?:subnet\s+mask|cidr|prefix|which\s+mask|should\s+be\s+used)/i.test(stem)) return true;
+
+  // Optional subnet-count constraint
+  const subnetReqRe = /(\d+)\s+(?:subnets?|departments?|networks?|sites?|vlans?|offices?|branches?|segments?)/i;
+  const mSubnets = stem.match(subnetReqRe);
+  const subnetReq = mSubnets ? parseInt(mSubnets[1], 10) : 0;
+
+  // Optional parent CIDR — only count it if it appears next to assignment
+  // language, to avoid capturing an example IP mentioned mid-stem
+  const parentRe = /(?:assigns?|allocated?|assigned|receives?|given|uses?|has|owns?)\s+(?:the\s+)?(?:block\s+|network\s+|range\s+)?\d{1,3}(?:\.\d{1,3}){3}\/(\d{1,2})\b/i;
+  const mParent = stem.match(parentRe);
+  const parentCidr = mParent ? parseInt(mParent[1], 10) : null;
+
+  // Parse each of the 4 options as a CIDR (either "/N", "N.N.N.N" mask, or both)
+  const letters = ['A','B','C','D'];
+  const cidrs = {};
+  for (const L of letters) {
+    const raw = String(q.options[L] || '');
+    const mCidr = raw.match(/\/(\d{1,2})\b/);
+    if (mCidr) {
+      const c = parseInt(mCidr[1], 10);
+      if (c >= 0 && c <= 32) { cidrs[L] = c; continue; }
+    }
+    const mMask = raw.match(/\b(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\b/);
+    if (mMask) {
+      const octets = mMask.slice(1,5).map(Number);
+      if (octets.every(o => o >= 0 && o <= 255)) {
+        let ones = 0;
+        for (const o of octets) ones += (o.toString(2).match(/1/g) || []).length;
+        if (ones >= 0 && ones <= 32) { cidrs[L] = ones; continue; }
+      }
+    }
+    // Any unparseable option → bail, don't try to judge this question
+    return true;
+  }
+  if (Object.keys(cidrs).length !== 4) return true;
+
+  const satisfies = (cidr) => {
+    if (cidr < 0 || cidr > 32) return false;
+    const usable = Math.pow(2, 32 - cidr) - 2;
+    if (usable < hostReq) return false;
+    if (parentCidr !== null && subnetReq > 0 && parentCidr < cidr) {
+      const maxSubnets = Math.pow(2, cidr - parentCidr);
+      if (maxSubnets < subnetReq) return false;
+    }
+    return true;
+  };
+
+  const satisfying = letters.filter(L => satisfies(cidrs[L]));
+  // 0 satisfying → question premise is broken; let other layers catch it
+  if (satisfying.length === 0) return true;
+  // 1 satisfying → that must be the marked answer
+  if (satisfying.length === 1) return satisfying[0] === q.answer;
+  // 2+ satisfying → the correct answer is the LARGEST CIDR (smallest subnet).
+  // That's the CompTIA convention: smallest-satisfying minimises waste.
+  let bestLetter = satisfying[0];
+  for (const L of satisfying) {
+    if (cidrs[L] > cidrs[bestLetter]) bestLetter = L;
+  }
+  return q.answer === bestLetter;
+}
+
+// ══════════════════════════════════════════
 // AI TEACHER — GROUND-TRUTH INJECTION (v4.38.5)
 // ══════════════════════════════════════════
 // The three "teacher" call sites (explainFurther, fetchTopicBrief,
@@ -5034,6 +5125,11 @@ function validateQuestions(qs) {
       // v4.38.4 — Numeric-option path: when all options are pure numbers, compare
       // explanation-asserted numbers against the marked answer
       if (!_numericOptionOk(q)) return false;
+
+      // v4.43.8 — Subnet-sizing guard: for "needs N hosts, which mask" questions
+      // with CIDR/mask options, the correct answer is the smallest-satisfying
+      // subnet (largest CIDR). Rejects questions where Haiku picks a wasteful mask.
+      if (!_smallestSubnetOk(q)) return false;
 
     } else if (qType === 'multi-select') {
       if (!q.options || !q.answers || !Array.isArray(q.answers)) return false;

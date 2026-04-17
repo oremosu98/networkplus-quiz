@@ -31,6 +31,7 @@ function extractFunction(src, name) {
 const validateQuestionsSrc = extractFunction(js, 'validateQuestions');
 const groundTruthSrc = extractFunction(js, '_groundTruthOk');
 const numericOptionSrc = extractFunction(js, '_numericOptionOk');
+const smallestSubnetSrc = extractFunction(js, '_smallestSubnetOk');
 
 // Extract GT_* constants block (GT_PORTS, GT_OSI, GT_WIFI_BROKEN, GT_WIFI_DEPRECATED)
 function extractConstBlock(src, startName) {
@@ -70,6 +71,7 @@ const stub = `
   ${gtWifiDeprecatedSrc}
   ${groundTruthSrc}
   ${numericOptionSrc}
+  ${smallestSubnetSrc}
   ${validateQuestionsSrc}
   module.exports = validateQuestions;
 `;
@@ -441,6 +443,60 @@ const corpus = [
     },
     shouldBeCaught: true,
     notes: 'Answer letter E does not exist. Existing check should drop this.'
+  },
+
+  // ── 21. SUBNET SIZING — wasteful mask marked (v4.43.8 target, real user bug) ──
+  {
+    id: 21,
+    category: 'Subnet sizing — wasteful subnet marked as answer',
+    q: {
+      type: 'mcq',
+      question: 'An enterprise network administrator assigns 10.50.0.0/16 to a department. The department requires 5 subnets with at least 4,000 usable hosts each. Which subnet mask should be used?',
+      options: { A: '/19 (255.255.224.0)', B: '/20 (255.255.240.0)', C: '/21 (255.255.248.0)', D: '/18 (255.255.192.0)' },
+      answer: 'A',
+      explanation: '/19 provides 2^(32-19) = 8,192 total addresses per subnet (8,190 usable hosts), which meets the 4,000 minimum and allows 8 subnets from the /16. /20 provides 4,096 total (4,094 usable), which barely meets the requirement but only allows 16 subnets. /21 provides 2,048 total (2,046 usable), which is insufficient. /18 allows only 4 subnets from /16, leaving no room for 5 required subnets. The best answer balancing the 5-subnet requirement and 4,000+ usable hosts is /19.',
+      objective: '1.4',
+      difficulty: 'Hard',
+      topic: 'Subnetting & IP Addressing'
+    },
+    shouldBeCaught: true,
+    notes: 'Real user-reported bug (2026-04-17). Both /19 and /20 satisfy constraints, but /20 is correct (smallest-satisfying subnet). Haiku picked /19 claiming "more headroom is better." v4.43.8 guard (_smallestSubnetOk) should detect and reject.'
+  },
+
+  // ── 22. SUBNET SIZING — only one option satisfies, marked correctly (control) ──
+  {
+    id: 22,
+    category: 'Subnet sizing — single satisfying option, marked correctly',
+    q: {
+      type: 'mcq',
+      question: 'A department is assigned 10.0.0.0/16 and needs 3 subnets with at least 8,000 usable hosts each. Which subnet mask should be used?',
+      options: { A: '/19 (255.255.224.0)', B: '/20 (255.255.240.0)', C: '/21 (255.255.248.0)', D: '/22 (255.255.252.0)' },
+      answer: 'A',
+      explanation: '/19 provides 8,190 usable hosts per subnet (meets the 8,000 minimum) and 8 subnets from /16 (covers the 3-subnet requirement). /20 only gives 4,094 usable, which is insufficient. /21 and /22 are even smaller. /19 is the smallest subnet that satisfies both constraints.',
+      objective: '1.4',
+      difficulty: 'Hard',
+      topic: 'Subnetting & IP Addressing'
+    },
+    shouldBeCaught: false,
+    notes: 'Control — /19 is the ONLY option providing >=8,000 usable hosts. Marked answer is correct. v4.43.8 guard should activate and pass (smallest-satisfying = marked).'
+  },
+
+  // ── 23. NON-SIZING subnet question (regression control for the v4.43.8 guard) ──
+  {
+    id: 23,
+    category: 'Non-sizing subnet question (guard should not activate)',
+    q: {
+      type: 'mcq',
+      question: 'What is the network address for 192.168.1.100/26?',
+      options: { A: '192.168.1.0', B: '192.168.1.64', C: '192.168.1.100', D: '192.168.1.128' },
+      answer: 'B',
+      explanation: 'Using the block size method: block = 64, multiples are 0, 64, 128, 192. 100 falls in the 64 block. Network = 192.168.1.64.',
+      objective: '1.4',
+      difficulty: 'Foundational',
+      topic: 'Subnetting & IP Addressing'
+    },
+    shouldBeCaught: false,
+    notes: 'Control — non-sizing question. The v4.43.8 sizingRe regex should NOT match (no "at least N hosts" phrasing) so the guard short-circuits. Options are IP addresses, not CIDRs/masks.'
   }
 ];
 

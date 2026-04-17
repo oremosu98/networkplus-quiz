@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.7', js.includes("const APP_VERSION = '4.43.7"));
+test('APP_VERSION is 4.43.8', js.includes("const APP_VERSION = '4.43.8"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.7', sw.includes('netplus-v4.43.7'));
+test('SW cache bumped to v4.43.8', sw.includes('netplus-v4.43.8'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3924,6 +3924,65 @@ test('v4.43.7 #2: Lesson 5 cheat sheet has 5 columns including Reserved',
 // Regression guard: old terse 6-line theory must stay gone
 test('v4.43.7 #2: old terse "Every subnet has 3 key addresses:" single-line is gone',
   !/theory:\s*\[\s*'Every subnet has 3 key addresses:'/.test(js));
+
+// ── v4.43.8 SUBNET-SIZING GUARD ──
+console.log('\n\x1b[1m── v4.43.8 SMALLEST-SUBNET GUARD ──\x1b[0m');
+// New _smallestSubnetOk helper catches "needs N hosts, which mask" questions
+// where the AI picks a wasteful subnet. Scope structural checks to the helper.
+test('v4.43.8: _smallestSubnetOk function defined',
+  /function\s+_smallestSubnetOk\(q\)/.test(js));
+const _smallestSubnetBody = (() => {
+  const m = js.match(/function _smallestSubnetOk\(q\)\s*\{[\s\S]*?\n\}\s*\n/);
+  return m ? m[0] : '';
+})();
+test('v4.43.8: _smallestSubnetOk body extracted (sanity)', _smallestSubnetBody.length > 500);
+test('v4.43.8 #1: sizingRe matches "at least N hosts/devices/endpoints/users/addresses"',
+  /at\\s\+least\|minimum/.test(_smallestSubnetBody) &&
+  /hosts\?\|devices\?\|endpoints\?\|users\?\|addresses/.test(_smallestSubnetBody));
+test('v4.43.8 #2: helper computes usable hosts via Math.pow(2, 32 - cidr) - 2',
+  /Math\.pow\(2,\s*32\s*-\s*cidr\)\s*-\s*2/.test(_smallestSubnetBody));
+test('v4.43.8 #3: helper applies subnet-count constraint when parentCidr set',
+  /Math\.pow\(2,\s*cidr\s*-\s*parentCidr\)/.test(_smallestSubnetBody) &&
+  /parentCidr\s*<\s*cidr/.test(_smallestSubnetBody));
+test('v4.43.8 #4: helper parses options via /\\d+ (CIDR) and dotted mask (fallback)',
+  /\.match\(\/\\\/\(\\d\{1,2\}\)/.test(_smallestSubnetBody) &&
+  /toString\(2\)\.match\(\/1\/g\)/.test(_smallestSubnetBody));
+test('v4.43.8 #5: helper picks LARGEST cidr from satisfying set (smallest-subnet-wins)',
+  /cidrs\[L\]\s*>\s*cidrs\[bestLetter\]/.test(_smallestSubnetBody));
+test('v4.43.8 #6: helper wired into validateQuestions (non-MCQ short-circuit + call)',
+  js.includes('if (!_smallestSubnetOk(q)) return false'));
+test('v4.43.8: validation-audit stub includes smallestSubnetSrc extraction',
+  /const\s+smallestSubnetSrc\s*=\s*extractFunction\(js,\s*'_smallestSubnetOk'\)/.test(
+    require('fs').readFileSync(require('path').join(ROOT, 'tests/validation-audit.js'), 'utf8')
+  ));
+// Behavioural smoke test — extract the helper into a sandbox and run the
+// exact user-reported fixture through it. Must return false (reject).
+(() => {
+  const vm = require('vm');
+  const stub = `
+    function getQType(q) { return q.type || 'mcq'; }
+    ${_smallestSubnetBody}
+    result = _smallestSubnetOk(fixture);
+  `;
+  const userBug = {
+    type: 'mcq',
+    question: 'An enterprise network administrator assigns 10.50.0.0/16 to a department. The department requires 5 subnets with at least 4,000 usable hosts each. Which subnet mask should be used?',
+    options: { A: '/19 (255.255.224.0)', B: '/20 (255.255.240.0)', C: '/21 (255.255.248.0)', D: '/18 (255.255.192.0)' },
+    answer: 'A'
+  };
+  const ctx = { fixture: userBug, result: null };
+  vm.createContext(ctx);
+  vm.runInContext(stub, ctx);
+  test('v4.43.8: behavioural smoke — rejects the user-reported /19-vs-/20 bug',
+    ctx.result === false);
+
+  // And confirm the same fixture with answer: 'B' (correct) passes
+  userBug.answer = 'B';
+  ctx.fixture = userBug; ctx.result = null;
+  vm.runInContext(stub, ctx);
+  test('v4.43.8: behavioural smoke — accepts the same fixture when /20 is marked',
+    ctx.result === true);
+})();
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
