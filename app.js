@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.9
+// Network+ AI Quiz — app.js  v4.44.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.9';
+const APP_VERSION = '4.44.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1781,6 +1781,26 @@ function render() {
   btnNext.className = 'btn-next';
   btnNext.textContent = current === total - 1 ? 'See Results' : 'Next \u2192';
   btnNext.onclick = current === total - 1 ? finish : advance;
+
+  // v4.44.0 — question reveal: re-trigger the .q-text-reveal + .option-stagger-in
+  // animations on every new question by removing the class, forcing reflow, then
+  // re-adding. Without the reflow the browser coalesces the class toggle and the
+  // animation doesn't re-fire. Options get a per-index animation-delay so they
+  // stagger in one after the other rather than all-at-once.
+  const qTextEl = document.getElementById('q-text');
+  if (qTextEl) {
+    qTextEl.classList.remove('q-text-reveal');
+    void qTextEl.offsetWidth;
+    qTextEl.classList.add('q-text-reveal');
+  }
+  const allOptionEls = box.querySelectorAll('.option, .ms-option, .order-item');
+  allOptionEls.forEach((el, i) => {
+    el.classList.remove('option-stagger-in');
+    el.style.animationDelay = '';
+    void el.offsetWidth;
+    el.style.animationDelay = (i * 80) + 'ms';
+    el.classList.add('option-stagger-in');
+  });
 
   // Focus the question text for screen readers, first option for keyboard users
   setTimeout(() => {
@@ -15569,10 +15589,10 @@ const SUBNET_LESSONS = [
       '<strong>Step 1 \u2014 Find the mask</strong><br><br>/26 \u2192 <code>255.255.255.192</code><br><br>The <em>interesting octet</em> is the one that isn\u2019t 255 or 0. Here it\u2019s the <strong>4th octet (192)</strong>.',
       '<strong>Step 2 \u2014 Find the block size</strong><br><br><code>256 \u2212 192 = <strong>64</strong></code><br><br>This is the distance between successive networks in the interesting octet.',
       '<strong>Step 3 \u2014 Count the subnet starts</strong><br><br>Start at 0, keep adding 64:<br><br><code>0<br>64<br>128<br>192</code><br><br>These are the possible network starting points.',
-      '<strong>Step 4 \u2014 Find where 100 belongs</strong><br><br><code>0\u201363<br>64\u2013127 \u2705<br>128\u2013191<br>192\u2013255</code><br><br>100 falls in the <strong>64\u2013127</strong> block.',
+      '<strong>Step 4 \u2014 Find where 100 belongs</strong><br><br><code>0\u201363<br>64\u2013127 <span class="st-block-match">\u2705</span><br>128\u2013191<br>192\u2013255</code><br><br>100 falls in the <strong>64\u2013127</strong> block.',
       '<strong>Step 5 \u2014 Take the starting number</strong><br><br>The network is the <em>start</em> of that block \u2014 <strong>64</strong>.<br><br>Octets before the interesting one copy from the IP (192.168.1); octets after (if any) become 0.<br><br><strong>Network address = 192.168.1.64</strong>',
       '<strong>\u2728 Bonus: broadcast and usable range come free</strong><br><br>\u2022 <strong>Broadcast</strong> = next network start \u2212 1 = 128 \u2212 1 = <strong>192.168.1.127</strong><br>\u2022 <strong>Usable range</strong> = network+1 \u2192 broadcast\u22121 = <strong>192.168.1.65 \u2013 192.168.1.126</strong>',
-      '<strong>\u2728 Bigger example: 10.50.173.45 /20</strong> (interesting octet is the <strong>3rd</strong>)<br><br><strong>Step 1:</strong> /20 = 255.255.<strong>240</strong>.0<br><strong>Step 2:</strong> Block size = 256 \u2212 240 = <strong>16</strong><br><strong>Step 3:</strong> Starts in 3rd octet: 0, 16, 32, \u2026, 144, 160, 176, 192\u2026<br><strong>Step 4:</strong> 173 falls in <code>160\u2013175 \u2705</code><br><strong>Step 5:</strong> <strong>Network = 10.50.160.0</strong> (4th octet becomes 0 because it\u2019s <em>after</em> the interesting octet)<br><br>\u2022 Broadcast = 10.50.175.255<br>\u2022 Usable = 10.50.160.1 \u2013 10.50.175.254',
+      '<strong>\u2728 Bigger example: 10.50.173.45 /20</strong> (interesting octet is the <strong>3rd</strong>)<br><br><strong>Step 1:</strong> /20 = 255.255.<strong>240</strong>.0<br><strong>Step 2:</strong> Block size = 256 \u2212 240 = <strong>16</strong><br><strong>Step 3:</strong> Starts in 3rd octet: 0, 16, 32, \u2026, 144, 160, 176, 192\u2026<br><strong>Step 4:</strong> 173 falls in <code>160\u2013175 <span class="st-block-match">\u2705</span></code><br><strong>Step 5:</strong> <strong>Network = 10.50.160.0</strong> (4th octet becomes 0 because it\u2019s <em>after</em> the interesting octet)<br><br>\u2022 Broadcast = 10.50.175.255<br>\u2022 Usable = 10.50.160.1 \u2013 10.50.175.254',
       '<strong>\ud83d\udcd0 Cheat sheet to memorize</strong><table class="subnet-table" style="margin-top:8px"><tr><th>CIDR</th><th>Mask last octet</th><th>Block size</th><th>Usable hosts</th></tr><tr><td>/24</td><td>0</td><td>256</td><td>254</td></tr><tr><td>/25</td><td>128</td><td>128</td><td>126</td></tr><tr><td>/26</td><td>192</td><td>64</td><td>62</td></tr><tr><td>/27</td><td>224</td><td>32</td><td>30</td></tr><tr><td>/28</td><td>240</td><td>16</td><td>14</td></tr><tr><td>/29</td><td>248</td><td>8</td><td>6</td></tr><tr><td>/30</td><td>252</td><td>4</td><td>2</td></tr></table>',
       '<strong>\ud83c\udfaf Pro tip:</strong> For any /25\u2013/30 question: figure the interesting octet, subtract from 256 for block size, list the multiples, find where your IP lands. Under 10 seconds, every time. Binary ANDing is the underlying operation, but you won\u2019t need it once this clicks.',
     ],
@@ -15585,7 +15605,7 @@ const SUBNET_LESSONS = [
       '<strong>Step 1 \u2014 Broadcast = next network start \u2212 1</strong><br><br>Our subnet starts at 64. The <em>next</em> network starts at 64 + block size = 64 + 64 = <strong>128</strong>.<br><br>So:<br><code>Broadcast = 128 \u2212 1 = 127</code><br><br><strong>Broadcast = 192.168.1.127</strong>',
       '<strong>Step 2 \u2014 First usable host = Network + 1</strong><br><br><code>192.168.1.64 + 1 = 192.168.1.65</code><br><br><strong>First usable = 192.168.1.65</strong>',
       '<strong>Step 3 \u2014 Last usable host = Broadcast \u2212 1</strong><br><br><code>192.168.1.127 \u2212 1 = 192.168.1.126</code><br><br><strong>Last usable = 192.168.1.126</strong>',
-      '<strong>\u2728 Put it all together for 192.168.1.100 /26:</strong><br><br><code>.64  \u2190 Network (reserved)<br>.65  \u2190 First usable \u2705<br>.66<br>.67<br>...<br>.125<br>.126 \u2190 Last usable \u2705<br>.127 \u2190 Broadcast (reserved)</code><br><br>\u2022 <strong>Network:</strong> 192.168.1.64<br>\u2022 <strong>Broadcast:</strong> 192.168.1.127<br>\u2022 <strong>Usable range:</strong> 192.168.1.65 \u2013 192.168.1.126',
+      '<strong>\u2728 Put it all together for 192.168.1.100 /26:</strong><br><br><code>.64  \u2190 Network (reserved)<br>.65  \u2190 First usable <span class="st-block-match">\u2705</span><br>.66<br>.67<br>...<br>.125<br>.126 \u2190 Last usable <span class="st-block-match">\u2705</span><br>.127 \u2190 Broadcast (reserved)</code><br><br>\u2022 <strong>Network:</strong> 192.168.1.64<br>\u2022 <strong>Broadcast:</strong> 192.168.1.127<br>\u2022 <strong>Usable range:</strong> 192.168.1.65 \u2013 192.168.1.126',
       '<strong>\ud83d\udca1 Why subtract 2 from host count?</strong><br><br>A /26 has 2<sup>6</sup> = 64 total addresses, but only <strong>62 are usable</strong>. Why?<br>\u2022 The <strong>network address</strong> (.64) identifies the subnet itself<br>\u2022 The <strong>broadcast address</strong> (.127) is reserved for "talk to every host"<br><br>Neither can be assigned to a device, so <strong>usable hosts = block size \u2212 2</strong>.<br><br>Check: 126 \u2212 65 + 1 = <strong>62 usable</strong>. \u2705',
       '<strong>\u2728 Bigger example: 10.50.173.45 /20</strong><br><br>From Lesson 4:<br>\u2022 Block size = 16<br>\u2022 Network = <strong>10.50.160.0</strong> (interesting octet was the 3rd)<br><br><strong>Step 1 \u2014 Broadcast:</strong><br>Next network = 160 + 16 = 176 \u2192 10.50.176.0<br>Broadcast = 10.50.176.0 \u2212 1 = <strong>10.50.175.255</strong><br><br><strong>Step 2 \u2014 First usable:</strong> 10.50.160.0 + 1 = <strong>10.50.160.1</strong><br><br><strong>Step 3 \u2014 Last usable:</strong> 10.50.175.255 \u2212 1 = <strong>10.50.175.254</strong><br><br><strong>Usable range: 10.50.160.1 \u2013 10.50.175.254</strong><br>Host count: 2<sup>12</sup> \u2212 2 = <strong>4094 usable</strong>.',
       '<strong>\ud83d\udcd0 Full cheat sheet (extends Lesson 4):</strong><table class="subnet-table" style="margin-top:8px"><tr><th>CIDR</th><th>Block size</th><th>Total IPs</th><th>Usable hosts</th><th>Reserved</th></tr><tr><td>/24</td><td>256</td><td>256</td><td>254</td><td>2</td></tr><tr><td>/25</td><td>128</td><td>128</td><td>126</td><td>2</td></tr><tr><td>/26</td><td>64</td><td>64</td><td>62</td><td>2</td></tr><tr><td>/27</td><td>32</td><td>32</td><td>30</td><td>2</td></tr><tr><td>/28</td><td>16</td><td>16</td><td>14</td><td>2</td></tr><tr><td>/29</td><td>8</td><td>8</td><td>6</td><td>2</td></tr><tr><td>/30</td><td>4</td><td>4</td><td>2</td><td>2</td></tr></table>',
@@ -15923,6 +15943,29 @@ function stOpenLesson(id) {
 
   main.innerHTML = html;
   stRenderGate(lesson);
+  // v4.44.0 — animate the ✅ pop on Lesson 4 & 5 block-match visuals when the
+  // card scrolls into view. Default .st-block-match is opacity:0 + scale(0.3);
+  // adding .st-block-match-active fires the 600ms pop-in keyframe. One-shot per
+  // element (unobserve after first trigger) so scrolling back doesn't replay.
+  _stSetupBlockMatchObserver();
+}
+
+function _stSetupBlockMatchObserver() {
+  if (typeof IntersectionObserver === 'undefined') {
+    // Fallback: no observer support → just activate all immediately so the
+    // ✅ is at least visible. No animation, but content isn't hidden.
+    document.querySelectorAll('.st-block-match').forEach(el => el.classList.add('st-block-match-active'));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('st-block-match-active');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.st-block-match:not(.st-block-match-active)').forEach(el => observer.observe(el));
 }
 
 function stRenderGate(lesson) {

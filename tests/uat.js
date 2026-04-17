@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.9', js.includes("const APP_VERSION = '4.43.9"));
+test('APP_VERSION is 4.44.0', js.includes("const APP_VERSION = '4.44.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.9', sw.includes('netplus-v4.43.9'));
+test('SW cache bumped to v4.44.0', sw.includes('netplus-v4.44.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4005,6 +4005,57 @@ test('v4.43.9: old "Find the last version row and insert after it" comment gone'
   !/Find the last version row and insert after it/.test(_bumpSrc));
 test('v4.43.9: old lastVersionIdx append pattern gone',
   !/lines\.splice\(lastVersionIdx\s*\+\s*1/.test(_bumpSrc));
+
+// ── v4.44.0 ANIMATION PASS (quiz feel + block-match + keyword cleanup) ──
+console.log('\n\x1b[1m── v4.44.0 ANIMATION PASS ──\x1b[0m');
+// Keyword simplification — bold purple only, no pill
+test('v4.44.0 #1: .exam-keyword has no background (pill styling removed)',
+  /\.exam-keyword\s*\{[^}]*\}/.test(css) &&
+  !/\.exam-keyword\s*\{[^}]*background:\s*rgba\(124/.test(css));
+test('v4.44.0 #1: .exam-keyword has no box-shadow underline (regression guard)',
+  !/\.exam-keyword\s*\{[^}]*box-shadow:/.test(css));
+// Answer-pick upgrade — glow ripple layered on bounce
+test('v4.44.0 #2: optGlowPulse keyframe defined',
+  /@keyframes\s+optGlowPulse/.test(css));
+test('v4.44.0 #2: .option.correct animation chains optBounce + optGlowPulse',
+  /\.option\.correct\s*\{[^}]*animation:\s*optBounce[^,}]*,\s*optGlowPulse/.test(css));
+// Question reveal + option stagger
+test('v4.44.0 #3: qTextReveal + optionStaggerIn keyframes defined',
+  /@keyframes\s+qTextReveal/.test(css) && /@keyframes\s+optionStaggerIn/.test(css));
+test('v4.44.0 #3: render() uses void el.offsetWidth for reflow-trigger',
+  /void qTextEl\.offsetWidth/.test(js) && /void el\.offsetWidth/.test(js));
+test('v4.44.0 #3: render() sets per-index animationDelay (i * 80)',
+  /animationDelay\s*=\s*\(i\s*\*\s*80\)\s*\+\s*'ms'/.test(js));
+// Progress bar smoothing
+test('v4.44.0 #4: .progress-fill uses cubic-bezier transition (not the old .4s ease)',
+  /\.progress-fill\s*\{[^}]*transition:\s*width\s+\.6s\s+cubic-bezier/.test(css));
+// Block-match ✅ animation — Lesson 4 + Lesson 5 wraps + observer wiring
+test('v4.44.0 #5: stBlockMatchPop keyframe defined',
+  /@keyframes\s+stBlockMatchPop/.test(css));
+test('v4.44.0 #5: .st-block-match-active triggers the pop animation',
+  /\.st-block-match\.st-block-match-active\s*\{[^}]*animation:\s*stBlockMatchPop/.test(css));
+// NOTE: the SUBNET_LESSONS source stores en-dashes + emoji as literal \u-escapes
+// (the Edit tool kept our input as-is), so our test strings need double-backslash
+// to match the 6-char ASCII sequence in the file rather than the resolved chars.
+test('v4.44.0 #5: ✅ wrapped in Lesson 4 Step 4 (64-127 block)',
+  js.includes('64\\u2013127 <span class="st-block-match">\\u2705</span>'));
+test('v4.44.0 #5: ✅ wrapped in Lesson 4 bigger example (160-175 block)',
+  js.includes('160\\u2013175 <span class="st-block-match">\\u2705</span>'));
+test('v4.44.0 #5: First-usable ✅ wrapped in Lesson 5 put-it-all-together block',
+  js.includes('First usable <span class="st-block-match">\\u2705</span>'));
+test('v4.44.0 #5: Last-usable ✅ wrapped in Lesson 5 put-it-all-together block',
+  js.includes('Last usable <span class="st-block-match">\\u2705</span>'));
+test('v4.44.0 #5: _stSetupBlockMatchObserver function defined',
+  /function\s+_stSetupBlockMatchObserver\(\)/.test(js));
+test('v4.44.0 #5: stOpenLesson calls the block-match observer setup',
+  js.includes('_stSetupBlockMatchObserver()'));
+test('v4.44.0 #5: observer uses IntersectionObserver with threshold 0.5 and unobserves on first hit',
+  /new IntersectionObserver/.test(js) &&
+  /threshold:\s*0\.5/.test(js) &&
+  /observer\.unobserve\(entry\.target\)/.test(js));
+// Reduced-motion coverage
+test('v4.44.0: prefers-reduced-motion block covers all 4 new animation classes',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]*?#q-text\.q-text-reveal[\s\S]*?\.option\.option-stagger-in[\s\S]*?\.st-block-match\.st-block-match-active[\s\S]*?\.option\.correct[\s\S]*?animation:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
