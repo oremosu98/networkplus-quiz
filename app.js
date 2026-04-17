@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.3
+// Network+ AI Quiz — app.js  v4.43.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.3';
+const APP_VERSION = '4.43.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1394,25 +1394,45 @@ async function startQuiz() {
     if (tb) tb.classList.add('is-hidden');
   }
   try {
-    questions = await fetchQuestions(key, activeQuizTopic, diff, qCount);
-    // Enhancement 1: AI second-pass validation (runs in background, non-blocking for UX)
+    // v4.43.4 — over-request to absorb validation dropout + retry-to-fill if short.
+    // The 4-layer validation pipeline (prompt self-check → Sonnet validator →
+    // programmatic validateQuestions → GT guards) typically drops 10–40% of
+    // generated questions. Pre-v4.43.4 the code tolerated shortfalls as
+    // "acceptable", which consistently shipped 6-9 questions for a requested 10.
+    // Now: over-request by 30% (min +3), then if we're still short after validation,
+    // do ONE retry for the exact deficit + buffer, then slice to qCount.
+    const DROPOUT_BUFFER = Math.max(3, Math.ceil(qCount * 0.3));
+    document.getElementById('loading-msg').textContent =
+      'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
+    let raw = await fetchQuestions(key, activeQuizTopic, diff, qCount + DROPOUT_BUFFER);
+    // Enhancement 1: AI second-pass validation
     document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
-    questions = await aiValidateQuestions(key, questions);
+    raw = await aiValidateQuestions(key, raw);
     // Enhancement 2 + 4: Programmatic validation + reported question exclusion
-    questions = validateQuestions(questions);
+    questions = validateQuestions(raw);
     if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
-    // Enforce exact question count: truncate extras, backfill if too few
+
+    // Retry-to-fill: if validation left us short of qCount, fetch the deficit + buffer.
+    if (questions.length < qCount) {
+      const deficit = qCount - questions.length;
+      document.getElementById('loading-msg').textContent =
+        'Generating ' + deficit + ' more to complete your ' + qCount + '-question set\u2026';
+      try {
+        const extraRaw = await fetchQuestions(key, activeQuizTopic, diff, deficit + DROPOUT_BUFFER);
+        const extraValidated = validateQuestions(await aiValidateQuestions(key, extraRaw));
+        questions = questions.concat(extraValidated);
+      } catch (retryErr) {
+        // If the retry fails (network/API hiccup), ship what we have — better than
+        // blocking the user entirely. They'll see a slight shortfall rather than an error.
+        console.warn('Retry fetch failed, shipping what we have:', retryErr);
+      }
+    }
+
+    // Slice to exact count — truncates buffer overage from the initial over-request
+    // and/or retry overage. If we're STILL short after retry (rare — both rounds
+    // dropped heavily), ship what we have rather than error out.
     if (questions.length > qCount) {
       questions = questions.slice(0, qCount);
-    } else if (questions.length < qCount && questions.length >= Math.ceil(qCount / 2)) {
-      // Acceptable shortfall — validation removed some; continue with what we have
-    } else if (questions.length < Math.ceil(qCount / 2)) {
-      // Too many filtered — retry once with a larger request to compensate
-      document.getElementById('loading-msg').textContent = 'Some questions failed validation, generating more\u2026';
-      const extra = await fetchQuestions(key, activeQuizTopic, diff, qCount);
-      const extraValidated = validateQuestions(await aiValidateQuestions(key, extra));
-      questions = questions.concat(extraValidated).slice(0, qCount);
-      if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
     }
   } catch(e) {
     const cached = getCachedQuestions(activeQuizTopic, diff, qCount);

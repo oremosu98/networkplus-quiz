@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.3', js.includes("const APP_VERSION = '4.43.3"));
+test('APP_VERSION is 4.43.4', js.includes("const APP_VERSION = '4.43.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.3', sw.includes('netplus-v4.43.3'));
+test('SW cache bumped to v4.43.4', sw.includes('netplus-v4.43.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3785,6 +3785,32 @@ test('v4.43.3 #3: .tb-toolbar-meta CSS defined',
   /\.tb-toolbar-meta\s*\{[^}]*display:\s*flex/.test(css));
 test('v4.43.3 #3: old margin-left:auto status positioning removed (regression guard)',
   !/\.tb-toolbar-v2\s+\.tb-status\s*\{[^}]*margin-left:\s*auto/.test(css));
+
+// ── v4.43.4 QUIZ QUESTION-COUNT BUG FIX ──
+console.log('\n\x1b[1m── v4.43.4 QUIZ QUESTION-COUNT FIX ──\x1b[0m');
+// startQuiz now over-requests then retries-to-fill so users get the qCount they picked.
+// Scope all assertions to the startQuiz function body so we don't accidentally match
+// other occurrences of "fetchQuestions" or "qCount".
+const _startQuizBody = (() => {
+  const m = js.match(/async function startQuiz\(\)\s*\{[\s\S]*?\n\}\s*\n/);
+  return m ? m[0] : '';
+})();
+test('v4.43.4: startQuiz body extracted (sanity)', _startQuizBody.length > 500);
+test('v4.43.4 #1: DROPOUT_BUFFER constant with 30% + min-3 formula',
+  /DROPOUT_BUFFER\s*=\s*Math\.max\(3,\s*Math\.ceil\(qCount\s*\*\s*0\.3\)\)/.test(_startQuizBody));
+test('v4.43.4 #1: initial fetch over-requests (qCount + DROPOUT_BUFFER)',
+  /fetchQuestions\([^)]*qCount\s*\+\s*DROPOUT_BUFFER\s*\)/.test(_startQuizBody));
+test('v4.43.4 #2: retry-to-fill block exists (questions.length < qCount)',
+  /if\s*\(\s*questions\.length\s*<\s*qCount\s*\)\s*\{/.test(_startQuizBody));
+test('v4.43.4 #2: retry fetches deficit + DROPOUT_BUFFER',
+  /fetchQuestions\([^)]*deficit\s*\+\s*DROPOUT_BUFFER\s*\)/.test(_startQuizBody));
+test('v4.43.4 #2: retry wraps in try/catch so a failed retry ships what we have',
+  /try\s*\{[\s\S]*?fetchQuestions\([^)]*deficit[\s\S]*?\}\s*catch\s*\(retryErr\)/.test(_startQuizBody));
+// Regression guards: the old "Acceptable shortfall" / "length < qCount/2" logic must stay gone
+test('v4.43.4: "Acceptable shortfall" comment removed (regression guard)',
+  !_startQuizBody.includes('Acceptable shortfall'));
+test('v4.43.4: old length < Math.ceil(qCount / 2) branch removed (regression guard)',
+  !/questions\.length\s*<\s*Math\.ceil\(qCount\s*\/\s*2\)/.test(_startQuizBody));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
