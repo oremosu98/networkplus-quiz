@@ -119,114 +119,130 @@ test.describe('Navigation', () => {
   });
 });
 
-// SKIPPED — these tests reference Subnet Trainer IDs from a pre-revamp era
-// (`#subnet-question`, `#subnet-answer`, `#subnet-score`, `#subnet-submit-btn`,
-// `#subnet-next-btn`, `#subnet-q-num`). The current Subnet Mastery / Subnet Trainer
-// revamp uses `#st-question`, `#st-input`, `#st-submit`, etc. Full rewrite needed.
-// Tracked: see follow-up issue filed alongside #152.
-test.describe.skip('Subnet Trainer', () => {
+// Shared helpers for the Subnet Trainer practice flow (v4.43.4 rewrite).
+// The Subnet Trainer now defaults to the Learn tab; switching to Practice
+// triggers stNextQuestion(), renders the question into #st-question, and
+// populates #st-answer-area with either a text input (#st-answer-input +
+// #st-submit-btn) or MCQ buttons (.st-mcq-btn) depending on question type.
+async function gotoSubnetPractice(page) {
+  await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+  await page.locator('#st-tab-btn-practice').click();
+}
+// Answer whatever type of question is currently rendered. Returns the input
+// element if free-text, null if MCQ.
+async function answerCurrentSubnetQuestion(page, textAnswer = 'test') {
+  const input = page.locator('#st-answer-input');
+  if (await input.count() > 0) {
+    await input.fill(textAnswer);
+    await page.locator('#st-submit-btn').click();
+    return input;
+  }
+  await page.locator('.st-mcq-btn').first().click();
+  return null;
+}
+
+test.describe('Subnet Trainer', () => {
   test('generates a question and accepts answers', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    // Question should be generated
-    const question = page.locator('#subnet-question');
+    // Question should be generated (no longer the "Loading…" placeholder)
+    const question = page.locator('#st-question');
+    await expect(question).not.toHaveText('Loading…');
     await expect(question).not.toBeEmpty();
 
     // Score starts at 0 / 0
-    await expect(page.locator('#subnet-score')).toContainText('0 / 0');
+    await expect(page.locator('#st-score')).toContainText('0 / 0');
 
-    // Type an answer and submit
-    await page.locator('#subnet-answer').fill('255.255.255.0');
-    await page.locator('#subnet-submit-btn').click();
+    // Answer the question (handles both text and MCQ question types)
+    await answerCurrentSubnetQuestion(page);
 
-    // Feedback should appear (either correct or wrong)
-    const feedback = page.locator('#subnet-feedback');
-    await expect(feedback).toBeVisible();
-    const text = await feedback.textContent();
-    expect(text.includes('Correct') || text.includes('Wrong')).toBeTruthy();
+    // Feedback should appear — class is toggled to .st-feedback-visible
+    const feedback = page.locator('#st-feedback');
+    await expect(feedback).toHaveClass(/st-feedback-visible/);
 
     // Score should update to X / 1
-    await expect(page.locator('#subnet-score')).toContainText('/ 1');
+    await expect(page.locator('#st-score')).toContainText('/ 1');
   });
 
   test('next button generates a new question', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    const firstQ = await page.locator('#subnet-question').textContent();
+    await expect(page.locator('#st-q-num')).toContainText('Q1');
 
-    // Submit any answer to get next button
-    await page.locator('#subnet-answer').fill('test');
-    await page.locator('#subnet-submit-btn').click();
+    await answerCurrentSubnetQuestion(page);
 
     // Click next
-    await page.locator('#subnet-next-btn').click();
+    await page.locator('#st-next-btn').click();
 
     // Q number should advance
-    await expect(page.locator('#subnet-q-num')).toContainText('Q2');
+    await expect(page.locator('#st-q-num')).toContainText('Q2');
   });
 
   test('Enter key submits answer', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    await page.locator('#subnet-answer').fill('255.255.255.0');
-    await page.locator('#subnet-answer').press('Enter');
+    // Subnet Trainer mixes text-input and MCQ questions. For the Enter-key
+    // test we need a text-input question — skip through up to 8 MCQs until
+    // we land on one with the text input rendered.
+    for (let i = 0; i < 8; i++) {
+      if (await page.locator('#st-answer-input').count() > 0) break;
+      await page.locator('.st-mcq-btn').first().click();
+      await page.locator('#st-next-btn').click();
+    }
+
+    const input = page.locator('#st-answer-input');
+    await expect(input).toBeVisible();
+    await input.fill('test');
+    await input.press('Enter');
 
     // Feedback should appear
-    await expect(page.locator('#subnet-feedback')).toBeVisible();
+    await expect(page.locator('#st-feedback')).toHaveClass(/st-feedback-visible/);
   });
 });
 
-// SKIPPED — same story as Subnet Trainer: references pre-revamp Port Drill IDs
-// (`#port-pregame`, `#port-game`, `#port-prompt`, `#port-timer`, `#port-score`,
-// `#port-best`, `.port-opt`, `button:has-text("START DRILL")`). Current prefix
-// is `pt-` and the pregame button text has changed. Full rewrite needed.
-test.describe.skip('Port Drill', () => {
-  test('shows pregame and starts drill', async ({ page }) => {
+// Shared helper: navigate to Port Drill practice tab.
+// Port Drill is tab-based now (Learn / Practice / Dashboard) — no more
+// "pregame → game" flow. startPortDrill() defaults to the Learn tab; tests
+// that want live questions click the Practice tab to fire ptNextQuestion().
+async function gotoPortPractice(page) {
+  await page.locator('#drills-launcher-btn').click();
+  await page.locator('#page-drills button:has-text("Port Drill")').click();
+  await page.locator('#pt-tab-btn-practice').click();
+}
+
+test.describe('Port Drill', () => {
+  test('practice tab renders a question with 4 MCQ options', async ({ page }) => {
     await page.goto('/');
-    // v4.41.0: Port Drill no longer on main nav — navigate via Drills launcher
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
+    await gotoPortPractice(page);
 
-    // Pregame should be visible
-    await expect(page.locator('#port-pregame')).toBeVisible();
-    await expect(page.locator('#port-game')).not.toBeVisible();
+    // Practice panel is visible, Learn panel hidden
+    await expect(page.locator('#pt-tab-practice')).not.toHaveClass(/is-hidden/);
+    await expect(page.locator('#pt-tab-learn')).toHaveClass(/is-hidden/);
 
-    // Start drill
-    await page.locator('#page-ports button:has-text("START DRILL")').click();
+    // Question has been generated (not empty)
+    await expect(page.locator('#pt-question')).not.toBeEmpty();
 
-    // Game should be active
-    await expect(page.locator('#port-game')).toBeVisible();
-    await expect(page.locator('#port-pregame')).not.toBeVisible();
+    // Score starts at 0 / 0
+    await expect(page.locator('#pt-score')).toContainText('0 / 0');
 
-    // Prompt should have content
-    await expect(page.locator('#port-prompt')).not.toBeEmpty();
-
-    // Timer should show 30
-    await expect(page.locator('#port-timer')).toContainText('30');
-
-    // Options should be present
-    const options = page.locator('.port-opt');
-    await expect(options).toHaveCount(4);
+    // 4 MCQ options rendered
+    await expect(page.locator('.pt-mcq-btn')).toHaveCount(4);
   });
 
-  test('clicking an answer loads next question', async ({ page }) => {
+  test('clicking an answer advances state (next button + score)', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
-    await page.locator('#page-ports button:has-text("START DRILL")').click();
+    await gotoPortPractice(page);
 
-    // Click first option
-    await page.locator('.port-opt').first().click();
+    await page.locator('.pt-mcq-btn').first().click();
 
-    // Score should update (either 0 or 1)
-    const score = await page.locator('#port-score').textContent();
-    expect(score === '0' || score === '1').toBeTruthy();
+    // Next button becomes visible (was is-hidden pre-submit)
+    await expect(page.locator('#pt-next-btn')).toBeVisible();
 
-    // New prompt should be loaded (still has content)
-    await expect(page.locator('#port-prompt')).not.toBeEmpty();
+    // Score should update to X / 1 (X ∈ {0,1})
+    await expect(page.locator('#pt-score')).toContainText('/ 1');
   });
 });
 
@@ -629,89 +645,104 @@ test.describe('Wrong Bank Behavior', () => {
   });
 });
 
-// SKIPPED — same root cause as 'Subnet Trainer' block above: pre-revamp selectors
-// (`#subnet-streak-lbl`, `#subnet-ref`, `.subnet-table`, `#subnet-submit-btn`,
-// `#subnet-next-btn`). Full rewrite needed.
-test.describe.skip('Subnet Trainer Advanced', () => {
+test.describe('Subnet Trainer Advanced', () => {
   test('streak counter starts at 0', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    await expect(page.locator('#subnet-streak-lbl')).toContainText('0');
+    // #st-streak renders as "🔥 0" — the emoji plus the number
+    await expect(page.locator('#st-streak')).toContainText('0');
   });
 
-  test('reference table is visible', async ({ page }) => {
+  test('reference table is present with common rows', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    await expect(page.locator('#subnet-ref')).toBeVisible();
-    await expect(page.locator('.subnet-table')).toBeVisible();
-    // Should contain /24 row
-    await expect(page.locator('.subnet-table')).toContainText('/24');
-    await expect(page.locator('.subnet-table')).toContainText('255.255.255.0');
+    // #st-ref-details is a <details> that ships collapsed — open it
+    await page.evaluate(() => {
+      const ref = document.getElementById('st-ref-details');
+      if (ref) ref.open = true;
+    });
+
+    const table = page.locator('#st-ref-details .subnet-table');
+    await expect(table).toBeVisible();
+    await expect(table).toContainText('/24');
+    await expect(table).toContainText('255.255.255.0');
   });
 
-  test('submit button disabled state after submit', async ({ page }) => {
+  test('next button appears after submitting an answer', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    await gotoSubnetPractice(page);
 
-    await page.locator('#subnet-answer').fill('test');
-    await page.locator('#subnet-submit-btn').click();
+    await answerCurrentSubnetQuestion(page);
 
-    // Next button should appear
-    await expect(page.locator('#subnet-next-btn')).toBeVisible();
+    // Next button should become visible (was is-hidden pre-submit)
+    await expect(page.locator('#st-next-btn')).toBeVisible();
   });
 });
 
-// SKIPPED — same root cause as 'Port Drill' block above: pre-revamp selectors
-// (`#port-timer`, `#port-best`, `#port-final-score`, `#port-results`,
-// `window.endPortDrill`, START DRILL button). Full rewrite needed.
-test.describe.skip('Port Drill Timer & Scoring', () => {
-  test('timer counts down from 30', async ({ page }) => {
+test.describe('Port Drill Timer & Scoring', () => {
+  test('timed mode countdown starts at 30 and ticks down', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
-    await page.locator('#page-ports button:has-text("START DRILL")').click();
+    await gotoPortPractice(page);
 
-    // Timer starts at 30
-    await expect(page.locator('#port-timer')).toContainText('30');
+    // Switch to timed mode — ptStartTimer() sets #pt-timer to 30 and ticks
+    await page.locator('#pt-mode-timed').click();
 
-    // Wait 1.5 seconds and check it decreased
-    await page.waitForTimeout(1500);
-    const timerVal = parseInt(await page.locator('#port-timer').textContent());
-    expect(timerVal).toBeLessThan(30);
+    const timer = page.locator('#pt-timer');
+    await expect(timer).toBeVisible();
+    const startVal = parseInt(await timer.textContent(), 10);
+    // May have ticked once already — accept 29 or 30
+    expect(startVal).toBeGreaterThanOrEqual(28);
+    expect(startVal).toBeLessThanOrEqual(30);
+
+    // Wait ~2 seconds, confirm it's ticked down further
+    await page.waitForTimeout(2100);
+    const laterVal = parseInt(await timer.textContent(), 10);
+    expect(laterVal).toBeLessThan(startVal);
   });
 
-  test('best score persists across drills', async ({ page }) => {
+  test('port best score persists via localStorage and surfaces in Analytics', async ({ page }) => {
+    // v4.43.4: port best is no longer shown on the Port Drill page itself;
+    // it renders in the Analytics Drills section (#ana-s-drills) via
+    // _renderAnaDrills(). The Analytics page is gated behind "at least one
+    // quiz in history" (renderAnalytics exits early otherwise), so we seed
+    // one minimal history entry alongside the port-best value.
     await page.goto('/');
-
-    // Set a best score
-    await page.evaluate(() => localStorage.setItem('nplus_port_best', '5'));
+    await page.evaluate(() => {
+      localStorage.setItem('nplus_port_best', '7');
+      localStorage.setItem('nplus_history', JSON.stringify([{
+        topic: 'TCP/IP Basics', score: 5, total: 10, pct: 50,
+        date: new Date().toISOString(), mode: 'quiz', difficulty: 'Exam Level'
+      }]));
+    });
     await page.reload();
 
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
-    await expect(page.locator('#port-best')).toContainText('5');
+    // Navigate to Analytics
+    await page.locator('#page-setup button[onclick*="renderAnalytics"]').click();
+
+    // #ana-s-drills is the Drills section wrapper — contains the Port Drill card
+    const drillsSection = page.locator('#ana-s-drills');
+    await expect(drillsSection).toBeVisible();
+    await expect(drillsSection).toContainText('Port Drill');
+    await expect(drillsSection).toContainText('7'); // timed best
   });
 
-  test('port drill shows results when timer expires', async ({ page }) => {
+  test('timed mode shows time\'s-up screen when timer expires', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
+    await gotoPortPractice(page);
+    await page.locator('#pt-mode-timed').click();
 
-    // Hack: set timer to 1 second by manipulating the timer directly
-    await page.locator('#page-ports button:has-text("START DRILL")').click();
-
-    // Force timer expiry
+    // Force timer to expire directly by calling the end function. Both
+    // ptStopTimer and ptEndTimedChallenge are declared at module scope in
+    // app.js so they're globally available in the page context.
     await page.evaluate(() => {
-      // Clear the real timer and trigger end
-      if (window.portTimer) clearInterval(window.portTimer);
-      window.endPortDrill();
+      if (typeof ptStopTimer === 'function') ptStopTimer();
+      if (typeof ptEndTimedChallenge === 'function') ptEndTimedChallenge();
     });
 
-    // Results should show
-    await expect(page.locator('#port-results')).toBeVisible();
-    await expect(page.locator('#port-final-score')).toBeVisible();
+    // #pt-q-card gets rewritten with the "Time's Up!" screen
+    await expect(page.locator('#pt-q-card')).toContainText('Time');
   });
 });
 
