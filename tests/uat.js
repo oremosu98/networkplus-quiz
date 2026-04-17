@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.5', js.includes("const APP_VERSION = '4.43.5"));
+test('APP_VERSION is 4.43.6', js.includes("const APP_VERSION = '4.43.6"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.5', sw.includes('netplus-v4.43.5'));
+test('SW cache bumped to v4.43.6', sw.includes('netplus-v4.43.6'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3856,6 +3856,34 @@ test('v4.43.5: old "examQuestions.concat(batch)" without validation is gone (reg
   !/examQuestions\s*=\s*examQuestions\.concat\(batch\)\s*;/.test(_startExamBody));
 test('v4.43.5: old BATCH_SIZE = 18 bare constant is gone (replaced by EXAM_BATCH_BASE)',
   !/const\s+BATCHES\s*=\s*5,\s*BATCH_SIZE\s*=\s*18/.test(_startExamBody));
+
+// ── v4.43.6 SUBNET LESSON 4 — BLOCK SIZE METHOD ──
+console.log('\n\x1b[1m── v4.43.6 LESSON: BLOCK SIZE METHOD ──\x1b[0m');
+// Lesson 4 swapped from "The AND Operation" to "The Block Size Method" per user pref.
+// SUBNET_LESSONS array must have the new lesson + Lesson 5's prereq must be updated.
+test('v4.43.6: new lesson id block_size exists in SUBNET_LESSONS',
+  /id:\s*'block_size',\s*title:\s*'The Block Size Method'/.test(js));
+test('v4.43.6: block_size lesson chains off masks_cidr',
+  /id:\s*'block_size'[\s\S]{0,400}prereq:\s*'masks_cidr'/.test(js));
+test('v4.43.6: Lesson 5 (net_broadcast) prereq updated to block_size',
+  /id:\s*'net_broadcast'[\s\S]{0,400}prereq:\s*'block_size'/.test(js));
+// Regression guard: the old AND Operation lesson must stay gone (user chose block size)
+test('v4.43.6: old "The AND Operation" lesson removed (regression guard)',
+  !/title:\s*'The AND Operation'/.test(js));
+test('v4.43.6: old "and_operation" lesson id removed from SUBNET_LESSONS (regression guard)',
+  !/id:\s*'and_operation',\s*title:/.test(js));
+// Lesson content sanity — the 5 core steps must be present
+test('v4.43.6: lesson covers all 5 steps',
+  js.includes('Find the mask') &&
+  js.includes('Find the block size') &&
+  js.includes('Count the subnet starts') &&
+  js.includes('Find where 100 belongs') &&
+  js.includes('Take the starting number'));
+test('v4.43.6: worked example 192.168.1.100 /26 present',
+  js.includes('192.168.1.100') && js.includes('192.168.1.64'));
+test('v4.43.6: cheat sheet table with /24 \u2013 /30 rows present',
+  js.includes('Cheat sheet to memorize') &&
+  /\/30<\/td><td>252<\/td><td>4<\/td><td>2<\/td>/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

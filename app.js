@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.5
+// Network+ AI Quiz — app.js  v4.43.6
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.5';
+const APP_VERSION = '4.43.6';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -15461,18 +15461,22 @@ const SUBNET_LESSONS = [
       '<strong>Trick:</strong> The "interesting octet" is the one that isn\'t 255 or 0. For /27, it\'s the 4th octet: 256 - 32 = 224.',
     ],
     practice: 'masks' },
-  { id: 'and_operation', title: 'The AND Operation', icon: '\u2696\ufe0f', desc: 'How ANDing an IP with its mask gives you the network address.', prereq: 'masks_cidr',
+  { id: 'block_size', title: 'The Block Size Method', icon: '\ud83e\uddf1', desc: 'Fast mental-math shortcut for network, broadcast, and usable range \u2014 no binary needed.', prereq: 'masks_cidr',
     theory: [
-      'To find which network an IP belongs to, AND each bit of the IP with the corresponding bit of the mask.',
-      '<strong>AND rules:</strong> 1 AND 1 = 1, everything else = 0.',
-      'Example: 192.168.1.100 /26',
-      'IP:   <code>11000000.10101000.00000001.01<span style="color:var(--red)">100100</span></code>',
-      'Mask: <code>11111111.11111111.11111111.11<span style="color:var(--red)">000000</span></code>',
-      'AND:  <code>11000000.10101000.00000001.01<span style="color:var(--red)">000000</span></code> = <strong>192.168.1.64</strong>',
-      'The host bits (red) are zeroed out, giving us the network address.',
+      'The <strong>block size method</strong> is the fastest way to find a subnet\u2019s network address, broadcast, and usable range. 5 quick steps, no binary, no scratch paper. Once this clicks, most /anything questions become 10-second mental math.',
+      '<strong>Let\u2019s walk through an example:</strong><br><br><strong>IP: 192.168.1.100 /26</strong><br>Goal: find the network address.',
+      '<strong>Step 1 \u2014 Find the mask</strong><br><br>/26 \u2192 <code>255.255.255.192</code><br><br>The <em>interesting octet</em> is the one that isn\u2019t 255 or 0. Here it\u2019s the <strong>4th octet (192)</strong>.',
+      '<strong>Step 2 \u2014 Find the block size</strong><br><br><code>256 \u2212 192 = <strong>64</strong></code><br><br>This is the distance between successive networks in the interesting octet.',
+      '<strong>Step 3 \u2014 Count the subnet starts</strong><br><br>Start at 0, keep adding 64:<br><br><code>0<br>64<br>128<br>192</code><br><br>These are the possible network starting points.',
+      '<strong>Step 4 \u2014 Find where 100 belongs</strong><br><br><code>0\u201363<br>64\u2013127 \u2705<br>128\u2013191<br>192\u2013255</code><br><br>100 falls in the <strong>64\u2013127</strong> block.',
+      '<strong>Step 5 \u2014 Take the starting number</strong><br><br>The network is the <em>start</em> of that block \u2014 <strong>64</strong>.<br><br>Octets before the interesting one copy from the IP (192.168.1); octets after (if any) become 0.<br><br><strong>Network address = 192.168.1.64</strong>',
+      '<strong>\u2728 Bonus: broadcast and usable range come free</strong><br><br>\u2022 <strong>Broadcast</strong> = next network start \u2212 1 = 128 \u2212 1 = <strong>192.168.1.127</strong><br>\u2022 <strong>Usable range</strong> = network+1 \u2192 broadcast\u22121 = <strong>192.168.1.65 \u2013 192.168.1.126</strong>',
+      '<strong>\u2728 Bigger example: 10.50.173.45 /20</strong> (interesting octet is the <strong>3rd</strong>)<br><br><strong>Step 1:</strong> /20 = 255.255.<strong>240</strong>.0<br><strong>Step 2:</strong> Block size = 256 \u2212 240 = <strong>16</strong><br><strong>Step 3:</strong> Starts in 3rd octet: 0, 16, 32, \u2026, 144, 160, 176, 192\u2026<br><strong>Step 4:</strong> 173 falls in <code>160\u2013175 \u2705</code><br><strong>Step 5:</strong> <strong>Network = 10.50.160.0</strong> (4th octet becomes 0 because it\u2019s <em>after</em> the interesting octet)<br><br>\u2022 Broadcast = 10.50.175.255<br>\u2022 Usable = 10.50.160.1 \u2013 10.50.175.254',
+      '<strong>\ud83d\udcd0 Cheat sheet to memorize</strong><table class="subnet-table" style="margin-top:8px"><tr><th>CIDR</th><th>Mask last octet</th><th>Block size</th><th>Usable hosts</th></tr><tr><td>/24</td><td>0</td><td>256</td><td>254</td></tr><tr><td>/25</td><td>128</td><td>128</td><td>126</td></tr><tr><td>/26</td><td>192</td><td>64</td><td>62</td></tr><tr><td>/27</td><td>224</td><td>32</td><td>30</td></tr><tr><td>/28</td><td>240</td><td>16</td><td>14</td></tr><tr><td>/29</td><td>248</td><td>8</td><td>6</td></tr><tr><td>/30</td><td>252</td><td>4</td><td>2</td></tr></table>',
+      '<strong>\ud83c\udfaf Pro tip:</strong> For any /25\u2013/30 question: figure the interesting octet, subtract from 256 for block size, list the multiples, find where your IP lands. Under 10 seconds, every time. Binary ANDing is the underlying operation, but you won\u2019t need it once this clicks.',
     ],
     practice: 'addressing' },
-  { id: 'net_broadcast', title: 'Network & Broadcast', icon: '\ud83d\udce1', desc: 'Finding network address, broadcast, first/last usable host.', prereq: 'and_operation',
+  { id: 'net_broadcast', title: 'Network & Broadcast', icon: '\ud83d\udce1', desc: 'Finding network address, broadcast, first/last usable host.', prereq: 'block_size',
     theory: [
       'Every subnet has 3 key addresses:',
       '1. <strong>Network address:</strong> all host bits = 0 (e.g., 192.168.1.64)',
