@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.45.1
+// Network+ AI Quiz — app.js  v4.45.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.45.1';
+const APP_VERSION = '4.45.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -17482,7 +17482,6 @@ function _renderAnaNav() {
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-readiness')?.scrollIntoView({behavior:'smooth',block:'start'})">Readiness</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-trend')?.scrollIntoView({behavior:'smooth',block:'start'})">Trend</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-activity')?.scrollIntoView({behavior:'smooth',block:'start'})">Activity</button>
-    <button class="ana-nav-pill" onclick="document.getElementById('ana-s-drills')?.scrollIntoView({behavior:'smooth',block:'start'})">Drills</button>
     <button class="ana-nav-pill" onclick="document.getElementById('ana-s-milestones')?.scrollIntoView({behavior:'smooth',block:'start'})">Milestones</button>
   </nav>`;
 }
@@ -17716,22 +17715,13 @@ function _renderAnaStreak() {
   </div>`;
 }
 
-function _renderAnaWeakSpots() {
-  const weakSpots = mineSubtopicWeakSpots(8);
-  if (weakSpots.length === 0) return '';
-  const maxCount = weakSpots[0].count;
-  return `<div class="ana-card">
-    <h3>SUBTOPIC WEAK SPOTS</h3>
-    <div class="ana-subtitle">Keywords appearing most in your wrong bank</div>
-    <div class="ana-weak-list">
-      ${weakSpots.map(w => `<div class="ana-weak-row">
-        <div class="ana-weak-kw">${escHtml(w.keyword)}</div>
-        <div class="ana-weak-bar"><div class="ana-weak-fill" style="width:${(w.count / maxCount) * 100}%"></div></div>
-        <div class="ana-weak-count">${w.count}x</div>
-      </div>`).join('')}
-    </div>
-  </div>`;
-}
+// v4.45.2 — _renderAnaWeakSpots removed per user feedback ("that keyword
+// weakspot is redundant, dont really need it"). The homepage #todays-focus
+// chip row + the new Wrong-Answer Patterns card (v4.45.0) both surface
+// weak areas with more actionable signal. Keyword-frequency from the
+// wrong bank was descriptive-only and duplicated the primary weak-spots
+// flow. mineSubtopicWeakSpots() is still defined in case a future feature
+// wants keyword-frequency analysis; it just doesn't render here anymore.
 
 // v4.45.0 — replaces the old Difficulty × Topic Heatmap. Prescriptive over
 // descriptive: for each of the 5 official N10-009 domains, shows current
@@ -18000,108 +17990,60 @@ function _renderAnaExamVsQuiz(h) {
   </div>`;
 }
 
-function _renderAnaDrills() {
-  const portSummary = (typeof getPortStatsSummary === 'function') ? getPortStatsSummary() : null;
-  const portBest = parseInt(localStorage.getItem(STORAGE.PORT_BEST) || '0');
-  const portStreakBest = parseInt(localStorage.getItem(STORAGE.PORT_STREAK_BEST) || '0');
-  const subnetStatsData = getSubnetStats();
-  const hasPort = portSummary && portSummary.totalSeen > 0;
-  const hasSubnet = subnetStatsData.seen > 0;
-  if (!hasPort && !hasSubnet && portBest <= 0 && portStreakBest <= 0) return '';
-  let html = `<div class="ana-card" id="ana-s-drills">
-    <h3>PRACTICE DRILLS</h3>
-    <div class="ana-subtitle">Port Drill and Subnet Drill progress</div>
-    <div class="ana-drills-grid">`;
-  if (hasPort || portBest > 0 || portStreakBest > 0) {
-    const accPct = hasPort ? Math.round(portSummary.overallAccuracy * 100) : 0;
-    const accColor = accPct >= 80 ? 'var(--green)' : accPct >= 60 ? 'var(--blue)' : 'var(--red)';
-    html += `<div class="ana-drill-card">
-      <div class="ana-drill-title">🔌 Port Drill</div>
-      <div class="ana-drill-stats">
-        <div class="ana-drill-stat"><div class="ana-drill-val">${portBest}</div><div class="ana-drill-lbl">Timed best</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${portStreakBest}</div><div class="ana-drill-lbl">Endless streak</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${accColor}">${accPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${hasPort ? portSummary.uniqueSeen : 0}/${hasPort ? portSummary.totalPorts : 40}</div><div class="ana-drill-lbl">Ports seen</div></div>
-      </div>
-    </div>`;
-  }
-  if (hasSubnet) {
-    const subnetPct = Math.round((subnetStatsData.correct / subnetStatsData.seen) * 100);
-    const subColor = subnetPct >= 80 ? 'var(--green)' : subnetPct >= 60 ? 'var(--blue)' : 'var(--red)';
-    html += `<div class="ana-drill-card">
-      <div class="ana-drill-title">🧮 Subnet Drill</div>
-      <div class="ana-drill-stats">
-        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${subColor}">${subnetPct}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.correct}</div><div class="ana-drill-lbl">Correct</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${subnetStatsData.seen}</div><div class="ana-drill-lbl">Attempts</div></div>
-      </div>
-    </div>`;
-  }
-  // Acronym Blitz drill card
-  const abMData = (typeof getAbMastery === 'function') ? getAbMastery() : null;
-  if (abMData && abMData.totalAnswered > 0) {
-    const abAcc = Math.round(abMData.totalCorrect / abMData.totalAnswered * 100);
-    const abColor = abAcc >= 80 ? 'var(--green)' : abAcc >= 60 ? 'var(--blue)' : 'var(--red)';
-    const abSeen = Object.values(abMData.perItem).filter(p => p.seen > 0).length;
-    html += `<div class="ana-drill-card">
-      <div class="ana-drill-title">💡 Acronym Blitz</div>
-      <div class="ana-drill-stats">
-        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${abColor}">${abAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${abMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${abSeen}/${typeof AB_DATA !== 'undefined' ? AB_DATA.length : '?'}</div><div class="ana-drill-lbl">Seen</div></div>
-      </div>
-    </div>`;
-  }
-  // OSI Sorter drill card
-  const osMData = (typeof getOsMastery === 'function') ? getOsMastery() : null;
-  if (osMData && osMData.totalAnswered > 0) {
-    const osAcc = Math.round(osMData.totalCorrect / osMData.totalAnswered * 100);
-    const osColor = osAcc >= 80 ? 'var(--green)' : osAcc >= 60 ? 'var(--blue)' : 'var(--red)';
-    html += `<div class="ana-drill-card">
-      <div class="ana-drill-title">🌐 OSI Sorter</div>
-      <div class="ana-drill-stats">
-        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${osColor}">${osAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${osMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${osMData.currentLevel}</div><div class="ana-drill-lbl">Level</div></div>
-      </div>
-    </div>`;
-  }
-  // Cable & Connector ID drill card
-  const cbMData = (typeof getCbMastery === 'function') ? getCbMastery() : null;
-  if (cbMData && cbMData.totalAnswered > 0) {
-    const cbAcc = Math.round(cbMData.totalCorrect / cbMData.totalAnswered * 100);
-    const cbColor = cbAcc >= 80 ? 'var(--green)' : cbAcc >= 60 ? 'var(--blue)' : 'var(--red)';
-    html += `<div class="ana-drill-card">
-      <div class="ana-drill-title">🔌 Cable & Connector ID</div>
-      <div class="ana-drill-stats">
-        <div class="ana-drill-stat"><div class="ana-drill-val" style="color:${cbColor}">${cbAcc}%</div><div class="ana-drill-lbl">Accuracy</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${cbMData.totalAnswered}</div><div class="ana-drill-lbl">Answered</div></div>
-        <div class="ana-drill-stat"><div class="ana-drill-val">${cbMData.currentLevel}</div><div class="ana-drill-lbl">Level</div></div>
-      </div>
-    </div>`;
-  }
-  html += `</div></div>`;
-  return html;
-}
+// v4.45.2 — _renderAnaDrills removed per user feedback ("drills don't need
+// stats since they function as practice"). The 5 drill surfaces (Port /
+// Subnet / Acronym Blitz / OSI Sorter / Cable ID) each have their own
+// in-drill dashboards, so duplicating the stats in Analytics was noise.
+// Underlying storage (PORT_BEST / SUBNET_STATS / AB_MASTERY / OS_MASTERY /
+// CB_MASTERY) is untouched — milestones still consume it.
 
+// v4.45.2 — Milestones card rework per user feedback ("long block of
+// milestones ... better way of showing them"). New layout:
+//   1. Header strip: count + progress bar + %
+//   2. "Recently unlocked" row: up to 4 most-recent unlocks as tiles
+//   3. Collapsed <details> containing the full grid (all 49 milestones)
+// Users get the at-a-glance "how far along am I + what did I just earn"
+// read on the default view, and can expand for the full browse if they want.
 function _renderAnaMilestones() {
   evaluateMilestones(); // unlock any newly-earned milestones on render
   const unlockedMap = getMilestones();
   const totalMilestones = MILESTONE_DEFS.length;
-  const unlockedCount = MILESTONE_DEFS.filter(m => unlockedMap[m.id]).length;
-  return `<div class="ana-card" id="ana-s-milestones">
-    <h3>MILESTONES</h3>
-    <div class="ana-subtitle">${unlockedCount}/${totalMilestones} unlocked</div>
-    <div class="ana-milestones">
-      ${MILESTONE_DEFS.map(m => {
-        const unlocked = !!unlockedMap[m.id];
-        return `<div class="ana-milestone ${unlocked ? 'ana-milestone-on' : 'ana-milestone-off'}" title="${escHtml(m.desc)}">
-          <div class="ana-milestone-icon">${m.icon}</div>
-          <div class="ana-milestone-label">${escHtml(m.label)}</div>
-          <div class="ana-milestone-desc">${escHtml(m.desc)}</div>
-        </div>`;
-      }).join('')}
+  const unlockedDefs = MILESTONE_DEFS.filter(m => unlockedMap[m.id]);
+  const unlockedCount = unlockedDefs.length;
+  const pct = totalMilestones > 0 ? Math.round((unlockedCount / totalMilestones) * 100) : 0;
+
+  // Sort unlocked by date desc; take 4 most recent
+  const recent = unlockedDefs.slice().sort((a, b) => {
+    return new Date(unlockedMap[b.id]) - new Date(unlockedMap[a.id]);
+  }).slice(0, 4);
+
+  const renderTile = (m, unlocked) => `<div class="ana-milestone ${unlocked ? 'ana-milestone-on' : 'ana-milestone-off'}" title="${escHtml(m.desc)}">
+    <div class="ana-milestone-icon">${m.icon}</div>
+    <div class="ana-milestone-label">${escHtml(m.label)}</div>
+    <div class="ana-milestone-desc">${escHtml(m.desc)}</div>
+  </div>`;
+
+  const recentBlock = recent.length > 0
+    ? `<div class="ana-ms-section-title">Recently unlocked</div>
+       <div class="ana-ms-recent">${recent.map(m => renderTile(m, true)).join('')}</div>`
+    : `<div class="ana-ms-empty">No milestones unlocked yet \u2014 complete a quiz to earn your first badge.</div>`;
+
+  return `<div class="ana-card ana-card-ms" id="ana-s-milestones">
+    <div class="ana-ms-head">
+      <h3>MILESTONES</h3>
+      <div class="ana-ms-progress">
+        <span class="ana-ms-count">${unlockedCount}<span class="ana-ms-total"> / ${totalMilestones}</span></span>
+        <div class="ana-ms-bar-track"><div class="ana-ms-bar-fill" style="width:${pct}%"></div></div>
+        <span class="ana-ms-pct">${pct}%</span>
+      </div>
     </div>
+    ${recentBlock}
+    <details class="ana-ms-details">
+      <summary class="ana-ms-details-summary">Show all ${totalMilestones} milestones</summary>
+      <div class="ana-milestones ana-ms-full-grid">
+        ${MILESTONE_DEFS.map(m => renderTile(m, !!unlockedMap[m.id])).join('')}
+      </div>
+    </details>
   </div>`;
 }
 
@@ -18131,13 +18073,14 @@ function renderAnalytics() {
   // v4.32: Priority Study Areas + Weekly Volume + All-Time Stats removed.
   // v4.45.0: Difficulty × Topic Heatmap + Question Type Breakdown removed.
   //          Replaced by Domain Mastery (above) + Wrong-Answer Patterns (here).
+  // v4.45.2 — _renderAnaWeakSpots + _renderAnaDrills removed per user direction
+  // (redundant with homepage weak-spots chip row + in-drill dashboards). Grid
+  // now holds Streak + Wrong-Answer Patterns + Exam-vs-Quiz (3 cards).
   html += '<div class="ana-grid-2col">';
   html += _renderAnaStreak();
-  html += _renderAnaWeakSpots();
   html += _renderAnaWrongPatterns();
   html += _renderAnaExamVsQuiz(h);
   html += '</div>';
-  html += _renderAnaDrills();
   html += _renderAnaMilestones();
   container.innerHTML = html;
 }

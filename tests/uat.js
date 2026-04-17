@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.45.1', js.includes("const APP_VERSION = '4.45.1"));
+test('APP_VERSION is 4.45.2', js.includes("const APP_VERSION = '4.45.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.45.1', sw.includes('netplus-v4.45.1'));
+test('SW cache bumped to v4.45.2', sw.includes('netplus-v4.45.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -372,14 +372,18 @@ test('Readiness hero card in analytics', js.includes('ana-ready-hero'));
 test('Domain breakdown rendered', js.includes('ana-domain-row'));
 test('Exam date picker in analytics', js.includes('ana-exam-date-btn'));
 test('Streak card rendered', js.includes('ana-streak-grid'));
-test('Weak spots card rendered', js.includes('ana-weak-list'));
+// v4.45.2: Subtopic Weak Spots card removed (redundant with homepage
+// #todays-focus chip row + Wrong-Answer Patterns). Now a regression guard.
+test('Weak spots card removed (v4.45.2 regression guard)', !js.includes('ana-weak-list'));
 // v4.45.0: heatmap + type-list cards removed, replaced by Domain Mastery
 // (full-width above grid) and Wrong-Answer Patterns (inside 2-col grid).
 // See the v4.45.0 assertion block below for the new-card guards.
 test('Domain Mastery card rendered', js.includes('ana-card-dm'));
 test('Wrong-answer patterns card rendered', js.includes('wp-pattern'));
 test('Mode compare card rendered', js.includes('ana-mode-compare'));
-test('Drills grid card rendered', js.includes('ana-drills-grid'));
+// v4.45.2: Practice Drills stats card removed (drills have their own
+// in-drill dashboards; duplicating in Analytics was noise). Regression guard.
+test('Drills grid card removed (v4.45.2 regression guard)', !js.includes('ana-drills-grid'));
 test('Milestones card rendered', js.includes('ana-milestones'));
 test('Type stats instrumented in pick()', js.includes("updateTypeStat(q.type"));
 test('Type stats instrumented in submitExam', /updateTypeStat\(qType/.test(js));
@@ -1864,7 +1868,8 @@ test('Analytics: nav has Trend link', js.includes("ana-s-trend"));
 // guard that the target section id is gone too.
 test('Analytics: nav Topics link removed (v4.42.2)', !js.includes("ana-s-topics"));
 test('Analytics: nav has Activity link', js.includes("ana-s-activity"));
-test('Analytics: nav has Drills link', js.includes("ana-s-drills"));
+// v4.45.2: Drills nav pill removed with the card. Regression guard.
+test('Analytics: nav has NO Drills link (v4.45.2 regression guard)', !js.includes("ana-s-drills"));
 test('Analytics: nav has Milestones link', js.includes("ana-s-milestones"));
 // Analytics removals + merges
 test('Analytics: Weekly Volume removed', !js.includes('WEEKLY VOLUME'));
@@ -3145,8 +3150,9 @@ test('v4.42.2: no ana-s-topics section id rendered',
     navBody.includes('>Trend<'));
   test('v4.42.2: Activity pill still present',
     navBody.includes('>Activity<'));
-  test('v4.42.2: Drills pill still present',
-    navBody.includes('>Drills<'));
+  // v4.45.2: Drills pill removed; flipped to regression guard
+  test('v4.45.2: Drills pill removed from nav (regression guard)',
+    !navBody.includes('>Drills<'));
   test('v4.42.2: Milestones pill still present',
     navBody.includes('>Milestones<'));
 })();
@@ -4136,6 +4142,40 @@ test('v4.45.1: old 75% Proficient threshold removed (regression guard)',
   !/pct\s*>=\s*75\)\s*return\s*\{\s*label:\s*'Proficient'/.test(js));
 test('v4.45.1: old 60% Developing threshold removed (regression guard)',
   !/pct\s*>=\s*60\)\s*return\s*\{\s*label:\s*'Developing'/.test(js));
+
+// ── v4.45.2 ANALYTICS CLEANUP ──
+console.log('\n\x1b[1m── v4.45.2 ANALYTICS CLEANUP ──\x1b[0m');
+// Fix 1: Wrong-patterns horizontal (grid instead of flex-column)
+test('v4.45.2 #1: .wp-list uses CSS grid with auto-fit minmax(260px, 1fr)',
+  /\.wp-list\s*\{[^}]*display:\s*grid/.test(css) &&
+  /\.wp-list\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(260px,\s*1fr\)\)/.test(css));
+test('v4.45.2 #1: .wp-list no longer uses flex-direction: column (regression guard)',
+  !/\.wp-list\s*\{[^}]*flex-direction:\s*column/.test(css));
+// Fix 2: Practice Drills card removed
+test('v4.45.2 #2: _renderAnaDrills function removed (regression guard)',
+  !/function\s+_renderAnaDrills\(\)/.test(js));
+test('v4.45.2 #2: renderAnalytics no longer calls _renderAnaDrills',
+  !/html\s*\+=\s*_renderAnaDrills\(\)/.test(js));
+test('v4.45.2 #2: Drills nav pill removed from _renderAnaNav',
+  !/ana-s-drills/.test(js));
+// Fix 3: Subtopic Weak Spots card removed
+test('v4.45.2 #3: _renderAnaWeakSpots function removed (regression guard)',
+  !/function\s+_renderAnaWeakSpots\(\)/.test(js));
+test('v4.45.2 #3: renderAnalytics no longer calls _renderAnaWeakSpots',
+  !/html\s*\+=\s*_renderAnaWeakSpots\(\)/.test(js));
+// Fix 4: Milestones revamped
+test('v4.45.2 #4: Milestones card has new .ana-card-ms wrapper',
+  js.includes('ana-card-ms'));
+test('v4.45.2 #4: Milestones header has progress bar (.ana-ms-bar-track + fill)',
+  /\.ana-ms-bar-track\s*\{/.test(css) && /\.ana-ms-bar-fill\s*\{/.test(css));
+test('v4.45.2 #4: "Recently unlocked" section rendered',
+  js.includes('Recently unlocked'));
+test('v4.45.2 #4: Full grid wrapped in collapsible <details>',
+  /<details class="ana-ms-details">[\s\S]*?summary class="ana-ms-details-summary"/.test(js));
+test('v4.45.2 #4: Milestones sort by date desc for recent-unlocks strip',
+  /new Date\(unlockedMap\[b\.id\]\)\s*-\s*new Date\(unlockedMap\[a\.id\]\)/.test(js));
+test('v4.45.2 #4: Show-all summary count matches totalMilestones',
+  /Show all \$\{totalMilestones\} milestones/.test(js));
 // Structural checks above cover the tier boundaries; a vm-sandbox smoke
 // would need brace-depth extraction of the arrow-function body (non-greedy
 // regex captures only the first `};` inside the function). Structural

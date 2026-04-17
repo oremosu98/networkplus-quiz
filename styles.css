@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.45.1
+   Network+ AI Quiz — styles.css  v4.45.2
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1086,7 +1086,10 @@ input::placeholder { color: var(--text-dim); }
 .dm-footer { margin-top: 10px; font-size: 10px; color: var(--text-dim); text-align: center; letter-spacing: .04em; }
 
 /* Type breakdown */
-.wp-list { display: flex; flex-direction: column; gap: 12px; }
+/* v4.45.2 — horizontal layout per user feedback. Auto-fit 2 columns on
+   wide viewports, drops to 1 column under ~560px. Previous flex-column
+   stacked everything vertically which wasted horizontal space. */
+.wp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; align-items: start; }
 .wp-pattern { padding: 14px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); border-left: 4px solid var(--wp-accent, var(--accent)); display: flex; flex-direction: column; gap: 8px; }
 .wp-pattern-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .wp-pattern-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--wp-accent, var(--accent)); color: white; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1126,6 +1129,29 @@ input::placeholder { color: var(--text-dim); }
 .ana-milestones { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 @media (min-width: 600px) { .ana-milestones { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 900px) { .ana-milestones { grid-template-columns: repeat(4, 1fr); } }
+
+/* v4.45.2 — Milestones card rework. Header strip + recently-unlocked row
+   + collapsible full grid. Dramatically cuts default card height while
+   keeping all 49 milestones discoverable via the expand. */
+.ana-card-ms { grid-column: 1 / -1; }
+.ana-ms-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.ana-ms-head h3 { margin: 0; }
+.ana-ms-progress { display: flex; align-items: center; gap: 10px; min-width: 240px; flex: 1; max-width: 400px; }
+.ana-ms-count { font-size: 18px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.ana-ms-total { font-weight: 600; color: var(--text-dim); font-size: 14px; }
+.ana-ms-bar-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+.ana-ms-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-light)); border-radius: 99px; transition: width 800ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ana-ms-pct { font-size: 12px; font-weight: 700; color: var(--text-mid); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
+.ana-ms-section-title { font-size: 10px; font-weight: 800; letter-spacing: .06em; color: var(--text-dim); text-transform: uppercase; margin: 14px 0 8px; }
+.ana-ms-recent { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 4px; }
+.ana-ms-empty { padding: 20px 12px; text-align: center; font-size: 13px; color: var(--text-dim); font-style: italic; background: var(--surface2); border-radius: 8px; margin-bottom: 12px; }
+.ana-ms-details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+.ana-ms-details-summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-mid); padding: 6px 0; user-select: none; list-style: none; display: flex; align-items: center; gap: 8px; transition: color 150ms; }
+.ana-ms-details-summary::-webkit-details-marker { display: none; }
+.ana-ms-details-summary::before { content: '\25B6'; font-size: 9px; display: inline-block; transition: transform 200ms; }
+.ana-ms-details[open] > .ana-ms-details-summary::before { transform: rotate(90deg); }
+.ana-ms-details-summary:hover { color: var(--text); }
+.ana-ms-full-grid { margin-top: 12px; }
 .ana-milestone { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; border: 1px solid var(--border); transition: transform .2s, border-color .2s; }
 .ana-milestone-on { border-color: rgba(var(--green-rgb),.4); background: rgba(var(--green-rgb),.05); }
 .ana-milestone-on:hover { transform: translateY(-2px); border-color: var(--green); }
