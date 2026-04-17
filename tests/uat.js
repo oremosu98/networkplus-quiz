@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.45.0', js.includes("const APP_VERSION = '4.45.0"));
+test('APP_VERSION is 4.45.1', js.includes("const APP_VERSION = '4.45.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.45.0', sw.includes('netplus-v4.45.0'));
+test('SW cache bumped to v4.45.1', sw.includes('netplus-v4.45.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4114,6 +4114,33 @@ test('v4.45.0: Wrong-pattern classifier detects negation, domain, PBQ type, Hard
   js.includes('DOMAIN \\u2014') &&
   (js.includes('MULTI-SELECT') || js.includes('ORDER / SEQUENCE')) &&
   js.includes('HARD-DIFFICULTY CONCENTRATION'));
+
+// ── v4.45.1 DOMAIN MASTERY TIER THRESHOLD ADJUSTMENT ──
+console.log('\n\x1b[1m── v4.45.1 TIER THRESHOLD ADJUSTMENT ──\x1b[0m');
+// Proficient threshold dropped from 75% → 70% and Novice ceiling dropped from
+// 60% → 55% after user dispute — real CompTIA raw-accuracy pass equivalent is
+// ~70-75%, so "Proficient" now meaningfully = "you'd likely pass today."
+// Scope the matches to the tierInfo arrow function body so we don't accidentally
+// match other numeric comparisons elsewhere.
+// The `pct >= N) return { label: '...', cls: 'dm-badge-...' }` pattern
+// appears only in tierInfo, so testing against the whole app.js is safe
+// and avoids brace-depth extraction gymnastics.
+test('v4.45.1: Proficient threshold at 70% (was 75%)',
+  /pct\s*>=\s*70\)\s*return\s*\{\s*label:\s*'Proficient'/.test(js));
+test('v4.45.1: Developing / Novice boundary at 55% (was 60%)',
+  /pct\s*>=\s*55\)\s*return\s*\{\s*label:\s*'Developing'/.test(js));
+test('v4.45.1: Mastered threshold unchanged at 85%',
+  /pct\s*>=\s*85\)\s*return\s*\{\s*label:\s*'Mastered'/.test(js));
+// Regression guards — old thresholds must stay gone
+test('v4.45.1: old 75% Proficient threshold removed (regression guard)',
+  !/pct\s*>=\s*75\)\s*return\s*\{\s*label:\s*'Proficient'/.test(js));
+test('v4.45.1: old 60% Developing threshold removed (regression guard)',
+  !/pct\s*>=\s*60\)\s*return\s*\{\s*label:\s*'Developing'/.test(js));
+// Structural checks above cover the tier boundaries; a vm-sandbox smoke
+// would need brace-depth extraction of the arrow-function body (non-greedy
+// regex captures only the first `};` inside the function). Structural
+// regex coverage is sufficient here — all 4 tier cutoffs + 2 regression
+// guards on old cutoffs.
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

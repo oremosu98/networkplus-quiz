@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.45.0
+// Network+ AI Quiz — app.js  v4.45.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.45.0';
+const APP_VERSION = '4.45.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -17759,10 +17759,17 @@ function _renderAnaDomainMastery(h) {
   const hasAny = domains.some(d => byDomain[d.id].t > 0);
   if (!hasAny) return '';
 
+  // v4.45.1 — tier thresholds shifted after user dispute. Originally 60/75/85
+  // (even 15-pt bands above Novice) but that put users who'd likely pass the
+  // real CompTIA exam (70-75% raw accuracy) into "Developing," which is
+  // psychologically wrong — 70% is refining, not still-learning-fundamentals.
+  // New thresholds 55/70/85 match the real-world N10-009 raw-accuracy pass
+  // equivalent (~70-75% per form) and make "Proficient" mean "you'd likely
+  // pass today." 85% Mastered ceiling unchanged — aspirational target still reads.
   const tierInfo = (pct) => {
     if (pct >= 85) return { label: 'Mastered',   cls: 'dm-badge-mastered' };
-    if (pct >= 75) return { label: 'Proficient', cls: 'dm-badge-proficient' };
-    if (pct >= 60) return { label: 'Developing', cls: 'dm-badge-developing' };
+    if (pct >= 70) return { label: 'Proficient', cls: 'dm-badge-proficient' };
+    if (pct >= 55) return { label: 'Developing', cls: 'dm-badge-developing' };
     return           { label: 'Novice',     cls: 'dm-badge-novice' };
   };
 
