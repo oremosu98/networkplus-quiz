@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.47.2
+// Network+ AI Quiz — app.js  v4.48.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.47.2';
+const APP_VERSION = '4.48.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7449,6 +7449,21 @@ const TB_SCENARIOS = [
     id: 'small-office',
     title: 'Small Office',
     description: 'A small business with internet access, a firewall, and a handful of PCs + a printer on the internal LAN.',
+    autoBuild: (state) => {
+      const isp  = _tbMkDev({ type: 'cloud',    x: 700, y: 120, hostname: 'ISP' });
+      const fw   = _tbMkDev({ type: 'firewall', x: 700, y: 320, hostname: 'Edge-FW', ip: '203.0.113.2' });
+      const sw   = _tbMkDev({ type: 'switch',   x: 700, y: 520, hostname: 'LAN-SW' });
+      const pc1  = _tbMkDev({ type: 'pc',       x: 400, y: 720, hostname: 'PC-01',   ip: '192.168.10.101', gateway: '192.168.10.1' });
+      const pc2  = _tbMkDev({ type: 'pc',       x: 620, y: 720, hostname: 'PC-02',   ip: '192.168.10.102', gateway: '192.168.10.1' });
+      const pc3  = _tbMkDev({ type: 'pc',       x: 840, y: 720, hostname: 'PC-03',   ip: '192.168.10.103', gateway: '192.168.10.1' });
+      const prn  = _tbMkDev({ type: 'printer',  x: 1060,y: 720, hostname: 'Printer', ip: '192.168.10.200', gateway: '192.168.10.1' });
+      state.devices.push(isp, fw, sw, pc1, pc2, pc3, prn);
+      state.cables.push(
+        _tbMkCable(isp, fw),
+        _tbMkCable(fw, sw),
+        _tbMkCable(sw, pc1), _tbMkCable(sw, pc2), _tbMkCable(sw, pc3), _tbMkCable(sw, prn),
+      );
+    },
     requirements: [
       'Cloud/WAN → Firewall → Internal switch',
       'At least 2 PCs on the internal switch',
@@ -7485,6 +7500,23 @@ const TB_SCENARIOS = [
     id: 'dmz',
     title: 'DMZ / Screened Subnet',
     description: 'A network with public-facing servers segregated from the internal LAN by a DMZ switch.',
+    autoBuild: (state) => {
+      const isp  = _tbMkDev({ type: 'cloud',        x: 700, y: 120, hostname: 'Internet' });
+      const fw   = _tbMkDev({ type: 'firewall',     x: 700, y: 320, hostname: 'Perimeter-FW' });
+      const dmzsw = _tbMkDev({ type: 'dmz-switch',  x: 400, y: 520, hostname: 'DMZ-SW' });
+      const web  = _tbMkDev({ type: 'public-web',   x: 280, y: 720, hostname: 'web.example.com', ip: '203.0.113.10' });
+      const file = _tbMkDev({ type: 'public-file',  x: 520, y: 720, hostname: 'ftp.example.com', ip: '203.0.113.11' });
+      const insw = _tbMkDev({ type: 'switch',       x: 1000,y: 520, hostname: 'Internal-SW' });
+      const pc1  = _tbMkDev({ type: 'pc',           x: 880, y: 720, hostname: 'PC-01',   ip: '10.1.10.101', gateway: '10.1.10.1' });
+      const pc2  = _tbMkDev({ type: 'pc',           x: 1100,y: 720, hostname: 'PC-02',   ip: '10.1.10.102', gateway: '10.1.10.1' });
+      const prn  = _tbMkDev({ type: 'printer',      x: 1320,y: 720, hostname: 'Printer', ip: '10.1.10.200', gateway: '10.1.10.1' });
+      state.devices.push(isp, fw, dmzsw, web, file, insw, pc1, pc2, prn);
+      state.cables.push(
+        _tbMkCable(isp, fw),
+        _tbMkCable(fw, dmzsw), _tbMkCable(dmzsw, web), _tbMkCable(dmzsw, file),
+        _tbMkCable(fw, insw, 'cat6', 1), _tbMkCable(insw, pc1), _tbMkCable(insw, pc2), _tbMkCable(insw, prn),
+      );
+    },
     requirements: [
       'Cloud/WAN → Firewall → DMZ switch with public servers',
       'DMZ switch → Firewall → Internal switch (screened subnet)',
@@ -7522,6 +7554,27 @@ const TB_SCENARIOS = [
     id: 'enterprise',
     title: 'Enterprise w/ IDS + Load Balancer',
     description: 'Enterprise-grade screened subnet with IDS/IPS monitoring and a load balancer fronting multiple servers.',
+    autoBuild: (state) => {
+      const isp  = _tbMkDev({ type: 'cloud',         x: 700, y: 100, hostname: 'Internet' });
+      const fw1  = _tbMkDev({ type: 'firewall',      x: 700, y: 280, hostname: 'Perimeter-FW' });
+      const ids  = _tbMkDev({ type: 'ids',           x: 960, y: 280, hostname: 'IDS/IPS' });
+      const dmzsw = _tbMkDev({ type: 'dmz-switch',   x: 400, y: 460, hostname: 'DMZ-SW' });
+      const lb   = _tbMkDev({ type: 'load-balancer', x: 400, y: 620, hostname: 'App-LB', ip: '203.0.113.20' });
+      const srv1 = _tbMkDev({ type: 'server',        x: 240, y: 780, hostname: 'Web-01', ip: '10.100.1.10' });
+      const srv2 = _tbMkDev({ type: 'server',        x: 400, y: 820, hostname: 'Web-02', ip: '10.100.1.11' });
+      const srv3 = _tbMkDev({ type: 'server',        x: 560, y: 780, hostname: 'Web-03', ip: '10.100.1.12' });
+      const fw2  = _tbMkDev({ type: 'firewall',      x: 1000,y: 460, hostname: 'Internal-FW' });
+      const insw = _tbMkDev({ type: 'switch',        x: 1000,y: 640, hostname: 'Internal-SW' });
+      const pc1  = _tbMkDev({ type: 'pc',            x: 880, y: 820, hostname: 'PC-01', ip: '10.1.10.101', gateway: '10.1.10.1' });
+      const pc2  = _tbMkDev({ type: 'pc',            x: 1120,y: 820, hostname: 'PC-02', ip: '10.1.10.102', gateway: '10.1.10.1' });
+      state.devices.push(isp, fw1, ids, dmzsw, lb, srv1, srv2, srv3, fw2, insw, pc1, pc2);
+      state.cables.push(
+        _tbMkCable(isp, fw1),
+        _tbMkCable(fw1, ids, 'cat6', 1),
+        _tbMkCable(fw1, dmzsw, 'cat6', 2), _tbMkCable(dmzsw, lb), _tbMkCable(lb, srv1), _tbMkCable(lb, srv2, 'cat6', 2), _tbMkCable(lb, srv3, 'cat6', 3),
+        _tbMkCable(fw1, fw2, 'cat6', 3), _tbMkCable(fw2, insw, 'cat6', 1), _tbMkCable(insw, pc1), _tbMkCable(insw, pc2),
+      );
+    },
     requirements: [
       'Everything from the DMZ scenario',
       'IDS/IPS positioned next to a firewall, switch, or router',
@@ -7560,6 +7613,28 @@ const TB_SCENARIOS = [
     id: 'branch-wireless',
     title: 'Branch Office w/ Wireless',
     description: 'A branch office dominated by wireless — WLC managing multiple WAPs for laptop users.',
+    autoBuild: (state) => {
+      const isp  = _tbMkDev({ type: 'cloud',     x: 700, y: 120, hostname: 'Internet' });
+      const fw   = _tbMkDev({ type: 'firewall',  x: 700, y: 300, hostname: 'Branch-FW' });
+      const sw   = _tbMkDev({ type: 'switch',    x: 700, y: 480, hostname: 'Branch-SW' });
+      const wlc  = _tbMkDev({ type: 'wlc',       x: 400, y: 640, hostname: 'WLC', ip: '10.10.0.10' });
+      const wap1 = _tbMkDev({ type: 'wap',       x: 240, y: 820, hostname: 'WAP-01' });
+      const wap2 = _tbMkDev({ type: 'wap',       x: 560, y: 820, hostname: 'WAP-02' });
+      const lt1  = _tbMkDev({ type: 'laptop',    x: 140, y: 960, hostname: 'Laptop-01', ip: '10.10.20.101', gateway: '10.10.20.1' });
+      const lt2  = _tbMkDev({ type: 'laptop',    x: 340, y: 960, hostname: 'Laptop-02', ip: '10.10.20.102', gateway: '10.10.20.1' });
+      const ph1  = _tbMkDev({ type: 'smartphone',x: 480, y: 960, hostname: 'Phone-01',  ip: '10.10.20.103', gateway: '10.10.20.1', iface: 'wlan0' });
+      const ph2  = _tbMkDev({ type: 'smartphone',x: 640, y: 960, hostname: 'Phone-02',  ip: '10.10.20.104', gateway: '10.10.20.1', iface: 'wlan0' });
+      const pc   = _tbMkDev({ type: 'pc',        x: 1000,y: 640, hostname: 'Reception', ip: '10.10.10.50', gateway: '10.10.10.1' });
+      state.devices.push(isp, fw, sw, wlc, wap1, wap2, lt1, lt2, ph1, ph2, pc);
+      state.cables.push(
+        _tbMkCable(isp, fw),
+        _tbMkCable(fw, sw),
+        _tbMkCable(sw, wlc), _tbMkCable(wlc, wap1), _tbMkCable(wlc, wap2, 'cat6', 1),
+        _tbMkCable(wap1, lt1), _tbMkCable(wap1, ph1),
+        _tbMkCable(wap2, lt2), _tbMkCable(wap2, ph2),
+        _tbMkCable(sw, pc, 'cat6', 1),
+      );
+    },
     requirements: [
       'Cloud/WAN → Firewall → Internal switch',
       'WLC connected to the switch, managing at least 2 WAPs',
@@ -7597,6 +7672,25 @@ const TB_SCENARIOS = [
     id: 'cloud-vpc',
     title: 'Cloud VPC Architecture',
     description: 'Design a cloud VPC with public and private subnets, internet gateway, NAT gateway, and security controls.',
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud',        x: 700, y: 100, hostname: 'Internet' });
+      const igw   = _tbMkDev({ type: 'igw',          x: 700, y: 260, hostname: 'IGW' });
+      const vpc   = _tbMkDev({ type: 'vpc',          x: 700, y: 420, hostname: 'VPC-prod' });
+      const pubsn = _tbMkDev({ type: 'cloud-subnet', x: 420, y: 580, hostname: 'public-subnet', ip: '10.0.1.0' });
+      const natgw = _tbMkDev({ type: 'nat-gw',       x: 420, y: 740, hostname: 'NAT-GW' });
+      const web   = _tbMkDev({ type: 'public-web',   x: 200, y: 740, hostname: 'Web-Server', ip: '10.0.1.10' });
+      const privsn = _tbMkDev({ type: 'cloud-subnet',x: 980, y: 580, hostname: 'private-subnet', ip: '10.0.2.0' });
+      const app   = _tbMkDev({ type: 'server',       x: 980, y: 740, hostname: 'App-Server', ip: '10.0.2.10' });
+      const db    = _tbMkDev({ type: 'server',       x: 1200,y: 740, hostname: 'DB-Server',  ip: '10.0.2.20' });
+      state.devices.push(cloud, igw, vpc, pubsn, natgw, web, privsn, app, db);
+      state.cables.push(
+        _tbMkCable(cloud, igw),
+        _tbMkCable(igw, vpc),
+        _tbMkCable(vpc, pubsn), _tbMkCable(pubsn, natgw), _tbMkCable(pubsn, web, 'cat6', 1),
+        _tbMkCable(vpc, privsn, 'cat6', 1), _tbMkCable(privsn, app), _tbMkCable(privsn, db, 'cat6', 1),
+        _tbMkCable(natgw, privsn, 'fiber', 1, 2),
+      );
+    },
     requirements: [
       'VPC with Internet Gateway for public access',
       'NAT Gateway in public subnet for private outbound',
@@ -7633,6 +7727,24 @@ const TB_SCENARIOS = [
     id: 'hybrid-cloud',
     title: 'Hybrid Cloud (VPN)',
     description: 'Connect an on-premises data center to a cloud VPC via IPSec VPN tunnel with matching crypto parameters.',
+    autoBuild: (state) => {
+      const onprem = _tbMkDev({ type: 'onprem-dc', x: 280, y: 400, hostname: 'HQ-DC', ip: '10.100.0.0' });
+      const fw     = _tbMkDev({ type: 'firewall',  x: 500, y: 400, hostname: 'DC-FW' });
+      const cloud  = _tbMkDev({ type: 'cloud',     x: 720, y: 200, hostname: 'Internet' });
+      const vpg    = _tbMkDev({ type: 'vpg',       x: 940, y: 400, hostname: 'Cloud-VPG' });
+      const vpc    = _tbMkDev({ type: 'vpc',       x: 1160,y: 400, hostname: 'VPC-prod' });
+      const subnet = _tbMkDev({ type: 'cloud-subnet', x: 1160,y: 600, hostname: 'app-subnet', ip: '10.0.1.0' });
+      const app    = _tbMkDev({ type: 'server',    x: 1160,y: 780, hostname: 'Cloud-App', ip: '10.0.1.10' });
+      state.devices.push(onprem, fw, cloud, vpg, vpc, subnet, app);
+      state.cables.push(
+        _tbMkCable(onprem, fw),
+        _tbMkCable(fw, cloud, 'cat6', 1),
+        _tbMkCable(cloud, vpg, 'fiber', 1),
+        _tbMkCable(vpg, vpc),
+        _tbMkCable(vpc, subnet),
+        _tbMkCable(subnet, app, 'cat6', 1),
+      );
+    },
     requirements: [
       'On-premises DC with internal network',
       'Cloud VPC with VPN Gateway',
@@ -7667,6 +7779,24 @@ const TB_SCENARIOS = [
     id: 'multi-vpc',
     title: 'Multi-VPC with Transit Gateway',
     description: 'Connect multiple VPCs through a Transit Gateway hub — the cloud equivalent of a backbone router.',
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud', x: 700, y: 100, hostname: 'Internet' });
+      const igw   = _tbMkDev({ type: 'igw',   x: 700, y: 260, hostname: 'IGW' });
+      const tgw   = _tbMkDev({ type: 'tgw',   x: 700, y: 460, hostname: 'Transit-GW' });
+      const vpcA  = _tbMkDev({ type: 'vpc',   x: 360, y: 640, hostname: 'VPC-prod' });
+      const snA   = _tbMkDev({ type: 'cloud-subnet', x: 360, y: 820, hostname: 'prod-subnet', ip: '10.1.0.0' });
+      const vpcB  = _tbMkDev({ type: 'vpc',   x: 700, y: 660, hostname: 'VPC-shared' });
+      const snB   = _tbMkDev({ type: 'cloud-subnet', x: 700, y: 840, hostname: 'shared-subnet', ip: '10.2.0.0' });
+      const vpcC  = _tbMkDev({ type: 'vpc',   x: 1040,y: 640, hostname: 'VPC-dev' });
+      const snC   = _tbMkDev({ type: 'cloud-subnet', x: 1040,y: 820, hostname: 'dev-subnet', ip: '10.3.0.0' });
+      state.devices.push(cloud, igw, tgw, vpcA, snA, vpcB, snB, vpcC, snC);
+      state.cables.push(
+        _tbMkCable(cloud, igw),
+        _tbMkCable(igw, tgw),
+        _tbMkCable(tgw, vpcA), _tbMkCable(tgw, vpcB, 'cat6', 1), _tbMkCable(tgw, vpcC, 'cat6', 2),
+        _tbMkCable(vpcA, snA), _tbMkCable(vpcB, snB), _tbMkCable(vpcC, snC),
+      );
+    },
     requirements: [
       'Transit Gateway connecting 2+ VPCs',
       'Each VPC has at least one subnet',
@@ -7701,6 +7831,26 @@ const TB_SCENARIOS = [
     id: 'sase-arch',
     title: 'SASE Architecture',
     description: 'Design a Secure Access Service Edge with zero trust, SWG, CASB, and FWaaS protecting cloud and on-prem resources.',
+    autoBuild: (state) => {
+      const lt1   = _tbMkDev({ type: 'laptop',    x: 160, y: 280, hostname: 'Remote-User-01', ip: '' });
+      const lt2   = _tbMkDev({ type: 'laptop',    x: 160, y: 480, hostname: 'Remote-User-02', ip: '' });
+      const ph1   = _tbMkDev({ type: 'smartphone',x: 160, y: 680, hostname: 'Remote-User-03', iface: 'wlan0' });
+      const sase  = _tbMkDev({ type: 'sase-edge', x: 500, y: 480, hostname: 'SASE-Edge (PoP)' });
+      const cloud = _tbMkDev({ type: 'cloud',     x: 780, y: 280, hostname: 'Internet' });
+      const vpc   = _tbMkDev({ type: 'vpc',       x: 1060,y: 320, hostname: 'Corp-VPC' });
+      const app   = _tbMkDev({ type: 'server',    x: 1060,y: 500, hostname: 'SaaS-App', ip: '10.0.1.50' });
+      const onprem = _tbMkDev({ type: 'onprem-dc',x: 1060,y: 700, hostname: 'HQ-DC', ip: '10.100.0.0' });
+      state.devices.push(lt1, lt2, ph1, sase, cloud, vpc, app, onprem);
+      state.cables.push(
+        _tbMkCable(lt1, sase),
+        _tbMkCable(lt2, sase, 'cat6', 0, 1),
+        _tbMkCable(ph1, sase, 'cat6', 0, 2),
+        _tbMkCable(sase, cloud, 'fiber', 3),
+        _tbMkCable(cloud, vpc, 'fiber', 1),
+        _tbMkCable(vpc, app),
+        _tbMkCable(cloud, onprem, 'fiber', 2),
+      );
+    },
     requirements: [
       'SASE Edge node with ZTNA configured',
       'Cloud VPC with resources behind SASE',
@@ -7738,6 +7888,24 @@ const TB_SCENARIOS = [
     id: 'home-network',
     title: 'Home Network',
     description: 'A typical residential network — ISP → home router with Wi-Fi, plus a range of consumer endpoints sharing one public IP via NAT.',
+    autoBuild: (state) => {
+      const isp    = _tbMkDev({ type: 'cloud',        x: 700, y: 120, hostname: 'ISP' });
+      const router = _tbMkDev({ type: 'router',       x: 700, y: 320, hostname: 'Home-Router', ip: '192.168.1.1', mask: '255.255.255.0' });
+      const wap    = _tbMkDev({ type: 'wap',          x: 700, y: 520, hostname: 'WiFi-AP' });
+      const laptop = _tbMkDev({ type: 'laptop',       x: 350, y: 720, hostname: 'Laptop',    ip: '192.168.1.101', gateway: '192.168.1.1' });
+      const phone  = _tbMkDev({ type: 'smartphone',   x: 580, y: 760, hostname: 'Phone',     ip: '192.168.1.102', gateway: '192.168.1.1', iface: 'wlan0' });
+      const tv     = _tbMkDev({ type: 'smart-tv',     x: 820, y: 760, hostname: 'Smart-TV',  ip: '192.168.1.103', gateway: '192.168.1.1' });
+      const gc     = _tbMkDev({ type: 'game-console', x: 1050,y: 720, hostname: 'Console',   ip: '192.168.1.104', gateway: '192.168.1.1' });
+      state.devices.push(isp, router, wap, laptop, phone, tv, gc);
+      state.cables.push(
+        _tbMkCable(isp, router),
+        _tbMkCable(router, wap),
+        _tbMkCable(wap, laptop),
+        _tbMkCable(wap, phone),
+        _tbMkCable(wap, tv),
+        _tbMkCable(wap, gc),
+      );
+    },
     requirements: [
       'ISP cloud/WAN → home router (combined modem + router + Wi-Fi)',
       'WAP/router covers wireless devices',
@@ -7771,6 +7939,27 @@ const TB_SCENARIOS = [
     id: 'sdwan',
     title: 'SD-WAN Network',
     description: 'Software-Defined WAN — a controller pushes policy to branch edges, which load-balance across multiple transports (MPLS + broadband + LTE) based on app and link quality.',
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud',  x: 700, y: 120, hostname: 'Internet/MPLS' });
+      const hub   = _tbMkDev({ type: 'router', x: 700, y: 340, hostname: 'HQ-SDWAN-Edge', ip: '10.0.0.1' });
+      const hubsw = _tbMkDev({ type: 'switch', x: 700, y: 520, hostname: 'HQ-SW' });
+      const hqpc  = _tbMkDev({ type: 'pc',     x: 700, y: 700, hostname: 'HQ-Host', ip: '10.0.0.101', gateway: '10.0.0.1' });
+      const br1   = _tbMkDev({ type: 'router', x: 280, y: 340, hostname: 'Branch-1-Edge', ip: '10.1.0.1' });
+      const br1sw = _tbMkDev({ type: 'switch', x: 280, y: 520, hostname: 'Branch-1-SW' });
+      const br1pc = _tbMkDev({ type: 'pc',     x: 180, y: 700, hostname: 'BR1-Host-01', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const br1lt = _tbMkDev({ type: 'laptop', x: 380, y: 700, hostname: 'BR1-Laptop',   ip: '10.1.0.102', gateway: '10.1.0.1' });
+      const br2   = _tbMkDev({ type: 'router', x: 1120,y: 340, hostname: 'Branch-2-Edge', ip: '10.2.0.1' });
+      const br2sw = _tbMkDev({ type: 'switch', x: 1120,y: 520, hostname: 'Branch-2-SW' });
+      const br2pc = _tbMkDev({ type: 'pc',     x: 1020,y: 700, hostname: 'BR2-Host-01', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const br2ph = _tbMkDev({ type: 'voip',   x: 1220,y: 700, hostname: 'BR2-VoIP',    ip: '10.2.0.50', gateway: '10.2.0.1' });
+      state.devices.push(cloud, hub, hubsw, hqpc, br1, br1sw, br1pc, br1lt, br2, br2sw, br2pc, br2ph);
+      state.cables.push(
+        _tbMkCable(cloud, hub, 'fiber'), _tbMkCable(cloud, br1, 'fiber', 1), _tbMkCable(cloud, br2, 'fiber', 2),
+        _tbMkCable(hub, hubsw, 'cat6', 1), _tbMkCable(hubsw, hqpc),
+        _tbMkCable(br1, br1sw, 'cat6', 1), _tbMkCable(br1sw, br1pc), _tbMkCable(br1sw, br1lt, 'cat6', 1),
+        _tbMkCable(br2, br2sw, 'cat6', 1), _tbMkCable(br2sw, br2pc), _tbMkCable(br2sw, br2ph, 'cat6', 1),
+      );
+    },
     requirements: [
       'Hub/headend site (central datacenter)',
       'At least 2 branch sites, each with edge router + switch + endpoints',
@@ -7804,6 +7993,27 @@ const TB_SCENARIOS = [
     id: 'mpls',
     title: 'MPLS Network',
     description: 'Multiprotocol Label Switching — carrier-grade WAN where ISPs forward packets by short labels (not IP lookups) through a provider cloud with SLA-backed paths.',
+    autoBuild: (state) => {
+      const mpls = _tbMkDev({ type: 'cloud',  x: 700, y: 140, hostname: 'MPLS-Core' });
+      const pe1  = _tbMkDev({ type: 'isp-router', x: 430, y: 280, hostname: 'PE-1 (Provider Edge)' });
+      const pe2  = _tbMkDev({ type: 'isp-router', x: 970, y: 280, hostname: 'PE-2 (Provider Edge)' });
+      const ce1  = _tbMkDev({ type: 'router', x: 280, y: 460, hostname: 'Site-A-CE', ip: '10.1.0.1' });
+      const sw1  = _tbMkDev({ type: 'switch', x: 280, y: 620, hostname: 'Site-A-SW' });
+      const pc1a = _tbMkDev({ type: 'pc',     x: 180, y: 800, hostname: 'Site-A-PC-01', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const pc1b = _tbMkDev({ type: 'pc',     x: 380, y: 800, hostname: 'Site-A-PC-02', ip: '10.1.0.102', gateway: '10.1.0.1' });
+      const ce2  = _tbMkDev({ type: 'router', x: 1120,y: 460, hostname: 'Site-B-CE', ip: '10.2.0.1' });
+      const sw2  = _tbMkDev({ type: 'switch', x: 1120,y: 620, hostname: 'Site-B-SW' });
+      const pc2a = _tbMkDev({ type: 'pc',     x: 1020,y: 800, hostname: 'Site-B-PC-01', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const srv  = _tbMkDev({ type: 'server', x: 1220,y: 800, hostname: 'Site-B-Server', ip: '10.2.0.10', gateway: '10.2.0.1' });
+      state.devices.push(mpls, pe1, pe2, ce1, sw1, pc1a, pc1b, ce2, sw2, pc2a, srv);
+      state.cables.push(
+        _tbMkCable(mpls, pe1, 'fiber'), _tbMkCable(mpls, pe2, 'fiber', 1),
+        _tbMkCable(pe1, ce1, 'fiber', 1),
+        _tbMkCable(ce1, sw1, 'cat6', 1), _tbMkCable(sw1, pc1a), _tbMkCable(sw1, pc1b, 'cat6', 1),
+        _tbMkCable(pe2, ce2, 'fiber', 1),
+        _tbMkCable(ce2, sw2, 'cat6', 1), _tbMkCable(sw2, pc2a), _tbMkCable(sw2, srv, 'cat6', 1),
+      );
+    },
     requirements: [
       'Provider cloud/WAN in the middle (MPLS core)',
       'At least 2 customer sites, each with a CE router → PE router',
@@ -7837,6 +8047,23 @@ const TB_SCENARIOS = [
     id: 'cloud-natgw',
     title: 'NAT Gateway Cloud (private-subnet outbound)',
     description: 'Cloud VPC where private-subnet resources need outbound internet access via a managed NAT Gateway — but nothing from the internet can initiate inbound.',
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud',        x: 700, y: 100, hostname: 'Internet' });
+      const igw   = _tbMkDev({ type: 'igw',          x: 700, y: 280, hostname: 'IGW' });
+      const vpc   = _tbMkDev({ type: 'vpc',          x: 700, y: 440, hostname: 'VPC-prod' });
+      const pubsn = _tbMkDev({ type: 'cloud-subnet', x: 450, y: 600, hostname: 'public-subnet', ip: '10.0.1.0' });
+      const natgw = _tbMkDev({ type: 'nat-gw',       x: 450, y: 780, hostname: 'NAT-GW', ip: '10.0.1.254' });
+      const privsn = _tbMkDev({ type: 'cloud-subnet',x: 950, y: 600, hostname: 'private-subnet', ip: '10.0.2.0' });
+      const app   = _tbMkDev({ type: 'server',       x: 850, y: 780, hostname: 'Backend-API', ip: '10.0.2.10', gateway: '10.0.2.1' });
+      const db    = _tbMkDev({ type: 'server',       x: 1050,y: 780, hostname: 'DB-Primary', ip: '10.0.2.20', gateway: '10.0.2.1' });
+      state.devices.push(cloud, igw, vpc, pubsn, natgw, privsn, app, db);
+      state.cables.push(
+        _tbMkCable(cloud, igw), _tbMkCable(igw, vpc),
+        _tbMkCable(vpc, pubsn), _tbMkCable(pubsn, natgw),
+        _tbMkCable(vpc, privsn, 'cat6', 1), _tbMkCable(privsn, app), _tbMkCable(privsn, db, 'cat6', 1),
+        _tbMkCable(natgw, privsn, 'fiber', 1, 2),
+      );
+    },
     requirements: [
       'VPC with at least one public subnet + one private subnet',
       'NAT Gateway placed in the public subnet',
@@ -7873,6 +8100,22 @@ const TB_SCENARIOS = [
     id: 'cloud-igw',
     title: 'Internet Gateway Cloud (public web tier)',
     description: 'A cloud VPC where public-subnet resources (load-balanced web servers) accept inbound traffic from the internet directly via an Internet Gateway.',
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud',        x: 700, y: 100, hostname: 'Internet' });
+      const igw   = _tbMkDev({ type: 'igw',          x: 700, y: 280, hostname: 'IGW' });
+      const vpc   = _tbMkDev({ type: 'vpc',          x: 700, y: 440, hostname: 'VPC-web' });
+      const pubsn = _tbMkDev({ type: 'cloud-subnet', x: 700, y: 600, hostname: 'public-subnet', ip: '10.0.1.0' });
+      const lb    = _tbMkDev({ type: 'load-balancer',x: 700, y: 760, hostname: 'App-LB', ip: '203.0.113.5' });
+      const web1  = _tbMkDev({ type: 'public-web',   x: 500, y: 920, hostname: 'Web-01', ip: '10.0.1.10' });
+      const web2  = _tbMkDev({ type: 'public-web',   x: 700, y: 920, hostname: 'Web-02', ip: '10.0.1.11' });
+      const web3  = _tbMkDev({ type: 'public-web',   x: 900, y: 920, hostname: 'Web-03', ip: '10.0.1.12' });
+      state.devices.push(cloud, igw, vpc, pubsn, lb, web1, web2, web3);
+      state.cables.push(
+        _tbMkCable(cloud, igw), _tbMkCable(igw, vpc),
+        _tbMkCable(vpc, pubsn), _tbMkCable(pubsn, lb),
+        _tbMkCable(lb, web1, 'cat6', 1), _tbMkCable(lb, web2, 'cat6', 2), _tbMkCable(lb, web3, 'cat6', 3),
+      );
+    },
     requirements: [
       'VPC with an Internet Gateway attached',
       'At least one public subnet',
@@ -7909,6 +8152,23 @@ const TB_SCENARIOS = [
     id: 'cloud-peering',
     title: 'VPC Peering Cloud',
     description: 'Two VPCs directly connected by a peering link — a one-to-one private network bridge. No Transit Gateway, no VPN, no internet exposure.',
+    autoBuild: (state) => {
+      const vpcA  = _tbMkDev({ type: 'vpc',          x: 380, y: 300, hostname: 'VPC-A (10.0.0.0/16)' });
+      const snA   = _tbMkDev({ type: 'cloud-subnet', x: 380, y: 500, hostname: 'app-subnet-A', ip: '10.0.1.0' });
+      const appA  = _tbMkDev({ type: 'server',       x: 260, y: 700, hostname: 'App-A-Web', ip: '10.0.1.10' });
+      const dbA   = _tbMkDev({ type: 'server',       x: 500, y: 700, hostname: 'App-A-Svc', ip: '10.0.1.20' });
+      const vpcB  = _tbMkDev({ type: 'vpc',          x: 1040,y: 300, hostname: 'VPC-B (10.1.0.0/16)' });
+      const snB   = _tbMkDev({ type: 'cloud-subnet', x: 1040,y: 500, hostname: 'db-subnet-B', ip: '10.1.1.0' });
+      const dbB1  = _tbMkDev({ type: 'server',       x: 920, y: 700, hostname: 'DB-Primary', ip: '10.1.1.10' });
+      const dbB2  = _tbMkDev({ type: 'server',       x: 1160,y: 700, hostname: 'DB-Replica', ip: '10.1.1.11' });
+      state.devices.push(vpcA, snA, appA, dbA, vpcB, snB, dbB1, dbB2);
+      state.cables.push(
+        _tbMkCable(vpcA, snA), _tbMkCable(snA, appA), _tbMkCable(snA, dbA, 'cat6', 1),
+        _tbMkCable(vpcB, snB), _tbMkCable(snB, dbB1), _tbMkCable(snB, dbB2, 'cat6', 1),
+        // Peering connection — fiber-direct between VPCs
+        _tbMkCable(vpcA, vpcB, 'fiber', 1, 1),
+      );
+    },
     requirements: [
       'Two VPCs with non-overlapping CIDR blocks',
       'Each VPC has at least one subnet with a resource',
@@ -7943,6 +8203,31 @@ const TB_SCENARIOS = [
     id: 'man',
     title: 'Metropolitan Area Network (MAN)',
     description: 'A MAN spans a city — multiple sites connected by high-speed metro fiber, typically through a single ISP or municipal backbone. Larger than LAN, smaller than WAN.',
+    autoBuild: (state) => {
+      const metro = _tbMkDev({ type: 'cloud',  x: 700, y: 180, hostname: 'Metro-Fiber' });
+      // Site A — Hospital
+      const rtrA  = _tbMkDev({ type: 'router', x: 280, y: 380, hostname: 'Hospital-Edge', ip: '10.10.0.1' });
+      const swA   = _tbMkDev({ type: 'switch', x: 280, y: 560, hostname: 'Hospital-SW' });
+      const pcA   = _tbMkDev({ type: 'pc',     x: 180, y: 740, hostname: 'Hospital-PC-01', ip: '10.10.0.101', gateway: '10.10.0.1' });
+      const srvA  = _tbMkDev({ type: 'server', x: 380, y: 740, hostname: 'Patient-DB', ip: '10.10.0.10', gateway: '10.10.0.1' });
+      // Site B — Clinic
+      const rtrB  = _tbMkDev({ type: 'router', x: 700, y: 380, hostname: 'Clinic-Edge', ip: '10.20.0.1' });
+      const swB   = _tbMkDev({ type: 'switch', x: 700, y: 560, hostname: 'Clinic-SW' });
+      const pcB1  = _tbMkDev({ type: 'pc',     x: 620, y: 740, hostname: 'Clinic-PC-01', ip: '10.20.0.101', gateway: '10.20.0.1' });
+      const pcB2  = _tbMkDev({ type: 'pc',     x: 780, y: 740, hostname: 'Clinic-PC-02', ip: '10.20.0.102', gateway: '10.20.0.1' });
+      // Site C — Admin
+      const rtrC  = _tbMkDev({ type: 'router', x: 1120,y: 380, hostname: 'Admin-Edge', ip: '10.30.0.1' });
+      const swC   = _tbMkDev({ type: 'switch', x: 1120,y: 560, hostname: 'Admin-SW' });
+      const pcC   = _tbMkDev({ type: 'pc',     x: 1040,y: 740, hostname: 'Admin-PC-01', ip: '10.30.0.101', gateway: '10.30.0.1' });
+      const prnC  = _tbMkDev({ type: 'printer',x: 1220,y: 740, hostname: 'Admin-Printer', ip: '10.30.0.50', gateway: '10.30.0.1' });
+      state.devices.push(metro, rtrA, swA, pcA, srvA, rtrB, swB, pcB1, pcB2, rtrC, swC, pcC, prnC);
+      state.cables.push(
+        _tbMkCable(metro, rtrA, 'fiber'), _tbMkCable(metro, rtrB, 'fiber', 1), _tbMkCable(metro, rtrC, 'fiber', 2),
+        _tbMkCable(rtrA, swA, 'cat6', 1), _tbMkCable(swA, pcA), _tbMkCable(swA, srvA, 'cat6', 1),
+        _tbMkCable(rtrB, swB, 'cat6', 1), _tbMkCable(swB, pcB1), _tbMkCable(swB, pcB2, 'cat6', 1),
+        _tbMkCable(rtrC, swC, 'cat6', 1), _tbMkCable(swC, pcC), _tbMkCable(swC, prnC, 'cat6', 1),
+      );
+    },
     requirements: [
       'Metro fiber cloud/backbone in the middle',
       'At least 3 city sites, each with edge router + switch + endpoints',
@@ -7976,24 +8261,116 @@ const TB_SCENARIOS = [
 
 let tbSelectedScenario = 'free';
 
+// v4.48.0: helpers to author scenario autoBuild functions concisely. The
+// existing device object has 13 fields with sensible defaults; these helpers
+// fill in the boilerplate so an autoBuild function reads like pseudocode.
+function _tbMkDev(opts) {
+  const id = opts.id || ('d_sc_' + Math.random().toString(36).slice(2, 9));
+  const defaultsIface = {
+    name: 'eth0', cableId: null, ip: '', mask: '255.255.255.0',
+    mac: tbGenerateMac(id, 0),
+    vlan: 1, mode: 'access', trunkAllowed: [1],
+    gateway: '', enabled: true, subInterfaces: []
+  };
+  const interfaces = opts.interfaces
+    ? opts.interfaces.map((iface, idx) => Object.assign({}, defaultsIface, iface, { mac: tbGenerateMac(id, idx) }))
+    : [Object.assign({}, defaultsIface, {
+        name: opts.iface || 'eth0',
+        ip: opts.ip || '',
+        mask: opts.mask || '255.255.255.0',
+        gateway: opts.gateway || '',
+      })];
+  return {
+    id, type: opts.type,
+    x: opts.x || 400, y: opts.y || 400,
+    hostname: opts.hostname || (opts.type.toUpperCase().slice(0, 4)),
+    interfaces,
+    routingTable: [], arpTable: [], macTable: [], vlanDb: [],
+    dhcpServer: null, dhcpRelay: null, acls: [], securityGroups: [],
+    nacls: [], vpcConfig: null, vpnConfig: null, saseConfig: null,
+    vxlanConfig: [],
+  };
+}
+function _tbMkCable(a, b, type = 'cat6', aIdx = 0, bIdx = 0) {
+  // v4.48.0: auto-provision interfaces so scenario authors can reference
+  // slots 1/2/3 without pre-declaring them on _tbMkDev. _tbMkDev creates
+  // one default interface; additional ones spawn here as needed.
+  const ensureIface = (dev, idx) => {
+    while (dev.interfaces.length <= idx) {
+      const n = dev.interfaces.length;
+      dev.interfaces.push({
+        name: 'eth' + n, cableId: null, ip: '', mask: '255.255.255.0',
+        mac: tbGenerateMac(dev.id, n),
+        vlan: 1, mode: 'access', trunkAllowed: [1],
+        gateway: '', enabled: true, subInterfaces: []
+      });
+    }
+  };
+  ensureIface(a, aIdx);
+  ensureIface(b, bIdx);
+  const cable = {
+    id: 'c_sc_' + Math.random().toString(36).slice(2, 9),
+    from: a.id, to: b.id, type,
+    fromIface: a.interfaces[aIdx].name,
+    toIface: b.interfaces[bIdx].name,
+  };
+  a.interfaces[aIdx].cableId = cable.id;
+  b.interfaces[bIdx].cableId = cable.id;
+  return cable;
+}
+
+// v4.48.0: load a scenario AND pre-build its starter topology on the canvas.
+// If canvas has devices, confirm before replacing. This is the primary entry
+// point from the scenario picker + dropdown — tbSetScenario is now the
+// lightweight internal state setter (no canvas changes) called by this flow.
+function tbLoadScenarioWithBuild(id) {
+  const scen = TB_SCENARIOS.find(s => s.id === id);
+  if (!scen) return;
+
+  // If user is switching away from a scenario that had autoBuild (and canvas
+  // still has those devices), or user has manually built something, confirm
+  // before we replace.
+  const hasDevices = tbState && tbState.devices && tbState.devices.length > 0;
+  if (hasDevices && id !== 'free') {
+    if (!confirm(`Load "${scen.title}" scenario? This will replace your current canvas.`)) {
+      // Re-sync the dropdown back to the previous selection so it doesn't
+      // look stale after a cancel.
+      const dd = document.getElementById('tb-scenario-select');
+      if (dd && tbSelectedScenario) dd.value = tbSelectedScenario;
+      return;
+    }
+  }
+
+  // Clear-and-build (or just clear for Free Build)
+  tbState = tbNewState();
+  tbState.name = scen.title;
+  if (scen.autoBuild && id !== 'free') {
+    try {
+      scen.autoBuild(tbState);
+      if (typeof tbMigrateState === 'function') tbMigrateState(tbState);
+    } catch (err) {
+      console.warn('[tb] autoBuild failed for', id, err);
+    }
+  }
+
+  // Update scenario state + re-render everything
+  tbSetScenario(id);
+  tbRenderCanvas();
+  tbUpdateDeviceCount();
+  tbSaveDraft();
+
+  if (id !== 'free' && tbState.devices.length > 0) {
+    showSuccessToast(`\u{1F3D7}\uFE0F ${scen.title} built \u2014 ${tbState.devices.length} devices connected. Explore + modify as you learn.`);
+  }
+}
+
 function tbSetScenario(id) {
   const scen = TB_SCENARIOS.find(s => s.id === id);
   if (!scen) return;
-  const wasFree = tbSelectedScenario === 'free' || !tbSelectedScenario;
   tbSelectedScenario = id;
   tbRenderScenarioPanel();
-  tbUpdateStatus(`Scenario: ${scen.title}`);
-
-  // v4.47.2: in-canvas scenario feedback. Pre-fix the scenario panel
-  // rendered above the toolbar — out of the user's line of sight when
-  // they're looking at the canvas. Now tbRenderEmptyHint() swaps the
-  // canvas empty-state INTO a scenario-specific card (title + summary +
-  // deep-dive button) so feedback lands exactly where the user is looking.
   tbRenderEmptyHint();
-
-  if (id !== 'free') {
-    showSuccessToast(`\u{1F4DA} Scenario loaded: ${scen.title}. See the canvas for details.`);
-  }
+  tbUpdateStatus(`Scenario: ${scen.title}`);
 }
 
 // v4.47.2: dynamic empty-state renderer. Swaps between Free Build (4 CTAs
@@ -8206,7 +8583,10 @@ function tbLoadScenarioFromPicker(id) {
   // Sync the toolbar dropdown so both surfaces stay consistent
   const dd = document.getElementById('tb-scenario-select');
   if (dd) dd.value = id;
-  tbSetScenario(id);
+  // v4.48.0: auto-build the scenario topology (user asked for scenarios to
+  // feel like guided labs \u2014 pick a scenario and the canvas populates with
+  // the devices already connected).
+  tbLoadScenarioWithBuild(id);
 }
 
 // v4.47.0: scenario panel now includes a collapsible "Learn more" section

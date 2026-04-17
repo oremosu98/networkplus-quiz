@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.47.2', js.includes("const APP_VERSION = '4.47.2"));
+test('APP_VERSION is 4.48.0', js.includes("const APP_VERSION = '4.48.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.47.2', sw.includes('netplus-v4.47.2'));
+test('SW cache bumped to v4.48.0', sw.includes('netplus-v4.48.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4416,8 +4416,8 @@ test('v4.47.1: tbLoadScenarioFromPicker syncs the toolbar dropdown',
 // tbSetScenario just delegates + shows toast)
 test('v4.47.1/2: tbSetScenario calls tbRenderEmptyHint to update canvas feedback',
   /function tbSetScenario\(id\)[\s\S]{0,1500}tbRenderEmptyHint\(\)/.test(js));
-test('v4.47.1: tbSetScenario shows success toast on non-free selection',
-  /function tbSetScenario\(id\)[\s\S]{0,2000}showSuccessToast/.test(js));
+test('v4.48.0: success toast is shown by tbLoadScenarioWithBuild (not tbSetScenario anymore \u2014 toast moved to the flow that actually builds)',
+  /function tbLoadScenarioWithBuild\(id\)[\s\S]{0,2500}showSuccessToast/.test(js));
 test('v4.47.2: tbRenderCanvas delegates empty-state to tbRenderEmptyHint',
   /function tbRenderCanvas\(\)[\s\S]{0,6000}tbRenderEmptyHint\(\)/.test(js));
 // Success toast helper
@@ -4491,6 +4491,38 @@ test('v4.47.2 CSS: reduced-motion neutralises tb-sc-loaded animation',
   /prefers-reduced-motion[\s\S]{0,5000}\.tb-sc-loaded\s*\{[^}]*animation:\s*none/.test(css));
 test('v4.47.2 CSS: narrow-viewport tightens scenario-loaded card',
   /@media \(max-width:\s*560px\)[\s\S]{0,500}\.tb-sc-loaded\s*\{[^}]*padding:\s*18px\s*20px/.test(css));
+
+// ── v4.48.0 SCENARIO AUTO-BUILD ──
+console.log('\n\x1b[1m── v4.48.0 SCENARIO AUTO-BUILD ──\x1b[0m');
+// Helpers
+test('v4.48.0: _tbMkDev helper defined', js.includes('function _tbMkDev(opts)'));
+test('v4.48.0: _tbMkCable helper defined', js.includes('function _tbMkCable(a, b'));
+test('v4.48.0: tbLoadScenarioWithBuild flow defined',
+  js.includes('function tbLoadScenarioWithBuild(id)'));
+test('v4.48.0: loader confirms before replacing dirty canvas',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}confirm\(`Load "\$\{scen\.title\}" scenario/.test(js));
+test('v4.48.0: loader clears state via tbNewState() then runs autoBuild',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}tbNewState\(\)[\s\S]{0,400}scen\.autoBuild\(tbState\)/.test(js));
+test('v4.48.0: loader shows build-complete toast with device count',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}devices connected\. Explore/.test(js));
+// Entry points wired
+test('v4.48.0: tbLoadScenarioFromPicker calls tbLoadScenarioWithBuild (not bare tbSetScenario)',
+  /function tbLoadScenarioFromPicker[\s\S]{0,500}tbLoadScenarioWithBuild\(id\)/.test(js));
+test('v4.48.0: toolbar dropdown onchange wired to tbLoadScenarioWithBuild',
+  html.includes('onchange="tbLoadScenarioWithBuild(this.value)"'));
+// All 15 scenarios have autoBuild
+const scenariosWithBuild = ['home-network', 'small-office', 'dmz', 'enterprise', 'branch-wireless',
+  'cloud-vpc', 'hybrid-cloud', 'multi-vpc', 'sase-arch', 'sdwan', 'mpls',
+  'cloud-natgw', 'cloud-igw', 'cloud-peering', 'man'];
+scenariosWithBuild.forEach(id => {
+  test(`v4.48.0: scenario '${id}' has autoBuild function`,
+    new RegExp(`id:\\s*'${id}'[\\s\\S]{0,4000}autoBuild:\\s*\\(state\\)\\s*=>`).test(js));
+});
+// Spot-check that autoBuild functions actually push devices + cables
+test('v4.48.0: every scenario autoBuild pushes to state.devices',
+  (js.match(/autoBuild:\s*\(state\)\s*=>\s*\{[\s\S]*?state\.devices\.push/g) || []).length >= 15);
+test('v4.48.0: every scenario autoBuild pushes to state.cables',
+  (js.match(/autoBuild:\s*\(state\)\s*=>\s*\{[\s\S]*?state\.cables\.push/g) || []).length >= 15);
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
