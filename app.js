@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.4
+// Network+ AI Quiz — app.js  v4.43.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.4';
+const APP_VERSION = '4.43.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1489,16 +1489,25 @@ async function startExam() {
   fill.style.width = '0%';
   prog.classList.remove('is-hidden');
 
-  const BATCHES = 5, BATCH_SIZE = 18, MAX_RETRIES = 2;
+  // v4.43.5 — Exam now runs the same validation pipeline as quiz mode (was
+  // shipping raw Haiku batches). Per-batch: over-request → Sonnet semantic pass
+  // → programmatic validator → retry-to-fill if short. Graceful degradation:
+  // if BOTH rounds drop heavily on a batch, ship what we have and surface a
+  // banner on the exam page (score scaling is correct/total so a shortfall
+  // scales proportionally — 720 pass threshold stays honest).
+  const BATCHES = 5, EXAM_BATCH_BASE = 18, EXAM_BATCH_BUFFER = 5, MAX_RETRIES = 2;
   try {
     for (let i = 0; i < BATCHES; i++) {
       fill.style.width = ((i / BATCHES) * 100) + '%';
-      lbl.textContent  = `Batch ${i + 1} / ${BATCHES}\u2026`;
-      document.getElementById('loading-msg').textContent = `Generating questions (${examQuestions.length + BATCH_SIZE} / 90)\u2026`;
-      let batch = null;
+
+      // Step 1: Generate (over-request) with fetch-retry on throw
+      lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 generating\u2026`;
+      document.getElementById('loading-msg').textContent =
+        `Generating questions (${examQuestions.length} / 90)\u2026`;
+      let rawBatch = null;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          batch = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', BATCH_SIZE);
+          rawBatch = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', EXAM_BATCH_BASE + EXAM_BATCH_BUFFER);
           break;
         } catch(retryErr) {
           if (attempt === MAX_RETRIES) throw retryErr;
@@ -1506,21 +1515,75 @@ async function startExam() {
           await new Promise(r => setTimeout(r, 1500));
         }
       }
-      examQuestions = examQuestions.concat(batch);
+
+      // Step 2: Validate — Sonnet semantic pass + programmatic checks
+      // (same pipeline as startQuiz, per v4.43.5 parity decision)
+      lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 verifying\u2026`;
+      const aiValidated = await aiValidateQuestions(key, rawBatch);
+      let batch = validateQuestions(aiValidated);
+
+      // Step 3: Retry-to-fill if post-validation short — ONE retry per batch
+      if (batch.length < EXAM_BATCH_BASE) {
+        const deficit = EXAM_BATCH_BASE - batch.length;
+        lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 filling ${deficit} more\u2026`;
+        try {
+          const extraRaw = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + EXAM_BATCH_BUFFER);
+          const extraValidated = validateQuestions(await aiValidateQuestions(key, extraRaw));
+          batch = batch.concat(extraValidated);
+        } catch(retryErr) {
+          console.warn(`Exam batch ${i + 1} retry-to-fill failed, continuing with partial batch:`, retryErr);
+        }
+      }
+
+      // Step 4: Slice batch to EXAM_BATCH_BASE (truncate overage, accept shortage).
+      // If still < EXAM_BATCH_BASE here, the final exam will be short of 90 — handled below.
+      examQuestions = examQuestions.concat(batch.slice(0, EXAM_BATCH_BASE));
     }
     fill.style.width = '100%';
-    // Inject 2 CLI/topo PBQs into exam
+    // Inject 2 CLI/topo PBQs into exam (predefined bank — already known good, skip validation)
     examQuestions = injectPBQs(examQuestions, MIXED_TOPIC, 2);
+    // Defensive truncate: if injectPBQs somehow grew past 90 (shouldn't — it splices 1-for-1)
+    if (examQuestions.length > EXAM_QUESTION_COUNT) {
+      examQuestions = examQuestions.slice(0, EXAM_QUESTION_COUNT);
+    }
+    // Capture final count before render so we can surface the shortfall banner if needed
+    const examShortfall = examQuestions.length < EXAM_QUESTION_COUNT;
+
     examAnswers = examQuestions.map(() => ({ chosen: null, flagged: false, msChosen: [], orderSeq: [], cliRan: [], topoState: {} }));
     showPage('exam');
     renderExam();
     startExamTimer();
+    // Option B (user-approved, v4.43.5): graceful degradation — ship the exam
+    // with what we have rather than error out. Show a non-blocking banner.
+    if (examShortfall) showExamShortfallBanner(examQuestions.length);
   } catch(e) {
     examMode = false;
     showPage('setup');
     errBox.textContent = '\u26a0\ufe0f ' + e.message;
     errBox.classList.remove('is-hidden');
   }
+}
+
+// v4.43.5: surface a subtle banner when exam ships fewer than 90 questions
+// because both the initial generation and the retry-to-fill dropped questions.
+// Non-blocking — user can dismiss and take the exam. Scaling (correct/total)
+// handles the shortfall proportionally so the 720 pass mark stays honest.
+function showExamShortfallBanner(actualCount) {
+  const examPage = document.getElementById('page-exam');
+  if (!examPage) return;
+  const existing = document.getElementById('exam-shortfall-banner');
+  if (existing) existing.remove();
+  const filtered = EXAM_QUESTION_COUNT - actualCount;
+  const banner = document.createElement('div');
+  banner.id = 'exam-shortfall-banner';
+  banner.className = 'exam-shortfall-banner';
+  banner.setAttribute('role', 'status');
+  banner.innerHTML = `
+    <span class="exam-shortfall-icon" aria-hidden="true">\u2139\uFE0F</span>
+    <span class="exam-shortfall-text">This exam has <strong>${actualCount} of ${EXAM_QUESTION_COUNT}</strong> questions \u2014 ${filtered} were filtered out by the quality validator. Your score scales against the actual count, so the 720 pass mark stays accurate.</span>
+    <button class="exam-shortfall-dismiss" onclick="document.getElementById('exam-shortfall-banner')?.remove()" aria-label="Dismiss">\u00D7</button>
+  `;
+  examPage.insertBefore(banner, examPage.firstChild);
 }
 
 // ══════════════════════════════════════════

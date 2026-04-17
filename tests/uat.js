@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.4', js.includes("const APP_VERSION = '4.43.4"));
+test('APP_VERSION is 4.43.5', js.includes("const APP_VERSION = '4.43.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.4', sw.includes('netplus-v4.43.4'));
+test('SW cache bumped to v4.43.5', sw.includes('netplus-v4.43.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3811,6 +3811,51 @@ test('v4.43.4: "Acceptable shortfall" comment removed (regression guard)',
   !_startQuizBody.includes('Acceptable shortfall'));
 test('v4.43.4: old length < Math.ceil(qCount / 2) branch removed (regression guard)',
   !/questions\.length\s*<\s*Math\.ceil\(qCount\s*\/\s*2\)/.test(_startQuizBody));
+
+// ── v4.43.5 EXAM-MODE VALIDATION PARITY ──
+console.log('\n\x1b[1m── v4.43.5 EXAM VALIDATION PARITY ──\x1b[0m');
+// startExam() now runs the same 4-layer validation pipeline as startQuiz().
+// Scope all assertions to the startExam function body so we don't accidentally
+// match other occurrences of the same strings elsewhere in app.js.
+const _startExamBody = (() => {
+  const m = js.match(/async function startExam\(\)\s*\{[\s\S]*?^\}\s*$/m);
+  return m ? m[0] : '';
+})();
+test('v4.43.5: startExam body extracted (sanity)', _startExamBody.length > 1000);
+test('v4.43.5 #1: EXAM_BATCH_BASE constant (18) declared in startExam',
+  /EXAM_BATCH_BASE\s*=\s*18/.test(_startExamBody));
+test('v4.43.5 #1: EXAM_BATCH_BUFFER constant (5) declared in startExam',
+  /EXAM_BATCH_BUFFER\s*=\s*5/.test(_startExamBody));
+test('v4.43.5 #1: batch fetch uses EXAM_BATCH_BASE + EXAM_BATCH_BUFFER (over-request)',
+  /fetchQuestions\([^)]*EXAM_BATCH_BASE\s*\+\s*EXAM_BATCH_BUFFER\s*\)/.test(_startExamBody));
+test('v4.43.5 #2: Sonnet validator (aiValidateQuestions) called per batch',
+  /aiValidateQuestions\(key,\s*rawBatch\)/.test(_startExamBody));
+test('v4.43.5 #2: programmatic validateQuestions called per batch',
+  /let batch\s*=\s*validateQuestions\(aiValidated\)/.test(_startExamBody));
+test('v4.43.5 #3: retry-to-fill block exists (batch.length < EXAM_BATCH_BASE)',
+  /if\s*\(\s*batch\.length\s*<\s*EXAM_BATCH_BASE\s*\)/.test(_startExamBody));
+test('v4.43.5 #3: retry fetches deficit + EXAM_BATCH_BUFFER',
+  /fetchQuestions\([^)]*deficit\s*\+\s*EXAM_BATCH_BUFFER\s*\)/.test(_startExamBody));
+test('v4.43.5 #3: retry wraps in try/catch with retryErr',
+  /try\s*\{[\s\S]*?deficit\s*\+\s*EXAM_BATCH_BUFFER[\s\S]*?\}\s*catch\s*\(retryErr\)/.test(_startExamBody));
+test('v4.43.5 #4: batch.slice(0, EXAM_BATCH_BASE) truncates overage before concat',
+  /batch\.slice\(0,\s*EXAM_BATCH_BASE\)/.test(_startExamBody));
+test('v4.43.5 #4: defensive slice to EXAM_QUESTION_COUNT after injectPBQs',
+  /examQuestions\s*=\s*examQuestions\.slice\(0,\s*EXAM_QUESTION_COUNT\)/.test(_startExamBody));
+test('v4.43.5 #5: graceful-degradation banner wired via showExamShortfallBanner',
+  /if\s*\(examShortfall\)\s*showExamShortfallBanner/.test(_startExamBody));
+// Helper function + CSS exist
+test('v4.43.5: showExamShortfallBanner function defined',
+  /function\s+showExamShortfallBanner\(actualCount\)/.test(js));
+test('v4.43.5: .exam-shortfall-banner CSS rule exists',
+  css.includes('.exam-shortfall-banner'));
+test('v4.43.5: light-theme .exam-shortfall-banner override exists',
+  /\[data-theme="light"\]\s*\.exam-shortfall-banner/.test(css));
+// Regression guards: the old "concat raw batch with no validation" pattern must stay gone
+test('v4.43.5: old "examQuestions.concat(batch)" without validation is gone (regression guard)',
+  !/examQuestions\s*=\s*examQuestions\.concat\(batch\)\s*;/.test(_startExamBody));
+test('v4.43.5: old BATCH_SIZE = 18 bare constant is gone (replaced by EXAM_BATCH_BASE)',
+  !/const\s+BATCHES\s*=\s*5,\s*BATCH_SIZE\s*=\s*18/.test(_startExamBody));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
