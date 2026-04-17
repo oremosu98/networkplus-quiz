@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.47.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.47.2</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -1147,34 +1147,10 @@
           <g id="tb-devices-layer"></g>
           <g id="tb-anim-layer"></g>
         </svg>
-        <div id="tb-empty-hint" class="tb-empty-hint tb-empty-hint-v2">
-          <div class="tb-empty-icon">&#128295;</div>
-          <div class="tb-empty-title">Ready to build a network?</div>
-          <div class="tb-empty-sub">Pick a starting point &mdash; or drag a device from the palette on the left.</div>
-          <div class="tb-empty-ctas">
-            <button class="tb-empty-cta tb-empty-cta-primary" onclick="tbOpenLabPicker()" type="button">
-              <span class="tb-empty-cta-icon">&#127891;</span>
-              <span class="tb-empty-cta-title">Start a guided lab</span>
-              <span class="tb-empty-cta-sub">Step-by-step scaffolded build</span>
-            </button>
-            <button class="tb-empty-cta" onclick="tbGenerateAiTopology()" type="button">
-              <span class="tb-empty-cta-icon">&#129302;</span>
-              <span class="tb-empty-cta-title">AI Generate</span>
-              <span class="tb-empty-cta-sub">Describe it in plain English</span>
-            </button>
-            <button class="tb-empty-cta" onclick="tbOpenFixPicker()" type="button">
-              <span class="tb-empty-cta-icon">&#128295;</span>
-              <span class="tb-empty-cta-title">Fix a broken network</span>
-              <span class="tb-empty-cta-sub">Troubleshoot pre-built problems</span>
-            </button>
-            <!-- v4.47.1: scenarios surfaced as a prominent entry point -->
-            <button class="tb-empty-cta tb-empty-cta-scenario" onclick="tbOpenScenarioPicker()" type="button">
-              <span class="tb-empty-cta-icon">&#127919;</span>
-              <span class="tb-empty-cta-title">Load a scenario</span>
-              <span class="tb-empty-cta-sub">16 real-world network patterns</span>
-            </button>
-          </div>
-        </div>
+        <!-- v4.47.2: content rendered dynamically by tbRenderEmptyHint() —
+             swaps between "Free Build" (4 CTAs) and "Scenario loaded"
+             (scenario card + deep-dive CTA) based on tbSelectedScenario -->
+        <div id="tb-empty-hint" class="tb-empty-hint tb-empty-hint-v2"></div>
       </div>
 
       <!-- Config panel (slide-out right) -->

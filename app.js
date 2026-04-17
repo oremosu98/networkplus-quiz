@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.47.1
+// Network+ AI Quiz — app.js  v4.47.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.47.1';
+const APP_VERSION = '4.47.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6759,14 +6759,10 @@ function tbRenderCanvas() {
     `;
   }).join('');
 
-  // Empty hint visibility — hide if canvas has devices OR a real scenario is
-  // active (v4.47.1: scenarios now dismiss the quickstart so the selection
-  // doesn't vanish behind the big CTAs).
-  if (emptyHint) {
-    const hasDevices = tbState.devices.length > 0;
-    const hasScenario = tbSelectedScenario && tbSelectedScenario !== 'free';
-    emptyHint.classList.toggle('is-hidden', hasDevices || hasScenario);
-  }
+  // v4.47.2: empty-state content is now dynamic (Free Build vs Scenario
+  // loaded) — rendered by tbRenderEmptyHint() which also handles the
+  // is-hidden toggle based on device count. Single source of truth.
+  tbRenderEmptyHint();
   // Keep the wiring overlay in sync with pending state every render.
   tbUpdateWireOverlay();
 
@@ -7988,31 +7984,120 @@ function tbSetScenario(id) {
   tbRenderScenarioPanel();
   tbUpdateStatus(`Scenario: ${scen.title}`);
 
-  // v4.47.1: make scenario selection actually VISIBLE on the empty canvas.
-  // Pre-fix, picking a scenario only rendered the requirements panel above
-  // the canvas while the empty-state quickstart kept dominating — users
-  // reported "when I pick a scenario, nothing happens." Fix:
-  //   (1) Hide the empty-state quickstart when a real scenario is active
-  //       (even with 0 devices) so the user sees their selection land.
-  //   (2) Scroll the scenario panel into view so the rendered requirements
-  //       + Learn-more button are immediately visible.
-  //   (3) Show a success toast so the feedback is unambiguous.
-  const emptyHint = document.getElementById('tb-empty-hint');
-  if (emptyHint) {
-    const hasDevices = tbState.devices.length > 0;
-    const hasScenario = id !== 'free';
-    emptyHint.classList.toggle('is-hidden', hasDevices || hasScenario);
-  }
+  // v4.47.2: in-canvas scenario feedback. Pre-fix the scenario panel
+  // rendered above the toolbar — out of the user's line of sight when
+  // they're looking at the canvas. Now tbRenderEmptyHint() swaps the
+  // canvas empty-state INTO a scenario-specific card (title + summary +
+  // deep-dive button) so feedback lands exactly where the user is looking.
+  tbRenderEmptyHint();
+
   if (id !== 'free') {
-    // Scroll only when there's something new to look at (avoid the scroll on
-    // an idempotent re-select of the same scenario).
-    const panel = document.getElementById('tb-scenario-panel');
-    if (panel && wasFree) {
-      setTimeout(() => {
-        try { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
-      }, 80);
-    }
-    showSuccessToast(`\u{1F4DA} Scenario loaded: ${scen.title}. Click \u201CLearn more\u201D for the deep dive.`);
+    showSuccessToast(`\u{1F4DA} Scenario loaded: ${scen.title}. See the canvas for details.`);
+  }
+}
+
+// v4.47.2: dynamic empty-state renderer. Swaps between Free Build (4 CTAs
+// — the original entry points) and Scenario-loaded (in-canvas scenario
+// card with title + description + required devices + deep-dive CTA).
+// Called from tbSetScenario + tbRenderCanvas + openTopologyBuilder so
+// state stays in sync.
+function tbRenderEmptyHint() {
+  const hint = document.getElementById('tb-empty-hint');
+  if (!hint) return;
+  const hasDevices = tbState && tbState.devices && tbState.devices.length > 0;
+  // If canvas has content, hide the whole empty-state.
+  if (hasDevices) {
+    hint.classList.add('is-hidden');
+    hint.innerHTML = '';
+    return;
+  }
+  hint.classList.remove('is-hidden');
+
+  const scen = (tbSelectedScenario && tbSelectedScenario !== 'free')
+    ? TB_SCENARIOS.find(s => s.id === tbSelectedScenario)
+    : null;
+
+  if (!scen) {
+    // Free-Build mode: 4 quickstart CTAs (preserved from the original
+    // static HTML — moved here so a single renderer controls both modes).
+    hint.innerHTML = `
+      <div class="tb-empty-icon">\u{1F527}</div>
+      <div class="tb-empty-title">Ready to build a network?</div>
+      <div class="tb-empty-sub">Pick a starting point \u2014 or drag a device from the palette on the left.</div>
+      <div class="tb-empty-ctas">
+        <button class="tb-empty-cta tb-empty-cta-primary" onclick="tbOpenLabPicker()" type="button">
+          <span class="tb-empty-cta-icon">\u{1F393}</span>
+          <span class="tb-empty-cta-title">Start a guided lab</span>
+          <span class="tb-empty-cta-sub">Step-by-step scaffolded build</span>
+        </button>
+        <button class="tb-empty-cta" onclick="tbGenerateAiTopology()" type="button">
+          <span class="tb-empty-cta-icon">\u{1F916}</span>
+          <span class="tb-empty-cta-title">AI Generate</span>
+          <span class="tb-empty-cta-sub">Describe it in plain English</span>
+        </button>
+        <button class="tb-empty-cta" onclick="tbOpenFixPicker()" type="button">
+          <span class="tb-empty-cta-icon">\u{1F527}</span>
+          <span class="tb-empty-cta-title">Fix a broken network</span>
+          <span class="tb-empty-cta-sub">Troubleshoot pre-built problems</span>
+        </button>
+        <button class="tb-empty-cta tb-empty-cta-scenario" onclick="tbOpenScenarioPicker()" type="button">
+          <span class="tb-empty-cta-icon">\u{1F3AF}</span>
+          <span class="tb-empty-cta-title">Load a scenario</span>
+          <span class="tb-empty-cta-sub">16 real-world network patterns</span>
+        </button>
+      </div>`;
+    return;
+  }
+
+  // Scenario-loaded mode: big in-canvas card so the user sees their
+  // selection landed — where they're actually looking.
+  const icon = (typeof TB_SCENARIO_ICONS !== 'undefined' && TB_SCENARIO_ICONS[scen.id]) || '\u{1F3AF}';
+  const reqChips = (scen.requires || []).slice(0, 6).map(req => {
+    const typeMeta = TB_DEVICE_TYPES[req.type];
+    const label = typeMeta ? typeMeta.label : req.type.replace('*', ' (public)');
+    return `<span class="tb-sc-loaded-chip">${escHtml(label)} \u00d7 ${req.min}</span>`;
+  }).join('');
+  const hasExplanation = !!scen.explanation;
+
+  hint.innerHTML = `
+    <div class="tb-sc-loaded">
+      <div class="tb-sc-loaded-head">
+        <span class="tb-sc-loaded-badge">\u{1F4DA} Scenario active</span>
+        <div class="tb-sc-loaded-icon" aria-hidden="true">${icon}</div>
+        <h3 class="tb-sc-loaded-title">${escHtml(scen.title)}</h3>
+        <p class="tb-sc-loaded-desc">${escHtml(scen.description)}</p>
+      </div>
+      ${reqChips ? `<div class="tb-sc-loaded-reqs">
+        <div class="tb-sc-loaded-reqs-label">Required devices</div>
+        <div class="tb-sc-loaded-chips">${reqChips}</div>
+      </div>` : ''}
+      <div class="tb-sc-loaded-ctas">
+        ${hasExplanation ? `<button type="button" class="tb-sc-loaded-cta tb-sc-loaded-cta-primary" onclick="tbOpenScenarioDeepDive()">
+          <span aria-hidden="true">\u{1F4D6}</span> View deep explanation
+        </button>` : ''}
+        <button type="button" class="tb-sc-loaded-cta" onclick="tbOpenScenarioPicker()">
+          <span aria-hidden="true">\u{1F504}</span> Change scenario
+        </button>
+        <button type="button" class="tb-sc-loaded-cta tb-sc-loaded-cta-ghost" onclick="tbLoadScenarioFromPicker('free')">
+          <span aria-hidden="true">\u2715</span> Clear
+        </button>
+      </div>
+      <div class="tb-sc-loaded-hint">Drag devices from the palette on the left to start building.</div>
+    </div>`;
+}
+
+// v4.47.2: scroll the scenario panel into view AND auto-open the Learn-more
+// <details> so the deep content is immediately visible. Triggered by the
+// "View deep explanation" CTA on the in-canvas scenario card.
+function tbOpenScenarioDeepDive() {
+  const panel = document.getElementById('tb-scenario-panel');
+  if (!panel) return;
+  const details = panel.querySelector('.tb-scenario-learn');
+  if (details) details.setAttribute('open', '');
+  try {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (_) {
+    panel.scrollIntoView();
   }
 }
 

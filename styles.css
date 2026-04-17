@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.47.1
+   Network+ AI Quiz — styles.css  v4.47.2
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -4409,6 +4409,143 @@ input::placeholder { color: var(--text-dim); }
   box-shadow: 0 4px 12px rgba(34,197,94,.15);
 }
 
+/* ── v4.47.2: in-canvas "scenario loaded" card ──
+ * Replaces the 4-CTA quickstart when a scenario is active. Lives inside
+ * #tb-empty-hint so it sits centered in the canvas area — exactly where
+ * the user is looking. Primary visible feedback that scenario loads land. */
+.tb-sc-loaded {
+  width: 100%;
+  max-width: 620px;
+  padding: 24px 28px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(124,111,247,.14), transparent 55%),
+    linear-gradient(160deg, rgba(124,111,247,.12), rgba(124,111,247,.03));
+  border: 1px solid rgba(124,111,247,.35);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px -12px rgba(124,111,247,.35);
+  animation: tbScLoadedIn .45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes tbScLoadedIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tb-sc-loaded-head { text-align: center; margin-bottom: 18px; }
+.tb-sc-loaded-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--accent-light, #a78bfa);
+  padding: 4px 10px; border-radius: 99px;
+  background: rgba(124,111,247,.14);
+  border: 1px solid rgba(124,111,247,.3);
+  margin-bottom: 12px;
+}
+.tb-sc-loaded-icon { font-size: 44px; line-height: 1; margin-bottom: 8px; }
+.tb-sc-loaded-title {
+  margin: 0 0 6px;
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -.02em; color: var(--text, #e2e8f0);
+}
+.tb-sc-loaded-desc {
+  margin: 0 auto; max-width: 520px;
+  font-size: 13.5px; line-height: 1.55;
+  color: var(--text-mid, #94a3b8);
+}
+.tb-sc-loaded-reqs {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, .25);
+  border-radius: 10px;
+  border: 1px solid rgba(124,111,247,.15);
+}
+.tb-sc-loaded-reqs-label {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent-light, #a78bfa);
+  margin-bottom: 8px; text-align: center;
+}
+.tb-sc-loaded-chips {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+}
+.tb-sc-loaded-chip {
+  font-size: 11.5px; font-weight: 600;
+  padding: 4px 10px; border-radius: 99px;
+  background: rgba(124,111,247,.12);
+  color: var(--text, #e2e8f0);
+  border: 1px solid rgba(124,111,247,.22);
+  letter-spacing: .01em;
+}
+.tb-sc-loaded-ctas {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin-bottom: 14px;
+}
+.tb-sc-loaded-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer; color: var(--text, #e2e8f0);
+  background: var(--surface, #1a1a2e); border: 1px solid var(--surface3, #2d2d44);
+  transition: all .15s ease;
+}
+.tb-sc-loaded-cta:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent, #7c6ff7);
+  background: var(--surface2, #242438);
+  box-shadow: 0 4px 12px rgba(124,111,247,.2);
+}
+.tb-sc-loaded-cta-primary {
+  background: linear-gradient(135deg, var(--accent, #7c6ff7), #6355e0);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(124,111,247,.3);
+}
+.tb-sc-loaded-cta-primary:hover {
+  background: linear-gradient(135deg, #8879f8, #7266e5);
+  box-shadow: 0 6px 16px rgba(124,111,247,.4);
+  border-color: transparent;
+}
+.tb-sc-loaded-cta-ghost {
+  background: transparent;
+  color: var(--text-dim, #94a3b8);
+  border-color: var(--border, rgba(255,255,255,.1));
+}
+.tb-sc-loaded-cta-ghost:hover {
+  color: var(--text, #e2e8f0);
+  background: transparent;
+  border-color: var(--text-dim, #94a3b8);
+  box-shadow: none;
+}
+.tb-sc-loaded-hint {
+  text-align: center;
+  font-size: 11.5px; color: var(--text-dim, #94a3b8);
+  font-style: italic;
+}
+[data-theme="light"] .tb-sc-loaded {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(99,85,224,.10), transparent 55%),
+    linear-gradient(160deg, rgba(99,85,224,.08), rgba(99,85,224,.02));
+  border-color: rgba(99,85,224,.3);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px -12px rgba(99,85,224,.25);
+}
+[data-theme="light"] .tb-sc-loaded-reqs {
+  background: rgba(99,85,224,.04);
+  border-color: rgba(99,85,224,.15);
+}
+[data-theme="light"] .tb-sc-loaded-chip {
+  background: rgba(99,85,224,.08);
+  border-color: rgba(99,85,224,.18);
+  color: #334155;
+}
+[data-theme="light"] .tb-sc-loaded-cta-primary {
+  background: linear-gradient(135deg, #6355e0, #5b4bdc);
+}
+@media (max-width: 560px) {
+  .tb-sc-loaded { padding: 18px 20px; max-width: 95%; }
+  .tb-sc-loaded-title { font-size: 18px; }
+  .tb-sc-loaded-desc { font-size: 12.5px; }
+  .tb-sc-loaded-icon { font-size: 36px; }
+  .tb-sc-loaded-cta { padding: 8px 12px; font-size: 12px; }
+}
+
 /* ── v4.47.1: Scenario picker modal ──
  * Card-grid of all 16 scenarios, grouped by 3 categories. Matches the
  * lab-picker pattern in structure but uses its own richer card treatment
@@ -4669,6 +4806,10 @@ input::placeholder { color: var(--text-dim); }
   /* v4.47.1 — Scenario picker card lift neutralised */
   .tb-scenario-card { transition: none !important; }
   .tb-scenario-card:hover { transform: none; }
+  /* v4.47.2 — Scenario-loaded card fade-in neutralised */
+  .tb-sc-loaded { animation: none !important; }
+  .tb-sc-loaded-cta { transition: none !important; }
+  .tb-sc-loaded-cta:hover { transform: none; }
 }
 
 /* ══════════════════════════════════════════

@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.47.1', js.includes("const APP_VERSION = '4.47.1"));
+test('APP_VERSION is 4.47.2', js.includes("const APP_VERSION = '4.47.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.47.1', sw.includes('netplus-v4.47.1'));
+test('SW cache bumped to v4.47.2', sw.includes('netplus-v4.47.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3715,12 +3715,12 @@ test('v4.43.1 #4: HTML toolbar has tb-tool-group-primary for primary actions',
   html.includes('tb-tool-group-primary'));
 test('v4.43.1 #4: HTML toolbar has labeled groups',
   html.includes('tb-tool-group-label') && html.includes('Simulate') && html.includes('Practice'));
-test('v4.43.1 #4: HTML empty-state has CTA buttons (tb-empty-cta)',
-  html.includes('tb-empty-cta') && html.includes('tb-empty-hint-v2'));
-test('v4.43.1 #4: HTML empty-state routes to Labs / AI Generate / Fix',
-  html.includes('onclick="tbOpenLabPicker()"') &&
-  html.includes('onclick="tbGenerateAiTopology()"') &&
-  html.includes('onclick="tbOpenFixPicker()"'));
+test('v4.43.1 #4: empty-state has CTA buttons (tb-empty-cta) — v4.47.2 moved rendering to JS',
+  js.includes('tb-empty-cta') && html.includes('tb-empty-hint-v2'));
+test('v4.43.1 #4: empty-state routes to Labs / AI Generate / Fix (v4.47.2: rendered via JS)',
+  js.includes('onclick="tbOpenLabPicker()"') &&
+  js.includes('onclick="tbGenerateAiTopology()"') &&
+  js.includes('onclick="tbOpenFixPicker()"'));
 test('v4.43.1 #4: CSS .tb-hero defined', css.includes('.tb-hero'));
 test('v4.43.1 #4: CSS .tb-tool-group-label defined', css.includes('.tb-tool-group-label'));
 test('v4.43.1 #4: CSS .tb-empty-cta defined', css.includes('.tb-empty-cta'));
@@ -4386,11 +4386,12 @@ test('v4.47.0 CSS: narrow-viewport tightens Learn-more padding',
 
 // ── v4.47.1 SCENARIO PICKER + VISIBLE FEEDBACK ──
 console.log('\n\x1b[1m── v4.47.1 SCENARIO PICKER + FEEDBACK ──\x1b[0m');
-// Empty-state tile added
-test('v4.47.1: empty-state has Load-a-scenario tile', html.includes('tb-empty-cta-scenario'));
-test('v4.47.1: empty-state tile wires to tbOpenScenarioPicker', html.includes("onclick=\"tbOpenScenarioPicker()\""));
+// v4.47.1 empty-state tile (now rendered dynamically by tbRenderEmptyHint in v4.47.2)
+test('v4.47.1: empty-state has Load-a-scenario tile class (in tbRenderEmptyHint source)',
+  js.includes('tb-empty-cta-scenario'));
+test('v4.47.1: empty-state tile wires to tbOpenScenarioPicker', js.includes("onclick=\"tbOpenScenarioPicker()\""));
 test('v4.47.1: empty-state tile advertises 16 scenarios',
-  html.includes('16 real-world network patterns'));
+  js.includes('16 real-world network patterns'));
 // Scenario picker modal in HTML
 test('v4.47.1: #tb-scenario-picker modal present in HTML',
   html.includes('id="tb-scenario-picker"'));
@@ -4411,15 +4412,14 @@ test('v4.47.1: picker offers Free Build reset at bottom',
   js.includes('Clear scenario (back to Free Build)'));
 test('v4.47.1: tbLoadScenarioFromPicker syncs the toolbar dropdown',
   /tbLoadScenarioFromPicker[\s\S]{0,400}getElementById\('tb-scenario-select'\)/.test(js));
-// Visible feedback in tbSetScenario
-test('v4.47.1: tbSetScenario hides #tb-empty-hint when scenario is active',
-  /function tbSetScenario\(id\)[\s\S]{0,2000}emptyHint\.classList\.toggle\('is-hidden',\s*hasDevices\s*\|\|\s*hasScenario\)/.test(js));
-test('v4.47.1: tbSetScenario shows success toast',
-  /function tbSetScenario\(id\)[\s\S]{0,2500}showSuccessToast/.test(js));
-test('v4.47.1: tbSetScenario scrolls panel into view on fresh select',
-  /function tbSetScenario\(id\)[\s\S]{0,2500}panel\.scrollIntoView/.test(js));
-test('v4.47.1: tbRenderCanvas also respects scenario-active state',
-  /function tbRenderCanvas\(\)[\s\S]{0,6000}hasScenario\s*=\s*tbSelectedScenario\s*&&\s*tbSelectedScenario\s*!==\s*'free'/.test(js));
+// Visible feedback in tbSetScenario (v4.47.2: empty-hint logic moved into tbRenderEmptyHint,
+// tbSetScenario just delegates + shows toast)
+test('v4.47.1/2: tbSetScenario calls tbRenderEmptyHint to update canvas feedback',
+  /function tbSetScenario\(id\)[\s\S]{0,1500}tbRenderEmptyHint\(\)/.test(js));
+test('v4.47.1: tbSetScenario shows success toast on non-free selection',
+  /function tbSetScenario\(id\)[\s\S]{0,2000}showSuccessToast/.test(js));
+test('v4.47.2: tbRenderCanvas delegates empty-state to tbRenderEmptyHint',
+  /function tbRenderCanvas\(\)[\s\S]{0,6000}tbRenderEmptyHint\(\)/.test(js));
 // Success toast helper
 test('v4.47.1: showSuccessToast helper defined', js.includes('function showSuccessToast('));
 test('v4.47.1 CSS: .success-toast green-gradient styling',
@@ -4444,6 +4444,53 @@ test("v4.47.1: tbDeviceIcon 'smart-tv' case renders TV w/ stand + base", /case\s
 test("v4.47.1: all 4 consumer device icons present in switch (regression — no plain-circle fallback)",
   js.includes("case 'laptop':") && js.includes("case 'smartphone':") &&
   js.includes("case 'game-console':") && js.includes("case 'smart-tv':"));
+
+// ── v4.47.2 IN-CANVAS SCENARIO-LOADED FEEDBACK ──
+console.log('\n\x1b[1m── v4.47.2 IN-CANVAS SCENARIO CARD ──\x1b[0m');
+// HTML shell emptied (regression guard — content must be dynamic, not static)
+test('v4.47.2: #tb-empty-hint HTML shell is empty (dynamic content only)',
+  /<div id="tb-empty-hint"[^>]*>\s*<!--[^-]*(?:-[^-]|--[^>])*-->\s*<\/div>/.test(html) ||
+  /<div id="tb-empty-hint"[^>]*>\s*<\/div>/.test(html) ||
+  /<div id="tb-empty-hint"[^>]*>(\s|<!--[\s\S]*?-->)*<\/div>/.test(html));
+test('v4.47.2: static Ready-to-build HTML removed (regression guard — now rendered via JS)',
+  !/<div class="tb-empty-title">Ready to build a network\?<\/div>/.test(html));
+// tbRenderEmptyHint function
+test('v4.47.2: tbRenderEmptyHint function defined',
+  js.includes('function tbRenderEmptyHint('));
+test('v4.47.2: tbRenderEmptyHint handles free-build (4 CTAs) mode',
+  /function tbRenderEmptyHint[\s\S]{0,3000}Ready to build a network/.test(js));
+test('v4.47.2: tbRenderEmptyHint handles scenario-loaded mode (tb-sc-loaded)',
+  /function tbRenderEmptyHint[\s\S]{0,5000}class="tb-sc-loaded"/.test(js));
+test('v4.47.2: tbRenderEmptyHint renders SCENARIO ACTIVE badge',
+  /function tbRenderEmptyHint[\s\S]{0,5000}Scenario active/.test(js));
+test('v4.47.2: tbRenderEmptyHint renders required-devices chips',
+  /function tbRenderEmptyHint[\s\S]{0,5000}tb-sc-loaded-chip/.test(js));
+test('v4.47.2: tbRenderEmptyHint offers View Deep Explanation CTA',
+  js.includes('View deep explanation'));
+test('v4.47.2: tbRenderEmptyHint offers Change scenario + Clear CTAs',
+  js.includes('Change scenario') && js.includes('tbLoadScenarioFromPicker(\'free\')'));
+// tbOpenScenarioDeepDive
+test('v4.47.2: tbOpenScenarioDeepDive function defined',
+  js.includes('function tbOpenScenarioDeepDive('));
+test('v4.47.2: deep-dive helper auto-opens Learn-more details',
+  /function tbOpenScenarioDeepDive[\s\S]{0,400}details\.setAttribute\('open'/.test(js));
+test("v4.47.2: deep-dive helper uses block: 'start' to force scroll",
+  /function tbOpenScenarioDeepDive[\s\S]{0,500}block:\s*'start'/.test(js));
+// CSS
+test('v4.47.2 CSS: .tb-sc-loaded premium card styled',
+  css.includes('.tb-sc-loaded '));
+test('v4.47.2 CSS: fade-in keyframe tbScLoadedIn',
+  /@keyframes tbScLoadedIn/.test(css));
+test('v4.47.2 CSS: .tb-sc-loaded-cta-primary gradient treatment',
+  css.includes('.tb-sc-loaded-cta-primary'));
+test('v4.47.2 CSS: .tb-sc-loaded-chip pill styling',
+  css.includes('.tb-sc-loaded-chip'));
+test('v4.47.2 CSS: light-theme override for scenario-loaded card',
+  /\[data-theme="light"\]\s+\.tb-sc-loaded\b/.test(css));
+test('v4.47.2 CSS: reduced-motion neutralises tb-sc-loaded animation',
+  /prefers-reduced-motion[\s\S]{0,5000}\.tb-sc-loaded\s*\{[^}]*animation:\s*none/.test(css));
+test('v4.47.2 CSS: narrow-viewport tightens scenario-loaded card',
+  /@media \(max-width:\s*560px\)[\s\S]{0,500}\.tb-sc-loaded\s*\{[^}]*padding:\s*18px\s*20px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
