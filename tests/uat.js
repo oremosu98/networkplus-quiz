@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.45.3', js.includes("const APP_VERSION = '4.45.3"));
+test('APP_VERSION is 4.46.0', js.includes("const APP_VERSION = '4.46.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.45.3', sw.includes('netplus-v4.45.3'));
+test('SW cache bumped to v4.46.0', sw.includes('netplus-v4.46.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -395,7 +395,7 @@ test('STORAGE.TYPE_STATS key', js.includes('TYPE_STATS:'));
 test('STORAGE.SUBNET_STATS key', js.includes('SUBNET_STATS:'));
 test('CSS: .ana-ready-hero', css.includes('.ana-ready-hero'));
 test('CSS: .ana-domain-row', css.includes('.ana-domain-row'));
-test('CSS: .ana-exam-date-btn', css.includes('.ana-exam-date-btn'));
+test('CSS: .ana-ready-datechip (v4.46.0 — replaces .ana-exam-date-btn styling)', css.includes('.ana-ready-datechip'));
 test('CSS: .ana-streak-grid', css.includes('.ana-streak-grid'));
 test('CSS: .ana-heatmap', css.includes('.ana-heatmap'));
 test('CSS: .ana-milestone', css.includes('.ana-milestone'));
@@ -4185,6 +4185,69 @@ test('v4.45.2 #4: Show-all summary count matches totalMilestones',
 // regex captures only the first `};` inside the function). Structural
 // regex coverage is sufficient here — all 4 tier cutoffs + 2 regression
 // guards on old cutoffs.
+
+// ── v4.46.0 EXAM READINESS HERO POLISH ──
+console.log('\n\x1b[1m── v4.46.0 EXAM READINESS HERO POLISH ──\x1b[0m');
+// HTML structure refactor
+test('v4.46.0: hero header row wrapper (.ana-ready-head)',
+  js.includes('class="ana-ready-head"'));
+test('v4.46.0: merged date-chip replaces old separate countdown + date-row',
+  js.includes('class="ana-exam-date-btn ana-ready-datechip'));
+test('v4.46.0: hero row wrapper (.ana-ready-hero-row)',
+  js.includes('class="ana-ready-hero-row"'));
+test('v4.46.0: score denom "/ 900" rendered next to predicted',
+  js.includes('class="ana-ready-denom"') && js.includes('/ 900'));
+test('v4.46.0: 720 PASS tick positioned by formula',
+  /passTickPct\s*=\s*\(\(EXAM_PASS_SCORE\s*-\s*420\)\s*\/\s*450\)\s*\*\s*100/.test(js));
+test('v4.46.0: PASS tick + PASS label elements rendered',
+  js.includes('ana-ready-bar-passtick') && js.includes('ana-ready-bar-passlabel'));
+test('v4.46.0: bar scale 420/870 labels rendered', js.includes('ana-ready-bar-scale'));
+// Domain row structure
+test('v4.46.0: domain rows have tier-colored dot', js.includes('class="ana-domain-dot"'));
+test('v4.46.0: domain weight shows "% of exam" subtext',
+  js.includes('% of exam'));
+test('v4.46.0: domain row wrapper classed by tier (ana-domain-row-${tier})',
+  /ana-domain-row ana-domain-row-\$\{tier\}/.test(js));
+test('v4.46.0: domain tier cutoffs match Domain Mastery card (55/70/85)',
+  /pct >= 85[\s\S]{0,80}mastered[\s\S]{0,120}pct >= 70[\s\S]{0,80}proficient[\s\S]{0,120}pct >= 55[\s\S]{0,80}developing/.test(js));
+test('v4.46.0: domain bar 85% target tick element', js.includes('class="ana-domain-target"'));
+// Stats strip — icons above values
+test('v4.46.0: stats strip has icon layer (.ana-hero-stat-icon)',
+  js.includes('ana-hero-stat-icon'));
+// Date chip states
+test('v4.46.0: date chip has urgent/past literal states + dynamic urgency class',
+  js.includes('ana-ready-datechip-urgent') && js.includes('ana-ready-datechip-past') && /ana-ready-datechip-\$\{urgency\}/.test(js));
+test('v4.46.0: urgency ladder covers 7-day/30-day/ok buckets',
+  /daysToExam <= 7 \? 'urgent' : daysToExam <= 30 \? 'soon' : 'ok'/.test(js));
+test('v4.46.0: date chip clear uses event.stopPropagation to not re-open picker',
+  js.includes("event.stopPropagation();updateExamDate(\\'\\')"));
+// CSS coverage
+test('v4.46.0 CSS: .ana-ready-head defined', css.includes('.ana-ready-head '));
+test('v4.46.0 CSS: .ana-ready-hero-row grid', /\.ana-ready-hero-row\s*\{[^}]*display:\s*grid/.test(css));
+test('v4.46.0 CSS: .ana-ready-bar-passtick positioned absolute',
+  /\.ana-ready-bar-passtick\s*\{[^}]*position:\s*absolute/.test(css));
+test('v4.46.0 CSS: .ana-domain-dot styled', css.includes('.ana-domain-dot '));
+test('v4.46.0 CSS: .ana-domain-target 85% position', /\.ana-domain-target\s*\{[^}]*left:\s*85%/.test(css));
+test('v4.46.0 CSS: .ana-ready-datechip styled', css.includes('.ana-ready-datechip '));
+test('v4.46.0 CSS: stats tiles have hairline dividers via ::before',
+  /\.ana-hero-stat\s*\+\s*\.ana-hero-stat::before/.test(css));
+test('v4.46.0 CSS: narrow-viewport responsive block at 560px',
+  /@media \(max-width:\s*560px\)\s*\{[\s\S]*?\.ana-ready-hero-row\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
+test('v4.46.0 CSS: reduced-motion neutralises hero animations',
+  /prefers-reduced-motion[\s\S]{0,2000}\.ana-ready-bar-fill,\s*\.ana-domain-fill\s*\{[^}]*transition:\s*none/.test(css));
+// Regression guards on OLD structure
+test('v4.46.0: old .ana-ready-top wrapper removed (regression guard)',
+  !js.includes('class="ana-ready-top"'));
+test('v4.46.0: old .ana-ready-countdown element removed (regression guard)',
+  !js.includes('class="ana-ready-countdown"'));
+test('v4.46.0: old .ana-exam-date-row wrapper removed (regression guard)',
+  !js.includes('class="ana-exam-date-row"'));
+test('v4.46.0: old .ana-exam-date-lbl removed (regression guard)',
+  !js.includes('class="ana-exam-date-lbl"'));
+test('v4.46.0: old separate .ana-exam-date-clear button replaced by datechip-clear (regression guard)',
+  !js.includes('class="ana-exam-date-clear"'));
+test('v4.46.0: old .ana-domain-weight right-column removed (regression guard: weight is now subtext under name)',
+  !/grid-template-columns:\s*1fr\s*36px\s*2fr\s*40px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

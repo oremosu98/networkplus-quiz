@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.45.3
+// Network+ AI Quiz — app.js  v4.46.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.45.3';
+const APP_VERSION = '4.46.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -17507,56 +17507,122 @@ function _renderAnaReadiness(h) {
   else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
   const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
 
-  let countdown = '';
-  if (daysToExam !== null && daysToExam >= 0) {
-    const emoji = daysToExam === 0 ? '🔥' : daysToExam <= 7 ? '⏰' : daysToExam <= 30 ? '📅' : '🗓️';
-    countdown = `<div class="ana-ready-countdown">${emoji} <strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'} to exam</div>`;
-  } else if (daysToExam !== null && daysToExam < 0) {
-    countdown = `<div class="ana-ready-countdown">✅ Exam was ${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</div>`;
+  // v4.46.0: merged date + countdown chip. One element, two purposes — click to
+  // open the picker, displays formatted date + days-to-go (or placeholder if unset).
+  let dateChipInner;
+  let dateChipState = '';
+  if (examDateStr) {
+    const dateLabel = new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (daysToExam !== null && daysToExam > 0) {
+      const emoji = daysToExam <= 7 ? '🔥' : daysToExam <= 30 ? '⏰' : '📅';
+      const urgency = daysToExam <= 7 ? 'urgent' : daysToExam <= 30 ? 'soon' : 'ok';
+      dateChipState = ` ana-ready-datechip-${urgency}`;
+      dateChipInner = `<span class="ana-ready-datechip-icon">${emoji}</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'}</span>`;
+    } else if (daysToExam === 0) {
+      dateChipState = ' ana-ready-datechip-urgent';
+      dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>Today!</strong></span>`;
+    } else {
+      dateChipState = ' ana-ready-datechip-past';
+      dateChipInner = `<span class="ana-ready-datechip-icon">✅</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days">${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</span>`;
+    }
+  } else {
+    dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date ana-ready-datechip-placeholder">Set your exam date</span>`;
   }
+  const dateChip = `<button type="button" class="ana-exam-date-btn ana-ready-datechip${dateChipState}" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="${examDateStr ? 'Change exam date' : 'Set exam date'}">
+      ${dateChipInner}
+      <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+      ${examDateStr ? '<span class="ana-ready-datechip-clear" role="button" tabindex="0" onclick="event.stopPropagation();updateExamDate(\'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.stopPropagation();event.preventDefault();updateExamDate(\'\')}" aria-label="Clear exam date" title="Clear date">×</span>' : ''}
+    </button>`;
 
-  // Domain bar breakdown
+  // v4.46.0: PASS tick on the readiness bar. Bar scale is 420–870 (range 450),
+  // pass is 720, so tick sits at (720-420)/450 = 66.67%. Pedagogically important:
+  // users see at a glance how far past (or short of) the pass mark they are.
+  const passTickPct = ((EXAM_PASS_SCORE - 420) / 450) * 100;
+
+  // v4.46.0: Domain rows — tier-anchored color dots (matches v4.45.1 Domain
+  // Mastery thresholds 55/70/85), weight as subtle subtext under the domain
+  // name, 85% target tick on each bar (matches Domain Mastery card convention).
   const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
     const pct = Math.round(domainAccuracy[d] || 0);
-    const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : pct > 0 ? 'var(--red)' : 'var(--surface3)';
+    let tier, barColor;
+    if (pct >= 85)      { tier = 'mastered'; barColor = 'var(--green)'; }
+    else if (pct >= 70) { tier = 'proficient'; barColor = 'var(--accent-light)'; }
+    else if (pct >= 55) { tier = 'developing'; barColor = 'var(--yellow)'; }
+    else if (pct > 0)   { tier = 'novice'; barColor = 'var(--red)'; }
+    else                { tier = 'empty'; barColor = 'var(--surface3)'; }
     const label = DOMAIN_LABELS[d];
-    return `<div class="ana-domain-row">
-      <div class="ana-domain-name">${label}</div>
-      <div class="ana-domain-weight">${Math.round(w * 100)}%</div>
-      <div class="ana-domain-bar"><div class="ana-domain-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="ana-domain-pct" style="color:${color}">${pct > 0 ? pct + '%' : '—'}</div>
+    return `<div class="ana-domain-row ana-domain-row-${tier}">
+      <div class="ana-domain-info">
+        <span class="ana-domain-dot" style="background:${barColor}" aria-hidden="true"></span>
+        <div class="ana-domain-meta">
+          <div class="ana-domain-name">${label}</div>
+          <div class="ana-domain-weight">${Math.round(w * 100)}% of exam</div>
+        </div>
+      </div>
+      <div class="ana-domain-bar">
+        <div class="ana-domain-fill" style="width:${pct}%;background:${barColor}"></div>
+        <div class="ana-domain-target" aria-hidden="true" title="85% mastery target"></div>
+      </div>
+      <div class="ana-domain-pct" style="color:${barColor}">${pct > 0 ? pct + '%' : '—'}</div>
     </div>`;
   }).join('');
 
-  return `<div class="ana-card ana-ready-hero" id="ana-s-readiness">
-    <div class="ana-ready-top">
-      <div>
-        <h3 style="margin:0">EXAM READINESS</h3>
-        <div class="ana-subtitle">CompTIA-domain-weighted · 720 = pass</div>
+  // v4.46.0: Stats strip — icons above numbers, hairline dividers between tiles.
+  const statsHtml = `
+      <div class="ana-hero-stat">
+        <div class="ana-hero-stat-icon" aria-hidden="true">📚</div>
+        <div class="ana-hero-stat-val">${h.length}</div>
+        <div class="ana-hero-stat-lbl">Sessions</div>
       </div>
-      <div class="ana-ready-num" style="color:${tierColor}">${predicted}</div>
+      <div class="ana-hero-stat">
+        <div class="ana-hero-stat-icon" aria-hidden="true">📝</div>
+        <div class="ana-hero-stat-val">${totalQ.toLocaleString()}</div>
+        <div class="ana-hero-stat-lbl">Questions</div>
+      </div>
+      <div class="ana-hero-stat">
+        <div class="ana-hero-stat-icon" aria-hidden="true">🎯</div>
+        <div class="ana-hero-stat-val">${totalQ > 0 ? Math.round(totalCorrect/totalQ*100) : 0}%</div>
+        <div class="ana-hero-stat-lbl">Accuracy</div>
+      </div>
+      <div class="ana-hero-stat">
+        <div class="ana-hero-stat-icon" aria-hidden="true">🔥</div>
+        <div class="ana-hero-stat-val">${studyDays}</div>
+        <div class="ana-hero-stat-lbl">Study Days</div>
+      </div>`;
+
+  return `<div class="ana-card ana-ready-hero" id="ana-s-readiness">
+    <div class="ana-ready-head">
+      <div class="ana-ready-head-left">
+        <h3 class="ana-ready-title">EXAM READINESS</h3>
+        <div class="ana-subtitle">CompTIA-domain-weighted · ${EXAM_PASS_SCORE} = pass</div>
+      </div>
+      ${dateChip}
     </div>
-    <div class="ana-ready-badge" style="background:${tierBg};color:${tierColor}">${tier}</div>
-    <div class="ana-ready-bar"><div class="ana-ready-bar-fill" style="width:${barPct}%;background:${tierColor}"></div></div>
-    ${countdown}
+    <div class="ana-ready-hero-row">
+      <div class="ana-ready-score-block">
+        <div class="ana-ready-num-wrap">
+          <span class="ana-ready-num" style="color:${tierColor}">${predicted}</span>
+          <span class="ana-ready-denom">/ 900</span>
+        </div>
+        <div class="ana-ready-badge" style="background:${tierBg};color:${tierColor}">${tier}</div>
+      </div>
+      <div class="ana-ready-bar-wrap">
+        <div class="ana-ready-bar">
+          <div class="ana-ready-bar-fill" style="width:${barPct}%;background:${tierColor}"></div>
+          <div class="ana-ready-bar-passtick" style="left:${passTickPct}%" aria-hidden="true"></div>
+          <div class="ana-ready-bar-passlabel" style="left:${passTickPct}%" aria-hidden="true">${EXAM_PASS_SCORE} PASS</div>
+        </div>
+        <div class="ana-ready-bar-scale" aria-hidden="true">
+          <span>420</span>
+          <span>870</span>
+        </div>
+      </div>
+    </div>
     <div class="ana-domain-breakdown">
       <div class="ana-domain-header">CompTIA domain breakdown</div>
       ${domainBars}
     </div>
-    <div class="ana-hero-stats">
-      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${h.length}</div><div class="ana-hero-stat-lbl">Sessions</div></div>
-      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${totalQ.toLocaleString()}</div><div class="ana-hero-stat-lbl">Questions</div></div>
-      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${totalQ > 0 ? Math.round(totalCorrect/totalQ*100) : 0}%</div><div class="ana-hero-stat-lbl">Accuracy</div></div>
-      <div class="ana-hero-stat"><div class="ana-hero-stat-val">${studyDays}</div><div class="ana-hero-stat-lbl">Study Days</div></div>
-    </div>
-    <div class="ana-exam-date-row">
-      <label for="ana-exam-date-input" class="ana-exam-date-lbl">🎯 Your exam date:</label>
-      <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="Open date picker">
-        <span class="ana-exam-date-display">${examDateStr ? new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pick a date'}</span>
-        <span class="ana-exam-date-icon">📅</span>
-        <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
-      </button>
-      ${examDateStr ? '<button class="ana-exam-date-clear" onclick="updateExamDate(\'\')" aria-label="Clear exam date">Clear</button>' : ''}
+    <div class="ana-hero-stats">${statsHtml}
     </div>
   </div>`;
 }

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.45.3
+   Network+ AI Quiz — styles.css  v4.46.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1001,38 +1001,110 @@ input::placeholder { color: var(--text-dim); }
 .readiness-exam-countdown strong { font-size: 14px; }
 
 /* ── ANALYTICS v2 (v4.5) ── */
-/* Readiness hero card */
-.ana-ready-hero { border-color: rgba(var(--accent-rgb),.35); background: linear-gradient(160deg, rgba(var(--accent-rgb),.08), rgba(var(--accent-rgb),.02)); }
-.ana-ready-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
-.ana-ready-num { font-size: 48px; font-weight: 900; line-height: 1; letter-spacing: -.02em; }
-.ana-ready-badge { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 4px 10px; border-radius: 99px; margin: 8px 0 12px; text-transform: uppercase; }
-.ana-ready-bar { width: 100%; height: 10px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
-.ana-ready-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
-.ana-ready-countdown { font-size: 13px; color: var(--text-mid); margin-bottom: 14px; padding: 8px 12px; background: var(--surface2); border-radius: var(--radius-sm); }
-.ana-ready-countdown strong { color: var(--accent-light); font-size: 15px; }
+/* ── Exam Readiness hero card (v4.46.0 polish) ──
+ * Layout: header row (title + merged date-chip) → hero row (score + bar
+ * with PASS tick) → divider → domain breakdown → divider → stats strip. */
+.ana-ready-hero {
+  border-color: rgba(var(--accent-rgb),.35);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(var(--accent-rgb),.12), transparent 55%),
+    linear-gradient(160deg, rgba(var(--accent-rgb),.08), rgba(var(--accent-rgb),.02));
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(var(--accent-rgb),.25);
+  padding: 22px 22px 18px;
+}
+
+/* Header: title + merged date chip */
+.ana-ready-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.ana-ready-head-left { min-width: 0; }
+.ana-ready-title { margin: 0 0 2px; font-size: 13px; font-weight: 800; letter-spacing: .1em; color: var(--text); text-transform: uppercase; }
+.ana-ready-head .ana-subtitle { margin-bottom: 0; }
+
+/* Merged date-chip (replaces the old countdown pill + date-row) */
+.ana-ready-datechip {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 7px 12px; padding-right: 10px; border-radius: 999px;
+  font-size: 12.5px; font-family: inherit; font-weight: 600; cursor: pointer;
+  transition: all .2s ease; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  min-width: 0;
+}
+.ana-ready-datechip:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(var(--accent-rgb),.15); }
+.ana-ready-datechip:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ana-ready-datechip-icon { font-size: 14px; line-height: 1; }
+.ana-ready-datechip-date { color: var(--text); }
+.ana-ready-datechip-sep { color: var(--text-dim); margin: 0 1px; }
+.ana-ready-datechip-days { color: var(--text-mid); }
+.ana-ready-datechip-days strong { color: var(--accent-light); font-weight: 800; }
+.ana-ready-datechip-placeholder { color: var(--text-mid); font-weight: 500; }
+.ana-ready-datechip-urgent { border-color: rgba(var(--red-rgb),.4); background: rgba(var(--red-rgb),.06); }
+.ana-ready-datechip-urgent .ana-ready-datechip-days strong { color: var(--red); }
+.ana-ready-datechip-soon { border-color: rgba(251,191,36,.4); background: rgba(251,191,36,.06); }
+.ana-ready-datechip-soon .ana-ready-datechip-days strong { color: var(--yellow); }
+.ana-ready-datechip-past { opacity: .75; }
+.ana-ready-datechip input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; border: none; padding: 0; font: inherit; color: transparent; background: transparent; width: 100%; height: 100%; }
+.ana-ready-datechip input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
+.ana-ready-datechip-clear {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin-left: 2px; border-radius: 50%;
+  background: var(--surface2); color: var(--text-dim); font-size: 13px; line-height: 1;
+  cursor: pointer; transition: all .15s; z-index: 2; user-select: none;
+}
+.ana-ready-datechip-clear:hover { background: rgba(var(--red-rgb),.15); color: var(--red); }
+
+/* Hero row: score block + readiness bar side-by-side on wide viewports,
+   stacked on narrow. */
+.ana-ready-hero-row { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; margin-bottom: 20px; }
+.ana-ready-score-block { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ana-ready-num-wrap { display: flex; align-items: baseline; gap: 6px; }
+.ana-ready-num { font-size: 56px; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
+.ana-ready-denom { font-size: 16px; font-weight: 600; color: var(--text-dim); letter-spacing: -.01em; }
+.ana-ready-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 5px 11px; border-radius: 999px; text-transform: uppercase; margin: 0; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+
+/* Bar with PASS tick */
+.ana-ready-bar-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ana-ready-bar { position: relative; width: 100%; height: 14px; background: var(--surface3); border-radius: 99px; overflow: visible; }
+.ana-ready-bar-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset; }
+.ana-ready-bar-passtick {
+  position: absolute; top: -4px; width: 2px; height: 22px;
+  background: var(--text-mid); border-radius: 1px; transform: translateX(-50%);
+  opacity: .55;
+}
+.ana-ready-bar-passlabel {
+  position: absolute; top: 18px; transform: translateX(-50%);
+  font-size: 9px; font-weight: 800; letter-spacing: .08em;
+  color: var(--text-mid); white-space: nowrap;
+}
+.ana-ready-bar-scale { display: flex; justify-content: space-between; margin-top: 20px; font-size: 10px; color: var(--text-dim); font-weight: 600; letter-spacing: .04em; }
 
 /* Domain breakdown inside hero */
-.ana-domain-breakdown { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-.ana-domain-header { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
-.ana-domain-row { display: grid; grid-template-columns: 1fr 36px 2fr 40px; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; }
-.ana-domain-name { color: var(--text); font-weight: 600; }
-.ana-domain-weight { color: var(--text-dim); font-size: 10px; text-align: right; }
-.ana-domain-bar { height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
-.ana-domain-fill { height: 100%; border-radius: 99px; transition: width .5s; }
-.ana-domain-pct { font-size: 12px; font-weight: 800; text-align: right; }
+.ana-domain-breakdown { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.ana-domain-header { font-size: 10px; font-weight: 800; letter-spacing: .12em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 14px; }
+.ana-domain-row { display: grid; grid-template-columns: minmax(140px, 1.3fr) 2fr auto; gap: 14px; align-items: center; padding: 8px 0; font-size: 12px; border-bottom: 1px solid rgba(var(--accent-rgb),.05); }
+.ana-domain-row:last-child { border-bottom: none; }
+.ana-domain-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ana-domain-dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.08); }
+.ana-domain-meta { min-width: 0; }
+.ana-domain-name { color: var(--text); font-weight: 600; font-size: 13px; line-height: 1.2; }
+.ana-domain-weight { color: var(--text-dim); font-size: 10.5px; margin-top: 2px; font-weight: 500; }
+.ana-domain-bar { position: relative; height: 8px; background: var(--surface3); border-radius: 99px; overflow: visible; }
+.ana-domain-fill { height: 100%; border-radius: 99px; transition: width .7s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset; }
+.ana-domain-target {
+  position: absolute; top: -2px; left: 85%; width: 2px; height: 12px;
+  background: rgba(var(--accent-rgb),.35); border-radius: 1px;
+}
+.ana-domain-pct { font-size: 14px; font-weight: 800; text-align: right; min-width: 36px; font-variant-numeric: tabular-nums; }
 
-/* Exam date input */
-.ana-exam-date-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-.ana-exam-date-lbl { font-size: 12px; color: var(--text-mid); font-weight: 600; }
-.ana-exam-date-btn { position: relative; display: inline-flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; transition: all .2s; min-width: 180px; }
-.ana-exam-date-btn:hover { border-color: var(--accent); background: var(--surface3); }
-.ana-exam-date-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
-.ana-exam-date-display { flex: 1; text-align: left; }
-.ana-exam-date-icon { font-size: 15px; opacity: .8; }
-.ana-exam-date-btn input[type="date"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; border: none; padding: 0; font: inherit; color: transparent; background: transparent; width: 100%; height: 100%; }
-.ana-exam-date-btn input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
-.ana-exam-date-clear { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 10px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; }
-.ana-exam-date-clear:hover { color: var(--red); border-color: rgba(var(--red-rgb),.4); }
+/* v4.46.0: narrow viewport — stack hero row and drop bar scale labels */
+@media (max-width: 560px) {
+  .ana-ready-hero { padding: 18px 16px 14px; }
+  .ana-ready-hero-row { grid-template-columns: 1fr; gap: 14px; }
+  .ana-ready-num { font-size: 44px; }
+  .ana-ready-bar-scale { display: none; }
+  .ana-ready-bar-passlabel { font-size: 8px; }
+  .ana-domain-row { grid-template-columns: minmax(110px, 1fr) 1.5fr auto; gap: 10px; }
+  .ana-domain-name { font-size: 12px; }
+  .ana-hero-stat-val { font-size: 18px; }
+}
 
 /* Streak */
 .ana-streak-grid { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
@@ -1168,10 +1240,16 @@ input::placeholder { color: var(--text-dim); }
 .ana-grid-2col { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
 @media (min-width: 700px) { .ana-grid-2col { grid-template-columns: 1fr 1fr; } }
 .ana-grid-2col .ana-card { margin-bottom: 0; }
-.ana-hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-.ana-hero-stat { text-align: center; }
-.ana-hero-stat-val { font-size: 20px; font-weight: 900; color: var(--accent-light); }
-.ana-hero-stat-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+/* v4.46.0: stats strip — icons above numbers, hairline dividers between tiles */
+.ana-hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.ana-hero-stat { text-align: center; padding: 6px 10px; position: relative; }
+.ana-hero-stat + .ana-hero-stat::before {
+  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%; width: 1px;
+  background: var(--border);
+}
+.ana-hero-stat-icon { font-size: 15px; line-height: 1; margin-bottom: 6px; opacity: .85; filter: grayscale(.15); }
+.ana-hero-stat-val { font-size: 22px; font-weight: 900; color: var(--accent-light); line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ana-hero-stat-lbl { font-size: 9.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; font-weight: 600; }
 .ana-topic-alert { background: rgba(var(--yellow-rgb), .06); border: 1px solid rgba(var(--yellow-rgb), .25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 14px; }
 .ana-topic-alert-head { font-size: 11px; font-weight: 800; color: var(--yellow); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
 .ana-topic-row-weak { background: rgba(var(--yellow-rgb), .04); border-radius: var(--radius-sm); padding: 6px 8px; margin: 0 -8px; }
@@ -4182,6 +4260,11 @@ input::placeholder { color: var(--text-dim); }
   }
   .st-block-match { opacity: 1; transform: none; }
   .progress-fill { transition: none; }
+  /* v4.46.0 — Readiness hero animations neutralised */
+  .ana-ready-bar-fill,
+  .ana-domain-fill { transition: none !important; }
+  .ana-ready-datechip { transition: none !important; }
+  .ana-ready-datechip:hover { transform: none; }
 }
 
 /* ══════════════════════════════════════════
