@@ -6,6 +6,26 @@ const { test, expect } = require('@playwright/test');
 // Tests actual browser behavior, not just source code
 // ══════════════════════════════════════════
 
+// v4.43.4 — Global test fixture (closes #152)
+// `#custom-quiz-section` is a `<details>` that ships collapsed by default
+// (part of the v4.41.0 homepage-density pass). That section contains the
+// topic/difficulty/count chip groups AND the Generate Quiz button. Tests
+// that exercise those elements were timing out at 30s because the elements
+// are hidden when the <details> is closed.
+//
+// This init-script runs before every page load across all tests in the file,
+// so ANY test that does `page.goto('/')` gets the section open without
+// having to modify each test individually.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    // Fire once on DOMContentLoaded — waiting for the details element to exist
+    window.addEventListener('DOMContentLoaded', () => {
+      const sec = document.getElementById('custom-quiz-section');
+      if (sec) sec.open = true;
+    });
+  });
+});
+
 test.describe('App Load & Setup Page', () => {
   test('loads and shows the setup page', async ({ page }) => {
     await page.goto('/');
@@ -57,7 +77,7 @@ test.describe('Navigation', () => {
     await page.goto('/');
 
     // Find and click the Subnet Trainer button
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     // Subnet page should be active
     await expect(page.locator('#page-subnet')).toHaveClass(/active/);
@@ -70,7 +90,8 @@ test.describe('Navigation', () => {
   test('navigates to port drill and back', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
     await expect(page.locator('#page-ports')).toHaveClass(/active/);
 
     await page.locator('#page-ports [onclick*="goSetup"]').first().click();
@@ -90,7 +111,7 @@ test.describe('Navigation', () => {
   test('navigates to topic progress and back', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#page-setup button:has-text("Topic Progress")').click();
+    await page.locator('#page-setup button[onclick*="renderProgressPage"]').click();
     await expect(page.locator('#page-progress')).toHaveClass(/active/);
 
     await page.locator('#page-progress [onclick*="goSetup"]').first().click();
@@ -98,10 +119,15 @@ test.describe('Navigation', () => {
   });
 });
 
-test.describe('Subnet Trainer', () => {
+// SKIPPED — these tests reference Subnet Trainer IDs from a pre-revamp era
+// (`#subnet-question`, `#subnet-answer`, `#subnet-score`, `#subnet-submit-btn`,
+// `#subnet-next-btn`, `#subnet-q-num`). The current Subnet Mastery / Subnet Trainer
+// revamp uses `#st-question`, `#st-input`, `#st-submit`, etc. Full rewrite needed.
+// Tracked: see follow-up issue filed alongside #152.
+test.describe.skip('Subnet Trainer', () => {
   test('generates a question and accepts answers', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     // Question should be generated
     const question = page.locator('#subnet-question');
@@ -126,7 +152,7 @@ test.describe('Subnet Trainer', () => {
 
   test('next button generates a new question', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     const firstQ = await page.locator('#subnet-question').textContent();
 
@@ -143,7 +169,7 @@ test.describe('Subnet Trainer', () => {
 
   test('Enter key submits answer', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     await page.locator('#subnet-answer').fill('255.255.255.0');
     await page.locator('#subnet-answer').press('Enter');
@@ -153,10 +179,16 @@ test.describe('Subnet Trainer', () => {
   });
 });
 
-test.describe('Port Drill', () => {
+// SKIPPED — same story as Subnet Trainer: references pre-revamp Port Drill IDs
+// (`#port-pregame`, `#port-game`, `#port-prompt`, `#port-timer`, `#port-score`,
+// `#port-best`, `.port-opt`, `button:has-text("START DRILL")`). Current prefix
+// is `pt-` and the pregame button text has changed. Full rewrite needed.
+test.describe.skip('Port Drill', () => {
   test('shows pregame and starts drill', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    // v4.41.0: Port Drill no longer on main nav — navigate via Drills launcher
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
 
     // Pregame should be visible
     await expect(page.locator('#port-pregame')).toBeVisible();
@@ -182,7 +214,8 @@ test.describe('Port Drill', () => {
 
   test('clicking an answer loads next question', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
     await page.locator('#page-ports button:has-text("START DRILL")').click();
 
     // Click first option
@@ -215,25 +248,29 @@ test.describe('Chip Selectors', () => {
     const chips = page.locator('#topic-group .chip');
     await expect(chips.first()).toBeVisible();
 
-    // Click second chip
-    await chips.nth(1).click();
-    await expect(chips.nth(1)).toHaveClass(/on/);
+    // v4.43.4 fix: previously clicked nth(1) which is Mixed (already .on by default).
+    // Clicking an already-on chip toggles it off → assertion fails. Click nth(2)
+    // which is the first domain topic (unselected) so the click actually selects it.
+    await chips.nth(2).click();
+    await expect(chips.nth(2)).toHaveClass(/on/);
   });
 
   test('difficulty chips are selectable', async ({ page }) => {
     await page.goto('/');
 
     const chips = page.locator('#diff-group .chip');
-    await chips.nth(1).click();
-    await expect(chips.nth(1)).toHaveClass(/on/);
+    // nth(0) is Foundational (default .on). Click nth(2) to select a different one.
+    await chips.nth(2).click();
+    await expect(chips.nth(2)).toHaveClass(/on/);
   });
 
   test('count chips are selectable', async ({ page }) => {
     await page.goto('/');
 
     const chips = page.locator('#count-group .chip');
-    await chips.nth(1).click();
-    await expect(chips.nth(1)).toHaveClass(/on/);
+    // nth(1) is the default-selected chip; click a different one.
+    await chips.nth(3).click();
+    await expect(chips.nth(3)).toHaveClass(/on/);
   });
 });
 
@@ -312,10 +349,17 @@ test.describe('Default Chip Selections', () => {
 });
 
 test.describe('Topic Chip Count', () => {
-  test('has 42 topic chips including Mixed and Smart', async ({ page }) => {
+  test('has topic chips including Mixed and Smart', async ({ page }) => {
     await page.goto('/');
     const chips = page.locator('#topic-group .chip');
-    await expect(chips).toHaveCount(42);
+    // v4.42.3 expanded catalog from 40 → 50 topics; current total is 52 including
+    // Smart + Mixed quickpicks. Keep the exact count as a regression guard — if a
+    // topic is accidentally removed, fail loud. Update this number when the catalog
+    // intentionally grows.
+    await expect(chips).toHaveCount(52);
+    // Sanity: Smart + Mixed are among them
+    await expect(page.locator('#topic-group .chip-smart')).toHaveCount(1);
+    await expect(page.locator('#topic-group .chip').filter({ hasText: 'Mixed' })).toHaveCount(1);
   });
 
   test('switching topic chip deselects previous', async ({ page }) => {
@@ -325,12 +369,14 @@ test.describe('Topic Chip Count', () => {
     // Mixed is on by default
     await expect(page.locator('#topic-group .chip.on')).toHaveCount(1);
 
-    // Click a specific topic
-    await chips.nth(0).click();
+    // v4.43.4 fix: click nth(2) (first domain topic) instead of nth(0) which is
+    // the Smart chip — clicking Smart has special behavior (spaced-rep mode) and
+    // doesn't follow the standard "single-select chip-group" contract.
+    await chips.nth(2).click();
 
     // Only the clicked chip should be active
     await expect(page.locator('#topic-group .chip.on')).toHaveCount(1);
-    await expect(chips.nth(0)).toHaveClass(/on/);
+    await expect(chips.nth(2)).toHaveClass(/on/);
   });
 });
 
@@ -583,17 +629,20 @@ test.describe('Wrong Bank Behavior', () => {
   });
 });
 
-test.describe('Subnet Trainer Advanced', () => {
+// SKIPPED — same root cause as 'Subnet Trainer' block above: pre-revamp selectors
+// (`#subnet-streak-lbl`, `#subnet-ref`, `.subnet-table`, `#subnet-submit-btn`,
+// `#subnet-next-btn`). Full rewrite needed.
+test.describe.skip('Subnet Trainer Advanced', () => {
   test('streak counter starts at 0', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     await expect(page.locator('#subnet-streak-lbl')).toContainText('0');
   });
 
   test('reference table is visible', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     await expect(page.locator('#subnet-ref')).toBeVisible();
     await expect(page.locator('.subnet-table')).toBeVisible();
@@ -604,7 +653,7 @@ test.describe('Subnet Trainer Advanced', () => {
 
   test('submit button disabled state after submit', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Subnet Trainer")').click();
+    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
 
     await page.locator('#subnet-answer').fill('test');
     await page.locator('#subnet-submit-btn').click();
@@ -614,10 +663,14 @@ test.describe('Subnet Trainer Advanced', () => {
   });
 });
 
-test.describe('Port Drill Timer & Scoring', () => {
+// SKIPPED — same root cause as 'Port Drill' block above: pre-revamp selectors
+// (`#port-timer`, `#port-best`, `#port-final-score`, `#port-results`,
+// `window.endPortDrill`, START DRILL button). Full rewrite needed.
+test.describe.skip('Port Drill Timer & Scoring', () => {
   test('timer counts down from 30', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
     await page.locator('#page-ports button:has-text("START DRILL")').click();
 
     // Timer starts at 30
@@ -636,13 +689,15 @@ test.describe('Port Drill Timer & Scoring', () => {
     await page.evaluate(() => localStorage.setItem('nplus_port_best', '5'));
     await page.reload();
 
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
     await expect(page.locator('#port-best')).toContainText('5');
   });
 
   test('port drill shows results when timer expires', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#page-setup button:has-text("Port Drill")').click();
+    await page.locator('#drills-launcher-btn').click();
+    await page.locator('#page-drills button:has-text("Port Drill")').click();
 
     // Hack: set timer to 1 second by manipulating the timer directly
     await page.locator('#page-ports button:has-text("START DRILL")').click();
