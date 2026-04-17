@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.43.2</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.43.3</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -1028,11 +1028,13 @@
       </div>
     </div>
 
-    <!-- v4.43.1: Toolbar redesign — grouped with visible labels instead of scattered dividers.
-         Groups: Primary actions (Grade / Coach / AI) · Simulate · Labs · File · Utility -->
+    <!-- v4.43.3: Toolbar polish — CSS Grid layout with auto-fit columns for uniform
+         spacing/wrap. Primary group now has an "Actions" label matching the other 5
+         groups (was the only label-less group pre-v4.43.3 which caused height mismatch). -->
     <div class="tb-toolbar tb-toolbar-v2">
-      <!-- Group: Primary actions -->
+      <!-- Group: Actions (Grade / Coach / AI Generate) -->
       <div class="tb-tool-group tb-tool-group-primary">
+        <span class="tb-tool-group-label">Actions</span>
         <button class="btn btn-tool tb-tool-btn tb-tool-btn-primary" onclick="tbGradeTopology()" title="Grade this topology against design rules" id="tb-grade-btn">&#127891; Grade</button>
         <button class="btn btn-tool tb-tool-btn tb-tool-btn-coach" onclick="tbCoachTopology()" title="Ask the AI Coach to review your topology" id="tb-coach-btn">&#129302; Coach</button>
         <button class="btn btn-tool tb-tool-btn tb-tool-btn-ai" onclick="tbGenerateAiTopology()" title="AI generates a full network topology from your description" id="tb-ai-gen-btn">&#129302; AI Generate</button>
@@ -1081,6 +1083,10 @@
         <button class="btn btn-ghost tb-tool-btn" onclick="tbClearCanvas()" title="Clear all devices from canvas" id="tb-clear-btn">&#129529; Clear</button>
         <button class="btn btn-ghost tb-tool-btn" onclick="tbClearSimLog()" title="Clear log">&#128465; Log</button>
       </div>
+    </div>
+    <!-- v4.43.3: status moved into its own strip so it never crowds the Utility group
+         when the toolbar wraps at narrow widths -->
+    <div class="tb-toolbar-meta">
       <span id="tb-status" class="tb-status">Drag a device from the palette &rarr;</span>
     </div>
 

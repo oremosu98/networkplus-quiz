@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.2', js.includes("const APP_VERSION = '4.43.2"));
+test('APP_VERSION is 4.43.3', js.includes("const APP_VERSION = '4.43.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.2', sw.includes('netplus-v4.43.2'));
+test('SW cache bumped to v4.43.3', sw.includes('netplus-v4.43.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3765,6 +3765,26 @@ test('v4.43.2 #3: .tb-palette min-height 900px (matches canvas)',
 test('v4.43.2 #3: .tb-palette max-height bumped from 760 to 1200',
   /\.tb-palette\s*\{[^}]*max-height:\s*1200px/.test(css) &&
   !/\.tb-palette\s*\{[^}]*max-height:\s*760px/.test(css));
+
+// ── v4.43.3 TOPOLOGY BUILDER TOOLBAR POLISH ──
+console.log('\n\x1b[1m── v4.43.3 TB TOOLBAR POLISH ──\x1b[0m');
+// Fix 1: Primary group now has an "Actions" label (was label-less, causing height mismatch)
+test('v4.43.3 #1: primary group has Actions label',
+  /class="tb-tool-group tb-tool-group-primary"[\s\S]{0,200}<span class="tb-tool-group-label">Actions<\/span>/.test(html));
+// Fix 2: toolbar is CSS Grid (was flex-wrap); dividers dropped
+test('v4.43.3 #2: .tb-toolbar-v2 uses display: grid',
+  /\.tb-toolbar-v2\s*\{[^}]*display:\s*grid/.test(css));
+test('v4.43.3 #2: toolbar uses auto-fit minmax columns for uniform wrap',
+  /\.tb-toolbar-v2\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(150px,\s*max-content\)\)/.test(css));
+test('v4.43.3 #2: border-right dividers dropped (regression guard)',
+  !/\.tb-tool-group\s*\{[^}]*border-right:\s*1px/.test(css));
+// Fix 3: status element moved into its own .tb-toolbar-meta strip
+test('v4.43.3 #3: .tb-toolbar-meta wrapper exists with tb-status inside',
+  /<div class="tb-toolbar-meta">\s*<span id="tb-status"/.test(html));
+test('v4.43.3 #3: .tb-toolbar-meta CSS defined',
+  /\.tb-toolbar-meta\s*\{[^}]*display:\s*flex/.test(css));
+test('v4.43.3 #3: old margin-left:auto status positioning removed (regression guard)',
+  !/\.tb-toolbar-v2\s+\.tb-status\s*\{[^}]*margin-left:\s*auto/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
