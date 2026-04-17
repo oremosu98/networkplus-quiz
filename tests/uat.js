@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.44.0', js.includes("const APP_VERSION = '4.44.0"));
+test('APP_VERSION is 4.45.0', js.includes("const APP_VERSION = '4.45.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.44.0', sw.includes('netplus-v4.44.0'));
+test('SW cache bumped to v4.45.0', sw.includes('netplus-v4.45.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -373,8 +373,11 @@ test('Domain breakdown rendered', js.includes('ana-domain-row'));
 test('Exam date picker in analytics', js.includes('ana-exam-date-btn'));
 test('Streak card rendered', js.includes('ana-streak-grid'));
 test('Weak spots card rendered', js.includes('ana-weak-list'));
-test('Heatmap card rendered', js.includes('ana-heatmap'));
-test('Type breakdown card rendered', js.includes('ana-type-list'));
+// v4.45.0: heatmap + type-list cards removed, replaced by Domain Mastery
+// (full-width above grid) and Wrong-Answer Patterns (inside 2-col grid).
+// See the v4.45.0 assertion block below for the new-card guards.
+test('Domain Mastery card rendered', js.includes('ana-card-dm'));
+test('Wrong-answer patterns card rendered', js.includes('wp-pattern'));
 test('Mode compare card rendered', js.includes('ana-mode-compare'));
 test('Drills grid card rendered', js.includes('ana-drills-grid'));
 test('Milestones card rendered', js.includes('ana-milestones'));
@@ -4056,6 +4059,61 @@ test('v4.44.0 #5: observer uses IntersectionObserver with threshold 0.5 and unob
 // Reduced-motion coverage
 test('v4.44.0: prefers-reduced-motion block covers all 4 new animation classes',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]*?#q-text\.q-text-reveal[\s\S]*?\.option\.option-stagger-in[\s\S]*?\.st-block-match\.st-block-match-active[\s\S]*?\.option\.correct[\s\S]*?animation:\s*none/.test(css));
+
+// ── v4.45.0 ANALYTICS REVAMP (Domain Mastery + Wrong-Answer Patterns) ──
+console.log('\n\x1b[1m── v4.45.0 ANALYTICS REVAMP ──\x1b[0m');
+// The old heatmap + question-type breakdown are removed. Regression guards
+// ensure they stay gone and the new cards are correctly wired.
+test('v4.45.0: _renderAnaDomainMastery function defined',
+  /function\s+_renderAnaDomainMastery\(h\)/.test(js));
+test('v4.45.0: drillDomain helper defined (Domain Mastery drill buttons)',
+  /function\s+drillDomain\(domainName\)/.test(js));
+test('v4.45.0: drillDomain calls focusTopic on weakest topic in domain',
+  /function\s+drillDomain\(domainName\)[\s\S]*?focusTopic\(target\)/.test(js));
+test('v4.45.0: _renderAnaWrongPatterns function defined',
+  /function\s+_renderAnaWrongPatterns\(\)/.test(js));
+// Regression guards: the old functions must stay gone
+test('v4.45.0: old _renderAnaHeatmap is gone (regression guard)',
+  !/function\s+_renderAnaHeatmap/.test(js));
+test('v4.45.0: old _renderAnaQuestionTypes is gone (regression guard)',
+  !/function\s+_renderAnaQuestionTypes/.test(js));
+test('v4.45.0: renderAnalytics calls _renderAnaDomainMastery (full-width, above grid)',
+  /html\s*\+=\s*_renderAnaDomainMastery\(h\)/.test(js));
+test('v4.45.0: renderAnalytics calls _renderAnaWrongPatterns (inside 2-col grid)',
+  /html\s*\+=\s*_renderAnaWrongPatterns\(\)/.test(js));
+test('v4.45.0: renderAnalytics no longer calls _renderAnaHeatmap (regression guard)',
+  !/html\s*\+=\s*_renderAnaHeatmap/.test(js));
+test('v4.45.0: renderAnalytics no longer calls _renderAnaQuestionTypes (regression guard)',
+  !/html\s*\+=\s*_renderAnaQuestionTypes/.test(js));
+// CSS classes for the new cards
+test('v4.45.0: .ana-card-dm CSS defined (Domain Mastery card)',
+  /\.ana-card-dm\s*\{/.test(css));
+test('v4.45.0: .dm-row + .dm-bar-track + .dm-bar-fill + .dm-bar-target CSS present',
+  /\.dm-row\s*\{/.test(css) && /\.dm-bar-track\s*\{/.test(css) &&
+  /\.dm-bar-fill\s*\{/.test(css) && /\.dm-bar-target\s*\{/.test(css));
+test('v4.45.0: all 4 tier badge CSS classes defined',
+  /\.dm-badge-novice/.test(css) && /\.dm-badge-developing/.test(css) &&
+  /\.dm-badge-proficient/.test(css) && /\.dm-badge-mastered/.test(css));
+test('v4.45.0: .dm-bar-fill uses 800ms cubic-bezier width transition',
+  /\.dm-bar-fill\s*\{[^}]*transition:\s*width\s+800ms\s+cubic-bezier/.test(css));
+test('v4.45.0: .dm-bar-target positioned at 85% (mastery threshold marker)',
+  /style="left:85%"/.test(js) || /left:\s*85%/.test(js));
+test('v4.45.0: .wp-pattern + .wp-pattern-rank + .wp-pattern-count CSS present',
+  /\.wp-pattern\s*\{/.test(css) && /\.wp-pattern-rank\s*\{/.test(css) &&
+  /\.wp-pattern-count\s*\{/.test(css));
+test('v4.45.0: old .ana-heatmap + .ana-heat-* CSS is gone (regression guard)',
+  !/\.ana-heatmap\s*\{/.test(css) && !/\.ana-heat-head/.test(css));
+test('v4.45.0: old .ana-type-list + .ana-type-row CSS is gone (regression guard)',
+  !/\.ana-type-list\s*\{/.test(css) && !/\.ana-type-row\s*\{/.test(css));
+// Domain mastery classifier sanity — all 5 domain keys referenced
+test('v4.45.0: Domain Mastery covers all 5 N10-009 domain keys',
+  /id:\s*'concepts'[\s\S]*?id:\s*'implementation'[\s\S]*?id:\s*'operations'[\s\S]*?id:\s*'security'[\s\S]*?id:\s*'troubleshooting'/.test(js));
+// Wrong-pattern classifier sanity — all 4 pattern categories
+test('v4.45.0: Wrong-pattern classifier detects negation, domain, PBQ type, Hard difficulty',
+  js.includes('NEGATION TRAPS') &&
+  js.includes('DOMAIN \\u2014') &&
+  (js.includes('MULTI-SELECT') || js.includes('ORDER / SEQUENCE')) &&
+  js.includes('HARD-DIFFICULTY CONCENTRATION'));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

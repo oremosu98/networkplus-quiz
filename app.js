@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.44.0
+// Network+ AI Quiz — app.js  v4.45.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.44.0';
+const APP_VERSION = '4.45.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -17733,66 +17733,231 @@ function _renderAnaWeakSpots() {
   </div>`;
 }
 
-function _renderAnaHeatmap(h) {
-  const diffTopic = {}; // { topic: { Foundational: {c,t}, 'Exam Level': {c,t}, ... } }
-  const diffLevels = new Set();
+// v4.45.0 — replaces the old Difficulty × Topic Heatmap. Prescriptive over
+// descriptive: for each of the 5 official N10-009 domains, shows current
+// accuracy as a progress bar toward the 85% mastery threshold, a tier
+// badge (Novice / Developing / Proficient / Mastered), and a one-click
+// drill button that fires focusTopic() on the weakest topic within that
+// domain. Unstudied domains get a "Not started" state with a prompt.
+function _renderAnaDomainMastery(h) {
+  const domains = [
+    { id: 'concepts',        label: '1.0 Networking Concepts',     weight: 23, color: '#7c6ff7' },
+    { id: 'implementation',  label: '2.0 Network Implementation',  weight: 20, color: '#22c55e' },
+    { id: 'operations',      label: '3.0 Network Operations',      weight: 19, color: '#3b82f6' },
+    { id: 'security',        label: '4.0 Network Security',        weight: 14, color: '#f59e0b' },
+    { id: 'troubleshooting', label: '5.0 Network Troubleshooting', weight: 24, color: '#ef4444' }
+  ];
+  const byDomain = { concepts: {c:0,t:0}, implementation: {c:0,t:0}, operations: {c:0,t:0}, security: {c:0,t:0}, troubleshooting: {c:0,t:0} };
   h.forEach(e => {
     if (!e.topic || e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
-    const d = e.difficulty || e.diff || 'Unknown';
-    diffLevels.add(d);
-    if (!diffTopic[e.topic]) diffTopic[e.topic] = {};
-    if (!diffTopic[e.topic][d]) diffTopic[e.topic][d] = { c: 0, t: 0 };
-    diffTopic[e.topic][d].c += e.score;
-    diffTopic[e.topic][d].t += e.total;
+    const d = TOPIC_DOMAINS[e.topic];
+    if (!d || !byDomain[d]) return;
+    byDomain[d].c += e.score;
+    byDomain[d].t += e.total;
   });
-  const diffLevelArr = ['Foundational', 'Exam Level', 'Hard / Tricky', 'Mixed'].filter(d => diffLevels.has(d));
-  const heatTopics = Object.keys(diffTopic).sort();
-  if (heatTopics.length === 0 || diffLevelArr.length === 0) return '';
-  return `<div class="ana-card">
-    <h3>DIFFICULTY × TOPIC HEATMAP</h3>
-    <div class="ana-subtitle">Find where strong topics break down at harder difficulty</div>
-    <div class="ana-heatmap">
-      <div class="ana-heat-head">
-        <div class="ana-heat-h-topic">Topic</div>
-        ${diffLevelArr.map(d => `<div class="ana-heat-h-diff">${d.replace(' / Tricky', '')}</div>`).join('')}
-      </div>
-      ${heatTopics.map(t => {
-        return `<div class="ana-heat-row">
-          <div class="ana-heat-topic">${escHtml(t)}</div>
-          ${diffLevelArr.map(d => {
-            const v = diffTopic[t][d];
-            if (!v || v.t === 0) return `<div class="ana-heat-cell ana-heat-empty">—</div>`;
-            const pct = Math.round((v.c / v.t) * 100);
-            const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : 'var(--red)';
-            return `<div class="ana-heat-cell" style="color:${color};background:${color.replace('var(','rgba(').replace(')', ', 0.12)')}" title="${v.c}/${v.t} correct">${pct}%</div>`;
-          }).join('')}
+
+  const hasAny = domains.some(d => byDomain[d.id].t > 0);
+  if (!hasAny) return '';
+
+  const tierInfo = (pct) => {
+    if (pct >= 85) return { label: 'Mastered',   cls: 'dm-badge-mastered' };
+    if (pct >= 75) return { label: 'Proficient', cls: 'dm-badge-proficient' };
+    if (pct >= 60) return { label: 'Developing', cls: 'dm-badge-developing' };
+    return           { label: 'Novice',     cls: 'dm-badge-novice' };
+  };
+
+  return `<div class="ana-card ana-card-dm" id="ana-s-domain-mastery">
+    <h3>DOMAIN MASTERY</h3>
+    <div class="ana-subtitle">How close each N10-009 domain is to the 85% mastery threshold</div>
+    <div class="dm-list">
+      ${domains.map(d => {
+        const data = byDomain[d.id];
+        if (data.t === 0) {
+          return `<div class="dm-row dm-row-unstudied" style="--dm-accent:${d.color}">
+            <div class="dm-row-head">
+              <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+              <div class="dm-row-badge dm-badge-unstudied">Not started</div>
+            </div>
+            <div class="dm-bar-wrap">
+              <div class="dm-bar-track"><div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div></div>
+              <div class="dm-bar-pct dm-bar-pct-empty">\u2014</div>
+            </div>
+            <div class="dm-row-foot">
+              <span class="dm-row-stats">No questions answered yet</span>
+              <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">Start drilling \u2192</button>
+            </div>
+          </div>`;
+        }
+        const pct = Math.round((data.c / data.t) * 100);
+        const tier = tierInfo(pct);
+        return `<div class="dm-row" style="--dm-accent:${d.color}">
+          <div class="dm-row-head">
+            <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+            <div class="dm-row-badge ${tier.cls}">${tier.label}</div>
+          </div>
+          <div class="dm-bar-wrap">
+            <div class="dm-bar-track">
+              <div class="dm-bar-fill" style="width:${Math.min(pct, 100)}%"></div>
+              <div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div>
+            </div>
+            <div class="dm-bar-pct">${pct}%</div>
+          </div>
+          <div class="dm-row-foot">
+            <span class="dm-row-stats">${data.c} correct of ${data.t} attempts</span>
+            <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">${pct >= 85 ? 'Review \u2192' : 'Drill weakest \u2192'}</button>
+          </div>
         </div>`;
       }).join('')}
     </div>
+    <div class="dm-footer">Weights from official CompTIA N10-009 exam blueprint.</div>
   </div>`;
 }
 
-function _renderAnaQuestionTypes() {
-  const typeStats = getTypeStats();
-  const typeEntries = Object.entries(typeStats).filter(([, v]) => v.seen > 0);
-  if (typeEntries.length === 0) return '';
-  const typeLabels = { 'mcq': 'MCQ', 'multi-select': 'Multi-select', 'order': 'Order / Sequence', 'topology': 'Topology PBQ', 'cli-sim': 'CLI Simulation' };
-  typeEntries.sort((a, b) => b[1].seen - a[1].seen);
-  return `<div class="ana-card">
-    <h3>QUESTION TYPE BREAKDOWN</h3>
-    <div class="ana-subtitle">Accuracy by MCQ vs performance-based question types</div>
-    <div class="ana-type-list">
-      ${typeEntries.map(([t, v]) => {
-        const pct = Math.round((v.correct / v.seen) * 100);
-        const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : 'var(--red)';
-        const label = typeLabels[t] || t;
-        return `<div class="ana-type-row">
-          <div class="ana-type-name">${escHtml(label)}</div>
-          <div class="ana-type-bar"><div class="ana-type-fill" style="width:${pct}%;background:${color}"></div></div>
-          <div class="ana-type-pct" style="color:${color}">${pct}%</div>
-          <div class="ana-type-count">${v.correct}/${v.seen}</div>
-        </div>`;
-      }).join('')}
+// v4.45.0 — drill helper for the Domain Mastery card. Finds the weakest topic
+// within the given domain (unstudied topics get priority via -1 accuracy
+// sentinel) and pipes it into focusTopic() which sets state + chips +
+// fires startQuiz(). One click \u2192 one targeted drill session.
+function drillDomain(domainName) {
+  const topicsInDomain = Object.entries(TOPIC_DOMAINS).filter(([t, d]) => d === domainName).map(([t]) => t);
+  if (topicsInDomain.length === 0) return;
+  const h = typeof loadHistory === 'function' ? loadHistory() : [];
+  const topicAcc = {};
+  topicsInDomain.forEach(t => {
+    const entries = h.filter(e => e.topic === t);
+    const total = entries.reduce((a,e) => a + e.total, 0);
+    const correct = entries.reduce((a,e) => a + e.score, 0);
+    topicAcc[t] = total > 0 ? (correct / total) : -1; // -1 = unstudied, priority
+  });
+  const sorted = topicsInDomain.slice().sort((a,b) => topicAcc[a] - topicAcc[b]);
+  const target = sorted[0];
+  if (typeof focusTopic === 'function') focusTopic(target);
+}
+
+// v4.45.0 — replaces the old Question Type Breakdown. Clusters your last 20
+// wrong answers by signal (negation keywords, dominant domain, PBQ type,
+// Hard-difficulty concentration) and surfaces top 3-4 patterns with
+// coaching text + a drill button where action is possible. Fixes the
+// pattern, not just the topic.
+function _renderAnaWrongPatterns() {
+  const bank = typeof loadWrongBank === 'function' ? loadWrongBank() : [];
+  if (!bank || bank.length === 0) return '';
+  // Recent-first; take last 20 wrongs
+  const recent = bank.slice().sort((a, b) => new Date(b.addedDate || 0) - new Date(a.addedDate || 0)).slice(0, 20);
+  if (recent.length === 0) return '';
+
+  const negationRe = /\b(NOT|EXCEPT|CANNOT|NEVER|LEAST|WORST)\b/i;
+  const domainLabels = {
+    concepts:        '1.0 Networking Concepts',
+    implementation:  '2.0 Network Implementation',
+    operations:      '3.0 Network Operations',
+    security:        '4.0 Network Security',
+    troubleshooting: '5.0 Network Troubleshooting'
+  };
+
+  let negationCount = 0;
+  const domainCount = {};
+  const typeCount = {};
+  let hardCount = 0;
+
+  recent.forEach(w => {
+    if (w.question && negationRe.test(w.question)) negationCount++;
+    const d = TOPIC_DOMAINS[w.topic];
+    if (d) domainCount[d] = (domainCount[d] || 0) + 1;
+    if (w.type && w.type !== 'mcq') typeCount[w.type] = (typeCount[w.type] || 0) + 1;
+    if ((w.difficulty || '').toLowerCase().includes('hard')) hardCount++;
+  });
+
+  const patterns = [];
+  const total = recent.length;
+  const pctStr = (n) => Math.round((n / total) * 100) + '%';
+
+  if (negationCount >= 3) {
+    patterns.push({
+      icon: '\ud83c\udfaf',
+      title: 'NEGATION TRAPS',
+      count: negationCount,
+      pctStr: pctStr(negationCount),
+      desc: `Questions containing <strong>NOT / EXCEPT / CANNOT</strong> tripped you up. You're reading past the trap word. These are highlighted in <strong>bold purple</strong> on the question stem \u2014 slow down when you see one.`,
+      drillBtn: null,
+      accent: '#ef4444'
+    });
+  }
+
+  // Dominant domain cluster
+  const domEntries = Object.entries(domainCount).sort((a, b) => b[1] - a[1]);
+  if (domEntries.length > 0 && domEntries[0][1] >= 3) {
+    const [dId, count] = domEntries[0];
+    const label = domainLabels[dId] || dId;
+    patterns.push({
+      icon: '\ud83c\udff7\ufe0f',
+      title: 'DOMAIN \u2014 ' + label.toUpperCase(),
+      count: count,
+      pctStr: pctStr(count),
+      desc: `${count} of your last ${total} wrongs cluster in this N10-009 domain. Focused drilling here will tighten the weakest block of your readiness score.`,
+      drillBtn: { label: 'Drill ' + label.split(' ').slice(1).join(' ') + ' \u2192', onclick: `drillDomain('${dId}')` },
+      accent: '#f59e0b'
+    });
+  }
+
+  // Multi-select / Order concentration (PBQ structure issues)
+  const msCount = typeCount['multi-select'] || 0;
+  const orCount = typeCount['order'] || 0;
+  if (msCount + orCount >= 2) {
+    const msDominant = msCount >= orCount;
+    patterns.push({
+      icon: '\ud83e\udd39',
+      title: msDominant ? 'MULTI-SELECT (\u201cCHOOSE TWO\u201d)' : 'ORDER / SEQUENCE',
+      count: msCount + orCount,
+      pctStr: pctStr(msCount + orCount),
+      desc: msDominant
+        ? `You're picking the first correct answer but missing the second. Read <em>every</em> option before submitting \u2014 "Choose TWO" means don't stop at one.`
+        : `Step-by-step sequencing trips you up. Read the whole list before picking the first step \u2014 the "obvious" start is often wrong.`,
+      drillBtn: null,
+      accent: '#8b5cf6'
+    });
+  }
+
+  // Hard-difficulty concentration
+  if (hardCount >= 4) {
+    patterns.push({
+      icon: '\ud83d\udd25',
+      title: 'HARD-DIFFICULTY CONCENTRATION',
+      count: hardCount,
+      pctStr: pctStr(hardCount),
+      desc: `Many of your recent wrongs are Hard-tier questions. If you're still under 75% on Exam-Level for any domain, drop back to Exam-Level until it's solid before grinding Hard.`,
+      drillBtn: null,
+      accent: '#3b82f6'
+    });
+  }
+
+  if (patterns.length === 0) {
+    return `<div class="ana-card ana-card-wp" id="ana-s-wrong-patterns">
+      <h3>WRONG-ANSWER PATTERNS</h3>
+      <div class="ana-subtitle">Your last ${recent.length} mistakes clustered by cause</div>
+      <div class="wp-empty">
+        <div class="wp-empty-icon">\u2728</div>
+        <div class="wp-empty-title">No strong pattern yet</div>
+        <div class="wp-empty-body">Your ${recent.length} recent wrong${recent.length === 1 ? '' : 's'} are scattered across domains and question types. That's a good sign \u2014 no single failure mode dominates. Keep drilling and any patterns will surface if they exist.</div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="ana-card ana-card-wp" id="ana-s-wrong-patterns">
+    <h3>WRONG-ANSWER PATTERNS</h3>
+    <div class="ana-subtitle">Your last ${recent.length} mistakes clustered by cause \u2014 fix the pattern, not just the topic</div>
+    <div class="wp-list">
+      ${patterns.slice(0, 4).map((p, i) => `
+        <div class="wp-pattern" style="--wp-accent:${p.accent}">
+          <div class="wp-pattern-head">
+            <span class="wp-pattern-rank">${i + 1}</span>
+            <span class="wp-pattern-icon" aria-hidden="true">${p.icon}</span>
+            <span class="wp-pattern-title">${p.title}</span>
+            <span class="wp-pattern-count">${p.count} \u00b7 ${p.pctStr}</span>
+          </div>
+          <div class="wp-pattern-desc">${p.desc}</div>
+          ${p.drillBtn ? `<button class="wp-drill-btn" onclick="${p.drillBtn.onclick}">${p.drillBtn.label}</button>` : ''}
+        </div>
+      `).join('')}
     </div>
   </div>`;
 }
@@ -17949,15 +18114,20 @@ function renderAnalytics() {
   html += _renderAnaTrend(h);
   html += _renderAnaDifficulty(h);
   html += _renderAnaTopicsCta();
+  // v4.45.0 — Domain Mastery is promoted OUT of the 2-col grid because it's
+  // the most prescriptive card on the page and deserves full-width. It
+  // sits right after Topics CTA so domain-level mastery reads alongside
+  // topic-level progress.
+  html += _renderAnaDomainMastery(h);
   html += _renderAnaActivity(h);
   html += _renderAnaExams(h);
-  // 6-8. Removed in v4.32: Priority Study Areas (merged into Topic Mastery),
-  //       Weekly Volume (redundant with calendar), All-Time Stats (merged into hero).
+  // v4.32: Priority Study Areas + Weekly Volume + All-Time Stats removed.
+  // v4.45.0: Difficulty × Topic Heatmap + Question Type Breakdown removed.
+  //          Replaced by Domain Mastery (above) + Wrong-Answer Patterns (here).
   html += '<div class="ana-grid-2col">';
   html += _renderAnaStreak();
   html += _renderAnaWeakSpots();
-  html += _renderAnaHeatmap(h);
-  html += _renderAnaQuestionTypes();
+  html += _renderAnaWrongPatterns();
   html += _renderAnaExamVsQuiz(h);
   html += '</div>';
   html += _renderAnaDrills();
