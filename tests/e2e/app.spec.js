@@ -702,30 +702,19 @@ test.describe('Port Drill Timer & Scoring', () => {
     expect(laterVal).toBeLessThan(startVal);
   });
 
-  test('port best score persists via localStorage and surfaces in Analytics', async ({ page }) => {
-    // v4.43.4: port best is no longer shown on the Port Drill page itself;
-    // it renders in the Analytics Drills section (#ana-s-drills) via
-    // _renderAnaDrills(). The Analytics page is gated behind "at least one
-    // quiz in history" (renderAnalytics exits early otherwise), so we seed
-    // one minimal history entry alongside the port-best value.
+  test('port best score persists in localStorage across reloads', async ({ page }) => {
+    // v4.45.2: the Practice Drills stats card (#ana-s-drills) was removed —
+    // port best no longer surfaces in the Analytics UI. It still drives
+    // the `perfect_port` / `streak_port_25` milestones via PORT_BEST +
+    // PORT_STREAK_BEST localStorage keys, so this test now verifies
+    // simple persistence (what milestones depend on).
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('nplus_port_best', '7');
-      localStorage.setItem('nplus_history', JSON.stringify([{
-        topic: 'TCP/IP Basics', score: 5, total: 10, pct: 50,
-        date: new Date().toISOString(), mode: 'quiz', difficulty: 'Exam Level'
-      }]));
     });
     await page.reload();
-
-    // Navigate to Analytics
-    await page.locator('#page-setup button[onclick*="renderAnalytics"]').click();
-
-    // #ana-s-drills is the Drills section wrapper — contains the Port Drill card
-    const drillsSection = page.locator('#ana-s-drills');
-    await expect(drillsSection).toBeVisible();
-    await expect(drillsSection).toContainText('Port Drill');
-    await expect(drillsSection).toContainText('7'); // timed best
+    const persisted = await page.evaluate(() => localStorage.getItem('nplus_port_best'));
+    expect(persisted).toBe('7');
   });
 
   test('timed mode shows time\'s-up screen when timer expires', async ({ page }) => {
