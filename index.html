@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.46.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.46.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -48,13 +48,8 @@
     </div>
     <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
     <div class="readiness-exam-row" id="readiness-exam-row">
-      <span class="readiness-exam-lbl">🎯 Exam date:</span>
-      <button type="button" class="ana-exam-date-btn" onclick="document.getElementById('readiness-exam-input').showPicker && document.getElementById('readiness-exam-input').showPicker()" aria-label="Open exam date picker">
-        <span class="ana-exam-date-display" id="readiness-exam-display">Pick a date</span>
-        <span class="ana-exam-date-icon">📅</span>
-        <input type="date" id="readiness-exam-input" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
-      </button>
-      <span class="readiness-exam-countdown" id="readiness-exam-countdown"></span>
+      <!-- v4.46.1: single chip (built by _buildExamDateChipHtml) replaces old
+           3-element row (label + button + countdown). Fills on renderReadinessCard. -->
     </div>
   </div>
 

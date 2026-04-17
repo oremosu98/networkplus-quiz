@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.46.0', js.includes("const APP_VERSION = '4.46.0"));
+test('APP_VERSION is 4.46.1', js.includes("const APP_VERSION = '4.46.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.46.0', sw.includes('netplus-v4.46.0'));
+test('SW cache bumped to v4.46.1', sw.includes('netplus-v4.46.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4248,6 +4248,59 @@ test('v4.46.0: old separate .ana-exam-date-clear button replaced by datechip-cle
   !js.includes('class="ana-exam-date-clear"'));
 test('v4.46.0: old .ana-domain-weight right-column removed (regression guard: weight is now subtext under name)',
   !/grid-template-columns:\s*1fr\s*36px\s*2fr\s*40px/.test(css));
+
+// ── v4.46.1 HOMEPAGE CHIP FIX + STREAK POLISH + CANVAS WIDEN ──
+console.log('\n\x1b[1m── v4.46.1 HOMEPAGE CHIP + STREAK + CANVAS ──\x1b[0m');
+// Shared chip builder (eliminates homepage-chip vs analytics-chip drift)
+test('v4.46.1: _buildExamDateChipHtml helper defined',
+  js.includes('function _buildExamDateChipHtml(examDateStr, daysToExam, inputId)'));
+test('v4.46.1: Analytics card uses shared helper',
+  /const dateChip = _buildExamDateChipHtml\(examDateStr, daysToExam, 'ana-exam-date-input'\)/.test(js));
+test('v4.46.1: renderReadinessCard uses shared helper',
+  /_buildExamDateChipHtml\(dateStr, days, 'readiness-exam-input'\)/.test(js));
+// Homepage HTML — old 3-element row replaced with single wrapper
+test('v4.46.1: homepage .readiness-exam-lbl removed (chip fills wrapper now)',
+  !html.includes('class="readiness-exam-lbl"'));
+test('v4.46.1: homepage readiness-exam-countdown span removed',
+  !html.includes('id="readiness-exam-countdown"'));
+test('v4.46.1: homepage readiness-exam-display span removed (replaced by chip)',
+  !html.includes('id="readiness-exam-display"'));
+test('v4.46.1: homepage still has #readiness-exam-row wrapper for chip injection',
+  html.includes('id="readiness-exam-row"'));
+test('v4.46.1: renderReadinessCard no longer manipulates old spans by id',
+  !js.match(/getElementById\(['"]readiness-exam-display['"]\)/));
+// CSS cleanup
+test('v4.46.1 CSS: old .readiness-exam-lbl rule removed',
+  !css.includes('.readiness-exam-lbl {') && !css.includes('.readiness-exam-lbl\n'));
+test('v4.46.1 CSS: old .readiness-exam-countdown RULE removed (comment reference OK)',
+  !/\.readiness-exam-countdown\s*\{/.test(css));
+test('v4.46.1 CSS: .readiness-exam-row hosts the chip full-width',
+  /\.readiness-exam-row\s+\.ana-ready-datechip\s*\{[^}]*width:\s*100%/.test(css));
+// Streak polish
+test('v4.46.1: streak computes 5 heat tiers (cold/starting/warm/hot/blazing)',
+  js.includes("heatTier = 'cold'") && js.includes("heatTier = 'starting'") && js.includes("heatTier = 'warm'") && js.includes("heatTier = 'hot'") && js.includes("heatTier = 'blazing'"));
+test('v4.46.1: streak builds last-7-days dot row from daySet',
+  /for \(let i = 6; i >= 0; i--\)[\s\S]{0,400}daySet\.has\(key\)/.test(js));
+test('v4.46.1: streak week dots have today marker class',
+  js.includes('ana-streak-day-today'));
+test('v4.46.1: streak meta row uses icons (🏆 longest, 📅 last study)',
+  js.includes('ana-streak-stat-ico'));
+test('v4.46.1 CSS: .ana-streak-big-blazing gradient defined',
+  css.includes('.ana-streak-big-blazing'));
+test('v4.46.1 CSS: @keyframes streakFlamePulse defined',
+  /@keyframes streakFlamePulse/.test(css));
+test('v4.46.1 CSS: .ana-streak-week dot grid (7-col)',
+  /\.ana-streak-week\s*\{[^}]*grid-template-columns:\s*repeat\(7/.test(css));
+test('v4.46.1 CSS: .ana-streak-day-on fills with accent',
+  css.includes('.ana-streak-day-on .ana-streak-day-dot'));
+test('v4.46.1 CSS: reduced-motion neutralises flame pulse',
+  /prefers-reduced-motion[\s\S]{0,2500}\.ana-streak-flame\s*\{[^}]*animation:\s*none/.test(css));
+// Canvas widening
+test('v4.46.1: Analytics page max-width bumped to 1040px',
+  /#page-analytics\s*\{[^}]*max-width:\s*1040px/.test(css));
+test('v4.46.1: .ana-calendar corner radius bumped (polish at larger cells)',
+  /\.ana-cal-day\s*\{[^}]*border-radius:\s*6px/.test(css));
+test('v4.46.1: .ana-calendar gap bumped to 5px', /\.ana-calendar\s*\{[^}]*gap:\s*5px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

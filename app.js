@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.46.0
+// Network+ AI Quiz — app.js  v4.46.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.46.0';
+const APP_VERSION = '4.46.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4212,33 +4212,14 @@ function renderReadinessCard() {
     actionEl.innerHTML = '\u2728 All topics covered. Keep your scores up!';
   }
 
-  // Exam date row
-  const examInput     = document.getElementById('readiness-exam-input');
-  const examDisplay   = document.getElementById('readiness-exam-display');
-  const examCountdown = document.getElementById('readiness-exam-countdown');
-  if (examInput && examDisplay && examCountdown) {
+  // v4.46.1: Exam-date chip — shared builder with Analytics hero card. One
+  // click target, merged date + countdown display, no more visible native
+  // date input.
+  const examRow = document.getElementById('readiness-exam-row');
+  if (examRow) {
     const dateStr = getExamDate();
-    examInput.value = dateStr || '';
-    if (dateStr) {
-      examDisplay.textContent = new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      const days = getDaysToExam();
-      if (days !== null) {
-        if (days > 0) {
-          const emoji = days <= 7 ? '\ud83d\udd25' : days <= 30 ? '\u26a1' : '\ud83d\udcc5';
-          examCountdown.innerHTML = `${emoji} <strong>${days}</strong> day${days === 1 ? '' : 's'} to go`;
-          examCountdown.style.color = days <= 7 ? 'var(--red)' : days <= 30 ? 'var(--yellow)' : 'var(--text-mid)';
-        } else if (days === 0) {
-          examCountdown.innerHTML = '\ud83c\udfaf <strong>Today!</strong>';
-          examCountdown.style.color = 'var(--red)';
-        } else {
-          examCountdown.textContent = `Was ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
-          examCountdown.style.color = 'var(--text-dim)';
-        }
-      }
-    } else {
-      examDisplay.textContent = 'Pick a date';
-      examCountdown.textContent = '';
-    }
+    const days = getDaysToExam();
+    examRow.innerHTML = _buildExamDateChipHtml(dateStr, days, 'readiness-exam-input');
   }
 }
 
@@ -17486,6 +17467,38 @@ function _renderAnaNav() {
   </nav>`;
 }
 
+// v4.46.1: shared exam-date chip builder. Used by both the Analytics hero card
+// and the homepage readiness card (via renderReadinessCard). Single source of
+// truth so the two surfaces never disagree and the picker stays hidden behind
+// the polished chip on both. inputId must be unique per surface so clicking
+// the chip opens the right picker.
+function _buildExamDateChipHtml(examDateStr, daysToExam, inputId) {
+  let dateChipInner;
+  let dateChipState = '';
+  if (examDateStr) {
+    const dateLabel = new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (daysToExam !== null && daysToExam > 0) {
+      const emoji = daysToExam <= 7 ? '🔥' : daysToExam <= 30 ? '⏰' : '📅';
+      const urgency = daysToExam <= 7 ? 'urgent' : daysToExam <= 30 ? 'soon' : 'ok';
+      dateChipState = ` ana-ready-datechip-${urgency}`;
+      dateChipInner = `<span class="ana-ready-datechip-icon">${emoji}</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'}</span>`;
+    } else if (daysToExam === 0) {
+      dateChipState = ' ana-ready-datechip-urgent';
+      dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>Today!</strong></span>`;
+    } else {
+      dateChipState = ' ana-ready-datechip-past';
+      dateChipInner = `<span class="ana-ready-datechip-icon">✅</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days">${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</span>`;
+    }
+  } else {
+    dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date ana-ready-datechip-placeholder">Set your exam date</span>`;
+  }
+  return `<button type="button" class="ana-exam-date-btn ana-ready-datechip${dateChipState}" onclick="document.getElementById('${inputId}').showPicker && document.getElementById('${inputId}').showPicker()" aria-label="${examDateStr ? 'Change exam date' : 'Set exam date'}">
+      ${dateChipInner}
+      <input type="date" id="${inputId}" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
+      ${examDateStr ? '<span class="ana-ready-datechip-clear" role="button" tabindex="0" onclick="event.stopPropagation();updateExamDate(\'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.stopPropagation();event.preventDefault();updateExamDate(\'\')}" aria-label="Clear exam date" title="Clear date">×</span>' : ''}
+    </button>`;
+}
+
 function _renderAnaReadiness(h) {
   const readiness = getReadinessScore();
   const examDateStr = getExamDate();
@@ -17507,32 +17520,8 @@ function _renderAnaReadiness(h) {
   else                       { tier = '🔴 Not Ready';    tierColor = 'var(--red)';    tierBg = 'rgba(248,113,113,.12)'; }
   const barPct = Math.max(0, Math.min(100, ((predicted - 420) / 450) * 100));
 
-  // v4.46.0: merged date + countdown chip. One element, two purposes — click to
-  // open the picker, displays formatted date + days-to-go (or placeholder if unset).
-  let dateChipInner;
-  let dateChipState = '';
-  if (examDateStr) {
-    const dateLabel = new Date(examDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (daysToExam !== null && daysToExam > 0) {
-      const emoji = daysToExam <= 7 ? '🔥' : daysToExam <= 30 ? '⏰' : '📅';
-      const urgency = daysToExam <= 7 ? 'urgent' : daysToExam <= 30 ? 'soon' : 'ok';
-      dateChipState = ` ana-ready-datechip-${urgency}`;
-      dateChipInner = `<span class="ana-ready-datechip-icon">${emoji}</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>${daysToExam}</strong> day${daysToExam === 1 ? '' : 's'}</span>`;
-    } else if (daysToExam === 0) {
-      dateChipState = ' ana-ready-datechip-urgent';
-      dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days"><strong>Today!</strong></span>`;
-    } else {
-      dateChipState = ' ana-ready-datechip-past';
-      dateChipInner = `<span class="ana-ready-datechip-icon">✅</span><span class="ana-ready-datechip-date">${dateLabel}</span><span class="ana-ready-datechip-sep">·</span><span class="ana-ready-datechip-days">${Math.abs(daysToExam)} day${Math.abs(daysToExam) === 1 ? '' : 's'} ago</span>`;
-    }
-  } else {
-    dateChipInner = `<span class="ana-ready-datechip-icon">🎯</span><span class="ana-ready-datechip-date ana-ready-datechip-placeholder">Set your exam date</span>`;
-  }
-  const dateChip = `<button type="button" class="ana-exam-date-btn ana-ready-datechip${dateChipState}" onclick="document.getElementById('ana-exam-date-input').showPicker && document.getElementById('ana-exam-date-input').showPicker()" aria-label="${examDateStr ? 'Change exam date' : 'Set exam date'}">
-      ${dateChipInner}
-      <input type="date" id="ana-exam-date-input" value="${examDateStr || ''}" onchange="updateExamDate(this.value)" aria-label="Set your exam date">
-      ${examDateStr ? '<span class="ana-ready-datechip-clear" role="button" tabindex="0" onclick="event.stopPropagation();updateExamDate(\'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.stopPropagation();event.preventDefault();updateExamDate(\'\')}" aria-label="Clear exam date" title="Clear date">×</span>' : ''}
-    </button>`;
+  // v4.46.0: merged date + countdown chip (built via shared _buildExamDateChipHtml)
+  const dateChip = _buildExamDateChipHtml(examDateStr, daysToExam, 'ana-exam-date-input');
 
   // v4.46.0: PASS tick on the readiness bar. Bar scale is 420–870 (range 450),
   // pass is 720, so tick sits at (720-420)/450 = 66.67%. Pedagogically important:
@@ -17759,23 +17748,74 @@ function _renderAnaExams(h) {
 
 function _renderAnaStreak() {
   const streak = getStreakData();
-  const flameIcon = streak.currentStreak > 0 ? '🔥' : '💤';
+  const h = loadHistory();
+  const isActive = streak.currentStreak > 0;
+
+  // v4.46.1: heat tier drives left-tile gradient + flame pulse + num color.
+  // Anchored to behavioural observation: 3 days = habit forming, 7 days = hot,
+  // 14+ = on fire. Mirrors the Weak Spots 7/14-day half-life constants.
+  let heatTier;
+  if (!isActive)                       heatTier = 'cold';      // 0 days / dormant
+  else if (streak.currentStreak < 3)   heatTier = 'starting';  // 1-2 days, fresh
+  else if (streak.currentStreak < 7)   heatTier = 'warm';      // 3-6 days, habit forming
+  else if (streak.currentStreak < 14)  heatTier = 'hot';       // 7-13 days, locked in
+  else                                 heatTier = 'blazing';   // 14+ days, on fire
+
+  const flameIcon = isActive ? '🔥' : '💤';
+
+  // v4.46.1: last-7-days dot row — visualises the week as filled/empty circles.
+  // Today is the rightmost dot. Studied = filled (with flame on today if
+  // active), not-studied = empty ring. Turns a static number into a quick
+  // "what did my week look like" scan.
+  const daySet = new Set(h.map(e => new Date(e.date).toISOString().slice(0, 10)));
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0, 10);
+  const week = [];
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const studied = daySet.has(key);
+    const isToday = key === todayKey;
+    week.push({
+      studied,
+      isToday,
+      dayLabel: dayLabels[d.getDay()],
+      dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    });
+  }
+  const weekDots = week.map(w => `
+    <div class="ana-streak-day${w.studied ? ' ana-streak-day-on' : ''}${w.isToday ? ' ana-streak-day-today' : ''}" title="${w.dateLabel}${w.studied ? ' — studied' : ' — no activity'}">
+      <span class="ana-streak-day-lbl">${w.dayLabel}</span>
+      <span class="ana-streak-day-dot" aria-hidden="true"></span>
+    </div>`).join('');
+
   const streakMsg = streak.currentStreak === 0
     ? 'Study today to start a new streak'
     : streak.currentStreak === 1 ? 'First day — keep it going tomorrow!'
     : `${streak.currentStreak} days in a row`;
-  return `<div class="ana-card">
+
+  const lastStudyLabel = streak.lastStudyDate
+    ? new Date(streak.lastStudyDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
+
+  return `<div class="ana-card ana-streak-card ana-streak-card-${heatTier}">
     <h3>STUDY STREAK</h3>
     <div class="ana-streak-grid">
-      <div class="ana-streak-big">
-        <div class="ana-streak-flame">${flameIcon}</div>
+      <div class="ana-streak-big ana-streak-big-${heatTier}">
+        <div class="ana-streak-flame" aria-hidden="true">${flameIcon}</div>
         <div class="ana-streak-num">${streak.currentStreak}</div>
-        <div class="ana-streak-lbl">Current streak</div>
+        <div class="ana-streak-lbl">${isActive ? 'Day' + (streak.currentStreak === 1 ? '' : 's') + ' strong' : 'Current streak'}</div>
       </div>
       <div class="ana-streak-info">
         <div class="ana-streak-msg">${streakMsg}</div>
-        <div class="ana-streak-stat"><strong>${streak.longestStreak}</strong> day longest streak</div>
-        ${streak.lastStudyDate ? `<div class="ana-streak-stat ana-streak-last">Last study: ${new Date(streak.lastStudyDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
+        <div class="ana-streak-week" role="group" aria-label="Last 7 days activity">
+          ${weekDots}
+        </div>
+        <div class="ana-streak-meta">
+          <div class="ana-streak-stat" title="Longest consecutive study streak on record"><span class="ana-streak-stat-ico">🏆</span><strong>${streak.longestStreak}</strong> day${streak.longestStreak === 1 ? '' : 's'} longest</div>
+          ${lastStudyLabel ? `<div class="ana-streak-stat ana-streak-last"><span class="ana-streak-stat-ico">📅</span>Last study: ${lastStudyLabel}</div>` : ''}
+        </div>
       </div>
     </div>
   </div>`;

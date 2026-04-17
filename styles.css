@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.46.0
+   Network+ AI Quiz — styles.css  v4.46.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,6 +95,10 @@ html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI',system-ui,-apple-system,sans-serif; min-height: 100vh; line-height: 1.6; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); transition: background .3s, color .3s; }
 
 .page { display: none; max-width: 800px; margin: 0 auto; padding: 24px 20px calc(60px + env(safe-area-inset-bottom)); }
+/* v4.46.1: Analytics page gets a wider canvas than the default 800px — the
+   hero card + activity calendar + domain bars all benefit from horizontal
+   breathing room that the default (text-optimised) width cramps. */
+#page-analytics { max-width: 1040px; }
 .page.active { display: block; animation: pageFadeIn .35s ease-out both; }
 .page.page-exit { animation: pageFadeOut .2s ease-in both; }
 @keyframes pageFadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -816,8 +820,10 @@ input::placeholder { color: var(--text-dim); }
 .ana-topic-trend { font-size: 14px; font-weight: 700; min-width: 18px; text-align: center; }
 .ana-topic-sessions { font-size: 11px; color: var(--text-dim); min-width: 24px; text-align: right; }
 
-.ana-calendar { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: 10px; }
-.ana-cal-day { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; animation: anaCalPop .4s ease-out both; position: relative; transition: transform .2s, box-shadow .2s; cursor: default; flex-direction: column; }
+/* v4.46.1: calendar polish — bigger gap + corner radius to match the premium
+   card language at the new wider canvas (Analytics page lifted to 1040px). */
+.ana-calendar { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin-bottom: 12px; }
+.ana-cal-day { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; animation: anaCalPop .4s ease-out both; position: relative; transition: transform .2s, box-shadow .2s; cursor: default; flex-direction: column; }
 .ana-cal-day:hover { transform: scale(1.15); z-index: 2; }
 .ana-cal-day.cal-active { cursor: pointer; }
 .ana-cal-day.cal-active:hover { box-shadow: 0 0 14px rgba(var(--accent-rgb),.5); }
@@ -994,11 +1000,12 @@ input::placeholder { color: var(--text-dim); }
 .dg-edit-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 14px; cursor: pointer; transition: all .2s; flex-shrink: 0; }
 .dg-edit-btn:hover { color: var(--accent-light); border-color: var(--accent); }
 
-/* Readiness card — exam date row (setup page hero) */
-.readiness-exam-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-.readiness-exam-lbl { font-size: 12px; color: var(--text-mid); font-weight: 600; }
-.readiness-exam-countdown { font-size: 12px; color: var(--text-mid); margin-left: auto; }
-.readiness-exam-countdown strong { font-size: 14px; }
+/* Readiness card — exam date row (setup page hero)
+   v4.46.1: simplified — wrapper only, chip built by _buildExamDateChipHtml
+   matches Analytics hero. Old .readiness-exam-lbl / .readiness-exam-countdown
+   rules retired with the 3-element HTML row. */
+.readiness-exam-row { display: flex; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.readiness-exam-row .ana-ready-datechip { width: 100%; justify-content: center; }
 
 /* ── ANALYTICS v2 (v4.5) ── */
 /* ── Exam Readiness hero card (v4.46.0 polish) ──
@@ -1106,17 +1113,99 @@ input::placeholder { color: var(--text-dim); }
   .ana-hero-stat-val { font-size: 18px; }
 }
 
-/* Streak */
-.ana-streak-grid { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
-.ana-streak-big { background: var(--surface2); padding: 16px 20px; border-radius: var(--radius-sm); text-align: center; min-width: 110px; }
-.ana-streak-flame { font-size: 28px; margin-bottom: 2px; }
-.ana-streak-num { font-size: 36px; font-weight: 900; color: var(--accent-light); line-height: 1; }
-.ana-streak-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
-.ana-streak-info { display: flex; flex-direction: column; gap: 6px; }
-.ana-streak-msg { font-size: 14px; color: var(--text); font-weight: 600; }
-.ana-streak-stat { font-size: 12px; color: var(--text-mid); }
-.ana-streak-stat strong { color: var(--accent-light); }
+/* ── Streak (v4.46.1 polish) ──
+ * Left tile: heat-tier gradient (cold/starting/warm/hot/blazing) with flame
+ * pulse when active. Right column: message + 7-day dot row + meta stats
+ * with icons. Card-level subtle gradient to match hero-premium feel. */
+.ana-streak-card {
+  background:
+    radial-gradient(140% 160% at 100% 0%, rgba(var(--accent-rgb),.07), transparent 45%),
+    var(--surface);
+}
+.ana-streak-card-blazing { box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(var(--red-rgb),.3); }
+.ana-streak-card-hot { box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 20px -12px rgba(251,146,60,.3); }
+
+.ana-streak-grid { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: stretch; }
+
+/* Left tile — heat-tiered gradient + optional flame pulse */
+.ana-streak-big {
+  padding: 18px 22px; border-radius: var(--radius-sm); text-align: center;
+  min-width: 118px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; position: relative; overflow: hidden;
+}
+.ana-streak-big-cold { background: var(--surface2); }
+.ana-streak-big-starting {
+  background: linear-gradient(160deg, rgba(var(--accent-rgb),.18), rgba(var(--accent-rgb),.05));
+  border: 1px solid rgba(var(--accent-rgb),.2);
+}
+.ana-streak-big-warm {
+  background: linear-gradient(160deg, rgba(251,191,36,.20), rgba(251,191,36,.05));
+  border: 1px solid rgba(251,191,36,.25);
+}
+.ana-streak-big-hot {
+  background: linear-gradient(160deg, rgba(251,146,60,.25), rgba(251,146,60,.06));
+  border: 1px solid rgba(251,146,60,.3);
+}
+.ana-streak-big-blazing {
+  background:
+    radial-gradient(80% 100% at 50% 0%, rgba(var(--red-rgb),.28), transparent 70%),
+    linear-gradient(160deg, rgba(var(--red-rgb),.22), rgba(251,146,60,.08));
+  border: 1px solid rgba(var(--red-rgb),.35);
+}
+
+/* Flame — gentle breathing pulse when active */
+@keyframes streakFlamePulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(251,146,60,.4)); }
+  50%      { transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(251,146,60,.55)); }
+}
+.ana-streak-flame { font-size: 30px; margin-bottom: 4px; line-height: 1; transform-origin: center bottom; }
+.ana-streak-big-warm .ana-streak-flame,
+.ana-streak-big-hot .ana-streak-flame,
+.ana-streak-big-blazing .ana-streak-flame { animation: streakFlamePulse 2.4s ease-in-out infinite; }
+.ana-streak-big-blazing .ana-streak-flame { animation-duration: 1.6s; }
+
+/* Streak number — color follows heat tier */
+.ana-streak-num { font-size: 40px; font-weight: 900; line-height: 1; letter-spacing: -.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.ana-streak-big-starting .ana-streak-num { color: var(--accent-light); }
+.ana-streak-big-warm .ana-streak-num { color: var(--yellow); }
+.ana-streak-big-hot .ana-streak-num { color: var(--orange); }
+.ana-streak-big-blazing .ana-streak-num { color: var(--red); text-shadow: 0 0 12px rgba(var(--red-rgb),.3); }
+.ana-streak-big-cold .ana-streak-num { color: var(--text-dim); }
+.ana-streak-lbl { font-size: 9.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+
+/* Right column */
+.ana-streak-info { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.ana-streak-msg { font-size: 15px; color: var(--text); font-weight: 700; letter-spacing: -.01em; }
+
+/* 7-day dot row */
+.ana-streak-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 2px 0; }
+.ana-streak-day { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+.ana-streak-day-lbl { font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+.ana-streak-day-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--surface3);
+  border: 1.5px solid var(--surface3);
+  transition: all .2s;
+}
+.ana-streak-day-on .ana-streak-day-dot {
+  background: var(--accent-light);
+  border-color: var(--accent-light);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.15);
+}
+.ana-streak-day-today .ana-streak-day-dot {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.ana-streak-day-today .ana-streak-day-lbl { color: var(--accent-light); font-weight: 800; }
+
+/* Meta row (longest + last-study) */
+.ana-streak-meta { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.ana-streak-stat { font-size: 12px; color: var(--text-mid); display: inline-flex; align-items: center; gap: 6px; }
+.ana-streak-stat-ico { font-size: 12px; opacity: .85; }
+.ana-streak-stat strong { color: var(--accent-light); font-weight: 800; font-variant-numeric: tabular-nums; }
 .ana-streak-last { color: var(--text-dim); font-size: 11px; }
+.ana-streak-card-blazing .ana-streak-stat strong { color: var(--red); }
+.ana-streak-card-hot .ana-streak-stat strong { color: var(--orange); }
 
 /* Weak spots */
 .ana-weak-list { display: flex; flex-direction: column; gap: 8px; }
@@ -4265,6 +4354,9 @@ input::placeholder { color: var(--text-dim); }
   .ana-domain-fill { transition: none !important; }
   .ana-ready-datechip { transition: none !important; }
   .ana-ready-datechip:hover { transform: none; }
+  /* v4.46.1 — Streak flame pulse neutralised */
+  .ana-streak-flame { animation: none !important; transform: none; filter: none; }
+  .ana-streak-day-dot { transition: none !important; }
 }
 
 /* ══════════════════════════════════════════
