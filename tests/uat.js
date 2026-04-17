@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.45.2', js.includes("const APP_VERSION = '4.45.2"));
+test('APP_VERSION is 4.45.3', js.includes("const APP_VERSION = '4.45.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.45.2', sw.includes('netplus-v4.45.2'));
+test('SW cache bumped to v4.45.3', sw.includes('netplus-v4.45.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -578,13 +578,17 @@ test('HTML: Secure Pairs label in mode bar', html.includes('Secure Pairs') || ht
 // ── Bulk Mixed quiz presets (v4.14) ──
 console.log('\n\x1b[1m── BULK MIXED PRESETS (v4.14) ──\x1b[0m');
 test('HTML: bulk30 preset tile', html.includes("applyPreset('bulk30')"));
+test('HTML: bulk45 preset tile', html.includes("applyPreset('bulk45')"));
 test('HTML: bulk60 preset tile', html.includes("applyPreset('bulk60')"));
-test('HTML: bulk100 preset tile', html.includes("applyPreset('bulk100')"));
 test('HTML: 30 Questions title', html.includes('30 Questions'));
+test('HTML: 45 Questions title', html.includes('45 Questions'));
 test('HTML: 60 Questions title', html.includes('60 Questions'));
-test('HTML: 100 Questions title', html.includes('100 Questions'));
+// v4.45.3 regression guards — old 100-Q preset replaced with 45-Q (30/60/100 → 30/45/60)
+test('v4.45.3: bulk100 preset removed', !html.includes("applyPreset('bulk100')"));
+test('v4.45.3: 100 Questions title removed', !html.includes('100 Questions'));
 test('startBulkQuiz function defined', js.includes('async function startBulkQuiz('));
-test('applyPreset handles bulk sizes', js.includes('bulk30: 30, bulk60: 60, bulk100: 100'));
+test('applyPreset handles bulk sizes', js.includes('bulk30: 30, bulk45: 45, bulk60: 60'));
+test('v4.45.3: bulk100 mapping removed', !js.includes('bulk100:'));
 test('applyPreset routes bulk to startBulkQuiz', /bulkSizes\[name\][\s\S]{0,900}startBulkQuiz\(/.test(js));
 test('startBulkQuiz batches via fetchQuestions', /startBulkQuiz[\s\S]{0,2000}fetchQuestions\(key, MIXED_TOPIC, 'Exam Level', thisBatch\)/.test(js));
 test('startBulkQuiz uses 18-Q batches', /startBulkQuiz[\s\S]{0,1500}BATCH_SIZE = 18/.test(js));
@@ -1854,8 +1858,8 @@ test('Tier1: renderMarathonSection called in goSetup', js.match(/function goSetu
 test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,2000}renderMarathonSection\(\)/));
 // Marathon preset buttons still present inside the wrapper
 test('Tier1: Marathon 30-question preset still wired', html.includes("applyPreset('bulk30')"));
+test('Tier1: Marathon 45-question preset still wired', html.includes("applyPreset('bulk45')"));
 test('Tier1: Marathon 60-question preset still wired', html.includes("applyPreset('bulk60')"));
-test('Tier1: Marathon 100-question preset still wired', html.includes("applyPreset('bulk100')"));
 
 // ── v4.33 Analytics + Progress Redesign ──
 console.log('\n\x1b[1m── v4.33 ANALYTICS + PROGRESS ──\x1b[0m');

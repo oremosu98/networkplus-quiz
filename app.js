@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.45.2
+// Network+ AI Quiz — app.js  v4.45.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.45.2';
+const APP_VERSION = '4.45.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4028,7 +4028,7 @@ function startStreakSave() {
 function applyPreset(name) {
   // Bulk Mixed presets — large counts that exceed the single-call ceiling are
   // batched via startBulkQuiz so the AI never gets asked for >20 Qs at once.
-  const bulkSizes = { bulk30: 30, bulk60: 60, bulk100: 100 };
+  const bulkSizes = { bulk30: 30, bulk45: 45, bulk60: 60 };
   if (bulkSizes[name]) {
     topic = MIXED_TOPIC; diff = 'Exam Level'; qCount = bulkSizes[name];
     document.querySelectorAll('#topic-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === topic));
