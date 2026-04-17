@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.47.0
+// Network+ AI Quiz — app.js  v4.47.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.47.0';
+const APP_VERSION = '4.47.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -201,6 +201,17 @@ function showErrorToast(msg) {
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('show'), 10);
   setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 5000);
+}
+
+// v4.47.1: green success toast (scenario loaded, etc.) — same animation
+// envelope as showErrorToast but uses .success-toast for green styling.
+function showSuccessToast(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'success-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
 }
 
 // ── GitHub Issues Auto-Reporter ──
@@ -6469,6 +6480,61 @@ function tbDeviceIcon(type, color) {
         <line x1="-8" y1="10" x2="8" y2="10" ${s}/>
         <circle cx="-6" cy="14" r="1.5" fill="${color}"/><circle cx="0" cy="14" r="1.5" fill="${color}"/><circle cx="6" cy="14" r="1.5" fill="${color}"/>
       </g>`;
+    // ── v4.47.1: consumer endpoint icons (promoted from plain-circle default) ──
+    case 'laptop':
+      return `<g transform="translate(0,-8)">
+        <!-- Screen (bezel + display) -->
+        <rect x="-22" y="-14" width="44" height="22" rx="2" ${f}/>
+        <rect x="-20" y="-12" width="40" height="18" rx="1" fill="${color}" fill-opacity="0.55"/>
+        <!-- Webcam dot -->
+        <circle cx="0" cy="-13" r="0.9" fill="${color}"/>
+        <!-- Keyboard base (slight trapezoid for depth) -->
+        <path d="M -26 10 L 26 10 L 28 14 L -28 14 Z" ${f}/>
+        <!-- Trackpad hint -->
+        <rect x="-6" y="11" width="12" height="1.6" rx="0.5" fill="${color}" fill-opacity="0.75"/>
+      </g>`;
+    case 'smartphone':
+      return `<g transform="translate(0,-8)">
+        <!-- Phone body (portrait) -->
+        <rect x="-10" y="-16" width="20" height="32" rx="3" ${f}/>
+        <!-- Screen -->
+        <rect x="-8" y="-12" width="16" height="22" rx="1" fill="${color}" fill-opacity="0.6"/>
+        <!-- Earpiece speaker -->
+        <line x1="-3" y1="-14" x2="3" y2="-14" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Home-button ring -->
+        <circle cx="0" cy="13" r="1.6" stroke="${color}" stroke-width="1.3" fill="none"/>
+      </g>`;
+    case 'game-console':
+      return `<g transform="translate(0,-4)">
+        <!-- Controller body -->
+        <rect x="-24" y="-12" width="48" height="22" rx="9" ${f}/>
+        <!-- D-pad cross (left) -->
+        <rect x="-18" y="-5" width="8" height="2.5" fill="${color}"/>
+        <rect x="-15.25" y="-8" width="2.5" height="8" fill="${color}"/>
+        <!-- 4 face buttons in diamond (right) -->
+        <circle cx="14" cy="-8" r="1.6" fill="${color}"/>
+        <circle cx="18" cy="-4" r="1.6" fill="${color}"/>
+        <circle cx="10" cy="-4" r="1.6" fill="${color}"/>
+        <circle cx="14" cy="0" r="1.6" fill="${color}"/>
+        <!-- Twin thumbsticks (center) -->
+        <circle cx="-5" cy="4" r="2.5" stroke="${color}" stroke-width="1.3" fill="${color}" fill-opacity="0.35"/>
+        <circle cx="5" cy="4" r="2.5" stroke="${color}" stroke-width="1.3" fill="${color}" fill-opacity="0.35"/>
+      </g>`;
+    case 'smart-tv':
+      return `<g transform="translate(0,-8)">
+        <!-- Screen bezel -->
+        <rect x="-26" y="-14" width="52" height="28" rx="2" ${f}/>
+        <!-- Display area -->
+        <rect x="-24" y="-12" width="48" height="22" rx="1" fill="${color}" fill-opacity="0.55"/>
+        <!-- Smart-TV diagonal play accent -->
+        <path d="M -6 -4 L 4 1 L -6 6 Z" fill="${color}" fill-opacity="0.85"/>
+        <!-- Stand neck -->
+        <rect x="-3" y="14" width="6" height="4" fill="${color}" fill-opacity="0.5"/>
+        <!-- Stand base -->
+        <rect x="-16" y="18" width="32" height="3" rx="1" fill="${color}"/>
+        <!-- Power LED -->
+        <circle cx="18" cy="9" r="1" fill="${color}"/>
+      </g>`;
     default:
       return `<circle r="18" ${f}/>`;
   }
@@ -6693,8 +6759,14 @@ function tbRenderCanvas() {
     `;
   }).join('');
 
-  // Empty hint visibility
-  if (emptyHint) emptyHint.classList.toggle('is-hidden', tbState.devices.length > 0);
+  // Empty hint visibility — hide if canvas has devices OR a real scenario is
+  // active (v4.47.1: scenarios now dismiss the quickstart so the selection
+  // doesn't vanish behind the big CTAs).
+  if (emptyHint) {
+    const hasDevices = tbState.devices.length > 0;
+    const hasScenario = tbSelectedScenario && tbSelectedScenario !== 'free';
+    emptyHint.classList.toggle('is-hidden', hasDevices || hasScenario);
+  }
   // Keep the wiring overlay in sync with pending state every render.
   tbUpdateWireOverlay();
 
@@ -7911,9 +7983,145 @@ let tbSelectedScenario = 'free';
 function tbSetScenario(id) {
   const scen = TB_SCENARIOS.find(s => s.id === id);
   if (!scen) return;
+  const wasFree = tbSelectedScenario === 'free' || !tbSelectedScenario;
   tbSelectedScenario = id;
   tbRenderScenarioPanel();
   tbUpdateStatus(`Scenario: ${scen.title}`);
+
+  // v4.47.1: make scenario selection actually VISIBLE on the empty canvas.
+  // Pre-fix, picking a scenario only rendered the requirements panel above
+  // the canvas while the empty-state quickstart kept dominating — users
+  // reported "when I pick a scenario, nothing happens." Fix:
+  //   (1) Hide the empty-state quickstart when a real scenario is active
+  //       (even with 0 devices) so the user sees their selection land.
+  //   (2) Scroll the scenario panel into view so the rendered requirements
+  //       + Learn-more button are immediately visible.
+  //   (3) Show a success toast so the feedback is unambiguous.
+  const emptyHint = document.getElementById('tb-empty-hint');
+  if (emptyHint) {
+    const hasDevices = tbState.devices.length > 0;
+    const hasScenario = id !== 'free';
+    emptyHint.classList.toggle('is-hidden', hasDevices || hasScenario);
+  }
+  if (id !== 'free') {
+    // Scroll only when there's something new to look at (avoid the scroll on
+    // an idempotent re-select of the same scenario).
+    const panel = document.getElementById('tb-scenario-panel');
+    if (panel && wasFree) {
+      setTimeout(() => {
+        try { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
+      }, 80);
+    }
+    showSuccessToast(`\u{1F4DA} Scenario loaded: ${scen.title}. Click \u201CLearn more\u201D for the deep dive.`);
+  }
+}
+
+// v4.47.1: Scenario picker modal — card-grid of all 16 scenarios grouped
+// into 3 categories (Campus & Enterprise / WAN Architectures / Cloud
+// Networking). Surfaced on the empty-canvas quickstart so scenarios are
+// a first-class entry point alongside guided labs + AI Generate + Fix.
+// Non-destructive: loading a scenario only sets the grading target and
+// shows the explanation panel — doesn't touch the canvas.
+const TB_SCENARIO_CATEGORIES = [
+  {
+    name: 'Campus & Enterprise',
+    icon: '\u{1F3E2}',
+    ids: ['home-network', 'small-office', 'dmz', 'enterprise', 'branch-wireless'],
+  },
+  {
+    name: 'WAN Architectures',
+    icon: '\u{1F310}',
+    ids: ['sdwan', 'mpls', 'man'],
+  },
+  {
+    name: 'Cloud Networking',
+    icon: '\u2601\uFE0F',
+    ids: ['cloud-igw', 'cloud-natgw', 'cloud-peering', 'cloud-vpc', 'hybrid-cloud', 'multi-vpc', 'sase-arch'],
+  },
+];
+
+// Per-scenario emoji for the picker cards — matches the dropdown.
+const TB_SCENARIO_ICONS = {
+  'home-network':    '\u{1F3E0}',
+  'small-office':    '\u{1F3E2}',
+  'dmz':             '\u{1F512}',
+  'enterprise':      '\u{1F3E2}',
+  'branch-wireless': '\u{1F4F6}',
+  'sdwan':           '\u{1F310}',
+  'mpls':            '\u{1F3F7}\uFE0F',
+  'man':             '\u{1F3D9}\uFE0F',
+  'cloud-igw':       '\u{1F6AA}',
+  'cloud-natgw':     '\u{1F501}',
+  'cloud-peering':   '\u{1F517}',
+  'cloud-vpc':       '\u2601\uFE0F',
+  'hybrid-cloud':    '\u{1F517}',
+  'multi-vpc':       '\u{1F52C}',
+  'sase-arch':       '\u{1F6E1}\uFE0F',
+};
+
+function tbOpenScenarioPicker() {
+  const modal = document.getElementById('tb-scenario-picker');
+  const body  = document.getElementById('tb-scenario-picker-body');
+  if (!modal || !body) return;
+
+  const scenById = {};
+  TB_SCENARIOS.forEach(s => { scenById[s.id] = s; });
+
+  const renderCard = (scen) => {
+    const icon = TB_SCENARIO_ICONS[scen.id] || '\u{1F3AF}';
+    const conceptCount = (scen.explanation?.concepts || []).length;
+    const deviceCount  = (scen.requires || []).length;
+    const isActive = scen.id === tbSelectedScenario;
+    return `<button type="button" class="tb-scenario-card${isActive ? ' tb-scenario-card-active' : ''}" onclick="tbLoadScenarioFromPicker('${scen.id}')" aria-label="Load scenario: ${escHtml(scen.title)}">
+      <div class="tb-scenario-card-head">
+        <span class="tb-scenario-card-icon" aria-hidden="true">${icon}</span>
+        <strong class="tb-scenario-card-title">${escHtml(scen.title)}</strong>
+        ${isActive ? '<span class="tb-scenario-card-badge">Current</span>' : ''}
+      </div>
+      <div class="tb-scenario-card-desc">${escHtml(scen.description)}</div>
+      ${(conceptCount || deviceCount) ? `<div class="tb-scenario-card-meta">
+        ${deviceCount ? `<span class="tb-scenario-card-chip">\u{1F50C} ${deviceCount} device type${deviceCount === 1 ? '' : 's'}</span>` : ''}
+        ${conceptCount ? `<span class="tb-scenario-card-chip">\u{1F4A1} ${conceptCount} concept${conceptCount === 1 ? '' : 's'}</span>` : ''}
+        ${scen.explanation?.examTies ? '<span class="tb-scenario-card-chip tb-scenario-card-chip-exam">\u{1F393} Exam-linked</span>' : ''}
+      </div>` : ''}
+    </button>`;
+  };
+
+  let html = `<div class="tb-scenario-picker-header">
+    <div class="tb-scenario-picker-intro">Pick a scenario to set a grading target and unlock the <strong>Learn more</strong> deep-dive. Loading is non-destructive — your canvas stays as-is.</div>
+  </div>`;
+
+  TB_SCENARIO_CATEGORIES.forEach(cat => {
+    const scens = cat.ids.map(id => scenById[id]).filter(Boolean);
+    if (scens.length === 0) return;
+    html += `<details class="tb-scenario-picker-cat" open>
+      <summary class="tb-scenario-picker-cat-head">
+        <span class="tb-scenario-picker-cat-ico">${cat.icon}</span>
+        <span class="tb-scenario-picker-cat-name">${escHtml(cat.name)}</span>
+        <span class="tb-scenario-picker-cat-count">${scens.length}</span>
+      </summary>
+      <div class="tb-scenario-picker-grid">${scens.map(renderCard).join('')}</div>
+    </details>`;
+  });
+
+  // Also offer Free Build as a reset option at the bottom
+  html += `<div class="tb-scenario-picker-reset">
+    <button type="button" class="tb-scenario-reset-btn" onclick="tbLoadScenarioFromPicker('free')">
+      <span aria-hidden="true">\u27F2</span> Clear scenario (back to Free Build)
+    </button>
+  </div>`;
+
+  body.innerHTML = html;
+  modal.classList.remove('is-hidden');
+}
+
+function tbLoadScenarioFromPicker(id) {
+  const modal = document.getElementById('tb-scenario-picker');
+  if (modal) modal.classList.add('is-hidden');
+  // Sync the toolbar dropdown so both surfaces stay consistent
+  const dd = document.getElementById('tb-scenario-select');
+  if (dd) dd.value = id;
+  tbSetScenario(id);
 }
 
 // v4.47.0: scenario panel now includes a collapsible "Learn more" section

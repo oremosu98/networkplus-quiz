@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.47.0', js.includes("const APP_VERSION = '4.47.0"));
+test('APP_VERSION is 4.47.1', js.includes("const APP_VERSION = '4.47.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.47.0', sw.includes('netplus-v4.47.0'));
+test('SW cache bumped to v4.47.1', sw.includes('netplus-v4.47.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4383,6 +4383,67 @@ test('v4.47.0 CSS: reduced-motion neutralises Learn-more animations',
   /prefers-reduced-motion[\s\S]{0,3000}\.tb-scenario-learn-body\s*\{[^}]*animation:\s*none/.test(css));
 test('v4.47.0 CSS: narrow-viewport tightens Learn-more padding',
   /@media \(max-width:\s*560px\)[\s\S]{0,400}\.tb-scenario-learn-body\s*\{[^}]*padding:\s*12px\s*14px/.test(css));
+
+// ── v4.47.1 SCENARIO PICKER + VISIBLE FEEDBACK ──
+console.log('\n\x1b[1m── v4.47.1 SCENARIO PICKER + FEEDBACK ──\x1b[0m');
+// Empty-state tile added
+test('v4.47.1: empty-state has Load-a-scenario tile', html.includes('tb-empty-cta-scenario'));
+test('v4.47.1: empty-state tile wires to tbOpenScenarioPicker', html.includes("onclick=\"tbOpenScenarioPicker()\""));
+test('v4.47.1: empty-state tile advertises 16 scenarios',
+  html.includes('16 real-world network patterns'));
+// Scenario picker modal in HTML
+test('v4.47.1: #tb-scenario-picker modal present in HTML',
+  html.includes('id="tb-scenario-picker"'));
+test('v4.47.1: scenario picker body div present', html.includes('id="tb-scenario-picker-body"'));
+// Picker JS
+test('v4.47.1: tbOpenScenarioPicker function defined', js.includes('function tbOpenScenarioPicker('));
+test('v4.47.1: tbLoadScenarioFromPicker function defined', js.includes('function tbLoadScenarioFromPicker('));
+test('v4.47.1: TB_SCENARIO_CATEGORIES defined with 3 buckets',
+  js.includes('const TB_SCENARIO_CATEGORIES'));
+test('v4.47.1: categories cover Campus + WAN + Cloud',
+  js.includes("name: 'Campus & Enterprise'") && js.includes("name: 'WAN Architectures'") && js.includes("name: 'Cloud Networking'"));
+test('v4.47.1: TB_SCENARIO_ICONS map defined', js.includes('const TB_SCENARIO_ICONS'));
+test('v4.47.1: picker shows current-scenario badge',
+  js.includes('tb-scenario-card-active') && js.includes('tb-scenario-card-badge'));
+test('v4.47.1: picker renders device-count + concept-count chips',
+  js.includes('tb-scenario-card-chip'));
+test('v4.47.1: picker offers Free Build reset at bottom',
+  js.includes('Clear scenario (back to Free Build)'));
+test('v4.47.1: tbLoadScenarioFromPicker syncs the toolbar dropdown',
+  /tbLoadScenarioFromPicker[\s\S]{0,400}getElementById\('tb-scenario-select'\)/.test(js));
+// Visible feedback in tbSetScenario
+test('v4.47.1: tbSetScenario hides #tb-empty-hint when scenario is active',
+  /function tbSetScenario\(id\)[\s\S]{0,2000}emptyHint\.classList\.toggle\('is-hidden',\s*hasDevices\s*\|\|\s*hasScenario\)/.test(js));
+test('v4.47.1: tbSetScenario shows success toast',
+  /function tbSetScenario\(id\)[\s\S]{0,2500}showSuccessToast/.test(js));
+test('v4.47.1: tbSetScenario scrolls panel into view on fresh select',
+  /function tbSetScenario\(id\)[\s\S]{0,2500}panel\.scrollIntoView/.test(js));
+test('v4.47.1: tbRenderCanvas also respects scenario-active state',
+  /function tbRenderCanvas\(\)[\s\S]{0,6000}hasScenario\s*=\s*tbSelectedScenario\s*&&\s*tbSelectedScenario\s*!==\s*'free'/.test(js));
+// Success toast helper
+test('v4.47.1: showSuccessToast helper defined', js.includes('function showSuccessToast('));
+test('v4.47.1 CSS: .success-toast green-gradient styling',
+  /\.success-toast\s*\{[^}]*linear-gradient\(135deg,\s*#22c55e/.test(css));
+// Picker CSS
+test('v4.47.1 CSS: .tb-scenario-card styled', css.includes('.tb-scenario-card '));
+test('v4.47.1 CSS: .tb-scenario-picker-grid uses auto-fit',
+  /\.tb-scenario-picker-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit/.test(css));
+test('v4.47.1 CSS: .tb-scenario-card-active accent treatment',
+  css.includes('.tb-scenario-card-active'));
+test('v4.47.1 CSS: light-theme override for scenario picker',
+  /\[data-theme="light"\]\s+\.tb-scenario-picker-cat/.test(css));
+test('v4.47.1 CSS: reduced-motion neutralises scenario-card hover lift',
+  /prefers-reduced-motion[\s\S]{0,4000}\.tb-scenario-card\s*\{[^}]*transition:\s*none/.test(css));
+test('v4.47.1 CSS: .tb-empty-cta-scenario gets accent gradient',
+  css.includes('.tb-empty-cta-scenario'));
+// v4.47.1: proper SVG icons for the 4 new endpoint devices (no more plain-circle fallback)
+test("v4.47.1: tbDeviceIcon 'laptop' case renders screen + keyboard", /case\s+'laptop':[\s\S]{0,600}rect x="-22" y="-14" width="44"/.test(js));
+test("v4.47.1: tbDeviceIcon 'smartphone' case renders portrait phone body", /case\s+'smartphone':[\s\S]{0,500}rect x="-10" y="-16" width="20" height="32"/.test(js));
+test("v4.47.1: tbDeviceIcon 'game-console' case renders controller w/ d-pad + thumbsticks", /case\s+'game-console':[\s\S]{0,700}rect x="-24" y="-12" width="48"/.test(js));
+test("v4.47.1: tbDeviceIcon 'smart-tv' case renders TV w/ stand + base", /case\s+'smart-tv':[\s\S]{0,700}rect x="-26" y="-14" width="52"/.test(js));
+test("v4.47.1: all 4 consumer device icons present in switch (regression — no plain-circle fallback)",
+  js.includes("case 'laptop':") && js.includes("case 'smartphone':") &&
+  js.includes("case 'game-console':") && js.includes("case 'smart-tv':"));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.47.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.47.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -1167,6 +1167,12 @@
               <span class="tb-empty-cta-title">Fix a broken network</span>
               <span class="tb-empty-cta-sub">Troubleshoot pre-built problems</span>
             </button>
+            <!-- v4.47.1: scenarios surfaced as a prominent entry point -->
+            <button class="tb-empty-cta tb-empty-cta-scenario" onclick="tbOpenScenarioPicker()" type="button">
+              <span class="tb-empty-cta-icon">&#127919;</span>
+              <span class="tb-empty-cta-title">Load a scenario</span>
+              <span class="tb-empty-cta-sub">16 real-world network patterns</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1256,6 +1262,19 @@
         <button type="button" class="tb-grade-close" onclick="document.getElementById('tb-lab-picker').classList.add('is-hidden')">&times;</button>
       </div>
       <div id="tb-lab-picker-body" class="tb-grade-body" style="padding:16px"></div>
+    </div>
+  </div>
+
+  <!-- v4.47.1: Scenario picker modal — card-grid of all 16 scenarios grouped
+       by category, with description + key-concepts count. Click to load. -->
+  <div id="tb-scenario-picker" class="tb-grade-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="tb-scenario-picker-title">
+    <div class="tb-grade-backdrop" onclick="document.getElementById('tb-scenario-picker').classList.add('is-hidden')"></div>
+    <div class="tb-grade-card" style="max-width:900px">
+      <div class="tb-grade-card-head" style="background:linear-gradient(135deg,#7c6ff7 0%,#6355e0 100%)">
+        <h3 id="tb-scenario-picker-title" style="margin:0">&#127919; Load a Scenario</h3>
+        <button type="button" class="tb-grade-close" onclick="document.getElementById('tb-scenario-picker').classList.add('is-hidden')" aria-label="Close scenario picker">&times;</button>
+      </div>
+      <div id="tb-scenario-picker-body" class="tb-grade-body" style="padding:16px"></div>
     </div>
   </div>
 
