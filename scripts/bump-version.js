@@ -70,22 +70,24 @@ const pkgChanges = updateFile('package.json', [
 ]);
 console.log(`  \x1b[32m✓\x1b[0m package.json — version field (${pkgChanges} changes)`);
 
-// 6. CLAUDE.md — append to version history table
+// 6. CLAUDE.md — prepend to version history table
+// Convention: table is newest-first. Insert the new row immediately before
+// the current first version row (right after the `|---|---|` header).
+// Prior behavior (append-to-bottom) was wrong and forced a manual "move row
+// to top" Edit on every release, which hit Read/Edit file-state races.
 const claudePath = path.join(ROOT, 'CLAUDE.md');
 let claudeContent = fs.readFileSync(claudePath, 'utf8');
-const tableRowPattern = /(\| v[\d.]+ \|[^\n]*\n)(?!.*\| v[\d.]+ \|)/s;
 const newRow = `| v${version} | ${description} |`;
 
-// Find the last version row and insert after it
 const lines = claudeContent.split('\n');
-let lastVersionIdx = -1;
+let firstVersionIdx = -1;
 for (let i = 0; i < lines.length; i++) {
-  if (/^\| v\d/.test(lines[i])) lastVersionIdx = i;
+  if (/^\| v\d/.test(lines[i])) { firstVersionIdx = i; break; }
 }
-if (lastVersionIdx >= 0) {
-  lines.splice(lastVersionIdx + 1, 0, newRow);
+if (firstVersionIdx >= 0) {
+  lines.splice(firstVersionIdx, 0, newRow);
   fs.writeFileSync(claudePath, lines.join('\n'));
-  console.log(`  \x1b[32m✓\x1b[0m CLAUDE.md — version history row added`);
+  console.log(`  \x1b[32m✓\x1b[0m CLAUDE.md — version history row added at top`);
 } else {
   console.log(`  \x1b[33m!\x1b[0m CLAUDE.md — could not find version table, skipped`);
 }

@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.43.8', js.includes("const APP_VERSION = '4.43.8"));
+test('APP_VERSION is 4.43.9', js.includes("const APP_VERSION = '4.43.9"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.43.8', sw.includes('netplus-v4.43.8'));
+test('SW cache bumped to v4.43.9', sw.includes('netplus-v4.43.9'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -3983,6 +3983,28 @@ test('v4.43.8: validation-audit stub includes smallestSubnetSrc extraction',
   test('v4.43.8: behavioural smoke — accepts the same fixture when /20 is marked',
     ctx.result === true);
 })();
+
+// ── v4.43.9 RELEASE-FLOW HYGIENE (bump-version.js prepends to CLAUDE.md) ──
+console.log('\n\x1b[1m── v4.43.9 BUMP-SCRIPT PREPEND ──\x1b[0m');
+// bump-version.js used to append to the bottom of the CLAUDE.md version
+// history table. Convention is newest-first so it now prepends. Regression
+// guards pin the new behavior so no future session re-breaks it.
+const _bumpSrc = require('fs').readFileSync(
+  require('path').join(ROOT, 'scripts/bump-version.js'), 'utf8'
+);
+test('v4.43.9: bump-version.js comment header says "prepend to version history table"',
+  /prepend to version history table/i.test(_bumpSrc));
+test('v4.43.9: bump-version.js finds FIRST version row (break after first match)',
+  /for \(let i = 0; i < lines\.length; i\+\+\) \{\s*if \(\/\^\\\| v\\d\/\.test\(lines\[i\]\)\) \{\s*firstVersionIdx = i;\s*break;/.test(_bumpSrc));
+test('v4.43.9: bump-version.js splices at firstVersionIdx (prepend, not +1)',
+  /lines\.splice\(firstVersionIdx,\s*0,\s*newRow\)/.test(_bumpSrc));
+test('v4.43.9: success message mentions "added at top"',
+  /CLAUDE\.md.*added at top/.test(_bumpSrc));
+// Regression guards — the old append-to-bottom logic must stay gone
+test('v4.43.9: old "Find the last version row and insert after it" comment gone',
+  !/Find the last version row and insert after it/.test(_bumpSrc));
+test('v4.43.9: old lastVersionIdx append pattern gone',
+  !/lines\.splice\(lastVersionIdx\s*\+\s*1/.test(_bumpSrc));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
