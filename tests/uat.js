@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.46.1', js.includes("const APP_VERSION = '4.46.1"));
+test('APP_VERSION is 4.47.0', js.includes("const APP_VERSION = '4.47.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.46.1', sw.includes('netplus-v4.46.1'));
+test('SW cache bumped to v4.47.0', sw.includes('netplus-v4.47.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4301,6 +4301,88 @@ test('v4.46.1: Analytics page max-width bumped to 1040px',
 test('v4.46.1: .ana-calendar corner radius bumped (polish at larger cells)',
   /\.ana-cal-day\s*\{[^}]*border-radius:\s*6px/.test(css));
 test('v4.46.1: .ana-calendar gap bumped to 5px', /\.ana-calendar\s*\{[^}]*gap:\s*5px/.test(css));
+
+// ── v4.47.0 TOPOLOGY BUILDER SCENARIO EXPANSION ──
+console.log('\n\x1b[1m── v4.47.0 TB SCENARIOS + ENDPOINTS + LEARN-MORE ──\x1b[0m');
+// New consumer endpoint device types
+test('v4.47.0: laptop device type registered',
+  /laptop:\s*\{\s*label:\s*'Laptop'/.test(js));
+test('v4.47.0: smartphone device type registered',
+  /smartphone:\s*\{\s*label:\s*'Smartphone'/.test(js));
+test('v4.47.0: game-console device type registered',
+  /'game-console':\s*\{\s*label:\s*'Game Console'/.test(js));
+test('v4.47.0: smart-tv device type registered',
+  /'smart-tv':\s*\{\s*label:\s*'Smart TV'/.test(js));
+test('v4.47.0: new endpoints added to Endpoints palette group',
+  /types:\s*\['pc','laptop','smartphone','game-console','smart-tv'/.test(js));
+test('v4.47.0: laptop + game-console + smart-tv use eth0',
+  js.includes("laptop:         { count: 1,  naming: () => 'eth0' }") &&
+  js.includes("'game-console': { count: 1,  naming: () => 'eth0' }") &&
+  js.includes("'smart-tv':     { count: 1,  naming: () => 'eth0' }"));
+test('v4.47.0: smartphone uses wlan0 interface naming',
+  /smartphone:\s*\{\s*count:\s*1,\s*naming:\s*\(\)\s*=>\s*'wlan0'/.test(js));
+// isEndpoint family checks updated (3 sites — health, overlay, gateway UI)
+test('v4.47.0: health-check isEndpoint family includes new endpoints',
+  js.includes("const isEndpoint = ['pc','laptop','smartphone','game-console','smart-tv','server','printer','voip','iot'].includes"));
+test('v4.47.0: overlay/gateway isEndpoint family updated (replace_all covered 2 sites)',
+  (js.match(/\['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','public-web','public-file','public-cloud'\]/g) || []).length >= 2);
+// 7 new scenarios registered
+const newScenarioIds = ['home-network','sdwan','mpls','cloud-natgw','cloud-igw','cloud-peering','man'];
+newScenarioIds.forEach(id => {
+  test(`v4.47.0: scenario '${id}' registered`,
+    new RegExp(`id:\\s*'${id}'`).test(js));
+});
+// 7 new dropdown options
+newScenarioIds.forEach(id => {
+  test(`v4.47.0: '${id}' option in dropdown`,
+    html.includes(`value="${id}"`));
+});
+// Dropdown uses optgroup organization
+test('v4.47.0: dropdown uses optgroup for Campus & Enterprise',
+  html.includes('<optgroup label="Campus &amp; Enterprise">'));
+test('v4.47.0: dropdown uses optgroup for WAN Architectures',
+  html.includes('<optgroup label="WAN Architectures">'));
+test('v4.47.0: dropdown uses optgroup for Cloud Networking',
+  html.includes('<optgroup label="Cloud Networking">'));
+// All 15 scenarios have explanation data (check for 5 section keys in source)
+test('v4.47.0: scenarios carry explanation field',
+  (js.match(/explanation:\s*\{/g) || []).length >= 15);
+test('v4.47.0: scenarios carry overview field',
+  (js.match(/overview:\s*'/g) || []).length >= 15);
+test('v4.47.0: scenarios carry dataFlow field',
+  (js.match(/dataFlow:\s*'/g) || []).length >= 15);
+test('v4.47.0: scenarios carry keyDevices array',
+  (js.match(/keyDevices:\s*\[/g) || []).length >= 15);
+test('v4.47.0: scenarios carry concepts array',
+  (js.match(/concepts:\s*\[/g) || []).length >= 15);
+test('v4.47.0: scenarios carry examTies field',
+  (js.match(/examTies:\s*'/g) || []).length >= 15);
+// Render function — Learn-more <details> collapsible
+test('v4.47.0: tbRenderScenarioPanel builds learnHtml conditional on explanation',
+  /if \(scen\.explanation\)/.test(js));
+test('v4.47.0: panel renders a <details class="tb-scenario-learn">',
+  js.includes('<details class="tb-scenario-learn">'));
+test('v4.47.0: Learn more summary has icon + label + chevron',
+  js.includes('tb-scenario-learn-summary') &&
+  js.includes('tb-scenario-learn-icon') &&
+  js.includes('tb-scenario-learn-chev'));
+test('v4.47.0: panel renders 5 structured sections (Overview/Data flow/Key devices/Concepts/Exam)',
+  js.includes('Overview') && js.includes('How it routes data') && js.includes('Key devices') && js.includes('Key concepts') && js.includes('Exam relevance'));
+// CSS
+test('v4.47.0 CSS: .tb-scenario-learn styled',
+  css.includes('.tb-scenario-learn '));
+test('v4.47.0 CSS: .tb-scenario-learn[open] chevron rotates 90deg',
+  /\.tb-scenario-learn\[open\]\s+\.tb-scenario-learn-chev\s*\{[^}]*transform:\s*rotate\(90deg\)/.test(css));
+test('v4.47.0 CSS: Learn-more body has fade-in keyframe',
+  /@keyframes tbScenarioLearnFade/.test(css));
+test('v4.47.0 CSS: .tb-scenario-sec-exam has yellow highlight',
+  /\.tb-scenario-sec-exam\s*\{[^}]*border-left:\s*3px\s+solid\s+rgba\(251,191,36/.test(css));
+test('v4.47.0 CSS: light-theme override for .tb-scenario-learn-summary',
+  /\[data-theme="light"\]\s+\.tb-scenario-learn-summary/.test(css));
+test('v4.47.0 CSS: reduced-motion neutralises Learn-more animations',
+  /prefers-reduced-motion[\s\S]{0,3000}\.tb-scenario-learn-body\s*\{[^}]*animation:\s*none/.test(css));
+test('v4.47.0 CSS: narrow-viewport tightens Learn-more padding',
+  /@media \(max-width:\s*560px\)[\s\S]{0,400}\.tb-scenario-learn-body\s*\{[^}]*padding:\s*12px\s*14px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

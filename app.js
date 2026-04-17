@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.46.1
+// Network+ AI Quiz — app.js  v4.47.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.46.1';
+const APP_VERSION = '4.47.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6071,13 +6071,18 @@ const TB_DEVICE_TYPES = {
   'onprem-dc':    { label: 'On-Prem DC',    color: '#78716c', short: 'DC'   },
   'sase-edge':    { label: 'SASE Edge',      color: '#e879f9', short: 'SASE' },
   'dns-server':   { label: 'DNS Server',     color: '#06b6d4', short: 'DNS'  },
+  // ── v4.47.0: richer endpoint types (home/consumer devices) ──
+  laptop:         { label: 'Laptop',         color: '#6366f1', short: 'LT'   },
+  smartphone:     { label: 'Smartphone',     color: '#0891b2', short: 'PH'   },
+  'game-console': { label: 'Game Console',   color: '#d946ef', short: 'GC'   },
+  'smart-tv':     { label: 'Smart TV',       color: '#3b82f6', short: 'TV'   },
 };
 
 // Palette categories — groups the 29 device types so users can scan quickly.
 const TB_PALETTE_GROUPS = [
   { label: 'Network',   types: ['router','switch','dmz-switch','isp-router'] },
   { label: 'Cloud',     types: ['cloud','vpc','cloud-subnet','igw','nat-gw','tgw','vpg','onprem-dc','sase-edge'] },
-  { label: 'Endpoints', types: ['pc','server','dns-server','printer','voip','iot','public-web','public-file','public-cloud'] },
+  { label: 'Endpoints', types: ['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','server','dns-server','public-web','public-file','public-cloud'] },
   { label: 'Wireless',  types: ['wap','wlc'] },
   { label: 'Security',  types: ['firewall','load-balancer','ids'] },
 ];
@@ -6127,6 +6132,11 @@ const TB_IFACE_DEFAULTS = {
   'onprem-dc':    { count: 4,  naming: i => `eth${i}` },
   'sase-edge':    { count: 4,  naming: i => `zt${i}` },
   'dns-server':   { count: 2,  naming: i => `eth${i}` },
+  // v4.47.0: consumer endpoints — all single-interface client devices
+  laptop:         { count: 1,  naming: () => 'eth0' },
+  smartphone:     { count: 1,  naming: () => 'wlan0' },
+  'game-console': { count: 1,  naming: () => 'eth0' },
+  'smart-tv':     { count: 1,  naming: () => 'eth0' },
 };
 
 // Generate a deterministic MAC from a device ID + interface index.
@@ -6658,7 +6668,7 @@ function tbRenderCanvas() {
     const pending = tbPendingCableFrom === d.id ? ' tb-device-pending' : '';
     const labTarget = (tbActiveLab?._highlightIds?.includes(d.id)) ? ' tb-device-lab-target' : '';
     // Device health badge — shows config status
-    const isEndpoint = ['pc','server','printer','voip','iot'].includes(d.type);
+    const isEndpoint = ['pc','laptop','smartphone','game-console','smart-tv','server','printer','voip','iot'].includes(d.type);
     const isRoutable = ['router','firewall','isp-router'].includes(d.type);
     const isSwitch = d.type === 'switch' || d.type === 'dmz-switch';
     const hasCable = tbState.cables.some(c => c.from === d.id || c.to === d.id);
@@ -7385,6 +7395,23 @@ const TB_SCENARIOS = [
       { type: 'pc',       min: 2 },
       { type: 'printer',  min: 1 },
     ],
+    explanation: {
+      overview: 'The canonical small-business network: a single internet connection, a stateful firewall as the security boundary, and an internal LAN switch hosting PCs + a shared printer. Everything behind the firewall is trusted; everything outside is untrusted. No DMZ because this business doesn\'t host any public services.',
+      dataFlow: 'PC sends a web request. Traffic hits the internal switch → forwarded to the firewall. Firewall checks its stateful rule table: outbound to TCP 443 is allowed. NAT rewrites the source IP to the firewall\'s public IP. Packet exits to the ISP. Reply comes back → firewall\'s state table recognises it as return traffic → forwards to the requesting PC. Inbound connections from the internet are default-denied.',
+      keyDevices: [
+        { name: 'Cloud / WAN', role: 'The ISP\'s edge — the untrusted side of the world.' },
+        { name: 'Firewall', role: 'Security boundary. Stateful inspection. NAT + default-deny inbound.' },
+        { name: 'Internal Switch', role: 'L2 LAN backbone. Every internal device plugs in here.' },
+        { name: 'PCs + Printer', role: 'Office endpoints. All on the same broadcast domain.' },
+      ],
+      concepts: [
+        { term: 'Stateful firewall', meaning: 'Tracks each connection in a state table. Return traffic is automatically allowed; new inbound is denied by default.' },
+        { term: 'NAT boundary', meaning: 'The firewall hides all internal private IPs behind its single public IP — same idea as a home router, just more capable.' },
+        { term: 'Flat LAN', meaning: 'One broadcast domain. Fine for <30 devices. Beyond that you want VLANs to reduce broadcast traffic.' },
+        { term: 'Default-deny inbound', meaning: 'Industry standard. Nothing from the internet reaches the internal LAN unless you explicitly allow it.' },
+      ],
+      examTies: 'N10-009 1.4 (NAT, RFC 1918), 2.4 (firewall types — stateful), 4.1 (perimeter security), 4.3 (principle of least privilege)',
+    },
   },
   {
     id: 'dmz',
@@ -7404,6 +7431,24 @@ const TB_SCENARIOS = [
       { type: 'switch',     min: 1 },
       { type: 'public-*',   min: 1 },
     ],
+    explanation: {
+      overview: 'A DMZ (Demilitarized Zone) — also called a screened subnet — segregates public-facing servers from the internal LAN. Internet traffic hits the firewall, is filtered, then routed to a dedicated DMZ switch hosting only public servers (web, mail, public DNS). A SECOND filter between the DMZ and the internal LAN means a compromised DMZ server can\'t directly reach internal workstations.',
+      dataFlow: 'External user requests your website. Internet → firewall (rule: TCP 443 allowed to DMZ). Firewall forwards to the DMZ switch. DMZ switch delivers to the public web server. If that web server is ever compromised, the attacker is trapped in the DMZ — the firewall\'s internal-facing rules default-deny traffic from DMZ to LAN. Internal users reach the DMZ through the firewall too, just via separate rules.',
+      keyDevices: [
+        { name: 'Cloud / WAN', role: 'Untrusted. Anyone on the internet.' },
+        { name: 'Firewall', role: 'Dual-homed: one interface to DMZ, one to internal LAN. Enforces DMZ-isolation rules.' },
+        { name: 'DMZ Switch', role: 'Dedicated L2 domain for public servers. Deliberately kept separate from the internal switch.' },
+        { name: 'Public Servers (web/file/cloud)', role: 'Internet-reachable. Live in the DMZ only — never on the internal LAN.' },
+        { name: 'Internal Switch + PCs', role: 'Trusted side. Reachable only through additional firewall filtering.' },
+      ],
+      concepts: [
+        { term: 'Screened subnet', meaning: 'Modern name for DMZ. The public zone sits between two levels of firewall filtering.' },
+        { term: 'Zone segmentation', meaning: 'Three zones (untrusted/DMZ/trusted) with explicit rules between them. Containment by design.' },
+        { term: 'Blast radius', meaning: 'If a DMZ web server is popped, the attacker can\'t pivot to internal workstations without breaking a second firewall.' },
+        { term: 'Public-facing server placement', meaning: 'Public servers belong in the DMZ. Ever finding one on the internal LAN is a real-world red flag.' },
+      ],
+      examTies: 'N10-009 2.4 (firewall placement, DMZ/screened subnet), 4.1 (network segmentation), 4.3 (defense-in-depth)',
+    },
   },
   {
     id: 'enterprise',
@@ -7424,6 +7469,24 @@ const TB_SCENARIOS = [
       { type: 'load-balancer', min: 1 },
       { type: 'server',        min: 2 },
     ],
+    explanation: {
+      overview: 'An enterprise-grade screened-subnet design — DMZ plus active threat detection (IDS/IPS) plus high availability (load balancer fronting multiple servers). You see this shape at mid-sized companies where uptime + compliance + active monitoring all matter, and where a single server going down can\'t take the site with it.',
+      dataFlow: 'External request hits the outer firewall → filtered → arrives at the load balancer. LB picks a healthy backend (round-robin, least-connections, or weighted) and forwards. IDS/IPS tap is observing traffic inline or via SPAN port — alerts on anomalies or drops malicious payloads. Backend server handles the request. Response flows back through LB (return path often flows through LB too, depending on mode). Internal LAN traffic passes through a separate second firewall, enforcing least-privilege between DMZ and internal zones.',
+      keyDevices: [
+        { name: 'Two Firewalls', role: 'Perimeter + internal. The "two-legged" screened subnet pattern. Different rulesets per leg.' },
+        { name: 'IDS/IPS', role: 'Intrusion Detection / Prevention. Sits inline (IPS) or observing (IDS) on a SPAN port. Signatures + anomaly-based alerts.' },
+        { name: 'Load Balancer', role: 'Fronts 2+ servers. Health-checks them. Spreads load. TLS termination often lives here too.' },
+        { name: 'Multiple Servers', role: 'Horizontal scaling. Any one can die — users never notice.' },
+        { name: 'DMZ + Internal Switches', role: 'Two separate L2 domains enforced by firewall between them.' },
+      ],
+      concepts: [
+        { term: 'IDS vs IPS', meaning: 'IDS alerts only (passive). IPS blocks actively (inline). Every real enterprise runs IPS today.' },
+        { term: 'Load balancing modes', meaning: 'Round-robin, least-connections, weighted, IP-hash. Each suits different workloads.' },
+        { term: 'High availability', meaning: 'No single point of failure: two firewalls, two servers, redundant links. Expected at enterprise scale.' },
+        { term: 'Defense in depth', meaning: 'Layered controls: perimeter firewall → IDS/IPS → DMZ isolation → internal firewall → host hardening. Never rely on one layer.' },
+      ],
+      examTies: 'N10-009 2.4 (IDS/IPS placement, load balancer concepts), 4.1 (defense in depth), 4.3 (network access control)',
+    },
   },
   {
     id: 'branch-wireless',
@@ -7443,6 +7506,23 @@ const TB_SCENARIOS = [
       { type: 'wap',      min: 2 },
       { type: 'pc',       min: 2 },
     ],
+    explanation: {
+      overview: 'A branch office where most users are on Wi-Fi rather than wired. A WLC (Wireless LAN Controller) centrally manages multiple WAPs (Wireless Access Points), pushing consistent SSIDs, security policies, and channel assignments. The WLC sits behind the branch firewall on the internal LAN. Wireless endpoints (laptops, phones) associate with the nearest WAP and seamlessly roam between them.',
+      dataFlow: 'Laptop at the branch associates with the nearest WAP (e.g., WAP-02). WAP encapsulates the wireless frame in a CAPWAP tunnel to the WLC. WLC terminates CAPWAP, decrypts, decides the traffic destination. Bridged to the internal switch → firewall (if going to WAN) → outside world. Because all client traffic hairpins through the WLC, policy enforcement (QoS, segmentation, captive portal) is centralized.',
+      keyDevices: [
+        { name: 'WLC (Wireless LAN Controller)', role: 'Central brain. Manages 2+ WAPs. Pushes SSID configs, authenticates clients, handles roaming.' },
+        { name: 'WAPs (Wireless APs)', role: 'Radio transmitters. In controller-based mode they are "lightweight" — dumb radios that phone home to the WLC for everything.' },
+        { name: 'Switch', role: 'Wired backbone. WAPs typically get PoE from this switch. WLC also connects here.' },
+        { name: 'Firewall', role: 'Edge security. WAN → internal zone boundary.' },
+      ],
+      concepts: [
+        { term: 'CAPWAP', meaning: 'Control And Provisioning of Wireless Access Points. The tunneling protocol between WAP and WLC.' },
+        { term: 'Lightweight vs Autonomous AP', meaning: 'Lightweight (with WLC) = centrally managed, easy rollout. Autonomous = standalone, configured individually. Enterprises pick lightweight.' },
+        { term: 'Roaming', meaning: 'Laptop moves from WAP-01 to WAP-02 without dropping the session. WLC handles the handoff.' },
+        { term: 'PoE (Power over Ethernet)', meaning: 'Switch powers the WAP over the data cable. No separate power brick. Standard is 802.3af/at/bt.' },
+      ],
+      examTies: 'N10-009 2.3 (802.11 standards, WLC/WAP), 2.7 (PoE standards), 4.1 (wireless security — WPA2/WPA3)',
+    },
   },
   // ── Cloud Networking Scenarios ──
   {
@@ -7462,6 +7542,24 @@ const TB_SCENARIOS = [
       { type: 'igw',          min: 1 },
       { type: 'nat-gw',       min: 1 },
     ],
+    explanation: {
+      overview: 'The "everything" cloud VPC — combines IGW (for public resources) + NAT-GW (for private outbound) + security groups + NACLs. Public subnet for web tier, private subnet for app/DB tier. This is the go-to shape for a typical 3-tier web app in AWS/Azure/GCP.',
+      dataFlow: 'External user → public IP → IGW → public subnet → load balancer or web server. Web server calls app tier in private subnet (private IP, internal routing inside the VPC — no IGW needed). App tier needs to pull updates from the internet → uses NAT-GW in the public subnet. Traffic exits through NAT-GW → IGW → internet. Return traffic follows the reverse path. Security groups gate which tiers can call which.',
+      keyDevices: [
+        { name: 'VPC', role: 'Network boundary. One VPC per environment (prod/dev/test) is a common split.' },
+        { name: 'Public Subnet', role: 'Route 0.0.0.0/0 → IGW. Hosts the web tier + NAT-GW.' },
+        { name: 'Private Subnet', role: 'No IGW route. Route 0.0.0.0/0 → NAT-GW. Hosts app + DB tiers.' },
+        { name: 'Internet Gateway', role: 'Door to the internet. Bidirectional for public subnet.' },
+        { name: 'NAT Gateway', role: 'Outbound-only internet for private subnet. Sits in public subnet.' },
+      ],
+      concepts: [
+        { term: 'Public vs Private subnet', meaning: 'Defined by route table: public has route to IGW; private does not.' },
+        { term: 'Security Group vs NACL', meaning: 'SG is stateful + at instance level. NACL is stateless + at subnet level. Both enforced.' },
+        { term: '3-tier pattern', meaning: 'Web (public) → App (private) → DB (private + isolated). Each tier restricted to only what the next tier sends.' },
+        { term: 'Why not put everything in public?', meaning: 'Blast radius. If your DB is in a private subnet with no IGW route, a misconfigured SG can\'t accidentally expose it.' },
+      ],
+      examTies: 'N10-009 1.8 (cloud networking — VPC, subnets, IGW, NAT-GW, SG, NACL), 4.1 (cloud security)',
+    },
   },
   {
     id: 'hybrid-cloud',
@@ -7479,6 +7577,23 @@ const TB_SCENARIOS = [
       { type: 'vpg',       min: 1 },
       { type: 'onprem-dc', min: 1 },
     ],
+    explanation: {
+      overview: 'Hybrid cloud connects an on-premises datacenter to a cloud VPC through an IPSec VPN tunnel. On-prem resources (legacy DB, file servers) remain in the physical DC; newer workloads live in the cloud. The VPN makes both halves feel like one network. Crypto parameters (encryption, hash, DH group, lifetime) must match exactly on both ends or the tunnel won\'t come up.',
+      dataFlow: 'App in cloud VPC needs to query a database still running on-prem. Outbound packet → VPC\'s VPN Gateway (VPG). VPG encrypts using IPSec (ESP), wraps with tunnel header, forwards to the on-prem firewall/VPN endpoint. On-prem endpoint decrypts, drops into the internal LAN, reaches the DB. DB replies, reverse path. Bandwidth is limited by whichever side is slower (usually the on-prem internet link).',
+      keyDevices: [
+        { name: 'Cloud VPC', role: 'New workloads live here. Scales elastically.' },
+        { name: 'VPN Gateway (VPG)', role: 'The cloud side of the IPSec tunnel. Attached to the VPC.' },
+        { name: 'On-Prem DC', role: 'Physical datacenter. Legacy resources that can\'t easily migrate to the cloud.' },
+        { name: 'On-prem VPN endpoint', role: 'Firewall or dedicated VPN appliance. Terminates the tunnel on-prem.' },
+      ],
+      concepts: [
+        { term: 'IPSec', meaning: 'Security protocol suite for site-to-site VPNs. Two modes: transport (host-to-host) and tunnel (site-to-site). Hybrid cloud uses tunnel mode.' },
+        { term: 'Phase 1 (IKE) + Phase 2 (IPSec)', meaning: 'Phase 1 negotiates encryption for the control channel. Phase 2 negotiates the data channel. Crypto params must match both phases.' },
+        { term: 'ESP vs AH', meaning: 'ESP (Encapsulating Security Payload) = encryption + auth. AH (Authentication Header) = auth only. Almost always ESP.' },
+        { term: 'DH group + PFS', meaning: 'Diffie-Hellman group controls key strength. Perfect Forward Secrecy regenerates keys — if one is compromised, past traffic stays safe.' },
+      ],
+      examTies: 'N10-009 1.8 (hybrid cloud model), 4.1 (site-to-site VPN), 4.4 (IPSec / IKE / crypto parameters)',
+    },
   },
   {
     id: 'multi-vpc',
@@ -7496,6 +7611,23 @@ const TB_SCENARIOS = [
       { type: 'cloud-subnet', min: 2 },
       { type: 'igw', min: 1 },
     ],
+    explanation: {
+      overview: 'A Transit Gateway (TGW) is a hub-and-spoke router for multiple VPCs. Instead of meshing VPCs with O(n²) peering connections, attach each VPC to the TGW once and routing between any pair becomes trivial. This is the default enterprise pattern once you have more than a handful of VPCs.',
+      dataFlow: 'Server in VPC-A wants to reach DB in VPC-C. Packet → VPC-A attachment to TGW → TGW routing table decides "VPC-C CIDR → VPC-C attachment" → delivered to VPC-C. TGW essentially acts as a regional backbone router. Unlike peering, this is transitive — VPC-A can also reach VPC-B through the same TGW without an extra link.',
+      keyDevices: [
+        { name: 'Transit Gateway', role: 'The hub. Connects 2+ VPCs, VPNs, Direct Connect links. Regional scope.' },
+        { name: 'VPC Attachments', role: 'Virtual links from each VPC to the TGW. One per VPC.' },
+        { name: 'TGW Route Table', role: 'Controls which attachments can reach which. Like a central routing policy.' },
+        { name: 'Internet Gateway', role: 'One VPC typically has IGW; shared internet egress via TGW + that VPC.' },
+      ],
+      concepts: [
+        { term: 'Peering vs TGW', meaning: 'Peering = pairwise + non-transitive. TGW = hub-and-spoke + transitive + scales linearly.' },
+        { term: 'TGW route tables', meaning: 'Separate routing policies for isolation: dev attachment can\'t talk to prod attachment if their route tables say so.' },
+        { term: 'Shared services VPC', meaning: 'Common pattern: one VPC hosts shared services (AD, DNS, file); every other VPC reaches it via TGW.' },
+        { term: 'Inter-region peering', meaning: 'TGW can peer with another TGW in a different region. Global network without managing dozens of peerings.' },
+      ],
+      examTies: 'N10-009 1.8 (cloud connectivity — TGW named as a cloud hub), 3.1 (routing between VPCs)',
+    },
   },
   {
     id: 'sase-arch',
@@ -7511,6 +7643,266 @@ const TB_SCENARIOS = [
       { type: 'sase-edge', min: 1 },
       { type: 'vpc',       min: 1 },
     ],
+    explanation: {
+      overview: 'SASE (Secure Access Service Edge, pronounced "sassy") collapses network + security into a single cloud-delivered service. Instead of backhauling all traffic to HQ for security inspection, users + branches connect to the NEAREST SASE point-of-presence, which then routes to destinations AND applies security controls (SWG, CASB, FWaaS, ZTNA) at the edge. Replaces the old "trust the network" model with "trust the identity, verify every session."',
+      dataFlow: 'Remote user opens Salesforce. Traffic goes to the nearest SASE PoP (not to HQ). SASE identifies the user (ZTNA), checks policy ("Alice can reach Salesforce"), scans traffic (SWG for malware, CASB for data-loss), applies QoS. If allowed, forwards directly to Salesforce — no HQ detour. Entire policy evaluation happens at the cloud edge in milliseconds. Same for on-prem resources: traffic hairpins through the SASE edge regardless of origin.',
+      keyDevices: [
+        { name: 'SASE Edge (PoP)', role: 'Cloud-hosted edge nodes globally distributed. Nearest one serves you.' },
+        { name: 'VPC / Cloud Resources', role: 'Protected behind SASE. Traffic goes through the SASE edge before reaching the VPC.' },
+        { name: 'On-Prem DC', role: 'Connected to SASE via VPN. Same enforcement applies.' },
+        { name: 'Users (remote + branch)', role: 'Connect to nearest SASE PoP. No VPN client needed for ZTNA.' },
+      ],
+      concepts: [
+        { term: 'SWG (Secure Web Gateway)', meaning: 'Filters web traffic — blocks malicious URLs, enforces acceptable-use.' },
+        { term: 'CASB (Cloud Access Security Broker)', meaning: 'Sits between users and cloud apps. Monitors data movement, prevents leakage.' },
+        { term: 'FWaaS (Firewall as a Service)', meaning: 'Cloud-delivered firewall. Replaces on-prem firewall appliances for remote users.' },
+        { term: 'ZTNA (Zero Trust Network Access)', meaning: 'Verify every session. Replaces "trusted VPN = full network access" with "trusted user + trusted app = one specific session."' },
+      ],
+      examTies: 'N10-009 1.8 (SASE architecture), 4.1 (zero trust model), 4.3 (identity-based access), 4.4 (cloud security services)',
+    },
+  },
+  // ══════════════════════════════════════════
+  // v4.47.0 — New scenarios with deep explanations
+  // Light grading (min-devices + no-orphans + device counts). Educational
+  // value comes from the shape + the explanation panel.
+  // ══════════════════════════════════════════
+  {
+    id: 'home-network',
+    title: 'Home Network',
+    description: 'A typical residential network — ISP → home router with Wi-Fi, plus a range of consumer endpoints sharing one public IP via NAT.',
+    requirements: [
+      'ISP cloud/WAN → home router (combined modem + router + Wi-Fi)',
+      'WAP/router covers wireless devices',
+      'At least 3 endpoint devices — any mix of laptop, smartphone, game console, smart TV',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'cloud',  min: 1 },
+      { type: 'router', min: 1 },
+      { type: 'wap',    min: 1 },
+    ],
+    explanation: {
+      overview: 'A home network is a small residential LAN sharing a single internet connection among multiple devices. It centers on a home gateway — a single box that combines modem, router, Wi-Fi AP, DHCP server, and firewall. NAT (Network Address Translation) lets every device share the one public IP your ISP hands you.',
+      dataFlow: 'Phone → home router (default gateway 192.168.1.1). The router performs NAT: it rewrites the source IP from your private 192.168.x.x to its single public IP. Packet exits the modem to the ISP. Replies come back to the public IP. The router\'s NAT table looks up which internal device asked, rewrites the destination back, and forwards it inside.',
+      keyDevices: [
+        { name: 'ISP / Cloud', role: 'Your internet provider\'s edge. Hands you one public IP (and usually one per ~24 hours).' },
+        { name: 'Home Router', role: 'Swiss Army knife of home networking: NAT, DHCP, firewall, Wi-Fi AP, switch — all in one box.' },
+        { name: 'WAP (Wi-Fi)', role: 'Broadcasts SSIDs, handles 802.11 association, WPA2/WPA3 encryption for wireless clients.' },
+        { name: 'Endpoints', role: 'Laptops, phones, game consoles, smart TVs — all get IPs via DHCP, all share the WAN.' },
+      ],
+      concepts: [
+        { term: 'NAT (PAT)', meaning: 'Many private IPs share one public IP. Home routers specifically use PAT (Port Address Translation) — tracks traffic by port number too.' },
+        { term: 'DHCP', meaning: 'Auto-assigns IPs from a pool (usually 192.168.1.100–192.168.1.200). No manual config when you join Wi-Fi.' },
+        { term: 'RFC 1918 private ranges', meaning: '10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 — non-routable on the public internet.' },
+        { term: 'Default gateway', meaning: 'Where every device sends non-local traffic. At home, always the router\'s LAN IP.' },
+      ],
+      examTies: 'N10-009 1.4 (IPv4 + NAT/PAT), 1.6 (DHCP, DNS), 2.3 (wireless 802.11 standards), 4.1 (home-gateway security posture)',
+    },
+  },
+  {
+    id: 'sdwan',
+    title: 'SD-WAN Network',
+    description: 'Software-Defined WAN — a controller pushes policy to branch edges, which load-balance across multiple transports (MPLS + broadband + LTE) based on app and link quality.',
+    requirements: [
+      'Hub/headend site (central datacenter)',
+      'At least 2 branch sites, each with edge router + switch + endpoints',
+      'Cloud/WAN in the middle representing the transport (internet/broadband)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'cloud',  min: 1 },
+      { type: 'router', min: 3 },
+      { type: 'switch', min: 2 },
+    ],
+    explanation: {
+      overview: 'SD-WAN (Software-Defined WAN) replaces traditional hub-and-spoke MPLS with a dynamic, application-aware overlay. A centralized controller pushes policy to lightweight edge devices at each branch, which then load-balance across multiple transport paths based on real-time link quality.',
+      dataFlow: 'User at Branch A opens Salesforce. Branch edge checks the app signature (DPI), consults controller policy: "SaaS → direct to internet." Traffic exits over broadband, bypassing HQ. For an intranet app, the same edge would instead route over an encrypted overlay tunnel to HQ across whichever link (MPLS vs broadband) currently has the best jitter/loss. The controller continuously monitors link health and can reroute mid-session.',
+      keyDevices: [
+        { name: 'SD-WAN Controller', role: 'Cloud-hosted brain. Pushes policy, topology, security rules to every edge. Admin sees everything via a dashboard.' },
+        { name: 'Hub / Headend', role: 'Central site (HQ datacenter) — hosts intranet apps and private services. All branches reach it via the overlay.' },
+        { name: 'Branch Edges', role: 'Small appliance (or virtual) per branch. Handles WAN link monitoring, dynamic path selection, zero-touch onboarding.' },
+        { name: 'Transport Links', role: 'Multiple WAN paths per branch: MPLS (reliable, pricey), broadband (fast, best-effort), LTE/5G (backup). SD-WAN pools them.' },
+      ],
+      concepts: [
+        { term: 'Overlay network', meaning: 'Encrypted virtual tunnels between SD-WAN edges, running on top of whatever transport is underneath.' },
+        { term: 'DPI (Deep Packet Inspection)', meaning: 'Identifies apps by fingerprint (not just port) so policy can be "Salesforce → broadband, backup → cheap link."' },
+        { term: 'Application-aware routing', meaning: 'Best link per app: voice → low-jitter link; file backup → cheapest.' },
+        { term: 'Zero-touch provisioning', meaning: 'New branch edge boots, phones home to controller, downloads config. No local tech needed.' },
+      ],
+      examTies: 'N10-009 1.7 (WAN technologies — SD-WAN explicitly listed), 4.4 (network monitoring), 5.1 (WAN troubleshooting)',
+    },
+  },
+  {
+    id: 'mpls',
+    title: 'MPLS Network',
+    description: 'Multiprotocol Label Switching — carrier-grade WAN where ISPs forward packets by short labels (not IP lookups) through a provider cloud with SLA-backed paths.',
+    requirements: [
+      'Provider cloud/WAN in the middle (MPLS core)',
+      'At least 2 customer sites, each with a CE router → PE router',
+      'Each site has a switch + endpoints',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'cloud',  min: 1 },
+      { type: 'router', min: 4 },
+      { type: 'switch', min: 2 },
+    ],
+    explanation: {
+      overview: 'MPLS (Multiprotocol Label Switching) is a carrier-managed WAN where packets are forwarded by short 20-bit labels instead of IP routing lookups. Customer sites connect via CE (Customer Edge) routers peering with the provider\'s PE (Provider Edge) routers. The provider guarantees path, bandwidth, and QoS — usually with an SLA.',
+      dataFlow: 'Packet from Site A → local CE router → PE router (ISP edge). PE pushes an MPLS label (e.g., 17) based on the destination VPN. Inside the MPLS cloud, P routers switch the packet by label only — no IP lookup. At each hop, labels are swapped. The egress PE pops the label and forwards the original packet to the CE at Site B. Result: Site A ↔ Site B feels like a direct private link.',
+      keyDevices: [
+        { name: 'CE Router (Customer Edge)', role: 'Customer-owned router at each site. Peers with the provider over BGP or static routes.' },
+        { name: 'PE Router (Provider Edge)', role: 'ISP-owned. Speaks customer protocol on one side, MPLS on the other. Maintains per-customer VRFs.' },
+        { name: 'P Router (Provider Core)', role: 'Inside the MPLS cloud. Never sees customer routes — switches labels only. Keeps the core fast and scalable.' },
+        { name: 'Cloud (MPLS Core)', role: 'The provider\'s network — opaque to the customer. Delivers the SLA-backed path.' },
+      ],
+      concepts: [
+        { term: 'Label switching', meaning: 'Forwarding by short 20-bit label instead of slow IP lookup. Faster in hardware.' },
+        { term: 'LSP (Label Switched Path)', meaning: 'Pre-computed path through the MPLS cloud for a given label.' },
+        { term: 'VRF (Virtual Routing & Forwarding)', meaning: 'Per-customer routing table inside a PE — lets multiple customers share IP space safely.' },
+        { term: 'QoS + SLA', meaning: 'MPLS\'s main sell: guaranteed latency/jitter/loss. Unlike best-effort broadband.' },
+      ],
+      examTies: 'N10-009 1.7 (WAN — MPLS named explicitly), 2.1 (QoS), 3.3 (WAN routing, BGP)',
+    },
+  },
+  {
+    id: 'cloud-natgw',
+    title: 'NAT Gateway Cloud (private-subnet outbound)',
+    description: 'Cloud VPC where private-subnet resources need outbound internet access via a managed NAT Gateway — but nothing from the internet can initiate inbound.',
+    requirements: [
+      'VPC with at least one public subnet + one private subnet',
+      'NAT Gateway placed in the public subnet',
+      'Private-subnet resources (e.g., backend server)',
+      'Internet Gateway attached to the VPC (so the NAT-GW can reach out)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'igw-on-vpc', 'nat-gw-needs-subnet'],
+    requires: [
+      { type: 'vpc',          min: 1 },
+      { type: 'cloud-subnet', min: 2 },
+      { type: 'nat-gw',       min: 1 },
+      { type: 'igw',          min: 1 },
+    ],
+    explanation: {
+      overview: 'This pattern lets private-subnet resources (backend API servers that should NEVER be reachable from the internet) still reach OUT to the internet — for OS updates, third-party APIs, pulling from package repos. The trick: a managed NAT Gateway sits in a public subnet, acting as the outbound-only proxy.',
+      dataFlow: 'Backend server in private subnet wants to download an OS update. Sends request with private IP to its default route (0.0.0.0/0 → NAT Gateway). NAT-GW (in public subnet) rewrites source IP to its own Elastic IP. Packet exits via Internet Gateway. The remote server replies to NAT-GW\'s IP. NAT-GW translates back and forwards to the original private server. Crucially: nobody from the internet can initiate a connection inward — stateful NAT allows return traffic only.',
+      keyDevices: [
+        { name: 'VPC', role: 'The virtual private cloud boundary. Isolates your resources at the network layer.' },
+        { name: 'Public Subnet', role: 'Has a route to IGW. Hosts the NAT Gateway (which itself needs internet reachability to work).' },
+        { name: 'Private Subnet', role: 'No route to IGW. Only route out is via the NAT-GW. Internet cannot initiate inbound.' },
+        { name: 'NAT Gateway', role: 'Managed AWS/cloud service. Performs SNAT for outbound-only. Highly available within an AZ.' },
+        { name: 'Internet Gateway (IGW)', role: 'The VPC\'s door to the internet. Required for the NAT-GW to function.' },
+      ],
+      concepts: [
+        { term: 'Public vs Private Subnet', meaning: 'Defined by route table: public has a route to IGW; private does not. Nothing else marks the distinction.' },
+        { term: 'SNAT (Source NAT)', meaning: 'What NAT-GW does. Rewrites the source IP so replies come back to it.' },
+        { term: 'Elastic IP', meaning: 'Static public IP allocated to the NAT-GW. Stays constant even if the NAT-GW is replaced.' },
+        { term: 'Why not just use IGW?', meaning: 'IGW routes bidirectionally — that would expose private resources to inbound connections. NAT-GW is outbound-only by design.' },
+      ],
+      examTies: 'N10-009 1.8 (cloud networking — NAT-GW, subnets), 4.1 (VPC security), 4.2 (access control)',
+    },
+  },
+  {
+    id: 'cloud-igw',
+    title: 'Internet Gateway Cloud (public web tier)',
+    description: 'A cloud VPC where public-subnet resources (load-balanced web servers) accept inbound traffic from the internet directly via an Internet Gateway.',
+    requirements: [
+      'VPC with an Internet Gateway attached',
+      'At least one public subnet',
+      'Public-facing resource (web server or load balancer)',
+      'Security group rules controlling inbound traffic',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'igw-on-vpc', 'cloud-has-sg'],
+    requires: [
+      { type: 'vpc',          min: 1 },
+      { type: 'cloud-subnet', min: 1 },
+      { type: 'igw',          min: 1 },
+      { type: 'public-*',     min: 1 },
+    ],
+    explanation: {
+      overview: 'The simplest cloud pattern — public resources (web servers, load balancers, bastion hosts) sit in a public subnet and are directly reachable from the internet via an Internet Gateway. No NAT in between. Security is enforced at the security-group level (stateful cloud firewall) and usually a load balancer up front for HA and TLS termination.',
+      dataFlow: 'User hits web.example.com. DNS resolves to the public IP of your ALB (Application Load Balancer). Traffic arrives at the VPC via the Internet Gateway. Public-subnet route table says "0.0.0.0/0 → IGW" — so replies go back out the same way. Security Group checks the inbound rule (e.g., "allow TCP 443 from anywhere"). If allowed, the packet reaches the web server. Return traffic: server → route to IGW → back to the user on the internet.',
+      keyDevices: [
+        { name: 'VPC', role: 'The network boundary for this tier of resources.' },
+        { name: 'Internet Gateway (IGW)', role: 'Horizontally scalable, highly available. Attached to exactly one VPC. Bidirectional internet reachability.' },
+        { name: 'Public Subnet', role: 'Has a route-table entry 0.0.0.0/0 → IGW. Resources here can have public IPs.' },
+        { name: 'Web Server / Load Balancer', role: 'The front door. Usually behind an ALB for HA and TLS offload.' },
+        { name: 'Security Group', role: 'Stateful firewall at the instance level. Default-deny inbound — you must allow explicitly.' },
+      ],
+      concepts: [
+        { term: 'Stateful vs Stateless', meaning: 'Security Groups are stateful (if inbound is allowed, outbound reply is automatic). NACLs are stateless (must allow each direction).' },
+        { term: 'IGW vs NAT-GW', meaning: 'IGW is bidirectional; NAT-GW is outbound-only. Pick based on who initiates.' },
+        { term: 'Elastic IP', meaning: 'Static public IPv4 assigned to an instance. Survives stop/start/replacement.' },
+        { term: 'What makes a subnet "public"?', meaning: 'Having a route to the IGW — full stop. No "is_public" flag in the cloud model.' },
+      ],
+      examTies: 'N10-009 1.8 (cloud subnets, IGW), 4.1 (cloud security — SG vs NACL)',
+    },
+  },
+  {
+    id: 'cloud-peering',
+    title: 'VPC Peering Cloud',
+    description: 'Two VPCs directly connected by a peering link — a one-to-one private network bridge. No Transit Gateway, no VPN, no internet exposure.',
+    requirements: [
+      'Two VPCs with non-overlapping CIDR blocks',
+      'Each VPC has at least one subnet with a resource',
+      'Both route tables updated to point at each other via the peering',
+      'Security groups control who can actually talk',
+    ],
+    ruleIds: ['min-devices', 'no-orphans', 'cloud-has-sg'],
+    requires: [
+      { type: 'vpc',          min: 2 },
+      { type: 'cloud-subnet', min: 2 },
+    ],
+    explanation: {
+      overview: 'VPC peering is a private, one-to-one connection between two VPCs that lets resources in both communicate using private IPs as if they were on the same network. It\'s the simplest way to connect two VPCs — no Transit Gateway, no VPN, no internet exposure. Used for team-isolated VPCs needing to share a database, or prod-VPC ↔ shared-services-VPC patterns.',
+      dataFlow: 'Web server in VPC-A (10.0.0.0/16) wants to reach a database in VPC-B (10.1.0.0/16). VPC-A\'s route table has: "10.1.0.0/16 → pcx-abc123 (peering)". Packet leaves the VPC-A instance, hits the peering, lands in VPC-B. VPC-B\'s route table forwards to the database subnet. Security group on the DB allows TCP 3306 from VPC-A\'s CIDR. Reply goes back the same way. No encryption needed — traffic never leaves the cloud provider\'s backbone.',
+      keyDevices: [
+        { name: 'VPC A', role: 'Source VPC. Has its own CIDR (say 10.0.0.0/16).' },
+        { name: 'VPC B', role: 'Destination VPC. CIDR must NOT overlap with A (otherwise routing breaks).' },
+        { name: 'Peering Connection', role: 'The cloud-managed virtual link. Added to BOTH VPCs\' route tables.' },
+        { name: 'Route Tables (both sides)', role: 'Each VPC needs a route pointing at the peering for the other VPC\'s CIDR.' },
+        { name: 'Security Groups', role: 'Still enforce who can talk to whom. Peering opens routing — SGs still gate access.' },
+      ],
+      concepts: [
+        { term: 'Non-overlapping CIDR', meaning: 'Hard requirement. If both VPCs are 10.0.0.0/16, routing breaks. Plan CIDRs up front.' },
+        { term: 'Non-transitive', meaning: 'If A↔B and B↔C, A CANNOT reach C via B. Peerings are strictly pairwise. Use Transit Gateway for transitive routing.' },
+        { term: 'Same-region vs inter-region', meaning: 'VPC peering works within and across regions (inter-region = slightly higher latency + cost).' },
+        { term: 'When to use TGW instead', meaning: 'If you have >5 VPCs to mesh, peering goes O(n²) which gets ugly. TGW scales linearly.' },
+      ],
+      examTies: 'N10-009 1.8 (cloud connectivity options — VPC peering), 3.1 (routing between VPCs)',
+    },
+  },
+  {
+    id: 'man',
+    title: 'Metropolitan Area Network (MAN)',
+    description: 'A MAN spans a city — multiple sites connected by high-speed metro fiber, typically through a single ISP or municipal backbone. Larger than LAN, smaller than WAN.',
+    requirements: [
+      'Metro fiber cloud/backbone in the middle',
+      'At least 3 city sites, each with edge router + switch + endpoints',
+      'Sites interconnect through the metro cloud (not over the public internet)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'cloud',  min: 1 },
+      { type: 'router', min: 3 },
+      { type: 'switch', min: 3 },
+    ],
+    explanation: {
+      overview: 'A Metropolitan Area Network (MAN) connects multiple physically separate sites within a single metropolitan area (a city and its suburbs). Larger than a LAN, smaller than a WAN. Typically delivered over high-capacity metro fiber — either by a commercial ISP, a municipal network (e.g., a city-owned fiber ring), or a carrier Ethernet service.',
+      dataFlow: 'User at Site A (say, the city\'s main hospital) sends a lab record to Site B (a partner clinic across town). Traffic leaves the hospital\'s LAN via its edge router. Edge router forwards over metro fiber to the ISP\'s metro aggregation switch. The aggregation switch recognises the destination as another on-net customer (Site B) and forwards directly — no internet transit. Site B\'s edge router accepts the traffic and delivers to the clinic\'s LAN. Because it stays on metro fiber end-to-end, latency is typically <5ms and bandwidth is symmetric 1–10 Gbps.',
+      keyDevices: [
+        { name: 'Metro Fiber / Cloud', role: 'The city-wide backbone. Usually owned by a carrier or municipality.' },
+        { name: 'Site Edge Routers', role: 'Each city site has a router at the boundary to the metro fiber.' },
+        { name: 'Site Switches', role: 'Distribute traffic within each site (floors, departments).' },
+        { name: 'Endpoints', role: 'PCs, phones, IoT — per site. Functionally like a LAN, just with a blazing-fast WAN underneath.' },
+      ],
+      concepts: [
+        { term: 'MAN vs WAN vs LAN', meaning: 'Scale: LAN (one building), MAN (one city), WAN (multiple cities/countries). The line blurs at the edges.' },
+        { term: 'Carrier Ethernet', meaning: 'Common MAN delivery: Metro Ethernet (E-Line, E-LAN, E-Tree). Feels like a giant VLAN across town.' },
+        { term: 'Last-mile', meaning: 'The final connection from the carrier\'s POP to your site — often the bottleneck even on metro fiber.' },
+        { term: 'Municipal / Community networks', meaning: 'City-owned MANs (e.g., Chattanooga\'s "Gig City"). Public-sector alternative to carriers.' },
+      ],
+      examTies: 'N10-009 1.7 (network types — LAN/WAN/MAN/CAN/PAN — MAN explicitly listed), 1.8 (carrier Ethernet)',
+    },
   },
 ];
 
@@ -7524,6 +7916,10 @@ function tbSetScenario(id) {
   tbUpdateStatus(`Scenario: ${scen.title}`);
 }
 
+// v4.47.0: scenario panel now includes a collapsible "Learn more" section
+// with 5 structured sub-sections (Overview / Data flow / Key devices /
+// Concepts / Exam ties) when the scenario has an `explanation` block.
+// Uses <details>/<summary> for keyboard-accessible collapse out of the box.
 function tbRenderScenarioPanel() {
   const el = document.getElementById('tb-scenario-panel');
   if (!el) return;
@@ -7534,6 +7930,55 @@ function tbRenderScenarioPanel() {
     return;
   }
   el.classList.remove('is-hidden');
+
+  // Build the Learn-more section if the scenario has explanation data.
+  let learnHtml = '';
+  if (scen.explanation) {
+    const ex = scen.explanation;
+    const keyDevicesHtml = (ex.keyDevices || []).map(d =>
+      `<li><strong>${escHtml(d.name)}</strong> — ${escHtml(d.role)}</li>`
+    ).join('');
+    const conceptsHtml = (ex.concepts || []).map(c =>
+      `<li><strong>${escHtml(c.term)}</strong> <span class="tb-scenario-concept-sep">—</span> ${escHtml(c.meaning)}</li>`
+    ).join('');
+    learnHtml = `
+      <details class="tb-scenario-learn">
+        <summary class="tb-scenario-learn-summary">
+          <span class="tb-scenario-learn-icon" aria-hidden="true">\u{1F4DA}</span>
+          <span class="tb-scenario-learn-label">Learn more about this network</span>
+          <span class="tb-scenario-learn-chev" aria-hidden="true">\u203A</span>
+        </summary>
+        <div class="tb-scenario-learn-body">
+          ${ex.overview ? `
+            <section class="tb-scenario-sec">
+              <h4 class="tb-scenario-sec-title"><span class="tb-scenario-sec-ico">\u{1F4DD}</span>Overview</h4>
+              <p class="tb-scenario-sec-body">${escHtml(ex.overview)}</p>
+            </section>` : ''}
+          ${ex.dataFlow ? `
+            <section class="tb-scenario-sec">
+              <h4 class="tb-scenario-sec-title"><span class="tb-scenario-sec-ico">\u{1F501}</span>How it routes data</h4>
+              <p class="tb-scenario-sec-body">${escHtml(ex.dataFlow)}</p>
+            </section>` : ''}
+          ${keyDevicesHtml ? `
+            <section class="tb-scenario-sec">
+              <h4 class="tb-scenario-sec-title"><span class="tb-scenario-sec-ico">\u{1F9E9}</span>Key devices</h4>
+              <ul class="tb-scenario-keydevs">${keyDevicesHtml}</ul>
+            </section>` : ''}
+          ${conceptsHtml ? `
+            <section class="tb-scenario-sec">
+              <h4 class="tb-scenario-sec-title"><span class="tb-scenario-sec-ico">\u{1F4A1}</span>Key concepts</h4>
+              <ul class="tb-scenario-concepts">${conceptsHtml}</ul>
+            </section>` : ''}
+          ${ex.examTies ? `
+            <section class="tb-scenario-sec tb-scenario-sec-exam">
+              <h4 class="tb-scenario-sec-title"><span class="tb-scenario-sec-ico">\u{1F393}</span>Exam relevance</h4>
+              <p class="tb-scenario-sec-body">${escHtml(ex.examTies)}</p>
+            </section>` : ''}
+        </div>
+      </details>
+    `;
+  }
+
   el.innerHTML = `
     <div class="tb-scenario-head">
       <div class="tb-scenario-title">\u{1F3AF} ${escHtml(scen.title)}</div>
@@ -7542,6 +7987,7 @@ function tbRenderScenarioPanel() {
     <ul class="tb-scenario-reqs">
       ${scen.requirements.map(r => `<li>${escHtml(r)}</li>`).join('')}
     </ul>
+    ${learnHtml}
   `;
 }
 
@@ -8114,7 +8560,7 @@ function tbRenderOverviewTab(dev) {
   const dhcpStatus = dev.dhcpServer ? 'Enabled' : (dev.dhcpRelay ? 'Relay' : 'Off');
 
   // Build hostname edit and gateway for endpoints
-  const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
+  const isEndpoint = ['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
   const gwInfo = isEndpoint && dev.interfaces[0]?.gateway ? `<div class="tb-ov-stat"><span>Gateway</span><code>${escHtml(dev.interfaces[0].gateway)}</code></div>` : '';
 
   return `<div class="tb-ov-hero">
@@ -8186,7 +8632,7 @@ function tbRenderIfacesTab(dev) {
     ${trunkInfo ? `<tr><td colspan="7" style="padding:2px 5px 6px">${trunkInfo}</td></tr>` : ''}`;
   }).join('');
 
-  const isEndpoint = ['pc','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
+  const isEndpoint = ['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','public-web','public-file','public-cloud'].indexOf(dev.type) >= 0;
   const gwRow = isEndpoint ? `<div style="margin-top:8px"><label>Default Gateway</label><input type="text" value="${escHtml(dev.interfaces[0]?.gateway || '')}" onchange="tbSetGateway(this.value)" placeholder="e.g. 192.168.1.1"></div>` : '';
 
   // IPv6 section

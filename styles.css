@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.46.1
+   Network+ AI Quiz — styles.css  v4.47.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2007,6 +2007,148 @@ input::placeholder { color: var(--text-dim); }
   line-height: 1.6;
 }
 .tb-scenario-reqs li { margin-bottom: 2px; }
+
+/* ── v4.47.0: Learn-more collapsible pane inside the scenario panel ──
+ * Adds rich pedagogical content (overview / data flow / key devices /
+ * concepts / exam ties) behind a <details>/<summary> toggle. Always
+ * collapsed by default so it doesn't steal canvas space on load. */
+.tb-scenario-learn {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(124,111,247,.18);
+}
+.tb-scenario-learn-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(124,111,247,.08);
+  border: 1px solid rgba(124,111,247,.25);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-light, #a78bfa);
+  transition: all .2s ease;
+  user-select: none;
+}
+.tb-scenario-learn-summary::-webkit-details-marker { display: none; }
+.tb-scenario-learn-summary::marker { content: ''; }
+.tb-scenario-learn-summary:hover {
+  background: rgba(124,111,247,.14);
+  border-color: rgba(124,111,247,.4);
+  transform: translateY(-1px);
+}
+.tb-scenario-learn-icon { font-size: 15px; line-height: 1; }
+.tb-scenario-learn-label { flex: 1; letter-spacing: -.01em; }
+.tb-scenario-learn-chev {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent-light, #a78bfa);
+  transform: rotate(0deg);
+  transition: transform .25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tb-scenario-learn[open] .tb-scenario-learn-chev { transform: rotate(90deg); }
+
+.tb-scenario-learn-body {
+  margin-top: 14px;
+  padding: 16px 18px;
+  background: rgba(15, 23, 42, .35);
+  border-radius: 12px;
+  border: 1px solid rgba(124,111,247,.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: tbScenarioLearnFade .4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes tbScenarioLearnFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tb-scenario-sec { display: flex; flex-direction: column; gap: 6px; }
+.tb-scenario-sec-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-light, #a78bfa);
+}
+.tb-scenario-sec-ico { font-size: 14px; line-height: 1; opacity: .9; }
+.tb-scenario-sec-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.62;
+  color: var(--text, #e2e8f0);
+}
+.tb-scenario-keydevs,
+.tb-scenario-concepts {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text, #e2e8f0);
+}
+.tb-scenario-keydevs li,
+.tb-scenario-concepts li {
+  position: relative;
+  padding-left: 0;
+}
+.tb-scenario-keydevs li::before,
+.tb-scenario-concepts li::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(124,111,247,.6);
+}
+.tb-scenario-keydevs strong,
+.tb-scenario-concepts strong {
+  color: var(--accent-light, #a78bfa);
+  font-weight: 700;
+}
+.tb-scenario-concept-sep { color: var(--text-dim, #94a3b8); margin: 0 4px; }
+
+/* Exam ties gets a subtle "study" highlight */
+.tb-scenario-sec-exam {
+  padding: 10px 14px;
+  background: rgba(251,191,36,.06);
+  border-left: 3px solid rgba(251,191,36,.5);
+  border-radius: 8px;
+}
+.tb-scenario-sec-exam .tb-scenario-sec-title { color: var(--yellow, #fbbf24); }
+
+/* Light-theme overrides */
+[data-theme="light"] .tb-scenario-learn-summary { background: rgba(99,85,224,.06); border-color: rgba(99,85,224,.22); color: #5b4bdc; }
+[data-theme="light"] .tb-scenario-learn-summary:hover { background: rgba(99,85,224,.12); border-color: rgba(99,85,224,.4); }
+[data-theme="light"] .tb-scenario-learn-chev { color: #5b4bdc; }
+[data-theme="light"] .tb-scenario-learn-body { background: rgba(99,85,224,.03); border-color: rgba(99,85,224,.14); }
+[data-theme="light"] .tb-scenario-sec-title { color: #5b4bdc; }
+[data-theme="light"] .tb-scenario-keydevs strong,
+[data-theme="light"] .tb-scenario-concepts strong { color: #5b4bdc; }
+[data-theme="light"] .tb-scenario-keydevs li::before,
+[data-theme="light"] .tb-scenario-concepts li::before { background: rgba(99,85,224,.6); }
+[data-theme="light"] .tb-scenario-sec-exam { background: rgba(234,179,8,.08); border-left-color: rgba(234,179,8,.5); }
+[data-theme="light"] .tb-scenario-sec-exam .tb-scenario-sec-title { color: #b45309; }
+
+/* Narrow viewport — tighten padding */
+@media (max-width: 560px) {
+  .tb-scenario-learn-body { padding: 12px 14px; gap: 14px; }
+  .tb-scenario-sec-body { font-size: 12.5px; }
+  .tb-scenario-keydevs,
+  .tb-scenario-concepts { font-size: 12px; }
+}
 
 /* Grade modal */
 .tb-grade-modal {
@@ -4357,6 +4499,11 @@ input::placeholder { color: var(--text-dim); }
   /* v4.46.1 — Streak flame pulse neutralised */
   .ana-streak-flame { animation: none !important; transform: none; filter: none; }
   .ana-streak-day-dot { transition: none !important; }
+  /* v4.47.0 — Scenario Learn-more animations neutralised */
+  .tb-scenario-learn-body { animation: none !important; }
+  .tb-scenario-learn-chev { transition: none !important; }
+  .tb-scenario-learn-summary { transition: none !important; }
+  .tb-scenario-learn-summary:hover { transform: none; }
 }
 
 /* ══════════════════════════════════════════
