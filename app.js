@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.43.6
+// Network+ AI Quiz — app.js  v4.43.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.43.6';
+const APP_VERSION = '4.43.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -15277,9 +15277,14 @@ function stPickCategory(m) {
 function stPickType(category, level) {
   const cat = ST_CATEGORIES[category];
   if (!cat) return 'cidr_to_mask';
-  // Filter types by difficulty level
-  const easyTypes = ['cidr_to_mask','mask_to_cidr','host_count','block_size_q','find_subnet','binary_to_mask','classful_default'];
-  const medTypes = ['mask_to_wildcard','wildcard_to_mask','find_broadcast','usable_first','usable_last','hosts_needed_cidr','subnet_count','same_subnet','which_subnet','ipv6_prefix_count'];
+  // Filter types by difficulty level.
+  // v4.43.7: moved find_broadcast / usable_first / usable_last into easyTypes —
+  // they were incorrectly classified as intermediate, which meant the Lesson 5
+  // "Network & Broadcast" practice gate only ever served find_subnet questions
+  // at beginner level. All four are equally easy once the block size method
+  // clicks (broadcast = next block - 1, usable = network+1 to broadcast-1).
+  const easyTypes = ['cidr_to_mask','mask_to_cidr','host_count','block_size_q','find_subnet','find_broadcast','usable_first','usable_last','binary_to_mask','classful_default'];
+  const medTypes = ['mask_to_wildcard','wildcard_to_mask','hosts_needed_cidr','subnet_count','same_subnet','which_subnet','ipv6_prefix_count'];
   const hardTypes = ['nth_subnet','vlsm_pick','best_fit_mask','supernet_aggregate'];
   let pool = cat.types;
   if (level === 'beginner') pool = pool.filter(t => easyTypes.includes(t));
@@ -15476,14 +15481,20 @@ const SUBNET_LESSONS = [
       '<strong>\ud83c\udfaf Pro tip:</strong> For any /25\u2013/30 question: figure the interesting octet, subtract from 256 for block size, list the multiples, find where your IP lands. Under 10 seconds, every time. Binary ANDing is the underlying operation, but you won\u2019t need it once this clicks.',
     ],
     practice: 'addressing' },
-  { id: 'net_broadcast', title: 'Network & Broadcast', icon: '\ud83d\udce1', desc: 'Finding network address, broadcast, first/last usable host.', prereq: 'block_size',
+  { id: 'net_broadcast', title: 'Network & Broadcast', icon: '\ud83d\udce1', desc: 'Derive broadcast address and usable range from the block size in 3 quick steps.', prereq: 'block_size',
     theory: [
-      'Every subnet has 3 key addresses:',
-      '1. <strong>Network address:</strong> all host bits = 0 (e.g., 192.168.1.64)',
-      '2. <strong>Broadcast address:</strong> all host bits = 1 (e.g., 192.168.1.127)',
-      '3. <strong>Usable range:</strong> network+1 to broadcast-1 (192.168.1.65 \u2013 192.168.1.126)',
-      '<strong>Quick method:</strong> Block size = 256 - mask octet. Network address is the nearest multiple of the block size that is \u2264 the IP. Broadcast = next network - 1.',
-      'For 192.168.1.100 /26: block = 64, networks at .0, .64, .128 \u2192 100 falls in .64 block \u2192 broadcast = .127',
+      'Lesson 4 showed you how to find the <strong>network address</strong>. Every subnet actually has <strong>3 key addresses</strong> you need to know. Once you\u2019ve found the network, the other two come out of the block size for free \u2014 no extra math.',
+      '<strong>The 3 key addresses of any subnet:</strong><br><br>1. <strong>Network address</strong> \u2014 identifies the subnet (can\u2019t assign to a device)<br>2. <strong>Broadcast address</strong> \u2014 reaches every host in the subnet at once (can\u2019t assign to a device)<br>3. <strong>Usable range</strong> \u2014 everything between them. These are the IPs you give to real devices.',
+      '<strong>Let\u2019s continue the Lesson 4 example:</strong><br><br><strong>IP: 192.168.1.100 /26</strong><br>From Lesson 4 we already know:<br>\u2022 Block size = <strong>64</strong><br>\u2022 Network address = <strong>192.168.1.64</strong><br><br>Now we\u2019ll derive the broadcast and usable range.',
+      '<strong>Step 1 \u2014 Broadcast = next network start \u2212 1</strong><br><br>Our subnet starts at 64. The <em>next</em> network starts at 64 + block size = 64 + 64 = <strong>128</strong>.<br><br>So:<br><code>Broadcast = 128 \u2212 1 = 127</code><br><br><strong>Broadcast = 192.168.1.127</strong>',
+      '<strong>Step 2 \u2014 First usable host = Network + 1</strong><br><br><code>192.168.1.64 + 1 = 192.168.1.65</code><br><br><strong>First usable = 192.168.1.65</strong>',
+      '<strong>Step 3 \u2014 Last usable host = Broadcast \u2212 1</strong><br><br><code>192.168.1.127 \u2212 1 = 192.168.1.126</code><br><br><strong>Last usable = 192.168.1.126</strong>',
+      '<strong>\u2728 Put it all together for 192.168.1.100 /26:</strong><br><br><code>.64  \u2190 Network (reserved)<br>.65  \u2190 First usable \u2705<br>.66<br>.67<br>...<br>.125<br>.126 \u2190 Last usable \u2705<br>.127 \u2190 Broadcast (reserved)</code><br><br>\u2022 <strong>Network:</strong> 192.168.1.64<br>\u2022 <strong>Broadcast:</strong> 192.168.1.127<br>\u2022 <strong>Usable range:</strong> 192.168.1.65 \u2013 192.168.1.126',
+      '<strong>\ud83d\udca1 Why subtract 2 from host count?</strong><br><br>A /26 has 2<sup>6</sup> = 64 total addresses, but only <strong>62 are usable</strong>. Why?<br>\u2022 The <strong>network address</strong> (.64) identifies the subnet itself<br>\u2022 The <strong>broadcast address</strong> (.127) is reserved for "talk to every host"<br><br>Neither can be assigned to a device, so <strong>usable hosts = block size \u2212 2</strong>.<br><br>Check: 126 \u2212 65 + 1 = <strong>62 usable</strong>. \u2705',
+      '<strong>\u2728 Bigger example: 10.50.173.45 /20</strong><br><br>From Lesson 4:<br>\u2022 Block size = 16<br>\u2022 Network = <strong>10.50.160.0</strong> (interesting octet was the 3rd)<br><br><strong>Step 1 \u2014 Broadcast:</strong><br>Next network = 160 + 16 = 176 \u2192 10.50.176.0<br>Broadcast = 10.50.176.0 \u2212 1 = <strong>10.50.175.255</strong><br><br><strong>Step 2 \u2014 First usable:</strong> 10.50.160.0 + 1 = <strong>10.50.160.1</strong><br><br><strong>Step 3 \u2014 Last usable:</strong> 10.50.175.255 \u2212 1 = <strong>10.50.175.254</strong><br><br><strong>Usable range: 10.50.160.1 \u2013 10.50.175.254</strong><br>Host count: 2<sup>12</sup> \u2212 2 = <strong>4094 usable</strong>.',
+      '<strong>\ud83d\udcd0 Full cheat sheet (extends Lesson 4):</strong><table class="subnet-table" style="margin-top:8px"><tr><th>CIDR</th><th>Block size</th><th>Total IPs</th><th>Usable hosts</th><th>Reserved</th></tr><tr><td>/24</td><td>256</td><td>256</td><td>254</td><td>2</td></tr><tr><td>/25</td><td>128</td><td>128</td><td>126</td><td>2</td></tr><tr><td>/26</td><td>64</td><td>64</td><td>62</td><td>2</td></tr><tr><td>/27</td><td>32</td><td>32</td><td>30</td><td>2</td></tr><tr><td>/28</td><td>16</td><td>16</td><td>14</td><td>2</td></tr><tr><td>/29</td><td>8</td><td>8</td><td>6</td><td>2</td></tr><tr><td>/30</td><td>4</td><td>4</td><td>2</td><td>2</td></tr></table>',
+      '<strong>\ud83c\udfaf Exam-pressure recipe:</strong> given any IP + CIDR, say out loud:<br>1. <em>Block size</em> = 256 \u2212 mask octet<br>2. <em>Network</em> = highest multiple of block size \u2264 IP\u2019s interesting octet<br>3. <em>Broadcast</em> = next block start \u2212 1<br>4. <em>First usable</em> = network + 1<br>5. <em>Last usable</em> = broadcast \u2212 1<br>6. <em>Hosts</em> = block size \u2212 2<br><br>If you can rattle those 6 off in under 20 seconds for any /26\u2013/30, you\u2019re exam-ready for this topic.',
+      '<strong>Edge cases for the exam:</strong><br>\u2022 <strong>/31</strong> \u2192 block size 2, only 2 total IPs. Special <em>point-to-point link</em> rule (RFC 3021): both IPs are usable, no reserved network/broadcast. Host count = 2.<br>\u2022 <strong>/32</strong> \u2192 block size 1, single host \u2014 used for loopbacks and host routes.<br><br>The 2<sup>n</sup> \u2212 2 formula applies from /24 down to /30; /31 and /32 are the edge cases that break it.',
     ],
     practice: 'addressing' },
   { id: 'host_math', title: 'Counting Hosts & Blocks', icon: '\ud83e\uddee', desc: 'The 2^n - 2 formula, block sizes, and choosing the right mask.', prereq: 'net_broadcast',
