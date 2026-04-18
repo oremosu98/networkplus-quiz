@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.49.0', js.includes("const APP_VERSION = '4.49.0"));
+test('APP_VERSION is 4.49.1', js.includes("const APP_VERSION = '4.49.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.49.0', sw.includes('netplus-v4.49.0'));
+test('SW cache bumped to v4.49.1', sw.includes('netplus-v4.49.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -874,7 +874,8 @@ test('Icon: iot shape', /case 'iot':/.test(js));
 // ── Topology Builder v4.19.1: discoverable wiring UX ──
 console.log('\n\x1b[1m── TOPOLOGY BUILDER v4.19.1 (wiring UX) ──\x1b[0m');
 test('How-to strip in HTML', html.includes('tb-howto-strip'));
-test('How-to step: click A then click B', /Click<\/strong> device A[\s\S]{0,200}click<\/strong> device B/.test(html));
+test('How-to step: click A then click B (v4.49.1: rephrased across step title + desc)',
+  /tb-howto-step-title[^>]*>Wire<[\s\S]{0,400}Click device <em>A<\/em>[\s\S]{0,100}click device <em>B<\/em>/.test(html));
 test('Wire overlay element in HTML', html.includes('id="tb-wire-overlay"'));
 test('Wire overlay starts hidden', /tb-wire-overlay[\s\S]{0,200}is-hidden/.test(html));
 test('tbUpdateWireOverlay function', js.includes('function tbUpdateWireOverlay('));
@@ -2352,15 +2353,16 @@ test('Light: tb-toolbar override', css.includes('[data-theme="light"] .tb-toolba
 test('Light: tb-palette override', css.includes('[data-theme="light"] .tb-palette'));
 test('Light: tb-intro-details override', css.includes('[data-theme="light"] .tb-intro-details'));
 test('Light: tb-howto-details override', css.includes('[data-theme="light"] .tb-howto-details'));
-test('Light: tb-howto-item override', css.includes('[data-theme="light"] .tb-howto-item'));
-test('Light: tb-howto kbd override', css.includes('[data-theme="light"] .tb-howto-item kbd'));
+test('Light: tb-howto-step override (v4.49.1: replaced .tb-howto-item)', css.includes('[data-theme="light"] .tb-howto-step'));
+test('Light: tb-howto kbd override (v4.49.1: now scoped to .tb-howto-step kbd)', css.includes('[data-theme="light"] .tb-howto-step kbd'));
 test('Light: tb-sim-log-content override', css.includes('[data-theme="light"] .tb-sim-log-content'));
 test('Light: tb-fix-diff-easy override', css.includes('[data-theme="light"] .tb-fix-diff-easy'));
 test('Light: tb-fix-tab override', css.includes('[data-theme="light"] .tb-fix-tab'));
 test('Light: tb-grade-backdrop override', css.includes('[data-theme="light"] .tb-grade-backdrop'));
 test('Light: tb-scenario-panel override', css.includes('[data-theme="light"] .tb-scenario-panel'));
 test('How-to strip uses CSS grid', css.includes('grid-template-columns: repeat(auto-fit'));
-test('How-to items have card style', css.includes('.tb-howto-item') && css.includes('border-radius: 8px'));
+test('How-to step cards have card style (v4.49.1: .tb-howto-step with border-radius: 12px)',
+  css.includes('.tb-howto-step {') && /\.tb-howto-step\s*\{[^}]*border-radius:\s*12px/.test(css));
 
 // v4.38.0 — Comprehensive light mode audit
 console.log('\n\x1b[1m── LIGHT MODE AUDIT (v4.38.0) ──\x1b[0m');
@@ -3770,8 +3772,8 @@ test('v4.43.2 #1: light .tb-wire-overlay kbd override exists',
 // Fix 2: how-to row collapsed by default (regression guard against `open` returning)
 test('v4.43.2 #2: tb-howto-details NOT open by default',
   !/<details id="tb-howto-details"[^>]*\bopen\b/.test(html));
-test('v4.43.2 #2: .tb-howto-item has min-width:0 + overflow-wrap (prevents overflow on expand)',
-  /\.tb-howto-item\s*\{[^}]*min-width:\s*0[\s\S]*?overflow-wrap:\s*break-word/.test(css));
+test('v4.43.2 #2: how-to strip grid uses auto-fit (v4.49.1: .tb-howto-step replaces .tb-howto-item; overflow-wrap no longer needed since cards are self-contained)',
+  /\.tb-howto-strip\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit/.test(css));
 // Fix 3: palette height tracks canvas (was capped at 760 while canvas is 900+)
 test('v4.43.2 #3: .tb-palette min-height 900px (matches canvas)',
   /\.tb-palette\s*\{[^}]*min-height:\s*900px/.test(css));
@@ -4609,6 +4611,52 @@ test('v4.49.0: empty-state tile advertises 31 real-world network patterns',
   js.includes('31 real-world network patterns'));
 test('v4.49.0: old "16 real-world" copy removed (regression guard)',
   !js.includes('16 real-world network patterns'));
+
+// ── v4.49.1 HOW-TO BUILD UI REVAMP ──
+console.log('\n\x1b[1m── v4.49.1 HOW-TO BUILD REVAMP ──\x1b[0m');
+// HTML: new step structure
+test('v4.49.1: old .tb-howto-item structure removed (regression guard)',
+  !html.includes('class="tb-howto-item"'));
+test('v4.49.1: new .tb-howto-step cards present', html.includes('class="tb-howto-step"'));
+test('v4.49.1: step-head/num/icon structure in place',
+  html.includes('class="tb-howto-step-head"') &&
+  html.includes('class="tb-howto-step-num"') &&
+  html.includes('class="tb-howto-step-icon"'));
+test('v4.49.1: step title + desc structure in place',
+  html.includes('class="tb-howto-step-title"') &&
+  html.includes('class="tb-howto-step-desc"'));
+test('v4.49.1: 5 step cards exist (was 4)',
+  (html.match(/class="tb-howto-step"/g) || []).length === 5);
+test('v4.49.1: step titles — Drag / Wire / Configure / Move & Delete / Simulate',
+  html.includes('>Drag<') && html.includes('>Wire<') &&
+  html.includes('>Configure<') && html.includes('>Move &amp; Delete<') &&
+  html.includes('>Simulate<'));
+test('v4.49.1: Step 4 <kbd>Del</kbd> properly styled (not inline in mangled prose)',
+  /tb-howto-step-desc[^<]*<[^<]*<kbd>Del<\/kbd>/.test(html) || html.includes('<kbd>Del</kbd>'));
+test('v4.49.1: summary emoji updated to 📚 How to build',
+  html.includes('&#128218; How to build'));
+// CSS
+test('v4.49.1 CSS: .tb-howto-step premium styling defined',
+  css.includes('.tb-howto-step {') && /\.tb-howto-step\s*\{[^}]*radial-gradient/.test(css));
+test('v4.49.1 CSS: hover lift on step card',
+  /\.tb-howto-step:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(css));
+test('v4.49.1 CSS: .tb-howto-step-num circular badge',
+  /\.tb-howto-step-num\s*\{[^}]*border-radius:\s*50%/.test(css));
+test('v4.49.1 CSS: .tb-howto-step-title styled with accent color',
+  css.includes('.tb-howto-step-title'));
+test('v4.49.1 CSS: <kbd> chip styling with double-bottom-border',
+  /\.tb-howto-step\s+kbd\s*\{[^}]*border-bottom-width:\s*2px/.test(css));
+test('v4.49.1 CSS: narrow-viewport responsive at 680px',
+  /@media \(max-width:\s*680px\)[\s\S]{0,500}\.tb-howto-strip/.test(css));
+test('v4.49.1 CSS: light-theme override for step cards',
+  /\[data-theme="light"\]\s+\.tb-howto-step\s/.test(css));
+test('v4.49.1 CSS: reduced-motion neutralises step hover-lift',
+  /prefers-reduced-motion[\s\S]{0,5000}\.tb-howto-step\s*\{[^}]*transition:\s*none/.test(css));
+// Regression: old CSS gone
+test('v4.49.1 CSS: old .tb-howto-item rule removed',
+  !/\.tb-howto-item\s*\{/.test(css));
+test('v4.49.1 CSS: old .tb-howto-num rule removed (replaced by .tb-howto-step-num)',
+  !/\.tb-howto-num\s*\{/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
