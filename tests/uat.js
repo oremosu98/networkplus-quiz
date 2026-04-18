@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.53.0', js.includes("const APP_VERSION = '4.53.0"));
+test('APP_VERSION is 4.54.0', js.includes("const APP_VERSION = '4.54.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -288,7 +288,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.53.0', sw.includes('netplus-v4.53.0'));
+test('SW cache bumped to v4.54.0', sw.includes('netplus-v4.54.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5381,6 +5381,149 @@ test('v4.53.0 CSS: light-theme .sb-item-active recoloured',
   /\[data-theme="light"\]\s+\.sb-item\.sb-item-active\s*\{/.test(css));
 test('v4.53.0 CSS: light-theme .ed-section-num recoloured',
   /\[data-theme="light"\]\s+\.ed-section-num[\s\S]{0,200}#6355e0/.test(css));
+
+// ── v4.54.0 EDITORIAL HERO v2 + TOP BAR + SIDEBAR COLLAPSE ──
+// User saw a mockup screenshot and asked for that exact layout. Built:
+//   • Persistent topbar across all pages (breadcrumb + time + gear + theme + avatar + sidebar toggle)
+//   • Setup hero v2: display heading + lede (left) + dark readiness card + 2 mini-cards (right aside)
+//   • Focus banner v2: full-width purple gradient + giant quote mark + white CTA
+//   • Sidebar collapse with localStorage persistence
+console.log('\n\x1b[1m── v4.54.0 HERO v2 + TOP BAR + COLLAPSE ──\x1b[0m');
+
+// HTML \u2014 topbar
+test('v4.54.0 HTML: #app-topbar exists',
+  html.includes('id="app-topbar"') && html.includes('class="app-topbar"'));
+test('v4.54.0 HTML: topbar has sidebar-toggle + breadcrumb + time + gear + theme + avatar',
+  html.includes('id="topbar-toggle"') && html.includes('id="topbar-crumb"') &&
+  html.includes('id="topbar-time"') && html.includes('id="topbar-theme"') &&
+  html.includes('class="topbar-avatar"'));
+test('v4.54.0 HTML: topbar toggle calls toggleSidebarCollapsed',
+  /id="topbar-toggle"[\s\S]{0,200}onclick="toggleSidebarCollapsed/.test(html));
+
+// HTML \u2014 hero v2
+test('v4.54.0 HTML: #setup-hero-v2 wrapper + hero-v2-main + hero-v2-aside',
+  html.includes('id="setup-hero-v2"') && html.includes('class="hero-v2-main"') && html.includes('class="hero-v2-aside"'));
+test('v4.54.0 HTML: display heading defaults to "Good afternoon, Simi."',
+  /id="hero-v2-display"[\s\S]{0,200}Good afternoon, <span class="name">Simi\.<\/span>/.test(html));
+test('v4.54.0 HTML: readiness card v2 has score + bar fill + pass tick + delta',
+  html.includes('id="rc-v2-num"') && html.includes('id="rc-v2-bar-fill"') &&
+  html.includes('class="rc-v2-pass-tick"') && html.includes('id="rc-v2-delta"'));
+test('v4.54.0 HTML: two mini cards (today + streak) in hero-v2-mini-row',
+  html.includes('id="mc-today-done"') && html.includes('id="mc-today-goal"') &&
+  html.includes('id="mc-streak-num"') && html.includes('id="mc-streak-sub"'));
+test('v4.54.0 HTML: focus banner upgraded to focus-banner-v2 class',
+  html.includes('class="focus-banner-v2 is-hidden"'));
+test('v4.54.0 HTML: legacy hero hidden (.hero.is-hidden)',
+  /class="hero is-hidden"/.test(html));
+
+// JS \u2014 topbar
+test('v4.54.0 JS: TOPBAR_CRUMBS map defined with \u226520 page entries',
+  js.includes('const TOPBAR_CRUMBS') && (() => {
+    const m = js.match(/const TOPBAR_CRUMBS\s*=\s*\{([\s\S]*?)\};/);
+    if (!m) return false;
+    return (m[1].match(/'[^']+':\s*'/g) || []).length >= 20;
+  })());
+test('v4.54.0 JS: updateTopbarCrumb function defined',
+  js.includes('function updateTopbarCrumb('));
+test('v4.54.0 JS: showPage hooks updateTopbarCrumb',
+  /function showPage\([\s\S]{0,800}updateTopbarCrumb/.test(js));
+test('v4.54.0 JS: _topbarTick live clock helper',
+  js.includes('function _topbarTick(') && js.includes('function _topbarStartClock('));
+test('v4.54.0 JS: scrollToSettings nav helper (gear button)',
+  js.includes('function scrollToSettings('));
+test('v4.54.0 JS: topbar theme icon mirrors current theme via _syncTopbarTheme',
+  js.includes('function _syncTopbarTheme('));
+
+// JS \u2014 sidebar collapse
+test('v4.54.0 JS: STORAGE_SIDEBAR_COLLAPSED key + toggleSidebarCollapsed function',
+  js.includes('STORAGE_SIDEBAR_COLLAPSED') && js.includes('function toggleSidebarCollapsed('));
+test('v4.54.0 JS: toggleSidebarCollapsed persists state to localStorage',
+  /function toggleSidebarCollapsed\([\s\S]{0,400}localStorage\.setItem\(STORAGE_SIDEBAR_COLLAPSED/.test(js));
+test('v4.54.0 JS: _initSidebarCollapsed reads persisted state on load',
+  js.includes('function _initSidebarCollapsed(') && /_initSidebarCollapsed[\s\S]{0,300}localStorage\.getItem\(STORAGE_SIDEBAR_COLLAPSED/.test(js));
+
+// JS \u2014 hero v2
+test('v4.54.0 JS: renderHeroV2 function defined',
+  js.includes('function renderHeroV2('));
+test('v4.54.0 JS: hero v2 adds body.hero-v2-active class (hides legacy hero)',
+  /renderHeroV2[\s\S]{0,400}classList\.add\('hero-v2-active'\)/.test(js));
+test('v4.54.0 JS: hero eyebrow renders DAY \u00B7 MONTH DATE \u00B7 H:MMam/pm format',
+  /hero-v2-eyebrow[\s\S]{0,1500}dayNames[\s\S]{0,400}monthNames/.test(js));
+test('v4.54.0 JS: display heading uses time-aware greeting (Good morning/afternoon/evening/Working late)',
+  /renderHeroV2[\s\S]{0,2500}Good morning[\s\S]{0,300}Good afternoon[\s\S]{0,300}Good evening/.test(js));
+test('v4.54.0 JS: renderReadinessCardV2 pulls from getReadinessScore + computes bar %',
+  js.includes('function renderReadinessCardV2(') &&
+  /renderReadinessCardV2[\s\S]{0,1500}getReadinessScore\(\)/.test(js));
+test('v4.54.0 JS: readiness bar uses (score - 420) / 480 formula (420-900 range)',
+  /renderReadinessCardV2[\s\S]{0,2000}r\.score\s*-\s*420[\s\S]{0,80}\/ 480/.test(js));
+test('v4.54.0 JS: renderHeroV2MiniCards pulls from getDailyGoal + getStreak',
+  js.includes('function renderHeroV2MiniCards(') &&
+  /renderHeroV2MiniCards[\s\S]{0,2500}getDailyGoal[\s\S]{0,1000}getStreak/.test(js));
+test('v4.54.0 JS: goSetup calls renderHeroV2',
+  /function goSetup\([\s\S]{0,1500}renderHeroV2/.test(js));
+test('v4.54.0 JS: renderSetupFocusBanner outputs v2 structure (fb-quote + fb-body + fb-cta)',
+  /renderSetupFocusBanner[\s\S]{0,4000}fb-quote[\s\S]{0,400}fb-body[\s\S]{0,400}fb-cta/.test(js));
+
+// CSS \u2014 topbar
+test('v4.54.0 CSS: .app-topbar sticky + flex',
+  /\.app-topbar\s*\{[\s\S]{0,400}position:\s*sticky/.test(css) && /\.app-topbar\s*\{[\s\S]{0,400}display:\s*flex/.test(css));
+test('v4.54.0 CSS: .topbar-avatar circular gradient',
+  /\.topbar-avatar\s*\{[\s\S]{0,600}linear-gradient\(135deg,\s*var\(--accent\)/.test(css) &&
+  /\.topbar-avatar\s*\{[\s\S]{0,700}border-radius:\s*50%/.test(css));
+test('v4.54.0 CSS: .topbar-time monospace + tabular nums',
+  /\.topbar-time\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,200}tabular-nums/.test(css));
+
+// CSS \u2014 sidebar collapse
+test('v4.54.0 CSS: body.sidebar-collapsed removes padding',
+  /body\.sidebar-collapsed\s*\{[^}]*padding-left:\s*0/.test(css));
+test('v4.54.0 CSS: body.sidebar-collapsed .app-sidebar uses translateX(-100%)',
+  /body\.sidebar-collapsed\s+\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
+
+// CSS \u2014 hero v2
+test('v4.54.0 CSS: .setup-hero-v2 is 2-col grid',
+  /\.setup-hero-v2\s*\{[^}]*display:\s*grid/.test(css) && /\.setup-hero-v2\s*\{[^}]*grid-template-columns:\s*1\.45fr/.test(css));
+test('v4.54.0 CSS: .hero-v2-display uses 64px weight-800 tight tracking',
+  /\.hero-v2-display\s*\{[\s\S]{0,500}font-size:\s*64px[\s\S]{0,200}letter-spacing:\s*-0\.04em/.test(css));
+test('v4.54.0 CSS: .hero-v2-display .name coloured accent-light',
+  /\.hero-v2-display\s+\.name\s*\{[^}]*color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.0 CSS: .readiness-card-v2 dark gradient + accent-tinted radial highlight',
+  /\.readiness-card-v2\s*\{[\s\S]{0,800}linear-gradient\(160deg,\s*#16131f/.test(css));
+test('v4.54.0 CSS: .readiness-card-v2 score is 56px weight-800',
+  /\.rc-v2-score\s*\{[\s\S]{0,400}font-size:\s*56px[\s\S]{0,80}font-weight:\s*800/.test(css));
+test('v4.54.0 CSS: readiness bar uses citron/orange gradient',
+  /\.rc-v2-bar-fill\s*\{[\s\S]{0,500}linear-gradient\(90deg,\s*var\(--citron/.test(css));
+test('v4.54.0 CSS: mini-card-v2 uses monospace label + tabular-nums value',
+  /\.mini-card-v2-label\s*\{[\s\S]{0,300}font-family:\s*monospace/.test(css) &&
+  /\.mini-card-v2-val\s*\{[\s\S]{0,400}tabular-nums/.test(css));
+
+// CSS \u2014 focus banner v2
+test('v4.54.0 CSS: .focus-banner-v2 purple gradient + diagonal stripe texture',
+  /\.focus-banner-v2\s*\{[\s\S]{0,1000}repeating-linear-gradient\(\s*135deg/.test(css) &&
+  /\.focus-banner-v2\s*\{[\s\S]{0,1500}linear-gradient\(135deg,\s*var\(--accent-deep/.test(css));
+test('v4.54.0 CSS: .focus-banner-v2 giant 80px quote mark',
+  /\.focus-banner-v2\s+\.fb-quote\s*\{[\s\S]{0,400}font-size:\s*80px/.test(css));
+test('v4.54.0 CSS: .focus-banner-v2 fb-text em uses citron accent',
+  /\.focus-banner-v2\s+\.fb-text\s+em\s*\{[^}]*color:\s*var\(--citron/.test(css));
+test('v4.54.0 CSS: .fb-cta is white pill with accent-deep text',
+  /\.focus-banner-v2\s+\.fb-cta\s*\{[\s\S]{0,300}background:\s*#fff/.test(css));
+
+// CSS \u2014 responsive
+test('v4.54.0 CSS: narrow-viewport (<900px) collapses hero to single-col',
+  /@media \(max-width:\s*900px\)[\s\S]{0,600}\.setup-hero-v2\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
+test('v4.54.0 CSS: <540px hides topbar-time',
+  /@media \(max-width:\s*540px\)[\s\S]{0,300}\.topbar-time\s*\{[^}]*display:\s*none/.test(css));
+
+// CSS \u2014 reduced-motion
+test('v4.54.0 CSS: reduced-motion neutralises topbar transitions + readiness bar + fb-cta',
+  /prefers-reduced-motion[\s\S]{0,12000}\.topbar-toggle,[\s\S]{0,400}rc-v2-bar-fill/.test(css));
+
+// CSS \u2014 light-theme
+test('v4.54.0 CSS: light-theme .app-topbar bg override',
+  /\[data-theme="light"\]\s+\.app-topbar\s*\{/.test(css));
+test('v4.54.0 CSS: light-theme .hero-v2-display .name recoloured #6355e0',
+  /\[data-theme="light"\]\s+\.hero-v2-display\s+\.name\s*\{[^}]*color:\s*#6355e0/.test(css));
+test('v4.54.0 CSS: light-theme .focus-banner-v2 keeps accent-deep gradient (readable on light)',
+  /\[data-theme="light"\]\s+\.focus-banner-v2\s*\{/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

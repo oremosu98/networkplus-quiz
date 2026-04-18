@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.53.0
+// Network+ AI Quiz — app.js  v4.54.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.53.0';
+const APP_VERSION = '4.54.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -574,6 +574,8 @@ function showPage(name) {
   if (name !== 'topology-builder' && typeof tbStopAmbient === 'function') tbStopAmbient();
   // v4.53.0: sync sidebar active state on every page change
   if (typeof updateSidebarActiveState === 'function') updateSidebarActiveState(name);
+  // v4.54.0: update topbar breadcrumb
+  if (typeof updateTopbarCrumb === 'function') updateTopbarCrumb(name);
   // v4.53.0: auto-close mobile drawer when navigating
   try { document.body.classList.remove('sidebar-open'); } catch (_) {}
   const current = document.querySelector('.page.active');
@@ -629,6 +631,8 @@ function goSetup() {
   // v4.53.0: editorial redesign hooks
   if (typeof renderSetupFocusBanner === 'function') renderSetupFocusBanner();
   if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
+  // v4.54.0: hero v2 (display heading + dark readiness + mini cards)
+  if (typeof renderHeroV2 === 'function') renderHeroV2();
   showPage('setup');
 }
 
@@ -23420,11 +23424,281 @@ function renderSetupFocusBanner() {
     ctaAction = "applyPreset('focused')";
   }
 
+  // v4.54.0: Emit the full-width purple-gradient banner structure.
+  // Simpler DOM than v4.53.0 — single line of "study plan" copy, accent-highlighted verb,
+  // and a white-pill CTA. Matches the mockup screenshot exactly.
+  let planText, planMeta;
+  if (history.length === 0) {
+    planText = `Start with a <em>5-minute warmup</em> \u2014 your readiness appears here after your first quiz.`;
+    planMeta = 'TODAY\u2019S STUDY PLAN \u00B7 WARMUP \u00B7 ~5 MIN';
+  } else {
+    // Try to pull top 1-2 weakest topics for a data-driven pullquote
+    let weakHint = '';
+    try {
+      if (typeof computeWeakSpotScores === 'function') {
+        const weak = computeWeakSpotScores();
+        if (weak && weak.length >= 2) {
+          weakHint = ` Focus: ${escHtml(weak[0].topic)} and ${escHtml(weak[1].topic)}.`;
+        } else if (weak && weak.length === 1) {
+          weakHint = ` Focus: ${escHtml(weak[0].topic)}.`;
+        }
+      }
+    } catch (_) {}
+    planText = `Seven questions per topic, mixed difficulty. Your <em>fastest</em> route to exam-ready.${weakHint}`;
+    planMeta = 'TODAY\u2019S STUDY PLAN \u00B7 ~21 MIN \u00B7 5 TOPICS';
+  }
   el.innerHTML = `
-    <div class="focus-quote-mark" aria-hidden="true">\u201C</div>
-    <div class="focus-text-wrap">${bodyHtml}</div>
-    <button type="button" class="focus-cta" onclick="${ctaAction}" aria-label="${ctaLabel}">${ctaLabel} <span aria-hidden="true">\u2192</span></button>`;
+    <div class="fb-quote" aria-hidden="true">\u201C</div>
+    <div class="fb-body">
+      <div class="fb-text">${planText}</div>
+      <div class="fb-meta">${planMeta}</div>
+    </div>
+    <button type="button" class="fb-cta" onclick="${ctaAction}" aria-label="${ctaLabel}">${ctaLabel} <span aria-hidden="true">\u2192</span></button>`;
   el.classList.remove('is-hidden');
+}
+
+// ══════════════════════════════════════════
+// v4.54.0 \u2014 Editorial hero + top bar + sidebar collapse
+// ══════════════════════════════════════════
+
+// ── Top bar ──
+// Updated breadcrumb on every page change + live clock + theme toggle that mirrors state.
+// The top bar is persistent across all pages.
+const TOPBAR_CRUMBS = {
+  'setup': 'Home',
+  'quiz': 'Home / Quiz Session',
+  'exam': 'Home / Exam Simulation',
+  'review': 'Home / Review',
+  'results': 'Home / Quiz Session / Results',
+  'exam-results': 'Home / Exam Simulation / Results',
+  'session-transition': 'Home / Study Plan',
+  'session-complete': 'Home / Study Plan / Complete',
+  'loading': 'Home / Loading',
+  'progress': 'Progress',
+  'analytics': 'Analytics',
+  'topology-builder': 'Network Builder',
+  'guided-lab': 'Network Builder / Lab',
+  'topic-dive': 'Progress / Topic Dive',
+  'acl': 'ACL Builder',
+  'subnet': 'Subnet Mastery',
+  'ports': 'Port Drill',
+  'acronyms': 'Acronym Blitz',
+  'osi-sorter': 'OSI Sorter',
+  'cables': 'Cable ID',
+  'drills': 'Drills',
+  'monitor': 'Production Monitor'
+};
+
+function updateTopbarCrumb(pageName) {
+  const el = document.getElementById('topbar-crumb');
+  if (!el) return;
+  el.textContent = TOPBAR_CRUMBS[pageName] || pageName;
+}
+
+function _topbarTick() {
+  const el = document.getElementById('topbar-time');
+  if (!el) return;
+  const d = new Date();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const day = days[d.getDay()];
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const hour12 = ((h + 11) % 12) + 1;
+  const suffix = h >= 12 ? 'pm' : 'am';
+  el.textContent = `${day} \u00B7 ${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
+}
+let _topbarTickInterval = null;
+function _topbarStartClock() {
+  if (_topbarTickInterval) return;
+  _topbarTick();
+  _topbarTickInterval = setInterval(_topbarTick, 30000); // refresh every 30s
+}
+
+function scrollToSettings() {
+  // Settings card is at the bottom of the setup page. Navigate home first, then scroll + open it.
+  if (typeof goSetup === 'function') goSetup();
+  setTimeout(() => {
+    const el = document.getElementById('advanced-section');
+    if (el) {
+      try { el.open = true; } catch (_) {}
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 150);
+}
+
+// ── Sidebar collapse ──
+const STORAGE_SIDEBAR_COLLAPSED = 'nplus_sidebar_collapsed';
+function toggleSidebarCollapsed() {
+  const collapsed = document.body.classList.toggle('sidebar-collapsed');
+  try { localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED, collapsed ? '1' : '0'); } catch (_) {}
+  // Also close mobile drawer if somehow open
+  document.body.classList.remove('sidebar-open');
+  const btn = document.getElementById('topbar-toggle');
+  if (btn) btn.setAttribute('aria-pressed', String(collapsed));
+}
+function _initSidebarCollapsed() {
+  try {
+    if (localStorage.getItem(STORAGE_SIDEBAR_COLLAPSED) === '1') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  } catch (_) {}
+}
+
+// ── Hero v2: display heading + lede + dark readiness card + mini cards ──
+function renderHeroV2() {
+  // Enable the v2 layout styles (hides legacy hero + old readiness-card + old daily-goal-card)
+  document.body.classList.add('hero-v2-active');
+
+  // ── Eyebrow: "TUESDAY \u00B7 APRIL 18 \u00B7 4:18PM" ──
+  const eb = document.getElementById('hero-v2-eyebrow');
+  if (eb) {
+    const d = new Date();
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const hour12 = ((h + 11) % 12) + 1;
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    eb.textContent = `${dayNames[d.getDay()].toUpperCase()} \u00B7 ${monthNames[d.getMonth()].toUpperCase()} ${d.getDate()} \u00B7 ${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
+  }
+
+  // ── Display heading: greeting + name ──
+  const disp = document.getElementById('hero-v2-display');
+  if (disp) {
+    const hour = new Date().getHours();
+    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Working late';
+    disp.innerHTML = `${greeting}, <span class="name">Simi.</span>`;
+  }
+
+  // ── Lede paragraph: data-driven (weakest topics) or friendly fallback ──
+  const lede = document.getElementById('hero-v2-lede');
+  if (lede) {
+    const history = (typeof loadHistory === 'function') ? loadHistory() : [];
+    if (history.length === 0) {
+      lede.innerHTML = `Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.`;
+    } else {
+      let weakInline = '';
+      try {
+        if (typeof computeWeakSpotScores === 'function') {
+          const weak = computeWeakSpotScores();
+          if (weak && weak.length >= 2) {
+            weakInline = `Yesterday you wobbled on <strong>${escHtml(weak[0].topic)}</strong> and <strong>${escHtml(weak[1].topic)}</strong>. `;
+          } else if (weak && weak.length === 1) {
+            weakInline = `Your weakest area right now is <strong>${escHtml(weak[0].topic)}</strong>. `;
+          }
+        }
+      } catch (_) {}
+      lede.innerHTML = `${weakInline}Fifteen focused minutes now would lift your readiness to the pass line.`;
+    }
+  }
+
+  // ── Readiness card v2 (dark, compact, orange bar) ──
+  renderReadinessCardV2();
+
+  // ── Mini cards: Today + Streak ──
+  renderHeroV2MiniCards();
+}
+
+function renderReadinessCardV2() {
+  const numEl = document.getElementById('rc-v2-num');
+  const barEl = document.getElementById('rc-v2-bar-fill');
+  const deltaEl = document.getElementById('rc-v2-delta');
+  const card = document.getElementById('readiness-card-v2');
+  if (!numEl || !barEl || !deltaEl || !card) return;
+  const history = (typeof loadHistory === 'function') ? loadHistory() : [];
+  if (history.length === 0 || typeof getReadinessScore !== 'function') {
+    numEl.textContent = '\u2014';
+    barEl.style.width = '0%';
+    deltaEl.textContent = 'first quiz pending';
+    return;
+  }
+  try {
+    const r = getReadinessScore();
+    if (r && typeof r.score === 'number') {
+      numEl.textContent = r.score;
+      // Scale to bar: (score - 420) / (900 - 420)
+      const pct = Math.max(0, Math.min(100, ((r.score - 420) / 480) * 100));
+      barEl.style.width = pct + '%';
+      // Week delta: compare to 7-day-old readiness if we can
+      try {
+        if (typeof r.delta7d === 'number') {
+          const arrow = r.delta7d >= 0 ? '\u2191' : '\u2193';
+          const sign = r.delta7d >= 0 ? '+' : '';
+          deltaEl.textContent = `${arrow} ${sign}${r.delta7d} this week`;
+        } else {
+          deltaEl.textContent = '';
+        }
+      } catch (_) { deltaEl.textContent = ''; }
+    } else {
+      numEl.textContent = '\u2014';
+    }
+  } catch (_) {
+    numEl.textContent = '\u2014';
+  }
+}
+
+function renderHeroV2MiniCards() {
+  // Today — pull from daily-goal helpers (existing v4.42.x infra)
+  try {
+    const doneEl = document.getElementById('mc-today-done');
+    const goalEl = document.getElementById('mc-today-goal');
+    const subEl = document.getElementById('mc-today-sub');
+    if (doneEl && goalEl && subEl && typeof getDailyGoal === 'function') {
+      const dg = getDailyGoal();
+      const done = (typeof getTodayQuestionCount === 'function') ? getTodayQuestionCount() : 0;
+      doneEl.textContent = done;
+      goalEl.textContent = dg;
+      const pct = dg > 0 ? Math.round((done / dg) * 100) : 0;
+      subEl.textContent = `daily goal \u00B7 ${Math.min(100, pct)}%`;
+    }
+  } catch (_) {}
+
+  // Streak
+  try {
+    const numEl = document.getElementById('mc-streak-num');
+    const subEl = document.getElementById('mc-streak-sub');
+    if (numEl && subEl && typeof getStreak === 'function') {
+      const s = getStreak();
+      numEl.textContent = (s && s.current) ? s.current : 0;
+      const best = (s && s.best) ? s.best : 0;
+      subEl.textContent = `longest \u00B7 ${best} days`;
+    }
+  } catch (_) {}
+}
+
+// ── Render topbar theme button to reflect current theme ──
+function _syncTopbarTheme() {
+  const btn = document.getElementById('topbar-theme');
+  if (!btn) return;
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  btn.innerHTML = isLight ? '\u263E' : '\u2600';  // crescent for light, sun for dark
+}
+
+// ── v4.54.0 init ──
+function _v454Init() {
+  try {
+    _initSidebarCollapsed();
+    _topbarStartClock();
+    _syncTopbarTheme();
+    // Observe theme changes so the topbar icon stays in sync
+    const obs = new MutationObserver(_syncTopbarTheme);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    // Initial breadcrumb based on active page
+    const active = document.querySelector('.page.active');
+    if (active) updateTopbarCrumb(active.id.replace(/^page-/, ''));
+    // Render hero v2 if we land on setup
+    const setup = document.getElementById('page-setup');
+    if (setup && setup.classList.contains('active') && typeof renderHeroV2 === 'function') {
+      renderHeroV2();
+    }
+  } catch (e) {
+    console.warn('[v4.54.0 init]', e && e.message);
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _v454Init);
+} else {
+  _v454Init();
 }
 
 // ── Vertical-bar domain grid (setup page \u00a7 03) ──

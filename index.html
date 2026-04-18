@@ -28,17 +28,69 @@
 </aside>
 
 <!-- ══════════════════════════════════════════
+     PERSISTENT TOP BAR (v4.54.0)
+     Sidebar toggle + breadcrumb (left) + live time + gear + theme + avatar (right).
+     Updates breadcrumb via showPage hook.
+══════════════════════════════════════════ -->
+<div id="app-topbar" class="app-topbar" role="banner">
+  <div class="topbar-left">
+    <button type="button" class="topbar-toggle" id="topbar-toggle" onclick="toggleSidebarCollapsed()" aria-label="Toggle navigation sidebar" title="Toggle sidebar">&#9776;</button>
+    <span class="topbar-crumb" id="topbar-crumb">Home</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-time" id="topbar-time" aria-label="Current time">&mdash;</span>
+    <button type="button" class="topbar-iconbtn" onclick="scrollToSettings()" aria-label="Settings" title="Settings">&#9881;</button>
+    <button type="button" class="topbar-iconbtn" id="topbar-theme" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Theme">&#9728;</button>
+    <span class="topbar-avatar" aria-hidden="true">S</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      SETUP PAGE
 ══════════════════════════════════════════ -->
 <div id="page-setup" class="page active">
-  <div class="hero">
+  <!-- v4.54.0 editorial hero: display heading + lede (left) + dark readiness card + mini cards (right aside) -->
+  <div class="setup-hero-v2" id="setup-hero-v2">
+    <div class="hero-v2-main">
+      <div class="hero-v2-eyebrow" id="hero-v2-eyebrow">—</div>
+      <h1 class="hero-v2-display" id="hero-v2-display">Good afternoon, <span class="name">Simi.</span></h1>
+      <p class="hero-v2-lede" id="hero-v2-lede">Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.</p>
+    </div>
+    <aside class="hero-v2-aside">
+      <div class="readiness-card-v2" id="readiness-card-v2">
+        <div class="rc-v2-label">Exam readiness · scaled 100&ndash;900</div>
+        <div class="rc-v2-score"><span id="rc-v2-num">&mdash;</span><span class="of">/900</span></div>
+        <div class="rc-v2-bar">
+          <div class="rc-v2-bar-fill" id="rc-v2-bar-fill" style="width:0%"></div>
+          <div class="rc-v2-pass-tick" aria-hidden="true"></div>
+        </div>
+        <div class="rc-v2-foot">
+          <span class="rc-v2-delta" id="rc-v2-delta">&mdash;</span>
+          <span>pass mark 720</span>
+        </div>
+      </div>
+      <div class="hero-v2-mini-row">
+        <div class="mini-card-v2">
+          <span class="mini-card-v2-label">Today</span>
+          <span class="mini-card-v2-val"><span id="mc-today-done">0</span><span class="mini-sub">/ <span id="mc-today-goal">20</span></span></span>
+          <span class="mini-card-v2-sub" id="mc-today-sub">daily goal</span>
+        </div>
+        <div class="mini-card-v2">
+          <span class="mini-card-v2-label">Streak <span aria-hidden="true">&#128293;</span></span>
+          <span class="mini-card-v2-val"><span id="mc-streak-num">0</span><span class="mini-sub">days</span></span>
+          <span class="mini-card-v2-sub" id="mc-streak-sub">longest &middot; 0 days</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <!-- Hidden legacy hero + readiness (body.hero-v2-active toggles display:none) -->
+  <div class="hero is-hidden">
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme">&#9728;&#65039;</button>
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.53.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.0</span>
     <div id="streak-badge" class="streak-badge"></div>
-    <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
     </div>
@@ -108,8 +160,8 @@
        The old .setup-nav-group 6-button row is gone; sidebar holds the same
        entries plus Drills sub-items broken out. -->
 
-  <!-- v4.53.0: Focus banner pullquote — real-data greeting + today's plan CTA -->
-  <div id="focus-banner" class="focus-banner is-hidden" role="region" aria-label="Today's focus">
+  <!-- v4.54.0: Focus banner — full-width purple gradient with giant quote mark -->
+  <div id="focus-banner" class="focus-banner-v2 is-hidden" role="region" aria-label="Today's focus">
     <!-- Filled by renderSetupFocusBanner() on setup-page render -->
   </div>
 
