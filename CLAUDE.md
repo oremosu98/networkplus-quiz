@@ -401,7 +401,7 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - Priority field: 🔴 High, 🟡 Medium, 🟢 Low / Quick Win
 - `tests/tech-debt.js` runs in CI on every push — breaches auto-create issues with `tech-debt` + `priority: medium` labels, added to board in Backlog
 - Auto-reported bugs get `bug` + `priority: high` labels, added to board in Backlog
-- Weekly cadence: **Tuesdays** for bugs, **Thursdays** for tech debt
+- Weekly cadence (post-2026-04-18 Option A): **Tuesdays** for bugs, **Thursdays** for tech debt
 - Tighten tech debt thresholds as debt is paid down
 
 ### Feature Ideas tracker
@@ -411,7 +411,7 @@ Two Kanban boards, each with distinct purpose — never mix them.
 - Effort field: XS / S / M / L / XL
 - Tie-in field: Cert SaaS Vision / Quiz App Only / Both
 - Tied to product vision doc at `~/Desktop/Dev Projects/product-vision/PRODUCT-VISION.md`
-- Weekly cadence: **Fridays** for shipping features — pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day (code → UAT → version bump → CLAUDE.md row → push → green-light verify). Don't start anything that can't realistically ship the same Friday; split larger ideas across multiple Fridays.
+- Weekly cadence (post-2026-04-18 Option A): **Mondays + Wednesdays + Fridays** for shipping features — pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day (code → UAT → Chrome MCP verify → version bump → CLAUDE.md row → push → CI green). Don't start anything that can't realistically ship the same day; split larger ideas across multiple feature-day slots.
 - Promote to Board #1 (as `tech-debt` or regular work) only when actually scheduled
 
 ### Routing rules
@@ -455,9 +455,18 @@ Files outside the repo that shape decisions here. Update the relevant one when t
 Also worth knowing — user maintains cross-project memory at `~/.claude/projects/-Users-simioremosu-Desktop/memory/MEMORY.md` with auto-surfacing notes (weekly cadence, cert-SaaS pivot plan, gh CLI setup, platform hygiene audit). These inject into relevant sessions automatically.
 
 ## Weekly Cadence
+
+**Option A — adopted 2026-04-18**. User had 3–4 productive days/week and wanted to compress the feature roadmap (ACL Builder v2 + TB v2 = 8 queued phases). Went from 1 feature-day to 3. Tue/Thu hygiene days preserved so the codebase stays shippable.
+
+- **Mondays** — features (Board #2, pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day). Monday ships can be slightly bigger given fresh-week energy.
 - **Tuesdays** — bug fixes (Board #1, `bug` label)
+- **Wednesdays** — features (Board #2, another same-day end-to-end ship)
 - **Thursdays** — tech debt (Board #1, `tech-debt` label; automated sweep also scheduled)
-- **Fridays** — features (Board #2, pull a `🔥 Must Have` or `⭐ Should Have`, ship end-to-end same day). **Don't start anything that can't realistically ship the same Friday** — split larger ideas across multiple Fridays.
+- **Fridays** — features (Board #2, signature end-of-week ship; traditionally the biggest)
+
+**Discipline unchanged**: each ship is still end-to-end on its day (code → UAT → Chrome MCP verify → version bump → CLAUDE.md row → push → CI green). **Don't start anything that can't realistically ship the same day** — split larger ideas across multiple feature-day slots. Weekend stays free for rest + N10-009 study.
+
+**Pre-Option A cadence** (kept for reference): Tue bugs / Thu tech debt / Fri features only. That 1-feature-day cadence lasted through v4.52.0 (2026-04-18) and served well while the roadmap was shallow; compressed when the queue hit 8 items.
 
 ## Common Gotchas
 
