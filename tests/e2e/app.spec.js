@@ -76,45 +76,47 @@ test.describe('Navigation', () => {
   test('navigates to subnet trainer and back', async ({ page }) => {
     await page.goto('/');
 
-    // Find and click the Subnet Trainer button
-    await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+    // v4.53.0: nav lives in persistent sidebar — click sidebar item instead of setup-page button
+    await page.locator('.sb-item[data-sb-page="subnet"]').click();
 
     // Subnet page should be active
     await expect(page.locator('#page-subnet')).toHaveClass(/active/);
 
     // Go back to setup
-    await page.locator('#page-subnet [onclick*="goSetup"]').first().click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 
   test('navigates to port drill and back', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#drills-launcher-btn').click();
-    await page.locator('#page-drills button:has-text("Port Drill")').click();
+    // v4.53.0: drills launcher retired — sidebar exposes per-drill entries directly
+    await page.locator('.sb-item[data-sb-page="ports"]').click();
     await expect(page.locator('#page-ports')).toHaveClass(/active/);
 
-    await page.locator('#page-ports [onclick*="goSetup"]').first().click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 
   test('navigates to analytics and back', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#page-setup button:has-text("Analytics")').click();
+    // v4.53.0: nav via sidebar
+    await page.locator('.sb-item[data-sb-page="analytics"]').click();
     await expect(page.locator('#page-analytics')).toHaveClass(/active/);
 
-    await page.locator('#page-analytics [onclick*="goSetup"]').first().click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 
   test('navigates to topic progress and back', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#page-setup button[onclick*="renderProgressPage"]').click();
+    // v4.53.0: nav via sidebar
+    await page.locator('.sb-item[data-sb-page="progress"]').click();
     await expect(page.locator('#page-progress')).toHaveClass(/active/);
 
-    await page.locator('#page-progress [onclick*="goSetup"]').first().click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 });
@@ -125,7 +127,8 @@ test.describe('Navigation', () => {
 // populates #st-answer-area with either a text input (#st-answer-input +
 // #st-submit-btn) or MCQ buttons (.st-mcq-btn) depending on question type.
 async function gotoSubnetPractice(page) {
-  await page.locator('#page-setup button[onclick*="startSubnetTrainer"]').click();
+  // v4.53.0: nav via sidebar
+  await page.locator('.sb-item[data-sb-page="subnet"]').click();
   await page.locator('#st-tab-btn-practice').click();
 }
 // Answer whatever type of question is currently rendered. Returns the input
@@ -208,8 +211,8 @@ test.describe('Subnet Trainer', () => {
 // "pregame → game" flow. startPortDrill() defaults to the Learn tab; tests
 // that want live questions click the Practice tab to fire ptNextQuestion().
 async function gotoPortPractice(page) {
-  await page.locator('#drills-launcher-btn').click();
-  await page.locator('#page-drills button:has-text("Port Drill")').click();
+  // v4.53.0: drills launcher retired — sidebar has a direct Port Drill entry
+  await page.locator('.sb-item[data-sb-page="ports"]').click();
   await page.locator('#pt-tab-btn-practice').click();
 }
 
