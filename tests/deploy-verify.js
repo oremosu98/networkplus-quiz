@@ -138,19 +138,54 @@ async function liveFetches() {
   }
 
   // ── Check 3: live version triad matches source ──
+  // v4.49.5 (issue #167): retry with exponential backoff to accommodate
+  // the Vercel CDN propagation race. Pre-v4.49.5 this check ran once at
+  // T+0 and frequently failed because edge caches hadn't rolled over yet
+  // (~8 false-positive issues filed over a week). Now we try up to 5
+  // times over ~3.75 min total (0s / +15s / +30s / +60s / +120s). The
+  // first attempt reuses the bodies already fetched in Check 2; retries
+  // re-fetch ONLY the three critical files with fresh nocache params to
+  // bypass any intermediate CDN caching. Real deploy failures still fail
+  // loud after the final retry.
+  const extractTriad = (appJs, swJs, indexHtml) => ({
+    appV: appJs ? (appJs.match(/^const APP_VERSION = '([^']+)'/m) || [])[1] : undefined,
+    cacheV: swJs ? (swJs.match(/^const CACHE_NAME = 'netplus-v([^']+)'/m) || [])[1] : undefined,
+    badgeV: indexHtml ? (indexHtml.match(/id="version-badge"[^>]*>v([0-9.]+)</) || [])[1] : undefined,
+  });
+  const triadMatches = (t) => t.appV === SRC_VERSION && t.cacheV === SRC_VERSION && t.badgeV === SRC_VERSION;
+
   if (!liveAppJs || !liveSwJs || !liveIndexHtml) {
     rec('Live version triad matches source', 'fail',
       'one or more live shell assets missing — cannot extract');
   } else {
-    const liveAppV = (liveAppJs.match(/^const APP_VERSION = '([^']+)'/m) || [])[1];
-    const liveCacheV = (liveSwJs.match(/^const CACHE_NAME = 'netplus-v([^']+)'/m) || [])[1];
-    const liveBadgeV = (liveIndexHtml.match(/id="version-badge"[^>]*>v([0-9.]+)</) || [])[1];
-    const allMatch = liveAppV === SRC_VERSION && liveCacheV === SRC_VERSION && liveBadgeV === SRC_VERSION;
-    if (allMatch) {
-      rec('Live version triad matches source', 'pass', `all three = ${SRC_VERSION}`);
+    let triad = extractTriad(liveAppJs, liveSwJs, liveIndexHtml);
+    let attempts = 1;
+
+    // Retry schedule (first attempt already completed via Check 2 above)
+    const BACKOFFS_MS = [15_000, 30_000, 60_000, 120_000];
+    for (let i = 0; i < BACKOFFS_MS.length && !triadMatches(triad); i++) {
+      await new Promise((r) => setTimeout(r, BACKOFFS_MS[i]));
+      attempts++;
+      const cb = Date.now();
+      try {
+        const [rApp, rSw, rIndex] = await Promise.all([
+          fetchText(`${PROD_URL}/app.js?nocache=${cb}`),
+          fetchText(`${PROD_URL}/sw.js?nocache=${cb}`),
+          fetchText(`${PROD_URL}/index.html?nocache=${cb}`),
+        ]);
+        if (rApp.status === 200) liveAppJs = rApp.body;
+        if (rSw.status === 200) liveSwJs = rSw.body;
+        if (rIndex.status === 200) liveIndexHtml = rIndex.body;
+        triad = extractTriad(liveAppJs, liveSwJs, liveIndexHtml);
+      } catch (_) { /* transient network error — keep retrying */ }
+    }
+
+    if (triadMatches(triad)) {
+      const suffix = attempts > 1 ? ` (matched on attempt ${attempts} after CDN propagation)` : '';
+      rec('Live version triad matches source', 'pass', `all three = ${SRC_VERSION}${suffix}`);
     } else {
       rec('Live version triad matches source', 'fail',
-        `expected v${SRC_VERSION}; observed app.js=${liveAppV} sw.js=${liveCacheV} badge=${liveBadgeV}`);
+        `expected v${SRC_VERSION}; observed app.js=${triad.appV} sw.js=${triad.cacheV} badge=${triad.badgeV} (after ${attempts} attempts over ~3.75 min)`);
     }
   }
 

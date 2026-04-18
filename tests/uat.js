@@ -4732,6 +4732,22 @@ test('v4.49.4: tbGradeTopology refuses pristine scenario + shows reference-scena
 test('v4.49.4: tbCoachTopology refuses pristine scenario + points to Learn more',
   /tbCoachTopology[\s\S]{0,1500}tbIsPristineScenario\(\)[\s\S]{0,400}Learn more/.test(js));
 
+// ── v4.49.5 DEPLOY-VERIFY RETRY/BACKOFF (issue #167) ──
+console.log('\n\x1b[1m── v4.49.5 DEPLOY-VERIFY RETRY/BACKOFF ──\x1b[0m');
+const deployVerifyJs = fs.readFileSync(path.join(ROOT, 'tests/deploy-verify.js'), 'utf8');
+test('v4.49.5: deploy-verify retry schedule is [15s, 30s, 60s, 120s]',
+  /BACKOFFS_MS\s*=\s*\[15_000,\s*30_000,\s*60_000,\s*120_000\]/.test(deployVerifyJs));
+test('v4.49.5: deploy-verify retry loop gates on triadMatches + attempt budget',
+  /for\s*\(let\s+i\s*=\s*0;\s*i\s*<\s*BACKOFFS_MS\.length\s*&&\s*!triadMatches\(triad\);/.test(deployVerifyJs));
+test('v4.49.5: deploy-verify fresh nocache per retry (Date.now() cache-buster)',
+  /const\s+cb\s*=\s*Date\.now\(\)[\s\S]{0,500}\?nocache=\$\{cb\}/.test(deployVerifyJs));
+test('v4.49.5: deploy-verify re-fetches the 3 critical files on retry',
+  /Promise\.all\(\[\s*fetchText[\s\S]{0,100}app\.js\?nocache[\s\S]{0,200}sw\.js\?nocache[\s\S]{0,200}index\.html\?nocache/.test(deployVerifyJs));
+test('v4.49.5: deploy-verify records retry attempt count in pass message',
+  /matched on attempt \$\{attempts\} after CDN propagation/.test(deployVerifyJs));
+test('v4.49.5: deploy-verify final-failure message mentions total retry window',
+  /after \$\{attempts\} attempts over ~3\.75 min/.test(deployVerifyJs));
+
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
 // zero-tolerance false-positive rate. A refactor to validateQuestions()
