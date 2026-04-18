@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.49.2', js.includes("const APP_VERSION = '4.49.2"));
+test('APP_VERSION is 4.49.3', js.includes("const APP_VERSION = '4.49.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.49.2', sw.includes('netplus-v4.49.2'));
+test('SW cache bumped to v4.49.3', sw.includes('netplus-v4.49.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4682,14 +4682,14 @@ test('v4.49.2: original exempt entries preserved (switch/dmz-switch/cloud)',
 // Link-local auto-assign in _tbMkCable
 test('v4.49.2: _tbLinkLocalSlot counter defined',
   js.includes('let _tbLinkLocalSlot = 0;'));
-test('v4.49.2: _tbMkCable auto-assigns 169.254.x.y/30 for L3\u2194L3 cables',
-  /function _tbMkCable[\s\S]{0,3000}169\.254\.[\s\S]{0,500}255\.255\.255\.252/.test(js));
+test('v4.49.2/v4.49.3: auto-assign 169.254.x.y/30 for L3\u2194L3 cables (now in shared helper)',
+  /function _tbAutoAssignCableIps[\s\S]{0,2000}169\.254\.[\s\S]{0,500}255\.255\.255\.252/.test(js));
 test('v4.49.2: auto-assign covers L3↔L3 matching /30 case',
   /aL3\s*&&\s*bL3\s*&&\s*!aIfc\.ip\s*&&\s*!bIfc\.ip/.test(js));
 test('v4.49.2: auto-assign covers L3↔exempt one-sided case (assignSide helper)',
   /assignSide\s*=\s*\(ifc\)\s*=>/.test(js) && /if\s*\(aL3\s*&&\s*!aIfc\.ip\)\s*assignSide\(aIfc\)/.test(js));
-test("v4.49.2: auto-assign skipped for console cables",
-  /type\s*!==\s*'console'/.test(js));
+test("v4.49.2/v4.49.3: auto-assign skipped for console cables (in shared helper)",
+  /function _tbAutoAssignCableIps[\s\S]{0,500}cableType\s*===\s*'console'/.test(js));
 test('v4.49.2: /30 pool stepping by 4 (two usable hosts per /30)',
   /offset\s*=\s*\(slot\s*%\s*63\)\s*\*\s*4/.test(js));
 
@@ -4701,6 +4701,17 @@ test('v4.49.2: counter reset to 0 before autoBuild runs',
 // (done here via structural inspection; live Chrome-MCP run covers real behaviour)
 test('v4.49.2: tbAssessCableHealth gates on ip + exempt (unchanged logic, widened list)',
   /function tbAssessCableHealth[\s\S]{0,2000}fromHasIp\s*=\s*fromIfc\?\.ip\s*\|\|\s*fromExempt/.test(js));
+
+// ── v4.49.3 AI GENERATE shares the auto-assign helper ──
+console.log('\n\x1b[1m── v4.49.3 AI GENERATE AUTO-ASSIGN ──\x1b[0m');
+test('v4.49.3: _tbAutoAssignCableIps helper extracted + defined',
+  js.includes('function _tbAutoAssignCableIps('));
+test('v4.49.3: _tbMkCable delegates to the shared helper',
+  /function _tbMkCable[\s\S]{0,3000}_tbAutoAssignCableIps\(a,\s*a\.interfaces\[aIdx\],\s*b,\s*b\.interfaces\[bIdx\],\s*type\)/.test(js));
+test('v4.49.3: tbBuildFromAiPayload resets the link-local counter',
+  /function tbBuildFromAiPayload[\s\S]{0,500}_tbLinkLocalSlot\s*=\s*0/.test(js));
+test('v4.49.3: tbBuildFromAiPayload calls the shared helper on each cable',
+  /function tbBuildFromAiPayload[\s\S]{0,5000}_tbAutoAssignCableIps\(fromDev,\s*fromIfc,\s*toDev,\s*toIfc/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

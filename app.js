@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.49.2
+// Network+ AI Quiz — app.js  v4.49.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.49.2';
+const APP_VERSION = '4.49.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9217,8 +9217,41 @@ function _tbMkDev(opts) {
   };
 }
 // v4.49.2: link-local IP pool counter — reset by tbLoadScenarioWithBuild
-// before each scenario build. Each L3-to-L3 cable gets its own /30.
+// before each scenario build, and by tbBuildFromAiPayload before each AI
+// generation. Each L3-to-L3 cable gets its own /30.
 let _tbLinkLocalSlot = 0;
+
+// v4.49.3: shared auto-assign logic used by both _tbMkCable (scenarios)
+// and tbBuildFromAiPayload (AI Generate). Keeps the cable-health fix
+// consistent across code paths so AI-generated topologies also show
+// green packets when they're correctly configured.
+function _tbAutoAssignCableIps(aDev, aIfc, bDev, bIfc, cableType) {
+  if (cableType === 'console') return;
+  const aL3 = !TB_NO_IP_NEEDED.includes(aDev.type);
+  const bL3 = !TB_NO_IP_NEEDED.includes(bDev.type);
+  if (aL3 && bL3 && !aIfc.ip && !bIfc.ip) {
+    // Matching /30 link-local pair
+    const slot = _tbLinkLocalSlot++;
+    const third = Math.floor(slot / 63) + 1;
+    const offset = (slot % 63) * 4;
+    aIfc.ip = '169.254.' + third + '.' + (offset + 1);
+    bIfc.ip = '169.254.' + third + '.' + (offset + 2);
+    aIfc.mask = '255.255.255.252';
+    bIfc.mask = '255.255.255.252';
+  } else {
+    // One-sided assignment for L3↔exempt (or when the other L3 side
+    // already carries an author-specified IP)
+    const assignSide = (ifc) => {
+      const s = _tbLinkLocalSlot++;
+      const third = Math.floor(s / 250) + 10;
+      const host = (s % 250) + 1;
+      ifc.ip = '169.254.' + third + '.' + host;
+      ifc.mask = '255.255.255.0';
+    };
+    if (aL3 && !aIfc.ip) assignSide(aIfc);
+    if (bL3 && !bIfc.ip) assignSide(bIfc);
+  }
+}
 
 function _tbMkCable(a, b, type = 'cat6', aIdx, bIdx) {
   // v4.48.0: auto-provision interfaces so scenario authors can reference
@@ -9260,42 +9293,10 @@ function _tbMkCable(a, b, type = 'cat6', aIdx, bIdx) {
   bIdx = resolveIdx(b, bIdx);
   ensureIface(a, aIdx);
   ensureIface(b, bIdx);
-  // v4.49.2: auto-assign link-local IPs on any L3-routable interface that
-  // has no IP yet. Three cases:
-  //   (1) L3 ↔ L3 (neither configured): both get matching /30 link-local
-  //   (2) L3 ↔ exempt: the L3 side gets a /24 link-local (the exempt side
-  //       is conceptually transparent — assess-logic treats it as reachable
-  //       as long as the L3 side has an IP)
-  //   (3) Interfaces already carrying an IP: skip (respect author intent)
-  // Console cables are always skipped (management-only, out-of-band).
-  const aIfc = a.interfaces[aIdx];
-  const bIfc = b.interfaces[bIdx];
-  const aL3 = !TB_NO_IP_NEEDED.includes(a.type);
-  const bL3 = !TB_NO_IP_NEEDED.includes(b.type);
-  if (type !== 'console') {
-    if (aL3 && bL3 && !aIfc.ip && !bIfc.ip) {
-      // Case (1) — matching /30 link-local
-      const slot = _tbLinkLocalSlot++;
-      const third = Math.floor(slot / 63) + 1;   // 169.254.1.* .. 169.254.255.*
-      const offset = (slot % 63) * 4;             // steps of 4 for /30 blocks
-      aIfc.ip = '169.254.' + third + '.' + (offset + 1);
-      bIfc.ip = '169.254.' + third + '.' + (offset + 2);
-      aIfc.mask = '255.255.255.252';
-      bIfc.mask = '255.255.255.252';
-    } else {
-      // Case (2) — one-sided assignment for any L3 iface without an IP
-      // (the other side is exempt, or is L3 but already configured)
-      const assignSide = (ifc) => {
-        const s = _tbLinkLocalSlot++;
-        const third = Math.floor(s / 250) + 10;   // 169.254.10.* onwards
-        const host = (s % 250) + 1;
-        ifc.ip = '169.254.' + third + '.' + host;
-        ifc.mask = '255.255.255.0';
-      };
-      if (aL3 && !aIfc.ip) assignSide(aIfc);
-      if (bL3 && !bIfc.ip) assignSide(bIfc);
-    }
-  }
+  // v4.49.3: auto-assign link-local IPs via shared helper (also used by
+  // tbBuildFromAiPayload for AI-generated topologies so both paths are
+  // consistent).
+  _tbAutoAssignCableIps(a, a.interfaces[aIdx], b, b.interfaces[bIdx], type);
   const cable = {
     id: 'c_sc_' + Math.random().toString(36).slice(2, 9),
     from: a.id, to: b.id, type,
@@ -12895,6 +12896,9 @@ function tbParseAiTopologyJson(text) {
 
 // Shared: build devices + cables from AI payload into a target state
 function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
+  // v4.49.3: reset the link-local counter so AI-generated topologies get
+  // a clean pool (same convention as scenario autoBuild).
+  _tbLinkLocalSlot = 0;
   payload.devices.forEach(dd => {
     const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
@@ -12967,9 +12971,16 @@ function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
     const toIfc = toDev?.interfaces.find(i => i.name === cc.toIface && !i.cableId);
     if (fromIfc) fromIfc.cableId = cableId;
     if (toIfc) toIfc.cableId = cableId;
+    const cableType = cc.type || 'cat6';
+    // v4.49.3: auto-assign link-local IPs on AI-generated cables where
+    // the AI didn't specify one (mirrors scenario autoBuild behaviour so
+    // AI-gen topologies show green packets out-of-the-box).
+    if (fromDev && toDev && fromIfc && toIfc) {
+      _tbAutoAssignCableIps(fromDev, fromIfc, toDev, toIfc, cableType);
+    }
     targetState.cables.push({
       id: cableId, from: fromId, to: toId,
-      type: cc.type || 'cat6',
+      type: cableType,
       fromIface: fromIfc ? fromIfc.name : null,
       toIface: toIfc ? toIfc.name : null,
     });
