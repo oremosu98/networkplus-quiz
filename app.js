@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.48.0
+// Network+ AI Quiz — app.js  v4.49.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.48.0';
+const APP_VERSION = '4.49.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6087,15 +6087,22 @@ const TB_DEVICE_TYPES = {
   smartphone:     { label: 'Smartphone',     color: '#0891b2', short: 'PH'   },
   'game-console': { label: 'Game Console',   color: '#d946ef', short: 'GC'   },
   'smart-tv':     { label: 'Smart TV',       color: '#3b82f6', short: 'TV'   },
+  // ── v4.49.0: WAN transport + broadband + storage devices ──
+  'satellite':    { label: 'Satellite',      color: '#06b6d4', short: 'SAT'  },
+  'cell-tower':   { label: 'Cell Tower',     color: '#818cf8', short: 'CELL' },
+  'modem':        { label: 'Modem (DSL/Cable/ONT)', color: '#78716c', short: 'MDM' },
+  'san-array':    { label: 'SAN Storage Array',    color: '#475569', short: 'SAN' },
 };
 
-// Palette categories — groups the 29 device types so users can scan quickly.
+// Palette categories — groups device types so users can scan quickly.
+// v4.49.0 added WAN transport + storage categories alongside the originals.
 const TB_PALETTE_GROUPS = [
-  { label: 'Network',   types: ['router','switch','dmz-switch','isp-router'] },
-  { label: 'Cloud',     types: ['cloud','vpc','cloud-subnet','igw','nat-gw','tgw','vpg','onprem-dc','sase-edge'] },
-  { label: 'Endpoints', types: ['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','server','dns-server','public-web','public-file','public-cloud'] },
-  { label: 'Wireless',  types: ['wap','wlc'] },
-  { label: 'Security',  types: ['firewall','load-balancer','ids'] },
+  { label: 'Network',      types: ['router','switch','dmz-switch','isp-router'] },
+  { label: 'WAN & Broadband', types: ['modem','cell-tower','satellite'] },
+  { label: 'Cloud',        types: ['cloud','vpc','cloud-subnet','igw','nat-gw','tgw','vpg','onprem-dc','sase-edge'] },
+  { label: 'Endpoints',    types: ['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','server','dns-server','san-array','public-web','public-file','public-cloud'] },
+  { label: 'Wireless',     types: ['wap','wlc'] },
+  { label: 'Security',     types: ['firewall','load-balancer','ids'] },
 ];
 
 // Cable type catalog for the palette picker.
@@ -6148,6 +6155,11 @@ const TB_IFACE_DEFAULTS = {
   smartphone:     { count: 1,  naming: () => 'wlan0' },
   'game-console': { count: 1,  naming: () => 'eth0' },
   'smart-tv':     { count: 1,  naming: () => 'eth0' },
+  // v4.49.0: WAN transport + broadband + storage
+  'satellite':    { count: 2,  naming: i => i === 0 ? 'uplink' : 'downlink' },   // up to orbit, down to ground
+  'cell-tower':   { count: 3,  naming: i => i === 0 ? 'backhaul' : 'sector' + i }, // backhaul + sector antennas
+  'modem':        { count: 2,  naming: i => i === 0 ? 'wan' : 'lan' },            // WAN to ISP, LAN to router
+  'san-array':    { count: 2,  naming: i => 'fc' + i },                            // Fibre Channel ports
 };
 
 // Generate a deterministic MAC from a device ID + interface index.
@@ -6534,6 +6546,81 @@ function tbDeviceIcon(type, color) {
         <rect x="-16" y="18" width="32" height="3" rx="1" fill="${color}"/>
         <!-- Power LED -->
         <circle cx="18" cy="9" r="1" fill="${color}"/>
+      </g>`;
+    // ── v4.49.0: WAN transport + storage device icons ──
+    case 'satellite':
+      return `<g transform="translate(0,-6)">
+        <!-- Satellite body (central bus) -->
+        <rect x="-8" y="-8" width="16" height="14" rx="2" ${f}/>
+        <!-- Solar panels (left + right wings) -->
+        <rect x="-26" y="-5" width="16" height="8" rx="1" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="1.5"/>
+        <line x1="-22" y1="-5" x2="-22" y2="3" stroke="${color}" stroke-width="1"/>
+        <line x1="-18" y1="-5" x2="-18" y2="3" stroke="${color}" stroke-width="1"/>
+        <rect x="10" y="-5" width="16" height="8" rx="1" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="1.5"/>
+        <line x1="14" y1="-5" x2="14" y2="3" stroke="${color}" stroke-width="1"/>
+        <line x1="18" y1="-5" x2="18" y2="3" stroke="${color}" stroke-width="1"/>
+        <!-- Dish antenna pointing down -->
+        <path d="M -5 7 A 5 3 0 0 0 5 7 L 3 11 L -3 11 Z" ${f}/>
+        <circle cx="0" cy="13" r="1.2" fill="${color}"/>
+        <!-- Signal arc to ground -->
+        <path d="M -9 18 Q 0 22 9 18" ${s} stroke-dasharray="2 2" fill="none"/>
+      </g>`;
+    case 'cell-tower':
+      return `<g transform="translate(0,-6)">
+        <!-- Tower base (triangular truss) -->
+        <path d="M -8 18 L -2 -8 L 2 -8 L 8 18 Z" ${f}/>
+        <!-- Cross-bars -->
+        <line x1="-6" y1="10" x2="6" y2="10" ${s}/>
+        <line x1="-5" y1="4" x2="5" y2="4" ${s}/>
+        <line x1="-3.5" y1="-2" x2="3.5" y2="-2" ${s}/>
+        <!-- Antenna array on top (3 panels, decreasing width) -->
+        <rect x="-10" y="-11" width="20" height="2" rx="0.5" fill="${color}"/>
+        <rect x="-8" y="-15" width="16" height="2" rx="0.5" fill="${color}"/>
+        <rect x="-6" y="-19" width="12" height="2" rx="0.5" fill="${color}"/>
+        <!-- Radio signal arcs (left + right) -->
+        <path d="M -18 -15 A 12 12 0 0 1 -12 -22" ${s}/>
+        <path d="M 18 -15 A 12 12 0 0 0 12 -22" ${s}/>
+        <path d="M -14 -11 A 8 8 0 0 1 -10 -17" ${s}/>
+        <path d="M 14 -11 A 8 8 0 0 0 10 -17" ${s}/>
+      </g>`;
+    case 'modem':
+      return `<g transform="translate(0,-8)">
+        <!-- Modem body (small box, less slim than router) -->
+        <rect x="-18" y="-6" width="36" height="18" rx="3" ${f}/>
+        <!-- LED indicator row -->
+        <circle cx="-12" cy="-1" r="1.8" fill="${color}"/>
+        <circle cx="-4" cy="-1" r="1.8" fill="${color}" fill-opacity="0.8"/>
+        <circle cx="4" cy="-1" r="1.8" fill="${color}" fill-opacity="0.6"/>
+        <circle cx="12" cy="-1" r="1.8" fill="${color}" fill-opacity="0.4"/>
+        <!-- Status LED (upper right corner) -->
+        <circle cx="14" cy="-8" r="1.3" fill="${color}"/>
+        <!-- Rear port line + 2 port rectangles -->
+        <line x1="-16" y1="7" x2="16" y2="7" ${s}/>
+        <rect x="-14" y="10" width="5" height="2" fill="${color}"/>
+        <rect x="9" y="10" width="5" height="2" fill="${color}"/>
+        <!-- Short antenna stub (indicates wireless-capable combo unit) -->
+        <line x1="12" y1="-6" x2="12" y2="-14" ${s}/>
+        <circle cx="12" cy="-14" r="1.2" fill="${color}"/>
+      </g>`;
+    case 'san-array':
+      return `<g transform="translate(0,-10)">
+        <!-- Array chassis (tall rack unit) -->
+        <rect x="-18" y="-16" width="36" height="32" rx="2" ${f}/>
+        <!-- 4 drive-bay slots stacked vertically -->
+        <rect x="-15" y="-13" width="30" height="5" rx="1" fill="${color}" fill-opacity="0.45"/>
+        <rect x="-15" y="-6.5" width="30" height="5" rx="1" fill="${color}" fill-opacity="0.45"/>
+        <rect x="-15" y="0" width="30" height="5" rx="1" fill="${color}" fill-opacity="0.45"/>
+        <rect x="-15" y="6.5" width="30" height="5" rx="1" fill="${color}" fill-opacity="0.45"/>
+        <!-- Drive activity LEDs (left edge of each bay) -->
+        <circle cx="-12" cy="-10.5" r="0.9" fill="${color}"/>
+        <circle cx="-12" cy="-4" r="0.9" fill="${color}"/>
+        <circle cx="-12" cy="2.5" r="0.9" fill="${color}"/>
+        <circle cx="-12" cy="9" r="0.9" fill="${color}"/>
+        <!-- Drive handle notches (right edge) -->
+        <rect x="12" y="-12" width="2" height="3" fill="${color}"/>
+        <rect x="12" y="-5.5" width="2" height="3" fill="${color}"/>
+        <rect x="12" y="1" width="2" height="3" fill="${color}"/>
+        <rect x="12" y="7.5" width="2" height="3" fill="${color}"/>
       </g>`;
     default:
       return `<circle r="18" ${f}/>`;
@@ -8257,6 +8344,844 @@ const TB_SCENARIOS = [
       examTies: 'N10-009 1.7 (network types — LAN/WAN/MAN/CAN/PAN — MAN explicitly listed), 1.8 (carrier Ethernet)',
     },
   },
+  // ══════════════════════════════════════════════════════════════════════
+  // v4.49.0 — Tier 1: WAN Architectures (7 new)
+  // ══════════════════════════════════════════════════════════════════════
+  {
+    id: 'point-to-point',
+    title: 'Point-to-Point (Leased Line)',
+    description: 'The foundational WAN — two sites connected by a single dedicated fiber circuit (T1/T3/DS3). No shared infrastructure, no contention, SLA-backed.',
+    requirements: [
+      '2 site routers with a dedicated fiber circuit between them',
+      'Each site has a switch + endpoints',
+      'No internet cloud in the middle — this is a private leased line',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router', min: 2 },
+      { type: 'switch', min: 2 },
+    ],
+    autoBuild: (state) => {
+      const rtrA = _tbMkDev({ type: 'router', x: 300, y: 300, hostname: 'Site-A-RTR', ip: '10.1.0.1' });
+      const swA  = _tbMkDev({ type: 'switch', x: 300, y: 500, hostname: 'Site-A-SW' });
+      const pcA1 = _tbMkDev({ type: 'pc',     x: 180, y: 680, hostname: 'Site-A-PC-01', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const pcA2 = _tbMkDev({ type: 'pc',     x: 380, y: 680, hostname: 'Site-A-PC-02', ip: '10.1.0.102', gateway: '10.1.0.1' });
+      const rtrB = _tbMkDev({ type: 'router', x: 1100,y: 300, hostname: 'Site-B-RTR', ip: '10.2.0.1' });
+      const swB  = _tbMkDev({ type: 'switch', x: 1100,y: 500, hostname: 'Site-B-SW' });
+      const pcB1 = _tbMkDev({ type: 'pc',     x: 1000,y: 680, hostname: 'Site-B-PC-01', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const srvB = _tbMkDev({ type: 'server', x: 1200,y: 680, hostname: 'Site-B-Server', ip: '10.2.0.10', gateway: '10.2.0.1' });
+      state.devices.push(rtrA, swA, pcA1, pcA2, rtrB, swB, pcB1, srvB);
+      state.cables.push(
+        // Dedicated leased line between the two routers
+        _tbMkCable(rtrA, rtrB, 'fiber'),
+        _tbMkCable(rtrA, swA, 'cat6', 1), _tbMkCable(swA, pcA1), _tbMkCable(swA, pcA2, 'cat6', 1),
+        _tbMkCable(rtrB, swB, 'cat6', 1), _tbMkCable(swB, pcB1), _tbMkCable(swB, srvB, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'A point-to-point (P2P) leased line is a dedicated, permanent circuit between two locations — nothing is shared with other customers. Classic implementations include T1 (1.544 Mbps), T3/DS3 (45 Mbps), and OC-3/OC-48 fiber lines. The carrier provisions bandwidth end-to-end and guarantees it via SLA. This is the purest form of WAN connectivity, predating most shared services.',
+      dataFlow: 'A packet from Site-A\'s PC hits the local switch → forwarded to Site-A\'s router. The router has a single WAN interface pointing directly at Site-B — no routing decision needed, just forward the packet onto the leased line. At the remote end, Site-B\'s router receives it and forwards based on its local routing table to the destination subnet. Latency is deterministic (guaranteed by the provider), bandwidth is fixed, and there\'s no contention with other tenants.',
+      keyDevices: [
+        { name: 'Site Routers', role: 'Each site has one router at the edge. The WAN interface talks directly to the other site over the leased line.' },
+        { name: 'Leased Line (Fiber)', role: 'Dedicated physical (or virtual-private) circuit. Not shared with anyone else — you pay for the full bandwidth 24/7.' },
+        { name: 'Site Switches', role: 'Local LAN backbone at each site — everything inside the site connects here.' },
+        { name: 'Endpoints', role: 'PCs, servers, etc. — they don\'t know the WAN is point-to-point; it just looks like a remote subnet.' },
+      ],
+      concepts: [
+        { term: 'T1 / T3 / DS3', meaning: 'Classic leased-line capacities. T1 = 1.544 Mbps (copper), T3/DS3 = ~45 Mbps. Named after the circuit hierarchy.' },
+        { term: 'OC-3 / OC-48', meaning: 'Optical Carrier — higher-bandwidth leased fiber. OC-3 ≈ 155 Mbps, OC-48 ≈ 2.5 Gbps.' },
+        { term: 'CSU/DSU', meaning: 'Channel Service Unit / Data Service Unit — the device that converts the leased-line signal to something the router can speak. Often integrated into modern routers.' },
+        { term: 'SLA-backed', meaning: 'Service Level Agreement guarantees uptime (e.g., 99.99%) and maximum latency. Broken SLA = refund or service credits.' },
+      ],
+      examTies: 'N10-009 1.7 (leased lines named explicitly — T1/T3/OC-x), 1.7 (WAN transmission media), 2.1 (latency + bandwidth)',
+    },
+  },
+  {
+    id: 'hub-spoke',
+    title: 'Hub-and-Spoke',
+    description: 'The classic pre-SD-WAN enterprise pattern — all branches connect only to a central HQ hub; inter-branch traffic (and often internet) backhauls through HQ.',
+    requirements: [
+      'Central HQ router acting as hub',
+      '3+ branch routers, each with its own switch + endpoints',
+      'Every branch connects ONLY to HQ (no direct branch-to-branch links)',
+      'HQ has the internet/cloud uplink',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router', min: 4 },
+      { type: 'switch', min: 3 },
+    ],
+    autoBuild: (state) => {
+      const cloud = _tbMkDev({ type: 'cloud',  x: 700, y: 100, hostname: 'Internet' });
+      const hub   = _tbMkDev({ type: 'router', x: 700, y: 300, hostname: 'HQ-Hub', ip: '10.0.0.1' });
+      const hubsw = _tbMkDev({ type: 'switch', x: 700, y: 480, hostname: 'HQ-SW' });
+      const hqsrv = _tbMkDev({ type: 'server', x: 700, y: 640, hostname: 'HQ-DC-Server', ip: '10.0.0.10', gateway: '10.0.0.1' });
+      const br1  = _tbMkDev({ type: 'router', x: 280, y: 520, hostname: 'Branch-1-RTR', ip: '10.1.0.1' });
+      const br1sw = _tbMkDev({ type: 'switch', x: 280, y: 680, hostname: 'Branch-1-SW' });
+      const br1pc = _tbMkDev({ type: 'pc',     x: 280, y: 840, hostname: 'Branch-1-PC', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const br2  = _tbMkDev({ type: 'router', x: 700, y: 840, hostname: 'Branch-2-RTR', ip: '10.2.0.1' });
+      const br2sw = _tbMkDev({ type: 'switch', x: 500, y: 960, hostname: 'Branch-2-SW' });
+      const br2pc = _tbMkDev({ type: 'pc',     x: 500, y: 1100,hostname: 'Branch-2-PC', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const br3  = _tbMkDev({ type: 'router', x: 1120,y: 520, hostname: 'Branch-3-RTR', ip: '10.3.0.1' });
+      const br3sw = _tbMkDev({ type: 'switch', x: 1120,y: 680, hostname: 'Branch-3-SW' });
+      const br3pc = _tbMkDev({ type: 'pc',     x: 1120,y: 840, hostname: 'Branch-3-PC', ip: '10.3.0.101', gateway: '10.3.0.1' });
+      state.devices.push(cloud, hub, hubsw, hqsrv, br1, br1sw, br1pc, br2, br2sw, br2pc, br3, br3sw, br3pc);
+      state.cables.push(
+        // Hub is the center — everyone connects to hub, hub to internet
+        _tbMkCable(cloud, hub),
+        _tbMkCable(hub, br1, 'fiber', 1), _tbMkCable(hub, br2, 'fiber', 2), _tbMkCable(hub, br3, 'fiber', 3),
+        _tbMkCable(hub, hubsw, 'cat6', 4), _tbMkCable(hubsw, hqsrv),
+        _tbMkCable(br1, br1sw, 'cat6', 1), _tbMkCable(br1sw, br1pc),
+        _tbMkCable(br2, br2sw, 'cat6', 1), _tbMkCable(br2sw, br2pc),
+        _tbMkCable(br3, br3sw, 'cat6', 1), _tbMkCable(br3sw, br3pc),
+      );
+    },
+    explanation: {
+      overview: 'Hub-and-spoke is the classic enterprise WAN pattern from the 1990s-2010s: a central HQ acts as the hub, every branch connects only to HQ (never to each other directly). All inter-branch traffic AND often all internet-bound traffic backhauls through the HQ. This is what SD-WAN was invented to replace — the pattern suffers from HQ becoming a bottleneck + single point of failure.',
+      dataFlow: 'User at Branch-1 wants to reach a server at Branch-3. Packet leaves Branch-1 → hits Branch-1\'s WAN link → arrives at HQ-Hub. Hub routes it back out its Branch-3 WAN link → Branch-3 router → local switch → destination server. Notice: the packet traversed HQ even though Branch-1 and Branch-3 could theoretically have a shorter path. Same for internet: Branch-1 wants Salesforce → packet goes Branch-1 → HQ → HQ\'s internet gateway → out. Latency accumulates.',
+      keyDevices: [
+        { name: 'HQ Hub Router', role: 'The center of the star. Every branch talks to this. Holds all branch routes + the internet uplink.' },
+        { name: 'Branch Routers', role: 'Each branch has ONE WAN link going only to HQ. Simple config. But if HQ is down, the branch is isolated from all other branches.' },
+        { name: 'Internet Gateway (at HQ)', role: 'Single egress point. All company internet traffic funnels through this one firewall.' },
+      ],
+      concepts: [
+        { term: 'Hub-and-spoke topology', meaning: 'Star topology at the WAN level. One central site, many peripherals. Scales well up to ~30 branches.' },
+        { term: 'Backhauling', meaning: 'Sending traffic to a central point before it reaches its destination. E.g., a branch in Tokyo reaches Salesforce by going through HQ in NYC.' },
+        { term: 'Single point of failure', meaning: 'If HQ link goes down, every branch loses internet + inter-branch connectivity. Modern designs use dual hubs.' },
+        { term: 'Why SD-WAN replaced this', meaning: 'Branches now use local internet breakout + overlay routing, so Salesforce from Tokyo goes direct. HQ is no longer the bottleneck.' },
+      ],
+      examTies: 'N10-009 1.7 (WAN topologies — hub-and-spoke, mesh, point-to-point), 3.1 (routing convergence)',
+    },
+  },
+  {
+    id: 'full-mesh',
+    title: 'Full Mesh WAN',
+    description: 'Every site connects directly to every other site — O(n²) links. Maximum redundancy and minimum latency between any pair, at the cost of high setup expense.',
+    requirements: [
+      '4+ site routers',
+      'Direct fiber circuit between EVERY pair of routers (full mesh)',
+      'Each site has a switch + endpoint',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router', min: 4 },
+      { type: 'switch', min: 4 },
+    ],
+    autoBuild: (state) => {
+      // 4 sites in a quadrilateral — creates 6 mesh links (n*(n-1)/2)
+      const rtrA = _tbMkDev({ type: 'router', x: 400, y: 260, hostname: 'Site-A-RTR', ip: '10.1.0.1' });
+      const rtrB = _tbMkDev({ type: 'router', x: 1000,y: 260, hostname: 'Site-B-RTR', ip: '10.2.0.1' });
+      const rtrC = _tbMkDev({ type: 'router', x: 1000,y: 700, hostname: 'Site-C-RTR', ip: '10.3.0.1' });
+      const rtrD = _tbMkDev({ type: 'router', x: 400, y: 700, hostname: 'Site-D-RTR', ip: '10.4.0.1' });
+      const swA = _tbMkDev({ type: 'switch', x: 200, y: 140, hostname: 'A-SW' });
+      const swB = _tbMkDev({ type: 'switch', x: 1200,y: 140, hostname: 'B-SW' });
+      const swC = _tbMkDev({ type: 'switch', x: 1200,y: 820, hostname: 'C-SW' });
+      const swD = _tbMkDev({ type: 'switch', x: 200, y: 820, hostname: 'D-SW' });
+      const pcA = _tbMkDev({ type: 'pc',     x: 80,  y: 260, hostname: 'A-PC', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const pcB = _tbMkDev({ type: 'pc',     x: 1320,y: 260, hostname: 'B-PC', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const pcC = _tbMkDev({ type: 'pc',     x: 1320,y: 700, hostname: 'C-PC', ip: '10.3.0.101', gateway: '10.3.0.1' });
+      const pcD = _tbMkDev({ type: 'pc',     x: 80,  y: 700, hostname: 'D-PC', ip: '10.4.0.101', gateway: '10.4.0.1' });
+      state.devices.push(rtrA, rtrB, rtrC, rtrD, swA, swB, swC, swD, pcA, pcB, pcC, pcD);
+      state.cables.push(
+        // Full mesh: every pair of routers (6 links for 4 routers)
+        _tbMkCable(rtrA, rtrB, 'fiber'), _tbMkCable(rtrA, rtrC, 'fiber', 1), _tbMkCable(rtrA, rtrD, 'fiber', 2),
+        _tbMkCable(rtrB, rtrC, 'fiber', 3, 4), _tbMkCable(rtrB, rtrD, 'fiber', 4, 4), _tbMkCable(rtrC, rtrD, 'fiber', 5, 5),
+        // Each site's internal LAN
+        _tbMkCable(rtrA, swA, 'cat6', 6), _tbMkCable(swA, pcA),
+        _tbMkCable(rtrB, swB, 'cat6', 5), _tbMkCable(swB, pcB),
+        _tbMkCable(rtrC, swC, 'cat6', 6), _tbMkCable(swC, pcC),
+        _tbMkCable(rtrD, swD, 'cat6', 5), _tbMkCable(swD, pcD),
+      );
+    },
+    explanation: {
+      overview: 'A full-mesh WAN connects every site directly to every other site. For N sites, that\'s N×(N-1)/2 links. Full mesh gives maximum redundancy (any single link failure is transparent) and minimum latency (no intermediate hops). The tradeoff is cost: 4 sites = 6 links, 10 sites = 45 links — it doesn\'t scale economically beyond small site counts.',
+      dataFlow: 'Site-A\'s PC wants to reach Site-C\'s resource. Packet hits Site-A\'s router. Routing table has a DIRECT entry for Site-C\'s network via the A↔C link. Packet goes straight to Site-C — one hop. If the A↔C link fails, the router falls back to routing through Site-B or Site-D (still only 2 hops). Contrast with hub-and-spoke where A→C always goes A→HQ→C.',
+      keyDevices: [
+        { name: 'Site Routers (4+)', role: 'Each router has N-1 WAN interfaces (one per other site). Routing tables carry direct routes to every other site\'s subnets.' },
+        { name: 'Inter-site Fiber Links', role: 'Dedicated circuits between every pair. Full mesh = N×(N-1)/2 total links. This is expensive to provision but bulletproof.' },
+        { name: 'Site LANs', role: 'Typical switch + endpoint setup at each site. Users don\'t see the mesh — routing just works.' },
+      ],
+      concepts: [
+        { term: 'Mesh topology', meaning: 'Every node connected to every other. O(n²) link count. Maximum redundancy.' },
+        { term: 'Partial mesh', meaning: 'Compromise: critical pairs get direct links, less-busy pairs go through intermediaries. Common at 10+ sites.' },
+        { term: 'Link count formula', meaning: 'N×(N-1)/2 for N sites. 3 sites = 3 links, 4 = 6, 5 = 10, 10 = 45.' },
+        { term: 'When to use', meaning: 'Small site counts (4-6), latency-sensitive apps (financial trading, real-time video), or unlimited budget.' },
+      ],
+      examTies: 'N10-009 1.7 (WAN topologies — mesh, full vs partial), 3.1 (routing convergence + redundancy)',
+    },
+  },
+  {
+    id: 's2s-vpn',
+    title: 'Site-to-Site IPSec VPN',
+    description: 'Two offices connected by an IPSec VPN tunnel over the public internet. The modern replacement for leased lines — cheap WAN, with encryption compensating for the untrusted transport.',
+    requirements: [
+      '2 offices, each with a firewall/VPN gateway',
+      'Public internet cloud between them (untrusted transport)',
+      'IPSec tunnel encapsulated over the internet link',
+      'Each office has a switch + endpoints',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'firewall', min: 2 },
+      { type: 'switch',   min: 2 },
+      { type: 'cloud',    min: 1 },
+    ],
+    autoBuild: (state) => {
+      const fwA  = _tbMkDev({ type: 'firewall', x: 280, y: 280, hostname: 'HQ-FW', ip: '203.0.113.1' });
+      const swA  = _tbMkDev({ type: 'switch',   x: 280, y: 480, hostname: 'HQ-SW' });
+      const pcA1 = _tbMkDev({ type: 'pc',       x: 180, y: 660, hostname: 'HQ-PC-01', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const pcA2 = _tbMkDev({ type: 'pc',       x: 380, y: 660, hostname: 'HQ-PC-02', ip: '10.1.0.102', gateway: '10.1.0.1' });
+      const internet = _tbMkDev({ type: 'cloud', x: 700, y: 140, hostname: 'Internet' });
+      const fwB  = _tbMkDev({ type: 'firewall', x: 1120,y: 280, hostname: 'Branch-FW', ip: '198.51.100.1' });
+      const swB  = _tbMkDev({ type: 'switch',   x: 1120,y: 480, hostname: 'Branch-SW' });
+      const pcB1 = _tbMkDev({ type: 'pc',       x: 1020,y: 660, hostname: 'Branch-PC', ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const srvB = _tbMkDev({ type: 'server',   x: 1220,y: 660, hostname: 'Branch-Srv', ip: '10.2.0.10', gateway: '10.2.0.1' });
+      state.devices.push(fwA, swA, pcA1, pcA2, internet, fwB, swB, pcB1, srvB);
+      state.cables.push(
+        _tbMkCable(fwA, internet), _tbMkCable(internet, fwB, 'cat6', 1),
+        // IPSec tunnel — visualise as a separate fiber "virtual" cable between the two FW endpoints
+        _tbMkCable(fwA, fwB, 'fiber', 1, 1),
+        _tbMkCable(fwA, swA, 'cat6', 2), _tbMkCable(swA, pcA1), _tbMkCable(swA, pcA2, 'cat6', 1),
+        _tbMkCable(fwB, swB, 'cat6', 2), _tbMkCable(swB, pcB1), _tbMkCable(swB, srvB, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'Site-to-Site IPSec VPN creates a permanent encrypted tunnel between two offices over the public internet. Both sides run IPSec at their edge firewall/VPN gateway; traffic is encrypted at the source, travels through the internet as ciphertext, and is decrypted at the destination. This is how modern companies connect branch offices without paying for dedicated leased lines.',
+      dataFlow: 'PC at HQ sends a packet to Branch server (10.2.0.10). HQ firewall sees the destination is in Branch\'s subnet → matches the IPSec tunnel\'s "interesting traffic" ACL → encrypts the packet with ESP (AES-256) → wraps in a new IP header with the Branch firewall\'s public IP (198.51.100.1). Packet travels across the public internet (encrypted — any ISP snooping sees only gibberish). Branch firewall receives, decrypts, inspects the original destination, forwards to Branch-SW → server.',
+      keyDevices: [
+        { name: 'Two Firewalls / VPN Gateways', role: 'One at each site. Both must agree on IPSec parameters (encryption, hash, DH group, lifetimes). Mismatched params = tunnel fails.' },
+        { name: 'Public Internet Transport', role: 'The cheap part. No dedicated circuit — just each office\'s regular internet connection. Bandwidth depends on whichever link is slower.' },
+        { name: 'IPSec Tunnel (logical)', role: 'A virtual link between the two firewalls. Traffic flows through it as if it were a direct cable, but packets are encrypted end-to-end.' },
+      ],
+      concepts: [
+        { term: 'IPSec', meaning: 'IP Security protocol suite. Two modes: tunnel (used for S2S — encrypts the full packet) and transport (host-to-host).' },
+        { term: 'ESP vs AH', meaning: 'Encapsulating Security Payload = encryption + auth. Authentication Header = auth only, no encryption. Almost always ESP.' },
+        { term: 'IKE (Phase 1 + 2)', meaning: 'Internet Key Exchange — the handshake protocol. Phase 1 negotiates ciphers for the control channel; Phase 2 negotiates the actual data tunnel.' },
+        { term: 'Interesting traffic', meaning: 'ACL that defines WHICH packets go through the tunnel vs out to the plain internet. Usually "traffic between our two LANs."' },
+      ],
+      examTies: 'N10-009 4.4 (Site-to-site VPN explicitly), 4.4 (IPSec, IKE, ESP, AH), 4.1 (VPN concepts)',
+    },
+  },
+  {
+    id: 'remote-vpn',
+    title: 'Remote Access VPN (Client VPN)',
+    description: 'Individual users (work-from-home, road warriors) connect via SSL or IPSec VPN client from their device to a VPN concentrator at corporate HQ — gaining access to internal resources.',
+    requirements: [
+      'Remote client devices (laptops, phones) on the untrusted internet',
+      'Public internet cloud between client and corporate',
+      'VPN concentrator (firewall) at corporate HQ',
+      'Internal LAN with protected resources behind the concentrator',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'firewall', min: 1 },
+      { type: 'cloud',    min: 1 },
+    ],
+    autoBuild: (state) => {
+      const lt    = _tbMkDev({ type: 'laptop',    x: 200, y: 180, hostname: 'Alice-Laptop' });
+      const ph    = _tbMkDev({ type: 'smartphone',x: 200, y: 440, hostname: 'Alice-Phone', iface: 'wlan0' });
+      const lt2   = _tbMkDev({ type: 'laptop',    x: 200, y: 700, hostname: 'Bob-Laptop' });
+      const internet = _tbMkDev({ type: 'cloud', x: 600, y: 440, hostname: 'Internet' });
+      const vpnfw = _tbMkDev({ type: 'firewall', x: 940, y: 440, hostname: 'VPN-Concentrator', ip: '203.0.113.10' });
+      const sw    = _tbMkDev({ type: 'switch',   x: 1180,y: 440, hostname: 'Internal-SW' });
+      const srv1  = _tbMkDev({ type: 'server',   x: 1380,y: 320, hostname: 'Internal-App', ip: '10.0.0.10' });
+      const srv2  = _tbMkDev({ type: 'server',   x: 1380,y: 560, hostname: 'Internal-DB', ip: '10.0.0.20' });
+      state.devices.push(lt, ph, lt2, internet, vpnfw, sw, srv1, srv2);
+      state.cables.push(
+        _tbMkCable(lt, internet, 'fiber'), _tbMkCable(ph, internet, 'fiber', 0, 1), _tbMkCable(lt2, internet, 'fiber', 0, 2),
+        _tbMkCable(internet, vpnfw, 'fiber', 3),
+        _tbMkCable(vpnfw, sw, 'cat6', 1), _tbMkCable(sw, srv1), _tbMkCable(sw, srv2, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'Remote Access VPN (also called Client VPN) lets individual users connect their personal or corporate device to the company network over the internet. The user runs a VPN client (Cisco AnyConnect, OpenVPN, GlobalProtect, native OS clients) that authenticates and establishes an encrypted tunnel to a concentrator at HQ. Once connected, the client appears to be on the internal LAN — can reach servers, file shares, databases.',
+      dataFlow: 'Alice opens her VPN client → enters username/password (+ MFA). Client authenticates to the concentrator. Concentrator assigns Alice an internal IP (e.g., 10.0.99.5) from a VPN pool. Alice\'s laptop now has an additional virtual interface on the corporate network. When Alice opens Outlook → traffic for 10.0.0.0/8 routes through the VPN client → encrypted → concentrator decrypts → forwards to internal mail server. Reply comes back reverse path.',
+      keyDevices: [
+        { name: 'VPN Client Software', role: 'On the user\'s device — laptop, phone, tablet. Provides the user-facing UI and establishes/maintains the tunnel.' },
+        { name: 'VPN Concentrator', role: 'The firewall or dedicated appliance at HQ that terminates all incoming client VPN connections. Handles authentication, encryption, IP assignment.' },
+        { name: 'Authentication Back-End', role: 'Usually RADIUS + Active Directory + MFA (Duo, Microsoft Authenticator, etc.). Validates who\'s connecting.' },
+        { name: 'Internal Resources', role: 'App servers, DBs, file shares — the stuff users want to reach. Usually can\'t be reached directly from the internet.' },
+      ],
+      concepts: [
+        { term: 'SSL/TLS VPN', meaning: 'Uses HTTPS (TCP 443) — firewall-friendly, works from anywhere. Common: OpenVPN, AnyConnect, GlobalProtect.' },
+        { term: 'IPSec Client VPN', meaning: 'Uses IPSec in tunnel mode. Sometimes used instead of SSL/TLS. Windows built-in "L2TP/IPSec" is an example.' },
+        { term: 'Split tunnel vs full tunnel', meaning: 'Split: only corporate-bound traffic goes through VPN; internet-bound stays local. Full: everything goes through VPN (better security, slower).' },
+        { term: 'MFA (Multi-Factor Auth)', meaning: 'Something-you-know (password) + something-you-have (phone/token). Standard for all modern client VPNs.' },
+      ],
+      examTies: 'N10-009 4.4 (Client/Remote VPN), 4.4 (SSL/TLS vs IPSec VPN), 4.3 (MFA + AAA)',
+    },
+  },
+  {
+    id: 'cellular',
+    title: 'Cellular 4G/5G WAN',
+    description: 'Branch or mobile site connects to the internet via a cellular modem → nearest cell tower → provider core network. Used for primary WAN (remote sites) or backup (SD-WAN secondary).',
+    requirements: [
+      'Branch site with cellular-capable router/modem',
+      'Cell tower (radio tower) as the access point to the provider network',
+      'Provider cloud (cellular core) → internet',
+      'Endpoints at the branch',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router',     min: 1 },
+      { type: 'cell-tower', min: 1 },
+      { type: 'cloud',      min: 1 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',     x: 1100,y: 140, hostname: 'Internet' });
+      const provider = _tbMkDev({ type: 'cloud',     x: 900, y: 300, hostname: 'Carrier Core (EPC/5GC)' });
+      const tower    = _tbMkDev({ type: 'cell-tower',x: 620, y: 300, hostname: 'Cell Tower' });
+      const rtr      = _tbMkDev({ type: 'router',    x: 350, y: 480, hostname: 'Branch-LTE-RTR', ip: '10.10.0.1' });
+      const sw       = _tbMkDev({ type: 'switch',    x: 350, y: 660, hostname: 'Branch-SW' });
+      const pc       = _tbMkDev({ type: 'pc',        x: 200, y: 820, hostname: 'Branch-PC', ip: '10.10.0.101', gateway: '10.10.0.1' });
+      const lt       = _tbMkDev({ type: 'laptop',    x: 500, y: 820, hostname: 'Branch-Laptop', ip: '10.10.0.102', gateway: '10.10.0.1' });
+      state.devices.push(internet, provider, tower, rtr, sw, pc, lt);
+      state.cables.push(
+        _tbMkCable(rtr, tower, 'fiber'),               // Wireless air-interface (represented as fiber for visual)
+        _tbMkCable(tower, provider, 'fiber', 1),       // Backhaul from tower to carrier core
+        _tbMkCable(provider, internet, 'fiber', 1),    // Carrier → public internet
+        _tbMkCable(rtr, sw, 'cat6', 1), _tbMkCable(sw, pc), _tbMkCable(sw, lt, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'A cellular WAN uses the mobile phone networks (LTE/4G, 5G) as the internet transport. A cellular-capable router at the branch has a SIM card and connects to the nearest cell tower via radio. The tower backhauls to the carrier\'s core network (EPC for 4G, 5GC for 5G), which routes traffic to the public internet. Common uses: remote sites where wired internet isn\'t available, mobile/vehicle deployments, SD-WAN backup links.',
+      dataFlow: 'User at branch sends traffic. Branch router\'s cellular modem transmits the packet via radio (LTE Band 66, 5G Band n78, etc.) to the nearest tower. Tower receives, forwards to carrier core over fiber backhaul. Core does GTP tunneling + charging + policy enforcement, then hands off to the carrier\'s internet peering. Packet reaches destination. Return path: destination → carrier → tower → branch router. Latency is typically 30-50ms (4G) or 10-20ms (5G).',
+      keyDevices: [
+        { name: 'Cellular Modem/Router', role: 'Has a SIM card and radio hardware. Authenticates to the carrier via IMSI/IMEI, gets assigned an IP from the carrier\'s pool.' },
+        { name: 'Cell Tower (eNodeB / gNodeB)', role: 'The radio access point. Serves multiple branches within its coverage radius. 4G calls it eNodeB, 5G calls it gNodeB.' },
+        { name: 'Carrier Core (EPC / 5GC)', role: 'The carrier\'s datacenter: handles authentication, routing, IP assignment, charging, policy (e.g., throttling). Opaque to the customer.' },
+        { name: 'Public Internet', role: 'The eventual destination for most traffic. Carrier peers with tier-1 ISPs at exchange points.' },
+      ],
+      concepts: [
+        { term: '4G LTE vs 5G', meaning: '5G = lower latency (~10ms), higher bandwidth (up to 10 Gbps theoretical), more device density. Backwards compatible — most 5G devices fall back to 4G when out of 5G range.' },
+        { term: 'SIM card + IMSI', meaning: 'SIM holds the subscriber identity (IMSI — International Mobile Subscriber Identity). Without it, no carrier service.' },
+        { term: 'APN (Access Point Name)', meaning: 'Tells the carrier which gateway to route your traffic through (e.g., "internet" for regular, "iot.corp" for private APN).' },
+        { term: 'Private APN / Corporate LTE', meaning: 'Enterprise feature: the carrier routes your LTE traffic directly to your corporate VPN gateway — never touches the public internet.' },
+      ],
+      examTies: 'N10-009 1.7 (cellular transmission media — LTE/4G/5G explicitly), 2.3 (wireless technologies), 1.7 (WAN transport options)',
+    },
+  },
+  {
+    id: 'satellite-wan',
+    title: 'Satellite WAN',
+    description: 'Remote site connects via satellite dish → orbital satellite → teleport (ground station) → internet. Used for rural/maritime/polar sites where no terrestrial WAN is available.',
+    requirements: [
+      'Remote site router',
+      'Satellite dish + orbital satellite in the signal path',
+      'Teleport/NOC (ISP router/cloud) that bridges satellite to the internet',
+      'Endpoints at the remote site',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'satellite', min: 1 },
+      { type: 'cloud',     min: 1 },
+      { type: 'router',    min: 1 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',    x: 1200,y: 120, hostname: 'Internet' });
+      const teleport = _tbMkDev({ type: 'isp-router',x: 1000,y: 300, hostname: 'Teleport/NOC' });
+      const sat      = _tbMkDev({ type: 'satellite',x: 700, y: 160, hostname: 'GEO Satellite' });
+      const dish     = _tbMkDev({ type: 'satellite',x: 400, y: 300, hostname: 'Remote Dish' });
+      const rtr      = _tbMkDev({ type: 'router',   x: 400, y: 480, hostname: 'Remote-RTR', ip: '10.50.0.1' });
+      const sw       = _tbMkDev({ type: 'switch',   x: 400, y: 660, hostname: 'Remote-SW' });
+      const pc       = _tbMkDev({ type: 'pc',       x: 280, y: 820, hostname: 'Remote-PC', ip: '10.50.0.101', gateway: '10.50.0.1' });
+      const srv      = _tbMkDev({ type: 'server',   x: 520, y: 820, hostname: 'Remote-Srv', ip: '10.50.0.10', gateway: '10.50.0.1' });
+      state.devices.push(internet, teleport, sat, dish, rtr, sw, pc, srv);
+      state.cables.push(
+        _tbMkCable(rtr, dish, 'cat6', 0, 1),    // Remote router to dish
+        _tbMkCable(dish, sat, 'fiber'),          // Dish uplink (radio, shown as fiber)
+        _tbMkCable(sat, teleport, 'fiber', 1),   // Satellite downlink to teleport
+        _tbMkCable(teleport, internet, 'fiber', 1), // Teleport to public internet
+        _tbMkCable(rtr, sw, 'cat6', 1), _tbMkCable(sw, pc), _tbMkCable(sw, srv, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'Satellite WAN connects remote locations via a dish pointed at an orbital satellite, which relays the signal to a teleport (ground station) that connects to the public internet. Critical for sites where no terrestrial WAN exists: ships at sea, oil rigs, polar research stations, rural villages, aircraft in flight. Two main architectures: GEO (geostationary, 36,000 km orbit, high latency ~600ms round-trip) and LEO (low-earth orbit, e.g., Starlink, 550km orbit, ~30-50ms latency).',
+      dataFlow: 'Remote PC sends a packet. Travels to remote router → to satellite dish. Dish transmits upward (Ku/Ka band) to the satellite. Satellite receives, amplifies, retransmits downward to the teleport\'s receiving dish. Teleport\'s ground infrastructure routes the packet onto the public internet via the ISP\'s backbone. Reply travels the reverse path — dish → satellite (down) → remote dish (up) → remote router. Double-hop gives GEO its notoriously high latency.',
+      keyDevices: [
+        { name: 'Remote Satellite Dish', role: 'Parabolic antenna at the customer site. Must have clear sky view (no heavy foliage, buildings). Transmit + receive in different frequency bands.' },
+        { name: 'Orbital Satellite', role: 'In GEO: fixed relative to Earth, always visible from same dish angle. In LEO: moves across sky, requires tracking/switching between satellites.' },
+        { name: 'Teleport / NOC', role: 'Ground station with large dish(es) that talks to the satellite. Connects the satellite link to the terrestrial internet backbone.' },
+        { name: 'Remote Router', role: 'Normal router at the customer side. Treats the satellite link like any WAN interface (although may need QoS tuning for the high latency).' },
+      ],
+      concepts: [
+        { term: 'GEO vs LEO', meaning: 'Geostationary: 36,000 km, 500-700ms latency, 1 satellite covers huge area. LEO: 300-1200 km, 30-50ms latency, need hundreds of satellites (Starlink uses ~5,000+).' },
+        { term: 'Ku band / Ka band', meaning: 'Frequency ranges used for satellite. Ka (26-40 GHz) = higher bandwidth, more rain-fade sensitivity. Ku (12-18 GHz) = lower bandwidth, more robust to weather.' },
+        { term: 'Rain fade', meaning: 'Heavy rain absorbs satellite signals, degrading the link. Can cause outages or speed drops. Worse on Ka band than Ku band.' },
+        { term: 'Latency implications', meaning: '500ms+ on GEO = noticeable delay on interactive apps (Zoom, SSH). VPN and TCP over GEO can be painful — TCP "window" needs to be tuned up.' },
+      ],
+      examTies: 'N10-009 1.7 (satellite explicitly listed), 1.7 (transmission media), 2.1 (latency considerations)',
+    },
+  },
+  // ══════════════════════════════════════════════════════════════════════
+  // v4.49.0 — Tier 2: Broadband & Last-Mile (3 new)
+  // ══════════════════════════════════════════════════════════════════════
+  {
+    id: 'dsl',
+    title: 'DSL Branch',
+    description: 'Home or small-branch connection via DSL (Digital Subscriber Line) — copper telephone wires carry broadband via frequency-division multiplexing. Shared with voice (on ADSL/VDSL).',
+    requirements: [
+      'DSL modem at the customer site',
+      'Telco DSLAM (provider cloud — Digital Subscriber Line Access Multiplexer)',
+      'Internet cloud beyond the DSLAM',
+      'Home/branch endpoints via a small router',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'modem', min: 1 },
+      { type: 'cloud', min: 1 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',  x: 1100,y: 140, hostname: 'Internet' });
+      const dslam    = _tbMkDev({ type: 'cloud',  x: 800, y: 280, hostname: 'Telco DSLAM' });
+      const modem    = _tbMkDev({ type: 'modem',  x: 500, y: 440, hostname: 'DSL Modem' });
+      const rtr      = _tbMkDev({ type: 'router', x: 500, y: 600, hostname: 'Home-RTR', ip: '192.168.1.1' });
+      const lt       = _tbMkDev({ type: 'laptop', x: 320, y: 760, hostname: 'Laptop',  ip: '192.168.1.101', gateway: '192.168.1.1' });
+      const ph       = _tbMkDev({ type: 'smartphone',x: 500, y: 800, hostname: 'Phone', ip: '192.168.1.102', gateway: '192.168.1.1', iface: 'wlan0' });
+      const pc       = _tbMkDev({ type: 'pc',     x: 680, y: 760, hostname: 'Desktop', ip: '192.168.1.103', gateway: '192.168.1.1' });
+      state.devices.push(internet, dslam, modem, rtr, lt, ph, pc);
+      state.cables.push(
+        _tbMkCable(dslam, internet, 'fiber'),
+        _tbMkCable(modem, dslam, 'coax'),        // Copper phone line (represented as coax for cable visual)
+        _tbMkCable(modem, rtr, 'cat6', 1),
+        _tbMkCable(rtr, lt, 'cat6', 1), _tbMkCable(rtr, ph, 'cat6', 2), _tbMkCable(rtr, pc, 'cat6', 3),
+      );
+    },
+    explanation: {
+      overview: 'DSL (Digital Subscriber Line) delivers internet over ordinary copper telephone wires. A DSL modem at your house splits the signal: low frequencies carry voice (plain old telephone service, POTS), high frequencies carry internet data. The signal terminates at the telco\'s DSLAM (Digital Subscriber Line Access Multiplexer) in a street cabinet, which aggregates many subscribers onto the provider\'s backbone. Variants: ADSL (asymmetric, faster down than up, ~25 Mbps/5 Mbps), VDSL (faster, ~100/40 Mbps), G.fast (newest, ~500 Mbps but short range).',
+      dataFlow: 'Laptop browses the web. Traffic hits the home router → DSL modem. The modem modulates the Ethernet packet into high-frequency tones on the copper line (frequency ranges well above voice). Signal travels along telephone wires to the neighborhood DSLAM. DSLAM demodulates the signal back to digital, aggregates it with other subscribers\' traffic, and forwards onto the ISP\'s fiber backbone → internet. Reply comes back reverse path.',
+      keyDevices: [
+        { name: 'DSL Modem', role: 'Translates between Ethernet (digital, on the home side) and DSL signaling (analog-tones over copper, on the line side). Often combined with router + Wi-Fi in one box.' },
+        { name: 'Copper Phone Line', role: 'The "last mile" — typically up to 3-5 km of existing phone wiring. The longer the run, the lower the max speed.' },
+        { name: 'DSLAM', role: 'Telco\'s aggregation point in a neighborhood street cabinet. One DSLAM serves 48-192 subscribers. Feeds into the ISP\'s fiber backhaul.' },
+      ],
+      concepts: [
+        { term: 'ADSL vs SDSL', meaning: 'Asymmetric (most consumer DSL, fast down + slow up) vs Symmetric (equal up/down, more expensive, for business).' },
+        { term: 'Distance vs speed', meaning: 'DSL performance degrades with copper length. <1 km ≈ max speed. At 3-4 km ≈ half speed. Beyond 5 km ≈ unusable.' },
+        { term: 'DMT (Discrete Multi-Tone)', meaning: 'The modulation scheme: splits the copper into 256 narrowband "tones" at different frequencies; each tone carries a small chunk of data.' },
+        { term: 'POTS co-existence', meaning: 'A micro-filter at each phone jack separates voice (low freq) from data (high freq). Same copper pair carries both simultaneously.' },
+      ],
+      examTies: 'N10-009 1.7 (DSL explicitly listed), 1.7 (copper as transmission medium), 2.1 (bandwidth limitations by distance)',
+    },
+  },
+  {
+    id: 'cable',
+    title: 'Cable Broadband (DOCSIS)',
+    description: 'Home or branch internet via coaxial cable (the same cable that delivers TV). Uses DOCSIS standard; shared medium so speeds fluctuate with neighbor usage.',
+    requirements: [
+      'Cable modem at the customer site',
+      'CMTS (Cable Modem Termination System — provider cloud)',
+      'Internet cloud beyond CMTS',
+      'Home/branch endpoints via a small router',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'modem', min: 1 },
+      { type: 'cloud', min: 1 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',  x: 1100,y: 140, hostname: 'Internet' });
+      const cmts     = _tbMkDev({ type: 'cloud',  x: 800, y: 280, hostname: 'ISP CMTS (headend)' });
+      const modem    = _tbMkDev({ type: 'modem',  x: 500, y: 440, hostname: 'Cable Modem' });
+      const rtr      = _tbMkDev({ type: 'router', x: 500, y: 600, hostname: 'Home-RTR', ip: '192.168.1.1' });
+      const lt       = _tbMkDev({ type: 'laptop', x: 300, y: 760, hostname: 'Laptop',   ip: '192.168.1.101', gateway: '192.168.1.1' });
+      const tv       = _tbMkDev({ type: 'smart-tv',x: 500, y: 800, hostname: 'Smart-TV', ip: '192.168.1.102', gateway: '192.168.1.1' });
+      const gc       = _tbMkDev({ type: 'game-console',x: 700,y: 760, hostname: 'Xbox',  ip: '192.168.1.103', gateway: '192.168.1.1' });
+      state.devices.push(internet, cmts, modem, rtr, lt, tv, gc);
+      state.cables.push(
+        _tbMkCable(cmts, internet, 'fiber'),
+        _tbMkCable(modem, cmts, 'coax'),         // Coax to CMTS headend
+        _tbMkCable(modem, rtr, 'cat6', 1),
+        _tbMkCable(rtr, lt, 'cat6', 1), _tbMkCable(rtr, tv, 'cat6', 2), _tbMkCable(rtr, gc, 'cat6', 3),
+      );
+    },
+    explanation: {
+      overview: 'Cable broadband delivers internet over the same coaxial cable that brings TV to the home — an RG-6 coax going to a cable modem. The standard is DOCSIS (Data Over Cable Service Interface Specification), now at version 3.1 and rolling into 4.0 (multi-gigabit). Unlike DSL, the coax in a neighborhood is SHARED: many homes on the same coaxial segment feed into a CMTS (Cable Modem Termination System) at the ISP\'s headend. That shared-medium nature means speeds can drop when neighbors are heavy users.',
+      dataFlow: 'Your Xbox requests a game update. Traffic goes through home router → cable modem. The modem modulates the Ethernet packet onto RF frequencies in the coaxial cable\'s upstream channels (typically 5-85 MHz on DOCSIS 3.1). Signal travels through the neighborhood coax trunk to the CMTS headend. CMTS demodulates, routes onto the ISP\'s fiber backbone → internet. Download: same path reversed, using downstream channels (108 MHz and up — same coax, different frequencies).',
+      keyDevices: [
+        { name: 'Cable Modem', role: 'Translates between Ethernet (home side) and DOCSIS RF (coax side). DOCSIS 3.1+ supports multi-gigabit with channel bonding.' },
+        { name: 'Coaxial Cable (RG-6)', role: 'Carries both TV and internet on the same line, on different frequency ranges. Shared with other homes in the neighborhood at the trunk level.' },
+        { name: 'CMTS (headend)', role: 'ISP\'s termination equipment. One CMTS serves hundreds to thousands of cable modems in a service area.' },
+      ],
+      concepts: [
+        { term: 'DOCSIS', meaning: 'Data Over Cable Service Interface Specification. Standards: 1.1 (legacy), 3.0 (multi-hundred Mbps), 3.1 (gigabit+), 4.0 (multi-gig with full duplex).' },
+        { term: 'Shared medium', meaning: 'All subscribers on the same coax trunk share bandwidth. Peak-hour slowdowns are normal. Unlike DSL which is dedicated per subscriber.' },
+        { term: 'Upstream vs downstream', meaning: 'Traditionally asymmetric — more bandwidth for download. DOCSIS 4.0 introduces "full duplex" with equal up/down.' },
+        { term: 'Channel bonding', meaning: 'Combining multiple DOCSIS channels for higher speed. DOCSIS 3.1 bonds 32+ channels downstream.' },
+      ],
+      examTies: 'N10-009 1.7 (cable explicitly named), 1.7 (coaxial transmission media), 1.7 (shared vs dedicated media)',
+    },
+  },
+  {
+    id: 'ftth',
+    title: 'Fiber-to-the-Home (FTTH/GPON)',
+    description: 'Optical fiber delivered all the way to the subscriber\'s premises. Uses Passive Optical Network (GPON/XGS-PON) — light is split passively in the field, no active electronics in the outside plant.',
+    requirements: [
+      'ONT (Optical Network Terminal) at the customer side — modelled as the modem',
+      'OLT (Optical Line Terminal) at the ISP — modelled as the provider cloud',
+      'Internet cloud beyond',
+      'Home endpoints via a small router',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'modem', min: 1 },
+      { type: 'cloud', min: 1 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',  x: 1100,y: 140, hostname: 'Internet' });
+      const olt      = _tbMkDev({ type: 'cloud',  x: 800, y: 280, hostname: 'ISP OLT (PON)' });
+      const ont      = _tbMkDev({ type: 'modem',  x: 500, y: 440, hostname: 'ONT (fiber modem)' });
+      const rtr      = _tbMkDev({ type: 'router', x: 500, y: 600, hostname: 'Home-RTR', ip: '192.168.1.1' });
+      const lt       = _tbMkDev({ type: 'laptop', x: 300, y: 760, hostname: 'Laptop',  ip: '192.168.1.101', gateway: '192.168.1.1' });
+      const pc       = _tbMkDev({ type: 'pc',     x: 500, y: 800, hostname: 'Desktop', ip: '192.168.1.102', gateway: '192.168.1.1' });
+      const ph       = _tbMkDev({ type: 'smartphone',x: 700,y: 760, hostname: 'Phone', ip: '192.168.1.103', gateway: '192.168.1.1', iface: 'wlan0' });
+      state.devices.push(internet, olt, ont, rtr, lt, pc, ph);
+      state.cables.push(
+        _tbMkCable(olt, internet, 'fiber'),
+        _tbMkCable(ont, olt, 'fiber'),           // Single-mode fiber from home to ISP
+        _tbMkCable(ont, rtr, 'cat6', 1),
+        _tbMkCable(rtr, lt, 'cat6', 1), _tbMkCable(rtr, pc, 'cat6', 2), _tbMkCable(rtr, ph, 'cat6', 3),
+      );
+    },
+    explanation: {
+      overview: 'FTTH (Fiber to the Home) brings a dedicated optical fiber from the ISP all the way to the subscriber\'s premises. The most common architecture is PON (Passive Optical Network) — GPON at 2.5 Gbps shared, XGS-PON at 10 Gbps shared. "Passive" means there\'s no powered equipment in the outside plant: a single fiber from the ISP\'s OLT (Optical Line Terminal) is split with a glass splitter to serve up to 128 homes. At each home, an ONT (Optical Network Terminal) converts light to Ethernet.',
+      dataFlow: 'Your laptop requests a file. Traffic goes through home router → ONT. The ONT converts the Ethernet signal to a modulated laser pulse on a specific wavelength (1310 nm upstream). Signal travels up the single-mode fiber from your home to the neighborhood passive splitter, then continues to the ISP\'s OLT. OLT demuxes your subscriber\'s frames (TDMA — each home has a time slot for upstream), forwards to the ISP backbone. Downstream traffic comes on a different wavelength (1490 nm or 1550 nm) that every ONT in the splitter tree sees — each ONT picks out its own frames.',
+      keyDevices: [
+        { name: 'ONT (Optical Network Terminal)', role: 'The fiber modem at your home. Converts light → Ethernet. Usually a wall-mounted box; often powered by local wall outlet.' },
+        { name: 'Passive Splitter', role: 'A glass prism in the street or neighborhood hub that splits one fiber into 32/64/128. No electronics, no power needed — huge operational advantage.' },
+        { name: 'OLT (Optical Line Terminal)', role: 'ISP-side equipment in a central office. One OLT port serves all 128 homes on that passive split. Does TDMA scheduling + subscriber authentication.' },
+        { name: 'Single-Mode Fiber (SMF)', role: 'The physical medium. Thin glass core, can carry signals for tens of km with minimal loss — way more capacity than copper.' },
+      ],
+      concepts: [
+        { term: 'GPON vs XGS-PON', meaning: 'GPON = 2.5/1.25 Gbps shared across 64-128 homes (typical peak: 50-100 Mbps per home). XGS-PON = 10 Gbps symmetric shared — modern rollout for gigabit home plans.' },
+        { term: 'Passive vs Active', meaning: 'Passive = no powered equipment in the field (splitters only). Active = powered Ethernet switches in the field. Passive is cheaper to operate but has shared-medium tradeoffs.' },
+        { term: 'Wavelength-Division Multiplexing', meaning: 'Multiple signals on the same fiber at different colors (wavelengths). GPON uses 1310nm up, 1490nm down, 1550nm for TV overlay.' },
+        { term: 'TDMA upstream', meaning: 'All homes share the same fiber upstream — they take turns sending in time slots coordinated by the OLT. Prevents collisions.' },
+      ],
+      examTies: 'N10-009 1.7 (fiber named explicitly), 1.7 (single-mode fiber), 1.7 (PON — covered under service types)',
+    },
+  },
+  // ══════════════════════════════════════════════════════════════════════
+  // v4.49.0 — Tier 3: Advanced WAN (2 new)
+  // ══════════════════════════════════════════════════════════════════════
+  {
+    id: 'multi-homed-bgp',
+    title: 'Multi-homed WAN w/ BGP',
+    description: 'Enterprise with 2 independent ISPs peering via BGP — if one ISP goes down, BGP automatically fails over to the other. Protects against single-ISP outages.',
+    requirements: [
+      'Enterprise core router/firewall',
+      '2 separate ISP clouds (ISP-A and ISP-B)',
+      'BGP peering with BOTH ISPs — redundant paths',
+      'Internal LAN behind the border',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'cloud',  min: 2 },
+      { type: 'router', min: 2 },
+    ],
+    autoBuild: (state) => {
+      const ispA = _tbMkDev({ type: 'cloud',     x: 400, y: 140, hostname: 'ISP-A (AS 64500)' });
+      const ispB = _tbMkDev({ type: 'cloud',     x: 1000,y: 140, hostname: 'ISP-B (AS 64501)' });
+      const brA  = _tbMkDev({ type: 'router',    x: 400, y: 340, hostname: 'Border-A-RTR', ip: '203.0.113.2' });
+      const brB  = _tbMkDev({ type: 'router',    x: 1000,y: 340, hostname: 'Border-B-RTR', ip: '198.51.100.2' });
+      const fw   = _tbMkDev({ type: 'firewall',  x: 700, y: 520, hostname: 'Core-FW' });
+      const sw   = _tbMkDev({ type: 'switch',    x: 700, y: 700, hostname: 'Core-SW' });
+      const srv1 = _tbMkDev({ type: 'server',    x: 500, y: 860, hostname: 'App-Server', ip: '10.0.0.10' });
+      const srv2 = _tbMkDev({ type: 'server',    x: 700, y: 860, hostname: 'Web-Server', ip: '10.0.0.11' });
+      const pc   = _tbMkDev({ type: 'pc',        x: 900, y: 860, hostname: 'Admin-PC',   ip: '10.0.0.101', gateway: '10.0.0.1' });
+      state.devices.push(ispA, ispB, brA, brB, fw, sw, srv1, srv2, pc);
+      state.cables.push(
+        _tbMkCable(ispA, brA, 'fiber'), _tbMkCable(ispB, brB, 'fiber'),
+        _tbMkCable(brA, fw, 'fiber', 1), _tbMkCable(brB, fw, 'fiber', 1, 1),
+        _tbMkCable(fw, sw, 'cat6', 2), _tbMkCable(sw, srv1), _tbMkCable(sw, srv2, 'cat6', 1), _tbMkCable(sw, pc, 'cat6', 2),
+      );
+    },
+    explanation: {
+      overview: 'Multi-homing means connecting to 2 or more ISPs simultaneously for redundancy. The enterprise runs BGP (Border Gateway Protocol) with each ISP, exchanging routing information. Normally, one ISP is primary (lower AS-PATH / higher local-pref); if that link fails, BGP withdraws the routes and the other ISP becomes active automatically — typically within 30-120 seconds. Essential for businesses that can\'t afford internet outages.',
+      dataFlow: 'Normally: traffic from internal servers → core firewall → Border-A-RTR → ISP-A → internet. If ISP-A fails: Border-A loses BGP session with ISP-A → BGP withdraws the default route learned from ISP-A. Core firewall\'s routing table now only shows ISP-B\'s default route → traffic shifts to Border-B-RTR → ISP-B → internet. Reverse path from internet: inbound traffic to the company\'s IP space takes whichever ISP currently advertises the shorter AS-PATH.',
+      keyDevices: [
+        { name: 'Two Border Routers', role: 'One per ISP. Each runs BGP with its upstream. Can be same chassis or separate boxes. Must have the company\'s ASN.' },
+        { name: 'Two ISP Clouds', role: 'Two independent providers. Ideally geographically diverse entry points (different conduits into the building) to protect against fiber cuts.' },
+        { name: 'Core Firewall + Switch', role: 'Standard internal edge. Default gateway can be a VRRP virtual IP shared between the two border routers for seamless failover.' },
+        { name: 'BGP (the routing glue)', role: 'Exchanges routes between your company (AS 65001 e.g.) and each ISP. Lets both sides announce reachability and withdraw when links fail.' },
+      ],
+      concepts: [
+        { term: 'BGP (Border Gateway Protocol)', meaning: 'The internet\'s core routing protocol. Each network ("autonomous system") advertises which IP blocks it can reach. BGP is path-vector + policy-rich.' },
+        { term: 'AS (Autonomous System)', meaning: 'A group of IP networks under single administrative control, identified by a unique AS Number. Your enterprise needs one to multi-home (from ARIN/RIPE).' },
+        { term: 'Local preference vs AS-PATH', meaning: 'Two of BGP\'s selection criteria. Local-pref = "which of my paths do I prefer." AS-PATH = "path length" — shortest usually wins.' },
+        { term: 'Convergence time', meaning: 'How long it takes BGP to detect a failure and reroute. Typical: 30-120 seconds. BFD (Bidirectional Forwarding Detection) can cut this to <1 sec.' },
+      ],
+      examTies: 'N10-009 3.3 (BGP explicitly), 3.1 (routing redundancy), 4.1 (high availability)',
+    },
+  },
+  {
+    id: 'gre-tunnel',
+    title: 'GRE Tunnel',
+    description: 'Generic Routing Encapsulation creates a logical point-to-point link over an IP network — wraps arbitrary protocols (including IP) in a GRE header. Used to stitch together non-contiguous networks.',
+    requirements: [
+      '2 site routers with public-routable IPs',
+      'Public internet cloud between them',
+      'GRE tunnel (logical) drawn between the two router endpoints',
+      'Each site has internal LAN + endpoints',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router', min: 2 },
+      { type: 'cloud',  min: 1 },
+    ],
+    autoBuild: (state) => {
+      const rtrA  = _tbMkDev({ type: 'router',   x: 280, y: 280, hostname: 'Site-A-RTR', ip: '203.0.113.1' });
+      const swA   = _tbMkDev({ type: 'switch',   x: 280, y: 480, hostname: 'Site-A-SW' });
+      const pcA   = _tbMkDev({ type: 'pc',       x: 280, y: 660, hostname: 'Site-A-PC', ip: '10.1.0.101', gateway: '10.1.0.1' });
+      const internet = _tbMkDev({ type: 'cloud', x: 700, y: 160, hostname: 'Public Internet' });
+      const rtrB  = _tbMkDev({ type: 'router',   x: 1120,y: 280, hostname: 'Site-B-RTR', ip: '198.51.100.1' });
+      const swB   = _tbMkDev({ type: 'switch',   x: 1120,y: 480, hostname: 'Site-B-SW' });
+      const pcB   = _tbMkDev({ type: 'pc',       x: 1020,y: 660, hostname: 'Site-B-PC',  ip: '10.2.0.101', gateway: '10.2.0.1' });
+      const srvB  = _tbMkDev({ type: 'server',   x: 1220,y: 660, hostname: 'Site-B-Srv', ip: '10.2.0.10' });
+      state.devices.push(rtrA, swA, pcA, internet, rtrB, swB, pcB, srvB);
+      state.cables.push(
+        _tbMkCable(rtrA, internet), _tbMkCable(internet, rtrB, 'cat6', 1),
+        // GRE tunnel — logical link between the two routers (visualised as fiber)
+        _tbMkCable(rtrA, rtrB, 'fiber', 1, 1),
+        _tbMkCable(rtrA, swA, 'cat6', 2), _tbMkCable(swA, pcA),
+        _tbMkCable(rtrB, swB, 'cat6', 2), _tbMkCable(swB, pcB), _tbMkCable(swB, srvB, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'GRE (Generic Routing Encapsulation, RFC 2784) is a tunneling protocol that wraps any Layer 3 protocol inside an IP packet and sends it between two tunnel endpoints. The original packet becomes the "payload" and gets a new IP header pointing at the far-end router. GRE has no encryption by itself — it\'s often combined with IPSec for security. Common uses: stitching two disconnected private networks together, routing multicast over the internet (IPSec alone doesn\'t do that), or carrying non-IP protocols over IP transport.',
+      dataFlow: 'Site-A\'s PC (10.1.0.101) sends a packet to Site-B\'s server (10.2.0.10). Packet hits Site-A\'s router. Router sees the destination is in 10.2.0.0/24 — a network it can reach via the GRE tunnel. Router wraps the entire original packet in a new IP+GRE header: outer dest = Site-B router\'s public IP (198.51.100.1). Encapsulated packet travels across the public internet. Site-B router receives, strips GRE header, finds the original packet inside, forwards to Site-B-SW → server.',
+      keyDevices: [
+        { name: 'Two Tunnel Endpoints', role: 'Each site\'s router is a tunnel endpoint. Configured with the far-end\'s public IP and a shared tunnel interface (e.g., Tunnel0).' },
+        { name: 'Public Internet Transport', role: 'Carries the encapsulated packets. Treats them as normal IP traffic — has no idea there\'s a tunnel.' },
+        { name: 'Internal Site LANs', role: 'Behind each router, normal internal addressing (10.1.0.0/24, 10.2.0.0/24). The tunnel makes them look adjacent.' },
+      ],
+      concepts: [
+        { term: 'GRE header overhead', meaning: '24 bytes added (4 GRE + 20 new IP). MTU considerations: if original is 1500, new packet is 1524 — may need fragmentation or MTU adjustment (typically set MSS to 1360).' },
+        { term: 'GRE vs IPSec', meaning: 'GRE = encapsulation only, no encryption. IPSec = encryption + integrity, but doesn\'t carry multicast. Common combo: GRE over IPSec = both.' },
+        { term: 'DMVPN', meaning: 'Dynamic Multipoint VPN (Cisco) — uses mGRE (multipoint GRE) + NHRP to let branch routers build direct tunnels to each other dynamically. Scales GRE beyond pairwise.' },
+        { term: 'Transparent to protocols', meaning: 'GRE can carry IPv4, IPv6, multicast, non-IP protocols (AppleTalk, Novell IPX). IPSec natively only handles unicast IP.' },
+      ],
+      examTies: 'N10-009 4.4 (tunneling protocols — GRE named), 4.4 (VPN concepts), 3.1 (logical tunneling)',
+    },
+  },
+  // ══════════════════════════════════════════════════════════════════════
+  // v4.49.0 — Tier 4: Other Network Types (4 new)
+  // ══════════════════════════════════════════════════════════════════════
+  {
+    id: 'can',
+    title: 'Campus Area Network (CAN)',
+    description: 'Multiple buildings on a single campus connected by the organization\'s own high-speed backbone. Between a LAN (single building) and a MAN (city). University and large-corporate scale.',
+    requirements: [
+      'Central campus core router/switch',
+      '3+ building switches, each connected to the core',
+      'Endpoints at each building (lab, office, dorm, etc.)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'router', min: 1 },
+      { type: 'switch', min: 4 },
+    ],
+    autoBuild: (state) => {
+      const internet = _tbMkDev({ type: 'cloud',  x: 700, y: 120, hostname: 'Internet' });
+      const core   = _tbMkDev({ type: 'router', x: 700, y: 320, hostname: 'Campus-Core-RTR' });
+      const coresw = _tbMkDev({ type: 'switch', x: 700, y: 500, hostname: 'Campus-Core-SW' });
+      // Building A — Lab building
+      const swA  = _tbMkDev({ type: 'switch', x: 300, y: 680, hostname: 'Building-A-Lab-SW' });
+      const pcA1 = _tbMkDev({ type: 'pc',     x: 200, y: 840, hostname: 'Lab-PC-01', ip: '10.10.1.101', gateway: '10.10.1.1' });
+      const pcA2 = _tbMkDev({ type: 'pc',     x: 400, y: 840, hostname: 'Lab-PC-02', ip: '10.10.1.102', gateway: '10.10.1.1' });
+      // Building B — Office / Admin
+      const swB  = _tbMkDev({ type: 'switch', x: 700, y: 680, hostname: 'Building-B-Admin-SW' });
+      const pcB  = _tbMkDev({ type: 'pc',     x: 600, y: 840, hostname: 'Admin-PC-01', ip: '10.10.2.101', gateway: '10.10.2.1' });
+      const prn  = _tbMkDev({ type: 'printer',x: 800, y: 840, hostname: 'Admin-Printer', ip: '10.10.2.200', gateway: '10.10.2.1' });
+      // Building C — Dorm / wireless
+      const swC  = _tbMkDev({ type: 'switch', x: 1100,y: 680, hostname: 'Building-C-Dorm-SW' });
+      const wap  = _tbMkDev({ type: 'wap',    x: 1100,y: 820, hostname: 'Dorm-WAP' });
+      const lt   = _tbMkDev({ type: 'laptop', x: 1000,y: 980, hostname: 'Student-Laptop', ip: '10.10.3.101', gateway: '10.10.3.1' });
+      const ph   = _tbMkDev({ type: 'smartphone',x: 1200,y: 980, hostname: 'Student-Phone', ip: '10.10.3.102', gateway: '10.10.3.1', iface: 'wlan0' });
+      state.devices.push(internet, core, coresw, swA, pcA1, pcA2, swB, pcB, prn, swC, wap, lt, ph);
+      state.cables.push(
+        _tbMkCable(internet, core),
+        _tbMkCable(core, coresw, 'fiber', 1),
+        _tbMkCable(coresw, swA, 'fiber', 1), _tbMkCable(coresw, swB, 'fiber', 2), _tbMkCable(coresw, swC, 'fiber', 3),
+        _tbMkCable(swA, pcA1), _tbMkCable(swA, pcA2, 'cat6', 1),
+        _tbMkCable(swB, pcB), _tbMkCable(swB, prn, 'cat6', 1),
+        _tbMkCable(swC, wap), _tbMkCable(wap, lt), _tbMkCable(wap, ph, 'cat6', 0, 1),
+      );
+    },
+    explanation: {
+      overview: 'A CAN (Campus Area Network) connects multiple buildings within a single organization\'s geographic campus — a university, hospital complex, large corporate HQ, or military base. Scale is bigger than a LAN (which is one building) and smaller than a MAN (which spans a city). The organization owns or leases the fiber between buildings (dark fiber or private metro-Ethernet), so there\'s no ISP in the middle. Typical link technology is single-mode fiber at 10G or 40G, often arranged as a ring or mesh between building switches and a campus core.',
+      dataFlow: 'A student in Dorm-C streams a lecture from the Lab-A file server. Laptop → Dorm-WAP (wireless) → Dorm-SW → fiber uplink to Campus-Core-SW → routes to Lab-A subnet → Lab-A-SW → file server. Stays entirely within the campus fiber — doesn\'t touch the internet. Internet-bound traffic (e.g., Zoom): Dorm-SW → Core-SW → Core-RTR → internet.',
+      keyDevices: [
+        { name: 'Campus Core Router', role: 'The single internet egress point + inter-building router. Sometimes called the "backbone" or "distribution core."' },
+        { name: 'Campus Core Switch', role: 'Aggregates all building uplinks. High-capacity (10/40/100G ports). Often redundant in pairs for HA.' },
+        { name: 'Building Switches', role: 'Each building\'s distribution layer. Connects to campus core via fiber + serves local access switches or endpoints directly.' },
+        { name: 'Organization-Owned Fiber', role: 'The physical backbone between buildings. Either dark fiber leased long-term, or actual owned fiber runs through campus conduits.' },
+      ],
+      concepts: [
+        { term: 'CAN vs LAN vs MAN', meaning: 'Scale: LAN = one building, CAN = one campus (multiple buildings, single org), MAN = one city (multiple sites, often via ISP).' },
+        { term: 'Dark fiber', meaning: 'Unused fiber in the ground. Organizations lease it long-term from carriers or municipalities to run their own WAN.' },
+        { term: 'Distribution layer (vs access/core)', meaning: 'Classic 3-tier model: Core (campus backbone) → Distribution (per building) → Access (to endpoints). CANs hit all 3.' },
+        { term: 'Ring vs mesh between buildings', meaning: 'Ring: each building connects to 2 neighbors (redundant, cheaper). Mesh: every building to every other (expensive but maximally redundant).' },
+      ],
+      examTies: 'N10-009 1.8 (CAN explicitly listed in network types), 1.8 (LAN/CAN/MAN/WAN scale comparison)',
+    },
+  },
+  {
+    id: 'pan',
+    title: 'Personal Area Network (PAN)',
+    description: 'Short-range personal-scale network — typically Bluetooth, NFC, or Zigbee — connecting devices within a few metres of a user. Phone as the hub for headphones, watch, fitness tracker, etc.',
+    requirements: [
+      'Smartphone (central hub) + 3+ personal devices in close proximity',
+      'Short-range wireless connections (Bluetooth, Zigbee, NFC) — visualised as cat6 but pedagogically they are NOT wired',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'smartphone', min: 1 },
+    ],
+    autoBuild: (state) => {
+      // Note: our canvas model doesn't have Bluetooth cables, so we use cat6 to represent
+      // the short-range connection. The educational point is in the labels + explanation.
+      const phone = _tbMkDev({ type: 'smartphone',  x: 700, y: 480, hostname: 'Alice-Phone (PAN hub)', iface: 'wlan0' });
+      const laptop = _tbMkDev({ type: 'laptop',     x: 400, y: 320, hostname: 'Alice-Laptop' });
+      const tv    = _tbMkDev({ type: 'smart-tv',    x: 1000,y: 320, hostname: 'Speaker (Bluetooth)' });
+      const watch = _tbMkDev({ type: 'iot',         x: 400, y: 640, hostname: 'Smartwatch (BT)' });
+      const earbuds = _tbMkDev({ type: 'iot',       x: 700, y: 760, hostname: 'Earbuds (BT)' });
+      const fit   = _tbMkDev({ type: 'iot',         x: 1000,y: 640, hostname: 'Fitness Tracker (BT)' });
+      state.devices.push(phone, laptop, tv, watch, earbuds, fit);
+      // Cables represent logical Bluetooth/Zigbee links — NOT actual Ethernet
+      state.cables.push(
+        _tbMkCable(phone, laptop, 'cat6', 1, 0),
+        _tbMkCable(phone, tv, 'cat6', 2, 0),
+        _tbMkCable(phone, watch, 'cat6', 3, 0),
+        _tbMkCable(phone, earbuds, 'cat6', 4, 0),
+        _tbMkCable(phone, fit, 'cat6', 5, 0),
+      );
+    },
+    explanation: {
+      overview: 'A PAN (Personal Area Network) is the smallest-scale network type — a few metres around a single user. Most commonly implemented with Bluetooth (the primary PAN technology on N10-009), but also NFC (tap-to-pay, room-key cards), Zigbee (smart-home IoT mesh), and wired USB/FireWire in some definitions. Phones are usually the PAN hub: they talk to earbuds for audio, smartwatch for health data, fitness tracker for sync, car infotainment for calls, etc.',
+      dataFlow: 'Alice\'s phone connects to her wireless earbuds via Bluetooth. When she starts a call: phone\'s Bluetooth stack pairs with the earbuds (device addresses exchanged once, then remembered) → audio stream is transmitted at 2.4 GHz using frequency-hopping spread spectrum over 79 channels. Range is typically 10 metres (Class 2 Bluetooth). Simultaneously, her fitness tracker BLE-connects to sync heart-rate data to the phone\'s Health app. None of this touches Wi-Fi, ethernet, or any other network — it\'s all short-range 2.4 GHz radio.',
+      keyDevices: [
+        { name: 'Smartphone (PAN hub)', role: 'Most often the center of a personal network. Bluetooth stack can maintain multiple simultaneous pairings (audio + sensors + car + etc).' },
+        { name: 'Bluetooth Peripherals', role: 'Earbuds, smartwatch, fitness tracker — all short-range wireless. Typical range 10m (Class 2), up to 100m (Class 1, rare in consumer).' },
+        { name: 'NFC devices', role: 'Tap-to-pay terminals, room-key cards. Range is <5 cm. Uses 13.56 MHz — different band from Bluetooth.' },
+        { name: 'Zigbee mesh', role: 'Smart-home IoT (Philips Hue, Samsung SmartThings). 2.4 GHz mesh network — devices relay for each other. Not strictly PAN but similar scale.' },
+      ],
+      concepts: [
+        { term: 'Bluetooth Classic vs BLE', meaning: 'Classic: higher bandwidth (audio streaming), always-on connection. BLE (Low Energy): low power, sporadic beacons (sensors, beacons, iBeacon). Both are Bluetooth, different profiles.' },
+        { term: 'Pairing', meaning: 'One-time cryptographic handshake between two Bluetooth devices. After pairing, they remember each other and auto-reconnect.' },
+        { term: 'PAN vs WLAN', meaning: 'PAN = few metres, Bluetooth/NFC/Zigbee, one person. WLAN = whole building, Wi-Fi, many users. PAN is a strictly smaller scale.' },
+        { term: 'Canvas limitation', meaning: '⚠️ Our Topology Builder doesn\'t model Bluetooth natively — we\'re using Ethernet cables as a visualization. IRL these would be wireless short-range radio links, NOT cables.' },
+      ],
+      examTies: 'N10-009 1.8 (PAN named in network types — "Bluetooth, IR, Zigbee examples"), 2.3 (wireless standards)',
+    },
+  },
+  {
+    id: 'san',
+    title: 'Storage Area Network (SAN)',
+    description: 'Dedicated high-speed network for block-level storage. Servers access storage arrays via Fibre Channel or iSCSI — appears to the server as a local disk. Isolated from the production LAN.',
+    requirements: [
+      '2+ servers that need shared storage',
+      'FC/iSCSI switch dedicated to storage traffic',
+      'Storage array (SAN appliance)',
+      'Separated from any production LAN (best-practice)',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'server',    min: 2 },
+      { type: 'switch',    min: 1 },
+      { type: 'san-array', min: 1 },
+    ],
+    autoBuild: (state) => {
+      // SAN fabric — dedicated to storage, isolated from LAN
+      const srv1  = _tbMkDev({ type: 'server',    x: 300, y: 280, hostname: 'App-Server-01', ip: '10.100.0.10' });
+      const srv2  = _tbMkDev({ type: 'server',    x: 300, y: 500, hostname: 'App-Server-02', ip: '10.100.0.11' });
+      const srv3  = _tbMkDev({ type: 'server',    x: 300, y: 720, hostname: 'DB-Server',     ip: '10.100.0.12' });
+      const fcsw  = _tbMkDev({ type: 'switch',    x: 700, y: 500, hostname: 'FC-Switch-01 (SAN fabric)' });
+      const san1  = _tbMkDev({ type: 'san-array', x: 1100,y: 380, hostname: 'SAN-Array-01 (primary)' });
+      const san2  = _tbMkDev({ type: 'san-array', x: 1100,y: 620, hostname: 'SAN-Array-02 (replica)' });
+      state.devices.push(srv1, srv2, srv3, fcsw, san1, san2);
+      state.cables.push(
+        // Each server to FC-SW via fiber (simulating FC HBA connections)
+        _tbMkCable(srv1, fcsw, 'fiber', 1), _tbMkCable(srv2, fcsw, 'fiber', 1, 1), _tbMkCable(srv3, fcsw, 'fiber', 1, 2),
+        // FC-SW to storage arrays
+        _tbMkCable(fcsw, san1, 'fiber', 3), _tbMkCable(fcsw, san2, 'fiber', 4),
+        // Replica sync link between the two SAN arrays
+        _tbMkCable(san1, san2, 'fiber', 1, 1),
+      );
+    },
+    explanation: {
+      overview: 'A SAN (Storage Area Network) is a dedicated high-speed network that provides block-level access to storage. Unlike NAS (Network-Attached Storage), which serves files over TCP/IP, a SAN presents raw block devices — the server sees them as if they were local SATA/SAS disks. Classical SANs use Fibre Channel (FC) with dedicated FC switches running at 8/16/32 Gbps. Modern deployments often use iSCSI (SCSI over TCP/IP) or FCoE (FC over Ethernet) on 10/25/100 Gbps Ethernet to consolidate with the production network.',
+      dataFlow: 'App-Server-01 writes 4 KB of data to "C:\\users\\data.txt". To the OS, C: is a local disk. Under the hood: OS builds a SCSI write command + the 4 KB payload → routes it out the server\'s FC HBA (Host Bus Adapter). Frame travels over FC fiber to FC-Switch → routed based on WWN (World Wide Name — the FC equivalent of MAC) to SAN-Array-01. Array receives, writes to physical disk(s), returns ACK. All of this happens with microseconds of latency — SAN is designed for speed.',
+      keyDevices: [
+        { name: 'Servers with HBAs', role: 'Each server has a dedicated Fibre Channel Host Bus Adapter — a PCI card that speaks FC. Shows storage as local disks to the OS.' },
+        { name: 'FC Switches (SAN Fabric)', role: 'Dedicated switches running Fibre Channel protocol. Usually redundant pairs ("dual-fabric") so no single switch failure kills storage.' },
+        { name: 'Storage Arrays', role: 'The SAN appliance itself. Contains dozens to hundreds of physical disks (HDD/SSD/NVMe), a controller, cache, and exposes LUNs (Logical Unit Numbers) to servers.' },
+        { name: 'LUNs (Logical Unit Numbers)', role: 'Virtual disks carved from the array\'s pool. LUN masking restricts which servers can see which LUNs (the equivalent of filesystem permissions at the block level).' },
+      ],
+      concepts: [
+        { term: 'SAN vs NAS', meaning: 'SAN = block-level (looks like a raw disk — server formats it). NAS = file-level (SMB/NFS, server mounts pre-formatted shares). SANs are faster; NAS are easier to share.' },
+        { term: 'Fibre Channel vs iSCSI vs FCoE', meaning: 'FC = dedicated SAN fabric, fastest, expensive. iSCSI = SCSI over regular TCP/IP, cheaper, shares Ethernet. FCoE = FC frames over 10G+ Ethernet — hybrid.' },
+        { term: 'LUN masking / zoning', meaning: 'Controls which servers see which storage. Like firewall rules for storage. Prevents accidents and enforces tenancy.' },
+        { term: 'Multipathing', meaning: 'Each server has 2+ paths to each LUN (via dual-fabric SAN switches). If one path fails, the server keeps working via the other.' },
+      ],
+      examTies: 'N10-009 1.8 (SAN explicitly listed in network types), 1.6 (Fibre Channel), 4.1 (network segmentation)',
+    },
+  },
+  {
+    id: 'wlan',
+    title: 'WLAN (Wireless Local Area Network)',
+    description: 'A pure wireless LAN — WLC + multiple WAPs + wireless clients. Focused on the wireless architecture itself (no WAN, no firewall) so you see the WLAN as its own network type.',
+    requirements: [
+      'WLC (Wireless LAN Controller)',
+      '3+ WAPs managed by the WLC (coverage across the space)',
+      '4+ wireless clients (laptops, phones, consoles, smart-TVs)',
+      'Focus is the wireless LAN itself — no internet/WAN in this view',
+    ],
+    ruleIds: ['min-devices', 'no-orphans'],
+    requires: [
+      { type: 'wlc', min: 1 },
+      { type: 'wap', min: 3 },
+    ],
+    autoBuild: (state) => {
+      const wlc   = _tbMkDev({ type: 'wlc',        x: 700, y: 200, hostname: 'WLC-01', ip: '10.30.0.10' });
+      const sw    = _tbMkDev({ type: 'switch',     x: 700, y: 360, hostname: 'Distribution-SW' });
+      const wap1  = _tbMkDev({ type: 'wap',        x: 280, y: 520, hostname: 'WAP-01 (2.4 GHz + 5 GHz)' });
+      const wap2  = _tbMkDev({ type: 'wap',        x: 700, y: 520, hostname: 'WAP-02 (2.4 GHz + 5 GHz)' });
+      const wap3  = _tbMkDev({ type: 'wap',        x: 1120,y: 520, hostname: 'WAP-03 (2.4 GHz + 5 GHz)' });
+      // Wireless clients associated with various WAPs
+      const lt1   = _tbMkDev({ type: 'laptop',     x: 180, y: 720, hostname: 'Laptop-01', ip: '10.30.20.101', gateway: '10.30.20.1' });
+      const lt2   = _tbMkDev({ type: 'laptop',     x: 380, y: 720, hostname: 'Laptop-02', ip: '10.30.20.102', gateway: '10.30.20.1' });
+      const ph1   = _tbMkDev({ type: 'smartphone', x: 600, y: 720, hostname: 'Phone-01',  ip: '10.30.20.103', gateway: '10.30.20.1', iface: 'wlan0' });
+      const ph2   = _tbMkDev({ type: 'smartphone', x: 800, y: 720, hostname: 'Phone-02',  ip: '10.30.20.104', gateway: '10.30.20.1', iface: 'wlan0' });
+      const tv    = _tbMkDev({ type: 'smart-tv',   x: 1020,y: 720, hostname: 'Smart-TV',  ip: '10.30.20.105', gateway: '10.30.20.1' });
+      const gc    = _tbMkDev({ type: 'game-console',x: 1220,y: 720, hostname: 'Console',   ip: '10.30.20.106', gateway: '10.30.20.1' });
+      state.devices.push(wlc, sw, wap1, wap2, wap3, lt1, lt2, ph1, ph2, tv, gc);
+      state.cables.push(
+        _tbMkCable(wlc, sw),
+        _tbMkCable(sw, wap1, 'cat6', 1), _tbMkCable(sw, wap2, 'cat6', 2), _tbMkCable(sw, wap3, 'cat6', 3),
+        _tbMkCable(wap1, lt1), _tbMkCable(wap1, lt2, 'cat6', 1),
+        _tbMkCable(wap2, ph1), _tbMkCable(wap2, ph2, 'cat6', 1),
+        _tbMkCable(wap3, tv), _tbMkCable(wap3, gc, 'cat6', 1),
+      );
+    },
+    explanation: {
+      overview: 'A WLAN (Wireless LAN) is a network of devices communicating wirelessly in a local area — typically using Wi-Fi (IEEE 802.11 family). A modern enterprise WLAN uses a controller-based architecture: a WLC (Wireless LAN Controller) manages multiple lightweight WAPs (Wireless Access Points) distributed through a building. The WLC handles association, authentication (WPA2/WPA3-Enterprise), roaming between WAPs, and RF management (channel selection, power tuning). Clients connect to the nearest WAP and the infrastructure makes the WLAN look like one seamless network.',
+      dataFlow: 'Phone-01 walks into the office. Phone probes for SSIDs → sees "CorpWiFi" broadcast by WAP-02. Phone requests association → WAP-02 CAPWAP-tunnels the request to the WLC → WLC performs 802.1X auth via RADIUS → issues a DHCP lease. Phone is now on the WLAN (10.30.20.103). Phone opens Slack → frames travel wirelessly to WAP-02 → CAPWAP-tunneled to WLC → forwarded onto Distribution-SW → out the WLAN\'s gateway. When the user walks past WAP-03\'s coverage: WLC orchestrates a roaming handoff so the session persists.',
+      keyDevices: [
+        { name: 'WLC (Wireless LAN Controller)', role: 'Central brain. Holds all WAP configs. Authenticates clients, coordinates roaming, enforces QoS and security policy.' },
+        { name: 'WAPs (Wireless Access Points)', role: 'Lightweight radios. Each one serves a coverage area (typical 30-50m indoor). Modern WAPs have dual radios (2.4 + 5 GHz) and 4x4 MIMO.' },
+        { name: 'Distribution Switch', role: 'Wired backbone that WAPs plug into via PoE. Provides power + uplink to the WLC and beyond.' },
+        { name: 'Wireless Clients', role: 'Anything with a Wi-Fi radio — laptops, phones, consoles, smart-TVs, IoT. All associate with one WAP at a time.' },
+      ],
+      concepts: [
+        { term: '802.11 standards', meaning: 'a (5 GHz only), b/g (2.4 GHz, slow), n (Wi-Fi 4, dual-band), ac (Wi-Fi 5, 5 GHz only, MU-MIMO), ax (Wi-Fi 6/6E, OFDMA + 6 GHz), be (Wi-Fi 7, 320 MHz).' },
+        { term: 'SSID vs BSSID', meaning: 'SSID = human-readable network name ("CorpWiFi"). BSSID = MAC of a specific WAP radio. Same SSID across many BSSIDs = one logical WLAN spanning multiple WAPs.' },
+        { term: 'Roaming (802.11r/k/v)', meaning: 'Fast transition standards let clients hop between WAPs in ~50ms without dropping VoIP/video calls. WLC coordinates the handoff.' },
+        { term: 'CAPWAP', meaning: 'Control And Provisioning of Wireless Access Points. The tunneling protocol between WAPs and the WLC. Carries both control messages and (optionally) client data traffic.' },
+      ],
+      examTies: 'N10-009 1.8 (WLAN explicitly named), 2.3 (802.11 standards + wireless architecture), 4.1 (wireless security: WPA2/WPA3)',
+    },
+  },
 ];
 
 let tbSelectedScenario = 'free';
@@ -8420,7 +9345,7 @@ function tbRenderEmptyHint() {
         <button class="tb-empty-cta tb-empty-cta-scenario" onclick="tbOpenScenarioPicker()" type="button">
           <span class="tb-empty-cta-icon">\u{1F3AF}</span>
           <span class="tb-empty-cta-title">Load a scenario</span>
-          <span class="tb-empty-cta-sub">16 real-world network patterns</span>
+          <span class="tb-empty-cta-sub">31 real-world network patterns</span>
         </button>
       </div>`;
     return;
@@ -8493,25 +9418,57 @@ const TB_SCENARIO_CATEGORIES = [
   {
     name: 'WAN Architectures',
     icon: '\u{1F310}',
-    ids: ['sdwan', 'mpls', 'man'],
+    ids: ['point-to-point', 'hub-spoke', 'full-mesh', 'sdwan', 'mpls', 'man', 's2s-vpn', 'remote-vpn', 'cellular', 'satellite-wan'],
+  },
+  {
+    name: 'Broadband & Last-Mile',
+    icon: '\u{1F4E1}',
+    ids: ['dsl', 'cable', 'ftth'],
+  },
+  {
+    name: 'Advanced WAN',
+    icon: '\u{1F527}',
+    ids: ['multi-homed-bgp', 'gre-tunnel'],
   },
   {
     name: 'Cloud Networking',
     icon: '\u2601\uFE0F',
     ids: ['cloud-igw', 'cloud-natgw', 'cloud-peering', 'cloud-vpc', 'hybrid-cloud', 'multi-vpc', 'sase-arch'],
   },
+  {
+    name: 'Other Network Types',
+    icon: '\u{1F5FA}\uFE0F',
+    ids: ['can', 'pan', 'san', 'wlan'],
+  },
 ];
 
 // Per-scenario emoji for the picker cards — matches the dropdown.
 const TB_SCENARIO_ICONS = {
+  // Campus & Enterprise
   'home-network':    '\u{1F3E0}',
   'small-office':    '\u{1F3E2}',
   'dmz':             '\u{1F512}',
   'enterprise':      '\u{1F3E2}',
   'branch-wireless': '\u{1F4F6}',
+  // WAN Architectures
+  'point-to-point':  '\u2194\uFE0F',
+  'hub-spoke':       '\u2B50',
+  'full-mesh':       '\u{1F517}',
   'sdwan':           '\u{1F310}',
   'mpls':            '\u{1F3F7}\uFE0F',
   'man':             '\u{1F3D9}\uFE0F',
+  's2s-vpn':         '\u{1F510}',
+  'remote-vpn':      '\u{1F4BC}',
+  'cellular':        '\u{1F4E1}',
+  'satellite-wan':   '\u{1F6F0}\uFE0F',
+  // Broadband & Last-Mile
+  'dsl':             '\u{260E}\uFE0F',
+  'cable':           '\u{1F4FA}',
+  'ftth':            '\u{1F4A1}',
+  // Advanced WAN
+  'multi-homed-bgp': '\u{1F500}',
+  'gre-tunnel':      '\u{1F6E4}\uFE0F',
+  // Cloud Networking
   'cloud-igw':       '\u{1F6AA}',
   'cloud-natgw':     '\u{1F501}',
   'cloud-peering':   '\u{1F517}',
@@ -8519,6 +9476,11 @@ const TB_SCENARIO_ICONS = {
   'hybrid-cloud':    '\u{1F517}',
   'multi-vpc':       '\u{1F52C}',
   'sase-arch':       '\u{1F6E1}\uFE0F',
+  // Other Network Types
+  'can':             '\u{1F393}',
+  'pan':             '\u{1F4F1}',
+  'san':             '\u{1F4BE}',
+  'wlan':            '\u{1F4E1}',
 };
 
 function tbOpenScenarioPicker() {

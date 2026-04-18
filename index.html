@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.48.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.49.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -1068,9 +1068,25 @@
             <option value="branch-wireless">&#128246; Branch + Wireless</option>
           </optgroup>
           <optgroup label="WAN Architectures">
+            <option value="point-to-point">&#8596; Point-to-Point (Leased Line)</option>
+            <option value="hub-spoke">&#11088; Hub-and-Spoke</option>
+            <option value="full-mesh">&#128279; Full Mesh WAN</option>
             <option value="sdwan">&#127760; SD-WAN Network</option>
             <option value="mpls">&#127991;&#65039; MPLS Network</option>
             <option value="man">&#127961;&#65039; Metropolitan Area Network</option>
+            <option value="s2s-vpn">&#128274; Site-to-Site IPSec VPN</option>
+            <option value="remote-vpn">&#128188; Remote Access VPN</option>
+            <option value="cellular">&#128225; Cellular 4G/5G WAN</option>
+            <option value="satellite-wan">&#128752;&#65039; Satellite WAN</option>
+          </optgroup>
+          <optgroup label="Broadband &amp; Last-Mile">
+            <option value="dsl">&#128222; DSL Branch</option>
+            <option value="cable">&#128250; Cable Broadband (DOCSIS)</option>
+            <option value="ftth">&#128161; Fiber-to-the-Home (GPON)</option>
+          </optgroup>
+          <optgroup label="Advanced WAN">
+            <option value="multi-homed-bgp">&#128256; Multi-homed WAN w/ BGP</option>
+            <option value="gre-tunnel">&#128736;&#65039; GRE Tunnel</option>
           </optgroup>
           <optgroup label="Cloud Networking">
             <option value="cloud-igw">&#128682; Internet Gateway Cloud</option>
@@ -1080,6 +1096,12 @@
             <option value="hybrid-cloud">&#128279; Hybrid Cloud (VPN)</option>
             <option value="multi-vpc">&#128300; Multi-VPC + Transit GW</option>
             <option value="sase-arch">&#128737; SASE Architecture</option>
+          </optgroup>
+          <optgroup label="Other Network Types">
+            <option value="can">&#127891; CAN (Campus Area Network)</option>
+            <option value="pan">&#128241; PAN (Personal Area Network)</option>
+            <option value="san">&#128190; SAN (Storage Area Network)</option>
+            <option value="wlan">&#128225; WLAN (Wireless LAN)</option>
           </optgroup>
         </select>
       </div>

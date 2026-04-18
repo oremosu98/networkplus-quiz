@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.48.0', js.includes("const APP_VERSION = '4.48.0"));
+test('APP_VERSION is 4.49.0', js.includes("const APP_VERSION = '4.49.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.48.0', sw.includes('netplus-v4.48.0'));
+test('SW cache bumped to v4.49.0', sw.includes('netplus-v4.49.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4390,8 +4390,8 @@ console.log('\n\x1b[1m── v4.47.1 SCENARIO PICKER + FEEDBACK ──\x1b[0m');
 test('v4.47.1: empty-state has Load-a-scenario tile class (in tbRenderEmptyHint source)',
   js.includes('tb-empty-cta-scenario'));
 test('v4.47.1: empty-state tile wires to tbOpenScenarioPicker', js.includes("onclick=\"tbOpenScenarioPicker()\""));
-test('v4.47.1: empty-state tile advertises 16 scenarios',
-  js.includes('16 real-world network patterns'));
+test('v4.47.1/v4.49.0: empty-state tile advertises "N real-world network patterns"',
+  js.includes('real-world network patterns'));
 // Scenario picker modal in HTML
 test('v4.47.1: #tb-scenario-picker modal present in HTML',
   html.includes('id="tb-scenario-picker"'));
@@ -4523,6 +4523,92 @@ test('v4.48.0: every scenario autoBuild pushes to state.devices',
   (js.match(/autoBuild:\s*\(state\)\s*=>\s*\{[\s\S]*?state\.devices\.push/g) || []).length >= 15);
 test('v4.48.0: every scenario autoBuild pushes to state.cables',
   (js.match(/autoBuild:\s*\(state\)\s*=>\s*\{[\s\S]*?state\.cables\.push/g) || []).length >= 15);
+
+// ── v4.49.0 16 NEW SCENARIOS + 4 DEVICE TYPES ──
+console.log('\n\x1b[1m── v4.49.0 16 SCENARIOS + 4 DEVICE TYPES ──\x1b[0m');
+// New device types registered
+test('v4.49.0: satellite device type registered',
+  /'satellite':\s*\{\s*label:\s*'Satellite'/.test(js));
+test('v4.49.0: cell-tower device type registered',
+  /'cell-tower':\s*\{\s*label:\s*'Cell Tower'/.test(js));
+test('v4.49.0: modem device type registered',
+  /'modem':\s*\{\s*label:\s*'Modem/.test(js));
+test('v4.49.0: san-array device type registered',
+  /'san-array':\s*\{\s*label:\s*'SAN Storage Array'/.test(js));
+// Palette placement
+test("v4.49.0: new 'WAN & Broadband' palette group added",
+  js.includes("label: 'WAN & Broadband'"));
+test("v4.49.0: san-array added to Endpoints palette group",
+  /types:\s*\['pc','laptop','smartphone','game-console','smart-tv','printer','voip','iot','server','dns-server','san-array'/.test(js));
+// Interface defaults for new devices
+test('v4.49.0: satellite iface default (uplink/downlink, count=2)',
+  /'satellite':\s*\{\s*count:\s*2,\s*naming:\s*i\s*=>\s*i === 0 \? 'uplink' : 'downlink'/.test(js));
+test('v4.49.0: cell-tower iface default (backhaul + sector antennas)',
+  /'cell-tower':\s*\{\s*count:\s*3,\s*naming:\s*i\s*=>\s*i === 0 \? 'backhaul' : 'sector'/.test(js));
+test('v4.49.0: modem iface default (wan/lan, count=2)',
+  /'modem':\s*\{\s*count:\s*2,\s*naming:\s*i\s*=>\s*i === 0 \? 'wan' : 'lan'/.test(js));
+test('v4.49.0: san-array iface default (fc0/fc1, count=2)',
+  /'san-array':\s*\{\s*count:\s*2,\s*naming:\s*i\s*=>\s*'fc' \+ i/.test(js));
+// SVG icons present (regression — no plain-circle fallback for new types)
+test("v4.49.0: tbDeviceIcon 'satellite' case — bus + solar panels + dish",
+  /case\s+'satellite':[\s\S]{0,1500}Satellite body[\s\S]{0,500}Solar panels[\s\S]{0,800}Dish antenna/.test(js));
+test("v4.49.0: tbDeviceIcon 'cell-tower' case — truss + antennas + signal arcs",
+  /case\s+'cell-tower':[\s\S]{0,1500}Tower base[\s\S]{0,500}Antenna array[\s\S]{0,500}Radio signal arcs/.test(js));
+test("v4.49.0: tbDeviceIcon 'modem' case — body + LED row + antenna stub",
+  /case\s+'modem':[\s\S]{0,2500}Modem body[\s\S]{0,800}LED indicator row[\s\S]{0,800}Short antenna stub/.test(js));
+test("v4.49.0: tbDeviceIcon 'san-array' case — chassis + 4 drive bays + LEDs",
+  /case\s+'san-array':[\s\S]{0,1500}drive-bay slots stacked[\s\S]{0,800}Drive activity LEDs/.test(js));
+test('v4.49.0: all 4 new device icons present (regression — no plain-circle fallback)',
+  js.includes("case 'satellite':") && js.includes("case 'cell-tower':") &&
+  js.includes("case 'modem':") && js.includes("case 'san-array':"));
+
+// 16 new scenarios registered with autoBuild
+const newScenarios = [
+  // Tier 1
+  'point-to-point', 'hub-spoke', 'full-mesh', 's2s-vpn', 'remote-vpn', 'cellular', 'satellite-wan',
+  // Tier 2
+  'dsl', 'cable', 'ftth',
+  // Tier 3
+  'multi-homed-bgp', 'gre-tunnel',
+  // Tier 4
+  'can', 'pan', 'san', 'wlan',
+];
+newScenarios.forEach(id => {
+  test(`v4.49.0: scenario '${id}' registered with autoBuild + explanation`,
+    new RegExp(`id:\\s*'${id}'[\\s\\S]{0,6000}autoBuild:\\s*\\(state\\)\\s*=>[\\s\\S]{0,6000}explanation:\\s*\\{`).test(js));
+});
+
+// Dropdown: new optgroups
+test('v4.49.0: dropdown has Broadband & Last-Mile optgroup',
+  html.includes('<optgroup label="Broadband &amp; Last-Mile">'));
+test('v4.49.0: dropdown has Advanced WAN optgroup',
+  html.includes('<optgroup label="Advanced WAN">'));
+test('v4.49.0: dropdown has Other Network Types optgroup',
+  html.includes('<optgroup label="Other Network Types">'));
+newScenarios.forEach(id => {
+  test(`v4.49.0: dropdown option for '${id}'`, html.includes(`value="${id}"`));
+});
+
+// Picker categories + icons updated
+test('v4.49.0: TB_SCENARIO_CATEGORIES expanded to 6 buckets',
+  (js.match(/\{\s*\n\s*name:\s*'[^']+',\s*\n\s*icon:/g) || []).length >= 6);
+test("v4.49.0: 'Broadband & Last-Mile' category registered",
+  js.includes("name: 'Broadband & Last-Mile'"));
+test("v4.49.0: 'Advanced WAN' category registered",
+  js.includes("name: 'Advanced WAN'"));
+test("v4.49.0: 'Other Network Types' category registered",
+  js.includes("name: 'Other Network Types'"));
+// Spot-check a few new scenario icons
+test("v4.49.0: TB_SCENARIO_ICONS has entry for point-to-point",
+  /'point-to-point':\s*'/.test(js));
+test("v4.49.0: TB_SCENARIO_ICONS has entry for san",
+  /'san':\s*'\\u\{1F4BE\}'/.test(js));
+
+// Empty-state tile copy updated (16 → 31)
+test('v4.49.0: empty-state tile advertises 31 real-world network patterns',
+  js.includes('31 real-world network patterns'));
+test('v4.49.0: old "16 real-world" copy removed (regression guard)',
+  !js.includes('16 real-world network patterns'));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
