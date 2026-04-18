@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.49.1
+// Network+ AI Quiz — app.js  v4.49.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.49.1';
+const APP_VERSION = '4.49.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9216,7 +9216,11 @@ function _tbMkDev(opts) {
     vxlanConfig: [],
   };
 }
-function _tbMkCable(a, b, type = 'cat6', aIdx = 0, bIdx = 0) {
+// v4.49.2: link-local IP pool counter — reset by tbLoadScenarioWithBuild
+// before each scenario build. Each L3-to-L3 cable gets its own /30.
+let _tbLinkLocalSlot = 0;
+
+function _tbMkCable(a, b, type = 'cat6', aIdx, bIdx) {
   // v4.48.0: auto-provision interfaces so scenario authors can reference
   // slots 1/2/3 without pre-declaring them on _tbMkDev. _tbMkDev creates
   // one default interface; additional ones spawn here as needed.
@@ -9231,8 +9235,67 @@ function _tbMkCable(a, b, type = 'cat6', aIdx = 0, bIdx = 0) {
       });
     }
   };
+  // v4.49.2: when index not explicitly passed, find the next FREE interface
+  // (or create one if all are in use). Prevents the bug where multiple
+  // cables attached to the same device via `_tbMkCable(hub, X)` at default
+  // (0, 0) silently overwrite each other's cableId — which caused many
+  // scenario cables to assess as 'blocked' in health checks because the
+  // interface lookup found a severed reference.
+  const nextFreeIdx = (dev) => {
+    for (let i = 0; i < dev.interfaces.length; i++) {
+      if (!dev.interfaces[i].cableId) return i;
+    }
+    return dev.interfaces.length; // triggers ensureIface to add a new one
+  };
+  // If explicit index was passed but that slot is already attached to a
+  // cable, fall forward to the next free slot (prevents silent overwrite
+  // on overlapping explicit indices in scenario autoBuild functions).
+  const resolveIdx = (dev, explicitIdx) => {
+    if (explicitIdx === undefined) return nextFreeIdx(dev);
+    ensureIface(dev, explicitIdx);
+    if (dev.interfaces[explicitIdx].cableId) return nextFreeIdx(dev);
+    return explicitIdx;
+  };
+  aIdx = resolveIdx(a, aIdx);
+  bIdx = resolveIdx(b, bIdx);
   ensureIface(a, aIdx);
   ensureIface(b, bIdx);
+  // v4.49.2: auto-assign link-local IPs on any L3-routable interface that
+  // has no IP yet. Three cases:
+  //   (1) L3 ↔ L3 (neither configured): both get matching /30 link-local
+  //   (2) L3 ↔ exempt: the L3 side gets a /24 link-local (the exempt side
+  //       is conceptually transparent — assess-logic treats it as reachable
+  //       as long as the L3 side has an IP)
+  //   (3) Interfaces already carrying an IP: skip (respect author intent)
+  // Console cables are always skipped (management-only, out-of-band).
+  const aIfc = a.interfaces[aIdx];
+  const bIfc = b.interfaces[bIdx];
+  const aL3 = !TB_NO_IP_NEEDED.includes(a.type);
+  const bL3 = !TB_NO_IP_NEEDED.includes(b.type);
+  if (type !== 'console') {
+    if (aL3 && bL3 && !aIfc.ip && !bIfc.ip) {
+      // Case (1) — matching /30 link-local
+      const slot = _tbLinkLocalSlot++;
+      const third = Math.floor(slot / 63) + 1;   // 169.254.1.* .. 169.254.255.*
+      const offset = (slot % 63) * 4;             // steps of 4 for /30 blocks
+      aIfc.ip = '169.254.' + third + '.' + (offset + 1);
+      bIfc.ip = '169.254.' + third + '.' + (offset + 2);
+      aIfc.mask = '255.255.255.252';
+      bIfc.mask = '255.255.255.252';
+    } else {
+      // Case (2) — one-sided assignment for any L3 iface without an IP
+      // (the other side is exempt, or is L3 but already configured)
+      const assignSide = (ifc) => {
+        const s = _tbLinkLocalSlot++;
+        const third = Math.floor(s / 250) + 10;   // 169.254.10.* onwards
+        const host = (s % 250) + 1;
+        ifc.ip = '169.254.' + third + '.' + host;
+        ifc.mask = '255.255.255.0';
+      };
+      if (aL3 && !aIfc.ip) assignSide(aIfc);
+      if (bL3 && !bIfc.ip) assignSide(bIfc);
+    }
+  }
   const cable = {
     id: 'c_sc_' + Math.random().toString(36).slice(2, 9),
     from: a.id, to: b.id, type,
@@ -9269,6 +9332,10 @@ function tbLoadScenarioWithBuild(id) {
   // Clear-and-build (or just clear for Free Build)
   tbState = tbNewState();
   tbState.name = scen.title;
+  // v4.49.2: reset link-local IP counter so each scenario gets a clean pool
+  // starting at 169.254.1.1 (prevents exhaustion + keeps addresses stable
+  // when re-loading the same scenario).
+  _tbLinkLocalSlot = 0;
   if (scen.autoBuild && id !== 'free') {
     try {
       scen.autoBuild(tbState);
@@ -16118,7 +16185,26 @@ const tbAmbientState = {
   PACKET_OPACITY: 0.85
 };
 
-const TB_NO_IP_NEEDED = ['switch', 'dmz-switch', 'cloud'];
+// v4.49.2: expanded exemption list — devices that operate at L2 or are
+// transit/transparent in our model don't need IP assignments for a cable
+// to be considered "flowing." Pre-v4.49.2 this was only [switch, dmz-switch,
+// cloud], which caused red (blocked) packets on scenario cables connecting
+// through WAPs, modems, cell-towers, satellites, SAN arrays, WLCs,
+// ISP-routers, and cloud-abstraction nodes (VPC, subnet, IGW, NAT-GW,
+// TGW, VPG, SASE, on-prem DC) — none of which conceptually need
+// customer-side IPs in our simulation model.
+const TB_NO_IP_NEEDED = [
+  // L2 bridges
+  'switch', 'dmz-switch', 'wap',
+  // Cloud + cloud-abstraction nodes
+  'cloud', 'vpc', 'cloud-subnet', 'igw', 'nat-gw', 'tgw', 'vpg', 'sase-edge', 'onprem-dc',
+  // Transit / broadband / radio
+  'modem', 'cell-tower', 'satellite', 'isp-router',
+  // Storage fabric
+  'san-array',
+  // Wireless management
+  'wlc',
+];
 
 function tbInitAmbientPool() {
   const animLayer = document.getElementById('tb-anim-layer');

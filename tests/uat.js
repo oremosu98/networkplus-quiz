@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.49.1', js.includes("const APP_VERSION = '4.49.1"));
+test('APP_VERSION is 4.49.2', js.includes("const APP_VERSION = '4.49.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.49.1', sw.includes('netplus-v4.49.1'));
+test('SW cache bumped to v4.49.2', sw.includes('netplus-v4.49.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4657,6 +4657,50 @@ test('v4.49.1 CSS: old .tb-howto-item rule removed',
   !/\.tb-howto-item\s*\{/.test(css));
 test('v4.49.1 CSS: old .tb-howto-num rule removed (replaced by .tb-howto-step-num)',
   !/\.tb-howto-num\s*\{/.test(css));
+
+// ── v4.49.2 PACKET-COLOR FIX (scenarios show green) ──
+console.log('\n\x1b[1m── v4.49.2 PACKET-COLOR FIX ──\x1b[0m');
+// Expanded exemption list
+test("v4.49.2: TB_NO_IP_NEEDED includes 'wap'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'wap'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'modem'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'modem'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'cell-tower'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'cell-tower'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'satellite'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'satellite'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'san-array'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'san-array'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'wlc'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'wlc'/.test(js));
+test("v4.49.2: TB_NO_IP_NEEDED includes 'isp-router'",
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'isp-router'/.test(js));
+// Preserve original entries
+test('v4.49.2: original exempt entries preserved (switch/dmz-switch/cloud)',
+  /const TB_NO_IP_NEEDED\s*=\s*\[[\s\S]{0,400}'switch'[\s\S]{0,200}'dmz-switch'[\s\S]{0,200}'cloud'/.test(js));
+
+// Link-local auto-assign in _tbMkCable
+test('v4.49.2: _tbLinkLocalSlot counter defined',
+  js.includes('let _tbLinkLocalSlot = 0;'));
+test('v4.49.2: _tbMkCable auto-assigns 169.254.x.y/30 for L3\u2194L3 cables',
+  /function _tbMkCable[\s\S]{0,3000}169\.254\.[\s\S]{0,500}255\.255\.255\.252/.test(js));
+test('v4.49.2: auto-assign covers L3↔L3 matching /30 case',
+  /aL3\s*&&\s*bL3\s*&&\s*!aIfc\.ip\s*&&\s*!bIfc\.ip/.test(js));
+test('v4.49.2: auto-assign covers L3↔exempt one-sided case (assignSide helper)',
+  /assignSide\s*=\s*\(ifc\)\s*=>/.test(js) && /if\s*\(aL3\s*&&\s*!aIfc\.ip\)\s*assignSide\(aIfc\)/.test(js));
+test("v4.49.2: auto-assign skipped for console cables",
+  /type\s*!==\s*'console'/.test(js));
+test('v4.49.2: /30 pool stepping by 4 (two usable hosts per /30)',
+  /offset\s*=\s*\(slot\s*%\s*63\)\s*\*\s*4/.test(js));
+
+// Counter reset in tbLoadScenarioWithBuild
+test('v4.49.2: counter reset to 0 before autoBuild runs',
+  /function tbLoadScenarioWithBuild\(id\)[\s\S]{0,2500}_tbLinkLocalSlot\s*=\s*0/.test(js));
+
+// Behavioural check — verify a sample scenario would pass health check
+// (done here via structural inspection; live Chrome-MCP run covers real behaviour)
+test('v4.49.2: tbAssessCableHealth gates on ip + exempt (unchanged logic, widened list)',
+  /function tbAssessCableHealth[\s\S]{0,2000}fromHasIp\s*=\s*fromIfc\?\.ip\s*\|\|\s*fromExempt/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
