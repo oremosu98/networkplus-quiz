@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.50.1', js.includes("const APP_VERSION = '4.50.1"));
+test('APP_VERSION is 4.51.0', js.includes("const APP_VERSION = '4.51.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.50.1', sw.includes('netplus-v4.50.1'));
+test('SW cache bumped to v4.51.0', sw.includes('netplus-v4.51.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -521,7 +521,7 @@ test('CSS: .progress-summary', css.includes('.progress-summary'));
 test('CSS: .progress-domain', css.includes('.progress-domain '));
 test('CSS: .topic-obj-badge', css.includes('.topic-obj-badge'));
 test('CSS: .prog-filter-active', css.includes('.prog-filter-active'));
-test('CSS: .ps-coverage-bar', css.includes('.ps-coverage-bar'));
+test('CSS: .ps2-cover-bar (v4.51.0: renamed from .ps-coverage-bar)', css.includes('.ps2-cover-bar'));
 
 // ── Port Drill family multi-select (v4.12 #27) ──
 console.log('\n\x1b[1m── PORT DRILL FAMILY Q (v4.12) ──\x1b[0m');
@@ -1595,7 +1595,7 @@ test('evaluateMilestones checks labs_all', /id:\s*'labs_all'/.test(js));
 // Lab progress in progress page
 test('Progress page shows lab completion stats', /Labs/.test(js) && js.includes('labPct'));
 test('Progress page shows difficulty breakdown', /Beginner[\s\S]{0,20}Intermediate[\s\S]{0,20}Advanced/.test(js) || /labsByDiff/.test(js));
-test('Progress page lab section rendered', js.includes('ps-lab-row') && js.includes('labPct'));
+test('Progress page lab section rendered (v4.51.0: progress-card-labs replaces ps-lab-row)', js.includes('progress-card-labs') && js.includes('labPct'));
 
 // ═══════════════════════════════════════════
 // v4.31.0 — BGP, EIGRP, DNSSEC, Packet Inspection, STP Convergence, QoS Enforcement, Attack Scenarios
@@ -1917,9 +1917,9 @@ test('Progress: domain header mini-bar', js.includes('pd-bar'));
 test('Progress: domain header bar fill', js.includes('pd-bar-fill'));
 test('CSS: .topic-play-btn styles', css.includes('.topic-play-btn'));
 test('CSS: .pd-bar styles', css.includes('.pd-bar'));
-test('CSS: .ps-row layout', css.includes('.ps-row'));
-test('CSS: .ps-lab-row layout', css.includes('.ps-lab-row'));
-test('Progress: summary uses ps-row', js.includes('ps-row'));
+test('CSS: .ps2-grid-mastery layout (v4.51.0: renamed from .ps-row)', css.includes('.ps2-grid-mastery'));
+test('CSS: .progress-card-labs (v4.51.0: renamed from .ps-lab-row)', css.includes('.progress-card-labs'));
+test('Progress: summary uses .ps2-grid (v4.51.0: renamed from ps-row)', js.includes('ps2-grid'));
 
 // ── v4.34 Topology Builder UI (v4.43.1 REFRESH — v4.34 assertions updated to v4.43.1 shapes) ──
 console.log('\n\x1b[1m── v4.34/v4.43.1 TOPOLOGY BUILDER UI ──\x1b[0m');
@@ -2420,7 +2420,7 @@ test('Solid range uses blue not yellow in progress rows', js.includes("rag-blue"
 test('CSS has rag-blue class', css.includes('.rag-blue'));
 test('No rag-yellow in CSS', !css.includes('.rag-yellow'));
 test('No pct >= 60 with var(--yellow) in JS', !js.match(/>=\s*60.*var\(--yellow\)/));
-test('Solid emoji is blue circle', js.includes('&#128309; Solid'));
+test('Solid emoji is blue circle (v4.51.0: \\u{1F535} blue disc in .ps2-solid tile)', /\\u\{1F535\}[\s\S]{0,300}ps2-solid|ps2-solid[\s\S]{0,300}\\u\{1F535\}/.test(js));
 
 // ── v4.38.0: Acronym Blitz ──
 console.log('\n\x1b[1m── ACRONYM BLITZ (v4.38.0) ──\x1b[0m');
@@ -3113,7 +3113,7 @@ console.log('\n\x1b[1m── v4.42.2 ANALYTICS / PROGRESS DEDUP ──\x1b[0m');
   test('v4.42.2: _buildProgressRows includes trend in populated row object',
     /return\s*\{[^}]*trend[^}]*\}/.test(buildBody));
   test('v4.42.2: _progressRowHtml destructures trend from row',
-    rowBody.includes('trend }'));
+    /const\s*\{[^}]*trend\b/.test(rowBody));
   test('v4.42.2: _progressRowHtml renders arrow when attempts >= 2',
     rowBody.includes('row.attempts >= 2'));
   test('v4.42.2: _progressRowHtml emits topic-trend class',
@@ -4854,6 +4854,143 @@ test('v4.50.1 CSS: narrow-viewport hides date at \u2264520px',
   /@media \(max-width:\s*520px\)[\s\S]{0,300}\.h-date\s*\{[^}]*display:\s*none/.test(css));
 test('v4.50.1 CSS: reduced-motion neutralises history-row transition',
   /prefers-reduced-motion[\s\S]{0,4000}\.history-row\s*\{[^}]*transition:\s*none/.test(css));
+
+// ── v4.51.0 TOPIC PROGRESS PAGE REVAMP ──
+// Topic Progress page polish: cleaner header, 2 premium summary cards
+// (Topic Mastery + Lab Progress), domain-tinted objective badges,
+// friendlier date formatting, 5-colour accordion border palette,
+// polished toolbar. User ask: "Better cleaner and polsihed UI. High quality."
+console.log('\n\x1b[1m── v4.51.0 TOPIC PROGRESS REVAMP ──\x1b[0m');
+
+// HTML — header structure
+test('v4.51.0 HTML: .progress-header wrapper exists',
+  html.includes('class="progress-header"'));
+test('v4.51.0 HTML: .progress-title class on h2',
+  html.includes('class="progress-title"'));
+test('v4.51.0 HTML: regression — old inline-styled flex header removed',
+  !html.includes('<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'));
+test('v4.51.0 HTML: regression — old inline legend dots removed from header',
+  !html.includes('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px">'));
+
+// JS — _renderProgressSummary rewrite
+test('v4.51.0: _renderProgressSummary emits .progress-card-mastery card',
+  /_renderProgressSummary[\s\S]{0,4000}progress-card\s+progress-card-mastery/.test(js));
+test('v4.51.0: _renderProgressSummary emits .progress-card-labs card (gated on TB_LABS)',
+  /_renderProgressSummary[\s\S]{0,4000}progress-card\s+progress-card-labs/.test(js));
+test('v4.51.0: mastery card has 4-tile grid (Strong/Solid/Weak/Untouched)',
+  /ps2-grid\s+ps2-grid-mastery[\s\S]{0,1200}ps2-strong[\s\S]{0,300}ps2-solid[\s\S]{0,300}ps2-weak[\s\S]{0,300}ps2-untouched/.test(js));
+test('v4.51.0: mastery card has premium coverage bar w/ role=progressbar',
+  /progress-card-mastery[\s\S]{0,2000}ps2-cover-bar[\s\S]{0,200}role="progressbar"/.test(js));
+test('v4.51.0: labs card tiles use diffClassMap (ps2-diff-beg/int/adv)',
+  /diffClassMap[\s\S]{0,200}ps2-diff-beg[\s\S]{0,100}ps2-diff-int[\s\S]{0,100}ps2-diff-adv/.test(js));
+test('v4.51.0: legend lives inside mastery card (.progress-card-legend)',
+  /progress-card-mastery[\s\S]{0,2000}progress-card-legend[\s\S]{0,600}pcl-green[\s\S]{0,200}pcl-blue[\s\S]{0,200}pcl-red/.test(js));
+test('v4.51.0: regression — old flat .ps-row stat grid removed',
+  !/ps-row[\s\S]{0,200}ps-stat\s+ps-strong/.test(js));
+
+// JS — _progressRowHtml upgrades
+test('v4.51.0: _progressRowHtml reads domainKey from row',
+  /_progressRowHtml\([^)]*row[\s\S]{0,400}const\s*\{[^}]*domainKey/.test(js));
+test('v4.51.0: _progressRowHtml emits topic-obj-${domainKey} tinted badge',
+  /topic-obj-' \+ domainKey/.test(js) || /topic-obj-\$\{domainKey\}/.test(js));
+test('v4.51.0: _progressRowHtml uses friendlier date formatting (yesterday / weeks ago / months ago)',
+  /yesterday[\s\S]{0,300}days ago[\s\S]{0,300}week ago[\s\S]{0,300}weeks ago[\s\S]{0,300}month ago[\s\S]{0,300}months ago/.test(js));
+test('v4.51.0: regression — terse "Nd ago" date format removed from row renderer',
+  !/metaRight\s*=\s*total\s*\+\s*'Q\s*·\s*'\s*\+\s*\(daysSince\s*===\s*0\s*\?\s*'today'\s*:\s*daysSince\s*\+\s*'d ago'/.test(js));
+
+// JS — _renderProgressGrouped domain idx
+test('v4.51.0: _renderProgressGrouped emits data-domain-idx (1..5) on each accordion',
+  /_renderProgressGrouped[\s\S]{0,2500}data-domain-idx="\$\{domainIdx\s*\+\s*1\}"/.test(js));
+test('v4.51.0: _renderProgressGrouped also emits data-domain-key for JS hooks',
+  /_renderProgressGrouped[\s\S]{0,2500}data-domain-key="\$\{dk\}"/.test(js));
+
+// CSS — header + cards
+test('v4.51.0 CSS: .progress-header flex layout',
+  /\.progress-header\s*\{[^}]*display:\s*flex/.test(css));
+test('v4.51.0 CSS: .progress-title styling (22px, weight 800)',
+  /\.progress-title\s*\{[^}]*font-size:\s*22px[\s\S]{0,200}font-weight:\s*800/.test(css));
+test('v4.51.0 CSS: .progress-card premium radial+linear gradient background',
+  /\.progress-card\s*\{[\s\S]{0,500}radial-gradient[\s\S]{0,300}linear-gradient\(160deg/.test(css));
+test('v4.51.0 CSS: .progress-card layered box-shadow (depth)',
+  /\.progress-card\s*\{[\s\S]{0,700}box-shadow:[\s\S]{0,200}rgba\(var\(--accent-rgb\)/.test(css));
+test('v4.51.0 CSS: .progress-card-labs swaps to green accent',
+  /\.progress-card-labs\s*\{[\s\S]{0,500}rgba\(34,\s*197,\s*94/.test(css));
+
+// CSS — tiles + bars
+test('v4.51.0 CSS: .ps2-cover-bar premium 8px height',
+  /\.ps2-cover-bar\s*\{[^}]*height:\s*8px/.test(css));
+test('v4.51.0 CSS: .ps2-cover-fill uses 800ms cubic-bezier transition',
+  /\.ps2-cover-fill\s*\{[\s\S]{0,300}transition:\s*width\s+800ms\s+cubic-bezier\(0\.2,\s*0\.8,\s*0\.2,\s*1\)/.test(css));
+test('v4.51.0 CSS: .ps2-grid-mastery is 4-col grid',
+  /\.ps2-grid-mastery\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*1fr\)/.test(css));
+test('v4.51.0 CSS: .ps2-stat has hover-lift (translateY)',
+  /\.ps2-stat:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(css));
+test('v4.51.0 CSS: .ps2-strong .ps2-stat-val uses green',
+  /\.ps2-strong\s+\.ps2-stat-val\s*\{[^}]*color:\s*var\(--green\)/.test(css));
+test('v4.51.0 CSS: .ps2-solid .ps2-stat-val uses blue',
+  /\.ps2-solid\s+\.ps2-stat-val\s*\{[^}]*color:\s*var\(--blue\)/.test(css));
+test('v4.51.0 CSS: .ps2-weak .ps2-stat-val uses red',
+  /\.ps2-weak\s+\.ps2-stat-val\s*\{[^}]*color:\s*var\(--red\)/.test(css));
+
+// CSS — legend dots
+test('v4.51.0 CSS: .pcl-green dot uses var(--green)',
+  /\.pcl-green\s+\.pcl-dot\s*\{[^}]*background:\s*var\(--green\)/.test(css));
+test('v4.51.0 CSS: .pcl-blue dot uses var(--blue)',
+  /\.pcl-blue\s+\.pcl-dot\s*\{[^}]*background:\s*var\(--blue\)/.test(css));
+test('v4.51.0 CSS: .pcl-red dot uses var(--red)',
+  /\.pcl-red\s+\.pcl-dot\s*\{[^}]*background:\s*var\(--red\)/.test(css));
+
+// CSS — 5-colour accordion borders
+test('v4.51.0 CSS: .progress-domain[data-domain-idx="1"] purple left-border',
+  /\.progress-domain\[data-domain-idx="1"\]\s*\{[^}]*border-left-color:\s*#7c6ff7/.test(css));
+test('v4.51.0 CSS: .progress-domain[data-domain-idx="2"] green left-border',
+  /\.progress-domain\[data-domain-idx="2"\]\s*\{[^}]*border-left-color:\s*#22c55e/.test(css));
+test('v4.51.0 CSS: .progress-domain[data-domain-idx="3"] blue left-border',
+  /\.progress-domain\[data-domain-idx="3"\]\s*\{[^}]*border-left-color:\s*#3b82f6/.test(css));
+test('v4.51.0 CSS: .progress-domain[data-domain-idx="4"] amber left-border',
+  /\.progress-domain\[data-domain-idx="4"\]\s*\{[^}]*border-left-color:\s*#f59e0b/.test(css));
+test('v4.51.0 CSS: .progress-domain[data-domain-idx="5"] red left-border',
+  /\.progress-domain\[data-domain-idx="5"\]\s*\{[^}]*border-left-color:\s*#ef4444/.test(css));
+
+// CSS — domain-tinted objective badges
+test('v4.51.0 CSS: .topic-obj-concepts purple-tinted',
+  /\.topic-obj-concepts\s*\{[\s\S]{0,300}rgba\(124,\s*111,\s*247/.test(css));
+test('v4.51.0 CSS: .topic-obj-implementation green-tinted',
+  /\.topic-obj-implementation\s*\{[\s\S]{0,300}rgba\(34,\s*197,\s*94/.test(css));
+test('v4.51.0 CSS: .topic-obj-operations blue-tinted',
+  /\.topic-obj-operations\s*\{[\s\S]{0,300}rgba\(59,\s*130,\s*246/.test(css));
+test('v4.51.0 CSS: .topic-obj-security amber-tinted',
+  /\.topic-obj-security\s*\{[\s\S]{0,300}rgba\(245,\s*158,\s*11/.test(css));
+test('v4.51.0 CSS: .topic-obj-troubleshooting red-tinted',
+  /\.topic-obj-troubleshooting\s*\{[\s\S]{0,300}rgba\(239,\s*68,\s*68/.test(css));
+
+// CSS — toolbar + play button polish
+test('v4.51.0 CSS: .prog-filter-active uses gradient (was flat accent)',
+  /\.prog-filter-btn\.prog-filter-active\s*\{[\s\S]{0,300}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
+test('v4.51.0 CSS: .topic-play-btn hover uses linear-gradient',
+  /\.topic-play-btn:hover\s*\{[\s\S]{0,300}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
+
+// CSS — responsive + reduced-motion
+test('v4.51.0 CSS: narrow-viewport collapses mastery grid to 2-col',
+  /@media \(max-width:\s*600px\)[\s\S]{0,800}\.ps2-grid-mastery\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*1fr\)/.test(css));
+test('v4.51.0 CSS: reduced-motion neutralises ps2-cover-fill transition',
+  /prefers-reduced-motion[\s\S]{0,4000}\.ps2-cover-fill[\s\S]{0,400}transition:\s*none/.test(css));
+test('v4.51.0 CSS: reduced-motion kills .ps2-stat:hover translateY',
+  /prefers-reduced-motion[\s\S]{0,4000}\.ps2-stat:hover[\s\S]{0,200}transform:\s*none/.test(css));
+
+// CSS — light-theme
+test('v4.51.0 CSS: light-theme override for .progress-card',
+  /\[data-theme="light"\]\s+\.progress-card\s*\{/.test(css));
+test('v4.51.0 CSS: light-theme override for .progress-card-labs',
+  /\[data-theme="light"\]\s+\.progress-card-labs\s*\{/.test(css));
+test('v4.51.0 CSS: light-theme tinted objective badges',
+  /\[data-theme="light"\]\s+\.topic-obj-concepts[\s\S]{0,200}#6d5ce0/.test(css));
+
+// CSS — regression guards on old surface
+test('v4.51.0 CSS: regression — flat .progress-summary background removed',
+  !/^\.progress-summary\s*\{\s*background:\s*var\(--surface\);\s*border:\s*1px\s+solid\s+var\(--border\)/m.test(css));
+test('v4.51.0 CSS: regression — old .ps-lab-row flex layout gone',
+  !/\.ps-lab-row\s*\{[^}]*display:\s*flex/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

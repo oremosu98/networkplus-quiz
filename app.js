@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.50.1
+// Network+ AI Quiz — app.js  v4.51.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.50.1';
+const APP_VERSION = '4.51.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -908,8 +908,12 @@ function _progressRowMatches(row) {
   return true;
 }
 
+// v4.51.0: topic-row polish — domain-color tinted objective badge (via
+// domainKey \u2192 5-colour palette matching app-wide convention), friendlier
+// date format ("14 days ago" not "14d ago"), tier-colour consistency for
+// bar + percentage, premium play button styling.
 function _progressRowHtml(row) {
-  const { t, label, pct, total, daysSince, obj, trend } = row;
+  const { t, label, pct, total, daysSince, obj, trend, domainKey } = row;
   let ragClass, color, metaRight;
   if (pct === null) {
     ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
@@ -917,20 +921,35 @@ function _progressRowHtml(row) {
     if (pct >= 80) { ragClass = 'rag-green'; color = 'var(--green)'; }
     else if (pct >= 60) { ragClass = 'rag-blue'; color = 'var(--blue)'; }
     else { ragClass = 'rag-red'; color = 'var(--red)'; }
-    metaRight = total + 'Q · ' + (daysSince === 0 ? 'today' : daysSince + 'd ago');
+    // Friendlier date formatting: "today" / "yesterday" / "3 days ago" /
+    // "2 weeks ago" / "1 month ago" rather than the terse "14d ago".
+    let when;
+    if (daysSince === 0)         when = 'today';
+    else if (daysSince === 1)    when = 'yesterday';
+    else if (daysSince < 7)      when = daysSince + ' days ago';
+    else if (daysSince < 14)     when = '1 week ago';
+    else if (daysSince < 30)     when = Math.floor(daysSince / 7) + ' weeks ago';
+    else if (daysSince < 60)     when = '1 month ago';
+    else                         when = Math.floor(daysSince / 30) + ' months ago';
+    metaRight = total + 'Q \u00b7 ' + when;
   }
   const barW = pct !== null ? pct : 0;
-  const pctTxt = pct !== null ? pct + '%' : '—';
-  const objBadge = obj ? `<span class="topic-obj-badge" title="N10-009 objective ${obj}">${obj}</span>` : '';
+  const pctTxt = pct !== null ? pct + '%' : '\u2014';
+  // Domain-colour tint on the objective badge so "1.4" (Concepts) looks
+  // purple, "2.3" (Implementation) looks green, etc. Matches the 5-colour
+  // palette used by Domain Mastery, Custom Quiz accordions, Recent
+  // Performance dots \u2014 app-wide visual consistency.
+  const domainCls = domainKey ? ' topic-obj-' + domainKey : '';
+  const objBadge = obj ? `<span class="topic-obj-badge${domainCls}" title="N10-009 objective ${obj}">${obj}</span>` : '';
   // v4.42.2: trend arrow (ported from deleted Analytics Topic Mastery card).
-  // Only renders when we have 2+ sessions to compare — matches the old
+  // Only renders when we have 2+ sessions to compare \u2014 matches the old
   // behaviour and avoids showing a meaningless sideways arrow on 1-shot topics.
   let trendHtml = '';
   if (typeof trend === 'number' && pct !== null && row.attempts >= 2) {
     const arrow = trend > 5 ? '\u2191' : trend < -5 ? '\u2193' : '\u2192';
     const trendColor = trend > 5 ? 'var(--green)' : trend < -5 ? 'var(--red)' : 'var(--text-dim)';
     const trendLbl = trend > 5 ? 'Improving' : trend < -5 ? 'Slipping' : 'Steady';
-    trendHtml = `<span class="topic-trend" style="color:${trendColor}" title="${trendLbl} — recent ${trend > 0 ? '+' : ''}${trend} vs first session" aria-label="Trend ${trendLbl}">${arrow}</span>`;
+    trendHtml = `<span class="topic-trend" style="color:${trendColor}" title="${trendLbl} \u2014 recent ${trend > 0 ? '+' : ''}${trend} vs first session" aria-label="Trend ${trendLbl}">${arrow}</span>`;
   }
   // Show the same short label the user picks from on the setup page
   const display = label || t;
@@ -943,10 +962,14 @@ function _progressRowHtml(row) {
       <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
     </div>
     <div class="topic-pct-lbl" style="color:${color}">${pctTxt}${trendHtml}</div>
-    <button class="topic-play-btn" onclick="event.stopPropagation();focusTopic('${safeTopicId}')" title="Start quiz on this topic" aria-label="Start quiz on ${escHtml(display)}">&#9654;</button>
+    <button class="topic-play-btn" onclick="event.stopPropagation();focusTopic('${safeTopicId}')" title="Start quiz on this topic" aria-label="Start quiz on ${escHtml(display)}">\u25B6</button>
   </div>`;
 }
 
+// v4.51.0: split the cramped single summary into two premium cards \u2014
+// Topic Mastery (Strong/Solid/Weak/Untouched + Coverage) and Lab Progress
+// (Labs done by difficulty tier). Each card has icon + subtitle + tier-
+// coloured stat tiles with a subtle gradient background.
 function _renderProgressSummary(rows) {
   const el = document.getElementById('progress-summary');
   if (!el) return;
@@ -955,49 +978,106 @@ function _renderProgressSummary(rows) {
   const total = rows.length;
   const touched = total - buckets.untouched;
   const coveragePct = total ? Math.round((touched / total) * 100) : 0;
-  el.innerHTML = `
-    <div class="ps-row">
-      <div class="ps-stat ps-strong"><div class="ps-n">${buckets.strong}</div><div class="ps-l">&#128994; Strong</div></div>
-      <div class="ps-stat ps-solid"><div class="ps-n">${buckets.solid}</div><div class="ps-l">&#128309; Solid</div></div>
-      <div class="ps-stat ps-weak"><div class="ps-n">${buckets.weak}</div><div class="ps-l">&#128308; Weak</div></div>
-      <div class="ps-stat ps-untouched"><div class="ps-n">${buckets.untouched}</div><div class="ps-l">&#9898; Untouched</div></div>
-      <div class="ps-stat"><div class="ps-n">${touched}<span class="ps-n-sub">/${total}</span></div><div class="ps-l">Coverage &middot; ${coveragePct}%</div></div>
-    </div>
-    <div class="ps-coverage-bar"><div class="ps-coverage-fill" style="width:${coveragePct}%"></div></div>`;
-  // Lab progress section
+
+  // Lab progress — compute before render so we can gate the card
+  let labsHtml = '';
   try {
     const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
-    const totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
-    const labsDone = Object.keys(labCompletions).filter(k => (typeof TB_LABS !== 'undefined') ? TB_LABS.some(l => l.id === k) : true).length;
-    const labPct = totalLabs ? Math.round((labsDone / totalLabs) * 100) : 0;
-    const labsByDiff = { Beginner: { done: 0, total: 0 }, Intermediate: { done: 0, total: 0 }, Advanced: { done: 0, total: 0 } };
-    if (typeof TB_LABS !== 'undefined') {
+    const totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 0;
+    if (totalLabs > 0) {
+      const labsDone = Object.keys(labCompletions).filter(k => TB_LABS.some(l => l.id === k)).length;
+      const labPct = Math.round((labsDone / totalLabs) * 100);
+      const labsByDiff = { Beginner: { done: 0, total: 0 }, Intermediate: { done: 0, total: 0 }, Advanced: { done: 0, total: 0 } };
       TB_LABS.forEach(l => {
         const d = l.difficulty || 'Intermediate';
         if (!labsByDiff[d]) labsByDiff[d] = { done: 0, total: 0 };
         labsByDiff[d].total++;
         if (labCompletions[l.id]) labsByDiff[d].done++;
       });
+      const diffOrder = ['Beginner', 'Intermediate', 'Advanced'];
+      const diffClassMap = { Beginner: 'ps2-diff-beg', Intermediate: 'ps2-diff-int', Advanced: 'ps2-diff-adv' };
+      const diffIconMap  = { Beginner: '\u{1F7E2}', Intermediate: '\u{1F7E1}', Advanced: '\u{1F534}' };
+      const diffTiles = diffOrder
+        .filter(d => labsByDiff[d] && labsByDiff[d].total > 0)
+        .map(d => {
+          const v = labsByDiff[d];
+          const dpct = v.total ? Math.round((v.done / v.total) * 100) : 0;
+          return `<div class="ps2-stat ${diffClassMap[d]}">
+            <div class="ps2-stat-ico" aria-hidden="true">${diffIconMap[d]}</div>
+            <div class="ps2-stat-val">${v.done}<span class="ps2-stat-sub">/${v.total}</span></div>
+            <div class="ps2-stat-lbl">${d} &middot; ${dpct}%</div>
+          </div>`;
+        }).join('');
+      labsHtml = `
+        <div class="progress-card progress-card-labs">
+          <div class="progress-card-head">
+            <span class="progress-card-ico" aria-hidden="true">\u{1F9EA}</span>
+            <div class="progress-card-title">Lab Progress</div>
+            <div class="progress-card-sub">${labsDone} of ${totalLabs} guided labs (${labPct}%)</div>
+          </div>
+          <div class="ps2-cover-bar" role="progressbar" aria-valuenow="${labPct}" aria-valuemin="0" aria-valuemax="100">
+            <div class="ps2-cover-fill" style="width:${labPct}%"></div>
+          </div>
+          <div class="ps2-grid ps2-grid-labs">
+            ${diffTiles}
+          </div>
+        </div>`;
     }
-    el.innerHTML += `
-      <div class="ps-lab-row">
-        <div class="ps-stat" style="border:none"><div class="ps-n">🧪 ${labsDone}<span class="ps-n-sub">/${totalLabs}</span></div><div class="ps-l">Labs &middot; ${labPct}%</div></div>
-        ${Object.entries(labsByDiff).filter(([,v]) => v.total > 0).map(([diff, v]) => {
-          const icon = diff === 'Beginner' ? '🟢' : diff === 'Intermediate' ? '🟡' : '🔴';
-          return `<div class="ps-stat" style="border:none"><div class="ps-n">${icon} ${v.done}<span class="ps-n-sub">/${v.total}</span></div><div class="ps-l">${diff}</div></div>`;
-        }).join('')}
-      </div>`;
-  } catch (_) {}
+  } catch (_) { labsHtml = ''; }
+
+  el.innerHTML = `
+    <div class="progress-card progress-card-mastery">
+      <div class="progress-card-head">
+        <span class="progress-card-ico" aria-hidden="true">\u{1F393}</span>
+        <div class="progress-card-title">Topic Mastery</div>
+        <div class="progress-card-sub">${touched} of ${total} topics studied \u00b7 <strong>${coveragePct}%</strong> coverage</div>
+        <div class="progress-card-legend" aria-hidden="true">
+          <span class="pcl-item pcl-green"><span class="pcl-dot"></span>\u226580%</span>
+          <span class="pcl-item pcl-blue"><span class="pcl-dot"></span>60\u201379%</span>
+          <span class="pcl-item pcl-red"><span class="pcl-dot"></span>&lt;60%</span>
+        </div>
+      </div>
+      <div class="ps2-cover-bar" role="progressbar" aria-valuenow="${coveragePct}" aria-valuemin="0" aria-valuemax="100">
+        <div class="ps2-cover-fill" style="width:${coveragePct}%"></div>
+      </div>
+      <div class="ps2-grid ps2-grid-mastery">
+        <div class="ps2-stat ps2-strong">
+          <div class="ps2-stat-ico" aria-hidden="true">\u{1F7E2}</div>
+          <div class="ps2-stat-val">${buckets.strong}</div>
+          <div class="ps2-stat-lbl">Strong</div>
+        </div>
+        <div class="ps2-stat ps2-solid">
+          <div class="ps2-stat-ico" aria-hidden="true">\u{1F535}</div>
+          <div class="ps2-stat-val">${buckets.solid}</div>
+          <div class="ps2-stat-lbl">Solid</div>
+        </div>
+        <div class="ps2-stat ps2-weak">
+          <div class="ps2-stat-ico" aria-hidden="true">\u{1F534}</div>
+          <div class="ps2-stat-val">${buckets.weak}</div>
+          <div class="ps2-stat-lbl">Weak</div>
+        </div>
+        <div class="ps2-stat ps2-untouched">
+          <div class="ps2-stat-ico" aria-hidden="true">\u26AA</div>
+          <div class="ps2-stat-val">${buckets.untouched}</div>
+          <div class="ps2-stat-lbl">Untouched</div>
+        </div>
+      </div>
+    </div>
+    ${labsHtml}`;
 }
 
 function _renderProgressGrouped(rows) {
   // Group by domain in official 1→5 order, compute avg pct per domain, honor filter/search.
+  // v4.51.0: each accordion gets a data-domain-idx (1..5) so CSS can paint
+  // the 5-colour left-border accent (purple/green/blue/amber/red) matching
+  // Domain Mastery + Custom Quiz chip accordions — single source of
+  // visual consistency across every domain-grouped surface in the app.
   const order = ['concepts','implementation','operations','security','troubleshooting'];
   const grouped = {};
   order.forEach(k => { grouped[k] = []; });
   rows.forEach(r => { (grouped[r.domainKey] || (grouped[r.domainKey] = [])).push(r); });
   let html = '';
-  order.forEach(dk => {
+  order.forEach((dk, domainIdx) => {
     const groupRows = _sortProgressRows(grouped[dk] || [], progressState.sort);
     const visible = groupRows.filter(_progressRowMatches);
     if (!visible.length) return;
@@ -1010,12 +1090,12 @@ function _renderProgressGrouped(rows) {
     }
     const weightPct = Math.round(DOMAIN_WEIGHTS[dk] * 100);
     const barColor = avg !== null ? (avg >= 80 ? 'var(--green)' : avg >= 60 ? 'var(--blue)' : 'var(--red)') : 'var(--surface3)';
-    html += `<details class="progress-domain" open>
+    html += `<details class="progress-domain" data-domain-idx="${domainIdx + 1}" data-domain-key="${dk}" open>
       <summary class="progress-domain-head">
         <span class="pd-name">${DOMAIN_LABELS[dk]}</span>
         <span class="pd-weight">${weightPct}% of exam</span>
         <span class="pd-bar"><span class="pd-bar-fill" style="width:${avg !== null ? avg : 0}%;background:${barColor}"></span></span>
-        <span class="pd-avg" style="color:${avgColor}">${avg !== null ? avg + '%' : '—'}</span>
+        <span class="pd-avg" style="color:${avgColor}">${avg !== null ? avg + '%' : '\u2014'}</span>
         <span class="pd-count">${visible.length}/${groupRows.length}</span>
       </summary>
       <div class="progress-domain-rows">${visible.map(_progressRowHtml).join('')}</div>
