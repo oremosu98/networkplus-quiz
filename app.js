@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.50.0
+// Network+ AI Quiz — app.js  v4.50.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.50.0';
+const APP_VERSION = '4.50.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -655,22 +655,49 @@ function saveToHistory(entry) {
   } catch { showToast('Storage full — history not saved', 'error'); }
 }
 
+// v4.50.1: polished Recent Performance card — domain-color dot per row,
+// thicker gradient progress bar, tier-aligned colours (matches v4.45.1
+// Domain Mastery thresholds 55/70/85), separate score + percentage pill.
 function renderHistoryPanel() {
   const h = loadHistory();
   const panel = document.getElementById('history-panel');
   const list  = document.getElementById('history-list');
   if (h.length === 0) { panel.classList.add('is-hidden'); return; }
   panel.classList.remove('is-hidden');
-  list.innerHTML = h.slice(0,8).map(e => {
-    const date = new Date(e.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    const color = e.pct >= 80 ? 'var(--green)' : e.pct >= 60 ? 'var(--blue)' : 'var(--red)';
-    const tag   = e.mode === 'exam' ? '<span class="mode-tag">EXAM</span>' : '';
-    return `<div class="history-row">
+
+  // Domain colours match the 5-colour palette used in Custom Quiz
+  // accordions (v4.50.0) and Domain Mastery card.
+  const DOMAIN_COLOURS = {
+    concepts:        '#7c6ff7',
+    implementation:  '#22c55e',
+    operations:      '#3b82f6',
+    security:        '#f59e0b',
+    troubleshooting: '#ef4444',
+  };
+
+  list.innerHTML = h.slice(0, 8).map(e => {
+    const date = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    // Tier-aligned colours (matches Domain Mastery 55/70/85 cutoffs from v4.45.1).
+    let tierColor, tierName;
+    if (e.pct >= 85)      { tierColor = '#22c55e';                tierName = 'mastered';   }
+    else if (e.pct >= 70) { tierColor = 'var(--accent-light)';    tierName = 'proficient'; }
+    else if (e.pct >= 55) { tierColor = '#eab308';                tierName = 'developing'; }
+    else                  { tierColor = '#ef4444';                tierName = 'novice';     }
+    const domId = (typeof TOPIC_DOMAINS !== 'undefined') ? TOPIC_DOMAINS[e.topic] : null;
+    const domColor = domId ? DOMAIN_COLOURS[domId] : 'var(--surface3)';
+    const tag = e.mode === 'exam' ? '<span class="h-mode-tag">EXAM</span>' : '';
+    return `<div class="history-row history-row-${tierName}">
+      <span class="h-domain-dot" style="background:${domColor}" aria-hidden="true"></span>
       <div class="h-info">
         <div class="h-topic">${escHtml(e.topic)}${tag}</div>
-        <div class="h-bar"><div class="h-bar-fill" style="width:${e.pct}%;background:${color}"></div></div>
+        <div class="h-bar">
+          <div class="h-bar-fill" style="width:${e.pct}%;background:${tierColor}"></div>
+        </div>
       </div>
-      <div class="h-score" style="color:${color}">${e.score}/${e.total}</div>
+      <div class="h-score-wrap">
+        <div class="h-score" style="color:${tierColor}">${e.score}<span class="h-score-sep">/</span>${e.total}</div>
+        <div class="h-score-pct" style="color:${tierColor}">${e.pct}%</div>
+      </div>
       <div class="h-date">${date}</div>
     </div>`;
   }).join('');

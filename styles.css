@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.50.0
+   Network+ AI Quiz — styles.css  v4.50.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -172,16 +172,104 @@ input::placeholder { color: var(--text-dim); }
 .wrong-bank-clear:hover { color: var(--red) !important; border-color: var(--red) !important; }
 .wrong-count-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--red); color: white; font-size: 11px; font-weight: 800; min-width: 20px; height: 20px; border-radius: 99px; padding: 0 6px; }
 
-/* ── HISTORY ── */
-.history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+/* ── HISTORY (polished v4.50.1) ──
+ * Domain-color dot + tier-coloured score (55/70/85 thresholds match
+ * Domain Mastery card) + thicker gradient bar + separate score + %
+ * column. Premium row hover, narrow-viewport collapse at 520px. */
+.history-row {
+  display: grid;
+  grid-template-columns: 8px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  transition: background .15s ease;
+}
+.history-row:hover { background: rgba(var(--accent-rgb), .03); }
 .history-row:last-child { border-bottom: none; }
-.h-info { flex: 1; }
-.h-topic { color: var(--text); font-weight: 500; margin-bottom: 3px; }
-.h-bar { height: 4px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
-.h-bar-fill { height: 100%; border-radius: 99px; }
-.h-score { font-weight: 700; font-size: 14px; min-width: 40px; text-align: right; }
-.h-date { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
-.mode-tag { font-size: 10px; background: rgba(124,111,247,.15); color: var(--accent-light); padding: 1px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+.h-domain-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .06);
+}
+.h-info { min-width: 0; }
+.h-topic {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.h-mode-tag,
+.mode-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  background: rgba(251, 191, 36, .16);
+  color: #fbbf24;
+  vertical-align: middle;
+}
+.h-bar {
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 99px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .04) inset;
+}
+.h-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06) inset;
+}
+.h-score-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1.1;
+  min-width: 52px;
+}
+.h-score {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+}
+.h-score-sep {
+  font-weight: 500;
+  color: var(--text-dim);
+  margin: 0 1px;
+}
+.h-score-pct {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  opacity: .85;
+}
+.h-date {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+@media (max-width: 520px) {
+  .history-row { grid-template-columns: 6px 1fr auto; gap: 10px; padding: 10px 2px; }
+  .h-date { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .history-row { transition: none !important; }
+  .h-bar-fill { transition: none !important; }
+}
 
 /* ── LOADING — SKELETON ── */
 .skeleton-loader { padding: 0; }

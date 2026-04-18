@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.50.0', js.includes("const APP_VERSION = '4.50.0"));
+test('APP_VERSION is 4.50.1', js.includes("const APP_VERSION = '4.50.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.50.0', sw.includes('netplus-v4.50.0'));
+test('SW cache bumped to v4.50.1', sw.includes('netplus-v4.50.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1780,7 +1780,7 @@ test('JS: drillTopic opens custom-quiz-section', js.includes('custom-quiz-sectio
 console.log('\n\x1b[1m── LABEL CLARITY PASS (v4.40.0) ──\x1b[0m');
 test('Label: preset "15-min Weak Spots" (was Focused)', html.includes('15-min Weak Spots'));
 test('Label: no legacy "15-min Focused" preset text', !html.includes('15-min Focused'));
-test('Label: preset "30-min Deep Scan" (was Grind)', html.includes('30-min Deep Scan'));
+test('Label: preset "20-min Deep Scan" (v4.50.1: time corrected from 30-min to honest 20-min estimate)', html.includes('20-min Deep Scan'));
 test('Label: no legacy "30-min Grind" preset text', !html.includes('30-min Grind'));
 test('Label: exam toggle "Strict Mode" (was Hardcore)', html.includes('Strict Mode'));
 test('Label: no legacy "Hardcore Mode" UI text', !html.includes('Hardcore Mode <span class="hardcore-sub"'));
@@ -4780,9 +4780,9 @@ test('v4.50.0: difficulty chips have tier classes (found/exam/hard/mixed)',
 // Question count with time estimates
 test('v4.50.0: question count chips have chip-count-num + chip-count-sub',
   html.includes('class="chip-count-num"') && html.includes('class="chip-count-sub"'));
-test('v4.50.0: question counts show time estimates (~3/7/10/13 min)',
-  html.includes('~3 min') && html.includes('~7 min') &&
-  html.includes('~10 min') && html.includes('~13 min'));
+test('v4.50.0/v4.50.1: question counts show time estimates (~5/10/15/20 min — 1 min per exam-level question, honest pace)',
+  html.includes('~5 min') && html.includes('~10 min') &&
+  html.includes('~15 min') && html.includes('~20 min'));
 // Generate button
 test('v4.50.0: Generate button uses cq-generate-btn class + sparkle icon structure',
   html.includes('class="btn btn-primary btn-full cq-generate-btn"') &&
@@ -4820,6 +4820,40 @@ test('v4.50.0 CSS: light-theme override for .cq-mode-card',
   /\[data-theme="light"\]\s+\.cq-mode-card/.test(css));
 test('v4.50.0 CSS: reduced-motion neutralises sparkle + mode-card hover',
   /prefers-reduced-motion[\s\S]{0,4000}\.cq-generate-ico\s*\{[^}]*animation:\s*none/.test(css));
+
+// ── v4.50.1 DEEP-SCAN TIME FIX + RECENT PERFORMANCE POLISH ──
+console.log('\n\x1b[1m── v4.50.1 DEEP-SCAN + RECENT PERFORMANCE ──\x1b[0m');
+// Deep Scan preset label corrected (user: "30 mins lol, more like 20")
+test('v4.50.1: Deep Scan preset relabeled to 20-min (was 30-min)',
+  html.includes('20-min Deep Scan'));
+test('v4.50.1: regression \u2014 old 30-min Deep Scan label removed',
+  !html.includes('30-min Deep Scan'));
+// Recent Performance polish
+test('v4.50.1: renderHistoryPanel uses tier thresholds 55/70/85 (matches Domain Mastery)',
+  /renderHistoryPanel[\s\S]{0,2500}pct\s*>=\s*85[\s\S]{0,300}pct\s*>=\s*70[\s\S]{0,300}pct\s*>=\s*55/.test(js));
+test('v4.50.1: renderHistoryPanel includes domain-color dot via DOMAIN_COLOURS map',
+  /renderHistoryPanel[\s\S]{0,2500}DOMAIN_COLOURS[\s\S]{0,800}h-domain-dot/.test(js));
+test('v4.50.1: renderHistoryPanel uses the TOPIC_DOMAINS lookup for dot colour',
+  /renderHistoryPanel[\s\S]{0,2500}TOPIC_DOMAINS\[e\.topic\]/.test(js));
+test('v4.50.1: renderHistoryPanel splits score into score + percentage pill',
+  /h-score-wrap[\s\S]{0,300}h-score-pct/.test(js));
+// CSS structural
+test('v4.50.1 CSS: .history-row uses 4-column grid layout',
+  /\.history-row\s*\{[^}]*display:\s*grid[\s\S]{0,200}grid-template-columns:\s*8px\s+1fr\s+auto\s+auto/.test(css));
+test('v4.50.1 CSS: .h-domain-dot has halo shadow',
+  /\.h-domain-dot\s*\{[^}]*border-radius:\s*50%[\s\S]{0,200}box-shadow:\s*0 0 0 3px/.test(css));
+test('v4.50.1 CSS: .h-bar thickened to 6px (was 4px)',
+  /\.h-bar\s*\{[^}]*height:\s*6px/.test(css));
+test('v4.50.1 CSS: .h-bar-fill uses cubic-bezier transition',
+  /\.h-bar-fill\s*\{[^}]*cubic-bezier\(0\.2,\s*0\.8,\s*0\.2,\s*1\)/.test(css));
+test('v4.50.1 CSS: .h-score-wrap is vertical column for score + %',
+  /\.h-score-wrap\s*\{[^}]*flex-direction:\s*column/.test(css));
+test('v4.50.1 CSS: .history-row:hover subtle accent tint',
+  /\.history-row:hover\s*\{[^}]*background:\s*rgba\(var\(--accent-rgb\)/.test(css));
+test('v4.50.1 CSS: narrow-viewport hides date at \u2264520px',
+  /@media \(max-width:\s*520px\)[\s\S]{0,300}\.h-date\s*\{[^}]*display:\s*none/.test(css));
+test('v4.50.1 CSS: reduced-motion neutralises history-row transition',
+  /prefers-reduced-motion[\s\S]{0,4000}\.history-row\s*\{[^}]*transition:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
