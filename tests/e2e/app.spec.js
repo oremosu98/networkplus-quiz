@@ -34,16 +34,15 @@ test.describe('App Load & Setup Page', () => {
     const setupPage = page.locator('#page-setup');
     await expect(setupPage).toHaveClass(/active/);
 
-    // Title is present
-    await expect(page.locator('h1')).toContainText('Network+ AI Quiz');
+    // v4.54.0: hero v2 display heading replaces "Network+ AI Quiz" h1
+    await expect(page.locator('#hero-v2-display')).toBeVisible();
+    await expect(page.locator('#hero-v2-display')).toContainText('Simi');
 
-    // API key input is visible
-    await expect(page.locator('#api-key')).toBeVisible();
+    // API key input is present (inside Settings details — may be collapsed)
+    await expect(page.locator('#api-key')).toBeAttached();
 
-    // Version badge is visible and contains a version number
-    const badge = page.locator('#version-badge');
-    await expect(badge).toBeVisible();
-    await expect(badge).toHaveText(/v\d+\.\d+/);
+    // v4.54.0: version string lives in sidebar brand
+    await expect(page.locator('.sb-brand-version')).toContainText(/v\d+\.\d+/);
   });
 
   test('API key input has ARIA label', async ({ page }) => {
@@ -57,18 +56,19 @@ test.describe('Theme Toggle', () => {
   test('switches between dark and light theme', async ({ page }) => {
     await page.goto('/');
 
-    // Default: no data-theme attribute (dark)
     const html = page.locator('html');
+    const initial = await html.getAttribute('data-theme');
 
-    // Click theme toggle
-    await page.locator('#theme-toggle').click();
-    await expect(html).toHaveAttribute('data-theme', 'light');
+    // v4.54.0: theme toggle lives in the persistent topbar (#topbar-theme) — #theme-toggle
+    // still exists in the hidden legacy hero but is display:none
+    await page.locator('#topbar-theme').click();
+    const afterFirst = await html.getAttribute('data-theme');
+    expect(afterFirst).not.toBe(initial);
 
-    // Click again to go back to dark
-    await page.locator('#theme-toggle').click();
-    // Dark mode removes the attribute or sets it to empty
-    const themeAttr = await html.getAttribute('data-theme');
-    expect(!themeAttr || themeAttr === 'dark' || themeAttr === '').toBeTruthy();
+    // Click again — should flip back
+    await page.locator('#topbar-theme').click();
+    const afterSecond = await html.getAttribute('data-theme');
+    expect(afterSecond).toBe(initial);
   });
 });
 
@@ -335,8 +335,10 @@ test.describe('Responsive Layout', () => {
     await page.goto('/');
 
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('#api-key')).toBeVisible();
+    // v4.54.0: hero v2 display heading, not the hidden legacy h1
+    await expect(page.locator('#hero-v2-display')).toBeVisible();
+    // API key is inside collapsed Settings — just needs to be attached to DOM
+    await expect(page.locator('#api-key')).toBeAttached();
   });
 });
 
