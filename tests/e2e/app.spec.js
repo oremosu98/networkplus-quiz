@@ -433,30 +433,28 @@ test.describe('Theme Persistence', () => {
   test('persists light theme across reload', async ({ page }) => {
     await page.goto('/');
 
-    // Switch to light theme
-    await page.locator('#theme-toggle').click();
+    // v4.54.0: theme toggle in topbar, #theme-toggle is hidden inside legacy hero
+    await page.locator('#topbar-theme').click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
-    // Reload
     await page.reload();
-
-    // Should still be light
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
   test('theme toggle updates button text', async ({ page }) => {
     await page.goto('/');
 
-    // Dark mode default: sun emoji
-    const btn = page.locator('#theme-toggle');
+    // v4.54.0: topbar theme button switches between \u2600 (sun, dark mode) and \u263E (crescent, light mode)
+    const btn = page.locator('#topbar-theme');
+    const initial = await btn.textContent();
 
-    // Switch to light — should show moon
     await btn.click();
-    await expect(btn).toContainText('🌙');
+    const afterFirst = await btn.textContent();
+    expect(afterFirst).not.toBe(initial);
 
-    // Switch back to dark — should show sun
     await btn.click();
-    await expect(btn).toContainText('☀️');
+    const afterSecond = await btn.textContent();
+    expect(afterSecond).toBe(initial);
   });
 });
 
@@ -509,7 +507,8 @@ test.describe('History & Stats Rendering', () => {
     await expect(page.locator('#history-list')).toContainText('TCP/IP');
   });
 
-  test('stats card shows when history exists', async ({ page }) => {
+  test('hero v2 mini cards show when history exists', async ({ page }) => {
+    // v4.54.0: #stats-card retired; hero-v2 mini cards (Today + Streak) are the replacement
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -522,30 +521,35 @@ test.describe('History & Stats Rendering', () => {
 
     await page.reload();
 
-    await expect(page.locator('#stats-card')).toBeVisible();
-    await expect(page.locator('#stats-grid')).toContainText('70%');
+    await expect(page.locator('.hero-v2-mini-row')).toBeVisible();
+    await expect(page.locator('#mc-today-done')).toBeVisible();
+    await expect(page.locator('#mc-streak-num')).toBeVisible();
   });
 
-  test('stats card hidden when no history', async ({ page }) => {
+  test('legacy stats-card is hidden (v4.54.0 retired via body.hero-v2-active)', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_history'));
     await page.reload();
 
+    // Legacy stats-card should be display:none (inside the hidden .hero parent)
     await expect(page.locator('#stats-card')).not.toBeVisible();
   });
 });
 
 test.describe('Readiness Card', () => {
-  test('readiness card shows placeholder when no history', async ({ page }) => {
+  test('readiness card v2 shows placeholder when no history', async ({ page }) => {
+    // v4.54.0: #readiness-card replaced by dark #readiness-card-v2 in hero v2 aside.
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_history'));
     await page.reload();
 
-    await expect(page.locator('#readiness-card')).toBeVisible();
-    await expect(page.locator('#readiness-action')).toContainText('first quiz');
+    await expect(page.locator('#readiness-card-v2')).toBeVisible();
+    // Placeholder copy moves to the lede of hero-v2 when no history.
+    const lede = await page.locator('#hero-v2-lede').textContent();
+    expect(lede).toMatch(/first quiz|Complete/i);
   });
 
-  test('readiness card shows score with history', async ({ page }) => {
+  test('readiness card v2 shows score with history', async ({ page }) => {
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -560,7 +564,7 @@ test.describe('Readiness Card', () => {
     await page.reload();
 
     // Score number should no longer be the em dash placeholder
-    const numText = await page.locator('#readiness-num').textContent();
+    const numText = await page.locator('#rc-v2-num').textContent();
     expect(numText).not.toBe('—');
   });
 });
@@ -825,7 +829,8 @@ test.describe('Export Data', () => {
 });
 
 test.describe('Streak Badge', () => {
-  test('streak badge shows when streak exists', async ({ page }) => {
+  test('streak shows in sidebar when streak exists', async ({ page }) => {
+    // v4.54.0: streak lives in sidebar footer (.sb-streak) + hero v2 mini card (#mc-streak-num)
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -835,16 +840,18 @@ test.describe('Streak Badge', () => {
     });
     await page.reload();
 
-    await expect(page.locator('#streak-badge')).not.toBeEmpty();
+    // Sidebar streak badge should show the streak count
+    await expect(page.locator('.sb-streak-num')).toContainText('3');
+    await expect(page.locator('.sb-streak-label')).toContainText(/day streak/i);
   });
 
-  test('streak badge empty when no streak data', async ({ page }) => {
+  test('sidebar shows empty-state when no streak', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_streak'));
     await page.reload();
 
-    const text = await page.locator('#streak-badge').textContent();
-    expect(text.trim()).toBe('');
+    // v4.54.0: empty state rendered as .sb-streak-empty inside the sidebar footer
+    await expect(page.locator('.sb-streak-empty')).toBeVisible();
   });
 });
 
@@ -872,7 +879,8 @@ test.describe('Production Monitor', () => {
   test('triple-tap version badge opens monitor', async ({ page }) => {
     await page.goto('/');
 
-    const badge = page.locator('#version-badge');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -885,7 +893,8 @@ test.describe('Production Monitor', () => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_error_log'));
 
-    const badge = page.locator('#version-badge');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -906,7 +915,8 @@ test.describe('Production Monitor', () => {
       localStorage.setItem('nplus_error_log', JSON.stringify(log));
     });
 
-    const badge = page.locator('#version-badge');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -924,7 +934,8 @@ test.describe('Production Monitor', () => {
       localStorage.setItem('nplus_error_log', JSON.stringify(log));
     });
 
-    const badge = page.locator('#version-badge');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();

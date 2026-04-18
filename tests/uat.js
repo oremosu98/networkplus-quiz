@@ -5454,8 +5454,8 @@ test('v4.54.0 JS: display heading uses time-aware greeting (Good morning/afterno
 test('v4.54.0 JS: renderReadinessCardV2 pulls from getReadinessScore + computes bar %',
   js.includes('function renderReadinessCardV2(') &&
   /renderReadinessCardV2[\s\S]{0,1500}getReadinessScore\(\)/.test(js));
-test('v4.54.0 JS: readiness bar uses (score - 420) / 480 formula (420-900 range)',
-  /renderReadinessCardV2[\s\S]{0,2000}r\.score\s*-\s*420[\s\S]{0,80}\/ 480/.test(js));
+test('v4.54.0 JS: readiness bar uses (predicted - 420) / 450 formula (matches existing scale)',
+  /renderReadinessCardV2[\s\S]{0,2000}r\.predicted\s*-\s*420[\s\S]{0,80}\/ 450/.test(js));
 test('v4.54.0 JS: renderHeroV2MiniCards pulls from getDailyGoal + getStreak',
   js.includes('function renderHeroV2MiniCards(') &&
   /renderHeroV2MiniCards[\s\S]{0,2500}getDailyGoal[\s\S]{0,1000}getStreak/.test(js));

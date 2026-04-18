@@ -472,12 +472,17 @@ function copyGhToken() {
   navigator.clipboard.writeText(token).then(() => showErrorToast('Token copied to clipboard'));
 }
 
-// Triple-tap version badge to open monitor
+// Triple-tap version badge to open monitor.
+// v4.54.0: legacy #version-badge is inside the hidden .hero; also listen on
+// the sidebar .sb-brand-version which IS visible. Attach to whichever exists.
 let monitorTaps = 0, monitorTapTimer = null;
 function initMonitorGesture() {
-  const badge = document.getElementById('version-badge');
-  if (!badge) return;
-  badge.addEventListener('click', () => {
+  const targets = [
+    document.getElementById('version-badge'),
+    document.querySelector('.sb-brand-version')
+  ].filter(Boolean);
+  if (!targets.length) return;
+  const onTap = () => {
     monitorTaps++;
     if (monitorTapTimer) clearTimeout(monitorTapTimer);
     monitorTapTimer = setTimeout(() => { monitorTaps = 0; }, 600);
@@ -486,7 +491,10 @@ function initMonitorGesture() {
       renderMonitor();
       showPage('monitor');
     }
-  });
+  };
+  targets.forEach(t => t.addEventListener('click', onTap));
+  // Back-compat shim for the first listener (below continues at `badge.addEventListener(...)` historically).
+  const badge = targets[0];
 }
 
 // ══════════════════════════════════════════
@@ -23613,22 +23621,15 @@ function renderReadinessCardV2() {
     return;
   }
   try {
+    // getReadinessScore returns { predicted, raw, ... } \u2014 use `predicted` (the 100-900 scaled score)
     const r = getReadinessScore();
-    if (r && typeof r.score === 'number') {
-      numEl.textContent = r.score;
-      // Scale to bar: (score - 420) / (900 - 420)
-      const pct = Math.max(0, Math.min(100, ((r.score - 420) / 480) * 100));
+    if (r && typeof r.predicted === 'number') {
+      numEl.textContent = r.predicted;
+      // Bar spans 420-870 range (matches the rest of the app's scale)
+      const pct = Math.max(0, Math.min(100, ((r.predicted - 420) / 450) * 100));
       barEl.style.width = pct + '%';
-      // Week delta: compare to 7-day-old readiness if we can
-      try {
-        if (typeof r.delta7d === 'number') {
-          const arrow = r.delta7d >= 0 ? '\u2191' : '\u2193';
-          const sign = r.delta7d >= 0 ? '+' : '';
-          deltaEl.textContent = `${arrow} ${sign}${r.delta7d} this week`;
-        } else {
-          deltaEl.textContent = '';
-        }
-      } catch (_) { deltaEl.textContent = ''; }
+      // Delta is optional (no 7-day delta currently returned by getReadinessScore)
+      deltaEl.textContent = '';
     } else {
       numEl.textContent = '\u2014';
     }
