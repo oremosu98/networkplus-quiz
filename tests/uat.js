@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.0', js.includes("const APP_VERSION = '4.54.0"));
+test('APP_VERSION is 4.54.1', js.includes("const APP_VERSION = '4.54.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -283,12 +283,13 @@ test('STORAGE.DAILY_GOAL key', js.includes('DAILY_GOAL:'));
 test('getTodayQuestionCount function', js.includes('function getTodayQuestionCount('));
 test('Daily goal card in HTML', html.includes('id="daily-goal-card"'));
 test('Topic domain groups', html.includes('topic-domain-group'));
-test('Advanced collapsible section', html.includes('id="advanced-section"'));
+test('Settings page exists (v4.54.1: #advanced-section retired in favor of #page-settings)',
+  html.includes('id="page-settings"') && !html.includes('id="advanced-section"'));
 test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.0', sw.includes('netplus-v4.54.0'));
+test('SW cache bumped to v4.54.1', sw.includes('netplus-v4.54.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1795,7 +1796,8 @@ test('Label: preset "20-min Deep Scan" (v4.50.1: time corrected from 30-min to h
 test('Label: no legacy "30-min Grind" preset text', !html.includes('30-min Grind'));
 test('Label: exam toggle "Strict Mode" (was Hardcore)', html.includes('Strict Mode'));
 test('Label: no legacy "Hardcore Mode" UI text', !html.includes('Hardcore Mode <span class="hardcore-sub"'));
-test('Label: Settings summary (was Advanced)', /<summary>[^<]*Settings\s*<span class="adv-hint"/.test(html));
+test('Label: Settings page h2 (v4.54.1: now a dedicated page, not a summary)',
+  /id="page-settings"[\s\S]{0,400}<h2>[^<]*Settings<\/h2>/.test(html));
 test('Label: sidebar entry "Network Builder" (v4.53.0: moved from setup-nav to sidebar)',
   /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'Network Builder'/.test(js));
 test('Label: Marathon Mode heading preserved', html.includes('Marathon Mode'));
@@ -5524,6 +5526,51 @@ test('v4.54.0 CSS: light-theme .hero-v2-display .name recoloured #6355e0',
   /\[data-theme="light"\]\s+\.hero-v2-display\s+\.name\s*\{[^}]*color:\s*#6355e0/.test(css));
 test('v4.54.0 CSS: light-theme .focus-banner-v2 keeps accent-deep gradient (readable on light)',
   /\[data-theme="light"\]\s+\.focus-banner-v2\s*\{/.test(css));
+
+// ── v4.54.1 RECENT PERF \u2192 ANALYTICS, SETTINGS \u2192 OWN PAGE ──
+// User asked to move Recent Performance off the home page to Analytics,
+// and extract the Settings details block into its own sidebar-entry page.
+// Late-Saturday ship, kept scope tight to 3 moves + wiring.
+console.log('\n\x1b[1m── v4.54.1 LAYOUT CLEANUP ──\x1b[0m');
+
+// HTML
+test('v4.54.1 HTML: #page-settings exists',
+  html.includes('id="page-settings"'));
+test('v4.54.1 HTML: settings has API key + Export/Import + Clear Wrong Bank',
+  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,2500}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,800}clearWrongBank/.test(html));
+test('v4.54.1 HTML: #history-panel moved to #page-analytics',
+  /id="page-analytics"[\s\S]{0,800}id="history-panel"/.test(html));
+test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
+  !html.includes('id="advanced-section"'));
+test('v4.54.1 HTML: regression \u2014 #history-panel no longer inside #page-setup',
+  !/#page-setup[\s\S]{0,20000}id="history-panel"/.test(html) ||
+  html.indexOf('id="page-analytics"') < html.indexOf('id="history-panel"'));
+
+// JS
+test('v4.54.1 JS: APP_SIDEBAR_SETTINGS array with Settings entry',
+  js.includes('const APP_SIDEBAR_SETTINGS') && /APP_SIDEBAR_SETTINGS[\s\S]{0,400}label:\s*'Settings'/.test(js));
+test('v4.54.1 JS: renderAppSidebar merges Settings into handler registry',
+  js.includes('APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS, ...APP_SIDEBAR_SETTINGS'));
+test('v4.54.1 JS: sidebar renders Account section with Settings',
+  /Account[\s\S]{0,500}APP_SIDEBAR_SETTINGS\.map/.test(js));
+test('v4.54.1 JS: SIDEBAR_ACTIVE_MAP has settings entry',
+  /SIDEBAR_ACTIVE_MAP[\s\S]{0,1500}'settings':\s*'settings'/.test(js));
+test('v4.54.1 JS: TOPBAR_CRUMBS has Settings entry',
+  /TOPBAR_CRUMBS[\s\S]{0,1500}'settings':\s*'Settings'/.test(js));
+test('v4.54.1 JS: scrollToSettings now navigates to #page-settings',
+  /function scrollToSettings\([\s\S]{0,300}showPage\('settings'\)/.test(js));
+test('v4.54.1 JS: renderSettingsPage defined, refreshes wrong-bank count',
+  js.includes('function renderSettingsPage(') && /renderSettingsPage[\s\S]{0,300}renderWrongBankBtn/.test(js));
+test('v4.54.1 JS: goSetup no longer calls renderHistoryPanel (moved to renderAnalytics)',
+  !/function goSetup\([\s\S]{0,1500}renderHistoryPanel\(\)/.test(js));
+test('v4.54.1 JS: renderAnalytics calls renderHistoryPanel',
+  /function renderAnalytics\([\s\S]{0,700}renderHistoryPanel/.test(js));
+
+// CSS
+test('v4.54.1 CSS: #page-settings has max-width',
+  /#page-settings\s*\{[^}]*max-width:\s*720px/.test(css));
+test('v4.54.1 CSS: .settings-section + .settings-section-title styling',
+  css.includes('.settings-section') && /\.settings-section-title\s*\{/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

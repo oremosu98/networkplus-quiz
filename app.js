@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.0
+// Network+ AI Quiz — app.js  v4.54.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.0';
+const APP_VERSION = '4.54.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -625,7 +625,7 @@ function goSetup() {
   wrongDrillMode = false;
   dailyChallengeMode = false;
   navOpen = false;
-  renderHistoryPanel();
+  // v4.54.1: renderHistoryPanel moved to renderAnalytics (Recent Performance now lives on Analytics page)
   renderStatsCard();
   renderStreakBadge();
   renderReadinessCard();
@@ -20515,6 +20515,9 @@ function renderAnalytics() {
   const h = loadHistory();
   const container = document.getElementById('analytics-content');
   if (!container) return;
+  // v4.54.1: Recent Performance panel lives here now. Render on every
+  // analytics page visit so it stays in sync with post-quiz state.
+  if (typeof renderHistoryPanel === 'function') renderHistoryPanel();
   if (h.length < 1) {
     container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
     return;
@@ -23293,6 +23296,10 @@ const APP_SIDEBAR_PRACTICE = [
   { page: 'topology-builder',  label: 'Network Builder',  icon: '\u25C7', handler: () => { showPage('topology-builder'); if (typeof openTopologyBuilder === 'function') openTopologyBuilder(); } },
   { page: 'acl',               label: 'ACL Builder',      icon: '\u25A3', handler: () => { showPage('acl'); if (typeof openAclBuilder === 'function') openAclBuilder(); } }
 ];
+// v4.54.1: Settings section (own sidebar section so it's visually separate from study tools)
+const APP_SIDEBAR_SETTINGS = [
+  { page: 'settings',          label: 'Settings',         icon: '\u2699', handler: () => { showPage('settings'); if (typeof renderSettingsPage === 'function') renderSettingsPage(); } }
+];
 const APP_SIDEBAR_DRILLS = [
   { page: 'subnet',            label: 'Subnet Mastery',   handler: () => { showPage('subnet'); if (typeof startSubnetTrainer === 'function') startSubnetTrainer(); } },
   { page: 'ports',             label: 'Port Drill',       handler: () => { showPage('ports'); if (typeof startPortDrill === 'function') startPortDrill(); } },
@@ -23318,7 +23325,8 @@ const SIDEBAR_ACTIVE_MAP = {
   'osi-sorter': 'osi-sorter',
   'cables': 'cables',
   'topic-dive': 'progress',
-  'drills': 'setup'  // launcher shell; highlight Home until specific drill chosen
+  'drills': 'setup',  // launcher shell; highlight Home until specific drill chosen
+  'settings': 'settings'
 };
 
 // Stash the click handlers on a global so inline onclick="..." can reach them.
@@ -23330,7 +23338,7 @@ function renderAppSidebar() {
   if (!el) return;
   // Register handlers keyed by page id, then generate HTML with onclick refs.
   const reg = window.__aclSidebarHandlers;
-  [...APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS].forEach(it => {
+  [...APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS, ...APP_SIDEBAR_SETTINGS].forEach(it => {
     reg[it.page] = it.handler;
   });
   const renderItem = it => {
@@ -23373,6 +23381,10 @@ function renderAppSidebar() {
     <div class="sb-section">
       <div class="sb-section-label">Drills</div>
       ${APP_SIDEBAR_DRILLS.map(renderItem).join('')}
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">Account</div>
+      ${APP_SIDEBAR_SETTINGS.map(renderItem).join('')}
     </div>
     <div class="sb-foot">${streakHtml}</div>`;
   // Initial active-state sync
@@ -23494,6 +23506,7 @@ const TOPBAR_CRUMBS = {
   'osi-sorter': 'OSI Sorter',
   'cables': 'Cable ID',
   'drills': 'Drills',
+  'settings': 'Settings',
   'monitor': 'Production Monitor'
 };
 
@@ -23522,16 +23535,16 @@ function _topbarStartClock() {
   _topbarTickInterval = setInterval(_topbarTick, 30000); // refresh every 30s
 }
 
+// v4.54.1: Settings is its own page now — topbar gear button navigates there.
 function scrollToSettings() {
-  // Settings card is at the bottom of the setup page. Navigate home first, then scroll + open it.
-  if (typeof goSetup === 'function') goSetup();
-  setTimeout(() => {
-    const el = document.getElementById('advanced-section');
-    if (el) {
-      try { el.open = true; } catch (_) {}
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 150);
+  showPage('settings');
+  if (typeof renderSettingsPage === 'function') renderSettingsPage();
+}
+
+// v4.54.1: Settings page render (updates the wrong-bank count badge).
+// Inputs (#api-key + Export/Import) are stateless and just work.
+function renderSettingsPage() {
+  if (typeof renderWrongBankBtn === 'function') renderWrongBankBtn();
 }
 
 // ── Sidebar collapse ──

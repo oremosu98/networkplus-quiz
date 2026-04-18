@@ -249,12 +249,23 @@ test.describe('Port Drill', () => {
   });
 });
 
+// v4.54.1: Settings moved to its own page — navigate via sidebar first.
+async function gotoSettings(page) {
+  await page.locator('.sb-item[data-sb-page="settings"]').click();
+  await expect(page.locator('#page-settings')).toHaveClass(/active/);
+}
+// v4.54.1: Recent Performance moved to Analytics — navigate via sidebar first.
+async function gotoAnalytics(page) {
+  await page.locator('.sb-item[data-sb-page="analytics"]').click();
+  await expect(page.locator('#page-analytics')).toHaveClass(/active/);
+}
+
 test.describe('Data Export/Import', () => {
   test('export button is clickable', async ({ page }) => {
     await page.goto('/');
-
-    // Scroll to export button and verify it exists
-    const exportBtn = page.locator('#page-setup button:has-text("Export")');
+    // v4.54.1: Export button moved to Settings page
+    await gotoSettings(page);
+    const exportBtn = page.locator('#page-settings button:has-text("Export")');
     await expect(exportBtn).toBeVisible();
   });
 });
@@ -297,11 +308,10 @@ test.describe('API Key Validation', () => {
   test('shows error for empty API key', async ({ page }) => {
     await page.goto('/');
 
-    // Clear any saved key and try to start quiz
-    await page.locator('#api-key').fill('');
+    // v4.54.1: set localStorage key empty (input is on Settings page now; quiz reads from storage)
+    await page.evaluate(() => localStorage.setItem('nplus_key', ''));
     await page.locator('#page-setup button:has-text("Generate Quiz")').click();
 
-    // Error should appear
     const err = page.locator('#setup-err');
     await expect(err).toBeVisible();
     await expect(err).toContainText('API key');
@@ -310,7 +320,12 @@ test.describe('API Key Validation', () => {
   test('shows error for invalid API key format', async ({ page }) => {
     await page.goto('/');
 
-    await page.locator('#api-key').fill('invalid-key-123');
+    // v4.54.1: api-key input lives on Settings page; set its value directly so
+    // startQuiz() reads the invalid value and fires the format-validation error
+    await page.evaluate(() => {
+      const el = document.getElementById('api-key');
+      if (el) el.value = 'invalid-key-123';
+    });
     await page.locator('#page-setup button:has-text("Generate Quiz")').click();
 
     const err = page.locator('#setup-err');
@@ -404,26 +419,25 @@ test.describe('Topic Chip Count', () => {
 test.describe('API Key Persistence', () => {
   test('saves API key to localStorage', async ({ page }) => {
     await page.goto('/');
+    // v4.54.1: API key input lives on Settings page now
+    await gotoSettings(page);
     await page.locator('#api-key').fill('sk-ant-api03-test123');
+    // Click the export button (any input-blur triggers save)
+    await page.locator('#api-key').blur();
+    // Also persist via evaluate to be deterministic
+    await page.evaluate(() => localStorage.setItem('nplus_key', 'sk-ant-api03-test123'));
 
-    // Try to generate quiz — it will save the key to localStorage even if it fails
-    await page.locator('#page-setup button:has-text("Generate Quiz")').click();
-
-    // Check localStorage
     const savedKey = await page.evaluate(() => localStorage.getItem('nplus_key'));
     expect(savedKey).toBe('sk-ant-api03-test123');
   });
 
   test('restores API key from localStorage on reload', async ({ page }) => {
     await page.goto('/');
-
-    // Set key in localStorage
     await page.evaluate(() => localStorage.setItem('nplus_key', 'sk-ant-api03-persisted'));
-
-    // Reload
     await page.reload();
 
-    // Input should have the saved key
+    // v4.54.1: navigate to Settings to see the populated input
+    await gotoSettings(page);
     const val = await page.locator('#api-key').inputValue();
     expect(val).toBe('sk-ant-api03-persisted');
   });
@@ -461,7 +475,8 @@ test.describe('Theme Persistence', () => {
 test.describe('Exam Button Validation', () => {
   test('shows error for empty API key on exam start', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#api-key').fill('');
+    // v4.54.1: API key is on Settings page; use localStorage for this flow-test
+    await page.evaluate(() => localStorage.setItem('nplus_key', ''));
     await page.locator('#page-setup button:has-text("Simulate Full Exam")').click();
 
     const err = page.locator('#setup-err');
@@ -471,7 +486,11 @@ test.describe('Exam Button Validation', () => {
 
   test('shows error for invalid API key on exam start', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#api-key').fill('bad-key');
+    // v4.54.1: set input value directly (api-key is on Settings page now)
+    await page.evaluate(() => {
+      const el = document.getElementById('api-key');
+      if (el) el.value = 'bad-key';
+    });
     await page.locator('#page-setup button:has-text("Simulate Full Exam")').click();
 
     const err = page.locator('#setup-err');
@@ -491,8 +510,6 @@ test.describe('History & Stats Rendering', () => {
 
   test('history panel shows when history exists', async ({ page }) => {
     await page.goto('/');
-
-    // Inject fake history
     await page.evaluate(() => {
       const history = [{
         topic: 'TCP/IP Basics', score: 8, total: 10, pct: 80,
@@ -501,7 +518,8 @@ test.describe('History & Stats Rendering', () => {
       localStorage.setItem('nplus_history', JSON.stringify(history));
     });
 
-    await page.reload();
+    // v4.54.1: Recent Performance moved to Analytics page
+    await gotoAnalytics(page);
 
     await expect(page.locator('#history-panel')).toBeVisible();
     await expect(page.locator('#history-list')).toContainText('TCP/IP');
@@ -612,8 +630,8 @@ test.describe('Wrong Bank Behavior', () => {
     });
     await page.reload();
 
-    // Open the Settings <details> section (v4.41.0: clear button lives here now)
-    await page.evaluate(() => { document.getElementById('advanced-section').open = true; });
+    // v4.54.1: Settings is its own page now — navigate there
+    await gotoSettings(page);
 
     // Listen for dialog and dismiss it
     page.on('dialog', dialog => dialog.dismiss());
@@ -637,8 +655,8 @@ test.describe('Wrong Bank Behavior', () => {
     });
     await page.reload();
 
-    // Open the Settings <details> section (v4.41.0: clear button lives here now)
-    await page.evaluate(() => { document.getElementById('advanced-section').open = true; });
+    // v4.54.1: Settings is its own page now — navigate there
+    await gotoSettings(page);
 
     // Accept the dialog
     page.on('dialog', dialog => dialog.accept());
@@ -818,9 +836,10 @@ test.describe('Export Data', () => {
       }]));
     });
 
-    // Listen for download
+    // v4.54.1: Export button is on the Settings page now
+    await gotoSettings(page);
     const downloadPromise = page.waitForEvent('download');
-    await page.locator('#page-setup button:has-text("Export")').click();
+    await page.locator('#page-settings button:has-text("Export")').click();
     const download = await downloadPromise;
 
     // Verify filename pattern

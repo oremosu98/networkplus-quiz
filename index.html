@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -417,35 +417,7 @@
     <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:4px">Timed, no hints, scaled 100-900 score. Pass mark: 720</p>
   </div>
 
-  <!-- History panel (recent performance) -->
-  <div id="history-panel" class="card is-hidden">
-    <h3 style="margin-bottom:12px">Recent Performance</h3>
-    <div id="history-list"></div>
-  </div>
-
-  <!-- v4.41.0: Legacy wrong-bank row deleted. The "Drill Mistakes" preset tile
-       (#wrong-preset-tile) handles the drill action; the Clear Wrong Answers
-       button now lives inside Settings below. -->
-
-  <details class="card advanced-section" id="advanced-section">
-    <summary>&#9881;&#65039; Settings <span class="adv-hint">(API key, data)</span></summary>
-    <div class="advanced-body">
-      <h4 style="margin:14px 0 6px;font-size:12px;color:var(--text-mid);letter-spacing:.05em;text-transform:uppercase">Anthropic API Key</h4>
-      <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" />
-      <p style="margin-top:8px;font-size:12px;color:var(--text-dim)">Stored in your browser only. Used only to call the Anthropic API.</p>
-      <h4 style="margin:16px 0 6px;font-size:12px;color:var(--text-mid);letter-spacing:.05em;text-transform:uppercase">Backup</h4>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
-        <label class="btn btn-ghost" style="flex:1;font-size:13px;cursor:pointer;text-align:center">
-          &#128228; Import Data
-          <input type="file" accept=".json" class="is-hidden" onchange="importData(event)" aria-label="Import data JSON file" />
-        </label>
-      </div>
-      <h4 style="margin:16px 0 6px;font-size:12px;color:var(--text-mid);letter-spacing:.05em;text-transform:uppercase">Wrong Answers Bank</h4>
-      <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
-      <p style="margin-top:6px;font-size:11px;color:var(--text-dim)">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
-    </div>
-  </details>
+  <!-- v4.54.1: #history-panel moved to Analytics page; #advanced-section Settings moved to #page-settings -->
 
 </div>
 
@@ -1076,8 +1048,48 @@
     <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>&#128202; Performance Analytics</h2>
   </div>
+  <!-- v4.54.1: Recent Performance moved here from home page -->
+  <div id="history-panel" class="card is-hidden" style="margin-bottom:18px">
+    <h3 style="margin-bottom:12px">Recent Performance</h3>
+    <div id="history-list"></div>
+  </div>
   <div id="analytics-content">
     <p style="color:var(--text-dim)">Complete at least one quiz to see your analytics.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SETTINGS PAGE (v4.54.1)
+     Moved out of the home-page .advanced-section <details> so it can be
+     reached directly from the sidebar + topbar gear.
+══════════════════════════════════════════ -->
+<div id="page-settings" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <h2>&#9881;&#65039; Settings</h2>
+  </div>
+  <div class="settings-layout">
+    <section class="card settings-section">
+      <h3 class="settings-section-title">Anthropic API Key</h3>
+      <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" />
+      <p class="settings-section-hint">Stored in your browser only. Used only to call the Anthropic API.</p>
+    </section>
+    <section class="card settings-section">
+      <h3 class="settings-section-title">Backup</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
+        <label class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px;cursor:pointer;text-align:center">
+          &#128228; Import Data
+          <input type="file" accept=".json" class="is-hidden" onchange="importData(event)" aria-label="Import data JSON file" />
+        </label>
+      </div>
+      <p class="settings-section-hint">Exports all quiz history, streaks, drill stats, topology saves, and ACL state to a JSON file. Import merges into your current local data.</p>
+    </section>
+    <section class="card settings-section">
+      <h3 class="settings-section-title">Wrong Answers Bank</h3>
+      <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
+      <p class="settings-section-hint">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
+    </section>
   </div>
 </div>
 

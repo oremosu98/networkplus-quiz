@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.0
+   Network+ AI Quiz — styles.css  v4.54.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7456,3 +7456,41 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 }
 [data-theme="light"] .focus-banner-v2 .fb-cta { color: #4F46E5; }
 /* Readiness card stays dark in both modes — that's the design intent from the mockup */
+
+/* ═══════════════════════════════════════════════════════════════════
+   v4.54.1 — Settings page + Recent Performance moved to Analytics
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Settings page — 3 stacked cards with consistent section styling */
+#page-settings { max-width: 720px; }
+.settings-layout { display: flex; flex-direction: column; gap: 14px; }
+.settings-section { padding: 20px 22px; }
+.settings-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-mid);
+  margin: 0 0 12px;
+}
+.settings-section-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+#page-settings #api-key {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 13px;
+}
+#page-settings #api-key:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .18);
+}
