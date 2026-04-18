@@ -17,6 +17,17 @@
 <a href="#api-key" class="skip-link" id="skip-link">Skip to content</a>
 
 <!-- ══════════════════════════════════════════
+     PERSISTENT APP SIDEBAR (v4.53.0)
+     Rendered client-side by renderAppSidebar() so the active state
+     stays in sync with showPage(). Mobile: hidden off-screen, opens
+     as overlay drawer via .sb-mobile-toggle.
+══════════════════════════════════════════ -->
+<button type="button" class="sb-mobile-toggle" id="sb-mobile-toggle" aria-label="Open navigation menu" onclick="toggleSidebarMobile()">&#9776;</button>
+<aside id="app-sidebar" class="app-sidebar" role="navigation" aria-label="Main navigation">
+  <!-- Contents filled by renderAppSidebar() -->
+</aside>
+
+<!-- ══════════════════════════════════════════
      SETUP PAGE
 ══════════════════════════════════════════ -->
 <div id="page-setup" class="page active">
@@ -25,7 +36,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.52.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.53.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -45,6 +56,8 @@
     </div>
     <div class="readiness-bar-wrap">
       <div class="readiness-bar-fill" id="readiness-bar-fill" style="width:0%"></div>
+      <!-- v4.53.0: pass-mark 720 tick. Position computed: (720-420)/(900-420)*100 = 62.5% -->
+      <div class="readiness-pass-tick" aria-hidden="true" style="left:62.5%"></div>
     </div>
     <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
     <div class="readiness-exam-row" id="readiness-exam-row">
@@ -91,35 +104,24 @@
          (#todays-focus) already covers the same concept with better UX -->
   </div>
 
-  <!-- Tools nav bar (v4.41.0: consolidated — 4 drill buttons collapsed into a single "Drills" launcher) -->
-  <div class="setup-nav-group" role="navigation" aria-label="Study tools">
-    <nav class="setup-nav" aria-label="Core tools">
-      <div class="setup-nav-row">
-        <button class="setup-nav-btn" onclick="showPage('progress');renderProgressPage()">
-          <span class="setup-nav-icon">&#128200;</span><span class="setup-nav-label">Progress</span>
-        </button>
-        <button class="setup-nav-btn" onclick="showPage('subnet');startSubnetTrainer()">
-          <span class="setup-nav-icon">&#129518;</span><span class="setup-nav-label">Subnet</span>
-        </button>
-        <button class="setup-nav-btn" onclick="showPage('analytics');renderAnalytics()">
-          <span class="setup-nav-icon">&#128202;</span><span class="setup-nav-label">Analytics</span>
-        </button>
-        <button class="setup-nav-btn" id="topology-builder-btn" onclick="showPage('topology-builder');openTopologyBuilder()">
-          <span class="setup-nav-icon">&#128295;</span><span class="setup-nav-label">Network Builder</span>
-        </button>
-        <button class="setup-nav-btn" id="acl-builder-btn" onclick="showPage('acl');openAclBuilder()">
-          <span class="setup-nav-icon">&#128274;</span><span class="setup-nav-label">ACL Builder</span>
-        </button>
-        <button class="setup-nav-btn" id="drills-launcher-btn" onclick="showDrillsPage()">
-          <span class="setup-nav-icon">&#127919;</span><span class="setup-nav-label">Drills</span>
-        </button>
-      </div>
-    </nav>
+  <!-- v4.53.0: tools nav moved into persistent left sidebar (#app-sidebar).
+       The old .setup-nav-group 6-button row is gone; sidebar holds the same
+       entries plus Drills sub-items broken out. -->
+
+  <!-- v4.53.0: Focus banner pullquote — real-data greeting + today's plan CTA -->
+  <div id="focus-banner" class="focus-banner is-hidden" role="region" aria-label="Today's focus">
+    <!-- Filled by renderSetupFocusBanner() on setup-page render -->
   </div>
 
-  <!-- Quick Start presets -->
-  <div class="presets-section">
-    <h4 class="presets-heading">Quick Start</h4>
+  <!-- § 01 Quick Start presets -->
+  <div class="presets-section ed-section">
+    <div class="ed-section-head">
+      <div class="ed-section-head-left">
+        <span class="ed-section-num">&#167; 01</span>
+        <h3 class="ed-section-title">Quick <em>start</em></h3>
+      </div>
+      <div class="ed-section-meta">4 presets &middot; tap to begin</div>
+    </div>
     <div class="quiz-presets" role="group" aria-label="Quiz presets">
       <button type="button" class="preset-tile" onclick="applyPreset('warmup')">
         <span class="preset-icon">&#9889;</span>
@@ -144,33 +146,59 @@
       </button>
     </div>
 
-    <!-- v4.41.0: Marathon Mode hidden until user has completed 1+ quiz (first-run progressive disclosure) -->
-    <div id="marathon-section" class="is-hidden">
-      <h4 class="presets-heading" style="margin-top:10px">Marathon Mode</h4>
-      <div class="quiz-presets" role="group" aria-label="Bulk mixed presets">
-        <button type="button" class="preset-tile" onclick="applyPreset('bulk30')">
-          <span class="preset-icon">&#128218;</span>
-          <span class="preset-title">30 Questions</span>
-          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-        </button>
-        <button type="button" class="preset-tile" onclick="applyPreset('bulk45')">
-          <span class="preset-icon">&#128218;</span>
-          <span class="preset-title">45 Questions</span>
-          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-        </button>
-        <button type="button" class="preset-tile" onclick="applyPreset('bulk60')">
-          <span class="preset-icon">&#128218;</span>
-          <span class="preset-title">60 Questions</span>
-          <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-        </button>
+  </div>
+
+  <!-- § 02 Marathon Mode — hidden until user has completed 1+ quiz (progressive disclosure) -->
+  <div id="marathon-section" class="ed-section is-hidden">
+    <div class="ed-section-head">
+      <div class="ed-section-head-left">
+        <span class="ed-section-num">&#167; 02</span>
+        <h3 class="ed-section-title">Marathon <em>mode</em></h3>
       </div>
+      <div class="ed-section-meta">for longer sittings</div>
+    </div>
+    <div class="quiz-presets" role="group" aria-label="Bulk mixed presets">
+      <button type="button" class="preset-tile" onclick="applyPreset('bulk30')">
+        <span class="preset-icon">&#128218;</span>
+        <span class="preset-title">30 Questions</span>
+        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+      </button>
+      <button type="button" class="preset-tile" onclick="applyPreset('bulk45')">
+        <span class="preset-icon">&#128218;</span>
+        <span class="preset-title">45 Questions</span>
+        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+      </button>
+      <button type="button" class="preset-tile" onclick="applyPreset('bulk60')">
+        <span class="preset-icon">&#128218;</span>
+        <span class="preset-title">60 Questions</span>
+        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
+      </button>
     </div>
   </div>
 
-  <!-- Custom Quiz (collapsed by default) -->
-  <!-- v4.50.0: UI polish pass — section headers with icons, Smart/Mixed as
-       premium dual-card, 5-color domain accordions, tier-color difficulty
-       pills, question-count with time estimates, sparkle on Generate. -->
+  <!-- § 03 By Domain — vertical-bar grid, click to drill weakest topic in domain -->
+  <div id="domain-grid-section" class="ed-section is-hidden">
+    <div class="ed-section-head">
+      <div class="ed-section-head-left">
+        <span class="ed-section-num">&#167; 03</span>
+        <h3 class="ed-section-title">By <em>domain</em></h3>
+      </div>
+      <div class="ed-section-meta">N10-009 exam weighting</div>
+    </div>
+    <div id="setup-domain-grid" class="domain-grid" role="list" aria-label="Domain mastery overview">
+      <!-- Filled by renderSetupDomainGrid() -->
+    </div>
+  </div>
+
+  <!-- § 04 Custom Quiz — collapsed by default. Wraps existing v4.50.0 polish pass. -->
+  <div class="ed-section">
+    <div class="ed-section-head">
+      <div class="ed-section-head-left">
+        <span class="ed-section-num">&#167; 04</span>
+        <h3 class="ed-section-title">Custom <em>quiz</em></h3>
+      </div>
+      <div class="ed-section-meta">tune topic, difficulty, length</div>
+    </div>
   <details class="card custom-quiz-section" id="custom-quiz-section">
     <summary class="custom-quiz-summary">&#9881;&#65039; Custom Quiz <span class="adv-hint">&middot; Topic, Difficulty &amp; Count</span></summary>
     <div class="custom-quiz-body">
@@ -324,6 +352,8 @@
       </button>
     </div>
   </details>
+  </div>
+  <!-- /§ 04 Custom quiz -->
 
   <!-- Exam section -->
   <div class="exam-section">

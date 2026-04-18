@@ -90,9 +90,11 @@ test('Topic chip group', html.includes('id="topic-group"'));
 test('Difficulty chip group', html.includes('id="diff-group"'));
 test('Generate Quiz button', html.includes('startQuiz()'));
 test('Simulate Exam button', html.includes('startExam()'));
-test('Subnet Trainer button', html.includes('startSubnetTrainer()'));
-test('Port Drill button', html.includes('startPortDrill()'));
-test('Analytics button', html.includes('renderAnalytics()'));
+test('Subnet Trainer button (v4.53.0: in sidebar JS + startSubnetTrainer handler wired)',
+  js.includes('startSubnetTrainer') && /APP_SIDEBAR_DRILLS[\s\S]{0,1500}startSubnetTrainer/.test(js));
+test('Port Drill button', html.includes('startPortDrill()') || js.includes('startPortDrill()'));
+test('Analytics button (v4.53.0: in sidebar JS, not setup-nav row)',
+  js.includes('renderAnalytics') && /APP_SIDEBAR_PRACTICE[\s\S]{0,800}analytics/.test(js));
 test('Topic brief div', html.includes('id="topic-brief"'));
 test('Subnet reference table', html.includes('subnet-table'));
 test('Port mastery answer area', html.includes('id="pt-answer-area"'));
@@ -273,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.52.0', js.includes("const APP_VERSION = '4.52.0"));
+test('APP_VERSION is 4.53.0', js.includes("const APP_VERSION = '4.53.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +288,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.52.0', sw.includes('netplus-v4.52.0'));
+test('SW cache bumped to v4.53.0', sw.includes('netplus-v4.53.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -773,7 +775,8 @@ test('Keyboard: Delete/Backspace triggers delete', /tbAttachKeyHandler[\s\S]{0,6
 test('Keyboard: Escape clears selection', /tbAttachKeyHandler[\s\S]{0,700}Escape/.test(js));
 test('Keyboard handler skips inputs', /tbAttachKeyHandler[\s\S]{0,500}tagName === 'INPUT'/.test(js));
 // HTML wiring
-test('HTML: setup menu button for topology-builder', html.includes("showPage('topology-builder')"));
+test('HTML: setup menu button for topology-builder (v4.53.0: now wired in sidebar JS, not HTML)',
+  js.includes("showPage('topology-builder')"));
 test('HTML: #page-topology-builder exists', html.includes('id="page-topology-builder"'));
 test('HTML: #tb-canvas SVG exists', html.includes('id="tb-canvas"'));
 test('HTML: #tb-palette-items container', html.includes('id="tb-palette-items"'));
@@ -1743,18 +1746,26 @@ test('HTML: today-section contains todays-focus', html.indexOf('id="todays-focus
 test('HTML: today-section contains session-banner', html.indexOf('id="session-banner"') > html.indexOf('id="today-section"'));
 // v4.41.0: #weak-banner removed from Today section (redundant with #todays-focus chip row)
 test('HTML: weak-banner REMOVED (v4.41.0 density pass)', !html.includes('id="weak-banner"'));
-test('HTML: setup-nav toolbar exists', html.includes('class="setup-nav"'));
-test('HTML: setup-nav has 5 buttons', (html.match(/setup-nav-btn/g) || []).length >= 5);
-test('HTML: nav has Progress button', html.includes('setup-nav-label">Progress'));
-test('HTML: nav has Subnet button', html.includes('setup-nav-label">Subnet'));
-// v4.41.0: 4 Interactive Drills rows consolidated into a single "Drills" launcher
-test('HTML: nav has Drills launcher (v4.41.0 density pass)', html.includes('setup-nav-label">Drills') && html.includes('id="drills-launcher-btn"'));
-test('HTML: nav no longer has standalone Port Drill/Acronyms/OSI/Cables buttons', !html.includes('setup-nav-label">Port Drill') && !html.includes('setup-nav-label">Acronyms') && !html.includes('setup-nav-label">OSI Sorter') && !html.includes('setup-nav-label">Cables'));
-test('HTML: nav has Analytics button', html.includes('setup-nav-label">Analytics'));
-test('HTML: nav has Network Builder button (v4.40.0 label pass)', html.includes('setup-nav-label">Network Builder'));
-test('HTML: presets-section wrapper exists', html.includes('class="presets-section"'));
-test('HTML: Quick Start heading', html.includes('Quick Start'));
-test('HTML: Marathon Mode heading', html.includes('Marathon Mode'));
+test('HTML: persistent sidebar exists (v4.53.0 replaces old setup-nav row)',
+  html.includes('id="app-sidebar"') && html.includes('class="app-sidebar"'));
+test('HTML: regression \u2014 old .setup-nav toolbar removed', !html.includes('class="setup-nav"'));
+test('HTML: sidebar has \u22655 Practice+Drills items (JS-rendered via APP_SIDEBAR_PRACTICE + APP_SIDEBAR_DRILLS)',
+  js.includes('APP_SIDEBAR_PRACTICE') && js.includes('APP_SIDEBAR_DRILLS'));
+test('HTML: sidebar has Progress entry', /APP_SIDEBAR_PRACTICE[\s\S]{0,800}label:\s*'Progress'/.test(js));
+test('HTML: sidebar has Subnet Mastery entry', /APP_SIDEBAR_DRILLS[\s\S]{0,1500}label:\s*'Subnet Mastery'/.test(js));
+// v4.53.0: sidebar exposes individual drill entries (Port Drill / Acronym Blitz / OSI / Cable ID) instead of a launcher.
+test('HTML: sidebar exposes Port Drill entry (v4.53.0: broken out from the old Drills launcher)',
+  /APP_SIDEBAR_DRILLS[\s\S]{0,1500}label:\s*'Port Drill'/.test(js));
+test('HTML: sidebar exposes Acronym Blitz + OSI Sorter + Cable ID entries',
+  /label:\s*'Acronym Blitz'/.test(js) && /label:\s*'OSI Sorter'/.test(js) && /label:\s*'Cable ID'/.test(js));
+test('HTML: sidebar has Analytics entry', /APP_SIDEBAR_PRACTICE[\s\S]{0,800}label:\s*'Analytics'/.test(js));
+test('HTML: sidebar has Network Builder entry', /APP_SIDEBAR_PRACTICE[\s\S]{0,1200}label:\s*'Network Builder'/.test(js));
+test('HTML: presets-section wrapper exists (v4.53.0: now carries ed-section class for editorial styling)',
+  html.includes('class="presets-section ed-section"') || html.includes('class="presets-section"'));
+test('HTML: Quick Start section \u2014 v4.53.0 uses editorial \u00a7 01 numbering',
+  html.includes('&#167; 01') && /Quick\s*<em>start<\/em>/.test(html));
+test('HTML: Marathon Mode section \u2014 v4.53.0 uses editorial \u00a7 02 numbering',
+  html.includes('&#167; 02') && /Marathon\s*<em>mode<\/em>/.test(html));
 test('HTML: wrong-preset-tile exists', html.includes('id="wrong-preset-tile"'));
 test('HTML: custom-quiz-section details exists', html.includes('id="custom-quiz-section"'));
 test('HTML: topic-group inside custom-quiz-section', html.indexOf('id="topic-group"') > html.indexOf('id="custom-quiz-section"'));
@@ -1785,7 +1796,8 @@ test('Label: no legacy "30-min Grind" preset text', !html.includes('30-min Grind
 test('Label: exam toggle "Strict Mode" (was Hardcore)', html.includes('Strict Mode'));
 test('Label: no legacy "Hardcore Mode" UI text', !html.includes('Hardcore Mode <span class="hardcore-sub"'));
 test('Label: Settings summary (was Advanced)', /<summary>[^<]*Settings\s*<span class="adv-hint"/.test(html));
-test('Label: nav button "Network Builder" (was Builder)', html.includes('setup-nav-label">Network Builder'));
+test('Label: sidebar entry "Network Builder" (v4.53.0: moved from setup-nav to sidebar)',
+  /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'Network Builder'/.test(js));
 test('Label: Marathon Mode heading preserved', html.includes('Marathon Mode'));
 // Internal code identifiers must NOT have been renamed
 test('Code: examHardcore state var preserved', js.includes('let examHardcore'));
@@ -1834,7 +1846,8 @@ test('Tier1: drills page has Port Drill tile', html.match(/id="page-drills"[\s\S
 test('Tier1: drills page has Acronym Blitz tile', html.match(/id="page-drills"[\s\S]*?Acronym Blitz/));
 test('Tier1: drills page has OSI Sorter tile', html.match(/id="page-drills"[\s\S]*?OSI Sorter/));
 test('Tier1: drills page has Cable ID tile', html.match(/id="page-drills"[\s\S]*?Cable ID/));
-test('Tier1: drills-launcher-btn in setup nav', html.includes('id="drills-launcher-btn"'));
+test('Tier1: v4.53.0 \u2014 drills launcher moved to sidebar per-drill entries (Port/Acronym/OSI/Cable ID), old drills-launcher-btn retired',
+  !html.includes('id="drills-launcher-btn"') && /label:\s*'Port Drill'/.test(js) && /label:\s*'Cable ID'/.test(js));
 test('Tier1: showDrillsPage() function exists', js.includes('function showDrillsPage('));
 test('Tier1: showDrillsPage calls showPage("drills")', js.match(/function showDrillsPage\([\s\S]{0,200}showPage\('drills'\)/));
 test('Tier1: drills-grid CSS class', css.includes('.drills-grid'));
@@ -5001,10 +5014,10 @@ console.log('\n\x1b[1m── v4.52.0 ACL BUILDER ──\x1b[0m');
 // HTML — page + setup tile + modals
 test('v4.52.0 HTML: #page-acl exists',
   html.includes('id="page-acl"'));
-test('v4.52.0 HTML: setup nav has ACL Builder entry tile',
-  html.includes('id="acl-builder-btn"') && html.includes("showPage('acl');openAclBuilder()"));
-test('v4.52.0 HTML: ACL Builder tile shows lock icon + "ACL Builder" label',
-  /id="acl-builder-btn"[\s\S]{0,400}128274[\s\S]{0,200}ACL Builder/.test(html));
+test('v4.52.0/v4.53.0: ACL Builder reachable from sidebar (moved out of setup-nav-btn row)',
+  js.includes("showPage('acl')") && /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'ACL Builder'/.test(js));
+test('v4.53.0: ACL Builder sidebar entry uses \u25A3 (square-dot) or lock-family glyph, openAclBuilder wired',
+  js.includes('openAclBuilder') && /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}page:\s*'acl'/.test(js));
 test('v4.52.0 HTML: rule-list + test panel + grade panel containers',
   html.includes('id="acl-rule-list"') && html.includes('id="acl-test-panel"') && html.includes('id="acl-grade-panel"'));
 test('v4.52.0 HTML: scenario picker modal',
@@ -5239,6 +5252,135 @@ test('v4.52.0 CSS: light-theme override for .acl-grade-score-full',
   /\[data-theme="light"\]\s+\.acl-grade-score-full\s*\{/.test(css));
 test('v4.52.0 CSS: light-theme override for .acl-picker-card',
   /\[data-theme="light"\]\s+\.acl-picker-card\s*\{/.test(css));
+
+// ── v4.53.0 EDITORIAL REDESIGN ──
+// Persistent sidebar (Practice/Drills IA) + setup-page polish (focus
+// banner, \u00a7 01-04 numbered sections, vertical-bar domain grid,
+// readiness pass-mark tick). User green-lit full scope after Claude
+// Design prototype review. Kept brand palette + Inter font, added
+// editorial pattern from prototype.
+console.log('\n\x1b[1m── v4.53.0 EDITORIAL REDESIGN ──\x1b[0m');
+
+// HTML
+test('v4.53.0 HTML: #app-sidebar container exists',
+  html.includes('id="app-sidebar"') && html.includes('class="app-sidebar"'));
+test('v4.53.0 HTML: mobile sidebar toggle button',
+  html.includes('class="sb-mobile-toggle"') && html.includes('onclick="toggleSidebarMobile()"'));
+test('v4.53.0 HTML: focus banner container on setup page',
+  html.includes('id="focus-banner"') && html.includes('class="focus-banner'));
+test('v4.53.0 HTML: \u00a7 01 Quick Start editorial section head',
+  /&#167;\s*01[\s\S]{0,400}Quick\s*<em>start<\/em>/.test(html));
+test('v4.53.0 HTML: \u00a7 02 Marathon Mode editorial section head',
+  /&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
+test('v4.53.0 HTML: \u00a7 03 By Domain editorial section head + grid container',
+  /&#167;\s*03[\s\S]{0,400}By\s*<em>domain<\/em>/.test(html) && html.includes('id="setup-domain-grid"'));
+test('v4.53.0 HTML: \u00a7 04 Custom Quiz editorial section head',
+  /&#167;\s*04[\s\S]{0,400}Custom\s*<em>quiz<\/em>/.test(html));
+test('v4.53.0 HTML: pass-mark 720 tick positioned at 62.5% on readiness bar',
+  /class="readiness-pass-tick"[\s\S]{0,200}left:\s*62\.5%/.test(html));
+test('v4.53.0 HTML: regression \u2014 old .setup-nav-group 6-button row removed',
+  !html.includes('class="setup-nav-group"'));
+
+// JS \u2014 sidebar
+test('v4.53.0 JS: APP_SIDEBAR_PRACTICE + APP_SIDEBAR_DRILLS arrays defined',
+  js.includes('const APP_SIDEBAR_PRACTICE') && js.includes('const APP_SIDEBAR_DRILLS'));
+test('v4.53.0 JS: Practice nav has Home/Progress/Analytics/Network Builder/ACL Builder',
+  /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}Home[\s\S]{0,300}Progress[\s\S]{0,300}Analytics[\s\S]{0,400}Network Builder[\s\S]{0,400}ACL Builder/.test(js));
+test('v4.53.0 JS: Drills nav has 5 per-drill entries (Subnet/Port/Acronym/OSI/Cable)',
+  /APP_SIDEBAR_DRILLS[\s\S]{0,2000}Subnet Mastery[\s\S]{0,200}Port Drill[\s\S]{0,200}Acronym Blitz[\s\S]{0,200}OSI Sorter[\s\S]{0,200}Cable ID/.test(js));
+test('v4.53.0 JS: renderAppSidebar function defined',
+  js.includes('function renderAppSidebar('));
+test('v4.53.0 JS: SIDEBAR_ACTIVE_MAP defined (maps page names to sidebar highlight)',
+  js.includes('const SIDEBAR_ACTIVE_MAP'));
+test('v4.53.0 JS: updateSidebarActiveState function defined',
+  js.includes('function updateSidebarActiveState('));
+test('v4.53.0 JS: showPage hook calls updateSidebarActiveState',
+  /function showPage\([\s\S]{0,600}updateSidebarActiveState/.test(js));
+test('v4.53.0 JS: toggleSidebarMobile defined for mobile drawer',
+  js.includes('function toggleSidebarMobile('));
+test('v4.53.0 JS: has-sidebar body class applied on init',
+  js.includes("document.body.classList.add('has-sidebar')"));
+
+// JS \u2014 focus banner + domain grid
+test('v4.53.0 JS: renderSetupFocusBanner function defined',
+  js.includes('function renderSetupFocusBanner('));
+test('v4.53.0 JS: focus banner greets user by name (Simi)',
+  /renderSetupFocusBanner[\s\S]{0,2000}<em>Simi<\/em>/.test(js));
+test('v4.53.0 JS: focus banner has empty-state fallback (no history)',
+  /renderSetupFocusBanner[\s\S]{0,3000}history\.length\s*===\s*0/.test(js));
+test('v4.53.0 JS: focus banner pulls weakest topics from computeWeakSpotScores',
+  /renderSetupFocusBanner[\s\S]{0,3000}computeWeakSpotScores/.test(js));
+test('v4.53.0 JS: renderSetupDomainGrid function defined',
+  js.includes('function renderSetupDomainGrid('));
+test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
+  /renderSetupDomainGrid[\s\S]{0,2500}TOPIC_DOMAINS\[e\.topic\]/.test(js));
+test('v4.53.0 JS: domain grid click wires drillDomain',
+  /renderSetupDomainGrid[\s\S]{0,3000}drillDomain\(/.test(js));
+test('v4.53.0 JS: goSetup calls renderSetupFocusBanner + renderSetupDomainGrid',
+  /function goSetup\([\s\S]{0,1000}renderSetupFocusBanner[\s\S]{0,200}renderSetupDomainGrid/.test(js));
+
+// CSS \u2014 sidebar
+test('v4.53.0 CSS: body.has-sidebar adds 240px left padding',
+  /body\.has-sidebar\s*\{[^}]*padding-left:\s*240px/.test(css));
+test('v4.53.0 CSS: .app-sidebar fixed 240px left rail',
+  /\.app-sidebar\s*\{[\s\S]{0,400}position:\s*fixed[\s\S]{0,200}width:\s*240px/.test(css));
+test('v4.53.0 CSS: sidebar brand mark has gradient + shadow',
+  /\.sb-brand-mark\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
+test('v4.53.0 CSS: .sb-item-active has accent-tinted background + left rail',
+  /\.sb-item\.sb-item-active\s*\{/.test(css) && /\.sb-item\.sb-item-active::before\s*\{[^}]*background:\s*var\(--accent\)/.test(css));
+test('v4.53.0 CSS: mobile breakpoint collapses sidebar to drawer',
+  /@media \(max-width:\s*900px\)[\s\S]{0,800}\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
+
+// CSS \u2014 focus banner
+test('v4.53.0 CSS: .focus-banner has radial+linear gradient bg',
+  /\.focus-banner\s*\{[\s\S]{0,600}radial-gradient[\s\S]{0,300}linear-gradient\(160deg/.test(css));
+test('v4.53.0 CSS: .focus-cta uses 135deg gradient + shadow',
+  /\.focus-cta\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
+test('v4.53.0 CSS: @keyframes focusBannerFadeIn (entry animation)',
+  /@keyframes focusBannerFadeIn/.test(css));
+
+// CSS \u2014 editorial numbered sections
+test('v4.53.0 CSS: .ed-section-num monospace accent-light',
+  /\.ed-section-num\s*\{[\s\S]{0,300}font-family:\s*monospace[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+test('v4.53.0 CSS: .ed-section-title em uses accent-light (editorial italic accent)',
+  /\.ed-section-title\s+em\s*\{[^}]*color:\s*var\(--accent-light\)/.test(css));
+test('v4.53.0 CSS: .ed-section-head has dashed-underline accent border',
+  /\.ed-section-head\s*\{[\s\S]{0,400}border-bottom:\s*1px dashed rgba\(var\(--accent-rgb\)/.test(css));
+
+// CSS \u2014 pass-mark tick
+test('v4.53.0 CSS: .readiness-pass-tick positioned absolute',
+  /\.readiness-pass-tick\s*\{[\s\S]{0,300}position:\s*absolute/.test(css));
+test('v4.53.0 CSS: pass tick has 720 label above + PASS label below',
+  /\.readiness-pass-tick::before[\s\S]{0,300}content:\s*'720'/.test(css) && /\.readiness-pass-tick::after[\s\S]{0,300}content:\s*'PASS'/.test(css));
+test('v4.53.0 CSS: readiness-bar-wrap has overflow:visible (tick labels protrude)',
+  /\.readiness-bar-wrap\s*\{[\s\S]{0,300}overflow:\s*visible/.test(css));
+
+// CSS \u2014 domain grid
+test('v4.53.0 CSS: .domain-grid uses 5-col grid',
+  /\.domain-grid\s*\{[\s\S]{0,200}grid-template-columns:\s*repeat\(5,\s*1fr\)/.test(css));
+test('v4.53.0 CSS: .domain-cell has per-idx top border colour (5-domain palette)',
+  /\.domain-cell\[data-domain-idx="1"\][\s\S]{0,100}#7c6ff7/.test(css) &&
+  /\.domain-cell\[data-domain-idx="5"\][\s\S]{0,100}#ef4444/.test(css));
+test('v4.53.0 CSS: .dg-bar uses 800ms cubic-bezier height transition',
+  /\.dg-bar\s*\{[\s\S]{0,400}transition:\s*height\s+800ms\s+cubic-bezier\(0\.2,\s*0\.8,\s*0\.2,\s*1\)/.test(css));
+test('v4.53.0 CSS: .domain-cell:hover translateY(-3px)',
+  /\.domain-cell:hover\s*\{[^}]*transform:\s*translateY\(-3px\)/.test(css));
+
+// CSS \u2014 reduced motion
+test('v4.53.0 CSS: reduced-motion neutralises sidebar + focus-banner + dg-bar',
+  /prefers-reduced-motion[\s\S]{0,10000}\.app-sidebar[\s\S]{0,3000}transition:\s*none/.test(css));
+test('v4.53.0 CSS: reduced-motion kills hover translateY on focus-cta + domain-cell',
+  /prefers-reduced-motion[\s\S]{0,10000}\.domain-cell:hover[\s\S]{0,200}transform:\s*none/.test(css));
+
+// CSS \u2014 light-theme overrides
+test('v4.53.0 CSS: light-theme .app-sidebar recoloured',
+  /\[data-theme="light"\]\s+\.app-sidebar\s*\{/.test(css));
+test('v4.53.0 CSS: light-theme .focus-banner recoloured to #6355e0 brand',
+  /\[data-theme="light"\]\s+\.focus-banner\s*\{[\s\S]{0,800}99,\s*85,\s*224/.test(css));
+test('v4.53.0 CSS: light-theme .sb-item-active recoloured',
+  /\[data-theme="light"\]\s+\.sb-item\.sb-item-active\s*\{/.test(css));
+test('v4.53.0 CSS: light-theme .ed-section-num recoloured',
+  /\[data-theme="light"\]\s+\.ed-section-num[\s\S]{0,200}#6355e0/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.52.0
+// Network+ AI Quiz — app.js  v4.53.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.52.0';
+const APP_VERSION = '4.53.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -572,6 +572,10 @@ function syncChipAriaPressed(groupSelector) {
 function showPage(name) {
   // Stop ambient packets when leaving topology builder
   if (name !== 'topology-builder' && typeof tbStopAmbient === 'function') tbStopAmbient();
+  // v4.53.0: sync sidebar active state on every page change
+  if (typeof updateSidebarActiveState === 'function') updateSidebarActiveState(name);
+  // v4.53.0: auto-close mobile drawer when navigating
+  try { document.body.classList.remove('sidebar-open'); } catch (_) {}
   const current = document.querySelector('.page.active');
   const next = document.getElementById('page-' + name);
   const activate = () => {
@@ -622,6 +626,9 @@ function goSetup() {
   renderTodaysFocus();
   renderTodaySection();
   renderMarathonSection();
+  // v4.53.0: editorial redesign hooks
+  if (typeof renderSetupFocusBanner === 'function') renderSetupFocusBanner();
+  if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
   showPage('setup');
 }
 
@@ -23252,4 +23259,255 @@ function _aclShowCoachModal(payload, scen, cached) {
 function aclCloseCoachModal() {
   const modal = document.getElementById('acl-coach-modal');
   if (modal) modal.classList.add('is-hidden');
+}
+
+// ══════════════════════════════════════════
+// v4.53.0 — EDITORIAL REDESIGN
+// ══════════════════════════════════════════
+// Persistent left sidebar + setup-page focus banner + domain grid.
+// User asked for this after reviewing a Claude Design prototype — kept our
+// brand palette + Inter font + dark/light modes, but adopted the prototype's
+// sidebar IA (Practice / Drills sections) and editorial numbered-section
+// pattern for the setup page.
+
+// ── Sidebar structure ──
+// Two sections: Practice (core study surfaces) + Drills (muscle-memory reps).
+// Each item carries page-id + handler + optional icon. Active state is synced
+// from showPage() via updateSidebarActiveState().
+const APP_SIDEBAR_PRACTICE = [
+  { page: 'setup',             label: 'Home',             icon: '\u2302', handler: () => goSetup() },
+  { page: 'progress',          label: 'Progress',         icon: '\u25A4', handler: () => { showPage('progress'); if (typeof renderProgressPage === 'function') renderProgressPage(); } },
+  { page: 'analytics',         label: 'Analytics',        icon: '\u25A9', handler: () => { showPage('analytics'); if (typeof renderAnalytics === 'function') renderAnalytics(); } },
+  { page: 'topology-builder',  label: 'Network Builder',  icon: '\u25C7', handler: () => { showPage('topology-builder'); if (typeof openTopologyBuilder === 'function') openTopologyBuilder(); } },
+  { page: 'acl',               label: 'ACL Builder',      icon: '\u25A3', handler: () => { showPage('acl'); if (typeof openAclBuilder === 'function') openAclBuilder(); } }
+];
+const APP_SIDEBAR_DRILLS = [
+  { page: 'subnet',            label: 'Subnet Mastery',   handler: () => { showPage('subnet'); if (typeof startSubnetTrainer === 'function') startSubnetTrainer(); } },
+  { page: 'ports',             label: 'Port Drill',       handler: () => { showPage('ports'); if (typeof startPortDrill === 'function') startPortDrill(); } },
+  { page: 'acronyms',          label: 'Acronym Blitz',    handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } },
+  { page: 'osi-sorter',        label: 'OSI Sorter',       handler: () => { showPage('osi-sorter'); if (typeof startOsiSorter === 'function') startOsiSorter(); } },
+  { page: 'cables',            label: 'Cable ID',         handler: () => { showPage('cables'); if (typeof startCableId === 'function') startCableId(); } }
+];
+
+// Map arbitrary page names to their sidebar highlight target. Quiz/exam/review
+// etc. all highlight "Home" because they're part of the setup\u2192study flow.
+const SIDEBAR_ACTIVE_MAP = {
+  'setup': 'setup', 'quiz': 'setup', 'exam': 'setup',
+  'results': 'setup', 'exam-results': 'setup', 'review': 'setup',
+  'session-transition': 'setup', 'session-complete': 'setup', 'loading': 'setup',
+  'progress': 'progress',
+  'analytics': 'analytics',
+  'topology-builder': 'topology-builder',
+  'guided-lab': 'topology-builder',
+  'acl': 'acl',
+  'subnet': 'subnet',
+  'ports': 'ports',
+  'acronyms': 'acronyms',
+  'osi-sorter': 'osi-sorter',
+  'cables': 'cables',
+  'topic-dive': 'progress',
+  'drills': 'setup'  // launcher shell; highlight Home until specific drill chosen
+};
+
+// Stash the click handlers on a global so inline onclick="..." can reach them.
+// Not elegant but avoids wiring every button with a JS reference.
+window.__aclSidebarHandlers = {};
+
+function renderAppSidebar() {
+  const el = document.getElementById('app-sidebar');
+  if (!el) return;
+  // Register handlers keyed by page id, then generate HTML with onclick refs.
+  const reg = window.__aclSidebarHandlers;
+  [...APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS].forEach(it => {
+    reg[it.page] = it.handler;
+  });
+  const renderItem = it => {
+    const hasIcon = it.icon;
+    return `<button type="button" class="sb-item" data-sb-page="${it.page}" onclick="__aclSidebarHandlers['${it.page}'] && __aclSidebarHandlers['${it.page}']()">
+      ${hasIcon ? `<span class="sb-item-icon" aria-hidden="true">${it.icon}</span>` : '<span class="sb-item-icon">&bull;</span>'}
+      <span class="sb-item-label">${escHtml(it.label)}</span>
+    </button>`;
+  };
+  // Streak badge in footer — reuses existing getStreak()
+  let streakHtml = '';
+  try {
+    const s = (typeof getStreak === 'function') ? getStreak() : { current: 0, best: 0 };
+    if (s && s.current >= 1) {
+      const fire = s.current >= 14 ? '\ud83d\udd25\ud83d\udd25' : '\ud83d\udd25';
+      streakHtml = `<button type="button" class="sb-streak sb-streak-active" onclick="goSetup()" title="View full streak history">
+        <span class="sb-streak-flame" aria-hidden="true">${fire}</span>
+        <span class="sb-streak-text">
+          <span class="sb-streak-num">${s.current}</span>
+          <span class="sb-streak-label">day streak</span>
+        </span>
+      </button>`;
+    } else {
+      streakHtml = `<div class="sb-streak-empty">Take your first quiz to start a streak \ud83d\udd25</div>`;
+    }
+  } catch (_) { streakHtml = ''; }
+
+  el.innerHTML = `
+    <div class="sb-brand">
+      <div class="sb-brand-mark" aria-hidden="true">N+</div>
+      <div class="sb-brand-text">
+        <span class="sb-brand-name">Network+</span>
+        <span class="sb-brand-version">v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '4.53.0'}</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">Practice</div>
+      ${APP_SIDEBAR_PRACTICE.map(renderItem).join('')}
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">Drills</div>
+      ${APP_SIDEBAR_DRILLS.map(renderItem).join('')}
+    </div>
+    <div class="sb-foot">${streakHtml}</div>`;
+  // Initial active-state sync
+  const active = document.querySelector('.page.active');
+  if (active) {
+    const pageName = active.id.replace(/^page-/, '');
+    updateSidebarActiveState(pageName);
+  }
+}
+
+function updateSidebarActiveState(pageName) {
+  const target = SIDEBAR_ACTIVE_MAP[pageName] || pageName;
+  document.querySelectorAll('.sb-item').forEach(btn => {
+    btn.classList.toggle('sb-item-active', btn.getAttribute('data-sb-page') === target);
+  });
+}
+
+function toggleSidebarMobile() {
+  document.body.classList.toggle('sidebar-open');
+}
+
+// ── Focus banner pullquote (setup page) ──
+// Real-data greeting with weakest-topic callout + today's daily-goal stats.
+// Falls back to friendly empty state when history is empty (first-run).
+function renderSetupFocusBanner() {
+  const el = document.getElementById('focus-banner');
+  if (!el) return;
+  const history = (typeof loadHistory === 'function') ? loadHistory() : [];
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Working late';
+  const greetingLine = `${greeting}, <em>Simi</em>`;
+
+  let bodyHtml, metaHtml, ctaLabel, ctaAction;
+  if (history.length === 0) {
+    bodyHtml = `<div class="focus-greeting">${greetingLine}</div>
+      <div class="focus-text">Start with a <strong>5-minute warmup</strong>. Pick any preset below \u2014 your readiness appears here after your first quiz.</div>
+      <div class="focus-meta">N10-009 \u00b7 90Q exam \u00b7 passing score 720/900</div>`;
+    ctaLabel = 'Start warmup';
+    ctaAction = "applyPreset('warmup')";
+  } else {
+    // Pull weakest topic + readiness delta
+    let weakLine = '';
+    try {
+      if (typeof computeWeakSpotScores === 'function') {
+        const weak = computeWeakSpotScores();
+        if (weak && weak.length > 0) {
+          const topWeak = weak.slice(0, 2).map(w => `<strong>${escHtml(w.topic)}</strong>`).join(' and ');
+          weakLine = `Your weakest areas right now: ${topWeak}.`;
+        }
+      }
+    } catch (_) {}
+    if (!weakLine) weakLine = 'Pick a topic below or dive into your weakest domain.';
+    bodyHtml = `<div class="focus-greeting">${greetingLine}</div>
+      <div class="focus-text">${weakLine} <em>Fifteen focused minutes</em> now compounds more than an hour tomorrow.</div>
+      <div class="focus-meta">TODAY'S STUDY PLAN \u00b7 WEAK-SPOT DRILL \u00b7 ~15 MIN</div>`;
+    ctaLabel = 'Begin plan';
+    ctaAction = "applyPreset('focused')";
+  }
+
+  el.innerHTML = `
+    <div class="focus-quote-mark" aria-hidden="true">\u201C</div>
+    <div class="focus-text-wrap">${bodyHtml}</div>
+    <button type="button" class="focus-cta" onclick="${ctaAction}" aria-label="${ctaLabel}">${ctaLabel} <span aria-hidden="true">\u2192</span></button>`;
+  el.classList.remove('is-hidden');
+}
+
+// ── Vertical-bar domain grid (setup page \u00a7 03) ──
+// Aggregates recent history per N10-009 domain, renders 5 cells with
+// vertical bars sized to mastery %, click drills into weakest topic.
+function renderSetupDomainGrid() {
+  const el = document.getElementById('setup-domain-grid');
+  const section = document.getElementById('domain-grid-section');
+  if (!el || !section) return;
+  const history = (typeof loadHistory === 'function') ? loadHistory() : [];
+  // Hide the entire section if there's no data — don't show an empty grid
+  if (history.length === 0) {
+    section.classList.add('is-hidden');
+    return;
+  }
+  section.classList.remove('is-hidden');
+  const domainOrder = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  const domainDisplay = {
+    concepts: '1.0 Concepts',
+    implementation: '2.0 Implementation',
+    operations: '3.0 Operations',
+    security: '4.0 Security',
+    troubleshooting: '5.0 Troubleshooting'
+  };
+  // Aggregate score per domain via TOPIC_DOMAINS
+  const stats = {};
+  domainOrder.forEach(d => { stats[d] = { score: 0, total: 0 }; });
+  history.forEach(e => {
+    const dk = (typeof TOPIC_DOMAINS !== 'undefined') ? TOPIC_DOMAINS[e.topic] : null;
+    if (!dk || !stats[dk]) return;
+    stats[dk].score += e.score || 0;
+    stats[dk].total += e.total || 0;
+  });
+  const weightPct = {
+    concepts: 23, implementation: 20, operations: 19, security: 14, troubleshooting: 24
+  };
+  const html = domainOrder.map((dk, idx) => {
+    const s = stats[dk];
+    const pct = s.total > 0 ? Math.round((s.score / s.total) * 100) : null;
+    const barH = pct !== null ? Math.max(6, Math.min(100, pct)) : 6;
+    const pctTxt = pct !== null ? pct : '\u2014';
+    const pctSub = pct !== null ? '%' : '';
+    const status = pct === null ? 'Not studied' : pct >= 85 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
+    return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" onclick="drillDomain('${DOMAIN_LABELS[dk].replace(/'/g, "\\'")}')">
+      <span class="dg-weight">${weightPct[dk]}% exam</span>
+      <div class="dg-bar-col">
+        <div class="dg-bar" style="height:${barH}%"></div>
+      </div>
+      <div>
+        <div class="dg-num">Domain ${idx + 1}</div>
+        <div class="dg-name">${escHtml(domainDisplay[dk].split(' ').slice(1).join(' '))}</div>
+      </div>
+      <div class="dg-pct-wrap">
+        <span class="dg-pct">${pctTxt}</span><span class="dg-pct-sub">${pctSub}</span>
+      </div>
+      <div class="dg-status">${status}</div>
+    </button>`;
+  }).join('');
+  el.innerHTML = html;
+}
+
+// ── Initialisation hook ──
+// Render sidebar on page load + flag body for sidebar padding. Runs after
+// DOMContentLoaded so existing DOM is ready.
+function _v453Init() {
+  try {
+    document.body.classList.add('has-sidebar');
+    if (typeof renderAppSidebar === 'function') renderAppSidebar();
+    // Initial focus banner + domain grid if we land on setup
+    const setupPage = document.getElementById('page-setup');
+    if (setupPage && setupPage.classList.contains('active')) {
+      if (typeof renderSetupFocusBanner === 'function') renderSetupFocusBanner();
+      if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
+    }
+  } catch (e) {
+    // Defensive — sidebar is net-new; any bug here must not crash the app
+    console.warn('[v4.53.0 sidebar init]', e && e.message);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _v453Init);
+} else {
+  // Already loaded (likely because app.js is at end of body)
+  _v453Init();
 }
