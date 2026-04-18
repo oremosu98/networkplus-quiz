@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.49.4', js.includes("const APP_VERSION = '4.49.4"));
+test('APP_VERSION is 4.50.0', js.includes("const APP_VERSION = '4.50.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.49.4', sw.includes('netplus-v4.49.4'));
+test('SW cache bumped to v4.50.0', sw.includes('netplus-v4.50.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4747,6 +4747,79 @@ test('v4.49.5: deploy-verify records retry attempt count in pass message',
   /matched on attempt \$\{attempts\} after CDN propagation/.test(deployVerifyJs));
 test('v4.49.5: deploy-verify final-failure message mentions total retry window',
   /after \$\{attempts\} attempts over ~3\.75 min/.test(deployVerifyJs));
+
+// ── v4.50.0 CUSTOM QUIZ UI POLISH ──
+console.log('\n\x1b[1m── v4.50.0 CUSTOM QUIZ UI POLISH ──\x1b[0m');
+// Section headers with icons
+test('v4.50.0: cq-section-head + cq-section-ico + cq-section-title structure in HTML',
+  html.includes('class="cq-section-head"') &&
+  html.includes('class="cq-section-ico"') &&
+  html.includes('class="cq-section-title"'));
+test('v4.50.0: 3 section headers (Topic + Difficulty + Questions)',
+  (html.match(/class="cq-section-head"/g) || []).length >= 3);
+// Smart/Mixed premium cards
+test('v4.50.0: Smart + Mixed promoted to cq-mode-card',
+  (html.match(/class="chip[^"]*cq-mode-card"/g) || []).length === 2);
+test('v4.50.0: mode cards have title + sub structure',
+  html.includes('class="cq-mode-title"') && html.includes('class="cq-mode-sub"'));
+test('v4.50.0: Smart card advertises AI weak-spot pick',
+  html.includes('AI picks your weak spots'));
+test('v4.50.0: Mixed card advertises random-across-topics',
+  html.includes('Random across all topics'));
+// Domain accordions with data-domain-idx (1-5)
+test('v4.50.0: all 5 domain accordions have data-domain-idx',
+  (html.match(/data-domain-idx="[1-5]"/g) || []).length === 5);
+test('v4.50.0: data-domain-idx spans 1..5 (one per domain)',
+  html.includes('data-domain-idx="1"') && html.includes('data-domain-idx="2"') &&
+  html.includes('data-domain-idx="3"') && html.includes('data-domain-idx="4"') &&
+  html.includes('data-domain-idx="5"'));
+// Difficulty tier classes
+test('v4.50.0: difficulty chips have tier classes (found/exam/hard/mixed)',
+  html.includes('chip-tier-found') && html.includes('chip-tier-exam') &&
+  html.includes('chip-tier-hard') && html.includes('chip-tier-mixed'));
+// Question count with time estimates
+test('v4.50.0: question count chips have chip-count-num + chip-count-sub',
+  html.includes('class="chip-count-num"') && html.includes('class="chip-count-sub"'));
+test('v4.50.0: question counts show time estimates (~3/7/10/13 min)',
+  html.includes('~3 min') && html.includes('~7 min') &&
+  html.includes('~10 min') && html.includes('~13 min'));
+// Generate button
+test('v4.50.0: Generate button uses cq-generate-btn class + sparkle icon structure',
+  html.includes('class="btn btn-primary btn-full cq-generate-btn"') &&
+  html.includes('class="cq-generate-ico"'));
+// Options grid
+test('v4.50.0: Difficulty + Questions wrapped in cq-options-grid (no inline style)',
+  html.includes('class="cq-options-grid"'));
+test('v4.50.0: regression \u2014 old inline grid-template-columns:1fr 1fr gone',
+  !html.includes('style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px"'));
+
+// CSS — premium card + tier colours + light-theme + reduced-motion
+test('v4.50.0 CSS: .cq-section-title accent color',
+  /\.cq-section-title\s*\{[^}]*color:\s*var\(--accent-light\)/.test(css));
+test('v4.50.0 CSS: .cq-mode-card with hover lift',
+  /\.cq-mode-card:hover\s*\{[^}]*transform:\s*translateY\(-1px\)/.test(css));
+test('v4.50.0 CSS: .cq-mode-card.on uses radial+linear gradient',
+  /\.cq-mode-card\.on\s*\{[\s\S]{0,500}radial-gradient[\s\S]{0,200}linear-gradient/.test(css));
+test('v4.50.0 CSS: 5 domain-idx left-border accents defined',
+  /data-domain-idx="1"[^{]*\{[^}]*#7c6ff7/.test(css) &&
+  /data-domain-idx="2"[^{]*\{[^}]*#22c55e/.test(css) &&
+  /data-domain-idx="3"[^{]*\{[^}]*#3b82f6/.test(css) &&
+  /data-domain-idx="4"[^{]*\{[^}]*#f59e0b/.test(css) &&
+  /data-domain-idx="5"[^{]*\{[^}]*#ef4444/.test(css));
+test('v4.50.0 CSS: .chip-tier-found.on uses green tint',
+  /\.chip-tier-found\.on\s*\{[^}]*rgba\(34,\s*197,\s*94/.test(css));
+test('v4.50.0 CSS: .chip-tier-hard.on uses red tint',
+  /\.chip-tier-hard\.on\s*\{[^}]*rgba\(239,\s*68,\s*68/.test(css));
+test('v4.50.0 CSS: .chip-count.on gradient fill',
+  /\.chip-count\.on\s*\{[^}]*linear-gradient/.test(css));
+test('v4.50.0 CSS: cq-generate-btn gradient + shadow',
+  /\.cq-generate-btn\s*\{[\s\S]{0,500}linear-gradient[\s\S]{0,500}box-shadow/.test(css));
+test('v4.50.0 CSS: @keyframes cqSparkle defined',
+  /@keyframes cqSparkle/.test(css));
+test('v4.50.0 CSS: light-theme override for .cq-mode-card',
+  /\[data-theme="light"\]\s+\.cq-mode-card/.test(css));
+test('v4.50.0 CSS: reduced-motion neutralises sparkle + mode-card hover',
+  /prefers-reduced-motion[\s\S]{0,4000}\.cq-generate-ico\s*\{[^}]*animation:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

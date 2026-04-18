@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.49.4</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.50.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -165,18 +165,36 @@
   </div>
 
   <!-- Custom Quiz (collapsed by default) -->
+  <!-- v4.50.0: UI polish pass — section headers with icons, Smart/Mixed as
+       premium dual-card, 5-color domain accordions, tier-color difficulty
+       pills, question-count with time estimates, sparkle on Generate. -->
   <details class="card custom-quiz-section" id="custom-quiz-section">
     <summary class="custom-quiz-summary">&#9881;&#65039; Custom Quiz <span class="adv-hint">&middot; Topic, Difficulty &amp; Count</span></summary>
     <div class="custom-quiz-body">
-      <h3>Topic</h3>
+      <div class="cq-section-head">
+        <span class="cq-section-ico" aria-hidden="true">&#129504;</span>
+        <h3 class="cq-section-title">Topic</h3>
+      </div>
       <div class="chip-group topic-group-v2" id="topic-group">
-        <!-- Quick picks (always visible) -->
+        <!-- Quick picks — premium mode cards (always visible) -->
         <div class="topic-quickpicks">
-          <button class="chip chip-smart" data-v="&#129504; Smart (Spaced Rep)">&#129504; Smart</button>
-          <button class="chip on" data-v="Mixed &mdash; All Topics">&#127922; Mixed (All Topics)</button>
+          <button class="chip chip-smart cq-mode-card" data-v="&#129504; Smart (Spaced Rep)" type="button">
+            <span class="cq-mode-ico" aria-hidden="true">&#129504;</span>
+            <span class="cq-mode-text">
+              <span class="cq-mode-title">Smart</span>
+              <span class="cq-mode-sub">AI picks your weak spots</span>
+            </span>
+          </button>
+          <button class="chip on cq-mode-card" data-v="Mixed &mdash; All Topics" type="button">
+            <span class="cq-mode-ico" aria-hidden="true">&#127922;</span>
+            <span class="cq-mode-text">
+              <span class="cq-mode-title">Mixed</span>
+              <span class="cq-mode-sub">Random across all topics</span>
+            </span>
+          </button>
         </div>
         <!-- Domain 1.0 — Networking Concepts (23%) -->
-        <details class="topic-domain-group" open>
+        <details class="topic-domain-group" data-domain-idx="1" open>
           <summary><span class="dom-name">1.0 Networking Concepts</span><span class="dom-weight">23%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Network Models & OSI">Network Models & OSI</button>
@@ -195,7 +213,7 @@
           </div>
         </details>
         <!-- Domain 2.0 — Network Implementation (20%) -->
-        <details class="topic-domain-group">
+        <details class="topic-domain-group" data-domain-idx="2">
           <summary><span class="dom-name">2.0 Network Implementation</span><span class="dom-weight">20%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Routing Protocols">Routing Protocols</button>
@@ -214,7 +232,7 @@
           </div>
         </details>
         <!-- Domain 3.0 — Network Operations (19%) -->
-        <details class="topic-domain-group">
+        <details class="topic-domain-group" data-domain-idx="3">
           <summary><span class="dom-name">3.0 Network Operations</span><span class="dom-weight">19%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Network Operations">Network Operations</button>
@@ -227,7 +245,7 @@
           </div>
         </details>
         <!-- Domain 4.0 — Network Security (14%) -->
-        <details class="topic-domain-group">
+        <details class="topic-domain-group" data-domain-idx="4">
           <summary><span class="dom-name">4.0 Network Security</span><span class="dom-weight">14%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Securing TCP/IP">Securing TCP/IP</button>
@@ -244,7 +262,7 @@
           </div>
         </details>
         <!-- Domain 5.0 — Network Troubleshooting (24%) -->
-        <details class="topic-domain-group">
+        <details class="topic-domain-group" data-domain-idx="5">
           <summary><span class="dom-name">5.0 Network Troubleshooting</span><span class="dom-weight">24%</span></summary>
           <div class="chip-grid">
             <button class="chip" data-v="Network Troubleshooting & Tools">Troubleshooting & Tools</button>
@@ -257,29 +275,50 @@
         </details>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="cq-options-grid">
         <div>
-          <h3>Difficulty</h3>
-          <div class="chip-group" id="diff-group">
-            <button class="chip" data-v="Foundational">Foundational</button>
-            <button class="chip on" data-v="Exam Level">Exam Level</button>
-            <button class="chip" data-v="Hard / Tricky">Hard</button>
-            <button class="chip" data-v="Mixed">Mixed</button>
+          <div class="cq-section-head">
+            <span class="cq-section-ico" aria-hidden="true">&#9889;</span>
+            <h3 class="cq-section-title">Difficulty</h3>
+          </div>
+          <div class="chip-group cq-diff-group" id="diff-group">
+            <button class="chip chip-tier-found" data-v="Foundational" type="button">Foundational</button>
+            <button class="chip on chip-tier-exam" data-v="Exam Level" type="button">Exam Level</button>
+            <button class="chip chip-tier-hard" data-v="Hard / Tricky" type="button">Hard</button>
+            <button class="chip chip-tier-mixed" data-v="Mixed" type="button">Mixed</button>
           </div>
         </div>
         <div>
-          <h3>Questions</h3>
-          <div class="chip-group" id="count-group">
-            <button class="chip" data-v="5">5</button>
-            <button class="chip on" data-v="10">10</button>
-            <button class="chip" data-v="15">15</button>
-            <button class="chip" data-v="20">20</button>
+          <div class="cq-section-head">
+            <span class="cq-section-ico" aria-hidden="true">&#127919;</span>
+            <h3 class="cq-section-title">Questions</h3>
+          </div>
+          <div class="chip-group cq-count-group" id="count-group">
+            <button class="chip chip-count" data-v="5" type="button">
+              <span class="chip-count-num">5</span>
+              <span class="chip-count-sub">~3 min</span>
+            </button>
+            <button class="chip chip-count on" data-v="10" type="button">
+              <span class="chip-count-num">10</span>
+              <span class="chip-count-sub">~7 min</span>
+            </button>
+            <button class="chip chip-count" data-v="15" type="button">
+              <span class="chip-count-num">15</span>
+              <span class="chip-count-sub">~10 min</span>
+            </button>
+            <button class="chip chip-count" data-v="20" type="button">
+              <span class="chip-count-num">20</span>
+              <span class="chip-count-sub">~13 min</span>
+            </button>
           </div>
         </div>
       </div>
 
       <div id="setup-err" class="err-box is-hidden" style="margin-top:14px"></div>
-      <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="startQuiz()">Generate Quiz &#9889;</button>
+      <button class="btn btn-primary btn-full cq-generate-btn" onclick="startQuiz()">
+        <span class="cq-generate-ico" aria-hidden="true">&#9889;</span>
+        <span class="cq-generate-label">Generate Quiz</span>
+      </button>
     </div>
   </details>
 
