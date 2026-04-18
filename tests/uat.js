@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.51.0', js.includes("const APP_VERSION = '4.51.0"));
+test('APP_VERSION is 4.52.0', js.includes("const APP_VERSION = '4.52.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.51.0', sw.includes('netplus-v4.51.0'));
+test('SW cache bumped to v4.52.0', sw.includes('netplus-v4.52.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4991,6 +4991,254 @@ test('v4.51.0 CSS: regression — flat .progress-summary background removed',
   !/^\.progress-summary\s*\{\s*background:\s*var\(--surface\);\s*border:\s*1px\s+solid\s+var\(--border\)/m.test(css));
 test('v4.51.0 CSS: regression — old .ps-lab-row flex layout gone',
   !/\.ps-lab-row\s*\{[^}]*display:\s*flex/.test(css));
+
+// ── v4.52.0 ACL / FIREWALL RULE BUILDER ──
+// Major new feature: N10-009 Security-domain sandbox. 8 scenarios +
+// Free Build, stateless rule evaluator, outcome-based grader, Tier C
+// AI Coach. User green-lit full Option B scope 2026-04-18.
+console.log('\n\x1b[1m── v4.52.0 ACL BUILDER ──\x1b[0m');
+
+// HTML — page + setup tile + modals
+test('v4.52.0 HTML: #page-acl exists',
+  html.includes('id="page-acl"'));
+test('v4.52.0 HTML: setup nav has ACL Builder entry tile',
+  html.includes('id="acl-builder-btn"') && html.includes("showPage('acl');openAclBuilder()"));
+test('v4.52.0 HTML: ACL Builder tile shows lock icon + "ACL Builder" label',
+  /id="acl-builder-btn"[\s\S]{0,400}128274[\s\S]{0,200}ACL Builder/.test(html));
+test('v4.52.0 HTML: rule-list + test panel + grade panel containers',
+  html.includes('id="acl-rule-list"') && html.includes('id="acl-test-panel"') && html.includes('id="acl-grade-panel"'));
+test('v4.52.0 HTML: scenario picker modal',
+  html.includes('id="acl-scenario-picker"') && html.includes('id="acl-scenario-picker-body"'));
+test('v4.52.0 HTML: add-rule modal with action + proto + 4 address/port inputs',
+  html.includes('id="acl-rule-modal"') && html.includes('id="acl-rm-action"') && html.includes('id="acl-rm-proto"')
+    && html.includes('id="acl-rm-srcAddr"') && html.includes('id="acl-rm-srcPort"')
+    && html.includes('id="acl-rm-dstAddr"') && html.includes('id="acl-rm-dstPort"'));
+test('v4.52.0 HTML: AI Coach modal',
+  html.includes('id="acl-coach-modal"') && html.includes('id="acl-coach-body"'));
+
+// JS — STORAGE keys
+test('v4.52.0: STORAGE.ACL_STATE key defined',
+  js.includes("ACL_STATE: 'nplus_acl_state'"));
+test('v4.52.0: STORAGE.ACL_COACH_CACHE key defined',
+  js.includes("ACL_COACH_CACHE: 'nplus_acl_coach_cache'"));
+
+// JS — evaluator core (correctness floor — functions exist)
+test('v4.52.0: _aclParseCidr function defined',
+  js.includes('function _aclParseCidr('));
+test('v4.52.0: _aclIpToUint function defined',
+  js.includes('function _aclIpToUint('));
+test('v4.52.0: _aclCidrContains function defined',
+  js.includes('function _aclCidrContains('));
+test('v4.52.0: _aclPortMatches function defined',
+  js.includes('function _aclPortMatches('));
+test('v4.52.0: _aclRuleMatches function defined',
+  js.includes('function _aclRuleMatches('));
+test('v4.52.0: _aclEvalPacket function defined',
+  js.includes('function _aclEvalPacket('));
+test('v4.52.0: _aclGradeScenario function defined',
+  js.includes('function _aclGradeScenario('));
+
+// JS — behavioral sandbox test on the evaluator (reuses UAT's _fnBody / vm pattern)
+try {
+  const vm = require('vm');
+  const extractFn = (name) => {
+    const idx = js.indexOf('function ' + name + '(');
+    if (idx === -1) return null;
+    const braceStart = js.indexOf('{', idx);
+    let depth = 0;
+    for (let i = braceStart; i < js.length; i++) {
+      if (js[i] === '{') depth++;
+      else if (js[i] === '}') { depth--; if (depth === 0) return js.slice(idx, i + 1); }
+    }
+    return null;
+  };
+  const fns = ['_aclParseCidr','_aclIpToUint','_aclCidrContains','_aclPortMatches','_aclRuleMatches','_aclEvalPacket','_aclGradeScenario'].map(extractFn).join('\n');
+  const ctx = {};
+  vm.createContext(ctx);
+  vm.runInContext(fns, ctx);
+
+  // Fixture 1: permit/deny first-match-wins
+  const rules1 = [
+    { id: 'r1', action: 'deny',   proto: 'any', srcAddr: '10.0.0.50/32', srcPort: 'any', dstAddr: 'any', dstPort: 'any' },
+    { id: 'r2', action: 'permit', proto: 'any', srcAddr: '10.0.0.0/24',  srcPort: 'any', dstAddr: 'any', dstPort: 'any' }
+  ];
+  const r1 = ctx._aclEvalPacket(rules1, { src: '10.0.0.50', sp: 'any', dst: '8.8.8.8', dp: 53, proto: 'udp' });
+  test('v4.52.0 EVAL: quarantined host denied on rule 0',
+    r1.action === 'deny' && r1.ruleIdx === 0);
+  const r2 = ctx._aclEvalPacket(rules1, { src: '10.0.0.20', sp: 'any', dst: '8.8.8.8', dp: 53, proto: 'udp' });
+  test('v4.52.0 EVAL: clean host permitted on rule 1',
+    r2.action === 'permit' && r2.ruleIdx === 1);
+  const r3 = ctx._aclEvalPacket(rules1, { src: '192.168.1.5', sp: 'any', dst: '8.8.8.8', dp: 53, proto: 'udp' });
+  test('v4.52.0 EVAL: outside subnet hits implicit deny',
+    r3.action === 'deny' && r3.ruleIdx === -1 && r3.implicit === true);
+
+  // Fixture 2: protocol + port matching
+  const rules2 = [
+    { id: 'r1', action: 'permit', proto: 'tcp', srcAddr: 'any', srcPort: 'any', dstAddr: '203.0.113.10/32', dstPort: 443 }
+  ];
+  const r4 = ctx._aclEvalPacket(rules2, { src: '198.51.100.5', sp: 'any', dst: '203.0.113.10', dp: 443, proto: 'tcp' });
+  test('v4.52.0 EVAL: TCP 443 permit matches',
+    r4.action === 'permit' && r4.ruleIdx === 0);
+  const r5 = ctx._aclEvalPacket(rules2, { src: '198.51.100.5', sp: 'any', dst: '203.0.113.10', dp: 443, proto: 'udp' });
+  test('v4.52.0 EVAL: proto mismatch (UDP vs TCP rule) hits implicit',
+    r5.action === 'deny' && r5.implicit === true);
+  const r6 = ctx._aclEvalPacket(rules2, { src: '198.51.100.5', sp: 'any', dst: '203.0.113.10', dp: 22, proto: 'tcp' });
+  test('v4.52.0 EVAL: port mismatch (22 vs 443 rule) hits implicit',
+    r6.action === 'deny' && r6.implicit === true);
+
+  // Fixture 3: empty rule list = implicit deny for all
+  const r7 = ctx._aclEvalPacket([], { src: '10.0.0.5', sp: 'any', dst: '8.8.8.8', dp: 443, proto: 'tcp' });
+  test('v4.52.0 EVAL: empty ACL = implicit deny everything',
+    r7.action === 'deny' && r7.implicit === true);
+
+  // Fixture 4: CIDR /24 subnet match
+  test('v4.52.0 EVAL: _aclCidrContains 10.10.0.5 in 10.10.0.0/24',
+    ctx._aclCidrContains('10.10.0.0/24', '10.10.0.5') === true);
+  test('v4.52.0 EVAL: _aclCidrContains 10.11.0.5 NOT in 10.10.0.0/24',
+    ctx._aclCidrContains('10.10.0.0/24', '10.11.0.5') === false);
+  test('v4.52.0 EVAL: _aclCidrContains "any" matches anything',
+    ctx._aclCidrContains('any', '8.8.8.8') === true);
+
+  // Fixture 5: /16 contains /24 hosts (rule-order trap semantics)
+  test('v4.52.0 EVAL: 10.30.10.5 IS inside 10.30.0.0/16 (trap math)',
+    ctx._aclCidrContains('10.30.0.0/16', '10.30.10.5') === true);
+} catch (err) {
+  test('v4.52.0 EVAL sandbox test', false);
+  results.errors.push('ACL evaluator sandbox test failed: ' + err.message);
+}
+
+// JS — scenarios
+test('v4.52.0: ACL_SCENARIOS array defined',
+  js.includes('const ACL_SCENARIOS = ['));
+test('v4.52.0: all 9 scenario IDs registered (Free Build + 8)',
+  ['free-build','block-single-host','https-only','guest-to-hr','dmz-web','dns-only-lab','rule-order-trap','implicit-deny-gotcha','layered-defense']
+    .every(id => js.includes("id: '" + id + "'")));
+test('v4.52.0: ACL_CATEGORIES defined (Sandbox, Fundamentals, Real-world, PBQ Trap)',
+  js.includes("key: 'Sandbox'") && js.includes("key: 'Fundamentals'") && js.includes("key: 'Real-world'") && js.includes("key: 'PBQ Trap'"));
+test('v4.52.0: each non-free scenario has testPackets array',
+  (js.match(/testPackets: \[/g) || []).length >= 9);
+
+// JS — state + CRUD
+test('v4.52.0: aclState initialised with scenarioId + rules + lastGrade',
+  js.includes('let aclState = {') && /aclState[\s\S]{0,400}scenarioId[\s\S]{0,200}rules[\s\S]{0,200}lastGrade/.test(js));
+test('v4.52.0: aclLoadState + aclSaveState persist to STORAGE.ACL_STATE',
+  js.includes('function aclLoadState(') && js.includes('function aclSaveState(') && js.includes('STORAGE.ACL_STATE'));
+test('v4.52.0: aclAddRule / aclDeleteRule / aclMoveRule / aclClearRules defined',
+  js.includes('function aclAddRule(') && js.includes('function aclDeleteRule(') && js.includes('function aclMoveRule(') && js.includes('function aclClearRules('));
+test('v4.52.0: aclMoveRule invalidates lastGrade (mutation discipline)',
+  /function aclMoveRule\([\s\S]{0,400}aclState\.lastGrade\s*=\s*null/.test(js));
+test('v4.52.0: aclLoadScenario confirms on dirty switch',
+  /function aclLoadScenario\([\s\S]{0,500}aclState\.rules\.length\s*>\s*0[\s\S]{0,200}confirm/.test(js));
+
+// JS — render functions
+test('v4.52.0: renderAclPage orchestrator defined',
+  js.includes('function renderAclPage('));
+test('v4.52.0: render functions split per panel (_aclRenderHeader, ScenarioPanel, RuleList, TestPanel, GradePanel)',
+  js.includes('function _aclRenderHeader(') && js.includes('function _aclRenderScenarioPanel(')
+    && js.includes('function _aclRenderRuleList(') && js.includes('function _aclRenderTestPanel(')
+    && js.includes('function _aclRenderGradePanel('));
+test('v4.52.0: FLIP reorder in _aclRenderRuleList (oldRects + translateY + cubic-bezier)',
+  /_aclRenderRuleList[\s\S]{0,4000}oldRects[\s\S]{0,1500}translateY\([\s\S]{0,500}cubic-bezier\(0\.2,\s*0\.8,\s*0\.2,\s*1\)/.test(js));
+test('v4.52.0: implicit-deny row rendered at end of rule list',
+  /acl-rule-implicit[\s\S]{0,500}implicit deny/.test(js));
+test('v4.52.0: test-packet reveal uses per-index animationDelay (stagger)',
+  /aclRunAllTests[\s\S]{0,1000}animationDelay\s*=\s*\(i\s*\*\s*80/.test(js));
+
+// JS — interactions
+test('v4.52.0: aclRunAllTests + aclRunCustomPacket + aclGrade defined',
+  js.includes('function aclRunAllTests(') && js.includes('function aclRunCustomPacket(') && js.includes('function aclGrade('));
+test('v4.52.0: aclOpenScenarioPicker + aclOpenAddRuleModal + aclSubmitAddRule defined',
+  js.includes('function aclOpenScenarioPicker(') && js.includes('function aclOpenAddRuleModal(') && js.includes('function aclSubmitAddRule('));
+test('v4.52.0: openAclBuilder entry point defined',
+  js.includes('function openAclBuilder('));
+
+// JS — AI Coach (Tier C pattern)
+test('v4.52.0: aclAskCoach Tier C Sonnet pattern',
+  js.includes('async function aclAskCoach(') && /aclAskCoach[\s\S]{0,3500}CLAUDE_TEACHER_MODEL/.test(js));
+test('v4.52.0: Coach cached by rules hash (djb2-style) with LRU trim',
+  js.includes('function _aclRulesHash(') && js.includes('function _aclLoadCoachCache(') && js.includes('function _aclSaveCoachCache('));
+test('v4.52.0: Coach cache capped at 20 entries (matches TB pattern)',
+  /_aclSaveCoachCache[\s\S]{0,500}entries\.length\s*>\s*20/.test(js));
+test('v4.52.0: Coach refuses Free Build (scenario-specific)',
+  /aclAskCoach[\s\S]{0,800}free-build[\s\S]{0,300}(showErrorToast|return)/.test(js));
+test('v4.52.0: Coach refuses empty rule list',
+  /aclAskCoach[\s\S]{0,1000}aclState\.rules\.length\s*===\s*0/.test(js));
+test('v4.52.0: Coach prompt references N10-009 Security + Network+ context',
+  /aclAskCoach[\s\S]{0,4000}CompTIA Network\+ \(N10-009\)/.test(js));
+
+// CSS — structure + premium aesthetic
+test('v4.52.0 CSS: #page-acl canvas widened',
+  /#page-acl\s*\{[^}]*max-width:\s*1080px/.test(css));
+test('v4.52.0 CSS: .acl-layout is 2-col grid (340px + 1fr)',
+  /\.acl-layout\s*\{[^}]*grid-template-columns:\s*340px\s+1fr/.test(css));
+test('v4.52.0 CSS: .acl-scenario-card has radial + linear gradient background',
+  /\.acl-scenario-card\s*\{[\s\S]{0,600}radial-gradient[\s\S]{0,300}linear-gradient\(160deg/.test(css));
+test('v4.52.0 CSS: .acl-scenario-card has layered box-shadow',
+  /\.acl-scenario-card\s*\{[\s\S]{0,900}box-shadow:[\s\S]{0,200}rgba\(var\(--accent-rgb\)/.test(css));
+test('v4.52.0 CSS: difficulty border-color variants (beginner/intermediate/advanced)',
+  /\.acl-scenario-card-beginner\b/.test(css) && /\.acl-scenario-card-intermediate\b/.test(css) && /\.acl-scenario-card-advanced\b/.test(css));
+test('v4.52.0 CSS: .acl-act-permit uses green palette',
+  /\.acl-act-permit\s*\{[\s\S]{0,300}rgba\(34,\s*197,\s*94/.test(css));
+test('v4.52.0 CSS: .acl-act-deny uses red palette',
+  /\.acl-act-deny\s*\{[\s\S]{0,300}rgba\(239,\s*68,\s*68/.test(css));
+test('v4.52.0 CSS: .acl-zone uses --zone-color CSS variable for per-zone tinting',
+  /\.acl-zone\s*\{[\s\S]{0,400}border-left:[\s\S]{0,100}var\(--zone-color/.test(css));
+
+// CSS — animations
+test('v4.52.0 CSS: @keyframes aclCardFadeIn (scenario card entry)',
+  /@keyframes aclCardFadeIn/.test(css));
+test('v4.52.0 CSS: @keyframes aclRuleIn (per-rule slide-in)',
+  /@keyframes aclRuleIn/.test(css));
+test('v4.52.0 CSS: @keyframes aclTpReveal (test-packet stagger)',
+  /@keyframes aclTpReveal/.test(css));
+test('v4.52.0 CSS: @keyframes aclGradePop (overshoot scale on grade reveal)',
+  /\.acl-grade-score-pop\s*\{[^}]*cubic-bezier\(0\.34,\s*1\.56/.test(css) && /@keyframes aclGradePop/.test(css));
+test('v4.52.0 CSS: @keyframes aclModalScaleIn (modal entry)',
+  /@keyframes aclModalScaleIn/.test(css));
+test('v4.52.0 CSS: @keyframes aclLearnFade (details panel expand)',
+  /@keyframes aclLearnFade/.test(css));
+
+// CSS — rule list + test panel + grade panel
+test('v4.52.0 CSS: .acl-rule-row is grid-based row layout',
+  /\.acl-rule-row\s*\{[^}]*display:\s*grid/.test(css));
+test('v4.52.0 CSS: .acl-rule-num pill (circle badge)',
+  /\.acl-rule-num\s*\{[\s\S]{0,400}border-radius:\s*8px[\s\S]{0,200}background:\s*var\(--accent\)/.test(css));
+test('v4.52.0 CSS: .acl-tp-row has pass/fail state classes',
+  /\.acl-tp-row\.acl-tp-pass/.test(css) && /\.acl-tp-row\.acl-tp-fail/.test(css));
+test('v4.52.0 CSS: .acl-grade-score tier-coloured (full/partial/low)',
+  /\.acl-grade-score-full/.test(css) && /\.acl-grade-score-partial/.test(css) && /\.acl-grade-score-low/.test(css));
+test('v4.52.0 CSS: .acl-rule-implicit has red dashed border (attention)',
+  /\.acl-rule-implicit\s*\{[\s\S]{0,300}rgba\(239,\s*68,\s*68/.test(css));
+
+// CSS — modals
+test('v4.52.0 CSS: .acl-modal full-viewport overlay with backdrop blur',
+  /\.acl-modal-backdrop\s*\{[\s\S]{0,400}backdrop-filter:\s*blur/.test(css));
+test('v4.52.0 CSS: .acl-modal-card has scale-in animation',
+  /\.acl-modal-card\s*\{[\s\S]{0,800}animation:\s*aclModalScaleIn/.test(css));
+test('v4.52.0 CSS: .acl-picker-card hover-lift (translateY)',
+  /\.acl-picker-card:hover\s*\{[\s\S]{0,300}transform:\s*translateY\(-2px\)/.test(css));
+
+// CSS — responsive + reduced motion
+test('v4.52.0 CSS: narrow-viewport collapses .acl-layout to single column',
+  /@media \(max-width:\s*900px\)[\s\S]{0,500}\.acl-layout\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
+test('v4.52.0 CSS: @media max-width 600 collapses rule-row grid',
+  /@media \(max-width:\s*600px\)[\s\S]{0,1500}\.acl-rule-row\s*\{[^}]*grid-template-columns/.test(css));
+test('v4.52.0 CSS: reduced-motion kills all ACL animations',
+  /prefers-reduced-motion[\s\S]{0,8000}\.acl-scenario-card[\s\S]{0,3000}animation:\s*none/.test(css));
+test('v4.52.0 CSS: reduced-motion kills hover translateY on ACL cards',
+  /prefers-reduced-motion[\s\S]{0,8000}\.acl-picker-card:hover[\s\S]{0,300}transform:\s*none/.test(css));
+
+// CSS — light-theme
+test('v4.52.0 CSS: light-theme override for .acl-scenario-card',
+  /\[data-theme="light"\]\s+\.acl-scenario-card\s*\{/.test(css));
+test('v4.52.0 CSS: light-theme override for .acl-act-permit (green)',
+  /\[data-theme="light"\]\s+\.acl-act-permit\s*\{[\s\S]{0,300}#16a34a/.test(css));
+test('v4.52.0 CSS: light-theme override for .acl-act-deny (red)',
+  /\[data-theme="light"\]\s+\.acl-act-deny\s*\{[\s\S]{0,300}#dc2626/.test(css));
+test('v4.52.0 CSS: light-theme override for .acl-grade-score-full',
+  /\[data-theme="light"\]\s+\.acl-grade-score-full\s*\{/.test(css));
+test('v4.52.0 CSS: light-theme override for .acl-picker-card',
+  /\[data-theme="light"\]\s+\.acl-picker-card\s*\{/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

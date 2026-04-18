@@ -25,7 +25,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.51.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.52.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <!-- Hero stats strip -->
     <div id="stats-card" class="hero-stats-strip is-hidden">
@@ -106,6 +106,9 @@
         </button>
         <button class="setup-nav-btn" id="topology-builder-btn" onclick="showPage('topology-builder');openTopologyBuilder()">
           <span class="setup-nav-icon">&#128295;</span><span class="setup-nav-label">Network Builder</span>
+        </button>
+        <button class="setup-nav-btn" id="acl-builder-btn" onclick="showPage('acl');openAclBuilder()">
+          <span class="setup-nav-icon">&#128274;</span><span class="setup-nav-label">ACL Builder</span>
         </button>
         <button class="setup-nav-btn" id="drills-launcher-btn" onclick="showDrillsPage()">
           <span class="setup-nav-icon">&#127919;</span><span class="setup-nav-label">Drills</span>
@@ -1431,6 +1434,119 @@
         <button type="button" class="tb-grade-close" onclick="tbCloseCoachModal()" aria-label="Close coach panel">&times;</button>
       </div>
       <div id="tb-coach-body" class="tb-grade-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ACL / FIREWALL BUILDER PAGE (v4.52.0)
+     Security-domain sandbox: pick a scenario, build an ACL, test packets,
+     get graded. Tier C AI Coach for feedback.
+══════════════════════════════════════════ -->
+<div id="page-acl" class="page">
+  <!-- Header: back button + title + active-scenario chip -->
+  <div class="acl-page-header">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <h2 class="acl-page-title">&#128274; ACL Builder</h2>
+    <div class="acl-header-actions" id="acl-header-scenario">
+      <!-- Filled by renderAclPage() -->
+    </div>
+  </div>
+
+  <!-- Two-column layout: scenario panel (left) + rule list + test + grade (right).
+       Collapses to single-column on narrow viewports. -->
+  <div class="acl-layout">
+    <aside class="acl-left">
+      <div id="acl-scenario-panel" class="acl-scenario-panel"></div>
+    </aside>
+
+    <main class="acl-main">
+      <!-- Rule list editor -->
+      <section class="acl-panel acl-rules-panel">
+        <div class="acl-panel-head">
+          <div class="acl-panel-title"><span class="acl-panel-ico">&#128196;</span> Rule List <span class="acl-panel-sub">evaluated top &#8594; bottom, first match wins</span></div>
+          <div class="acl-panel-actions">
+            <button type="button" class="btn btn-ghost acl-clear-btn" onclick="aclClearRules()" title="Clear all rules">Clear</button>
+            <button type="button" class="btn btn-primary acl-add-btn" onclick="aclOpenAddRuleModal()">&#43; Add Rule</button>
+          </div>
+        </div>
+        <div id="acl-rule-list" class="acl-rule-list"></div>
+      </section>
+
+      <!-- Test-packets panel -->
+      <section id="acl-test-panel" class="acl-panel acl-test-panel"></section>
+
+      <!-- Grade panel -->
+      <section id="acl-grade-panel" class="acl-panel acl-grade-panel"></section>
+    </main>
+  </div>
+
+  <!-- Scenario picker modal -->
+  <div id="acl-scenario-picker" class="acl-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="acl-scenario-picker-title">
+    <div class="acl-modal-backdrop" onclick="aclCloseScenarioPicker()"></div>
+    <div class="acl-modal-card acl-modal-card-wide">
+      <div class="acl-modal-head">
+        <h3 id="acl-scenario-picker-title" class="acl-modal-title">&#127919; Pick a Scenario</h3>
+        <button type="button" class="acl-modal-close" onclick="aclCloseScenarioPicker()" aria-label="Close scenario picker">&times;</button>
+      </div>
+      <div id="acl-scenario-picker-body" class="acl-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Add-Rule modal -->
+  <div id="acl-rule-modal" class="acl-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="acl-rule-modal-title">
+    <div class="acl-modal-backdrop" onclick="aclCloseAddRuleModal()"></div>
+    <div class="acl-modal-card">
+      <div class="acl-modal-head">
+        <h3 id="acl-rule-modal-title" class="acl-modal-title">&#43; Add a Rule</h3>
+        <button type="button" class="acl-modal-close" onclick="aclCloseAddRuleModal()" aria-label="Close add rule">&times;</button>
+      </div>
+      <div class="acl-modal-body">
+        <div class="acl-rm-grid">
+          <label class="acl-rm-lbl">Action
+            <select id="acl-rm-action" class="acl-rm-input">
+              <option value="permit">permit</option>
+              <option value="deny">deny</option>
+            </select>
+          </label>
+          <label class="acl-rm-lbl">Protocol
+            <select id="acl-rm-proto" class="acl-rm-input">
+              <option value="any">any</option>
+              <option value="tcp">tcp</option>
+              <option value="udp">udp</option>
+              <option value="icmp">icmp</option>
+            </select>
+          </label>
+          <label class="acl-rm-lbl">Source address
+            <input id="acl-rm-srcAddr" class="acl-rm-input" placeholder="any, 10.0.0.5, 10.0.0.0/24" value="any">
+          </label>
+          <label class="acl-rm-lbl">Source port
+            <input id="acl-rm-srcPort" class="acl-rm-input" placeholder="any, 443, or 1024-65535" value="any">
+          </label>
+          <label class="acl-rm-lbl">Dest address
+            <input id="acl-rm-dstAddr" class="acl-rm-input" placeholder="any, 10.20.0.10, 10.20.0.0/24" value="any">
+          </label>
+          <label class="acl-rm-lbl">Dest port
+            <input id="acl-rm-dstPort" class="acl-rm-input" placeholder="any, 443, or 1024-65535" value="any">
+          </label>
+        </div>
+        <div class="acl-rm-actions">
+          <button type="button" class="btn btn-ghost" onclick="aclCloseAddRuleModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="aclSubmitAddRule()">Add Rule</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Coach modal -->
+  <div id="acl-coach-modal" class="acl-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="acl-coach-modal-title">
+    <div class="acl-modal-backdrop" onclick="aclCloseCoachModal()"></div>
+    <div class="acl-modal-card">
+      <div class="acl-modal-head">
+        <h3 id="acl-coach-modal-title" class="acl-modal-title">&#129302; ACL Coach</h3>
+        <button type="button" class="acl-modal-close" onclick="aclCloseCoachModal()" aria-label="Close coach">&times;</button>
+      </div>
+      <div id="acl-coach-body" class="acl-modal-body"></div>
     </div>
   </div>
 </div>
