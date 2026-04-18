@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.49.3
+// Network+ AI Quiz — app.js  v4.49.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.49.3';
+const APP_VERSION = '4.49.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9341,6 +9341,13 @@ function tbLoadScenarioWithBuild(id) {
     try {
       scen.autoBuild(tbState);
       if (typeof tbMigrateState === 'function') tbMigrateState(tbState);
+      // v4.49.4: snapshot device + cable IDs so tbIsPristineScenario() can
+      // detect whether the user has modified the auto-built canvas. Grade
+      // + Coach are gated on "pristine" because grading a reference topology
+      // against its own rules is trivially 100% — not pedagogically useful.
+      tbState.pristineScenarioId = id;
+      tbState.pristineDeviceIds = tbState.devices.map(d => d.id).sort();
+      tbState.pristineCableIds = tbState.cables.map(c => c.id).sort();
     } catch (err) {
       console.warn('[tb] autoBuild failed for', id, err);
     }
@@ -9355,6 +9362,29 @@ function tbLoadScenarioWithBuild(id) {
   if (id !== 'free' && tbState.devices.length > 0) {
     showSuccessToast(`\u{1F3D7}\uFE0F ${scen.title} built \u2014 ${tbState.devices.length} devices connected. Explore + modify as you learn.`);
   }
+}
+
+// v4.49.4: true when the current canvas is an unmodified scenario auto-build.
+// Compares current device + cable IDs against the snapshot taken right after
+// scen.autoBuild ran. Any add/remove of a device or cable flips this to false.
+// Moving devices or editing their config does NOT flip it (topology shape
+// unchanged). Used by Grade + Coach to refuse grading/coaching a reference
+// scenario — since that's trivially a 100% match against its own rules.
+function tbIsPristineScenario() {
+  if (!tbState.pristineScenarioId) return false;
+  const currDevs = tbState.devices.map(d => d.id).sort();
+  const currCabs = tbState.cables.map(c => c.id).sort();
+  const snapDevs = tbState.pristineDeviceIds || [];
+  const snapCabs = tbState.pristineCableIds || [];
+  if (currDevs.length !== snapDevs.length) return false;
+  if (currCabs.length !== snapCabs.length) return false;
+  for (let i = 0; i < currDevs.length; i++) {
+    if (currDevs[i] !== snapDevs[i]) return false;
+  }
+  for (let i = 0; i < currCabs.length; i++) {
+    if (currCabs[i] !== snapCabs[i]) return false;
+  }
+  return true;
 }
 
 function tbSetScenario(id) {
@@ -9700,6 +9730,16 @@ function tbGradeTopology() {
     showErrorToast('Add some devices before grading.');
     return;
   }
+  // v4.49.4: refuse to grade an unmodified reference scenario — it\'s
+  // trivially 100% against its own rules, not pedagogically useful.
+  // User can modify the canvas (add/remove a device or cable) to make it
+  // their own build, or pick Free Build from the scenario dropdown.
+  if (tbIsPristineScenario()) {
+    const scen = TB_SCENARIOS.find(s => s.id === tbState.pristineScenarioId);
+    const title = scen?.title || 'Scenario';
+    showErrorToast('"' + title + '" is a reference scenario \u2014 it matches itself by design. Modify the canvas (add/remove a device or cable) to grade your own build, or pick Free Build to start fresh.');
+    return;
+  }
   const scen = TB_SCENARIOS.find(s => s.id === tbSelectedScenario) || TB_SCENARIOS[0];
   const rules = TB_GRADE_RULES.filter(r => scen.ruleIds.indexOf(r.id) >= 0);
   const results = rules.map(rule => ({
@@ -9901,6 +9941,15 @@ function tbSaveCoachCache(cache) {
 async function tbCoachTopology() {
   if (tbState.devices.length === 0) {
     showErrorToast('Add some devices before asking the Coach.');
+    return;
+  }
+  // v4.49.4: refuse to coach an unmodified reference scenario (same
+  // reasoning as tbGradeTopology — reference scenarios are already "correct"
+  // by their own rules, there\'s nothing for the Coach to teach).
+  if (tbIsPristineScenario()) {
+    const scen = TB_SCENARIOS.find(s => s.id === tbState.pristineScenarioId);
+    const title = scen?.title || 'Scenario';
+    showErrorToast('"' + title + '" is a reference scenario \u2014 open "Learn more" in the scenario panel for the built-in deep dive. Coach is for grading your own edits to the canvas.');
     return;
   }
   const key = (localStorage.getItem(STORAGE.KEY) || '').trim();

@@ -273,7 +273,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.49.3', js.includes("const APP_VERSION = '4.49.3"));
+test('APP_VERSION is 4.49.4', js.includes("const APP_VERSION = '4.49.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -286,7 +286,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.49.3', sw.includes('netplus-v4.49.3'));
+test('SW cache bumped to v4.49.4', sw.includes('netplus-v4.49.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4712,6 +4712,25 @@ test('v4.49.3: tbBuildFromAiPayload resets the link-local counter',
   /function tbBuildFromAiPayload[\s\S]{0,500}_tbLinkLocalSlot\s*=\s*0/.test(js));
 test('v4.49.3: tbBuildFromAiPayload calls the shared helper on each cable',
   /function tbBuildFromAiPayload[\s\S]{0,5000}_tbAutoAssignCableIps\(fromDev,\s*fromIfc,\s*toDev,\s*toIfc/.test(js));
+
+// ── v4.49.4 GRADE + COACH BLOCK PRISTINE SCENARIO BUILDS ──
+console.log('\n\x1b[1m── v4.49.4 PRISTINE-SCENARIO GATING ──\x1b[0m');
+test('v4.49.4: tbIsPristineScenario helper defined',
+  js.includes('function tbIsPristineScenario()'));
+test('v4.49.4: tbLoadScenarioWithBuild snapshots device IDs after autoBuild',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}tbState\.pristineDeviceIds\s*=\s*tbState\.devices\.map\(d\s*=>\s*d\.id\)\.sort\(\)/.test(js));
+test('v4.49.4: tbLoadScenarioWithBuild snapshots cable IDs',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}tbState\.pristineCableIds\s*=\s*tbState\.cables\.map\(c\s*=>\s*c\.id\)\.sort\(\)/.test(js));
+test('v4.49.4: tbLoadScenarioWithBuild records scenario id on pristineScenarioId',
+  /tbLoadScenarioWithBuild[\s\S]{0,2500}tbState\.pristineScenarioId\s*=\s*id/.test(js));
+test('v4.49.4: tbIsPristineScenario returns false when no scenario loaded',
+  /function tbIsPristineScenario\(\)[\s\S]{0,500}!tbState\.pristineScenarioId/.test(js));
+test('v4.49.4: tbIsPristineScenario compares both device AND cable id lists',
+  /function tbIsPristineScenario[\s\S]{0,1500}currDevs[\s\S]{0,400}currCabs/.test(js));
+test('v4.49.4: tbGradeTopology refuses pristine scenario + shows reference-scenario message',
+  /function tbGradeTopology[\s\S]{0,1500}tbIsPristineScenario\(\)[\s\S]{0,400}reference scenario/.test(js));
+test('v4.49.4: tbCoachTopology refuses pristine scenario + points to Learn more',
+  /tbCoachTopology[\s\S]{0,1500}tbIsPristineScenario\(\)[\s\S]{0,400}Learn more/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
