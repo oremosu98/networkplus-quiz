@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.10', js.includes("const APP_VERSION = '4.54.10"));
+test('APP_VERSION is 4.54.11', js.includes("const APP_VERSION = '4.54.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.10', sw.includes('netplus-v4.54.10'));
+test('SW cache bumped to v4.54.11', sw.includes('netplus-v4.54.11'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6148,8 +6148,9 @@ test('v4.54.9 CSS: .drills-tile has hover accent bar (::after scaleX) + per-inde
   /\.drills-tile:nth-child\(2\)::after\s*\{[\s\S]{0,200}background:\s*var\(--green\)/.test(css));
 
 // Global zoom-in
-test('v4.54.9 CSS: html { zoom: 1.06 } for 6% global zoom-in',
-  /html\s*\{[\s\S]{0,200}zoom:\s*1\.06/.test(css));
+// v4.54.11: zoom nudged 1.06 \u2192 1.10 per user request ("zoom in the app a bit more")
+test('v4.54.9 (v4.54.11 update) CSS: html { zoom: 1.10 } for 10% global zoom-in',
+  /html\s*\{[\s\S]{0,200}zoom:\s*1\.10/.test(css));
 
 // Reduced motion coverage
 test('v4.54.9 CSS: reduced-motion neutralises .drills-tile transitions',

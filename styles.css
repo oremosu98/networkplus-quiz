@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.10
+   Network+ AI Quiz — styles.css  v4.54.11
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9425,10 +9425,11 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
    • Remove sidebar drill nav-count pills (retired by user request)
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── (1) Global zoom-in — 6% bump so all px-based text reads bigger. Uses
-        CSS `zoom` (Chrome/Safari/Edge; Firefox supports zoom on Gecko v126+).
-        Applied at root; cascades to all descendants including sidebar. ── */
-html { zoom: 1.06; }
+/* ── (1) Global zoom-in — v4.54.9 was 1.06; v4.54.11 bumped to 1.10 per
+        user request ("zoom in the app a bit more"). CSS `zoom` works on
+        Chrome/Safari/Edge (Firefox Gecko v126+). Applied at root; cascades
+        to all descendants including sidebar. ── */
+html { zoom: 1.10; }
 
 /* ── (2) Reusable editorial page header component ── */
 .ed-pagehead {
@@ -10111,4 +10112,18 @@ html { zoom: 1.06; }
 @media (prefers-reduced-motion: reduce) {
   .hm-cell { transition: none !important; }
   .settings-daily-chip { transition: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.11 — Lift sidebar streak card above viewport bottom
+   User reported the streak card getting clipped by the Mac dock.
+   Add generous padding-bottom on the sidebar footer + safe-area inset
+   support for mobile devices with home indicators.
+   ════════════════════════════════════════════════════════════════════ */
+.app-sidebar {
+  padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+}
+.sb-foot {
+  padding-bottom: 16px;
+  margin-bottom: 8px;
 }
