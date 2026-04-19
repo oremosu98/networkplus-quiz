@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.6</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.7</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1162,7 +1162,12 @@
 
     <!-- v4.43.3: Toolbar polish — CSS Grid layout with auto-fit columns for uniform
          spacing/wrap. Primary group now has an "Actions" label matching the other 5
-         groups (was the only label-less group pre-v4.43.3 which caused height mismatch). -->
+         groups (was the only label-less group pre-v4.43.3 which caused height mismatch).
+         v4.54.7: wrapped in <details> default-closed. The in-canvas pill toolbar now
+         handles Design/Simulate/Labs/Coach/Grade/PNG — this legacy toolbar is the
+         power-user drawer for File/Scenario/Utility + AI Generate/Fix. -->
+    <details id="tb-toolbar-details" class="tb-toolbar-details">
+      <summary class="tb-toolbar-summary"><span class="tb-toolbar-summary-ico">&#128736;&#65039;</span><span>Full toolbar</span><span class="tb-toolbar-summary-hint">AI Generate &middot; File &middot; Scenario dropdown &middot; Utility</span></summary>
     <div class="tb-toolbar tb-toolbar-v2">
       <!-- Group: Actions (Grade / Coach / AI Generate) -->
       <div class="tb-tool-group tb-tool-group-primary">
@@ -1256,8 +1261,9 @@
     <div class="tb-toolbar-meta">
       <span id="tb-status" class="tb-status">Drag a device from the palette &rarr;</span>
     </div>
+    </details>
 
-    <!-- Scenario requirements panel (hidden in Free Build) -->
+    <!-- Scenario requirements panel (hidden in Free Build; v4.54.7: collapsed by default when visible) -->
     <div id="tb-scenario-panel" class="tb-scenario-panel is-hidden"></div>
 
     <!-- How-to strip (collapsed by default post-v4.43.2 — expanded row was
@@ -1351,7 +1357,7 @@
              ~1.6x zoom-in from previous 0 0 1800 1100 so devices read clearly
              on first load. The grid rect is sized to the FULL world (1800x1100)
              so panning beyond the initial view still shows grid. -->
-        <svg id="tb-canvas" class="tb-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="350 250 1100 600" preserveAspectRatio="xMidYMid meet">
+        <svg id="tb-canvas" class="tb-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="250 200 1300 780" preserveAspectRatio="xMidYMid meet">
           <defs>
             <pattern id="tb-grid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(124,111,247,0.08)" stroke-width="1"/>

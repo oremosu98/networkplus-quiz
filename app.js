@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.6
+// Network+ AI Quiz — app.js  v4.54.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.6';
+const APP_VERSION = '4.54.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6856,6 +6856,8 @@ function openTopologyBuilder() {
   // v4.54.6: bind canvas pan/zoom handlers + reset to default zoomed-in view
   if (typeof tbBindCanvasPanZoom === 'function') tbBindCanvasPanZoom();
   if (typeof tbZoomReset === 'function') tbZoomReset();
+  // v4.54.7: bind drag for the full-config floating popup
+  if (typeof tbBindConfigPanelDrag === 'function') tbBindConfigPanelDrag();
   // Always show sim toolbar stub (kept for compat)
   document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
   // Auto-collapse intro banner after first visit
@@ -6885,13 +6887,16 @@ function tbAutoCollapseIntroHowto() {
     }
   }
   if (howtoEl) {
-    // Collapse how-to once user has placed at least one device in any session
-    if (tbState && tbState.devices && tbState.devices.length > 0) {
-      howtoEl.removeAttribute('open');
-    } else {
-      howtoEl.setAttribute('open', '');
-    }
+    // v4.54.7: always collapsed by default \u2014 user explicitly asked for this
+    // because the how-to cards were pushing the canvas far down the page and
+    // in-canvas pill toolbar now communicates the workflow more directly.
+    howtoEl.removeAttribute('open');
   }
+  // v4.54.7: also ensure the new legacy-toolbar <details> stays collapsed by
+  // default. The in-canvas pill toolbar handles primary actions; this drawer
+  // is for Scenario dropdown / Save+Load / AI Generate / Fix.
+  const toolbarEl = document.getElementById('tb-toolbar-details');
+  if (toolbarEl) toolbarEl.removeAttribute('open');
 }
 
 function tbNewState() {
@@ -7604,6 +7609,43 @@ function tbBindInspectorPopDrag() {
   _tbInspectorPopDragBound = true;
 }
 
+// v4.54.7: drag the full-config floating popup by its header. Same pattern
+// as tbBindInspectorPopDrag but for #tb-config-panel (position: fixed, so
+// left/top are viewport-relative, not wrapper-relative).
+let _tbConfigPopDragBound = false;
+function tbBindConfigPanelDrag() {
+  if (_tbConfigPopDragBound) return;
+  const panel = document.getElementById('tb-config-panel');
+  if (!panel) return;
+  const head = panel.querySelector('.tb-config-head');
+  if (!head) return;
+  let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  head.addEventListener('mousedown', (e) => {
+    // Don't start drag when clicking the close or Explain buttons.
+    if (e.target && (e.target.closest('.tb-config-close') || e.target.closest('.tb-explain-btn'))) return;
+    dragging = true;
+    const rect = panel.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    panel.style.right = 'auto';
+    panel.style.left = startLeft + 'px';
+    panel.style.top = startTop + 'px';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    let nl = startLeft + dx, nt = startTop + dy;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    nl = Math.max(8, Math.min(vw - 80, nl));
+    nt = Math.max(8, Math.min(vh - 60, nt));
+    panel.style.left = nl + 'px';
+    panel.style.top = nt + 'px';
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  _tbConfigPopDragBound = true;
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // v4.54.6 \u2014 Canvas pan + zoom (viewBox manipulation)
 // ─────────────────────────────────────────────────────────────────────
@@ -7612,12 +7654,13 @@ function tbBindInspectorPopDrag() {
 // the current viewBox into account. So device drag, drop, and wiring all
 // keep working without changes.
 //
-// Default view: 350,250 1100x600 \u2014 a centered window onto the 1800x1100
-// world. That's roughly 1.6x zoom-in vs the previous 0,0 1800x1100 view.
+// Default view: v4.54.6 used 350,250 1100x600 (~1.6x zoom-in).
+// v4.54.7 widens to 250,200 1300x780 so devices don't bunch up in scenarios and
+// the canvas fills the full-bleed layout more naturally edge-to-edge.
 
-const TB_VIEW_DEFAULT = { x: 350, y: 250, w: 1100, h: 600 };
-const TB_VIEW_MIN_W = 250;   // max zoom-in (smaller viewBox = bigger devices)
-const TB_VIEW_MAX_W = 2400;  // max zoom-out
+const TB_VIEW_DEFAULT = { x: 250, y: 200, w: 1300, h: 780 };
+const TB_VIEW_MIN_W = 300;   // max zoom-in (smaller viewBox = bigger devices)
+const TB_VIEW_MAX_W = 2600;  // max zoom-out
 const TB_VIEW_AR = TB_VIEW_DEFAULT.w / TB_VIEW_DEFAULT.h; // preserve aspect ratio
 let tbViewState = Object.assign({}, TB_VIEW_DEFAULT);
 
@@ -10761,6 +10804,12 @@ function tbOpenConfigPanel(deviceId) {
   const meta = TB_DEVICE_TYPES[dev.type] || {};
   title.textContent = `${dev.hostname || meta.label} (${meta.label})`;
   panel.classList.remove('is-hidden');
+  // v4.54.7: the panel is now position:fixed. Reset inline left/top so it
+  // reappears in its default corner on each open (previous drag position
+  // doesn't persist across device swaps).
+  panel.style.left = '';
+  panel.style.top = '';
+  panel.style.right = '';
   document.querySelector('.tb-workspace')?.classList.add('tb-config-open');
   // Show/hide tabs based on device type
   const isSwitch = dev.type.indexOf('switch') >= 0;

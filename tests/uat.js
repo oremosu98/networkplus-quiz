@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.6', js.includes("const APP_VERSION = '4.54.6"));
+test('APP_VERSION is 4.54.7', js.includes("const APP_VERSION = '4.54.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.6', sw.includes('netplus-v4.54.6'));
+test('SW cache bumped to v4.54.7', sw.includes('netplus-v4.54.7'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -804,9 +804,9 @@ test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 // ── Topology Builder polish (v4.41.0 — bigger canvas + auto-layout) ──
 console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.41.0) ──\x1b[0m');
 test('Canvas dimensions bumped to 1800x1100', js.includes('TB_CANVAS_W = 1800') && js.includes('TB_CANVAS_H = 1100'));
-// v4.54.6: viewBox is now dynamic (tbViewState). Default tightened to 350 250 1100 600
-// for a ~1.6x zoom-in on first load. Grid bg rect carries the full 1800x1100 world dims.
-test('Canvas viewBox tightened (v4.54.6 default zoom-in)', html.includes('viewBox="350 250 1100 600"'));
+// v4.54.6: viewBox dynamic (tbViewState). v4.54.7 widened default to 250 200 1300 780
+// so devices spread out and the canvas fills the full-bleed layout edge-to-edge.
+test('Canvas viewBox tightened (v4.54.7 default view)', html.includes('viewBox="250 200 1300 780"'));
 test('Canvas world dims preserved on grid bg rect (v4.54.6)', /<rect x="0" y="0" width="1800" height="1100" fill="url\(#tb-grid\)"/.test(html));
 test('Device rect compact (96x72) for fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
 test('Device label font 13', /tb-device-label[\s\S]{0,200}font-size="13"/.test(js));
@@ -1162,8 +1162,9 @@ test('CSS: .tb-lab-card', css.includes('.tb-lab-card'));
 test('CSS: .tb-lab-panel', css.includes('.tb-lab-panel'));
 test('CSS: .tb-lab-step-check', css.includes('.tb-lab-step-check'));
 test('CSS: .tb-iface-trunk-detail', css.includes('.tb-iface-trunk-detail'));
-// Sim toolbar shows on openTopologyBuilder
-test('Sim toolbar shown on open', /openTopologyBuilder[\s\S]{0,1500}tb-sim-toolbar/.test(js));
+// Sim toolbar shows on openTopologyBuilder (span widened post-v4.54.7 because
+// the function grew additional pan/zoom/popup init lines)
+test('Sim toolbar shown on open', /openTopologyBuilder[\s\S]{0,2500}tb-sim-toolbar/.test(js));
 
 // ── v4.25.0 — Explain modal, CLI commands, AI topology improvements ──
 console.log('\n\x1b[1m── SIMULATOR ENHANCEMENTS (v4.25.0) ──\x1b[0m');
@@ -5824,8 +5825,8 @@ test('v4.54.6 HTML: floating draggable inspector popup (#tb-inspector-pop + clos
   html.includes('id="tb-inspector-pop"') &&
   html.includes('id="tb-inspector-pop-head"') &&
   /tbInspectorPopClose\(\)/.test(html));
-test('v4.54.6 HTML: canvas viewBox tightened for default zoom-in (350 250 1100 600)',
-  /id="tb-canvas"[\s\S]{0,400}viewBox="350 250 1100 600"/.test(html));
+test('v4.54.6 (v4.54.7 update) HTML: canvas viewBox default tightened (250 200 1300 780)',
+  /id="tb-canvas"[\s\S]{0,400}viewBox="250 200 1300 780"/.test(html));
 test('v4.54.6 HTML: grid bg rect uses fixed world dims so panning still shows grid',
   /<rect x="0" y="0" width="1800" height="1100" fill="url\(#tb-grid\)"/.test(html));
 
@@ -5891,6 +5892,63 @@ test('v4.54.6 CSS: light-theme overrides for pills + zoom + popup',
   /\[data-theme="light"\]\s+\.tb-inspector-pop\s*\{/.test(css));
 test('v4.54.6 CSS: reduced-motion neutralises popup animation + pill transitions',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,400}\.tb-inspector-pop\s*\{[^}]*animation:\s*none/.test(css));
+
+// ── v4.54.7 TB full-bleed + draggable config panel + collapsibles ──
+// User feedback on v4.54.6: wanted canvas to cover full horizontal area to the
+// sidebar; full-config panel to open as a draggable translucent popup (same
+// aesthetic as inspector); legacy top toolbar collapsible; devices spread
+// horizontally; how-to collapsed by default.
+console.log('\n\x1b[1m\u2500\u2500 v4.54.7 TB FULL-BLEED + DRAGGABLE CONFIG \u2500\u2500\x1b[0m');
+
+// HTML
+test('v4.54.7 HTML: legacy toolbar wrapped in <details id="tb-toolbar-details">',
+  html.includes('id="tb-toolbar-details"') && html.includes('class="tb-toolbar-details"') &&
+  html.includes('class="tb-toolbar-summary"'));
+test('v4.54.7 HTML: toolbar summary has Full toolbar label + hint',
+  /tb-toolbar-summary[^<]*>(?:[\s\S]{0,300})Full toolbar/.test(html));
+
+// JS
+test('v4.54.7 JS: TB_VIEW_DEFAULT updated to 250 200 1300 780 (wider spread)',
+  /TB_VIEW_DEFAULT\s*=\s*\{\s*x:\s*250,\s*y:\s*200,\s*w:\s*1300,\s*h:\s*780\s*\}/.test(js));
+test('v4.54.7 JS: tbBindConfigPanelDrag defined with mousedown on .tb-config-head',
+  js.includes('function tbBindConfigPanelDrag(') &&
+  /tbBindConfigPanelDrag[\s\S]{0,1500}\.tb-config-head[\s\S]{0,400}addEventListener\('mousedown'/.test(js));
+test('v4.54.7 JS: tbBindConfigPanelDrag ignores clicks on close + explain buttons',
+  /tbBindConfigPanelDrag[\s\S]{0,1500}tb-config-close[\s\S]{0,200}tb-explain-btn/.test(js));
+test('v4.54.7 JS: openTopologyBuilder binds config panel drag',
+  /openTopologyBuilder[\s\S]{0,2500}tbBindConfigPanelDrag\(\)/.test(js));
+test('v4.54.7 JS: tbOpenConfigPanel resets inline left/top/right on each open',
+  /tbOpenConfigPanel[\s\S]{0,1500}panel\.style\.left\s*=\s*''[\s\S]{0,200}panel\.style\.top\s*=\s*''[\s\S]{0,200}panel\.style\.right\s*=\s*''/.test(js));
+test('v4.54.7 JS: tbAutoCollapseIntroHowto keeps how-to + toolbar collapsed by default',
+  /tbAutoCollapseIntroHowto[\s\S]{0,1500}howtoEl\.removeAttribute\('open'\)/.test(js) &&
+  /tbAutoCollapseIntroHowto[\s\S]{0,1500}tb-toolbar-details[\s\S]{0,400}removeAttribute\('open'\)/.test(js));
+
+// CSS
+test('v4.54.7 CSS: #page-topology-builder overrides .page max-width to none (full-bleed)',
+  /#page-topology-builder\.page\s*\{[\s\S]{0,400}max-width:\s*none/.test(css));
+test('v4.54.7 CSS: .tb-workspace-v3 uses minmax(0, 1fr) middle column',
+  /\.tb-workspace\.tb-workspace-v3\s*\{[\s\S]{0,800}grid-template-columns:\s*220px\s+minmax\(0,\s*1fr\)\s+260px/.test(css));
+test('v4.54.7 CSS: canvas uses viewport-height min-height (calc(100vh - ...))',
+  /\.tb-canvas-wrap\s*\{[\s\S]{0,500}min-height:\s*calc\(100vh\s*-\s*\d+px\)/.test(css));
+test('v4.54.7 CSS: toolbar-details collapsible styling with rotating chevron',
+  /\.tb-toolbar-details\s*\{[\s\S]{0,400}border-radius/.test(css) &&
+  /\.tb-toolbar-summary::before\s*\{[\s\S]{0,400}transition:\s*transform/.test(css) &&
+  /\.tb-toolbar-details\[open\]\s*>\s*\.tb-toolbar-summary::before\s*\{[\s\S]{0,200}transform:\s*rotate\(90deg\)/.test(css));
+test('v4.54.7 CSS: .tb-config-panel is position:fixed translucent glass with blur',
+  /\.tb-config-panel\s*\{[\s\S]{0,600}position:\s*fixed[\s\S]{0,400}backdrop-filter:\s*blur/.test(css));
+test('v4.54.7 CSS: config panel has grab cursor on header (drag handle)',
+  /\.tb-config-panel\s+\.tb-config-head\s*\{[\s\S]{0,300}cursor:\s*grab/.test(css));
+test('v4.54.7 CSS: tbConfigPopIn keyframe entrance animation',
+  /@keyframes tbConfigPopIn\s*\{/.test(css));
+test('v4.54.7 CSS: how-to-details expanded state capped via max-height 40vh',
+  /\.tb-howto-details\[open\]\s*\{[\s\S]{0,200}max-height:\s*40vh/.test(css));
+test('v4.54.7 CSS: light-theme overrides for toolbar-details + config-panel',
+  /\[data-theme="light"\]\s+\.tb-toolbar-details\s*\{/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-config-panel\s*\{/.test(css));
+test('v4.54.7 CSS: reduced-motion neutralises config-panel entrance animation',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,400}\.tb-config-panel\s*\{[^}]*animation:\s*none/.test(css));
+test('v4.54.7 CSS: responsive <900px stacks workspace and sizes config popup to viewport',
+  /@media \(max-width:\s*900px\)[\s\S]{0,800}\.tb-config-panel\s*\{[\s\S]{0,400}width:\s*calc\(100vw\s*-\s*24px\)/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
