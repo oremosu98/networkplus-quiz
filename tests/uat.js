@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.12', js.includes("const APP_VERSION = '4.54.12"));
+test('APP_VERSION is 4.54.13', js.includes("const APP_VERSION = '4.54.13"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.12', sw.includes('netplus-v4.54.12'));
+test('SW cache bumped to v4.54.13', sw.includes('netplus-v4.54.13'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6243,6 +6243,10 @@ test('v4.54.12 HTML: Cable ID page uses .ed-pagehead with "Cable ID."',
   /id="page-cables"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Cable\s*<em>ID\.<\/em>/.test(html));
 test('v4.54.12 HTML: Analytics page uses .ed-pagehead with "Performance analytics."',
   /id="page-analytics"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Performance\s*<em>analytics\.<\/em>/.test(html));
+test('v4.54.13 HTML: Topology Builder page uses .ed-pagehead with "Network builder."',
+  /id="page-topology-builder"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Network\s*<em>builder\.<\/em>/.test(html));
+test('v4.54.13 HTML: ACL Builder page uses .ed-pagehead with "ACL builder."',
+  /id="page-acl"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}ACL\s*<em>builder\.<\/em>/.test(html));
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',

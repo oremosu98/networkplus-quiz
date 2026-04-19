@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.12</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.13</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1249,9 +1249,13 @@
      TOPOLOGY BUILDER (v4.18 / #74)
 ══════════════════════════════════════════ -->
 <div id="page-topology-builder" class="page">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2 style="margin:0">&#128295; Topology Builder</h2>
+  <!-- v4.54.13: editorial header -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Sandbox &middot; design &amp; simulate</div>
+      <h1 class="ed-pagehead-display">Network <em>builder.</em></h1>
+    </div>
     <span id="tb-device-count" class="tb-count-pill">0 / 50 devices</span>
   </div>
 
@@ -1704,10 +1708,13 @@
      get graded. Tier C AI Coach for feedback.
 ══════════════════════════════════════════ -->
 <div id="page-acl" class="page">
-  <!-- Header: back button + title + active-scenario chip -->
-  <div class="acl-page-header">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2 class="acl-page-title">&#128274; ACL Builder</h2>
+  <!-- v4.54.13: editorial header (replaces legacy .acl-page-header) -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Sandbox &middot; firewall rules</div>
+      <h1 class="ed-pagehead-display">ACL <em>builder.</em></h1>
+    </div>
     <div class="acl-header-actions" id="acl-header-scenario">
       <!-- Filled by renderAclPage() -->
     </div>
