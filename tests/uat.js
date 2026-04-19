@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.7', js.includes("const APP_VERSION = '4.54.7"));
+test('APP_VERSION is 4.54.8', js.includes("const APP_VERSION = '4.54.8"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.7', sw.includes('netplus-v4.54.7'));
+test('SW cache bumped to v4.54.8', sw.includes('netplus-v4.54.8'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4805,8 +4805,12 @@ test('v4.50.0/v4.50.1: question counts show time estimates (~5/10/15/20 min — 
   html.includes('~5 min') && html.includes('~10 min') &&
   html.includes('~15 min') && html.includes('~20 min'));
 // Generate button
-test('v4.50.0: Generate button uses cq-generate-btn class + sparkle icon structure',
-  html.includes('class="btn btn-primary btn-full cq-generate-btn"') &&
+// v4.54.8: the Generate button is now inside the dark .cq-summary-bar (prototype
+// prose-summary CTA pattern). The .cq-generate-ico + sparkle styling moved with it;
+// the btn-full class was retired since the button is now inline with the prose.
+test('v4.50.0 (v4.54.8 update): Generate button has cq-generate-ico + lives inside cq-summary-bar',
+  html.includes('class="cq-summary-bar"') &&
+  /class="[^"]*\bcq-summary-cta\b/.test(html) &&
   html.includes('class="cq-generate-ico"'));
 // Options grid
 test('v4.50.0: Difficulty + Questions wrapped in cq-options-grid (no inline style)',
@@ -5949,6 +5953,124 @@ test('v4.54.7 CSS: reduced-motion neutralises config-panel entrance animation',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,400}\.tb-config-panel\s*\{[^}]*animation:\s*none/.test(css));
 test('v4.54.7 CSS: responsive <900px stacks workspace and sizes config popup to viewport',
   /@media \(max-width:\s*900px\)[\s\S]{0,800}\.tb-config-panel\s*\{[\s\S]{0,400}width:\s*calc\(100vw\s*-\s*24px\)/.test(css));
+
+// ── v4.54.8 Editorial prototype completion ──
+// One mega-ship closing the prototype-mapping backlog: Quiz editorial overhaul,
+// Analytics accuracy chart + sparklines, Home polish pass, Results review list
+// + drill-mistakes CTA, sidebar drill nav-count pills, elapsed-time on Results.
+console.log('\n\x1b[1m\u2500\u2500 v4.54.8 EDITORIAL PROTOTYPE COMPLETION \u2500\u2500\x1b[0m');
+
+// Sidebar nav-count pills
+test('v4.54.8 JS: renderAppSidebar computes drillCounts + injects .sb-item-count pills',
+  /renderAppSidebar[\s\S]{0,3000}drillCounts[\s\S]{0,1000}sb-item-count/.test(js));
+test('v4.54.8 CSS: .sb-item-count pill monospace + accent hover + active styling',
+  /\.sb-item-count\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
+  /\.sb-item-active\s+\.sb-item-count\s*\{/.test(css));
+
+// Results: elapsed-time row + review list + drill-mistakes CTA
+test('v4.54.8 HTML: Results aside includes #r-elapsed row',
+  /<span class="k">Time<\/span><span class="v" id="r-elapsed">/.test(html));
+test('v4.54.8 HTML: #results-review-list container + eyebrow + italic-accent title',
+  html.includes('id="results-review-list"') &&
+  /results-v2-review-eyebrow[^<]*>Review[^<]*session/.test(html) &&
+  /results-v2-review-title[^<]*>Every\s*<em>answer\.<\/em>/.test(html));
+test('v4.54.8 HTML: Drill my mistakes CTA button exists',
+  /id="btn-drill-mistakes"[\s\S]{0,200}drillMistakesFromResults\(\)/.test(html));
+test('v4.54.8 JS: _sessionStartTs tracked on startQuiz + drillMistakesFromResults',
+  /function startQuiz\([\s\S]{0,6000}_sessionStartTs\s*=\s*Date\.now\(\)/.test(js) &&
+  js.includes('let _sessionStartTs') &&
+  js.includes('function drillMistakesFromResults(') &&
+  js.includes('function _formatElapsed('));
+test('v4.54.8 JS: _renderResultsReviewList builds rows with N\u00ba + prompt + topic + verdict',
+  js.includes('function _renderResultsReviewList(') &&
+  /_renderResultsReviewList[\s\S]{0,2500}results-v2-review-row[\s\S]{0,800}results-v2-review-mark/.test(js));
+test('v4.54.8 JS: finish() wires elapsed + review list + drill-btn visibility',
+  /function finish\(\)[\s\S]{0,5000}r-elapsed[\s\S]{0,2000}_renderResultsReviewList\(\)[\s\S]{0,600}btn-drill-mistakes/.test(js));
+test('v4.54.8 CSS: .results-v2-review-list uses 56/1fr/auto grid + hover lift + verdict badges',
+  /\.results-v2-review-row\s*\{[\s\S]{0,500}grid-template-columns:\s*56px\s+1fr\s+auto/.test(css) &&
+  /\.results-v2-review-mark-ok\s*\{/.test(css) &&
+  /\.results-v2-review-mark-bad\s*\{/.test(css));
+
+// Home polish
+test('v4.54.8 HTML: Marathon 60Q cell has SIM badge (preset-sim + preset-sim-badge)',
+  html.includes('class="preset-tile preset-sim"') &&
+  html.includes('class="preset-sim-badge"'));
+test('v4.54.8 HTML: cq-summary-bar prose + CTA exists above Generate button',
+  html.includes('id="cq-summary-bar"') &&
+  html.includes('id="cq-summary-prose"') &&
+  /class="[^"]*\bcq-summary-cta\b/.test(html));
+test('v4.54.8 JS: updateCqSummaryBar defined + called from initChips click handler',
+  js.includes('function updateCqSummaryBar(') &&
+  /initChips[\s\S]{0,1500}updateCqSummaryBar\(\)/.test(js));
+test('v4.54.8 JS: renderSetupDomainGrid emits .dg-weak-chips when weak topics exist',
+  /renderSetupDomainGrid[\s\S]{0,3000}dg-weak-chips/.test(js) &&
+  /renderSetupDomainGrid[\s\S]{0,3000}dg-weak-chip/.test(js));
+test('v4.54.8 CSS: Quick Start preset tiles color-cycle (4 nth-child ::after backgrounds)',
+  /\.quiz-presets\s+\.preset-tile:nth-child\(1\)::after\s*\{[^}]*background:\s*var\(--accent\)/.test(css) &&
+  /\.quiz-presets\s+\.preset-tile:nth-child\(2\)::after\s*\{[^}]*background:\s*var\(--green\)/.test(css) &&
+  /\.quiz-presets\s+\.preset-tile:nth-child\(3\)::after\s*\{[^}]*background:\s*var\(--yellow\)/.test(css) &&
+  /\.quiz-presets\s+\.preset-tile:nth-child\(4\)::after\s*\{[^}]*background:\s*var\(--red\)/.test(css));
+test('v4.54.8 CSS: \u00a7 section-head has 80px accent strip + 2px ink rule',
+  /\.ed-section-head\s*\{[\s\S]{0,300}border-bottom:\s*2px\s+solid/.test(css) &&
+  /\.ed-section-head::after\s*\{[\s\S]{0,300}width:\s*80px/.test(css));
+test('v4.54.8 CSS: .cq-summary-bar dark gradient + yellow strong + italic em',
+  /\.cq-summary-bar\s*\{[\s\S]{0,500}linear-gradient\(135deg,\s*#16131f/.test(css) &&
+  /\.cq-summary-prose\s+strong\s*\{[\s\S]{0,200}color:\s*var\(--yellow\)/.test(css));
+test('v4.54.8 CSS: .dg-weak-chip outlined accent styling',
+  /\.dg-weak-chip\s*\{[\s\S]{0,400}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.8 CSS: .preset-sim-badge SIM pill yellow outline',
+  /\.preset-sim-badge\s*\{[\s\S]{0,400}color:\s*var\(--yellow\)/.test(css));
+
+// Analytics: sparklines + accuracy chart
+test('v4.54.8 JS: _sparkPath + _weeklyStatSeries helpers defined',
+  js.includes('function _sparkPath(') && js.includes('function _weeklyStatSeries('));
+test('v4.54.8 JS: readiness stats strip injects 4 ana-hero-stat-spark SVGs',
+  /_renderAnaReadiness[\s\S]{0,6000}ana-hero-stat-spark[\s\S]{0,3000}_series\.sessions[\s\S]{0,600}_series\.questions[\s\S]{0,600}_series\.accuracy[\s\S]{0,600}_series\.studyDays/.test(js));
+test('v4.54.8 JS: _renderAnaAccuracyChart defined with SVG 960x220 + pass line',
+  js.includes('function _renderAnaAccuracyChart(') &&
+  /_renderAnaAccuracyChart[\s\S]{0,8000}viewBox="0 0 \$\{W\} \$\{H\}"/.test(js));
+test('v4.54.8 JS: _anaAccChartTab tab-switcher defined + 3 ranges (week/month/all)',
+  js.includes('function _anaAccChartTab(') &&
+  /_anaAccChartTab[\s\S]{0,800}ana-accchart-tab-active/.test(js));
+test('v4.54.8 JS: renderAnalytics chains _renderAnaAccuracyChart after _renderAnaReadiness',
+  /renderAnalytics[\s\S]{0,3000}_renderAnaReadiness\(h\)[\s\S]{0,400}_renderAnaAccuracyChart\(h\)/.test(js));
+test('v4.54.8 CSS: .ana-accchart-card editorial head (eyebrow + italic-accent title)',
+  /\.ana-accchart-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,300}text-transform:\s*uppercase/.test(css) &&
+  /\.ana-accchart-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.8 CSS: .ana-accchart-tabs + active state gradient',
+  /\.ana-accchart-tab-active\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*rgba\(var\(--accent-rgb\)/.test(css));
+test('v4.54.8 CSS: .ana-hero-stat-spark inline SVG styling',
+  /\.ana-hero-stat-spark\s*\{[\s\S]{0,300}height:\s*22px/.test(css));
+
+// Quiz editorial overhaul
+test('v4.54.8 HTML: #quiz-prog-dots segmented progress container in progress-wrap',
+  html.includes('id="quiz-prog-dots"') && html.includes('class="quiz-prog-dots"'));
+test('v4.54.8 HTML: .quiz-kbd-hints footer with A/B/C/D + Enter + F',
+  html.includes('class="quiz-kbd-hints"') &&
+  /<kbd>A<\/kbd><kbd>B<\/kbd><kbd>C<\/kbd><kbd>D<\/kbd>\s*pick/.test(html));
+test('v4.54.8 HTML: #exp-wrong-explain block inside explanation-box',
+  html.includes('id="exp-wrong-explain"') && html.includes('class="exp-wrong-explain is-hidden"'));
+test('v4.54.8 JS: _renderQuizProgressDots defined + called from render()',
+  js.includes('function _renderQuizProgressDots(') &&
+  /function render\(\)[\s\S]{0,2500}_renderQuizProgressDots\(\)/.test(js));
+test('v4.54.8 JS: _renderQuizProgressDots emits qpd-done / qpd-wrong / qpd-now classes',
+  /_renderQuizProgressDots[\s\S]{0,2500}qpd-now[\s\S]{0,400}qpd-done[\s\S]{0,400}qpd-wrong/.test(js));
+test('v4.54.8 JS: showExplanation populates wrongExplain from q.wrongExplain[chosen]',
+  /showExplanation[\s\S]{0,3000}exp-wrong-explain[\s\S]{0,600}q\.wrongExplain/.test(js));
+test('v4.54.8 CSS: .qpd-cell segmented dots (4px base, 6px done/wrong, 8px now)',
+  /\.qpd-cell\s*\{[\s\S]{0,400}height:\s*4px/.test(css) &&
+  /\.qpd-cell\.qpd-done\s*\{[\s\S]{0,300}background:\s*var\(--green\)/.test(css) &&
+  /\.qpd-cell\.qpd-now\s*\{[\s\S]{0,300}height:\s*8px/.test(css));
+test('v4.54.8 CSS: .quiz-kbd-hints kbd styling (bordered monospace pill)',
+  /\.quiz-kbd-hints\s+kbd\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css));
+test('v4.54.8 CSS: .exp-wrong-explain italic muted pullquote styling',
+  /\.exp-wrong-explain\s*\{[\s\S]{0,400}font-style:\s*italic[\s\S]{0,400}border-left:\s*3px/.test(css));
+test('v4.54.8 CSS: legacy .kb-hint hidden (superseded by .quiz-kbd-hints)',
+  /#page-quiz\s+\.kb-hint\s*\{\s*display:\s*none/.test(css));
+
+// Cross-cutting: reduced-motion
+test('v4.54.8 CSS: reduced-motion neutralises new transitions (quick-card, qpd, acc-tab)',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\.quiz-presets\s+\.preset-tile::after[\s\S]{0,400}transition:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

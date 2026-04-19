@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.7</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.8</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -220,7 +220,9 @@
         <span class="preset-title">45 Questions</span>
         <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
       </button>
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk60')">
+      <!-- v4.54.8: 60Q tile gets a "SIM" badge \u2014 closest to the 90Q full exam sim. -->
+      <button type="button" class="preset-tile preset-sim" onclick="applyPreset('bulk60')">
+        <span class="preset-sim-badge" aria-hidden="true">SIM</span>
         <span class="preset-icon">&#128218;</span>
         <span class="preset-title">60 Questions</span>
         <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
@@ -398,10 +400,18 @@
       </div>
 
       <div id="setup-err" class="err-box is-hidden" style="margin-top:14px"></div>
-      <button class="btn btn-primary btn-full cq-generate-btn" onclick="startQuiz()">
-        <span class="cq-generate-ico" aria-hidden="true">&#9889;</span>
-        <span class="cq-generate-label">Generate Quiz</span>
-      </button>
+      <!-- v4.54.8: dark prose-summary CTA bar \u2014 reads back the user's choice
+           ("10 exam-level questions \u00b7 AI-picked weak spots \u00b7 est. ~10 min") before
+           the Generate button. Updated live via updateCqSummaryBar(). -->
+      <div class="cq-summary-bar" id="cq-summary-bar">
+        <div class="cq-summary-prose" id="cq-summary-prose">
+          <strong>10</strong> exam-level questions &middot; <em>Mixed across all topics</em> &middot; est. ~10 min
+        </div>
+        <button class="btn btn-primary cq-summary-cta" onclick="startQuiz()">
+          <span class="cq-generate-ico" aria-hidden="true">&#9889;</span>
+          <span>Generate Quiz &rarr;</span>
+        </button>
+      </div>
     </div>
   </details>
   </div>
@@ -473,6 +483,10 @@
       <span id="q-pct">0%</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <!-- v4.54.8: segmented per-question progress dots (prototype pattern).
+         One dot per question: moss-green=correct, red=wrong, tall ink=current,
+         grey=pending. Rendered by _renderQuizProgressDots() in render(). -->
+    <div class="quiz-prog-dots" id="quiz-prog-dots" role="progressbar" aria-label="Per-question progress"></div>
   </div>
 
   <div class="q-card">
@@ -486,15 +500,19 @@
     <div class="explanation-box" id="exp-box" aria-live="polite" role="alert">
       <strong id="exp-label"></strong>
       <span id="exp-text"></span>
+      <!-- v4.54.8: per-choice wrong-explain paragraph. If q.wrongExplain[chosen]
+           exists, showExplanation populates this block; otherwise hidden. -->
+      <div class="exp-wrong-explain is-hidden" id="exp-wrong-explain" role="note"></div>
     </div>
     <div class="next-btn-row">
       <button class="btn-next" id="btn-next">Next &#8594;</button>
     </div>
   </div>
-  <div class="kb-hint">
-    <span class="kb-key">A</span> <span class="kb-key">B</span> <span class="kb-key">C</span> <span class="kb-key">D</span> select &nbsp;&bull;&nbsp;
-    <span class="kb-key">Enter</span> next &nbsp;&bull;&nbsp;
-    <span class="kb-key">F</span> flag
+  <!-- v4.54.8: editorial kbd-hints footer (replaces the older .kb-hint). -->
+  <div class="quiz-kbd-hints" id="quiz-kbd-hints" aria-label="Keyboard shortcuts">
+    <span><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> pick</span>
+    <span><kbd>&crarr;</kbd> submit / next</span>
+    <span><kbd>F</kbd> flag</span>
   </div>
 </div>
 
@@ -518,15 +536,32 @@
         <div class="results-v2-row"><span class="k">Correct</span><span class="v" id="r-correct">0</span></div>
         <div class="results-v2-row"><span class="k">Wrong</span><span class="v" id="r-wrong">0</span></div>
         <div class="results-v2-row"><span class="k">Raw %</span><span class="v" id="r-v2-pct">0%</span></div>
+        <!-- v4.54.8: elapsed-time row (tracks session duration via _sessionStartTs) -->
+        <div class="results-v2-row"><span class="k">Time</span><span class="v" id="r-elapsed">&mdash;</span></div>
         <div class="results-v2-row"><span class="k">Best streak &#128293;</span><span class="v" id="r-streak">0</span></div>
       </aside>
     </div>
 
     <div id="diff-breakdown" class="diff-breakdown"></div>
 
+    <!-- v4.54.8: inline review-answers list (prototype pattern) \u2014 each question
+         becomes a tappable row with N\u00ba + prompt + topic + verdict badge. Routes
+         to the full Review page when clicked. Populated by _renderResultsReviewList. -->
+    <section class="results-v2-review" id="results-review-section">
+      <div class="results-v2-review-head">
+        <div class="results-v2-review-eyebrow">Review &middot; this session</div>
+        <h3 class="results-v2-review-title">Every <em>answer.</em></h3>
+      </div>
+      <div id="results-review-list" class="results-v2-review-list" role="list" aria-label="Session answers">
+        <!-- Filled by _renderResultsReviewList() -->
+      </div>
+    </section>
+
     <div class="results-v2-cta-row">
       <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Back to menu</button>
       <div class="results-v2-cta-right">
+        <!-- v4.54.8: Drill my mistakes \u2014 one-click wrong-bank drill. Hidden when 0 wrong. -->
+        <button class="btn btn-ghost" id="btn-drill-mistakes" onclick="drillMistakesFromResults()" style="display:none">&#127919; Drill my mistakes</button>
         <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">&#128203; Review answers</button>
         <button class="btn btn-primary" onclick="retryQuiz()">New session &rarr;</button>
       </div>

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.7
+// Network+ AI Quiz — app.js  v4.54.8
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.7';
+const APP_VERSION = '4.54.8';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -563,6 +563,8 @@ function initChips(groupId, cb) {
       c.classList.add('on');
       c.setAttribute('aria-pressed', 'true');
       cb(c.dataset.v);
+      // v4.54.8: refresh the dark prose-summary CTA bar whenever any chip toggles
+      if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
     });
   });
 }
@@ -572,6 +574,8 @@ function syncChipAriaPressed(groupSelector) {
   document.querySelectorAll(groupSelector + ' .chip').forEach(c => {
     c.setAttribute('aria-pressed', c.classList.contains('on') ? 'true' : 'false');
   });
+  // v4.54.8: programmatic toggles (applyPreset, drillDomain, etc.) also refresh the CTA summary
+  if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
 }
 
 // ══════════════════════════════════════════
@@ -1418,6 +1422,64 @@ function clearWrongBank() {
   renderWrongBankBtn();
 }
 
+// v4.54.8: session-specific Drill my mistakes CTA on Results page.
+// Builds a fresh quiz from THIS session's wrong log entries (not the global
+// wrong-bank). If every answer was correct the button is hidden upstream.
+function drillMistakesFromResults() {
+  if (!Array.isArray(log) || log.length === 0) return;
+  const wrongEntries = log.filter(e => e && e.isRight === false);
+  if (wrongEntries.length === 0) {
+    if (typeof showErrorToast === 'function') showErrorToast('Nothing to drill \u2014 you got them all right.');
+    return;
+  }
+  wrongDrillMode = true;
+  examMode = false;
+  sessionMode = false;
+  activeQuizTopic = 'Session \u00b7 mistakes drill';
+  // Reuse the question objects from the session log so full context + PBQs survive.
+  questions = wrongEntries.map(e => e.q).filter(Boolean);
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  _sessionStartTs = Date.now();
+  showCacheNotice(false);
+  showPage('quiz');
+  render();
+}
+
+// v4.54.8: render inline review-answers list on Results page (prototype pattern).
+// Each session question becomes a tappable row: N\u00ba + truncated prompt + topic/domain
+// + verdict badge. Click routes to the full Review page (showReview handles the
+// index). Unlike the Review page, this list is visible *as part of* the results
+// artifact \u2014 makes post-session review one click closer.
+function _renderResultsReviewList() {
+  const root = document.getElementById('results-review-list');
+  if (!root) return;
+  if (!Array.isArray(log) || log.length === 0) {
+    root.innerHTML = '<div class="results-v2-review-empty">No answers recorded this session.</div>';
+    return;
+  }
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => String(s).replace(/</g, '&lt;'));
+  const items = log.map((entry, i) => {
+    const q = entry.q || {};
+    const prompt = (q.question || q.prompt || '').slice(0, 140);
+    const topic = q.topic || '\u2014';
+    const domain = (typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS[topic]) ? TOPIC_DOMAINS[topic] : '';
+    const isRight = entry.isRight === true;
+    const verdictClass = isRight ? 'ok' : 'bad';
+    const verdictText = isRight ? 'Correct' : 'Wrong';
+    const num = String(i + 1).padStart(2, '0');
+    return `<button type="button" class="results-v2-review-row" onclick="showReview(false, ${i})" aria-label="Review question ${i + 1} \u2014 ${verdictText}">
+      <div class="results-v2-review-num">N\u00b0 ${num}</div>
+      <div class="results-v2-review-body">
+        <div class="results-v2-review-q">${esc(prompt)}${prompt.length >= 140 ? '\u2026' : ''}</div>
+        <div class="results-v2-review-meta">${esc(topic)}${domain ? ' \u00b7 ' + esc(domain) : ''}</div>
+      </div>
+      <div class="results-v2-review-mark results-v2-review-mark-${verdictClass}">${verdictText}</div>
+    </button>`;
+  }).join('');
+  root.innerHTML = items;
+}
+
 function startWrongDrill() {
   const bank = loadWrongBank();
   if (bank.length === 0) {
@@ -1593,8 +1655,46 @@ async function startQuiz() {
   }
   current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
   quizFlags = new Array(questions.length).fill(false);
+  // v4.54.8: mark session start for the elapsed-time row on Results
+  _sessionStartTs = Date.now();
   showPage('quiz');
   render();
+}
+
+// v4.54.8: render segmented per-question progress dots. Derives state
+// from `log` entries (which store isRight per answered question) + `current`
+// for the active-question pill. Pending questions get a small grey dot.
+function _renderQuizProgressDots() {
+  const el = document.getElementById('quiz-prog-dots');
+  if (!el || !Array.isArray(questions)) return;
+  const n = questions.length;
+  // Build a quick lookup of question -> log index (log entries are in answered order;
+  // we match on the question object identity since log.push({q, ...}) preserves refs).
+  const logByQ = new Map();
+  (log || []).forEach(entry => { if (entry && entry.q) logByQ.set(entry.q, entry); });
+  const cells = [];
+  for (let i = 0; i < n; i++) {
+    const q = questions[i];
+    const entry = logByQ.get(q);
+    let cls = 'qpd-cell';
+    let aria;
+    if (i === current && !entry) { cls += ' qpd-now'; aria = `Question ${i + 1}, current`; }
+    else if (entry && entry.isRight === true) { cls += ' qpd-done'; aria = `Question ${i + 1}, correct`; }
+    else if (entry && entry.isRight === false) { cls += ' qpd-wrong'; aria = `Question ${i + 1}, wrong`; }
+    else { aria = `Question ${i + 1}, pending`; }
+    cells.push(`<span class="${cls}" role="presentation" title="${aria}"></span>`);
+  }
+  el.innerHTML = cells.join('');
+}
+
+// v4.54.8: track quiz session start time for elapsed-time row in Results.
+let _sessionStartTs = 0;
+function _formatElapsed(ms) {
+  if (!ms || ms < 0) return '\u2014';
+  const s = Math.round(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  return m > 0 ? `${m}m ${String(rs).padStart(2,'0')}s` : `${rs}s`;
 }
 
 // ══════════════════════════════════════════
@@ -1874,6 +1974,8 @@ function render() {
   document.getElementById('q-pct').textContent       = pct + '%';
   document.getElementById('prog-fill').style.width   = pct + '%';
   document.getElementById('q-num').textContent       = `Q${current + 1}`;
+  // v4.54.8: segmented per-question progress dots. State derived from `log` entries.
+  _renderQuizProgressDots();
 
   const badge = document.getElementById('diff-badge');
   const dc    = (q.difficulty || DEFAULT_DIFF).replace(/[^a-zA-Z]/g, '');
@@ -2293,6 +2395,22 @@ function showExplanation(q, isRight) {
   }
   document.getElementById('exp-label').textContent = label;
   document.getElementById('exp-text').textContent  = q.explanation;
+  // v4.54.8: per-choice wrongExplain paragraph. If the question carries a
+  // wrongExplain map keyed by option letter AND the user picked one of them,
+  // surface the targeted explanation as an italic muted block.
+  const wrongExplainEl = document.getElementById('exp-wrong-explain');
+  if (wrongExplainEl) {
+    const lastLog = (Array.isArray(log) && log.length > 0) ? log[log.length - 1] : null;
+    const chosenLetter = lastLog ? lastLog.chosen : null;
+    const pickExplain = (q.wrongExplain && typeof q.wrongExplain === 'object') ? q.wrongExplain[chosenLetter] : null;
+    if (!isRight && pickExplain && typeof pickExplain === 'string') {
+      wrongExplainEl.textContent = `On your choice (${chosenLetter}): ${pickExplain}`;
+      wrongExplainEl.classList.remove('is-hidden');
+    } else {
+      wrongExplainEl.textContent = '';
+      wrongExplainEl.classList.add('is-hidden');
+    }
+  }
 
   // Resource link — opens in-app Topic Deep Dive
   const qTopic = q.topic || activeQuizTopic;
@@ -2441,6 +2559,22 @@ function finish() {
     }
   }
   if (rawPctEl) rawPctEl.textContent = pct + '%';
+
+  // v4.54.8: elapsed-time row
+  const elapsedEl = document.getElementById('r-elapsed');
+  if (elapsedEl) {
+    const elapsedMs = _sessionStartTs ? (Date.now() - _sessionStartTs) : 0;
+    elapsedEl.textContent = _formatElapsed(elapsedMs);
+  }
+
+  // v4.54.8: inline "Review \u00b7 Every answer" list + "Drill my mistakes" CTA
+  if (typeof _renderResultsReviewList === 'function') _renderResultsReviewList();
+  const drillBtn = document.getElementById('btn-drill-mistakes');
+  if (drillBtn) {
+    const wrongCount = total - score;
+    drillBtn.style.display = wrongCount > 0 ? '' : 'none';
+    drillBtn.innerHTML = `\u{1F3AF} Drill my ${wrongCount} mistake${wrongCount === 1 ? '' : 's'}`;
+  }
 
   document.getElementById('btn-review').classList.toggle('is-hidden', log.length === 0);
 
@@ -20348,6 +20482,187 @@ function _buildExamDateChipHtml(examDateStr, daysToExam, inputId) {
     </button>`;
 }
 
+// v4.54.8: compact sparkline path helper. Values array -> SVG `d` string.
+// Accepts optional w/h for the viewBox (defaults 300x40 matching prototype).
+// Returns empty string if values too small to plot.
+function _sparkPath(values, w = 300, h = 40) {
+  if (!Array.isArray(values) || values.length < 2) return '';
+  const padding = 3;
+  const innerW = w - 2 * padding, innerH = h - 2 * padding;
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  let path = '';
+  values.forEach((v, i) => {
+    const x = padding + (i / (values.length - 1)) * innerW;
+    const y = padding + (1 - (v - min) / range) * innerH;
+    path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+  });
+  return path;
+}
+
+// v4.54.8: build per-week time series for the 4 Readiness stats cells.
+// Buckets history by ISO week. Returns arrays of ~12 weeks by default.
+function _weeklyStatSeries(h, weeks = 12) {
+  if (!Array.isArray(h) || h.length === 0) return { sessions: [], questions: [], accuracy: [], studyDays: [] };
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const startMs = now - weeks * weekMs;
+  const buckets = Array.from({ length: weeks }, () => ({ s: 0, q: 0, c: 0, days: new Set() }));
+  h.forEach(e => {
+    const t = new Date(e.date).getTime();
+    if (isNaN(t) || t < startMs) return;
+    const idx = Math.min(weeks - 1, Math.floor((t - startMs) / weekMs));
+    const b = buckets[idx];
+    b.s += 1;
+    b.q += (e.total || 0);
+    b.c += (e.score || 0);
+    b.days.add(new Date(e.date).toISOString().slice(0, 10));
+  });
+  return {
+    sessions: buckets.map(b => b.s),
+    questions: buckets.map(b => b.q),
+    accuracy: buckets.map(b => b.q > 0 ? Math.round((b.c / b.q) * 100) : 0),
+    studyDays: buckets.map(b => b.days.size)
+  };
+}
+
+// v4.54.8: full Accuracy-over-time chart with pass-mark line + week/month/all tabs.
+// 960x220 SVG, dashed gridlines at 60/70/80/90, accent pass-mark line at 72%,
+// 6% opacity area fill, circle dots at each datapoint. Tabs are pure CSS
+// class-toggle on a data-tab attribute (no re-render needed; SVG holds all 3
+// series and tab click hides/shows via CSS).
+function _renderAnaAccuracyChart(h) {
+  if (!Array.isArray(h) || h.length === 0) return '';
+  // Build 3 series: last 7 days (daily), last 30 days (daily), all-time (weekly).
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const week = 7 * day;
+  const series = {
+    week: { label: 'Week', points: [] },
+    month: { label: 'Month', points: [] },
+    all: { label: 'All', points: [] }
+  };
+  // Week: 7 daily buckets
+  for (let i = 6; i >= 0; i--) {
+    const bStart = now - (i + 1) * day;
+    const bEnd = now - i * day;
+    const entries = h.filter(e => { const t = new Date(e.date).getTime(); return t >= bStart && t < bEnd; });
+    const qs = entries.reduce((a, e) => a + (e.total || 0), 0);
+    const cs = entries.reduce((a, e) => a + (e.score || 0), 0);
+    series.week.points.push({ acc: qs > 0 ? (cs / qs) * 100 : null });
+  }
+  // Month: 30 daily buckets
+  for (let i = 29; i >= 0; i--) {
+    const bStart = now - (i + 1) * day;
+    const bEnd = now - i * day;
+    const entries = h.filter(e => { const t = new Date(e.date).getTime(); return t >= bStart && t < bEnd; });
+    const qs = entries.reduce((a, e) => a + (e.total || 0), 0);
+    const cs = entries.reduce((a, e) => a + (e.score || 0), 0);
+    series.month.points.push({ acc: qs > 0 ? (cs / qs) * 100 : null });
+  }
+  // All-time: weekly buckets covering history span
+  if (h.length > 0) {
+    const oldest = Math.min(...h.map(e => new Date(e.date).getTime()));
+    const weeks = Math.max(2, Math.min(26, Math.ceil((now - oldest) / week)));
+    for (let i = weeks - 1; i >= 0; i--) {
+      const bStart = now - (i + 1) * week;
+      const bEnd = now - i * week;
+      const entries = h.filter(e => { const t = new Date(e.date).getTime(); return t >= bStart && t < bEnd; });
+      const qs = entries.reduce((a, e) => a + (e.total || 0), 0);
+      const cs = entries.reduce((a, e) => a + (e.score || 0), 0);
+      series.all.points.push({ acc: qs > 0 ? (cs / qs) * 100 : null });
+    }
+  }
+  // Build a single SVG path per series + dots. viewBox 960x220, padding 50.
+  const W = 960, H = 220, PAD = 50;
+  const innerW = W - 2 * PAD, innerH = H - 2 * PAD;
+  const passPct = (EXAM_PASS_SCORE - 420) / 450 * 100; // ~66.67 on 420-870 scale
+  const passYRaw = 72; // 72% raw accuracy ~= pass mark heuristic used in prototype
+  const yOf = (p) => PAD + (1 - p / 100) * innerH;
+  const xOf = (i, n) => PAD + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2);
+  const plot = (seriesKey) => {
+    const pts = series[seriesKey].points;
+    if (pts.length === 0) return { path: '', dots: '', area: '' };
+    let linePath = '', areaPath = '';
+    let lastValidIdx = -1;
+    const dots = [];
+    pts.forEach((p, i) => {
+      if (p.acc === null) return;
+      const x = xOf(i, pts.length);
+      const y = yOf(p.acc);
+      if (lastValidIdx === -1) {
+        linePath += `M${x.toFixed(1)},${y.toFixed(1)}`;
+        areaPath += `M${x.toFixed(1)},${yOf(0).toFixed(1)} L${x.toFixed(1)},${y.toFixed(1)}`;
+      } else {
+        linePath += ` L${x.toFixed(1)},${y.toFixed(1)}`;
+        areaPath += ` L${x.toFixed(1)},${y.toFixed(1)}`;
+      }
+      dots.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`);
+      lastValidIdx = i;
+    });
+    if (lastValidIdx >= 0) {
+      const lastX = xOf(lastValidIdx, pts.length);
+      areaPath += ` L${lastX.toFixed(1)},${yOf(0).toFixed(1)} Z`;
+    }
+    return { path: linePath, dots: dots.join(''), area: areaPath };
+  };
+  const weekSeries = plot('week');
+  const monthSeries = plot('month');
+  const allSeries = plot('all');
+  const gridlines = [60, 70, 80, 90].map(pct =>
+    `<line x1="${PAD}" y1="${yOf(pct).toFixed(1)}" x2="${W - PAD}" y2="${yOf(pct).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+     <text x="${PAD - 8}" y="${yOf(pct).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="var(--text-dim)" font-family="monospace">${pct}%</text>`
+  ).join('');
+  const passLine = `<line x1="${PAD}" y1="${yOf(passYRaw).toFixed(1)}" x2="${W - PAD}" y2="${yOf(passYRaw).toFixed(1)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+    <text x="${W - PAD + 4}" y="${yOf(passYRaw).toFixed(1)}" dominant-baseline="middle" font-size="10" fill="var(--accent-light)" font-family="monospace" font-weight="700">PASS</text>`;
+  return `<div class="ana-card ana-accchart-card" id="ana-s-accchart">
+    <div class="ana-accchart-head">
+      <div>
+        <div class="ana-accchart-eyebrow">Accuracy &middot; over time</div>
+        <h3 class="ana-accchart-title">Are you trending <em>toward pass?</em></h3>
+      </div>
+      <div class="ana-accchart-tabs" role="tablist" aria-label="Time window">
+        <button type="button" class="ana-accchart-tab" data-range="week" onclick="_anaAccChartTab('week')">Week</button>
+        <button type="button" class="ana-accchart-tab ana-accchart-tab-active" data-range="month" onclick="_anaAccChartTab('month')">Month</button>
+        <button type="button" class="ana-accchart-tab" data-range="all" onclick="_anaAccChartTab('all')">All</button>
+      </div>
+    </div>
+    <div class="ana-accchart-wrap">
+      <svg class="ana-accchart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Accuracy over time chart">
+        ${gridlines}
+        ${passLine}
+        <g data-range="week" style="display:none">
+          <path d="${weekSeries.area}" fill="var(--accent)" opacity="0.07"/>
+          <path d="${weekSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          ${weekSeries.dots}
+        </g>
+        <g data-range="month">
+          <path d="${monthSeries.area}" fill="var(--accent)" opacity="0.07"/>
+          <path d="${monthSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          ${monthSeries.dots}
+        </g>
+        <g data-range="all" style="display:none">
+          <path d="${allSeries.area}" fill="var(--accent)" opacity="0.07"/>
+          <path d="${allSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          ${allSeries.dots}
+        </g>
+      </svg>
+    </div>
+  </div>`;
+}
+
+// Tab switcher for the accuracy chart \u2014 shows/hides range groups via display.
+function _anaAccChartTab(range) {
+  const card = document.getElementById('ana-s-accchart');
+  if (!card) return;
+  card.querySelectorAll('.ana-accchart-tab').forEach(b => {
+    b.classList.toggle('ana-accchart-tab-active', b.getAttribute('data-range') === range);
+  });
+  card.querySelectorAll('.ana-accchart-svg g[data-range]').forEach(g => {
+    g.style.display = g.getAttribute('data-range') === range ? '' : 'none';
+  });
+}
+
 function _renderAnaReadiness(h) {
   const readiness = getReadinessScore();
   const examDateStr = getExamDate();
@@ -20406,26 +20721,39 @@ function _renderAnaReadiness(h) {
   }).join('');
 
   // v4.46.0: Stats strip — icons above numbers, hairline dividers between tiles.
+  // v4.54.8: inline sparkline under each number showing ~12-week trend.
+  const _series = _weeklyStatSeries(h, 12);
+  const _mkSpark = (vals, strokeVar) => {
+    const d = _sparkPath(vals, 160, 28);
+    if (!d) return '';
+    return `<svg class="ana-hero-stat-spark" viewBox="0 0 160 28" preserveAspectRatio="none" aria-hidden="true">
+      <path d="${d}" fill="none" stroke="${strokeVar}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+  };
   const statsHtml = `
       <div class="ana-hero-stat">
         <div class="ana-hero-stat-icon" aria-hidden="true">📚</div>
         <div class="ana-hero-stat-val">${h.length}</div>
         <div class="ana-hero-stat-lbl">Sessions</div>
+        ${_mkSpark(_series.sessions, 'var(--accent-light)')}
       </div>
       <div class="ana-hero-stat">
         <div class="ana-hero-stat-icon" aria-hidden="true">📝</div>
         <div class="ana-hero-stat-val">${totalQ.toLocaleString()}</div>
         <div class="ana-hero-stat-lbl">Questions</div>
+        ${_mkSpark(_series.questions, 'var(--accent-light)')}
       </div>
       <div class="ana-hero-stat">
         <div class="ana-hero-stat-icon" aria-hidden="true">🎯</div>
         <div class="ana-hero-stat-val">${totalQ > 0 ? Math.round(totalCorrect/totalQ*100) : 0}%</div>
         <div class="ana-hero-stat-lbl">Accuracy</div>
+        ${_mkSpark(_series.accuracy, 'var(--green)')}
       </div>
       <div class="ana-hero-stat">
         <div class="ana-hero-stat-icon" aria-hidden="true">🔥</div>
         <div class="ana-hero-stat-val">${studyDays}</div>
         <div class="ana-hero-stat-lbl">Study Days</div>
+        ${_mkSpark(_series.studyDays, 'var(--orange)')}
       </div>`;
 
   return `<div class="ana-card ana-ready-hero" id="ana-s-readiness">
@@ -21183,6 +21511,8 @@ function renderAnalytics() {
   let html = '';
   html += _renderAnaNav();
   html += _renderAnaReadiness(h);
+  // v4.54.8: Accuracy-over-time chart with pass-mark line + week/month/all tabs
+  html += _renderAnaAccuracyChart(h);
   html += _renderAnaTrend(h);
   html += _renderAnaDifficulty(h);
   html += _renderAnaTopicsCta();
@@ -24003,11 +24333,37 @@ function renderAppSidebar() {
   [...APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS, ...APP_SIDEBAR_SETTINGS].forEach(it => {
     reg[it.page] = it.handler;
   });
+  // v4.54.8: compute drill bank sizes once per render for .sb-item-count chips.
+  // Matches prototype's nav-count pills. References top-level consts directly
+  // (top-level `const` declarations are NOT added to window in browser script
+  // context, so we use a try/typeof to probe each without throwing ReferenceError).
+  const _probeSize = (fn) => { try { const v = fn(); return Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : null); } catch (_) { return null; } };
+  const drillCounts = {
+    // Subnet Mastery: ST_CATEGORIES (6 categories, but we want sub-types)
+    'subnet':     _probeSize(() => (typeof ST_CATEGORIES !== 'undefined') ? ST_CATEGORIES : null),
+    // Port Drill: GT_PORTS carries 27 protocol facts
+    'ports':      _probeSize(() => (typeof GT_PORTS !== 'undefined') ? GT_PORTS : null),
+    // Acronym Blitz: AB_DATA has ~130 acronyms
+    'acronyms':   _probeSize(() => (typeof AB_DATA !== 'undefined') ? AB_DATA : null),
+    // OSI Sorter: OS_DATA has protocol-to-layer entries
+    'osi-sorter': _probeSize(() => (typeof OS_DATA !== 'undefined') ? OS_DATA : null),
+    // Cable ID: CB_CABLES + CB_CONNECTORS combined
+    'cables':     _probeSize(() => {
+      const c = (typeof CB_CABLES !== 'undefined') ? CB_CABLES : [];
+      const cn = (typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS : [];
+      return c.concat(cn);
+    })
+  };
   const renderItem = it => {
     const hasIcon = it.icon;
+    const count = drillCounts[it.page];
+    const countChip = (count != null && count > 0)
+      ? `<span class="sb-item-count" aria-label="${count} items">${count}</span>`
+      : '';
     return `<button type="button" class="sb-item" data-sb-page="${it.page}" onclick="__aclSidebarHandlers['${it.page}'] && __aclSidebarHandlers['${it.page}']()">
       ${hasIcon ? `<span class="sb-item-icon" aria-hidden="true">${it.icon}</span>` : '<span class="sb-item-icon">&bull;</span>'}
       <span class="sb-item-label">${escHtml(it.label)}</span>
+      ${countChip}
     </button>`;
   };
   // Streak badge in footer — reuses existing getStreak()
@@ -24411,6 +24767,22 @@ function renderSetupDomainGrid() {
   const weightPct = {
     concepts: 23, implementation: 20, operations: 19, security: 14, troubleshooting: 24
   };
+  // v4.54.8: compute weak topics per domain via weak-spots scoring. Each
+  // cell gets up to 3 weak-topic chips surfaced inline (matches prototype
+  // .domain-topics pattern).
+  let weakByDomain = { concepts: [], implementation: [], operations: [], security: [], troubleshooting: [] };
+  try {
+    if (typeof computeWeakSpotScores === 'function' && typeof TOPIC_DOMAINS !== 'undefined') {
+      const weakScores = computeWeakSpotScores() || [];
+      weakScores.forEach(ws => {
+        const dk = TOPIC_DOMAINS[ws.topic];
+        if (dk && weakByDomain[dk] && weakByDomain[dk].length < 3) {
+          weakByDomain[dk].push(ws.topic);
+        }
+      });
+    }
+  } catch (_) { /* defensive \u2014 skip chips if compute fails */ }
+
   const html = domainOrder.map((dk, idx) => {
     const s = stats[dk];
     const pct = s.total > 0 ? Math.round((s.score / s.total) * 100) : null;
@@ -24418,6 +24790,14 @@ function renderSetupDomainGrid() {
     const pctTxt = pct !== null ? pct : '\u2014';
     const pctSub = pct !== null ? '%' : '';
     const status = pct === null ? 'Not studied' : pct >= 85 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
+    // v4.54.8: weak-topic chips (up to 3) surfaced inside each cell
+    const weakTopics = weakByDomain[dk] || [];
+    const chipsHtml = weakTopics.length > 0
+      ? `<div class="dg-weak-chips" aria-label="Weak topics in this domain">${weakTopics.map(t => {
+          const short = t.length > 20 ? t.slice(0, 18) + '\u2026' : t;
+          return `<span class="dg-weak-chip">${escHtml(short)}</span>`;
+        }).join('')}</div>`
+      : '';
     return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" onclick="drillDomain('${DOMAIN_LABELS[dk].replace(/'/g, "\\'")}')">
       <span class="dg-weight">${weightPct[dk]}% exam</span>
       <div class="dg-bar-col">
@@ -24426,6 +24806,7 @@ function renderSetupDomainGrid() {
       <div>
         <div class="dg-num">Domain ${idx + 1}</div>
         <div class="dg-name">${escHtml(domainDisplay[dk].split(' ').slice(1).join(' '))}</div>
+        ${chipsHtml}
       </div>
       <div class="dg-pct-wrap">
         <span class="dg-pct">${pctTxt}</span><span class="dg-pct-sub">${pctSub}</span>
@@ -24434,6 +24815,34 @@ function renderSetupDomainGrid() {
     </button>`;
   }).join('');
   el.innerHTML = html;
+}
+
+// v4.54.8: live-update the customizer prose-summary CTA bar whenever the user
+// changes topic / difficulty / count. Reads from the current chip `.on` state
+// and writes a human-readable summary above the Generate button. Wired via
+// updateCqSummaryBar() invocations patched into the existing chip toggle flow.
+function updateCqSummaryBar() {
+  const proseEl = document.getElementById('cq-summary-prose');
+  if (!proseEl) return;
+  // Read current topic + difficulty + count from the chip `.on` states.
+  const topicActive = document.querySelector('#topic-group .chip.on');
+  const diffActive = document.querySelector('#diff-group .chip.on');
+  const countActive = document.querySelector('#count-group .chip.on');
+  const topicLabel = topicActive ? (topicActive.getAttribute('data-v') || '').replace(/&mdash;/g, '\u2014') : 'Mixed';
+  const diffLabel = diffActive ? (diffActive.getAttribute('data-v') || 'Exam Level') : 'Exam Level';
+  const count = countActive ? (countActive.getAttribute('data-v') || '10') : '10';
+  const diffShort = diffLabel.toLowerCase().replace('/ tricky', '').replace(' level', '-level').replace(/\s+/g, ' ').trim();
+  // Topic prose: "AI-picked weak spots" if Smart, otherwise italic label
+  let topicProse;
+  if (/smart/i.test(topicLabel)) {
+    topicProse = '<em>AI-picked weak spots</em>';
+  } else if (/mixed/i.test(topicLabel)) {
+    topicProse = '<em>Mixed across all topics</em>';
+  } else {
+    topicProse = `on <em>${(typeof escHtml === 'function' ? escHtml(topicLabel) : topicLabel)}</em>`;
+  }
+  const estMin = Math.max(3, Math.round(parseInt(count, 10) || 10));
+  proseEl.innerHTML = `<strong>${count}</strong> ${diffShort} questions &middot; ${topicProse} &middot; est. ~${estMin} min`;
 }
 
 // ── Initialisation hook ──

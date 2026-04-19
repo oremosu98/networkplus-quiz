@@ -779,13 +779,15 @@ test.describe('Keyboard Hints', () => {
   test('quiz page shows keyboard shortcut hints', async ({ page }) => {
     await page.goto('/');
 
-    // The keyboard hint div exists in the quiz page
-    const kbHint = page.locator('#page-quiz .kb-hint');
+    // v4.54.8: .kb-hint replaced by editorial .quiz-kbd-hints footer.
+    // The legacy .kb-hint is force-hidden via CSS (display: none) but we
+    // assert the new hints element instead.
+    const kbHint = page.locator('#page-quiz .quiz-kbd-hints');
     await expect(kbHint).toContainText('A');
     await expect(kbHint).toContainText('B');
     await expect(kbHint).toContainText('C');
     await expect(kbHint).toContainText('D');
-    await expect(kbHint).toContainText('Enter');
+    await expect(kbHint).toContainText('pick');
     await expect(kbHint).toContainText('flag');
   });
 
