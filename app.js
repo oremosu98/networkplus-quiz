@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.9
+// Network+ AI Quiz — app.js  v4.54.10
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.9';
+const APP_VERSION = '4.54.10';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -20566,6 +20566,137 @@ function _weeklyStatSeries(h, weeks = 12) {
 // 6% opacity area fill, circle dots at each datapoint. Tabs are pure CSS
 // class-toggle on a data-tab attribute (no re-render needed; SVG holds all 3
 // series and tab click hides/shows via CSS).
+// v4.54.10: Daily Study Streak calendar heatmap (GitHub-contribution-graph
+// style). 52 weeks \u00d7 7 days = 364 cells covering the past year. Each cell's
+// tint is based on questions answered that day. Month labels across the top,
+// day-of-week labels down the left, native SVG <title> tooltips on hover.
+// Data source: loadHistory() aggregated by ISO date string.
+function _renderAnaStudyHeatmap(h) {
+  if (!Array.isArray(h) || h.length === 0) return '';
+  // Bucket history by ISO date
+  const byDay = new Map();
+  h.forEach(e => {
+    const d = new Date(e.date);
+    if (isNaN(d.getTime())) return;
+    const key = d.toISOString().slice(0, 10);
+    const cur = byDay.get(key) || { q: 0, c: 0 };
+    cur.q += (e.total || 0);
+    cur.c += (e.score || 0);
+    byDay.set(key, cur);
+  });
+  // Build the 365-day window, ending today. Normalise start to the most
+  // recent Sunday so columns align nicely by week.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daySinceSunday = today.getDay(); // 0 = Sun
+  // Start from a Sunday 52 weeks ago (so the grid is a clean 53 columns)
+  const WEEKS = 53;
+  const start = new Date(today); start.setDate(today.getDate() - daySinceSunday - (WEEKS - 1) * 7);
+  const totalCells = WEEKS * 7;
+  // Cell dims
+  const CELL = 11, GAP = 3;
+  const W = WEEKS * (CELL + GAP) + 30; // +30 for day labels
+  const H = 7 * (CELL + GAP) + 24;     // +24 for month labels
+  const LEFT_PAD = 28, TOP_PAD = 20;
+
+  const examDate = (typeof getExamDate === 'function') ? getExamDate() : null;
+  const examKey = examDate ? new Date(examDate).toISOString().slice(0, 10) : null;
+
+  // Intensity threshold tiers (questions per day)
+  const tierFor = (q) => {
+    if (q === 0) return 0;
+    if (q <= 5)  return 1;
+    if (q <= 15) return 2;
+    if (q <= 40) return 3;
+    return 4;
+  };
+  // Accumulate streak + 30/90 study-day totals in the same pass
+  let daysStudied30 = 0, daysStudied90 = 0, totalStudyDays = 0;
+  let maxDayQ = 0;
+  const cells = [];
+  const monthLabels = [];
+  let prevMonth = -1;
+  for (let col = 0; col < WEEKS; col++) {
+    for (let row = 0; row < 7; row++) {
+      const d = new Date(start); d.setDate(start.getDate() + col * 7 + row);
+      if (d > today) continue;
+      const key = d.toISOString().slice(0, 10);
+      const entry = byDay.get(key);
+      const q = entry ? entry.q : 0;
+      const c = entry ? entry.c : 0;
+      const tier = tierFor(q);
+      if (q > 0) totalStudyDays++;
+      if (q > maxDayQ) maxDayQ = q;
+      const daysAgo = Math.round((today - d) / (24 * 60 * 60 * 1000));
+      if (q > 0 && daysAgo < 30) daysStudied30++;
+      if (q > 0 && daysAgo < 90) daysStudied90++;
+      const x = LEFT_PAD + col * (CELL + GAP);
+      const y = TOP_PAD + row * (CELL + GAP);
+      const dateLabel = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      const title = q > 0
+        ? `${dateLabel} \u2014 ${q} question${q === 1 ? '' : 's'}, ${c > 0 ? Math.round(c / q * 100) : 0}% accuracy`
+        : `${dateLabel} \u2014 no study`;
+      const isToday = daysAgo === 0;
+      const isExam = examKey && key === examKey;
+      const extraCls = isExam ? ' hm-cell-exam' : (isToday && q > 0 ? ' hm-cell-today' : '');
+      cells.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${tier}${extraCls}" data-date="${key}"><title>${title}</title></rect>`);
+      // Month labels \u2014 place one per month at the top when the Sunday of a
+      // new month appears in the grid.
+      if (row === 0) {
+        const month = d.getMonth();
+        if (month !== prevMonth) {
+          monthLabels.push(`<text x="${x}" y="14" class="hm-month">${d.toLocaleString(undefined, { month: 'short' })}</text>`);
+          prevMonth = month;
+        }
+      }
+    }
+  }
+  // Day-of-week labels (M / W / F) on the left
+  const dayLabels = [1, 3, 5].map(row => {
+    const y = TOP_PAD + row * (CELL + GAP) + CELL - 2;
+    const txt = ['S','M','T','W','T','F','S'][row];
+    return `<text x="2" y="${y}" class="hm-dow">${txt}</text>`;
+  }).join('');
+  // Longest streak + current streak
+  let streakCurr = 0, streakBest = 0, streakRun = 0;
+  try {
+    if (typeof getStreak === 'function') {
+      const s = getStreak() || {};
+      streakCurr = s.current || 0;
+      streakBest = s.best || 0;
+    }
+  } catch (_) {}
+  const legendTiers = [0, 1, 2, 3, 4].map(t =>
+    `<rect width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${t}" x="${t * (CELL + 3)}" y="0"></rect>`
+  ).join('');
+  return `<div class="ana-card ana-heatmap-card" id="ana-s-heatmap">
+    <div class="ana-heatmap-head">
+      <div>
+        <div class="ana-heatmap-eyebrow">Activity &middot; last 365 days</div>
+        <h3 class="ana-heatmap-title">Your study <em>rhythm.</em></h3>
+      </div>
+      <div class="ana-heatmap-stats">
+        <div class="ana-heatmap-stat"><div class="hms-val">${streakCurr}</div><div class="hms-lbl">day streak</div></div>
+        <div class="ana-heatmap-stat"><div class="hms-val">${streakBest}</div><div class="hms-lbl">best streak</div></div>
+        <div class="ana-heatmap-stat"><div class="hms-val">${daysStudied30}</div><div class="hms-lbl">of last 30</div></div>
+        <div class="ana-heatmap-stat"><div class="hms-val">${daysStudied90}</div><div class="hms-lbl">of last 90</div></div>
+      </div>
+    </div>
+    <div class="ana-heatmap-wrap">
+      <svg class="ana-heatmap-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet" role="img" aria-label="Daily study activity heatmap">
+        ${monthLabels.join('')}
+        ${dayLabels}
+        ${cells.join('')}
+      </svg>
+    </div>
+    <div class="ana-heatmap-legend">
+      <span class="hm-legend-lbl">Less</span>
+      <svg width="${5 * (CELL + 3) - 3}" height="${CELL}" aria-hidden="true">${legendTiers}</svg>
+      <span class="hm-legend-lbl">More</span>
+      ${examKey ? '<span class="hm-legend-exam-wrap"><span class="hm-legend-exam-swatch"></span>Exam day</span>' : ''}
+    </div>
+  </div>`;
+}
+
 function _renderAnaAccuracyChart(h) {
   if (!Array.isArray(h) || h.length === 0) return '';
   // Build 3 series: last 7 days (daily), last 30 days (daily), all-time (weekly).
@@ -21536,9 +21667,12 @@ function renderAnalytics() {
   const h = loadHistory();
   const container = document.getElementById('analytics-content');
   if (!container) return;
-  // v4.54.1: Recent Performance panel lives here now. Render on every
-  // analytics page visit so it stays in sync with post-quiz state.
-  if (typeof renderHistoryPanel === 'function') renderHistoryPanel();
+  // v4.54.10: Recent Performance card retired per user request \u2014 it was clogging
+  // the page and duplicated info surfaced more usefully by the Accuracy Trend +
+  // Accuracy-over-time chart + per-session Results page review list. Hide the
+  // DOM element so CSS transitions + history-panel state don't affect Analytics.
+  const histPanel = document.getElementById('history-panel');
+  if (histPanel) histPanel.classList.add('is-hidden');
   if (h.length < 1) {
     container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
     return;
@@ -21548,6 +21682,10 @@ function renderAnalytics() {
   html += _renderAnaReadiness(h);
   // v4.54.8: Accuracy-over-time chart with pass-mark line + week/month/all tabs
   html += _renderAnaAccuracyChart(h);
+  // v4.54.10: GitHub-style study activity heatmap (365 days). Named
+  // _renderAnaStudyHeatmap (not _renderAnaHeatmap) to avoid collision with
+  // the retired v4.45.0 heatmap that regression-guards forbid.
+  html += _renderAnaStudyHeatmap(h);
   html += _renderAnaTrend(h);
   html += _renderAnaDifficulty(h);
   html += _renderAnaTopicsCta();
@@ -24574,6 +24712,43 @@ function scrollToSettings() {
 // Inputs (#api-key + Export/Import) are stateless and just work.
 function renderSettingsPage() {
   if (typeof renderWrongBankBtn === 'function') renderWrongBankBtn();
+  // v4.54.10: sync the editable Daily Goal input with current value
+  if (typeof syncSettingsDailyGoal === 'function') syncSettingsDailyGoal();
+}
+
+// v4.54.10 \u2014 Daily Goal editor on Settings page
+function syncSettingsDailyGoal() {
+  const input = document.getElementById('settings-daily-input');
+  if (!input) return;
+  const current = (typeof getDailyGoal === 'function') ? getDailyGoal() : 20;
+  input.value = current;
+  // Highlight any matching preset chip
+  document.querySelectorAll('.settings-daily-chip').forEach(c => {
+    c.classList.toggle('is-active', parseInt(c.getAttribute('data-goal'), 10) === current);
+  });
+}
+function pickSettingsDailyPreset(n) {
+  const input = document.getElementById('settings-daily-input');
+  if (input) input.value = n;
+  document.querySelectorAll('.settings-daily-chip').forEach(c => {
+    c.classList.toggle('is-active', parseInt(c.getAttribute('data-goal'), 10) === n);
+  });
+}
+function saveSettingsDailyGoal() {
+  const input = document.getElementById('settings-daily-input');
+  if (!input) return;
+  const v = parseInt(input.value, 10);
+  if (!Number.isFinite(v) || v <= 0 || v > 500) {
+    if (typeof showErrorToast === 'function') showErrorToast('Enter a number between 1 and 500.');
+    return;
+  }
+  if (typeof setDailyGoal === 'function') setDailyGoal(v);
+  // Refresh the homepage cards that read daily goal so next visit is in sync
+  try { if (typeof renderReadinessCard === 'function') renderReadinessCard(); } catch (_) {}
+  try { if (typeof renderHeroV2MiniCards === 'function') renderHeroV2MiniCards(); } catch (_) {}
+  // Re-sync preset highlight
+  syncSettingsDailyGoal();
+  if (typeof showSuccessToast === 'function') showSuccessToast(`Daily goal saved \u2014 ${v} questions/day`);
 }
 
 // ── Sidebar collapse ──
@@ -24778,21 +24953,59 @@ function renderSetupDomainGrid() {
   const weightPct = {
     concepts: 23, implementation: 20, operations: 19, security: 14, troubleshooting: 24
   };
-  // v4.54.8: compute weak topics per domain via weak-spots scoring. Each
-  // cell gets up to 3 weak-topic chips surfaced inline (matches prototype
-  // .domain-topics pattern).
-  let weakByDomain = { concepts: [], implementation: [], operations: [], security: [], troubleshooting: [] };
+  // v4.54.10: replaced wrap-chips with vertical list of 5 canonical topics
+  // per domain (matches prototype). Each topic marked as weak if it shows up
+  // in computeWeakSpotScores() for the session. Weak = accent text + dot; rest
+  // = muted text + muted dot. Fixed topic list keeps the cells consistent-height
+  // and covers the syllabus vocabulary a student expects to see per domain.
+  //
+  // `label` is what renders to screen; `key` is the exact TOPIC_DOMAINS key used
+  // for weak-spot matching. If the weak-spot key isn't in this canonical list,
+  // it's still counted (the weakness scores used by other surfaces are unchanged).
+  const CANONICAL_DOMAIN_TOPICS = {
+    concepts: [
+      { label: 'OSI Model',       key: 'Network Models & OSI' },
+      { label: 'TCP/IP Basics',   key: 'TCP/IP Basics' },
+      { label: 'Subnetting',      key: 'Subnetting & IP Addressing' },
+      { label: 'DNS & DHCP',      key: 'Network Naming (DNS & DHCP)' },
+      { label: 'IPv6',            key: 'IPv6' },
+    ],
+    implementation: [
+      { label: 'Routing',         key: 'Routing Protocols' },
+      { label: 'OSPF',            key: 'OSPF' },
+      { label: 'BGP',             key: 'BGP' },
+      { label: 'VLANs',           key: 'Switch Features & VLANs' },
+      { label: 'STP',             key: 'STP/RSTP' },
+    ],
+    operations: [
+      { label: 'Monitoring',      key: 'Network Monitoring & Observability' },
+      { label: 'Data Centres',    key: 'Data Centres' },
+      { label: 'WAN',             key: 'WAN Connectivity' },
+      { label: 'SD-WAN',          key: 'SD-WAN & SASE' },
+      { label: 'BCDR',            key: 'Business Continuity & Disaster Recovery' },
+    ],
+    security: [
+      { label: 'TCP/IP Security', key: 'Securing TCP/IP' },
+      { label: 'AAA',             key: 'AAA & Authentication' },
+      { label: 'IPsec',           key: 'IPsec VPN' },
+      { label: 'PKI',             key: 'PKI & Certificate Management' },
+      { label: 'Firewalls',       key: 'Firewalls, DMZ & Security Zones' },
+    ],
+    troubleshooting: [
+      { label: '7-Step Method',   key: 'CompTIA Troubleshooting Methodology' },
+      { label: 'Cable Issues',    key: 'Cable Issues' },
+      { label: 'Service Issues',  key: 'Service Issues' },
+      { label: 'Perf Issues',     key: 'Perf Issues' },
+      { label: 'Connection Issues', key: 'Connection Issues' },
+    ],
+  };
+  // Build a set of weak topic keys for quick lookup
+  const weakSet = new Set();
   try {
-    if (typeof computeWeakSpotScores === 'function' && typeof TOPIC_DOMAINS !== 'undefined') {
-      const weakScores = computeWeakSpotScores() || [];
-      weakScores.forEach(ws => {
-        const dk = TOPIC_DOMAINS[ws.topic];
-        if (dk && weakByDomain[dk] && weakByDomain[dk].length < 3) {
-          weakByDomain[dk].push(ws.topic);
-        }
-      });
+    if (typeof computeWeakSpotScores === 'function') {
+      (computeWeakSpotScores() || []).forEach(ws => { if (ws && ws.topic) weakSet.add(ws.topic); });
     }
-  } catch (_) { /* defensive \u2014 skip chips if compute fails */ }
+  } catch (_) {}
 
   const html = domainOrder.map((dk, idx) => {
     const s = stats[dk];
@@ -24801,23 +25014,21 @@ function renderSetupDomainGrid() {
     const pctTxt = pct !== null ? pct : '\u2014';
     const pctSub = pct !== null ? '%' : '';
     const status = pct === null ? 'Not studied' : pct >= 85 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
-    // v4.54.8: weak-topic chips (up to 3) surfaced inside each cell
-    const weakTopics = weakByDomain[dk] || [];
-    const chipsHtml = weakTopics.length > 0
-      ? `<div class="dg-weak-chips" aria-label="Weak topics in this domain">${weakTopics.map(t => {
-          const short = t.length > 20 ? t.slice(0, 18) + '\u2026' : t;
-          return `<span class="dg-weak-chip">${escHtml(short)}</span>`;
-        }).join('')}</div>`
-      : '';
+    // v4.54.10: vertical canonical-topic list per domain
+    const topics = CANONICAL_DOMAIN_TOPICS[dk] || [];
+    const topicsHtml = `<ul class="dg-topic-list" aria-label="Topics in this domain">${topics.map(t => {
+      const isWeak = weakSet.has(t.key);
+      return `<li class="dg-topic${isWeak ? ' dg-topic-weak' : ''}"><span class="dg-topic-dot" aria-hidden="true"></span><span class="dg-topic-label">${escHtml(t.label)}</span></li>`;
+    }).join('')}</ul>`;
     return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" onclick="drillDomain('${DOMAIN_LABELS[dk].replace(/'/g, "\\'")}')">
       <span class="dg-weight">${weightPct[dk]}% exam</span>
       <div class="dg-bar-col">
         <div class="dg-bar" style="height:${barH}%"></div>
       </div>
-      <div>
+      <div class="dg-body">
         <div class="dg-num">Domain ${idx + 1}</div>
         <div class="dg-name">${escHtml(domainDisplay[dk].split(' ').slice(1).join(' '))}</div>
-        ${chipsHtml}
+        ${topicsHtml}
       </div>
       <div class="dg-pct-wrap">
         <span class="dg-pct">${pctTxt}</span><span class="dg-pct-sub">${pctSub}</span>

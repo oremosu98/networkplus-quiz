@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.9', js.includes("const APP_VERSION = '4.54.9"));
+test('APP_VERSION is 4.54.10', js.includes("const APP_VERSION = '4.54.10"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.9', sw.includes('netplus-v4.54.9'));
+test('SW cache bumped to v4.54.10', sw.includes('netplus-v4.54.10'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5328,8 +5328,9 @@ test('v4.53.0 JS: renderSetupDomainGrid function defined',
   js.includes('function renderSetupDomainGrid('));
 test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
   /renderSetupDomainGrid[\s\S]{0,2500}TOPIC_DOMAINS\[e\.topic\]/.test(js));
+// v4.54.10: renderSetupDomainGrid body grew \u2014 widen the regex window.
 test('v4.53.0 JS: domain grid click wires drillDomain',
-  /renderSetupDomainGrid[\s\S]{0,3000}drillDomain\(/.test(js));
+  /renderSetupDomainGrid[\s\S]{0,6000}drillDomain\(/.test(js));
 test('v4.53.0 JS: goSetup calls renderSetupFocusBanner + renderSetupDomainGrid',
   /function goSetup\([\s\S]{0,1000}renderSetupFocusBanner[\s\S]{0,200}renderSetupDomainGrid/.test(js));
 
@@ -5575,8 +5576,10 @@ test('v4.54.1 JS: renderSettingsPage defined, refreshes wrong-bank count',
   js.includes('function renderSettingsPage(') && /renderSettingsPage[\s\S]{0,300}renderWrongBankBtn/.test(js));
 test('v4.54.1 JS: goSetup no longer calls renderHistoryPanel (moved to renderAnalytics)',
   !/function goSetup\([\s\S]{0,1500}renderHistoryPanel\(\)/.test(js));
-test('v4.54.1 JS: renderAnalytics calls renderHistoryPanel',
-  /function renderAnalytics\([\s\S]{0,700}renderHistoryPanel/.test(js));
+// v4.54.10: Recent Performance retired from Analytics per user feedback ("clogging
+// the page"). Flip the assertion to a regression guard.
+test('v4.54.1 (v4.54.10 update) JS: renderAnalytics no longer renders renderHistoryPanel',
+  !/function renderAnalytics\([\s\S]{0,700}renderHistoryPanel\(\)/.test(js));
 
 // CSS
 test('v4.54.1 CSS: #page-settings has max-width',
@@ -6003,9 +6006,11 @@ test('v4.54.8 HTML: cq-summary-bar prose + CTA exists above Generate button',
 test('v4.54.8 JS: updateCqSummaryBar defined + called from initChips click handler',
   js.includes('function updateCqSummaryBar(') &&
   /initChips[\s\S]{0,1500}updateCqSummaryBar\(\)/.test(js));
-test('v4.54.8 JS: renderSetupDomainGrid emits .dg-weak-chips when weak topics exist',
-  /renderSetupDomainGrid[\s\S]{0,3000}dg-weak-chips/.test(js) &&
-  /renderSetupDomainGrid[\s\S]{0,3000}dg-weak-chip/.test(js));
+// v4.54.10: wrap-chip pattern replaced by vertical .dg-topic-list with canonical topics.
+// Legacy dg-weak-chips class retired + hidden via CSS !important.
+test('v4.54.8 (v4.54.10 update) JS: renderSetupDomainGrid emits .dg-topic-list with canonical topics',
+  /renderSetupDomainGrid[\s\S]{0,6000}dg-topic-list/.test(js) &&
+  /renderSetupDomainGrid[\s\S]{0,6000}CANONICAL_DOMAIN_TOPICS/.test(js));
 test('v4.54.8 CSS: Quick Start preset tiles color-cycle (4 nth-child ::after backgrounds)',
   /\.quiz-presets\s+\.preset-tile:nth-child\(1\)::after\s*\{[^}]*background:\s*var\(--accent\)/.test(css) &&
   /\.quiz-presets\s+\.preset-tile:nth-child\(2\)::after\s*\{[^}]*background:\s*var\(--green\)/.test(css) &&
@@ -6149,6 +6154,79 @@ test('v4.54.9 CSS: html { zoom: 1.06 } for 6% global zoom-in',
 // Reduced motion coverage
 test('v4.54.9 CSS: reduced-motion neutralises .drills-tile transitions',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,600}\.drills-tile[\s\S]{0,200}transition:\s*none/.test(css));
+
+// ── v4.54.10 Streak hero + vertical domain topics + heatmap + editable goal ──
+console.log('\n\x1b[1m\u2500\u2500 v4.54.10 STREAK HERO + DOMAIN TOPICS + HEATMAP \u2500\u2500\x1b[0m');
+
+// Sidebar streak card restyle
+test('v4.54.10 CSS: .sb-streak uses dark gradient card (matches prototype)',
+  /\.sb-streak\s*\{[\s\S]{0,500}linear-gradient\(135deg,\s*#1e1b2e,\s*#0f0c1b\)/.test(css));
+test('v4.54.10 CSS: .sb-streak-num is 28px weight-800 white tabular-nums',
+  /\.sb-streak-num\s*\{[\s\S]{0,400}font-size:\s*28px[\s\S]{0,300}tabular-nums/.test(css));
+test('v4.54.10 CSS: .sb-streak-label is monospace small-caps',
+  /\.sb-streak-label\s*\{[\s\S]{0,600}text-transform:\s*uppercase[\s\S]{0,400}font-family:\s*monospace/.test(css));
+
+// Domain grid canonical topics
+test('v4.54.10 JS: CANONICAL_DOMAIN_TOPICS covers 5 topics per domain',
+  /CANONICAL_DOMAIN_TOPICS\s*=\s*\{[\s\S]{0,3000}OSI Model[\s\S]{0,2000}Firewalls[\s\S]{0,1000}7-Step Method/.test(js));
+test('v4.54.10 JS: weakSet cross-reference builds via computeWeakSpotScores',
+  /renderSetupDomainGrid[\s\S]{0,6000}weakSet[\s\S]{0,400}computeWeakSpotScores/.test(js));
+test('v4.54.10 CSS: .dg-topic-list vertical list with accent-dot bullets',
+  /\.dg-topic-list\s*\{[\s\S]{0,400}flex-direction:\s*column/.test(css) &&
+  /\.dg-topic-dot\s*\{[\s\S]{0,400}border-radius:\s*50%/.test(css));
+test('v4.54.10 CSS: weak-topic row gets accent text + filled dot + glow ring',
+  /\.dg-topic-weak\s*\{[\s\S]{0,300}color:\s*var\(--accent-light\)/.test(css) &&
+  /\.dg-topic-weak\s+\.dg-topic-dot\s*\{[\s\S]{0,300}background:\s*var\(--accent\)/.test(css));
+test('v4.54.10 CSS: legacy .dg-weak-chips hidden via !important',
+  /\.dg-weak-chips[\s\S]{0,200}display:\s*none\s*!important/.test(css));
+
+// Settings: editable daily goal
+test('v4.54.10 HTML: Settings page has Daily Goal section with input + presets',
+  /id="page-settings"[\s\S]{0,3000}settings-daily-input[\s\S]{0,800}settings-daily-chip/.test(html));
+test('v4.54.10 JS: saveSettingsDailyGoal + pickSettingsDailyPreset + syncSettingsDailyGoal defined',
+  js.includes('function saveSettingsDailyGoal(') &&
+  js.includes('function pickSettingsDailyPreset(') &&
+  js.includes('function syncSettingsDailyGoal('));
+test('v4.54.10 JS: renderSettingsPage calls syncSettingsDailyGoal',
+  /function renderSettingsPage\([\s\S]{0,400}syncSettingsDailyGoal\(\)/.test(js));
+test('v4.54.10 JS: saveSettingsDailyGoal calls setDailyGoal + refreshes home cards',
+  /saveSettingsDailyGoal[\s\S]{0,1500}setDailyGoal\(v\)[\s\S]{0,800}renderReadinessCard/.test(js) &&
+  /saveSettingsDailyGoal[\s\S]{0,1500}renderHeroV2MiniCards/.test(js));
+test('v4.54.10 CSS: .settings-daily-chip active state gradient',
+  /\.settings-daily-chip\.is-active\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*rgba\(var\(--accent-rgb\)/.test(css));
+
+// Knowledge Constellation grid overlay
+test('v4.54.10 CSS: .ana-const-map::before 40px grid overlay',
+  /\.ana-const-map::before\s*\{[\s\S]{0,800}background-size:\s*40px\s+40px/.test(css));
+
+// Daily Study Streak Heatmap
+test('v4.54.10 JS: _renderAnaStudyHeatmap defined + called from renderAnalytics',
+  js.includes('function _renderAnaStudyHeatmap(') &&
+  /renderAnalytics[\s\S]{0,4000}_renderAnaStudyHeatmap\(h\)/.test(js));
+test('v4.54.10 JS: heatmap renders 53-week grid ending today',
+  /_renderAnaStudyHeatmap[\s\S]{0,4000}WEEKS\s*=\s*53/.test(js));
+test('v4.54.10 JS: heatmap tier intensity thresholds (0/5/15/40/41+)',
+  /_renderAnaStudyHeatmap[\s\S]{0,8000}tierFor[\s\S]{0,400}q\s*<=\s*5[\s\S]{0,300}q\s*<=\s*15[\s\S]{0,300}q\s*<=\s*40/.test(js));
+test('v4.54.10 JS: heatmap shows exam-day marker when getExamDate returns a date',
+  /_renderAnaStudyHeatmap[\s\S]{0,8000}getExamDate\(\)[\s\S]{0,4000}hm-cell-exam/.test(js));
+test('v4.54.10 JS: heatmap displays streak + best + 30d/90d stats',
+  /_renderAnaStudyHeatmap[\s\S]{0,8000}streakCurr[\s\S]{0,400}streakBest[\s\S]{0,400}daysStudied30[\s\S]{0,400}daysStudied90/.test(js));
+test('v4.54.10 JS: heatmap uses native SVG <title> tooltips on each cell',
+  /_renderAnaStudyHeatmap[\s\S]{0,8000}<title>\$\{title\}<\/title>/.test(js));
+test('v4.54.10 CSS: .hm-cell intensity tiers (t0..t4) with accent-rgb tints',
+  /\.hm-cell-t0\s*\{[\s\S]{0,200}rgba\(var\(--accent-rgb\)/.test(css) &&
+  /\.hm-cell-t4\s*\{[\s\S]{0,200}fill:\s*var\(--accent\)/.test(css));
+test('v4.54.10 CSS: exam-day heatmap cell uses red fill + white stroke',
+  /\.hm-cell-exam\s*\{[\s\S]{0,400}fill:\s*var\(--red\)[\s\S]{0,300}stroke:\s*#ffffff/.test(css));
+test('v4.54.10 CSS: heatmap editorial head (eyebrow + italic-accent title)',
+  /\.ana-heatmap-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.10 CSS: heatmap stats (22px tabular-nums + monospace label)',
+  /\.hms-val\s*\{[\s\S]{0,400}tabular-nums/.test(css) &&
+  /\.hms-lbl\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css));
+
+// Analytics: Recent Performance retired
+test('v4.54.10 JS: renderAnalytics hides #history-panel (Recent Performance retired)',
+  /function renderAnalytics\([\s\S]{0,1500}getElementById\('history-panel'\)[\s\S]{0,200}add\('is-hidden'\)/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

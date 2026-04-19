@@ -508,7 +508,11 @@ test.describe('History & Stats Rendering', () => {
     await expect(page.locator('#history-panel')).not.toBeVisible();
   });
 
-  test('history panel shows when history exists', async ({ page }) => {
+  test('history data still renders via renderHistoryPanel() even when the Analytics card is hidden', async ({ page }) => {
+    // v4.54.10: Recent Performance card retired from Analytics (user feedback:
+    // "clogging up the page"). The render function stays available for any
+    // future surface — assert it still produces a valid #history-list when
+    // called directly.
     await page.goto('/');
     await page.evaluate(() => {
       const history = [{
@@ -518,11 +522,15 @@ test.describe('History & Stats Rendering', () => {
       localStorage.setItem('nplus_history', JSON.stringify(history));
     });
 
-    // v4.54.1: Recent Performance moved to Analytics page
     await gotoAnalytics(page);
 
-    await expect(page.locator('#history-panel')).toBeVisible();
-    await expect(page.locator('#history-list')).toContainText('TCP/IP');
+    // Call the render function directly and check the content rendered.
+    const listContent = await page.evaluate(() => {
+      if (typeof window.renderHistoryPanel === 'function') window.renderHistoryPanel();
+      const el = document.getElementById('history-list');
+      return el ? el.textContent : '';
+    });
+    expect(listContent).toContain('TCP/IP');
   });
 
   test('hero v2 mini cards show when history exists', async ({ page }) => {

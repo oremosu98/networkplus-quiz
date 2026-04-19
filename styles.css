@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.9
+   Network+ AI Quiz — styles.css  v4.54.10
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9755,4 +9755,360 @@ html { zoom: 1.06; }
 @media (prefers-reduced-motion: reduce) {
   .drills-tile,
   .drills-tile::after { transition: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.10 — Streak card hero, vertical domain topics, heatmap,
+              editable daily goal, constellation grid, Recent Perf retired
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── (1) Sidebar streak hero card restyle — dark glass rounded card
+       matching prototype screenshot: flame left, 28px white "12" over
+       "DAY STREAK" monospace small-caps. ── */
+.sb-foot { padding: 14px 4px 6px; border-top: 1px solid var(--border); }
+.sb-streak {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #1e1b2e, #0f0c1b);
+  border: 1px solid rgba(124, 111, 247, .25);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .5);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  cursor: default;
+  width: 100%;
+  text-align: left;
+}
+.sb-streak-active { cursor: pointer; }
+.sb-streak-active:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 111, 247, .45);
+  box-shadow: 0 10px 28px -8px rgba(124, 111, 247, .35);
+}
+.sb-streak-flame {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(245, 158, 11, .55));
+  flex-shrink: 0;
+}
+.sb-streak-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sb-streak-num {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.sb-streak-label {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, .55);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-family: monospace;
+  font-weight: 700;
+}
+[data-theme="light"] .sb-streak {
+  /* Keep the dark-card aesthetic even in light theme \u2014 design intent */
+  background: linear-gradient(135deg, #1e1b2e, #0f0c1b);
+  border-color: rgba(99, 85, 224, .32);
+}
+[data-theme="light"] .sb-streak-active:hover {
+  border-color: rgba(99, 85, 224, .5);
+  box-shadow: 0 10px 28px -8px rgba(99, 85, 224, .35);
+}
+
+/* ── (2) Domain grid — vertical canonical topics list per cell ── */
+.domain-cell .dg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.dg-topic-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-top: 1px dashed rgba(var(--accent-rgb), .14);
+  padding-top: 8px;
+}
+.dg-topic {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  line-height: 1.25;
+  min-width: 0;
+}
+.dg-topic-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), .28);
+  flex-shrink: 0;
+}
+.dg-topic-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.dg-topic-weak { color: var(--accent-light); font-weight: 600; }
+.dg-topic-weak .dg-topic-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .18);
+}
+[data-theme="light"] .dg-topic-weak { color: #6355e0; }
+[data-theme="light"] .dg-topic-weak .dg-topic-dot {
+  background: #6355e0;
+  box-shadow: 0 0 0 2px rgba(99, 85, 224, .2);
+}
+/* Retire the v4.54.8 wrap-chip styles */
+.dg-weak-chips, .dg-weak-chip { display: none !important; }
+
+/* ── (3) Settings — editable Daily Goal section ── */
+.settings-daily-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.settings-daily-input {
+  width: 90px;
+  padding: 10px 12px;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+  font-family: monospace;
+}
+.settings-daily-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .15);
+}
+.settings-daily-unit {
+  font-size: 13px;
+  color: var(--text-dim);
+  flex: 1;
+}
+.settings-daily-save {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.settings-daily-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.settings-daily-chip {
+  padding: 5px 14px;
+  font-family: monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.settings-daily-chip:hover {
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), .3);
+}
+.settings-daily-chip.is-active {
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .2), rgba(var(--accent-rgb), .1));
+  color: var(--accent-light);
+  border-color: var(--accent);
+}
+[data-theme="light"] .settings-daily-chip.is-active {
+  background: linear-gradient(135deg, rgba(99, 85, 224, .18), rgba(99, 85, 224, .08));
+  color: #6355e0;
+  border-color: #6355e0;
+}
+
+/* ── (4) Knowledge Constellation grid overlay (prototype detail) ── */
+.ana-const-map {
+  position: relative;
+}
+.ana-const-map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(var(--accent-rgb), .08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--accent-rgb), .08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: .6;
+  border-radius: inherit;
+}
+.ana-const-map > svg, .ana-const-map > * { position: relative; z-index: 1; }
+[data-theme="light"] .ana-const-map::before {
+  background-image:
+    linear-gradient(to right, rgba(99, 85, 224, .07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 85, 224, .07) 1px, transparent 1px);
+}
+
+/* ── (5) Analytics heatmap card (GitHub-style) ── */
+.ana-heatmap-card { padding: 22px 22px 18px; }
+.ana-heatmap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ana-heatmap-eyebrow {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  margin-bottom: 5px;
+  padding-left: 14px;
+  position: relative;
+}
+.ana-heatmap-eyebrow::before {
+  content: '—';
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--accent-light);
+}
+.ana-heatmap-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text);
+}
+.ana-heatmap-title em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+.ana-heatmap-stats {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+.ana-heatmap-stat {
+  text-align: center;
+}
+.hms-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.hms-lbl {
+  font-family: monospace;
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+.ana-heatmap-wrap {
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.ana-heatmap-svg {
+  width: 100%;
+  min-width: 720px;
+  height: auto;
+  display: block;
+}
+.hm-cell {
+  cursor: pointer;
+  transition: transform .1s ease;
+}
+.hm-cell:hover {
+  stroke: var(--accent-light);
+  stroke-width: 1.5;
+}
+/* Intensity tiers */
+.hm-cell-t0 { fill: rgba(var(--accent-rgb), .08); }
+.hm-cell-t1 { fill: rgba(var(--accent-rgb), .28); }
+.hm-cell-t2 { fill: rgba(var(--accent-rgb), .52); }
+.hm-cell-t3 { fill: rgba(var(--accent-rgb), .78); }
+.hm-cell-t4 { fill: var(--accent); }
+.hm-cell-today { stroke: var(--yellow); stroke-width: 2; }
+.hm-cell-exam { fill: var(--red) !important; stroke: #ffffff; stroke-width: 1.5; }
+.hm-month, .hm-dow {
+  font-family: monospace;
+  font-size: 9.5px;
+  fill: var(--text-dim);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.ana-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-family: monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+}
+.hm-legend-lbl { font-weight: 600; }
+.hm-legend-exam-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 3px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+.hm-legend-exam-swatch {
+  width: 11px; height: 11px;
+  border-radius: 2px;
+  background: var(--red);
+  display: inline-block;
+  border: 1px solid #ffffff;
+}
+[data-theme="light"] .hm-cell-t0 { fill: rgba(99, 85, 224, .08); }
+[data-theme="light"] .hm-cell-t1 { fill: rgba(99, 85, 224, .28); }
+[data-theme="light"] .hm-cell-t2 { fill: rgba(99, 85, 224, .52); }
+[data-theme="light"] .hm-cell-t3 { fill: rgba(99, 85, 224, .78); }
+[data-theme="light"] .hm-cell-t4 { fill: #6355e0; }
+[data-theme="light"] .ana-heatmap-title em { color: #6355e0; }
+[data-theme="light"] .ana-heatmap-eyebrow { color: #6355e0; }
+[data-theme="light"] .ana-heatmap-eyebrow::before { color: #6355e0; }
+@media (max-width: 680px) {
+  .ana-heatmap-head { flex-direction: column; align-items: flex-start; }
+  .ana-heatmap-stats { gap: 14px; }
+  .hms-val { font-size: 18px; }
+  .ana-heatmap-title { font-size: 18px; }
+}
+
+/* ── (6) Reduced-motion guard for the new transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  .hm-cell { transition: none !important; }
+  .settings-daily-chip { transition: none !important; }
 }
