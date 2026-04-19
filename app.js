@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.1
+// Network+ AI Quiz — app.js  v4.54.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.1';
+const APP_VERSION = '4.54.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -20292,6 +20292,171 @@ function drillDomain(domainName) {
   if (typeof focusTopic === 'function') focusTopic(target);
 }
 
+// ══════════════════════════════════════════
+// v4.54.2 — KNOWLEDGE CONSTELLATION (Analytics)
+// ══════════════════════════════════════════
+// Ported from the Claude Design prototype — topics as floating nodes,
+// grouped by domain, sized by practice count, inner-circle sized + colored
+// by mastery. Our brand variant: 5-domain palette (purple/green/blue/
+// amber/red) instead of the prototype's weak/ok/strong traffic-light tiers,
+// and anchored to our real history data via TOPIC_DOMAINS + loadHistory().
+
+// Aggregate per-topic stats for the constellation. Returns an array of
+// { topic, domain, domainIdx, attempts, correct, total, mastery, tier, lastDays }.
+function _computeConstellationData(h) {
+  const topicNames = Object.keys(TOPIC_DOMAINS);
+  const domainOrder = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  const now = Date.now();
+  return topicNames.map(topic => {
+    const domain = TOPIC_DOMAINS[topic];
+    const entries = (h || []).filter(e => e.topic === topic);
+    const total = entries.reduce((a, e) => a + (e.total || 0), 0);
+    const correct = entries.reduce((a, e) => a + (e.score || 0), 0);
+    const mastery = total > 0 ? Math.round((correct / total) * 100) : null;
+    const tier = mastery === null ? 'novice'
+      : mastery >= 85 ? 'mastered'
+      : mastery >= 70 ? 'proficient'
+      : mastery >= 55 ? 'developing'
+      : 'novice';
+    const lastTs = entries.length
+      ? Math.max.apply(null, entries.map(e => new Date(e.date).getTime()))
+      : 0;
+    const lastDays = lastTs > 0 ? Math.floor((now - lastTs) / 86400000) : null;
+    return {
+      topic,
+      domain,
+      domainIdx: domainOrder.indexOf(domain),
+      attempts: total,
+      correct,
+      total,
+      mastery,
+      tier,
+      lastDays
+    };
+  });
+}
+
+// Render the constellation card as an SVG. Topics cluster by domain, nodes are
+// sized by attempts (sqrt scale so a 50-question topic isn't 10x bigger than a
+// 5-question topic), inner fill is mastery %, outer halo is the full node size.
+// Click → drillTopic() which focuses the topic and jumps to setup. Hover shows
+// a title tooltip (native SVG, works cross-theme + cross-browser).
+function _renderAnaConstellation(h) {
+  const data = _computeConstellationData(h);
+  const studied = data.filter(d => d.attempts > 0).length;
+  const totalTopics = data.length;
+  // Empty-state: show friendly text if no studied topics yet
+  if (studied === 0) {
+    return `<div class="ana-card ana-constellation" id="ana-s-constellation">
+      <div class="ana-card-head">
+        <h3>\u2728 Knowledge <em>constellation</em></h3>
+        <span class="ana-card-sub">size = times practised \u00b7 fill = mastery</span>
+      </div>
+      <div class="ana-const-empty">
+        <span class="ana-const-empty-ico">\u2728</span>
+        <p>Your constellation will light up as you study.</p>
+        <p class="ana-const-empty-sub">Each topic becomes a star \u2014 brighter and bigger as you practise it.</p>
+      </div>
+    </div>`;
+  }
+
+  // Layout: 5 domain clusters positioned around the viewBox. Coordinates chosen
+  // to give each cluster room for up to ~13 nodes without heavy overlap (the
+  // app's 50 topics split roughly evenly across 5 domains). Viewport is 1000x440
+  // to match the prototype proportions.
+  const W = 1000, H = 440;
+  const CLUSTERS = {
+    concepts:        { cx: W * 0.18, cy: H * 0.38, label: '1.0 Concepts',        idx: 1 },
+    implementation:  { cx: W * 0.42, cy: H * 0.68, label: '2.0 Implementation',  idx: 2 },
+    operations:      { cx: W * 0.57, cy: H * 0.28, label: '3.0 Operations',      idx: 3 },
+    security:        { cx: W * 0.78, cy: H * 0.62, label: '4.0 Security',        idx: 4 },
+    troubleshooting: { cx: W * 0.92, cy: H * 0.32, label: '5.0 Troubleshooting', idx: 5 }
+  };
+  // Group nodes by domain so we can jitter them around their cluster anchor.
+  // Deterministic jitter (angle + radius from topic index) so layout is stable
+  // between renders \u2014 matches the prototype's golden-angle trick.
+  const nodesByDomain = {};
+  Object.keys(CLUSTERS).forEach(d => { nodesByDomain[d] = []; });
+  data.forEach(d => {
+    if (!nodesByDomain[d.domain]) nodesByDomain[d.domain] = [];
+    nodesByDomain[d.domain].push(d);
+  });
+  const nodes = [];
+  Object.entries(nodesByDomain).forEach(([dom, topics]) => {
+    const c = CLUSTERS[dom];
+    if (!c) return;
+    topics.forEach((t, i) => {
+      // Golden-angle spiral around the cluster anchor so nodes spread evenly
+      const angle = (i * 2.399) + (c.idx * 0.7);  // small per-cluster offset so patterns don't align
+      const baseDist = 42 + (i % 4) * 20;          // 4 rings at 42/62/82/102 from center
+      // Node radius: sqrt(attempts) scales gracefully 0->5->20
+      const r = t.attempts > 0 ? Math.min(22, 6 + Math.sqrt(t.attempts) * 2.2) : 5;
+      nodes.push({
+        ...t,
+        cx: c.cx + Math.cos(angle) * baseDist,
+        cy: c.cy + Math.sin(angle) * baseDist,
+        r
+      });
+    });
+  });
+
+  // Build SVG markup. Legend at bottom-right.
+  const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const clusterLabels = Object.entries(CLUSTERS).map(([dom, c]) => {
+    return `<g class="ana-const-cluster" data-domain-idx="${c.idx}">
+      <text x="${c.cx}" y="${c.cy - 96}" text-anchor="middle" class="ana-const-cluster-num">DOMAIN ${c.idx}</text>
+      <text x="${c.cx}" y="${c.cy - 80}" text-anchor="middle" class="ana-const-cluster-name">${esc(c.label.split(' ').slice(1).join(' '))}</text>
+    </g>`;
+  }).join('');
+  const tetherLines = nodes.map(n => {
+    const c = CLUSTERS[n.domain];
+    return `<line x1="${c.cx}" y1="${c.cy}" x2="${n.cx.toFixed(1)}" y2="${n.cy.toFixed(1)}" class="ana-const-tether" />`;
+  }).join('');
+  const nodeCircles = nodes.map((n, i) => {
+    const masteryFrac = (n.mastery || 0) / 100;
+    const innerR = Math.max(2, n.r * masteryFrac + 2);
+    const titleParts = [
+      `${n.topic}`,
+      `Domain: ${CLUSTERS[n.domain].label}`,
+      n.mastery !== null ? `Mastery: ${n.mastery}%` : 'Not studied yet',
+      n.attempts > 0 ? `Attempts: ${n.attempts}` : null,
+      n.lastDays !== null ? (n.lastDays === 0 ? 'Last: today' : n.lastDays === 1 ? 'Last: yesterday' : `Last: ${n.lastDays} days ago`) : null
+    ].filter(Boolean);
+    const title = esc(titleParts.join(' \u00b7 '));
+    const topicEsc = esc(n.topic).replace(/'/g, "&#39;");
+    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" onclick="focusTopic('${topicEsc}')" role="button" tabindex="0" aria-label="${title}">
+      <title>${title}</title>
+      <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${n.r.toFixed(1)}" class="ana-const-halo" />
+      <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${innerR.toFixed(1)}" class="ana-const-core" />
+    </g>`;
+  }).join('');
+
+  // Legend: tier dots matching v4.45.1 Domain Mastery thresholds
+  const legendHtml = `
+    <div class="ana-const-legend">
+      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-mastered"></span>\u226585% mastered</span>
+      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-proficient"></span>\u226570% proficient</span>
+      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-developing"></span>\u226555% developing</span>
+      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-novice"></span>\u003c55% / not studied</span>
+    </div>`;
+
+  return `<div class="ana-card ana-constellation" id="ana-s-constellation">
+    <div class="ana-card-head">
+      <h3>\u2728 Knowledge <em>constellation</em></h3>
+      <span class="ana-card-sub">${studied} of ${totalTopics} topics studied \u00b7 size = practice, brightness = mastery</span>
+    </div>
+    <div class="ana-const-map">
+      <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" class="ana-const-svg" role="img" aria-label="Knowledge constellation map">
+        ${clusterLabels}
+        ${tetherLines}
+        ${nodeCircles}
+      </svg>
+    </div>
+    ${legendHtml}
+    <div class="ana-const-hint">Click any node to drill that topic \u00b7 hover for stats</div>
+  </div>`;
+}
+
 // v4.45.0 — replaces the old Question Type Breakdown. Clusters your last 20
 // wrong answers by signal (negation keywords, dominant domain, PBQ type,
 // Hard-difficulty concentration) and surfaces top 3-4 patterns with
@@ -20533,6 +20698,10 @@ function renderAnalytics() {
   // sits right after Topics CTA so domain-level mastery reads alongside
   // topic-level progress.
   html += _renderAnaDomainMastery(h);
+  // v4.54.2: Knowledge Constellation — topics as nodes sized by practice count,
+  // tinted by mastery, clustered by domain. Inspired by the Claude Design
+  // prototype; ported to our 5-domain palette + real state.
+  html += _renderAnaConstellation(h);
   html += _renderAnaActivity(h);
   html += _renderAnaExams(h);
   // v4.32: Priority Study Areas + Weekly Volume + All-Time Stats removed.

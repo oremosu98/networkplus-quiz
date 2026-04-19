@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.1
+   Network+ AI Quiz — styles.css  v4.54.2
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7493,4 +7493,215 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   v4.54.2 — Knowledge Constellation (Analytics)
+   Topics as floating SVG nodes clustered by domain, sized by practice,
+   inner core sized + colored by mastery. Ported from the Claude Design
+   prototype with our 5-domain palette (purple / green / blue / amber /
+   red) instead of the prototype's traffic-light tiers.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ana-constellation { padding: 22px 24px 20px; }
+.ana-constellation .ana-card-head { margin-bottom: 14px; }
+.ana-constellation h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.005em; margin: 0 0 4px; }
+.ana-constellation h3 em { font-style: normal; color: var(--accent-light); font-weight: 800; }
+.ana-constellation .ana-card-sub { font-size: 11.5px; color: var(--text-dim); font-family: monospace; letter-spacing: .02em; }
+
+/* SVG container with subtle starfield background */
+.ana-const-map {
+  position: relative;
+  width: 100%;
+  margin: 6px 0 10px;
+  border-radius: 14px;
+  padding: 16px 12px;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(124, 111, 247, .04), transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(59, 130, 246, .04), transparent 50%),
+    radial-gradient(circle at 90% 25%, rgba(239, 68, 68, .04), transparent 50%),
+    linear-gradient(160deg, rgba(var(--accent-rgb), .03), rgba(var(--accent-rgb), .01));
+  border: 1px solid rgba(var(--accent-rgb), .16);
+  overflow: hidden;
+}
+.ana-const-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  font-family: inherit;
+}
+
+/* Cluster header labels — editorial small-caps */
+.ana-const-cluster-num {
+  font-size: 9px;
+  font-family: monospace;
+  letter-spacing: .18em;
+  fill: var(--text-dim);
+  font-weight: 700;
+  opacity: .7;
+  text-transform: uppercase;
+}
+.ana-const-cluster-name {
+  font-size: 12px;
+  fill: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+/* Tether lines — faint connector from cluster anchor to each node */
+.ana-const-tether {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* Nodes: outer halo + inner core */
+.ana-const-node { cursor: pointer; transition: transform .2s cubic-bezier(0.2, 0.8, 0.2, 1); transform-origin: center; transform-box: fill-box; }
+.ana-const-node:hover,
+.ana-const-node:focus { outline: none; }
+.ana-const-node:hover .ana-const-halo,
+.ana-const-node:focus .ana-const-halo {
+  opacity: .55;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+.ana-const-node:hover .ana-const-core,
+.ana-const-node:focus .ana-const-core {
+  filter: drop-shadow(0 0 6px currentColor) brightness(1.2);
+}
+
+.ana-const-halo {
+  opacity: .22;
+  transition: opacity .2s ease, filter .2s ease;
+}
+.ana-const-core {
+  transition: filter .2s ease;
+}
+
+/* Domain palette — halo + core share the tier color per cluster */
+.ana-const-node[data-domain-idx="1"] { color: #7c6ff7; }
+.ana-const-node[data-domain-idx="2"] { color: #22c55e; }
+.ana-const-node[data-domain-idx="3"] { color: #3b82f6; }
+.ana-const-node[data-domain-idx="4"] { color: #f59e0b; }
+.ana-const-node[data-domain-idx="5"] { color: #ef4444; }
+
+.ana-const-node .ana-const-halo { fill: currentColor; }
+.ana-const-node .ana-const-core { fill: currentColor; }
+
+/* Tier-based brightness — mastered = full brightness, novice = dimmed */
+.ana-const-node.ana-const-tier-mastered .ana-const-core { filter: brightness(1.25) drop-shadow(0 0 4px currentColor); }
+.ana-const-node.ana-const-tier-mastered .ana-const-halo { opacity: .4; }
+.ana-const-node.ana-const-tier-proficient .ana-const-core { filter: brightness(1.1); }
+.ana-const-node.ana-const-tier-proficient .ana-const-halo { opacity: .3; }
+.ana-const-node.ana-const-tier-developing .ana-const-core { opacity: .85; }
+.ana-const-node.ana-const-tier-developing .ana-const-halo { opacity: .22; }
+.ana-const-node.ana-const-tier-novice .ana-const-core { opacity: .45; }
+.ana-const-node.ana-const-tier-novice .ana-const-halo { opacity: .15; }
+
+/* Legend: tier dots below the map */
+.ana-const-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+.ana-const-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-family: monospace;
+  letter-spacing: .02em;
+  font-weight: 600;
+}
+.ana-const-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px currentColor;
+}
+.ana-const-legend-dot.ana-const-tier-mastered { background: var(--green); color: var(--green); }
+.ana-const-legend-dot.ana-const-tier-proficient { background: var(--accent); color: var(--accent); }
+.ana-const-legend-dot.ana-const-tier-developing { background: var(--yellow); color: var(--yellow); opacity: .7; }
+.ana-const-legend-dot.ana-const-tier-novice { background: var(--text-dim); color: var(--text-dim); opacity: .5; box-shadow: none; }
+
+.ana-const-hint {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 6px;
+  padding: 0 4px;
+}
+
+/* Empty state */
+.ana-const-empty {
+  text-align: center;
+  padding: 40px 20px 32px;
+  background: rgba(var(--accent-rgb), .03);
+  border: 1px dashed rgba(var(--accent-rgb), .2);
+  border-radius: 14px;
+}
+.ana-const-empty-ico {
+  display: block;
+  font-size: 48px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 2px 8px rgba(var(--accent-rgb), .3));
+}
+.ana-const-empty p { margin: 4px 0; font-size: 14px; color: var(--text-mid); }
+.ana-const-empty-sub { font-size: 12px !important; color: var(--text-dim) !important; }
+
+/* Animation: nodes twinkle in on first render */
+@keyframes anaConstTwinkle {
+  0%   { opacity: 0; transform: scale(.2); }
+  60%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+#ana-s-constellation .ana-const-node {
+  animation: anaConstTwinkle .6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+/* Stagger by domain so they don't all pop at once */
+#ana-s-constellation .ana-const-node[data-domain-idx="1"] { animation-delay: .05s; }
+#ana-s-constellation .ana-const-node[data-domain-idx="2"] { animation-delay: .15s; }
+#ana-s-constellation .ana-const-node[data-domain-idx="3"] { animation-delay: .25s; }
+#ana-s-constellation .ana-const-node[data-domain-idx="4"] { animation-delay: .35s; }
+#ana-s-constellation .ana-const-node[data-domain-idx="5"] { animation-delay: .45s; }
+
+@media (max-width: 680px) {
+  .ana-const-map { padding: 10px 6px; }
+  .ana-const-cluster-num { font-size: 8px; }
+  .ana-const-cluster-name { font-size: 10px; }
+  .ana-const-legend { gap: 10px; }
+  .ana-const-legend-item { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ana-s-constellation .ana-const-node { animation: none !important; }
+  .ana-const-node,
+  .ana-const-halo,
+  .ana-const-core { transition: none !important; }
+}
+
+/* Light theme overrides */
+[data-theme="light"] .ana-const-map {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(99, 85, 224, .05), transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(37, 99, 235, .04), transparent 50%),
+    radial-gradient(circle at 90% 25%, rgba(220, 38, 38, .04), transparent 50%),
+    linear-gradient(160deg, rgba(99, 85, 224, .04), rgba(99, 85, 224, .01));
+  border-color: rgba(99, 85, 224, .2);
+}
+[data-theme="light"] .ana-const-tether { stroke: rgba(99, 85, 224, .2); }
+[data-theme="light"] .ana-const-node[data-domain-idx="1"] { color: #6355e0; }
+[data-theme="light"] .ana-const-node[data-domain-idx="2"] { color: #16a34a; }
+[data-theme="light"] .ana-const-node[data-domain-idx="3"] { color: #2563eb; }
+[data-theme="light"] .ana-const-node[data-domain-idx="4"] { color: #d97706; }
+[data-theme="light"] .ana-const-node[data-domain-idx="5"] { color: #dc2626; }
+[data-theme="light"] .ana-const-cluster-name { fill: #1f1b2e; }
+[data-theme="light"] .ana-const-empty {
+  background: rgba(99, 85, 224, .04);
+  border-color: rgba(99, 85, 224, .22);
 }

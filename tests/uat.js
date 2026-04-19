@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.1', js.includes("const APP_VERSION = '4.54.1"));
+test('APP_VERSION is 4.54.2', js.includes("const APP_VERSION = '4.54.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.1', sw.includes('netplus-v4.54.1'));
+test('SW cache bumped to v4.54.2', sw.includes('netplus-v4.54.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5571,6 +5571,57 @@ test('v4.54.1 CSS: #page-settings has max-width',
   /#page-settings\s*\{[^}]*max-width:\s*720px/.test(css));
 test('v4.54.1 CSS: .settings-section + .settings-section-title styling',
   css.includes('.settings-section') && /\.settings-section-title\s*\{/.test(css));
+
+// ── v4.54.2 KNOWLEDGE CONSTELLATION ──
+// User asked to build the prototype's most distinctive moment — topics as
+// floating nodes clustered by domain, sized by practice count, inner core
+// sized + colored by mastery. Sunday side-build, patch release.
+console.log('\n\x1b[1m── v4.54.2 KNOWLEDGE CONSTELLATION ──\x1b[0m');
+
+// JS
+test('v4.54.2 JS: _computeConstellationData function defined',
+  js.includes('function _computeConstellationData('));
+test('v4.54.2 JS: _renderAnaConstellation function defined',
+  js.includes('function _renderAnaConstellation('));
+test('v4.54.2 JS: renderAnalytics calls _renderAnaConstellation after Domain Mastery',
+  /_renderAnaDomainMastery\(h\);[\s\S]{0,400}_renderAnaConstellation\(h\)/.test(js));
+test('v4.54.2 JS: constellation uses TOPIC_DOMAINS for domain lookup',
+  /_computeConstellationData[\s\S]{0,800}TOPIC_DOMAINS\[topic\]/.test(js));
+test('v4.54.2 JS: tier thresholds match Domain Mastery (55/70/85)',
+  /_computeConstellationData[\s\S]{0,1500}mastery\s*>=\s*85[\s\S]{0,200}mastery\s*>=\s*70[\s\S]{0,200}mastery\s*>=\s*55/.test(js));
+test('v4.54.2 JS: 5 domain cluster anchors defined (concepts/implementation/operations/security/troubleshooting)',
+  /const CLUSTERS\s*=\s*\{[\s\S]{0,600}concepts[\s\S]{0,200}implementation[\s\S]{0,200}operations[\s\S]{0,200}security[\s\S]{0,200}troubleshooting/.test(js));
+test('v4.54.2 JS: golden-angle jitter for stable deterministic layout',
+  /_renderAnaConstellation[\s\S]{0,3500}i\s*\*\s*2\.399/.test(js));
+test('v4.54.2 JS: node radius uses sqrt scale on attempts',
+  /Math\.sqrt\(t\.attempts\)\s*\*\s*2\.2/.test(js));
+test('v4.54.2 JS: nodes click through to focusTopic',
+  /_renderAnaConstellation[\s\S]{0,6000}onclick="focusTopic/.test(js));
+test('v4.54.2 JS: SVG <title> tooltip with topic + mastery + attempts + last-studied',
+  /_renderAnaConstellation[\s\S]{0,5000}<title>\$\{title\}<\/title>/.test(js));
+test('v4.54.2 JS: empty state when no studied topics',
+  /_renderAnaConstellation[\s\S]{0,1500}studied\s*===\s*0/.test(js));
+test('v4.54.2 JS: legend HTML with 4 tiers (mastered/proficient/developing/novice)',
+  /ana-const-tier-mastered[\s\S]{0,500}ana-const-tier-proficient[\s\S]{0,500}ana-const-tier-developing[\s\S]{0,500}ana-const-tier-novice/.test(js));
+
+// CSS
+test('v4.54.2 CSS: .ana-const-map has starfield radial-gradient background',
+  /\.ana-const-map\s*\{[\s\S]{0,800}radial-gradient\(circle at 20%/.test(css));
+test('v4.54.2 CSS: 5 per-domain-idx color tints on nodes',
+  /\.ana-const-node\[data-domain-idx="1"\][\s\S]{0,100}#7c6ff7/.test(css) &&
+  /\.ana-const-node\[data-domain-idx="5"\][\s\S]{0,100}#ef4444/.test(css));
+test('v4.54.2 CSS: tier-based brightness (mastered brighter, novice dimmed)',
+  /\.ana-const-tier-mastered\s+\.ana-const-core\s*\{[\s\S]{0,200}brightness\(1\.25\)/.test(css) &&
+  /\.ana-const-tier-novice\s+\.ana-const-core\s*\{[\s\S]{0,100}opacity:\s*0?\.45/.test(css));
+test('v4.54.2 CSS: @keyframes anaConstTwinkle (entry animation)',
+  /@keyframes anaConstTwinkle/.test(css));
+test('v4.54.2 CSS: per-cluster stagger delays',
+  /ana-const-node\[data-domain-idx="1"\][\s\S]{0,200}animation-delay:\s*\.05s/.test(css) &&
+  /ana-const-node\[data-domain-idx="5"\][\s\S]{0,200}animation-delay:\s*\.45s/.test(css));
+test('v4.54.2 CSS: reduced-motion neutralises twinkle',
+  /prefers-reduced-motion[\s\S]{0,15000}#ana-s-constellation\s+\.ana-const-node[\s\S]{0,200}animation:\s*none/.test(css));
+test('v4.54.2 CSS: light-theme cluster-name fill recoloured',
+  /\[data-theme="light"\]\s+\.ana-const-cluster-name\s*\{/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
