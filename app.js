@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.2
+// Network+ AI Quiz — app.js  v4.54.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.2';
+const APP_VERSION = '4.54.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2371,34 +2371,77 @@ function finish() {
   const grade = pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
   const gradeColor = { A:'#22c55e', B:'#60a5fa', C:'#fbbf24', D:'#fb923c', F:'#f87171' }[grade];
 
-  // Animated SVG progress ring
+  // v4.54.3: legacy grade-ring retired from HTML. Keep the writes guarded so
+  // if any consumer DOM gets reintroduced elsewhere (e.g. exam results) it still
+  // works, but the absence here is a no-op instead of a TypeError.
   const ringFill = document.getElementById('grade-fill');
-  ringFill.style.stroke = gradeColor;
-  ringFill.style.strokeDashoffset = '326.73'; // reset
-  const targetOffset = 326.73 - (326.73 * pct / 100);
-  requestAnimationFrame(() => { ringFill.style.strokeDashoffset = targetOffset; });
-
-  document.getElementById('grade-letter').textContent = grade;
-  document.getElementById('grade-letter').style.color = gradeColor;
-  document.getElementById('grade-pct').textContent    = pct + '%';
+  if (ringFill) {
+    ringFill.style.stroke = gradeColor;
+    ringFill.style.strokeDashoffset = '326.73';
+    const targetOffset = 326.73 - (326.73 * pct / 100);
+    requestAnimationFrame(() => { ringFill.style.strokeDashoffset = targetOffset; });
+  }
+  const gradeLetterEl = document.getElementById('grade-letter');
+  if (gradeLetterEl) {
+    gradeLetterEl.textContent = grade;
+    gradeLetterEl.style.color = gradeColor;
+  }
+  const gradePctEl = document.getElementById('grade-pct');
+  if (gradePctEl) gradePctEl.textContent = pct + '%';
 
   // Animated score count-up
   animateCount('r-correct', 0, score, 800);
   animateCount('r-wrong', 0, total - score, 800);
   animateCount('r-streak', 0, bestStreak, 600);
 
+  // v4.54.3: editorial display headings with italic-accent em for the key word.
+  // Each row: [headline with <em> accent (innerHTML), lede paragraph].
+  // Italic em uses the app-wide accent-light colour via CSS.
   const headlines = {
-    A: ['Crushing it!',       "You're exam-ready on this topic."],
-    B: ['Solid session',      'A few gaps \u2014 keep at it.'],
-    C: ['Getting there',      'Review your weak spots and retry.'],
-    D: ['Keep studying',      'Go back to the notes then come back.'],
-    F: ['More work needed',   'Rewatch the Messer videos on this topic.']
+    A: ['Crushing <em>it.</em>',       "You're exam-ready on this topic."],
+    B: ['Solid <em>session.</em>',     'A few gaps \u2014 keep at it.'],
+    C: ['Getting <em>there.</em>',     'Review your weak spots and retry.'],
+    D: ['Keep <em>studying.</em>',     'Go back to the notes then come back.'],
+    F: ['More <em>work needed.</em>',  'Rewatch the Messer videos on this topic.']
   };
-  document.getElementById('result-headline').textContent = headlines[grade][0];
-  document.getElementById('result-sub').textContent      = headlines[grade][1];
+  const headlineEl = document.getElementById('result-headline');
+  if (headlineEl) headlineEl.innerHTML = headlines[grade][0];
+  document.getElementById('result-sub').textContent = headlines[grade][1];
   document.getElementById('r-correct').textContent = score;
   document.getElementById('r-wrong').textContent   = total - score;
   document.getElementById('r-streak').textContent  = bestStreak;
+
+  // v4.54.3 results-v2 additions: scaled score (100-900), verdict line, raw pct.
+  // Scaled-score formula matches CompTIA N10-009 convention from the exam-
+  // results screen: 100 + (raw / 100) * 800, rounded.
+  const scaled = Math.max(100, Math.min(900, Math.round(100 + (pct / 100) * 800)));
+  const passed = scaled >= 720;
+  const scoreEl = document.getElementById('r-v2-score');
+  const verdictEl = document.getElementById('r-v2-verdict');
+  const rawPctEl = document.getElementById('r-v2-pct');
+  if (scoreEl) {
+    // Animated count-up from current (or 0) to scaled
+    const cur = parseInt(scoreEl.textContent, 10);
+    if (typeof animateCount === 'function') {
+      animateCount('r-v2-score', isNaN(cur) ? 0 : cur, scaled, 1100);
+    } else {
+      scoreEl.textContent = scaled;
+    }
+  }
+  if (verdictEl) {
+    if (passed) {
+      verdictEl.innerHTML = '\u2191 Pass mark cleared \u00b7 720';
+      verdictEl.classList.remove('results-v2-verdict-fail');
+      verdictEl.classList.add('results-v2-verdict-pass');
+    } else {
+      const gap = 720 - scaled;
+      verdictEl.innerHTML = `\u2193 ${gap} below pass \u00b7 keep going`;
+      verdictEl.classList.remove('results-v2-verdict-pass');
+      verdictEl.classList.add('results-v2-verdict-fail');
+    }
+  }
+  if (rawPctEl) rawPctEl.textContent = pct + '%';
+
   document.getElementById('btn-review').classList.toggle('is-hidden', log.length === 0);
 
   renderResultsDifficultyBreakdown();

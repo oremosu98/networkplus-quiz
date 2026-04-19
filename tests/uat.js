@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.2', js.includes("const APP_VERSION = '4.54.2"));
+test('APP_VERSION is 4.54.3', js.includes("const APP_VERSION = '4.54.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.2', sw.includes('netplus-v4.54.2'));
+test('SW cache bumped to v4.54.3', sw.includes('netplus-v4.54.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5622,6 +5622,72 @@ test('v4.54.2 CSS: reduced-motion neutralises twinkle',
   /prefers-reduced-motion[\s\S]{0,15000}#ana-s-constellation\s+\.ana-const-node[\s\S]{0,200}animation:\s*none/.test(css));
 test('v4.54.2 CSS: light-theme cluster-name fill recoloured',
   /\[data-theme="light"\]\s+\.ana-const-cluster-name\s*\{/.test(css));
+
+// ── v4.54.3 RESULTS PAGE EDITORIAL REDESIGN ──
+// User: "lets do the results page redesign in order to fit the prototype
+// aesthetics". Replaces circular grade ring + A-F letter with scaled-score
+// hero + italic-accent display heading.
+console.log('\n\x1b[1m── v4.54.3 RESULTS v2 ──\x1b[0m');
+
+// HTML
+test('v4.54.3 HTML: .results-v2 wrapper exists',
+  html.includes('class="results-v2"'));
+test('v4.54.3 HTML: eyebrow + display heading + lede',
+  html.includes('class="results-v2-eyebrow"') && html.includes('class="results-v2-display"') && html.includes('class="results-v2-lede"'));
+test('v4.54.3 HTML: scaled-score hero with score + verdict',
+  html.includes('class="results-v2-big-score"') && html.includes('id="r-v2-score"') && html.includes('id="r-v2-verdict"'));
+test('v4.54.3 HTML: 4-row stats aside (Correct / Wrong / Raw % / Best streak)',
+  /id="r-correct"[\s\S]{0,500}id="r-wrong"[\s\S]{0,500}id="r-v2-pct"[\s\S]{0,500}id="r-streak"/.test(html));
+test('v4.54.3 HTML: editorial CTA row with 3 buttons (Back / Review / New session)',
+  html.includes('class="results-v2-cta-row"') && html.includes('New session') && html.includes('Review answers'));
+test('v4.54.3 HTML: regression \u2014 legacy grade-ring removed',
+  !html.includes('class="grade-ring"') && !html.includes('id="grade-fill"') && !html.includes('id="grade-letter"'));
+test('v4.54.3 HTML: regression \u2014 legacy .results-stats/.results-actions removed from #page-results (exam-results page keeps its own layout)',
+  (() => {
+    const i = html.indexOf('id="page-results"');
+    const j = html.indexOf('id="page-review"');
+    if (i < 0 || j < 0) return false;
+    const quizResults = html.slice(i, j);
+    return !quizResults.includes('class="results-stats"') && !quizResults.includes('class="results-actions"');
+  })());
+
+// JS
+test('v4.54.3 JS: finish() guards legacy grade-ring writes with if(el)',
+  /function finish\([\s\S]{0,2000}const ringFill\s*=\s*document\.getElementById\('grade-fill'\);\s*\n\s*if\s*\(ringFill\)/.test(js));
+test('v4.54.3 JS: finish() writes scaled score via animateCount to #r-v2-score',
+  /function finish\([\s\S]{0,4000}animateCount\('r-v2-score'/.test(js));
+test('v4.54.3 JS: scaled-score formula 100 + (pct/100) * 800',
+  /const scaled\s*=\s*Math\.max\(100,\s*Math\.min\(900,\s*Math\.round\(100 \+ \(pct \/ 100\) \* 800\)\)\)/.test(js));
+test('v4.54.3 JS: passed = scaled >= 720',
+  /const passed\s*=\s*scaled\s*>=\s*720/.test(js));
+test('v4.54.3 JS: verdict adds pass/fail class + text',
+  /function finish\([\s\S]{0,5500}results-v2-verdict-pass[\s\S]{0,300}results-v2-verdict-fail/.test(js));
+test('v4.54.3 JS: headlines use HTML italic em (not plain text)',
+  /headlines\s*=\s*\{[\s\S]{0,400}Crushing <em>/.test(js));
+test('v4.54.3 JS: result-headline uses innerHTML (supports em tag)',
+  /headlineEl\.innerHTML\s*=\s*headlines\[grade\]\[0\]/.test(js));
+
+// CSS
+test('v4.54.3 CSS: .results-v2-display uses 50px weight-800 tight tracking',
+  /\.results-v2-display\s*\{[\s\S]{0,400}font-size:\s*50px[\s\S]{0,200}letter-spacing:\s*-0\.03em/.test(css));
+test('v4.54.3 CSS: .results-v2-display em uses accent-light + normal style',
+  /\.results-v2-display em\s*\{[\s\S]{0,300}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.3 CSS: .results-v2-hero is dark gradient + 2-col grid',
+  /\.results-v2-hero\s*\{[\s\S]{0,500}grid-template-columns:\s*1\.3fr\s+1fr/.test(css) &&
+  /\.results-v2-hero\s*\{[\s\S]{0,1000}linear-gradient\(160deg,\s*#16131f/.test(css));
+test('v4.54.3 CSS: .results-v2-big-score is 68px weight-800 tabular-nums',
+  /\.results-v2-big-score\s*\{[\s\S]{0,400}font-size:\s*68px[\s\S]{0,200}tabular-nums/.test(css));
+test('v4.54.3 CSS: .results-v2-verdict-pass green, -fail red pill styling',
+  /\.results-v2-verdict-pass\s*\{[\s\S]{0,300}rgba\(34,\s*197,\s*94/.test(css) &&
+  /\.results-v2-verdict-fail\s*\{[\s\S]{0,300}rgba\(239,\s*68,\s*68/.test(css));
+test('v4.54.3 CSS: legacy .results-hero/.results-stats/.results-actions force-hidden',
+  /\.results-hero\s*\{\s*display:\s*none\s*!important/.test(css) &&
+  /\.results-stats\s*\{\s*display:\s*none\s*!important/.test(css) &&
+  /\.results-actions\s*\{\s*display:\s*none\s*!important/.test(css));
+test('v4.54.3 CSS: narrow viewport collapses hero to single-col',
+  /@media \(max-width:\s*680px\)[\s\S]{0,600}\.results-v2-hero\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
+test('v4.54.3 CSS: light-theme hero stays dark (design intent)',
+  /\[data-theme="light"\]\s+\.results-v2-hero\s*\{[\s\S]{0,500}linear-gradient\(160deg,\s*#1a1725/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.2</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.3</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -502,28 +502,39 @@
      RESULTS PAGE
 ══════════════════════════════════════════ -->
 <div id="page-results" class="page">
-  <div class="results-hero">
-    <div class="grade-ring" id="grade-ring">
-      <svg class="grade-svg" viewBox="0 0 120 120">
-        <circle class="grade-track" cx="60" cy="60" r="52" />
-        <circle class="grade-fill" id="grade-fill" cx="60" cy="60" r="52" />
-      </svg>
-      <span class="grade-letter" id="grade-letter">A</span>
-      <span class="grade-pct" id="grade-pct">100%</span>
+  <!-- v4.54.3 editorial results redesign — eyebrow + display heading + dark scaled-score hero -->
+  <div class="results-v2">
+    <div class="results-v2-eyebrow">Session &middot; complete</div>
+    <h1 class="results-v2-display" id="result-headline">Crushing <em>it.</em></h1>
+    <p class="results-v2-lede" id="result-sub">You're exam-ready on this topic.</p>
+
+    <div class="results-v2-hero">
+      <div class="results-v2-big">
+        <div class="results-v2-big-label">Scaled Score &middot; CompTIA N10-009</div>
+        <div class="results-v2-big-score"><span id="r-v2-score">&mdash;</span><em>/ 900</em></div>
+        <div class="results-v2-verdict" id="r-v2-verdict">&uarr; Pass mark cleared &middot; 720</div>
+      </div>
+      <aside class="results-v2-side">
+        <div class="results-v2-row"><span class="k">Correct</span><span class="v" id="r-correct">0</span></div>
+        <div class="results-v2-row"><span class="k">Wrong</span><span class="v" id="r-wrong">0</span></div>
+        <div class="results-v2-row"><span class="k">Raw %</span><span class="v" id="r-v2-pct">0%</span></div>
+        <div class="results-v2-row"><span class="k">Best streak &#128293;</span><span class="v" id="r-streak">0</span></div>
+      </aside>
     </div>
-    <h2 id="result-headline">Crushing it!</h2>
-    <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="result-sub">You're exam-ready.</p>
-  </div>
-  <div class="results-stats">
-    <div class="rstat"><div class="val val-green" id="r-correct">0</div><div class="lbl">Correct</div></div>
-    <div class="rstat"><div class="val val-red"   id="r-wrong">0</div><div class="lbl">Wrong</div></div>
-    <div class="rstat"><div class="val val-acc"   id="r-streak">0</div><div class="lbl">Best Streak &#128293;</div></div>
-  </div>
-  <div id="diff-breakdown" class="diff-breakdown"></div>
-  <div class="results-actions">
-    <button class="btn btn-secondary" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
-    <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">&#128203; Review</button>
-    <button class="btn btn-primary" onclick="retryQuiz()">Same Topic &#9889;</button>
+
+    <div id="diff-breakdown" class="diff-breakdown"></div>
+
+    <div class="results-v2-cta-row">
+      <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Back to menu</button>
+      <div class="results-v2-cta-right">
+        <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">&#128203; Review answers</button>
+        <button class="btn btn-primary" onclick="retryQuiz()">New session &rarr;</button>
+      </div>
+    </div>
+
+    <!-- v4.54.3: legacy grade-ring + grade-letter + grade-pct retired.
+         Any leftover JS references (#grade-fill, #grade-letter, #grade-pct) are
+         now guarded with if(el) checks in finish() so they no-op safely. -->
   </div>
 </div>
 
