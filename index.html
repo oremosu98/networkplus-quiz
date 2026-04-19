@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.8</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.9</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -577,9 +577,13 @@
      REVIEW PAGE
 ══════════════════════════════════════════ -->
 <div id="page-review" class="page">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" id="review-back-btn" style="padding:10px 16px" aria-label="Back to results">&#8592; Back</button>
-    <h2>Review Answers</h2>
+  <!-- v4.54.9: editorial header -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" id="review-back-btn" aria-label="Back to results">&#8592; Back</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Review &middot; session answers</div>
+      <h1 class="ed-pagehead-display">Every <em>answer.</em></h1>
+    </div>
   </div>
   <div id="review-list"></div>
 </div>
@@ -588,9 +592,11 @@
      SESSION TRANSITION PAGE
 ══════════════════════════════════════════ -->
 <div id="page-session-transition" class="page">
-  <div class="session-hero">
+  <!-- v4.54.9: editorial session-hero \u2014 eyebrow + italic-accent display heading -->
+  <div class="session-hero session-hero-v2">
     <span class="session-emoji" id="st-emoji">&#9989;</span>
-    <h2 id="st-heading">Topic 1 done!</h2>
+    <div class="session-hero-eyebrow">Session &middot; progress</div>
+    <h2 id="st-heading" class="session-hero-display">Topic 1 <em>done.</em></h2>
     <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="st-sub"></p>
   </div>
   <div id="st-result-row" class="session-result-row" style="margin-bottom:20px">
@@ -613,9 +619,11 @@
      SESSION COMPLETE PAGE
 ══════════════════════════════════════════ -->
 <div id="page-session-complete" class="page">
-  <div class="session-hero">
+  <!-- v4.54.9: editorial session-complete hero -->
+  <div class="session-hero session-hero-v2">
     <span class="session-emoji">&#127881;</span>
-    <h2>Session Complete!</h2>
+    <div class="session-hero-eyebrow">Session &middot; complete</div>
+    <h2 class="session-hero-display">All topics <em>cleared.</em></h2>
     <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="sc-sub"></p>
   </div>
   <div id="sc-results"></div>
@@ -627,11 +635,13 @@
      TOPIC PROGRESS PAGE
 ══════════════════════════════════════════ -->
 <div id="page-progress" class="page">
-  <!-- v4.51.0: Topic Progress page — cleaner header + stats split into
-       Topic Mastery card + Lab Progress card + premium toolbar. -->
-  <div class="progress-header">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2 class="progress-title">Topic Progress</h2>
+  <!-- v4.51.0: Topic Progress cleaner header + stats split; v4.54.9: editorial treatment -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Coverage &middot; 50 topics</div>
+      <h1 class="ed-pagehead-display">Topic <em>progress.</em></h1>
+    </div>
   </div>
   <div id="progress-summary" class="progress-summary"></div>
   <div class="progress-toolbar">
@@ -681,6 +691,8 @@
 
   <div class="progress-wrap" style="margin-bottom:16px">
     <div class="progress-bar"><div class="progress-fill" id="exam-prog-fill" style="width:0%"></div></div>
+    <!-- v4.54.9: segmented per-question progress dots for exam mode (parallels quiz) -->
+    <div class="quiz-prog-dots" id="exam-prog-dots" role="progressbar" aria-label="Per-question exam progress"></div>
   </div>
 
   <div class="q-card">
@@ -690,14 +702,17 @@
     </div>
     <div class="q-text" id="exam-q-text">Loading&#8230;</div>
     <div class="options" id="exam-options"></div>
+    <!-- v4.54.9: per-choice wrongExplain footnote, only shown post-submit review -->
+    <div class="exp-wrong-explain is-hidden" id="exam-wrong-explain" role="note"></div>
   </div>
 
   <div class="exam-nav-row">
     <button class="btn btn-ghost" id="exam-prev-btn" onclick="examPrev()" style="padding:12px 20px" aria-label="Previous question">&#8592; Prev</button>
-    <div class="kb-hint">
-      <span class="kb-key">A</span><span class="kb-key">B</span><span class="kb-key">C</span><span class="kb-key">D</span> select &nbsp;&bull;&nbsp;
-      <span class="kb-key">F</span> flag &nbsp;&bull;&nbsp;
-      <span class="kb-key">&#8594;</span><span class="kb-key">&#8592;</span> navigate
+    <!-- v4.54.9: editorial kbd-hints (parallels the quiz page treatment) -->
+    <div class="quiz-kbd-hints" aria-label="Keyboard shortcuts">
+      <span><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> pick</span>
+      <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> navigate</span>
+      <span><kbd>F</kbd> flag</span>
     </div>
     <button class="btn btn-primary" id="exam-next-btn" onclick="examNext()" style="padding:12px 20px">Next &#8594;</button>
   </div>
@@ -726,22 +741,35 @@
      EXAM RESULTS PAGE
 ══════════════════════════════════════════ -->
 <div id="page-exam-results" class="page">
-  <div class="exam-results-hero">
-    <div class="scaled-score" id="exam-scaled-score">750</div>
-    <div><span class="pass-badge" id="exam-pass-badge">PASS</span> <span class="hardcore-badge is-hidden" id="exam-hardcore-badge">&#128293; HARDCORE</span></div>
-    <p class="pass-msg" id="exam-result-msg"></p>
-    <p class="pass-threshold">Pass mark: 720 / 900 &nbsp;&bull;&nbsp; CompTIA N10-009 scaled score</p>
-  </div>
-  <div class="results-stats" style="grid-template-columns:repeat(4,1fr)">
-    <div class="rstat"><div class="val val-green" id="exam-r-correct">0</div><div class="lbl">Correct</div></div>
-    <div class="rstat"><div class="val val-red"   id="exam-r-wrong">0</div><div class="lbl">Wrong</div></div>
-    <div class="rstat"><div class="val" style="color:var(--text-dim)" id="exam-r-skipped">0</div><div class="lbl">Skipped</div></div>
-    <div class="rstat"><div class="val val-acc"   id="exam-r-pct">0%</div><div class="lbl">Raw %</div></div>
-  </div>
-  <div class="results-actions">
-    <button class="btn btn-secondary" onclick="goSetup()">&#8592; Menu</button>
-    <button class="btn btn-ghost" onclick="showReview(true)">&#128203; Review All</button>
-    <button class="btn btn-exam" onclick="startExam()">Retry Exam &#127358;</button>
+  <!-- v4.54.9: editorial treatment on exam results \u2014 parallels the quiz Results page redesign -->
+  <div class="exam-results-v2">
+    <div class="ed-pagehead-eyebrow">Exam &middot; 90 questions &middot; complete</div>
+    <h1 class="exam-results-v2-display" id="exam-result-headline">Pass mark <em>cleared.</em></h1>
+    <div class="exam-results-v2-hero">
+      <div class="exam-results-v2-big">
+        <div class="exam-results-v2-big-label">Scaled Score &middot; CompTIA N10-009</div>
+        <div class="exam-results-v2-big-score" id="exam-scaled-score">750</div>
+        <div class="exam-results-v2-verdict">
+          <span class="pass-badge" id="exam-pass-badge">PASS</span>
+          <span class="hardcore-badge is-hidden" id="exam-hardcore-badge">&#128293; HARDCORE</span>
+        </div>
+        <p class="exam-results-v2-msg" id="exam-result-msg"></p>
+        <p class="exam-results-v2-threshold">Pass mark: 720 / 900 &middot; CompTIA N10-009 scaled score</p>
+      </div>
+      <aside class="exam-results-v2-side">
+        <div class="results-v2-row"><span class="k">Correct</span><span class="v" id="exam-r-correct">0</span></div>
+        <div class="results-v2-row"><span class="k">Wrong</span><span class="v" id="exam-r-wrong">0</span></div>
+        <div class="results-v2-row"><span class="k">Skipped</span><span class="v" id="exam-r-skipped">0</span></div>
+        <div class="results-v2-row"><span class="k">Raw %</span><span class="v" id="exam-r-pct">0%</span></div>
+      </aside>
+    </div>
+    <div class="results-v2-cta-row">
+      <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Menu</button>
+      <div class="results-v2-cta-right">
+        <button class="btn btn-ghost" onclick="showReview(true)">&#128203; Review All</button>
+        <button class="btn btn-exam" onclick="startExam()">Retry Exam &#127358;</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -835,11 +863,15 @@
      a first-class home.
 ══════════════════════════════════════════ -->
 <div id="page-drills" class="page">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2 style="margin:0">&#127919; Interactive Drills</h2>
+  <!-- v4.54.9: editorial treatment -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Muscle memory &middot; fast feedback</div>
+      <h1 class="ed-pagehead-display">Interactive <em>drills.</em></h1>
+      <p class="ed-pagehead-lede">Four drills for the rote parts of Network+. Pick one.</p>
+    </div>
   </div>
-  <p style="color:var(--text-dim);margin-bottom:18px;font-size:14px">Four fast-feedback drills for the muscle-memory parts of Network+. Pick one.</p>
   <div class="drills-grid">
     <button type="button" class="drills-tile" onclick="showPage('ports');startPortDrill()">
       <span class="drills-tile-icon">&#9889;</span>
@@ -1110,9 +1142,13 @@
      reached directly from the sidebar + topbar gear.
 ══════════════════════════════════════════ -->
 <div id="page-settings" class="page">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2>&#9881;&#65039; Settings</h2>
+  <!-- v4.54.9: editorial treatment -->
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Account &middot; configuration</div>
+      <h1 class="ed-pagehead-display">Your <em>settings.</em></h1>
+    </div>
   </div>
   <div class="settings-layout">
     <section class="card settings-section">

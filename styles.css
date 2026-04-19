@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.8
+   Network+ AI Quiz — styles.css  v4.54.9
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9412,4 +9412,347 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   .results-v2-review-row,
   .qpd-cell,
   .ana-accchart-tab { transition: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.9 — Editorial sweep on remaining pages + global zoom-in
+   • Reusable .ed-pagehead component (eyebrow + italic-accent display)
+     applied to Progress / Review / Settings / Drills Launcher pages
+   • Exam Results v2 (editorial parallel to Results v2)
+   • Session Transition / Session Complete editorial hero
+   • Exam progress dots + kbd-hints (parity with quiz)
+   • Global ~6% zoom-in for readability
+   • Remove sidebar drill nav-count pills (retired by user request)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── (1) Global zoom-in — 6% bump so all px-based text reads bigger. Uses
+        CSS `zoom` (Chrome/Safari/Edge; Firefox supports zoom on Gecko v126+).
+        Applied at root; cascades to all descendants including sidebar. ── */
+html { zoom: 1.06; }
+
+/* ── (2) Reusable editorial page header component ── */
+.ed-pagehead {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--border);
+  position: relative;
+  flex-wrap: wrap;
+}
+.ed-pagehead::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: var(--accent);
+}
+.ed-pagehead-back {
+  padding: 10px 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ed-pagehead-body { flex: 1; min-width: 0; }
+.ed-pagehead-eyebrow {
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding-left: 14px;
+  position: relative;
+}
+.ed-pagehead-eyebrow::before {
+  content: '—';
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--accent-light);
+}
+.ed-pagehead-display {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+.ed-pagehead-display em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+.ed-pagehead-lede {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.55;
+  max-width: 640px;
+}
+[data-theme="light"] .ed-pagehead::after { background: #6355e0; }
+[data-theme="light"] .ed-pagehead-eyebrow,
+[data-theme="light"] .ed-pagehead-display em { color: #6355e0; }
+[data-theme="light"] .ed-pagehead-eyebrow::before { color: #6355e0; }
+@media (max-width: 680px) {
+  .ed-pagehead-display { font-size: 30px; }
+  .ed-pagehead { gap: 12px; }
+}
+
+/* ── (3) Exam Results v2 — parallels Results v2 aesthetic ── */
+.exam-results-v2 {
+  margin-bottom: 40px;
+}
+.exam-results-v2-display {
+  font-size: 50px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  margin: 10px 0 24px;
+  color: var(--text);
+}
+.exam-results-v2-display em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+.exam-results-v2-hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0;
+  background: linear-gradient(160deg, #16131f, #0d0a15);
+  border: 1px solid rgba(124, 111, 247, .25);
+  border-radius: 16px;
+  padding: 32px 36px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.exam-results-v2-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 50%; height: 100%;
+  background: radial-gradient(circle at top right, rgba(124, 111, 247, .14), transparent 70%);
+  pointer-events: none;
+}
+.exam-results-v2-big {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.exam-results-v2-big-label {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .5);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.exam-results-v2-big-score {
+  font-size: 84px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .95);
+  margin-bottom: 10px;
+}
+.exam-results-v2-verdict {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.exam-results-v2-verdict .pass-badge {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  padding: 5px 14px;
+  border-radius: 4px;
+}
+.exam-results-v2-msg {
+  font-size: 14px;
+  color: rgba(255, 255, 255, .75);
+  margin: 6px 0 4px;
+  line-height: 1.55;
+}
+.exam-results-v2-threshold {
+  font-family: monospace;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, .4);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.exam-results-v2-side {
+  position: relative;
+  z-index: 1;
+  border-left: 1px dashed rgba(255, 255, 255, .1);
+  padding-left: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.exam-results-v2-side .results-v2-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.exam-results-v2-side .results-v2-row:last-child { border-bottom: none; }
+.exam-results-v2-side .results-v2-row .k {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .6);
+  font-weight: 600;
+}
+.exam-results-v2-side .results-v2-row .v {
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .95);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 680px) {
+  .exam-results-v2-hero { grid-template-columns: 1fr; padding: 24px 22px; }
+  .exam-results-v2-side { border-left: none; border-top: 1px dashed rgba(255, 255, 255, .1); padding-left: 0; padding-top: 22px; margin-top: 20px; }
+  .exam-results-v2-display { font-size: 38px; }
+  .exam-results-v2-big-score { font-size: 64px; }
+}
+
+/* Retire the legacy exam-results-hero card-style */
+.exam-results-hero { display: none !important; }
+
+/* ── (4) Session Transition + Complete editorial hero ── */
+.session-hero-v2 {
+  text-align: center;
+  padding: 40px 24px 28px;
+  margin-bottom: 24px;
+}
+.session-hero-v2 .session-emoji {
+  display: block;
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+.session-hero-eyebrow {
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: inline-block;
+  padding-left: 14px;
+  position: relative;
+}
+.session-hero-eyebrow::before {
+  content: '—';
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--accent-light);
+}
+.session-hero-display {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+  color: var(--text);
+  line-height: 1.05;
+}
+.session-hero-display em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+[data-theme="light"] .session-hero-eyebrow,
+[data-theme="light"] .session-hero-display em { color: #6355e0; }
+[data-theme="light"] .session-hero-eyebrow::before { color: #6355e0; }
+@media (max-width: 680px) {
+  .session-hero-display { font-size: 32px; }
+}
+
+/* ── (5) Exam segmented progress dots — extend with "flagged" state ── */
+#exam-prog-dots.quiz-prog-dots { margin-top: 8px; padding-top: 6px; }
+.qpd-cell.qpd-flagged { background: var(--yellow); height: 6px; }
+[data-theme="light"] .qpd-cell.qpd-flagged { background: #d97706; }
+
+/* ── (6) Hide retired sidebar count pills ── */
+.sb-item-count { display: none !important; }
+
+/* ── (7) Retire the legacy .pass-threshold inside the new exam-results hero */
+.exam-results-v2 .pass-threshold { display: none; }
+
+/* ── (8) Drills launcher tiles — editorial polish to match prototype card aesthetic */
+.drills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+.drills-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  color: var(--text);
+}
+.drills-tile::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.drills-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--accent-rgb), .4);
+  box-shadow: 0 8px 24px -8px rgba(124, 111, 247, .25);
+}
+.drills-tile:hover::after { transform: scaleX(1); }
+.drills-tile-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+.drills-tile-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.drills-tile-sub {
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+}
+.drills-tile:nth-child(1)::after { background: var(--accent); }
+.drills-tile:nth-child(2)::after { background: var(--green); }
+.drills-tile:nth-child(3)::after { background: var(--blue, #3b82f6); }
+.drills-tile:nth-child(4)::after { background: var(--yellow); }
+
+/* ── (9) Reduced-motion neutralise for all new v4.54.9 transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  .drills-tile,
+  .drills-tile::after { transition: none !important; }
 }

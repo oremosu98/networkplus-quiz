@@ -794,7 +794,8 @@ test.describe('Keyboard Hints', () => {
   test('exam page shows keyboard shortcut hints', async ({ page }) => {
     await page.goto('/');
 
-    const kbHint = page.locator('#page-exam .kb-hint');
+    // v4.54.9: exam page adopted the editorial .quiz-kbd-hints footer (parity with quiz)
+    const kbHint = page.locator('#page-exam .quiz-kbd-hints');
     await expect(kbHint).toContainText('A');
     await expect(kbHint).toContainText('F');
   });

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.8
+// Network+ AI Quiz — app.js  v4.54.9
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.8';
+const APP_VERSION = '4.54.9';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1687,6 +1687,32 @@ function _renderQuizProgressDots() {
   el.innerHTML = cells.join('');
 }
 
+// v4.54.9: exam-mode segmented progress dots. Mirrors the quiz version but
+// reads examAnswers[i].chosen/msChosen/orderSeq to decide per-question state.
+// In exam mode we can't know correct/wrong until submit, so we only distinguish
+// "answered" (green-ish) vs "flagged" (yellow) vs "current" vs "pending".
+function _renderExamProgressDots() {
+  const el = document.getElementById('exam-prog-dots');
+  if (!el || !Array.isArray(examQuestions)) return;
+  const n = examQuestions.length;
+  const cells = [];
+  for (let i = 0; i < n; i++) {
+    const ans = examAnswers[i] || {};
+    const answered = (ans.chosen !== null && ans.chosen !== undefined) ||
+                     (Array.isArray(ans.msChosen) && ans.msChosen.length > 0) ||
+                     (Array.isArray(ans.orderSeq) && ans.orderSeq.length > 0) ||
+                     (ans.topoState && Object.keys(ans.topoState).length > 0);
+    let cls = 'qpd-cell';
+    let aria;
+    if (i === examCurrent) { cls += ' qpd-now'; aria = `Question ${i + 1}, current`; }
+    else if (ans.flagged) { cls += ' qpd-flagged'; aria = `Question ${i + 1}, flagged`; }
+    else if (answered) { cls += ' qpd-done'; aria = `Question ${i + 1}, answered`; }
+    else { aria = `Question ${i + 1}, pending`; }
+    cells.push(`<span class="${cls}" role="presentation" title="${aria}"></span>`);
+  }
+  el.innerHTML = cells.join('');
+}
+
 // v4.54.8: track quiz session start time for elapsed-time row in Results.
 let _sessionStartTs = 0;
 function _formatElapsed(ms) {
@@ -2724,6 +2750,8 @@ function renderExam() {
   const answeredCount = examAnswers.filter(a => a.chosen !== null || a.msChosen.length > 0 || a.orderSeq.length > 0 || Object.keys(a.topoState || {}).length > 0).length;
   document.getElementById('exam-answered-lbl').textContent = `${answeredCount} / ${total} answered`;
   document.getElementById('exam-prog-fill').style.width = ((examCurrent / total) * 100) + '%';
+  // v4.54.9: segmented per-question progress dots (exam parity with quiz)
+  if (typeof _renderExamProgressDots === 'function') _renderExamProgressDots();
 
   const flagBtn = document.getElementById('exam-flag-btn');
   flagBtn.className = 'exam-flag-btn' + (ans.flagged ? ' flagged' : '');
@@ -2990,6 +3018,13 @@ function submitExam() {
   const badge = document.getElementById('exam-pass-badge');
   badge.textContent = passed ? 'PASS' : 'FAIL';
   badge.className   = 'pass-badge ' + (passed ? 'badge-pass' : 'badge-fail');
+  // v4.54.9: editorial headline mirrors the pass/fail verdict with italic-accent em
+  const headlineEl = document.getElementById('exam-result-headline');
+  if (headlineEl) {
+    headlineEl.innerHTML = passed
+      ? 'Pass mark <em>cleared.</em>'
+      : 'More <em>work needed.</em>';
+  }
   // Hardcore badge on results hero (#48)
   const hcBadge = document.getElementById('exam-hardcore-badge');
   if (hcBadge) hcBadge.classList.toggle('is-hidden', !examHardcore);
@@ -24333,37 +24368,13 @@ function renderAppSidebar() {
   [...APP_SIDEBAR_PRACTICE, ...APP_SIDEBAR_DRILLS, ...APP_SIDEBAR_SETTINGS].forEach(it => {
     reg[it.page] = it.handler;
   });
-  // v4.54.8: compute drill bank sizes once per render for .sb-item-count chips.
-  // Matches prototype's nav-count pills. References top-level consts directly
-  // (top-level `const` declarations are NOT added to window in browser script
-  // context, so we use a try/typeof to probe each without throwing ReferenceError).
-  const _probeSize = (fn) => { try { const v = fn(); return Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : null); } catch (_) { return null; } };
-  const drillCounts = {
-    // Subnet Mastery: ST_CATEGORIES (6 categories, but we want sub-types)
-    'subnet':     _probeSize(() => (typeof ST_CATEGORIES !== 'undefined') ? ST_CATEGORIES : null),
-    // Port Drill: GT_PORTS carries 27 protocol facts
-    'ports':      _probeSize(() => (typeof GT_PORTS !== 'undefined') ? GT_PORTS : null),
-    // Acronym Blitz: AB_DATA has ~130 acronyms
-    'acronyms':   _probeSize(() => (typeof AB_DATA !== 'undefined') ? AB_DATA : null),
-    // OSI Sorter: OS_DATA has protocol-to-layer entries
-    'osi-sorter': _probeSize(() => (typeof OS_DATA !== 'undefined') ? OS_DATA : null),
-    // Cable ID: CB_CABLES + CB_CONNECTORS combined
-    'cables':     _probeSize(() => {
-      const c = (typeof CB_CABLES !== 'undefined') ? CB_CABLES : [];
-      const cn = (typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS : [];
-      return c.concat(cn);
-    })
-  };
+  // v4.54.9: sidebar nav-count pills retired per user request \u2014 the numbers
+  // weren't actionable; the drill entries read cleaner without them.
   const renderItem = it => {
     const hasIcon = it.icon;
-    const count = drillCounts[it.page];
-    const countChip = (count != null && count > 0)
-      ? `<span class="sb-item-count" aria-label="${count} items">${count}</span>`
-      : '';
     return `<button type="button" class="sb-item" data-sb-page="${it.page}" onclick="__aclSidebarHandlers['${it.page}'] && __aclSidebarHandlers['${it.page}']()">
       ${hasIcon ? `<span class="sb-item-icon" aria-hidden="true">${it.icon}</span>` : '<span class="sb-item-icon">&bull;</span>'}
       <span class="sb-item-label">${escHtml(it.label)}</span>
-      ${countChip}
     </button>`;
   };
   // Streak badge in footer — reuses existing getStreak()

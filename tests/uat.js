@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.8', js.includes("const APP_VERSION = '4.54.8"));
+test('APP_VERSION is 4.54.9', js.includes("const APP_VERSION = '4.54.9"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.8', sw.includes('netplus-v4.54.8'));
+test('SW cache bumped to v4.54.9', sw.includes('netplus-v4.54.9'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1802,8 +1802,9 @@ test('Label: preset "20-min Deep Scan" (v4.50.1: time corrected from 30-min to h
 test('Label: no legacy "30-min Grind" preset text', !html.includes('30-min Grind'));
 test('Label: exam toggle "Strict Mode" (was Hardcore)', html.includes('Strict Mode'));
 test('Label: no legacy "Hardcore Mode" UI text', !html.includes('Hardcore Mode <span class="hardcore-sub"'));
-test('Label: Settings page h2 (v4.54.1: now a dedicated page, not a summary)',
-  /id="page-settings"[\s\S]{0,400}<h2>[^<]*Settings<\/h2>/.test(html));
+// v4.54.9: Settings page h2 replaced by editorial .ed-pagehead-display "Your settings."
+test('Label: Settings page editorial heading (v4.54.9: .ed-pagehead-display "Your settings.")',
+  /id="page-settings"[\s\S]{0,800}ed-pagehead-display[^<]*>Your\s*<em>settings\.<\/em>/.test(html));
 test('Label: sidebar entry "Network Builder" (v4.53.0: moved from setup-nav to sidebar)',
   /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'Network Builder'/.test(js));
 test('Label: Marathon Mode heading preserved', html.includes('Marathon Mode'));
@@ -4888,10 +4889,11 @@ test('v4.50.1 CSS: reduced-motion neutralises history-row transition',
 console.log('\n\x1b[1m── v4.51.0 TOPIC PROGRESS REVAMP ──\x1b[0m');
 
 // HTML — header structure
-test('v4.51.0 HTML: .progress-header wrapper exists',
-  html.includes('class="progress-header"'));
-test('v4.51.0 HTML: .progress-title class on h2',
-  html.includes('class="progress-title"'));
+// v4.54.9: Progress page header replaced by .ed-pagehead editorial treatment
+test('v4.51.0 (v4.54.9 update) HTML: progress page uses .ed-pagehead editorial header',
+  /id="page-progress"[\s\S]{0,400}class="ed-pagehead"/.test(html));
+test('v4.51.0 (v4.54.9 update) HTML: progress page title is italic-accent display heading',
+  /id="page-progress"[\s\S]{0,800}ed-pagehead-display[^<]*>Topic\s*<em>progress\.<\/em>/.test(html));
 test('v4.51.0 HTML: regression — old inline-styled flex header removed',
   !html.includes('<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'));
 test('v4.51.0 HTML: regression — old inline legend dots removed from header',
@@ -5960,12 +5962,11 @@ test('v4.54.7 CSS: responsive <900px stacks workspace and sizes config popup to 
 // + drill-mistakes CTA, sidebar drill nav-count pills, elapsed-time on Results.
 console.log('\n\x1b[1m\u2500\u2500 v4.54.8 EDITORIAL PROTOTYPE COMPLETION \u2500\u2500\x1b[0m');
 
-// Sidebar nav-count pills
-test('v4.54.8 JS: renderAppSidebar computes drillCounts + injects .sb-item-count pills',
-  /renderAppSidebar[\s\S]{0,3000}drillCounts[\s\S]{0,1000}sb-item-count/.test(js));
-test('v4.54.8 CSS: .sb-item-count pill monospace + accent hover + active styling',
-  /\.sb-item-count\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
-  /\.sb-item-active\s+\.sb-item-count\s*\{/.test(css));
+// v4.54.9: drill nav-count pills retired. Guard the removal + the CSS hide rule.
+test('v4.54.9 JS: renderAppSidebar no longer computes drillCounts (pills retired)',
+  !/renderAppSidebar[\s\S]{0,3000}drillCounts/.test(js));
+test('v4.54.9 CSS: .sb-item-count hidden via display: none',
+  /\.sb-item-count\s*\{[\s\S]{0,200}display:\s*none\s*!important/.test(css));
 
 // Results: elapsed-time row + review list + drill-mistakes CTA
 test('v4.54.8 HTML: Results aside includes #r-elapsed row',
@@ -6071,6 +6072,83 @@ test('v4.54.8 CSS: legacy .kb-hint hidden (superseded by .quiz-kbd-hints)',
 // Cross-cutting: reduced-motion
 test('v4.54.8 CSS: reduced-motion neutralises new transitions (quick-card, qpd, acc-tab)',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\.quiz-presets\s+\.preset-tile::after[\s\S]{0,400}transition:\s*none/.test(css));
+
+// ── v4.54.9 Editorial sweep on remaining pages + global zoom-in ──
+// User: comb the app, apply editorial aesthetic to remaining surfaces, zoom in
+// for readability, remove the sidebar drill count pills. This block guards the
+// reusable .ed-pagehead component + per-page adoption + exam parity.
+console.log('\n\x1b[1m\u2500\u2500 v4.54.9 EDITORIAL SWEEP + GLOBAL ZOOM \u2500\u2500\x1b[0m');
+
+// Reusable .ed-pagehead component
+test('v4.54.9 CSS: reusable .ed-pagehead with 80px accent strip + italic-accent display',
+  /\.ed-pagehead\s*\{[\s\S]{0,400}border-bottom:\s*2px\s+solid/.test(css) &&
+  /\.ed-pagehead::after\s*\{[\s\S]{0,300}width:\s*80px/.test(css) &&
+  /\.ed-pagehead-display\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.9 CSS: .ed-pagehead-eyebrow monospace small-caps with leading-dash pseudo',
+  /\.ed-pagehead-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,400}text-transform:\s*uppercase/.test(css) &&
+  /\.ed-pagehead-eyebrow::before\s*\{[\s\S]{0,200}content:\s*'\u2014'/.test(css));
+
+// Per-page adoption
+test('v4.54.9 HTML: Review page uses .ed-pagehead with italic-accent "Every answer."',
+  /id="page-review"[\s\S]{0,400}class="ed-pagehead"[\s\S]{0,1000}Every\s*<em>answer\.<\/em>/.test(html));
+test('v4.54.9 HTML: Progress page uses .ed-pagehead with "Topic progress."',
+  /id="page-progress"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}Topic\s*<em>progress\.<\/em>/.test(html));
+test('v4.54.9 HTML: Settings page uses .ed-pagehead with "Your settings."',
+  /id="page-settings"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}Your\s*<em>settings\.<\/em>/.test(html));
+test('v4.54.9 HTML: Drills Launcher uses .ed-pagehead with "Interactive drills."',
+  /id="page-drills"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}Interactive\s*<em>drills\.<\/em>/.test(html));
+
+// Exam parity: progress dots + kbd hints + wrongExplain
+test('v4.54.9 HTML: Exam page has #exam-prog-dots segmented progress container',
+  html.includes('id="exam-prog-dots"'));
+test('v4.54.9 HTML: Exam page uses editorial .quiz-kbd-hints footer',
+  /id="page-exam"[\s\S]{0,6000}class="quiz-kbd-hints"[\s\S]{0,400}<kbd>A<\/kbd>/.test(html));
+test('v4.54.9 HTML: Exam page has #exam-wrong-explain block',
+  html.includes('id="exam-wrong-explain"'));
+test('v4.54.9 JS: _renderExamProgressDots defined + called from renderExam',
+  js.includes('function _renderExamProgressDots(') &&
+  /renderExam[\s\S]{0,2000}_renderExamProgressDots\(\)/.test(js));
+test('v4.54.9 JS: exam progress dots emit qpd-flagged state',
+  /_renderExamProgressDots[\s\S]{0,2000}qpd-flagged/.test(js));
+test('v4.54.9 CSS: qpd-flagged uses yellow fill',
+  /\.qpd-cell\.qpd-flagged\s*\{[\s\S]{0,200}background:\s*var\(--yellow\)/.test(css));
+
+// Exam Results v2 editorial parallel
+test('v4.54.9 HTML: Exam Results uses .exam-results-v2 editorial display heading',
+  html.includes('class="exam-results-v2"') &&
+  /exam-results-v2-display[\s\S]{0,400}Pass mark\s*<em>cleared\.<\/em>/.test(html));
+test('v4.54.9 HTML: Exam Results has dark hero + side aside with 4 stat rows',
+  html.includes('class="exam-results-v2-hero"') &&
+  html.includes('class="exam-results-v2-side"'));
+test('v4.54.9 JS: submitExam updates headline with pass/fail italic-accent em',
+  /submitExam[\s\S]{0,8000}exam-result-headline[\s\S]{0,400}Pass mark\s*<em>cleared\.<\/em>/.test(js) &&
+  /submitExam[\s\S]{0,8000}exam-result-headline[\s\S]{0,400}More\s*<em>work needed\.<\/em>/.test(js));
+test('v4.54.9 CSS: exam-results-v2-hero dark gradient + 84px tabular-nums score',
+  /\.exam-results-v2-hero\s*\{[\s\S]{0,600}linear-gradient\(160deg,\s*#16131f/.test(css) &&
+  /\.exam-results-v2-big-score\s*\{[\s\S]{0,400}font-size:\s*84px[\s\S]{0,300}tabular-nums/.test(css));
+test('v4.54.9 CSS: legacy .exam-results-hero retired (display:none)',
+  /\.exam-results-hero\s*\{\s*display:\s*none\s*!important/.test(css));
+
+// Session Transition / Complete editorial hero
+test('v4.54.9 HTML: Session Transition uses .session-hero-v2 with italic-accent display',
+  /id="page-session-transition"[\s\S]{0,400}class="session-hero session-hero-v2"[\s\S]{0,1500}class="session-hero-display"/.test(html));
+test('v4.54.9 HTML: Session Complete uses italic-accent "All topics cleared."',
+  /id="page-session-complete"[\s\S]{0,500}All topics\s*<em>cleared\.<\/em>/.test(html));
+test('v4.54.9 CSS: .session-hero-eyebrow monospace small-caps + leading-dash pseudo',
+  /\.session-hero-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,400}text-transform:\s*uppercase/.test(css));
+
+// Drills launcher tile polish
+test('v4.54.9 CSS: .drills-tile has hover accent bar (::after scaleX) + per-index color cycling',
+  /\.drills-tile::after\s*\{[\s\S]{0,400}transform:\s*scaleX\(0\)/.test(css) &&
+  /\.drills-tile:nth-child\(2\)::after\s*\{[\s\S]{0,200}background:\s*var\(--green\)/.test(css));
+
+// Global zoom-in
+test('v4.54.9 CSS: html { zoom: 1.06 } for 6% global zoom-in',
+  /html\s*\{[\s\S]{0,200}zoom:\s*1\.06/.test(css));
+
+// Reduced motion coverage
+test('v4.54.9 CSS: reduced-motion neutralises .drills-tile transitions',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,600}\.drills-tile[\s\S]{0,200}transition:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
