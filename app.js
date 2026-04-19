@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.4
+// Network+ AI Quiz — app.js  v4.54.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.4';
+const APP_VERSION = '4.54.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6848,6 +6848,9 @@ function openTopologyBuilder() {
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
   tbAttachKeyHandler();
+  // v4.54.5: 3-column layout \u2014 render right pane (always-visible scenarios + inspector)
+  if (typeof tbRenderV3ScenariosList === 'function') tbRenderV3ScenariosList();
+  if (typeof tbRenderV3Inspector === 'function') tbRenderV3Inspector();
   // Always show sim toolbar stub (kept for compat)
   document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
   // Auto-collapse intro banner after first visit
@@ -7153,6 +7156,8 @@ function tbOnDeviceMouseDown(e, id) {
   const { x: sx, y: sy } = tbClientToSvg(svg, e.clientX, e.clientY);
   tbDragging = { id, offsetX: sx - dev.x, offsetY: sy - dev.y, moved: false, startX: dev.x, startY: dev.y };
   tbSelectedId = id;
+  // v4.54.5: sync the right-pane inspector with the selected device
+  if (typeof tbSelectDeviceForInspector === 'function') tbSelectDeviceForInspector(id);
   tbRenderCanvas();
 }
 
@@ -7449,6 +7454,127 @@ function tbRenderV2Stats() {
   ].filter(Boolean);
   el.innerHTML = parts.join(' <span class="tb-v2-stat-sep">&middot;</span> ');
 }
+
+// ══════════════════════════════════════════
+// v4.54.5 \u2014 3-COLUMN TB: right-pane Scenarios + Inspector
+// ══════════════════════════════════════════
+// User asked to match the prototype's 3-column layout. These functions render
+// the always-visible right pane. No changes to canvas engine, simulation,
+// labs, coach, or existing handlers.
+
+// Render the compact scenarios list in the right pane. Each item shows the
+// scenario title + a device-count tag. Active scenario gets an accent bg.
+function tbRenderV3ScenariosList() {
+  const el = document.getElementById('tb-v3-scenarios-list');
+  if (!el) return;
+  if (typeof TB_SCENARIOS === 'undefined' || !Array.isArray(TB_SCENARIOS)) {
+    el.innerHTML = '<div class="tb-v3-empty">No scenarios loaded.</div>';
+    return;
+  }
+  const list = TB_SCENARIOS.slice().sort((a, b) => {
+    if (a.id === 'free-build') return -1;
+    if (b.id === 'free-build') return 1;
+    return 0;
+  });
+  const active = (typeof tbSelectedScenario === 'string') ? tbSelectedScenario : '';
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+  const items = list.map(s => {
+    const isActive = s.id === active;
+    let tag = '';
+    if (s.id === 'free-build') {
+      tag = 'open';
+    } else if (typeof s.autoBuild === 'function') {
+      try {
+        const tmpState = (typeof tbNewState === 'function') ? tbNewState() : { devices: [], cables: [] };
+        s.autoBuild(tmpState);
+        tag = `${tmpState.devices.length} dev`;
+      } catch (_) { tag = ''; }
+    }
+    const safeId = String(s.id).replace(/'/g, "\\'");
+    return `<button type="button" class="tb-v3-scn${isActive ? ' tb-v3-scn-active' : ''}" data-scn-id="${safeId}" onclick="tbLoadScenarioWithBuild('${safeId}')" aria-pressed="${isActive ? 'true' : 'false'}">
+      <span class="tb-v3-scn-title">${esc(s.title || s.id)}</span>
+      ${tag ? `<span class="tb-v3-scn-tag">${tag}</span>` : ''}
+    </button>`;
+  }).join('');
+  el.innerHTML = items;
+}
+
+// Inspector render: read-only summary of the selected device.
+let tbV3InspectedDeviceId = null;
+function tbSelectDeviceForInspector(deviceId) {
+  tbV3InspectedDeviceId = deviceId || null;
+  tbRenderV3Inspector();
+}
+function tbRenderV3Inspector() {
+  const el = document.getElementById('tb-v3-inspector');
+  if (!el) return;
+  const deviceId = tbV3InspectedDeviceId;
+  const dev = (tbState && tbState.devices) ? tbState.devices.find(d => d.id === deviceId) : null;
+  if (!dev) {
+    el.innerHTML = `<div class="tb-v3-inspector-empty">
+      <div class="tb-v3-inspector-empty-ico" aria-hidden="true">\u2139</div>
+      <div class="tb-v3-inspector-empty-text"><strong>Click a device</strong> on the canvas to see its interfaces, IPs, and role summary here.</div>
+      <div class="tb-v3-inspector-empty-sub">Double-click a device for the full editable config panel.</div>
+    </div>`;
+    return;
+  }
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+  let typeLabel = dev.type || '';
+  try {
+    if (typeof TB_DEVICE_TYPES !== 'undefined' && TB_DEVICE_TYPES[dev.type]) {
+      typeLabel = TB_DEVICE_TYPES[dev.type].label || dev.type;
+    }
+  } catch (_) {}
+  const hostname = dev.hostname || dev.type || dev.id;
+  const ifaces = Array.isArray(dev.interfaces) ? dev.interfaces : [];
+  const ifaceRows = ifaces.length === 0
+    ? '<div class="tb-v3-inspector-empty-sub">No interfaces.</div>'
+    : ifaces.map(i => {
+        const name = esc(i.name || 'iface');
+        const ip = i.ip ? esc(`${i.ip}${i.mask ? '/' + i.mask : ''}`) : '<em>unassigned</em>';
+        return `<div class="tb-v3-inspect-row"><span class="k">${name}</span><span class="v">${ip}</span></div>`;
+      }).join('');
+  let vlanHtml = '';
+  if (dev.vlanDb && typeof dev.vlanDb === 'object') {
+    const vlanKeys = Object.keys(dev.vlanDb).filter(v => v !== '1');
+    if (vlanKeys.length > 0) {
+      vlanHtml = `
+        <div class="tb-v3-inspect-section">
+          <div class="tb-v3-inspect-title">VLANs</div>
+          ${vlanKeys.map(v => {
+            const entry = dev.vlanDb[v] || {};
+            const name = entry.name ? esc(entry.name) : `VLAN ${v}`;
+            return `<div class="tb-v3-inspect-row"><span class="k">${esc(v)} &middot; ${name}</span><span class="v">${entry.ipv4 ? esc(entry.ipv4) : '\u2014'}</span></div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
+  let routingHtml = '';
+  if (Array.isArray(dev.routingTable) && dev.routingTable.length > 0) {
+    const top = dev.routingTable.slice(0, 3);
+    const extra = dev.routingTable.length - top.length;
+    routingHtml = `
+      <div class="tb-v3-inspect-section">
+        <div class="tb-v3-inspect-title">Routes ${extra > 0 ? `<span class="tb-v3-inspect-count">+${extra} more</span>` : ''}</div>
+        ${top.map(r => {
+          const dest = esc(`${r.destination || '0.0.0.0'}/${r.mask || 0}`);
+          const nh = esc(r.nextHop || r.interface || '\u2014');
+          return `<div class="tb-v3-inspect-row"><span class="k">${dest}</span><span class="v">${nh}</span></div>`;
+        }).join('')}
+      </div>`;
+  }
+  el.innerHTML = `
+    <div class="tb-v3-inspect-id">${esc(hostname)}</div>
+    <div class="tb-v3-inspect-sub">${esc(typeLabel)}</div>
+    <div class="tb-v3-inspect-section">
+      <div class="tb-v3-inspect-title">Interfaces</div>
+      ${ifaceRows}
+    </div>
+    ${vlanHtml}
+    ${routingHtml}
+    <button type="button" class="tb-v3-inspect-edit" onclick="tbOpenConfigPanel(tbV3InspectedDeviceId)">Open full config &rarr;</button>`;
+}
+
 // Show/hide the big floating "Wiring..." banner based on tbPendingCableFrom.
 function tbUpdateWireOverlay() {
   const el = document.getElementById('tb-wire-overlay');
@@ -9564,6 +9690,10 @@ function tbLoadScenarioWithBuild(id) {
   tbRenderCanvas();
   tbUpdateDeviceCount();
   tbSaveDraft();
+  // v4.54.5: refresh right pane (active scenario highlight + inspector clear)
+  tbV3InspectedDeviceId = null;
+  if (typeof tbRenderV3ScenariosList === 'function') tbRenderV3ScenariosList();
+  if (typeof tbRenderV3Inspector === 'function') tbRenderV3Inspector();
 
   if (id !== 'free' && tbState.devices.length > 0) {
     showSuccessToast(`\u{1F3D7}\uFE0F ${scen.title} built \u2014 ${tbState.devices.length} devices connected. Explore + modify as you learn.`);

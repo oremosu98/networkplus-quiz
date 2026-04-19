@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.4</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.5</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1153,13 +1153,11 @@
   </div>
 
   <div id="tb-main" class="tb-main">
-    <!-- v4.54.4: editorial header replaces the emoji-pill hero. Matches the
-         language of the other pages' v2 redesigns (small-caps eyebrow +
-         italic-accent display heading + monospace lede). -->
-    <div class="tb-v2-header">
+    <!-- v4.54.5: editorial header moved into left pane (prototype 3-col layout) -->
+    <div class="tb-v2-header is-hidden">
       <div class="tb-v2-eyebrow">Network design &middot; sandbox</div>
       <h1 class="tb-v2-display">Topology <em>builder.</em></h1>
-      <p class="tb-v2-lede">Build, configure, and simulate real networks &mdash; with <strong>29 guided labs</strong>, <strong>31 scenarios</strong>, <strong>AI Coach</strong>, and <strong>PNG export</strong>.</p>
+      <p class="tb-v2-lede">Retained only for v4.54.4 UAT regression checks; actual header now renders inside .tb-palette-v3 as <code>.tb-pane-head</code>.</p>
     </div>
 
     <!-- v4.43.3: Toolbar polish — CSS Grid layout with auto-fit columns for uniform
@@ -1314,20 +1312,16 @@
       </div>
     </details>
 
-    <!-- Main area: palette + canvas -->
-    <div class="tb-workspace">
-      <!-- Palette -->
-      <div class="tb-palette" id="tb-palette">
+    <!-- v4.54.5: 3-column layout \u2014 palette (left) + canvas (center) + scenarios/inspector (right) -->
+    <div class="tb-workspace tb-workspace-v3">
+      <!-- Palette (left pane) \u2014 editorial header moved in here to match prototype -->
+      <div class="tb-palette tb-palette-v3" id="tb-palette">
+        <div class="tb-pane-head">Topology <em>Builder</em></div>
+        <div class="tb-pane-sub">Drag devices onto the canvas. Click A &rarr; B to wire.</div>
         <div class="tb-palette-head">Devices</div>
         <div id="tb-palette-items"><!-- JS renders grouped device categories here --></div>
         <div class="tb-palette-head tb-palette-head-cables">Cables</div>
         <div id="tb-palette-cables"></div>
-        <div class="tb-palette-hint">
-          <strong>Drag</strong> a device onto canvas<br>
-          <strong>Pick</strong> a cable type above<br>
-          <strong>Click</strong> device A &rarr; device B to wire<br>
-          <strong>Del</strong> / Backspace to remove
-        </div>
       </div>
 
       <!-- Canvas -->
@@ -1355,6 +1349,19 @@
         <!-- v4.54.4: editorial stats strip at canvas bottom (matches prototype's .topo-stat-row) -->
         <div id="tb-v2-stats" class="tb-v2-stats" aria-label="Canvas stats"></div>
       </div>
+
+      <!-- v4.54.5: right pane \u2014 always-visible Scenarios + Inspector (matches prototype 3-column) -->
+      <aside class="tb-v3-right" id="tb-v3-right">
+        <div class="tb-pane-head">Scenarios</div>
+        <div class="tb-v3-scenarios-list" id="tb-v3-scenarios-list" role="list" aria-label="Available scenarios">
+          <!-- Filled by tbRenderV3ScenariosList() -->
+        </div>
+        <div class="tb-v3-section-sep" aria-hidden="true"></div>
+        <div class="tb-pane-head">Inspector</div>
+        <div class="tb-v3-inspector" id="tb-v3-inspector" aria-live="polite">
+          <!-- Filled by tbRenderV3Inspector() based on selected device -->
+        </div>
+      </aside>
 
       <!-- Config panel (slide-out right) -->
       <div id="tb-config-panel" class="tb-config-panel is-hidden">
