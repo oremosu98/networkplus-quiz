@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.5', js.includes("const APP_VERSION = '4.54.5"));
+test('APP_VERSION is 4.54.6', js.includes("const APP_VERSION = '4.54.6"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.5', sw.includes('netplus-v4.54.5'));
+test('SW cache bumped to v4.54.6', sw.includes('netplus-v4.54.6'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -804,7 +804,10 @@ test('CSS: .tb-toolbar', css.includes('.tb-toolbar'));
 // ── Topology Builder polish (v4.41.0 — bigger canvas + auto-layout) ──
 console.log('\n\x1b[1m── TOPOLOGY BUILDER POLISH (v4.41.0) ──\x1b[0m');
 test('Canvas dimensions bumped to 1800x1100', js.includes('TB_CANVAS_W = 1800') && js.includes('TB_CANVAS_H = 1100'));
-test('Canvas viewBox 1800x1100 in HTML', html.includes('viewBox="0 0 1800 1100"'));
+// v4.54.6: viewBox is now dynamic (tbViewState). Default tightened to 350 250 1100 600
+// for a ~1.6x zoom-in on first load. Grid bg rect carries the full 1800x1100 world dims.
+test('Canvas viewBox tightened (v4.54.6 default zoom-in)', html.includes('viewBox="350 250 1100 600"'));
+test('Canvas world dims preserved on grid bg rect (v4.54.6)', /<rect x="0" y="0" width="1800" height="1100" fill="url\(#tb-grid\)"/.test(html));
 test('Device rect compact (96x72) for fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
 test('Device label font 13', /tb-device-label[\s\S]{0,200}font-size="13"/.test(js));
 // v4.43.1 #4: intro banner replaced with compact .tb-hero (was wall-of-text .tb-intro-banner)
@@ -5746,10 +5749,12 @@ test('v4.54.5 HTML: .tb-workspace-v3 grid shell exists',
   html.includes('tb-workspace tb-workspace-v3'));
 test('v4.54.5 HTML: left pane uses .tb-palette-v3 + .tb-pane-head + .tb-pane-sub',
   html.includes('class="tb-palette tb-palette-v3"') && html.includes('class="tb-pane-head"') && html.includes('class="tb-pane-sub"'));
-test('v4.54.5 HTML: right pane with #tb-v3-right + Scenarios + Inspector containers',
+test('v4.54.5 (v4.54.6 update) HTML: right pane #tb-v3-right + scenarios list (Inspector now in floating popup)',
   html.includes('id="tb-v3-right"') && html.includes('id="tb-v3-scenarios-list"') && html.includes('id="tb-v3-inspector"'));
-test('v4.54.5 HTML: .tb-v3-section-sep divider between Scenarios and Inspector',
-  html.includes('class="tb-v3-section-sep"'));
+// v4.54.6: .tb-v3-section-sep retired \u2014 Inspector moved out of right pane into floating popup,
+// so the divider between Scenarios and Inspector is no longer needed. Regression-guard the removal.
+test('v4.54.6 HTML: .tb-v3-section-sep removed (Inspector moved to popup)',
+  !html.includes('class="tb-v3-section-sep"'));
 
 // JS
 test('v4.54.5 JS: tbRenderV3ScenariosList defined',
@@ -5793,6 +5798,99 @@ test('v4.54.5 CSS: responsive <1200px hides .tb-v3-right + collapses to 2-col',
   /@media \(max-width:\s*1200px\)[\s\S]{0,500}\.tb-v3-right\s*\{\s*display:\s*none/.test(css));
 test('v4.54.5 CSS: light-theme .tb-v3-scn-active recoloured #6355e0',
   /\[data-theme="light"\]\s+\.tb-v3-scn-active\s*\{[\s\S]{0,300}99,\s*85,\s*224/.test(css));
+
+// ── v4.54.6 TB usability fixes ──
+// User asked for 6 things after v4.54.5 shipped: pill-tab toolbar inside the
+// canvas, canvas pan + zoom + default zoom-in, draggable transparent inspector
+// popup (replacing the right-pane Inspector), categorised scenarios with
+// subheaders + full text wrap, 2-col palette grid. This block guards all of
+// them.
+console.log('\n\x1b[1m\u2500\u2500 v4.54.6 TB USABILITY FIXES \u2500\u2500\x1b[0m');
+
+// HTML
+test('v4.54.6 HTML: canvas pill toolbar (#tb-canvas-pills) with Design + Simulate + Labs mode pills',
+  html.includes('id="tb-canvas-pills"') &&
+  /data-tb-pill="design"/.test(html) &&
+  /data-tb-pill="simulate"/.test(html) &&
+  /data-tb-pill="labs"/.test(html));
+test('v4.54.6 HTML: pill toolbar action buttons (Coach + Grade + PNG)',
+  /tb-pill-action[\s\S]{0,200}tbCoachTopology\(\)/.test(html) &&
+  /tb-pill-grade[\s\S]{0,200}tbGradeTopology\(\)/.test(html) &&
+  /tb-pill-action[\s\S]{0,200}tbExportPNG\(\)/.test(html));
+test('v4.54.6 HTML: zoom controls (#tb-zoom-ctrls + zoom in/out/reset buttons)',
+  html.includes('id="tb-zoom-ctrls"') &&
+  /tbZoomIn\(\)/.test(html) && /tbZoomOut\(\)/.test(html) && /tbZoomReset\(\)/.test(html));
+test('v4.54.6 HTML: floating draggable inspector popup (#tb-inspector-pop + close button)',
+  html.includes('id="tb-inspector-pop"') &&
+  html.includes('id="tb-inspector-pop-head"') &&
+  /tbInspectorPopClose\(\)/.test(html));
+test('v4.54.6 HTML: canvas viewBox tightened for default zoom-in (350 250 1100 600)',
+  /id="tb-canvas"[\s\S]{0,400}viewBox="350 250 1100 600"/.test(html));
+test('v4.54.6 HTML: grid bg rect uses fixed world dims so panning still shows grid',
+  /<rect x="0" y="0" width="1800" height="1100" fill="url\(#tb-grid\)"/.test(html));
+
+// JS
+test('v4.54.6 JS: tbViewState + TB_VIEW_DEFAULT defined for pan/zoom state',
+  js.includes('const TB_VIEW_DEFAULT') && js.includes('let tbViewState'));
+test('v4.54.6 JS: tbZoomIn / tbZoomOut / tbZoomReset / tbZoomBy defined',
+  js.includes('function tbZoomIn(') && js.includes('function tbZoomOut(') &&
+  js.includes('function tbZoomReset(') && js.includes('function tbZoomBy('));
+test('v4.54.6 JS: tbApplyViewBox sets viewBox attribute on #tb-canvas',
+  /function tbApplyViewBox\(\)\s*\{[\s\S]{0,400}setAttribute\('viewBox',/.test(js));
+test('v4.54.6 JS: tbBindCanvasPanZoom binds wheel + mousedown for pan/zoom',
+  js.includes('function tbBindCanvasPanZoom(') &&
+  /tbBindCanvasPanZoom[\s\S]{0,1500}addEventListener\('wheel'/.test(js) &&
+  /tbBindCanvasPanZoom[\s\S]{0,2500}addEventListener\('mousedown'/.test(js));
+test('v4.54.6 JS: tbZoomBy clamps to TB_VIEW_MIN_W / TB_VIEW_MAX_W',
+  /tbZoomBy[\s\S]{0,800}TB_VIEW_MIN_W[\s\S]{0,200}TB_VIEW_MAX_W/.test(js));
+test('v4.54.6 JS: openTopologyBuilder calls tbBindCanvasPanZoom + tbZoomReset',
+  /openTopologyBuilder[\s\S]{0,2000}tbBindCanvasPanZoom\(\)[\s\S]{0,400}tbZoomReset\(\)/.test(js));
+test('v4.54.6 JS: tbInspectorPopOpen + tbInspectorPopClose defined',
+  js.includes('function tbInspectorPopOpen(') && js.includes('function tbInspectorPopClose('));
+test('v4.54.6 JS: tbBindInspectorPopDrag drags popup by header',
+  js.includes('function tbBindInspectorPopDrag(') &&
+  /tbBindInspectorPopDrag[\s\S]{0,1500}addEventListener\('mousedown'/.test(js));
+test('v4.54.6 JS: tbSelectDeviceForInspector auto-opens popup on device click',
+  /tbSelectDeviceForInspector[\s\S]{0,500}tbInspectorPopOpen\(\)/.test(js));
+test('v4.54.6 JS: tbLoadScenarioWithBuild closes popup when scenario loads',
+  /tbLoadScenarioWithBuild[\s\S]{0,3500}tbInspectorPopClose\(\)/.test(js));
+test('v4.54.6 JS: tbSelectPill toggles aria-pressed + tb-pill-active across pills',
+  js.includes('function tbSelectPill(') &&
+  /tbSelectPill[\s\S]{0,500}tb-pill-active[\s\S]{0,300}aria-pressed/.test(js));
+test('v4.54.6 JS: tbRenderV3ScenariosList builds categorised sections via TB_SCENARIO_CATEGORIES',
+  /tbRenderV3ScenariosList[\s\S]{0,3500}TB_SCENARIO_CATEGORIES[\s\S]{0,1500}tb-v3-scn-cat/.test(js));
+test('v4.54.6 JS: scenarios list renders Sandbox group with Free Build pinned',
+  /tbRenderV3ScenariosList[\s\S]{0,3500}Sandbox[\s\S]{0,800}free-build/.test(js));
+
+// CSS
+test('v4.54.6 CSS: palette devices in 2-col grid',
+  /\.tb-palette\.tb-palette-v3\s+#tb-palette-items\s*\{[\s\S]{0,300}grid-template-columns:\s*1fr\s+1fr/.test(css));
+test('v4.54.6 CSS: palette group head spans both columns',
+  /tb-palette-group-head[\s\S]{0,400}grid-column:\s*1\s*\/\s*-1/.test(css));
+test('v4.54.6 CSS: scenario titles wrap (white-space:normal, no ellipsis)',
+  /\.tb-v3-scn-cat-body\s+\.tb-v3-scn-title\s*\{[\s\S]{0,300}white-space:\s*normal/.test(css));
+test('v4.54.6 CSS: scenario category subheader is monospace small-caps accent',
+  /\.tb-v3-scn-cat-head\s*\{[\s\S]{0,500}font-family:\s*monospace[\s\S]{0,300}text-transform:\s*uppercase/.test(css));
+test('v4.54.6 CSS: pill toolbar absolute-positioned top-left of canvas with backdrop blur',
+  /\.tb-canvas-pills\s*\{[\s\S]{0,500}position:\s*absolute[\s\S]{0,200}backdrop-filter:\s*blur/.test(css));
+test('v4.54.6 CSS: active pill gets accent gradient + accent-light text',
+  /\.tb-pill-active\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*rgba\(124,\s*111,\s*247/.test(css));
+test('v4.54.6 CSS: green Grade pill has its own tint (.tb-pill-grade)',
+  /\.tb-pill-grade\s*\{[\s\S]{0,300}rgba\(34,\s*197,\s*94/.test(css));
+test('v4.54.6 CSS: zoom controls bottom-right with backdrop blur',
+  /\.tb-zoom-ctrls\s*\{[\s\S]{0,500}position:\s*absolute[\s\S]{0,200}backdrop-filter:\s*blur/.test(css));
+test('v4.54.6 CSS: inspector popup is absolute, transparent dark glass, rounded',
+  /\.tb-inspector-pop\s*\{[\s\S]{0,800}position:\s*absolute[\s\S]{0,400}backdrop-filter:\s*blur[\s\S]{0,200}border-radius:\s*14px/.test(css));
+test('v4.54.6 CSS: inspector popup head is grab cursor (drag handle)',
+  /\.tb-inspector-pop-head\s*\{[\s\S]{0,400}cursor:\s*grab/.test(css));
+test('v4.54.6 CSS: tbInspectorPopIn keyframe entrance animation',
+  /@keyframes tbInspectorPopIn\s*\{/.test(css));
+test('v4.54.6 CSS: light-theme overrides for pills + zoom + popup',
+  /\[data-theme="light"\]\s+\.tb-canvas-pills\s*\{/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-zoom-ctrls\s*\{/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-inspector-pop\s*\{/.test(css));
+test('v4.54.6 CSS: reduced-motion neutralises popup animation + pill transitions',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,400}\.tb-inspector-pop\s*\{[^}]*animation:\s*none/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

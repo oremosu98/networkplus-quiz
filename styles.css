@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.5
+   Network+ AI Quiz — styles.css  v4.54.6
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8351,4 +8351,345 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   background: linear-gradient(135deg, rgba(99, 85, 224, .12), rgba(99, 85, 224, .04));
   border-color: rgba(99, 85, 224, .3);
   color: #6355e0;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.6 \u2014 TB usability fixes
+   - 2-col palette grid
+   - Categorised scenarios w/ subheaders + full text wrap
+   - Pill-tab toolbar inside canvas top
+   - Zoom controls bottom-right of canvas
+   - Draggable transparent floating inspector popup
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (1) Palette \u2014 device tiles in a 2-column grid. The group head spans both
+       columns. Tiles get tighter padding + centered icon so they read like
+       cards rather than rows. */
+.tb-palette.tb-palette-v3 #tb-palette-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: stretch;
+}
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-group-head {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  padding: 0 2px;
+  font-size: 9.5px;
+  letter-spacing: .12em;
+}
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-group-head:first-child { margin-top: 0; }
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 8px 4px;
+  margin-bottom: 0;
+  min-height: 70px;
+  border-radius: 9px;
+}
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item:hover {
+  transform: translateY(-1px);
+}
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-label {
+  font-size: 10.5px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+.tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-icon-svg {
+  width: 38px; height: 32px;
+}
+
+/* (2) Right-pane Scenarios \u2014 categorised sections with subheaders. Items
+       wrap full text now (no ellipsis), subheaders are monospace small-caps
+       matching the editorial system. */
+.tb-pane-sub-tight {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .14);
+}
+.tb-v3-scn-cat { margin-bottom: 14px; }
+.tb-v3-scn-cat:last-child { margin-bottom: 0; }
+.tb-v3-scn-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  opacity: .85;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+.tb-v3-scn-cat-ico { font-size: 11px; opacity: .9; }
+.tb-v3-scn-cat-name { flex: 1; min-width: 0; }
+.tb-v3-scn-cat-count {
+  font-size: 9px;
+  background: rgba(var(--accent-rgb), .1);
+  border: 1px solid rgba(var(--accent-rgb), .2);
+  padding: 1px 6px;
+  border-radius: 99px;
+  letter-spacing: .04em;
+  color: var(--accent-light);
+}
+.tb-v3-scn-cat-body {
+  display: flex; flex-direction: column; gap: 3px;
+}
+/* Override the v4.54.5 scenario tile to wrap full text (no ellipsis) and
+   sit comfortably with multi-line titles. */
+.tb-v3-scn-cat-body .tb-v3-scn {
+  align-items: flex-start;
+  padding: 8px 10px;
+}
+.tb-v3-scn-cat-body .tb-v3-scn-title {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* (3) Pill-tab toolbar inside canvas top. Translucent dark bar pinned to
+       top-left of the canvas; doesn't cover the full width so the canvas
+       still feels open. */
+.tb-canvas-wrap { position: relative; }
+.tb-canvas-pills {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(11, 16, 32, .78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(124, 111, 247, .22);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px -6px rgba(0, 0, 0, .4);
+}
+.tb-canvas-pills-modes,
+.tb-canvas-pills-actions {
+  display: flex; gap: 2px;
+}
+.tb-canvas-pills-sep {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(124, 111, 247, .22);
+  margin: 4px 4px;
+}
+.tb-pill {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .12s ease;
+  white-space: nowrap;
+}
+.tb-pill:hover {
+  background: rgba(124, 111, 247, .14);
+  color: var(--text);
+}
+.tb-pill-active {
+  background: linear-gradient(135deg, rgba(124, 111, 247, .26), rgba(124, 111, 247, .14));
+  color: var(--accent-light);
+  border-color: rgba(124, 111, 247, .42);
+  box-shadow: 0 1px 4px -1px rgba(124, 111, 247, .35);
+}
+.tb-pill-action { color: var(--text); }
+.tb-pill-grade {
+  background: linear-gradient(135deg, rgba(34, 197, 94, .18), rgba(34, 197, 94, .08));
+  border-color: rgba(34, 197, 94, .35);
+  color: #86efac;
+}
+.tb-pill-grade:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, .28), rgba(34, 197, 94, .14));
+  color: #bbf7d0;
+}
+
+/* (4) Zoom controls bottom-right of canvas */
+.tb-zoom-ctrls {
+  position: absolute;
+  right: 14px;
+  bottom: 56px; /* sit above the v4.54.4 stats strip */
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(11, 16, 32, .78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(124, 111, 247, .22);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px -6px rgba(0, 0, 0, .4);
+}
+.tb-zoom-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.tb-zoom-btn:hover {
+  background: rgba(124, 111, 247, .2);
+  color: var(--accent-light);
+}
+.tb-zoom-fit { font-size: 13px; }
+
+/* (5) Floating draggable inspector popup. Transparent dark glass aesthetic
+       so the canvas underneath still shows through; matches the prototype
+       brand language while staying on our purple accent palette. */
+.tb-inspector-pop {
+  position: absolute;
+  top: 64px;
+  right: 14px;
+  z-index: 6;
+  width: 280px;
+  max-height: calc(100% - 90px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(13, 10, 21, .82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(124, 111, 247, .32);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, .55);
+  overflow: hidden;
+  animation: tbInspectorPopIn .25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes tbInspectorPopIn {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tb-inspector-pop[hidden] { display: none; }
+.tb-inspector-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, rgba(124, 111, 247, .22), rgba(124, 111, 247, .08));
+  border-bottom: 1px solid rgba(124, 111, 247, .22);
+  cursor: grab;
+  user-select: none;
+}
+.tb-inspector-pop-head:active { cursor: grabbing; }
+.tb-inspector-pop-title {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+}
+.tb-inspector-pop-close {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.tb-inspector-pop-close:hover {
+  background: rgba(239, 68, 68, .2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, .3);
+}
+.tb-inspector-pop-body {
+  padding: 12px 14px 14px;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
+}
+
+/* Prevent the wheel-scroll from scrolling the page when zooming the canvas */
+.tb-canvas-wrap { overscroll-behavior: contain; }
+
+/* SVG cursor: grab on empty canvas indicates pannable */
+.tb-canvas { cursor: grab; }
+.tb-device { cursor: grab; }
+
+/* Reduced motion: kill popup entrance animation + pill transform */
+@media (prefers-reduced-motion: reduce) {
+  .tb-inspector-pop { animation: none !important; }
+  .tb-pill, .tb-zoom-btn { transition: none !important; }
+}
+
+/* Light-theme overrides */
+[data-theme="light"] .tb-canvas-pills {
+  background: rgba(255, 255, 255, .92);
+  border-color: rgba(99, 85, 224, .25);
+}
+[data-theme="light"] .tb-canvas-pills-sep { background: rgba(99, 85, 224, .2); }
+[data-theme="light"] .tb-pill { color: #4b5563; }
+[data-theme="light"] .tb-pill:hover { background: rgba(99, 85, 224, .12); color: #1f2937; }
+[data-theme="light"] .tb-pill-active {
+  background: linear-gradient(135deg, rgba(99, 85, 224, .22), rgba(99, 85, 224, .1));
+  color: #4338ca;
+  border-color: rgba(99, 85, 224, .42);
+}
+[data-theme="light"] .tb-pill-grade {
+  background: linear-gradient(135deg, rgba(22, 163, 74, .18), rgba(22, 163, 74, .08));
+  border-color: rgba(22, 163, 74, .35);
+  color: #15803d;
+}
+[data-theme="light"] .tb-zoom-ctrls {
+  background: rgba(255, 255, 255, .92);
+  border-color: rgba(99, 85, 224, .25);
+}
+[data-theme="light"] .tb-zoom-btn { color: #1f2937; }
+[data-theme="light"] .tb-zoom-btn:hover {
+  background: rgba(99, 85, 224, .14);
+  color: #4338ca;
+}
+[data-theme="light"] .tb-inspector-pop {
+  background: rgba(255, 255, 255, .94);
+  border-color: rgba(99, 85, 224, .25);
+}
+[data-theme="light"] .tb-inspector-pop-head {
+  background: linear-gradient(135deg, rgba(99, 85, 224, .18), rgba(99, 85, 224, .08));
+  border-bottom-color: rgba(99, 85, 224, .25);
+}
+[data-theme="light"] .tb-inspector-pop-title { color: #4338ca; }
+[data-theme="light"] .tb-v3-scn-cat-head { color: #6355e0; }
+[data-theme="light"] .tb-v3-scn-cat-count {
+  background: rgba(99, 85, 224, .1);
+  border-color: rgba(99, 85, 224, .22);
+  color: #6355e0;
+}
+
+/* Narrow viewport tweaks */
+@media (max-width: 760px) {
+  .tb-canvas-pills {
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 3px;
+  }
+  .tb-pill { font-size: 10.5px; padding: 5px 8px; }
+  .tb-canvas-pills-sep { display: none; }
+  .tb-inspector-pop { width: 240px; }
 }

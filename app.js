@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.5
+// Network+ AI Quiz — app.js  v4.54.6
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.5';
+const APP_VERSION = '4.54.6';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6848,9 +6848,14 @@ function openTopologyBuilder() {
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
   tbAttachKeyHandler();
-  // v4.54.5: 3-column layout \u2014 render right pane (always-visible scenarios + inspector)
+  // v4.54.5: 3-column layout \u2014 render right pane (always-visible scenarios)
   if (typeof tbRenderV3ScenariosList === 'function') tbRenderV3ScenariosList();
+  // v4.54.6: inspector renders into floating popup (#tb-inspector-pop body)
   if (typeof tbRenderV3Inspector === 'function') tbRenderV3Inspector();
+  if (typeof tbBindInspectorPopDrag === 'function') tbBindInspectorPopDrag();
+  // v4.54.6: bind canvas pan/zoom handlers + reset to default zoomed-in view
+  if (typeof tbBindCanvasPanZoom === 'function') tbBindCanvasPanZoom();
+  if (typeof tbZoomReset === 'function') tbZoomReset();
   // Always show sim toolbar stub (kept for compat)
   document.getElementById('tb-sim-toolbar')?.classList.remove('is-hidden');
   // Auto-collapse intro banner after first visit
@@ -7457,13 +7462,18 @@ function tbRenderV2Stats() {
 
 // ══════════════════════════════════════════
 // v4.54.5 \u2014 3-COLUMN TB: right-pane Scenarios + Inspector
+// v4.54.6 \u2014 categorised scenarios w/ subheaders + draggable popup inspector
 // ══════════════════════════════════════════
-// User asked to match the prototype's 3-column layout. These functions render
-// the always-visible right pane. No changes to canvas engine, simulation,
-// labs, coach, or existing handlers.
+// v4.54.5 introduced the 3-col layout. v4.54.6 refines it per user feedback:
+// scenarios now render with category subheaders + full text (no truncation),
+// and the inspector is a draggable transparent floating popup (no longer a
+// right-pane component) that pops up on device-click. Pan/zoom + pill toolbar
+// + 2-col palette are added in adjacent code (search "v4.54.6").
 
-// Render the compact scenarios list in the right pane. Each item shows the
-// scenario title + a device-count tag. Active scenario gets an accent bg.
+// Render the compact scenarios list in the right pane, GROUPED by category
+// using TB_SCENARIO_CATEGORIES. Each item shows the scenario title (full
+// text, wraps if needed) + a device-count tag. Active scenario gets an
+// accent bg. Free Build is pinned at the top as a "Sandbox" group.
 function tbRenderV3ScenariosList() {
   const el = document.getElementById('tb-v3-scenarios-list');
   if (!el) return;
@@ -7471,17 +7481,16 @@ function tbRenderV3ScenariosList() {
     el.innerHTML = '<div class="tb-v3-empty">No scenarios loaded.</div>';
     return;
   }
-  const list = TB_SCENARIOS.slice().sort((a, b) => {
-    if (a.id === 'free-build') return -1;
-    if (b.id === 'free-build') return 1;
-    return 0;
-  });
   const active = (typeof tbSelectedScenario === 'string') ? tbSelectedScenario : '';
   const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
-  const items = list.map(s => {
+  const scenById = {};
+  TB_SCENARIOS.forEach(s => { scenById[s.id] = s; });
+
+  const renderItem = (s) => {
+    if (!s) return '';
     const isActive = s.id === active;
     let tag = '';
-    if (s.id === 'free-build') {
+    if (s.id === 'free' || s.id === 'free-build') {
       tag = 'open';
     } else if (typeof s.autoBuild === 'function') {
       try {
@@ -7495,16 +7504,242 @@ function tbRenderV3ScenariosList() {
       <span class="tb-v3-scn-title">${esc(s.title || s.id)}</span>
       ${tag ? `<span class="tb-v3-scn-tag">${tag}</span>` : ''}
     </button>`;
-  }).join('');
-  el.innerHTML = items;
+  };
+
+  const sections = [];
+  // Sandbox: Free Build pinned at the top. The TB Free Build scenario uses
+  // id 'free' (not 'free-build' \u2014 that's the ACL builder's sandbox id).
+  const free = scenById['free'] || scenById['free-build'];
+  if (free) {
+    sections.push(`<div class="tb-v3-scn-cat">
+      <div class="tb-v3-scn-cat-head"><span class="tb-v3-scn-cat-ico">\u{1F3AF}</span><span class="tb-v3-scn-cat-name">Sandbox</span></div>
+      <div class="tb-v3-scn-cat-body">${renderItem(free)}</div>
+    </div>`);
+  }
+  // Categorised sections (use TB_SCENARIO_CATEGORIES if present)
+  const cats = (typeof TB_SCENARIO_CATEGORIES !== 'undefined' && Array.isArray(TB_SCENARIO_CATEGORIES))
+    ? TB_SCENARIO_CATEGORIES : [];
+  cats.forEach(cat => {
+    const items = (cat.ids || []).map(id => scenById[id]).filter(Boolean);
+    if (items.length === 0) return;
+    sections.push(`<div class="tb-v3-scn-cat">
+      <div class="tb-v3-scn-cat-head">
+        <span class="tb-v3-scn-cat-ico">${cat.icon || ''}</span>
+        <span class="tb-v3-scn-cat-name">${esc(cat.name || '')}</span>
+        <span class="tb-v3-scn-cat-count">${items.length}</span>
+      </div>
+      <div class="tb-v3-scn-cat-body">${items.map(renderItem).join('')}</div>
+    </div>`);
+  });
+  // Defensive fallback: any scenario not covered by categories
+  const covered = new Set(['free', 'free-build']);
+  cats.forEach(c => (c.ids || []).forEach(id => covered.add(id)));
+  const orphans = TB_SCENARIOS.filter(s => !covered.has(s.id));
+  if (orphans.length > 0) {
+    sections.push(`<div class="tb-v3-scn-cat">
+      <div class="tb-v3-scn-cat-head"><span class="tb-v3-scn-cat-ico">\u{1F4DA}</span><span class="tb-v3-scn-cat-name">More</span></div>
+      <div class="tb-v3-scn-cat-body">${orphans.map(renderItem).join('')}</div>
+    </div>`);
+  }
+  el.innerHTML = sections.join('');
 }
 
-// Inspector render: read-only summary of the selected device.
+// Inspector render: read-only summary of the selected device. v4.54.6
+// renders into the floating popup (#tb-inspector-pop body) instead of a
+// right-pane card. The element id (#tb-v3-inspector) is unchanged so the
+// renderer below stays put; only the wrapper moved.
 let tbV3InspectedDeviceId = null;
 function tbSelectDeviceForInspector(deviceId) {
   tbV3InspectedDeviceId = deviceId || null;
   tbRenderV3Inspector();
+  // v4.54.6: when a device is selected, surface the popup automatically.
+  if (deviceId) tbInspectorPopOpen();
 }
+// v4.54.6: floating popup show/hide + drag.
+function tbInspectorPopOpen() {
+  const pop = document.getElementById('tb-inspector-pop');
+  if (!pop) return;
+  pop.hidden = false;
+  pop.classList.add('tb-inspector-pop-visible');
+}
+function tbInspectorPopClose() {
+  const pop = document.getElementById('tb-inspector-pop');
+  if (!pop) return;
+  pop.hidden = true;
+  pop.classList.remove('tb-inspector-pop-visible');
+}
+// Drag-by-header. The popup is position:absolute inside .tb-canvas-wrap so
+// movement is relative to the canvas, not the page. Bound once at TB open.
+let _tbInspectorPopDragBound = false;
+function tbBindInspectorPopDrag() {
+  if (_tbInspectorPopDragBound) return;
+  const head = document.getElementById('tb-inspector-pop-head');
+  const pop = document.getElementById('tb-inspector-pop');
+  if (!head || !pop) return;
+  let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  head.addEventListener('mousedown', (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains('tb-inspector-pop-close')) return;
+    dragging = true;
+    const rect = pop.getBoundingClientRect();
+    const wrapRect = pop.parentElement.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left - wrapRect.left;
+    startTop = rect.top - wrapRect.top;
+    pop.style.right = 'auto';
+    pop.style.left = startLeft + 'px';
+    pop.style.top = startTop + 'px';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const wrapRect = pop.parentElement.getBoundingClientRect();
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    let nl = startLeft + dx, nt = startTop + dy;
+    nl = Math.max(8, Math.min(wrapRect.width - 60, nl));
+    nt = Math.max(8, Math.min(wrapRect.height - 40, nt));
+    pop.style.left = nl + 'px';
+    pop.style.top = nt + 'px';
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  _tbInspectorPopDragBound = true;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// v4.54.6 \u2014 Canvas pan + zoom (viewBox manipulation)
+// ─────────────────────────────────────────────────────────────────────
+// We mutate the SVG viewBox attribute directly. Mouse coords still convert
+// correctly because tbClientToSvg uses getScreenCTM().inverse() which takes
+// the current viewBox into account. So device drag, drop, and wiring all
+// keep working without changes.
+//
+// Default view: 350,250 1100x600 \u2014 a centered window onto the 1800x1100
+// world. That's roughly 1.6x zoom-in vs the previous 0,0 1800x1100 view.
+
+const TB_VIEW_DEFAULT = { x: 350, y: 250, w: 1100, h: 600 };
+const TB_VIEW_MIN_W = 250;   // max zoom-in (smaller viewBox = bigger devices)
+const TB_VIEW_MAX_W = 2400;  // max zoom-out
+const TB_VIEW_AR = TB_VIEW_DEFAULT.w / TB_VIEW_DEFAULT.h; // preserve aspect ratio
+let tbViewState = Object.assign({}, TB_VIEW_DEFAULT);
+
+function tbApplyViewBox() {
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+  const v = tbViewState;
+  svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`);
+}
+
+function tbZoomReset() {
+  tbViewState = Object.assign({}, TB_VIEW_DEFAULT);
+  tbApplyViewBox();
+}
+
+function tbZoomBy(factor, anchorWorld) {
+  // factor < 1 zooms IN (smaller viewBox), > 1 zooms OUT.
+  // anchorWorld (optional) is the world-space point that should remain
+  // visually fixed during zoom (e.g. mouse cursor for wheel zoom).
+  const v = tbViewState;
+  let nw = v.w * factor;
+  if (nw < TB_VIEW_MIN_W) nw = TB_VIEW_MIN_W;
+  if (nw > TB_VIEW_MAX_W) nw = TB_VIEW_MAX_W;
+  const nh = nw / TB_VIEW_AR;
+  const ax = (anchorWorld && typeof anchorWorld.x === 'number') ? anchorWorld.x : (v.x + v.w / 2);
+  const ay = (anchorWorld && typeof anchorWorld.y === 'number') ? anchorWorld.y : (v.y + v.h / 2);
+  // Keep anchor world point at the same fractional position in the new view.
+  const fx = (ax - v.x) / v.w;
+  const fy = (ay - v.y) / v.h;
+  v.x = ax - fx * nw;
+  v.y = ay - fy * nh;
+  v.w = nw; v.h = nh;
+  tbApplyViewBox();
+}
+
+function tbZoomIn()  { tbZoomBy(0.8); }
+function tbZoomOut() { tbZoomBy(1.25); }
+
+function _tbWheelToWorld(svg, clientX, clientY) {
+  // Use raw matrix transform (don't go through tbClientToSvg \u2014 that one
+  // clamps to canvas bounds which throws off zoom anchoring near edges).
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const { x, y } = pt.matrixTransform(ctm.inverse());
+  return { x, y };
+}
+
+let _tbPanZoomBound = false;
+let _tbPanning = null; // { startX, startY, startView }
+function tbBindCanvasPanZoom() {
+  if (_tbPanZoomBound) return;
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+
+  // Wheel \u2192 zoom around cursor
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const anchor = _tbWheelToWorld(svg, e.clientX, e.clientY);
+    const factor = e.deltaY > 0 ? 1.1 : 0.9;
+    tbZoomBy(factor, anchor);
+  }, { passive: false });
+
+  // Mousedown on EMPTY canvas (background rect or svg itself) starts pan.
+  // Devices have their own mousedown handler with stopPropagation, so device
+  // drag is unaffected.
+  svg.addEventListener('mousedown', (e) => {
+    if (e.target.tagName !== 'rect' && e.target.tagName !== 'svg') return;
+    _tbPanning = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startView: Object.assign({}, tbViewState),
+      moved: false,
+    };
+    svg.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!_tbPanning) return;
+    const svgEl = document.getElementById('tb-canvas');
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    // dx in CSS px \u2192 dx in viewBox units = dx * (viewBox.w / canvas.cssWidth)
+    const sx = _tbPanning.startView.w / rect.width;
+    const sy = _tbPanning.startView.h / rect.height;
+    const dx = (e.clientX - _tbPanning.startX) * sx;
+    const dy = (e.clientY - _tbPanning.startY) * sy;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) _tbPanning.moved = true;
+    tbViewState.x = _tbPanning.startView.x - dx;
+    tbViewState.y = _tbPanning.startView.y - dy;
+    tbApplyViewBox();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (_tbPanning) {
+      const svgEl = document.getElementById('tb-canvas');
+      if (svgEl) svgEl.style.cursor = '';
+      // If user only clicked (no real movement), let the existing svg click
+      // handler run (it's bound separately and will fire on mouseup naturally).
+      _tbPanning = null;
+    }
+  });
+
+  _tbPanZoomBound = true;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// v4.54.6 \u2014 Pill toolbar inside canvas (Design / Simulate / Labs + actions)
+// ─────────────────────────────────────────────────────────────────────
+// Mode pills carry simple aria-pressed state. Action pills (Coach/Grade/PNG)
+// are stateless and just delegate to the existing handlers.
+let tbPillMode = 'design';
+function tbSelectPill(mode) {
+  tbPillMode = mode || 'design';
+  document.querySelectorAll('#tb-canvas-pills .tb-pill[data-tb-pill]').forEach(btn => {
+    const isActive = btn.getAttribute('data-tb-pill') === tbPillMode;
+    btn.classList.toggle('tb-pill-active', isActive);
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
 function tbRenderV3Inspector() {
   const el = document.getElementById('tb-v3-inspector');
   if (!el) return;
@@ -9691,9 +9926,11 @@ function tbLoadScenarioWithBuild(id) {
   tbUpdateDeviceCount();
   tbSaveDraft();
   // v4.54.5: refresh right pane (active scenario highlight + inspector clear)
+  // v4.54.6: also close the floating inspector popup since no device is selected
   tbV3InspectedDeviceId = null;
   if (typeof tbRenderV3ScenariosList === 'function') tbRenderV3ScenariosList();
   if (typeof tbRenderV3Inspector === 'function') tbRenderV3Inspector();
+  if (typeof tbInspectorPopClose === 'function') tbInspectorPopClose();
 
   if (id !== 'free' && tbState.devices.length > 0) {
     showSuccessToast(`\u{1F3D7}\uFE0F ${scen.title} built \u2014 ${tbState.devices.length} devices connected. Explore + modify as you learn.`);
