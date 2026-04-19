@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.11
+   Network+ AI Quiz — styles.css  v4.54.12
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10115,13 +10115,16 @@ html { zoom: 1.10; }
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   v4.54.11 — Lift sidebar streak card above viewport bottom
-   User reported the streak card getting clipped by the Mac dock.
-   Add generous padding-bottom on the sidebar footer + safe-area inset
-   support for mobile devices with home indicators.
+   v4.54.11 / v4.54.12 — Lift sidebar streak card WELL above the dock
+   v4.54.11's 32px padding still got clipped. v4.54.12 caps the fixed-
+   sidebar height to calc(100vh - 140px) so the column physically can't
+   extend into the dock region + adds 24px padding + 16/8 footer breathing
+   room. Total: streak card sits ~170px above the viewport bottom.
    ════════════════════════════════════════════════════════════════════ */
 .app-sidebar {
-  padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+  height: calc(100vh - 140px) !important;
+  max-height: calc(100vh - 140px);
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
 }
 .sb-foot {
   padding-bottom: 16px;

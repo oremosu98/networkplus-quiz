@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.11', js.includes("const APP_VERSION = '4.54.11"));
+test('APP_VERSION is 4.54.12', js.includes("const APP_VERSION = '4.54.12"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.11', sw.includes('netplus-v4.54.11'));
+test('SW cache bumped to v4.54.12', sw.includes('netplus-v4.54.12'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6228,6 +6228,25 @@ test('v4.54.10 CSS: heatmap stats (22px tabular-nums + monospace label)',
 // Analytics: Recent Performance retired
 test('v4.54.10 JS: renderAnalytics hides #history-panel (Recent Performance retired)',
   /function renderAnalytics\([\s\S]{0,1500}getElementById\('history-panel'\)[\s\S]{0,200}add\('is-hidden'\)/.test(js));
+
+// ── v4.54.12 Editorial headers on drill pages + Analytics ──
+console.log('\n\x1b[1m\u2500\u2500 v4.54.12 DRILL PAGES + ANALYTICS EDITORIAL HEADERS \u2500\u2500\x1b[0m');
+test('v4.54.12 HTML: Subnet Mastery page uses .ed-pagehead with "Subnet mastery."',
+  /id="page-subnet"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Subnet\s*<em>mastery\.<\/em>/.test(html));
+test('v4.54.12 HTML: Port Drill page uses .ed-pagehead with "Port mastery."',
+  /id="page-ports"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Port\s*<em>mastery\.<\/em>/.test(html));
+test('v4.54.12 HTML: Acronym Blitz page uses .ed-pagehead with "Acronym blitz."',
+  /id="page-acronyms"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Acronym\s*<em>blitz\.<\/em>/.test(html));
+test('v4.54.12 HTML: OSI Sorter page uses .ed-pagehead with "OSI sorter."',
+  /id="page-osi-sorter"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}OSI\s*<em>sorter\.<\/em>/.test(html));
+test('v4.54.12 HTML: Cable ID page uses .ed-pagehead with "Cable ID."',
+  /id="page-cables"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Cable\s*<em>ID\.<\/em>/.test(html));
+test('v4.54.12 HTML: Analytics page uses .ed-pagehead with "Performance analytics."',
+  /id="page-analytics"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Performance\s*<em>analytics\.<\/em>/.test(html));
+
+// Sidebar streak lift
+test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',
+  /\.app-sidebar\s*\{[\s\S]{0,600}height:\s*calc\(100vh\s*-\s*140px\)[\s\S]{0,400}padding-bottom:\s*max\(24px/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
