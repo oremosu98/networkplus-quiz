@@ -89,7 +89,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.3</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.4</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1153,16 +1153,13 @@
   </div>
 
   <div id="tb-main" class="tb-main">
-    <!-- v4.43.1: Compact intro banner — 1-line value prop + feature pills. Previous wall-of-text replaced. -->
-    <div class="tb-hero">
-      <div class="tb-hero-tagline">Build, configure, and simulate real networks — with guided labs and an AI coach.</div>
-      <div class="tb-hero-pills">
-        <span class="tb-hero-pill">🎨 Design</span>
-        <span class="tb-hero-pill">🔬 Simulate (Ping · ARP · DHCP)</span>
-        <span class="tb-hero-pill">🧪 29 concept labs</span>
-        <span class="tb-hero-pill">🤖 AI Coach &amp; Generate</span>
-        <span class="tb-hero-pill">📷 Export PNG</span>
-      </div>
+    <!-- v4.54.4: editorial header replaces the emoji-pill hero. Matches the
+         language of the other pages' v2 redesigns (small-caps eyebrow +
+         italic-accent display heading + monospace lede). -->
+    <div class="tb-v2-header">
+      <div class="tb-v2-eyebrow">Network design &middot; sandbox</div>
+      <h1 class="tb-v2-display">Topology <em>builder.</em></h1>
+      <p class="tb-v2-lede">Build, configure, and simulate real networks &mdash; with <strong>29 guided labs</strong>, <strong>31 scenarios</strong>, <strong>AI Coach</strong>, and <strong>PNG export</strong>.</p>
     </div>
 
     <!-- v4.43.3: Toolbar polish — CSS Grid layout with auto-fit columns for uniform
@@ -1355,6 +1352,8 @@
              swaps between "Free Build" (4 CTAs) and "Scenario loaded"
              (scenario card + deep-dive CTA) based on tbSelectedScenario -->
         <div id="tb-empty-hint" class="tb-empty-hint tb-empty-hint-v2"></div>
+        <!-- v4.54.4: editorial stats strip at canvas bottom (matches prototype's .topo-stat-row) -->
+        <div id="tb-v2-stats" class="tb-v2-stats" aria-label="Canvas stats"></div>
       </div>
 
       <!-- Config panel (slide-out right) -->

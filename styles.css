@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.3
+   Network+ AI Quiz — styles.css  v4.54.4
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7925,3 +7925,152 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 .results-hero { display: none !important; }
 .results-stats { display: none !important; }
 .results-actions { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v4.54.4 — Topology Builder editorial polish
+   Keeps the full 4500-LOC TB engine intact; restyles only the chrome:
+   editorial header (eyebrow + display + lede), canvas bottom stats
+   strip, cleaner toolbar + palette headers to match the rest of the
+   editorial language (Home + Analytics + Results).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Retire the old pill-heavy hero */
+.tb-hero { display: none !important; }
+
+/* Editorial header — matches hero-v2 + results-v2 language */
+.tb-v2-header { margin-bottom: 16px; padding: 8px 2px 0; }
+.tb-v2-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-light);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.tb-v2-eyebrow::before {
+  content: '';
+  width: 20px;
+  height: 1px;
+  background: var(--accent);
+  opacity: .55;
+}
+.tb-v2-display {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.tb-v2-display em { font-style: normal; color: var(--accent-light); font-weight: 800; }
+.tb-v2-lede {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-mid);
+  margin: 0;
+  max-width: 720px;
+}
+.tb-v2-lede strong { color: var(--text); font-weight: 700; }
+
+/* Canvas bottom stats strip — matches prototype's .topo-stat-row */
+.tb-v2-stats {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), .04), rgba(var(--accent-rgb), .08));
+  border: 1px solid rgba(var(--accent-rgb), .18);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  font-family: monospace;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+  line-height: 1.5;
+  z-index: 5;
+  pointer-events: none;
+}
+.tb-v2-stats strong {
+  color: var(--accent-light);
+  font-weight: 700;
+  font-family: monospace;
+  font-variant-numeric: tabular-nums;
+}
+.tb-v2-stats em {
+  font-style: normal;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-family: inherit;
+}
+.tb-v2-stat-sep { opacity: .4; }
+
+/* Toolbar polish — less visual weight, editorial group labels */
+.tb-toolbar.tb-toolbar-v2 {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(var(--accent-rgb), .05), transparent 55%),
+    linear-gradient(160deg, rgba(var(--accent-rgb), .025), rgba(var(--accent-rgb), .008));
+  border-color: rgba(var(--accent-rgb), .2);
+}
+.tb-tool-group-label {
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+  opacity: .85;
+}
+
+/* Palette header — matches prototype's .device-group .label styling */
+.tb-palette-head,
+.tb-palette-head-cables {
+  font-family: monospace !important;
+  font-size: 10px !important;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  color: var(--text-dim) !important;
+  padding: 12px 10px 8px !important;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .15);
+  margin-bottom: 6px;
+}
+.tb-palette-head-cables {
+  margin-top: 10px;
+  border-top: 1px dashed rgba(var(--accent-rgb), .15);
+  padding-top: 12px !important;
+}
+
+/* Responsive: stats strip shrinks on small canvases */
+@media (max-width: 900px) {
+  .tb-v2-display { font-size: 32px; }
+  .tb-v2-stats { font-size: 10.5px; padding: 7px 10px; gap: 6px; }
+  .tb-v2-stat-sep { display: none; }
+}
+
+/* Reduced motion: backdrop-filter already static */
+
+/* Light theme */
+[data-theme="light"] .tb-v2-eyebrow,
+[data-theme="light"] .tb-v2-display em { color: #6355e0; }
+[data-theme="light"] .tb-v2-eyebrow::before { background: #6355e0; }
+[data-theme="light"] .tb-v2-stats {
+  background: linear-gradient(180deg, rgba(99, 85, 224, .05), rgba(99, 85, 224, .08));
+  border-color: rgba(99, 85, 224, .2);
+}
+[data-theme="light"] .tb-v2-stats strong { color: #6355e0; }
+[data-theme="light"] .tb-toolbar.tb-toolbar-v2 {
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(99, 85, 224, .05), transparent 55%),
+    linear-gradient(160deg, rgba(99, 85, 224, .025), rgba(99, 85, 224, .008));
+  border-color: rgba(99, 85, 224, .2);
+}

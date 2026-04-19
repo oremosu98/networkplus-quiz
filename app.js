@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.3
+// Network+ AI Quiz — app.js  v4.54.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.3';
+const APP_VERSION = '4.54.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7414,6 +7414,40 @@ function tbUpdateStatus(msg) {
 function tbUpdateDeviceCount() {
   const el = document.getElementById('tb-device-count');
   if (el) el.textContent = `${tbState.devices.length} / ${TB_MAX_DEVICES} devices`;
+  // v4.54.4: also refresh the editorial canvas stats strip
+  if (typeof tbRenderV2Stats === 'function') tbRenderV2Stats();
+}
+// v4.54.4: Editorial canvas stats strip. Renders at the bottom of the canvas
+// in monospace small-caps editorial style (matches prototype's .topo-stat-row).
+// Shows: N devices · N cables · N VLANs · scenario name. Updates on every
+// device/cable change via tbUpdateDeviceCount hook.
+function tbRenderV2Stats() {
+  const el = document.getElementById('tb-v2-stats');
+  if (!el) return;
+  const deviceCount = (tbState && tbState.devices) ? tbState.devices.length : 0;
+  const cableCount = (tbState && tbState.cables) ? tbState.cables.length : 0;
+  // VLAN count: unique VLAN ids across all devices that have a vlanDb
+  const vlanSet = new Set();
+  (tbState && tbState.devices ? tbState.devices : []).forEach(d => {
+    if (d.vlanDb) Object.keys(d.vlanDb).forEach(v => { if (v !== '1') vlanSet.add(v); });
+  });
+  const vlanCount = vlanSet.size;
+  // Scenario label
+  let scenLabel = 'Free Build';
+  try {
+    if (typeof tbSelectedScenario === 'string' && tbSelectedScenario) {
+      const scen = (typeof TB_SCENARIOS !== 'undefined' && TB_SCENARIOS) ? TB_SCENARIOS.find(s => s.id === tbSelectedScenario) : null;
+      if (scen && scen.title) scenLabel = scen.title;
+    }
+  } catch (_) {}
+  // Build editorial-style inline list with middots
+  const parts = [
+    `<strong>${deviceCount}</strong> device${deviceCount === 1 ? '' : 's'}`,
+    `<strong>${cableCount}</strong> cable${cableCount === 1 ? '' : 's'}`,
+    vlanCount > 0 ? `<strong>${vlanCount}</strong> VLAN${vlanCount === 1 ? '' : 's'}` : null,
+    `<em>${escHtml(scenLabel)}</em>`
+  ].filter(Boolean);
+  el.innerHTML = parts.join(' <span class="tb-v2-stat-sep">&middot;</span> ');
 }
 // Show/hide the big floating "Wiring..." banner based on tbPendingCableFrom.
 function tbUpdateWireOverlay() {

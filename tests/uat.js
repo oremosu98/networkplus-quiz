@@ -275,7 +275,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.3', js.includes("const APP_VERSION = '4.54.3"));
+test('APP_VERSION is 4.54.4', js.includes("const APP_VERSION = '4.54.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -289,7 +289,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.3', sw.includes('netplus-v4.54.3'));
+test('SW cache bumped to v4.54.4', sw.includes('netplus-v4.54.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -808,7 +808,8 @@ test('Canvas viewBox 1800x1100 in HTML', html.includes('viewBox="0 0 1800 1100"'
 test('Device rect compact (96x72) for fit', /tb-device-bg[\s\S]{0,300}width="96" height="72"/.test(js));
 test('Device label font 13', /tb-device-label[\s\S]{0,200}font-size="13"/.test(js));
 // v4.43.1 #4: intro banner replaced with compact .tb-hero (was wall-of-text .tb-intro-banner)
-test('TB hero present in HTML', html.includes('tb-hero') && html.includes('tb-hero-tagline'));
+test('TB editorial header present (v4.54.4: replaced .tb-hero with .tb-v2-header)',
+  html.includes('class="tb-v2-header"') && html.includes('class="tb-v2-display"'));
 test('Intro banner title line', html.includes('Build, configure'));
 test('CSS: .tb-intro-banner', css.includes('.tb-intro-banner'));
 test('CSS: page-topology-builder max-width override', css.includes('#page-topology-builder { max-width'));
@@ -1940,11 +1941,10 @@ test('Progress: summary uses .ps2-grid (v4.51.0: renamed from ps-row)', js.inclu
 console.log('\n\x1b[1m── v4.34/v4.43.1 TOPOLOGY BUILDER UI ──\x1b[0m');
 // v4.43.1: intro banner replaced with compact .tb-hero (collapsible <details> removed —
 // the hero is always visible but small enough that it doesn't need to collapse).
-test('TB: hero present (v4.43.1 replaces collapsible intro)', html.includes('class="tb-hero"'));
-test('TB: hero has tagline + feature pills',
-  html.includes('tb-hero-tagline') && html.includes('tb-hero-pill'));
-test('CSS: .tb-hero styles', css.includes('.tb-hero'));
-test('CSS: .tb-hero-pill styles', css.includes('.tb-hero-pill'));
+test('TB: editorial header present (v4.54.4: .tb-v2-header replaces old .tb-hero)', html.includes('class="tb-v2-header"'));
+test('TB: editorial header has display + lede', html.includes('class="tb-v2-display"') && html.includes('class="tb-v2-lede"'));
+test('CSS: legacy .tb-hero rules retained but force-hidden (regression tombstone)', css.includes('.tb-hero'));
+test('CSS: legacy .tb-hero-pill styles retained (regression tombstone)', css.includes('.tb-hero-pill'));
 // 2. Collapsible how-to strip (still collapsible — kept)
 test('TB: howto wrapped in details element', html.includes('id="tb-howto-details"'));
 test('TB: howto has summary', html.includes('tb-howto-summary'));
@@ -3724,8 +3724,8 @@ test('v4.43.1 #3: bridge does NOT route any topology topics (user directive)',
 test('v4.43.1 #3: CSS .tf-bridge-btn defined', css.includes('.tf-bridge-btn'));
 
 // ── #4 Topology Builder UI polish ──
-test('v4.43.1 #4: HTML has compact tb-hero (replaces wall-of-text intro)',
-  html.includes('class="tb-hero"') && html.includes('tb-hero-tagline'));
+test('v4.43.1 #4 (v4.54.4 update): HTML has editorial .tb-v2-header (replaces the retired .tb-hero)',
+  html.includes('class="tb-v2-header"') && html.includes('class="tb-v2-display"'));
 test('v4.43.1 #4: HTML toolbar v2 uses tb-toolbar-v2 class',
   html.includes('tb-toolbar tb-toolbar-v2'));
 test('v4.43.1 #4: HTML toolbar has tb-tool-group-primary for primary actions',
@@ -5688,6 +5688,49 @@ test('v4.54.3 CSS: narrow viewport collapses hero to single-col',
   /@media \(max-width:\s*680px\)[\s\S]{0,600}\.results-v2-hero\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
 test('v4.54.3 CSS: light-theme hero stays dark (design intent)',
   /\[data-theme="light"\]\s+\.results-v2-hero\s*\{[\s\S]{0,500}linear-gradient\(160deg,\s*#1a1725/.test(css));
+
+// ── v4.54.4 TOPOLOGY BUILDER EDITORIAL POLISH ──
+// User: "now lets do the Topology page redesign to fit the prototype as best
+// you can". Zero changes to the 4500-LOC TB engine; editorial chrome polish only.
+console.log('\n\x1b[1m── v4.54.4 TB EDITORIAL POLISH ──\x1b[0m');
+
+test('v4.54.4 HTML: .tb-v2-header replaces .tb-hero',
+  html.includes('class="tb-v2-header"') && html.includes('class="tb-v2-eyebrow"'));
+test('v4.54.4 HTML: editorial display heading "Topology builder." with italic em',
+  /class="tb-v2-display"[\s\S]{0,200}Topology\s*<em>builder\.<\/em>/.test(html));
+test('v4.54.4 HTML: lede mentions 29 labs + 31 scenarios + Coach + PNG',
+  /class="tb-v2-lede"[\s\S]{0,500}29\s*(<\/strong>\s*)?guided\s*labs[\s\S]{0,200}31\s*(<\/strong>\s*)?scenarios[\s\S]{0,200}AI Coach[\s\S]{0,200}PNG/.test(html));
+test('v4.54.4 HTML: canvas bottom stats strip (#tb-v2-stats)',
+  html.includes('id="tb-v2-stats"') && html.includes('class="tb-v2-stats"'));
+
+test('v4.54.4 JS: tbRenderV2Stats function defined',
+  js.includes('function tbRenderV2Stats('));
+test('v4.54.4 JS: tbUpdateDeviceCount hooks tbRenderV2Stats',
+  /function tbUpdateDeviceCount\([\s\S]{0,400}tbRenderV2Stats\(\)/.test(js));
+test('v4.54.4 JS: stats strip reads tbState.devices.length + tbState.cables.length',
+  /tbRenderV2Stats[\s\S]{0,1500}tbState\.devices\.length[\s\S]{0,400}tbState\.cables\.length/.test(js));
+test('v4.54.4 JS: VLAN count aggregated from vlanDb (skipping default VLAN 1)',
+  /tbRenderV2Stats[\s\S]{0,1500}vlanDb[\s\S]{0,400}v\s*!==\s*'1'/.test(js));
+test('v4.54.4 JS: scenario label lookup via TB_SCENARIOS',
+  /tbRenderV2Stats[\s\S]{0,2500}TB_SCENARIOS\.find\(s\s*=>\s*s\.id\s*===\s*tbSelectedScenario\)/.test(js));
+
+test('v4.54.4 CSS: .tb-hero retired via display:none important',
+  /\.tb-hero\s*\{\s*display:\s*none\s*!important/.test(css));
+test('v4.54.4 CSS: .tb-v2-display uses 42px weight-800',
+  /\.tb-v2-display\s*\{[\s\S]{0,400}font-size:\s*42px[\s\S]{0,200}font-weight:\s*800/.test(css));
+test('v4.54.4 CSS: .tb-v2-display em uses accent-light',
+  /\.tb-v2-display em\s*\{[^}]*color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.4 CSS: .tb-v2-stats positioned absolute at canvas bottom with backdrop-blur',
+  /\.tb-v2-stats\s*\{[\s\S]{0,500}position:\s*absolute/.test(css) &&
+  /\.tb-v2-stats\s*\{[\s\S]{0,800}backdrop-filter:\s*blur/.test(css));
+test('v4.54.4 CSS: palette headers use monospace small-caps',
+  /\.tb-palette-head[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
+  /\.tb-palette-head[\s\S]{0,500}text-transform:\s*uppercase/.test(css));
+test('v4.54.4 CSS: toolbar-v2 uses radial+linear gradient background',
+  /\.tb-toolbar\.tb-toolbar-v2\s*\{[\s\S]{0,400}radial-gradient/.test(css));
+test('v4.54.4 CSS: light-theme .tb-v2-stats + .tb-v2-display em recoloured',
+  /\[data-theme="light"\]\s+\.tb-v2-stats\s*\{/.test(css) &&
+  /\[data-theme="light"\][\s\S]{0,300}\.tb-v2-display em[\s\S]{0,100}#6355e0/.test(css));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
