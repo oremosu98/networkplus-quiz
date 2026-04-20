@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.55.1', js.includes("const APP_VERSION = '4.55.1"));
+test('APP_VERSION is 4.55.2', js.includes("const APP_VERSION = '4.55.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.55.1', sw.includes('netplus-v4.55.1'));
+test('SW cache bumped to v4.55.2', sw.includes('netplus-v4.55.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6458,6 +6458,41 @@ test('v4.55.1 CSS: .acl-sc-mode-stateful accent treatment',
   /\.acl-sc-mode-stateful\s*\{[\s\S]{0,400}color:\s*var\(--accent-light\)/.test(css));
 test('v4.55.1 JS: state-track ruleId used as sentinel for auto-permit',
   js.includes("ruleId: 'state-track'"));
+
+// ── v4.55.2 ACL Progressive Hints + Solution reveal (issue #183) ──
+console.log('\n\x1b[1m\u2500\u2500 v4.55.2 ACL PROGRESSIVE HINTS + SOLUTION REVEAL \u2500\u2500\x1b[0m');
+test('v4.55.2 JS: aclShowHint + dismissHintModal + aclShowSolution + aclApplySolution defined',
+  js.includes('function aclShowHint(') &&
+  js.includes('function dismissHintModal(') &&
+  js.includes('function aclShowSolution(') &&
+  js.includes('function aclApplySolution('));
+test('v4.55.2 JS: aclState includes hintsUsed + solutionShown maps',
+  js.includes('hintsUsed: {}') && js.includes('solutionShown: {}'));
+test('v4.55.2 JS: aclShowHint increments per-scenario tier + persists',
+  /function aclShowHint[\s\S]{0,1200}aclState\.hintsUsed\[scen\.id\][\s\S]{0,300}aclSaveState/.test(js));
+test('v4.55.2 JS: solution reveal gated until tier === hints.length',
+  /_aclRenderHintModal[\s\S]{0,2000}tier\s*>=\s*scen\.hints\.length/.test(js));
+test('v4.55.2 JS: aclApplySolution replaces aclState.rules with scen.solution',
+  /function aclApplySolution[\s\S]{0,800}aclState\.rules\s*=\s*scen\.solution\.map/.test(js));
+test('v4.55.2 HTML: #acl-hint-modal dark-glass shell with ed-modalhead',
+  html.includes('id="acl-hint-modal"') &&
+  /acl-hint-modal[\s\S]{0,500}class="ed-modalhead"[\s\S]{0,400}Nudge,\s*<em>not solve\.<\/em>/.test(html));
+test('v4.55.2 JS: Hint button added to grade-panel when scen has hints',
+  /_aclRenderGradePanel[\s\S]{0,3000}scen\.hints[\s\S]{0,400}acl-hint-btn/.test(js));
+test('v4.55.2 JS: all 6 Fix-It scenarios carry hints + solution arrays',
+  js.includes("id: 'fix-order'") &&
+  /id:\s*'fix-order'[\s\S]{0,3500}hints:\s*\[[\s\S]{0,600}solution:\s*\[/.test(js) &&
+  /id:\s*'fix-cidr-narrow'[\s\S]{0,2500}hints:\s*\[[\s\S]{0,500}solution:\s*\[/.test(js) &&
+  /id:\s*'fix-proto-mismatch'[\s\S]{0,2500}hints:\s*\[[\s\S]{0,500}solution:\s*\[/.test(js));
+test('v4.55.2 CSS: .acl-hint-btn yellow/warm styling',
+  /\.acl-hint-btn\s*\{[\s\S]{0,400}rgba\(251,\s*191,\s*36/.test(css));
+test('v4.55.2 CSS: .acl-hint-tier + .acl-hint-tier-current tier stack',
+  /\.acl-hint-tier\s*\{/.test(css) &&
+  /\.acl-hint-tier-current\s*\{[\s\S]{0,400}rgba\(var\(--accent-rgb\)/.test(css));
+test('v4.55.2 CSS: .acl-sol-rules monospace grid + permit/deny action pills',
+  /\.acl-sol-rule\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
+  /\.acl-sol-action-permit\s*\{[\s\S]{0,300}rgba\(34,\s*197,\s*94/.test(css) &&
+  /\.acl-sol-action-deny\s*\{[\s\S]{0,300}rgba\(239,\s*68,\s*68/.test(css));
 
 // Behavioural sandbox: verify stateful auto-permit + stateless deny in vm
 (function() {

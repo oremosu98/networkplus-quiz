@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.55.1
+// Network+ AI Quiz — app.js  v4.55.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.55.1';
+const APP_VERSION = '4.55.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -24016,6 +24016,15 @@ const ACL_SCENARIOS = [
       { id: 'r_fx_ord_1', action: 'deny',   srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.0/24', dstPort: 'any', proto: 'any', comment: 'Block finance from hitting 10.0.50.0/24' },
       { id: 'r_fx_ord_2', action: 'permit', srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.5/32', dstPort: 443,   proto: 'tcp', comment: 'Allow finance \u2192 payment HTTPS' }
     ],
+    hints: [
+      'ACLs are evaluated top-to-bottom, first-match-wins. Which rule fires first for the finance \u2192 payment HTTPS packet?',
+      'Rule #1 (the broad deny) matches the finance-to-payment HTTPS packet because its CIDR covers the payment server. Rule #2 never runs. Order matters.',
+      'Swap the two rules. Put the specific permit (rule #2) ABOVE the broad deny (rule #1). Use the up/down arrows on each rule.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.5/32', dstPort: 443, proto: 'tcp', comment: 'Finance \u2192 payment HTTPS (specific permit first)' },
+      { action: 'deny',   srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.0/24', dstPort: 'any', proto: 'any', comment: 'Block all other finance \u2192 payment-subnet traffic' }
+    ],
     testPackets: [
       { src: '10.0.10.25', sp: 52000, dst: '10.0.50.5', dp: 443, proto: 'tcp', expected: 'permit', label: 'Finance host \u2192 Payment HTTPS (must work)' },
       { src: '10.0.10.30', sp: 52001, dst: '10.0.50.7', dp: 22,  proto: 'tcp', expected: 'deny',   label: 'Finance \u2192 other svr SSH (must block)' },
@@ -24053,6 +24062,15 @@ const ACL_SCENARIOS = [
     ],
     initialRules: [
       { id: 'r_fx_ret_1', action: 'permit', srcAddr: '10.1.0.0/16', srcPort: 'any', dstAddr: 'any',         dstPort: 443, proto: 'tcp', comment: 'Outbound HTTPS' }
+    ],
+    hints: [
+      'This is a stateless firewall. What happens to the reply that comes BACK from the internet after the client sends out?',
+      'Return traffic needs its own permit \u2014 source is the remote server (:443), destination is the internal client on an ephemeral port. Think about the direction of the reply.',
+      'Add a second rule: permit tcp any any \u2192 10.1.0.0/16 on ports 1024-65535 with source port 443. That allows return traffic without letting in un-requested inbound traffic.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: '10.1.0.0/16', srcPort: 'any', dstAddr: 'any', dstPort: 443, proto: 'tcp', comment: 'Outbound HTTPS (existing)' },
+      { action: 'permit', srcAddr: 'any', srcPort: 443, dstAddr: '10.1.0.0/16', dstPort: '1024-65535', proto: 'tcp', comment: 'Inbound return traffic from web servers to ephemeral client ports' }
     ],
     testPackets: [
       { src: '10.1.5.10', sp: 52000, dst: '93.184.216.34', dp: 443,  proto: 'tcp', expected: 'permit', label: 'Internal \u2192 Internet HTTPS (outbound)' },
@@ -24092,6 +24110,14 @@ const ACL_SCENARIOS = [
     ],
     initialRules: [
       { id: 'r_fx_nar_1', action: 'permit', srcAddr: '10.20.0.0/26', srcPort: 'any', dstAddr: '10.20.50.10/32', dstPort: 53, proto: 'udp', comment: 'DNS (rule covers only .0-.63)' }
+    ],
+    hints: [
+      'The rule mentions a CIDR prefix. Does it cover every host in the subnet?',
+      'Check the prefix length. /26 covers 64 addresses (.0-.63). /24 covers 256 (.0-.255). The subnet is /24 but the rule is /26.',
+      'Change the source CIDR from 10.20.0.0/26 to 10.20.0.0/24. That widens the rule to match the entire user VLAN.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: '10.20.0.0/24', srcPort: 'any', dstAddr: '10.20.50.10/32', dstPort: 53, proto: 'udp', comment: 'DNS for the full /24 user VLAN' }
     ],
     testPackets: [
       { src: '10.20.0.5',   sp: 54000, dst: '10.20.50.10', dp: 53, proto: 'udp', expected: 'permit', label: 'User .5 \u2192 DNS (in /26, works)' },
@@ -24134,6 +24160,14 @@ const ACL_SCENARIOS = [
     initialRules: [
       { id: 'r_fx_bro_1', action: 'permit', srcAddr: '10.30.0.0/16', srcPort: 'any', dstAddr: '10.30.100.5/32', dstPort: 22, proto: 'tcp', comment: 'SSH to HR file server (CIDR too broad \u2014 covers 256 subnets not 1)' }
     ],
+    hints: [
+      'The rule\'s source CIDR is permitting more hosts than intended. Who can currently reach the file server?',
+      'The rule uses /16 which covers 10.30.0.0 through 10.30.255.255 \u2014 every subnet in the 10.30.x.x range. Finance and Guest VLANs live inside that range.',
+      'Tighten the source CIDR to 10.30.0.0/24 so only the HR VLAN is permitted. Finance (10.30.1.0/24) and Guest (10.30.2.0/24) are then outside the rule and hit implicit deny.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: '10.30.0.0/24', srcPort: 'any', dstAddr: '10.30.100.5/32', dstPort: 22, proto: 'tcp', comment: 'SSH from HR VLAN only \u2014 Finance + Guest excluded by tight CIDR' }
+    ],
     testPackets: [
       { src: '10.30.0.50',   sp: 52000, dst: '10.30.100.5', dp: 22, proto: 'tcp', expected: 'permit', label: 'HR \u2192 HR file svr SSH (should work)' },
       { src: '10.30.1.50',   sp: 52001, dst: '10.30.100.5', dp: 22, proto: 'tcp', expected: 'deny',   label: 'Finance \u2192 HR file svr (must block)' },
@@ -24172,6 +24206,14 @@ const ACL_SCENARIOS = [
     initialRules: [
       { id: 'r_fx_prt_1', action: 'permit', srcAddr: 'any', srcPort: 'any', dstAddr: '203.0.113.5/32', dstPort: 80, proto: 'tcp', comment: 'Web (should be 443, not 80)' }
     ],
+    hints: [
+      'The requirement says HTTPS. Look at the rule\'s destination port.',
+      'HTTP = 80/tcp. HTTPS = 443/tcp. The rule currently permits the wrong one.',
+      'Change the rule\'s destination port from 80 to 443.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: 'any', srcPort: 'any', dstAddr: '203.0.113.5/32', dstPort: 443, proto: 'tcp', comment: 'HTTPS (port corrected from 80 to 443)' }
+    ],
     testPackets: [
       { src: '8.8.8.8',        sp: 55000, dst: '203.0.113.5', dp: 443, proto: 'tcp', expected: 'permit', label: 'Internet \u2192 Web HTTPS (must work)' },
       { src: '93.184.216.34',  sp: 55001, dst: '203.0.113.5', dp: 80,  proto: 'tcp', expected: 'deny',   label: 'Internet \u2192 Web HTTP (must block, cleartext)' },
@@ -24209,6 +24251,14 @@ const ACL_SCENARIOS = [
     ],
     initialRules: [
       { id: 'r_fx_pro_1', action: 'permit', srcAddr: '10.40.0.0/24', srcPort: 'any', dstAddr: '8.8.8.8/32', dstPort: 53, proto: 'tcp', comment: 'DNS (proto wrong \u2014 most DNS is UDP)' }
+    ],
+    hints: [
+      'The rule\'s port is right (53) and the addresses are right. Look at the proto field.',
+      'DNS queries under 512 bytes use UDP. TCP is only for zone transfers. Your rule is proto=tcp.',
+      'Change the rule\'s proto from tcp to udp.'
+    ],
+    solution: [
+      { action: 'permit', srcAddr: '10.40.0.0/24', srcPort: 'any', dstAddr: '8.8.8.8/32', dstPort: 53, proto: 'udp', comment: 'DNS queries \u2014 proto corrected from tcp to udp' }
     ],
     testPackets: [
       { src: '10.40.0.25', sp: 54000, dst: '8.8.8.8', dp: 53, proto: 'udp', expected: 'permit', label: 'User \u2192 DNS UDP query (standard, must work)' },
@@ -24371,7 +24421,10 @@ let aclState = {
   rules: [],
   lastGrade: null,    // { passed, total, details } \u2014 null = never graded
   lastTest: null,     // most recent free-form custom packet result
-  viewMode: 'split'   // reserved for future compact / split / wide modes
+  viewMode: 'split',  // reserved for future compact / split / wide modes
+  // v4.55.2: progressive-hint state tracked per scenario id
+  hintsUsed: {},      // { [scenarioId]: numberOfTiersUnlocked } \u2014 persists
+  solutionShown: {}   // { [scenarioId]: true } \u2014 set when "Show solution" fired
 };
 
 function aclLoadState() {
@@ -24380,7 +24433,9 @@ function aclLoadState() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        aclState = Object.assign({ scenarioId: 'free-build', rules: [], lastGrade: null, lastTest: null, viewMode: 'split' }, parsed);
+        aclState = Object.assign({ scenarioId: 'free-build', rules: [], lastGrade: null, lastTest: null, viewMode: 'split', hintsUsed: {}, solutionShown: {} }, parsed);
+        if (!aclState.hintsUsed) aclState.hintsUsed = {};
+        if (!aclState.solutionShown) aclState.solutionShown = {};
       }
     }
   } catch (_) { /* defensive: localStorage corruption \u2192 fall back to defaults */ }
@@ -24700,10 +24755,20 @@ function _aclRenderGradePanel(scen) {
         ${!d.implicit && d.ruleIdx >= 0 ? `<span class="acl-gd-tag acl-gd-tag-rule" title="Matched rule #${d.ruleIdx + 1}">rule #${d.ruleIdx + 1}</span>` : ''}
       </div>`).join('')
     : '';
+  // v4.55.2: Hint button \u2014 only on scenarios that carry a `hints` array
+  const hasHints = Array.isArray(scen.hints) && scen.hints.length > 0;
+  const tierUsed = (aclState.hintsUsed && aclState.hintsUsed[scen.id]) || 0;
+  const hintsLeft = hasHints ? Math.max(0, scen.hints.length - tierUsed) : 0;
+  const hintBtnLabel = hasHints ? (tierUsed === 0 ? `\ud83d\udca1 Hint` : `\ud83d\udca1 Hint (${hintsLeft} left)`) : '';
+  const hintBtn = hasHints
+    ? `<button type="button" class="btn btn-ghost acl-hint-btn" onclick="aclShowHint()">${hintBtnLabel}</button>`
+    : '';
+
   el.innerHTML = `
     <div class="acl-panel-head">
       <div class="acl-panel-title"><span class="acl-panel-ico">\ud83c\udfaf</span> Grade</div>
       <div class="acl-grade-actions">
+        ${hintBtn}
         <button type="button" class="btn btn-ghost acl-coach-btn" onclick="aclAskCoach()">\ud83e\udde0 AI Coach</button>
         <button type="button" class="btn btn-primary acl-grade-btn" onclick="aclGrade()">\ud83c\udfaf Grade My ACL</button>
       </div>
@@ -25004,6 +25069,84 @@ function _aclRulesHash() {
   const s = scenId + '::' + rulesKey;
   for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
+}
+
+// v4.55.2: Progressive-hint ladder. 3 tiers of authored nudges per
+// scenario (general \u2192 specific \u2192 exact). Solution reveal unlocks only
+// after tier-3 is used. Client-side, zero API cost.
+function aclShowHint() {
+  const scen = aclActiveScenario();
+  if (!scen || !Array.isArray(scen.hints) || scen.hints.length === 0) return;
+  const used = (aclState.hintsUsed[scen.id] || 0);
+  const nextTier = Math.min(used + 1, scen.hints.length);
+  aclState.hintsUsed[scen.id] = nextTier;
+  aclSaveState();
+  _aclRenderHintModal(scen, nextTier);
+  renderAclPage(); // refresh the Hint button label ("Hint (N left)")
+}
+function _aclRenderHintModal(scen, tier) {
+  const modal = document.getElementById('acl-hint-modal');
+  const body = document.getElementById('acl-hint-body');
+  if (!modal || !body) return;
+  const tierCopy = ['general nudge', 'more specific', 'near-exact'][tier - 1] || 'hint';
+  const hintText = scen.hints[tier - 1] || '';
+  const esc = typeof escHtml === 'function' ? escHtml : (s => s);
+  const tiersHtml = scen.hints.slice(0, tier).map((h, i) => `
+    <div class="acl-hint-tier acl-hint-tier-${i === tier - 1 ? 'current' : 'past'}">
+      <div class="acl-hint-tier-label">Tier ${i + 1} \u00b7 ${['general nudge', 'more specific', 'near-exact'][i] || 'hint'}</div>
+      <div class="acl-hint-tier-text">${esc(scen.hints[i])}</div>
+    </div>
+  `).join('');
+  const hasSolution = Array.isArray(scen.solution) && scen.solution.length > 0;
+  const solutionUnlocked = tier >= scen.hints.length;
+  const solutionBtn = hasSolution && solutionUnlocked
+    ? `<button type="button" class="btn btn-ghost acl-hint-solution-btn" onclick="aclShowSolution()">\ud83d\udd13 Show solution rule list</button>`
+    : '';
+  body.innerHTML = `
+    <div class="acl-hint-tiers">${tiersHtml}</div>
+    ${solutionBtn}
+    <div class="acl-hint-foot">Tier ${tier} of ${scen.hints.length} \u00b7 ${tier < scen.hints.length ? 'Click Hint again for more.' : 'Final tier reached.'}</div>
+  `;
+  modal.hidden = false;
+}
+function dismissHintModal() {
+  const modal = document.getElementById('acl-hint-modal');
+  if (modal) modal.hidden = true;
+}
+function aclShowSolution() {
+  const scen = aclActiveScenario();
+  if (!scen || !Array.isArray(scen.solution)) return;
+  aclState.solutionShown[scen.id] = true;
+  aclSaveState();
+  const body = document.getElementById('acl-hint-body');
+  if (!body) return;
+  const esc = typeof escHtml === 'function' ? escHtml : (s => s);
+  const rulesList = scen.solution.map((r, i) => `
+    <div class="acl-sol-rule">
+      <span class="acl-sol-num">${i + 1}</span>
+      <span class="acl-sol-action acl-sol-action-${r.action}">${r.action}</span>
+      <span class="acl-sol-proto">${esc(r.proto || 'any')}</span>
+      <span class="acl-sol-addr">${esc(r.srcAddr || 'any')}</span>
+      <span class="acl-sol-sep">\u2192</span>
+      <span class="acl-sol-addr">${esc(r.dstAddr || 'any')}:${esc(String(r.dstPort || 'any'))}</span>
+      ${r.comment ? `<div class="acl-sol-comment">${esc(r.comment)}</div>` : ''}
+    </div>
+  `).join('');
+  body.innerHTML = `
+    <div class="acl-hint-eyebrow">\ud83d\udd13 Solution \u00b7 golden rule list</div>
+    <div class="acl-sol-rules">${rulesList}</div>
+    <p class="acl-hint-foot">This is one canonical solution. Your answer may differ in wording but produce equivalent behaviour.</p>
+    <button type="button" class="btn btn-primary acl-sol-apply" onclick="aclApplySolution()">\ud83c\udfaf Apply this solution to my rules</button>
+  `;
+}
+function aclApplySolution() {
+  const scen = aclActiveScenario();
+  if (!scen || !Array.isArray(scen.solution)) return;
+  aclState.rules = scen.solution.map(r => ({ ...r, id: r.id || ('r_sol_' + Math.random().toString(36).slice(2, 8)) }));
+  aclSaveState();
+  dismissHintModal();
+  renderAclPage();
+  if (typeof showSuccessToast === 'function') showSuccessToast('Solution applied. Run Test All to verify.');
 }
 
 function _aclLoadCoachCache() {
