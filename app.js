@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.13
+// Network+ AI Quiz — app.js  v4.54.14
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.13';
+const APP_VERSION = '4.54.14';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -20959,11 +20959,23 @@ function _renderAnaReadiness(h) {
   </div>`;
 }
 
+// v4.54.14: reusable card-level editorial head (eyebrow + italic-accent
+// mini-title) \u2014 unifies the Analytics secondary cards that still had plain
+// `<h3>CAPS TITLE</h3>` with the editorial branding used everywhere else.
+// `eyebrow` = leading kicker ("Trend \u00b7 last 20 sessions" etc.), `title` is
+// the display phrase, `em` is the word that gets the italic accent.
+function _edCardhead(eyebrow, title, em) {
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+  return `<div class="ed-cardhead">
+    <div class="ed-cardhead-eyebrow">${esc(eyebrow || '')}</div>
+    <h3 class="ed-cardhead-title">${esc(title || '')} ${em ? `<em>${esc(em)}</em>` : ''}</h3>
+  </div>`;
+}
+
 function _renderAnaTrend(h) {
   const recent = h.slice(0, 20).reverse();
   return `<div class="ana-card" id="ana-s-trend">
-    <h3>ACCURACY TREND</h3>
-    <div class="ana-subtitle">Last ${recent.length} sessions</div>
+    ${_edCardhead(`Trend \u00b7 last ${recent.length} sessions`, 'Accuracy', 'trend.')}
     <div class="ana-chart">
       <div class="ana-chart-line" style="bottom:80%"><span class="ana-chart-lbl">80%</span></div>
       <div class="ana-chart-line" style="bottom:60%"><span class="ana-chart-lbl">60%</span></div>
@@ -20992,7 +21004,7 @@ function _renderAnaDifficulty(h) {
     diffs[d].total += e.total;
   });
   return `<div class="ana-card">
-    <h3>DIFFICULTY BREAKDOWN</h3>
+    ${_edCardhead('Tiers \u00b7 per-difficulty accuracy', 'Difficulty', 'breakdown.')}
     <div class="ana-diff-grid">
       ${Object.entries(diffs).map(([d, v], idx) => {
         const pct = v.total > 0 ? Math.round(v.correct / v.total * 100) : 0;
@@ -21016,7 +21028,7 @@ function _renderAnaDifficulty(h) {
 // compact CTA that points the user at the Progress page.
 function _renderAnaTopicsCta() {
   return `<div class="ana-card ana-topics-cta">
-    <h3>TOPIC-LEVEL BREAKDOWN</h3>
+    ${_edCardhead('Topics \u00b7 per-topic view', 'Topic-level', 'breakdown.')}
     <div class="ana-subtitle">Per-topic accuracy with domain grouping, search, filter + drill lives on the Progress page.</div>
     <button type="button" class="ana-topics-cta-btn" onclick="showPage('progress');renderProgressPage()">
       <span>\ud83d\udcc8 Open Progress page</span>
@@ -21042,8 +21054,7 @@ function _renderAnaActivity(h) {
   const maxCount = Math.max(...days.map(d => d.count), 1);
   const totalQ30 = days.reduce((a, d) => a + d.count, 0);
   return `<div class="ana-card" id="ana-s-activity">
-    <h3>STUDY ACTIVITY</h3>
-    <div class="ana-subtitle">Last 30 days \u2014 ${totalQ30} questions answered</div>
+    ${_edCardhead(`Pulse \u00b7 ${totalQ30} questions in 30 days`, 'Study', 'activity.')}
     <div class="ana-calendar">
       ${days.map((d, idx) => {
         const intensity = d.count > 0 ? Math.max(0.2, d.count / maxCount) : 0;
@@ -21072,7 +21083,7 @@ function _renderAnaExams(h) {
   const exams = h.filter(e => e.mode === 'exam');
   if (exams.length === 0) return '';
   return `<div class="ana-card">
-    <h3>EXAM SCORE HISTORY</h3>
+    ${_edCardhead('Exams \u00b7 scaled scores over time', 'Exam', 'history.')}
     <div class="ana-exams">
       ${exams.map(e => {
         const scaled = Math.round(100 + (e.score / e.total) * 800);
@@ -21143,7 +21154,7 @@ function _renderAnaStreak() {
     : null;
 
   return `<div class="ana-card ana-streak-card ana-streak-card-${heatTier}">
-    <h3>STUDY STREAK</h3>
+    ${_edCardhead('Streak \u00b7 habit forming', 'Study', 'streak.')}
     <div class="ana-streak-grid">
       <div class="ana-streak-big ana-streak-big-${heatTier}">
         <div class="ana-streak-flame" aria-hidden="true">${flameIcon}</div>
@@ -21543,8 +21554,7 @@ function _renderAnaWrongPatterns() {
 
   if (patterns.length === 0) {
     return `<div class="ana-card ana-card-wp" id="ana-s-wrong-patterns">
-      <h3>WRONG-ANSWER PATTERNS</h3>
-      <div class="ana-subtitle">Your last ${recent.length} mistakes clustered by cause</div>
+      ${_edCardhead(`Patterns \u00b7 last ${recent.length} mistakes`, 'Wrong-answer', 'patterns.')}
       <div class="wp-empty">
         <div class="wp-empty-icon">\u2728</div>
         <div class="wp-empty-title">No strong pattern yet</div>
@@ -21554,8 +21564,8 @@ function _renderAnaWrongPatterns() {
   }
 
   return `<div class="ana-card ana-card-wp" id="ana-s-wrong-patterns">
-    <h3>WRONG-ANSWER PATTERNS</h3>
-    <div class="ana-subtitle">Your last ${recent.length} mistakes clustered by cause \u2014 fix the pattern, not just the topic</div>
+    ${_edCardhead(`Patterns \u00b7 ${recent.length} recent mistakes`, 'Wrong-answer', 'patterns.')}
+    <div class="ana-subtitle">Clustered by cause \u2014 fix the pattern, not just the topic.</div>
     <div class="wp-list">
       ${patterns.slice(0, 4).map((p, i) => `
         <div class="wp-pattern" style="--wp-accent:${p.accent}">
@@ -21585,7 +21595,7 @@ function _renderAnaExamVsQuiz(h) {
   else if (delta > 3)            { insight = `Quiz avg beats exam avg by ${delta} points — timed pressure is costing you. Practice more exam simulations.`; insightColor = 'var(--yellow)'; }
   else                           { insight = `Exam avg beats quiz avg by ${Math.abs(delta)} points — you rise to the occasion.`; insightColor = 'var(--green)'; }
   return `<div class="ana-card">
-    <h3>EXAM vs QUIZ MODE</h3>
+    ${_edCardhead('Modes \u00b7 timed vs practice', 'Exam vs', 'quiz.')}
     <div class="ana-subtitle">Does timed pressure hurt your performance?</div>
     <div class="ana-mode-compare">
       <div class="ana-mode-item">
@@ -21644,7 +21654,7 @@ function _renderAnaMilestones() {
 
   return `<div class="ana-card ana-card-ms" id="ana-s-milestones">
     <div class="ana-ms-head">
-      <h3>MILESTONES</h3>
+      ${_edCardhead(`Badges \u00b7 ${unlockedCount} of ${totalMilestones} unlocked`, '', 'Milestones.')}
       <div class="ana-ms-progress">
         <span class="ana-ms-count">${unlockedCount}<span class="ana-ms-total"> / ${totalMilestones}</span></span>
         <div class="ana-ms-bar-track"><div class="ana-ms-bar-fill" style="width:${pct}%"></div></div>

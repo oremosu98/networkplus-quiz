@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.13
+   Network+ AI Quiz — styles.css  v4.54.14
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10129,4 +10129,61 @@ html { zoom: 1.10; }
 .sb-foot {
   padding-bottom: 16px;
   margin-bottom: 8px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.14 — Reusable .ed-cardhead (Analytics secondary cards editorial)
+   Brings Trend / Difficulty / Topics CTA / Activity / Exams / Streak /
+   Wrong-Patterns / Exam-vs-Quiz / Milestones into line with the
+   prototype's card-level header pattern used elsewhere.
+   ════════════════════════════════════════════════════════════════════ */
+.ed-cardhead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .16);
+}
+.ed-cardhead-eyebrow {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  padding-left: 14px;
+  position: relative;
+  opacity: .85;
+}
+.ed-cardhead-eyebrow::before {
+  content: '—';
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--accent-light);
+}
+.ed-cardhead-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.1;
+}
+.ed-cardhead-title em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+/* Milestones card — .ana-ms-head was a flex row; keep the progress bar
+   beside the cardhead on wide viewports */
+.ana-ms-head { align-items: flex-start; gap: 16px; }
+.ana-ms-head .ed-cardhead { flex: 1; min-width: 0; }
+[data-theme="light"] .ed-cardhead-eyebrow,
+[data-theme="light"] .ed-cardhead-eyebrow::before,
+[data-theme="light"] .ed-cardhead-title em {
+  color: #6355e0;
+}
+@media (max-width: 680px) {
+  .ed-cardhead-title { font-size: 17px; }
+  .ana-ms-head { flex-direction: column; }
 }
