@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.55.0', js.includes("const APP_VERSION = '4.55.0"));
+test('APP_VERSION is 4.55.1', js.includes("const APP_VERSION = '4.55.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.55.0', sw.includes('netplus-v4.55.0'));
+test('SW cache bumped to v4.55.1', sw.includes('netplus-v4.55.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6437,6 +6437,61 @@ test('v4.55.0 CSS: per-packet accent tone variants (0..3)',
   /\.acl-packet-pill-1\s*\{/.test(css) &&
   /\.acl-packet-pill-2\s*\{/.test(css) &&
   /\.acl-packet-pill-3\s*\{/.test(css));
+
+// ── v4.55.1 ACL Stateful Firewall Mode (issue #181) ──
+console.log('\n\x1b[1m\u2500\u2500 v4.55.1 ACL STATEFUL FIREWALL MODE \u2500\u2500\x1b[0m');
+test('v4.55.1 JS: _aclEvalPacket accepts (rules, pkt, mode, connTable)',
+  /function _aclEvalPacket\(rules,\s*pkt,\s*mode,\s*connTable\)/.test(js));
+test('v4.55.1 JS: _aclFlowKey + _aclEvaluateFlowsStateful helpers defined',
+  js.includes('function _aclFlowKey(') && js.includes('function _aclEvaluateFlowsStateful('));
+test('v4.55.1 JS: stateful mode reverse-5-tuple lookup auto-permits',
+  /stateful[\s\S]{0,400}reverseKey[\s\S]{0,400}state-track/.test(js));
+test('v4.55.1 JS: _aclGradeScenario routes stateful scenarios through the batch evaluator',
+  /_aclGradeScenario[\s\S]{0,800}scenario\.mode\s*===\s*'stateful'[\s\S]{0,400}_aclEvaluateFlowsStateful/.test(js));
+test('v4.55.1 JS: 3 new stateful scenarios with mode: "stateful" field',
+  /id:\s*'stateful-dev-ssh'[\s\S]{0,2000}mode:\s*'stateful'/.test(js) &&
+  /id:\s*'stateful-web-farm'[\s\S]{0,2000}mode:\s*'stateful'/.test(js) &&
+  /id:\s*'stateful-dns-contrast'[\s\S]{0,2000}mode:\s*'stateful'/.test(js));
+test('v4.55.1 HTML/JS: scenario card renders stateful/stateless mode badge',
+  js.includes("acl-sc-mode acl-sc-mode-") && js.includes("scen.mode === 'stateful'"));
+test('v4.55.1 CSS: .acl-sc-mode-stateful accent treatment',
+  /\.acl-sc-mode-stateful\s*\{[\s\S]{0,400}color:\s*var\(--accent-light\)/.test(css));
+test('v4.55.1 JS: state-track ruleId used as sentinel for auto-permit',
+  js.includes("ruleId: 'state-track'"));
+
+// Behavioural sandbox: verify stateful auto-permit + stateless deny in vm
+(function() {
+  try {
+    const vm = require('vm');
+    const ctx = {};
+    vm.createContext(ctx);
+    // _fnBody returns the full function declaration ("function foo(...) {...}"),
+    // so we run each body directly (no need to prepend the signature).
+    const helpers = [
+      '_aclIpToUint','_aclParseCidr','_aclCidrContains','_aclPortMatches','_aclRuleMatches',
+      '_aclEvalPacket','_aclFlowKey','_aclEvaluateFlowsStateful'
+    ];
+    helpers.forEach(name => {
+      vm.runInContext(_fnBody(js, name), ctx);
+    });
+    // Forward outbound permit followed by reverse inbound: stateful auto-permits
+    const rules = [{ id: 'r1', action: 'permit', srcAddr: '10.0.0.0/24', srcPort: 'any', dstAddr: '8.8.8.8/32', dstPort: 53, proto: 'udp' }];
+    const packets = [
+      { src: '10.0.0.5', sp: 55000, dst: '8.8.8.8', dp: 53, proto: 'udp' },
+      { src: '8.8.8.8',  sp: 53,    dst: '10.0.0.5', dp: 55000, proto: 'udp' }
+    ];
+    const stateless = packets.map(p => ctx._aclEvalPacket(rules, p));
+    const stateful  = ctx._aclEvaluateFlowsStateful(rules, packets);
+    test('v4.55.1 sandbox: stateless mode denies reverse packet (no explicit rule)',
+      stateless[1].action === 'deny');
+    test('v4.55.1 sandbox: stateful mode auto-permits reverse via state-track',
+      stateful[1].action === 'permit' && stateful[1].stateTrack === true);
+    test('v4.55.1 sandbox: unrelated packet still denied in stateful mode',
+      ctx._aclEvaluateFlowsStateful(rules, [{ src: '10.0.0.5', sp: 55001, dst: '1.1.1.1', dp: 53, proto: 'udp' }])[0].action === 'deny');
+  } catch (e) {
+    test('v4.55.1 sandbox: stateful evaluator executes without error', false);
+  }
+})();
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',

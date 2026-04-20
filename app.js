@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.55.0
+// Network+ AI Quiz — app.js  v4.55.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.55.0';
+const APP_VERSION = '4.55.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -23556,14 +23556,39 @@ function _aclRuleMatches(rule, pkt) {
 // Evaluate a packet against the rule list top-to-bottom. Returns the
 // action (permit / deny) plus which rule matched (or implicit deny at
 // the end). This is the heart of the simulator — everything else is UI.
-function _aclEvalPacket(rules, pkt) {
+function _aclEvalPacket(rules, pkt, mode, connTable) {
   if (!Array.isArray(rules)) rules = [];
+  // v4.55.1: stateful mode \u2014 reverse-5-tuple match auto-permits as return traffic.
+  const stateful = mode === 'stateful' && connTable && typeof connTable === 'object';
+  if (stateful) {
+    const reverseKey = _aclFlowKey({ src: pkt.dst, sp: pkt.dp, dst: pkt.src, dp: pkt.sp, proto: pkt.proto });
+    if (connTable[reverseKey]) {
+      return { action: 'permit', ruleIdx: -1, ruleId: 'state-track', implicit: false, stateTrack: true };
+    }
+  }
   for (let i = 0; i < rules.length; i++) {
     if (_aclRuleMatches(rules[i], pkt)) {
-      return { action: rules[i].action, ruleIdx: i, ruleId: rules[i].id, implicit: false };
+      const action = rules[i].action;
+      if (stateful && action === 'permit') {
+        connTable[_aclFlowKey(pkt)] = true;
+      }
+      return { action, ruleIdx: i, ruleId: rules[i].id, implicit: false };
     }
   }
   return { action: 'deny', ruleIdx: -1, ruleId: 'implicit-deny', implicit: true };
+}
+
+// v4.55.1: 5-tuple canonical key for the stateful connection table.
+function _aclFlowKey(pkt) {
+  return [pkt.proto, pkt.src, pkt.sp, pkt.dst, pkt.dp].join('|');
+}
+
+// v4.55.1: batch flow evaluator for stateful grading. Processes packets
+// in order, builds a shared connTable so later packets get the benefit
+// of earlier permits (reverse-tuple match \u2192 auto-permit).
+function _aclEvaluateFlowsStateful(rules, packets) {
+  const connTable = {};
+  return packets.map(pkt => _aclEvalPacket(rules, pkt, 'stateful', connTable));
 }
 
 // Grade a rule list against a scenario: run each canned test packet,
@@ -23573,8 +23598,15 @@ function _aclGradeScenario(rules, scenario) {
   if (!scenario || !Array.isArray(scenario.testPackets)) {
     return { passed: 0, total: 0, details: [] };
   }
-  const details = scenario.testPackets.map(pkt => {
-    const result = _aclEvalPacket(rules, pkt);
+  // v4.55.1: stateful mode routes through the batch evaluator so the
+  // connection table is shared across packets in the scenario \u2014 return
+  // traffic auto-permits even without an explicit reverse rule.
+  const stateful = scenario.mode === 'stateful';
+  const results = stateful
+    ? _aclEvaluateFlowsStateful(rules, scenario.testPackets)
+    : scenario.testPackets.map(pkt => _aclEvalPacket(rules, pkt));
+  const details = scenario.testPackets.map((pkt, i) => {
+    const result = results[i];
     return {
       label: pkt.label,
       packet: pkt,
@@ -23582,7 +23614,8 @@ function _aclGradeScenario(rules, scenario) {
       actual: result.action,
       pass: result.action === pkt.expected,
       ruleIdx: result.ruleIdx,
-      implicit: result.implicit
+      implicit: result.implicit,
+      stateTrack: !!result.stateTrack
     };
   });
   const passed = details.filter(d => d.pass).length;
@@ -24195,6 +24228,125 @@ const ACL_SCENARIOS = [
       ],
       examTies: 'N10-009 Objective 4.3 + 1.4 (DNS protocols). Exam will specifically test \"what proto does DNS use?\" and \"why is DNS failing when the rule clearly says port 53?\"'
     }
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // v4.55.1 STATEFUL FIREWALL SCENARIOS (3 \u2014 showcase stateful pattern)
+  // Each carries `mode: 'stateful'` so the grader uses the batch flow
+  // evaluator with a shared connection table. Return-traffic packets
+  // auto-permit against tracked forward flows \u2014 no explicit reverse rule
+  // needed. Learning: enterprise firewalls work this way, stateless ACLs
+  // don't.
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    id: 'stateful-dev-ssh',
+    title: 'Stateful: Dev SSH with Auto-Returns',
+    icon: '\ud83d\udd01',
+    category: 'Real-world',
+    difficulty: 'intermediate',
+    mode: 'stateful',
+    description: 'Developers SSH to the build server and the replies need to come back. In STATEFUL mode, one outbound permit is enough \u2014 the firewall tracks the connection and auto-permits the reverse flow. No explicit return rule needed.',
+    objectives: ['4.3', '4.4'],
+    zones: [
+      { name: 'Dev VLAN',       cidr: '10.60.0.0/24', color: '#7c6ff7' },
+      { name: 'Build Server',   cidr: '10.60.100.5/32', color: '#22c55e' }
+    ],
+    requirements: [
+      'Dev hosts (10.60.0.0/24) can SSH to 10.60.100.5:22/tcp',
+      'Build server\'s replies back to dev reach the original client (STATEFUL auto-permits)',
+      'Nothing else'
+    ],
+    testPackets: [
+      { src: '10.60.0.15',  sp: 52000, dst: '10.60.100.5', dp: 22,    proto: 'tcp', expected: 'permit', label: 'Dev SSH \u2192 Build (outbound, permits + tracks)' },
+      { src: '10.60.100.5', sp: 22,    dst: '10.60.0.15',  dp: 52000, proto: 'tcp', expected: 'permit', label: 'Build reply \u2192 Dev (return flow, auto-permit)' },
+      { src: '10.60.0.20',  sp: 52001, dst: '10.60.100.5', dp: 3389,  proto: 'tcp', expected: 'deny',   label: 'Dev RDP \u2192 Build (not in rules, blocked)' }
+    ],
+    explanation: {
+      overview: 'Every real enterprise firewall (pfSense, iptables with ctstate, Cisco ASA, AWS security groups) is STATEFUL. When a packet outbound is permitted by a rule, the firewall adds the 5-tuple (proto, src, srcPort, dst, dstPort) to a connection table. When the reverse of that tuple arrives inbound, it auto-permits without any explicit inbound rule.',
+      dataFlow: 'Dev .15:52000 \u2192 Build:22 tcp. Matches outbound permit. Firewall adds (tcp, 10.60.0.15, 52000, 10.60.100.5, 22) to connection table. Build replies: Build:22 \u2192 Dev .15:52000 tcp. Firewall sees reversed-tuple match in conn table \u2192 auto-permit. Dev RDP attempt: no match, no state entry, falls through to implicit deny.',
+      keyDevices: [
+        { name: 'Stateful firewall / ACL', role: 'Maintains a connection table. Reverse-tuple match auto-permits as established return traffic.' }
+      ],
+      concepts: [
+        { term: 'Stateful inspection',    meaning: 'Firewall tracks active sessions. Return traffic for tracked sessions is automatically allowed.' },
+        { term: 'Connection table',       meaning: 'In-memory store of active 5-tuples (proto + src + srcPort + dst + dstPort). Purged after idle timeout.' },
+        { term: 'Stateless vs stateful',  meaning: 'Stateless: every packet evaluated in isolation \u2014 return rules required. Stateful: forward permit auto-allows the reverse. Real enterprise is stateful.' },
+        { term: 'Why it matters for ACLs', meaning: 'Stateful mode lets you write minimal rule lists (just the intended direction). Stateless forces you to double every rule. A key exam distinction.' }
+      ],
+      examTies: 'N10-009 Objective 4.4 (firewalls) + Security+ crossover. Exam will ask \"what\'s the difference between stateful and stateless firewalls?\" and \"why does my firewall rule work sometimes but not others?\" \u2014 usually the answer is stateful context.'
+    }
+  },
+  {
+    id: 'stateful-web-farm',
+    title: 'Stateful: Public Web Farm',
+    icon: '\ud83c\udf10',
+    category: 'Real-world',
+    difficulty: 'intermediate',
+    mode: 'stateful',
+    description: 'Internet clients reach a public web server on :443. In STATEFUL mode, the server\'s replies back to the clients are auto-permitted by connection tracking \u2014 you don\'t author outbound rules for response traffic.',
+    objectives: ['4.3', '4.4'],
+    zones: [
+      { name: 'Internet',     cidr: 'any',             color: '#3b82f6' },
+      { name: 'Public Web',   cidr: '203.0.113.10/32', color: '#22c55e' }
+    ],
+    requirements: [
+      'Internet clients hit 203.0.113.10:443/tcp',
+      'Server replies back to clients must auto-permit (stateful)',
+      'No separate outbound rule needed'
+    ],
+    testPackets: [
+      { src: '198.51.100.5',    sp: 54000, dst: '203.0.113.10',  dp: 443,   proto: 'tcp', expected: 'permit', label: 'Client A \u2192 Web HTTPS (inbound)' },
+      { src: '203.0.113.10',    sp: 443,   dst: '198.51.100.5',  dp: 54000, proto: 'tcp', expected: 'permit', label: 'Web \u2192 Client A reply (stateful auto)' },
+      { src: '198.51.100.6',    sp: 54001, dst: '203.0.113.10',  dp: 22,    proto: 'tcp', expected: 'deny',   label: 'Client B SSH \u2192 Web (blocked)' }
+    ],
+    explanation: {
+      overview: 'Public-facing web servers are the simplest stateful use case: one inbound permit on :443/tcp from any, and the firewall handles the return traffic automatically. Pre-stateful you\'d need an outbound permit for src:443 \u2192 ephemeral ports \u2014 ugly + error-prone.',
+      dataFlow: 'Internet client \u2192 web server:443 tcp. Matches inbound permit, connection added to table. Web server replies from :443 \u2192 client ephemeral port. Reverse-tuple match in conn table \u2192 auto-permit. Attempted SSH from another client \u2014 no matching rule \u2014 implicit deny.',
+      keyDevices: [
+        { name: 'Perimeter firewall', role: 'Holds the inbound public-service permit. Connection tracking lives here.' },
+        { name: 'Web server', role: 'Replies from well-known port :443 to client\'s ephemeral port. Doesn\'t care about firewall state.' }
+      ],
+      concepts: [
+        { term: 'Minimal rule set',       meaning: 'Stateful mode means you write rules for INTENT only. You don\'t pollute the rule list with return-traffic plumbing.' },
+        { term: 'Ephemeral port pool',    meaning: 'Client-side TCP ports 1024\u201365535. Stateful firewall tracks these automatically \u2014 you never hand-enumerate.' }
+      ],
+      examTies: 'N10-009 Objective 4.4 \u2014 understanding WHY modern firewalls are stateful is a recurring concept. The "write minimal rules + rely on state tracking" pattern appears in both exam theory and PBQ.'
+    }
+  },
+  {
+    id: 'stateful-dns-contrast',
+    title: 'Stateful: DNS (compare to stateless DNS lab)',
+    icon: '\u{2696}\uFE0F',
+    category: 'Real-world',
+    difficulty: 'advanced',
+    mode: 'stateful',
+    description: 'Users resolve DNS via an external resolver. Same scenario as the stateless dns-only-lab but in STATEFUL mode \u2014 feel the difference: one rule covers both the query AND the response.',
+    objectives: ['4.3', '4.4', '1.4'],
+    zones: [
+      { name: 'Internal Users', cidr: '10.70.0.0/24', color: '#7c6ff7' },
+      { name: 'Resolver',       cidr: '1.1.1.1/32',    color: '#22c55e' }
+    ],
+    requirements: [
+      'Internal (10.70.0.0/24) can query 1.1.1.1:53/udp',
+      'Return DNS responses auto-permit (stateful)',
+      'Compare: in stateless mode you\'d need an EXPLICIT inbound rule for src:1.1.1.1:53 \u2192 dst:any:any-ephemeral/udp'
+    ],
+    testPackets: [
+      { src: '10.70.0.30', sp: 54000, dst: '1.1.1.1',    dp: 53,    proto: 'udp', expected: 'permit', label: 'User DNS query \u2192 Resolver' },
+      { src: '1.1.1.1',    sp: 53,    dst: '10.70.0.30', dp: 54000, proto: 'udp', expected: 'permit', label: 'Resolver reply \u2192 User (stateful auto)' },
+      { src: '10.70.0.30', sp: 54001, dst: '8.8.8.8',    dp: 53,    proto: 'udp', expected: 'deny',   label: 'User \u2192 unauthorised DNS (blocked)' }
+    ],
+    explanation: {
+      overview: 'Same business goal as dns-only-lab but stateful. The stateless version needs TWO rules (outbound query + inbound response). Stateful needs ONE (outbound query). The saved rule is the whole pedagogical point.',
+      dataFlow: 'User \u2192 1.1.1.1:53 udp \u2014 matches outbound permit, connection tracked. 1.1.1.1 replies \u2014 reverse-tuple hit, auto-permit. 8.8.8.8 attempt \u2014 no rule matches, implicit deny.',
+      keyDevices: [
+        { name: 'Stateful firewall', role: 'Tracks UDP \"flows\" (looser than TCP sessions but still time-bounded).' }
+      ],
+      concepts: [
+        { term: 'UDP state tracking',   meaning: 'UDP is connectionless, but stateful firewalls still track recent UDP flows with a short timeout (typically 30s). Reverse-tuple packets within the window auto-permit.' },
+        { term: 'Stateless noise cost', meaning: 'Stateless ACLs typically run 2\u20134x more rules than stateful for the same policy. Operational cost: more review, more errors, more drift.' }
+      ],
+      examTies: 'N10-009 Objective 4.4 \u2014 the differentiation between UDP flow tracking and TCP session tracking shows up in the exam as "what does a stateful firewall track for UDP?" \u2014 answer: recent flows with idle timeouts.'
+    }
   }
 ];
 
@@ -24394,6 +24546,8 @@ function _aclRenderScenarioPanel(scen) {
           <div class="acl-sc-meta">
             <span class="acl-sc-diff acl-sc-diff-${scen.difficulty}">${scen.difficulty}</span>
             ${(scen.objectives || []).map(o => `<span class="acl-sc-obj">N10-009 \u00b7 ${escHtml(o)}</span>`).join('')}
+            <!-- v4.55.1: mode badge \u2014 shows stateful vs stateless at a glance -->
+            <span class="acl-sc-mode acl-sc-mode-${scen.mode === 'stateful' ? 'stateful' : 'stateless'}" title="${scen.mode === 'stateful' ? 'Stateful firewall \u2014 return traffic auto-permits' : 'Stateless firewall \u2014 return traffic needs explicit rules'}">${scen.mode === 'stateful' ? '\ud83d\udd01 Stateful' : '\u2195\ufe0f Stateless'}</span>
           </div>
           <div class="acl-sc-sub">${escHtml(scen.description)}</div>
         </div>
