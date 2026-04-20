@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.16', js.includes("const APP_VERSION = '4.54.16"));
+test('APP_VERSION is 4.54.17', js.includes("const APP_VERSION = '4.54.17"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.16', sw.includes('netplus-v4.54.16'));
+test('SW cache bumped to v4.54.17', sw.includes('netplus-v4.54.17'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6326,6 +6326,53 @@ test('v4.54.16 CSS: .ed-modalhead reusable modal-level editorial head',
   /\.ed-modalhead-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
 test('v4.54.16 CSS: .settings-exam-row wrapper styled',
   /\.settings-exam-row\s*\{[\s\S]{0,200}display:\s*flex/.test(css));
+
+// v4.54.17 — Topbar exam countdown + end-of-day recap + follow-up drill
+test('v4.54.17 HTML: topbar has #topbar-countdown chip',
+  /id="app-topbar"[\s\S]{0,1200}id="topbar-countdown"[\s\S]{0,400}topbar-countdown-val/.test(html));
+test('v4.54.17 JS: renderTopbarCountdown defined + called from _topbarTick',
+  js.includes('function renderTopbarCountdown(') &&
+  /function _topbarTick\(\)[\s\S]{0,1200}renderTopbarCountdown\(\)/.test(js));
+test('v4.54.17 JS: countdown chip hidden when no exam date set',
+  /renderTopbarCountdown[\s\S]{0,1500}if\s*\(!dateStr\)[\s\S]{0,200}classList\.add\('is-hidden'\)/.test(js));
+test('v4.54.17 JS: countdown urgency tiers (urgent/soon/ok/past)',
+  /renderTopbarCountdown[\s\S]{0,2500}topbar-countdown-urgent[\s\S]{0,400}topbar-countdown-soon[\s\S]{0,400}topbar-countdown-ok[\s\S]{0,400}topbar-countdown-past/.test(js));
+test('v4.54.17 JS: updateExamDate refreshes topbar countdown',
+  /function updateExamDate\([\s\S]{0,800}renderTopbarCountdown\(\)/.test(js));
+test('v4.54.17 CSS: .topbar-countdown chip with urgency tier palette',
+  /\.topbar-countdown\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
+  /\.topbar-countdown-urgent\s*\{[\s\S]{0,300}color:\s*var\(--red\)/.test(css) &&
+  /@keyframes topbarCountdownPulse\s*\{/.test(css));
+
+// End-of-day recap
+test('v4.54.17 HTML: daily-recap-modal exists with editorial ed-modalhead',
+  html.includes('id="daily-recap-modal"') &&
+  /daily-recap-modal[\s\S]{0,500}class="ed-modalhead"[\s\S]{0,400}Nice\s*<em>work\.<\/em>/.test(html));
+test('v4.54.17 JS: _maybeShowDailyRecap + dismissDailyRecap defined',
+  js.includes('function _maybeShowDailyRecap(') &&
+  js.includes('function dismissDailyRecap('));
+test('v4.54.17 JS: daily recap gated by localStorage once-per-day',
+  /_maybeShowDailyRecap[\s\S]{0,2000}STORAGE_DAILY_RECAP_SHOWN[\s\S]{0,400}todayKey/.test(js));
+test('v4.54.17 JS: finish() calls _maybeShowDailyRecap after saveToHistory',
+  /function finish\(\)[\s\S]{0,6000}saveToHistory[\s\S]{0,500}_maybeShowDailyRecap/.test(js));
+test('v4.54.17 JS: submitExam calls _maybeShowDailyRecap after saveToHistory',
+  /submitExam[\s\S]{0,12000}saveToHistory[\s\S]{0,400}_maybeShowDailyRecap/.test(js));
+test('v4.54.17 JS: recap shows today\'s stats + delta + streak + days-to-exam',
+  /_maybeShowDailyRecap[\s\S]{0,3500}todayAcc[\s\S]{0,600}deltaAcc[\s\S]{0,400}streak[\s\S]{0,400}daysToExam/.test(js));
+test('v4.54.17 CSS: .daily-recap-card uses dark gradient + overshoot entrance animation',
+  /\.daily-recap-card\s*\{[\s\S]{0,500}linear-gradient\(160deg,\s*#16131f/.test(css) &&
+  /@keyframes dailyRecapIn\s*\{/.test(css));
+
+// Follow-up drill on wrong answers
+test('v4.54.17 JS: followUpOnMistake defined + calls fetchQuestions for 2 extras',
+  js.includes('function followUpOnMistake(') &&
+  /followUpOnMistake[\s\S]{0,2000}fetchQuestions\(key,\s*targetTopic,\s*targetDiff,\s*2\)/.test(js));
+test('v4.54.17 JS: followUpOnMistake injects extras at current + 1',
+  /followUpOnMistake[\s\S]{0,3000}questions\.splice\(current\s*\+\s*1,\s*0,\s*\.\.\.extras\)/.test(js));
+test('v4.54.17 JS: showExplanation adds Drill-this-concept button only on wrong',
+  /showExplanation[\s\S]{0,4000}!isRight[\s\S]{0,400}explain-btn-followup[\s\S]{0,200}followUpOnMistake/.test(js));
+test('v4.54.17 CSS: .explain-btn-followup accent gradient override',
+  /\.explain-btn-followup\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*rgba\(var\(--accent-rgb\)/.test(css));
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',

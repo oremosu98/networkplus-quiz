@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.16
+   Network+ AI Quiz — styles.css  v4.54.17
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10269,4 +10269,194 @@ html { zoom: 1.10; }
 [data-theme="light"] .ed-modalhead-eyebrow::before,
 [data-theme="light"] .ed-modalhead-title em {
   color: #6355e0;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.17 — Topbar countdown + end-of-day recap + follow-up button
+   All three match the editorial aesthetic (monospace eyebrow, italic-
+   accent display, .ed-modalhead for the recap, dark-glass chip for
+   the countdown).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (A) Topbar exam countdown chip */
+.topbar-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  margin-right: 6px;
+  font-family: monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--text);
+  background: rgba(var(--accent-rgb), .1);
+  border: 1px solid rgba(var(--accent-rgb), .24);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.topbar-countdown:hover {
+  background: rgba(var(--accent-rgb), .18);
+  border-color: rgba(var(--accent-rgb), .4);
+  transform: translateY(-1px);
+}
+.topbar-countdown.is-hidden { display: none !important; }
+.topbar-countdown-ico { font-size: 13px; line-height: 1; }
+.topbar-countdown-val { font-variant-numeric: tabular-nums; }
+/* Urgency tiers */
+.topbar-countdown-ok { color: var(--text); background: rgba(var(--accent-rgb), .1); border-color: rgba(var(--accent-rgb), .24); }
+.topbar-countdown-soon {
+  color: var(--yellow);
+  background: rgba(251, 191, 36, .1);
+  border-color: rgba(251, 191, 36, .3);
+}
+.topbar-countdown-urgent {
+  color: var(--red);
+  background: rgba(239, 68, 68, .12);
+  border-color: rgba(239, 68, 68, .35);
+  animation: topbarCountdownPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.topbar-countdown-past {
+  color: var(--green);
+  background: rgba(34, 197, 94, .1);
+  border-color: rgba(34, 197, 94, .28);
+}
+@keyframes topbarCountdownPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .35); }
+  50%      { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+[data-theme="light"] .topbar-countdown-soon   { color: #d97706; background: rgba(217, 119, 6, .1); border-color: rgba(217, 119, 6, .3); }
+[data-theme="light"] .topbar-countdown-urgent { color: #dc2626; background: rgba(220, 38, 38, .1); border-color: rgba(220, 38, 38, .3); }
+[data-theme="light"] .topbar-countdown-past   { color: #16a34a; background: rgba(22, 163, 74, .1); border-color: rgba(22, 163, 74, .28); }
+@media (max-width: 540px) {
+  .topbar-countdown { padding: 3px 8px; font-size: 10.5px; }
+  .topbar-countdown-ico { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar-countdown-urgent { animation: none !important; }
+  .topbar-countdown { transition: none !important; }
+}
+
+/* (B) End-of-day recap modal */
+.daily-recap-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.daily-recap-modal[hidden] { display: none; }
+.daily-recap-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(160deg, #16131f, #0d0a15);
+  border: 1px solid rgba(124, 111, 247, .32);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, .6);
+  padding: 28px 28px 22px;
+  color: var(--text);
+  animation: dailyRecapIn .32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes dailyRecapIn {
+  from { opacity: 0; transform: translateY(-12px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.daily-recap-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  color: rgba(255, 255, 255, .6);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background .15s ease, color .15s ease;
+}
+.daily-recap-close:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.daily-recap-card .ed-modalhead-title { color: rgba(255, 255, 255, .95); }
+.daily-recap-card .ed-modalhead-eyebrow { color: var(--accent-light); opacity: 1; }
+.daily-recap-card .ed-modalhead { border-bottom-color: rgba(124, 111, 247, .28); }
+.daily-recap-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 20px;
+}
+.dr-stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 10px;
+}
+.dr-stat-k {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .55);
+  font-weight: 700;
+}
+.dr-stat-v {
+  font-size: 14px;
+  color: rgba(255, 255, 255, .92);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dr-stat-v strong { font-size: 16px; font-weight: 800; color: #fff; }
+.dr-stat-delta {
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.dr-stat-delta-up { background: rgba(34, 197, 94, .18); color: #86efac; border: 1px solid rgba(34, 197, 94, .35); }
+.dr-stat-delta-down { background: rgba(239, 68, 68, .15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, .3); }
+.dr-stat-delta-neutral { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .6); border: 1px solid rgba(255, 255, 255, .15); }
+.daily-recap-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+[data-theme="light"] .daily-recap-card .ed-modalhead-eyebrow,
+[data-theme="light"] .daily-recap-card .ed-modalhead-eyebrow::before,
+[data-theme="light"] .daily-recap-card .ed-modalhead-title em {
+  color: #a78bfa;
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-recap-card { animation: none !important; }
+}
+@media (max-width: 540px) {
+  .daily-recap-card { padding: 22px 20px 18px; }
+}
+
+/* (C) Follow-up drill button */
+.explain-btn-followup {
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .18), rgba(var(--accent-rgb), .06)) !important;
+  border: 1px solid rgba(var(--accent-rgb), .32) !important;
+  color: var(--accent-light) !important;
+}
+.explain-btn-followup:hover {
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .28), rgba(var(--accent-rgb), .12)) !important;
+  transform: translateY(-1px);
+}
+[data-theme="light"] .explain-btn-followup {
+  color: #6355e0 !important;
+  border-color: rgba(99, 85, 224, .3) !important;
 }

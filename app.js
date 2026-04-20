@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.16
+// Network+ AI Quiz — app.js  v4.54.17
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.16';
+const APP_VERSION = '4.54.17';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2545,6 +2545,12 @@ function showExplanation(q, isRight) {
 
   // Explain Further button (Enhancement 5)
   extraHtml += '<button class="explain-btn" onclick="explainFurther()">\ud83d\udca1 Explain Further</button>';
+  // v4.54.17: on wrong answers, offer a "Drill this concept" button that
+  // injects 2 follow-up questions into the current session immediately
+  // after the current question.
+  if (!isRight && typeof followUpOnMistake === 'function') {
+    extraHtml += '<button class="explain-btn explain-btn-followup" onclick="followUpOnMistake()">\ud83c\udfaf Drill this concept</button>';
+  }
 
   // Report button
   const reportCount = getReportCount(q.question);
@@ -2716,6 +2722,9 @@ function finish() {
     const entryMode = dailyChallengeMode ? 'daily' : (sessionMode ? 'session' : 'quiz');
     saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
   }
+  // v4.54.17: if this quiz pushed the user past their daily goal for the
+  // first time today, show an end-of-day recap card.
+  try { if (typeof _maybeShowDailyRecap === 'function') _maybeShowDailyRecap(); } catch (_) {}
   // v4.42.0: refresh the homepage cards that depend on history state, so
   // re-entering goSetup() renders them fresh. renderReadinessCard rolls the
   // score from its previous value to the new one via animateCount. The
@@ -3100,6 +3109,8 @@ function submitExam() {
     if ((getStreak().current || 0) > _prevStreakBefore) _pendingStreakPulse = true;
   } catch (_) {}
   saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam', hardcore: examHardcore });
+  // v4.54.17: end-of-day recap check after exam too
+  try { if (typeof _maybeShowDailyRecap === 'function') _maybeShowDailyRecap(); } catch (_) {}
   // v4.42.0: refresh the homepage cards that depend on history state so
   // returning to setup renders them fresh with the new signal. The
   // renderTodaysFocus call that used to live here has moved — goSetup() is
@@ -6086,6 +6097,57 @@ Respond with one line per question, nothing else:`;
 }
 
 // ══════════════════════════════════════════
+// v4.54.17: Follow-up drill on a specific wrong answer. Generates 2 extra
+// questions on the exact topic of the question the user just got wrong
+// and injects them at `current + 1` so they come up next. The user sees
+// an editorial "+2 drill questions added" toast on success.
+async function followUpOnMistake() {
+  // Guard: only valid in quiz mode (not exam), and only immediately after
+  // a wrong answer (explanation box is showing with .wrong class).
+  if (examMode) return;
+  const q = questions[current];
+  if (!q) return;
+  const btn = document.querySelector('.explain-btn-followup');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '\u{1F4AD} Generating\u2026';
+  }
+  try {
+    const key = apiKey || localStorage.getItem(STORAGE.KEY) || '';
+    if (!key) {
+      if (typeof showErrorToast === 'function') showErrorToast('Set your Anthropic API key in Settings first.');
+      if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+      return;
+    }
+    const targetTopic = q.topic || activeQuizTopic || 'Network+ topic';
+    const targetDiff = q.difficulty || diff || 'Exam Level';
+    // Reuse fetchQuestions \u2014 already validated + GT-guarded. Request 2 qs on
+    // exactly this topic + difficulty. The validation pipeline may drop one,
+    // in which case we inject whatever comes through.
+    const extras = await fetchQuestions(key, targetTopic, targetDiff, 2);
+    if (!extras || extras.length === 0) {
+      if (typeof showErrorToast === 'function') showErrorToast('Couldn\'t generate follow-ups \u2014 try again.');
+      if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+      return;
+    }
+    // Mark each as a follow-up (useful for history filtering / debugging)
+    extras.forEach(e => { e._followup = true; });
+    // Splice into the current session right after the current question.
+    questions.splice(current + 1, 0, ...extras);
+    if (btn) {
+      btn.innerHTML = `\u2705 +${extras.length} added`;
+      btn.style.pointerEvents = 'none';
+    }
+    if (typeof showSuccessToast === 'function') {
+      showSuccessToast(`+${extras.length} follow-up question${extras.length === 1 ? '' : 's'} added on "${targetTopic}". They're up next.`);
+    }
+  } catch (e) {
+    console.warn('[followUpOnMistake]', e && e.message);
+    if (typeof showErrorToast === 'function') showErrorToast('Follow-up failed: ' + (e.message || 'unknown error'));
+    if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+  }
+}
+
 // EXPLAIN FURTHER (Enhancement 5)
 // ══════════════════════════════════════════
 async function explainFurther() {
@@ -21830,6 +21892,8 @@ function updateExamDate(value) {
   setExamDate(value);
   // v4.54.16: also sync the Settings-page chip if it's currently on screen
   if (typeof syncSettingsExamDate === 'function') syncSettingsExamDate();
+  // v4.54.17: refresh the persistent topbar countdown chip
+  if (typeof renderTopbarCountdown === 'function') renderTopbarCountdown();
   renderAnalytics(); // re-render so forecast/countdown update
   renderReadinessCard(); // setup-page card may be affected by coverage/recency thresholds
 }
@@ -24806,6 +24870,109 @@ function _topbarTick() {
   const hour12 = ((h + 11) % 12) + 1;
   const suffix = h >= 12 ? 'pm' : 'am';
   el.textContent = `${day} \u00B7 ${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
+  // v4.54.17: also refresh the exam countdown chip (so crossing midnight
+  // decrements the day count without a page reload).
+  if (typeof renderTopbarCountdown === 'function') renderTopbarCountdown();
+}
+
+// v4.54.17: persistent exam countdown chip in the topbar. Hidden until the
+// user sets a date. Mirrors the urgency tiers used in .ana-ready-datechip.
+// v4.54.17: end-of-day recap. Shown once per calendar day when the user
+// finishes a quiz that pushes them past their daily goal for the first
+// time. Pulls today's + yesterday's stats from loadHistory().
+const STORAGE_DAILY_RECAP_SHOWN = 'nplus_daily_recap_shown';
+function _maybeShowDailyRecap() {
+  try {
+    const h = (typeof loadHistory === 'function') ? loadHistory() : [];
+    const goal = (typeof getDailyGoal === 'function') ? getDailyGoal() : 20;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const shown = localStorage.getItem(STORAGE_DAILY_RECAP_SHOWN);
+    if (shown === todayKey) return; // already shown today
+    // Sum today's questions (exclude wrong-bank drills since they're reviews)
+    let todayQ = 0, todayScore = 0, todayCount = 0;
+    let yesterdayQ = 0, yesterdayScore = 0;
+    const yesterdayKey = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    h.forEach(e => {
+      const k = new Date(e.date).toISOString().slice(0, 10);
+      if (k === todayKey) { todayQ += (e.total || 0); todayScore += (e.score || 0); todayCount += 1; }
+      else if (k === yesterdayKey) { yesterdayQ += (e.total || 0); yesterdayScore += (e.score || 0); }
+    });
+    if (todayQ < goal) return; // not yet at the goal
+    localStorage.setItem(STORAGE_DAILY_RECAP_SHOWN, todayKey);
+
+    const todayAcc = todayQ > 0 ? Math.round(todayScore / todayQ * 100) : 0;
+    const yesterdayAcc = yesterdayQ > 0 ? Math.round(yesterdayScore / yesterdayQ * 100) : null;
+    const deltaAcc = (yesterdayAcc !== null) ? (todayAcc - yesterdayAcc) : null;
+    let streak = 0;
+    try { streak = (typeof getStreak === 'function') ? (getStreak().current || 0) : 0; } catch (_) {}
+    const daysToExam = (typeof getDaysToExam === 'function') ? getDaysToExam() : null;
+
+    const deltaHtml = deltaAcc === null
+      ? '<span class="dr-stat-delta dr-stat-delta-neutral">new baseline</span>'
+      : deltaAcc > 0
+        ? `<span class="dr-stat-delta dr-stat-delta-up">\u2191 ${deltaAcc} pts</span>`
+        : deltaAcc < 0
+          ? `<span class="dr-stat-delta dr-stat-delta-down">\u2193 ${Math.abs(deltaAcc)} pts</span>`
+          : '<span class="dr-stat-delta dr-stat-delta-neutral">\u2194 flat</span>';
+    const examRow = (daysToExam !== null && daysToExam >= 0)
+      ? `<div class="dr-stat-row"><span class="dr-stat-k">Days to exam</span><span class="dr-stat-v">${daysToExam}</span></div>`
+      : '';
+    const stats = `
+      <div class="dr-stat-row"><span class="dr-stat-k">Questions today</span><span class="dr-stat-v"><strong>${todayQ}</strong> of ${goal} goal</span></div>
+      <div class="dr-stat-row"><span class="dr-stat-k">Accuracy today</span><span class="dr-stat-v"><strong>${todayAcc}%</strong> ${deltaHtml}</span></div>
+      <div class="dr-stat-row"><span class="dr-stat-k">Sessions</span><span class="dr-stat-v">${todayCount}</span></div>
+      <div class="dr-stat-row"><span class="dr-stat-k">Current streak</span><span class="dr-stat-v">${streak} day${streak === 1 ? '' : 's'} \u{1F525}</span></div>
+      ${examRow}
+    `;
+    const statsEl = document.getElementById('dr-stats');
+    const eyebrowEl = document.getElementById('dr-eyebrow');
+    if (statsEl) statsEl.innerHTML = stats;
+    if (eyebrowEl) eyebrowEl.textContent = `Day \u00b7 ${todayQ}Q logged`;
+    const modal = document.getElementById('daily-recap-modal');
+    if (modal) {
+      modal.hidden = false;
+      modal.classList.add('daily-recap-modal-visible');
+    }
+  } catch (e) {
+    console.warn('[daily recap]', e && e.message);
+  }
+}
+function dismissDailyRecap() {
+  const modal = document.getElementById('daily-recap-modal');
+  if (!modal) return;
+  modal.hidden = true;
+  modal.classList.remove('daily-recap-modal-visible');
+}
+
+function renderTopbarCountdown() {
+  const btn = document.getElementById('topbar-countdown');
+  const val = document.getElementById('topbar-countdown-val');
+  if (!btn || !val) return;
+  const dateStr = (typeof getExamDate === 'function') ? getExamDate() : '';
+  const days = (typeof getDaysToExam === 'function') ? getDaysToExam() : null;
+  if (!dateStr) {
+    btn.classList.add('is-hidden');
+    return;
+  }
+  btn.classList.remove('is-hidden');
+  // Urgency tier + icon
+  btn.classList.remove('topbar-countdown-urgent', 'topbar-countdown-soon', 'topbar-countdown-ok', 'topbar-countdown-past');
+  let ico = '\u{1F4C5}';
+  if (days === null || days > 30) { btn.classList.add('topbar-countdown-ok'); ico = '\u{1F4C5}'; }
+  else if (days > 7) { btn.classList.add('topbar-countdown-soon'); ico = '\u23F0'; }
+  else if (days > 0) { btn.classList.add('topbar-countdown-urgent'); ico = '\u{1F525}'; }
+  else if (days === 0) { btn.classList.add('topbar-countdown-urgent'); ico = '\u{1F3AF}'; }
+  else { btn.classList.add('topbar-countdown-past'); ico = '\u2705'; }
+  const icoEl = btn.querySelector('.topbar-countdown-ico');
+  if (icoEl) icoEl.textContent = ico;
+  // Value label
+  if (days === null) val.textContent = '\u2014';
+  else if (days === 0) val.textContent = 'Today';
+  else if (days > 0) val.textContent = `${days}d`;
+  else val.textContent = `+${Math.abs(days)}d`;
+  // Tooltip
+  const dateLabel = new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  btn.title = `Exam: ${dateLabel}`;
 }
 let _topbarTickInterval = null;
 function _topbarStartClock() {
@@ -25026,6 +25193,8 @@ function _v454Init() {
     _initSidebarCollapsed();
     _topbarStartClock();
     _syncTopbarTheme();
+    // v4.54.17: render the persistent exam countdown on load
+    if (typeof renderTopbarCountdown === 'function') renderTopbarCountdown();
     // Observe theme changes so the topbar icon stays in sync
     const obs = new MutationObserver(_syncTopbarTheme);
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

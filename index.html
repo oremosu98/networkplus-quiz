@@ -32,12 +32,39 @@
      Sidebar toggle + breadcrumb (left) + live time + gear + theme + avatar (right).
      Updates breadcrumb via showPage hook.
 ══════════════════════════════════════════ -->
+<!-- v4.54.17: end-of-day recap modal. Pops once per day after user hits
+     their daily goal. Editorial dark-glass card with today's stats + delta
+     vs yesterday + days-to-exam countdown. Dismissable. -->
+<div id="daily-recap-modal" class="daily-recap-modal" hidden role="dialog" aria-label="Daily recap">
+  <div class="daily-recap-card">
+    <button type="button" class="daily-recap-close" onclick="dismissDailyRecap()" aria-label="Close">&times;</button>
+    <div class="ed-modalhead">
+      <div class="ed-modalhead-eyebrow" id="dr-eyebrow">Day \u00b7 complete</div>
+      <h2 class="ed-modalhead-title">Nice <em>work.</em></h2>
+    </div>
+    <div class="daily-recap-stats" id="dr-stats">
+      <!-- Populated by _maybeShowDailyRecap() -->
+    </div>
+    <div class="daily-recap-foot">
+      <button type="button" class="btn btn-ghost" onclick="dismissDailyRecap()">Close</button>
+      <button type="button" class="btn btn-primary" onclick="dismissDailyRecap(); goSetup();">Back to home</button>
+    </div>
+  </div>
+</div>
+
 <div id="app-topbar" class="app-topbar" role="banner">
   <div class="topbar-left">
     <button type="button" class="topbar-toggle" id="topbar-toggle" onclick="toggleSidebarCollapsed()" aria-label="Toggle navigation sidebar" title="Toggle sidebar">&#9776;</button>
     <span class="topbar-crumb" id="topbar-crumb">Home</span>
   </div>
   <div class="topbar-right">
+    <!-- v4.54.17: persistent exam countdown chip. Hidden until user sets a
+         date. Click routes to Settings. Urgency tiers (urgent/soon/ok)
+         mirror the existing .ana-ready-datechip tiers. -->
+    <button type="button" class="topbar-countdown is-hidden" id="topbar-countdown" onclick="showPage('settings'); if (typeof renderSettingsPage === 'function') renderSettingsPage();" aria-label="Exam countdown \u2014 click to edit date" title="Exam countdown">
+      <span class="topbar-countdown-ico" aria-hidden="true">&#128197;</span>
+      <span class="topbar-countdown-val" id="topbar-countdown-val">\u2014</span>
+    </button>
     <span class="topbar-time" id="topbar-time" aria-label="Current time">&mdash;</span>
     <button type="button" class="topbar-iconbtn" onclick="scrollToSettings()" aria-label="Settings" title="Settings">&#9881;</button>
     <button type="button" class="topbar-iconbtn" id="topbar-theme" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Theme">&#9728;</button>
@@ -89,7 +116,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.16</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.54.17</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
