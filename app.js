@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.17
+// Network+ AI Quiz — app.js  v4.55.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.17';
+const APP_VERSION = '4.55.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -23953,6 +23953,248 @@ const ACL_SCENARIOS = [
       ],
       examTies: 'N10-009 Objectives 4.3 + 4.5. Multi-tier ACL reading is where high-performing exam takers separate from the rest. Practice reading complex ACLs and answering "which host can do what?" questions.'
     }
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // v4.55.0 FIX-IT SCENARIOS (6 \u2014 2 beg / 2 int / 2 adv)
+  // Each scenario ships a BROKEN rule list via `initialRules`. Student
+  // diagnoses the fault + edits/reorders/replaces rules to pass all test
+  // packets. Mirrors the real N10-009 PBQ pattern: "this ACL isn't
+  // working \u2014 why?"
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    id: 'fix-order',
+    title: 'Fix: Wrong Rule Order',
+    icon: '\ud83d\udd04',
+    category: 'Fix It',
+    difficulty: 'beginner',
+    description: 'Finance traffic to the payment server is being DROPPED when it should be allowed. The rules look OK at first glance \u2014 but first-match-wins. Rearrange the rules so finance can still reach the payment server.',
+    objectives: ['4.3'],
+    zones: [
+      { name: 'Finance VLAN', cidr: '10.0.10.0/24', color: '#7c6ff7' },
+      { name: 'Payment Svr',  cidr: '10.0.50.5/32', color: '#22c55e' },
+      { name: 'Internet',     cidr: 'any',          color: '#3b82f6' }
+    ],
+    requirements: [
+      'Finance hosts (10.0.10.0/24) must reach payment server (10.0.50.5:443/tcp)',
+      'Block all other access to payment server from finance',
+      'Do NOT delete rules \u2014 just reorder them'
+    ],
+    initialRules: [
+      { id: 'r_fx_ord_1', action: 'deny',   srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.0/24', dstPort: 'any', proto: 'any', comment: 'Block finance from hitting 10.0.50.0/24' },
+      { id: 'r_fx_ord_2', action: 'permit', srcAddr: '10.0.10.0/24', srcPort: 'any', dstAddr: '10.0.50.5/32', dstPort: 443,   proto: 'tcp', comment: 'Allow finance \u2192 payment HTTPS' }
+    ],
+    testPackets: [
+      { src: '10.0.10.25', sp: 52000, dst: '10.0.50.5', dp: 443, proto: 'tcp', expected: 'permit', label: 'Finance host \u2192 Payment HTTPS (must work)' },
+      { src: '10.0.10.30', sp: 52001, dst: '10.0.50.7', dp: 22,  proto: 'tcp', expected: 'deny',   label: 'Finance \u2192 other svr SSH (must block)' },
+      { src: '10.0.10.40', sp: 52002, dst: '10.0.50.5', dp: 3389, proto: 'tcp', expected: 'deny',  label: 'Finance \u2192 payment RDP (must block)' }
+    ],
+    explanation: {
+      overview: 'Rules are evaluated top to bottom, first match wins. A broad deny on 10.0.50.0/24 at rule #1 fires first, so the specific permit at rule #2 is never reached.',
+      dataFlow: 'Packet arrives: finance host \u2192 payment:443/tcp. Rule #1 (broad deny) sees source in finance + dest in /24 \u2192 match \u2192 DENY. Rule #2 never runs. The fix: move the specific permit ABOVE the broad deny.',
+      keyDevices: [
+        { name: 'Inter-VLAN ACL', role: 'Lives on the router/firewall between VLANs. Evaluates every packet top-to-bottom.' }
+      ],
+      concepts: [
+        { term: 'First-match-wins', meaning: 'ACL evaluation stops at the first rule that matches. Order matters enormously.' },
+        { term: 'Specificity before generality', meaning: 'Put narrow permits ABOVE broad denies, not the other way around.' }
+      ],
+      examTies: 'N10-009 Objective 4.3. The single most common ACL PBQ: "this traffic is being blocked when it shouldn\'t be" \u2014 almost always a rule-order issue.'
+    }
+  },
+  {
+    id: 'fix-return-traffic',
+    title: 'Fix: Missing Return Traffic',
+    icon: '\u21a9\ufe0f',
+    category: 'Fix It',
+    difficulty: 'beginner',
+    description: 'Web traffic from internal hosts to the internet is getting OUT but never getting BACK. The outbound permit looks fine. What\'s missing?',
+    objectives: ['4.3', '4.4'],
+    zones: [
+      { name: 'Internal',  cidr: '10.1.0.0/16', color: '#7c6ff7' },
+      { name: 'Internet',  cidr: 'any',          color: '#3b82f6' }
+    ],
+    requirements: [
+      'Internal hosts reach any internet target on :443/tcp',
+      'Return traffic from internet to internal on established ports (1024-65535) must be allowed',
+      'Hint: this firewall is stateless \u2014 add explicit return-traffic rules'
+    ],
+    initialRules: [
+      { id: 'r_fx_ret_1', action: 'permit', srcAddr: '10.1.0.0/16', srcPort: 'any', dstAddr: 'any',         dstPort: 443, proto: 'tcp', comment: 'Outbound HTTPS' }
+    ],
+    testPackets: [
+      { src: '10.1.5.10', sp: 52000, dst: '93.184.216.34', dp: 443,  proto: 'tcp', expected: 'permit', label: 'Internal \u2192 Internet HTTPS (outbound)' },
+      { src: '93.184.216.34', sp: 443, dst: '10.1.5.10',   dp: 52000, proto: 'tcp', expected: 'permit', label: 'Internet return \u2192 Internal :52000 (return traffic)' },
+      { src: '8.8.8.8',      sp: 443,  dst: '10.1.5.10',   dp: 22,    proto: 'tcp', expected: 'deny',   label: 'Internet \u2192 Internal SSH (must block)' }
+    ],
+    explanation: {
+      overview: 'A truly stateless firewall evaluates each direction independently. Outbound permit alone lets the SYN leave \u2014 but the SYN-ACK reply hits no rule and falls through to implicit deny.',
+      dataFlow: 'Client sends SYN from 52000 \u2192 :443. Outbound rule permits it. Server replies from :443 \u2192 :52000. No inbound rule matches. Implicit deny drops it. Connection hangs. Fix: add a return-traffic rule permitting established (src:443, dst ephemeral 1024-65535).',
+      keyDevices: [
+        { name: 'Stateless firewall / ACL', role: 'Each direction is its own ruleset. Unlike stateful firewalls, there\'s no connection table.' }
+      ],
+      concepts: [
+        { term: 'Stateless vs stateful', meaning: 'Stateful tracks active sessions; stateless checks every packet against rules independently.' },
+        { term: 'Ephemeral ports',        meaning: 'Client-side random ports (typically 1024-65535). Return traffic must be allowed to these ports from the server\'s well-known port.' },
+        { term: 'Established return',     meaning: 'Allow inbound src:well-known \u2192 dst:ephemeral, restricted by proto + source range. Tighter than "permit all inbound."' }
+      ],
+      examTies: 'N10-009 Objective 4.4. Stateless vs stateful is a key exam concept, and the return-traffic trap is the classic "why is this not working" PBQ.'
+    }
+  },
+  {
+    id: 'fix-cidr-narrow',
+    title: 'Fix: CIDR Too Narrow',
+    icon: '\u{1F9F5}',
+    category: 'Fix It',
+    difficulty: 'intermediate',
+    description: 'Only SOME hosts on the 10.20.0.0/24 subnet can reach the DNS server \u2014 the rest get blocked. The permit rule targets a CIDR, but it\'s the wrong size.',
+    objectives: ['4.3', '1.4'],
+    zones: [
+      { name: 'User VLAN',  cidr: '10.20.0.0/24', color: '#7c6ff7' },
+      { name: 'DNS Server', cidr: '10.20.50.10/32', color: '#22c55e' }
+    ],
+    requirements: [
+      'ALL hosts in 10.20.0.0/24 must reach 10.20.50.10:53/udp',
+      'Widen the CIDR in the permit rule so the entire /24 is covered',
+      'No other changes needed'
+    ],
+    initialRules: [
+      { id: 'r_fx_nar_1', action: 'permit', srcAddr: '10.20.0.0/26', srcPort: 'any', dstAddr: '10.20.50.10/32', dstPort: 53, proto: 'udp', comment: 'DNS (rule covers only .0-.63)' }
+    ],
+    testPackets: [
+      { src: '10.20.0.5',   sp: 54000, dst: '10.20.50.10', dp: 53, proto: 'udp', expected: 'permit', label: 'User .5 \u2192 DNS (in /26, works)' },
+      { src: '10.20.0.100', sp: 54001, dst: '10.20.50.10', dp: 53, proto: 'udp', expected: 'permit', label: 'User .100 \u2192 DNS (outside /26, currently BROKEN)' },
+      { src: '10.20.0.200', sp: 54002, dst: '10.20.50.10', dp: 53, proto: 'udp', expected: 'permit', label: 'User .200 \u2192 DNS (outside /26, currently BROKEN)' }
+    ],
+    explanation: {
+      overview: 'CIDR /26 covers 64 addresses (.0-.63). /24 covers 256 (.0-.255). If your rule is /26 but your subnet is /24, you\'re silently denying 75% of your hosts.',
+      dataFlow: '10.20.0.5 hits rule \u2014 in /26 range, matches, permit. 10.20.0.100 hits same rule \u2014 NOT in /26 range (/26 ends at .63), no match, falls to implicit deny. Fix: change /26 \u2192 /24.',
+      keyDevices: [
+        { name: 'Router / L3 firewall', role: 'Evaluates CIDR match via bitwise AND of src IP + subnet mask.' }
+      ],
+      concepts: [
+        { term: 'CIDR prefix length', meaning: 'The /N value tells how many bits are the network portion. /24 = 256 addrs, /25 = 128, /26 = 64, /27 = 32.' },
+        { term: 'Wildcard mask vs CIDR', meaning: 'Cisco IOS uses wildcard masks (inverted); most modern syntax uses /N. Know both.' },
+        { term: 'Overmatching vs undermatching', meaning: 'Too-narrow = traffic silently dropped. Too-broad = unintended traffic silently permitted. Both are bugs.' }
+      ],
+      examTies: 'N10-009 Objective 4.3 (ACL reading) + 1.4 (subnetting). Classic PBQ: "why can host X reach the server but host Y can\'t, when both are in the same VLAN?"'
+    }
+  },
+  {
+    id: 'fix-cidr-broad',
+    title: 'Fix: CIDR Too Broad',
+    icon: '\u{1F30B}',
+    category: 'Fix It',
+    difficulty: 'intermediate',
+    description: 'The HR VLAN (10.30.0.0/24) should have SSH access to the HR file server \u2014 but so can the Finance VLAN (10.30.1.0/24) and the Guest VLAN (10.30.2.0/24). Your CIDR is too broad. Narrow it.',
+    objectives: ['4.3', '1.4'],
+    zones: [
+      { name: 'HR VLAN',      cidr: '10.30.0.0/24', color: '#7c6ff7' },
+      { name: 'Finance',      cidr: '10.30.1.0/24', color: '#f59e0b' },
+      { name: 'Guest Wi-Fi',  cidr: '10.30.2.0/24', color: '#ef4444' },
+      { name: 'HR File Svr',  cidr: '10.30.100.5/32', color: '#22c55e' }
+    ],
+    requirements: [
+      'ONLY HR VLAN (10.30.0.0/24) should reach 10.30.100.5:22/tcp',
+      'Finance + Guest must be blocked',
+      'Tighten the source CIDR in the permit rule'
+    ],
+    initialRules: [
+      { id: 'r_fx_bro_1', action: 'permit', srcAddr: '10.30.0.0/16', srcPort: 'any', dstAddr: '10.30.100.5/32', dstPort: 22, proto: 'tcp', comment: 'SSH to HR file server (CIDR too broad \u2014 covers 256 subnets not 1)' }
+    ],
+    testPackets: [
+      { src: '10.30.0.50',   sp: 52000, dst: '10.30.100.5', dp: 22, proto: 'tcp', expected: 'permit', label: 'HR \u2192 HR file svr SSH (should work)' },
+      { src: '10.30.1.50',   sp: 52001, dst: '10.30.100.5', dp: 22, proto: 'tcp', expected: 'deny',   label: 'Finance \u2192 HR file svr (must block)' },
+      { src: '10.30.2.50',   sp: 52002, dst: '10.30.100.5', dp: 22, proto: 'tcp', expected: 'deny',   label: 'Guest \u2192 HR file svr (must block)' }
+    ],
+    explanation: {
+      overview: 'A /16 CIDR covers 65,536 addresses \u2014 every subnet from 10.30.0.0 to 10.30.255.255. If you only meant to permit ONE /24 subnet, that\'s a 256x overmatch.',
+      dataFlow: 'Finance (10.30.1.x) hits the rule \u2014 is 10.30.1.x inside 10.30.0.0/16? Yes. Match. PERMIT (wrong!). Fix: change /16 \u2192 /24. Now only 10.30.0.0-10.30.0.255 matches.',
+      keyDevices: [
+        { name: 'L3 switch / VLAN router', role: 'Inter-VLAN routing is where ACLs enforce subnet boundaries. Overbroad CIDR leaks across VLANs.' }
+      ],
+      concepts: [
+        { term: 'Principle of least privilege', meaning: 'Permit the exact CIDR you mean \u2014 no more. Over-permissive rules are a silent security hole.' },
+        { term: 'Summary vs specific routes', meaning: 'Summary routes belong in routing tables for reachability. ACLs should almost always be specific, not summarised.' }
+      ],
+      examTies: 'N10-009 Objective 4.3 + 1.4. Common gotcha: a rule that "works" but over-permits. Security failures rarely show up as blocked traffic \u2014 they show up as permitted traffic that shouldn\'t be.'
+    }
+  },
+  {
+    id: 'fix-wrong-port',
+    title: 'Fix: Wrong Port Number',
+    icon: '\u{1F6AA}',
+    category: 'Fix It',
+    difficulty: 'advanced',
+    description: 'External HTTPS traffic to the web server is silently dropping. The rule looks fine to the casual eye \u2014 but the port is wrong. Fix it.',
+    objectives: ['4.3', '1.5'],
+    zones: [
+      { name: 'Internet',    cidr: 'any',          color: '#3b82f6' },
+      { name: 'DMZ Web Svr', cidr: '203.0.113.5/32', color: '#22c55e' }
+    ],
+    requirements: [
+      'Internet must reach 203.0.113.5 on :443/tcp (HTTPS)',
+      'Block all other ports',
+      'One-character fix: change the port number'
+    ],
+    initialRules: [
+      { id: 'r_fx_prt_1', action: 'permit', srcAddr: 'any', srcPort: 'any', dstAddr: '203.0.113.5/32', dstPort: 80, proto: 'tcp', comment: 'Web (should be 443, not 80)' }
+    ],
+    testPackets: [
+      { src: '8.8.8.8',        sp: 55000, dst: '203.0.113.5', dp: 443, proto: 'tcp', expected: 'permit', label: 'Internet \u2192 Web HTTPS (must work)' },
+      { src: '93.184.216.34',  sp: 55001, dst: '203.0.113.5', dp: 80,  proto: 'tcp', expected: 'deny',   label: 'Internet \u2192 Web HTTP (must block, cleartext)' },
+      { src: '1.1.1.1',        sp: 55002, dst: '203.0.113.5', dp: 22,  proto: 'tcp', expected: 'deny',   label: 'Internet \u2192 Web SSH (must block)' }
+    ],
+    explanation: {
+      overview: 'HTTP = 80/tcp. HTTPS = 443/tcp. Transposing the two is one of the most common ACL bugs because the services look nearly identical at a glance.',
+      dataFlow: 'External client sends to 203.0.113.5:443. Rule #1 matches on src + dst IP, but dstPort is 80, not 443. No match. Implicit deny fires. Connection drops silently. Fix: change dstPort 80 \u2192 443.',
+      keyDevices: [
+        { name: 'Edge firewall / DMZ ACL', role: 'Where inbound internet-to-DMZ rules live. Port accuracy is critical.' }
+      ],
+      concepts: [
+        { term: 'Well-known ports', meaning: 'Know 80 (HTTP), 443 (HTTPS), 22 (SSH), 53 (DNS), 21/22/25/53/67/68/80/110/143/443/445/3389 are your memorise list.' },
+        { term: 'Port number typos', meaning: 'Real outage cause. Review every ACL rule\'s port number against its comment.' }
+      ],
+      examTies: 'N10-009 Objective 4.3 + 1.5 (ports). Port knowledge is foundational and frequently tested both as direct recall (\"what port is HTTPS?\") and as applied ACL troubleshooting.'
+    }
+  },
+  {
+    id: 'fix-proto-mismatch',
+    title: 'Fix: Protocol Mismatch',
+    icon: '\u{1F500}',
+    category: 'Fix It',
+    difficulty: 'advanced',
+    description: 'DNS lookups from the user VLAN are failing intermittently. The permit rule is in place, the port is right, but something about the protocol line doesn\'t match DNS behaviour.',
+    objectives: ['4.3', '1.4', '1.5'],
+    zones: [
+      { name: 'User VLAN',     cidr: '10.40.0.0/24',  color: '#7c6ff7' },
+      { name: 'DNS Resolver',  cidr: '8.8.8.8/32',     color: '#22c55e' }
+    ],
+    requirements: [
+      'Users in 10.40.0.0/24 must resolve DNS via 8.8.8.8:53',
+      'DNS primarily uses UDP (TCP only for zone transfers + responses >512 bytes)',
+      'Fix the protocol mismatch so normal DNS queries work'
+    ],
+    initialRules: [
+      { id: 'r_fx_pro_1', action: 'permit', srcAddr: '10.40.0.0/24', srcPort: 'any', dstAddr: '8.8.8.8/32', dstPort: 53, proto: 'tcp', comment: 'DNS (proto wrong \u2014 most DNS is UDP)' }
+    ],
+    testPackets: [
+      { src: '10.40.0.25', sp: 54000, dst: '8.8.8.8', dp: 53, proto: 'udp', expected: 'permit', label: 'User \u2192 DNS UDP query (standard, must work)' },
+      { src: '10.40.0.30', sp: 54001, dst: '8.8.8.8', dp: 53, proto: 'tcp', expected: 'deny',   label: 'User \u2192 DNS TCP (zone xfer \u2014 block unless needed)' },
+      { src: '10.40.0.40', sp: 54002, dst: '1.1.1.1', dp: 53, proto: 'udp', expected: 'deny',   label: 'User \u2192 different DNS (must block, not authorised)' }
+    ],
+    explanation: {
+      overview: 'DNS queries under 512 bytes use UDP. TCP is only used for zone transfers or responses too large for UDP. A "DNS" rule scoped to tcp silently blocks the 99% normal case.',
+      dataFlow: 'Client sends UDP:53 query. Rule requires proto=tcp. No match. Implicit deny. Query drops. Fix: change proto tcp \u2192 udp (or "any" if you want both).',
+      keyDevices: [
+        { name: 'DNS resolver', role: 'Typically accessible via UDP/53 by default. TCP/53 reserved for zone transfers, large responses, DNS-over-TLS (853), etc.' }
+      ],
+      concepts: [
+        { term: 'UDP vs TCP for DNS', meaning: 'UDP for small queries (fast, low overhead). TCP when response >512 bytes or for zone transfers. Modern DNSSEC responses often trigger TCP fallback.' },
+        { term: 'Protocol precision', meaning: 'ACL rules must match the actual protocol used. \"any\" is broad; tcp-only is too narrow for services that mostly use UDP.' },
+        { term: 'Implicit deny', meaning: 'A missing proto match is indistinguishable from a missing rule \u2014 the packet silently hits implicit deny at the bottom.' }
+      ],
+      examTies: 'N10-009 Objective 4.3 + 1.4 (DNS protocols). Exam will specifically test \"what proto does DNS use?\" and \"why is DNS failing when the rule clearly says port 53?\"'
+    }
   }
 ];
 
@@ -23961,7 +24203,11 @@ const ACL_CATEGORIES = [
   { key: 'Sandbox',      label: '\ud83e\uddea Sandbox' },
   { key: 'Fundamentals', label: '\ud83d\udcda Fundamentals' },
   { key: 'Real-world',   label: '\ud83c\udfe2 Real-world' },
-  { key: 'PBQ Trap',     label: '\u26a0\ufe0f PBQ Traps' }
+  { key: 'PBQ Trap',     label: '\u26a0\ufe0f PBQ Traps' },
+  // v4.55.0: Fix-This-ACL category \u2014 scenarios seed a BROKEN rule list
+  // via `initialRules` and the student diagnoses + fixes it. Matches the
+  // real-exam pedagogy of "this ACL isn't working \u2014 why?".
+  { key: 'Fix It',       label: '\ud83d\udd27 Fix It' }
 ];
 
 // ── ACL Builder state ──
@@ -24054,7 +24300,12 @@ function aclLoadScenario(id) {
     if (!confirm('Switch to "' + scen.title + '"? Your current rule list will be cleared.')) return;
   }
   aclState.scenarioId = id;
-  aclState.rules = [];
+  // v4.55.0: Fix-It scenarios seed a pre-authored BROKEN rule list via
+  // `initialRules`. Regular scenarios stay empty-canvas. Deep-clone so
+  // edits don't mutate the scenario definition.
+  aclState.rules = Array.isArray(scen.initialRules) && scen.initialRules.length
+    ? JSON.parse(JSON.stringify(scen.initialRules)).map(r => ({ ...r, id: r.id || ('r_' + Math.random().toString(36).slice(2, 8)) }))
+    : [];
   aclState.lastGrade = null;
   aclState.lastTest = null;
   aclSaveState();
@@ -24254,6 +24505,7 @@ function _aclRenderTestPanel(scen) {
     <div class="acl-panel-head">
       <div class="acl-panel-title"><span class="acl-panel-ico">\ud83e\uddea</span> Test Packets</div>
       <button type="button" class="btn btn-primary acl-test-run" onclick="aclRunAllTests()" ${disable}>\u25B6 Test All</button>
+      <button type="button" class="btn btn-ghost acl-test-replay" onclick="aclReplayAnimation()" ${disable} title="Replay packet-flow animation">\ud83d\udd04 Replay</button>
     </div>
     <div class="acl-tp-list">${canned}</div>
     <details class="acl-custom-packet">
@@ -24326,6 +24578,142 @@ function aclRunAllTests() {
       row.style.animationDelay = (i * 80) + 'ms';
       row.classList.add('acl-tp-reveal');
     });
+    // v4.55.0: packet-flow animation \u2014 walk each packet visually down the
+    // rule list, highlighting each rule it inspects, stopping + bursting
+    // at the matching rule (or implicit deny if none matched).
+    if (typeof _aclAnimatePacketFlow === 'function') {
+      _aclAnimatePacketFlow(aclState.rules, scen.testPackets);
+    }
+  });
+}
+
+// v4.55.0: Replay button wrapper. Re-runs the packet-flow animation
+// against the CURRENT rule list without re-grading (preserves UI state).
+function aclReplayAnimation() {
+  const scen = aclActiveScenario();
+  if (!scen.testPackets || scen.testPackets.length === 0) return;
+  if (typeof _aclAnimatePacketFlow === 'function') {
+    _aclAnimatePacketFlow(aclState.rules, scen.testPackets);
+  }
+}
+
+// v4.55.0: Packet-flow animation engine.
+// For each test packet:
+//   - create a floating "packet pill" that starts at the top of the rule list
+//   - slide it down, pausing ~320ms at each rule it inspects
+//   - highlight each rule with an accent pulse as the packet inspects it
+//   - when the packet reaches its matching rule, burst green (permit) or red (deny)
+//   - if no rule matches, continue to an "implicit deny" slot below the list
+//     and burst red
+//   - multiple packets stagger 180ms apart so they're in-flight together
+// Reduced-motion: skip the animation entirely, just jump to the final state.
+const ACL_ANIM_RULE_MS = 320;
+const ACL_ANIM_STAGGER_MS = 180;
+function _aclAnimatePacketFlow(rules, packets) {
+  if (!Array.isArray(rules) || !Array.isArray(packets) || packets.length === 0) return;
+  const ruleList = document.getElementById('acl-rule-list');
+  if (!ruleList) return;
+  // Respect reduced-motion \u2014 short-circuit to the final grading UI
+  const reducedMotion = typeof window !== 'undefined'
+    && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+
+  // Ensure an overlay container exists inside the rule list for the floating pills
+  let overlay = document.getElementById('acl-packet-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'acl-packet-overlay';
+    overlay.className = 'acl-packet-overlay';
+    ruleList.appendChild(overlay);
+  } else {
+    overlay.innerHTML = '';
+  }
+
+  // Clear any stale highlights
+  ruleList.querySelectorAll('.acl-rule-row').forEach(r => {
+    r.classList.remove('acl-rule-inspecting', 'acl-rule-matched-permit', 'acl-rule-matched-deny');
+  });
+  const implicitRow = ruleList.querySelector('.acl-rule-implicit');
+  if (implicitRow) implicitRow.classList.remove('acl-rule-implicit-matched');
+
+  // Animate each packet with a stagger
+  packets.forEach((pkt, packetIdx) => {
+    setTimeout(() => _aclAnimateSinglePacket(rules, pkt, packetIdx), packetIdx * ACL_ANIM_STAGGER_MS);
+  });
+}
+
+function _aclAnimateSinglePacket(rules, pkt, packetIdx) {
+  const overlay = document.getElementById('acl-packet-overlay');
+  const ruleList = document.getElementById('acl-rule-list');
+  if (!overlay || !ruleList) return;
+  // Figure out which rule (if any) this packet matches \u2014 so we know when to burst.
+  const res = _aclEvalPacket(rules, pkt);
+  const matchIdx = res.ruleIdx; // -1 if implicit deny
+  const finalAction = res.action;
+
+  // Build the packet pill (absolute-positioned, follows a translateY path down the list)
+  const pill = document.createElement('div');
+  pill.className = 'acl-packet-pill acl-packet-pill-' + (packetIdx % 4); // per-packet accent tone
+  pill.innerHTML = `<span class="acl-packet-proto">${escHtml(pkt.proto)}</span>
+    <span class="acl-packet-src">${escHtml(pkt.src)}:${escHtml(String(pkt.sp))}</span>
+    <span class="acl-packet-arrow">\u2192</span>
+    <span class="acl-packet-dst">${escHtml(pkt.dst)}:${escHtml(String(pkt.dp))}</span>`;
+  overlay.appendChild(pill);
+
+  // Position pill at the top-left of the overlay (relative to first rule row)
+  const ruleRows = Array.from(ruleList.querySelectorAll('.acl-rule-row'));
+  const implicitRow = ruleList.querySelector('.acl-rule-implicit');
+  // Walk down each rule; highlight for ACL_ANIM_RULE_MS each
+  const nRulesToWalk = matchIdx >= 0 ? (matchIdx + 1) : rules.length;
+  const walkTargets = [];
+  for (let i = 0; i < nRulesToWalk; i++) {
+    if (ruleRows[i]) walkTargets.push({ row: ruleRows[i], isMatch: i === matchIdx, isLast: i === nRulesToWalk - 1 });
+  }
+  // If no rule matched, append the implicit-deny row as the final target
+  if (matchIdx < 0 && implicitRow) {
+    walkTargets.push({ row: implicitRow, isMatch: true, isImplicit: true, isLast: true });
+  }
+
+  // Position the pill at the first rule row initially
+  const firstRowRect = walkTargets[0] ? walkTargets[0].row.getBoundingClientRect() : null;
+  const overlayRect = overlay.getBoundingClientRect();
+  if (firstRowRect) {
+    pill.style.top = (firstRowRect.top - overlayRect.top) + 'px';
+    pill.style.left = '8px';
+  }
+  pill.classList.add('acl-packet-pill-in');
+
+  // Step through each rule; use requestAnimationFrame offsets via setTimeout
+  walkTargets.forEach((target, step) => {
+    setTimeout(() => {
+      // Position pill at this rule row
+      const rowRect = target.row.getBoundingClientRect();
+      pill.style.top = (rowRect.top - overlayRect.top) + 'px';
+      // Highlight the rule (unless it's the implicit row \u2014 we have a separate class for that)
+      if (target.isImplicit) {
+        if (implicitRow) implicitRow.classList.add('acl-rule-implicit-matched');
+      } else {
+        target.row.classList.add('acl-rule-inspecting');
+        if (target.isMatch) {
+          setTimeout(() => {
+            target.row.classList.remove('acl-rule-inspecting');
+            target.row.classList.add(finalAction === 'permit' ? 'acl-rule-matched-permit' : 'acl-rule-matched-deny');
+          }, ACL_ANIM_RULE_MS * 0.7);
+        } else {
+          // not matching: release highlight after dwell
+          setTimeout(() => target.row.classList.remove('acl-rule-inspecting'), ACL_ANIM_RULE_MS * 0.85);
+        }
+      }
+      // On the final step, burst the pill
+      if (target.isLast) {
+        setTimeout(() => {
+          pill.classList.add('acl-packet-burst-' + finalAction);
+          // Fade pill out after burst
+          setTimeout(() => { pill.classList.add('acl-packet-fade'); }, 400);
+          setTimeout(() => { pill.remove(); }, 900);
+        }, ACL_ANIM_RULE_MS * 0.6);
+      }
+    }, step * ACL_ANIM_RULE_MS);
   });
 }
 

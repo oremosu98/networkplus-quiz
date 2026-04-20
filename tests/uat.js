@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.17', js.includes("const APP_VERSION = '4.54.17"));
+test('APP_VERSION is 4.55.0', js.includes("const APP_VERSION = '4.55.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.17', sw.includes('netplus-v4.54.17'));
+test('SW cache bumped to v4.55.0', sw.includes('netplus-v4.55.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6373,6 +6373,70 @@ test('v4.54.17 JS: showExplanation adds Drill-this-concept button only on wrong'
   /showExplanation[\s\S]{0,4000}!isRight[\s\S]{0,400}explain-btn-followup[\s\S]{0,200}followUpOnMistake/.test(js));
 test('v4.54.17 CSS: .explain-btn-followup accent gradient override',
   /\.explain-btn-followup\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*rgba\(var\(--accent-rgb\)/.test(css));
+
+// ── v4.55.0 ACL Fix-This + Packet Flow Visualisation (issue #179) ──
+console.log('\n\x1b[1m\u2500\u2500 v4.55.0 ACL FIX-THIS + PACKET FLOW ANIMATION \u2500\u2500\x1b[0m');
+
+// New "Fix It" category in scenario picker
+test('v4.55.0 JS: ACL_CATEGORIES includes "Fix It" category',
+  /ACL_CATEGORIES\s*=\s*\[[\s\S]{0,600}key:\s*'Fix It'[\s\S]{0,200}label:\s*'[^']*Fix It'/.test(js));
+
+// 6 Fix-It scenarios with initialRules
+[
+  ['fix-order',          'Wrong Rule Order'],
+  ['fix-return-traffic', 'Missing Return Traffic'],
+  ['fix-cidr-narrow',    'CIDR Too Narrow'],
+  ['fix-cidr-broad',     'CIDR Too Broad'],
+  ['fix-wrong-port',     'Wrong Port Number'],
+  ['fix-proto-mismatch', 'Protocol Mismatch']
+].forEach(([id, name]) => {
+  test(`v4.55.0 ACL scenario: ${id} ("Fix: ${name}")`,
+    new RegExp(`id:\\s*'${id}'[\\s\\S]{0,600}title:\\s*'Fix:\\s*${name}'[\\s\\S]{0,2500}initialRules:`).test(js));
+});
+
+// initialRules seeding
+test('v4.55.0 JS: aclLoadScenario seeds aclState.rules from initialRules (deep-cloned)',
+  /function aclLoadScenario[\s\S]{0,1200}initialRules[\s\S]{0,500}JSON\.parse\(JSON\.stringify/.test(js));
+
+// Animation engine
+test('v4.55.0 JS: _aclAnimatePacketFlow + _aclAnimateSinglePacket defined',
+  js.includes('function _aclAnimatePacketFlow(') &&
+  js.includes('function _aclAnimateSinglePacket('));
+test('v4.55.0 JS: ACL_ANIM_RULE_MS = 320 + ACL_ANIM_STAGGER_MS = 180',
+  /ACL_ANIM_RULE_MS\s*=\s*320/.test(js) &&
+  /ACL_ANIM_STAGGER_MS\s*=\s*180/.test(js));
+test('v4.55.0 JS: reduced-motion short-circuits the animation',
+  /_aclAnimatePacketFlow[\s\S]{0,1500}prefers-reduced-motion[\s\S]{0,300}return/.test(js));
+test('v4.55.0 JS: aclRunAllTests auto-plays packet-flow animation',
+  /function aclRunAllTests[\s\S]{0,2500}_aclAnimatePacketFlow\(aclState\.rules,\s*scen\.testPackets\)/.test(js));
+test('v4.55.0 JS: aclReplayAnimation wrapper defined',
+  js.includes('function aclReplayAnimation('));
+test('v4.55.0 HTML: Replay button wired to aclReplayAnimation',
+  html.includes('aclReplayAnimation()') || /onclick="aclReplayAnimation\(\)"/.test(js));
+
+// CSS keyframes + editorial styling
+test('v4.55.0 CSS: .acl-packet-pill editorial dark-glass with backdrop-blur',
+  /\.acl-packet-pill\s*\{[\s\S]{0,800}backdrop-filter:\s*blur/.test(css));
+test('v4.55.0 CSS: packet-burst-permit + packet-burst-deny tier colours',
+  /\.acl-packet-burst-permit\s*\{[\s\S]{0,600}rgba\(34,\s*197,\s*94/.test(css) &&
+  /\.acl-packet-burst-deny\s*\{[\s\S]{0,600}rgba\(239,\s*68,\s*68/.test(css));
+test('v4.55.0 CSS: rule-inspecting + rule-matched classes with accent glow',
+  /\.acl-rule-inspecting\s*\{[\s\S]{0,400}box-shadow:[\s\S]{0,300}rgba\(124,\s*111,\s*247/.test(css) &&
+  /\.acl-rule-matched-permit\s*\{[\s\S]{0,400}rgba\(34,\s*197,\s*94/.test(css));
+test('v4.55.0 CSS: aclRuleMatchPulse keyframe with overshoot cubic-bezier',
+  /@keyframes aclRuleMatchPulse\s*\{[\s\S]{0,300}scale\(1\.015\)/.test(css));
+test('v4.55.0 CSS: implicit-deny row hit indicator defined',
+  /\.acl-rule-implicit-matched\s*\{[\s\S]{0,400}rgba\(239,\s*68,\s*68/.test(css));
+test('v4.55.0 CSS: reduced-motion hides the packet overlay',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,600}\.acl-packet-overlay\s*\{[^}]*display:\s*none/.test(css));
+test('v4.55.0 CSS: light-theme overrides for packet pill + rule highlight',
+  /\[data-theme="light"\]\s+\.acl-packet-pill\s*\{/.test(css) &&
+  /\[data-theme="light"\]\s+\.acl-rule-inspecting\s*\{/.test(css));
+test('v4.55.0 CSS: per-packet accent tone variants (0..3)',
+  /\.acl-packet-pill-0\s*\{/.test(css) &&
+  /\.acl-packet-pill-1\s*\{/.test(css) &&
+  /\.acl-packet-pill-2\s*\{/.test(css) &&
+  /\.acl-packet-pill-3\s*\{/.test(css));
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',
