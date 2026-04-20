@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.15
+   Network+ AI Quiz — styles.css  v4.54.16
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8710,7 +8710,7 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 }
 /* Widen the 3-col grid so the canvas dominates the viewport */
 .tb-workspace.tb-workspace-v3 {
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: 260px minmax(0, 1fr) 260px;
   min-height: calc(100vh - 220px);
 }
 .tb-canvas-wrap {
@@ -8728,7 +8728,7 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
    not a 4th column. */
 .tb-workspace:has(.tb-config-panel:not(.is-hidden)),
 .tb-workspace.tb-config-open {
-  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  grid-template-columns: 260px minmax(0, 1fr) 260px;
 }
 
 /* (2) Collapsible legacy toolbar (v4.54.7). The in-canvas pill bar handles
@@ -10204,4 +10204,69 @@ html { zoom: 1.10; }
 }
 [data-theme="light"] #topic-group .chip:not(.cq-mode-card).on {
   outline-color: rgba(99, 85, 224, .35);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.16 — Wider TB palette + Settings exam date + modal editorial head
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (1) TB workspace palette column widened 220px → 260px (user asked).
+        The grid rules themselves were updated in place above; this
+        block just notes the intent. No extra declaration needed. */
+
+/* (2) Settings — Exam Date row wrapper
+       The inner chip is rendered by _buildExamDateChipHtml() which
+       already carries full styling; we just need a container that
+       pads nicely inside the settings card. */
+.settings-exam-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.settings-exam-row .ana-exam-date-btn { flex: 0 0 auto; }
+
+/* (3) Editorial modal head — matches .ed-cardhead but used inside
+       .modal-box. Paired with the existing .modal-box padding; the
+       `.ed-modalhead` replaces the old plain <h2>Title</h2> block. */
+.ed-modalhead {
+  margin: 0 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .2);
+}
+.ed-modalhead-eyebrow {
+  font-family: monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding-left: 14px;
+  position: relative;
+  opacity: .9;
+}
+.ed-modalhead-eyebrow::before {
+  content: '—';
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--accent-light);
+}
+.ed-modalhead-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text);
+}
+.ed-modalhead-title em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+[data-theme="light"] .ed-modalhead-eyebrow,
+[data-theme="light"] .ed-modalhead-eyebrow::before,
+[data-theme="light"] .ed-modalhead-title em {
+  color: #6355e0;
 }

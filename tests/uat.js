@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.15', js.includes("const APP_VERSION = '4.54.15"));
+test('APP_VERSION is 4.54.16', js.includes("const APP_VERSION = '4.54.16"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.15', sw.includes('netplus-v4.54.15'));
+test('SW cache bumped to v4.54.16', sw.includes('netplus-v4.54.16'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -645,7 +645,8 @@ test('_renderTopicLabSection function', js.includes('function _renderTopicLabSec
 test('renderTopicDive calls terminal section', /renderTopicDive[\s\S]{0,3000}_renderTopicTerminalSection\(topicName\)/.test(js));
 test('renderTopicDive calls lab section', /renderTopicDive[\s\S]{0,3000}_renderTopicLabSection\(topicName\)/.test(js));
 test('openGuidedLab function defined', js.includes('function openGuidedLab('));
-test('openGuidedLab sets title', /openGuidedLab[\s\S]{0,1500}titleEl\.textContent[\s\S]{0,80}lab\.title/.test(js));
+// v4.54.16: lab title now uses innerHTML (italic-accent em), not textContent.
+test('openGuidedLab sets title', /openGuidedLab[\s\S]{0,1800}titleEl\.innerHTML[\s\S]{0,200}lab\.title/.test(js));
 test('openGuidedLab uses showPage guided-lab', /openGuidedLab[\s\S]{0,2000}showPage\('guided-lab'\)/.test(js));
 test('HTML: #page-guided-lab', html.includes('id="page-guided-lab"'));
 test('HTML: #lab-title', html.includes('id="lab-title"'));
@@ -5565,8 +5566,8 @@ console.log('\n\x1b[1m── v4.54.1 LAYOUT CLEANUP ──\x1b[0m');
 // HTML
 test('v4.54.1 HTML: #page-settings exists',
   html.includes('id="page-settings"'));
-test('v4.54.1 HTML: settings has API key + Export/Import + Clear Wrong Bank',
-  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,2500}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,800}clearWrongBank/.test(html));
+test('v4.54.1 (v4.54.16 update) HTML: settings has API key + Exam Date + Daily Goal + Export/Import + Clear Wrong Bank',
+  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,5000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,800}clearWrongBank/.test(html));
 test('v4.54.1 HTML: #history-panel moved to #page-analytics',
   /id="page-analytics"[\s\S]{0,800}id="history-panel"/.test(html));
 test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
@@ -5951,8 +5952,9 @@ test('v4.54.7 JS: tbAutoCollapseIntroHowto keeps how-to + toolbar collapsed by d
 // CSS
 test('v4.54.7 CSS: #page-topology-builder overrides .page max-width to none (full-bleed)',
   /#page-topology-builder\.page\s*\{[\s\S]{0,400}max-width:\s*none/.test(css));
-test('v4.54.7 CSS: .tb-workspace-v3 uses minmax(0, 1fr) middle column',
-  /\.tb-workspace\.tb-workspace-v3\s*\{[\s\S]{0,800}grid-template-columns:\s*220px\s+minmax\(0,\s*1fr\)\s+260px/.test(css));
+// v4.54.16 widened palette 220 \u2192 260px; middle column still minmax(0, 1fr).
+test('v4.54.7 (v4.54.16 update) CSS: .tb-workspace-v3 uses minmax(0, 1fr) middle column',
+  /\.tb-workspace\.tb-workspace-v3\s*\{[\s\S]{0,800}grid-template-columns:\s*260px\s+minmax\(0,\s*1fr\)\s+260px/.test(css));
 test('v4.54.7 CSS: canvas uses viewport-height min-height (calc(100vh - ...))',
   /\.tb-canvas-wrap\s*\{[\s\S]{0,500}min-height:\s*calc\(100vh\s*-\s*\d+px\)/.test(css));
 test('v4.54.7 CSS: toolbar-details collapsible styling with rotating chevron',
@@ -6295,6 +6297,35 @@ test('v4.54.15 JS: updateCqSummaryBar renders multi-topic prose with count + pre
   /updateCqSummaryBar[\s\S]{0,2500}domainOn\.length\s*>=\s*2[\s\S]{0,600}across\s*<em>\$\{domainOn\.length\}\s*topics<\/em>/.test(js));
 test('v4.54.15 CSS: multi-selected domain chips get outline ring',
   /#topic-group\s+\.chip:not\(\.cq-mode-card\)\.on\s*\{[\s\S]{0,200}outline:\s*2px\s+solid/.test(css));
+
+// v4.54.16 wider TB palette + exam date in Settings + modal editorial head
+test('v4.54.16 CSS: TB workspace palette column widened (220 \u2192 260px)',
+  /\.tb-workspace\.tb-workspace-v3\s*\{[\s\S]{0,800}grid-template-columns:\s*260px\s+minmax\(0,\s*1fr\)\s+260px/.test(css));
+test('v4.54.16 HTML: Settings page has Exam Date section with #settings-exam-row',
+  /id="page-settings"[\s\S]{0,4000}Exam Date[\s\S]{0,400}id="settings-exam-row"/.test(html));
+test('v4.54.16 JS: syncSettingsExamDate defined + called from renderSettingsPage',
+  js.includes('function syncSettingsExamDate(') &&
+  /renderSettingsPage[\s\S]{0,800}syncSettingsExamDate\(\)/.test(js));
+test('v4.54.16 JS: syncSettingsExamDate reuses _buildExamDateChipHtml',
+  /syncSettingsExamDate[\s\S]{0,1000}_buildExamDateChipHtml\(\s*dateStr,\s*days,\s*'settings-exam-input'\s*\)/.test(js));
+test('v4.54.16 JS: updateExamDate also refreshes the Settings chip',
+  /function updateExamDate\([\s\S]{0,600}syncSettingsExamDate\(\)/.test(js));
+test('v4.54.16 HTML: Exam submit modal uses .ed-modalhead with "Submit exam?"',
+  /id="exam-modal"[\s\S]{0,800}class="ed-modalhead"[\s\S]{0,800}Submit\s*<em>exam\?<\/em>/.test(html));
+test('v4.54.16 HTML: Topic Deep Dive page uses .ed-pagehead',
+  /id="page-topic-dive"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Topic\s*<em>deep dive\.<\/em>/.test(html));
+test('v4.54.16 HTML: Guided Lab page uses .ed-pagehead',
+  /id="page-guided-lab"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Guided\s*<em>terminal lab\.<\/em>/.test(html));
+test('v4.54.16 JS: dynamic topic-dive title uses italic-accent em',
+  /topic-dive-title[\s\S]{0,400}innerHTML\s*=\s*'Topic \\u00b7 <em>'/.test(js));
+test('v4.54.16 JS: dynamic lab-title uses italic-accent em',
+  /lab-title[\s\S]{0,400}innerHTML\s*=\s*'Lab \\u00b7 <em>'/.test(js));
+test('v4.54.16 CSS: .ed-modalhead reusable modal-level editorial head',
+  /\.ed-modalhead\s*\{[\s\S]{0,400}border-bottom:\s*1px\s+dashed/.test(css) &&
+  /\.ed-modalhead-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace/.test(css) &&
+  /\.ed-modalhead-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+test('v4.54.16 CSS: .settings-exam-row wrapper styled',
+  /\.settings-exam-row\s*\{[\s\S]{0,200}display:\s*flex/.test(css));
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',

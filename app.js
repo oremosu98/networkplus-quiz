@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.15
+// Network+ AI Quiz — app.js  v4.54.16
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.15';
+const APP_VERSION = '4.54.16';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6246,7 +6246,9 @@ async function showTopicDeepDive(topicName) {
   const contentEl = document.getElementById('topic-dive-content');
   const backBtn = document.getElementById('topic-dive-back');
 
-  titleEl.textContent = '📚 ' + topicName;
+  // v4.54.16: italic-accent last-word of the dynamic title for editorial
+  // consistency with the rest of the app (Topic deep dive. / Topic X.)
+  titleEl.innerHTML = 'Topic \u00b7 <em>' + escHtml(topicName) + '</em>';
   objEl.textContent = res ? 'Exam Objective ' + res.obj : '';
   contentEl.innerHTML = '<div class="topic-dive-loading"><div class="spinner" style="width:32px;height:32px;border-width:3px"></div><p style="margin-top:12px;color:var(--text-dim)">Generating topic guide\u2026</p></div>';
 
@@ -6448,7 +6450,8 @@ function openGuidedLab(topicName) {
 
   if (!titleEl) return;
 
-  titleEl.textContent = '🖥️ ' + lab.title;
+  // v4.54.16: italic-accent title matches the rest of the app's editorial heads
+  titleEl.innerHTML = 'Lab \u00b7 <em>' + escHtml(lab.title) + '</em>';
   metaEl.innerHTML = `<span class="lab-meta-pill">Obj ${escHtml(lab.objective)}</span><span class="lab-meta-pill">${escHtml(lab.duration)}</span><span class="lab-meta-pill">${lab.steps.length} steps</span>`;
   introEl.innerHTML = `<p>${escHtml(lab.intro)}</p>`;
 
@@ -21825,6 +21828,8 @@ function renderAnalytics() {
 // Wired to the exam date input on the analytics page
 function updateExamDate(value) {
   setExamDate(value);
+  // v4.54.16: also sync the Settings-page chip if it's currently on screen
+  if (typeof syncSettingsExamDate === 'function') syncSettingsExamDate();
   renderAnalytics(); // re-render so forecast/countdown update
   renderReadinessCard(); // setup-page card may be affected by coverage/recency thresholds
 }
@@ -24821,6 +24826,22 @@ function renderSettingsPage() {
   if (typeof renderWrongBankBtn === 'function') renderWrongBankBtn();
   // v4.54.10: sync the editable Daily Goal input with current value
   if (typeof syncSettingsDailyGoal === 'function') syncSettingsDailyGoal();
+  // v4.54.16: render the exam-date chip using the shared _buildExamDateChipHtml helper
+  if (typeof syncSettingsExamDate === 'function') syncSettingsExamDate();
+}
+
+// v4.54.16: render the exam-date chip on the Settings page. Reuses the
+// same `_buildExamDateChipHtml` helper that Home + Analytics use, so the
+// chip styling + urgency tiers (urgent/soon/ok/past) + clear-\u00d7 affordance
+// are identical across all three surfaces.
+function syncSettingsExamDate() {
+  const row = document.getElementById('settings-exam-row');
+  if (!row) return;
+  const dateStr = (typeof getExamDate === 'function') ? getExamDate() : '';
+  const days = (typeof getDaysToExam === 'function') ? getDaysToExam() : null;
+  if (typeof _buildExamDateChipHtml === 'function') {
+    row.innerHTML = _buildExamDateChipHtml(dateStr, days, 'settings-exam-input');
+  }
 }
 
 // v4.54.10 \u2014 Daily Goal editor on Settings page
