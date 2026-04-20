@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.54.14
+// Network+ AI Quiz — app.js  v4.54.15
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.54.14';
+const APP_VERSION = '4.54.15';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -514,14 +514,20 @@ window.addEventListener('DOMContentLoaded', () => {
   const adv = document.getElementById('advanced-section');
   if (adv && !saved) adv.open = true;
 
-  initChips('topic-group', v => topic = v);
+  // v4.54.15: topic-group now supports multi-select on domain chips.
+  // Smart/Mixed mode cards remain single-select (they contradict a specific
+  // topic list). Domain chips can be toggled on/off; when 2+ are active
+  // `topic` becomes a "Multi: A, B, C" string which fetchQuestions expands
+  // into a distribution prompt.
+  initTopicGroupMulti(v => topic = v);
   initChips('diff-group',  v => diff  = v);
   initChips('count-group', v => qCount = parseInt(v));
 
-  const t0 = document.querySelector('#topic-group .chip.on');
+  // v4.54.15: derive the initial topic via the same helper the multi-select
+  // handler uses, so single vs multi-chip initial state is both supported.
+  topic = _computeTopicFromChips();
   const d0 = document.querySelector('#diff-group .chip.on');
   const c0 = document.querySelector('#count-group .chip.on');
-  if (t0) topic  = t0.dataset.v;
   if (d0) diff   = d0.dataset.v;
   if (c0) qCount = parseInt(c0.dataset.v);
 
@@ -567,6 +573,76 @@ function initChips(groupId, cb) {
       if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
     });
   });
+}
+
+// v4.54.15: multi-select handler for the #topic-group. Smart + Mixed mode
+// cards (.cq-mode-card) remain single-select \u2014 they're meta-topics that
+// contradict selecting specific domain topics. Domain chips toggle on/off
+// freely. When any domain chip is activated the mode cards deactivate.
+// When the user clears the last active chip, we fall back to Mixed so the
+// quiz always has a valid topic. The `cb(topic)` callback receives either:
+//   - a single topic string ('Network Models & OSI')
+//   - a mode sentinel ('\ud83e\udde0 Smart (Spaced Rep)' / 'Mixed \u2014 All Topics')
+//   - a multi-topic string ('Multi: Topic A, Topic B, Topic C')
+function initTopicGroupMulti(cb) {
+  const g = document.getElementById('topic-group');
+  if (!g) return;
+  g.setAttribute('role', 'group');
+  g.querySelectorAll('.chip').forEach(c => {
+    c.setAttribute('aria-pressed', c.classList.contains('on') ? 'true' : 'false');
+    c.addEventListener('click', () => {
+      const isMode = c.classList.contains('cq-mode-card');
+      if (isMode) {
+        // Mode card: clear everything else, set this one on.
+        g.querySelectorAll('.chip').forEach(x => {
+          x.classList.remove('on');
+          x.setAttribute('aria-pressed', 'false');
+        });
+        c.classList.add('on');
+        c.setAttribute('aria-pressed', 'true');
+      } else {
+        // Domain chip: toggle. If turning ON, also clear the mode cards.
+        const turningOn = !c.classList.contains('on');
+        if (turningOn) {
+          g.querySelectorAll('.chip.cq-mode-card').forEach(x => {
+            x.classList.remove('on');
+            x.setAttribute('aria-pressed', 'false');
+          });
+        }
+        c.classList.toggle('on');
+        c.setAttribute('aria-pressed', turningOn ? 'true' : 'false');
+        // Guarantee at least one chip stays selected \u2014 fall back to Mixed
+        // if the user just deselected the last domain chip.
+        const anyOn = g.querySelector('.chip.on');
+        if (!anyOn) {
+          const mixed = g.querySelector('.chip[data-v*="Mixed"]');
+          if (mixed) {
+            mixed.classList.add('on');
+            mixed.setAttribute('aria-pressed', 'true');
+          }
+        }
+      }
+      cb(_computeTopicFromChips());
+      if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
+    });
+  });
+}
+
+// v4.54.15: compute the topic string from current chip state. Used by the
+// multi-select handler + any post-load sync that wants to re-derive `topic`.
+function _computeTopicFromChips() {
+  const g = document.getElementById('topic-group');
+  if (!g) return (typeof MIXED_TOPIC !== 'undefined') ? MIXED_TOPIC : 'Mixed \u2014 All Topics';
+  const modeOn = g.querySelector('.cq-mode-card.on');
+  if (modeOn) return modeOn.dataset.v;
+  const domainOn = Array.from(g.querySelectorAll('.chip.on:not(.cq-mode-card)'))
+    .map(c => c.dataset.v)
+    .filter(Boolean);
+  if (domainOn.length === 0) {
+    return (typeof MIXED_TOPIC !== 'undefined') ? MIXED_TOPIC : 'Mixed \u2014 All Topics';
+  }
+  if (domainOn.length === 1) return domainOn[0];
+  return 'Multi: ' + domainOn.join(', ');
 }
 
 // Keep aria-pressed in sync when chips are toggled programmatically
@@ -1578,18 +1654,25 @@ async function startQuiz() {
   examMode = false;
   wrongDrillMode = false;
 
-  activeQuizTopic = topic.includes('Smart') ? getSpacedRepTopic() : topic;
+  // v4.54.15: Smart + Multi: handled alongside single-topic + Mixed.
+  activeQuizTopic = topic.includes('Smart')
+    ? getSpacedRepTopic()
+    : topic;
 
   document.getElementById('load-progress').classList.add('is-hidden');
   showPage('loading');
+  const _multiCount = topic.startsWith('Multi: ') ? topic.slice(7).split(',').length : 0;
   document.getElementById('loading-msg').textContent = topic.includes('Smart')
     ? '\ud83e\udde0 Smart pick: ' + activeQuizTopic + '\u2026'
-    : 'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
+    : _multiCount >= 2
+      ? `Generating ${qCount} ${diff} questions across ${_multiCount} topics\u2026`
+      : 'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
 
   showCacheNotice(false);
-  // Fire topic brief in parallel (non-blocking)
+  // Fire topic brief in parallel (non-blocking). Skip for Mixed AND Multi
+  // modes \u2014 a brief only makes sense for a single focused topic.
   const briefTopic = activeQuizTopic;
-  if (!briefTopic.includes('Mixed')) {
+  if (!briefTopic.includes('Mixed') && !briefTopic.startsWith('Multi: ')) {
     fetchTopicBrief(key, briefTopic);
   } else {
     const tb = document.getElementById('topic-brief');
@@ -1879,10 +1962,24 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
     const dist = computeDomainDistribution(n);
     mixedDistributionStr = `\n\nMANDATORY DOMAIN DISTRIBUTION (CompTIA N10-009 official weights): Of the ${n} questions, generate exactly:\n- ${dist.concepts} from Domain 1.0 Networking Concepts (23%) — topics like OSI, TCP/IP, subnetting, IPv6, DNS, DHCP, NAT, ports, cloud, virtualisation\n- ${dist.implementation} from Domain 2.0 Network Implementation (20%) — routing, switching, VLANs, wireless, Ethernet, cabling, SDN, data center architectures\n- ${dist.operations} from Domain 3.0 Network Operations (19%) — network ops, monitoring/SNMP, WAN, SD-WAN/SASE, BCDR, data centres\n- ${dist.security} from Domain 4.0 Network Security (14%) — securing TCP/IP, firewalls, AAA, IPsec/VPN, PKI, WPA3, attacks & threats, physical security\n- ${dist.troubleshooting} from Domain 5.0 Network Troubleshooting (24%) — methodology, tools (ping/trace/netstat), common faults\n`;
   }
-  const expectedObj = (qTopic !== MIXED_TOPIC && topicResources[qTopic]) ? topicResources[qTopic].obj : null;
+  // v4.54.15: multi-topic mode \u2014 Custom Quiz selected 2+ specific topics.
+  // Parse the list out of the "Multi: ..." sentinel and build a distribution
+  // prompt that tells Claude to split the n questions evenly across the
+  // selected topics (rounded up, with overage from the tail truncation later).
+  const isMulti = typeof qTopic === 'string' && qTopic.startsWith('Multi: ');
+  let multiTopicList = [];
+  if (isMulti) {
+    multiTopicList = qTopic.slice(7).split(',').map(s => s.trim()).filter(Boolean);
+    const per = Math.max(1, Math.floor(n / multiTopicList.length));
+    const remainder = n - (per * multiTopicList.length);
+    mixedDistributionStr = `\n\nMANDATORY MULTI-TOPIC DISTRIBUTION: Of the ${n} questions, generate ${per} question${per === 1 ? '' : 's'} per topic from this list of ${multiTopicList.length} topics:\n${multiTopicList.map((t, i) => `- ${t}${topicHints[t] ? ' \u2014 ' + topicHints[t] : ''}${i < remainder ? ' (generate 1 EXTRA here)' : ''}`).join('\n')}\n\nDo not stray outside these ${multiTopicList.length} topics. Each question must explicitly focus on ONE of them, and the .topic field of every returned question must match one of these exact strings.`;
+  }
+  const expectedObj = (!isMulti && qTopic !== MIXED_TOPIC && topicResources[qTopic]) ? topicResources[qTopic].obj : null;
   const topicStr = qTopic === MIXED_TOPIC
     ? 'Cover a broad mix of Network+ N10-009 exam topics across all 5 official CompTIA domains.'
-    : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam (primary objective ${expectedObj || 'N/A'}).${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
+    : isMulti
+      ? `Cover these ${multiTopicList.length} specific Network+ N10-009 topics selected by the user: ${multiTopicList.map(t => '"' + t + '"').join(', ')}. See the mandatory distribution block below.`
+      : `Focus only on: "${qTopic}" for the CompTIA Network+ N10-009 exam (primary objective ${expectedObj || 'N/A'}).${topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''}`;
 
   const diffStr = {
     'Foundational':  'Foundational: test basic recall and definitions. Clear right answers.',
@@ -25056,22 +25153,33 @@ function renderSetupDomainGrid() {
 function updateCqSummaryBar() {
   const proseEl = document.getElementById('cq-summary-prose');
   if (!proseEl) return;
-  // Read current topic + difficulty + count from the chip `.on` states.
-  const topicActive = document.querySelector('#topic-group .chip.on');
+  // v4.54.15: support multi-select topics. Read ALL .on chips; handle the
+  // three states: mode card on (Smart/Mixed), single domain chip, or
+  // multiple domain chips.
+  const topicGroup = document.getElementById('topic-group');
+  const modeOn = topicGroup ? topicGroup.querySelector('.cq-mode-card.on') : null;
+  const domainOn = topicGroup
+    ? Array.from(topicGroup.querySelectorAll('.chip.on:not(.cq-mode-card)')).map(c => (c.getAttribute('data-v') || '').replace(/&mdash;/g, '\u2014'))
+    : [];
   const diffActive = document.querySelector('#diff-group .chip.on');
   const countActive = document.querySelector('#count-group .chip.on');
-  const topicLabel = topicActive ? (topicActive.getAttribute('data-v') || '').replace(/&mdash;/g, '\u2014') : 'Mixed';
   const diffLabel = diffActive ? (diffActive.getAttribute('data-v') || 'Exam Level') : 'Exam Level';
   const count = countActive ? (countActive.getAttribute('data-v') || '10') : '10';
   const diffShort = diffLabel.toLowerCase().replace('/ tricky', '').replace(' level', '-level').replace(/\s+/g, ' ').trim();
-  // Topic prose: "AI-picked weak spots" if Smart, otherwise italic label
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
   let topicProse;
-  if (/smart/i.test(topicLabel)) {
-    topicProse = '<em>AI-picked weak spots</em>';
-  } else if (/mixed/i.test(topicLabel)) {
-    topicProse = '<em>Mixed across all topics</em>';
+  if (modeOn) {
+    const label = (modeOn.getAttribute('data-v') || '').replace(/&mdash;/g, '\u2014');
+    if (/smart/i.test(label)) topicProse = '<em>AI-picked weak spots</em>';
+    else topicProse = '<em>Mixed across all topics</em>';
+  } else if (domainOn.length === 1) {
+    topicProse = `on <em>${esc(domainOn[0])}</em>`;
+  } else if (domainOn.length >= 2) {
+    const preview = domainOn.slice(0, 3).map(esc).join(', ');
+    const extra = domainOn.length > 3 ? `, +${domainOn.length - 3} more` : '';
+    topicProse = `across <em>${domainOn.length} topics</em> (${preview}${extra})`;
   } else {
-    topicProse = `on <em>${(typeof escHtml === 'function' ? escHtml(topicLabel) : topicLabel)}</em>`;
+    topicProse = '<em>Mixed across all topics</em>';
   }
   const estMin = Math.max(3, Math.round(parseInt(count, 10) || 10));
   proseEl.innerHTML = `<strong>${count}</strong> ${diffShort} questions &middot; ${topicProse} &middot; est. ~${estMin} min`;

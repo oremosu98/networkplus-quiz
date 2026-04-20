@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.54.14
+   Network+ AI Quiz — styles.css  v4.54.15
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10186,4 +10186,22 @@ html { zoom: 1.10; }
 @media (max-width: 680px) {
   .ed-cardhead-title { font-size: 17px; }
   .ana-ms-head { flex-direction: column; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   v4.54.15 — Multi-select topic chips in Custom Quiz
+   Domain chips (non-mode) now toggle independently. Visual distinction:
+   active chips get the standard `.chip.on` treatment. When 2+ domain
+   chips are active, the parent `#topic-group` adds a subtle outline so
+   the user sees "multi-select engaged" at a glance. Handled purely by
+   the existing chip styling + a small wrapper badge for the count.
+   ════════════════════════════════════════════════════════════════════ */
+#topic-group .chip:not(.cq-mode-card).on {
+  /* Slightly stronger border so multi-selected chips feel distinct from
+     the mode cards. Fill stays the standard .chip.on gradient. */
+  outline: 2px solid rgba(var(--accent-rgb), .35);
+  outline-offset: -1px;
+}
+[data-theme="light"] #topic-group .chip:not(.cq-mode-card).on {
+  outline-color: rgba(99, 85, 224, .35);
 }

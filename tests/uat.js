@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.54.14', js.includes("const APP_VERSION = '4.54.14"));
+test('APP_VERSION is 4.54.15', js.includes("const APP_VERSION = '4.54.15"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.54.14', sw.includes('netplus-v4.54.14'));
+test('SW cache bumped to v4.54.15', sw.includes('netplus-v4.54.15'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6267,6 +6267,34 @@ test('v4.54.14 CSS: .ed-cardhead reusable card-level header defined',
   /\.ed-cardhead\s*\{[\s\S]{0,400}border-bottom:\s*1px\s+dashed/.test(css) &&
   /\.ed-cardhead-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,400}text-transform:\s*uppercase/.test(css) &&
   /\.ed-cardhead-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
+
+// v4.54.15 Multi-select topic chips
+test('v4.54.15 JS: initTopicGroupMulti + _computeTopicFromChips helpers defined',
+  js.includes('function initTopicGroupMulti(') &&
+  js.includes('function _computeTopicFromChips('));
+test('v4.54.15 JS: DOMContentLoaded uses initTopicGroupMulti (not initChips) for topic-group',
+  js.includes('initTopicGroupMulti(v => topic = v)') &&
+  !/initChips\('topic-group'/.test(js));
+test('v4.54.15 JS: _computeTopicFromChips returns Multi: prefix for 2+ domain chips',
+  /_computeTopicFromChips[\s\S]{0,1500}Multi:\s*'\s*\+\s*domainOn\.join/.test(js));
+test('v4.54.15 JS: mode-card click deselects all other chips (single-select kept for Smart/Mixed)',
+  /initTopicGroupMulti[\s\S]{0,3000}isMode[\s\S]{0,800}querySelectorAll\('\.chip'\)\.forEach[\s\S]{0,400}classList\.remove\('on'\)/.test(js));
+test('v4.54.15 JS: domain-chip click clears mode cards when turning ON',
+  /initTopicGroupMulti[\s\S]{0,3500}turningOn[\s\S]{0,600}cq-mode-card/.test(js));
+test('v4.54.15 JS: fallback to Mixed when all chips deselected',
+  /initTopicGroupMulti[\s\S]{0,3500}!anyOn[\s\S]{0,400}Mixed/.test(js));
+test('v4.54.15 JS: fetchQuestions parses Multi: prefix into multiTopicList',
+  /async function fetchQuestions[\s\S]{0,12000}startsWith\('Multi:\s*'\)[\s\S]{0,800}multiTopicList/.test(js));
+test('v4.54.15 JS: fetchQuestions builds MANDATORY MULTI-TOPIC DISTRIBUTION prompt',
+  /fetchQuestions[\s\S]{0,15000}MANDATORY MULTI-TOPIC DISTRIBUTION/.test(js));
+test('v4.54.15 JS: startQuiz loading-msg handles multi-topic count',
+  /loading-msg[\s\S]{0,800}_multiCount\s*>=\s*2[\s\S]{0,400}across\s*\$\{_multiCount\}\s*topics/.test(js));
+test('v4.54.15 JS: topic-brief skipped for Multi: mode',
+  /briefTopic\.startsWith\('Multi:\s*'\)/.test(js));
+test('v4.54.15 JS: updateCqSummaryBar renders multi-topic prose with count + preview',
+  /updateCqSummaryBar[\s\S]{0,2500}domainOn\.length\s*>=\s*2[\s\S]{0,600}across\s*<em>\$\{domainOn\.length\}\s*topics<\/em>/.test(js));
+test('v4.54.15 CSS: multi-selected domain chips get outline ring',
+  /#topic-group\s+\.chip:not\(\.cq-mode-card\)\.on\s*\{[\s\S]{0,200}outline:\s*2px\s+solid/.test(css));
 
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',
