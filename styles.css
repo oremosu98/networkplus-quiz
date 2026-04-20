@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.55.2
+   Network+ AI Quiz — styles.css  v4.56.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10811,4 +10811,68 @@ html { zoom: 1.10; }
 
 [data-theme="light"] .acl-hint-card {
   /* Stays dark \u2014 matches daily-recap-modal design intent */
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   v4.56.0 \u2014 QUESTION SCENARIO CONTEXT BLOCK
+   ══════════════════════════════════════════════════════════════════════
+   Optional 1\u20133 sentence context block rendered between the question stem
+   and the answer grid for MCQ / multi-select / order questions. Mirrors
+   the prototype's editorial "exam-style scenario" aesthetic: left accent
+   rule + muted small text + narrow max-width to prevent wall-of-text.
+   Only renders when q.scenario is present; #q-scenario + #exam-q-scenario
+   otherwise carry [hidden] and take no layout space.
+   ═══════════════════════════════════════════════════════════════════ */
+.q-scenario {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin: 0 0 18px;
+  padding: 10px 14px 10px 12px;
+  max-width: 680px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-mid);
+  background: transparent;
+  border-radius: 6px;
+  animation: qScenarioFade 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.q-scenario[hidden] { display: none; }
+
+.q-scenario .q-scenario-rule {
+  flex: 0 0 3px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  opacity: 0.85;
+}
+
+.q-scenario .q-scenario-body {
+  flex: 1 1 auto;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+@keyframes qScenarioFade {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-theme="light"] .q-scenario {
+  color: #4a4560;
+}
+[data-theme="light"] .q-scenario .q-scenario-rule {
+  background: #6355e0;
+}
+
+@media (max-width: 640px) {
+  .q-scenario {
+    font-size: 13px;
+    padding: 8px 12px 8px 10px;
+    margin-bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-scenario { animation: none; }
 }

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.55.2
+// Network+ AI Quiz — app.js  v4.56.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.55.2';
+const APP_VERSION = '4.56.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1996,8 +1996,8 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
 
 IMPORTANT: Out of the ${n} questions, generate exactly ${mcqCount} as standard MCQ and ${pbqCount} as performance-based questions (PBQ).
 
-For standard MCQ, use this format:
-{"type":"mcq","question":"...","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}
+For standard MCQ, use this format (scenario is OPTIONAL — only include on ~30-40% of Exam Level / Hard questions where real-world context genuinely disambiguates the answer):
+{"type":"mcq","question":"...","scenario":"(optional — 1-2 sentences of setup context)","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}
 
 For PBQ, use ONE of these two formats:
 
@@ -2021,6 +2021,13 @@ Generate exactly ${n} multiple choice questions. Requirements:
 - Each explanation must state WHY the answer is correct AND briefly why the main wrong option is wrong (2-3 sentences max)
 - No repeated questions
 
+SCENARIO CONTEXT FIELD (optional, exam-realism):
+- On roughly 30-40% of Exam Level and Hard questions, include an optional "scenario" field with 1-2 short sentences (max ~30 words) of real-world setup BEFORE the question is asked. This mirrors real N10-009 exam framing ("A technician is configuring...", "A user reports...", "An administrator notices...").
+- CRITICAL RULE — scenario describes the ENVIRONMENT the answer depends on; it NEVER restates the subject of the question in technical terms. ❌ "Consider a Layer 2 switch..." inside a question that asks which layer a switch operates at (this telegraphs the answer). ✅ "A technician sees frames being forwarded between hosts on the same subnet but traffic never leaves the local broadcast domain." (forces the learner to reason).
+- Scenario should help DISAMBIGUATE context that makes one answer clearly right, not give the answer away.
+- DO NOT include scenario on: pure recall questions (what port is HTTPS? which protocol uses X?), acronym definitions, or Foundational difficulty. Scenario adds noise on those.
+- Omit the field entirely for questions that don't need it — don't set it to empty string.
+
 MANDATORY N10-009 OBJECTIVE TAGGING:
 - Every question MUST include an "objective" field with the CompTIA N10-009 exam objective number (format "X.Y" — e.g., "1.4", "2.1", "4.3", "5.1")
 - Valid objectives are 1.1–1.8 (Concepts), 2.1–2.4 (Implementation), 3.1–3.5 (Operations), 4.1–4.5 (Security), 5.1–5.5 (Troubleshooting)
@@ -2043,7 +2050,7 @@ MANDATORY RULES:
 - NEVER write a question where the correct answer contradicts a fact stated in the question stem. If the question says something IS the case, the answer cannot say it ISN'T. This is the most common AI question-writing error — check for it explicitly.
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
-[{"type":"mcq","question":"...","difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
+[{"type":"mcq","question":"...","scenario":"(optional)","difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
   const res = await fetch(CLAUDE_API_URL, {
     method: 'POST',
@@ -2082,6 +2089,30 @@ function getQType(q) {
   return q.type || 'mcq';
 }
 
+// v4.56.0 — Scenario context block helper. Exam-realism practice: real N10-009
+// questions lean on scenario framing ("A technician is configuring X..."). We
+// render an optional 1-3 sentence context block between the question stem and
+// the answer grid. Only fires for MCQ / multi-select / order types — cli-sim
+// and topology already have their own scenario containers inside the options
+// box. Rule enforced by authors: scenario describes ENVIRONMENT, never restates
+// the subject of the question (avoid the "L2 switch → which layer?" trap).
+function _renderScenarioBlock(elId, q, qType) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const scenario = typeof q.scenario === 'string' ? q.scenario.trim() : '';
+  const isNestedType = qType === 'cli-sim' || qType === 'topology';
+  if (!scenario || isNestedType) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  el.hidden = false;
+  // escape user-facing text (questions can be AI-generated) — no keyword highlighting
+  // here since scenario is setup prose, not the stem that keyword emphasis helps with
+  el.innerHTML = '<span class="q-scenario-rule" aria-hidden="true"></span>' +
+                 '<span class="q-scenario-body">' + escHtml(scenario) + '</span>';
+}
+
 // ══════════════════════════════════════════
 // REGULAR QUIZ RENDER
 // ══════════════════════════════════════════
@@ -2116,6 +2147,11 @@ function render() {
   }
 
   setQuestionText(document.getElementById('q-text'), q.question);
+
+  // v4.56.0 — optional scenario context block. Only rendered for MCQ / multi-select /
+  // order types; cli-sim and topology already render their own scenario container
+  // inside the options box via renderCliSim/renderTopology, so skip to avoid doubling.
+  _renderScenarioBlock('q-scenario', q, qType);
 
   // Flag button
   const flagBtn = document.getElementById('quiz-flag-btn');
@@ -2865,6 +2901,10 @@ function renderExam() {
   flagBtn.setAttribute('aria-pressed', ans.flagged ? 'true' : 'false');
 
   setQuestionText(document.getElementById('exam-q-text'), q.question);
+
+  // v4.56.0 — optional scenario context block (exam parity with quiz). Skipped for
+  // cli-sim / topology which render their own scenario inside the options box.
+  _renderScenarioBlock('exam-q-scenario', q, qType);
 
   const box = document.getElementById('exam-options');
   box.innerHTML = '';

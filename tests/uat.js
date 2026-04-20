@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.55.2', js.includes("const APP_VERSION = '4.55.2"));
+test('APP_VERSION is 4.56.0', js.includes("const APP_VERSION = '4.56.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.55.2', sw.includes('netplus-v4.55.2'));
+test('SW cache bumped to v4.56.0', sw.includes('netplus-v4.56.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6531,6 +6531,119 @@ test('v4.55.2 CSS: .acl-sol-rules monospace grid + permit/deny action pills',
 // Sidebar streak lift
 test('v4.54.12 CSS: sidebar capped to calc(100vh - 140px) so streak clears dock',
   /\.app-sidebar\s*\{[\s\S]{0,600}height:\s*calc\(100vh\s*-\s*140px\)[\s\S]{0,400}padding-bottom:\s*max\(24px/.test(css));
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.56.0 — Question scenario context block
+// Optional 1-2 sentence exam-realism setup rendered between the stem
+// and the options grid. Teaches reading comprehension for wordy N10-009
+// question framing.
+// ══════════════════════════════════════════════════════════════════════
+
+// HTML — both quiz + exam pages carry the scenario container
+test('v4.56.0 HTML: quiz mode has #q-scenario container',
+  /<div\s+class="q-scenario"\s+id="q-scenario"\s+hidden><\/div>/.test(html));
+test('v4.56.0 HTML: exam mode has #exam-q-scenario container',
+  /<div\s+class="q-scenario"\s+id="exam-q-scenario"\s+hidden><\/div>/.test(html));
+
+// JS — render helper + call sites in quiz + exam
+test('v4.56.0 JS: _renderScenarioBlock helper defined',
+  /function\s+_renderScenarioBlock\s*\(\s*elId\s*,\s*q\s*,\s*qType\s*\)/.test(js));
+test('v4.56.0 JS: render() hooks scenario block for quiz mode',
+  /_renderScenarioBlock\(['"]q-scenario['"],\s*q,\s*qType\)/.test(js));
+test('v4.56.0 JS: renderExam() hooks scenario block for exam mode',
+  /_renderScenarioBlock\(['"]exam-q-scenario['"],\s*q,\s*qType\)/.test(js));
+test('v4.56.0 JS: helper skips cli-sim + topology types (nested scenario already)',
+  /isNestedType\s*=\s*qType\s*===\s*['"]cli-sim['"]\s*\|\|\s*qType\s*===\s*['"]topology['"]/.test(js));
+test('v4.56.0 JS: helper escapes scenario via escHtml (XSS guard)',
+  /q-scenario-body[^]{0,80}escHtml\(scenario\)/.test(js));
+
+// Behavioural — sandbox the helper + verify hide-when-absent + render-when-present
+(function testScenarioHelper() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function\s+_renderScenarioBlock\s*\(\s*elId\s*,\s*q\s*,\s*qType\s*\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.56.0 sandbox: helper body extracted', false); return; }
+    test('v4.56.0 sandbox: helper body extracted', true);
+
+    let elState = { hidden: false, innerHTML: '' };
+    const ctx = {
+      document: {
+        getElementById: (id) => (id === 'q-scenario' || id === 'exam-q-scenario') ? elState : null
+      },
+      escHtml: (s) => String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    };
+    vm.createContext(ctx);
+    const fn = vm.runInContext(`(function(elId, q, qType) {${bodyMatch[1]}})`, ctx);
+
+    // Case 1: no scenario → hidden
+    elState = { hidden: false, innerHTML: 'stale' };
+    fn.call(ctx, 'q-scenario', { question: 'x' }, 'mcq');
+    test('v4.56.0 sandbox: no scenario \u2192 element is hidden + cleared',
+      elState.hidden === true && elState.innerHTML === '');
+
+    // Case 2: scenario on MCQ → rendered with rule + body spans
+    elState = { hidden: true, innerHTML: '' };
+    fn.call(ctx, 'q-scenario', { question: 'x', scenario: 'A technician is troubleshooting a VLAN.' }, 'mcq');
+    test('v4.56.0 sandbox: MCQ + scenario \u2192 hidden false + rule+body spans present',
+      elState.hidden === false &&
+      elState.innerHTML.includes('q-scenario-rule') &&
+      elState.innerHTML.includes('q-scenario-body') &&
+      elState.innerHTML.includes('troubleshooting a VLAN'));
+
+    // Case 3: scenario on cli-sim → still hidden (nested renderer handles it)
+    elState = { hidden: false, innerHTML: 'stale' };
+    fn.call(ctx, 'q-scenario', { question: 'x', scenario: 'A user reports...' }, 'cli-sim');
+    test('v4.56.0 sandbox: cli-sim skipped \u2192 hidden true (no double-render)',
+      elState.hidden === true && elState.innerHTML === '');
+
+    // Case 4: scenario on topology → also skipped
+    elState = { hidden: false, innerHTML: 'stale' };
+    fn.call(ctx, 'q-scenario', { question: 'x', scenario: 'Design a hybrid cloud.' }, 'topology');
+    test('v4.56.0 sandbox: topology skipped \u2192 hidden true (no double-render)',
+      elState.hidden === true && elState.innerHTML === '');
+
+    // Case 5: whitespace-only scenario → treated as absent
+    elState = { hidden: false, innerHTML: 'stale' };
+    fn.call(ctx, 'q-scenario', { question: 'x', scenario: '   ' }, 'mcq');
+    test('v4.56.0 sandbox: whitespace-only scenario \u2192 hidden (trim guard)',
+      elState.hidden === true && elState.innerHTML === '');
+
+    // Case 6: XSS guard — angle brackets in scenario get escaped
+    elState = { hidden: true, innerHTML: '' };
+    fn.call(ctx, 'q-scenario', { question: 'x', scenario: '<img src=x onerror=alert(1)>' }, 'mcq');
+    test('v4.56.0 sandbox: scenario text is HTML-escaped (XSS guard)',
+      !elState.innerHTML.includes('<img') &&
+      elState.innerHTML.includes('&lt;img'));
+  } catch (e) {
+    test('v4.56.0 sandbox: helper executes without error', false);
+  }
+})();
+
+// CSS — editorial aesthetic
+test('v4.56.0 CSS: .q-scenario class defined with max-width cap',
+  /\.q-scenario\s*\{[\s\S]{0,400}max-width:\s*680px/.test(css));
+test('v4.56.0 CSS: .q-scenario-rule carries accent left bar',
+  /\.q-scenario\s+\.q-scenario-rule\s*\{[\s\S]{0,200}background:\s*var\(--accent\)/.test(css));
+test('v4.56.0 CSS: .q-scenario-body uses flex:1 1 auto (narrow + responsive)',
+  /\.q-scenario\s+\.q-scenario-body\s*\{[\s\S]{0,200}flex:\s*1\s+1\s+auto/.test(css));
+test('v4.56.0 CSS: qScenarioFade keyframe for entrance animation',
+  /@keyframes\s+qScenarioFade\s*\{/.test(css));
+test('v4.56.0 CSS: [hidden] rule so empty block takes no layout space',
+  /\.q-scenario\[hidden\]\s*\{\s*display:\s*none/.test(css));
+test('v4.56.0 CSS: reduced-motion neutralises qScenarioFade',
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,600}\.q-scenario\s*\{\s*animation:\s*none/.test(css));
+test('v4.56.0 CSS: light-theme override for .q-scenario-rule brand purple',
+  /\[data-theme="light"\]\s+\.q-scenario\s+\.q-scenario-rule\s*\{[\s\S]{0,100}background:\s*#6355e0/.test(css));
+
+// Prompt instructions — Haiku is told when to include scenario + the golden-rule
+test('v4.56.0 prompt: fetchQuestions mentions optional SCENARIO CONTEXT FIELD',
+  /SCENARIO\s+CONTEXT\s+FIELD/.test(js));
+test('v4.56.0 prompt: enforces "environment, not subject" rule',
+  /scenario\s+describes\s+the\s+ENVIRONMENT/.test(js));
+test('v4.56.0 prompt: explicitly forbids telegraphing the answer',
+  /telegraphs\s+the\s+answer/.test(js));
+test('v4.56.0 prompt: MCQ format example carries scenario as optional',
+  /"scenario":"\(optional/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
