@@ -1,0 +1,153 @@
+name: Vercel Incident Recovery
+
+# Runs every 10 minutes. If Vercel is operational and prod is out of sync with
+# the committed source (i.e. a previous push-triggered deploy failed due to a
+# Vercel incident), deploy directly via Vercel CLI and close any open
+# deploy-verification false-positive bugs.
+#
+# Self-limiting: no-ops when prod already matches committed APP_VERSION, so it
+# sits dormant 99% of the time. Only kicks in when there's a real drift.
+#
+# Manual trigger available for on-demand recovery.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+# Avoid racing with a push-triggered deploy
+concurrency:
+  group: vercel-deploy
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Check + recover
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      PROD_URL: https://networkplus-quiz-sable.vercel.app
+    steps:
+      - uses: actions/checkout@v6
+
+      # ── 1. Read committed APP_VERSION ──
+      - name: Read source APP_VERSION
+        id: source
+        run: |
+          VERSION=$(grep -oE "const APP_VERSION = '[^']+'" app.js | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Committed source version: $VERSION"
+
+      # ── 2. Check live prod version ──
+      - name: Check prod live version
+        id: prod
+        run: |
+          # Cache-bust to avoid stale CDN response
+          PROD=$(curl -s "${PROD_URL}/app.js?t=$(date +%s)" | grep -oE "const APP_VERSION = '[^']+'" | head -1 | sed -E "s/.*'([^']+)'.*/\1/" || echo "unknown")
+          echo "version=$PROD" >> "$GITHUB_OUTPUT"
+          echo "Live prod version: $PROD"
+
+      # ── 3. Match → no-op (vast majority of runs) ──
+      - name: No-op if prod matches source
+        if: steps.source.outputs.version == steps.prod.outputs.version
+        run: |
+          echo "✓ Prod (${{ steps.prod.outputs.version }}) matches source. Nothing to do."
+
+      # ── 4. Mismatch → check Vercel status before attempting deploy ──
+      - name: Check Vercel status API
+        if: steps.source.outputs.version != steps.prod.outputs.version
+        id: vercel
+        run: |
+          IND=$(curl -s https://www.vercel-status.com/api/v2/status.json | python3 -c "import sys,json; print(json.load(sys.stdin)['status']['indicator'])")
+          echo "indicator=$IND" >> "$GITHUB_OUTPUT"
+          echo "Vercel status indicator: $IND"
+          if [[ "$IND" == "none" ]]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel still degraded ($IND) — will retry on next cron tick."
+          fi
+
+      # ── 5. Vercel operational + mismatch → deploy ──
+      - uses: actions/setup-node@v6
+        if: steps.source.outputs.version != steps.prod.outputs.version && steps.vercel.outputs.ok == 'true'
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        if: steps.source.outputs.version != steps.prod.outputs.version && steps.vercel.outputs.ok == 'true'
+        run: npm i -g vercel@latest
+
+      - name: Deploy to production
+        id: deploy
+        if: steps.source.outputs.version != steps.prod.outputs.version && steps.vercel.outputs.ok == 'true'
+        run: |
+          set -o pipefail
+          echo "Deploying source v${{ steps.source.outputs.version }} (current prod: v${{ steps.prod.outputs.version }})"
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tee /tmp/deploy.log
+          echo "success=true" >> "$GITHUB_OUTPUT"
+
+      # ── 6. Verify + close any open deploy-verification false-positive bug ──
+      - name: Verify prod flipped
+        if: steps.deploy.outputs.success == 'true'
+        id: verify
+        run: |
+          # Give CDN up to 2 min to propagate
+          for i in $(seq 1 8); do
+            sleep 15
+            LIVE=$(curl -s "${PROD_URL}/app.js?t=$(date +%s)" | grep -oE "const APP_VERSION = '[^']+'" | head -1 | sed -E "s/.*'([^']+)'.*/\1/" || echo "unknown")
+            if [[ "$LIVE" == "${{ steps.source.outputs.version }}" ]]; then
+              echo "verified=true" >> "$GITHUB_OUTPUT"
+              echo "✓ Prod flipped to v$LIVE on attempt $i"
+              exit 0
+            fi
+          done
+          echo "verified=false" >> "$GITHUB_OUTPUT"
+          echo "Deploy returned success but prod still serving v$LIVE — CDN may still be propagating."
+
+      - name: Close open deploy-verification false-positive bugs
+        if: steps.verify.outputs.verified == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const version = '${{ steps.source.outputs.version }}';
+            const bugs = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'deploy-verification',
+              state: 'open',
+              per_page: 20
+            });
+            const matching = bugs.data.filter(b => b.title.includes(version));
+            for (const bug of matching) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: bug.number,
+                body: `Auto-closed by \`vercel-incident-recovery.yml\` — v${version} now verified live on prod. The original verification failure was a false positive caused by a Vercel API incident that coincided with the push-triggered deploy.`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: bug.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+              console.log(`Closed issue #${bug.number}`);
+            }
+
+      # ── 7. Report ──
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Recovery Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Source version: \`${{ steps.source.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Prod version (before): \`${{ steps.prod.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Vercel status: \`${{ steps.vercel.outputs.indicator || 'not-checked' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy attempted: \`${{ steps.deploy.outputs.success || 'false' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Verified live: \`${{ steps.verify.outputs.verified || 'n/a' }}\`" >> $GITHUB_STEP_SUMMARY
