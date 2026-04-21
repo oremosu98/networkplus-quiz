@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.56.2', js.includes("const APP_VERSION = '4.56.2"));
+test('APP_VERSION is 4.57.0', js.includes("const APP_VERSION = '4.57.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.56.2', sw.includes('netplus-v4.56.2'));
+test('SW cache bumped to v4.57.0', sw.includes('netplus-v4.57.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6824,6 +6824,51 @@ test('v4.56.2 JS: Sonnet API error still bubbles up immediately (not masked)',
     test('v4.56.1 sandbox: batching logic executes without error', false);
   }
 })();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.0 — Question-quality hardening (validator + generator prompts)
+// Expands aiValidateQuestions from 3 correctness checks to 6 (adds conceptual
+// coherence + framing match + distractor quality). Also adds explicit
+// anti-conflation rules to the generation prompt so Haiku is less likely to
+// produce sloppy questions (e.g. the "fundamental TCP/IP principle" →
+// classful-addressing conflation that shipped in v4.56.x).
+// ══════════════════════════════════════════════════════════════════════
+
+// Validator prompt expansion
+test('v4.57.0 validator: expanded from THREE checks to SIX checks',
+  /Review each question below and check SIX things/.test(js));
+test('v4.57.0 validator: check 4 = CONCEPTUAL COHERENCE',
+  /4\.\s*CONCEPTUAL COHERENCE[\s\S]{0,300}different concept/i.test(js));
+test('v4.57.0 validator: check 5 = FRAMING MATCH',
+  /5\.\s*FRAMING MATCH[\s\S]{0,300}abstraction level/.test(js));
+test('v4.57.0 validator: check 6 = DISTRACTOR QUALITY',
+  /6\.\s*DISTRACTOR QUALITY[\s\S]{0,300}plausible alternatives/.test(js));
+test('v4.57.0 validator: new failure modes listed in common-errors section',
+  /CONCEPTUAL CONFLATION:/.test(js) &&
+  /FRAMING DRIFT:/.test(js) &&
+  /WEAK DISTRACTORS:/.test(js));
+test('v4.57.0 validator: classful-addressing conflation explicitly called out as AMBIGUOUS trigger',
+  /classful addressing[\s\S]{0,200}obsoleted by CIDR/.test(js));
+test('v4.57.0 validator: OK requires passing all 6 checks (including conceptual + framing + distractors)',
+  /Q1:OK[\s\S]{0,400}conceptually coherent[\s\S]{0,100}well-framed[\s\S]{0,100}plausible distractors/.test(js));
+test('v4.57.0 validator: AMBIGUOUS trigger expanded to cover checks 4/5/6',
+  /AMBIGUOUS[\s\S]{0,400}fails any of checks 4\/5\/6/.test(js));
+
+// Generation prompt hardening
+test('v4.57.0 gen: CONCEPTUAL COHERENCE RULES section added',
+  /CONCEPTUAL COHERENCE RULES \(v4\.57\.0/.test(js));
+test('v4.57.0 gen: explicit anti-classful-vs-TCP/IP conflation rule',
+  /Do NOT conflate deprecated classful addressing[\s\S]{0,200}CIDR/.test(js));
+test('v4.57.0 gen: classful terminology guard ties to legacy/historical context',
+  /legacy concepts or historical context[\s\S]{0,200}fundamental TCP\/IP principle/.test(js));
+test('v4.57.0 gen: abstraction-level match rule present',
+  /MATCH THE ABSTRACTION LEVEL[\s\S]{0,400}principle[\s\S]{0,200}configuration step/.test(js));
+test('v4.57.0 gen: "stem must match what question tests" rule present',
+  /STEM MUST MATCH WHAT THE QUESTION ACTUALLY TESTS/.test(js));
+test('v4.57.0 gen: DISTRACTOR QUALITY RULES section added',
+  /DISTRACTOR QUALITY RULES:[\s\S]{0,400}at least TWO[\s\S]{0,200}plausible/i.test(js));
+test('v4.57.0 gen: distractor rule forbids 3-of-4 obviously-wrong pattern',
+  /3 of 4 options are obviously wrong[\s\S]{0,200}giveaway/.test(js));
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a

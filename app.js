@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.56.2
+// Network+ AI Quiz — app.js  v4.57.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.56.2';
+const APP_VERSION = '4.57.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2126,6 +2126,16 @@ MANDATORY RULES:
 - If you notice ANY mismatch between answer letter, option text, and explanation — fix it before outputting
 - Never output a question where the explanation and the answer field disagree
 - NEVER write a question where the correct answer contradicts a fact stated in the question stem. If the question says something IS the case, the answer cannot say it ISN'T. This is the most common AI question-writing error — check for it explicitly.
+
+CONCEPTUAL COHERENCE RULES (v4.57.0 — enforce rigorously):
+- Do NOT conflate deprecated classful addressing (Class A/B/C) with modern TCP/IP or CIDR/subnet principles. Classful addressing was obsoleted by CIDR in 1993 (RFC 1519). If you reference classful terminology, it must be explicitly about legacy concepts or historical context — never framed as a "fundamental TCP/IP principle."
+- Do NOT conflate distinct concepts under one label. If the stem asks about "a TCP/IP principle," the answer must be about the TCP/IP protocol stack (layers, encapsulation, ports, the four-layer model), not about IP address classes. If the stem asks about "an OSI Layer 3 function," the answer must actually be a Layer 3 function, not a Layer 2 one.
+- MATCH THE ABSTRACTION LEVEL: If the stem asks for a "principle," "fundamental concept," or "root cause," the answer must be at that level of abstraction — NOT a specific configuration step or tool. ("Default gateway not configured" is a configuration detail, not a principle.) If the stem asks for a specific fix or symptom, don't give an abstract principle.
+- STEM MUST MATCH WHAT THE QUESTION ACTUALLY TESTS: If the stem says "which protocol operates at Layer 3?", the question must test Layer 3 protocol knowledge — not addressing theory, not encapsulation. Read your own stem and make sure the answer directly addresses what you asked.
+
+DISTRACTOR QUALITY RULES:
+- At least TWO of the three wrong options must be plausible-enough to tempt a student who only partially knows the material. If 3 of 4 options are obviously wrong (e.g. completely unrelated or factually nonsensical), the question becomes a giveaway that doesn't test real knowledge.
+- Distractors should represent common misconceptions, adjacent concepts, or nearly-right answers — not random unrelated facts.
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"type":"mcq","question":"...",${includeScenario ? '"scenario":"(optional)",' : ''}"difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
@@ -6195,15 +6205,18 @@ async function aiValidateQuestions(key, qs) {
     return `Q${i+1}: "${q.question}"\nA) ${q.options.A}\nB) ${q.options.B}\nC) ${q.options.C}\nD) ${q.options.D}\nMarked answer: ${q.answer}\nExplanation: ${q.explanation}`;
   }).join('\n\n');
 
-  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check THREE things:
+  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check SIX things:
 1. Is the marked answer FACTUALLY CORRECT?
 2. Does the correct answer CONTRADICT any fact stated in the question stem?
 3. Does the EXPLANATION actually support the MARKED answer letter, or does it champion a different option?
+4. CONCEPTUAL COHERENCE: Does the stem ask about one concept but the answer test a DIFFERENT concept? (e.g. stem asks for a "fundamental TCP/IP principle" but the answer is about deprecated classful addressing — those are distinct concepts.)
+5. FRAMING MATCH: Is the question's abstraction level aligned with the answer? (e.g. stem asks for a "principle" or "root cause," but the answer is a specific configuration detail; or stem asks what is "most likely" but only one option is even plausible.)
+6. DISTRACTOR QUALITY: Are the wrong options plausible alternatives a student might pick, or are 3/4 obviously wrong? A good MCQ has at least two tempting-looking distractors.
 
 For each question, respond with ONLY:
-- "Q1:OK" if the marked answer is correct AND consistent with the stem AND supported by the explanation
+- "Q1:OK" if the marked answer is correct AND consistent with the stem AND supported by the explanation AND conceptually coherent AND well-framed AND has plausible distractors
 - "Q1:WRONG:X" if the correct answer should be letter X instead (use this when the explanation itself says X is correct but the answer field says something else)
-- "Q1:AMBIGUOUS" if the question is unclear, has multiple valid answers, or the correct answer contradicts the question's own stated premises
+- "Q1:AMBIGUOUS" if the question is unclear, has multiple valid answers, the correct answer contradicts the question's own stated premises, OR fails any of checks 4/5/6 above
 
 Be strict. Check actual networking facts. Common errors to catch:
 - Port numbers matched to wrong protocols
@@ -6213,6 +6226,9 @@ Be strict. Check actual networking facts. Common errors to catch:
 - Security concepts misattributed
 - PREMISE-ANSWER CONTRADICTIONS: The question states a fact ("both on VLAN 30", "using WPA3", "connected via fiber") but the correct answer contradicts that stated fact. These questions MUST be marked AMBIGUOUS — they are logically broken.
 - EXPLANATION-ANSWER MISMATCH: The explanation describes why option X is correct (e.g. "the access tier contains servers and storage") but the answer field says a different letter (e.g. marks "Core tier" as correct). This is an AI authoring error — the AI wrote a correct explanation then picked the wrong letter. For every question, identify which option the explanation ACTUALLY supports and compare to the marked answer. If they disagree, use "WRONG:X" where X is the letter the explanation actually supports.
+- CONCEPTUAL CONFLATION: The stem mentions one framework or concept (e.g. "TCP/IP principle," "OSI Layer 3 function," "CIDR subnetting") but the correct answer is actually about a different, unrelated concept (e.g. "classful addressing," which was obsoleted by CIDR in 1993). These are pedagogically broken — they teach the wrong concept under the wrong label. Mark AMBIGUOUS.
+- FRAMING DRIFT: The stem asks for a high-level principle, root cause, or fundamental concept, but the correct answer is a narrow configuration detail (e.g. stem: "what principle explains why X fails?"; answer: "the default gateway isn't configured"). Principles are not configuration steps. Mark AMBIGUOUS if the abstraction levels don't match.
+- WEAK DISTRACTORS: 3 of 4 options are obviously wrong to any reader with basic networking knowledge, making the "correct" option a giveaway rather than a real test. Mark AMBIGUOUS.
 
 ${qList}
 
