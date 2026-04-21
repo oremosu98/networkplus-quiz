@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.2
+// Network+ AI Quiz — app.js  v4.57.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.2';
+const APP_VERSION = '4.57.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2022,7 +2022,8 @@ async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride
     'CompTIA Troubleshooting Methodology': 'The CompTIA 7-step troubleshooting methodology: 1) Identify the problem, 2) Establish a theory, 3) Test the theory, 4) Establish a plan of action, 5) Implement the solution or escalate, 6) Verify full system functionality and implement preventive measures, 7) Document findings. When to escalate vs implement.',
     'Firewalls, DMZ & Security Zones': 'Stateful vs stateless firewalls. NGFW. UTM. Security zones: trusted, untrusted, DMZ. Screened subnet. Implicit deny. Firewall rule order and ACL processing. Content/URL filtering. Active-passive HA. Proxy firewalls. Host-based vs network-based firewalls.',
     'WPA3 & EAP Authentication': 'WPA3-Personal: SAE/Dragonfly. WPA3-Enterprise: 192-bit security. OWE. WPA3 vs WPA2. EAP types: EAP-TLS, PEAP, EAP-TTLS, EAP-FAST. 802.1X roles: Supplicant, Authenticator, Authentication Server. Wi-Fi Easy Connect. Transition mode.',
-    'SDN, NFV & Automation': 'SDN: control/data plane separation. SDN controller, northbound/southbound APIs, OpenFlow. NFV: VNF, virtualising network functions. IaC: Ansible, Terraform, Puppet. YANG/NETCONF. Intent-based networking. REST APIs. Zero-touch provisioning.'
+    'SDN, NFV & Automation': 'SDN: control/data plane separation. SDN controller, northbound/southbound APIs, OpenFlow. NFV: VNF, virtualising network functions. IaC: Ansible, Terraform, Puppet. YANG/NETCONF. Intent-based networking. REST APIs. Zero-touch provisioning.',
+    'Network Appliances & Device Functions': 'Load balancers (hardware vs software, Layer 4 vs Layer 7, algorithms: round-robin / least-connections / weighted / source-IP hash, active-active vs active-passive, health checks, SSL/TLS offloading). Proxy servers: forward proxy (outbound filtering, anonymity, caching), reverse proxy (inbound distribution, caching, SSL termination, hides backend topology), transparent proxy (inline, no client config needed). IDS/IPS/NIDS/NIPS: detection vs prevention, signature-based vs anomaly-based/behavioural, in-line vs passive/tap placement. Next-Generation Firewall (NGFW) and Unified Threat Management (UTM) — app-aware filtering, deep packet inspection, bundled AV + IPS + content filter. VPN concentrator. Content/URL filter / web filter. Wireless access points (WAP) and Wireless LAN Controllers (WLC) — autonomous vs lightweight APs. Layer 3 capable switch / multilayer switch. Cable modem, DSL modem, ONT (fiber optical network terminal). Covers device selection, placement, distinctions between similar appliances (proxy vs reverse proxy vs load balancer; IDS vs IPS; NGFW vs UTM).'
   };
   // N10-009 domain-weighted distribution for Mixed mode (23/20/19/14/24)
   let mixedDistributionStr = '';

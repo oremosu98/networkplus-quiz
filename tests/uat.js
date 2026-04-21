@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.2', js.includes("const APP_VERSION = '4.57.2"));
+test('APP_VERSION is 4.57.3', js.includes("const APP_VERSION = '4.57.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.2', sw.includes('netplus-v4.57.2'));
+test('SW cache bumped to v4.57.3', sw.includes('netplus-v4.57.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7029,6 +7029,51 @@ test('v4.57.2 gen prompt: clarifies scenario field is additive, never a substitu
       fn('A technician installed a new switch. The switch forwards frames based on MAC addresses. Devices on different VLANs cannot communicate directly.') === false);
   } catch (e) {
     test('v4.57.2 sandbox: interrogative guard executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.3 — topicHints entry for Network Appliances & Device Functions
+// User flagged not seeing proxy/load-balancer/NIDS/NIPS questions. Root
+// cause: no topicHints entry for this N10-009 1.2 topic, so Haiku had
+// no guidance on which appliances to cover. Hint enumerates the full
+// 1.2 appliance list including forward/reverse/transparent proxy types
+// and load-balancer algorithms.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.3 topicHints: entry exists for "Network Appliances & Device Functions"',
+  /'Network Appliances & Device Functions':\s*'Load balancers/.test(js));
+test('v4.57.3 topicHints: covers all 3 proxy types (forward, reverse, transparent)',
+  /forward proxy[\s\S]{0,200}reverse proxy[\s\S]{0,200}transparent proxy/i.test(js));
+test('v4.57.3 topicHints: covers load-balancer algorithms (round-robin, least-connections)',
+  /round-robin[\s\S]{0,100}least-connections/i.test(js));
+test('v4.57.3 topicHints: covers IDS/IPS/NIDS/NIPS distinctions',
+  /IDS\/IPS\/NIDS\/NIPS/.test(js));
+test('v4.57.3 topicHints: covers NGFW + UTM distinction',
+  /NGFW[\s\S]{0,100}UTM/.test(js) || /Next-Generation Firewall \(NGFW\)[\s\S]{0,200}UTM/.test(js));
+test('v4.57.3 topicHints: mentions wireless LAN controller (WLC) explicitly',
+  /Wireless LAN Controller|WLC/.test(js));
+
+// Behavioural — simulate the prompt generation for this topic, verify the
+// hint actually lands in the prompt text via the "Specifically cover:" path
+(function testTopicHintWired() {
+  try {
+    // The fetchQuestions body uses: topicHints[qTopic] ? ' Specifically cover: ' + topicHints[qTopic] : ''
+    // So we just need to verify topicHints['Network Appliances & Device Functions'] evaluates truthy + contains 'proxy'
+    const match = js.match(/'Network Appliances & Device Functions':\s*'([^']+)'/);
+    if (!match) { test('v4.57.3 sandbox: hint text extracted', false); return; }
+    test('v4.57.3 sandbox: hint text extracted', true);
+    const hintText = match[1];
+    test('v4.57.3 sandbox: hint is non-trivial (>100 chars)',
+      hintText.length > 100);
+    test('v4.57.3 sandbox: hint mentions proxy',
+      /proxy/i.test(hintText));
+    test('v4.57.3 sandbox: hint mentions load balancer',
+      /load balancer/i.test(hintText));
+    test('v4.57.3 sandbox: hint mentions IDS or IPS',
+      /IDS|IPS/.test(hintText));
+  } catch (e) {
+    test('v4.57.3 sandbox: hint extraction executes without error', false);
   }
 })();
 
