@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.4
+// Network+ AI Quiz — app.js  v4.57.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.4';
+const APP_VERSION = '4.57.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -21301,8 +21301,14 @@ function _renderAnaReadiness(h) {
   // v4.46.0: Domain rows — tier-anchored color dots (matches v4.45.1 Domain
   // Mastery thresholds 55/70/85), weight as subtle subtext under the domain
   // name, 85% target tick on each bar (matches Domain Mastery card convention).
+  // v4.57.5: user-visible pct now comes from the shared computeDomainRawAccuracy
+  // helper so this matches the Domain Mastery card (pre-v4.57.5 used the weighted
+  // `domainAccuracy` from Readiness internals — disagreed by 1-2% with Domain
+  // Mastery's raw calc and confused users). Weighted `domainAccuracy` stays
+  // internal for the 720-tier Readiness score calculation below.
+  const domainRawAccuracy = computeDomainRawAccuracy(h);
   const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
-    const pct = Math.round(domainAccuracy[d] || 0);
+    const pct = Math.round(domainRawAccuracy[d] || 0);
     let tier, barColor;
     if (pct >= 85)      { tier = 'mastered'; barColor = 'var(--green)'; }
     else if (pct >= 70) { tier = 'proficient'; barColor = 'var(--accent-light)'; }
@@ -21627,6 +21633,41 @@ function _renderAnaStreak() {
 // descriptive: for each of the 5 official N10-009 domains, shows current
 // accuracy as a progress bar toward the 85% mastery threshold, a tier
 // badge (Novice / Developing / Proficient / Mastered), and a one-click
+// v4.57.5: Shared raw-accuracy aggregator per CompTIA domain. Used by BOTH
+// the Domain Mastery card AND the Readiness hero's Domain Breakdown so the
+// two surfaces always agree. Uses simple sum(correct)/sum(total) across all
+// sessions in the domain — NOT difficulty-weighted or recency-boosted. That
+// weighted calc (see domainAccuracy in getReadinessScore) stays internal for
+// computing the 720-tier Readiness score; the user-visible per-domain % should
+// match how CompTIA actually grades you: raw accuracy. Pre-v4.57.5 the Domain
+// Breakdown used weighted `domainAccuracy[d]` while Domain Mastery used raw,
+// and the two disagreed by 1-2% (user flagged: "69% here, 70% there").
+// Sentinel "Multi: ..." entries skip domain attribution (TOPIC_DOMAINS lookup
+// returns undefined for them) — v4.57.4 handles those via the read-side
+// matcher for per-topic surfaces; domain aggregation stays conservative to
+// avoid double-counting across multi-domain multi-topic sessions.
+function computeDomainRawAccuracy(h) {
+  const byDomain = {
+    concepts:        { c: 0, t: 0 },
+    implementation:  { c: 0, t: 0 },
+    operations:      { c: 0, t: 0 },
+    security:        { c: 0, t: 0 },
+    troubleshooting: { c: 0, t: 0 }
+  };
+  (h || []).forEach(e => {
+    if (!e || !e.topic || e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
+    const d = TOPIC_DOMAINS[e.topic];
+    if (!d || !byDomain[d]) return;
+    byDomain[d].c += (e.score || 0);
+    byDomain[d].t += (e.total || 0);
+  });
+  const out = {};
+  Object.keys(byDomain).forEach(d => {
+    out[d] = byDomain[d].t > 0 ? (byDomain[d].c / byDomain[d].t) * 100 : 0;
+  });
+  return out;
+}
+
 // drill button that fires focusTopic() on the weakest topic within that
 // domain. Unstudied domains get a "Not started" state with a prompt.
 function _renderAnaDomainMastery(h) {
@@ -21637,6 +21678,10 @@ function _renderAnaDomainMastery(h) {
     { id: 'security',        label: '4.0 Network Security',        weight: 14, color: '#f59e0b' },
     { id: 'troubleshooting', label: '5.0 Network Troubleshooting', weight: 24, color: '#ef4444' }
   ];
+  // v4.57.5: per-domain pct computation extracted to shared helper so Domain
+  // Mastery and Readiness hero Domain Breakdown stay in sync. byDomain {c,t}
+  // is kept here because this card's "Not started" empty-state and tier counts
+  // need the raw totals, not just the pct.
   const byDomain = { concepts: {c:0,t:0}, implementation: {c:0,t:0}, operations: {c:0,t:0}, security: {c:0,t:0}, troubleshooting: {c:0,t:0} };
   h.forEach(e => {
     if (!e.topic || e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;

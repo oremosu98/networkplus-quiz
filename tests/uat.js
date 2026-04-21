@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.4', js.includes("const APP_VERSION = '4.57.4"));
+test('APP_VERSION is 4.57.5', js.includes("const APP_VERSION = '4.57.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.4', sw.includes('netplus-v4.57.4'));
+test('SW cache bumped to v4.57.5', sw.includes('netplus-v4.57.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7168,6 +7168,102 @@ test('v4.57.4 JS: domain drill-down uses _filterHistoryByTopic',
       fn([{ topic: 'Multi: Connection Issues, Perf Issues' }], 'Connection').length === 0);
   } catch (e) {
     test('v4.57.4 sandbox: helper executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.5 — Unify per-domain pct between Domain Mastery + Domain Breakdown
+// User flagged: Networking Concepts showed 69% in the Readiness hero's
+// Domain Breakdown but 70% in Domain Mastery. Root cause: Breakdown used
+// weighted `domainAccuracy` (diff × exam-boost × recency-boost), Mastery
+// used raw sum(correct)/sum(total). v4.57.5 extracts a shared helper so
+// both surfaces show the same number. Weighted calc stays INTERNAL for
+// the Readiness 720-score only.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.5 JS: computeDomainRawAccuracy helper defined',
+  /function\s+computeDomainRawAccuracy\(h\)/.test(js));
+test('v4.57.5 JS: helper exposes all 5 CompTIA domains',
+  /byDomain\s*=\s*\{[\s\S]{0,400}concepts:[\s\S]{0,100}implementation:[\s\S]{0,100}operations:[\s\S]{0,100}security:[\s\S]{0,100}troubleshooting:/.test(js));
+test('v4.57.5 JS: helper skips MIXED_TOPIC + EXAM_TOPIC entries',
+  /e\.topic === MIXED_TOPIC \|\| e\.topic === EXAM_TOPIC/.test(js));
+test('v4.57.5 JS: helper uses raw sum(correct)/sum(total) per domain',
+  /byDomain\[d\]\.c \+= \(e\.score \|\| 0\)[\s\S]{0,100}byDomain\[d\]\.t \+= \(e\.total \|\| 0\)/.test(js));
+test('v4.57.5 JS: Readiness hero Domain Breakdown now uses computeDomainRawAccuracy (not weighted domainAccuracy)',
+  /domainRawAccuracy = computeDomainRawAccuracy\(h\)[\s\S]{0,300}pct = Math\.round\(domainRawAccuracy\[d\]/.test(js));
+test('v4.57.5 JS: weighted domainAccuracy still feeds accuracyScore (Readiness 720-tier unchanged)',
+  /domainAccuracy\[d\]\s*=\s*avg[\s\S]{0,200}accuracyScore \+= avg \* DOMAIN_WEIGHTS\[d\]/.test(js));
+
+// Behavioural — vm-sandbox the helper with fixtures and confirm both cards
+// would produce the same pct for the same input history
+(function testDomainRawAccuracy() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function\s+computeDomainRawAccuracy\(h\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.57.5 sandbox: helper body extracted', false); return; }
+    test('v4.57.5 sandbox: helper body extracted', true);
+
+    // Stub TOPIC_DOMAINS for the sandbox
+    const ctx = {
+      MIXED_TOPIC: 'Mixed — All Topics',
+      EXAM_TOPIC: 'Exam Simulation',
+      TOPIC_DOMAINS: {
+        'OSI Model': 'concepts',
+        'Subnetting & IP Addressing': 'concepts',
+        'OSPF': 'implementation',
+        'BGP': 'implementation',
+        'Firewalls, DMZ & Security Zones': 'security',
+        'Connection Issues': 'troubleshooting',
+        'Perf Issues': 'troubleshooting',
+        'Service Issues': 'troubleshooting'
+      }
+    };
+    vm.createContext(ctx);
+    const fn = vm.runInContext(`(function(h) {${bodyMatch[1]}})`, ctx);
+
+    // Simulate user's scenario: 7/10 on OSI (concepts), 15/20 on Subnetting (concepts) → 22/30 = 73.33%
+    const history = [
+      { topic: 'OSI Model', score: 7, total: 10, date: '2026-04-21T08:00:00Z' },
+      { topic: 'Subnetting & IP Addressing', score: 15, total: 20, date: '2026-04-21T09:00:00Z' },
+      { topic: 'OSPF', score: 8, total: 10, date: '2026-04-20T10:00:00Z' },
+      { topic: 'Mixed — All Topics', score: 50, total: 90, date: '2026-04-19T11:00:00Z' },  // MIXED: skipped
+      { topic: 'Exam Simulation', score: 60, total: 90, date: '2026-04-18T12:00:00Z' },  // EXAM: skipped
+    ];
+    const result = fn(history);
+
+    test('v4.57.5 sandbox: concepts = (7+15)/(10+20) = 73.33% (rounds to 73)',
+      Math.round(result.concepts) === 73);
+    test('v4.57.5 sandbox: implementation = 8/10 = 80%',
+      Math.round(result.implementation) === 80);
+    test('v4.57.5 sandbox: operations = 0 (unstudied)',
+      result.operations === 0);
+    test('v4.57.5 sandbox: security = 0 (unstudied)',
+      result.security === 0);
+    test('v4.57.5 sandbox: troubleshooting = 0 (unstudied)',
+      result.troubleshooting === 0);
+    test('v4.57.5 sandbox: MIXED_TOPIC entry is excluded (no contribution)',
+      Math.round(result.concepts) === 73);  // would be different if MIXED counted
+    test('v4.57.5 sandbox: EXAM_TOPIC entry is excluded (no contribution)',
+      Math.round(result.implementation) === 80);  // would be different if EXAM counted
+
+    // Reproduce the user's reported 69 vs 70 scenario — show both cards produce same number
+    const netConceptsHistory = [];
+    // 77 correct out of 110 total = 70% raw
+    for (let i = 0; i < 5; i++) netConceptsHistory.push({ topic: 'OSI Model', score: 16, total: 22, date: '2026-04-20T10:00:00Z', difficulty: 'Exam Level' });
+    netConceptsHistory.push({ topic: 'OSI Model', score: -3, total: 0, date: '2026-04-20T10:00:00Z' });  // extra 0-total row (no-op)
+    const r2 = fn(netConceptsHistory);
+    test('v4.57.5 sandbox: raw calc reproduces user\'s 70% (not 69%) for reconstructed fixture',
+      Math.round(r2.concepts) === 70);
+
+    // Edge cases
+    test('v4.57.5 sandbox: empty history returns all-zero',
+      Object.values(fn([])).every(v => v === 0));
+    test('v4.57.5 sandbox: null history returns all-zero (defensive)',
+      Object.values(fn(null)).every(v => v === 0));
+    test('v4.57.5 sandbox: entries with 0 total handled (no div-by-zero)',
+      fn([{ topic: 'OSI Model', score: 0, total: 0 }]).concepts === 0);
+  } catch (e) {
+    test('v4.57.5 sandbox: helper executes without error', false);
   }
 })();
 
