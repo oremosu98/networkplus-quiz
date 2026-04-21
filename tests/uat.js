@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.59.0', js.includes("const APP_VERSION = '4.59.0"));
+test('APP_VERSION is 4.59.1', js.includes("const APP_VERSION = '4.59.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.59.0', sw.includes('netplus-v4.59.0'));
+test('SW cache bumped to v4.59.1', sw.includes('netplus-v4.59.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7436,8 +7436,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.59.0 bank: 74 exemplars present (60 base + 14 Phase 3 Cycle 1 gap-coverage)',
-      Array.isArray(bank) && bank.length === 74);
+    test('v4.59.1 bank: 94 exemplars present (74 + 20 Volume Expansion Batch 1)',
+      Array.isArray(bank) && bank.length === 94);
 
     // Every exemplar has required fields
     const requiredFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'answer', 'explanation', 'source', 'addedVersion', 'addedDate'];
@@ -7496,9 +7496,10 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
       'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6',
       'NAT & IP Services', 'NTP, ICMP & Traffic Types',
       // Domain 2.0 (implementation)
-      'VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards',
+      'VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Ethernet Basics',
       'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols',
       'BGP', 'Data Center Architectures', 'SDN, NFV & Automation',
+      'Cabling & Topology', 'Integrating Networked Devices',
       // Domain 3.0 (operations)
       'Network Operations', 'Data Centres', 'WAN Connectivity', 'SD-WAN & SASE',
       'SMB & Network File Services', 'Business Continuity & Disaster Recovery',
@@ -7519,7 +7520,7 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
 
     // Domain-split sanity
     const d1Topics = ['Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing', 'DNS Records & DNSSEC', 'Network Appliances & Device Functions', 'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6', 'NAT & IP Services', 'NTP, ICMP & Traffic Types'];
-    const d2Topics = ['VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols', 'BGP', 'Data Center Architectures', 'SDN, NFV & Automation'];
+    const d2Topics = ['VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Ethernet Basics', 'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols', 'BGP', 'Data Center Architectures', 'SDN, NFV & Automation', 'Cabling & Topology', 'Integrating Networked Devices'];
     const d3Topics = ['Network Operations', 'Data Centres', 'WAN Connectivity', 'SD-WAN & SASE', 'SMB & Network File Services', 'Business Continuity & Disaster Recovery', 'Network Monitoring & Observability'];
     const d4Topics = ['Securing TCP/IP', 'Protecting Networks', 'AAA & Authentication', 'IPsec & VPN Protocols', 'IPsec VPN', 'SSL/TLS VPN', 'PKI & Certificate Management', 'Firewalls, DMZ & Security Zones', 'WPA3 & EAP Authentication', 'Network Attacks & Threats', 'Physical Security Controls'];
     const d5Topics = ['Network Troubleshooting & Tools', 'Cable Issues', 'Service Issues', 'Perf Issues', 'Connection Issues', 'CompTIA Troubleshooting Methodology'];
@@ -7531,18 +7532,18 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     // v4.59.0: Phase 3 Cycle 1 added 14 exemplars. Updated per-domain counts:
     // D1 +2 (NTS, Teredo), D2 +2 (WAP channels, 802.3bt), D3 +2 (CoS, RAID),
     // D4 +6 (4 VPN types + Pre-action + NAC), D5 +2 (Nmap, PCAP).
-    test('v4.59.0 bank: Domain 1.0 contains 16 exemplars (14 base + 2 Phase 3)',
-      d1Count === 16);
-    test('v4.59.0 bank: Domain 2.0 contains 14 exemplars (12 base + 2 Phase 3)',
-      d2Count === 14);
-    test('v4.59.0 bank: Domain 3.0 contains 13 exemplars (11 base + 2 Phase 3)',
-      d3Count === 13);
-    test('v4.59.0 bank: Domain 4.0 contains 14 exemplars (8 base + 6 Phase 3)',
-      d4Count === 14);
-    test('v4.59.0 bank: Domain 5.0 contains 17 exemplars (15 base + 2 Phase 3)',
-      d5Count === 17);
-    test('v4.59.0 bank: domain distribution sums to 74 (16+14+13+14+17)',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 74);
+    test('v4.59.1 bank: Domain 1.0 contains 21 exemplars (14 base + 2 Phase 3 + 5 Batch 1)',
+      d1Count === 21);
+    test('v4.59.1 bank: Domain 2.0 contains 18 exemplars (12 base + 2 Phase 3 + 4 Batch 1)',
+      d2Count === 18);
+    test('v4.59.1 bank: Domain 3.0 contains 17 exemplars (11 base + 2 Phase 3 + 4 Batch 1)',
+      d3Count === 17);
+    test('v4.59.1 bank: Domain 4.0 contains 17 exemplars (8 base + 6 Phase 3 + 3 Batch 1)',
+      d4Count === 17);
+    test('v4.59.1 bank: Domain 5.0 contains 21 exemplars (15 base + 2 Phase 3 + 4 Batch 1)',
+      d5Count === 21);
+    test('v4.59.1 bank: domain distribution sums to 94 (21+18+17+17+21)',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 94);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));

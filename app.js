@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.0
+// Network+ AI Quiz — app.js  v4.59.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.0';
+const APP_VERSION = '4.59.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1399,6 +1399,371 @@ const QUESTION_EXEMPLARS = [
     explanation: '802.3bt (ratified 2018) defines PoE++ classifications Type 3 (up to 60 W at source, 51 W at device) and Type 4 (up to ~90-100 W at source, ~71 W at device). It uses all 4 pairs of the cable rather than 2, hence also known as 4-Pair PoE (4PPoE). 802.3af (A) is the original PoE Type 1 at 15.4 W. 802.3at (B) is PoE+ Type 2 at 30 W (already in bank). 802.3az (D) is Energy Efficient Ethernet \u2014 unrelated to PoE power delivery.',
     source: 'curated',
     addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — VOLUME EXPANSION BATCH 1 (v4.59.1): 20 new exemplars
+  // User opted to grow the bank further with lightweight review.
+  // Bank grows 74 → 94. Spread: D1 +5, D2 +4, D3 +4, D4 +3, D5 +4.
+  // ═════════════════════════════════════════════════════════════════
+  {
+    type: 'mcq',
+    question: 'A network administrator is configuring DNS records for a new web server that must be reachable by both IPv4 and IPv6 clients. Which two DNS record types should they configure for the hostname?',
+    difficulty: 'Foundational',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'A record (IPv4) and AAAA record (IPv6)',
+      B: 'A record (IPv4) and PTR record (IPv6)',
+      C: 'MX record (IPv4) and CNAME record (IPv6)',
+      D: 'NS record (IPv4) and SOA record (IPv6)'
+    },
+    answer: 'A',
+    explanation: 'A = IPv4 (32-bit), AAAA ("quad-A") = IPv6 (128-bit). Both coexist under the same hostname, letting clients use whichever stack they support. PTR is reverse DNS. MX/CNAME/NS/SOA are real records but not for host-to-IP mapping.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is deploying VoIP phones that require a configuration file downloaded from a TFTP server during boot. Which DHCP options should be configured on the DHCP server to provide the TFTP server address and bootfile name to the phones?',
+    difficulty: 'Hard',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'Option 6 (DNS server) and Option 15 (domain name)',
+      B: 'Option 66 (TFTP server) and Option 67 (bootfile name)',
+      C: 'Option 3 (default gateway) and Option 51 (lease time)',
+      D: 'Option 82 (relay agent) and Option 50 (requested IP)'
+    },
+    answer: 'B',
+    explanation: 'Option 66 specifies the TFTP server name/IP; Option 67 specifies the bootfile name to retrieve from that server. Standard combo for VoIP phone provisioning (Cisco CallManager, Avaya) and PXE boot. Options 6/15 (A) are DNS-related. Options 3/51 (C) are gateway/lease. Option 82 (D) is relay agent info.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An IPv6-enabled host joins a network. Without any DHCP server present, the host successfully obtains a global-scope IPv6 address based on a Router Advertisement message from the local router. Which IPv6 feature enables this behaviour?',
+    difficulty: 'Exam Level',
+    topic: 'IPv6',
+    objective: '1.8',
+    options: {
+      A: 'DHCPv6 stateful assignment',
+      B: 'Stateless Address Autoconfiguration (SLAAC)',
+      C: 'Link-local tunneling',
+      D: 'IPv4 DHCP fallback'
+    },
+    answer: 'B',
+    explanation: 'SLAAC lets IPv6 hosts self-generate a global address using the prefix from Router Advertisements combined with their own interface identifier (EUI-64 or random). No DHCP server needed. DHCPv6 stateful (A) is the server-assigned alternative. Link-local tunneling (C) is not a standard term. IPv4 DHCP (D) does not apply to IPv6 configuration.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A load balancer is configured to distribute incoming HTTP traffic across four web servers. The administrator wants to ensure that each new connection goes to the server currently handling the FEWEST active connections, rather than distributing evenly in order. Which load balancing algorithm should be configured?',
+    difficulty: 'Exam Level',
+    topic: 'Network Appliances & Device Functions',
+    objective: '1.2',
+    options: {
+      A: 'Round-robin',
+      B: 'Least-connections',
+      C: 'Weighted distribution',
+      D: 'Source IP hash'
+    },
+    answer: 'B',
+    explanation: 'Least-connections routes each new request to the server with the fewest current active connections \u2014 ideal when request durations vary significantly because server load stays balanced dynamically. Round-robin (A) distributes evenly in sequence regardless of load. Weighted distribution (C) assigns fixed ratios. Source IP hash (D) always sends the same client IP to the same server (for session affinity).',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An organisation deploys some applications in their own on-premises data centre for regulatory compliance, while running other applications on a public cloud provider (AWS) for scalability. Integrations exist between the two environments. Which cloud deployment model does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.3',
+    options: {
+      A: 'Public cloud',
+      B: 'Private cloud',
+      C: 'Hybrid cloud',
+      D: 'Community cloud'
+    },
+    answer: 'C',
+    explanation: 'Hybrid cloud combines on-premises (private) infrastructure with public cloud services, with integration between them. Standard model when compliance, latency, or cost require keeping some workloads on-prem while leveraging cloud elasticity for others. Public (A) is cloud-only. Private (B) is on-prem-only. Community (D) is shared between multiple organisations with common interests.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'In an OSPF broadcast network segment with five routers, which two OSPF roles are elected to reduce unnecessary LSA flooding between all neighbours?',
+    difficulty: 'Hard',
+    topic: 'OSPF',
+    objective: '2.2',
+    options: {
+      A: 'Root Bridge and Secondary Root Bridge',
+      B: 'Designated Router (DR) and Backup Designated Router (BDR)',
+      C: 'Area Border Router and Autonomous System Boundary Router',
+      D: 'Spanning Tree Root and LACP master'
+    },
+    answer: 'B',
+    explanation: 'On multi-access segments, OSPF elects a Designated Router (DR) and Backup Designated Router (BDR) based on highest priority (default 1, tie-broken by router ID). Other routers form adjacencies with DR/BDR only, reducing the N*(N-1)/2 full mesh to 2N flooding. Root Bridge (A) is STP. ABR/ASBR (C) are OSPF roles but for inter-area/inter-AS boundaries. LACP master (D) is unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator wants to restrict each switch access port so that only the first MAC address seen on the port is allowed to communicate, but they do not want to manually type each device\u2019s MAC address. If another device plugs in, the port should automatically shut down. Which port security configuration achieves this?',
+    difficulty: 'Exam Level',
+    topic: 'Switch Features & VLANs',
+    objective: '2.1',
+    options: {
+      A: '802.1X with RADIUS authentication',
+      B: 'Port security with sticky MAC learning and violation mode "shutdown"',
+      C: 'DHCP snooping with trust boundaries',
+      D: 'BPDU Guard on all access ports'
+    },
+    answer: 'B',
+    explanation: 'Port security with sticky MAC auto-learns the first MAC address and saves it to the config as if statically configured. The violation mode "shutdown" err-disables the port if a different MAC is seen. 802.1X (A) is stronger but requires user/device credentials. DHCP snooping (C) prevents rogue DHCP. BPDU Guard (D) disables STP-BPDU-sending devices on access ports.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer is planning a fibre-optic link between two buildings 800 metres apart. The link needs to support 10 Gbps and be usable for at least the next decade without recabling. Which fibre type should they specify?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '2.3',
+    options: {
+      A: 'Multi-mode fibre (MMF) with OM1 specification',
+      B: 'Multi-mode fibre (MMF) with OM3/OM4 specification',
+      C: 'Single-mode fibre (SMF) with OS1/OS2 specification',
+      D: 'Cat 6a shielded twisted pair'
+    },
+    answer: 'C',
+    explanation: 'Single-mode fibre (SMF) uses a narrow 8-10 \u03bcm core with laser light sources, supporting distances of multiple kilometres at 10-100 Gbps. It is the right long-distance future-proof choice. MMF OM1 (A) is older and limited to ~33 m at 10G. MMF OM3/OM4 (B) supports 10G but only to ~300-400 m. Cat 6a (D) is copper, topping out at ~100 m for 10 Gbps.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which of the following features is NEW in WPA3 compared to WPA2?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Use of AES-based encryption',
+      B: 'Support for 802.1X enterprise authentication',
+      C: 'Simultaneous Authentication of Equals (SAE) replacing the pre-shared key four-way handshake',
+      D: 'Backward compatibility with WEP clients'
+    },
+    answer: 'C',
+    explanation: 'WPA3 introduces SAE (also called Dragonfly) for personal-mode authentication, replacing WPA2\u2019s four-way handshake \u2014 SAE is resistant to offline dictionary attacks. AES (A) is used by both WPA2 and WPA3. 802.1X enterprise (B) exists in both. WPA3 does NOT maintain WEP backward compatibility (D) \u2014 WEP is deprecated.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator wants to guarantee that VoIP traffic is serviced first at each router\u2019s egress queue, with strict priority over all other traffic (including video and bulk data). Which QoS queuing mechanism provides this strict-priority behaviour?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.2',
+    options: {
+      A: 'First-In First-Out (FIFO)',
+      B: 'Class-Based Weighted Fair Queuing (CBWFQ)',
+      C: 'Low Latency Queuing (LLQ)',
+      D: 'Random Early Detection (RED)'
+    },
+    answer: 'C',
+    explanation: 'LLQ adds a strict-priority queue to CBWFQ specifically for latency-sensitive traffic like VoIP \u2014 packets in the priority queue are always serviced first. CBWFQ alone (B) provides bandwidth guarantees but not strict-priority. FIFO (A) is no QoS at all. RED (D) is a congestion avoidance mechanism that drops packets probabilistically, not a queuing method.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator takes a full backup every Sunday night. On Monday through Saturday, they want backups to capture only the files that have changed since the MOST RECENT backup of any type (reducing each daily backup\u2019s size). Which backup type achieves this?',
+    difficulty: 'Foundational',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'Full backup',
+      B: 'Incremental backup',
+      C: 'Differential backup',
+      D: 'Snapshot'
+    },
+    answer: 'B',
+    explanation: 'Incremental backups only back up files changed since the last backup of any type (full or incremental). Smallest daily size but slowest restore (requires all incrementals back to the last full). Differential (C) backs up files changed since the last FULL backup \u2014 grows larger each day but faster restore. Full (A) backs up everything every time. Snapshots (D) are point-in-time copies.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company is planning disaster recovery for their primary data centre. They want a secondary facility that has identical hardware, pre-loaded data kept in near-real-time sync, and the ability to take over production within minutes of a primary-site failure. Which DR site type does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'Cold site',
+      B: 'Warm site',
+      C: 'Hot site',
+      D: 'Bunker site'
+    },
+    answer: 'C',
+    explanation: 'A hot site is fully equipped and actively synchronised with the primary \u2014 failover can occur in minutes. Most expensive option but provides the fastest recovery. Cold site (A) has space and utilities only; hardware must be installed after a disaster (days/weeks recovery). Warm site (B) has hardware but no live data; recovery in hours to a day. Bunker site (D) is not a standard N10-009 term.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A data centre operations manager specifies that the facility must tolerate a complete utility power failure without ANY interruption to critical servers, even for a moment. Which combination of power protection is required?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Surge protector only',
+      B: 'UPS (battery-based, seconds to minutes of runtime) combined with a diesel generator (hours to days of runtime)',
+      C: 'Dual power supplies on each server',
+      D: 'Redundant circuits from the same utility'
+    },
+    answer: 'B',
+    explanation: 'A UPS bridges the brief gap (seconds to minutes) between utility failure and generator startup. The generator provides long-term power until utility is restored. This combination eliminates interruption to critical loads. A surge protector (A) only protects against voltage spikes. Dual PSUs (C) protect against PSU failure, not utility loss. Redundant circuits from the same utility (D) fail together during a utility-wide outage.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer is comparing RADIUS and TACACS+ for centralised authentication. Which statement accurately describes a key difference between them?',
+    difficulty: 'Exam Level',
+    topic: 'AAA & Authentication',
+    objective: '4.1',
+    options: {
+      A: 'RADIUS encrypts the entire packet; TACACS+ encrypts only the password.',
+      B: 'RADIUS encrypts only the password; TACACS+ encrypts the entire packet body.',
+      C: 'RADIUS uses TCP; TACACS+ uses UDP.',
+      D: 'RADIUS is Cisco-proprietary; TACACS+ is an IETF standard.'
+    },
+    answer: 'B',
+    explanation: 'RADIUS (RFC 2865, UDP 1812/1813) encrypts only the password field. TACACS+ (Cisco-originated, TCP 49) encrypts the entire packet body, making it more secure for device-admin access. The protocol types are opposite of what C states: RADIUS=UDP, TACACS+=TCP. The open-standard relationship is opposite of what D states: TACACS+ is Cisco-originated but now broadly supported, RADIUS is IETF-standard.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An attacker sets up a rogue wireless access point in a coffee shop broadcasting the same SSID as the legitimate shop Wi-Fi, at a stronger signal. Unsuspecting customers connect to the rogue AP thinking it is the real one, giving the attacker a position to intercept their traffic. Which attack does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'Deauthentication attack',
+      B: 'Evil twin attack',
+      C: 'Rogue DHCP',
+      D: 'ARP spoofing'
+    },
+    answer: 'B',
+    explanation: 'An evil twin is a rogue AP that impersonates a legitimate SSID at stronger signal strength, inducing victims to associate with the attacker. Once associated, the attacker performs MITM attacks on the victim\u2019s traffic. Deauthentication (A) forces clients off a network; often a preparatory step, not the evil-twin mechanism itself. Rogue DHCP (C) hands out malicious DHCP leases. ARP spoofing (D) is wired-LAN MITM, not wireless impersonation.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A security architect is designing access controls for a new internal application. Users should be granted ONLY the specific permissions needed to perform their job function \u2014 no broader access. If a user changes roles, their permissions should be re-evaluated. Which security principle does this describe?',
+    difficulty: 'Hard',
+    topic: 'Securing TCP/IP',
+    objective: '4.1',
+    options: {
+      A: 'Defence in depth',
+      B: 'Principle of least privilege',
+      C: 'Zero-trust architecture (assume breach)',
+      D: 'Security through obscurity'
+    },
+    answer: 'B',
+    explanation: 'Least privilege grants each user/process the minimum access needed for its function \u2014 reducing attack blast radius if the account is compromised. Permissions are reviewed when roles change. Defence in depth (A) layers multiple security controls. Zero-trust (C) is the broader philosophy that "no access is implicitly trusted" \u2014 least privilege is one implementation of it. Security through obscurity (D) is the (flawed) idea of hiding rather than securing.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician is tracing an unmarked network cable that runs from the wiring closet patch panel to somewhere in the building. They need to identify which wall jack the cable terminates at. Which tool combination is best suited to this task?',
+    difficulty: 'Foundational',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Cable tester for continuity',
+      B: 'Tone generator (fox) connected to one end, paired with an inductive probe',
+      C: 'Wireshark on the switch port',
+      D: 'Multimeter for voltage testing'
+    },
+    answer: 'B',
+    explanation: 'A tone generator injects an audible tone onto one end of a copper cable; an inductive probe detects that tone nearby without making electrical contact. The technician moves the probe near each wall jack \u2014 the jack where the probe beeps loudest is the terminated end. Cable tester (A) checks continuity and pinout but does not locate the far end. Wireshark (C) captures traffic. Multimeter (D) measures voltage/resistance, not useful for cable tracing.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which troubleshooting approach starts at the OSI Application layer (Layer 7) and works downward toward the Physical layer (Layer 1), typically starting with user-visible symptoms?',
+    difficulty: 'Exam Level',
+    topic: 'CompTIA Troubleshooting Methodology',
+    objective: '5.1',
+    options: {
+      A: 'Top-down',
+      B: 'Bottom-up',
+      C: 'Divide and conquer',
+      D: 'Follow the path'
+    },
+    answer: 'A',
+    explanation: 'Top-down starts at Layer 7 (where the user is) and works toward the physical layer \u2014 good when the issue is known to involve a specific application. Bottom-up (B) starts at Layer 1 (cables, link lights) and works up \u2014 good when suspecting physical/link issues. Divide and conquer (C) starts at the middle (typically Layer 3) and works in the direction of symptoms. Follow-the-path traces the packet\u2019s route through the network.',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user reports a "weak wireless signal" in their office. The technician measures the signal strength at the user\u2019s laptop and reads -85 dBm. Using typical industry thresholds for Wi-Fi signal quality, how should this reading be interpreted?',
+    difficulty: 'Hard',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Excellent signal \u2014 strong enough for video calls',
+      B: 'Good signal \u2014 adequate for most business applications',
+      C: 'Weak signal \u2014 likely to cause dropouts and low throughput',
+      D: 'No signal \u2014 the laptop is not connected'
+    },
+    answer: 'C',
+    explanation: 'Wi-Fi signal strength in dBm is negative \u2014 closer to zero is stronger. Typical thresholds: -30 to -50 dBm excellent, -60 to -67 good for VoIP and video, -68 to -80 acceptable for basic web browsing, -80 to -90 weak (dropouts and retransmissions likely), below -90 unusable. -85 dBm falls in the weak range. The laptop is likely still connected (D is wrong; disconnect would show no signal at all, not -85).',
+    source: 'curated',
+    addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'On a Cisco switch, which command displays the current status of all physical interfaces including administrative status, operational status, and error counters (CRC errors, input/output errors, collisions)?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'show interfaces',
+      B: 'show running-config',
+      C: 'show ip route',
+      D: 'show vlan brief'
+    },
+    answer: 'A',
+    explanation: '`show interfaces` provides comprehensive per-interface state: admin/operational status, duplex/speed, error counters (CRC, input/output errors, collisions), bytes in/out. Critical for identifying duplex mismatches and cable issues. `show running-config` (B) displays the current configuration, not interface statistics. `show ip route` (C) displays the routing table. `show vlan brief` (D) shows VLAN-to-port assignments.',
+    source: 'curated',
+    addedVersion: '4.59.1',
     addedDate: '2026-04-21'
   }
 ];
