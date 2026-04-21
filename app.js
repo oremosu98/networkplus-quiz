@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.5
+// Network+ AI Quiz — app.js  v4.59.6
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.5';
+const APP_VERSION = '4.59.6';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -3399,6 +3399,444 @@ const QUESTION_EXEMPLARS = [
     explanation: 'Path MTU Discovery relies on routers sending ICMP Type 3 Code 4 "fragmentation needed" back to the source when an oversized DF packet arrives. If a firewall silently drops that ICMP message, the source never learns to reduce MSS — and its large DF packets are silently dropped at the bottleneck. Symptom: small packets work, large packets time out. Fix: allow ICMP Type 3 through firewalls, or clamp TCP MSS at the VPN termination (e.g., ip tcp adjust-mss 1360). Other options do not match the symptoms.',
     source: 'curated',
     addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — ROAD TO 200 BATCH 6 (v4.59.6): 22 new exemplars — FINAL
+  // Bank grows 178 → 200. Distribution: D1+6, D2+4, D3+4, D4+0, D5+8.
+  // Hits CompTIA-weight target: 46/40/38/28/48 = 200.
+  // ═════════════════════════════════════════════════════════════════
+  // ── D1-41: DoH / DoT (1.6 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which DNS privacy protocol encrypts client DNS queries inside TLS and uses HTTPS (port 443) to blend with normal web traffic?',
+    difficulty: 'Exam Level',
+    topic: 'DNS Records & DNSSEC',
+    objective: '1.6',
+    options: {
+      A: 'Plain DNS over UDP/53 (cleartext)',
+      B: 'DNS over TLS (DoT) on TCP/853',
+      C: 'DNS over HTTPS (DoH) on TCP/443',
+      D: 'DNSSEC on UDP/53'
+    },
+    answer: 'C',
+    explanation: 'DoH (RFC 8484) wraps DNS queries in HTTPS on port 443, making them indistinguishable from normal web traffic — hard for middleboxes to identify and block. DoT (B) also encrypts DNS but uses a dedicated port (853), which network operators can easily identify. DNSSEC (D) signs answers for authenticity but does NOT encrypt them. Plain DNS (A) is cleartext and observable on-path.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-42: SNMP ports 161/162 (1.4 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which pair of port numbers is used by SNMP for agent polling and trap notification?',
+    difficulty: 'Foundational',
+    topic: 'Port Numbers',
+    objective: '1.4',
+    options: {
+      A: 'TCP/22 for polling, UDP/23 for traps',
+      B: 'UDP/161 for polling (manager to agent), UDP/162 for traps (agent to manager)',
+      C: 'TCP/25 for polling, TCP/110 for traps',
+      D: 'UDP/514 for polling, UDP/69 for traps'
+    },
+    answer: 'B',
+    explanation: 'SNMP uses UDP/161 for manager-to-agent polling (GET, GETNEXT, SET) and UDP/162 for agent-to-manager trap notifications. Easy way to remember: 161 = normal poll, 162 = urgent trap. 22 is SSH, 23 Telnet, 25 SMTP, 110 POP3, 514 syslog, 69 TFTP — all wrong pairings here.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-43: Telnet 23 vs SSH 22 (1.4 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which statement correctly pairs the remote-shell protocols with their port numbers and security properties?',
+    difficulty: 'Foundational',
+    topic: 'Port Numbers',
+    objective: '1.4',
+    options: {
+      A: 'Telnet on TCP/22 is encrypted; SSH on TCP/23 is cleartext',
+      B: 'Telnet on TCP/23 is cleartext; SSH on TCP/22 is encrypted',
+      C: 'Both use TCP/22 and both are encrypted',
+      D: 'Both use TCP/23 and both are cleartext'
+    },
+    answer: 'B',
+    explanation: 'Telnet (TCP/23) is the legacy cleartext remote-shell protocol — credentials and session traffic are visible on the wire. SSH (TCP/22) replaces Telnet with strong encryption, authentication, and integrity. Modern networks disable Telnet entirely in favour of SSH (and use SCP/SFTP for file transfer over the same SSH channel). A, C, D misstate the ports or security properties.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-44: VXLAN overlay (1.8 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A large data centre needs to extend Layer 2 reachability across an IP-routed underlay, allowing tenant VMs to communicate as if they were on the same LAN even when servers sit in different racks with different IP subnets. Which encapsulation enables this?',
+    scenario: 'The data centre uses a spine-leaf design with IP-only transport between leaves. Tenants require Layer 2 adjacency for live VM migration and legacy protocols that assume a shared broadcast domain.',
+    difficulty: 'Exam Level',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.8',
+    options: {
+      A: 'VXLAN (Virtual Extensible LAN) — Layer 2 Ethernet frames encapsulated in UDP on an IP underlay, with 24-bit VNI supporting 16 million segments',
+      B: 'ARP broadcasts flooded across the WAN',
+      C: 'Standard 802.1Q VLAN tagging only',
+      D: 'NAT translation between tenant subnets'
+    },
+    answer: 'A',
+    explanation: 'VXLAN (RFC 7348) encapsulates original Ethernet frames in a VXLAN header plus UDP plus outer IP — extending L2 over any routed L3 underlay. The 24-bit VXLAN Network Identifier (VNI) supports ~16.7M segments vs 802.1Qs 4094 limit. VXLAN Tunnel Endpoints (VTEPs) on the leaves handle encapsulation/decapsulation. Standard 802.1Q (C) cannot cross routed networks. ARP flooding (B) is what VXLAN replaces with controlled flood-and-learn or EVPN control plane.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-45: SPF / DKIM / DMARC (1.6 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A company is receiving complaints that its email is being spoofed in phishing campaigns. Which three DNS TXT record standards work together to prevent unauthorised senders from impersonating the domain?',
+    scenario: 'The spoofed emails pass basic checks at recipient mail servers. The security team wants to publish DNS records that let recipients verify both sender IP authorisation and message integrity, plus define a policy for handling failures.',
+    difficulty: 'Exam Level',
+    topic: 'DNS Records & DNSSEC',
+    objective: '1.6',
+    options: {
+      A: 'PTR, MX, and CNAME',
+      B: 'SPF (sender IP authorisation), DKIM (cryptographic message signature), DMARC (policy + reporting)',
+      C: 'A, AAAA, and SOA',
+      D: 'NS, TXT, and SRV'
+    },
+    answer: 'B',
+    explanation: 'SPF (Sender Policy Framework) lists which IPs may send mail for the domain, published as a TXT record. DKIM (DomainKeys Identified Mail) adds a cryptographic signature over message content, validated via a TXT record containing the public key. DMARC (Domain-based Message Authentication) ties SPF and DKIM results to a policy (none/quarantine/reject) and provides aggregate reporting, also via TXT. Other options list unrelated record types.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-46: Container networking (1.8 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A single Linux host runs 50 containers. Each container must have an isolated network stack (its own interfaces, routes, iptables rules) without requiring a separate hypervisor. Which kernel feature provides this isolation?',
+    scenario: 'Containers are much lighter-weight than VMs — no hypervisor, no guest kernel — yet each still needs an isolated view of the network. The design relies on Linux kernel primitives rather than virtualisation.',
+    difficulty: 'Hard',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.8',
+    options: {
+      A: 'VLAN trunking on the physical NIC',
+      B: 'Linux network namespaces + virtual Ethernet (veth) pairs, often bridged into a software switch (e.g., docker0, CNI plugins)',
+      C: 'NAT only on each container',
+      D: 'A separate physical NIC per container'
+    },
+    answer: 'B',
+    explanation: 'Linux network namespaces create independent network stacks (interfaces, routing tables, iptables state) within a single kernel. Each container runs in its own netns. veth pairs (one end in the container, one in the host bridge) connect containers to a host-side software bridge (docker0 or a CNI plugin like Calico, Flannel, Cilium). This gives full isolation without hypervisor overhead. VLAN trunking (A) is not container-aware. NAT alone (C) does not give interface isolation. Physical NIC per container (D) defeats the container density model.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-37: OSPF area types (2.2 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A remote branch has a single link to headquarters and runs OSPF. To reduce routing-table size on the branch router, you want the branch to learn only a default route from the backbone rather than every external prefix. Which OSPF area type achieves this?',
+    scenario: 'The branch router is memory-constrained. It only needs a default route to reach the rest of the network. External LSAs (Type 5) from BGP redistribution elsewhere should not flood into this branch.',
+    difficulty: 'Hard',
+    topic: 'OSPF',
+    objective: '2.2',
+    options: {
+      A: 'Backbone (Area 0) — all external and inter-area routes',
+      B: 'Stub area — blocks external Type 5 LSAs; ABR injects a default route',
+      C: 'Regular (non-special) area — full LSA flooding',
+      D: 'Transit area — carries virtual links only'
+    },
+    answer: 'B',
+    explanation: 'A stub area blocks Type 5 (external) LSAs from entering. The Area Border Router (ABR) injects a default route (0.0.0.0/0) so routers inside the stub area still reach external destinations via the ABR. A totally stubby area blocks Type 3 (inter-area) LSAs too, shrinking the table further. NSSA (Not-So-Stubby Area) allows limited Type 7 redistribution from within the area. Area 0 (A) is the transit backbone — cannot be stub. Virtual links (D) are a repair mechanism for areas not directly touching Area 0.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-38: QinQ / 802.1ad (2.1 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A service provider carries customer Ethernet traffic across its backbone. Each customer already uses 802.1Q VLAN tags for their own internal VLANs, and the provider must preserve customer tags while multiplexing many customers on the same backbone link. Which technology is used?',
+    scenario: 'Customer A uses VLANs 10-100 for their sites. Customer B also uses VLANs 10-100. The provider must tunnel both across the same backbone without mixing customer VLAN spaces.',
+    difficulty: 'Hard',
+    topic: 'VLAN Trunking',
+    objective: '2.1',
+    options: {
+      A: 'Q-in-Q (802.1ad) — double-tagging with an outer service VLAN (S-Tag) plus the customer VLAN (C-Tag) preserved inside',
+      B: 'Single 802.1Q tag — customer VLANs simply replace provider VLANs',
+      C: 'VTP pruning',
+      D: 'STP BPDU filtering'
+    },
+    answer: 'A',
+    explanation: 'IEEE 802.1ad (Q-in-Q) adds an outer S-Tag (Service-provider VLAN) over the original customer C-Tag. Customer VLAN space is preserved unchanged; the provider uses only the S-Tag for switching decisions. Frame becomes: dst MAC | src MAC | 0x88A8 S-Tag | 0x8100 C-Tag | EtherType | payload. Single-tag (B) would require each customer to get unique VLANs — operationally unscalable. VTP (C) and BPDU filtering (D) are unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-39: Root Guard vs BPDU Guard (2.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'On a distribution switchport connecting to another switch, an admin wants to allow normal STP BPDUs but prevent the remote switch from becoming the root bridge (which would redirect traffic through an unintended path). Which feature enforces this?',
+    scenario: 'BPDUs are expected on this port, so BPDU Guard would err-disable it immediately on any BPDU. The admin only wants to block the specific case of a superior BPDU that would win the root election.',
+    difficulty: 'Exam Level',
+    topic: 'STP/RSTP',
+    objective: '2.1',
+    options: {
+      A: 'BPDU Guard — err-disables any port that receives any BPDU',
+      B: 'Root Guard — allows BPDUs but places the port in root-inconsistent state if a superior BPDU is received, preventing root takeover',
+      C: 'Loop Guard — prevents alternate ports from transitioning to forwarding',
+      D: 'UplinkFast — fast failover between uplinks on access switches'
+    },
+    answer: 'B',
+    explanation: 'Root Guard is the right tool for "I expect STP but this neighbor must not become root." If a superior BPDU (lower bridge ID) arrives, the port goes into root-inconsistent blocking state until the superior BPDUs stop. BPDU Guard (A) err-disables on any BPDU — too aggressive for a switch-to-switch link. Loop Guard (C) prevents unidirectional-link loops. UplinkFast (D) is an edge-switch failover accelerator.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-40: WPA2-PSK vs WPA2-Enterprise (2.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which statement correctly distinguishes WPA2-Personal (PSK) from WPA2-Enterprise (802.1X/EAP)?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'PSK uses a single shared passphrase for all clients; Enterprise authenticates each user individually via 802.1X/EAP against a RADIUS server',
+      B: 'PSK is stronger because the key is longer',
+      C: 'Enterprise does not encrypt traffic, only authenticates',
+      D: 'PSK and Enterprise are identical on the wire'
+    },
+    answer: 'A',
+    explanation: 'WPA2-Personal (Pre-Shared Key) uses one shared passphrase that everyone on the SSID knows — revoking access means rotating the PSK for everyone. WPA2-Enterprise uses 802.1X with EAP (PEAP, EAP-TLS, etc.): each user authenticates individually against a RADIUS server, and access can be revoked per user. Both encrypt traffic (C is wrong). Enterprise is more secure and more scalable for organisations, though more complex to deploy.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-35: ITIL change categories (3.1 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which ITIL change category covers pre-approved, low-risk, routine changes that can be executed without going through the Change Advisory Board for each instance?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Emergency change — fix for a production-down incident',
+      B: 'Normal change — standard CAB approval path',
+      C: 'Standard change — pre-approved, documented, repeatable (e.g., adding a port to a known-safe template config)',
+      D: 'Major change — architectural impact'
+    },
+    answer: 'C',
+    explanation: 'ITIL defines three change categories. Standard changes (C) are pre-approved and documented — e.g., applying a vetted template to a new switchport — so the CAB does not need to review each instance. Normal changes (B) go through full review. Emergency changes (A) bypass normal approval because production is down, but are reviewed retrospectively. Aligning routine work to the standard-change category is the main lever for reducing CAB queue time.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-36: SLA uptime math (3.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A service provider contract guarantees 99.9% availability per calendar year. Approximately how much total downtime is permitted per year under that SLA?',
+    scenario: 'The customer is budgeting planned-maintenance windows against the SLA. Year = 365.25 days. They need the correct downtime allowance to avoid breaching the SLA with their maintenance schedule.',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: '52.6 minutes per year (five 9s: 99.999%)',
+      B: '8.76 hours per year (three 9s: 99.9%)',
+      C: '43.8 minutes per year (99.992%)',
+      D: '36.5 days per year (90%)'
+    },
+    answer: 'B',
+    explanation: 'Annual downtime math: (1 − availability) × 525,600 minutes (365.25 days × 24 h × 60 min). 99.9% → 0.001 × 525,600 ≈ 525 min ≈ 8.76 hours per year. Reference table: 99% ≈ 87.6 h/yr, 99.9% ≈ 8.76 h/yr, 99.99% ≈ 52.6 min/yr, 99.999% ≈ 5.26 min/yr. Each added 9 shrinks downtime by 10x.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-37: Vulnerability scan vs pen test (3.1 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which security assessment activity is typically automated, periodic, and produces a list of known weaknesses by CVE without attempting to actively exploit them?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Penetration test — authorised humans actively attempt to exploit and pivot',
+      B: 'Vulnerability scan — automated, signature/rule-based identification of known weaknesses (CVE), no exploitation',
+      C: 'Red team engagement — goal-driven multi-week adversarial simulation',
+      D: 'Security audit — documentation and policy review'
+    },
+    answer: 'B',
+    explanation: 'Vulnerability scanning (Nessus, Qualys, Rapid7, OpenVAS) is automated and runs routinely. It flags known CVEs by version-matching and rule-based checks without actively exploiting anything. Pen testing (A) is human-driven and includes active exploitation. Red team (C) is longer-duration, goal-oriented (steal intellectual property, reach domain admin), often using social engineering. Audit (D) reviews policies and controls on paper. Vulnerability scans feed patch management; pen tests validate actual exploitability.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-38: Capacity planning / trend analysis (3.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A network team must decide whether to upgrade a WAN circuit from 500 Mbps to 1 Gbps. They have 12 months of SNMP + NetFlow data. Which analytical approach best informs the decision?',
+    scenario: 'Peak utilisation has been creeping upward month over month. The team wants to project when the current 500 Mbps will become insufficient, rather than reacting after the link is saturated.',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Capacity planning / trend analysis — project utilisation growth, extrapolate to identify when capacity will be exhausted',
+      B: 'One-time ping test',
+      C: 'Vulnerability scan of the circuit',
+      D: 'Log retention policy review'
+    },
+    answer: 'A',
+    explanation: 'Capacity planning uses historical trend data (NetFlow, SNMP counters, baseline utilisation) to project future demand and identify the inflection point where current capacity will be insufficient. Typical approach: plot monthly peak + 95th-percentile utilisation over time, fit a trend line, cross the capacity threshold — that is the upgrade trigger. Ping (B), vulnerability scan (C), and log retention (D) do not address growth projection.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-41: MAC flap / table thrashing (5.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A switch log is filling with "MAC flap" messages: the same MAC address is being learned repeatedly on two different ports. End users report intermittent connectivity. What is the most likely root cause?',
+    scenario: 'The MAC address 0050.56aa.bbcc is flapping between Gi0/5 and Gi0/10 every few seconds. Both ports connect to downstream switches. No duplicate server is known to exist.',
+    difficulty: 'Hard',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'Layer 2 loop — the same broadcast/unicast frame arrives on multiple ports, so the MAC table cannot settle',
+      B: 'Firewall rule blocking the MAC',
+      C: 'Expired TLS certificate on the host',
+      D: 'DHCP scope exhaustion'
+    },
+    answer: 'A',
+    explanation: 'A MAC flap means the switch sees the same source MAC arriving on multiple ports — the canonical signature of a Layer 2 loop or, occasionally, a misconfigured MLAG/VPC peer. Fix: identify and break the loop (check STP status on the flapping ports, disable or redesign the extra uplink, ensure BPDU Guard + Root Guard are deployed on access ports). Firewalls (B) do not filter by MAC at this layer. TLS (C) and DHCP (D) produce different symptoms.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-42: Rogue DHCP server (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'Users on a corporate VLAN are receiving IP addresses in the wrong subnet. The authoritative DHCP server is working, but clients occasionally lease from an unknown server that advertises a different default gateway. Which mitigation prevents this?',
+    scenario: 'A suspicious unmanaged device was plugged into a wall port this morning. Clients near it lease from 192.168.50.1 instead of the expected 10.1.1.1. Pointing them to the wrong gateway breaks connectivity.',
+    difficulty: 'Exam Level',
+    topic: 'Service Issues',
+    objective: '5.5',
+    options: {
+      A: 'Enable DHCP Snooping on the switches — trust only the legitimate DHCP server port, drop server-sourced DHCP from any other port',
+      B: 'Disable DHCP entirely on the network',
+      C: 'Increase the DHCP lease time',
+      D: 'Block ARP on access ports'
+    },
+    answer: 'A',
+    explanation: 'DHCP Snooping is the canonical switch feature for rogue-DHCP defence. It classifies each switchport as trusted (upstream toward legitimate DHCP server) or untrusted (user-facing). DHCP server packets (OFFER, ACK) from untrusted ports are dropped. Also builds a binding table used by Dynamic ARP Inspection and IP Source Guard. Disabling DHCP (B) breaks the network. Long leases (C) do not prevent rogue leases. Blocking ARP (D) breaks everything.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-43: Duplicate IP conflict (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'Two hosts on the same VLAN intermittently lose connectivity, and the ARP cache on neighbours shows the same IP mapped to different MAC addresses at different times. What is the most likely cause?',
+    scenario: 'Both hosts are manually configured with static IPs. A recent build image reused an IP that was already assigned. No DHCP is involved for these two hosts.',
+    difficulty: 'Exam Level',
+    topic: 'Service Issues',
+    objective: '5.5',
+    options: {
+      A: 'Duplicate IP address — both hosts claim the same IP, each sends gratuitous ARP asserting the MAC, neighbours thrash their ARP entries',
+      B: 'MTU mismatch on the VLAN',
+      C: 'Failed DNS lookup',
+      D: 'Expired DHCP lease'
+    },
+    answer: 'A',
+    explanation: 'Duplicate-IP conflict: each host periodically emits a gratuitous ARP for its own IP, and neighbours keep flip-flopping the ARP binding between the two MACs. Windows alerts in Event Log; Linux logs ARP address conflicts. Fix: identify the duplicate, correct the config or reassign one host. MTU (B), DNS (C), DHCP lease (D) produce different symptoms.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-44: NIC teaming failover (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A server uses NIC teaming (two physical interfaces bonded in 802.3ad LACP to a switch stack). One NIC is unplugged for testing but the team shows both members still "up" in the team status and traffic stops flowing. What is the most likely issue?',
+    scenario: 'The team is configured in LACP (active) mode. The switch ports are in the same LACP channel group. Link state on the server shows Up/Up even after the physical cable is pulled on one NIC.',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'Link state is being reported by an intermediate device (e.g., media converter or port expander) masking the physical link loss — the failover never fires because the OS sees both NICs as up',
+      B: 'LACP is unrelated to link failure detection',
+      C: 'The team must be reconfigured as round-robin instead',
+      D: 'The cables need to be longer'
+    },
+    answer: 'A',
+    explanation: 'LACP relies on link-layer state to drive failover. If a media converter, port channel or small unmanaged switch sits between the NIC and the switch, the OS can see a stale Up state even though the real path is broken — so the team keeps sending traffic on a dead leg. Fixes: eliminate the intermediate device, or use LACP PDU timeouts (fast/slow) to detect peer loss by missed LACP hellos. Round-robin (C) ignores link state entirely — worse. B and D are incorrect.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-45: Dirty fiber connector (5.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A fiber link between two buildings shows high receive-loss on one transceiver. The fiber tested fine when installed three years ago. An OTDR trace shows a loss spike at the patch panel, not along the span. What is the first action?',
+    scenario: 'The loss is localised at the connector, not anywhere along the fibre itself. The run is inside a clean building, not subjected to digging or physical damage.',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Clean the fiber connector with isopropyl alcohol wipes or a click-cleaner — dust and skin oils are the #1 cause of patch-panel loss spikes',
+      B: 'Replace the entire outdoor fiber run',
+      C: 'Disable SNMP on the switch',
+      D: 'Upgrade to 10GBASE-T copper instead'
+    },
+    answer: 'A',
+    explanation: 'Dirty fiber connectors are the #1 cause of new loss on fiber patch-panel endpoints. Dust, skin oils, or touch contamination on the endface scatters light and drops signal power. Use IPA-impregnated wipes or a single-use click-cleaner, then re-measure. Replacing the full run (B) is massive overkill. SNMP (C) and switching to copper (D) are unrelated to optical connector contamination.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-46: iperf bandwidth test (5.5 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which open-source tool is the standard way to measure end-to-end throughput between two hosts by generating synthetic TCP or UDP traffic?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'ping',
+      B: 'iperf (or iperf3) — client/server model, reports bits/sec, jitter, and packet loss',
+      C: 'traceroute',
+      D: 'tcpdump'
+    },
+    answer: 'B',
+    explanation: 'iperf3 is run as "iperf3 -s" on one host (server) and "iperf3 -c <server>" on the other (client). Reports throughput in bits per second, jitter (UDP mode), packet loss, and retransmissions (TCP). The go-to tool for validating circuit capacity, QoS behaviour, and tuning. ping (A) measures latency and reachability, not throughput. traceroute (C) shows path. tcpdump (D) captures packets but does not generate load.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-47: Interface counter drops / input errors (5.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A 1 Gbps uplink shows increasing "input queue drops" and "input errors: CRC" on the switch interface. The link shows Up/Up at 1000/Full. Which is the most likely cause category?',
+    scenario: 'Input drops accumulate at roughly the same rate as heavy traffic bursts. CRC errors increase slowly but steadily over time. Physical cabling tests clean on the Fluke certifier.',
+    difficulty: 'Exam Level',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Input queue drops typically indicate oversubscription or CPU-bound processing; rising CRCs indicate a Layer 1 problem developing — re-seat SFPs and check for EMI/marginal cable despite clean certification',
+      B: 'Both are normal background behaviour — ignore',
+      C: 'Duplex mismatch — hardcode both sides to full duplex',
+      D: 'Firewall policy denying traffic'
+    },
+    answer: 'A',
+    explanation: 'Two separate symptoms pointing at two root causes. Input queue drops = buffer exhaustion or CPU-bound handling (raise buffer size, investigate control-plane policing, rate-limit upstream). Rising CRCs = Layer 1 issue forming (marginal SFP, flexing cable developing a fault, EMI source newly energised) even if a one-time certifier test was clean — reseat optics and re-test under load. Ignoring (B) lets both grow. Duplex mismatch (C) produces late collisions not CRCs at 1G auto-neg. Firewalls (D) do not cause interface counters.',
+    source: 'curated',
+    addedVersion: '4.59.6',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-48: Wireless SNR threshold (5.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A Wi-Fi client shows RSSI of −65 dBm (good signal) but noise floor of −85 dBm, giving SNR of 20 dB. The user reports slow throughput. According to common enterprise Wi-Fi guidance, what is the minimum SNR target for reliable high-throughput operation?',
+    scenario: 'The client associates fine but negotiates a low MCS (modulation/coding) rate. The neighbourhood has many active APs and a microwave oven in the kitchen next door.',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.4',
+    options: {
+      A: '≥ 25 dB SNR for reliable high-throughput operation (higher MCS rates); 20 dB is marginal',
+      B: '5 dB SNR is fine for all use cases',
+      C: 'SNR has no impact on wireless performance',
+      D: 'Only RSSI matters, not SNR'
+    },
+    answer: 'A',
+    explanation: 'Signal-to-Noise Ratio = RSSI − noise floor. Enterprise guidance (Cisco, Aruba, Ekahau): ≥ 25 dB SNR for reliable high-MCS operation; 20-25 dB marginal; < 20 dB degraded. A good RSSI (−65) is useless if the noise floor is high (−75 or worse). Fixes: identify and remove noise sources (microwave, Bluetooth, non-Wi-Fi interferers via spectrum analyzer), move to 5 GHz or 6 GHz bands. 5 dB (B) fails even basic framing. C and D are false.',
+    source: 'curated',
+    addedVersion: '4.59.6',
     addedDate: '2026-04-21'
   }
 ];
