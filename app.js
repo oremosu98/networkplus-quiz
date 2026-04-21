@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.56.0
+// Network+ AI Quiz — app.js  v4.56.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.56.0';
+const APP_VERSION = '4.56.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -35,7 +35,7 @@ const VXLAN_VNI_MAX = 16777215;     // 24-bit VNI range (RFC 7348)
 // Max-token limits per call site, named for intent rather than scattered
 // magic numbers. Generation (Haiku) needs room for 18-Q batches; validation
 // and teacher calls are more compact.
-const MAX_TOKENS_GENERATION      = 8000;  // fetchQuestions — Haiku batch generation
+const MAX_TOKENS_GENERATION      = 12000; // fetchQuestions — Haiku batch generation (v4.56.1: bumped 8000→12000 for scenario-field headroom on 20-Q runs)
 const MAX_TOKENS_VALIDATION      = 1000;  // aiValidateQuestions — Sonnet second-pass
 const MAX_TOKENS_TEACHER_DEFAULT = 1500;  // explainFurther, tbCoachTopology — standard teacher call
 const MAX_TOKENS_TEACHER_LONG    = 2000;  // showTopicDeepDive — longest teacher call
@@ -103,6 +103,8 @@ const STORAGE = {
   // v4.52.0: ACL Builder state + Tier C coach cache
   ACL_STATE: 'nplus_acl_state',
   ACL_COACH_CACHE: 'nplus_acl_coach_cache',
+  // v4.56.1: rolling log of fetchQuestions JSON-parse failures for diagnosis
+  AI_PARSE_FAILS: 'nplus_ai_parse_fails',
 };
 
 // ── STATE ──
@@ -1938,7 +1940,73 @@ function showExamShortfallBanner(actualCount) {
 // ══════════════════════════════════════════
 // API — FETCH QUESTIONS (with PBQ support)
 // ══════════════════════════════════════════
+// v4.56.1: batching layer added. Large requests (n > QUIZ_BATCH_THRESHOLD) are
+// split into concurrent batches of ≤QUIZ_BATCH_SIZE so each prompt stays in
+// Haiku's comfort zone. PBQ budget is computed once at the outer level and
+// parcelled out so the overall PBQ ratio doesn't drift when we batch.
+const QUIZ_BATCH_SIZE      = 10;  // per-batch question count — chosen so Haiku reliably emits well-formed JSON
+const QUIZ_BATCH_THRESHOLD = 12;  // requests at or below this size stay single-shot (no batching overhead)
+
 async function fetchQuestions(key, qTopic, difficulty, n) {
+  // Single-shot path for small requests — avoids concurrency overhead + keeps
+  // cache semantics identical to pre-v4.56.1 behaviour.
+  if (n <= QUIZ_BATCH_THRESHOLD) {
+    const result = await _fetchQuestionsBatch(key, qTopic, difficulty, n);
+    cacheQuestions(qTopic, difficulty, n, result);
+    return result;
+  }
+
+  // Batched path — split n into ≤QUIZ_BATCH_SIZE chunks as evenly as possible.
+  // e.g. n=20 → [10, 10]; n=26 (20+DROPOUT_BUFFER) → [9, 9, 8]; n=50 → [10]×5.
+  const numBatches = Math.ceil(n / QUIZ_BATCH_SIZE);
+  const base = Math.floor(n / numBatches);
+  const remainder = n - (base * numBatches);
+  const batchSizes = Array.from({ length: numBatches }, (_, i) => base + (i < remainder ? 1 : 0));
+
+  // Compute the TOTAL PBQ budget once (so batching doesn't inflate PBQ ratio)
+  // then distribute across batches — early batches absorb the budget.
+  const totalPbqBudget = n >= 10 ? 2 : (n >= 7 ? 1 : 0);
+  const pbqBudgets = new Array(numBatches).fill(0);
+  for (let i = 0; i < totalPbqBudget; i++) pbqBudgets[i % numBatches]++;
+
+  // Fire all batches concurrently — Haiku handles this well and end-to-end
+  // latency ends up close to a single batch's latency (~3-5s) instead of
+  // n×batch-latency sequential.
+  const settled = await Promise.allSettled(
+    batchSizes.map((size, i) => _fetchQuestionsBatch(key, qTopic, difficulty, size, pbqBudgets[i]))
+  );
+
+  // Collect successes; reject the whole call only if EVERY batch failed.
+  // Partial success is surfaced as a short list — the caller's DROPOUT_BUFFER
+  // retry-to-fill logic (startQuiz / startExam) handles the shortfall.
+  const merged = [];
+  let failed = 0;
+  settled.forEach(r => {
+    if (r.status === 'fulfilled') merged.push(...r.value);
+    else {
+      failed++;
+      // Bubble an API error up immediately (don't mask 401 / 429 as "malformed data")
+      if (r.reason && r.reason.apiError) throw r.reason;
+    }
+  });
+
+  if (merged.length === 0) {
+    throw new Error('AI returned malformed data. Please try again.');
+  }
+
+  if (failed > 0 && typeof console !== 'undefined' && console.warn) {
+    console.warn(`[fetchQuestions] ${failed}/${numBatches} batches failed — returning ${merged.length}/${n} questions; caller will retry-to-fill if needed`);
+  }
+
+  cacheQuestions(qTopic, difficulty, n, merged);
+  return merged;
+}
+
+// v4.56.1: single-batch worker — contains all the prompt construction + fetch
+// + parse + retry-without-scenario logic. Exposed via _fetchQuestionsBatch so
+// the outer fetchQuestions can batch large requests concurrently. pbqCountOverride
+// lets the outer coordinator parcel out PBQ budget across batches.
+async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride) {
   const topicHints = {
     'Integrating Networked Devices': 'IoT devices, ICS/SCADA systems, OT/IT convergence, smart building tech, embedded systems, segmentation of IoT, industrial control risks.',
     'Network Troubleshooting & Tools': 'Troubleshooting methodology, ping, traceroute/tracert, ipconfig/ifconfig, nslookup, dig, netstat, arp, route, Wireshark/packet capture, cable testers, TDR, loopback testing, common network faults.',
@@ -1988,8 +2056,12 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
     'Mixed':         'Mix of foundational, exam-level, and hard questions across all difficulties.'
   }[difficulty] || DEFAULT_DIFF;
 
-  // Determine PBQ count
-  const pbqCount = n >= 10 ? 2 : (n >= 7 ? 1 : 0);
+  // Determine PBQ count. If the outer coordinator parcelled out a specific
+  // budget for this batch (batching path), use it; otherwise fall back to the
+  // single-shot formula (pre-v4.56.1 behaviour).
+  const pbqCount = (typeof pbqCountOverride === 'number')
+    ? Math.min(pbqCountOverride, n)
+    : (n >= 10 ? 2 : (n >= 7 ? 1 : 0));
   const mcqCount = n - pbqCount;
 
   const pbqInstructions = pbqCount > 0 ? `
@@ -2008,7 +2080,20 @@ For PBQ, use ONE of these two formats:
 {"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
 For ordering: correctOrder is an array of indices (0-based) representing the correct sequence. correctOrder[0] = index of the item that should be FIRST.` : '';
 
-  const prompt = `You are a CompTIA Network+ N10-009 exam question writer. You ONLY write questions that map to the official N10-009 exam objectives. Never write questions about content outside the N10-009 blueprint.
+  // v4.56.1: Scenario field instructions isolated so they can be omitted on
+  // retry. They were the main prompt bloat added in v4.56.0 and on complex
+  // runs (multi-topic + Mixed + 20 questions) they occasionally push Haiku
+  // into producing malformed JSON — retry without them usually succeeds.
+  const scenarioInstructions = `
+SCENARIO CONTEXT FIELD (optional, exam-realism):
+- On roughly 30-40% of Exam Level and Hard questions, include an optional "scenario" field with 1-2 short sentences (max ~30 words) of real-world setup BEFORE the question is asked. This mirrors real N10-009 exam framing ("A technician is configuring...", "A user reports...", "An administrator notices...").
+- CRITICAL RULE — scenario describes the ENVIRONMENT the answer depends on; it NEVER restates the subject of the question in technical terms. ❌ "Consider a Layer 2 switch..." inside a question that asks which layer a switch operates at (this telegraphs the answer). ✅ "A technician sees frames being forwarded between hosts on the same subnet but traffic never leaves the local broadcast domain." (forces the learner to reason).
+- Scenario should help DISAMBIGUATE context that makes one answer clearly right, not give the answer away.
+- DO NOT include scenario on: pure recall questions (what port is HTTPS? which protocol uses X?), acronym definitions, or Foundational difficulty. Scenario adds noise on those.
+- Omit the field entirely for questions that don't need it — don't set it to empty string.
+`;
+
+  const buildPrompt = (includeScenario) => `You are a CompTIA Network+ N10-009 exam question writer. You ONLY write questions that map to the official N10-009 exam objectives. Never write questions about content outside the N10-009 blueprint.
 
 ${topicStr}${mixedDistributionStr}
 Difficulty: ${diffStr}
@@ -2020,14 +2105,7 @@ Generate exactly ${n} multiple choice questions. Requirements:
 - Vary the correct answer letter across questions
 - Each explanation must state WHY the answer is correct AND briefly why the main wrong option is wrong (2-3 sentences max)
 - No repeated questions
-
-SCENARIO CONTEXT FIELD (optional, exam-realism):
-- On roughly 30-40% of Exam Level and Hard questions, include an optional "scenario" field with 1-2 short sentences (max ~30 words) of real-world setup BEFORE the question is asked. This mirrors real N10-009 exam framing ("A technician is configuring...", "A user reports...", "An administrator notices...").
-- CRITICAL RULE — scenario describes the ENVIRONMENT the answer depends on; it NEVER restates the subject of the question in technical terms. ❌ "Consider a Layer 2 switch..." inside a question that asks which layer a switch operates at (this telegraphs the answer). ✅ "A technician sees frames being forwarded between hosts on the same subnet but traffic never leaves the local broadcast domain." (forces the learner to reason).
-- Scenario should help DISAMBIGUATE context that makes one answer clearly right, not give the answer away.
-- DO NOT include scenario on: pure recall questions (what port is HTTPS? which protocol uses X?), acronym definitions, or Foundational difficulty. Scenario adds noise on those.
-- Omit the field entirely for questions that don't need it — don't set it to empty string.
-
+${includeScenario ? scenarioInstructions : ''}
 MANDATORY N10-009 OBJECTIVE TAGGING:
 - Every question MUST include an "objective" field with the CompTIA N10-009 exam objective number (format "X.Y" — e.g., "1.4", "2.1", "4.3", "5.1")
 - Valid objectives are 1.1–1.8 (Concepts), 2.1–2.4 (Implementation), 3.1–3.5 (Operations), 4.1–4.5 (Security), 5.1–5.5 (Troubleshooting)
@@ -2050,36 +2128,81 @@ MANDATORY RULES:
 - NEVER write a question where the correct answer contradicts a fact stated in the question stem. If the question says something IS the case, the answer cannot say it ISN'T. This is the most common AI question-writing error — check for it explicitly.
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
-[{"type":"mcq","question":"...","scenario":"(optional)","difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
+[{"type":"mcq","question":"...",${includeScenario ? '"scenario":"(optional)",' : ''}"difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
-  const res = await fetch(CLAUDE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }] })
-  });
+  // v4.56.1: single-attempt helper — does the API call + parse.
+  // Throws on API-level errors with `.apiError = true`, or on parse failures
+  // with `.raw` attached so the caller can log the raw response for diagnosis.
+  const attempt = async (prompt, label) => {
+    const res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      const apiErr = new Error(b?.error?.message || 'API error ' + res.status);
+      apiErr.apiError = true;
+      throw apiErr;
+    }
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '';
+    const m = raw.match(/\[[\s\S]*\]/);
+    if (!m) {
+      const e = new Error(`[${label}] Could not locate JSON array in AI response`);
+      e.raw = raw;
+      throw e;
+    }
+    try {
+      return { parsed: JSON.parse(m[0]), raw };
+    } catch (parseErr) {
+      const e = new Error(`[${label}] JSON.parse failed: ${parseErr.message}`);
+      e.raw = raw;
+      throw e;
+    }
+  };
 
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b?.error?.message || 'API error ' + res.status);
-  }
-  const data = await res.json();
-  const raw  = data.content?.[0]?.text || '';
-  const m    = raw.match(/\[[\s\S]*\]/);
-  if (!m) throw new Error('Could not parse AI response. Try again.');
+  let parsed;
   try {
-    const parsed = JSON.parse(m[0]);
-    // Normalize: add type:'mcq' if missing
-    parsed.forEach(q => { if (!q.type) q.type = 'mcq'; });
-    cacheQuestions(qTopic, difficulty, n, parsed);
-    return parsed;
-  } catch(parseErr) {
-    throw new Error('AI returned malformed data. Please try again.');
+    parsed = (await attempt(buildPrompt(true), 'full')).parsed;
+  } catch (primaryErr) {
+    if (primaryErr.apiError) throw primaryErr;           // API errors don't retry
+    _logAiParseFail({ attempt: 'full', qTopic, difficulty, n, error: primaryErr.message, rawPrefix: (primaryErr.raw || '').slice(0, 600) });
+    // v4.56.1: retry once with the scenario block stripped — recovers from the
+    // prompt-length-induced malformed-JSON failures we saw on 20-Q Mixed runs.
+    try {
+      parsed = (await attempt(buildPrompt(false), 'retry')).parsed;
+    } catch (retryErr) {
+      if (retryErr.apiError) throw retryErr;
+      _logAiParseFail({ attempt: 'retry', qTopic, difficulty, n, error: retryErr.message, rawPrefix: (retryErr.raw || '').slice(0, 600) });
+      throw new Error('AI returned malformed data. Please try again.');
+    }
   }
+
+  // Normalize: add type:'mcq' if missing. Caching is handled by the outer
+  // fetchQuestions coordinator so batched results cache under the original n.
+  parsed.forEach(q => { if (!q.type) q.type = 'mcq'; });
+  return parsed;
+}
+
+// v4.56.1: rolling log of the last 5 AI parse failures from fetchQuestions,
+// stored to localStorage for future diagnosis. Used in both the primary and
+// retry paths so we can see what Haiku actually returned when a run breaks.
+function _logAiParseFail(entry) {
+  try {
+    const key = STORAGE.AI_PARSE_FAILS;
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift({ ts: Date.now(), ...entry });
+    localStorage.setItem(key, JSON.stringify(arr.slice(0, 5)));
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(`[fetchQuestions] parse fail (${entry.attempt}):`, entry.error, '\nraw prefix:', (entry.rawPrefix || '').slice(0, 200));
+    }
+  } catch (_) { /* never crash the main flow on a logging error */ }
 }
 
 // ══════════════════════════════════════════

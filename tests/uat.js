@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.56.0', js.includes("const APP_VERSION = '4.56.0"));
+test('APP_VERSION is 4.56.1', js.includes("const APP_VERSION = '4.56.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.56.0', sw.includes('netplus-v4.56.0'));
+test('SW cache bumped to v4.56.1', sw.includes('netplus-v4.56.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -2674,8 +2674,10 @@ test('v4.41.0 Tier C: tbExplainDevice uses CLAUDE_TEACHER_MODEL',
   tbExplainDevBody.includes('CLAUDE_TEACHER_MODEL'));
 
 // Sanity: generation path stays on Haiku for cost/latency reasons
-const fetchQBody = _fnBody(js, 'fetchQuestions');
-test('v4.41.0: fetchQuestions still uses CLAUDE_MODEL (Haiku) for cost',
+// v4.56.1: fetchQuestions is now a batching coordinator; the actual Haiku
+// call lives in _fetchQuestionsBatch. Check the worker body for model usage.
+const fetchQBody = _fnBody(js, '_fetchQuestionsBatch');
+test('v4.41.0: _fetchQuestionsBatch still uses CLAUDE_MODEL (Haiku) for cost',
   fetchQBody.includes('CLAUDE_MODEL') && !fetchQBody.includes('CLAUDE_TEACHER_MODEL'));
 const tbGenBody = _fnBody(js, 'tbGenerateAiTopology');
 test('v4.41.0: tbGenerateAiTopology still uses CLAUDE_MODEL (Haiku) for cost',
@@ -3443,7 +3445,7 @@ test('v4.42.5 #130: DOUBLE_CLICK_MS constant declared',
 test('v4.42.5 #130: VXLAN_VNI_MAX constant declared',
   /const VXLAN_VNI_MAX = 16777215;/.test(js));
 test('v4.42.5 #130: MAX_TOKENS_GENERATION constant declared',
-  /const MAX_TOKENS_GENERATION\s*=\s*8000;/.test(js));
+  /const MAX_TOKENS_GENERATION\s+=\s*12000;/.test(js));  // v4.56.1: bumped 8000→12000
 test('v4.42.5 #130: MAX_TOKENS_VALIDATION constant declared',
   /const MAX_TOKENS_VALIDATION\s*=\s*1000;/.test(js));
 test('v4.42.5 #130: MAX_TOKENS_TEACHER_DEFAULT constant declared',
@@ -6644,6 +6646,135 @@ test('v4.56.0 prompt: explicitly forbids telegraphing the answer',
   /telegraphs\s+the\s+answer/.test(js));
 test('v4.56.0 prompt: MCQ format example carries scenario as optional',
   /"scenario":"\(optional/.test(js));
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.56.1 — Batching + malformed-JSON resilience
+// Large question requests (n > QUIZ_BATCH_THRESHOLD) split into concurrent
+// batches of ≤QUIZ_BATCH_SIZE so each prompt stays in Haiku's comfort zone.
+// Fixes the "AI returned malformed data" failure at n=20 with multi-topic.
+// ══════════════════════════════════════════════════════════════════════
+
+// Constants
+test('v4.56.1 JS: QUIZ_BATCH_SIZE constant defined (10)',
+  /const QUIZ_BATCH_SIZE\s*=\s*10/.test(js));
+test('v4.56.1 JS: QUIZ_BATCH_THRESHOLD constant defined (12)',
+  /const QUIZ_BATCH_THRESHOLD\s*=\s*12/.test(js));
+test('v4.56.1 JS: MAX_TOKENS_GENERATION bumped to 12000 for scenario headroom',
+  /MAX_TOKENS_GENERATION\s*=\s*12000/.test(js));
+
+// Coordinator structure
+test('v4.56.1 JS: fetchQuestions single-shot path when n <= threshold',
+  /n\s*<=\s*QUIZ_BATCH_THRESHOLD[\s\S]{0,200}_fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n\)/.test(js));
+test('v4.56.1 JS: fetchQuestions splits n into batches via numBatches + base + remainder',
+  /const\s+numBatches\s*=\s*Math\.ceil\(n\s*\/\s*QUIZ_BATCH_SIZE\)/.test(js) &&
+  /const\s+base\s*=\s*Math\.floor\(n\s*\/\s*numBatches\)/.test(js));
+test('v4.56.1 JS: fetchQuestions fires batches concurrently via Promise.allSettled',
+  /Promise\.allSettled\([\s\S]{0,400}_fetchQuestionsBatch/.test(js));
+test('v4.56.1 JS: API errors bubble up immediately (no masking 401/429 as malformed)',
+  /r\.reason[\s\S]{0,40}apiError/.test(js));
+test('v4.56.1 JS: merged === 0 → throws user-facing malformed-data error',
+  /merged\.length\s*===\s*0[\s\S]{0,100}AI returned malformed data/.test(js));
+test('v4.56.1 JS: caching happens at outer coordinator (batched path)',
+  /cacheQuestions\(qTopic,\s*difficulty,\s*n,\s*merged\)/.test(js));
+
+// PBQ budget distribution
+test('v4.56.1 JS: outer computes totalPbqBudget once at coordinator level',
+  /const\s+totalPbqBudget\s*=\s*n\s*>=\s*10\s*\?\s*2/.test(js));
+test('v4.56.1 JS: PBQ budget distributed across batches (round-robin to early batches)',
+  /pbqBudgets\[i\s*%\s*numBatches\]\+\+/.test(js));
+
+// Batch worker accepts override
+test('v4.56.1 JS: _fetchQuestionsBatch accepts pbqCountOverride',
+  /async function _fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n,\s*pbqCountOverride\)/.test(js));
+test('v4.56.1 JS: batch worker uses override when provided, falls back to formula otherwise',
+  /typeof pbqCountOverride\s*===\s*['"]number['"][\s\S]{0,100}pbqCountOverride[\s\S]{0,60}n\s*>=\s*10\s*\?\s*2/.test(js));
+test('v4.56.1 JS: inner batch no longer calls cacheQuestions (coordinator handles it)',
+  !_fnBody(js, '_fetchQuestionsBatch').includes('cacheQuestions('));
+
+// Storage key + logging
+test('v4.56.1 JS: STORAGE.AI_PARSE_FAILS key added',
+  /AI_PARSE_FAILS:\s*['"]nplus_ai_parse_fails['"]/.test(js));
+test('v4.56.1 JS: _logAiParseFail helper defined',
+  /function\s+_logAiParseFail\s*\(entry\)/.test(js));
+test('v4.56.1 JS: _logAiParseFail caps rolling log at 5 entries',
+  /arr\.slice\(0,\s*5\)/.test(js));
+test('v4.56.1 JS: _logAiParseFail fires on primary parse failure',
+  /_logAiParseFail\(\{\s*attempt:\s*['"]full['"]/.test(js));
+test('v4.56.1 JS: _logAiParseFail fires on retry parse failure too',
+  /_logAiParseFail\(\{\s*attempt:\s*['"]retry['"]/.test(js));
+
+// Retry-without-scenario (last-ditch fallback inside each batch)
+test('v4.56.1 JS: retry path calls buildPrompt(false) to strip scenario block',
+  /buildPrompt\(false\)[\s\S]{0,80}retry/.test(js));
+
+// Behavioural — vm-sandbox the outer coordinator's batch-sizing logic
+(function testBatchSizing() {
+  try {
+    const vm = require('vm');
+    // Extract the n-to-batchSizes logic into a testable helper
+    const helperBody = `
+      const QUIZ_BATCH_SIZE = 10;
+      const QUIZ_BATCH_THRESHOLD = 12;
+      function splitN(n) {
+        if (n <= QUIZ_BATCH_THRESHOLD) return [n];
+        const numBatches = Math.ceil(n / QUIZ_BATCH_SIZE);
+        const base = Math.floor(n / numBatches);
+        const remainder = n - (base * numBatches);
+        return Array.from({ length: numBatches }, (_, i) => base + (i < remainder ? 1 : 0));
+      }
+      function pbqDistribution(n, numBatches) {
+        const totalPbqBudget = n >= 10 ? 2 : (n >= 7 ? 1 : 0);
+        const pbqBudgets = new Array(numBatches).fill(0);
+        for (let i = 0; i < totalPbqBudget; i++) pbqBudgets[i % numBatches]++;
+        return { totalPbqBudget, pbqBudgets };
+      }
+    `;
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(helperBody, ctx);
+
+    // Common sizes
+    test('v4.56.1 sandbox: n=5 → single-shot [5]',
+      JSON.stringify(ctx.splitN(5)) === '[5]');
+    test('v4.56.1 sandbox: n=10 → single-shot [10] (at threshold but <=)',
+      JSON.stringify(ctx.splitN(10)) === '[10]');
+    test('v4.56.1 sandbox: n=12 → single-shot [12] (at threshold exactly)',
+      JSON.stringify(ctx.splitN(12)) === '[12]');
+    test('v4.56.1 sandbox: n=13 → two batches, still balanced',
+      ctx.splitN(13).length === 2 && ctx.splitN(13).reduce((a, b) => a + b, 0) === 13);
+    test('v4.56.1 sandbox: n=20 → [10, 10] (user\'s failing case)',
+      JSON.stringify(ctx.splitN(20)) === '[10,10]');
+    test('v4.56.1 sandbox: n=26 (20 + DROPOUT_BUFFER) → 3 balanced batches',
+      ctx.splitN(26).length === 3 && ctx.splitN(26).reduce((a, b) => a + b, 0) === 26);
+    test('v4.56.1 sandbox: n=50 (marathon) → 5 batches of 10',
+      JSON.stringify(ctx.splitN(50)) === '[10,10,10,10,10]');
+    test('v4.56.1 sandbox: batched path (n > threshold) always keeps every batch ≤ QUIZ_BATCH_SIZE, and total = n',
+      (() => {
+        for (let n = 13; n <= 100; n++) {
+          const sizes = ctx.splitN(n);
+          if (sizes.some(s => s > 10)) return false;
+          if (sizes.reduce((a, b) => a + b, 0) !== n) return false;
+        }
+        return true;
+      })());
+
+    // PBQ distribution
+    const d20 = ctx.pbqDistribution(20, 2);
+    test('v4.56.1 sandbox: n=20 gets totalPbqBudget=2, distributed [1, 1]',
+      d20.totalPbqBudget === 2 && JSON.stringify(d20.pbqBudgets) === '[1,1]');
+    const d50 = ctx.pbqDistribution(50, 5);
+    test('v4.56.1 sandbox: n=50 gets totalPbqBudget=2, distributed [1, 1, 0, 0, 0]',
+      d50.totalPbqBudget === 2 && JSON.stringify(d50.pbqBudgets) === '[1,1,0,0,0]');
+    const d9 = ctx.pbqDistribution(9, 1);
+    test('v4.56.1 sandbox: n=9 single-shot gets totalPbqBudget=1',
+      d9.totalPbqBudget === 1 && JSON.stringify(d9.pbqBudgets) === '[1]');
+    const d5 = ctx.pbqDistribution(5, 1);
+    test('v4.56.1 sandbox: n=5 single-shot gets totalPbqBudget=0 (below 7 threshold)',
+      d5.totalPbqBudget === 0 && JSON.stringify(d5.pbqBudgets) === '[0]');
+  } catch (e) {
+    test('v4.56.1 sandbox: batching logic executes without error', false);
+  }
+})();
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
