@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.7', js.includes("const APP_VERSION = '4.57.7"));
+test('APP_VERSION is 4.58.0', js.includes("const APP_VERSION = '4.58.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.7', sw.includes('netplus-v4.57.7'));
+test('SW cache bumped to v4.58.0', sw.includes('netplus-v4.58.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1031,9 +1031,12 @@ test('STORAGE.TB_COACH_CACHE key', js.includes("TB_COACH_CACHE: 'nplus_tb_coach_
 test('tbLoadCoachCache defined', /function tbLoadCoachCache/.test(js));
 test('tbSaveCoachCache defined', /function tbSaveCoachCache/.test(js));
 test('Coach cache trims to 10 entries', /\.slice\(0, 10\)/.test(js));
-// API call shape
-test('Coach calls CLAUDE_API_URL', /tbCoachTopology[\s\S]{0,4000}CLAUDE_API_URL/.test(js));
-test('Coach uses a Claude model constant', /tbCoachTopology[\s\S]{0,4000}CLAUDE_(TEACHER_)?MODEL/.test(js));
+// API call shape (v4.58.0: scoped to function body via _fnBody so the tests
+// don't silently break when line offsets shift — previously relied on a fragile
+// [\s\S]{0,4000} span anchored at the first mention of tbCoachTopology, which
+// happened to be a comment at the top of the file.)
+test('Coach calls CLAUDE_API_URL', _fnBody(js, 'tbCoachTopology').includes('CLAUDE_API_URL'));
+test('Coach uses a Claude model constant', /CLAUDE_(TEACHER_)?MODEL/.test(_fnBody(js, 'tbCoachTopology')));
 test('Coach guards missing API key', /tbCoachTopology[\s\S]{0,1500}Add your Anthropic API key/.test(js));
 test('Coach strips markdown fences', /replace\(\/\^```/.test(js));
 test('Coach prompt mentions N10-009', /tbCoachTopology[\s\S]{0,4000}N10-009/.test(js));
@@ -7264,6 +7267,140 @@ test('v4.57.5 JS: weighted domainAccuracy still feeds accuracyScore (Readiness 7
       fn([{ topic: 'OSI Model', score: 0, total: 0 }]).concepts === 0);
   } catch (e) {
     test('v4.57.5 sandbox: helper executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.58.0 — Curated exemplar bank infrastructure (Phase 1 of issue #193)
+// Plumbing for future few-shot injection into Haiku generation prompts.
+// Empty bank on ship = zero behavioural change. Activates automatically
+// once Phase 2 content (hand-curated ~60 exemplars) lands post-exam.
+// LEGAL CONSTRAINT: every exemplar MUST be original content — NO copying
+// from Jason Dion, CompTIA CertMaster, or any paid question bank.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.58.0 JS: QUESTION_EXEMPLARS constant defined (empty array initially)',
+  /const QUESTION_EXEMPLARS = \[\];/.test(js));
+test('v4.58.0 JS: _pickExemplarsForTopic helper defined',
+  /function _pickExemplarsForTopic\(qTopic,\s*max\)/.test(js));
+test('v4.58.0 JS: _formatExemplarsForPrompt helper defined',
+  /function _formatExemplarsForPrompt\(exemplars\)/.test(js));
+test('v4.58.0 JS: helper caps max at 5 (no prompt-bloat runaway)',
+  /max\s*=\s*Math\.max\(0,\s*Math\.min\(5,\s*max \|\| 3\)\)/.test(js));
+test('v4.58.0 JS: helper strips "Multi: " sentinel before matching',
+  /qTopic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,100}\.slice\(7\)\.split\(['"],['"]\)/.test(js));
+test('v4.58.0 JS: helper uses tiered pool (exact topic \u2192 same domain \u2192 others)',
+  /const exact = QUESTION_EXEMPLARS\.filter[\s\S]{0,200}const sameDomain[\s\S]{0,400}const others[\s\S]{0,200}const pool = exact\.concat\(sameDomain\)\.concat\(others\)/.test(js));
+
+test('v4.58.0 JS: format helper wraps exemplars in explicit "style references only" framing',
+  /DO NOT copy these exemplars into your[\s\S]{0,200}style references only/.test(js));
+test('v4.58.0 JS: format helper emits "QUALITY REFERENCE" block header',
+  /QUALITY REFERENCE \u2014 use these curated exemplars/.test(js));
+test('v4.58.0 JS: _fetchQuestionsBatch injects exemplar block via buildPrompt',
+  /const exemplarBlock = _formatExemplarsForPrompt\([\s\S]{0,100}_pickExemplarsForTopic\(qTopic, 3\)/.test(js));
+test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
+  /Difficulty:\s*\$\{diffStr\}\s*\n\$\{exemplarBlock\}/.test(js));
+
+// Behavioural — sandbox helpers with empty bank (no-op) + populated bank (selects correctly)
+(function testExemplarHelpers() {
+  try {
+    const vm = require('vm');
+
+    const pickBody = js.match(/function _pickExemplarsForTopic\(qTopic,\s*max\)\s*\{([\s\S]*?)\n\}/);
+    const formatBody = js.match(/function _formatExemplarsForPrompt\(exemplars\)\s*\{([\s\S]*?)\n\}/);
+    if (!pickBody || !formatBody) { test('v4.58.0 sandbox: helper bodies extracted', false); return; }
+    test('v4.58.0 sandbox: helper bodies extracted', true);
+
+    // Minimal stub context with a tiny TOPIC_DOMAINS map
+    const ctx = {
+      TOPIC_DOMAINS: {
+        'OSI Model': 'concepts',
+        'Subnetting & IP Addressing': 'concepts',
+        'IPv6': 'concepts',
+        'OSPF': 'implementation',
+        'BGP': 'implementation',
+        'Connection Issues': 'troubleshooting'
+      },
+      QUESTION_EXEMPLARS: [],
+      Math: Math,
+      Array: Array
+    };
+    vm.createContext(ctx);
+    const pickFn = vm.runInContext(`(function(qTopic, max) {${pickBody[1]}})`, ctx);
+    const formatFn = vm.runInContext(`(function(exemplars) {${formatBody[1]}})`, ctx);
+
+    // Case 1: empty bank → always returns []
+    test('v4.58.0 sandbox: empty bank returns [] for any topic',
+      pickFn('OSI Model', 3).length === 0 &&
+      pickFn('OSPF', 5).length === 0 &&
+      pickFn('Anything', 3).length === 0);
+    test('v4.58.0 sandbox: empty exemplars → format returns empty string (prompt no-op)',
+      formatFn([]) === '');
+    test('v4.58.0 sandbox: null exemplars → format returns empty string (defensive)',
+      formatFn(null) === '');
+
+    // Case 2: populated bank — tier matching
+    ctx.QUESTION_EXEMPLARS = [
+      { topic: 'OSI Model', question: 'Q1', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'A', explanation: 'e1', source: 'curated' },
+      { topic: 'Subnetting & IP Addressing', question: 'Q2', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'B', explanation: 'e2', source: 'curated' },
+      { topic: 'OSPF', question: 'Q3', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'C', explanation: 'e3', source: 'curated' },
+      { topic: 'BGP', question: 'Q4', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'D', explanation: 'e4', source: 'curated' },
+      { topic: 'OSI Model', question: 'Q5', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'A', explanation: 'e5', source: 'curated' }
+    ];
+
+    // Exact-topic priority
+    const osi = pickFn('OSI Model', 3);
+    test('v4.58.0 sandbox: exact-topic exemplars come first (OSI gets Q1 + Q5 before others)',
+      osi.length === 3 && osi[0].question === 'Q1' && osi[1].question === 'Q5');
+
+    // Same-domain fallback
+    const ipv6 = pickFn('IPv6', 3);  // not in bank, but concepts domain → OSI + Subnetting
+    test('v4.58.0 sandbox: unknown topic falls back to same-domain (IPv6 \u2192 concepts \u2192 OSI/Subnetting first)',
+      ipv6.length === 3 && ipv6.every(ex => ex.topic === 'OSI Model' || ex.topic === 'Subnetting & IP Addressing' || ctx.TOPIC_DOMAINS[ex.topic] === 'concepts'));
+
+    // Max respected
+    test('v4.58.0 sandbox: max=2 returns at most 2 exemplars',
+      pickFn('OSI Model', 2).length === 2);
+    test('v4.58.0 sandbox: max capped at 5 (prevents prompt bloat)',
+      pickFn('OSI Model', 99).length <= 5);
+
+    // Multi: sentinel strips correctly
+    const multi = pickFn('Multi: OSI Model, OSPF', 2);
+    test('v4.58.0 sandbox: "Multi: OSI Model, OSPF" picks OSI exemplars first (primary after strip)',
+      multi.length === 2 && multi[0].topic === 'OSI Model');
+
+    // Defensive cases
+    test('v4.58.0 sandbox: empty topic returns []',
+      pickFn('', 3).length === 0);
+    test('v4.58.0 sandbox: null topic returns []',
+      pickFn(null, 3).length === 0);
+
+    // Format output structure
+    const sampleExemplars = [ctx.QUESTION_EXEMPLARS[0]];
+    const formatted = formatFn(sampleExemplars);
+    test('v4.58.0 sandbox: format output contains QUALITY REFERENCE header',
+      formatted.includes('QUALITY REFERENCE'));
+    test('v4.58.0 sandbox: format output contains DO NOT copy directive (anti-verbatim)',
+      formatted.includes('DO NOT copy these exemplars'));
+    test('v4.58.0 sandbox: format output numbers each exemplar ("EXEMPLAR 1:")',
+      formatted.includes('EXEMPLAR 1:'));
+    test('v4.58.0 sandbox: format output includes stem + options + answer + explanation',
+      formatted.includes('Question: Q1') &&
+      formatted.includes('A) a') &&
+      formatted.includes('Answer: A') &&
+      formatted.includes('Explanation: e1'));
+
+    // Scenario field handled when present
+    const withScenario = [{ ...ctx.QUESTION_EXEMPLARS[0], scenario: 'A setup sentence.' }];
+    const formattedWithScenario = formatFn(withScenario);
+    test('v4.58.0 sandbox: scenario field emitted in exemplar when present',
+      formattedWithScenario.includes('Scenario: A setup sentence.'));
+
+    // Scenario field omitted when absent (no empty "Scenario: " line)
+    test('v4.58.0 sandbox: exemplar without scenario omits the line entirely',
+      !formatted.includes('Scenario:'));
+  } catch (e) {
+    test('v4.58.0 sandbox: helpers execute without error', false);
   }
 })();
 

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.7
+// Network+ AI Quiz — app.js  v4.58.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.7';
+const APP_VERSION = '4.58.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -45,6 +45,108 @@ const MAX_TOKENS_TEACHER_BRIEF   = 400;   // stAskCoach, ptAskCoach, fetchTopicB
 const MIXED_TOPIC = 'Mixed \u2014 All Topics';
 const EXAM_TOPIC = 'Exam Simulation';
 const DEFAULT_DIFF = 'Exam Level';
+
+// ══════════════════════════════════════════════════════════════════════════
+// v4.58.0 — CURATED EXEMPLAR BANK (Phase 1 infrastructure, content TBD)
+// ══════════════════════════════════════════════════════════════════════════
+// Few-shot exemplars injected into _fetchQuestionsBatch prompts so Haiku
+// matches the style + quality bar of hand-curated questions instead of
+// generating from scratch each time. See issue #193 for the full plan.
+//
+// LEGAL: every exemplar MUST be original content. Do NOT copy question
+// stems / options / distractors / explanations from Jason Dion, CompTIA
+// CertMaster, Mike Myers, Kaplan, or any other paid question bank. Verbatim
+// or near-verbatim copy is IP theft. Inspired-by-topic-coverage is fine;
+// copy-the-question is not. Use the public N10-009 objectives document as
+// the authoritative content source. Every exemplar should be vetted against
+// the objectives before inclusion.
+//
+// Schema per exemplar:
+//   {
+//     type: 'mcq' | 'multi-select' | 'order',  // PBQ types supported later
+//     question: 'The stem — original wording, clear interrogative',
+//     scenario: '(optional) 1-2 sentence setup when context disambiguates',
+//     difficulty: 'Foundational' | 'Exam Level' | 'Hard',
+//     topic: 'Exact TOPIC_DOMAINS key (e.g. "OSI Model", "OSPF")',
+//     objective: 'N10-009 objective number (e.g. "1.4")',
+//     options: { A: '...', B: '...', C: '...', D: '...' },
+//     answer: 'A' | 'B' | 'C' | 'D',
+//     explanation: '3-4 sentences: why correct + why at least one wrong',
+//     source: 'curated',
+//     addedVersion: 'e.g. 4.59.0',
+//     addedDate: 'ISO date string'
+//   }
+//
+// Phase 1 (this ship): empty array + helpers + injection plumbing.
+// Phase 2 (post-N10-009 exam, ~20 hrs): hand-curate ~60 exemplars across
+//   5 CompTIA domains per target distribution in #193.
+// Phase 3 (quarterly): recalibrate against legally-purchased practice
+//   tests, rewrite 3-5 weak exemplars per cycle.
+//
+// With 0 exemplars, injection is a no-op — zero behavioural change vs
+// pre-v4.58.0. The helpers + injection site activate automatically once
+// exemplars land.
+const QUESTION_EXEMPLARS = [];
+
+// v4.58.0: pick up to `max` exemplars matching the requested topic. Exact
+// topic match preferred, same-domain fallback after, then any exemplar if
+// the domain-filtered set is still short. Returns [] when bank is empty
+// (current state) — injection becomes a no-op.
+function _pickExemplarsForTopic(qTopic, max) {
+  if (!Array.isArray(QUESTION_EXEMPLARS) || QUESTION_EXEMPLARS.length === 0) return [];
+  if (typeof qTopic !== 'string' || !qTopic) return [];
+  max = Math.max(0, Math.min(5, max || 3));
+  if (max === 0) return [];
+
+  // Strip the "Multi: " prefix if present — pick exemplars for the first named
+  // topic rather than the sentinel string.
+  const primary = qTopic.startsWith('Multi: ')
+    ? qTopic.slice(7).split(',')[0].trim()
+    : qTopic;
+
+  const domain = (typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS[primary]) || null;
+  const exact = QUESTION_EXEMPLARS.filter(ex => ex && ex.topic === primary);
+  const sameDomain = domain
+    ? QUESTION_EXEMPLARS.filter(ex => ex && ex.topic !== primary && TOPIC_DOMAINS[ex.topic] === domain)
+    : [];
+
+  // Ordered pool: exact match first, then same domain, then fall back to any
+  // other exemplars so a never-covered topic still gets style references.
+  const others = QUESTION_EXEMPLARS.filter(ex => ex && ex.topic !== primary && (!domain || TOPIC_DOMAINS[ex.topic] !== domain));
+  const pool = exact.concat(sameDomain).concat(others);
+  return pool.slice(0, max);
+}
+
+// v4.58.0: format chosen exemplars as a prompt block for Haiku. Structured so
+// the model reads these as STYLE references ("use this quality bar"), NOT as
+// content to duplicate. Empty input → empty string (zero prompt-length cost
+// when the bank is empty).
+function _formatExemplarsForPrompt(exemplars) {
+  if (!Array.isArray(exemplars) || exemplars.length === 0) return '';
+  const blocks = exemplars.map((ex, i) => {
+    const opts = (ex && ex.options) || {};
+    const lines = [
+      `EXEMPLAR ${i + 1}:`,
+      `Question: ${ex.question || ''}`,
+      ex.scenario ? `Scenario: ${ex.scenario}` : null,
+      `A) ${opts.A || ''}`,
+      `B) ${opts.B || ''}`,
+      `C) ${opts.C || ''}`,
+      `D) ${opts.D || ''}`,
+      `Answer: ${ex.answer || ''}`,
+      `Explanation: ${ex.explanation || ''}`
+    ].filter(Boolean);
+    return lines.join('\n');
+  }).join('\n\n');
+  return `
+QUALITY REFERENCE — use these curated exemplars as the bar for stem clarity,
+distractor plausibility (all 4 options must be tempting, not 3 throwaways),
+explanation depth, and N10-009 framing. DO NOT copy these exemplars into your
+output — they are style references only. Write NEW questions of equal quality:
+
+${blocks}
+`;
+}
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
 // AI validator runs the second-pass quality check over generated questions.
@@ -2104,6 +2206,13 @@ For PBQ, use ONE of these two formats:
 {"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
 For ordering: correctOrder is an array of indices (0-based) representing the correct sequence. correctOrder[0] = index of the item that should be FIRST.` : '';
 
+  // v4.58.0: pull 3-5 curated exemplars matching this topic/domain to inject
+  // as few-shot style references. Empty bank → no-op (returns empty block) so
+  // current behaviour is unchanged until Phase 2 content lands.
+  const exemplarBlock = _formatExemplarsForPrompt(
+    _pickExemplarsForTopic(qTopic, 3)
+  );
+
   // v4.56.1: Scenario field instructions isolated so they can be omitted on
   // retry. They were the main prompt bloat added in v4.56.0 and on complex
   // runs (multi-topic + Mixed + 20 questions) they occasionally push Haiku
@@ -2121,7 +2230,7 @@ SCENARIO CONTEXT FIELD (optional, exam-realism):
 
 ${topicStr}${mixedDistributionStr}
 Difficulty: ${diffStr}
-
+${exemplarBlock}
 Generate exactly ${n} multiple choice questions. Requirements:
 - 4 options each (or 5 for multi-select): A, B, C, D (E for multi-select)
 - One correct answer only (unless multi-select)
