@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.4
+// Network+ AI Quiz — app.js  v4.58.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.4';
+const APP_VERSION = '4.58.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -867,6 +867,277 @@ const QUESTION_EXEMPLARS = [
     explanation: 'Physical security controls protect against unauthorised physical access to network infrastructure \u2014 mantraps, badge readers, CCTV, biometric locks, secure enclosures. Option A is a logical network control. Option C is an administrative/logical policy control. Option D is a logical endpoint control. Only Option B is a physical barrier against human access.',
     source: 'curated',
     addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  // ───── 5.0 Network Troubleshooting (15/15) — bank complete at 60/60 ─────
+  {
+    type: 'mcq',
+    question: 'According to CompTIA\u2019s official 7-step troubleshooting methodology, what is the FIRST step a technician should take when responding to a user-reported network issue?',
+    difficulty: 'Foundational',
+    topic: 'CompTIA Troubleshooting Methodology',
+    objective: '5.1',
+    options: {
+      A: 'Establish a theory of probable cause',
+      B: 'Implement the solution or escalate',
+      C: 'Identify the problem',
+      D: 'Document findings and outcomes'
+    },
+    answer: 'C',
+    explanation: 'CompTIA\u2019s methodology (N10-009 Objective 5.1) starts with Identify the problem \u2014 gather information, question users, identify symptoms, determine if anything has changed, and establish whether multiple issues might be involved. Only after identification do you move to Establish a theory (step 2), Test the theory (3), Plan of action (4), Implement (5), Verify (6), Document (7).',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user complains that their workstation has no network connectivity. The technician finds that the Ethernet cable is connected at both the workstation NIC and the wall jack, but the NIC\u2019s link light is off. The cable is also used by a nearby workstation with working connectivity when swapped. What is the most likely cause?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'The workstation\u2019s NIC driver is outdated',
+      B: 'A physical fault in the original cable (broken conductor, crimped end)',
+      C: 'The switch port is in a disabled state',
+      D: 'The workstation has an IP address conflict'
+    },
+    answer: 'B',
+    explanation: 'When swapping in a known-good cable restores connectivity, the original cable is the fault \u2014 classic substitution-test result. A broken conductor inside the jacket, damaged RJ-45 crimp, or miswired pinout would all produce no link light. Driver issues (A) would not prevent the physical link from coming up. A disabled port (C) would affect BOTH cables tested on it. An IP conflict (D) would still show a link light \u2014 the failure would happen at Layer 3, not Layer 1.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user reports they can browse websites normally but cannot access the company\u2019s internal file server at fileserver.corp.local. A ping to the file server\u2019s IP address (10.0.5.20) succeeds, but a ping to fileserver.corp.local fails with "Ping request could not find host." Which layer is the problem most likely at?',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'Layer 1 \u2014 physical cabling',
+      B: 'Layer 3 \u2014 IP routing',
+      C: 'Internal DNS resolution',
+      D: 'Layer 4 \u2014 TCP port blocking'
+    },
+    answer: 'C',
+    explanation: 'The IP ping works, so physical, link, and network layers are functional. But name resolution fails \u2014 the client cannot resolve the internal hostname to an IP. This points to internal DNS (often a misconfigured DNS server entry on the client, or the corp.local zone not served by the DNS the client is using). Option A would break both pings. Option B would prevent the IP ping too. Option D would block a specific service, but ping (ICMP) would succeed using the hostname if DNS worked.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Users at a branch office complain that file transfers to the headquarters server have become extremely slow over the last week. The technician runs iperf between the branch and HQ and measures 8 Mbps throughput on a link rated at 100 Mbps. A concurrent ping shows an average round-trip time of 180 ms with 0% packet loss. Which issue is most consistent with these findings?',
+    difficulty: 'Hard',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Duplex mismatch on the branch switch port',
+      B: 'TCP window size not scaled for the high-latency WAN link',
+      C: 'DNS resolution failure',
+      D: 'Layer 3 routing loop'
+    },
+    answer: 'B',
+    explanation: '180 ms RTT with 0% loss rules out packet-level issues (duplex mismatch would show collisions/CRC errors and massive loss). The throughput ceiling at 8 Mbps on a 100 Mbps link, combined with high RTT, is classic TCP-window-size limitation on high-latency paths. Default TCP window (65 KB) limits throughput to ~window/RTT; 65 KB / 180 ms \u2248 2.9 Mbps per stream (scaling depends on OS). Without TCP window scaling (RFC 1323), the link is BDP-limited. Option A would show errors, not just low throughput. Option C would break the test entirely. Option D would cause loss.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A web server suddenly becomes unresponsive to client HTTP requests. The server\u2019s operating system and NIC are still reachable via ping, SSH works correctly, and CPU/RAM utilisation is normal. Other services on the same server (DNS, SMTP) respond normally. What is the most likely cause?',
+    difficulty: 'Exam Level',
+    topic: 'Service Issues',
+    objective: '5.3',
+    options: {
+      A: 'Physical cable failure between server and switch',
+      B: 'The HTTP service itself (web server process) has crashed or hung',
+      C: 'Full storage volume preventing any I/O',
+      D: 'DNS resolution failure for the server\u2019s hostname'
+    },
+    answer: 'B',
+    explanation: 'When other services on the SAME server respond normally (including SSH, DNS, SMTP), the OS and network stack are healthy \u2014 the problem is isolated to the HTTP daemon itself. Service-specific crashes (segfault, out-of-memory in the web process, hung worker threads) are the natural diagnosis. Option A would break all services. Option C would also affect SSH login and logging. Option D is about name lookup, not the HTTP service itself.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network technician wants to identify every Layer-3 hop that a packet traverses between their workstation and a remote server at 93.184.216.34, including the round-trip time at each hop. Which command-line tool should they use?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'ping',
+      B: 'nslookup',
+      C: 'traceroute (or tracert on Windows)',
+      D: 'netstat'
+    },
+    answer: 'C',
+    explanation: 'traceroute (Linux/macOS) or tracert (Windows) progressively increments TTL values to discover each router along the path, reporting the IP and RTT for each hop. ping (A) tests end-to-end reachability and latency but does not reveal intermediate hops. nslookup (B) queries DNS name resolution. netstat (D) shows local connection state and listening sockets, not path information.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician wants to capture and inspect the actual TCP handshake (SYN, SYN-ACK, ACK) between a client and a web server to troubleshoot an intermittent connection failure. Which tool is best suited for this task?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Wireshark (or tcpdump)',
+      B: 'nslookup',
+      C: 'route print',
+      D: 'SNMP walk'
+    },
+    answer: 'A',
+    explanation: 'Wireshark and tcpdump are packet capture and analysis tools that display every frame and its fields, including TCP flags, sequence numbers, and the three-way handshake. nslookup (B) is for DNS queries only. route print (C) shows the routing table, not packet contents. SNMP walk (D) queries device counters and MIB objects but does not inspect traffic in transit.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'On a Windows workstation, which command displays the current IP configuration including the assigned IP address, subnet mask, default gateway, and DNS servers?',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'ipconfig /all',
+      B: 'netstat -r',
+      C: 'ping 127.0.0.1',
+      D: 'arp -a'
+    },
+    answer: 'A',
+    explanation: 'ipconfig /all displays all interface details including IP, subnet mask, gateway, DNS servers, DHCP server, MAC address, and lease info. netstat -r (B) shows the routing table. ping 127.0.0.1 (C) tests the local TCP/IP stack but does not display configuration. arp -a (D) shows the local ARP cache.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A gigabit Ethernet link between a server and switch is experiencing very poor performance, with users reporting slow file transfers. The technician checks the switch interface statistics and sees a high number of late collisions and CRC errors. What is the most likely cause?',
+    difficulty: 'Exam Level',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'IP address conflict on the server',
+      B: 'Duplex mismatch between the server NIC and the switch port',
+      C: 'DNS resolver timing out',
+      D: 'Full TCP receive window on the client'
+    },
+    answer: 'B',
+    explanation: 'Late collisions and CRC errors on a full-duplex-expected link are the canonical signature of a duplex mismatch \u2014 one side forced to full-duplex, the other to half-duplex (or auto-negotiating to half). The full-duplex side transmits whenever it has data; the half-duplex side sees that as a collision. Option A would cause IP-layer connectivity issues, not interface-level errors. Option C affects name lookups only. Option D affects throughput but does not generate CRC/collision errors.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A workstation has an IP address of 169.254.87.112 and cannot reach any resources on the local network. What does this IP address indicate, and what is the root cause?',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'It is a private RFC 1918 address \u2014 the DHCP server assigned it correctly.',
+      B: 'It is an APIPA address \u2014 the client failed to obtain a DHCP lease and self-assigned a link-local address.',
+      C: 'It is a loopback address \u2014 the NIC is in diagnostic mode.',
+      D: 'It is a multicast address \u2014 the workstation is incorrectly joined to a multicast group.'
+    },
+    answer: 'B',
+    explanation: '169.254.0.0/16 is the APIPA (Automatic Private IP Addressing) range, used by Windows and other OSes when a DHCP server is unreachable. The client self-assigns a random 169.254.x.x address so it can communicate within its link-local segment, but it cannot reach anything beyond (no default gateway, no DNS). Next step: troubleshoot why DHCP is unreachable \u2014 server down, VLAN misconfigured, DHCP snooping blocking, or cable issue preventing discover from reaching the server.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which ICMP message type does the ping utility send to test end-to-end reachability?',
+    difficulty: 'Foundational',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Echo Request (Type 8)',
+      B: 'Destination Unreachable (Type 3)',
+      C: 'Time Exceeded (Type 11)',
+      D: 'Router Solicitation (Type 10)'
+    },
+    answer: 'A',
+    explanation: 'ping sends ICMP Echo Request (Type 8), and the destination responds with ICMP Echo Reply (Type 0) if reachable. Destination Unreachable (B, Type 3) is sent by intermediate routers when they cannot forward a packet. Time Exceeded (C, Type 11) is what traceroute uses \u2014 sent by routers when TTL reaches 0. Router Solicitation (D, Type 10) is part of IPv6 neighbor discovery.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Users report that VoIP calls to the remote office are choppy and words are being dropped, though video calls through the same path work fine. Which network metric is most likely out of acceptable range, and which is the typical upper bound for clear VoIP calls?',
+    difficulty: 'Hard',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Latency exceeding 300 ms one-way',
+      B: 'Jitter exceeding 30 ms',
+      C: 'Throughput below 10 Mbps',
+      D: 'MTU mismatch below 1500 bytes'
+    },
+    answer: 'B',
+    explanation: 'VoIP is uniquely sensitive to jitter (variation in packet arrival time) because voice codecs decode samples at fixed intervals \u2014 inconsistent arrival produces choppy audio even if average latency is fine. Video tolerates more jitter because of buffering. Typical VoIP tolerance: jitter under 30 ms, latency under 150 ms one-way, packet loss under 1%. Latency (A) at 300 ms would cause noticeable delay but not choppy speech. Throughput (C) under 10 Mbps is still ample for VoIP (a G.711 call needs ~85 Kbps). MTU mismatch (D) would cause fragmentation, not choppy audio.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A DHCP server has been handing out IP leases for months without issue. This morning, newly booting clients are failing to obtain IP addresses, but clients that already have active leases continue to work normally. The DHCP server process is running and shows no error logs. What is the most likely cause?',
+    difficulty: 'Exam Level',
+    topic: 'Service Issues',
+    objective: '5.3',
+    options: {
+      A: 'The DHCP server\u2019s IP address has changed',
+      B: 'The DHCP scope has been exhausted (no available IP addresses to offer)',
+      C: 'A routing loop between clients and the DHCP server',
+      D: 'Firewall is blocking all ICMP traffic'
+    },
+    answer: 'B',
+    explanation: 'When existing leases work but new clients fail \u2014 especially with no server-side errors \u2014 the most common cause is scope exhaustion: all available addresses in the DHCP pool are currently leased. New requests have nothing to offer. Option A would affect existing clients too during renewal. Option C would affect both new and renewing clients randomly. Option D would block ping but not DHCP (which uses UDP 67/68 broadcast).',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician is testing a terminated Cat 6 cable and the cable tester reports that pins 1 and 2 are crossed with pins 3 and 6 at one end compared to the other. Which cable wiring standard issue does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Straight-through cable correctly wired to T568B on both ends',
+      B: 'Crossover cable wired with T568A on one end and T568B on the other',
+      C: 'Rollover cable for console connections',
+      D: 'Open circuit on the cable'
+    },
+    answer: 'B',
+    explanation: 'A crossover cable intentionally swaps the transmit pair (1,2) and receive pair (3,6) between the two ends, achieved by terminating one end with T568A and the other with T568B. This was historically required for PC-to-PC or switch-to-switch connections before Auto-MDIX became standard. Straight-through (A) has both ends identical. Rollover (C) reverses all 8 pins for Cisco console cables. Open circuit (D) would show a broken pair, not a crossover.',
+    source: 'curated',
+    addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician has identified a network problem, established a theory, and verified that the theory is correct. They now need to fix the issue. According to CompTIA\u2019s methodology, what is the correct NEXT step before making any actual change?',
+    difficulty: 'Exam Level',
+    topic: 'CompTIA Troubleshooting Methodology',
+    objective: '5.1',
+    options: {
+      A: 'Immediately implement the solution to restore service quickly',
+      B: 'Establish a plan of action to resolve the problem and identify potential effects',
+      C: 'Document findings and outcomes',
+      D: 'Escalate the issue to a senior engineer'
+    },
+    answer: 'B',
+    explanation: 'The 7-step methodology inserts "Establish a plan of action to resolve the problem and identify potential effects" BEFORE implementation (step 4 of 7). This step forces the technician to think through rollback, downtime, dependent systems, and communication before acting. Immediate implementation (A) skips the plan and risks making things worse. Documentation (C) is the final step (7). Escalation (D) can be part of the plan but is not the automatic next step.',
+    source: 'curated',
+    addedVersion: '4.58.5',
     addedDate: '2026-04-21'
   }
 ];
