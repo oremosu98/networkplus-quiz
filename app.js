@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.0
+// Network+ AI Quiz — app.js  v4.57.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.0';
+const APP_VERSION = '4.57.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2907,7 +2907,31 @@ function finish() {
 
   if (!wrongDrillMode) {
     const entryMode = dailyChallengeMode ? 'daily' : (sessionMode ? 'session' : 'quiz');
-    saveToHistory({ date: new Date().toISOString(), topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
+    const now = new Date().toISOString();
+    // v4.57.1: Multi-topic sessions (selected via Custom Quiz with 2+ chips)
+    // used to save ONE history entry under the "Multi: Topic A, Topic B, …"
+    // sentinel string. Progress page's `h.filter(e => e.topic === t)` never
+    // matched that sentinel against individual topic keys, so every
+    // constituent topic showed as "Untouched" despite the user studying it.
+    // Fix: split the session into per-topic entries using each question's
+    // Haiku-assigned `q.topic` field. Weak-spot scoring, domain-mastery
+    // aggregation, and readiness all become more accurate too.
+    if (typeof activeQuizTopic === 'string' && activeQuizTopic.startsWith('Multi: ')) {
+      const byTopic = {};
+      log.forEach(entry => {
+        const t = (entry.q && entry.q.topic) || 'Unknown';
+        if (!byTopic[t]) byTopic[t] = { total: 0, score: 0 };
+        byTopic[t].total++;
+        if (entry.isRight) byTopic[t].score++;
+      });
+      Object.keys(byTopic).forEach(t => {
+        const { total: tTotal, score: tScore } = byTopic[t];
+        const tPct = tTotal > 0 ? Math.round((tScore / tTotal) * 100) : 0;
+        saveToHistory({ date: now, topic: t, difficulty: diff, score: tScore, total: tTotal, pct: tPct, mode: entryMode, multi: true });
+      });
+    } else {
+      saveToHistory({ date: now, topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
+    }
   }
   // v4.54.17: if this quiz pushed the user past their daily goal for the
   // first time today, show an end-of-day recap card.

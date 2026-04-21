@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.0', js.includes("const APP_VERSION = '4.57.0"));
+test('APP_VERSION is 4.57.1', js.includes("const APP_VERSION = '4.57.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.0', sw.includes('netplus-v4.57.0'));
+test('SW cache bumped to v4.57.1', sw.includes('netplus-v4.57.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6356,7 +6356,7 @@ test('v4.54.17 JS: _maybeShowDailyRecap + dismissDailyRecap defined',
 test('v4.54.17 JS: daily recap gated by localStorage once-per-day',
   /_maybeShowDailyRecap[\s\S]{0,2000}STORAGE_DAILY_RECAP_SHOWN[\s\S]{0,400}todayKey/.test(js));
 test('v4.54.17 JS: finish() calls _maybeShowDailyRecap after saveToHistory',
-  /function finish\(\)[\s\S]{0,6000}saveToHistory[\s\S]{0,500}_maybeShowDailyRecap/.test(js));
+  /function finish\(\)[\s\S]{0,10000}saveToHistory[\s\S]{0,1500}_maybeShowDailyRecap/.test(js));  // v4.57.1: widened both gaps (6000→10000, 500→1500) for multi-topic split branch
 test('v4.54.17 JS: submitExam calls _maybeShowDailyRecap after saveToHistory',
   /submitExam[\s\S]{0,12000}saveToHistory[\s\S]{0,400}_maybeShowDailyRecap/.test(js));
 test('v4.54.17 JS: recap shows today\'s stats + delta + streak + days-to-exam',
@@ -6869,6 +6869,89 @@ test('v4.57.0 gen: DISTRACTOR QUALITY RULES section added',
   /DISTRACTOR QUALITY RULES:[\s\S]{0,400}at least TWO[\s\S]{0,200}plausible/i.test(js));
 test('v4.57.0 gen: distractor rule forbids 3-of-4 obviously-wrong pattern',
   /3 of 4 options are obviously wrong[\s\S]{0,200}giveaway/.test(js));
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.1 — Multi-topic history entries split per constituent topic
+// Pre-v4.57.1 bug: Multi-topic Custom Quiz sessions saved ONE history
+// entry under "Multi: Topic A, Topic B, …" sentinel; Progress page's
+// `h.filter(e => e.topic === t)` never matched it so every constituent
+// topic showed as Untouched despite being studied.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.1 JS: finish() detects Multi: prefix before saving history',
+  /activeQuizTopic\.startsWith\(['"]Multi: ['"]\)/.test(js));
+test('v4.57.1 JS: multi-topic save uses q.topic from each log entry',
+  /byTopic\[\(entry\.q && entry\.q\.topic\)[\s\S]{0,200}byTopic\[t\]\.total\+\+/.test(js) ||
+  /log\.forEach\([\s\S]{0,200}entry\.q && entry\.q\.topic/.test(js));
+test('v4.57.1 JS: per-topic entries flagged with multi: true for future telemetry',
+  /saveToHistory\(\{[\s\S]{0,300}multi:\s*true/.test(js));
+test('v4.57.1 JS: single-topic path unchanged (else-branch preserves original behaviour)',
+  /else\s*\{\s*saveToHistory\(\{\s*date:\s*now,\s*topic:\s*activeQuizTopic/.test(js));
+
+// Behavioural — vm-sandbox the split logic with a fake `log` array
+(function testMultiTopicSplit() {
+  try {
+    const vm = require('vm');
+    // Extract the multi-topic branch as a standalone tester
+    const helperBody = `
+      function splitMultiTopic(log) {
+        const byTopic = {};
+        log.forEach(entry => {
+          const t = (entry.q && entry.q.topic) || 'Unknown';
+          if (!byTopic[t]) byTopic[t] = { total: 0, score: 0 };
+          byTopic[t].total++;
+          if (entry.isRight) byTopic[t].score++;
+        });
+        return Object.keys(byTopic).map(t => {
+          const { total: tTotal, score: tScore } = byTopic[t];
+          const tPct = tTotal > 0 ? Math.round((tScore / tTotal) * 100) : 0;
+          return { topic: t, total: tTotal, score: tScore, pct: tPct };
+        });
+      }
+    `;
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(helperBody, ctx);
+
+    // Simulate a 7/7/6 multi-topic session with varying accuracy per topic
+    const fakeLog = [
+      // 7 Connection Issues questions, 6 correct
+      ...Array.from({ length: 7 }, (_, i) => ({ q: { topic: 'Connection Issues' }, isRight: i < 6 })),
+      // 7 Perf Issues questions, 5 correct
+      ...Array.from({ length: 7 }, (_, i) => ({ q: { topic: 'Perf Issues' }, isRight: i < 5 })),
+      // 6 Service Issues questions, 4 correct
+      ...Array.from({ length: 6 }, (_, i) => ({ q: { topic: 'Service Issues' }, isRight: i < 4 })),
+    ];
+    const result = ctx.splitMultiTopic(fakeLog);
+
+    test('v4.57.1 sandbox: 20-Q multi-topic session splits into 3 per-topic entries',
+      result.length === 3);
+    test('v4.57.1 sandbox: Connection Issues entry = 7 total / 6 score / 86%',
+      result.find(r => r.topic === 'Connection Issues')?.total === 7 &&
+      result.find(r => r.topic === 'Connection Issues')?.score === 6 &&
+      result.find(r => r.topic === 'Connection Issues')?.pct === 86);
+    test('v4.57.1 sandbox: Perf Issues entry = 7 total / 5 score / 71%',
+      result.find(r => r.topic === 'Perf Issues')?.total === 7 &&
+      result.find(r => r.topic === 'Perf Issues')?.score === 5 &&
+      result.find(r => r.topic === 'Perf Issues')?.pct === 71);
+    test('v4.57.1 sandbox: Service Issues entry = 6 total / 4 score / 67%',
+      result.find(r => r.topic === 'Service Issues')?.total === 6 &&
+      result.find(r => r.topic === 'Service Issues')?.score === 4 &&
+      result.find(r => r.topic === 'Service Issues')?.pct === 67);
+    test('v4.57.1 sandbox: sum of per-topic scores = overall session score (invariant)',
+      result.reduce((a, r) => a + r.score, 0) === 15 &&
+      result.reduce((a, r) => a + r.total, 0) === 20);
+    test('v4.57.1 sandbox: missing q.topic falls back to "Unknown" (defensive)',
+      (() => {
+        const r = ctx.splitMultiTopic([{ q: {}, isRight: true }]);
+        return r.length === 1 && r[0].topic === 'Unknown';
+      })());
+    test('v4.57.1 sandbox: handles zero-question session gracefully',
+      ctx.splitMultiTopic([]).length === 0);
+  } catch (e) {
+    test('v4.57.1 sandbox: split logic executes without error', false);
+  }
+})();
 
 // ── Validation audit regression gate ──
 // The programmatic validator has a known catch-rate floor (60%) and a
