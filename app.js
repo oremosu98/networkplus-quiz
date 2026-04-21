@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.5
+// Network+ AI Quiz — app.js  v4.59.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.5';
+const APP_VERSION = '4.59.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1138,6 +1138,267 @@ const QUESTION_EXEMPLARS = [
     explanation: 'The 7-step methodology inserts "Establish a plan of action to resolve the problem and identify potential effects" BEFORE implementation (step 4 of 7). This step forces the technician to think through rollback, downtime, dependent systems, and communication before acting. Immediate implementation (A) skips the plan and risks making things worse. Documentation (C) is the final step (7). Escalation (D) can be part of the plan but is not the automatic next step.',
     source: 'curated',
     addedVersion: '4.58.5',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PHASE 3 RECALIBRATION CYCLE 1 (v4.59.0) — gap coverage from user's
+  // first real Jason Dion practice test (67/90 = 74%, 2026-04-21).
+  // 14 new exemplars targeting topics the user had never seen before.
+  // Bank grows 60 → 74.
+  // ═════════════════════════════════════════════════════════════════
+  // ───── Cluster 1: VPN tunnel types (4) ─────
+  {
+    type: 'mcq',
+    question: 'A remote employee connects to their corporate VPN. Their VPN client is configured so that ALL traffic from their laptop \u2014 including traffic to Google, to streaming services, and to the corporate intranet \u2014 is routed through the corporate VPN gateway before exiting to the internet. Which VPN tunnel mode does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'IPsec & VPN Protocols',
+    objective: '4.4',
+    options: {
+      A: 'Split tunnel',
+      B: 'Full tunnel',
+      C: 'Clientless VPN',
+      D: 'Point-to-point VPN'
+    },
+    answer: 'B',
+    explanation: 'Full tunnel VPN (also called "forced tunnel") routes ALL client traffic through the VPN gateway. This gives the corporate security team full visibility into the user\u2019s internet activity and can enforce policies like DLP, web filtering, and malware inspection on all traffic. The trade-off is higher bandwidth consumption on the VPN link, and the user\u2019s internet traffic appears to originate from the corporate network. Split tunnel (A) is the opposite \u2014 only corporate-destined traffic uses the VPN. Clientless VPN (C) is a browser-based model, not a tunnel mode. Point-to-point (D) refers to dedicated WAN links.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company wants to reduce bandwidth usage on their corporate VPN while still allowing remote users to access internal resources. They configure the VPN so that only traffic destined for internal subnets (10.0.0.0/8) goes through the VPN, while all other traffic (Google, SaaS apps, personal browsing) uses the user\u2019s local internet directly. Which VPN tunnel mode is in use?',
+    difficulty: 'Exam Level',
+    topic: 'IPsec & VPN Protocols',
+    objective: '4.4',
+    options: {
+      A: 'Full tunnel',
+      B: 'Split tunnel',
+      C: 'Site-to-site IPsec',
+      D: 'Clientless VPN'
+    },
+    answer: 'B',
+    explanation: 'Split tunnel VPN routes only specific traffic (typically destined for internal corporate subnets) through the VPN, while all other traffic uses the client\u2019s normal internet connection. This reduces VPN bandwidth load and improves user experience for non-corporate traffic. Security trade-off: corporate security controls do not see the user\u2019s non-VPN traffic. Full tunnel (A) forces ALL traffic through the VPN. Site-to-site (C) connects networks. Clientless (D) is a different architecture.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A contractor needs occasional access to a company\u2019s internal web-based HR portal from their personal laptop while travelling. The company does not want to install any VPN client software on the contractor\u2019s machine, but they also need encrypted access to the internal-only HR portal. Which VPN solution best fits this requirement?',
+    difficulty: 'Exam Level',
+    topic: 'SSL/TLS VPN',
+    objective: '4.4',
+    options: {
+      A: 'IPsec site-to-site VPN',
+      B: 'Full-tunnel IPsec remote access VPN',
+      C: 'Clientless SSL/TLS VPN (web portal access)',
+      D: 'GRE tunneling'
+    },
+    answer: 'C',
+    explanation: 'Clientless SSL/TLS VPN provides encrypted remote access to specific internal web applications through the user\u2019s standard HTTPS-capable browser \u2014 no client software installed on the endpoint. Users authenticate through a web portal, then access allowed applications through a reverse-proxy architecture. IPsec site-to-site (A) connects networks, not individual browsers. IPsec remote access (B) requires a client. GRE (D) is a tunneling protocol, not a remote-access VPN architecture.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which VPN architecture establishes a persistent, encrypted tunnel between two physical sites (such as a headquarters and a branch office) so that users at both sites can communicate as if on the same network, without requiring any VPN client on individual user endpoints?',
+    difficulty: 'Exam Level',
+    topic: 'IPsec & VPN Protocols',
+    objective: '4.4',
+    options: {
+      A: 'Remote access VPN (full tunnel)',
+      B: 'Remote access VPN (split tunnel)',
+      C: 'Site-to-site VPN',
+      D: 'Clientless SSL VPN'
+    },
+    answer: 'C',
+    explanation: 'Site-to-site VPN connects two networks via VPN gateways at each end (typically routers or firewalls). Individual users at both sites are transparently part of the same logical network \u2014 no per-user VPN client needed. Remote access VPNs (A, B) are for individual users connecting from outside. Clientless (D) is for individual users accessing specific apps through a browser.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  // ───── Cluster 2: Rare/niche topics (5) ─────
+  {
+    type: 'mcq',
+    question: 'Which RFC-standardized extension to NTP adds cryptographic authentication and encryption to time-synchronization traffic to prevent attackers from manipulating a target\u2019s clock?',
+    difficulty: 'Hard',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.6',
+    options: {
+      A: 'NTS (Network Time Security, RFC 8915)',
+      B: 'NTP Authentication with shared keys (symmetric MD5)',
+      C: 'NTP broadcast mode with multicast hardening',
+      D: 'Authenticated NTP version 3 (RFC 1305)'
+    },
+    answer: 'A',
+    explanation: 'NTS (Network Time Security, RFC 8915) provides TLS-based authentication and key exchange for NTPv4, protecting time-synchronization traffic from spoofing and replay attacks. This is the modern recommendation for secure NTP. Symmetric MD5 authentication (B) existed but uses pre-shared keys that do not scale and rely on weak MD5. Broadcast/multicast modes (C) are about delivery, not security. Authenticated NTPv3 (D) is legacy. NTS is the current N10-009 answer.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which IPv6 transition mechanism tunnels IPv6 traffic over IPv4 using UDP, specifically designed to work through existing IPv4 NAT devices?',
+    difficulty: 'Hard',
+    topic: 'IPv6',
+    objective: '1.8',
+    options: {
+      A: '6to4 (RFC 3056)',
+      B: 'Teredo (RFC 4380)',
+      C: 'ISATAP',
+      D: 'Dual-stack'
+    },
+    answer: 'B',
+    explanation: 'Teredo (RFC 4380) encapsulates IPv6 packets inside UDP datagrams to traverse IPv4 NAT \u2014 NAT devices treat Teredo traffic as ordinary UDP, allowing IPv6 hosts behind NAT to communicate. 6to4 (A) does not traverse NAT directly \u2014 it uses protocol 41 which many NATs break. ISATAP (C) is for IPv6 over IPv4 within an administrative domain (intra-site). Dual-stack (D) runs both protocols natively, not a tunneling mechanism.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A security analyst wants to identify which TCP and UDP ports are open on a remote server, determine the operating system running on the host, and detect running services \u2014 without necessarily having administrative access to the target. Which tool is best suited for this task?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Ping',
+      B: 'Nmap (Network Mapper)',
+      C: 'Wireshark',
+      D: 'Traceroute'
+    },
+    answer: 'B',
+    explanation: 'Nmap is the standard network discovery and port scanning tool. It enumerates open TCP/UDP ports, probes services (-sV), attempts OS fingerprinting (-O), and performs many reconnaissance functions \u2014 all without requiring target-side credentials. Ping (A) only tests reachability. Wireshark (C) captures traffic on the local interface; it observes but does not actively probe remote hosts. Traceroute (D) maps network paths but does not scan ports.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician uses Wireshark to capture network traffic on their segment and saves the capture for later analysis. Which file format is used to store this type of packet capture data?',
+    difficulty: 'Foundational',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: '.pcap (or .pcapng)',
+      B: '.log',
+      C: '.csv',
+      D: '.mib'
+    },
+    answer: 'A',
+    explanation: 'PCAP (.pcap) and its successor PCAP Next Generation (.pcapng) are the standard file formats for storing packet captures. Tools like Wireshark, tcpdump, and tshark all read/write these formats. .log is a generic text-log format. .csv is tabular comma-separated values. .mib is a Management Information Base file used with SNMP.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A data center is being designed to protect expensive equipment from fire damage while minimizing the risk of accidental water release causing damage if a single sprinkler head is triggered or a pipe leaks. Which fire suppression system requires both a detection event (smoke or heat) AND a second triggering event (such as sprinkler activation) before water is released?',
+    difficulty: 'Exam Level',
+    topic: 'Physical Security Controls',
+    objective: '4.5',
+    options: {
+      A: 'Wet pipe system',
+      B: 'Dry pipe system',
+      C: 'Pre-action system',
+      D: 'Clean agent system (FM-200 / Inergen)'
+    },
+    answer: 'C',
+    explanation: 'A pre-action fire suppression system keeps the pipes empty until BOTH a detection event occurs AND a sprinkler head is triggered. Only then does water enter the system and release at the triggered sprinkler. This prevents accidental water damage from leaks or a single sprinkler head activation. Wet pipe (A) has water in pipes at all times \u2014 single trigger releases water instantly. Dry pipe (B) uses pressurized air; water enters when a sprinkler activates. Clean agent (D) uses gas (no water) \u2014 different category for server rooms where water damage must be avoided entirely.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  // ───── Cluster 3: Blueprint coverage gaps (5) ─────
+  {
+    type: 'mcq',
+    question: 'An organization wants to verify that every device connecting to the corporate network has up-to-date antivirus signatures, an active host firewall, and meets a minimum OS patch level before being allowed onto the production VLAN. Non-compliant devices should be placed into a quarantine VLAN with limited access. Which security technology enables this posture-based admission control?',
+    difficulty: 'Exam Level',
+    topic: 'AAA & Authentication',
+    objective: '4.3',
+    options: {
+      A: 'Network Access Control (NAC)',
+      B: 'Stateful firewall',
+      C: 'Intrusion Detection System (IDS)',
+      D: 'Network Address Translation (NAT)'
+    },
+    answer: 'A',
+    explanation: 'Network Access Control (NAC) evaluates endpoint posture (AV status, patch level, host firewall, certificate presence) before granting network access. Non-compliant devices are placed in quarantine VLANs, given limited access, or denied entirely. NAC integrates with 802.1X for authentication and VLAN assignment. A stateful firewall (B) tracks connection state but does not evaluate endpoint posture. IDS (C) detects suspicious traffic post-admission, not posture pre-admission. NAT (D) translates addresses and is unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator wants to prioritize VoIP traffic over bulk file transfers at Layer 2 (within the local LAN) using the 3-bit priority field in the 802.1Q VLAN tag. Which QoS concept is this?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.2',
+    options: {
+      A: 'Differentiated Services Code Point (DSCP) at Layer 3',
+      B: 'Class of Service (CoS) at Layer 2, using 802.1p',
+      C: 'Type of Service (ToS) at Layer 3',
+      D: 'Multi-Protocol Label Switching (MPLS)'
+    },
+    answer: 'B',
+    explanation: 'Class of Service (CoS) uses the 3-bit Priority Code Point (PCP) field inside the 802.1Q VLAN tag to mark frames with a priority value 0-7 at Layer 2. Switches use these values to queue and prioritize traffic on local links. DSCP (A) and ToS (C) operate at Layer 3 in the IP header \u2014 useful across routers, but CoS is specifically Layer 2. MPLS (D) is a different forwarding paradigm using labels, not QoS marking.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A database server uses a RAID configuration with four 1 TB drives. The configuration stripes data across three drives for performance and stores distributed parity across all four, tolerating the failure of exactly one drive. What RAID level is this?',
+    difficulty: 'Exam Level',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'RAID 0 (striping, no redundancy)',
+      B: 'RAID 1 (mirroring)',
+      C: 'RAID 5 (striping with distributed parity)',
+      D: 'RAID 10 (striped mirrors)'
+    },
+    answer: 'C',
+    explanation: 'RAID 5 stripes data and distributes parity blocks across all drives. It tolerates the loss of exactly one drive and provides both read performance and capacity efficiency (N-1 drives usable). RAID 0 (A) has no parity \u2014 any drive loss destroys data. RAID 1 (B) mirrors drives \u2014 requires two drives minimum, tolerates one failure, 50% capacity-efficient. RAID 10 (D) combines mirroring and striping \u2014 tolerates drive failures but uses 50% capacity.',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician is deploying three wireless access points in close proximity and wants to eliminate co-channel interference while using the 2.4 GHz band. Which channel assignment provides the best non-overlapping configuration?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Channels 1, 2, and 3',
+      B: 'Channels 1, 6, and 11',
+      C: 'Channels 2, 7, and 12',
+      D: 'Channels 5, 10, and 15'
+    },
+    answer: 'B',
+    explanation: 'In the 2.4 GHz band, only channels 1, 6, and 11 are truly non-overlapping in most regulatory domains. Each Wi-Fi channel is ~22 MHz wide, and the centers of channels 1, 6, and 11 are spaced 25 MHz apart \u2014 just enough to prevent interference. Options A, C, and D use channels that overlap each other, causing co-channel interference and degraded performance. (5 GHz has many more non-overlapping channels, which is why modern deployments prefer 5 GHz where possible.)',
+    source: 'curated',
+    addedVersion: '4.59.0',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is reviewing PoE power classification standards. Which IEEE 802.3 standard defines Type 3 and Type 4 classifications that can deliver up to 60 W and 90-100 W respectively at the source, enabling devices like PTZ cameras and high-power wireless access points?',
+    difficulty: 'Hard',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: {
+      A: '802.3af (PoE, Type 1, up to 15.4 W)',
+      B: '802.3at (PoE+, Type 2, up to 30 W)',
+      C: '802.3bt (PoE++/4PPoE, Types 3 & 4, up to 60/100 W)',
+      D: '802.3az (Energy Efficient Ethernet)'
+    },
+    answer: 'C',
+    explanation: '802.3bt (ratified 2018) defines PoE++ classifications Type 3 (up to 60 W at source, 51 W at device) and Type 4 (up to ~90-100 W at source, ~71 W at device). It uses all 4 pairs of the cable rather than 2, hence also known as 4-Pair PoE (4PPoE). 802.3af (A) is the original PoE Type 1 at 15.4 W. 802.3at (B) is PoE+ Type 2 at 30 W (already in bank). 802.3az (D) is Energy Efficient Ethernet \u2014 unrelated to PoE power delivery.',
+    source: 'curated',
+    addedVersion: '4.59.0',
     addedDate: '2026-04-21'
   }
 ];
