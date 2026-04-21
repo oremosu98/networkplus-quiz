@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.4
+// Network+ AI Quiz — app.js  v4.59.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.4';
+const APP_VERSION = '4.59.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2964,6 +2964,441 @@ const QUESTION_EXEMPLARS = [
     explanation: 'Classic distance-vector routing loop. Split horizon is the rule that a router must NOT advertise a route back out the interface from which it learned that route. Without it (or with poison reverse disabled), router A learns a route from B, then re-advertises it back to B — which now thinks A has a better path. Packets bounce between them until TTL expires. Modern RIP enables split horizon by default; older configs or certain topologies (hub-spoke frame relay) may disable it. MTU (B) would show fragmentation or black-hole, not a loop. Duplicate IP (C) causes ARP issues, not routing loops. DNS (D) is application layer.',
     source: 'curated',
     addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — ROAD TO 200 BATCH 5 (v4.59.5): 22 new exemplars
+  // Bank grows 156 → 178. Distribution: D1+5, D2+5, D3+5, D4+0, D5+7.
+  // D4 sits out — already at target 28. D5 gets extra weight for 24% exam %.
+  // ═════════════════════════════════════════════════════════════════
+  // ── D1-36: DNSSEC chain validation (1.6 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A resolver receives a DNSSEC-signed answer for www.example.com. Which validation chain must succeed for the resolver to return the answer as AUTHENTIC rather than BOGUS?',
+    scenario: 'The resolver performs DNSSEC validation. It has a trust anchor for the root zone pre-configured. It must walk the chain of trust from root down to the answer.',
+    difficulty: 'Exam Level',
+    topic: 'DNS Records & DNSSEC',
+    objective: '1.6',
+    options: {
+      A: 'Root trust anchor → DS record in .com → DNSKEY of example.com → RRSIG over the requested RRset',
+      B: 'The answer must match a cached copy from any recursive resolver',
+      C: 'TLS certificate presented by the DNS server must be valid',
+      D: 'ICMP Echo Reply must succeed from the resolver to the authoritative server'
+    },
+    answer: 'A',
+    explanation: 'DNSSEC validation follows a chain of trust: the root zone signs the .com DS record (which hashes the .com DNSKEY), .com signs the example.com DS record, example.com signs its own DNSKEY and the RRsets with its ZSK (validated by RRSIG records). Break the chain anywhere and the answer is BOGUS. Caching (B), TLS (C), and ICMP (D) are unrelated to DNSSEC chain validation.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-37: CIDR aggregation (1.7 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An ISP has customers in 192.168.16.0/24, 192.168.17.0/24, 192.168.18.0/24, and 192.168.19.0/24. What is the smallest single prefix that aggregates all four networks for advertisement to upstream peers?',
+    scenario: 'The ISP wants to reduce the number of BGP prefixes advertised upstream by aggregating the four contiguous /24 allocations into a single summary route without including any unrelated addresses.',
+    difficulty: 'Exam Level',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '192.168.16.0/21',
+      B: '192.168.16.0/22',
+      C: '192.168.16.0/23',
+      D: '192.168.0.0/16'
+    },
+    answer: 'B',
+    explanation: 'Four contiguous /24s aggregate to one /22: 192.168.16.0/22 covers 192.168.16.0 through 192.168.19.255 exactly. /23 (C) covers only two /24s. /21 (A) covers eight /24s — too broad, includes unallocated space. /16 (D) massively over-aggregates. CIDR summarisation picks the smallest (longest-prefix) block that covers exactly the contiguous set.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-38: MTU vs MSS (1.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'What is the relationship between MTU (Maximum Transmission Unit) and MSS (Maximum Segment Size) on a standard Ethernet + IPv4 + TCP path?',
+    difficulty: 'Exam Level',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.4',
+    options: {
+      A: 'MTU and MSS are synonyms',
+      B: 'MSS = MTU (1500) − IPv4 header (20) − TCP header (20) = 1460 bytes typically',
+      C: 'MSS is always 1500; MTU varies by link',
+      D: 'MSS is only defined for UDP, not TCP'
+    },
+    answer: 'B',
+    explanation: 'MTU is the largest Layer 2 frame payload (Ethernet default 1500 bytes). MSS is the largest TCP segment payload, calculated as MTU minus the IP and TCP header overhead: on standard IPv4 + TCP, 1500 − 20 (IP) − 20 (TCP) = 1460 bytes. MSS is negotiated during the TCP 3-way handshake to avoid IP fragmentation. MSS applies to TCP only (D is wrong). A and C are factually wrong.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-39: DHCP T1/T2 renewal (1.6 / Hard / recall) ──
+  {
+    type: 'mcq',
+    question: 'In the DHCP lease renewal process, what happens at T1 (the renewal timer)?',
+    difficulty: 'Hard',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'At T1 (50% of lease) the client sends a unicast DHCPREQUEST to the ORIGINAL DHCP server to renew',
+      B: 'At T1 the client broadcasts DHCPDISCOVER to any available server',
+      C: 'At T1 the client immediately releases the IP and starts over',
+      D: 'At T1 the client queries DNS for a new IP address'
+    },
+    answer: 'A',
+    explanation: 'DHCP renewal has two timers. T1 = 50% of lease duration: the client sends a unicast DHCPREQUEST to the original server. If that fails, T2 = 87.5% of lease duration: the client broadcasts DHCPREQUEST to any server. Only after the full lease expires without success does the client release and start over with a DHCPDISCOVER broadcast (B is T2 or later). C and D are wrong.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-40: CIDR-to-mask conversion (1.7 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'What is the dotted-decimal subnet mask for a /27 prefix?',
+    difficulty: 'Foundational',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '255.255.255.192 (/26)',
+      B: '255.255.255.224 (/27)',
+      C: '255.255.255.240 (/28)',
+      D: '255.255.255.128 (/25)'
+    },
+    answer: 'B',
+    explanation: '/27 means 27 network bits and 5 host bits. In the fourth octet: 11100000 = 224. So 255.255.255.224. Block size = 2^5 = 32 addresses, minus network + broadcast = 30 usable hosts per subnet. The common /25-/30 fourth-octet ladder: /25=128, /26=192, /27=224, /28=240, /29=248, /30=252.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-32: Cable categories (2.3 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which copper Ethernet category is the MINIMUM rated for 10GBASE-T up to 100 metres without running warm and without shielding requirements?',
+    difficulty: 'Exam Level',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: {
+      A: 'Cat5e (1 Gbps up to 100 m)',
+      B: 'Cat6 (10 Gbps up to ~55 m)',
+      C: 'Cat6A (10 Gbps up to 100 m, 500 MHz)',
+      D: 'Cat3 (10/100 Mbps only)'
+    },
+    answer: 'C',
+    explanation: 'Cat6A is rated for full 10GBASE-T at 100 metres with 500 MHz bandwidth and internal separators to reduce alien crosstalk. Cat6 (B) supports 10 Gbps but only to ~55 metres without shielding. Cat5e (A) tops out at 1 Gbps. Cat3 (D) is telephone/10BASE-T era. Cat7/Cat8 go further (40-Gig / short-reach data centre) but Cat6A is the minimum for standard 10G horizontal cabling.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-33: Fiber connectors (2.3 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which fiber connector type is a SMALL-FORM-FACTOR duplex connector that uses a push-pull latch and is the most common in modern data centre patch panels?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '2.3',
+    options: {
+      A: 'ST — bayonet twist-lock, single fiber',
+      B: 'SC — square push-pull, larger form factor',
+      C: 'LC — small-form-factor push-pull, typically duplex',
+      D: 'MPO — 12 or 24 fiber ribbon connector'
+    },
+    answer: 'C',
+    explanation: 'LC (Lucent Connector) is the small-form-factor duplex connector used in almost all modern fiber patch panels and SFP transceivers. About half the size of SC. ST (A) is older bayonet-style and simplex. SC (B) is larger and typically duplex but rarely used in modern density. MPO/MTP (D) is a parallel multi-fiber connector for 40G/100G breakout cables, not a standard single-link connector.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-34: Transceivers SFP/SFP+/QSFP (2.3 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A data centre switch has SFP+ ports. A network engineer needs a single 40 Gbps uplink from this switch to a spine. Which transceiver form factor provides 40 Gbps in one physical port?',
+    scenario: 'SFP+ is rated for 10 Gbps per port. The uplink needs 40 Gbps in a single interface slot. The spine switch offers both SFP+ and QSFP+ ports.',
+    difficulty: 'Exam Level',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: {
+      A: 'Use four SFP+ 10G transceivers bundled with LACP',
+      B: 'Use a QSFP+ 40 Gbps transceiver (the switch must have a QSFP+ port)',
+      C: 'Use an SFP 1 Gbps transceiver with a faster cable',
+      D: 'Use a GBIC transceiver'
+    },
+    answer: 'B',
+    explanation: 'QSFP+ (Quad Small Form-Factor Pluggable Plus) delivers 40 Gbps (4 × 10 Gbps lanes) in a single port. Newer QSFP28 delivers 100 Gbps (4 × 25). SFP+ is 10G per port; four SFP+ with LACP (A) works logically but needs 4 ports + 4 fibres + LAG config — not a single interface. SFP (C) is 1 Gbps max. GBIC (D) is the older/larger predecessor to SFP.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-35: Network topologies (2.3 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which physical network topology has every device connecting directly to a single central device (switch or hub), and is the dominant LAN topology today?',
+    difficulty: 'Foundational',
+    topic: 'Cabling & Topology',
+    objective: '2.3',
+    options: {
+      A: 'Bus — single shared coaxial cable',
+      B: 'Ring — each node connects to two neighbours in a loop',
+      C: 'Star — each node connects to a central switch',
+      D: 'Full mesh — every node connects directly to every other node'
+    },
+    answer: 'C',
+    explanation: 'Star topology connects every device to a central switch. One cable fault affects only that device (not the whole network as with bus). Modern Ethernet LAN is star-wired. Bus (A) is legacy 10BASE2/5 coax. Ring (B) is Token Ring or FDDI. Full mesh (D) is used for WAN/core designs where resilience matters more than cost — requires n(n-1)/2 links.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-36: Wireless site survey (2.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A company is planning a new warehouse Wi-Fi deployment and must determine the number and placement of APs before installation. Which task produces a heatmap of expected RF coverage, channel planning, and AP counts?',
+    scenario: 'The warehouse is 8000 m² with metal racking and concrete walls. The team must avoid RF dead zones and minimise co-channel interference before committing to AP purchases.',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'A predictive site survey using RF modelling software with building floor plan and material attenuation data',
+      B: 'Configuring SNMPv3 on existing APs',
+      C: 'Reading the AP data sheet',
+      D: 'Running iperf from one laptop to another'
+    },
+    answer: 'A',
+    explanation: 'A predictive site survey (via tools like Ekahau, iBwave, Hamina) takes the building floor plan, wall/material attenuation values, and AP specs to produce a coverage heatmap, AP count, and channel plan BEFORE installation. A passive/active site survey validates AFTER installation. SNMP (B) is monitoring. Data sheets (C) give specs but not site-specific coverage. iperf (D) measures throughput, not coverage.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-30: sFlow vs NetFlow (3.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A very high-speed core switch (400 Gbps) is too fast for full-flow traffic accounting without overwhelming the collector. Which technology uses packet sampling to scale to line rates?',
+    scenario: 'NetFlow export on this switch would hit ~5 million flows/minute and saturate the collector. The team accepts statistical sampling rather than full-flow accuracy to keep visibility at 400G.',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'sFlow — statistical packet sampling (e.g., 1 in 2048), counter polling; designed for high-speed interfaces',
+      B: 'Full NetFlow v9 — record every flow',
+      C: 'SNMP walks of every MIB',
+      D: 'Syslog only'
+    },
+    answer: 'A',
+    explanation: 'sFlow (RFC 3176) samples packets at a configurable rate (typical 1-in-2048 or 1-in-1024) and exports the samples plus interface counters. That scales to 400G+ linerates because CPU cost is fixed per sample. Full NetFlow (B) tracks every flow and does not scale to very high linerates. SNMP walks (C) and syslog (D) give no flow visibility.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-31: Jump server / bastion (3.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A security team requires that administrators access production servers only through a single hardened host that logs every session. What is this host called?',
+    scenario: 'Direct SSH from administrator laptops to production servers is being eliminated. The new model forces all administrative sessions through a single auditable host in a management network.',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.5',
+    options: {
+      A: 'Load balancer',
+      B: 'Jump server (bastion host) — a hardened intermediary that logs and controls administrative access',
+      C: 'NTP server',
+      D: 'Caching proxy'
+    },
+    answer: 'B',
+    explanation: 'A jump server (also called bastion host) is a single hardened entry point for administrative access. Users SSH or RDP into the bastion, and from there into production systems. Every session is logged (often with session recording). The bastion is heavily monitored, patched, and often MFA-enforced. This reduces attack surface by eliminating direct admin access from user endpoints. Load balancers (A), NTP (C), and proxies (D) serve unrelated purposes.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-32: SIEM (3.2 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which platform aggregates logs from firewalls, IDS/IPS, servers, switches, and authentication systems into one searchable store with correlation rules and alerting?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Syslog server with flat file rotation only',
+      B: 'SNMP poller',
+      C: 'SIEM (Security Information and Event Management) — centralised log aggregation + correlation + alerting',
+      D: 'NetFlow collector'
+    },
+    answer: 'C',
+    explanation: 'A SIEM (Splunk, QRadar, Sentinel, Elastic Security, etc.) pulls logs from heterogeneous sources, normalises them, applies correlation rules (e.g., repeated auth failure + successful login from new geo), and produces alerts. A raw syslog server (A) stores logs but lacks correlation. SNMP (B) and NetFlow (D) handle different data types (device health / traffic flows).',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-33: SMB vs NFS (3.4 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which file-sharing protocol originated in the UNIX world and is the default for most Linux servers, while a DIFFERENT protocol dominates Windows file sharing?',
+    difficulty: 'Foundational',
+    topic: 'SMB & Network File Services',
+    objective: '3.4',
+    options: {
+      A: 'FTP for UNIX, HTTP for Windows',
+      B: 'NFS for UNIX/Linux, SMB/CIFS for Windows',
+      C: 'TFTP for UNIX, SFTP for Windows',
+      D: 'Both platforms use the same protocol, AFP'
+    },
+    answer: 'B',
+    explanation: 'NFS (Network File System, Sun Microsystems) is the traditional UNIX/Linux file share, using TCP 2049. SMB (Server Message Block, also called CIFS in older form) is the Windows file share, on TCP 445. Both can interoperate across platforms today, but NFS is default on Linux, SMB on Windows. AFP (D) was Apple Filing Protocol, now deprecated in macOS in favour of SMB.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-34: IPAM (3.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A large enterprise has hundreds of VLANs, multiple DHCP scopes, and extensive use of private IPv4 + IPv6 space. Tracking all of it in spreadsheets keeps causing conflicts. Which tool category solves this?',
+    scenario: 'IP address conflicts are reported weekly. DNS entries are stale. DHCP scopes overlap. The team wants a central authoritative record of every subnet, DHCP scope, DNS entry, and assigned IP.',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'IPAM (IP Address Management) platform — centralised tracking of subnets, DHCP scopes, DNS records',
+      B: 'SIEM for security events',
+      C: 'Load balancer with virtual IPs',
+      D: 'Switch stacking'
+    },
+    answer: 'A',
+    explanation: 'IPAM platforms (Infoblox, phpIPAM, BlueCat, NetBox, etc.) provide authoritative tracking of subnets, VLANs, DHCP scopes, DNS records, and assigned IPs — usually integrating directly with DNS/DHCP servers so the record is the source of truth. SIEM (B) is security. Load balancers (C) and stacking (D) are unrelated. Spreadsheets drift; IPAM does not.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-34: Cable certification vs qualification (5.2 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which cable testing tool provides a PASS/FAIL result against a specific standard (e.g., Cat6A per TIA/EIA-568) with detailed measurements like NEXT, return loss, and insertion loss?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Cable certifier (e.g., Fluke DSX, Versiv) — produces a PASS/FAIL against the TIA standard with full parameter sweep',
+      B: 'Qualification tester — reports only whether the link supports a target rate (e.g., 1 Gbps), no detailed measurements',
+      C: 'Verification tester (continuity/wiremap only)',
+      D: 'Multimeter — DC voltage and resistance'
+    },
+    answer: 'A',
+    explanation: 'Three tiers: (1) Verification = continuity + wiremap (toner + probe, basic wiremap tester). (2) Qualification (B) = "does this link support 1 Gbps right now?" but no category certification. (3) Certification (A) = full parameter sweep (NEXT, FEXT, PSNEXT, return loss, insertion loss, propagation delay) with PASS/FAIL against a TIA category. Cable installers use certifiers to deliver formal warranty reports. Multimeters (D) are not cable testers.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-35: OTDR (5.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A 12 km dark-fiber link between two buildings has a sudden loss spike in the middle. Which tool localises the fault to a specific distance from either endpoint?',
+    scenario: 'Both end transceivers test fine on a short patch. The link ran clean for months, then loss jumped overnight. A construction crew was digging near the right-of-way last week.',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'OTDR (Optical Time-Domain Reflectometer) — sends pulses and reads reflections to build a distance-vs-loss trace of the fibre',
+      B: 'TDR (Time-Domain Reflectometer, copper)',
+      C: 'Light meter / OLTS power reading',
+      D: 'Continuity tester'
+    },
+    answer: 'A',
+    explanation: 'OTDR is the fibre equivalent of TDR. It transmits optical pulses and measures reflections/backscatter to build a trace showing distance vs loss, pinpointing splice points, bends, breaks, and connector losses by location. Critical for long outside-plant fibre. A TDR (B) is for copper. A light meter / OLTS (C) gives end-to-end attenuation but no distance localisation. Continuity testers (D) only verify end-to-end light presence.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-36: nslookup vs dig (5.5 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which command-line DNS tool is universally available on Linux/macOS and produces more detailed, structured DNS output than the older Windows-style equivalent?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'nslookup — legacy, simple answer+authority output, available on Windows and UNIX',
+      B: 'dig (Domain Information Groper) — detailed structured output with flags, RRSIGs, timing; standard on Linux/macOS',
+      C: 'ping -a',
+      D: 'arp -a'
+    },
+    answer: 'B',
+    explanation: 'dig is the modern, detailed DNS diagnostic tool: shows query flags, all RR types, TTL, authority/additional sections, DNSSEC signatures, and query time. nslookup (A) still works everywhere but gives terser output and some quirky interactive-mode behavior. On Windows, "Resolve-DnsName" (PowerShell) is the dig-equivalent. ping -a (C) does a reverse lookup but is not a DNS query tool. arp -a (D) shows the ARP cache, unrelated to DNS.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-37: Routing table inspection (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A Windows laptop cannot reach 10.50.0.0/16 even though it is on the same LAN as a router that reaches that network. The admin suspects the laptop is missing a static route or default gateway. Which command displays the current routing table?',
+    scenario: 'Other hosts on the same VLAN can reach 10.50.0.0/16. The failing laptop has an IP and can ping its default gateway, but not the remote subnet.',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'ipconfig /all only',
+      B: 'route print on Windows (or ip route / netstat -rn on Linux/macOS)',
+      C: 'arp -d only',
+      D: 'nslookup google.com'
+    },
+    answer: 'B',
+    explanation: '"route print" on Windows shows the full IPv4 + IPv6 routing table — default route, connected routes, static routes. On Linux/macOS use "ip route" or "netstat -rn". Missing default route or wrong gateway reveals itself immediately. ipconfig (A) shows interface config + gateway but not the full routing table. arp -d (C) flushes the ARP cache — different layer. nslookup (D) is DNS, not routing.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-38: CRC errors vs collisions (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A switch interface counter shows increasing CRC errors and late collisions on a gigabit port connected to a server. Which root cause is most likely?',
+    scenario: 'The cable is Cat6, 45 metres, recently installed. The server NIC shows the link as 100/Half. The switch port is configured auto/auto but the neighbor log shows a speed/duplex mismatch warning.',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'Normal Ethernet behaviour — collisions are expected at gigabit',
+      B: 'Duplex mismatch — one side running half-duplex, the other full-duplex; late collisions are the classic signature',
+      C: 'Firewall blocking CRC packets',
+      D: 'DNS resolution failure'
+    },
+    answer: 'B',
+    explanation: 'Late collisions (detected after the first 64 bytes) are the diagnostic fingerprint of duplex mismatch: the full-duplex side transmits freely, the half-duplex side sees traffic arriving while it is transmitting and reports a collision. Combined with rising CRC errors this is conclusive. Fix: hardcode matching speed/duplex on both ends (or properly auto-negotiate). Collisions are NOT normal on full-duplex gigabit (A wrong). Firewall (C) and DNS (D) do not cause Layer 1/2 errors.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-39: Asymmetric routing (5.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A stateful firewall drops return packets for a new TCP flow, breaking connectivity for certain clients. The forward path goes through Firewall A; the return path goes through Firewall B. What is the root cause?',
+    scenario: 'Clients in subnet X have a default route pointing to Firewall A. The server responses follow a different route (via Firewall B) because of a more-specific route on the server side. Firewall B has no state entry for the flow, so it drops the return packet.',
+    difficulty: 'Hard',
+    topic: 'CompTIA Troubleshooting Methodology',
+    objective: '5.5',
+    options: {
+      A: 'MTU black hole',
+      B: 'Asymmetric routing through stateful firewalls — return path bypasses the state table built on the forward path',
+      C: 'Duplicate MAC address',
+      D: 'DHCP lease expiry'
+    },
+    answer: 'B',
+    explanation: 'Asymmetric routing is fatal to stateful firewalls. The forward packet creates a state entry on Firewall A; the return packet arrives at Firewall B, which has no matching state and drops the packet as unsolicited. Fix: route symmetrically (pin both directions through the same firewall), use a stateful cluster that shares state, or configure the firewalls to trust specific asymmetric flows. MTU (A), duplicate MAC (C), and DHCP (D) produce different symptoms.',
+    source: 'curated',
+    addedVersion: '4.59.5',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-40: MTU black hole (5.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A VPN user can browse small websites but large pages hang halfway or never fully load. Ping works. A firewall on the path drops all ICMP unreachable messages. What is happening?',
+    scenario: 'The VPN MTU is 1400. Servers send 1500-byte packets with DF (Do not Fragment) set. The ICMP Type 3 Code 4 "fragmentation needed" message that should tell the server to reduce its packet size is blocked by an intermediate firewall.',
+    difficulty: 'Hard',
+    topic: 'Service Issues',
+    objective: '5.5',
+    options: {
+      A: 'MTU black hole — Path MTU Discovery fails because ICMP Type 3 Code 4 is filtered; large DF packets are silently dropped',
+      B: 'DNS resolution failure',
+      C: 'TCP port exhaustion on the client',
+      D: 'Expired TLS certificate'
+    },
+    answer: 'A',
+    explanation: 'Path MTU Discovery relies on routers sending ICMP Type 3 Code 4 "fragmentation needed" back to the source when an oversized DF packet arrives. If a firewall silently drops that ICMP message, the source never learns to reduce MSS — and its large DF packets are silently dropped at the bottleneck. Symptom: small packets work, large packets time out. Fix: allow ICMP Type 3 through firewalls, or clamp TCP MSS at the VPN termination (e.g., ip tcp adjust-mss 1360). Other options do not match the symptoms.',
+    source: 'curated',
+    addedVersion: '4.59.5',
     addedDate: '2026-04-21'
   }
 ];
