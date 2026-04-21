@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.59.6', js.includes("const APP_VERSION = '4.59.6"));
+test('APP_VERSION is 4.59.7', js.includes("const APP_VERSION = '4.59.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.59.6', sw.includes('netplus-v4.59.6'));
+test('SW cache bumped to v4.59.7', sw.includes('netplus-v4.59.7'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -2847,7 +2847,10 @@ try {
   const decayMatch = js.match(/function _weakDecay\([^)]*\) \{[\s\S]*?^\}/m);
   const domMulMatch = js.match(/function _weakDomainMultiplier\([^)]*\) \{[\s\S]*?^\}/m);
   const constsMatch = js.match(/const WEAK_HALF_LIFE_WRONGS_MS[\s\S]*?WEAK_AVG_DOMAIN_WEIGHT\s*=\s*0\.2;/);
-  if (cwsMatch && decayMatch && domMulMatch && constsMatch) {
+  // v4.59.7: computeWeakSpotScores now calls _expandHistoryForWeakSpots so the
+  // sandbox must include it too. Helper is defined inline with computeWeakSpotScores.
+  const expanderMatch = js.match(/function\s+_expandHistoryForWeakSpots\s*\(hist\)[\s\S]*?^\}/m);
+  if (cwsMatch && decayMatch && domMulMatch && constsMatch && expanderMatch) {
     const NOW = Date.now();
     const fixture = `
       const MIXED_TOPIC = 'Mixed';
@@ -2905,6 +2908,7 @@ try {
       ${constsMatch[0]}
       ${decayMatch[0]}
       ${domMulMatch[0]}
+      ${expanderMatch[0]}
       ${cwsMatch[0]}
       module.exports = computeWeakSpotScores;
     `;
@@ -2935,6 +2939,71 @@ try {
       ipv6 && ipv6.posterior > 0 && ipv6.posterior < 1);
     test('v4.41.0: weak spots exposes wrongsRaw count for display',
       ntt && ntt.wrongsRaw === 3);
+    // v4.59.7: sandbox-verify that multi-topic sentinel history now credits
+    // constituent topics. Uses a second fixture with a sentinel row in the
+    // user's exact Service/Perf/Connection Issues scenario.
+    const sentinelFixture = `
+      const MIXED_TOPIC = 'Mixed';
+      const EXAM_TOPIC  = 'Exam';
+      const DOMAIN_WEIGHTS = {
+        concepts: 0.23, implementation: 0.20, operations: 0.19,
+        security: 0.14, troubleshooting: 0.24
+      };
+      const TOPIC_DOMAINS = {
+        'Service Issues':    'troubleshooting',
+        'Perf Issues':       'troubleshooting',
+        'Connection Issues': 'troubleshooting'
+      };
+      function diffWeight(d) {
+        if (!d) return 1.5;
+        const s = d.toLowerCase();
+        if (s.includes('hard'))  return 2.0;
+        if (s.includes('exam'))  return 1.5;
+        if (s.includes('found')) return 1.0;
+        return 1.3;
+      }
+      const NOW = ${NOW};
+      // Pre-v4.57.1 multi-topic session: 15/20 (75% accuracy) across 3 topics.
+      // Without v4.59.7 expander, this row would land under sentinel key and
+      // the 3 real topics would be invisible to weak-spot scoring. With the
+      // expander, each gets 1/3 credit (5/6.67 per topic) at 75% posterior.
+      // 75% is below WEAK_TARGET_ACC (0.85), so an accuracy gap exists and
+      // the topics should appear in the weak-spot list.
+      const WRONG_BANK_FIXTURE = [];
+      const HIST_FIXTURE = [
+        { topic: 'Multi: Service Issues, Perf Issues, Connection Issues',
+          difficulty: 'Exam Level', score: 15, total: 20,
+          date: new Date(NOW - 1*86400000).toISOString() }
+      ];
+      function loadWrongBank() { return WRONG_BANK_FIXTURE; }
+      function loadHistory()   { return HIST_FIXTURE; }
+      ${constsMatch[0]}
+      ${decayMatch[0]}
+      ${domMulMatch[0]}
+      ${expanderMatch[0]}
+      ${cwsMatch[0]}
+      module.exports = computeWeakSpotScores;
+    `;
+    const tmp2 = require('path').join(ROOT, 'tests', '_tmp_weak_spots_v4597.js');
+    require('fs').writeFileSync(tmp2, sentinelFixture);
+    delete require.cache[require.resolve(tmp2)];
+    const fn2 = require(tmp2);
+    const sentinelRows = fn2();
+    require('fs').unlinkSync(tmp2);
+
+    // Without the v4.59.7 fix, all 3 of these would be absent (sentinel key
+    // would exist under "Multi: ..." but no canonical topic would match).
+    test('v4.59.7: Service Issues surfaces in weak-spot list from sentinel history',
+      !!sentinelRows.find(r => r.topic === 'Service Issues'));
+    test('v4.59.7: Perf Issues surfaces in weak-spot list from sentinel history',
+      !!sentinelRows.find(r => r.topic === 'Perf Issues'));
+    test('v4.59.7: Connection Issues surfaces in weak-spot list from sentinel history',
+      !!sentinelRows.find(r => r.topic === 'Connection Issues'));
+    test('v4.59.7: sentinel-sourced weak-spot rows carry positive score (in ranking)',
+      sentinelRows.filter(r => ['Service Issues', 'Perf Issues', 'Connection Issues'].includes(r.topic))
+                  .every(r => r.score > 0));
+    test('v4.59.7: sentinel key itself does NOT appear as a weak-spot row',
+      !sentinelRows.find(r => r.topic && r.topic.startsWith('Multi: ')));
   } else {
     test('v4.41.0: weak spots sandbox extraction', false);
     results.errors.push('could not extract computeWeakSpotScores or its helpers from app.js');
@@ -7171,6 +7240,89 @@ test('v4.57.4 JS: domain drill-down uses _filterHistoryByTopic',
       fn([{ topic: 'Multi: Connection Issues, Perf Issues' }], 'Connection').length === 0);
   } catch (e) {
     test('v4.57.4 sandbox: helper executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.59.7 — 5th read-path fix: computeWeakSpotScores history loop
+// User reported Service/Perf/Connection Issues greyed out on the home
+// page domain grid despite having studied them. Root cause: pre-v4.57.1
+// multi-topic sessions saved with sentinel "Multi: A, B, C" were not
+// being credited to the constituent topics by computeWeakSpotScores'
+// history loop (which uses e.topic directly as a key). v4.57.4 fixed
+// 4 read paths via _filterHistoryByTopic but weak-spot scoring was
+// explicitly NOT touched — that rationale (wrong-bank attribution) was
+// incomplete because the scoring also reads history. This ship adds a
+// sibling helper _expandHistoryForWeakSpots that splits sentinel rows
+// into per-topic rows before the aggregate loop sees them.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.59.7 JS: _expandHistoryForWeakSpots helper defined',
+  /function\s+_expandHistoryForWeakSpots\s*\(hist\)/.test(js));
+test('v4.59.7 JS: helper splits Multi: sentinel rows across constituent topics',
+  /_expandHistoryForWeakSpots[\s\S]{0,1200}topics\.forEach\(t\s*=>\s*\{[\s\S]{0,300}topic:\s*t,\s*score:\s*scoreEach,\s*total:\s*totalEach/.test(js));
+test('v4.59.7 JS: computeWeakSpotScores routes raw history through _expandHistoryForWeakSpots',
+  /function computeWeakSpotScores[\s\S]{0,500}const\s+hist\s*=\s*_expandHistoryForWeakSpots\(rawHist\)/.test(js));
+
+// Behavioural — vm-sandbox the expander with the exact user scenario
+(function testHistoryExpander() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function\s+_expandHistoryForWeakSpots\s*\(hist\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.59.7 sandbox: expander body extracted', false); return; }
+    test('v4.59.7 sandbox: expander body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    const fn = vm.runInContext(`(function(hist) {${bodyMatch[1]}})`, ctx);
+
+    // User's exact scenario: one pre-v4.57.1 multi-topic session with
+    // Service/Perf/Connection Issues. Expander should split this into 3
+    // per-topic rows with score/total divided by 3 each.
+    const history = [
+      { date: '2026-04-19T09:00:00Z', topic: 'Multi: Connection Issues, Perf Issues, Service Issues', score: 15, total: 20, pct: 75, mode: 'quiz' },
+      { date: '2026-04-20T10:00:00Z', topic: 'OSPF', score: 7, total: 10, pct: 70, mode: 'quiz' },
+    ];
+
+    const expanded = fn(history);
+    test('v4.59.7 sandbox: 3-topic sentinel + 1 plain = 4 output rows',
+      expanded.length === 4);
+    test('v4.59.7 sandbox: sentinel row split into 3 per-topic rows',
+      expanded.filter(e => e._fromMultiSentinel).length === 3);
+    test('v4.59.7 sandbox: Connection Issues present in expanded output',
+      expanded.some(e => e.topic === 'Connection Issues' && e._fromMultiSentinel));
+    test('v4.59.7 sandbox: Perf Issues present in expanded output',
+      expanded.some(e => e.topic === 'Perf Issues' && e._fromMultiSentinel));
+    test('v4.59.7 sandbox: Service Issues present in expanded output',
+      expanded.some(e => e.topic === 'Service Issues' && e._fromMultiSentinel));
+    test('v4.59.7 sandbox: each split row credits 1/3 of original score (15/3 = 5)',
+      expanded.filter(e => e._fromMultiSentinel).every(e => e.score === 5));
+    test('v4.59.7 sandbox: each split row credits 1/3 of original total (20/3)',
+      expanded.filter(e => e._fromMultiSentinel).every(e => Math.abs(e.total - 20 / 3) < 0.001));
+    test('v4.59.7 sandbox: plain OSPF row passes through unchanged',
+      expanded.some(e => e.topic === 'OSPF' && e.score === 7 && e.total === 10 && !e._fromMultiSentinel));
+    // Sum invariant: score and total across all expanded rows equals the original totals
+    test('v4.59.7 sandbox: sum of expanded scores equals sum of originals (invariant)',
+      Math.abs(expanded.reduce((a, e) => a + (e.score || 0), 0) - 22) < 0.001);
+    test('v4.59.7 sandbox: sum of expanded totals equals sum of originals (invariant)',
+      Math.abs(expanded.reduce((a, e) => a + (e.total || 0), 0) - 30) < 0.001);
+
+    // Defensive edge cases
+    test('v4.59.7 sandbox: empty history returns empty array',
+      fn([]).length === 0);
+    test('v4.59.7 sandbox: null history returns empty array (defensive)',
+      fn(null).length === 0);
+    test('v4.59.7 sandbox: entry with no topic passes through unchanged',
+      fn([{ score: 5, total: 10 }]).length === 1);
+    test('v4.59.7 sandbox: Multi: with no topics after parse passes through',
+      fn([{ topic: 'Multi: ', score: 5, total: 10 }]).length === 1);
+    test('v4.59.7 sandbox: Multi: with 1 topic gives full credit to that topic',
+      (() => {
+        const r = fn([{ topic: 'Multi: OSPF', score: 6, total: 10 }]);
+        return r.length === 1 && r[0].topic === 'OSPF' && r[0].score === 6 && r[0].total === 10;
+      })());
+  } catch (e) {
+    test('v4.59.7 sandbox: expander executes without error', false);
   }
 })();
 

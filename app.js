@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.6
+// Network+ AI Quiz — app.js  v4.59.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.6';
+const APP_VERSION = '4.59.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5184,6 +5184,44 @@ function _filterHistoryByTopic(history, topic) {
   });
 }
 
+// v4.59.7: sibling of _filterHistoryByTopic. Normalises a full history list
+// for aggregate consumers (weak-spot scoring) that walk every entry rather
+// than querying per-topic. Pre-v4.57.1 multi-topic sessions were saved as
+// ONE row with topic === "Multi: A, B, C"; v4.57.1 fixed the save path so
+// new entries split per topic, but historical rows still carry the
+// sentinel. When a consumer iterates and uses e.topic directly as a key
+// (like computeWeakSpotScores' history loop), those sentinel rows land
+// under a nonsense key and the constituent topics get zero credit.
+//
+// This helper expands sentinel rows into N per-topic rows with score/total
+// divided evenly across the listed topics. Plain rows pass through
+// unchanged. The per-topic weighted math in computeWeakSpotScores then
+// sees the same signal it would have gotten had v4.57.1 been shipped
+// earlier — no data migration required.
+function _expandHistoryForWeakSpots(hist) {
+  if (!Array.isArray(hist)) return [];
+  const out = [];
+  hist.forEach(e => {
+    if (!e || typeof e.topic !== 'string') { out.push(e); return; }
+    if (!e.topic.startsWith('Multi: ')) { out.push(e); return; }
+    const topicsCsv = e.topic.slice(7);
+    const topics = topicsCsv.split(',').map(s => s.trim()).filter(Boolean);
+    if (topics.length === 0) { out.push(e); return; }
+    const scoreEach = (e.score || 0) / topics.length;
+    const totalEach = (e.total || 0) / topics.length;
+    topics.forEach(t => {
+      out.push({
+        ...e,
+        topic: t,
+        score: scoreEach,
+        total: totalEach,
+        _fromMultiSentinel: true
+      });
+    });
+  });
+  return out;
+}
+
 // Shared scoring helper used by both getSpacedRepTopic and buildSessionPlan
 // Uses Leitner-inspired decay: topics you've aced many times decay slower,
 // topics you struggle with or haven't seen much decay fast.
@@ -8341,9 +8379,13 @@ function _weakDomainMultiplier(topicName) {
 }
 function computeWeakSpotScores() {
   const bank = loadWrongBank();
-  const hist = loadHistory().filter(e =>
+  // v4.59.7: expand pre-v4.57.1 multi-topic sentinel rows into per-topic
+  // rows so the history loop below credits the real topics rather than a
+  // nonsense sentinel key. See _expandHistoryForWeakSpots for details.
+  const rawHist = loadHistory().filter(e =>
     e.topic && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC
   );
+  const hist = _expandHistoryForWeakSpots(rawHist);
   const now = Date.now();
   const topicData = {};
   const touch = t => {
