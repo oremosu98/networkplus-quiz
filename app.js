@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.3
+// Network+ AI Quiz — app.js  v4.58.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.3';
+const APP_VERSION = '4.58.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -722,6 +722,151 @@ const QUESTION_EXEMPLARS = [
     explanation: 'A network baseline captures normal operational metrics \u2014 bandwidth utilisation, latency, packet loss, CPU/memory on critical devices, error rates \u2014 so that deviations can be detected as incidents. Option A directly feeds this. Option B is physical inventory. Option C is access control documentation. Option D is endpoint inventory. All are valuable in their own right, but only A is a performance metric appropriate for a baseline.',
     source: 'curated',
     addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  // ───── 4.0 Network Security (8/8) ─────
+  {
+    type: 'mcq',
+    question: 'Which three principles form the foundation of information security, often referred to by the acronym "CIA"?',
+    difficulty: 'Foundational',
+    topic: 'Securing TCP/IP',
+    objective: '4.1',
+    options: {
+      A: 'Confidentiality, Integrity, Availability',
+      B: 'Compliance, Identification, Authentication',
+      C: 'Cryptography, Isolation, Authorisation',
+      D: 'Certification, Inspection, Auditing'
+    },
+    answer: 'A',
+    explanation: 'The CIA triad \u2014 Confidentiality (data is only accessible to authorised parties), Integrity (data is accurate and unmodified), and Availability (authorised users can access the data when needed) \u2014 is the foundational security model referenced throughout N10-009. Options B, C, and D are plausible-sounding distractors built from real security terms but not the canonical triad.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user logs into a corporate VPN using their credentials. The VPN appliance verifies the credentials against a central server, grants the user specific network access based on their role, and logs the session duration and bytes transferred. Which three AAA functions are demonstrated in this scenario, in order?',
+    difficulty: 'Exam Level',
+    topic: 'AAA & Authentication',
+    objective: '4.1',
+    options: {
+      A: 'Auditing, Authorisation, Accounting',
+      B: 'Authentication, Authorisation, Accounting',
+      C: 'Authentication, Accreditation, Analytics',
+      D: 'Access, Assignment, Assessment'
+    },
+    answer: 'B',
+    explanation: 'AAA stands for Authentication (verifying identity), Authorisation (granting permissions based on identity/role), and Accounting (recording what was done, when, and how much). All three map exactly to the scenario. Option A swaps Authentication for Auditing (Auditing is not the first A). Options C and D use plausible-but-wrong terms not from the actual AAA framework.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company implements multi-factor authentication (MFA) for their VPN. Users must enter a password AND provide a fingerprint scan AND input a code from a hardware token. How many distinct authentication factor CATEGORIES are being used in this configuration?',
+    difficulty: 'Exam Level',
+    topic: 'AAA & Authentication',
+    objective: '4.4',
+    options: {
+      A: 'One factor',
+      B: 'Two factors',
+      C: 'Three factors',
+      D: 'Four factors'
+    },
+    answer: 'C',
+    explanation: 'MFA categories are based on distinct factor types: something you KNOW (password), something you HAVE (hardware token), and something you ARE (biometric fingerprint). Three distinct categories are in use, satisfying true 3-factor authentication. If the configuration used two passwords, that would still be single-factor (both are "know"). Using a password + token alone is 2FA. Adding biometrics makes it 3FA.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company establishes a site-to-site IPsec VPN between two branch offices. They want the entire original IP packet \u2014 including the original source and destination IP addresses \u2014 to be encapsulated and encrypted, so that an attacker capturing traffic on the public internet cannot determine the internal private IP addresses of either branch. Which IPsec mode should they configure?',
+    difficulty: 'Hard',
+    topic: 'IPsec & VPN Protocols',
+    objective: '4.4',
+    options: {
+      A: 'Transport mode with ESP',
+      B: 'Tunnel mode with ESP',
+      C: 'Transport mode with AH only',
+      D: 'Tunnel mode with AH only'
+    },
+    answer: 'B',
+    explanation: 'IPsec Tunnel mode encapsulates the entire original IP packet (including original headers) inside a new outer IP packet, hiding internal addressing. ESP (Encapsulating Security Payload) provides both encryption and authentication of the payload. Transport mode (A, C) only protects the payload; the original IP header remains visible. AH (Authentication Header \u2014 C and D) provides integrity but NOT encryption \u2014 attackers could still read the packet contents. Tunnel mode + ESP is the standard site-to-site VPN configuration.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user\u2019s web browser displays a trusted lock icon when connecting to https://bank.com. Which component of the Public Key Infrastructure (PKI) did the browser rely on to verify that the certificate presented by the bank\u2019s server is authentic?',
+    difficulty: 'Exam Level',
+    topic: 'PKI & Certificate Management',
+    objective: '4.1',
+    options: {
+      A: 'The bank\u2019s private key',
+      B: 'A trusted Root Certificate Authority (CA) that signed the certificate\u2019s chain of trust',
+      C: 'A Certificate Revocation List (CRL) maintained by the bank',
+      D: 'The browser\u2019s own self-signed certificate'
+    },
+    answer: 'B',
+    explanation: 'Every browser ships with a pre-installed bundle of trusted Root CA certificates. When the bank\u2019s server presents its certificate, the browser walks the certificate\u2019s chain \u2014 typically Server Cert \u2192 Intermediate CA \u2192 Root CA \u2014 and verifies each signature. If the chain terminates at a trusted Root CA, the certificate is considered authentic. The bank\u2019s private key (A) is used to decrypt/sign, never shared publicly. CRLs (C) are checked for revoked certs but do not establish initial trust. Self-signed browser certificates (D) do not exist in this trust model.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator creates the following three firewall rules in order: (1) Permit TCP 443 from ANY to 10.0.0.50; (2) Deny ALL from ANY to 10.0.0.50; (3) Permit TCP 22 from 192.168.1.100 to 10.0.0.50. An SSH connection from 192.168.1.100 to 10.0.0.50 is attempted. What happens?',
+    difficulty: 'Exam Level',
+    topic: 'Firewalls, DMZ & Security Zones',
+    objective: '4.3',
+    options: {
+      A: 'The connection is permitted, because rule 3 explicitly allows SSH from that source.',
+      B: 'The connection is denied, because rule 2 blocks it before rule 3 is evaluated.',
+      C: 'The connection is permitted, because the source is on the trusted internal network.',
+      D: 'The connection is denied, because there is no rule 0 permitting SSH.'
+    },
+    answer: 'B',
+    explanation: 'Firewall rules are evaluated top-to-bottom with first-match-wins semantics. The SSH connection does not match rule 1 (port 443, not 22), but DOES match rule 2 (deny ALL). Evaluation stops there \u2014 rule 3 is never reached. To fix this, rule 3 must be placed ABOVE rule 2, or the deny rule needs to be more specific. This is the classic "rule order matters" principle \u2014 same pattern trained in the ACL Builder\u2019s Fix-It scenarios.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An attacker on the same local network segment as their target sends a crafted ARP reply claiming to be the gateway router. The target host updates its ARP cache with the attacker\u2019s MAC address and begins sending all outbound traffic to the attacker, who forwards it on to the real gateway. Which attack does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'DNS cache poisoning',
+      B: 'ARP poisoning (man-in-the-middle)',
+      C: 'DDoS amplification',
+      D: 'SYN flood'
+    },
+    answer: 'B',
+    explanation: 'ARP poisoning (also called ARP spoofing) manipulates the target\u2019s ARP cache so the target sends traffic intended for the gateway to the attacker instead. The attacker can then inspect, modify, or drop traffic \u2014 classic man-in-the-middle positioning. DNS cache poisoning (A) manipulates DNS resolver caches, not ARP. DDoS amplification (C) floods the target from many sources, a volumetric DoS attack. SYN flood (D) exhausts TCP connection state on the target, a DoS but not MITM.',
+    source: 'curated',
+    addedVersion: '4.58.4',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which of the following is an example of a physical security control rather than a logical security control?',
+    difficulty: 'Foundational',
+    topic: 'Physical Security Controls',
+    objective: '4.5',
+    options: {
+      A: 'Firewall rule permitting HTTPS from specific IP ranges',
+      B: 'Mantrap requiring badge scan to enter the server room',
+      C: 'Password complexity policy enforced by Active Directory',
+      D: 'Endpoint antivirus scanning disk reads'
+    },
+    answer: 'B',
+    explanation: 'Physical security controls protect against unauthorised physical access to network infrastructure \u2014 mantraps, badge readers, CCTV, biometric locks, secure enclosures. Option A is a logical network control. Option C is an administrative/logical policy control. Option D is a logical endpoint control. Only Option B is a physical barrier against human access.',
+    source: 'curated',
+    addedVersion: '4.58.4',
     addedDate: '2026-04-21'
   }
 ];
