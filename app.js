@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.2
+// Network+ AI Quiz — app.js  v4.58.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.2';
+const APP_VERSION = '4.58.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -528,6 +528,200 @@ const QUESTION_EXEMPLARS = [
     explanation: 'SDN\u2019s core architectural innovation is separating the control plane (where routing decisions are made) from the data plane (where packets are forwarded). A centralized SDN controller programs the data-plane devices via southbound APIs (OpenFlow, NETCONF). B conflates SDN with NFV (Network Function Virtualization). C is unrelated \u2014 SDN is not an encryption technology. D is the opposite of true \u2014 SDN was created partly to AVOID vendor lock-in through open protocols.',
     source: 'curated',
     addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  // ───── 3.0 Network Operations (11/11) ─────
+  {
+    type: 'mcq',
+    question: 'Which version of SNMP introduces encryption and authentication of management traffic to address the security weaknesses of earlier versions?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: { A: 'SNMPv1', B: 'SNMPv2c', C: 'SNMPv3', D: 'SNMPv4' },
+    answer: 'C',
+    explanation: 'SNMPv3 adds authentication and encryption via the User-based Security Model (USM) and View-based Access Control Model (VACM). SNMPv1 and SNMPv2c both rely on community strings sent in plaintext, offering no real security. SNMPv4 does not exist; v3 is the current standard.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is reviewing syslog messages and sees entries with a numeric severity level of 3 (Error). They want to filter the log to capture only messages indicating more urgent system conditions than Error-level. Which severity levels should they configure as their minimum threshold?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Severity 0, 1, and 2 (Emergency, Alert, Critical)',
+      B: 'Severity 4, 5, and 6 (Warning, Notice, Informational)',
+      C: 'Severity 7 (Debug) only',
+      D: 'Severity 3, 4, and 5 (Error, Warning, Notice)'
+    },
+    answer: 'A',
+    explanation: 'Syslog severity levels run inversely to urgency: 0 (Emergency) is most severe, 7 (Debug) is least. Levels 0-2 (Emergency, Alert, Critical) are all more urgent than Error (level 3). Option B selects less-urgent levels. Option C is the least severe of all. Option D includes Error itself plus two less-urgent levels.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company\u2019s executive team has set the following disaster recovery targets for their order-processing database: data loss of no more than 5 minutes and total downtime of no more than 1 hour during any failure event. Which two DR metrics do these targets correspond to?',
+    difficulty: 'Hard',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'RPO = 5 minutes, RTO = 1 hour',
+      B: 'RTO = 5 minutes, RPO = 1 hour',
+      C: 'MTBF = 5 minutes, MTTR = 1 hour',
+      D: 'SLA = 5 minutes, OLA = 1 hour'
+    },
+    answer: 'A',
+    explanation: 'Recovery Point Objective (RPO) measures acceptable data loss \u2014 the 5-minute target means the backup/replication strategy must keep data current to within 5 minutes of any failure. Recovery Time Objective (RTO) measures acceptable downtime \u2014 the 1-hour target defines how quickly the service must be restored. Option B reverses the two metrics. MTBF/MTTR (C) measure hardware reliability, not DR targets. SLA/OLA (D) are service-level agreements, unrelated to DR metric terminology.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An organisation with 25 branch offices currently routes all internet traffic through their data centre via traditional MPLS links. They want to improve branch-to-cloud performance and reduce WAN costs by allowing branches to use direct internet connections while maintaining centralised security policy enforcement. Which technology best supports this requirement?',
+    difficulty: 'Exam Level',
+    topic: 'SD-WAN & SASE',
+    objective: '3.5',
+    options: {
+      A: 'Site-to-site IPsec VPN mesh',
+      B: 'Software-Defined WAN (SD-WAN)',
+      C: 'Dedicated fibre leased lines to each branch',
+      D: 'Frame Relay with burst capability'
+    },
+    answer: 'B',
+    explanation: 'SD-WAN lets branches use multiple transports (MPLS, broadband, LTE) with centralised policy control, enabling direct-to-cloud traffic for SaaS applications while still enforcing security policies through the SD-WAN orchestrator. A site-to-site VPN mesh (A) can connect branches but lacks centralised path-selection intelligence. Dedicated fibre (C) is costly and does not inherently offer traffic-steering. Frame Relay (D) is a legacy WAN technology, largely retired.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator wants to analyse which applications consume the most bandwidth on their internet link over a 24-hour period, including destination IP addresses, port numbers, and byte counts per flow \u2014 without capturing the actual packet payloads. Which technology best fits this requirement?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Full packet capture (pcap)',
+      B: 'NetFlow / sFlow / IPFIX',
+      C: 'SNMP polling',
+      D: 'Syslog aggregation'
+    },
+    answer: 'B',
+    explanation: 'NetFlow (Cisco), sFlow, and IPFIX (RFC standard) collect flow metadata \u2014 source/destination IP, ports, protocol, byte counts \u2014 without capturing payloads. Ideal for bandwidth analysis at scale. Full packet capture (A) captures the entire payload, resource-intensive and privacy-sensitive. SNMP polling (C) provides device-level counters but not per-flow detail. Syslog (D) captures event messages, not traffic flow statistics.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Two routers are configured as a high-availability pair at the edge of a network. Both routers are actively forwarding traffic simultaneously, sharing the load while each provides backup capacity for the other. Which high-availability model does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Active-active',
+      B: 'Active-passive',
+      C: 'Hot-standby',
+      D: 'Cold-standby'
+    },
+    answer: 'A',
+    explanation: 'Active-active has all redundant devices processing traffic simultaneously, providing both load sharing AND failover. Active-passive (B) keeps the secondary device idle until the primary fails. Hot-standby (C) is effectively active-passive where the standby is powered and ready but not actively passing traffic. Cold-standby (D) has the secondary device powered off, requiring manual startup on failure \u2014 the slowest option.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which WAN technology provides a carrier-managed, any-to-any connectivity service that uses labels to forward traffic across the provider\u2019s backbone, supporting multiple customers with overlapping private IP address spaces?',
+    difficulty: 'Foundational',
+    topic: 'WAN Connectivity',
+    objective: '3.5',
+    options: {
+      A: 'Metro Ethernet',
+      B: 'Frame Relay',
+      C: 'Multiprotocol Label Switching (MPLS)',
+      D: 'Dedicated leased line (T1/E1)'
+    },
+    answer: 'C',
+    explanation: 'MPLS attaches labels to packets at ingress Provider Edge (PE) routers and forwards them across the carrier backbone based on those labels rather than IP lookups. MPLS VPNs isolate traffic between customers even when they use overlapping private IP ranges. Metro Ethernet (A) provides Ethernet-over-WAN, typically point-to-point. Frame Relay (B) is a legacy packet-switched technology, largely retired. A leased line (D) provides dedicated point-to-point bandwidth, not any-to-any connectivity.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator needs to remotely manage a critical core switch even when the production network is experiencing an outage. The switch has a serial console port, an Ethernet management port, and data uplinks. Which approach provides the most resilient remote-management path during an outage?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.5',
+    options: {
+      A: 'SSH through the data uplink',
+      B: 'Telnet through the data uplink',
+      C: 'Out-of-band management via the console or dedicated management port',
+      D: 'HTTPS web interface through the data uplink'
+    },
+    answer: 'C',
+    explanation: 'Out-of-band (OOB) management uses a separate physical path \u2014 a console server on the serial port or a dedicated management network \u2014 that does NOT depend on the production data network. When production links fail, in-band methods (A, B, D \u2014 all traversing the production network) become inaccessible, while OOB remains available. SSH is more secure than Telnet, but both are still in-band. HTTPS is also in-band.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which of the following is the primary purpose of a formal change management process in enterprise network operations?',
+    difficulty: 'Foundational',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'To automatically block unauthorised configuration changes at the device level.',
+      B: 'To track, review, and approve proposed changes before implementation to reduce risk.',
+      C: 'To encrypt all device configurations with a shared key.',
+      D: 'To replace the need for network documentation.'
+    },
+    answer: 'B',
+    explanation: 'Change management is a process discipline \u2014 proposed changes are documented, reviewed by stakeholders (Change Advisory Board), risk-assessed, and approved before implementation. This reduces outages caused by unreviewed or poorly-coordinated changes. Option A conflates change management (a process) with configuration management tools. Encryption (C) is unrelated. Documentation (D) complements change management, not replaces it.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A vendor\u2019s specification sheet for a router states: MTBF = 200,000 hours, MTTR = 4 hours. What does this combination of values tell the operations team about the device?',
+    difficulty: 'Hard',
+    topic: 'Network Operations',
+    objective: '3.3',
+    options: {
+      A: 'The device will fail every 4 hours and takes 200,000 hours to restore.',
+      B: 'The device is expected to operate for approximately 200,000 hours between failures, and takes an average of 4 hours to restore when a failure does occur.',
+      C: 'The device is under an SLA of 4 hours with a 200,000-hour uptime guarantee.',
+      D: 'The device must be replaced every 200,000 hours regardless of failures.'
+    },
+    answer: 'B',
+    explanation: 'MTBF (Mean Time Between Failures) measures expected operating time between failures \u2014 200,000 hours (~23 years) is a statistical projection, not a hard guarantee. MTTR (Mean Time To Repair) measures average time to restore service after a failure. Option A reverses the two metrics. Option C conflates statistical metrics with contractual SLAs. Option D misreads MTBF as a replacement schedule.',
+    source: 'curated',
+    addedVersion: '4.58.3',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is establishing a baseline for their enterprise network. Which of the following metrics would be most useful to capture as part of that baseline?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Average bandwidth utilisation per link during typical business hours',
+      B: 'Number of physical devices in each data centre rack',
+      C: 'Names of all network administrators with SSH access',
+      D: 'Operating system versions running on user workstations'
+    },
+    answer: 'A',
+    explanation: 'A network baseline captures normal operational metrics \u2014 bandwidth utilisation, latency, packet loss, CPU/memory on critical devices, error rates \u2014 so that deviations can be detected as incidents. Option A directly feeds this. Option B is physical inventory. Option C is access control documentation. Option D is endpoint inventory. All are valuable in their own right, but only A is a performance metric appropriate for a baseline.',
+    source: 'curated',
+    addedVersion: '4.58.3',
     addedDate: '2026-04-21'
   }
 ];
