@@ -212,6 +212,8 @@ Shared `createDrillScaffold(cfg)` at `app.js:17766` syncs `.active` / `aria-sele
 
 ## Conventions
 
+> **Before building, name the shape-of-solution.** If the user is "on the fence" or the ask is ambiguous, don't produce a full spec — produce the shape-of-solution question(s) first and get an answer. See *Scope Disambiguation (v4.48.0)*.
+
 ### Testing Philosophy
 `tests/uat.js` preference order (baked into header comment post-v4.42.3-audit):
 1. **Behavioral smoke** — extract function bodies via `Function()` or `vm.runInNewContext`, feed fixtures, assert output
