@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.1
+// Network+ AI Quiz — app.js  v4.59.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.1';
+const APP_VERSION = '4.59.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -1764,6 +1764,370 @@ const QUESTION_EXEMPLARS = [
     explanation: '`show interfaces` provides comprehensive per-interface state: admin/operational status, duplex/speed, error counters (CRC, input/output errors, collisions), bytes in/out. Critical for identifying duplex mismatches and cable issues. `show running-config` (B) displays the current configuration, not interface statistics. `show ip route` (C) displays the routing table. `show vlan brief` (D) shows VLAN-to-port assignments.',
     source: 'curated',
     addedVersion: '4.59.1',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — VOLUME EXPANSION BATCH 2 (v4.59.2): 20 new exemplars
+  // Bank grows 94 → 114. Spread: D1 +5, D2 +4, D3 +4, D4 +4, D5 +3.
+  // ═════════════════════════════════════════════════════════════════
+  {
+    type: 'mcq',
+    question: 'A workstation is configured with the IP address 10.50.120.45 and subnet mask 255.255.240.0. Which network address does this host belong to?',
+    difficulty: 'Exam Level',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '10.50.0.0',
+      B: '10.50.112.0',
+      C: '10.50.120.0',
+      D: '10.50.128.0'
+    },
+    answer: 'B',
+    explanation: '255.255.240.0 = /20, meaning the third octet is masked by 11110000 (value 240). To find the network portion of the third octet: 120 AND 240 = 112 (120 = 01111000; AND with 11110000 = 01110000 = 112). The network is 10.50.112.0/20 and covers hosts 10.50.112.0 through 10.50.127.255.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which protocol uses TCP port 3389 by default for remote desktop connections to Windows servers and workstations?',
+    difficulty: 'Foundational',
+    topic: 'Port Numbers',
+    objective: '1.4',
+    options: {
+      A: 'SSH',
+      B: 'RDP (Remote Desktop Protocol)',
+      C: 'VNC',
+      D: 'Telnet'
+    },
+    answer: 'B',
+    explanation: 'RDP uses TCP port 3389. SSH (A) uses port 22. VNC (C) typically uses 5900-5902. Telnet (D) uses 23. RDP is Microsoft\u2019s proprietary remote-display protocol, widely used for Windows administration.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A DNS server delivers the same IP address (used by a content delivery network) to clients all over the world. Clients automatically connect to the geographically closest CDN node responding to that single IP. Which traffic/addressing type enables this behaviour?',
+    difficulty: 'Exam Level',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.4',
+    options: {
+      A: 'Unicast',
+      B: 'Multicast',
+      C: 'Broadcast',
+      D: 'Anycast'
+    },
+    answer: 'D',
+    explanation: 'Anycast advertises the SAME IP address from multiple geographically distributed servers. Routing protocols (BGP) direct each client\u2019s request to the topologically closest instance. Used by CDNs, DNS root servers, and DDoS-resistant services. Unicast (A) is one-to-one. Multicast (B) is one-to-subscribed-group. Broadcast (C) is local-segment only.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company wants to establish a private, high-bandwidth, low-latency connection from their on-premises data centre directly to their cloud provider\u2019s backbone \u2014 bypassing the public internet entirely \u2014 to support latency-sensitive workloads with consistent performance. Which service best matches this requirement?',
+    difficulty: 'Hard',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.3',
+    options: {
+      A: 'Site-to-site IPsec VPN over the internet',
+      B: 'AWS Direct Connect / Azure ExpressRoute (dedicated private connectivity)',
+      C: 'Public internet with QoS tagging',
+      D: 'DNS load balancing'
+    },
+    answer: 'B',
+    explanation: 'Direct Connect (AWS) / ExpressRoute (Azure) / Cloud Interconnect (GCP) provide dedicated physical or virtual circuits from on-premises to the cloud provider\u2019s network, bypassing the public internet. Predictable latency, higher bandwidth, and better SLAs than VPN. Site-to-site VPN (A) uses the public internet and is subject to its variability. QoS over public internet (C) only prioritises within your own network, not across the internet. DNS load balancing (D) is unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An internal web server is configured at 192.168.1.50:8080. External users must reach this server on the company\u2019s public IP 203.0.113.5 at port 80 (HTTP). Which NAT configuration enables this without changing the internal server\u2019s IP or port?',
+    difficulty: 'Exam Level',
+    topic: 'NAT & IP Services',
+    objective: '1.7',
+    options: {
+      A: 'Static NAT with port forwarding (destination NAT / PAT rule mapping public 203.0.113.5:80 \u2192 internal 192.168.1.50:8080)',
+      B: 'Dynamic NAT with address pool',
+      C: 'NAT overload (PAT) without explicit rules',
+      D: 'NAT64 with prefix translation'
+    },
+    answer: 'A',
+    explanation: 'Static NAT with port forwarding (destination NAT on most firewalls) creates a fixed mapping from an external IP+port to an internal IP+port. The public 203.0.113.5:80 rule forwards inbound connections to 192.168.1.50:8080. Dynamic NAT (B) is for outbound traffic from internal hosts. PAT (C) handles outbound many-to-one; does not inherently publish internal services. NAT64 (D) translates between IPv6 and IPv4.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator notices that a server transferring large files over a 10 Gbps Ethernet link to an NAS is only achieving 2-3 Gbps throughput. CPU utilisation on both endpoints is high during transfers. Which Ethernet feature, if enabled on both endpoints and the switch between them, could improve throughput by reducing per-packet CPU overhead?',
+    difficulty: 'Exam Level',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: {
+      A: 'Full-duplex operation',
+      B: 'Jumbo frames (MTU 9000)',
+      C: 'PoE+ (802.3at)',
+      D: '802.1X authentication'
+    },
+    answer: 'B',
+    explanation: 'Jumbo frames (MTU 9000 bytes, vs standard 1500) reduce the per-packet overhead by fitting more data in each frame, dramatically lowering CPU-per-byte processing for large transfers. Requires support on both endpoints AND every switch in the path. Full-duplex (A) eliminates collisions but does not reduce frame overhead. PoE (C) is power, unrelated. 802.1X (D) is authentication, unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A wireless engineer wants to deploy multiple access points across a large office, centrally managing their configuration, firmware, and RF parameters from a single console. The APs themselves should be lightweight and receive their configuration from the central console at boot. Which architecture is this?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Autonomous (fat) access points',
+      B: 'Lightweight (thin) access points controlled by a Wireless LAN Controller (WLC)',
+      C: 'Mesh network with peer-to-peer configuration',
+      D: 'Standalone home routers with WPS'
+    },
+    answer: 'B',
+    explanation: 'Lightweight APs (also called "thin" APs) offload configuration, security, and RF management to a central Wireless LAN Controller (WLC). They use CAPWAP (Control And Provisioning of Wireless Access Points) tunnels to exchange management traffic with the WLC. Autonomous APs (A) are fully self-contained \u2014 each individually configured. Mesh (C) is a peer topology for extending coverage. Home routers (D) are not enterprise-managed.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An administrator configures two static routes to the same destination network with different next-hop routers. Route A has an administrative distance of 1, and Route B has an administrative distance of 5. Which route will be installed in the routing table and used for forwarding?',
+    difficulty: 'Hard',
+    topic: 'Routing Protocols',
+    objective: '2.2',
+    options: {
+      A: 'Route A (AD 1) \u2014 lower AD is preferred',
+      B: 'Route B (AD 5) \u2014 higher AD is preferred',
+      C: 'Both routes \u2014 traffic is load-balanced',
+      D: 'Neither \u2014 conflicting static routes are rejected'
+    },
+    answer: 'A',
+    explanation: 'Administrative Distance (AD) measures trustworthiness of a route \u2014 LOWER is preferred. Static routes default to AD 1 (most trusted). When multiple routes to the same destination exist, the router picks the lowest-AD one and installs only that in the routing table. This is called "floating static routes" when using different ADs intentionally \u2014 the higher-AD route only activates if the lower-AD route fails.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A data centre network administrator notices that a particular application is generating large amounts of traffic between two web servers in the same rack, but the traffic is traversing the aggregation switches and core before returning \u2014 adding latency. Which modern design principle would reduce this latency?',
+    difficulty: 'Exam Level',
+    topic: 'Data Center Architectures',
+    objective: '2.1',
+    options: {
+      A: 'Install additional aggregation layers',
+      B: 'Use a spine-leaf topology where every leaf connects directly to every spine, keeping server-to-server paths to 2 hops',
+      C: 'Enable more STP instances',
+      D: 'Convert all links to half-duplex'
+    },
+    answer: 'B',
+    explanation: 'Traditional three-tier (core/aggregation/access) is optimised for north-south traffic; east-west server-to-server paths can be 4-6 hops through aggregation and core. Spine-leaf flattens this: every leaf (server-facing) connects to every spine (aggregation) \u2014 server-to-server path is always exactly 2 hops (leaf \u2192 spine \u2192 leaf). Adding aggregation layers (A) adds hops. STP (C) is for loop prevention. Half-duplex (D) would dramatically WORSEN performance.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A Syslog server is configured to receive logs from all network devices. Which port does Syslog use by default, and over which transport protocol?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'TCP port 514',
+      B: 'UDP port 514',
+      C: 'TCP port 443',
+      D: 'UDP port 161'
+    },
+    answer: 'B',
+    explanation: 'Syslog traditionally uses UDP port 514 \u2014 chosen because logging is high-volume and UDP\u2019s lower overhead is acceptable (occasional log loss is tolerable). RFC 5424 introduced Syslog over TCP (also 514) for reliability, but UDP 514 is the default on virtually all network equipment. TCP 443 is HTTPS. UDP 161 is SNMP polls.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A security team deploys a SIEM platform that receives logs from firewalls, web servers, authentication systems, and switches. The SIEM is expected to correlate events across these sources to identify attack patterns. Which statement BEST describes SIEM\u2019s core value?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'It replaces the need for individual security tools at each device',
+      B: 'It aggregates logs from multiple sources and correlates events to detect patterns that individual tools would miss',
+      C: 'It automatically blocks malicious traffic at the network perimeter',
+      D: 'It provides bandwidth analysis between devices'
+    },
+    answer: 'B',
+    explanation: 'A SIEM\u2019s core value is log aggregation + correlation \u2014 combining signals from different sources (e.g., failed login + firewall block + suspicious file access) to identify patterns no single tool would catch. Option A is wrong \u2014 SIEM complements, not replaces, point security tools. Option C describes a firewall or IPS, not SIEM. Option D describes NetFlow.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which WAN connectivity option historically provides a dedicated, always-on point-to-point link between two specific locations at a fixed bandwidth (such as 1.544 Mbps or 2.048 Mbps), billed at a flat monthly rate regardless of usage?',
+    difficulty: 'Foundational',
+    topic: 'WAN Connectivity',
+    objective: '3.5',
+    options: {
+      A: 'DSL',
+      B: 'Cable broadband',
+      C: 'Leased line (T1 / E1)',
+      D: 'Dial-up modem'
+    },
+    answer: 'C',
+    explanation: 'A leased line (T1 = 1.544 Mbps in North America, E1 = 2.048 Mbps in Europe) is a dedicated point-to-point circuit rented from a telecom provider. Guaranteed bandwidth, always on, flat monthly cost. DSL (A) and cable (B) are shared-medium consumer broadband. Dial-up (D) is on-demand, not always-on.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A DR plan specifies that a database must be restorable to any point in time within the last 24 hours, not just to the most recent full backup. Which backup strategy achieves this requirement?',
+    difficulty: 'Hard',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'Daily full backups only, retained for 7 days',
+      B: 'Daily full backups plus continuous transaction-log archiving (point-in-time recovery)',
+      C: 'Weekly full backups, retained for 4 weeks',
+      D: 'Daily differential backups without any full backups'
+    },
+    answer: 'B',
+    explanation: 'Point-in-time recovery requires a full backup (baseline) PLUS continuous capture of transaction logs (journal). To restore to any moment, you replay the full backup then apply log entries up to the target time. Option A can only restore to the moment of each full backup \u2014 not between. Option C has the same limitation. Option D is invalid \u2014 differentials require a full backup baseline to be meaningful.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company deploys internal web applications accessible only from specific trusted internal subnets. External threats keep trying to access these apps from the internet. Which network design principle best addresses this by isolating the applications from untrusted networks?',
+    difficulty: 'Exam Level',
+    topic: 'Protecting Networks',
+    objective: '4.3',
+    options: {
+      A: 'Network segmentation with VLANs and firewall policies',
+      B: 'Implementing a strong password policy',
+      C: 'Enabling SNMPv3',
+      D: 'Deploying host-based antivirus'
+    },
+    answer: 'A',
+    explanation: 'Network segmentation isolates workloads into distinct VLANs/subnets, enforced by firewall rules, so untrusted networks simply cannot reach the restricted apps at all. Defence-in-depth principle: limit blast radius. Password policy (B) protects access but does not prevent network-level reachability. SNMPv3 (C) is management traffic security. Antivirus (D) protects endpoints, not network isolation.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'In the 802.1X authentication framework used by WPA-Enterprise wireless networks, which role is played by the device attempting to connect (such as a laptop)?',
+    difficulty: 'Exam Level',
+    topic: 'WPA3 & EAP Authentication',
+    objective: '4.4',
+    options: {
+      A: 'Supplicant',
+      B: 'Authenticator',
+      C: 'Authentication Server',
+      D: 'Certificate Authority'
+    },
+    answer: 'A',
+    explanation: '802.1X defines three roles: Supplicant (the client device attempting access), Authenticator (the switch/AP that controls port access and relays credentials), and Authentication Server (typically RADIUS, which validates credentials). CA (D) issues certificates if EAP-TLS is used but is not itself an 802.1X role.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user visits https://example.com and their browser displays a warning that the certificate has been revoked. The browser determined this status by checking a specific PKI mechanism in real time. Which mechanism did the browser use?',
+    difficulty: 'Hard',
+    topic: 'PKI & Certificate Management',
+    objective: '4.1',
+    options: {
+      A: 'Certificate chain validation',
+      B: 'Online Certificate Status Protocol (OCSP)',
+      C: 'Certificate pinning',
+      D: 'Self-signed certificate check'
+    },
+    answer: 'B',
+    explanation: 'OCSP lets a browser query a certificate authority\u2019s OCSP responder in real time to check if a certificate has been revoked. The older alternative, CRL (Certificate Revocation List), is a downloaded list updated periodically. Chain validation (A) verifies certificate authenticity via signed chain, not revocation. Certificate pinning (C) hard-codes expected certs in client apps. Self-signed checks (D) are unrelated.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An attacker sends thousands of spoofed SYN packets to a web server without ever completing the TCP handshake. The server\u2019s connection state table fills up, and legitimate users cannot establish new connections. Which attack is this?',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'ARP poisoning',
+      B: 'SYN flood (a type of DoS attack)',
+      C: 'Man-in-the-middle',
+      D: 'SQL injection'
+    },
+    answer: 'B',
+    explanation: 'A SYN flood exhausts the server\u2019s half-open connection table by sending SYN packets and never responding to the SYN-ACK. With the table full, legitimate clients cannot initiate new connections. This is a denial-of-service (DoS) attack at the TCP layer. ARP poisoning (A) is MITM on the local LAN. MITM (C) intercepts traffic but does not necessarily DoS. SQL injection (D) targets application-layer database queries.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A user reports that they can reach servers on their local subnet (10.0.1.0/24) but cannot reach any destinations beyond it. A traceroute to an external server shows it failing at the first hop \u2014 the user\u2019s default gateway. What is the most likely root cause?',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'DNS resolution failure',
+      B: 'The default gateway is unreachable (down, misconfigured, or wrong IP)',
+      C: 'HTTP proxy is required but not configured',
+      D: 'TLS certificate expired'
+    },
+    answer: 'B',
+    explanation: 'If local subnet access works but any cross-subnet traffic fails at the first hop (the gateway), the default gateway is the problem: it may be down, reachable but misconfigured for the user\u2019s traffic, or the client has the wrong gateway IP set. DNS failures (A) would still allow IP-level pings. HTTP proxy (C) affects HTTP only, not all destinations. TLS cert (D) is application-layer, would not cause ping to fail.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is investigating slow network performance on a switch interface. The interface statistics show a large and rapidly growing number of "input drops" and "output drops." What does this indicate?',
+    difficulty: 'Exam Level',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Cable faults are causing CRC errors',
+      B: 'The switch is discarding packets because its buffers are overflowing (congestion/microbursts)',
+      C: 'The switch has been compromised by malware',
+      D: 'DHCP is misconfigured'
+    },
+    answer: 'B',
+    explanation: 'Input/output drops (also called "discards") happen when the switch\u2019s internal buffers cannot hold incoming/outgoing packets fast enough and the switch must drop them. Indicates congestion, speed mismatches (e.g., 10G flowing into 1G), or microbursts. CRC errors (A) are a separate counter, indicating Layer 1 corruption. Malware (C) usually does not manifest as interface drops. DHCP (D) is unrelated to interface performance counters.',
+    source: 'curated',
+    addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Users at a branch office report intermittent VPN disconnections every 5-10 minutes. The VPN concentrator logs show "phase 2 SA renegotiation failed" messages matching the disconnect times. Which IPsec issue does this suggest?',
+    difficulty: 'Hard',
+    topic: 'Service Issues',
+    objective: '5.3',
+    options: {
+      A: 'IKE Phase 1 authentication failing \u2014 pre-shared keys do not match',
+      B: 'IKE Phase 2 SA (Child SA) rekey failing \u2014 mismatched transform sets or NAT-T issues',
+      C: 'Layer 1 cable fault between branch and ISP',
+      D: 'MTU mismatch causing SSL certificate errors'
+    },
+    answer: 'B',
+    explanation: 'The error points specifically to IKE Phase 2 (the "Child SA" that carries actual data traffic) failing to rekey. IPsec Phase 2 rekeys periodically (often every hour or based on data volume); if mismatched transform sets, NAT traversal problems, or MTU/fragmentation issues interfere, the rekey fails and the tunnel drops. Phase 1 auth (A) would prevent the tunnel from forming at all. Layer 1 (C) would show different symptoms. SSL (D) is not involved in IPsec.',
+    source: 'curated',
+    addedVersion: '4.59.2',
     addedDate: '2026-04-21'
   }
 ];

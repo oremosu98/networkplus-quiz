@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.59.1', js.includes("const APP_VERSION = '4.59.1"));
+test('APP_VERSION is 4.59.2', js.includes("const APP_VERSION = '4.59.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.59.1', sw.includes('netplus-v4.59.1'));
+test('SW cache bumped to v4.59.2', sw.includes('netplus-v4.59.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7436,8 +7436,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.59.1 bank: 94 exemplars present (74 + 20 Volume Expansion Batch 1)',
-      Array.isArray(bank) && bank.length === 94);
+    test('v4.59.2 bank: 114 exemplars present (94 + 20 Volume Expansion Batch 2)',
+      Array.isArray(bank) && bank.length === 114);
 
     // Every exemplar has required fields
     const requiredFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'answer', 'explanation', 'source', 'addedVersion', 'addedDate'];
@@ -7532,18 +7532,18 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     // v4.59.0: Phase 3 Cycle 1 added 14 exemplars. Updated per-domain counts:
     // D1 +2 (NTS, Teredo), D2 +2 (WAP channels, 802.3bt), D3 +2 (CoS, RAID),
     // D4 +6 (4 VPN types + Pre-action + NAC), D5 +2 (Nmap, PCAP).
-    test('v4.59.1 bank: Domain 1.0 contains 21 exemplars (14 base + 2 Phase 3 + 5 Batch 1)',
-      d1Count === 21);
-    test('v4.59.1 bank: Domain 2.0 contains 18 exemplars (12 base + 2 Phase 3 + 4 Batch 1)',
-      d2Count === 18);
-    test('v4.59.1 bank: Domain 3.0 contains 17 exemplars (11 base + 2 Phase 3 + 4 Batch 1)',
-      d3Count === 17);
-    test('v4.59.1 bank: Domain 4.0 contains 17 exemplars (8 base + 6 Phase 3 + 3 Batch 1)',
-      d4Count === 17);
-    test('v4.59.1 bank: Domain 5.0 contains 21 exemplars (15 base + 2 Phase 3 + 4 Batch 1)',
-      d5Count === 21);
-    test('v4.59.1 bank: domain distribution sums to 94 (21+18+17+17+21)',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 94);
+    test('v4.59.2 bank: Domain 1.0 contains 26 exemplars (+5 Batch 2)',
+      d1Count === 26);
+    test('v4.59.2 bank: Domain 2.0 contains 22 exemplars (+4 Batch 2)',
+      d2Count === 22);
+    test('v4.59.2 bank: Domain 3.0 contains 21 exemplars (+4 Batch 2)',
+      d3Count === 21);
+    test('v4.59.2 bank: Domain 4.0 contains 21 exemplars (+4 Batch 2)',
+      d4Count === 21);
+    test('v4.59.2 bank: Domain 5.0 contains 24 exemplars (+3 Batch 2)',
+      d5Count === 24);
+    test('v4.59.2 bank: domain distribution sums to 114 (26+22+21+21+24)',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 114);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));
