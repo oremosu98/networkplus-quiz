@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.58.1', js.includes("const APP_VERSION = '4.58.1"));
+test('APP_VERSION is 4.58.2', js.includes("const APP_VERSION = '4.58.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.58.1', sw.includes('netplus-v4.58.1'));
+test('SW cache bumped to v4.58.2', sw.includes('netplus-v4.58.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7436,8 +7436,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.58.1 bank: 14 exemplars present (Domain 1.0 complete)',
-      Array.isArray(bank) && bank.length === 14);
+    test('v4.58.2 bank: 26 exemplars present (Domain 1.0 + 2.0 complete)',
+      Array.isArray(bank) && bank.length === 26);
 
     // Every exemplar has required fields
     const requiredFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'answer', 'explanation', 'source', 'addedVersion', 'addedDate'];
@@ -7472,9 +7472,10 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     test('v4.58.1 bank: every exemplar tagged source:\"curated\"',
       nonCurated.length === 0);
 
-    // All exemplars are tagged with v4.58.1
-    const wrongVersion = bank.filter(ex => ex.addedVersion !== '4.58.1');
-    test('v4.58.1 bank: every exemplar tagged with v4.58.1 addedVersion',
+    // v4.58.2: addedVersion loosened from literal match to semver pattern so
+    // the bank keeps passing as later shipments add more exemplars.
+    const wrongVersion = bank.filter(ex => !/^\d+\.\d+\.\d+$/.test(ex.addedVersion || ''));
+    test('v4.58.1 bank: every exemplar carries a valid semver addedVersion',
       wrongVersion.length === 0);
 
     // All exemplars pass the interrogative guard from v4.57.2
@@ -7487,26 +7488,43 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     test('v4.58.1 bank: every exemplar passes v4.57.2 interrogative guard',
       noInterrogative.length === 0);
 
-    // Domain spread: every exemplar\'s topic maps to a real Domain 1.0 topic
-    const conceptTopics = [
+    // v4.58.2: topic whitelist generalised to cover Domain 1.0 + 2.0 (plus
+    // allowed cross-domain topics like SDN that live in Domain 2 but have a
+    // 1.8 objective tag). Grows as later ships add Domain 3/4/5 exemplars.
+    const validTopics = [
+      // Domain 1.0 (concepts)
       'Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing',
       'DNS Records & DNSSEC', 'Network Appliances & Device Functions',
       'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6',
-      'NAT & IP Services', 'NTP, ICMP & Traffic Types'
+      'NAT & IP Services', 'NTP, ICMP & Traffic Types',
+      // Domain 2.0 (implementation)
+      'VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards',
+      'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols',
+      'BGP', 'Data Center Architectures', 'SDN, NFV & Automation'
     ];
-    const offDomain = bank.filter(ex => !conceptTopics.includes(ex.topic));
-    test('v4.58.1 bank: every exemplar maps to a Domain 1.0 Networking Concepts topic',
+    const offDomain = bank.filter(ex => !validTopics.includes(ex.topic));
+    test('v4.58.2 bank: every exemplar maps to a valid TOPIC_DOMAINS key (Domain 1.0 or 2.0)',
       offDomain.length === 0);
+
+    // v4.58.2: Domain-split sanity — at least 14 Domain 1.0 + 12 Domain 2.0
+    const d1Topics = ['Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing', 'DNS Records & DNSSEC', 'Network Appliances & Device Functions', 'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6', 'NAT & IP Services', 'NTP, ICMP & Traffic Types'];
+    const d2Topics = ['VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols', 'BGP', 'Data Center Architectures', 'SDN, NFV & Automation'];
+    const d1Count = bank.filter(ex => d1Topics.includes(ex.topic)).length;
+    const d2Count = bank.filter(ex => d2Topics.includes(ex.topic)).length;
+    test('v4.58.2 bank: Domain 1.0 contains 14 exemplars',
+      d1Count === 14);
+    test('v4.58.2 bank: Domain 2.0 contains 12 exemplars',
+      d2Count === 12);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));
     test('v4.58.1 bank: difficulty spread includes Foundational + Exam Level + Hard',
       diffs.has('Foundational') && diffs.has('Exam Level') && diffs.has('Hard'));
 
-    // Topic coverage: at least 10 distinct topics across 14 exemplars
+    // Topic coverage: at least 18 distinct topics across both domains
     const topics = new Set(bank.map(ex => ex.topic));
-    test('v4.58.1 bank: at least 10 distinct topics covered in Domain 1.0',
-      topics.size >= 10);
+    test('v4.58.2 bank: at least 18 distinct topics covered across Domain 1.0 + 2.0',
+      topics.size >= 18);
 
     // No question stem is a duplicate of another
     const stems = bank.map(ex => ex.question);

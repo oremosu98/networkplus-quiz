@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.1
+// Network+ AI Quiz — app.js  v4.58.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.1';
+const APP_VERSION = '4.58.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -316,6 +316,218 @@ const QUESTION_EXEMPLARS = [
     explanation: 'NTP stratum increases by 1 with each hop from the reference clock. Stratum 0 is the reference clock itself (atomic, GPS). Stratum 1 synchronises directly from a stratum 0 source. Stratum 2 synchronises from a stratum 1, and so on. A server syncing from a stratum 2 pool becomes stratum 3. Stratum 16 signals an unsynchronised state.',
     source: 'curated',
     addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  // ───── 2.0 Network Implementation (12/12) ─────
+  {
+    type: 'mcq',
+    question: 'A network engineer is connecting two switches to carry traffic for VLAN 10, VLAN 20, and VLAN 30 simultaneously between them. The link between the switches must identify which VLAN each frame belongs to as it crosses. Which type of port configuration should the engineer apply to both ends of the inter-switch link?',
+    difficulty: 'Exam Level',
+    topic: 'VLAN Trunking',
+    objective: '2.1',
+    options: {
+      A: 'Access port',
+      B: 'Trunk port with 802.1Q tagging',
+      C: 'PoE port',
+      D: 'Mirror port (SPAN)'
+    },
+    answer: 'B',
+    explanation: 'A trunk port with 802.1Q tagging adds a 4-byte VLAN header to each frame so the receiving switch knows which VLAN the frame belongs to. An access port (A) belongs to exactly one VLAN and strips the tag \u2014 it cannot carry multiple VLANs across the link. PoE (C) is about delivering power, not VLAN separation. A SPAN/mirror port (D) copies traffic to a monitoring port; it does not carry production traffic.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'What is the correct sequence of Spanning Tree Protocol (802.1D) port states as a port transitions from initial power-up to actively forwarding traffic?',
+    difficulty: 'Exam Level',
+    topic: 'STP/RSTP',
+    objective: '2.1',
+    options: {
+      A: 'Forwarding \u2192 Learning \u2192 Listening \u2192 Blocking',
+      B: 'Blocking \u2192 Listening \u2192 Learning \u2192 Forwarding',
+      C: 'Learning \u2192 Listening \u2192 Blocking \u2192 Forwarding',
+      D: 'Listening \u2192 Blocking \u2192 Learning \u2192 Forwarding'
+    },
+    answer: 'B',
+    explanation: 'In classic 802.1D STP, a port starts in Blocking (discards frames, only listens to BPDUs), advances to Listening (participates in STP calculations but does not learn or forward), then Learning (populates the MAC table but still does not forward), and finally Forwarding. RSTP (802.1w) compresses this to three states \u2014 Discarding, Learning, Forwarding \u2014 but this question specifies classic 802.1D.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network is divided into four OSPF areas: Area 0, Area 10, Area 20, and Area 30. The network administrator wants to configure routers in Area 20 to communicate with routers in Area 30. What is required for this inter-area communication to function correctly?',
+    difficulty: 'Hard',
+    topic: 'OSPF',
+    objective: '2.2',
+    options: {
+      A: 'Area 20 and Area 30 must be directly connected to each other.',
+      B: 'Traffic between Area 20 and Area 30 must pass through Area 0 (the backbone area).',
+      C: 'At least one router in Area 20 must be configured as the Area 30 Designated Router.',
+      D: 'OSPF must be disabled on Area 0 to allow Area 20 and Area 30 to peer directly.'
+    },
+    answer: 'B',
+    explanation: 'OSPF requires all non-backbone areas to connect to Area 0 (the backbone). Inter-area traffic always transits Area 0 by design \u2014 this prevents suboptimal routing and routing loops. Option A is incorrect: non-backbone areas cannot be directly connected without a virtual link. Option C conflates DR (elected per broadcast segment) with ABR (Area Border Router). Option D is backwards \u2014 disabling the backbone breaks OSPF entirely.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which Ethernet standard supports up to 1 Gbps over Cat 5e or Cat 6 copper cabling at distances up to 100 meters?',
+    difficulty: 'Foundational',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: { A: '100BASE-TX', B: '1000BASE-T', C: '10GBASE-T', D: '1000BASE-SX' },
+    answer: 'B',
+    explanation: '1000BASE-T delivers 1 Gbps over 4 pairs of Cat 5e or better twisted-pair copper up to 100 meters. 100BASE-TX is 100 Mbps Fast Ethernet over Cat 5+. 10GBASE-T delivers 10 Gbps over copper but requires Cat 6a for the full 100 m (Cat 6 limits it to approximately 55 m). 1000BASE-SX is 1 Gbps over multi-mode fiber, not copper.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator wants to combine four 1 Gbps Ethernet links between two switches to create a single logical 4 Gbps connection that provides both increased bandwidth and automatic failover if one link fails. Which protocol should they configure on both switch ends?',
+    difficulty: 'Exam Level',
+    topic: 'Switch Features & VLANs',
+    objective: '2.1',
+    options: {
+      A: 'Link Aggregation Control Protocol (LACP / 802.3ad)',
+      B: 'Spanning Tree Protocol (STP / 802.1D)',
+      C: 'Virtual Router Redundancy Protocol (VRRP)',
+      D: 'Dynamic Host Configuration Protocol (DHCP)'
+    },
+    answer: 'A',
+    explanation: 'LACP (IEEE 802.3ad) bundles multiple physical Ethernet links into a single logical link aggregation group (LAG or EtherChannel), providing combined bandwidth and automatic failover. STP (B) prevents loops by blocking redundant links \u2014 it would disable 3 of the 4 links, not aggregate them. VRRP (C) provides router (not switch-link) redundancy. DHCP (D) assigns IP addresses and is unrelated.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A deployment requires powering a wireless access point that draws up to 25 watts over a single Ethernet cable. Which PoE standard provides enough power for this device?',
+    difficulty: 'Exam Level',
+    topic: 'Ethernet Standards',
+    objective: '2.3',
+    options: {
+      A: '802.3af (PoE)',
+      B: '802.3at (PoE+)',
+      C: '802.3bt Type 3 (PoE++)',
+      D: '802.3x (Flow Control)'
+    },
+    answer: 'B',
+    explanation: '802.3at (PoE+) provides up to 30 W at the source (25.5 W at the device), sufficient for a 25 W load. 802.3af (PoE) provides only up to 15.4 W at the source \u2014 insufficient. 802.3bt Type 3/4 (PoE++) delivers 60-100 W \u2014 works but is overspec for this requirement. 802.3x is Ethernet flow control, not PoE.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which 802.11 wireless standard is also known as Wi-Fi 6 and operates on both the 2.4 GHz and 5 GHz bands?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: '802.11n (Wi-Fi 4)',
+      B: '802.11ac (Wi-Fi 5)',
+      C: '802.11ax (Wi-Fi 6)',
+      D: '802.11be (Wi-Fi 7)'
+    },
+    answer: 'C',
+    explanation: '802.11ax is the IEEE standard branded as Wi-Fi 6, operating on both 2.4 GHz and 5 GHz (the Wi-Fi 6E extension adds 6 GHz). 802.11n (Wi-Fi 4) runs on both bands but at much lower speeds. 802.11ac (Wi-Fi 5) operates only on 5 GHz. 802.11be (Wi-Fi 7) is the newer standard but not yet heavily emphasized on N10-009.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A security audit flags that a company\u2019s wireless network uses a four-way handshake that is vulnerable to offline dictionary attacks against weak passwords. Which WPA3 feature replaces that handshake to defend against this specific attack class?',
+    difficulty: 'Hard',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Pre-Shared Key (PSK) rotation',
+      B: 'Simultaneous Authentication of Equals (SAE / Dragonfly)',
+      C: 'Temporal Key Integrity Protocol (TKIP)',
+      D: 'RADIUS-based authentication'
+    },
+    answer: 'B',
+    explanation: 'WPA3-Personal replaces WPA2\u2019s four-way handshake with SAE (Simultaneous Authentication of Equals, also called Dragonfly), a password-authenticated key exchange that is resistant to offline dictionary attacks \u2014 each attempt requires active network interaction, so captured traffic cannot be brute-forced offline. PSK rotation (A) is an operational workaround, not a WPA3 feature. TKIP (C) is a legacy WPA encryption protocol, deprecated. RADIUS (D) is the WPA-Enterprise authentication model, not a WPA3-Personal feature.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which statement best describes the primary advantage of using dynamic routing protocols over static routes in a large enterprise network?',
+    difficulty: 'Foundational',
+    topic: 'Routing Protocols',
+    objective: '2.2',
+    options: {
+      A: 'Dynamic routing uses less memory and CPU on routers than static routing.',
+      B: 'Dynamic routing automatically adapts to topology changes without manual reconfiguration.',
+      C: 'Dynamic routing is more secure because it encrypts all routing updates by default.',
+      D: 'Dynamic routing eliminates the need for any administrator oversight.'
+    },
+    answer: 'B',
+    explanation: 'Dynamic routing protocols (OSPF, EIGRP, BGP, RIP) exchange routing information between routers and adjust the routing table automatically when links fail or topology changes \u2014 far more scalable than manually maintained static routes. A is backwards: dynamic routing uses MORE resources. C is incorrect: most protocols do not encrypt updates by default \u2014 MD5/HMAC authentication must be explicitly configured. D is incorrect \u2014 administrators still design, monitor, and troubleshoot dynamic-routing deployments.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An enterprise is multihomed to two different Internet Service Providers (ISPs). They need to receive the full internet routing table from both ISPs to make intelligent path decisions for outbound traffic. Which routing protocol should they run between their edge routers and the two ISPs?',
+    difficulty: 'Exam Level',
+    topic: 'BGP',
+    objective: '2.2',
+    options: {
+      A: 'Open Shortest Path First (OSPF)',
+      B: 'Border Gateway Protocol (BGP)',
+      C: 'Routing Information Protocol (RIPv2)',
+      D: 'Enhanced Interior Gateway Routing Protocol (EIGRP)'
+    },
+    answer: 'B',
+    explanation: 'BGP is the only protocol designed to exchange routing information between autonomous systems (ASes) \u2014 ISPs always peer with customers using BGP for multihomed internet connections. OSPF (A) and EIGRP (D) are interior gateway protocols meant for routing within a single AS. RIPv2 (C) is a small-scale IGP with a 15-hop limit, never used for internet peering.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A modern data center is being designed to maximize east-west traffic between servers and minimize latency between any two endpoints. The architecture uses two tiers of switches where every switch in the lower tier connects to every switch in the upper tier. Which data center topology does this describe?',
+    difficulty: 'Exam Level',
+    topic: 'Data Center Architectures',
+    objective: '2.1',
+    options: {
+      A: 'Three-tier (core / aggregation / access)',
+      B: 'Spine-leaf',
+      C: 'Hub-and-spoke',
+      D: 'Ring topology'
+    },
+    answer: 'B',
+    explanation: 'Spine-leaf is a two-tier data center topology where every leaf switch (server-facing) connects to every spine switch (aggregation). Any server-to-server path is exactly two hops, which optimizes east-west (server-to-server) traffic. Three-tier (A) adds an intermediate aggregation layer, optimized for north-south (client-to-server) traffic. Hub-and-spoke (C) is a WAN topology. Ring (D) is a legacy topology rarely used in modern data centers.',
+    source: 'curated',
+    addedVersion: '4.58.2',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which statement correctly describes the architectural distinction that defines Software-Defined Networking (SDN)?',
+    difficulty: 'Hard',
+    topic: 'SDN, NFV & Automation',
+    objective: '1.8',
+    options: {
+      A: 'SDN separates the control plane from the data plane, centralizing routing decisions on a controller while distributed network devices forward traffic based on instructions from that controller.',
+      B: 'SDN replaces all physical switches with virtual software switches running on servers.',
+      C: 'SDN encrypts all network traffic using AES-256 by default across all connected devices.',
+      D: 'SDN requires all network devices to be manufactured by the same vendor to function.'
+    },
+    answer: 'A',
+    explanation: 'SDN\u2019s core architectural innovation is separating the control plane (where routing decisions are made) from the data plane (where packets are forwarded). A centralized SDN controller programs the data-plane devices via southbound APIs (OpenFlow, NETCONF). B conflates SDN with NFV (Network Function Virtualization). C is unrelated \u2014 SDN is not an encryption technology. D is the opposite of true \u2014 SDN was created partly to AVOID vendor lock-in through open protocols.',
+    source: 'curated',
+    addedVersion: '4.58.2',
     addedDate: '2026-04-21'
   }
 ];
