@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.56.1
+// Network+ AI Quiz — app.js  v4.56.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.56.1';
+const APP_VERSION = '4.56.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2130,10 +2130,12 @@ MANDATORY RULES:
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"type":"mcq","question":"...",${includeScenario ? '"scenario":"(optional)",' : ''}"difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
 
-  // v4.56.1: single-attempt helper — does the API call + parse.
-  // Throws on API-level errors with `.apiError = true`, or on parse failures
-  // with `.raw` attached so the caller can log the raw response for diagnosis.
-  const attempt = async (prompt, label) => {
+  // v4.56.1/v4.56.2: single-attempt helper — does the API call + parse.
+  // Takes a model arg (v4.56.2) so the last-ditch fallback can escalate to
+  // Sonnet when Haiku fails twice in a row on the same batch. Throws on
+  // API-level errors with `.apiError = true`, or on parse failures with
+  // `.raw` attached so the caller can log the raw response for diagnosis.
+  const attempt = async (prompt, label, model) => {
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
@@ -2142,7 +2144,7 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: model || CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }] })
     });
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
@@ -2169,18 +2171,34 @@ Respond ONLY with a raw JSON array - no markdown, no extra text:
 
   let parsed;
   try {
-    parsed = (await attempt(buildPrompt(true), 'full')).parsed;
+    parsed = (await attempt(buildPrompt(true), 'haiku-full', CLAUDE_MODEL)).parsed;
   } catch (primaryErr) {
     if (primaryErr.apiError) throw primaryErr;           // API errors don't retry
-    _logAiParseFail({ attempt: 'full', qTopic, difficulty, n, error: primaryErr.message, rawPrefix: (primaryErr.raw || '').slice(0, 600) });
+    _logAiParseFail({ attempt: 'haiku-full', qTopic, difficulty, n, error: primaryErr.message, rawPrefix: (primaryErr.raw || '').slice(0, 600) });
     // v4.56.1: retry once with the scenario block stripped — recovers from the
     // prompt-length-induced malformed-JSON failures we saw on 20-Q Mixed runs.
     try {
-      parsed = (await attempt(buildPrompt(false), 'retry')).parsed;
+      parsed = (await attempt(buildPrompt(false), 'haiku-retry', CLAUDE_MODEL)).parsed;
     } catch (retryErr) {
       if (retryErr.apiError) throw retryErr;
-      _logAiParseFail({ attempt: 'retry', qTopic, difficulty, n, error: retryErr.message, rawPrefix: (retryErr.raw || '').slice(0, 600) });
-      throw new Error('AI returned malformed data. Please try again.');
+      _logAiParseFail({ attempt: 'haiku-retry', qTopic, difficulty, n, error: retryErr.message, rawPrefix: (retryErr.raw || '').slice(0, 600) });
+      // v4.56.2: Sonnet escalation tier. Both Haiku attempts failed — this is
+      // the rare hard case where the prompt is just too much for Haiku. Spend
+      // the ~5x cost on Sonnet for this one batch and get the right answer.
+      // Uses the stripped prompt (no scenario instructions) — keeps the call
+      // as light as possible while leveraging the stronger model's JSON
+      // consistency. Silent to the user on success; same user-facing error
+      // only if Sonnet ALSO fails.
+      try {
+        if (typeof console !== 'undefined' && console.info) {
+          console.info(`[fetchQuestions] escalating batch (${qTopic} / ${difficulty} / n=${n}) to ${CLAUDE_VALIDATOR_MODEL} after both Haiku attempts failed`);
+        }
+        parsed = (await attempt(buildPrompt(false), 'sonnet-escalation', CLAUDE_VALIDATOR_MODEL)).parsed;
+      } catch (sonnetErr) {
+        if (sonnetErr.apiError) throw sonnetErr;
+        _logAiParseFail({ attempt: 'sonnet-escalation', qTopic, difficulty, n, error: sonnetErr.message, rawPrefix: (sonnetErr.raw || '').slice(0, 600) });
+        throw new Error('AI returned malformed data. Please try again.');
+      }
     }
   }
 

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.56.1', js.includes("const APP_VERSION = '4.56.1"));
+test('APP_VERSION is 4.56.2', js.includes("const APP_VERSION = '4.56.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.56.1', sw.includes('netplus-v4.56.1'));
+test('SW cache bumped to v4.56.2', sw.includes('netplus-v4.56.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6699,13 +6699,62 @@ test('v4.56.1 JS: _logAiParseFail helper defined',
 test('v4.56.1 JS: _logAiParseFail caps rolling log at 5 entries',
   /arr\.slice\(0,\s*5\)/.test(js));
 test('v4.56.1 JS: _logAiParseFail fires on primary parse failure',
-  /_logAiParseFail\(\{\s*attempt:\s*['"]full['"]/.test(js));
+  /_logAiParseFail\(\{\s*attempt:\s*['"]haiku-full['"]/.test(js));
 test('v4.56.1 JS: _logAiParseFail fires on retry parse failure too',
-  /_logAiParseFail\(\{\s*attempt:\s*['"]retry['"]/.test(js));
+  /_logAiParseFail\(\{\s*attempt:\s*['"]haiku-retry['"]/.test(js));
 
-// Retry-without-scenario (last-ditch fallback inside each batch)
-test('v4.56.1 JS: retry path calls buildPrompt(false) to strip scenario block',
-  /buildPrompt\(false\)[\s\S]{0,80}retry/.test(js));
+// Retry-without-scenario (middle-tier fallback inside each batch)
+test('v4.56.1 JS: haiku-retry path calls buildPrompt(false) to strip scenario block',
+  /buildPrompt\(false\)[\s\S]{0,120}haiku-retry/.test(js));
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.56.2 — Sonnet escalation tier
+// Last-ditch fallback inside each batch: when both Haiku attempts (full +
+// no-scenario retry) fail the parse, escalate JUST this batch to Sonnet.
+// Silent success on recovery; user-facing error only if Sonnet also fails.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.56.2 JS: attempt() helper parameterized with model arg (3rd param)',
+  /const attempt = async \(prompt,\s*label,\s*model\)/.test(js));
+test('v4.56.2 JS: attempt() uses `model || CLAUDE_MODEL` fallback in fetch body',
+  /body:\s*JSON\.stringify\(\{\s*model:\s*model\s*\|\|\s*CLAUDE_MODEL,\s*max_tokens:\s*MAX_TOKENS_GENERATION/.test(js));
+test('v4.56.2 JS: primary Haiku attempt now labelled haiku-full + passes CLAUDE_MODEL',
+  /attempt\(buildPrompt\(true\),\s*['"]haiku-full['"],\s*CLAUDE_MODEL\)/.test(js));
+test('v4.56.2 JS: retry Haiku attempt labelled haiku-retry + passes CLAUDE_MODEL',
+  /attempt\(buildPrompt\(false\),\s*['"]haiku-retry['"],\s*CLAUDE_MODEL\)/.test(js));
+test('v4.56.2 JS: Sonnet escalation uses CLAUDE_VALIDATOR_MODEL (Sonnet 4.6)',
+  /attempt\(buildPrompt\(false\),\s*['"]sonnet-escalation['"],\s*CLAUDE_VALIDATOR_MODEL\)/.test(js));
+test('v4.56.2 JS: Sonnet escalation only fires after both Haiku attempts fail',
+  /haiku-retry[\s\S]{0,2000}sonnet-escalation/.test(js));
+test('v4.56.2 JS: Sonnet failure still logs + throws user-facing malformed-data',
+  /sonnet-escalation[\s\S]{0,400}_logAiParseFail\([\s\S]{0,100}sonnet-escalation[\s\S]{0,300}AI returned malformed data/.test(js));
+test('v4.56.2 JS: escalation emits console.info telemetry on fire (not silent)',
+  /console\.info\(`\[fetchQuestions\] escalating batch[\s\S]{0,200}CLAUDE_VALIDATOR_MODEL/.test(js));
+test('v4.56.2 JS: escalation uses buildPrompt(false) to keep call lightweight',
+  /buildPrompt\(false\)[\s\S]{0,80}sonnet-escalation/.test(js));
+test('v4.56.2 JS: Sonnet API error still bubbles up immediately (not masked)',
+  /sonnetErr\.apiError/.test(js));
+
+// Behavioural — verify the 3-tier cascade structure in source via body inspection
+(function testCascadeStructure() {
+  try {
+    const body = _fnBody(js, '_fetchQuestionsBatch');
+    // Order check: haiku-full appears before haiku-retry before sonnet-escalation
+    const posFull = body.indexOf("'haiku-full'");
+    const posRetry = body.indexOf("'haiku-retry'");
+    const posSonnet = body.indexOf("'sonnet-escalation'");
+    test('v4.56.2 cascade: haiku-full appears before haiku-retry',
+      posFull >= 0 && posRetry >= 0 && posFull < posRetry);
+    test('v4.56.2 cascade: haiku-retry appears before sonnet-escalation',
+      posRetry >= 0 && posSonnet >= 0 && posRetry < posSonnet);
+    test('v4.56.2 cascade: all three attempt labels logged via _logAiParseFail',
+      body.match(/_logAiParseFail/g) && body.match(/_logAiParseFail/g).length >= 3);
+    test('v4.56.2 cascade: only one user-facing malformed-data throw (at the very end)',
+      (body.match(/AI returned malformed data/g) || []).length === 1);
+  } catch (e) {
+    test('v4.56.2 cascade: structure check executes without error', false);
+  }
+})();
 
 // Behavioural — vm-sandbox the outer coordinator's batch-sizing logic
 (function testBatchSizing() {
