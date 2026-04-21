@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.2
+// Network+ AI Quiz — app.js  v4.59.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.2';
+const APP_VERSION = '4.59.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2128,6 +2128,404 @@ const QUESTION_EXEMPLARS = [
     explanation: 'The error points specifically to IKE Phase 2 (the "Child SA" that carries actual data traffic) failing to rekey. IPsec Phase 2 rekeys periodically (often every hour or based on data volume); if mismatched transform sets, NAT traversal problems, or MTU/fragmentation issues interfere, the rekey fails and the tunnel drops. Phase 1 auth (A) would prevent the tunnel from forming at all. Layer 1 (C) would show different symptoms. SSL (D) is not involved in IPsec.',
     source: 'curated',
     addedVersion: '4.59.2',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — VOLUME EXPANSION BATCH 3 (v4.59.3): 20 new exemplars
+  // FINAL BATCH — bank grows 114 → 134 (hits user target).
+  // Spread: D1 +4, D2 +4, D3 +4, D4 +4, D5 +4.
+  // ═════════════════════════════════════════════════════════════════
+  // ── D1-27: TCP vs UDP (1.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which statement correctly distinguishes TCP from UDP at the transport layer?',
+    difficulty: 'Exam Level',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.4',
+    options: {
+      A: 'TCP is connectionless and unreliable; UDP is connection-oriented and reliable',
+      B: 'TCP is connection-oriented with a 3-way handshake and reliable delivery; UDP is connectionless with no handshake and best-effort delivery',
+      C: 'TCP and UDP both perform a 3-way handshake, but only UDP retransmits lost packets',
+      D: 'TCP operates at Layer 3 and UDP operates at Layer 4'
+    },
+    answer: 'B',
+    explanation: 'TCP is connection-oriented: SYN → SYN/ACK → ACK handshake, sequence/ACK numbers, retransmission, flow control, congestion control. UDP is connectionless: send-and-forget, no handshake, no retransmission, lower overhead. Both live at Layer 4 (D is wrong). The roles are reversed in A, and C misrepresents UDP.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-28: TCP/IP model layer mapping (1.1 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'In the TCP/IP (DoD) model, which layer maps to the OSI Network layer?',
+    difficulty: 'Foundational',
+    topic: 'Network Models & OSI',
+    objective: '1.1',
+    options: {
+      A: 'Application',
+      B: 'Transport',
+      C: 'Internet',
+      D: 'Link (Network Access)'
+    },
+    answer: 'C',
+    explanation: 'The TCP/IP model has 4 layers: Application (OSI L5-7), Transport (OSI L4), Internet (OSI L3 — where IP and routing live), and Link/Network Access (OSI L1-2). IP, ICMP, and routing protocols operate at the Internet layer, which is the direct analog to OSI Network.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-29: /23 subnet math (1.7 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An office needs a single subnet that can accommodate 450 hosts. Which prefix length is the smallest that satisfies the requirement while minimising waste?',
+    scenario: 'A branch has a single flat Layer 2 segment with ~450 connected devices. The admin wants the smallest subnet that still fits everyone, because the remaining address space will be carved up for future branches.',
+    difficulty: 'Hard',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '/21 (2046 usable hosts)',
+      B: '/22 (1022 usable hosts)',
+      C: '/23 (510 usable hosts)',
+      D: '/24 (254 usable hosts)'
+    },
+    answer: 'C',
+    explanation: '/23 gives 2^9 − 2 = 510 usable hosts, which fits 450 with minimal waste. /24 (254) is too small. /22 (1022) and /21 (2046) fit but waste 500+ addresses each. CompTIA convention: pick the smallest-satisfying subnet — the largest CIDR (smallest block) that still meets the host count.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-30: IoT VLAN segmentation (1.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A hospital is adding 200 IoT medical sensors to a network that already carries clinical workstations and guest Wi-Fi. Which design most reduces the attack surface?',
+    scenario: 'The security team flags that IoT devices often run unpatched firmware and cannot host endpoint agents. They must still reach a private cloud API over HTTPS, but nothing else.',
+    difficulty: 'Exam Level',
+    topic: 'Network Appliances & Device Functions',
+    objective: '1.2',
+    options: {
+      A: 'Place IoT devices on the same VLAN as workstations so patch management applies uniformly',
+      B: 'Create a dedicated IoT VLAN with an ACL that permits only the required outbound API destinations and denies all lateral traffic',
+      C: 'Put IoT devices on the guest Wi-Fi VLAN since both need internet access',
+      D: 'Give each IoT device a public IP so the firewall can inspect traffic on the edge'
+    },
+    answer: 'B',
+    explanation: 'Segmentation + least-privilege ACLs is the N10-009 answer for untrusted endpoints like IoT. A dedicated VLAN contains any compromise; an egress ACL allowing only the API destination blocks lateral movement and data exfiltration. Mixing IoT with workstations (A) or guests (C) increases blast radius. Public IPs (D) remove defence-in-depth.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-23: Native VLAN mismatch (2.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An administrator configures a trunk between two switches with native VLAN 1 on one side and native VLAN 99 on the other. What symptom is most likely?',
+    scenario: 'Tagged VLAN traffic flows fine between the switches, but hosts in the default (untagged) VLAN cannot reach each other across the trunk. CDP also logs a native VLAN mismatch.',
+    difficulty: 'Exam Level',
+    topic: 'VLAN Trunking',
+    objective: '2.1',
+    options: {
+      A: 'STP will place both switchports into a blocking state, cutting the trunk entirely',
+      B: 'Untagged frames will be placed into different VLANs on each side, breaking connectivity for the native VLAN only',
+      C: 'All VLAN traffic will fail, including tagged frames',
+      D: 'The switches will automatically renegotiate a matching native VLAN'
+    },
+    answer: 'B',
+    explanation: 'On an 802.1Q trunk, frames on the native VLAN are sent untagged. If one side calls native VLAN 1 and the other native VLAN 99, untagged frames from Switch A land in VLAN 99 on Switch B — a VLAN hop. Tagged VLANs still work because the tag is explicit. CDP flags the mismatch as a warning; STP does not block (A). Native VLAN is never auto-negotiated (D).',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-24: BPDU Guard (2.1 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'What does BPDU Guard do when a BPDU is received on a port configured for PortFast?',
+    difficulty: 'Exam Level',
+    topic: 'STP/RSTP',
+    objective: '2.1',
+    options: {
+      A: 'Allows the BPDU through and continues forwarding user traffic',
+      B: 'Places the port into err-disable state, stopping all traffic on that port',
+      C: 'Blocks the port only for the VLAN that received the BPDU',
+      D: 'Forwards the BPDU to the root bridge for validation'
+    },
+    answer: 'B',
+    explanation: 'BPDU Guard protects PortFast edge ports (access ports for PCs/printers) from unexpected switches being plugged in. A PortFast port should never see a BPDU; if it does, BPDU Guard immediately err-disables the port, preventing a rogue switch from influencing the STP topology. The port must be manually re-enabled or recovered via errdisable recovery.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-25: BGP Local Preference (2.2 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An ISP-facing edge router has two BGP peerings to different upstream providers. The network team wants outbound traffic to prefer ISP-A. Which BGP attribute should they manipulate?',
+    scenario: 'Both peers advertise the same destination prefixes. Inbound routing is fine; the concern is strictly outbound path selection. The team wants a change that is local to the AS and does not rely on the upstream ISPs cooperating.',
+    difficulty: 'Hard',
+    topic: 'BGP',
+    objective: '2.2',
+    options: {
+      A: 'AS Path prepending — prepend extra hops on the ISP-B route',
+      B: 'Local Preference — set a higher value on routes learned from ISP-A',
+      C: 'MED (Multi-Exit Discriminator) — lower the value on ISP-A',
+      D: 'Weight — set a lower value on ISP-A'
+    },
+    answer: 'B',
+    explanation: 'Local Preference is the BGP attribute that influences OUTBOUND path selection within an AS — higher wins, it is propagated to all iBGP peers, and it sits high in the BGP best-path decision (above MED and AS Path). AS Path prepending (A) influences INBOUND traffic from upstreams. MED (C) is a hint to neighboring ASes for inbound and is not local to the AS. Weight (D) is Cisco-proprietary and only local to one router, so it is wrong for AS-wide policy.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-26: Voice VLAN (2.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An IP phone is connected to a switchport, and a PC is daisy-chained through the phone into the same port. Which switchport configuration correctly separates voice and data?',
+    scenario: 'Voice quality is critical; data traffic must not be in the same broadcast domain as the SIP/RTP streams. The cabling is a single Cat6 run per desk to an access switch.',
+    difficulty: 'Exam Level',
+    topic: 'Switch Features & VLANs',
+    objective: '2.1',
+    options: {
+      A: 'Configure the port as a trunk with all VLANs allowed',
+      B: 'Configure an access VLAN for data and a voice VLAN (auxiliary VLAN) — the phone tags voice frames, the PC sends untagged data frames',
+      C: 'Put the port in VLAN 1 and rely on QoS to separate voice and data',
+      D: 'Configure two separate physical ports — one for the phone, one for the PC'
+    },
+    answer: 'B',
+    explanation: 'Voice VLAN (Cisco) / auxiliary VLAN is the standard design: the access port carries untagged data frames for the PC and tagged frames (e.g., 802.1Q VLAN tag + 802.1p CoS) for the phone. The phone learns its voice VLAN via CDP/LLDP-MED. A full trunk (A) exposes too many VLANs. VLAN 1 with QoS alone (C) skips the segmentation. Requiring two physical ports (D) defeats the cable-savings of daisy-chaining.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-22: Physical network diagrams (3.1 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'A network engineer is asked to produce documentation showing the exact cabling runs, patch panel port numbers, and rack-unit positions of every switch in a data centre. Which document type is correct?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Logical network diagram',
+      B: 'Physical network diagram',
+      C: 'IP address management (IPAM) report',
+      D: 'Rack elevation only'
+    },
+    answer: 'B',
+    explanation: 'Physical network diagrams show real cable runs, patch panel assignments, rack positions, and port labels — how things are actually wired. Logical diagrams (A) show VLANs, subnets, and routing relationships — how traffic flows. IPAM (C) is address-tracking only. A rack elevation (D) is part of physical documentation but does not by itself capture cable runs between racks.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-23: ASHRAE env monitoring (3.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A data centre is experiencing intermittent equipment failures in one row of racks. The network admin wants to correlate failures with environmental conditions. Which monitoring layer is most relevant?',
+    scenario: 'Switches and servers in row 3 have rebooted unexpectedly several times this quarter. Temperatures near the top-of-rack seem higher than the rest of the room.',
+    difficulty: 'Exam Level',
+    topic: 'Data Centres',
+    objective: '3.1',
+    options: {
+      A: 'Syslog severity filtering on the affected devices',
+      B: 'Environmental monitoring (temperature, humidity, airflow) compared against ASHRAE TC 9.9 thresholds',
+      C: 'NetFlow top-talkers report for row 3',
+      D: 'SNMP trap thresholds on CPU utilisation'
+    },
+    answer: 'B',
+    explanation: 'ASHRAE TC 9.9 defines the recommended and allowable temperature/humidity envelopes for data centre equipment. Hot-aisle temperature, humidity, and airflow sensors correlate directly with hardware-related reboots caused by thermal events. Syslog (A), NetFlow (C), and CPU traps (D) surface software/traffic-level symptoms but would miss a pure cooling failure.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-24: Tabletop exercise (3.3 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which type of disaster recovery exercise involves team members walking through a scenario verbally in a conference room, without touching real systems?',
+    difficulty: 'Foundational',
+    topic: 'Business Continuity & Disaster Recovery',
+    objective: '3.3',
+    options: {
+      A: 'Full interruption test',
+      B: 'Parallel test',
+      C: 'Tabletop exercise',
+      D: 'Simulation test with live failover'
+    },
+    answer: 'C',
+    explanation: 'A tabletop exercise is a discussion-based walkthrough of a DR scenario — no systems are touched, no failover occurs. It is the lowest-risk, lowest-cost way to validate that procedures, contact lists, and decision-making are sound. Parallel tests (B) run DR systems alongside prod. Full interruption (A) takes prod down and shifts to DR — highest fidelity, highest risk.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-25: SASE (3.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A global company with 40 branches and many remote workers wants to consolidate SD-WAN, secure web gateway, cloud access security broker (CASB), and zero-trust network access (ZTNA) into one cloud-delivered service. Which architecture is this?',
+    scenario: 'The goal is to replace a patchwork of point products (MPLS, on-prem firewalls, separate VPN concentrators, web filter appliances) with a single vendor-delivered security fabric at the edge.',
+    difficulty: 'Hard',
+    topic: 'SD-WAN & SASE',
+    objective: '3.5',
+    options: {
+      A: 'SDN (Software-Defined Networking)',
+      B: 'SASE (Secure Access Service Edge)',
+      C: 'MPLS L3VPN',
+      D: 'Traditional hub-and-spoke with perimeter firewalls'
+    },
+    answer: 'B',
+    explanation: 'SASE (Gartner, 2019) converges SD-WAN with cloud-delivered security functions (SWG, CASB, ZTNA, FWaaS) into a single platform delivered from distributed PoPs near users. It is the exact model described. SDN (A) refers to control-plane/data-plane separation in switching, not edge security. MPLS L3VPN (C) is a WAN transport, not a security service. Hub-and-spoke (D) is the legacy pattern SASE replaces.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-22: Kerberos (4.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which authentication protocol uses tickets issued by a Key Distribution Center (KDC) with an Authentication Server (AS) and a Ticket Granting Server (TGS)?',
+    difficulty: 'Exam Level',
+    topic: 'AAA & Authentication',
+    objective: '4.4',
+    options: {
+      A: 'RADIUS',
+      B: 'TACACS+',
+      C: 'Kerberos',
+      D: 'LDAP'
+    },
+    answer: 'C',
+    explanation: 'Kerberos is the ticket-based authentication protocol used in Active Directory and many UNIX single-sign-on environments. A KDC issues a Ticket Granting Ticket (TGT) via the AS on initial logon; the TGT is then presented to the TGS to get service tickets for specific resources. RADIUS/TACACS+ are AAA for network device access. LDAP is a directory lookup protocol, not a ticket-based auth protocol.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-23: Zero-trust principle (4.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A CISO is migrating the company away from a flat internal network with a hardened perimeter to a model where every request — regardless of origin — is continuously verified. Which principle best summarises this approach?',
+    scenario: 'Historically, the corporate LAN was treated as trusted and the Internet as untrusted. The new model assumes the attacker may already be inside, so identity, device posture, and context must be validated for every resource access — even on the LAN.',
+    difficulty: 'Exam Level',
+    topic: 'Securing TCP/IP',
+    objective: '4.1',
+    options: {
+      A: 'Defense in depth — layer security controls across the perimeter',
+      B: 'Zero trust — never trust, always verify, regardless of network location',
+      C: 'Least functionality — disable unused services on servers',
+      D: 'Implicit allow — default-permit with exception-based blocks'
+    },
+    answer: 'B',
+    explanation: 'Zero-trust architecture (ZTA) removes the implicit trust of network location. Every access request is authenticated, authorized, and encrypted — identity + device posture + context are all evaluated continuously, not just at the perimeter. Defense in depth (A) is a related but broader concept. Least functionality (C) is a hardening principle. Implicit allow (D) is the opposite of zero-trust.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-24: NGFW capabilities (4.3 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A security team wants a perimeter appliance that can identify traffic by application (not just by port), terminate TLS to inspect encrypted payloads, and integrate IPS signatures inline. Which appliance category is correct?',
+    scenario: 'The legacy stateful firewall only filters by 5-tuple, so malware tunneling over port 443 is invisible. The team wants a single device that can block traffic by app identity and scan content without buying a separate IPS appliance.',
+    difficulty: 'Exam Level',
+    topic: 'Firewalls, DMZ & Security Zones',
+    objective: '4.3',
+    options: {
+      A: 'Stateless packet filter',
+      B: 'Traditional stateful firewall',
+      C: 'Next-Generation Firewall (NGFW)',
+      D: 'Proxy server (forward proxy)'
+    },
+    answer: 'C',
+    explanation: 'NGFW is defined by app-aware filtering (identifying Facebook, BitTorrent, SSH-tunneled-over-443, etc., independent of port), integrated IPS, and TLS decryption for deep packet inspection. Stateless (A) and stateful (B) firewalls filter on 5-tuple only — they cannot see inside an HTTPS flow. A forward proxy (D) can inspect HTTP/HTTPS but is not a firewall appliance category.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-25: Spear phishing / BEC (4.2 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A finance manager receives an email that appears to come from the CEO requesting an urgent $47,000 wire transfer to a new vendor. The email uses the CEOs actual name, references a real project, and arrives while the CEO is travelling. Which attack is this?',
+    scenario: 'The email is well-written, targets a specific person, references internal-sounding details, and pressures urgency. It is not a mass phishing blast to thousands of addresses.',
+    difficulty: 'Hard',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'Generic phishing (mass email)',
+      B: 'Spear phishing / Business Email Compromise (BEC)',
+      C: 'Smishing (SMS-based phishing)',
+      D: 'DNS cache poisoning'
+    },
+    answer: 'B',
+    explanation: 'Spear phishing targets a specific individual with researched personal details; Business Email Compromise (BEC) specifically impersonates executives to trigger wire transfers or gift-card purchases. Hallmarks: specific name, real project references, urgency, and a new vendor/payment destination. Generic phishing (A) is mass, not targeted. Smishing (C) is SMS-based. DNS poisoning (D) is a network-layer attack, not email content.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-25: telnet/nc port test (5.5 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A user reports they cannot reach an internal web application on TCP/8443. Ping to the server succeeds. Which single command-line tool most directly tests whether the specific application port is reachable from the users machine?',
+    scenario: 'ICMP is allowed through the firewall, but TCP/8443 may or may not be. The admin needs a quick confirmation from the users workstation before digging into firewall rules.',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'ping <server-ip>',
+      B: 'tracert <server-ip>',
+      C: 'telnet <server-ip> 8443  (or  nc -zv <server-ip> 8443)',
+      D: 'nslookup <server-ip>'
+    },
+    answer: 'C',
+    explanation: 'telnet or nc (netcat) to a specific port is the classic port-reachability test: if the TCP handshake completes, the port is open end-to-end (firewall and application). ping (A) only tests ICMP reachability, not TCP/8443. tracert (B) shows the path but not whether the destination port is open. nslookup (D) is DNS resolution.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-26: TDR (5.2 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which cable-testing tool sends a pulse down a copper cable and measures reflections to estimate distance to a fault such as a break or short?',
+    difficulty: 'Foundational',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Tone generator and probe',
+      B: 'Time-Domain Reflectometer (TDR)',
+      C: 'Loopback adapter',
+      D: 'Multimeter'
+    },
+    answer: 'B',
+    explanation: 'A TDR injects a pulse and times the reflections to localise faults (break, short, impedance mismatch) on copper runs. An OTDR does the same for fibre. Tone and probe (A) traces which cable is which but does not measure distance to a fault. A loopback (C) validates a port/NIC locally. A multimeter (D) measures voltage/resistance, not cable reflections.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-27: TLS 1.3 middlebox (5.3 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'After upgrading a firewall to enforce TLS 1.3 inspection, users report that some legacy apps no longer connect, showing handshake errors. What is the most likely cause?',
+    scenario: 'The affected apps worked with the previous firewall doing TLS 1.2 inspection. The new TLS 1.3 flow has tighter requirements around certificate validation and supported cipher suites.',
+    difficulty: 'Exam Level',
+    topic: 'Service Issues',
+    objective: '5.3',
+    options: {
+      A: 'TLS 1.3 uses fewer round trips than TLS 1.2, so handshakes always succeed',
+      B: 'The legacy apps use pinned certificates or deprecated cipher suites that the new inspection proxys re-signed certificate or TLS 1.3 cipher list breaks',
+      C: 'TLS 1.3 requires IPv6 and the apps are on IPv4',
+      D: 'TLS 1.3 disables TCP, so the apps fail at Layer 4'
+    },
+    answer: 'B',
+    explanation: 'TLS inspection (MITM decryption) requires the client to trust the inspection proxy CA. Apps that pin certificates will reject the re-signed cert and fail the handshake. TLS 1.3 also removes many older cipher suites and insecure algorithms; legacy apps expecting those will fail. TLS 1.3 has nothing to do with IPv6 (C) or TCP (D) — both wrong.',
+    source: 'curated',
+    addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-28: QoS vs link upgrade (5.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A branch office has a 100 Mbps link that runs at 40% average utilisation but suffers from jitter and packet loss on VoIP calls during daily file-backup windows. Which fix best addresses the symptom without upgrading bandwidth?',
+    scenario: 'Average utilisation is moderate, but the file-backup traffic bursts saturate the link for short intervals — exactly when VoIP traffic suffers. The team wants the cheapest fix that protects voice quality.',
+    difficulty: 'Exam Level',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Upgrade the link to 1 Gbps',
+      B: 'Apply QoS — classify VoIP traffic (e.g., DSCP EF) and give it strict priority (LLQ) over backup traffic',
+      C: 'Disable the backups during business hours',
+      D: 'Move VoIP to UDP to reduce overhead'
+    },
+    answer: 'B',
+    explanation: 'Average 40% utilisation means bandwidth is not the issue — burst congestion is. QoS with LLQ (Low-Latency Queuing) classifies voice as EF and pre-empts other queues during congestion, eliminating jitter and loss without a bandwidth upgrade. Upgrading the link (A) is more expensive and wastes the existing capacity. Disabling backups (C) is operationally painful. VoIP already uses UDP (D), so the choice is nonsensical.',
+    source: 'curated',
+    addedVersion: '4.59.3',
     addedDate: '2026-04-21'
   }
 ];
