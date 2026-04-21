@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.6
+// Network+ AI Quiz — app.js  v4.57.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.6';
+const APP_VERSION = '4.57.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -21072,16 +21072,13 @@ function _renderAnaStudyHeatmap(h) {
       const x = LEFT_PAD + col * (CELL + GAP);
       const y = TOP_PAD + row * (CELL + GAP);
       const dateLabel = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-      const accPct = q > 0 && c >= 0 ? Math.round(c / q * 100) : 0;
       const title = q > 0
-        ? `${dateLabel} \u2014 ${q} question${q === 1 ? '' : 's'}, ${accPct}% accuracy`
+        ? `${dateLabel} \u2014 ${q} question${q === 1 ? '' : 's'}, ${c > 0 ? Math.round(c / q * 100) : 0}% accuracy`
         : `${dateLabel} \u2014 no study`;
       const isToday = daysAgo === 0;
       const isExam = examKey && key === examKey;
       const extraCls = isExam ? ' hm-cell-exam' : (isToday && q > 0 ? ' hm-cell-today' : '');
-      // v4.57.6: data-* attributes feed the custom translucent tooltip bound by
-      // _bindHeatmapTooltip(). <title> kept for accessibility (screen readers).
-      cells.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${tier}${extraCls}" data-date="${key}" data-q="${q}" data-acc="${accPct}" data-label="${dateLabel}" data-is-today="${isToday ? '1' : '0'}" data-is-exam="${isExam ? '1' : '0'}"><title>${title}</title></rect>`);
+      cells.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${tier}${extraCls}" data-date="${key}"><title>${title}</title></rect>`);
       // Month labels \u2014 place one per month at the top when the Sunday of a
       // new month appears in the grid.
       if (row === 0) {
@@ -21130,8 +21127,6 @@ function _renderAnaStudyHeatmap(h) {
         ${dayLabels}
         ${cells.join('')}
       </svg>
-      <!-- v4.57.6: translucent dark-glass tooltip populated by _bindHeatmapTooltip on cell hover -->
-      <div class="hm-tooltip" role="tooltip" hidden></div>
     </div>
     <div class="ana-heatmap-legend">
       <span class="hm-legend-lbl">Less</span>
@@ -21140,81 +21135,6 @@ function _renderAnaStudyHeatmap(h) {
       ${examKey ? '<span class="hm-legend-exam-wrap"><span class="hm-legend-exam-swatch"></span>Exam day</span>' : ''}
     </div>
   </div>`;
-}
-
-// v4.57.6: binds the custom translucent tooltip on the study heatmap. Called by
-// renderAnalytics() after innerHTML is set. Event delegation on the SVG so we
-// don't attach 365 listeners; positions the tooltip absolutely inside the wrap.
-// Pointer-events: none on tooltip so it doesn't eat the next hover.
-function _bindHeatmapTooltip() {
-  const wrap = document.querySelector('.ana-heatmap-wrap');
-  if (!wrap) return;
-  const svg = wrap.querySelector('.ana-heatmap-svg');
-  const tip = wrap.querySelector('.hm-tooltip');
-  if (!svg || !tip) return;
-
-  const show = (rect) => {
-    const q = parseInt(rect.getAttribute('data-q') || '0', 10);
-    const acc = parseInt(rect.getAttribute('data-acc') || '0', 10);
-    const label = rect.getAttribute('data-label') || '';
-    const isToday = rect.getAttribute('data-is-today') === '1';
-    const isExam = rect.getAttribute('data-is-exam') === '1';
-
-    // Colour the accuracy number by tier for at-a-glance signal. Matches the
-    // app's v4.45.1 tier thresholds (55/70/85) used by Domain Mastery so users
-    // see consistent red/yellow/accent/green bands across every surface.
-    let accColor = 'var(--text-dim)';
-    if (q > 0) {
-      accColor = acc >= 85 ? 'var(--green)' : acc >= 70 ? 'var(--accent-light)' : acc >= 55 ? 'var(--yellow)' : 'var(--red)';
-    }
-
-    const chips = [];
-    if (isExam) chips.push('<span class="hm-tip-chip hm-tip-chip-exam">Exam day</span>');
-    if (isToday) chips.push('<span class="hm-tip-chip hm-tip-chip-today">Today</span>');
-
-    tip.innerHTML = q > 0
-      ? `<div class="hm-tip-head">${escHtml(label)}${chips.length ? ' ' + chips.join('') : ''}</div>
-         <div class="hm-tip-body">
-           <span class="hm-tip-q"><strong>${q}</strong> ${q === 1 ? 'question' : 'questions'}</span>
-           <span class="hm-tip-dot">\u00b7</span>
-           <span class="hm-tip-acc" style="color:${accColor}">${acc}% accuracy</span>
-         </div>`
-      : `<div class="hm-tip-head">${escHtml(label)}${chips.length ? ' ' + chips.join('') : ''}</div>
-         <div class="hm-tip-body hm-tip-body-rest"><em>Rest day \u2014 no study</em></div>`;
-
-    // Position: centered above cell, clamped to wrap bounds
-    tip.hidden = false;
-    const wrapRect = wrap.getBoundingClientRect();
-    const cellRect = rect.getBoundingClientRect();
-    const tipRect = tip.getBoundingClientRect();
-    let left = cellRect.left - wrapRect.left + cellRect.width / 2 - tipRect.width / 2;
-    let top = cellRect.top - wrapRect.top - tipRect.height - 8;
-    // Clamp horizontally to wrap
-    const maxLeft = wrapRect.width - tipRect.width - 4;
-    left = Math.max(4, Math.min(maxLeft, left));
-    // If tooltip would go above the wrap, flip below cell
-    if (top < 0) top = cellRect.bottom - wrapRect.top + 8;
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
-  };
-
-  const hide = () => { tip.hidden = true; };
-
-  svg.addEventListener('mouseover', (e) => {
-    const rect = e.target.closest('rect.hm-cell');
-    if (rect) show(rect);
-  });
-  svg.addEventListener('mouseout', (e) => {
-    // Only hide if leaving to outside the SVG (not moving between cells)
-    const to = e.relatedTarget;
-    if (!to || !to.closest || !to.closest('.ana-heatmap-svg')) hide();
-  });
-  // Keyboard accessibility: let focus events also drive the tooltip
-  svg.addEventListener('focusin', (e) => {
-    const rect = e.target.closest('rect.hm-cell');
-    if (rect) show(rect);
-  });
-  svg.addEventListener('focusout', hide);
 }
 
 function _renderAnaAccuracyChart(h) {
@@ -22290,10 +22210,6 @@ function renderAnalytics() {
   html += '</div>';
   html += _renderAnaMilestones();
   container.innerHTML = html;
-  // v4.57.6: bind the heatmap hover tooltip after innerHTML is set (the rects
-  // exist now). Safe to call even if heatmap didn't render (no-op when wrap
-  // element isn't found — happens on empty history).
-  if (typeof _bindHeatmapTooltip === 'function') _bindHeatmapTooltip();
 }
 
 // Wired to the exam date input on the analytics page
