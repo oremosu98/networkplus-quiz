@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.5', js.includes("const APP_VERSION = '4.57.5"));
+test('APP_VERSION is 4.57.6', js.includes("const APP_VERSION = '4.57.6"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.5', sw.includes('netplus-v4.57.5'));
+test('SW cache bumped to v4.57.6', sw.includes('netplus-v4.57.6'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7264,6 +7264,176 @@ test('v4.57.5 JS: weighted domainAccuracy still feeds accuracyScore (Readiness 7
       fn([{ topic: 'OSI Model', score: 0, total: 0 }]).concepts === 0);
   } catch (e) {
     test('v4.57.5 sandbox: helper executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.6 — Translucent heatmap tooltip on hover
+// Replaces the default 1.5s-delayed OS-default <title> tooltip with a
+// custom dark-glass translucent popup styled to match the TB inspector
+// + v4.56.0 scenario block aesthetic. Shows immediately on hover with
+// date, question count, accuracy (tier-coloured), and Today/Exam-day chips.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.6 JS: heatmap rects carry data-* attributes for tooltip (data-q, data-acc, data-label)',
+  /data-q="\$\{q\}"[\s\S]{0,200}data-acc="\$\{accPct\}"[\s\S]{0,200}data-label="\$\{dateLabel\}"/.test(js));
+test('v4.57.6 JS: heatmap rects still carry <title> for a11y',
+  /<rect[\s\S]{0,400}<title>\$\{title\}<\/title>/.test(js));
+test('v4.57.6 JS: heatmap rects tag today + exam-day cells for tooltip chips',
+  /data-is-today="\$\{isToday \? '1' : '0'\}"[\s\S]{0,200}data-is-exam="\$\{isExam \? '1' : '0'\}"/.test(js));
+test('v4.57.6 JS: tooltip div rendered inside .ana-heatmap-wrap',
+  /<div class="ana-heatmap-wrap">[\s\S]{0,600}<div class="hm-tooltip"[\s\S]{0,40}hidden><\/div>/.test(js));
+
+test('v4.57.6 JS: _bindHeatmapTooltip helper defined',
+  /function _bindHeatmapTooltip\(\)/.test(js));
+test('v4.57.6 JS: helper attaches mouseover on the SVG (event delegation, not 365 listeners)',
+  /svg\.addEventListener\(['"]mouseover['"]/.test(js));
+test('v4.57.6 JS: helper attaches mouseout with relatedTarget guard (no flicker between cells)',
+  /mouseout[\s\S]{0,300}relatedTarget[\s\S]{0,200}\.closest\(['"]\.ana-heatmap-svg['"]\)/.test(js));
+test('v4.57.6 JS: helper handles keyboard focus for a11y',
+  /svg\.addEventListener\(['"]focusin['"]/.test(js));
+test('v4.57.6 JS: helper positions tooltip using getBoundingClientRect + wrap-relative math',
+  /wrap\.getBoundingClientRect[\s\S]{0,400}cellRect\.left - wrapRect\.left/.test(js));
+test('v4.57.6 JS: helper clamps tooltip within wrap (no overflow) + flips below if above-clip',
+  /Math\.max\(4,\s*Math\.min\(maxLeft,\s*left\)\)[\s\S]{0,200}if \(top < 0\)/.test(js));
+test('v4.57.6 JS: accuracy tier-coloured using v4.45.1 thresholds (green>=85, accent-light>=70, yellow>=55, red below)',
+  /acc >= 85 \? 'var\(--green\)'[\s\S]{0,100}acc >= 70 \? 'var\(--accent-light\)'[\s\S]{0,100}acc >= 55 \? 'var\(--yellow\)'[\s\S]{0,80}'var\(--red\)'/.test(js));
+test('v4.57.6 JS: renderAnalytics calls _bindHeatmapTooltip after innerHTML set',
+  /container\.innerHTML = html;[\s\S]{0,300}_bindHeatmapTooltip/.test(js));
+
+// CSS — translucent dark-glass aesthetic
+test('v4.57.6 CSS: .hm-tooltip uses rgba dark-glass bg + backdrop-filter blur',
+  /\.hm-tooltip\s*\{[\s\S]{0,600}background:\s*rgba\(13,\s*10,\s*21,\s*0\.92\)[\s\S]{0,200}backdrop-filter:\s*blur/.test(css));
+test('v4.57.6 CSS: .hm-tooltip has pointer-events: none (doesn\'t eat hover)',
+  /\.hm-tooltip\s*\{[\s\S]{0,400}pointer-events:\s*none/.test(css));
+test('v4.57.6 CSS: .ana-heatmap-wrap gets position: relative as tooltip anchor',
+  /\.ana-heatmap-wrap\s*\{[\s\S]{0,300}position:\s*relative/.test(css));
+test('v4.57.6 CSS: tooltip has arrow nub via ::after pseudo',
+  /\.hm-tooltip::after\s*\{[\s\S]{0,400}rotate\(45deg\)/.test(css));
+test('v4.57.6 CSS: hmTooltipIn keyframe entrance animation',
+  /@keyframes\s+hmTooltipIn/.test(css));
+test('v4.57.6 CSS: reduced-motion kills hmTooltipIn',
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,600}\.hm-tooltip\s*\{\s*animation:\s*none/.test(css));
+test('v4.57.6 CSS: Today + Exam-day tooltip chips styled',
+  /\.hm-tip-chip-today\s*\{[\s\S]{0,200}background:\s*rgba\(250,\s*204,\s*21/.test(css) &&
+  /\.hm-tip-chip-exam\s*\{[\s\S]{0,200}background:\s*rgba\(248,\s*113,\s*113/.test(css));
+
+// Behavioural sandbox: run the helper body with a stub DOM and verify it wires listeners + shows tooltip
+(function testTooltipBinding() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function _bindHeatmapTooltip\(\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.57.6 sandbox: helper body extracted', false); return; }
+    test('v4.57.6 sandbox: helper body extracted', true);
+
+    // Minimal DOM stub
+    let tipHidden = true;
+    let tipHTML = '';
+    let tipLeft = null, tipTop = null;
+    const listeners = {};
+    const svgEl = {
+      addEventListener: (type, fn) => { listeners[type] = fn; },
+      closest: () => svgEl,
+    };
+    const tipEl = {
+      get hidden() { return tipHidden; },
+      set hidden(v) { tipHidden = v; },
+      get innerHTML() { return tipHTML; },
+      set innerHTML(v) { tipHTML = v; },
+      style: {
+        set left(v) { tipLeft = v; },
+        set top(v) { tipTop = v; },
+        get left() { return tipLeft; },
+        get top() { return tipTop; },
+      },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 60, bottom: 60, right: 200 }),
+    };
+    const wrapEl = {
+      querySelector: (sel) => (sel === '.ana-heatmap-svg') ? svgEl : (sel === '.hm-tooltip') ? tipEl : null,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 200, bottom: 200, right: 1000 }),
+    };
+    const ctx = {
+      document: {
+        querySelector: (sel) => (sel === '.ana-heatmap-wrap') ? wrapEl : null,
+      },
+      escHtml: (s) => String(s).replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+      parseInt: parseInt,
+    };
+    vm.createContext(ctx);
+    vm.runInContext(`(function() {${bodyMatch[1]}})()`, ctx);
+
+    test('v4.57.6 sandbox: mouseover listener registered',
+      typeof listeners.mouseover === 'function');
+    test('v4.57.6 sandbox: mouseout listener registered',
+      typeof listeners.mouseout === 'function');
+    test('v4.57.6 sandbox: focusin listener registered (a11y)',
+      typeof listeners.focusin === 'function');
+
+    // Simulate hovering a cell with 23 questions, 87% accuracy
+    const fakeRect = {
+      getAttribute: (k) => {
+        const vals = { 'data-q': '23', 'data-acc': '87', 'data-label': 'Tuesday, April 15', 'data-is-today': '0', 'data-is-exam': '0' };
+        return vals[k] || '';
+      },
+      closest: () => fakeRect,
+      getBoundingClientRect: () => ({ left: 100, top: 50, width: 12, height: 12, right: 112, bottom: 62 }),
+    };
+    listeners.mouseover({ target: fakeRect });
+
+    test('v4.57.6 sandbox: tooltip shown (hidden flipped false)',
+      tipHidden === false);
+    test('v4.57.6 sandbox: tooltip HTML includes question count (23)',
+      tipHTML.includes('23'));
+    test('v4.57.6 sandbox: tooltip HTML includes accuracy (87%)',
+      tipHTML.includes('87%'));
+    test('v4.57.6 sandbox: tooltip HTML includes date label',
+      tipHTML.includes('Tuesday, April 15'));
+
+    // Simulate leaving to somewhere outside the SVG → hides
+    listeners.mouseout({ relatedTarget: null });
+    test('v4.57.6 sandbox: tooltip hidden after mouseout to outside SVG',
+      tipHidden === true);
+
+    // Rest day (q=0) uses the "no study" body
+    const restRect = {
+      getAttribute: (k) => {
+        const vals = { 'data-q': '0', 'data-acc': '0', 'data-label': 'Wednesday, April 16', 'data-is-today': '0', 'data-is-exam': '0' };
+        return vals[k] || '';
+      },
+      closest: () => restRect,
+      getBoundingClientRect: () => ({ left: 120, top: 50, width: 12, height: 12, right: 132, bottom: 62 }),
+    };
+    listeners.mouseover({ target: restRect });
+    test('v4.57.6 sandbox: rest day shows "Rest day" copy, not question count',
+      tipHTML.includes('Rest day') && !tipHTML.includes('23'));
+
+    // Today chip fires when data-is-today === 1
+    const todayRect = {
+      getAttribute: (k) => {
+        const vals = { 'data-q': '12', 'data-acc': '75', 'data-label': 'Today', 'data-is-today': '1', 'data-is-exam': '0' };
+        return vals[k] || '';
+      },
+      closest: () => todayRect,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 12, height: 12, right: 12, bottom: 12 }),
+    };
+    listeners.mouseover({ target: todayRect });
+    test('v4.57.6 sandbox: Today chip emitted when data-is-today=1',
+      tipHTML.includes('hm-tip-chip-today'));
+
+    // Exam-day chip fires when data-is-exam === 1
+    const examRect = {
+      getAttribute: (k) => {
+        const vals = { 'data-q': '0', 'data-acc': '0', 'data-label': 'Exam Day', 'data-is-today': '0', 'data-is-exam': '1' };
+        return vals[k] || '';
+      },
+      closest: () => examRect,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 12, height: 12, right: 12, bottom: 12 }),
+    };
+    listeners.mouseover({ target: examRect });
+    test('v4.57.6 sandbox: Exam-day chip emitted when data-is-exam=1',
+      tipHTML.includes('hm-tip-chip-exam'));
+  } catch (e) {
+    test('v4.57.6 sandbox: helper executes without error', false);
   }
 })();
 

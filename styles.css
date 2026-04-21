@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.57.5
+   Network+ AI Quiz — styles.css  v4.57.6
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10033,6 +10033,110 @@ html { zoom: 1.10; }
   width: 100%;
   overflow-x: auto;
   padding: 4px 0;
+  position: relative;  /* v4.57.6: anchor for .hm-tooltip absolute positioning */
+}
+
+/* v4.57.6 — translucent dark-glass tooltip on heatmap cell hover.
+   Matches the TB inspector popup aesthetic + v4.56.0 scenario block.
+   pointer-events: none so the tooltip doesn't eat subsequent mouse events. */
+.hm-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 10px 13px;
+  background: rgba(13, 10, 21, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12.5px;
+  line-height: 1.5;
+  animation: hmTooltipIn 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hm-tooltip[hidden] { display: none; }
+.hm-tooltip::after {
+  /* Subtle downward arrow nub pointing at the cell */
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: rgba(13, 10, 21, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.hm-tip-head {
+  font-family: 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.hm-tip-body {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.hm-tip-q strong {
+  font-size: 17px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.98);
+  font-variant-numeric: tabular-nums;
+  margin-right: 2px;
+}
+.hm-tip-dot { color: rgba(255, 255, 255, 0.32); }
+.hm-tip-acc {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hm-tip-body-rest em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12.5px;
+}
+.hm-tip-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.hm-tip-chip-today {
+  background: rgba(250, 204, 21, 0.22);
+  color: rgb(250, 204, 21);
+}
+.hm-tip-chip-exam {
+  background: rgba(248, 113, 113, 0.22);
+  color: rgb(248, 113, 113);
+}
+
+@keyframes hmTooltipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Keep dark in light theme (design intent — matches TB inspector popup) */
+[data-theme="light"] .hm-tooltip {
+  /* stays dark */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-tooltip { animation: none; }
 }
 .ana-heatmap-svg {
   width: 100%;
