@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.58.0
+// Network+ AI Quiz — app.js  v4.58.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.58.0';
+const APP_VERSION = '4.58.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -86,7 +86,239 @@ const DEFAULT_DIFF = 'Exam Level';
 // With 0 exemplars, injection is a no-op — zero behavioural change vs
 // pre-v4.58.0. The helpers + injection site activate automatically once
 // exemplars land.
-const QUESTION_EXEMPLARS = [];
+const QUESTION_EXEMPLARS = [
+  // v4.58.1: Phase 2 started \u2014 Domain 1.0 Networking Concepts, 14 exemplars.
+  // All content original. NO copying from paid question banks (Dion, CertMaster,
+  // Myers, Kaplan, etc.) \u2014 see issue #193 for the full legal boundary.
+  // ───── 1.0 Networking Concepts (14/14) ─────
+  {
+    type: 'mcq',
+    question: 'Which TCP port does HTTPS use by default?',
+    difficulty: 'Foundational',
+    topic: 'Port Numbers',
+    objective: '1.4',
+    options: { A: '80', B: '443', C: '22', D: '8080' },
+    answer: 'B',
+    explanation: 'HTTPS uses TCP port 443 by default for encrypted web traffic. Port 80 is plain HTTP (unencrypted). Port 22 is used by SSH and SFTP. Port 8080 is a common alternative HTTP port for development servers and proxies, but it is not the default for HTTPS.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'At which OSI layer does the Address Resolution Protocol (ARP) operate?',
+    difficulty: 'Exam Level',
+    topic: 'Network Models & OSI',
+    objective: '1.1',
+    options: {
+      A: 'Layer 2 \u2014 Data Link',
+      B: 'Layer 3 \u2014 Network',
+      C: 'Layer 4 \u2014 Transport',
+      D: 'Layer 7 \u2014 Application'
+    },
+    answer: 'A',
+    explanation: 'ARP operates at Layer 2 (Data Link) because it resolves IP addresses to MAC addresses within the same broadcast domain, using MAC-layer frames rather than routable packets. Option B is the common wrong answer \u2014 ARP involves IP addresses, but resolution stays local and cannot cross routers, which is what makes it L2 rather than L3.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator needs to subnet the 192.168.10.0/24 address space to support 6 separate departments, each requiring up to 28 usable host addresses. What is the smallest subnet mask that satisfies both the subnet-count and host-count requirements?',
+    difficulty: 'Exam Level',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: { A: '/25', B: '/26', C: '/27', D: '/28' },
+    answer: 'C',
+    explanation: 'A /27 subnet provides 30 usable hosts (2^5 \u2212 2), satisfying the 28-host requirement, and divides a /24 into 8 subnets, satisfying the 6-department requirement. /25 (2 subnets) and /26 (4 subnets) do not yield enough departments. /28 (14 usable hosts) is too small for 28 hosts per department.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A DNS administrator wants to configure a record that allows external email servers to look up the correct server for delivering mail to their domain. Which record type should they configure?',
+    difficulty: 'Hard',
+    topic: 'DNS Records & DNSSEC',
+    objective: '1.6',
+    options: {
+      A: 'A record',
+      B: 'CNAME record',
+      C: 'MX record',
+      D: 'PTR record'
+    },
+    answer: 'C',
+    explanation: 'An MX (Mail Exchange) record directs external SMTP servers to the mail-handling host for a domain and includes a priority value for failover. An A record maps a hostname to an IPv4 address (used by web servers, not mail routing). A CNAME creates an alias from one hostname to another but cannot be used directly as the root of an MX target in most configurations. A PTR record is used for reverse DNS lookups, not forward mail routing.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network technician is tracing an outgoing HTTP request from a client\'s web browser through each layer of the OSI model. At which layer is the data first placed into a segment with source and destination ports before being passed to the lower layers?',
+    difficulty: 'Exam Level',
+    topic: 'Network Models & OSI',
+    objective: '1.1',
+    options: {
+      A: 'Layer 2 \u2014 Data Link',
+      B: 'Layer 3 \u2014 Network',
+      C: 'Layer 4 \u2014 Transport',
+      D: 'Layer 7 \u2014 Application'
+    },
+    answer: 'C',
+    explanation: 'Layer 4 (Transport) is where data is segmented and source/destination port numbers are added \u2014 that is what defines a "segment" in OSI terminology. Layer 3 wraps segments into packets with IP addresses. Layer 2 wraps packets into frames with MAC addresses. Layer 7 is where the HTTP request originates, but port numbers are only added once the data descends to Layer 4.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A company hosts its public-facing web application on an internal server farm. To improve performance and security, they want to place a device between internet clients and the server farm that caches static content, terminates SSL sessions, and hides the internal server topology. Which type of device best fits this requirement?',
+    difficulty: 'Hard',
+    topic: 'Network Appliances & Device Functions',
+    objective: '1.2',
+    options: {
+      A: 'Forward proxy',
+      B: 'Reverse proxy',
+      C: 'Layer 4 load balancer',
+      D: 'Transparent proxy'
+    },
+    answer: 'B',
+    explanation: 'A reverse proxy sits between external clients and internal servers, handling SSL termination, caching, and backend-topology hiding. A forward proxy does the opposite \u2014 sits between internal clients and external servers for outbound filtering. A Layer 4 load balancer distributes connections but does not inherently cache or terminate SSL at the application layer. A transparent proxy intercepts outbound traffic without client configuration, typically for content filtering rather than server-side functions.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'What is the primary functional difference between an IDS and an IPS?',
+    difficulty: 'Exam Level',
+    topic: 'Network Appliances & Device Functions',
+    objective: '1.2',
+    options: {
+      A: 'An IDS operates at Layer 2; an IPS operates at Layer 3.',
+      B: 'An IDS detects and alerts on suspicious traffic; an IPS can block it in real time.',
+      C: 'An IDS is hardware-based; an IPS is software-based.',
+      D: 'An IDS uses signature-based detection; an IPS uses behaviour-based detection.'
+    },
+    answer: 'B',
+    explanation: 'The defining distinction is action: an IDS (Intrusion Detection System) passively monitors and alerts, while an IPS (Intrusion Prevention System) sits inline and can actively block malicious traffic. Both can use signature-based or behaviour-based detection (D is wrong \u2014 neither is exclusive to one). Both can be implemented in hardware or software (C is wrong). A is not a meaningful distinction \u2014 both operate across multiple layers depending on their role.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An organisation wants to deploy a custom web application. They prefer to manage the operating system and application code themselves but do not want to manage physical hardware, networking equipment, or hypervisors. Which cloud service model best fits this requirement?',
+    difficulty: 'Exam Level',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.3',
+    options: {
+      A: 'Infrastructure as a Service (IaaS)',
+      B: 'Platform as a Service (PaaS)',
+      C: 'Software as a Service (SaaS)',
+      D: 'Function as a Service (FaaS)'
+    },
+    answer: 'A',
+    explanation: 'IaaS provides virtualised compute, networking, and storage while giving the customer control over the operating system and everything above it. PaaS (B) abstracts the OS as well \u2014 the customer would only manage the application. SaaS (C) delivers a ready-to-use application, with the provider managing the entire stack. FaaS (D) executes code at the function level without any OS management \u2014 more abstracted than the scenario describes.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which of the following IP address ranges is defined by RFC 1918 as a private address space for enterprise networks?',
+    difficulty: 'Foundational',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '10.0.0.0 \u2013 10.255.255.255',
+      B: '169.254.0.0 \u2013 169.254.255.255',
+      C: '127.0.0.0 \u2013 127.255.255.255',
+      D: '224.0.0.0 \u2013 239.255.255.255'
+    },
+    answer: 'A',
+    explanation: '10.0.0.0/8 is one of three RFC 1918 private ranges (along with 172.16.0.0/12 and 192.168.0.0/16). 169.254.0.0/16 is APIPA / link-local \u2014 used when DHCP fails. 127.0.0.0/8 is loopback. 224.0.0.0 \u2013 239.255.255.255 is the multicast range.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A client device boots up on a network with no static IP configuration. What is the correct order of DHCP messages exchanged between the client and DHCP server to obtain an IP address?',
+    difficulty: 'Exam Level',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'Discover \u2192 Offer \u2192 Request \u2192 Acknowledgement',
+      B: 'Request \u2192 Offer \u2192 Discover \u2192 Acknowledgement',
+      C: 'Discover \u2192 Request \u2192 Offer \u2192 Acknowledgement',
+      D: 'Offer \u2192 Discover \u2192 Acknowledgement \u2192 Request'
+    },
+    answer: 'A',
+    explanation: 'DORA \u2014 Discover, Offer, Request, Acknowledgement. The client broadcasts a DHCPDISCOVER, an available server responds with a DHCPOFFER, the client replies with a DHCPREQUEST, and the server confirms with a DHCPACK. A request cannot precede a discover (B), and an offer cannot appear before any discover is sent (D).',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which IPv6 address prefix identifies a link-local address used only within a single network segment?',
+    difficulty: 'Exam Level',
+    topic: 'IPv6',
+    objective: '1.8',
+    options: { A: '2000::/3', B: 'fe80::/10', C: 'fc00::/7', D: 'ff00::/8' },
+    answer: 'B',
+    explanation: 'fe80::/10 is the link-local range \u2014 valid only within a single broadcast domain, auto-assigned to every IPv6-enabled interface at boot. 2000::/3 is the global unicast range (routable on the public IPv6 internet). fc00::/7 covers unique local addresses (RFC 4193 \u2014 the IPv6 equivalent of RFC 1918 private space). ff00::/8 is the multicast range.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'An organisation has 250 internal hosts on a 192.168.10.0/24 network that all need simultaneous internet access, but the ISP has assigned them only a single public IPv4 address. Which NAT variant enables all 250 hosts to share that single public IP?',
+    difficulty: 'Exam Level',
+    topic: 'NAT & IP Services',
+    objective: '1.7',
+    options: {
+      A: 'Static NAT',
+      B: 'Dynamic NAT (1:1 pool)',
+      C: 'Port Address Translation (PAT) / NAT overload',
+      D: 'NAT64'
+    },
+    answer: 'C',
+    explanation: 'PAT (also called NAT overload) lets many internal hosts share a single public IP by multiplexing outbound connections using unique source port numbers. Static NAT (A) is a permanent 1:1 mapping \u2014 would require 250 public IPs. Dynamic NAT (B) draws from a pool of public IPs but is still 1:1 at any given moment. NAT64 (D) translates between IPv6 and IPv4 address families \u2014 unrelated to this scenario.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'Which traffic type is sent from a single source to every host on a local network segment?',
+    difficulty: 'Foundational',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.4',
+    options: { A: 'Unicast', B: 'Multicast', C: 'Broadcast', D: 'Anycast' },
+    answer: 'C',
+    explanation: 'Broadcast traffic reaches every host on a single broadcast domain (example: ARP requests). Unicast (A) is one-to-one. Multicast (B) is one-to-a-subscribed-group. Anycast (D) is one-to-the-nearest-of-many \u2014 used by DNS root servers and IPv6 addressing.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  },
+  {
+    type: 'mcq',
+    question: 'A network administrator is deploying internal NTP servers that will synchronise with a reliable upstream time source over the internet and serve time to local clients. Their research shows that public NTP pool servers at pool.ntp.org are stratum 2. At what stratum level would their internal NTP server operate once it successfully synchronises with one of those pool servers?',
+    difficulty: 'Hard',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.6',
+    options: { A: 'Stratum 0', B: 'Stratum 1', C: 'Stratum 2', D: 'Stratum 3' },
+    answer: 'D',
+    explanation: 'NTP stratum increases by 1 with each hop from the reference clock. Stratum 0 is the reference clock itself (atomic, GPS). Stratum 1 synchronises directly from a stratum 0 source. Stratum 2 synchronises from a stratum 1, and so on. A server syncing from a stratum 2 pool becomes stratum 3. Stratum 16 signals an unsynchronised state.',
+    source: 'curated',
+    addedVersion: '4.58.1',
+    addedDate: '2026-04-21'
+  }
+];
 
 // v4.58.0: pick up to `max` exemplars matching the requested topic. Exact
 // topic match preferred, same-domain fallback after, then any exemplar if

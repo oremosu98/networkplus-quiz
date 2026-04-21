@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.58.0', js.includes("const APP_VERSION = '4.58.0"));
+test('APP_VERSION is 4.58.1', js.includes("const APP_VERSION = '4.58.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.58.0', sw.includes('netplus-v4.58.0'));
+test('SW cache bumped to v4.58.1', sw.includes('netplus-v4.58.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7279,8 +7279,8 @@ test('v4.57.5 JS: weighted domainAccuracy still feeds accuracyScore (Readiness 7
 // from Jason Dion, CompTIA CertMaster, or any paid question bank.
 // ══════════════════════════════════════════════════════════════════════
 
-test('v4.58.0 JS: QUESTION_EXEMPLARS constant defined (empty array initially)',
-  /const QUESTION_EXEMPLARS = \[\];/.test(js));
+test('v4.58.0 JS: QUESTION_EXEMPLARS constant defined (array declaration)',
+  /const QUESTION_EXEMPLARS\s*=\s*\[/.test(js));  // v4.58.1: loosened from empty-array literal to any array declaration (bank now populated)
 test('v4.58.0 JS: _pickExemplarsForTopic helper defined',
   /function _pickExemplarsForTopic\(qTopic,\s*max\)/.test(js));
 test('v4.58.0 JS: _formatExemplarsForPrompt helper defined',
@@ -7401,6 +7401,158 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
       !formatted.includes('Scenario:'));
   } catch (e) {
     test('v4.58.0 sandbox: helpers execute without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.58.1 — Domain 1.0 Networking Concepts curated exemplars (14/14)
+// Phase 2 of issue #193: first real content in the QUESTION_EXEMPLARS
+// bank. All hand-reviewed by the user before commit; every exemplar is
+// original content (no copying from paid question banks).
+// ══════════════════════════════════════════════════════════════════════
+
+// Shape / count assertions — verify the bank grew to 14 and the schema
+// holds for every entry. Use vm to actually run the array definition.
+(function testExemplarBank() {
+  try {
+    const vm = require('vm');
+    // Extract QUESTION_EXEMPLARS definition. The array spans many lines + nested
+    // objects, so use brace-depth walking to find its end.
+    const start = js.indexOf('const QUESTION_EXEMPLARS = [');
+    if (start === -1) { test('v4.58.1 bank: QUESTION_EXEMPLARS definition found', false); return; }
+    test('v4.58.1 bank: QUESTION_EXEMPLARS definition found', true);
+
+    let i = js.indexOf('[', start);
+    let depth = 0;
+    let end = -1;
+    for (; i < js.length; i++) {
+      if (js[i] === '[') depth++;
+      else if (js[i] === ']') { depth--; if (depth === 0) { end = i + 1; break; } }
+    }
+    if (end === -1) { test('v4.58.1 bank: array closure found', false); return; }
+    const arraySrc = js.slice(js.indexOf('[', start), end);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    const bank = vm.runInContext(arraySrc, ctx);
+
+    test('v4.58.1 bank: 14 exemplars present (Domain 1.0 complete)',
+      Array.isArray(bank) && bank.length === 14);
+
+    // Every exemplar has required fields
+    const requiredFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'answer', 'explanation', 'source', 'addedVersion', 'addedDate'];
+    const missingFields = [];
+    bank.forEach((ex, i) => {
+      requiredFields.forEach(f => {
+        if (ex[f] === undefined || ex[f] === null || ex[f] === '') {
+          missingFields.push(`Exemplar ${i} missing: ${f}`);
+        }
+      });
+    });
+    test('v4.58.1 bank: every exemplar has all 11 required fields',
+      missingFields.length === 0);
+
+    // Every answer maps to a real option
+    const badAnswers = bank.filter(ex => !ex.options || !ex.options[ex.answer]);
+    test('v4.58.1 bank: every answer letter maps to a real option',
+      badAnswers.length === 0);
+
+    // Every exemplar has 4 options (A-D)
+    const badOpts = bank.filter(ex => !ex.options || !ex.options.A || !ex.options.B || !ex.options.C || !ex.options.D);
+    test('v4.58.1 bank: every exemplar has options A-D',
+      badOpts.length === 0);
+
+    // Every objective matches valid N10-009 format (1.1-1.8)
+    const badObj = bank.filter(ex => !/^[1-5]\.[1-8]$/.test(ex.objective));
+    test('v4.58.1 bank: every objective is valid N10-009 format (X.Y)',
+      badObj.length === 0);
+
+    // All exemplars are marked as curated
+    const nonCurated = bank.filter(ex => ex.source !== 'curated');
+    test('v4.58.1 bank: every exemplar tagged source:\"curated\"',
+      nonCurated.length === 0);
+
+    // All exemplars are tagged with v4.58.1
+    const wrongVersion = bank.filter(ex => ex.addedVersion !== '4.58.1');
+    test('v4.58.1 bank: every exemplar tagged with v4.58.1 addedVersion',
+      wrongVersion.length === 0);
+
+    // All exemplars pass the interrogative guard from v4.57.2
+    const noInterrogative = bank.filter(ex => {
+      const s = ex.question;
+      if (!s) return true;
+      if (s.includes('?')) return false;
+      return !/\b(which|what|when|where|why|how|who|whose|select|identify|choose|pick|match|arrange|place|determine|complete|given|in which|under which)\b/i.test(s);
+    });
+    test('v4.58.1 bank: every exemplar passes v4.57.2 interrogative guard',
+      noInterrogative.length === 0);
+
+    // Domain spread: every exemplar\'s topic maps to a real Domain 1.0 topic
+    const conceptTopics = [
+      'Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing',
+      'DNS Records & DNSSEC', 'Network Appliances & Device Functions',
+      'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6',
+      'NAT & IP Services', 'NTP, ICMP & Traffic Types'
+    ];
+    const offDomain = bank.filter(ex => !conceptTopics.includes(ex.topic));
+    test('v4.58.1 bank: every exemplar maps to a Domain 1.0 Networking Concepts topic',
+      offDomain.length === 0);
+
+    // Difficulty spread: at least 1 of each difficulty present
+    const diffs = new Set(bank.map(ex => ex.difficulty));
+    test('v4.58.1 bank: difficulty spread includes Foundational + Exam Level + Hard',
+      diffs.has('Foundational') && diffs.has('Exam Level') && diffs.has('Hard'));
+
+    // Topic coverage: at least 10 distinct topics across 14 exemplars
+    const topics = new Set(bank.map(ex => ex.topic));
+    test('v4.58.1 bank: at least 10 distinct topics covered in Domain 1.0',
+      topics.size >= 10);
+
+    // No question stem is a duplicate of another
+    const stems = bank.map(ex => ex.question);
+    const uniqueStems = new Set(stems);
+    test('v4.58.1 bank: no duplicate question stems',
+      uniqueStems.size === stems.length);
+
+    // No two exemplars identical word-for-word
+    const fingerprints = bank.map(ex => ex.question + '|' + ex.answer + '|' + ex.options.A);
+    test('v4.58.1 bank: no duplicate (stem + answer + first option) fingerprints',
+      new Set(fingerprints).size === fingerprints.length);
+
+    // At least 1 exemplar for each of: 1.1 OSI, 1.2 Appliances, 1.3 Cloud, 1.4 Ports, 1.6 Services, 1.7 IPv4, 1.8 IPv6
+    const objHits = new Set(bank.map(ex => ex.objective));
+    test('v4.58.1 bank: objective coverage spans \u226575% of Domain 1 sub-objectives',
+      objHits.size >= 6);  // out of 8 possible (1.1-1.8)
+
+    // Helper now returns non-empty when asked for a Domain 1.0 topic
+    // (sanity: exemplars are actually reachable by the pick helper)
+    const pickBodyMatch = js.match(/function _pickExemplarsForTopic\(qTopic,\s*max\)\s*\{([\s\S]*?)\n\}/);
+    if (pickBodyMatch) {
+      const pickCtx = {
+        QUESTION_EXEMPLARS: bank,
+        TOPIC_DOMAINS: {
+          'Port Numbers': 'concepts',
+          'Network Models & OSI': 'concepts',
+          'Subnetting & IP Addressing': 'concepts',
+          'DNS Records & DNSSEC': 'concepts',
+          'Network Appliances & Device Functions': 'concepts',
+          'Virtualisation & Cloud': 'concepts',
+          'Network Naming (DNS & DHCP)': 'concepts',
+          'IPv6': 'concepts',
+          'NAT & IP Services': 'concepts',
+          'NTP, ICMP & Traffic Types': 'concepts'
+        },
+        Math: Math, Array: Array
+      };
+      vm.createContext(pickCtx);
+      const pickFn = vm.runInContext(`(function(qTopic, max) {${pickBodyMatch[1]}})`, pickCtx);
+      test('v4.58.1 integration: pick helper returns 3 Port Numbers / same-domain exemplars',
+        pickFn('Port Numbers', 3).length === 3);
+      test('v4.58.1 integration: pick helper returns same-domain exemplars for unknown topic (IPv6 \u2192 concepts)',
+        pickFn('Some Unmatched Topic', 3).length === 3);
+    }
+  } catch (e) {
+    test('v4.58.1 bank: exemplars parse as valid JavaScript', false);
   }
 })();
 
