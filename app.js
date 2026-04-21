@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.3
+// Network+ AI Quiz — app.js  v4.57.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.3';
+const APP_VERSION = '4.57.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -954,7 +954,8 @@ function _buildProgressRows() {
   return chips.map(chip => {
     const t = chip.dataset.v;
     const label = (chip.textContent || t).trim(); // short display label from the chip
-    const entries = h.filter(e => e.topic === t);
+    // v4.57.4: expand matching to include pre-v4.57.1 "Multi: ..." sentinel entries
+    const entries = _filterHistoryByTopic(h, t);
     const domainKey = TOPIC_DOMAINS[t] || 'concepts';
     const obj = (topicResources[t] && topicResources[t].obj) || '';
     if (entries.length === 0) {
@@ -1306,11 +1307,33 @@ function renderStreakBadge() {
 // SPACED REPETITION
 // ══════════════════════════════════════════
 
+// v4.57.4: Match a history entry against a topic. Handles two cases:
+//   1. Post-v4.57.1 entries: e.topic is the exact canonical topic string
+//      (e.g. "Connection Issues") — direct match.
+//   2. Pre-v4.57.1 multi-topic entries: e.topic is the sentinel string
+//      "Multi: Topic A, Topic B, ..." — parse the comma-list and credit
+//      each constituent topic. Study Plan, Progress page, Knowledge
+//      Constellation, and Domain drill all need this to surface those
+//      old sessions correctly. v4.57.1 fixed the save path going forward
+//      but couldn't retroactively split already-saved entries, so any
+//      data from before that ship still needs this read-side match.
+function _filterHistoryByTopic(history, topic) {
+  if (!Array.isArray(history) || !topic) return [];
+  return history.filter(e => {
+    if (!e || typeof e.topic !== 'string') return false;
+    if (e.topic === topic) return true;
+    if (e.topic.startsWith('Multi: ')) {
+      return e.topic.slice(7).split(',').map(s => s.trim()).includes(topic);
+    }
+    return false;
+  });
+}
+
 // Shared scoring helper used by both getSpacedRepTopic and buildSessionPlan
 // Uses Leitner-inspired decay: topics you've aced many times decay slower,
 // topics you struggle with or haven't seen much decay fast.
 function _scoreTopicNeed(topic, historyEntries, now) {
-  const entries = historyEntries.filter(e => e.topic === topic);
+  const entries = _filterHistoryByTopic(historyEntries, topic);
   if (entries.length === 0) return { score: 1.0, reason: 'Never studied', color: 'var(--text-dim)' };
 
   const daysSince = (now - new Date(entries[0].date)) / 86400000;
@@ -21697,7 +21720,8 @@ function drillDomain(domainName) {
   const h = typeof loadHistory === 'function' ? loadHistory() : [];
   const topicAcc = {};
   topicsInDomain.forEach(t => {
-    const entries = h.filter(e => e.topic === t);
+    // v4.57.4: expand matching to include pre-v4.57.1 "Multi: ..." sentinel entries
+    const entries = _filterHistoryByTopic(h, t);
     const total = entries.reduce((a,e) => a + e.total, 0);
     const correct = entries.reduce((a,e) => a + e.score, 0);
     topicAcc[t] = total > 0 ? (correct / total) : -1; // -1 = unstudied, priority
@@ -21724,7 +21748,8 @@ function _computeConstellationData(h) {
   const now = Date.now();
   return topicNames.map(topic => {
     const domain = TOPIC_DOMAINS[topic];
-    const entries = (h || []).filter(e => e.topic === topic);
+    // v4.57.4: expand matching to include pre-v4.57.1 "Multi: ..." sentinel entries
+    const entries = _filterHistoryByTopic(h, topic);
     const total = entries.reduce((a, e) => a + (e.total || 0), 0);
     const correct = entries.reduce((a, e) => a + (e.score || 0), 0);
     const mastery = total > 0 ? Math.round((correct / total) * 100) : null;

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.3', js.includes("const APP_VERSION = '4.57.3"));
+test('APP_VERSION is 4.57.4', js.includes("const APP_VERSION = '4.57.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.3', sw.includes('netplus-v4.57.3'));
+test('SW cache bumped to v4.57.4', sw.includes('netplus-v4.57.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7074,6 +7074,100 @@ test('v4.57.3 topicHints: mentions wireless LAN controller (WLC) explicitly',
       /IDS|IPS/.test(hintText));
   } catch (e) {
     test('v4.57.3 sandbox: hint extraction executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.4 — _filterHistoryByTopic helper for pre-v4.57.1 sentinel entries
+// User spotted Study Plan still showing "Never studied" for topics they'd
+// studied via a multi-topic quiz before v4.57.1. v4.57.1 fixed the SAVE
+// path (per-topic entries) but couldn't retroactively split existing
+// sentinel entries. This helper fixes the READ path across 4 surfaces so
+// old "Multi: A, B, C" entries retroactively credit each constituent topic.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.4 JS: _filterHistoryByTopic helper defined',
+  /function\s+_filterHistoryByTopic\s*\(history,\s*topic\)/.test(js));
+test('v4.57.4 JS: helper handles exact-match case (post-v4.57.1 entries)',
+  /if\s*\(e\.topic === topic\)\s*return true/.test(js));
+test('v4.57.4 JS: helper handles Multi: sentinel case (pre-v4.57.1 entries)',
+  /e\.topic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,200}\.split\(['"],['"]\)[\s\S]{0,100}\.includes\(topic\)/.test(js));
+
+// Apply-site checks — all 4 exact-match sites should now use the helper
+test('v4.57.4 JS: _scoreTopicNeed (Study Plan) uses _filterHistoryByTopic',
+  /function _scoreTopicNeed[\s\S]{0,300}_filterHistoryByTopic\(historyEntries,\s*topic\)/.test(js));
+test('v4.57.4 JS: _buildProgressRows (Topic Progress) uses _filterHistoryByTopic',
+  /_filterHistoryByTopic\(h,\s*t\)[\s\S]{0,200}domainKey = TOPIC_DOMAINS/.test(js));
+test('v4.57.4 JS: _computeConstellationData (Analytics constellation) uses _filterHistoryByTopic',
+  /_computeConstellationData[\s\S]{0,400}_filterHistoryByTopic\(h,\s*topic\)/.test(js));
+test('v4.57.4 JS: domain drill-down uses _filterHistoryByTopic',
+  /topicsInDomain\.forEach[\s\S]{0,200}_filterHistoryByTopic\(h,\s*t\)/.test(js));
+
+// Behavioural — vm-sandbox the helper with the exact user scenario
+(function testHistoryMatcher() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function\s+_filterHistoryByTopic\s*\(history,\s*topic\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.57.4 sandbox: helper body extracted', false); return; }
+    test('v4.57.4 sandbox: helper body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    const fn = vm.runInContext(`(function(history, topic) {${bodyMatch[1]}})`, ctx);
+
+    // Simulate the user's exact history: one pre-v4.57.1 multi-topic entry
+    const history = [
+      { date: '2026-04-21T09:00:00Z', topic: 'Multi: Connection Issues, Perf Issues, Service Issues', score: 15, total: 20, pct: 75, mode: 'quiz' },
+      { date: '2026-04-20T10:00:00Z', topic: 'OSPF', score: 7, total: 10, pct: 70, mode: 'quiz' },  // regular single-topic
+    ];
+
+    // All three constituent topics should now match the sentinel entry
+    test('v4.57.4 sandbox: Connection Issues matches pre-v4.57.1 sentinel entry',
+      fn(history, 'Connection Issues').length === 1);
+    test('v4.57.4 sandbox: Perf Issues matches pre-v4.57.1 sentinel entry',
+      fn(history, 'Perf Issues').length === 1);
+    test('v4.57.4 sandbox: Service Issues matches pre-v4.57.1 sentinel entry',
+      fn(history, 'Service Issues').length === 1);
+
+    // Single-topic entry should still match exact
+    test('v4.57.4 sandbox: OSPF (single-topic) matches via exact path',
+      fn(history, 'OSPF').length === 1);
+
+    // Unrelated topic should NOT match
+    test('v4.57.4 sandbox: unrelated topic (VLAN Trunking) returns no matches',
+      fn(history, 'VLAN Trunking').length === 0);
+
+    // Mixed history: sentinel + new-style per-topic entries both present
+    const mixedHistory = [
+      { topic: 'Multi: Connection Issues, Perf Issues', score: 10, total: 15, pct: 67 },  // old style
+      { topic: 'Perf Issues', score: 8, total: 10, pct: 80, multi: true },  // new style (post-v4.57.1)
+      { topic: 'Perf Issues', score: 7, total: 10, pct: 70 },  // dedicated single-topic session
+    ];
+    test('v4.57.4 sandbox: mixed history — Perf Issues gets all 3 matching entries',
+      fn(mixedHistory, 'Perf Issues').length === 3);
+    test('v4.57.4 sandbox: mixed history — Connection Issues only gets the sentinel',
+      fn(mixedHistory, 'Connection Issues').length === 1);
+
+    // Edge cases
+    test('v4.57.4 sandbox: empty history returns empty array',
+      fn([], 'Any Topic').length === 0);
+    test('v4.57.4 sandbox: null history returns empty array (defensive)',
+      fn(null, 'Any Topic').length === 0);
+    test('v4.57.4 sandbox: empty topic returns empty array (defensive)',
+      fn(history, '').length === 0);
+    test('v4.57.4 sandbox: entries with missing/non-string topic are skipped',
+      fn([{ topic: null }, { topic: 123 }, { topic: 'OSPF' }], 'OSPF').length === 1);
+
+    // Multi-topic parse robustness — whitespace tolerance
+    test('v4.57.4 sandbox: "Multi: A, B, C" with inconsistent spaces still splits correctly',
+      fn([{ topic: 'Multi: A,B , C  , D' }], 'C').length === 1 &&
+      fn([{ topic: 'Multi: A,B , C  , D' }], 'D').length === 1);
+
+    // Word-boundary — "Multi: Connection" topic shouldn't partial-match "Connection Issues"
+    test('v4.57.4 sandbox: substring-not-identical — "Connection" topic does NOT match "Connection Issues" sentinel entry',
+      fn([{ topic: 'Multi: Connection Issues, Perf Issues' }], 'Connection').length === 0);
+  } catch (e) {
+    test('v4.57.4 sandbox: helper executes without error', false);
   }
 })();
 
