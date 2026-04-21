@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.57.1', js.includes("const APP_VERSION = '4.57.1"));
+test('APP_VERSION is 4.57.2', js.includes("const APP_VERSION = '4.57.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.57.1', sw.includes('netplus-v4.57.1'));
+test('SW cache bumped to v4.57.2', sw.includes('netplus-v4.57.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6950,6 +6950,85 @@ test('v4.57.1 JS: single-topic path unchanged (else-branch preserves original be
       ctx.splitMultiTopic([]).length === 0);
   } catch (e) {
     test('v4.57.1 sandbox: split logic executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.57.2 — Interrogative guard on question stems
+// Caught in the wild: a v4.56.x-era VPN question where the `question`
+// field was pure declarative setup ("A system administrator is deploying
+// a remote access VPN...") with no "which", "what", "?", or any cue
+// asking the learner to choose. Programmatic guard rejects these before
+// they reach the Sonnet validator.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.57.2 JS: _stemHasInterrogative helper defined',
+  /function\s+_stemHasInterrogative\(stem\)/.test(js));
+test('v4.57.2 JS: validateQuestions calls _stemHasInterrogative on each question',
+  /if\s*\(!_stemHasInterrogative\(q\.question\)\)\s*return false/.test(js));
+test('v4.57.2 gen prompt: STEM MUST BE AN ACTUAL QUESTION section added',
+  /STEM MUST BE AN ACTUAL QUESTION/.test(js));
+test('v4.57.2 gen prompt: includes the VPN-style wrong example (the exact failure mode)',
+  /system administrator is deploying a remote access VPN[\s\S]{0,400}pure setup/i.test(js));
+test('v4.57.2 gen prompt: clarifies scenario field is additive, never a substitute',
+  /Scenario \+ question is additive; scenario is never a substitute/.test(js));
+
+// Behavioural — vm-sandbox the helper with a battery of fixtures
+(function testInterrogativeGuard() {
+  try {
+    const vm = require('vm');
+    const bodyMatch = js.match(/function\s+_stemHasInterrogative\s*\(stem\)\s*\{([\s\S]*?)\n\}/);
+    if (!bodyMatch) { test('v4.57.2 sandbox: helper body extracted', false); return; }
+    test('v4.57.2 sandbox: helper body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    const fn = vm.runInContext(`(function(stem) {${bodyMatch[1]}})`, ctx);
+
+    // The actual failure-mode stem from the user's screenshot — must REJECT
+    const vpnBuggy = 'A system administrator is deploying a remote access VPN solution that requires users to authenticate and access corporate resources through a web browser without installing additional VPN client software.';
+    test('v4.57.2 sandbox: rejects declarative-only stem from real VPN bug report',
+      fn(vpnBuggy) === false);
+
+    // Legitimate questions — must ACCEPT
+    test('v4.57.2 sandbox: accepts stem ending with "?"',
+      fn('At which OSI layer does a switch operate?') === true);
+    test('v4.57.2 sandbox: accepts "Which of the following..." (no ?)',
+      fn('Which of the following is a stateful firewall') === true);
+    test('v4.57.2 sandbox: accepts "What is the..." interrogative',
+      fn('What is the primary function of ARP') === true);
+    test('v4.57.2 sandbox: accepts CompTIA imperative "Select the..."',
+      fn('Select the BEST VPN solution for browser-based access') === true);
+    test('v4.57.2 sandbox: accepts "Identify..." imperative',
+      fn('Identify the port number used by SSH') === true);
+    test('v4.57.2 sandbox: accepts "Choose..." imperative',
+      fn('Choose the protocol that operates at Layer 3') === true);
+    test('v4.57.2 sandbox: accepts "Arrange..." (used by ordering PBQs)',
+      fn('Arrange these steps in the correct troubleshooting order') === true);
+    test('v4.57.2 sandbox: accepts "Place each..." (used by topology PBQs)',
+      fn('Place each device in the correct network zone') === true);
+    test('v4.57.2 sandbox: accepts "Given..." framing',
+      fn('Given the network diagram, which device is misconfigured') === true);
+    test('v4.57.2 sandbox: accepts "Why..." interrogative',
+      fn('Why would an administrator choose OSPF over RIP') === true);
+    test('v4.57.2 sandbox: accepts "How..." interrogative',
+      fn('How does STP prevent broadcast storms') === true);
+    test('v4.57.2 sandbox: accepts "Match each..." (PBQ format)',
+      fn('Match each protocol with its default port number') === true);
+
+    // Edge cases
+    test('v4.57.2 sandbox: rejects empty string',
+      fn('') === false);
+    test('v4.57.2 sandbox: rejects whitespace-only',
+      fn('   \n\t  ') === false);
+    test('v4.57.2 sandbox: rejects null / non-string safely',
+      fn(null) === false && fn(undefined) === false && fn(123) === false);
+    test('v4.57.2 sandbox: word-boundary — "whichever" alone does NOT count as "which"',
+      fn('The user inputs whichever value they prefer') === false);  // no real interrogative; "whichever" must NOT trigger "which"
+    test('v4.57.2 sandbox: declarative setup with no interrogative word rejected',
+      fn('A technician installed a new switch. The switch forwards frames based on MAC addresses. Devices on different VLANs cannot communicate directly.') === false);
+  } catch (e) {
+    test('v4.57.2 sandbox: interrogative guard executes without error', false);
   }
 })();
 

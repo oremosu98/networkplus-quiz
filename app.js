@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.57.1
+// Network+ AI Quiz — app.js  v4.57.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.57.1';
+const APP_VERSION = '4.57.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2136,6 +2136,12 @@ CONCEPTUAL COHERENCE RULES (v4.57.0 — enforce rigorously):
 DISTRACTOR QUALITY RULES:
 - At least TWO of the three wrong options must be plausible-enough to tempt a student who only partially knows the material. If 3 of 4 options are obviously wrong (e.g. completely unrelated or factually nonsensical), the question becomes a giveaway that doesn't test real knowledge.
 - Distractors should represent common misconceptions, adjacent concepts, or nearly-right answers — not random unrelated facts.
+
+STEM MUST BE AN ACTUAL QUESTION (v4.57.2):
+- The "question" field MUST contain a real interrogative, not pure declarative setup. Either end with "?" OR use explicit question words: "which", "what", "why", "how", "when", "where", or CompTIA-style imperatives: "Select the...", "Identify the...", "Choose the...", "Arrange these in order", "Place each device in the correct...", "Match each protocol with...", "Given the scenario, which...".
+- ❌ WRONG: "A system administrator is deploying a remote access VPN solution that requires users to authenticate and access corporate resources through a web browser without installing additional VPN client software." (This is pure setup. No question is asked. The learner has no cue what to pick.)
+- ✅ RIGHT: "A system administrator is deploying a remote access VPN that must work from any browser without installing client software. **Which VPN type best fits this requirement?**"
+- If you want to include setup context, put it in the OPTIONAL "scenario" field — but the "question" field itself MUST still pose a direct question. Scenario + question is additive; scenario is never a substitute for the question.
 
 Respond ONLY with a raw JSON array - no markdown, no extra text:
 [{"type":"mcq","question":"...",${includeScenario ? '"scenario":"(optional)",' : ''}"difficulty":"Foundational|Exam Level|Hard","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}]`;
@@ -5689,11 +5695,38 @@ function _aiCacheSet(namespace, rawKey, payload) {
 // ══════════════════════════════════════════
 // QUESTION QUALITY VALIDATOR
 // ══════════════════════════════════════════
+// v4.57.2: Interrogative guard — a legitimate quiz stem must either end with
+// "?" OR contain one of the common exam-question starter words / phrases.
+// Rejects declarative-only stems like "A system administrator is deploying a
+// remote access VPN..." with no "which", "what", etc. — the reader has no
+// cue to choose. Case-insensitive; matches whole-word to avoid false hits
+// (e.g. "whichever" shouldn't count as "which").
+function _stemHasInterrogative(stem) {
+  if (typeof stem !== 'string') return false;
+  const s = stem.trim();
+  if (!s) return false;
+  if (s.includes('?')) return true;
+  // Common interrogatives + imperative CompTIA-style stems ("Select the…",
+  // "Identify the…", "Choose the…", "Arrange…", "Match…", "Place…", "Given…")
+  const pattern = /\b(which|what|when|where|why|how|who|whose|select|identify|choose|pick|match|arrange|place|determine|complete|given|in which|under which)\b/i;
+  return pattern.test(s);
+}
+
 function validateQuestions(qs) {
   const reports = loadReports();
   return qs.filter(q => {
     const qType = getQType(q);
     if (!q.question || !q.explanation) return false;
+
+    // v4.57.2: Reject questions with no actual interrogative in the stem.
+    // Caught in the wild: a v4.56.x-era VPN question where the `question`
+    // field was pure declarative setup ("A system administrator is
+    // deploying a remote access VPN...") with no "which", "what", "?",
+    // or any other cue asking the learner to choose. Scenario-field
+    // context compounds this — when both stem and scenario are setup,
+    // the card reads as "here's a situation [silence] pick one of these."
+    // Cheap programmatic guard runs before the Sonnet validator.
+    if (!_stemHasInterrogative(q.question)) return false;
 
     // v4.8 — N10-009 objective tagging: every question must cite a valid exam objective
     // Accept common shapes: "1.4", "Obj 1.4", "1.4 — Routing", etc. Extract first X.Y match.
