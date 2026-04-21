@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.3
+// Network+ AI Quiz — app.js  v4.59.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.3';
+const APP_VERSION = '4.59.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -2526,6 +2526,444 @@ const QUESTION_EXEMPLARS = [
     explanation: 'Average 40% utilisation means bandwidth is not the issue — burst congestion is. QoS with LLQ (Low-Latency Queuing) classifies voice as EF and pre-empts other queues during congestion, eliminating jitter and loss without a bandwidth upgrade. Upgrading the link (A) is more expensive and wastes the existing capacity. Disabling backups (C) is operationally painful. VoIP already uses UDP (D), so the choice is nonsensical.',
     source: 'curated',
     addedVersion: '4.59.3',
+    addedDate: '2026-04-21'
+  },
+  // ═════════════════════════════════════════════════════════════════
+  // PATH B — ROAD TO 200 BATCH 4 (v4.59.4): 22 new exemplars
+  // Bank grows 134 → 156. Distribution: D1+5, D2+5, D3+4, D4+3, D5+5.
+  // Targets CompTIA weights by end of 3-batch expansion.
+  // ═════════════════════════════════════════════════════════════════
+  // ── D1-31: Anycast vs multicast vs broadcast (1.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'Which addressing model allows a single destination IP to resolve to the topologically-nearest server from a pool of physically-distributed servers, commonly used for DNS root servers and CDN points of presence?',
+    scenario: 'The 13 DNS root server letters each correspond to hundreds of physical servers worldwide, yet clients always reach a single logical IP. The routing fabric determines which physical instance responds based on network proximity.',
+    difficulty: 'Exam Level',
+    topic: 'NTP, ICMP & Traffic Types',
+    objective: '1.4',
+    options: {
+      A: 'Unicast — one sender, one receiver',
+      B: 'Broadcast — one sender, all hosts on a segment',
+      C: 'Multicast — one sender, a subscribed group',
+      D: 'Anycast — one destination IP, many physical servers, nearest wins via routing'
+    },
+    answer: 'D',
+    explanation: 'Anycast assigns the same IP to multiple geographically-distributed servers; BGP routes traffic to the topologically-closest instance. It is the standard for DNS root servers, public resolvers (e.g., 8.8.8.8, 1.1.1.1), and CDN points of presence. Unicast (A) is point-to-point. Broadcast (B) is segment-wide. Multicast (C) requires IGMP group membership.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-32: DHCP relay (1.6 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A network has one DHCP server in the data centre and 15 VLANs across branch switches. Clients in remote VLANs do not receive IP addresses. What configuration on the router interfaces fixes this?',
+    scenario: 'DHCP DISCOVER packets are broadcast and do not cross routers. The admin wants a single centralised DHCP server rather than 15 separate servers per VLAN.',
+    difficulty: 'Exam Level',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'Enable DHCP snooping on all switch ports',
+      B: 'Configure an ip helper-address (DHCP relay agent) on each VLAN SVI pointing to the central DHCP server',
+      C: 'Put every VLAN in the same broadcast domain',
+      D: 'Statically assign IPs on every client'
+    },
+    answer: 'B',
+    explanation: 'A DHCP relay agent (ip helper-address on Cisco, DHCP relay on others) converts client broadcasts into unicast packets destined for the central DHCP server. One helper address per VLAN SVI lets a single DHCP server service all 15 VLANs. DHCP snooping (A) is a security feature, not a relay. Flattening VLANs (C) defeats segmentation. Static IPs (D) are unmanageable at scale.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-33: RFC 1918 private IP ranges (1.7 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which set of IP ranges is defined as private (non-routable on the public Internet) by RFC 1918?',
+    difficulty: 'Foundational',
+    topic: 'Subnetting & IP Addressing',
+    objective: '1.7',
+    options: {
+      A: '10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16',
+      B: '10.0.0.0/8, 172.0.0.0/8, 192.0.0.0/16',
+      C: '169.254.0.0/16, 127.0.0.0/8, 224.0.0.0/4',
+      D: '100.64.0.0/10, 198.18.0.0/15, 203.0.113.0/24'
+    },
+    answer: 'A',
+    explanation: 'RFC 1918 defines exactly three private IPv4 ranges: 10.0.0.0/8 (one Class A), 172.16.0.0/12 (16 contiguous Class Bs, 172.16 through 172.31), and 192.168.0.0/16 (256 Class Cs). B misstates the 172 and 192 ranges. C lists APIPA (169.254), loopback (127), and multicast (224) — none private per RFC 1918. D lists CGNAT (100.64), benchmark (198.18), and documentation (203.0.113) ranges — reserved for other purposes.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-34: NAT64 + DNS64 (1.8 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A mobile carrier runs an IPv6-only access network, but subscribers still need to reach legacy IPv4-only Internet sites. Which transition mechanism provides this?',
+    scenario: 'Subscribers have only IPv6 addresses assigned. The carrier does not want to run dual-stack on clients, but still must resolve A records and reach IPv4 destinations.',
+    difficulty: 'Hard',
+    topic: 'IPv6',
+    objective: '1.8',
+    options: {
+      A: '6to4 tunneling only — encapsulates IPv6 inside IPv4',
+      B: 'NAT64 (protocol translation) paired with DNS64 (synthesises AAAA from A records)',
+      C: 'Teredo tunneling from the client',
+      D: 'Dual-stack on every client'
+    },
+    answer: 'B',
+    explanation: 'NAT64 translates IPv6 packets to IPv4 at a gateway. DNS64 synthesises an AAAA record from an IPv4-only A record by prepending the well-known prefix 64:ff9b::/96 to the IPv4 address, so the client believes it is talking IPv6 end-to-end. 6to4 (A) goes the other way (IPv6 over IPv4 transport). Teredo (C) is legacy and client-side, not suitable for carrier-scale translation. Dual-stack (D) is what the carrier is explicitly avoiding.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D1-35: Infrastructure as Code (1.8 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which practice defines network infrastructure (routers, firewalls, load balancers, cloud VPCs) in version-controlled declarative files that can be applied programmatically?',
+    difficulty: 'Exam Level',
+    topic: 'Virtualisation & Cloud',
+    objective: '1.8',
+    options: {
+      A: 'Infrastructure as Code (IaC) — Terraform, Ansible, CloudFormation',
+      B: 'Manual CLI configuration with screenshot-based backups',
+      C: 'SNMP polling with OID-based modifications',
+      D: 'Change advisory board (CAB) approval only, no automation'
+    },
+    answer: 'A',
+    explanation: 'Infrastructure as Code stores infrastructure definitions in text files (HCL for Terraform, YAML for Ansible, JSON/YAML for CloudFormation) under version control, then applies them declaratively and idempotently. This is the N10-009 modern-environments topic: repeatable, reviewable, auditable. Manual CLI (B) is the anti-pattern IaC replaces. SNMP (C) is monitoring, not provisioning. CAB (D) is a governance layer, not a provisioning method.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-27: Rapid PVST+ vs MSTP (2.1 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A campus has 200 VLANs across 40 switches. Rapid PVST+ runs one STP instance per VLAN — 200 instances. Which alternative reduces CPU load by mapping groups of VLANs to a smaller number of instances?',
+    scenario: 'Switch CPUs are at 80% utilisation running per-VLAN spanning tree calculations. The team wants to keep STP-per-group behaviour for load balancing but cut the number of instances dramatically.',
+    difficulty: 'Hard',
+    topic: 'STP/RSTP',
+    objective: '2.1',
+    options: {
+      A: 'Disable STP entirely to save CPU',
+      B: 'Switch to classic STP (802.1D) with one instance for all VLANs',
+      C: 'Use MSTP (802.1s) — map many VLANs to a few MST instances (e.g., 200 VLANs into 4 instances)',
+      D: 'Run RSTP (802.1w) without any instance awareness'
+    },
+    answer: 'C',
+    explanation: 'MSTP (802.1s) lets you map many VLANs to a small number of MST instances (typical design: one instance for odd VLANs, one for even, plus the internal spanning tree). 200 VLANs into 4 instances is roughly a 50x CPU reduction while keeping per-group load balancing. Disabling STP (A) invites loops. Classic STP (B) has slow convergence (30-50s). RSTP (D) is fast but per-VLAN if Cisco; MSTP adds the instance-grouping.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-28: EIGRP vs OSPF (2.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A single-vendor Cisco enterprise WAN uses unequal-cost paths with a composite metric (bandwidth, delay, reliability, load). Which interior routing protocol fits this use case best?',
+    scenario: 'All routers are Cisco. The design requires traffic to load-balance across WAN links of different capacities (e.g., 100 Mbps and 40 Mbps) proportionally, not only equal-cost.',
+    difficulty: 'Exam Level',
+    topic: 'Routing Protocols',
+    objective: '2.2',
+    options: {
+      A: 'RIPv2 — hop-count metric, 15-hop limit',
+      B: 'OSPF — link-state, equal-cost multipath only',
+      C: 'EIGRP — Cisco advanced distance-vector, composite metric, unequal-cost load balancing via variance',
+      D: 'BGP — path-vector, designed for inter-AS only'
+    },
+    answer: 'C',
+    explanation: 'EIGRP is unique in supporting unequal-cost load balancing via the variance command: it shares traffic across paths whose metric is within a configurable multiple of the best path. Combined with its composite metric (K1-K5), it fits Cisco WANs needing proportional load share. RIPv2 (A) only counts hops and caps at 15. OSPF (B) only does equal-cost multipath. BGP (D) is for inter-AS policy, not intra-enterprise load balancing. EIGRP is now open-standard (RFC 7868) but still primarily Cisco-deployed.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-29: Wi-Fi 6E / 6 GHz (2.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'What primary advantage does Wi-Fi 6E (6 GHz band) offer over Wi-Fi 6 (2.4 and 5 GHz only)?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Longer range at the same transmit power as 2.4 GHz',
+      B: 'Access to ~1200 MHz of new uncongested spectrum, including 7 non-overlapping 160 MHz channels',
+      C: 'Backward compatibility with 802.11b/g clients',
+      D: 'Higher PoE power delivery to access points'
+    },
+    answer: 'B',
+    explanation: 'Wi-Fi 6E extends Wi-Fi 6 (802.11ax) into the newly-opened 6 GHz band (5.925 to 7.125 GHz in the US). That ~1200 MHz adds dozens of new 20 MHz channels, including 14 non-overlapping 80 MHz and 7 non-overlapping 160 MHz channels — enormous wide-channel capacity with almost no legacy clients to share it. Range (A) is shorter at 6 GHz than 2.4 GHz (higher frequency attenuates faster). 802.11b/g (C) is 2.4 GHz only. PoE (D) is physical-layer, unrelated to RF spectrum.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-30: Switch stacking (2.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A wiring closet has six 48-port access switches. The team wants to manage all six as a single logical switch with one IP, one config, and cross-switch LAGs for uplinks. Which technology achieves this?',
+    scenario: 'The current model manages six separate switches with six IPs and six configs. Uplink failover is needed without relying on STP reconvergence.',
+    difficulty: 'Exam Level',
+    topic: 'Switch Features & VLANs',
+    objective: '2.1',
+    options: {
+      A: 'Switch stacking (StackWise, IRF, or equivalent) — multiple switches operate as one logical unit via high-speed stack cables',
+      B: 'VLAN Trunking Protocol (VTP) in server mode',
+      C: 'Per-VLAN spanning tree with a separate BPDU per VLAN',
+      D: 'Port mirroring (SPAN) between all six switches'
+    },
+    answer: 'A',
+    explanation: 'Switch stacking connects multiple switches via high-speed proprietary stack cables (Cisco StackWise, HPE/Aruba IRF, Juniper Virtual Chassis) so they present as one logical switch: one management IP, one config, one MAC address table, and LAGs that span multiple physical switches for uplink redundancy. VTP (B) synchronises VLAN databases only. PVST (C) is STP, not unification. SPAN (D) copies traffic for monitoring, not management aggregation.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D2-31: FHRP / HSRP / VRRP / GLBP (2.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'Two data centre routers share a virtual IP that acts as the default gateway for servers. If the active router fails, the standby takes over in under 3 seconds without clients reconfiguring. Which category of protocol provides this?',
+    scenario: 'Servers use a single static default gateway IP. The network team needs gateway failover without DHCP changes or client reconfiguration.',
+    difficulty: 'Exam Level',
+    topic: 'Routing Protocols',
+    objective: '2.2',
+    options: {
+      A: 'First Hop Redundancy Protocols (FHRP) — HSRP, VRRP, or GLBP provide a virtual IP shared between two or more routers',
+      B: 'Routing Information Protocol (RIP) — dynamic routing updates',
+      C: 'Spanning Tree Protocol (STP) — Layer 2 loop prevention',
+      D: 'Link Aggregation Control Protocol (LACP) — bonds multiple physical links'
+    },
+    answer: 'A',
+    explanation: 'FHRPs share a single virtual IP/MAC across multiple routers. HSRP (Cisco) and VRRP (RFC 5798, standard) provide active/standby; GLBP (Cisco) load-balances across all group members. Clients use the virtual IP as a static gateway and never notice failover. RIP (B) is a routing protocol, not gateway redundancy. STP (C) is Layer 2. LACP (D) bonds physical links, not gateways.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-26: SNMPv3 auth + priv (3.2 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which SNMP version adds authentication (MD5/SHA) and encryption (DES/AES) for message confidentiality and integrity?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'SNMPv1 — plaintext community strings',
+      B: 'SNMPv2c — plaintext community strings with 64-bit counters',
+      C: 'SNMPv3 — user-based security model with authNoPriv and authPriv modes',
+      D: 'All SNMP versions include encryption by default'
+    },
+    answer: 'C',
+    explanation: 'SNMPv3 introduced the User-based Security Model (USM) with three security levels: noAuthNoPriv (no security), authNoPriv (authentication only, no encryption), and authPriv (both). Auth uses MD5 or SHA HMACs; privacy uses DES or AES encryption. SNMPv1 and SNMPv2c send community strings in plaintext (A, B). D is factually wrong — v1/v2c are plaintext.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-27: Traffic shaping vs policing (3.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A WAN link is rate-limited by the service provider to 50 Mbps. When the customer sends bursts above 50 Mbps, the ISP drops the excess. Which QoS technique at the customer edge buffers excess traffic so it conforms to the contract without drops?',
+    scenario: 'The customer currently sees packet loss during bursts because their edge router sends at its full 1 Gbps capability; the ISP policer drops what exceeds 50 Mbps. The team wants to avoid drops without buying more bandwidth.',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.2',
+    options: {
+      A: 'Traffic policing — drops or remarks packets that exceed the rate',
+      B: 'Traffic shaping — buffers and delays packets to smooth output to the contracted rate',
+      C: 'Priority queuing only — strict priority for voice',
+      D: 'Random Early Detection (RED) — drops before the queue fills'
+    },
+    answer: 'B',
+    explanation: 'Traffic shaping buffers excess traffic in a queue and releases it at the contracted rate, smoothing bursts without drops. Traffic policing (A) drops or remarks at violation — which is exactly what the ISP is doing and the customer wants to avoid. Priority queuing (C) orders traffic but does not rate-limit. RED (D) is a congestion-avoidance mechanism, not a shaper.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-28: Change mgmt rollback (3.1 / Foundational / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which element of a formal change management process ensures that a failed change can be reverted quickly to the previous known-good state?',
+    difficulty: 'Foundational',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Change request (CR) submission form',
+      B: 'Documented rollback (back-out) plan with tested recovery steps',
+      C: 'Post-change review meeting',
+      D: 'Change advisory board (CAB) approval'
+    },
+    answer: 'B',
+    explanation: 'A rollback plan (also called back-out plan) is a required part of every formal change: pre-tested steps and configuration snapshots that restore the prior state if the change fails. The CR (A) authorises the change; the CAB (D) approves it; post-change review (C) happens after. Only the rollback plan answers how to undo a bad change quickly.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D3-29: Asset inventory / CMDB (3.1 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'After a critical switch failure at midnight, an on-call engineer must identify the model, firmware, warranty status, installed interface cards, and connected downstream devices without physical access. Which documentation source is most useful?',
+    scenario: 'The engineer is working remotely. Physical inspection is not possible. The network has ~800 devices across 20 sites, so memorised knowledge is inadequate.',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'A configuration management database (CMDB) / asset inventory with device records, firmware, warranty, and relationship mapping',
+      B: 'The vendor marketing website',
+      C: 'A physical data centre floor plan only',
+      D: 'Syslog messages from the last hour'
+    },
+    answer: 'A',
+    explanation: 'A CMDB (or asset inventory) is the canonical record of every device: model, serial, firmware, location, warranty, ownership, and relationships to other devices. For remote diagnosis of a failed device, the CMDB is the first stop before engaging vendor support. Vendor marketing (B) gives generic specs, not deployment state. Floor plans (C) give location only. Syslog (D) gives recent events, not inventory metadata.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-26: 802.1X vs port security (4.3 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An organisation wants per-user authentication at every access switchport — users authenticate with credentials before getting a VLAN assignment and network access. Which technology provides this?',
+    scenario: 'Port-based MAC filtering is currently used but can be spoofed easily. The security team wants identity-based access with dynamic VLAN assignment based on who is logging in, not what MAC is plugged in.',
+    difficulty: 'Exam Level',
+    topic: 'Protecting Networks',
+    objective: '4.3',
+    options: {
+      A: 'Port security (sticky MAC) — learns and locks MAC addresses per port',
+      B: '802.1X (EAP-based port-based authentication) — client supplicant authenticates via RADIUS before port opens',
+      C: 'MAC ACLs — static MAC whitelist',
+      D: 'BPDU Guard — err-disables ports that receive BPDUs'
+    },
+    answer: 'B',
+    explanation: '802.1X is the IEEE standard for identity-based port access control. The client (supplicant) sends credentials via EAP to the switch (authenticator), which forwards to a RADIUS server (authentication server). On success, the RADIUS server can assign a dynamic VLAN based on user identity or group. Port security (A) filters by MAC — easy to spoof. MAC ACLs (C) are static. BPDU Guard (D) is loop prevention on PortFast ports.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-27: Pretexting (4.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'An attacker calls the help desk claiming to be a new remote employee whose laptop has crashed, urgently requesting a password reset for the accounting VP. The attacker has researched the VP name and project details. Which social engineering technique is this?',
+    scenario: 'The attacker never physically enters the building. The attack is entirely by phone, relying on believable backstory and urgency to manipulate the help desk.',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'Tailgating — following an authorised person through a secured door',
+      B: 'Shoulder surfing — observing credentials over someone shoulder',
+      C: 'Pretexting — inventing a believable scenario to extract information or trigger an action',
+      D: 'Dumpster diving — recovering discarded documents'
+    },
+    answer: 'C',
+    explanation: 'Pretexting is the social-engineering technique of creating a fabricated scenario (pretext) to manipulate the target. Help-desk impersonation calls with researched details are the classic example. Tailgating (A) is physical. Shoulder surfing (B) is observational. Dumpster diving (D) is physical retrieval. Pretexting underlies most phone-based social engineering and BEC attacks.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D4-28: CRL vs OCSP (4.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'Which certificate-revocation method provides real-time per-certificate status lookup rather than downloading a large periodic list?',
+    difficulty: 'Exam Level',
+    topic: 'PKI & Certificate Management',
+    objective: '4.4',
+    options: {
+      A: 'Certificate Revocation List (CRL) — periodic signed list of revoked serial numbers',
+      B: 'Online Certificate Status Protocol (OCSP) — HTTP-based per-certificate status query returning "good", "revoked", or "unknown"',
+      C: 'Certificate transparency logs — append-only public log',
+      D: 'Perfect Forward Secrecy (PFS) — ephemeral key exchange'
+    },
+    answer: 'B',
+    explanation: 'OCSP (RFC 6960) queries the CA responder for a single certificate serial number and returns "good", "revoked", or "unknown" in real time. CRLs (A) are periodically-published lists that must be downloaded in full — slower and staler. CT logs (C) track issuance, not revocation. PFS (D) is a key-exchange property, unrelated to revocation. OCSP Stapling (RFC 6066) extends this further by having the server cache and present the OCSP response to avoid client-side lookups.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-29: EMI / crosstalk (5.2 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'A long UTP cable run passes near a fluorescent light ballast and a motor control room. Users report intermittent high error rates. A cable tester reports acceptable length and continuity. Which physical-layer issue is most likely?',
+    scenario: 'The run is 85 metres of Cat5e UTP. There is no visible damage. Moving the cable 2 metres away from the motor room reduces errors dramatically.',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Attenuation — signal loss over distance',
+      B: 'Electromagnetic interference (EMI) from nearby motors and ballasts',
+      C: 'Near-end crosstalk (NEXT) between pairs inside the same cable',
+      D: 'Insufficient termination at the patch panel'
+    },
+    answer: 'B',
+    explanation: 'Fluorescent ballasts and motor controllers emit strong electromagnetic fields that couple into UTP cables as noise. Symptoms: intermittent errors that improve dramatically when the cable is moved away from the source. Fixes include rerouting, using shielded (STP/FTP) cable, or using fibre. Attenuation (A) is distance-related, not environment-related. NEXT (C) is internal to the cable and would appear even on a short bench run. Termination (D) would show as continuity/length failures on the tester.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-30: Bandwidth vs throughput vs goodput (5.4 / ExamL / recall) ──
+  {
+    type: 'mcq',
+    question: 'A link is provisioned at 1 Gbps. An iperf test reports 950 Mbps throughput. An application-layer transfer measures 700 Mbps. Which term best fits the 700 Mbps figure?',
+    difficulty: 'Exam Level',
+    topic: 'Perf Issues',
+    objective: '5.4',
+    options: {
+      A: 'Bandwidth — theoretical link capacity',
+      B: 'Throughput — actual bits delivered at Layer 3/4 including protocol overhead',
+      C: 'Goodput — application-layer useful data rate, excluding protocol overhead and retransmissions',
+      D: 'Latency — one-way packet delay'
+    },
+    answer: 'C',
+    explanation: 'Bandwidth (A) is the rated capacity. Throughput (B) is what the link actually delivers including headers, retransmissions, and protocol overhead (iperf measures this). Goodput (C) is the useful application-layer data rate — after subtracting protocol overhead (TCP/IP headers, ACKs, retransmits, TLS overhead). The 700 Mbps application number is goodput. Latency (D) is time, not rate.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-31: Co-channel interference (5.4 / ExamL / scenario) ──
+  {
+    type: 'mcq',
+    question: 'In a high-density office, Wi-Fi performance is poor despite strong RSSI at every desk. A site survey shows channel utilisation above 85% on channels 1, 6, and 11 in the 2.4 GHz band from overlapping neighbour APs. What is the primary cause?',
+    scenario: 'Signal strength (-55 dBm) is excellent. Users experience slow transfers and high retry counts. The office is in a dense commercial building with multiple neighbouring tenants.',
+    difficulty: 'Exam Level',
+    topic: 'Connection Issues',
+    objective: '5.4',
+    options: {
+      A: 'Attenuation — signal too weak',
+      B: 'Co-channel interference (CCI) — multiple APs on the same channel compete for airtime',
+      C: 'Encryption mismatch between clients and AP',
+      D: 'Incorrect DNS server assignment'
+    },
+    answer: 'B',
+    explanation: 'Strong RSSI plus poor performance is the classic signature of channel congestion, not weak signal. When many APs share the same channel (1, 6, or 11 in 2.4 GHz), CSMA/CA forces them to take turns transmitting — airtime becomes the bottleneck. Fixes: move to 5 GHz (more non-overlapping channels), reduce AP transmit power to shrink cells, or use 6 GHz (Wi-Fi 6E). Attenuation (A) is ruled out by the -55 dBm RSSI. Encryption (C) would fail authentication entirely. DNS (D) is not RF.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-32: Broadcast storm (5.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'Users report the network is completely frozen across an entire switched VLAN. On a switch port monitor, every port shows near 100% utilisation with massive broadcast counts. A newly-installed unmanaged switch was added this morning. What is the most likely cause and immediate remediation?',
+    scenario: 'Ping response time exceeds 2000 ms or times out entirely. Even console access to switches is slow. A technician noticed a small unmanaged switch plugged into two different ports of the main access switch.',
+    difficulty: 'Hard',
+    topic: 'Connection Issues',
+    objective: '5.5',
+    options: {
+      A: 'DHCP server failure — reboot DHCP',
+      B: 'Broadcast storm from a Layer 2 loop; disconnect one of the unmanaged switch uplinks, then enable BPDU Guard + STP on access ports',
+      C: 'DNS poisoning; flush resolver caches',
+      D: 'Duplex mismatch; hardcode all ports to full duplex'
+    },
+    answer: 'B',
+    explanation: 'A loop in the Layer 2 topology causes broadcasts (ARP, DHCP discover) to multiply until bandwidth and CPU are saturated — a broadcast storm. The unmanaged switch uplinked to two ports of the access switch creates exactly that loop (unmanaged switches do not run STP, so the managed switch BPDUs never reach it). Immediate fix: disconnect one of the loop cables. Long-term fix: enable STP/RSTP and BPDU Guard on access ports. DHCP (A), DNS (C), and duplex (D) do not produce near-100% broadcast traffic.',
+    source: 'curated',
+    addedVersion: '4.59.4',
+    addedDate: '2026-04-21'
+  },
+  // ── D5-33: Split horizon / routing loop (5.5 / Hard / scenario) ──
+  {
+    type: 'mcq',
+    question: 'After adding a redundant link between two RIP routers for failover, traceroute now shows packets bouncing between the two routers before reaching the destination. TTL eventually expires and packets are dropped. What is the most likely cause?',
+    scenario: 'Before the redundant link was added, both routers reached the destination network via a single path. The new link was intended as backup, but routing loops appeared. The routers run RIPv2 with default timers.',
+    difficulty: 'Hard',
+    topic: 'CompTIA Troubleshooting Methodology',
+    objective: '5.5',
+    options: {
+      A: 'Missing split-horizon enforcement — a router is re-advertising a route back out the interface it learned it on, creating the loop',
+      B: 'MTU mismatch on the new link',
+      C: 'Duplicate IP address on a host',
+      D: 'DNS cache poisoning at the client'
+    },
+    answer: 'A',
+    explanation: 'Classic distance-vector routing loop. Split horizon is the rule that a router must NOT advertise a route back out the interface from which it learned that route. Without it (or with poison reverse disabled), router A learns a route from B, then re-advertises it back to B — which now thinks A has a better path. Packets bounce between them until TTL expires. Modern RIP enables split horizon by default; older configs or certain topologies (hub-spoke frame relay) may disable it. MTU (B) would show fragmentation or black-hole, not a loop. Duplicate IP (C) causes ARP issues, not routing loops. DNS (D) is application layer.',
+    source: 'curated',
+    addedVersion: '4.59.4',
     addedDate: '2026-04-21'
   }
 ];
