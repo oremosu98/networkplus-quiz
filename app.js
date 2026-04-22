@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.62.0
+// Network+ AI Quiz — app.js  v4.62.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.62.0';
+const APP_VERSION = '4.62.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11373,6 +11373,8 @@ function openTopologyBuilder() {
   if (typeof tbBindInspectorKeydown === 'function') tbBindInspectorKeydown();
   // v4.60.1: restore collapsed state of the side panes (palette + scenarios)
   if (typeof tbInitPaneCollapseState === 'function') tbInitPaneCollapseState();
+  // v4.62.1: bind drag for the Per-Hop Trace panel (drag by head)
+  if (typeof tbBindTracePanelDrag === 'function') tbBindTracePanelDrag();
   // v4.54.6: bind canvas pan/zoom handlers + reset to default zoomed-in view
   if (typeof tbBindCanvasPanZoom === 'function') tbBindCanvasPanZoom();
   if (typeof tbZoomReset === 'function') tbZoomReset();
@@ -12190,6 +12192,48 @@ function tbInitPaneCollapseState() {
       if (btn) { btn.setAttribute('aria-label', 'Expand scenarios'); btn.setAttribute('title', 'Expand scenarios'); }
     }
   } catch (_) {}
+}
+
+// v4.62.1: Drag the Per-Hop Trace panel by its head. Same pattern as the
+// inspector popup drag (position: absolute inside .tb-canvas-wrap). The
+// panel's inner HTML is replaced on every `tbRenderTraceLog()` call, so we
+// bind the listener on the panel element itself + delegate via closest()
+// so re-renders don't break the handler.
+let _tbTracePanelDragBound = false;
+function tbBindTracePanelDrag() {
+  if (_tbTracePanelDragBound) return;
+  const panel = document.getElementById('tb-trace-panel');
+  if (!panel) return;
+  let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+  panel.addEventListener('mousedown', (e) => {
+    if (!e.target) return;
+    // Only initiate drag when the mousedown originated in the head row,
+    // NOT on the close button or any descendant of the body/playback.
+    if (!e.target.closest || !e.target.closest('.tb-trace-head')) return;
+    if (e.target.closest('.tb-trace-close')) return;
+    dragging = true;
+    const rect = panel.getBoundingClientRect();
+    const wrapRect = (panel.parentElement || panel).getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left - wrapRect.left;
+    startTop = rect.top - wrapRect.top;
+    panel.style.left = startLeft + 'px';
+    panel.style.top = startTop + 'px';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const wrapRect = (panel.parentElement || panel).getBoundingClientRect();
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    let nl = startLeft + dx, nt = startTop + dy;
+    // Clamp so the panel can't be dragged off-screen (at least a handle remains)
+    nl = Math.max(8, Math.min(wrapRect.width - 80, nl));
+    nt = Math.max(8, Math.min(wrapRect.height - 40, nt));
+    panel.style.left = nl + 'px';
+    panel.style.top = nt + 'px';
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  _tbTracePanelDragBound = true;
 }
 
 // v4.60.0: ESC key closes the Live Protocol Inspector if it's visible.

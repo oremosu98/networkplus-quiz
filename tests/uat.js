@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.62.0', js.includes("const APP_VERSION = '4.62.0"));
+test('APP_VERSION is 4.62.1', js.includes("const APP_VERSION = '4.62.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.62.0', sw.includes('netplus-v4.62.0'));
+test('SW cache bumped to v4.62.1', sw.includes('netplus-v4.62.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7994,6 +7994,28 @@ test('v4.62.0 CSS: light-theme overrides crown + port dot stroke',
     test('v4.62.0 sandbox: tbComputeStpState executed without error', false);
   }
 })();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.62.1 — Per-Hop Trace panel is draggable by its head
+// User spotted during prod test: the trace panel sits over the canvas
+// left-anchored, sometimes covering topology. Same drag-by-head pattern
+// as the inspector popup + config panel floating popups.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.62.1 JS: tbBindTracePanelDrag function defined',
+  /function\s+tbBindTracePanelDrag\s*\(\)/.test(js));
+test('v4.62.1 JS: drag binding uses the idempotent bound-flag pattern',
+  /let\s+_tbTracePanelDragBound[\s\S]{0,100}if\s*\(_tbTracePanelDragBound\)\s*return/.test(js));
+test('v4.62.1 JS: drag only starts when mousedown is inside .tb-trace-head',
+  /tbBindTracePanelDrag[\s\S]{0,2000}closest\(['"]\.tb-trace-head['"]\)/.test(js));
+test('v4.62.1 JS: drag ignores clicks on .tb-trace-close',
+  /tbBindTracePanelDrag[\s\S]{0,2000}closest\(['"]\.tb-trace-close['"]\)/.test(js));
+test('v4.62.1 JS: openTopologyBuilder wires the trace-panel drag binding',
+  /openTopologyBuilder[\s\S]{0,1600}tbBindTracePanelDrag/.test(js));
+test('v4.62.1 CSS: .tb-trace-head has cursor: grab',
+  /\.tb-trace-head\s*\{[\s\S]{0,400}cursor:\s*grab/.test(css));
+test('v4.62.1 CSS: .tb-trace-head:active switches to cursor: grabbing',
+  /\.tb-trace-head:active\s*\{\s*cursor:\s*grabbing/.test(css));
 
 // ══════════════════════════════════════════════════════════════════════
 // v4.57.5 — Unify per-domain pct between Domain Mastery + Domain Breakdown

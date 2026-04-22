@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.62.0
+   Network+ AI Quiz — styles.css  v4.62.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8837,7 +8837,11 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   padding: 16px 18px 14px;
   border-bottom: 1px dashed rgba(var(--accent-rgb), .25);
   background: linear-gradient(135deg, rgba(var(--accent-rgb), .08) 0%, transparent 70%);
+  /* v4.62.1: head is the drag handle for the whole panel */
+  cursor: grab;
+  user-select: none;
 }
+.tb-trace-head:active { cursor: grabbing; }
 .tb-trace-close {
   position: absolute;
   top: 10px;
