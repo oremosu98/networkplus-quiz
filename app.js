@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.59.7
+// Network+ AI Quiz — app.js  v4.60.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.59.7';
+const APP_VERSION = '4.60.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11366,6 +11366,8 @@ function openTopologyBuilder() {
   // v4.54.6: inspector renders into floating popup (#tb-inspector-pop body)
   if (typeof tbRenderV3Inspector === 'function') tbRenderV3Inspector();
   if (typeof tbBindInspectorPopDrag === 'function') tbBindInspectorPopDrag();
+  // v4.60.0: bind ESC-to-close for the Live Protocol Inspector
+  if (typeof tbBindInspectorKeydown === 'function') tbBindInspectorKeydown();
   // v4.54.6: bind canvas pan/zoom handlers + reset to default zoomed-in view
   if (typeof tbBindCanvasPanZoom === 'function') tbBindCanvasPanZoom();
   if (typeof tbZoomReset === 'function') tbZoomReset();
@@ -11838,6 +11840,16 @@ function tbSaveDraft() {
   if (typeof tbRefreshAmbientHealth === 'function') tbRefreshAmbientHealth();
   // Fix challenge: check if user fixed a fault
   if (typeof tbCheckFixProgress === 'function' && tbFixChallenge && !tbFixChallenge.completed) tbCheckFixProgress();
+  // v4.60.0 Live Protocol Inspector: refresh the floating inspector when
+  // state mutates (ARP learned, MAC learned, etc.) so rows flash live as
+  // packets resolve. Only renders when the popup is actually visible to
+  // avoid wasted work on every ambient tick.
+  try {
+    const pop = document.getElementById('tb-inspector-pop');
+    if (pop && !pop.hidden && tbV3InspectedDeviceId) {
+      tbRenderV3Inspector();
+    }
+  } catch (_) {}
 }
 function tbLoadAllSaves() {
   try {
@@ -12122,6 +12134,23 @@ function tbBindInspectorPopDrag() {
   _tbInspectorPopDragBound = true;
 }
 
+// v4.60.0: ESC key closes the Live Protocol Inspector if it's visible.
+// Bound once at TB open. Does not interfere with other ESC handlers —
+// we check visibility first and return early if the inspector is hidden.
+let _tbInspectorKeydownBound = false;
+function tbBindInspectorKeydown() {
+  if (_tbInspectorKeydownBound) return;
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const pop = document.getElementById('tb-inspector-pop');
+    if (!pop || pop.hidden) return;
+    // Don't steal ESC from modal dialogs that might be layered on top
+    if (document.querySelector('.modal.is-open')) return;
+    tbInspectorPopClose();
+  });
+  _tbInspectorKeydownBound = true;
+}
+
 // v4.54.7: drag the full-config floating popup by its header. Same pattern
 // as tbBindInspectorPopDrag but for #tb-config-panel (position: fixed, so
 // left/top are viewport-relative, not wrapper-relative).
@@ -12296,12 +12325,143 @@ function tbSelectPill(mode) {
   });
 }
 
+// v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60
+// static summary. Now renders the device's actual live protocol state:
+// routing table, ARP cache, MAC address table, DHCP pool config — each
+// in a labelled accordion section. Role-aware: inapplicable sections
+// render friendly redirect stubs ("click a switch to see a MAC table")
+// instead of hiding or empty-zero noise. Rows learned since the last
+// render get the .tb-insp-row-flash class for a 1.8s accent-glow pulse.
+// Refreshed automatically from tbSaveDraft() on every state mutation, so
+// sending a ping and watching ARP populate now renders live.
+
+// Module-level snapshot for diffing. Keyed by stable per-row identity:
+//   ARP: ip|mac
+//   MAC: mac|vlan|port
+// Reset on device-change so switching devices doesn't leave stale flashes.
+let _tbInspPrevArpKeys = new Set();
+let _tbInspPrevMacKeys = new Set();
+let _tbInspPrevDeviceId = null;
+
+function _tbInspEsc(s) {
+  return (typeof escHtml === 'function') ? escHtml(s) : String(s);
+}
+function _tbInspDeviceHasL3(dev) {
+  return Array.isArray(dev.interfaces) && dev.interfaces.some(i => i && i.ip && i.mask);
+}
+function _tbInspDeviceIsSwitch(dev) {
+  return typeof dev.type === 'string' && dev.type.indexOf('switch') >= 0;
+}
+function _tbInspDeviceIsDhcpServer(dev) {
+  return !!(dev.dhcpServer && (dev.dhcpServer.rangeStart || dev.dhcpServer.network));
+}
+function _tbInspRowClass(isFlashing) {
+  return isFlashing ? ' tb-insp-row-flash' : '';
+}
+function _tbInspAccSection(icon, label, count, bodyHtml) {
+  const countBadge = (typeof count === 'number')
+    ? `<span class="tb-insp-acc-count${count > 0 ? ' active' : ''}">${count}</span>`
+    : (count ? `<span class="tb-insp-acc-count">${_tbInspEsc(count)}</span>` : '');
+  return `<div class="tb-insp-acc-section">
+    <div class="tb-insp-acc-head">
+      <span class="tb-insp-acc-label">${icon} ${_tbInspEsc(label)}</span>
+      ${countBadge}
+    </div>
+    <div class="tb-insp-acc-body">${bodyHtml}</div>
+  </div>`;
+}
+function _tbInspInapplicable(text) {
+  return `<div class="tb-insp-inapplicable">${text}</div>`;
+}
+function _tbInspEmpty(msg) {
+  return `<div class="tb-insp-empty">${_tbInspEsc(msg)}</div>`;
+}
+
+// ── Table renderers (all pure functions; accept optional flash sets) ──
+
+function _tbRenderInspRouting(dev, flashKeys) {
+  const rows = Array.isArray(dev.routingTable) ? dev.routingTable : [];
+  if (rows.length === 0) {
+    return _tbInspEmpty('Routing table is empty — add static routes via Open Full Config, or connect interfaces with IPs to auto-populate connected routes.');
+  }
+  const body = rows.map(r => {
+    const dest = _tbInspEsc(`${r.destination || '0.0.0.0'}/${r.mask || 0}`);
+    const nh = r.nextHop ? _tbInspEsc(r.nextHop) : '<span class="tb-insp-cell-dim">connected</span>';
+    const iface = _tbInspEsc(r.interface || '\u2014');
+    const src = _tbInspEsc(r.source || (r.nextHop ? 'S' : 'C'));
+    const key = `${r.destination}|${r.mask}|${r.nextHop || ''}|${r.interface || ''}`;
+    const flash = flashKeys && flashKeys.has(key);
+    return `<tr class="${_tbInspRowClass(flash)}"><td>${dest}</td><td>${nh}</td><td class="tb-insp-cell-iface">${iface}</td><td class="tb-insp-cell-dim">${src}</td></tr>`;
+  }).join('');
+  return `<table class="tb-insp-tbl"><thead><tr><th>Destination</th><th>Next-hop</th><th>Iface</th><th>Src</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function _tbRenderInspArp(dev, flashKeys) {
+  const rows = Array.isArray(dev.arpTable) ? dev.arpTable : [];
+  if (rows.length === 0) {
+    return _tbInspEmpty('ARP cache is empty — no packets have flowed yet. Send a ping to populate.');
+  }
+  const body = rows.map(r => {
+    const ip = _tbInspEsc(r.ip || '');
+    const mac = _tbInspEsc(r.mac || '');
+    const iface = _tbInspEsc(r.iface || '\u2014');
+    const age = (typeof r.age === 'number') ? `${r.age}s` : '\u2014';
+    const key = `${r.ip}|${r.mac}`;
+    const flash = flashKeys && flashKeys.has(key);
+    const learnedLabel = flash ? '<span class="tb-insp-learned">Learned</span>' : '';
+    return `<tr class="${_tbInspRowClass(flash)}"><td>${ip}</td><td>${mac}</td><td class="tb-insp-cell-iface">${iface}</td><td class="tb-insp-cell-dim">${age}${learnedLabel}</td></tr>`;
+  }).join('');
+  return `<table class="tb-insp-tbl"><thead><tr><th>IP</th><th>MAC</th><th>Iface</th><th>Age</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function _tbRenderInspMac(dev, flashKeys) {
+  const rows = Array.isArray(dev.macTable) ? dev.macTable : [];
+  if (rows.length === 0) {
+    return _tbInspEmpty('MAC address table is empty — this switch has not yet seen any traffic. Send a ping between connected devices to populate.');
+  }
+  const body = rows.map(r => {
+    const mac = _tbInspEsc(r.mac || '');
+    const vlan = _tbInspEsc(String(r.vlan || '1'));
+    const port = _tbInspEsc(r.port || '\u2014');
+    const key = `${r.mac}|${r.vlan}|${r.port}`;
+    const flash = flashKeys && flashKeys.has(key);
+    const learnedLabel = flash ? '<span class="tb-insp-learned">Learned</span>' : '';
+    return `<tr class="${_tbInspRowClass(flash)}"><td>${mac}</td><td class="tb-insp-cell-dim">${vlan}</td><td class="tb-insp-cell-iface">${port}${learnedLabel}</td></tr>`;
+  }).join('');
+  return `<table class="tb-insp-tbl"><thead><tr><th>MAC</th><th>VLAN</th><th>Port</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function _tbRenderInspDhcp(dev) {
+  // v4.60.0 renders DHCP POOL CONFIG for devices that are DHCP servers.
+  // Live lease tracking isn't in the sim engine today; a future v4.60.x
+  // can add lease rows here when the packet engine simulates DORA flows.
+  const pool = dev.dhcpServer;
+  if (!pool) return null;
+  const rows = [
+    ['Network', pool.network || '\u2014'],
+    ['Mask', pool.mask || '\u2014'],
+    ['Gateway', pool.gateway || '\u2014'],
+    ['Range', pool.rangeStart && pool.rangeEnd ? `${pool.rangeStart} \u2013 ${pool.rangeEnd}` : '\u2014'],
+    ['DNS', pool.dns || '\u2014'],
+    ['Pool name', pool.name || 'POOL1']
+  ];
+  const body = rows.map(([k, v]) => `<tr><td class="tb-insp-cell-dim">${_tbInspEsc(k)}</td><td>${_tbInspEsc(v)}</td></tr>`).join('');
+  return `<table class="tb-insp-tbl tb-insp-tbl-kv"><tbody>${body}</tbody></table>
+    <div class="tb-insp-note">Static pool config shown. Live-lease tracking arrives in a future ship once the packet engine simulates DORA.</div>`;
+}
+
+// ── Main renderer ──
+
 function tbRenderV3Inspector() {
   const el = document.getElementById('tb-v3-inspector');
   if (!el) return;
   const deviceId = tbV3InspectedDeviceId;
   const dev = (tbState && tbState.devices) ? tbState.devices.find(d => d.id === deviceId) : null;
   if (!dev) {
+    // Reset snapshot so flashes don't fire on first show of a new device
+    _tbInspPrevArpKeys = new Set();
+    _tbInspPrevMacKeys = new Set();
+    _tbInspPrevDeviceId = null;
     el.innerHTML = `<div class="tb-v3-inspector-empty">
       <div class="tb-v3-inspector-empty-ico" aria-hidden="true">\u2139</div>
       <div class="tb-v3-inspector-empty-text"><strong>Click a device</strong> on the canvas to see its interfaces, IPs, and role summary here.</div>
@@ -12309,7 +12469,24 @@ function tbRenderV3Inspector() {
     </div>`;
     return;
   }
-  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+
+  // Reset diff baseline if the inspected device changed. Only compute flash
+  // sets when we're refreshing the SAME device — switching devices should
+  // render clean, no stale animation carryover.
+  const arpRows = Array.isArray(dev.arpTable) ? dev.arpTable : [];
+  const macRows = Array.isArray(dev.macTable) ? dev.macTable : [];
+  const currArpKeys = new Set(arpRows.map(r => `${r.ip}|${r.mac}`));
+  const currMacKeys = new Set(macRows.map(r => `${r.mac}|${r.vlan}|${r.port}`));
+  let flashArp = new Set(), flashMac = new Set();
+  if (_tbInspPrevDeviceId === deviceId) {
+    currArpKeys.forEach(k => { if (!_tbInspPrevArpKeys.has(k)) flashArp.add(k); });
+    currMacKeys.forEach(k => { if (!_tbInspPrevMacKeys.has(k)) flashMac.add(k); });
+  }
+  _tbInspPrevArpKeys = currArpKeys;
+  _tbInspPrevMacKeys = currMacKeys;
+  _tbInspPrevDeviceId = deviceId;
+
+  // Device-role metadata
   let typeLabel = dev.type || '';
   try {
     if (typeof TB_DEVICE_TYPES !== 'undefined' && TB_DEVICE_TYPES[dev.type]) {
@@ -12317,53 +12494,70 @@ function tbRenderV3Inspector() {
     }
   } catch (_) {}
   const hostname = dev.hostname || dev.type || dev.id;
-  const ifaces = Array.isArray(dev.interfaces) ? dev.interfaces : [];
-  const ifaceRows = ifaces.length === 0
-    ? '<div class="tb-v3-inspector-empty-sub">No interfaces.</div>'
-    : ifaces.map(i => {
-        const name = esc(i.name || 'iface');
-        const ip = i.ip ? esc(`${i.ip}${i.mask ? '/' + i.mask : ''}`) : '<em>unassigned</em>';
-        return `<div class="tb-v3-inspect-row"><span class="k">${name}</span><span class="v">${ip}</span></div>`;
-      }).join('');
-  let vlanHtml = '';
-  if (dev.vlanDb && typeof dev.vlanDb === 'object') {
-    const vlanKeys = Object.keys(dev.vlanDb).filter(v => v !== '1');
-    if (vlanKeys.length > 0) {
-      vlanHtml = `
-        <div class="tb-v3-inspect-section">
-          <div class="tb-v3-inspect-title">VLANs</div>
-          ${vlanKeys.map(v => {
-            const entry = dev.vlanDb[v] || {};
-            const name = entry.name ? esc(entry.name) : `VLAN ${v}`;
-            return `<div class="tb-v3-inspect-row"><span class="k">${esc(v)} &middot; ${name}</span><span class="v">${entry.ipv4 ? esc(entry.ipv4) : '\u2014'}</span></div>`;
-          }).join('')}
-        </div>`;
-    }
+  const isSwitch = _tbInspDeviceIsSwitch(dev);
+  const hasL3 = _tbInspDeviceHasL3(dev);
+  const isDhcpServer = _tbInspDeviceIsDhcpServer(dev);
+  const ifaceCount = Array.isArray(dev.interfaces) ? dev.interfaces.length : 0;
+
+  // ── Routing section ──
+  let routingHtml;
+  if (hasL3 && !isSwitch) {
+    routingHtml = _tbInspAccSection('\ud83d\uddfa', 'Routing Table',
+      Array.isArray(dev.routingTable) ? dev.routingTable.length : 0,
+      _tbRenderInspRouting(dev, null));
+  } else if (isSwitch && !hasL3) {
+    routingHtml = _tbInspAccSection('\ud83d\uddfa', 'Routing Table', 'n/a',
+      _tbInspInapplicable('Not applicable — this is an L2 switch (it forwards at Layer 2 only). Routers and L3 switches maintain routing tables.'));
+  } else {
+    // Host, endpoint, etc. — usually has a default gateway, no full table
+    routingHtml = _tbInspAccSection('\ud83d\uddfa', 'Routing Table',
+      Array.isArray(dev.routingTable) ? dev.routingTable.length : 0,
+      _tbRenderInspRouting(dev, null));
   }
-  let routingHtml = '';
-  if (Array.isArray(dev.routingTable) && dev.routingTable.length > 0) {
-    const top = dev.routingTable.slice(0, 3);
-    const extra = dev.routingTable.length - top.length;
-    routingHtml = `
-      <div class="tb-v3-inspect-section">
-        <div class="tb-v3-inspect-title">Routes ${extra > 0 ? `<span class="tb-v3-inspect-count">+${extra} more</span>` : ''}</div>
-        ${top.map(r => {
-          const dest = esc(`${r.destination || '0.0.0.0'}/${r.mask || 0}`);
-          const nh = esc(r.nextHop || r.interface || '\u2014');
-          return `<div class="tb-v3-inspect-row"><span class="k">${dest}</span><span class="v">${nh}</span></div>`;
-        }).join('')}
-      </div>`;
+
+  // ── ARP section ──
+  const arpHtml = _tbInspAccSection('\ud83d\udcc7', 'ARP Cache',
+    arpRows.length,
+    _tbRenderInspArp(dev, flashArp));
+
+  // ── MAC table section ──
+  let macHtml;
+  if (isSwitch) {
+    macHtml = _tbInspAccSection('\ud83d\udd00', 'MAC Address Table',
+      macRows.length,
+      _tbRenderInspMac(dev, flashMac));
+  } else {
+    macHtml = _tbInspAccSection('\ud83d\udd00', 'MAC Address Table', 'n/a',
+      _tbInspInapplicable(`Not applicable \u2014 ${hostname} is an L3 / host device. L2 switches maintain a MAC-to-port forwarding table; click a switch on the canvas to see one.`));
   }
+
+  // ── DHCP Leases / Config section ──
+  let dhcpHtml;
+  if (isDhcpServer) {
+    dhcpHtml = _tbInspAccSection('\ud83c\udf10', 'DHCP Configuration', 'pool',
+      _tbRenderInspDhcp(dev));
+  } else {
+    dhcpHtml = _tbInspAccSection('\ud83c\udf10', 'DHCP Leases', '\u2014',
+      _tbInspInapplicable(`Not applicable \u2014 ${hostname} is not a DHCP server. Click a device with an active DHCP pool to see its configuration.`));
+  }
+
+  // ── Editorial head (mockup matches) ──
+  const headHtml = `
+    <div class="tb-insp-head-block">
+      <div class="tb-insp-eyebrow">Inspector \u00b7 live state</div>
+      <div class="tb-insp-title">${_tbInspEsc(hostname)}</div>
+      <div class="tb-insp-sub">${_tbInspEsc(typeLabel)} \u00b7 ${ifaceCount} interface${ifaceCount === 1 ? '' : 's'}</div>
+    </div>`;
+
   el.innerHTML = `
-    <div class="tb-v3-inspect-id">${esc(hostname)}</div>
-    <div class="tb-v3-inspect-sub">${esc(typeLabel)}</div>
-    <div class="tb-v3-inspect-section">
-      <div class="tb-v3-inspect-title">Interfaces</div>
-      ${ifaceRows}
-    </div>
-    ${vlanHtml}
+    ${headHtml}
     ${routingHtml}
-    <button type="button" class="tb-v3-inspect-edit" onclick="tbOpenConfigPanel(tbV3InspectedDeviceId)">Open full config &rarr;</button>`;
+    ${arpHtml}
+    ${macHtml}
+    ${dhcpHtml}
+    <div class="tb-insp-footer">
+      <button type="button" class="tb-v3-inspect-edit" onclick="tbOpenConfigPanel(tbV3InspectedDeviceId)">Open full config &rarr;</button>
+    </div>`;
 }
 
 // Show/hide the big floating "Wiring..." banner based on tbPendingCableFrom.

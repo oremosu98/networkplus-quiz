@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.59.7', js.includes("const APP_VERSION = '4.59.7"));
+test('APP_VERSION is 4.60.0', js.includes("const APP_VERSION = '4.60.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.59.7', sw.includes('netplus-v4.59.7'));
+test('SW cache bumped to v4.60.0', sw.includes('netplus-v4.60.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5870,10 +5870,11 @@ test('v4.54.5 JS: scenarios list active-scenario highlight via tb-v3-scn-active'
   /tbRenderV3ScenariosList[\s\S]{0,2000}tb-v3-scn-active/.test(js));
 test('v4.54.5 JS: inspector empty-state when no device selected',
   /tbRenderV3Inspector[\s\S]{0,1500}Click a device/.test(js));
-test('v4.54.5 JS: inspector renders iface + routing + vlan sections',
-  /tbRenderV3Inspector[\s\S]{0,6000}>Interfaces</.test(js) &&
-  /tbRenderV3Inspector[\s\S]{0,6000}>VLANs</.test(js) &&
-  /tbRenderV3Inspector[\s\S]{0,6000}>Routes/.test(js));
+// v4.60.0: legacy v4.54.5 assertion retired — the inspector now renders
+// Routing / ARP / MAC / DHCP accordion sections instead of iface/routing/vlan.
+// Equivalent structural check covered by the v4.60.0 JS block below.
+test('v4.60.0 JS: inspector renders 4 role-aware accordion sections',
+  /tbRenderV3Inspector[\s\S]{0,8000}Routing Table[\s\S]{0,2000}ARP Cache[\s\S]{0,2000}MAC Address Table[\s\S]{0,2000}DHCP/.test(js));
 test('v4.54.5 JS: openTopologyBuilder calls tbRenderV3ScenariosList + tbRenderV3Inspector',
   /openTopologyBuilder[\s\S]{0,1500}tbRenderV3ScenariosList\(\)[\s\S]{0,400}tbRenderV3Inspector\(\)/.test(js));
 test('v4.54.5 JS: tbLoadScenarioWithBuild refreshes right pane + clears inspector selection',
@@ -7323,6 +7324,175 @@ test('v4.59.7 JS: computeWeakSpotScores routes raw history through _expandHistor
       })());
   } catch (e) {
     test('v4.59.7 sandbox: expander executes without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.60.0 — Topology Builder Live Protocol Inspector (issue #184)
+// Clicking a device now shows live protocol state in the floating
+// popup: routing / ARP / MAC / DHCP in a 4-section accordion. Rows
+// flash on insert. Role-aware: switches show MAC tables, routers show
+// routing + ARP, DHCP servers show pool config. Inapplicable sections
+// render as friendly redirect stubs ("click a switch to see MAC table").
+// Refreshed via tbSaveDraft() hook on every state mutation so pings
+// populate ARP live.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.60.0 JS: tbRenderV3Inspector renders editorial head (eyebrow + title + sub)',
+  /class="tb-insp-eyebrow">Inspector[\s\S]{0,100}live state[\s\S]{0,300}class="tb-insp-title"/.test(js));
+test('v4.60.0 JS: _tbRenderInspRouting helper defined',
+  /function\s+_tbRenderInspRouting\s*\(dev,\s*flashKeys\)/.test(js));
+test('v4.60.0 JS: _tbRenderInspArp helper defined',
+  /function\s+_tbRenderInspArp\s*\(dev,\s*flashKeys\)/.test(js));
+test('v4.60.0 JS: _tbRenderInspMac helper defined',
+  /function\s+_tbRenderInspMac\s*\(dev,\s*flashKeys\)/.test(js));
+test('v4.60.0 JS: _tbRenderInspDhcp helper defined',
+  /function\s+_tbRenderInspDhcp\s*\(dev\)/.test(js));
+test('v4.60.0 JS: _tbInspInapplicable helper defined',
+  /function\s+_tbInspInapplicable\s*\(text\)/.test(js));
+test('v4.60.0 JS: _tbInspAccSection wrapper defined',
+  /function\s+_tbInspAccSection\s*\(icon,\s*label,\s*count,\s*bodyHtml\)/.test(js));
+test('v4.60.0 JS: tbRenderV3Inspector builds flash sets via diff against prev snapshot',
+  /currArpKeys\.forEach\(k\s*=>\s*\{\s*if\s*\(!_tbInspPrevArpKeys\.has\(k\)\)\s*flashArp\.add/.test(js));
+test('v4.60.0 JS: tbRenderV3Inspector resets snapshot when inspected device changes',
+  /if\s*\(_tbInspPrevDeviceId\s*===\s*deviceId\)/.test(js));
+test('v4.60.0 JS: tbSaveDraft refreshes inspector when popup visible',
+  /function\s+tbSaveDraft\s*\(\)\s*\{[\s\S]*?getElementById\(['"]tb-inspector-pop['"]\)[\s\S]*?tbRenderV3Inspector\s*\(\)/.test(js));
+test('v4.60.0 JS: tbBindInspectorKeydown defined + wired in openTopologyBuilder',
+  /function\s+tbBindInspectorKeydown[\s\S]{0,400}keydown[\s\S]{0,200}Escape/.test(js) &&
+  /openTopologyBuilder[\s\S]{0,1200}tbBindInspectorKeydown/.test(js));
+test('v4.60.0 JS: device-role helpers defined (_tbInspDeviceIsSwitch + _tbInspDeviceHasL3 + _tbInspDeviceIsDhcpServer)',
+  /function\s+_tbInspDeviceIsSwitch\b/.test(js) &&
+  /function\s+_tbInspDeviceHasL3\b/.test(js) &&
+  /function\s+_tbInspDeviceIsDhcpServer\b/.test(js));
+
+test('v4.60.0 CSS: accordion section + editorial head styles defined',
+  /\.tb-insp-acc-section\s*\{/.test(css) &&
+  /\.tb-insp-eyebrow\s*\{/.test(css) &&
+  /\.tb-insp-title\s*\{/.test(css));
+test('v4.60.0 CSS: row-flash keyframe animation defined',
+  /@keyframes\s+tbInspRowFlash/.test(css) &&
+  /tb-insp-row-flash\s+td\s*\{[\s\S]*?animation:\s*tbInspRowFlash/.test(css));
+test('v4.60.0 CSS: reduced-motion neutralises row-flash',
+  /prefers-reduced-motion[\s\S]{0,400}tb-insp-row-flash\s+td\s*\{\s*animation:\s*none/.test(css));
+test('v4.60.0 CSS: light-theme overrides for inspector defined',
+  /\[data-theme="light"\]\s+\.tb-insp-eyebrow/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-insp-cell-iface/.test(css));
+test('v4.60.0 CSS: inapplicable + empty stub styles defined',
+  /\.tb-insp-inapplicable\s*\{/.test(css) &&
+  /\.tb-insp-empty\s*\{/.test(css));
+
+// Behavioural: vm-sandbox the pure table renderers against fixtures
+(function testInspRenderers() {
+  try {
+    const vm = require('vm');
+    const bodies = {};
+    ['_tbRenderInspRouting', '_tbRenderInspArp', '_tbRenderInspMac', '_tbRenderInspDhcp'].forEach(fnName => {
+      const m = js.match(new RegExp('function\\s+' + fnName + '\\s*\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n\\}', ''));
+      if (m) bodies[fnName] = m[1];
+    });
+    const inspAccBody = js.match(/function\s+_tbInspAccSection\s*\(icon,\s*label,\s*count,\s*bodyHtml\)\s*\{([\s\S]*?)\n\}/);
+    const inspInapplicableBody = js.match(/function\s+_tbInspInapplicable\s*\(text\)\s*\{([\s\S]*?)\n\}/);
+    const inspEmptyBody = js.match(/function\s+_tbInspEmpty\s*\(msg\)\s*\{([\s\S]*?)\n\}/);
+    const inspRowClassBody = js.match(/function\s+_tbInspRowClass\s*\(isFlashing\)\s*\{([\s\S]*?)\n\}/);
+    const inspEscBody = js.match(/function\s+_tbInspEsc\s*\(s\)\s*\{([\s\S]*?)\n\}/);
+
+    if (!bodies._tbRenderInspArp || !bodies._tbRenderInspMac || !bodies._tbRenderInspRouting || !bodies._tbRenderInspDhcp || !inspAccBody || !inspInapplicableBody || !inspEmptyBody || !inspRowClassBody || !inspEscBody) {
+      test('v4.60.0 sandbox: all renderers + helpers extracted', false);
+      return;
+    }
+    test('v4.60.0 sandbox: all renderers + helpers extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    // Stub escHtml (the renderers defer to _tbInspEsc which falls back to String)
+    vm.runInContext(`function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }`, ctx);
+    vm.runInContext(`function _tbInspEsc(s) {${inspEscBody[1]}}`, ctx);
+    vm.runInContext(`function _tbInspRowClass(isFlashing) {${inspRowClassBody[1]}}`, ctx);
+    vm.runInContext(`function _tbInspAccSection(icon, label, count, bodyHtml) {${inspAccBody[1]}}`, ctx);
+    vm.runInContext(`function _tbInspInapplicable(text) {${inspInapplicableBody[1]}}`, ctx);
+    vm.runInContext(`function _tbInspEmpty(msg) {${inspEmptyBody[1]}}`, ctx);
+    vm.runInContext(`function _tbRenderInspRouting(dev, flashKeys) {${bodies._tbRenderInspRouting}}`, ctx);
+    vm.runInContext(`function _tbRenderInspArp(dev, flashKeys) {${bodies._tbRenderInspArp}}`, ctx);
+    vm.runInContext(`function _tbRenderInspMac(dev, flashKeys) {${bodies._tbRenderInspMac}}`, ctx);
+    vm.runInContext(`function _tbRenderInspDhcp(dev) {${bodies._tbRenderInspDhcp}}`, ctx);
+
+    // ── ARP renderer ──
+    const arpDev = {
+      arpTable: [
+        { ip: '10.0.1.10', mac: 'aa:bb:cc:00:01:0a', iface: 'eth0', age: 42 },
+        { ip: '10.0.254.2', mac: 'aa:bb:cc:fe:00:02', iface: 'eth1', age: 0 }
+      ]
+    };
+    const arpHtml = vm.runInContext('_tbRenderInspArp(dev, null)', Object.assign(ctx, { dev: arpDev }));
+    // HTML has 1 header row in thead + N data rows in tbody. Count tbody rows only.
+    const arpTbodyRows = (arpHtml.match(/<tbody>([\s\S]*?)<\/tbody>/) || [])[1] || '';
+    test('v4.60.0 sandbox: ARP renderer emits one row per entry',
+      (arpTbodyRows.match(/<tr\b/g) || []).length === 2);
+    test('v4.60.0 sandbox: ARP renderer shows IP + MAC + iface',
+      arpHtml.includes('10.0.1.10') && arpHtml.includes('aa:bb:cc:00:01:0a') && arpHtml.includes('eth0'));
+
+    // ── ARP with flashKeys: second row flashes ──
+    const flashSet = new Set(['10.0.254.2|aa:bb:cc:fe:00:02']);
+    vm.runInContext('dev = arpDev; flashSet = new Set(["10.0.254.2|aa:bb:cc:fe:00:02"]);', Object.assign(ctx, { arpDev, flashSet }));
+    const arpFlashHtml = vm.runInContext('_tbRenderInspArp(arpDev, flashSet)', ctx);
+    test('v4.60.0 sandbox: ARP row matching flashKey gets tb-insp-row-flash class',
+      arpFlashHtml.includes('tb-insp-row-flash'));
+    test('v4.60.0 sandbox: ARP row matching flashKey shows Learned label',
+      arpFlashHtml.includes('tb-insp-learned'));
+    test('v4.60.0 sandbox: ARP row NOT in flashKey does not flash',
+      (arpFlashHtml.match(/tb-insp-row-flash/g) || []).length === 1);
+
+    // ── ARP empty state ──
+    const arpEmpty = vm.runInContext('_tbRenderInspArp({arpTable: []}, null)', ctx);
+    test('v4.60.0 sandbox: ARP empty state friendly message',
+      arpEmpty.includes('tb-insp-empty') && arpEmpty.includes('Send a ping'));
+
+    // ── MAC renderer ──
+    const macDev = {
+      macTable: [
+        { mac: 'aa:bb:cc:00:01:0a', vlan: 10, port: 'Gi0/1' },
+        { mac: 'aa:bb:cc:00:01:0b', vlan: 10, port: 'Gi0/2' }
+      ]
+    };
+    const macHtml = vm.runInContext('_tbRenderInspMac(macDev, null)', Object.assign(ctx, { macDev }));
+    const macTbodyRows = (macHtml.match(/<tbody>([\s\S]*?)<\/tbody>/) || [])[1] || '';
+    test('v4.60.0 sandbox: MAC renderer emits one row per entry',
+      (macTbodyRows.match(/<tr\b/g) || []).length === 2);
+    test('v4.60.0 sandbox: MAC renderer shows vlan + port',
+      macHtml.includes('Gi0/1') && macHtml.includes('10'));
+
+    // ── Routing renderer with 2 connected + 1 static ──
+    const rtrDev = {
+      routingTable: [
+        { destination: '10.0.1.0', mask: 24, interface: 'eth0', source: 'C' },
+        { destination: '10.0.2.0', mask: 24, nextHop: '10.0.254.2', interface: 'eth1', source: 'S' }
+      ]
+    };
+    const rtrHtml = vm.runInContext('_tbRenderInspRouting(rtrDev, null)', Object.assign(ctx, { rtrDev }));
+    test('v4.60.0 sandbox: routing renderer shows connected vs static distinction',
+      rtrHtml.includes('connected') && rtrHtml.includes('10.0.254.2'));
+
+    // ── DHCP renderer with pool config ──
+    const dhcpDev = {
+      dhcpServer: { name: 'LAN_POOL', network: '10.0.1.0', mask: '255.255.255.0',
+                    gateway: '10.0.1.1', rangeStart: '10.0.1.100', rangeEnd: '10.0.1.200', dns: '1.1.1.1' }
+    };
+    const dhcpHtml = vm.runInContext('_tbRenderInspDhcp(dhcpDev)', Object.assign(ctx, { dhcpDev }));
+    test('v4.60.0 sandbox: DHCP renderer shows pool network + range + gateway',
+      dhcpHtml && dhcpHtml.includes('10.0.1.0') && dhcpHtml.includes('10.0.1.100') && dhcpHtml.includes('10.0.1.1'));
+
+    // ── DHCP returns null when no pool configured ──
+    const dhcpNull = vm.runInContext('_tbRenderInspDhcp({dhcpServer: null})', ctx);
+    test('v4.60.0 sandbox: DHCP renderer returns null on non-DHCP device (renderer contract)',
+      dhcpNull === null);
+
+    // ── Inapplicable stub ──
+    const inapp = vm.runInContext('_tbInspInapplicable("Not applicable — click a switch")', ctx);
+    test('v4.60.0 sandbox: inapplicable stub emits friendly styled message',
+      inapp.includes('tb-insp-inapplicable') && inapp.includes('Not applicable'));
+  } catch (e) {
+    test('v4.60.0 sandbox: all renderers executed without error', false);
   }
 })();
 

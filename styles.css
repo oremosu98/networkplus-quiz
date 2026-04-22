@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.59.7
+   Network+ AI Quiz — styles.css  v4.60.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8328,6 +8328,160 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   transform: translateY(-1px);
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+   v4.60.0 — Live Protocol Inspector (issue #184)
+   Replaces the legacy .tb-v3-inspect-* summary styling inside the
+   floating #tb-inspector-pop popup. Editorial head + accordion sections
+   for routing / ARP / MAC / DHCP tables. Row-flash animation fires when
+   new rows are learned (ARP resolve, MAC learn).
+   ────────────────────────────────────────────────────────────────────── */
+.tb-insp-head-block {
+  padding: 4px 0 14px;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .22);
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .06) 0%, transparent 70%);
+  padding: 10px 4px 14px;
+  border-radius: 8px;
+}
+.tb-insp-eyebrow {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 600;
+}
+.tb-insp-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 4px 0 2px;
+  letter-spacing: -.01em;
+  color: var(--text);
+}
+.tb-insp-sub {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+}
+.tb-insp-acc-section {
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .16);
+}
+.tb-insp-acc-section:last-of-type { border-bottom: none; }
+.tb-insp-acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  border-radius: 6px;
+}
+.tb-insp-acc-label {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 600;
+}
+.tb-insp-acc-count {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: .04em;
+}
+.tb-insp-acc-count.active {
+  background: rgba(var(--accent-rgb), .2);
+  color: var(--accent-light);
+  border: 1px solid rgba(var(--accent-rgb), .3);
+}
+.tb-insp-acc-body {
+  padding: 0 4px 12px;
+}
+.tb-insp-tbl {
+  width: 100%;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  border-collapse: collapse;
+}
+.tb-insp-tbl th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 500;
+  padding: 5px 4px 5px 0;
+  border-bottom: 1px dotted rgba(var(--accent-rgb), .2);
+  font-size: 9.5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.tb-insp-tbl td {
+  padding: 6px 4px 6px 0;
+  color: var(--text);
+  border-bottom: 1px dotted rgba(var(--accent-rgb), .12);
+  vertical-align: top;
+  word-break: break-all;
+}
+.tb-insp-tbl tbody tr:last-child td { border-bottom: none; }
+.tb-insp-tbl tr.tb-insp-row-flash td {
+  background: rgba(var(--accent-rgb), .18);
+  box-shadow: inset 3px 0 0 var(--accent);
+  animation: tbInspRowFlash 1800ms ease-out;
+}
+@keyframes tbInspRowFlash {
+  0%   { background: rgba(var(--accent-rgb), .42); }
+  100% { background: rgba(var(--accent-rgb), .18); }
+}
+.tb-insp-cell-dim   { color: var(--text-mid); }
+.tb-insp-cell-iface { color: var(--accent-light); }
+.tb-insp-learned {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 8.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 600;
+}
+.tb-insp-tbl-kv td { font-size: 11px; }
+.tb-insp-tbl-kv td:first-child { width: 38%; }
+.tb-insp-empty {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 4px 0;
+  line-height: 1.5;
+}
+.tb-insp-empty::before { content: '💡 '; font-style: normal; }
+.tb-insp-inapplicable {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  padding: 4px 0;
+  letter-spacing: .03em;
+  line-height: 1.55;
+}
+.tb-insp-inapplicable::before { content: '— '; color: var(--text-dim); }
+.tb-insp-inapplicable strong { color: var(--accent-light); font-weight: 600; }
+.tb-insp-note {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dotted rgba(var(--accent-rgb), .14);
+}
+.tb-insp-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(var(--accent-rgb), .22);
+}
+
 /* Responsive: hide right pane on narrow, fallback to modal-based scenarios */
 @media (max-width: 1200px) {
   .tb-workspace.tb-workspace-v3 {
@@ -8338,7 +8492,24 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .tb-v3-scn, .tb-v3-inspect-edit { transition: none !important; }
   .tb-v3-inspect-edit:hover { transform: none !important; }
+  /* v4.60.0: row-flash animation neutralised for reduced-motion users */
+  .tb-insp-tbl tr.tb-insp-row-flash td { animation: none !important; }
 }
+
+/* v4.60.0: Live Protocol Inspector — light theme */
+[data-theme="light"] .tb-insp-eyebrow { color: #6355e0; }
+[data-theme="light"] .tb-insp-acc-count.active {
+  background: rgba(99, 85, 224, .12);
+  color: #6355e0;
+  border-color: rgba(99, 85, 224, .3);
+}
+[data-theme="light"] .tb-insp-cell-iface { color: #6355e0; }
+[data-theme="light"] .tb-insp-learned { color: #6355e0; }
+[data-theme="light"] .tb-insp-tbl tr.tb-insp-row-flash td {
+  background: rgba(99, 85, 224, .08);
+  box-shadow: inset 3px 0 0 #6355e0;
+}
+[data-theme="light"] .tb-insp-inapplicable strong { color: #6355e0; }
 
 /* Light-theme */
 [data-theme="light"] .tb-pane-head em { color: #6355e0; }
