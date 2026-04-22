@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.62.1', js.includes("const APP_VERSION = '4.62.1"));
+test('APP_VERSION is 4.62.2', js.includes("const APP_VERSION = '4.62.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.62.1', sw.includes('netplus-v4.62.1'));
+test('SW cache bumped to v4.62.2', sw.includes('netplus-v4.62.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8016,6 +8016,119 @@ test('v4.62.1 CSS: .tb-trace-head has cursor: grab',
   /\.tb-trace-head\s*\{[\s\S]{0,400}cursor:\s*grab/.test(css));
 test('v4.62.1 CSS: .tb-trace-head:active switches to cursor: grabbing',
   /\.tb-trace-head:active\s*\{\s*cursor:\s*grabbing/.test(css));
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.62.2 — CompTIA troubleshooting-methodology order guard
+// Bug: Haiku generated an `order` question listing the 5-step CompTIA
+// methodology but `correctOrder` placed "Document findings, actions taken,
+// and outcomes" at position 3 instead of the final position. Under the
+// 7-step methodology, "Identify the problem" is ALWAYS first and "Document
+// findings" is ALWAYS last — those are invariant. New programmatic guard
+// in validateQuestions rejects any order question that violates either.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.62.2 JS: _tbTroubleshootingOrderOk helper defined',
+  /function\s+_tbTroubleshootingOrderOk\s*\(q\)/.test(js));
+test('v4.62.2 JS: validateQuestions routes order questions through the guard',
+  /function validateQuestions[\s\S]{0,2500}_tbTroubleshootingOrderOk\(q\)/.test(js));
+test('v4.62.2 validation-audit.js extracts + includes the new helper in its sandbox',
+  (() => {
+    const fs = require('fs');
+    const audit = fs.readFileSync(require('path').join(ROOT, 'tests', 'validation-audit.js'), 'utf8');
+    return audit.includes('_tbTroubleshootingOrderOk');
+  })());
+
+// Behavioural sandbox fixtures — exercise the helper against the exact
+// user-reported bug scenario + legitimate passing cases + edge cases.
+(function testTsOrderOk() {
+  try {
+    const vm = require('vm');
+    const body = js.match(/function\s+_tbTroubleshootingOrderOk\s*\(q\)\s*\{([\s\S]*?)\n\}\n/);
+    if (!body) {
+      test('v4.62.2 sandbox: helper body extracted', false);
+      return;
+    }
+    test('v4.62.2 sandbox: helper body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(`function _tbTroubleshootingOrderOk(q) {${body[1]}}`, ctx);
+
+    // ── User-reported bug scenario: Document at position 3 (idx 0) ──
+    const buggy = {
+      type: 'order',
+      question: 'Arrange the following steps in the correct order for troubleshooting a network connectivity issue using the CompTIA Network+ methodology.',
+      topic: 'CompTIA Troubleshooting Methodology',
+      items: [
+        'Document findings, actions taken, and outcomes for future reference',  // 0
+        'Identify the problem by gathering information from the user',          // 1
+        'Test the solution and verify that the user can access required',       // 2
+        'Implement the most likely solution based on the identified cause',     // 3
+        'Establish a theory of the probable cause'                              // 4
+      ],
+      correctOrder: [1, 4, 0, 3, 2]  // WRONG — Document at position 3 instead of last
+    };
+    test('v4.62.2 sandbox: rejects the user-reported bug (Document not last)',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: buggy })) === false);
+
+    // ── Correct answer passes ──
+    const correct = Object.assign({}, buggy, { correctOrder: [1, 4, 3, 2, 0] });
+    test('v4.62.2 sandbox: accepts the correct methodology order (Identify, Theory, Implement, Test, Document)',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: correct })) === true);
+
+    // ── Alt correct order (Test before Implement — also valid per 7-step) ──
+    const altCorrect = Object.assign({}, buggy, { correctOrder: [1, 4, 2, 3, 0] });
+    test('v4.62.2 sandbox: accepts alt order where Test comes before Implement (also valid)',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: altCorrect })) === true);
+
+    // ── Identify not first ──
+    const notIdentifyFirst = Object.assign({}, buggy, { correctOrder: [4, 1, 2, 3, 0] });
+    test('v4.62.2 sandbox: rejects when Identify is not at position 0',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: notIdentifyFirst })) === false);
+
+    // ── Theory before Identify ──
+    const theoryBeforeIdentify = Object.assign({}, buggy, { correctOrder: [4, 1, 3, 2, 0] });
+    test('v4.62.2 sandbox: rejects when Theory comes before Identify',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: theoryBeforeIdentify })) === false);
+
+    // ── Non-methodology order question (should pass through untouched) ──
+    const unrelated = {
+      type: 'order',
+      question: 'Arrange the OSI layers from bottom to top.',
+      topic: 'Network Models & OSI',
+      items: ['Physical', 'Data Link', 'Network', 'Transport'],
+      correctOrder: [0, 1, 2, 3]
+    };
+    test('v4.62.2 sandbox: unrelated order questions pass through (not touched)',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: unrelated })) === true);
+
+    // ── MCQ question (not order type) ──
+    const mcq = {
+      type: 'mcq', question: 'What is 2+2?', topic: 'Math',
+      options: { A: '3', B: '4' }, answer: 'B'
+    };
+    test('v4.62.2 sandbox: MCQ questions skip the guard entirely',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: mcq })) === true);
+
+    // ── Malformed: missing correctOrder ──
+    const malformed = { type: 'order', question: 'CompTIA troubleshooting steps?', items: ['a','b'] };
+    test('v4.62.2 sandbox: malformed questions (no correctOrder) pass through without throwing',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: malformed })) === true);
+
+    // ── CompTIA stem mentioned but no Document item → guard only enforces what's present ──
+    const noDocItem = {
+      type: 'order',
+      question: 'Order the CompTIA troubleshooting methodology steps.',
+      topic: 'CompTIA Troubleshooting Methodology',
+      items: ['Identify the problem', 'Establish a theory', 'Test the theory', 'Implement solution'],
+      correctOrder: [0, 1, 2, 3]
+    };
+    test('v4.62.2 sandbox: guard tolerates missing Document item (only checks invariants that apply)',
+      vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: noDocItem })) === true);
+  } catch (e) {
+    test('v4.62.2 sandbox: helper executed without error', false);
+  }
+})();
 
 // ══════════════════════════════════════════════════════════════════════
 // v4.57.5 — Unify per-domain pct between Domain Mastery + Domain Breakdown

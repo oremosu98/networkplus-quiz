@@ -34,6 +34,8 @@ const numericOptionSrc = extractFunction(js, '_numericOptionOk');
 const smallestSubnetSrc = extractFunction(js, '_smallestSubnetOk');
 // v4.57.2: interrogative guard helper is called from validateQuestions
 const stemInterrogativeSrc = extractFunction(js, '_stemHasInterrogative');
+// v4.62.2: CompTIA troubleshooting-methodology order guard
+const tsOrderOkSrc = extractFunction(js, '_tbTroubleshootingOrderOk');
 
 // Extract GT_* constants block (GT_PORTS, GT_OSI, GT_WIFI_BROKEN, GT_WIFI_DEPRECATED)
 function extractConstBlock(src, startName) {
@@ -75,6 +77,7 @@ const stub = `
   ${numericOptionSrc}
   ${smallestSubnetSrc}
   ${stemInterrogativeSrc}
+  ${tsOrderOkSrc}
   ${validateQuestionsSrc}
   module.exports = validateQuestions;
 `;

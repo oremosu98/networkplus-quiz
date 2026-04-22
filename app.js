@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.62.1
+// Network+ AI Quiz — app.js  v4.62.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.62.1';
+const APP_VERSION = '4.62.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9643,6 +9643,66 @@ function _stemHasInterrogative(stem) {
   return pattern.test(s);
 }
 
+// v4.62.2: CompTIA troubleshooting-methodology order-question guard.
+// Context: Haiku generated an `order` question asking the student to arrange
+// the 5-step CompTIA Network+ methodology — stem described the methodology,
+// 5 items included "Identify the problem", "Establish a theory",
+// "Implement...", "Test/Verify...", "Document findings, actions taken, and
+// outcomes for future reference" — but `correctOrder` placed "Document
+// findings" at position 3 instead of the final position 5. The explanation
+// text actually described the right order, so the AI contradicted itself.
+//
+// The 7-step methodology (and its common 5-step compression) has hard,
+// invariant positions for certain steps — "Identify" is ALWAYS first and
+// "Document findings/outcomes" is ALWAYS last. This helper checks any
+// `order` question whose stem mentions CompTIA troubleshooting and enforces
+// those two invariants. Other mid-list orderings (test-then-implement vs
+// implement-then-test) have legitimate variance based on whether the item
+// text refers to "test the theory" vs "test the fix", so the guard stays
+// conservative — it only rejects hard violations, not judgment calls.
+function _tbTroubleshootingOrderOk(q) {
+  if (!q || q.type !== 'order') return true;
+  const items = Array.isArray(q.items) ? q.items : null;
+  const order = Array.isArray(q.correctOrder) ? q.correctOrder : null;
+  if (!items || !order || order.length !== items.length) return true;
+
+  const stem = (q.question || '').toLowerCase();
+  const topic = (q.topic || '').toLowerCase();
+  const looksLikeTsMethodology =
+    (stem.includes('comptia') || topic.includes('comptia') || topic.includes('troubleshooting methodology')) &&
+    (stem.includes('troubleshoot') || stem.includes('methodology') ||
+     stem.includes('7-step') || stem.includes('seven-step') || stem.includes('5-step') || stem.includes('five-step'));
+  if (!looksLikeTsMethodology) return true;
+
+  // Locate the Identify and Document items by keyword — resilient to exact
+  // phrasing variations Haiku might produce.
+  const identifyIdx = items.findIndex(it =>
+    typeof it === 'string' && /\bidentify\b[\s\S]{0,40}\bproblem\b/i.test(it));
+  const documentIdx = items.findIndex(it =>
+    typeof it === 'string' &&
+    /\bdocument\b[\s\S]{0,80}(findings|actions?|outcomes?|future|reference)/i.test(it));
+
+  if (identifyIdx !== -1) {
+    // "Identify the problem" must sit at position 0 (first step)
+    if (order[0] !== identifyIdx) return false;
+  }
+  if (documentIdx !== -1) {
+    // "Document findings / outcomes" must sit at the final position (last step)
+    if (order[order.length - 1] !== documentIdx) return false;
+  }
+
+  // Also guard: "Establish a theory" must come AFTER "Identify", not before.
+  const theoryIdx = items.findIndex(it =>
+    typeof it === 'string' && /\bestablish\b[\s\S]{0,30}\btheory\b/i.test(it));
+  if (theoryIdx !== -1 && identifyIdx !== -1) {
+    const posId = order.indexOf(identifyIdx);
+    const posTh = order.indexOf(theoryIdx);
+    if (posId !== -1 && posTh !== -1 && posTh <= posId) return false;
+  }
+
+  return true;
+}
+
 function validateQuestions(qs) {
   const reports = loadReports();
   return qs.filter(q => {
@@ -9658,6 +9718,12 @@ function validateQuestions(qs) {
     // the card reads as "here's a situation [silence] pick one of these."
     // Cheap programmatic guard runs before the Sonnet validator.
     if (!_stemHasInterrogative(q.question)) return false;
+
+    // v4.62.2: CompTIA troubleshooting-methodology order guard. Rejects any
+    // `order` question where "Document findings/outcomes" is not the final
+    // step or "Identify the problem" is not the first — both are invariant
+    // under the 7-step methodology.
+    if (!_tbTroubleshootingOrderOk(q)) return false;
 
     // v4.8 — N10-009 objective tagging: every question must cite a valid exam objective
     // Accept common shapes: "1.4", "Obj 1.4", "1.4 — Routing", etc. Extract first X.Y match.
