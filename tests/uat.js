@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.60.0', js.includes("const APP_VERSION = '4.60.0"));
+test('APP_VERSION is 4.60.1', js.includes("const APP_VERSION = '4.60.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.60.0', sw.includes('netplus-v4.60.0'));
+test('SW cache bumped to v4.60.1', sw.includes('netplus-v4.60.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7493,6 +7493,169 @@ test('v4.60.0 CSS: inapplicable + empty stub styles defined',
       inapp.includes('tb-insp-inapplicable') && inapp.includes('Not applicable'));
   } catch (e) {
     test('v4.60.0 sandbox: all renderers executed without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.60.1 — TB side-pane collapse/expand toggles
+// User polish ask after v4.60.0: make the left device palette AND the
+// right scenarios pane collapsible so the canvas can reclaim space when
+// working on a big topology. State persists per-pane via localStorage
+// (STORAGE.TB_LEFT_COLLAPSED / STORAGE.TB_RIGHT_COLLAPSED).
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.60.1 STORAGE: TB_LEFT_COLLAPSED key defined',
+  /TB_LEFT_COLLAPSED:\s*['"]nplus_tb_left_collapsed['"]/.test(js));
+test('v4.60.1 STORAGE: TB_RIGHT_COLLAPSED key defined',
+  /TB_RIGHT_COLLAPSED:\s*['"]nplus_tb_right_collapsed['"]/.test(js));
+test('v4.60.1 JS: tbTogglePalette defined + toggles .tb-left-collapsed',
+  /function\s+tbTogglePalette\s*\(\)[\s\S]{0,500}classList\.toggle\(['"]tb-left-collapsed['"]\)/.test(js));
+test('v4.60.1 JS: tbToggleScenarios defined + toggles .tb-right-collapsed',
+  /function\s+tbToggleScenarios\s*\(\)[\s\S]{0,500}classList\.toggle\(['"]tb-right-collapsed['"]\)/.test(js));
+test('v4.60.1 JS: tbTogglePalette persists state via STORAGE.TB_LEFT_COLLAPSED',
+  /function\s+tbTogglePalette[\s\S]{0,500}setItem\(STORAGE\.TB_LEFT_COLLAPSED/.test(js));
+test('v4.60.1 JS: tbToggleScenarios persists state via STORAGE.TB_RIGHT_COLLAPSED',
+  /function\s+tbToggleScenarios[\s\S]{0,500}setItem\(STORAGE\.TB_RIGHT_COLLAPSED/.test(js));
+test('v4.60.1 JS: tbInitPaneCollapseState defined + reads both STORAGE keys',
+  /function\s+tbInitPaneCollapseState\s*\(\)[\s\S]{0,600}getItem\(STORAGE\.TB_LEFT_COLLAPSED\)[\s\S]{0,600}getItem\(STORAGE\.TB_RIGHT_COLLAPSED\)/.test(js));
+test('v4.60.1 JS: openTopologyBuilder calls tbInitPaneCollapseState on mount',
+  /openTopologyBuilder[\s\S]{0,1500}tbInitPaneCollapseState/.test(js));
+
+test('v4.60.1 HTML: #tb-workspace-v3 id added to workspace',
+  /id="tb-workspace-v3"/.test(html));
+test('v4.60.1 HTML: left pane has collapse button + onclick',
+  /id="tb-palette-collapse-btn"[\s\S]{0,200}onclick="tbTogglePalette/.test(html));
+test('v4.60.1 HTML: right pane has collapse button + onclick',
+  /id="tb-right-collapse-btn"[\s\S]{0,200}onclick="tbToggleScenarios/.test(html));
+test('v4.60.1 HTML: left pane has rail label for collapsed state',
+  /id="tb-palette"[\s\S]{0,800}tb-pane-rail-label[\s\S]{0,300}Devices/.test(html));
+test('v4.60.1 HTML: right pane has rail label for collapsed state',
+  /id="tb-v3-right"[\s\S]{0,800}tb-pane-rail-label[\s\S]{0,300}Scenarios/.test(html));
+test('v4.60.1 HTML: rail label is keyboard accessible (role + tabindex + onkeydown)',
+  /tb-pane-rail-label[\s\S]{0,300}role="button"[\s\S]{0,100}tabindex="0"[\s\S]{0,100}onkeydown=/.test(html));
+
+test('v4.60.1 CSS: collapsed grid-template-columns defined for .tb-left-collapsed',
+  /\.tb-workspace\.tb-workspace-v3\.tb-left-collapsed\s*\{[\s\S]{0,200}grid-template-columns:\s*36px/.test(css));
+test('v4.60.1 CSS: collapsed grid-template-columns defined for .tb-right-collapsed',
+  /\.tb-workspace\.tb-workspace-v3\.tb-right-collapsed\s*\{[\s\S]{0,200}grid-template-columns:\s*260px[\s\S]{0,50}36px/.test(css));
+test('v4.60.1 CSS: both-collapsed grid-template-columns defined',
+  /tb-left-collapsed\.tb-right-collapsed[\s\S]{0,200}grid-template-columns:\s*36px\s+minmax\(0,\s*1fr\)\s+36px/.test(css));
+test('v4.60.1 CSS: .tb-pane-collapse-btn styled as accent chip',
+  /\.tb-pane-collapse-btn\s*\{[\s\S]{0,400}position:\s*absolute/.test(css));
+test('v4.60.1 CSS: chevron rotates 180deg when pane is collapsed',
+  /tb-left-collapsed\s+#tb-palette-collapse-btn\s*\{\s*transform:\s*rotate\(180deg\)/.test(css) &&
+  /tb-right-collapsed\s+#tb-right-collapse-btn\s*\{\s*transform:\s*rotate\(180deg\)/.test(css));
+test('v4.60.1 CSS: rail label uses vertical writing-mode, shown only when collapsed',
+  /\.tb-pane-rail-label\s*\{[\s\S]{0,400}writing-mode:\s*vertical-rl/.test(css) &&
+  /tb-left-collapsed[\s\S]{0,200}tb-pane-rail-label[\s\S]{0,100}display:\s*block/.test(css));
+test('v4.60.1 CSS: pane content hides when collapsed (not(.tb-pane-collapse-btn):not(.tb-pane-rail-label))',
+  /tb-left-collapsed[\s\S]{0,200}#tb-palette\s*>\s*\*:not\(\.tb-pane-collapse-btn\):not\(\.tb-pane-rail-label\)[\s\S]{0,200}display:\s*none/.test(css));
+test('v4.60.1 CSS: grid-columns transition defined for smooth collapse/expand',
+  /\.tb-workspace\.tb-workspace-v3\s*\{[\s\S]{0,400}transition:\s*grid-template-columns\s+280ms/.test(css));
+test('v4.60.1 CSS: reduced-motion neutralises transitions on workspace + collapse btn',
+  /prefers-reduced-motion[\s\S]{0,400}tb-workspace\.tb-workspace-v3[\s\S]{0,100}transition:\s*none/.test(css));
+test('v4.60.1 CSS: light-theme overrides collapse button + rail hover colors',
+  /\[data-theme="light"\]\s+\.tb-pane-collapse-btn/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-pane-rail-label:hover/.test(css));
+
+// Behavioural — vm-sandbox the toggle functions against a fake DOM + localStorage
+(function testPaneToggle() {
+  try {
+    const vm = require('vm');
+    const toggleLeftBody = js.match(/function\s+tbTogglePalette\s*\(\)\s*\{([\s\S]*?)\n\}/);
+    const toggleRightBody = js.match(/function\s+tbToggleScenarios\s*\(\)\s*\{([\s\S]*?)\n\}/);
+    const initBody = js.match(/function\s+tbInitPaneCollapseState\s*\(\)\s*\{([\s\S]*?)\n\}/);
+    if (!toggleLeftBody || !toggleRightBody || !initBody) {
+      test('v4.60.1 sandbox: toggle bodies extracted', false);
+      return;
+    }
+    test('v4.60.1 sandbox: toggle bodies extracted', true);
+
+    // Fake DOM + localStorage
+    const fakeStore = {};
+    const ctx = {
+      STORAGE: { TB_LEFT_COLLAPSED: 'nplus_tb_left_collapsed', TB_RIGHT_COLLAPSED: 'nplus_tb_right_collapsed' },
+      localStorage: {
+        getItem: k => fakeStore[k] === undefined ? null : fakeStore[k],
+        setItem: (k, v) => { fakeStore[k] = v; },
+        removeItem: k => { delete fakeStore[k]; }
+      },
+      document: {
+        getElementById: id => {
+          if (id === 'tb-workspace-v3') {
+            return ctx._ws;
+          }
+          return null; // buttons not needed for core test
+        }
+      }
+    };
+    // Fake workspace element with classList
+    const classes = new Set();
+    ctx._ws = {
+      classList: {
+        toggle: c => { if (classes.has(c)) classes.delete(c); else classes.add(c); },
+        add: c => classes.add(c),
+        remove: c => classes.delete(c),
+        contains: c => classes.has(c)
+      }
+    };
+    vm.createContext(ctx);
+    vm.runInContext(`function tbTogglePalette() {${toggleLeftBody[1]}}`, ctx);
+    vm.runInContext(`function tbToggleScenarios() {${toggleRightBody[1]}}`, ctx);
+    vm.runInContext(`function tbInitPaneCollapseState() {${initBody[1]}}`, ctx);
+
+    // Initially no classes
+    test('v4.60.1 sandbox: workspace starts with no collapse classes',
+      !classes.has('tb-left-collapsed') && !classes.has('tb-right-collapsed'));
+
+    // Toggle left → adds class + persists '1'
+    vm.runInContext('tbTogglePalette()', ctx);
+    test('v4.60.1 sandbox: tbTogglePalette adds .tb-left-collapsed',
+      classes.has('tb-left-collapsed'));
+    test('v4.60.1 sandbox: tbTogglePalette persists "1" to TB_LEFT_COLLAPSED',
+      fakeStore['nplus_tb_left_collapsed'] === '1');
+
+    // Toggle right → adds class + persists
+    vm.runInContext('tbToggleScenarios()', ctx);
+    test('v4.60.1 sandbox: tbToggleScenarios adds .tb-right-collapsed',
+      classes.has('tb-right-collapsed'));
+    test('v4.60.1 sandbox: tbToggleScenarios persists "1" to TB_RIGHT_COLLAPSED',
+      fakeStore['nplus_tb_right_collapsed'] === '1');
+
+    // Toggle left again → removes class + persists '0'
+    vm.runInContext('tbTogglePalette()', ctx);
+    test('v4.60.1 sandbox: toggling left again removes .tb-left-collapsed',
+      !classes.has('tb-left-collapsed'));
+    test('v4.60.1 sandbox: toggling left again persists "0"',
+      fakeStore['nplus_tb_left_collapsed'] === '0');
+
+    // Init reads persisted state on fresh mount: left='1', right='0'
+    classes.clear();
+    fakeStore['nplus_tb_left_collapsed'] = '1';
+    fakeStore['nplus_tb_right_collapsed'] = '0';
+    vm.runInContext('tbInitPaneCollapseState()', ctx);
+    test('v4.60.1 sandbox: init applies .tb-left-collapsed when persisted state is "1"',
+      classes.has('tb-left-collapsed'));
+    test('v4.60.1 sandbox: init does NOT apply .tb-right-collapsed when persisted is "0"',
+      !classes.has('tb-right-collapsed'));
+
+    // Init when both set
+    classes.clear();
+    fakeStore['nplus_tb_left_collapsed'] = '1';
+    fakeStore['nplus_tb_right_collapsed'] = '1';
+    vm.runInContext('tbInitPaneCollapseState()', ctx);
+    test('v4.60.1 sandbox: init applies both collapse classes when both persisted',
+      classes.has('tb-left-collapsed') && classes.has('tb-right-collapsed'));
+
+    // Init when neither set (fresh first visit)
+    classes.clear();
+    delete fakeStore['nplus_tb_left_collapsed'];
+    delete fakeStore['nplus_tb_right_collapsed'];
+    vm.runInContext('tbInitPaneCollapseState()', ctx);
+    test('v4.60.1 sandbox: init leaves classes off on first visit (no persisted state)',
+      !classes.has('tb-left-collapsed') && !classes.has('tb-right-collapsed'));
+  } catch (e) {
+    test('v4.60.1 sandbox: toggle logic executed without error', false);
   }
 })();
 

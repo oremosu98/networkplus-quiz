@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.60.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.60.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1500,9 +1500,15 @@
     </details>
 
     <!-- v4.54.5: 3-column layout \u2014 palette (left) + canvas (center) + scenarios/inspector (right) -->
-    <div class="tb-workspace tb-workspace-v3">
+    <div class="tb-workspace tb-workspace-v3" id="tb-workspace-v3">
       <!-- Palette (left pane) \u2014 editorial header moved in here to match prototype -->
       <div class="tb-palette tb-palette-v3" id="tb-palette">
+        <!-- v4.60.1: collapse toggle \u2014 always present, flips via CSS on .tb-left-collapsed -->
+        <button type="button" class="tb-pane-collapse-btn tb-pane-collapse-btn-left" id="tb-palette-collapse-btn"
+                onclick="tbTogglePalette()" aria-label="Collapse device palette" title="Collapse palette">&lsaquo;</button>
+        <!-- v4.60.1: vertical rail label shown only when the pane is collapsed -->
+        <div class="tb-pane-rail-label" onclick="tbTogglePalette()" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tbTogglePalette();}">Devices</div>
         <div class="tb-pane-head">Topology <em>Builder</em></div>
         <div class="tb-pane-sub">Drag devices onto the canvas. Click A &rarr; B to wire.</div>
         <div class="tb-palette-head">Devices</div>
@@ -1576,6 +1582,12 @@
 
       <!-- v4.54.6: right pane \u2014 Scenarios only (Inspector moved to floating popup) -->
       <aside class="tb-v3-right" id="tb-v3-right">
+        <!-- v4.60.1: collapse toggle for right pane (points &rsaquo; when open, flips when collapsed) -->
+        <button type="button" class="tb-pane-collapse-btn tb-pane-collapse-btn-right" id="tb-right-collapse-btn"
+                onclick="tbToggleScenarios()" aria-label="Collapse scenarios" title="Collapse scenarios">&rsaquo;</button>
+        <!-- v4.60.1: vertical rail label shown only when the pane is collapsed -->
+        <div class="tb-pane-rail-label" onclick="tbToggleScenarios()" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();tbToggleScenarios();}">Scenarios</div>
         <div class="tb-pane-head">Scenarios</div>
         <div class="tb-pane-sub-tight">Pick a network to auto-build.</div>
         <div class="tb-v3-scenarios-list" id="tb-v3-scenarios-list" role="list" aria-label="Available scenarios">

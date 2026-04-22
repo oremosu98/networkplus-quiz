@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.60.0
+// Network+ AI Quiz — app.js  v4.60.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.60.0';
+const APP_VERSION = '4.60.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -3942,6 +3942,9 @@ const STORAGE = {
   TOPOLOGIES: 'nplus_topologies',
   TOPOLOGY_DRAFT: 'nplus_topology_draft',
   TB_COACH_CACHE: 'nplus_tb_coach_cache',
+  // v4.60.1: TB side-pane collapse state (each boolean persisted independently)
+  TB_LEFT_COLLAPSED: 'nplus_tb_left_collapsed',
+  TB_RIGHT_COLLAPSED: 'nplus_tb_right_collapsed',
   AI_CACHE: 'nplus_ai_cache',
   LAB_COMPLETIONS: 'nplus_lab_completions',
   SUBNET_MASTERY: 'nplus_subnet_mastery',
@@ -11368,6 +11371,8 @@ function openTopologyBuilder() {
   if (typeof tbBindInspectorPopDrag === 'function') tbBindInspectorPopDrag();
   // v4.60.0: bind ESC-to-close for the Live Protocol Inspector
   if (typeof tbBindInspectorKeydown === 'function') tbBindInspectorKeydown();
+  // v4.60.1: restore collapsed state of the side panes (palette + scenarios)
+  if (typeof tbInitPaneCollapseState === 'function') tbInitPaneCollapseState();
   // v4.54.6: bind canvas pan/zoom handlers + reset to default zoomed-in view
   if (typeof tbBindCanvasPanZoom === 'function') tbBindCanvasPanZoom();
   if (typeof tbZoomReset === 'function') tbZoomReset();
@@ -12132,6 +12137,54 @@ function tbBindInspectorPopDrag() {
   });
   window.addEventListener('mouseup', () => { dragging = false; });
   _tbInspectorPopDragBound = true;
+}
+
+// v4.60.1: TB side-pane collapse/expand toggles. Left pane = device palette
+// (Devices + Cables). Right pane = scenarios list. Either or both can collapse
+// to a thin 36px vertical rail with a rotated label + re-expand chevron,
+// freeing canvas space for working on a complex topology. State persists
+// per-pane via localStorage so the user's preference survives reloads and
+// navigation away from the TB page.
+function tbTogglePalette() {
+  const ws = document.getElementById('tb-workspace-v3');
+  if (!ws) return;
+  ws.classList.toggle('tb-left-collapsed');
+  const collapsed = ws.classList.contains('tb-left-collapsed');
+  try { localStorage.setItem(STORAGE.TB_LEFT_COLLAPSED, collapsed ? '1' : '0'); } catch (_) {}
+  const btn = document.getElementById('tb-palette-collapse-btn');
+  if (btn) {
+    btn.setAttribute('aria-label', collapsed ? 'Expand device palette' : 'Collapse device palette');
+    btn.setAttribute('title', collapsed ? 'Expand palette' : 'Collapse palette');
+  }
+}
+function tbToggleScenarios() {
+  const ws = document.getElementById('tb-workspace-v3');
+  if (!ws) return;
+  ws.classList.toggle('tb-right-collapsed');
+  const collapsed = ws.classList.contains('tb-right-collapsed');
+  try { localStorage.setItem(STORAGE.TB_RIGHT_COLLAPSED, collapsed ? '1' : '0'); } catch (_) {}
+  const btn = document.getElementById('tb-right-collapse-btn');
+  if (btn) {
+    btn.setAttribute('aria-label', collapsed ? 'Expand scenarios' : 'Collapse scenarios');
+    btn.setAttribute('title', collapsed ? 'Expand scenarios' : 'Collapse scenarios');
+  }
+}
+// Called once at TB open; reads per-pane saved state and applies classes
+function tbInitPaneCollapseState() {
+  const ws = document.getElementById('tb-workspace-v3');
+  if (!ws) return;
+  try {
+    if (localStorage.getItem(STORAGE.TB_LEFT_COLLAPSED) === '1') {
+      ws.classList.add('tb-left-collapsed');
+      const btn = document.getElementById('tb-palette-collapse-btn');
+      if (btn) { btn.setAttribute('aria-label', 'Expand device palette'); btn.setAttribute('title', 'Expand palette'); }
+    }
+    if (localStorage.getItem(STORAGE.TB_RIGHT_COLLAPSED) === '1') {
+      ws.classList.add('tb-right-collapsed');
+      const btn = document.getElementById('tb-right-collapse-btn');
+      if (btn) { btn.setAttribute('aria-label', 'Expand scenarios'); btn.setAttribute('title', 'Expand scenarios'); }
+    }
+  } catch (_) {}
 }
 
 // v4.60.0: ESC key closes the Live Protocol Inspector if it's visible.
