@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.60.1
+   Network+ AI Quiz — styles.css  v4.61.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -8803,6 +8803,393 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 /* SVG cursor: grab on empty canvas indicates pannable */
 .tb-canvas { cursor: grab; }
 .tb-device { cursor: grab; }
+
+/* ──────────────────────────────────────────────────────────────────────
+   v4.61.0 — Per-Hop Packet Trace (issue #185)
+   Floating left-anchored panel showing the hop timeline + playback
+   controls. Canvas gets packet pill + inline badge + per-device states
+   (visited/current/pending) applied via tbRenderTraceCanvasState.
+   ────────────────────────────────────────────────────────────────────── */
+.tb-trace-panel {
+  position: absolute;
+  top: 60px;
+  left: 16px;
+  width: 400px;
+  max-height: calc(100vh - 260px);
+  z-index: 8;
+  background: rgba(21, 18, 31, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: tbTracePanelIn .35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tb-trace-panel[hidden] { display: none !important; }
+@keyframes tbTracePanelIn {
+  0%   { opacity: 0; transform: translateY(10px) scale(.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tb-trace-head {
+  position: relative;
+  padding: 16px 18px 14px;
+  border-bottom: 1px dashed rgba(var(--accent-rgb), .25);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), .08) 0%, transparent 70%);
+}
+.tb-trace-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px; height: 26px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s ease, color .15s ease;
+}
+.tb-trace-close:hover {
+  background: rgba(var(--accent-rgb), .15);
+  color: var(--accent-light);
+  border-color: rgba(var(--accent-rgb), .4);
+}
+.tb-trace-eyebrow {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 600;
+}
+.tb-trace-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 4px 0 0;
+  letter-spacing: -.01em;
+  color: var(--text);
+}
+.tb-trace-title em { color: var(--accent-light); font-style: italic; }
+.tb-trace-sub {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.tb-trace-hops {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+}
+.tb-trace-hop {
+  position: relative;
+  padding: 10px 0 10px 26px;
+  border-bottom: 1px dotted rgba(var(--accent-rgb), .14);
+}
+.tb-trace-hop:last-child { border-bottom: none; }
+.tb-trace-hop::before {
+  content: '';
+  position: absolute;
+  left: 8px; top: 14px;
+  width: 2px; height: calc(100% + 2px);
+  background: rgba(var(--accent-rgb), .18);
+}
+.tb-trace-hop:last-child::before { height: 10px; }
+.tb-trace-hop-dot {
+  position: absolute;
+  left: 3px; top: 12px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--text-dim);
+  z-index: 1;
+}
+.tb-trace-hop-done .tb-trace-hop-dot {
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, .18);
+}
+.tb-trace-hop-done .tb-trace-hop-dot::after {
+  content: '\2713';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px; color: #0a0815; font-weight: 900;
+}
+.tb-trace-hop-current .tb-trace-hop-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .3);
+  animation: tbTraceCurrentPulse 1.4s ease-in-out infinite;
+}
+@keyframes tbTraceCurrentPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .3); }
+  50%      { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), .1); }
+}
+.tb-trace-hop-future { opacity: 0.4; }
+.tb-trace-hop-failed .tb-trace-hop-dot {
+  background: #f87171;
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, .2);
+}
+.tb-trace-hop-failed .tb-trace-hop-dot::after {
+  content: '\00d7';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; font-weight: 700;
+}
+.tb-trace-hop-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.tb-trace-hop-device {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+.tb-trace-hop-layer {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.tb-trace-hop-layer-l2 { background: rgba(var(--accent-rgb), .15); color: var(--accent-light); }
+.tb-trace-hop-layer-l3 { background: rgba(251, 191, 36, .15); color: #fbbf24; }
+.tb-trace-hop-layer-arp { background: rgba(74, 222, 128, .12); color: #4ade80; }
+.tb-trace-hop-layer-fail { background: rgba(248, 113, 113, .15); color: #f87171; }
+.tb-trace-current-pill {
+  margin-left: auto;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 8.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+}
+.tb-trace-hop-decision {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.tb-trace-hop-meta {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 5px;
+  display: flex; flex-wrap: wrap; gap: 3px 10px;
+}
+.tb-trace-meta-k { color: var(--text-mid); }
+.tb-trace-meta-v { color: var(--text); }
+
+.tb-trace-playback {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(13, 10, 21, .5);
+}
+.tb-trace-btn {
+  width: 32px; height: 32px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s ease;
+  font-family: inherit;
+}
+.tb-trace-btn:hover {
+  background: rgba(var(--accent-rgb), .15);
+  color: var(--accent-light);
+  border-color: rgba(var(--accent-rgb), .4);
+}
+.tb-trace-btn-primary {
+  background: linear-gradient(135deg, var(--accent, #6355e0) 0%, var(--accent-light, #8b7fff) 100%);
+  color: white;
+  border-color: transparent;
+  font-weight: 600;
+}
+.tb-trace-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), .35);
+  color: white;
+}
+.tb-trace-progress {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
+.tb-trace-progress-labels {
+  display: flex; justify-content: space-between;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  letter-spacing: .06em;
+}
+.tb-trace-progress-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tb-trace-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light, #8b7fff) 100%);
+  border-radius: 2px;
+  transition: width .35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tb-trace-speed {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10.5px;
+  color: var(--text-mid);
+  letter-spacing: .04em;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.tb-trace-speed:hover {
+  border-color: rgba(var(--accent-rgb), .4);
+  color: var(--accent-light);
+}
+
+/* ──── Canvas decorations applied via tbRenderTraceCanvasState ──── */
+
+/* Device group states */
+[data-tb-device].tb-trace-pending { opacity: 0.45; }
+[data-tb-device].tb-trace-visited .tb-device-shape,
+[data-tb-device].tb-trace-visited circle,
+[data-tb-device].tb-trace-visited rect {
+  stroke: #4ade80;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 4px rgba(74, 222, 128, .35));
+}
+[data-tb-device].tb-trace-current .tb-device-shape,
+[data-tb-device].tb-trace-current circle,
+[data-tb-device].tb-trace-current rect {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), .75));
+  animation: tbTraceNodeCurrentPulse 1.4s ease-in-out infinite;
+}
+@keyframes tbTraceNodeCurrentPulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), .75)); }
+  50%      { filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), .95)); }
+}
+
+/* Packet pill overlay */
+.tb-trace-packet {
+  fill: #fbbf24;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, .85));
+  pointer-events: none;
+  animation: tbTracePacketPulse 1.2s ease-in-out infinite;
+}
+@keyframes tbTracePacketPulse {
+  0%, 100% { r: 8; }
+  50%      { r: 11; }
+}
+
+/* In-flight badge overlay */
+.tb-trace-badge-bg {
+  fill: rgba(13, 10, 21, 0.94);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+.tb-trace-badge-bg-fail {
+  stroke: #f87171;
+}
+.tb-trace-badge-arrow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.tb-trace-badge-head {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+  fill: var(--accent-light);
+  text-transform: uppercase;
+  font-weight: 700;
+  pointer-events: none;
+}
+.tb-trace-badge-bg-fail + .tb-trace-badge-arrow,
+.tb-trace-badge-bg-fail ~ .tb-trace-badge-head {
+  stroke: #f87171;
+  fill: #f87171;
+}
+.tb-trace-badge-key {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 8.5px;
+  fill: var(--text-dim);
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+.tb-trace-badge-val {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  fill: var(--text);
+  font-weight: 500;
+  pointer-events: none;
+}
+.tb-trace-badge-val-dim {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  fill: var(--text-mid);
+  font-weight: 500;
+  pointer-events: none;
+}
+.tb-trace-badge-ttl {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  fill: #4ade80;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Light-theme overrides */
+[data-theme="light"] .tb-trace-panel {
+  background: rgba(255, 255, 255, .96);
+  border-color: rgba(99, 85, 224, .25);
+}
+[data-theme="light"] .tb-trace-eyebrow,
+[data-theme="light"] .tb-trace-title em,
+[data-theme="light"] .tb-trace-current-pill { color: #6355e0; }
+[data-theme="light"] .tb-trace-hop-layer-l2,
+[data-theme="light"] .tb-trace-hop-layer-arp { background: rgba(99, 85, 224, .1); color: #6355e0; }
+[data-theme="light"] .tb-trace-badge-head { fill: #6355e0; }
+[data-theme="light"] .tb-trace-badge-bg { stroke: #6355e0; }
+
+/* Reduced motion: kill all trace animations */
+@media (prefers-reduced-motion: reduce) {
+  .tb-trace-panel,
+  .tb-trace-hop-current .tb-trace-hop-dot,
+  .tb-trace-packet,
+  [data-tb-device].tb-trace-current circle,
+  [data-tb-device].tb-trace-current rect,
+  [data-tb-device].tb-trace-current .tb-device-shape { animation: none !important; }
+  .tb-trace-progress-fill,
+  .tb-trace-btn,
+  .tb-trace-close,
+  .tb-trace-speed { transition: none !important; }
+}
 
 /* Reduced motion: kill popup entrance animation + pill transform */
 @media (prefers-reduced-motion: reduce) {

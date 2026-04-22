@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.60.1
+// Network+ AI Quiz — app.js  v4.61.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.60.1';
+const APP_VERSION = '4.61.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -17945,6 +17945,584 @@ function tbSimPing(state, srcDeviceId, dstIp, ttl) {
   const path = [dev.id, ...(fwdResult.path || [])];
   return { log, success: fwdResult.success, path };
 }
+
+// ── v4.61.0 Per-Hop Packet Trace (issue #185) ──
+// Pure function — given a topology + source device + dest IP, walks the path
+// hop-by-hop and emits a structured array of decision records for the trace
+// UI. Does NOT mutate tbState (no ARP cache updates, no packet animation —
+// those are kept in tbSimPing / tbSimARP so the live sim path stays intact).
+//
+// Hop shape:
+//   { layer: 'ARP'|'L3'|'DELIVER'|'FAIL',
+//     device: <hostname>, deviceId: <id>,
+//     decision: <plain-english string>,
+//     meta: { srcIp, dstIp, srcMac, dstMac, ttlBefore, ttlAfter,
+//             outIface, nextHopIp, arpCached, vlan, iface },
+//     status: 'ok'|'fail' }
+//
+// v1 scope: L3 decision points only (hosts + routers + destination + fail).
+// Switches are visible as visited-ring nodes on the canvas but don't get
+// dedicated hop rows in v1 — adding explicit L2 switch rows is a v4.61.1
+// polish ship if the pedagogy wants them broken out.
+function tbComputeTrace(state, srcDeviceId, dstIp, maxTtl) {
+  maxTtl = maxTtl || 64;
+  const hops = [];
+  const devices = (state && state.devices) || [];
+  const findDev = id => devices.find(d => d.id === id);
+  const findDevByIp = ip => devices.find(d => d.interfaces && d.interfaces.some(i => i.ip === ip && i.enabled));
+
+  const srcDev = findDev(srcDeviceId);
+  if (!srcDev) {
+    return {
+      hops: [{ layer: 'FAIL', device: '?', deviceId: null, decision: 'Source device not found.', meta: {}, status: 'fail' }],
+      success: false, path: []
+    };
+  }
+
+  // Find source interface: prefer one in the dst subnet, else first enabled with an IP
+  let srcIface = null;
+  if (Array.isArray(srcDev.interfaces)) {
+    srcIface = srcDev.interfaces.find(i => i.ip && i.enabled && tbSameSubnet(i.ip, dstIp, i.mask))
+            || srcDev.interfaces.find(i => i.ip && i.enabled);
+  }
+  if (!srcIface) {
+    return {
+      hops: [{ layer: 'FAIL', device: srcDev.hostname || srcDev.id, deviceId: srcDev.id,
+               decision: 'No interface with an IP address on source device.', meta: {}, status: 'fail' }],
+      success: false, path: [srcDev.id]
+    };
+  }
+
+  const originalSrcIp = srcIface.ip;
+  const originalSrcMac = srcIface.mac || '00:00:00:00:00:00';
+  let ttl = maxTtl;
+  let currentSrcMac = originalSrcMac;
+  let currentDstMac = null;
+  let currentDevId = srcDeviceId;
+  const visited = new Set();
+  const path = [];
+
+  for (let iter = 0; iter < 32; iter++) {
+    if (visited.has(currentDevId)) {
+      hops.push({ layer: 'FAIL', device: 'Loop', deviceId: currentDevId,
+                  decision: 'Routing loop detected — packet dropped.', meta: { ttl }, status: 'fail' });
+      return { hops, success: false, path };
+    }
+    visited.add(currentDevId);
+    path.push(currentDevId);
+
+    const currDev = findDev(currentDevId);
+    if (!currDev) break;
+
+    // Are we the destination? (dstIp is on one of our interfaces)
+    const dstLocalIface = (currDev.interfaces || []).find(i => i.ip === dstIp && i.enabled);
+    if (dstLocalIface) {
+      hops.push({
+        layer: 'DELIVER',
+        device: currDev.hostname || currDev.id,
+        deviceId: currDev.id,
+        decision: `Frame accepted. ICMP Echo Request delivered to kernel on ${dstLocalIface.name}.`,
+        meta: { srcIp: originalSrcIp, dstIp, ttl, iface: dstLocalIface.name },
+        status: 'ok'
+      });
+      return { hops, success: true, path };
+    }
+
+    // Find outgoing interface + next-hop IP
+    let outIface = null;
+    let nextHopIp = dstIp;
+    let directDelivery = false;
+
+    // Direct delivery: dstIp in one of our connected subnets
+    for (const ifc of (currDev.interfaces || [])) {
+      if (ifc.ip && ifc.enabled && tbSameSubnet(ifc.ip, dstIp, ifc.mask)) {
+        outIface = ifc;
+        directDelivery = true;
+        break;
+      }
+    }
+    // Route lookup (longest prefix match) if not direct
+    let routeMatched = null;
+    if (!outIface && Array.isArray(currDev.routingTable) && currDev.routingTable.length) {
+      let bestLen = -1;
+      for (const route of currDev.routingTable) {
+        const rCidr = parseInt(tbMaskToCidr(route.mask));
+        if (tbSameSubnet(dstIp, route.network, route.mask) && rCidr > bestLen) {
+          bestLen = rCidr;
+          nextHopIp = route.nextHop || dstIp;
+          outIface = (currDev.interfaces || []).find(i => i.name === route.iface && i.enabled)
+                  || (currDev.interfaces || []).find(i => i.ip && i.enabled);
+          routeMatched = `${route.network}/${tbMaskToCidr(route.mask)}`;
+        }
+      }
+    }
+    // Fallback: host default gateway on first hop
+    if (!outIface && iter === 0) {
+      const gwIface = (currDev.interfaces || []).find(i => i.gateway && i.enabled);
+      if (gwIface) { outIface = gwIface; nextHopIp = gwIface.gateway; }
+    }
+
+    if (!outIface || !outIface.ip) {
+      hops.push({
+        layer: 'FAIL',
+        device: currDev.hostname || currDev.id,
+        deviceId: currDev.id,
+        decision: `No route to ${dstIp} — packet dropped.`,
+        meta: { srcIp: originalSrcIp, dstIp, ttl, reason: 'no-route' },
+        status: 'fail'
+      });
+      return { hops, success: false, path };
+    }
+
+    // Resolve next-hop MAC via ARP (cache-first, fall back to broadcast-domain search)
+    const arpTarget = directDelivery ? dstIp : nextHopIp;
+    let resolvedMac = null;
+    let arpCached = false;
+    const cachedArp = (currDev.arpTable || []).find(a => a.ip === arpTarget);
+    if (cachedArp) {
+      resolvedMac = cachedArp.mac;
+      arpCached = true;
+    } else {
+      // Simulate ARP: find owner of arpTarget in the broadcast domain
+      try {
+        const vlan = outIface.vlan || 1;
+        const domain = tbGetBroadcastDomain(state, currentDevId, vlan);
+        for (const member of domain) {
+          if (member.deviceId === currentDevId) continue;
+          const peer = findDev(member.deviceId);
+          if (!peer) continue;
+          const peerIface = (peer.interfaces || []).find(i => i.ip === arpTarget && i.enabled);
+          if (peerIface) { resolvedMac = peerIface.mac; break; }
+        }
+      } catch (_) {}
+    }
+
+    // Emit the hop row for the current device
+    if (iter === 0) {
+      // Source host: ARP layer
+      hops.push({
+        layer: 'ARP',
+        device: currDev.hostname || currDev.id,
+        deviceId: currDev.id,
+        decision: resolvedMac
+          ? (arpCached
+              ? `ARP cache hit: ${arpTarget} is at ${resolvedMac}. Encapsulated into Ethernet frame.`
+              : `ARP broadcast for ${arpTarget} → resolved to ${resolvedMac}. Encapsulated.`)
+          : `ARP failed: no response for ${arpTarget} — destination unreachable.`,
+        meta: {
+          srcIp: originalSrcIp, dstIp, ttl,
+          outIface: outIface.name, nextHopIp,
+          srcMac: currentSrcMac,
+          dstMac: resolvedMac || null,
+          arpCached
+        },
+        status: resolvedMac ? 'ok' : 'fail'
+      });
+      if (!resolvedMac) return { hops, success: false, path };
+      currentDstMac = resolvedMac;
+    } else {
+      // Intermediate router: L3 layer — route lookup + MAC rewrite + TTL decrement
+      const newSrcMac = outIface.mac || currentSrcMac;
+      const ttlBefore = ttl;
+      const ttlAfter = ttl - 1;
+      const decisionPrefix = directDelivery
+        ? `Destination ${dstIp} is a connected route on ${outIface.name}.`
+        : `Route lookup: matched ${routeMatched || dstIp} via next-hop ${nextHopIp} on ${outIface.name}.`;
+      hops.push({
+        layer: 'L3',
+        device: currDev.hostname || currDev.id,
+        deviceId: currDev.id,
+        decision: `${decisionPrefix} MACs rewritten, TTL decremented. ARP ${arpCached ? 'cache hit' : (resolvedMac ? 'resolved' : 'failed')}.`,
+        meta: {
+          srcIp: originalSrcIp, dstIp,
+          ttlBefore, ttlAfter,
+          outIface: outIface.name, nextHopIp,
+          srcMac: `${currentSrcMac} → ${newSrcMac}`,
+          dstMac: resolvedMac ? `${currentDstMac || '?'} → ${resolvedMac}` : '(ARP failed)',
+          arpCached, routeMatched, directDelivery
+        },
+        status: resolvedMac ? 'ok' : 'fail'
+      });
+      if (!resolvedMac) return { hops, success: false, path };
+      currentSrcMac = newSrcMac;
+      currentDstMac = resolvedMac;
+      ttl = ttlAfter;
+      if (ttl <= 0) {
+        hops.push({
+          layer: 'FAIL',
+          device: currDev.hostname || currDev.id,
+          deviceId: currDev.id,
+          decision: `TTL expired in transit (TTL=0). ICMP Time Exceeded returned to source.`,
+          meta: { srcIp: originalSrcIp, dstIp, ttl: 0, reason: 'ttl-expired' },
+          status: 'fail'
+        });
+        return { hops, success: false, path };
+      }
+    }
+
+    // Advance current device
+    if (directDelivery) {
+      const dstDev = findDevByIp(dstIp);
+      if (dstDev && dstDev.id !== currentDevId) { currentDevId = dstDev.id; continue; }
+      // External IP or unattached — treat as delivered
+      hops.push({
+        layer: 'DELIVER', device: dstIp, deviceId: null,
+        decision: `Frame delivered to ${dstIp}.`,
+        meta: { srcIp: originalSrcIp, dstIp, ttl }, status: 'ok'
+      });
+      return { hops, success: true, path };
+    }
+
+    const nextDev = findDevByIp(nextHopIp);
+    if (!nextDev) {
+      hops.push({
+        layer: 'FAIL', device: '?', deviceId: null,
+        decision: `Next hop ${nextHopIp} unreachable — no device with that IP.`,
+        meta: { srcIp: originalSrcIp, dstIp, ttl, reason: 'no-next-hop' }, status: 'fail'
+      });
+      return { hops, success: false, path };
+    }
+    currentDevId = nextDev.id;
+  }
+
+  return { hops, success: false, path };
+}
+
+// ── v4.61.0 Trace mode state machine + UI ──
+let _tbTraceState = {
+  active: false,
+  trace: null,
+  currentHop: 0,
+  playing: false,
+  playTimer: null,
+  speedMs: 1500,
+  srcId: null,
+  dstIp: null
+};
+
+function tbOpenTraceDialog() {
+  // Simple prompt-style dialog: pick source device + dst IP
+  const devices = (tbState && tbState.devices) || [];
+  const hosts = devices.filter(d => d && Array.isArray(d.interfaces) && d.interfaces.some(i => i.ip));
+  if (hosts.length === 0) {
+    if (typeof toast === 'function') toast('Add devices + IPs before tracing.');
+    return;
+  }
+  // Offer the ping dialog's src input pattern: pick first host with IP, prompt for dst
+  const srcDev = hosts.find(d => d.type && (d.type.indexOf('host') >= 0 || d.type.indexOf('laptop') >= 0 || d.type.indexOf('phone') >= 0)) || hosts[0];
+  const srcIface = srcDev.interfaces.find(i => i.ip && i.enabled);
+  const defaultDst = (() => {
+    const other = hosts.find(d => d.id !== srcDev.id);
+    if (other) {
+      const oi = other.interfaces.find(i => i.ip && i.enabled);
+      if (oi) return oi.ip;
+    }
+    return '';
+  })();
+  const dstIp = (typeof prompt === 'function')
+    ? prompt(`Trace packet from ${srcDev.hostname} (${srcIface ? srcIface.ip : '?'}) → destination IP:`, defaultDst)
+    : defaultDst;
+  if (!dstIp) return;
+  tbStartTrace(srcDev.id, dstIp.trim());
+}
+
+function tbStartTrace(srcId, dstIp) {
+  const trace = tbComputeTrace(tbState, srcId, dstIp, 64);
+  if (!trace || !trace.hops || trace.hops.length === 0) {
+    if (typeof toast === 'function') toast('Could not compute trace.');
+    return;
+  }
+  // Stop any running sim/animation
+  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
+  _tbTraceState = {
+    active: true,
+    trace,
+    currentHop: 0,
+    playing: false,
+    playTimer: null,
+    speedMs: 1500,
+    srcId, dstIp
+  };
+  const panel = document.getElementById('tb-trace-panel');
+  if (panel) panel.hidden = false;
+  tbRenderTraceLog();
+  tbRenderTraceCanvasState();
+  // Auto-play unless reduced-motion
+  const rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!rm) tbTracePlay();
+}
+
+function tbEndTrace() {
+  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
+  _tbTraceState.active = false;
+  _tbTraceState.playing = false;
+  _tbTraceState.trace = null;
+  _tbTraceState.currentHop = 0;
+  const panel = document.getElementById('tb-trace-panel');
+  if (panel) panel.hidden = true;
+  // Reset canvas decorations
+  tbRenderTraceCanvasState();
+}
+
+function tbTracePlay() {
+  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  _tbTraceState.playing = true;
+  tbRenderTraceLog(); // refresh play-btn label
+  const tick = () => {
+    if (!_tbTraceState.playing || !_tbTraceState.active) return;
+    if (_tbTraceState.currentHop >= _tbTraceState.trace.hops.length - 1) {
+      _tbTraceState.playing = false;
+      tbRenderTraceLog();
+      return;
+    }
+    _tbTraceState.currentHop++;
+    tbRenderTraceLog();
+    tbRenderTraceCanvasState();
+    _tbTraceState.playTimer = setTimeout(tick, _tbTraceState.speedMs);
+  };
+  _tbTraceState.playTimer = setTimeout(tick, _tbTraceState.speedMs);
+}
+
+function tbTracePause() {
+  _tbTraceState.playing = false;
+  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
+  tbRenderTraceLog();
+}
+
+function tbTraceStep() {
+  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  tbTracePause();
+  if (_tbTraceState.currentHop < _tbTraceState.trace.hops.length - 1) {
+    _tbTraceState.currentHop++;
+    tbRenderTraceLog();
+    tbRenderTraceCanvasState();
+  }
+}
+
+function tbTraceReset() {
+  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  tbTracePause();
+  _tbTraceState.currentHop = 0;
+  tbRenderTraceLog();
+  tbRenderTraceCanvasState();
+}
+
+function tbTraceSpeedToggle() {
+  // Cycle: 1500 → 750 → 3000 → 1500
+  const cur = _tbTraceState.speedMs;
+  _tbTraceState.speedMs = cur === 1500 ? 750 : cur === 750 ? 3000 : 1500;
+  tbRenderTraceLog();
+}
+
+// ── Trace log panel renderer ──
+function tbRenderTraceLog() {
+  const host = document.getElementById('tb-trace-panel');
+  if (!host) return;
+  if (!_tbTraceState.active || !_tbTraceState.trace) { host.hidden = true; return; }
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+  const t = _tbTraceState.trace;
+  const curr = _tbTraceState.currentHop;
+  const srcDev = (tbState.devices || []).find(d => d.id === _tbTraceState.srcId);
+  const srcName = srcDev ? (srcDev.hostname || srcDev.id) : '?';
+  const total = t.hops.length;
+  const status = t.success ? `${total} hops · delivered` : `${total} hops · failed`;
+
+  const hopsHtml = t.hops.map((h, i) => {
+    let state;
+    if (i < curr) state = 'done';
+    else if (i === curr) state = 'current';
+    else state = 'future';
+    if (h.status === 'fail' && i === curr) state = 'failed';
+    if (h.status === 'fail' && i < curr) state = 'failed';
+
+    const layerClass = h.layer === 'L2' ? 'l2'
+                     : h.layer === 'L3' ? 'l3'
+                     : h.layer === 'ARP' ? 'arp'
+                     : h.layer === 'FAIL' ? 'fail'
+                     : 'arp';
+    const layerLabel = h.layer === 'DELIVER' ? 'DELIVER' : h.layer;
+    const currentPill = (i === curr) ? '<span class="tb-trace-current-pill">► current</span>' : '';
+    // Build meta row
+    const m = h.meta || {};
+    const metaBits = [];
+    if (m.srcMac) metaBits.push(`<span><span class="tb-trace-meta-k">src MAC</span> <span class="tb-trace-meta-v">${esc(m.srcMac)}</span></span>`);
+    if (m.dstMac) metaBits.push(`<span><span class="tb-trace-meta-k">dst MAC</span> <span class="tb-trace-meta-v">${esc(m.dstMac)}</span></span>`);
+    if (m.srcIp) metaBits.push(`<span><span class="tb-trace-meta-k">src IP</span> <span class="tb-trace-meta-v">${esc(m.srcIp)}</span></span>`);
+    if (m.dstIp) metaBits.push(`<span><span class="tb-trace-meta-k">dst IP</span> <span class="tb-trace-meta-v">${esc(m.dstIp)}</span></span>`);
+    if (typeof m.ttlBefore === 'number' && typeof m.ttlAfter === 'number') {
+      metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttlBefore} → ${m.ttlAfter}</span></span>`);
+    } else if (typeof m.ttl === 'number') {
+      metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttl}</span></span>`);
+    }
+    if (m.outIface) metaBits.push(`<span><span class="tb-trace-meta-k">out</span> <span class="tb-trace-meta-v">${esc(m.outIface)}</span></span>`);
+
+    return `<div class="tb-trace-hop tb-trace-hop-${state}">
+      <div class="tb-trace-hop-dot"></div>
+      <div class="tb-trace-hop-header">
+        <span class="tb-trace-hop-device">${esc(h.device)}</span>
+        <span class="tb-trace-hop-layer tb-trace-hop-layer-${layerClass}">${esc(layerLabel)}</span>
+        ${currentPill}
+      </div>
+      <div class="tb-trace-hop-decision">${esc(h.decision)}</div>
+      ${metaBits.length ? `<div class="tb-trace-hop-meta">${metaBits.join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const atEnd = curr >= total - 1;
+  const playBtnLabel = _tbTraceState.playing ? '⏸' : (atEnd ? '↻' : '▶');
+  const playBtnAction = _tbTraceState.playing ? 'tbTracePause()' : (atEnd ? 'tbTraceReset()' : 'tbTracePlay()');
+  const speedLabel = _tbTraceState.speedMs === 750 ? '2.0×' : _tbTraceState.speedMs === 3000 ? '0.5×' : '1.0×';
+  const progressPct = Math.min(100, Math.round(((curr + 1) / total) * 100));
+
+  host.innerHTML = `
+    <div class="tb-trace-head">
+      <button type="button" class="tb-trace-close" onclick="tbEndTrace()" aria-label="Exit trace mode" title="Exit trace">×</button>
+      <div class="tb-trace-eyebrow">Trace · live replay</div>
+      <div class="tb-trace-title">Ping <em>${esc(_tbTraceState.dstIp)}</em></div>
+      <div class="tb-trace-sub">${esc(srcName)} → ${esc(_tbTraceState.dstIp)} · ${esc(status)}</div>
+    </div>
+    <div class="tb-trace-hops">${hopsHtml}</div>
+    <div class="tb-trace-playback">
+      <button type="button" class="tb-trace-btn" onclick="tbTraceReset()" title="Reset">⏮</button>
+      <button type="button" class="tb-trace-btn tb-trace-btn-primary" onclick="${playBtnAction}" title="${_tbTraceState.playing ? 'Pause' : (atEnd ? 'Reset' : 'Play')}">${playBtnLabel}</button>
+      <button type="button" class="tb-trace-btn" onclick="tbTraceStep()" title="Step">⏭</button>
+      <div class="tb-trace-progress">
+        <div class="tb-trace-progress-labels">
+          <span>HOP ${Math.min(curr + 1, total)} OF ${total}</span>
+          <span>${_tbTraceState.speedMs}ms / hop</span>
+        </div>
+        <div class="tb-trace-progress-track">
+          <div class="tb-trace-progress-fill" style="width:${progressPct}%"></div>
+        </div>
+      </div>
+      <button type="button" class="tb-trace-speed" onclick="tbTraceSpeedToggle()" title="Speed">⏱ ${speedLabel}</button>
+    </div>`;
+}
+
+// ── Canvas decorations: node highlights, traced/pending links, packet pill + badge ──
+function tbRenderTraceCanvasState() {
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+
+  // Always clean up old decorations first
+  svg.querySelectorAll('.tb-trace-deco').forEach(el => el.remove());
+
+  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+
+  const t = _tbTraceState.trace;
+  const curr = _tbTraceState.currentHop;
+  const currentHop = t.hops[curr];
+  const visitedIds = new Set();
+  for (let i = 0; i <= curr; i++) {
+    const h = t.hops[i];
+    if (h.deviceId) visitedIds.add(h.deviceId);
+  }
+  const currentId = currentHop && currentHop.deviceId;
+
+  // Apply visited/current classes to device groups. The existing renderer tags
+  // them with data-tb-device; we set classes without rewriting DOM so the
+  // existing drag/click handlers keep working.
+  svg.querySelectorAll('[data-tb-device]').forEach(g => {
+    g.classList.remove('tb-trace-visited', 'tb-trace-current', 'tb-trace-pending');
+    const id = g.getAttribute('data-tb-device');
+    if (id === currentId) g.classList.add('tb-trace-current');
+    else if (visitedIds.has(id)) g.classList.add('tb-trace-visited');
+    else g.classList.add('tb-trace-pending');
+  });
+
+  // Packet pill + inline badge anchored to current device
+  const currDev = currentId ? (tbState.devices || []).find(d => d.id === currentId) : null;
+  if (currDev && typeof currDev.x === 'number' && typeof currDev.y === 'number') {
+    const gNS = 'http://www.w3.org/2000/svg';
+    const deco = document.createElementNS(gNS, 'g');
+    deco.classList.add('tb-trace-deco');
+    deco.setAttribute('transform', `translate(${currDev.x}, ${currDev.y})`);
+
+    // Pulsing yellow packet
+    const pkt = document.createElementNS(gNS, 'circle');
+    pkt.classList.add('tb-trace-packet');
+    pkt.setAttribute('cx', 0);
+    pkt.setAttribute('cy', 0);
+    pkt.setAttribute('r', 9);
+    deco.appendChild(pkt);
+
+    // Inline badge for ongoing packet state (ARP + L3 hops show full frame; FAIL shows reason)
+    const m = currentHop.meta || {};
+    const badgeLines = [];
+    badgeLines.push({ k: 'LAYER', v: currentHop.layer });
+    if (m.srcMac) badgeLines.push({ k: 'SRC MAC', v: m.srcMac });
+    if (m.dstMac) badgeLines.push({ k: 'DST MAC', v: m.dstMac });
+    if (m.srcIp) badgeLines.push({ k: 'SRC IP', v: m.srcIp, dim: true });
+    if (m.dstIp) badgeLines.push({ k: 'DST IP', v: m.dstIp, dim: true });
+    if (typeof m.ttlBefore === 'number' && typeof m.ttlAfter === 'number') {
+      badgeLines.push({ k: 'TTL', v: `${m.ttlBefore} → ${m.ttlAfter}`, ttl: true });
+    } else if (typeof m.ttl === 'number') {
+      badgeLines.push({ k: 'TTL', v: String(m.ttl) });
+    }
+
+    const badgeW = 260, rowH = 16, headH = 22, padY = 10;
+    const badgeH = headH + (badgeLines.length * rowH) + padY;
+    const badgeY = -badgeH - 40;
+    const badgeX = 30;
+
+    const bg = document.createElementNS(gNS, 'rect');
+    bg.classList.add('tb-trace-badge-bg');
+    if (currentHop.layer === 'FAIL') bg.classList.add('tb-trace-badge-bg-fail');
+    bg.setAttribute('x', badgeX);
+    bg.setAttribute('y', badgeY);
+    bg.setAttribute('width', badgeW);
+    bg.setAttribute('height', badgeH);
+    bg.setAttribute('rx', 10);
+    deco.appendChild(bg);
+
+    const arrow = document.createElementNS(gNS, 'path');
+    arrow.classList.add('tb-trace-badge-arrow');
+    arrow.setAttribute('d', `M 0 -12 L 0 ${badgeY + badgeH / 2} L ${badgeX} ${badgeY + badgeH / 2}`);
+    deco.appendChild(arrow);
+
+    // Head label (layer)
+    const head = document.createElementNS(gNS, 'text');
+    head.classList.add('tb-trace-badge-head');
+    head.setAttribute('x', badgeX + 12);
+    head.setAttribute('y', badgeY + 16);
+    head.textContent = currentHop.layer === 'FAIL' ? '✗ FAILURE' : 'IN-FLIGHT FRAME';
+    deco.appendChild(head);
+
+    // Row lines (skip LAYER since it's in head)
+    let rowY = badgeY + headH + 10;
+    badgeLines.slice(1).forEach(line => {
+      const k = document.createElementNS(gNS, 'text');
+      k.classList.add('tb-trace-badge-key');
+      k.setAttribute('x', badgeX + 12);
+      k.setAttribute('y', rowY);
+      k.textContent = line.k;
+      deco.appendChild(k);
+      const v = document.createElementNS(gNS, 'text');
+      v.classList.add(line.ttl ? 'tb-trace-badge-ttl' : (line.dim ? 'tb-trace-badge-val-dim' : 'tb-trace-badge-val'));
+      v.setAttribute('x', badgeX + 86);
+      v.setAttribute('y', rowY);
+      v.textContent = line.v;
+      deco.appendChild(v);
+      rowY += rowH;
+    });
+
+    svg.appendChild(deco);
+  }
+}
+
+// Hook tbRenderTraceCanvasState into tbRenderCanvas so re-renders preserve decorations
+(function wireTraceCanvasHook() {
+  if (typeof tbRenderCanvas !== 'function') return;
+  const orig = tbRenderCanvas;
+  if (orig._tbTraceWrapped) return;
+  const wrapped = function () {
+    orig.apply(this, arguments);
+    try { if (_tbTraceState.active) tbRenderTraceCanvasState(); } catch (_) {}
+  };
+  wrapped._tbTraceWrapped = true;
+  // eslint-disable-next-line no-func-assign
+  tbRenderCanvas = wrapped;
+})();
 
 // ── Traceroute Simulation ──
 function tbTraceroute(dev, dstIp) {

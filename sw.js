@@ -1,5 +1,5 @@
-// Service Worker v4.60.1 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v4.60.1';
+// Service Worker v4.61.0 — Network+ Quiz App
+const CACHE_NAME = 'netplus-v4.61.0';
 const SHELL_ASSETS = [
   './',
   './index.html',

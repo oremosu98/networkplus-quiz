@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.60.1', js.includes("const APP_VERSION = '4.60.1"));
+test('APP_VERSION is 4.61.0', js.includes("const APP_VERSION = '4.61.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.60.1', sw.includes('netplus-v4.60.1'));
+test('SW cache bumped to v4.61.0', sw.includes('netplus-v4.61.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7656,6 +7656,193 @@ test('v4.60.1 CSS: light-theme overrides collapse button + rail hover colors',
       !classes.has('tb-left-collapsed') && !classes.has('tb-right-collapsed'));
   } catch (e) {
     test('v4.60.1 sandbox: toggle logic executed without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.61.0 — TB Per-Hop Packet Trace (issue #185)
+// Click Trace pill → opens dialog → computes hop-by-hop trace via pure
+// tbComputeTrace function → renders floating log panel + canvas packet
+// pill + inline frame badge → auto-plays at 1500ms/hop. Each hop emits
+// L2/L3/ARP/DELIVER/FAIL layer + decision copy + frame metadata
+// (src/dst MAC, src/dst IP, TTL before/after, outIface, next-hop).
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.61.0 JS: tbComputeTrace pure function defined',
+  /function\s+tbComputeTrace\s*\(state,\s*srcDeviceId,\s*dstIp,\s*maxTtl\)/.test(js));
+test('v4.61.0 JS: trace state machine defined (play/pause/step/reset/speed)',
+  /function\s+tbTracePlay\b/.test(js) &&
+  /function\s+tbTracePause\b/.test(js) &&
+  /function\s+tbTraceStep\b/.test(js) &&
+  /function\s+tbTraceReset\b/.test(js) &&
+  /function\s+tbTraceSpeedToggle\b/.test(js));
+test('v4.61.0 JS: tbStartTrace + tbEndTrace lifecycle defined',
+  /function\s+tbStartTrace\s*\(srcId,\s*dstIp\)/.test(js) &&
+  /function\s+tbEndTrace\s*\(\)/.test(js));
+test('v4.61.0 JS: tbOpenTraceDialog picks source device and prompts for destination IP',
+  /function\s+tbOpenTraceDialog[\s\S]{0,2000}prompt\(/.test(js));
+test('v4.61.0 JS: tbRenderTraceLog emits hop timeline with layer chips',
+  /function\s+tbRenderTraceLog[\s\S]{0,4000}tb-trace-hop-layer-\$\{layerClass\}/.test(js));
+test('v4.61.0 JS: tbRenderTraceLog emits playback controls (reset, play/pause, step, speed)',
+  /tbTraceReset\(\)[\s\S]{0,2500}tbTraceStep\(\)[\s\S]{0,500}tbTraceSpeedToggle\(\)/.test(js));
+test('v4.61.0 JS: tbRenderTraceCanvasState applies visited/current/pending classes to devices',
+  /function\s+tbRenderTraceCanvasState[\s\S]{0,1500}tb-trace-visited[\s\S]{0,200}tb-trace-current[\s\S]{0,200}tb-trace-pending/.test(js));
+test('v4.61.0 JS: trace renderer uses data-tb-device selector (matches existing device attr)',
+  /tbRenderTraceCanvasState[\s\S]{0,2000}querySelectorAll\(['"]\[data-tb-device\]/.test(js));
+test('v4.61.0 JS: tbRenderCanvas wrapped so trace decorations survive re-renders',
+  /_tbTraceWrapped\s*=\s*true/.test(js) &&
+  /if\s*\(_tbTraceState\.active\)\s*tbRenderTraceCanvasState\(\)/.test(js));
+test('v4.61.0 JS: tbStartTrace respects prefers-reduced-motion (skip auto-play)',
+  /function\s+tbStartTrace[\s\S]{0,1200}prefers-reduced-motion[\s\S]{0,200}if\s*\(!rm\)\s*tbTracePlay\(\)/.test(js));
+
+test('v4.61.0 HTML: Trace pill added to canvas toolbar',
+  /data-tb-pill="trace"[\s\S]{0,200}tbOpenTraceDialog/.test(html));
+test('v4.61.0 HTML: #tb-trace-panel floating panel present in topology page',
+  /id="tb-trace-panel"[\s\S]{0,200}role="dialog"[\s\S]{0,100}hidden/.test(html));
+
+test('v4.61.0 CSS: .tb-trace-panel styled + positioned absolutely over canvas',
+  /\.tb-trace-panel\s*\{[\s\S]{0,400}position:\s*absolute/.test(css));
+test('v4.61.0 CSS: hop layer chips styled for L2/L3/ARP/FAIL variants',
+  /\.tb-trace-hop-layer-l2\s*\{/.test(css) &&
+  /\.tb-trace-hop-layer-l3\s*\{/.test(css) &&
+  /\.tb-trace-hop-layer-arp\s*\{/.test(css) &&
+  /\.tb-trace-hop-layer-fail\s*\{/.test(css));
+test('v4.61.0 CSS: current hop dot has pulse animation',
+  /@keyframes\s+tbTraceCurrentPulse/.test(css) &&
+  /tb-trace-hop-current\s+\.tb-trace-hop-dot[\s\S]{0,200}animation:\s*tbTraceCurrentPulse/.test(css));
+test('v4.61.0 CSS: packet pill overlay with yellow fill + pulse animation',
+  /\.tb-trace-packet\s*\{[\s\S]{0,200}fill:\s*#fbbf24/.test(css) &&
+  /@keyframes\s+tbTracePacketPulse/.test(css));
+test('v4.61.0 CSS: in-flight badge background + arrow + row text styles',
+  /\.tb-trace-badge-bg\s*\{/.test(css) &&
+  /\.tb-trace-badge-arrow\s*\{/.test(css) &&
+  /\.tb-trace-badge-key\s*\{/.test(css) &&
+  /\.tb-trace-badge-val\s*\{/.test(css));
+test('v4.61.0 CSS: failure badge variant uses red stroke',
+  /\.tb-trace-badge-bg-fail\s*\{[\s\S]{0,200}stroke:\s*#f87171/.test(css));
+test('v4.61.0 CSS: device states (visited green / current pulse / pending dim) defined',
+  /data-tb-device\]\.tb-trace-visited[\s\S]{0,400}stroke:\s*#4ade80/.test(css) &&
+  /data-tb-device\]\.tb-trace-current[\s\S]{0,400}tbTraceNodeCurrentPulse/.test(css) &&
+  /data-tb-device\]\.tb-trace-pending\s*\{[\s\S]{0,100}opacity:\s*0\.45/.test(css));
+test('v4.61.0 CSS: reduced-motion neutralises trace animations',
+  /prefers-reduced-motion[\s\S]{0,1000}tb-trace-packet[\s\S]{0,200}animation:\s*none/.test(css));
+test('v4.61.0 CSS: light-theme overrides for trace panel + eyebrow + layer chips',
+  /\[data-theme="light"\]\s+\.tb-trace-panel/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-trace-eyebrow/.test(css));
+
+// Behavioural: sandbox tbComputeTrace with a 3-device topology and assert
+// the hop sequence + metadata look right.
+(function testTraceComputation() {
+  try {
+    const vm = require('vm');
+    // Match from the `{` of the function up to its column-0 `}` that closes it.
+    // tbComputeTrace's closing brace is the first `}` on a line by itself.
+    const body = js.match(/function\s+tbComputeTrace\s*\(state,\s*srcDeviceId,\s*dstIp,\s*maxTtl\)\s*\{([\s\S]*?)\n\}\n/);
+    if (!body) {
+      test('v4.61.0 sandbox: tbComputeTrace body extracted', false);
+      return;
+    }
+    test('v4.61.0 sandbox: tbComputeTrace body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    // Minimal IP helper stubs — avoid chaining through the whole tbIpToArr/
+    // tbArrToIp chain in app.js; self-contained implementations suffice for
+    // the sandbox fixture. Fixture pre-populates ARP caches so the broadcast-
+    // domain search path is a no-op stub (returns empty domain).
+    vm.runInContext(`
+      function tbIpToArr(ip) {
+        if (!ip || typeof ip !== 'string') return null;
+        const parts = ip.split('.').map(n => parseInt(n, 10));
+        return parts.length === 4 && parts.every(p => !isNaN(p)) ? parts : null;
+      }
+      function tbArrToIp(arr) { return arr.join('.'); }
+      function tbSubnetOf(ip, mask) {
+        const ipA = tbIpToArr(ip), mA = tbIpToArr(mask);
+        if (!ipA || !mA) return null;
+        return tbArrToIp(ipA.map((o, i) => o & mA[i]));
+      }
+      function tbSameSubnet(ip1, ip2, mask) {
+        return tbSubnetOf(ip1, mask) === tbSubnetOf(ip2, mask);
+      }
+      function tbMaskToCidr(mask) {
+        const a = tbIpToArr(mask);
+        if (!a) return 0;
+        let bits = 0;
+        for (const o of a) {
+          for (let i = 7; i >= 0; i--) {
+            if (o & (1 << i)) bits++; else return bits;
+          }
+        }
+        return bits;
+      }
+      function tbGetBroadcastDomain(state, srcId, vlan) { return []; }
+    `, ctx);
+    vm.runInContext(`function tbComputeTrace(state, srcDeviceId, dstIp, maxTtl) {${body[1]}}`, ctx);
+
+    // Host-A → Router-A → Host-B across two /24 subnets
+    const state = {
+      devices: [
+        { id: 'hA', hostname: 'Host-A', type: 'host',
+          interfaces: [{ name: 'eth0', ip: '10.0.1.10', mask: '255.255.255.0', mac: 'aa:bb:cc:00:01:10', enabled: true, gateway: '10.0.1.1' }],
+          routingTable: [], arpTable: [{ ip: '10.0.1.1', mac: 'aa:bb:cc:00:01:01' }], macTable: []
+        },
+        { id: 'rA', hostname: 'Router-A', type: 'router',
+          interfaces: [
+            { name: 'eth0', ip: '10.0.1.1', mask: '255.255.255.0', mac: 'aa:bb:cc:00:01:01', enabled: true },
+            { name: 'eth1', ip: '10.0.2.1', mask: '255.255.255.0', mac: 'aa:bb:cc:00:02:01', enabled: true }
+          ],
+          routingTable: [],
+          arpTable: [{ ip: '10.0.2.20', mac: 'aa:bb:cc:00:02:20' }],
+          macTable: []
+        },
+        { id: 'hB', hostname: 'Host-B', type: 'host',
+          interfaces: [{ name: 'eth0', ip: '10.0.2.20', mask: '255.255.255.0', mac: 'aa:bb:cc:00:02:20', enabled: true, gateway: '10.0.2.1' }],
+          routingTable: [], arpTable: [], macTable: []
+        }
+      ],
+      cables: [
+        { aDeviceId: 'hA', bDeviceId: 'rA', aIface: 'eth0', bIface: 'eth0' },
+        { aDeviceId: 'rA', bDeviceId: 'hB', aIface: 'eth1', bIface: 'eth0' }
+      ]
+    };
+
+    const result = vm.runInContext(`tbComputeTrace(${JSON.stringify(state)}, 'hA', '10.0.2.20', 64)`, ctx);
+    test('v4.61.0 sandbox: trace returns hops array + success flag',
+      Array.isArray(result.hops) && result.hops.length > 0 && typeof result.success === 'boolean');
+    test('v4.61.0 sandbox: first hop is ARP at source (Host-A)',
+      result.hops[0].layer === 'ARP' && result.hops[0].device === 'Host-A');
+    test('v4.61.0 sandbox: first hop meta has src/dst IP + TTL=64',
+      result.hops[0].meta && result.hops[0].meta.srcIp === '10.0.1.10' && result.hops[0].meta.dstIp === '10.0.2.20' && result.hops[0].meta.ttl === 64);
+    test('v4.61.0 sandbox: middle hop is L3 at Router-A',
+      result.hops.some(h => h.layer === 'L3' && h.device === 'Router-A'));
+    const l3Hop = result.hops.find(h => h.layer === 'L3' && h.device === 'Router-A');
+    test('v4.61.0 sandbox: L3 hop meta includes TTL decrement 64 → 63',
+      l3Hop && l3Hop.meta.ttlBefore === 64 && l3Hop.meta.ttlAfter === 63);
+    test('v4.61.0 sandbox: L3 hop meta shows src/dst MAC rewrite (contains arrow)',
+      l3Hop && /→/.test(l3Hop.meta.srcMac) && /→/.test(l3Hop.meta.dstMac));
+    test('v4.61.0 sandbox: final hop is DELIVER at Host-B',
+      result.hops[result.hops.length - 1].layer === 'DELIVER' &&
+      result.hops[result.hops.length - 1].device === 'Host-B');
+    test('v4.61.0 sandbox: successful trace has success === true',
+      result.success === true);
+    test('v4.61.0 sandbox: path array includes all 3 devices in order',
+      JSON.stringify(result.path) === JSON.stringify(['hA', 'rA', 'hB']));
+
+    // ── Failure case: no route to unknown destination ──
+    const failResult = vm.runInContext(`tbComputeTrace(${JSON.stringify(state)}, 'hA', '10.0.99.99', 64)`, ctx);
+    test('v4.61.0 sandbox: unreachable destination produces failure hop',
+      failResult.hops.some(h => h.layer === 'FAIL') && failResult.success === false);
+    const failHop = failResult.hops.find(h => h.layer === 'FAIL');
+    test('v4.61.0 sandbox: failure hop status is "fail" + includes reason string',
+      failHop && failHop.status === 'fail' && typeof failHop.decision === 'string');
+
+    // ── Missing source device ──
+    const noSrc = vm.runInContext(`tbComputeTrace(${JSON.stringify(state)}, 'does-not-exist', '10.0.2.20', 64)`, ctx);
+    test('v4.61.0 sandbox: missing source device produces single FAIL hop',
+      noSrc.hops.length === 1 && noSrc.hops[0].layer === 'FAIL' && noSrc.success === false);
+  } catch (e) {
+    test('v4.61.0 sandbox: tbComputeTrace executed without error', false);
   }
 })();
 
