@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.62.2
+// Network+ AI Quiz — app.js  v4.62.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.62.2';
+const APP_VERSION = '4.62.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -86,6 +86,48 @@ const DEFAULT_DIFF = 'Exam Level';
 // With 0 exemplars, injection is a no-op — zero behavioural change vs
 // pre-v4.58.0. The helpers + injection site activate automatically once
 // exemplars land.
+
+// v4.62.3: PRIORITY RETENTION CONCEPTS — topics the user has recently
+// drilled and wants solid retention on. These are injected as a prompt
+// hint into EVERY question-generation call (custom quiz, Mixed, Daily
+// Challenge, Marathon, Exam simulator) so Haiku is nudged toward
+// testing these concepts whenever the current topic/scenario permits.
+// Non-invasive: the list is a preference, not a mandate — when a single-
+// topic quiz on something unrelated is running (e.g., "Port Numbers"),
+// the concepts below are offered as tiebreakers, not forced in.
+//
+// Seeded with the 14 Dion-practice-test gap topics from v4.59.0 (Phase 3
+// Cycle 1). When future Phase 3 cycles add new gaps, append them here;
+// when concepts are mastered (sustained 85%+ accuracy over 3+ sessions
+// per the weak-spot scoring), they can be retired from this list so
+// the prompt injection stays relevant.
+//
+// Empty array = no-op (the prompt block collapses to an empty string).
+const RETENTION_GAP_CONCEPTS = [
+  { label: 'Powerload',          parentTopic: 'Ethernet Standards',                objective: '2.3', keyword: '802.3bt PoE++ Type 3/4 power classification' },
+  { label: 'NTS',                parentTopic: 'Network Naming (DNS & DHCP)',       objective: '1.6', keyword: 'NTS (Network Time Security) RFC 8915 \u2014 secure NTP replacement' },
+  { label: 'NAC',                parentTopic: 'Protecting Networks',               objective: '4.3', keyword: 'NAC (Network Access Control) posture assessment \u2014 health-check before network admittance' },
+  { label: 'Preaction fire system', parentTopic: 'Physical Security Controls',     objective: '4.5', keyword: 'Pre-action fire suppression (dry-then-water on double-trigger) in data centres' },
+  { label: 'WAP Channels',       parentTopic: 'Wireless Networking',               objective: '2.4', keyword: '2.4 GHz non-overlapping channels 1/6/11 (only)' },
+  { label: 'NMAP',               parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'Nmap port/service scanner \u2014 reconnaissance tool' },
+  { label: 'Teredo tunneling',   parentTopic: 'IPv6',                              objective: '1.8', keyword: 'Teredo RFC 4380 \u2014 IPv6 tunnelled through IPv4 NAT' },
+  { label: 'Full tunnel VPN',    parentTopic: 'SSL/TLS VPN',                       objective: '4.4', keyword: 'Full tunnel VPN \u2014 all client traffic through VPN gateway' },
+  { label: 'Split tunnel VPN',   parentTopic: 'SSL/TLS VPN',                       objective: '4.4', keyword: 'Split tunnel VPN \u2014 only corporate-bound traffic goes through VPN' },
+  { label: 'Site-to-site VPN',   parentTopic: 'IPsec VPN',                         objective: '4.4', keyword: 'Site-to-site IPsec VPN \u2014 connects two networks via gateway-to-gateway tunnel' },
+  { label: 'Clientless VPN',     parentTopic: 'SSL/TLS VPN',                       objective: '4.4', keyword: 'Clientless SSL VPN \u2014 browser-based, no VPN software needed' },
+  { label: 'Class of Service',   parentTopic: 'Network Operations',                objective: '3.2', keyword: 'CoS (802.1p) \u2014 Layer 2 QoS priority (0\u20137) distinct from DSCP' },
+  { label: 'RAID Controller',    parentTopic: 'Business Continuity & Disaster Recovery', objective: '3.3', keyword: 'RAID levels \u2014 RAID 5 (striping + parity), RAID 1 (mirror), RAID 10 (striped mirrors)' },
+  { label: 'PCAP File',          parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'PCAP file format \u2014 captured by tcpdump/Wireshark, used for packet forensics' }
+];
+
+function _formatRetentionConceptsForPrompt() {
+  if (!Array.isArray(RETENTION_GAP_CONCEPTS) || RETENTION_GAP_CONCEPTS.length === 0) return '';
+  const lines = RETENTION_GAP_CONCEPTS.map(c =>
+    `- "${c.label}" (${c.parentTopic} / obj ${c.objective}) \u2014 ${c.keyword}`
+  ).join('\n');
+  return `\n\nPRIORITY RETENTION CONCEPTS: the student has recently studied these ${RETENTION_GAP_CONCEPTS.length} concepts and wants sustained exposure across quizzes + exams. When the current topic/difficulty/scenario PERMITS, prefer testing one of these explicitly over alternatives. Do NOT force these into unrelated topics (e.g., do not inject NAC into a "Port Numbers" question). Treat this as a tiebreaker, not a mandate:\n${lines}`;
+}
+
 const QUESTION_EXEMPLARS = [
   // v4.58.1: Phase 2 started \u2014 Domain 1.0 Networking Concepts, 14 exemplars.
   // All content original. NO copying from paid question banks (Dion, CertMaster,
@@ -6007,6 +6049,14 @@ For ordering: correctOrder is an array of indices (0-based) representing the cor
     _pickExemplarsForTopic(qTopic, 3)
   );
 
+  // v4.62.3: Priority Retention Concepts — injected into every batch so
+  // Haiku is nudged (not mandated) toward testing the user's recently-
+  // studied gap topics whenever the current scenario permits. Empty
+  // RETENTION_GAP_CONCEPTS → no-op empty string.
+  const retentionBlock = (typeof _formatRetentionConceptsForPrompt === 'function')
+    ? _formatRetentionConceptsForPrompt()
+    : '';
+
   // v4.56.1: Scenario field instructions isolated so they can be omitted on
   // retry. They were the main prompt bloat added in v4.56.0 and on complex
   // runs (multi-topic + Mixed + 20 questions) they occasionally push Haiku
@@ -6024,7 +6074,7 @@ SCENARIO CONTEXT FIELD (optional, exam-realism):
 
 ${topicStr}${mixedDistributionStr}
 Difficulty: ${diffStr}
-${exemplarBlock}
+${exemplarBlock}${retentionBlock}
 Generate exactly ${n} multiple choice questions. Requirements:
 - 4 options each (or 5 for multi-select): A, B, C, D (E for multi-select)
 - One correct answer only (unless multi-select)

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.62.2', js.includes("const APP_VERSION = '4.62.2"));
+test('APP_VERSION is 4.62.3', js.includes("const APP_VERSION = '4.62.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.62.2', sw.includes('netplus-v4.62.2'));
+test('SW cache bumped to v4.62.3', sw.includes('netplus-v4.62.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8127,6 +8127,86 @@ test('v4.62.2 validation-audit.js extracts + includes the new helper in its sand
       vm.runInContext('_tbTroubleshootingOrderOk(q)', Object.assign(ctx, { q: noDocItem })) === true);
   } catch (e) {
     test('v4.62.2 sandbox: helper executed without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.62.3 — Priority Retention Concepts injected into every quiz+exam
+// User asked: ensure the 14 recently-studied gap topics get tested across
+// all quiz + exam flows, not as a standalone drill. RETENTION_GAP_CONCEPTS
+// array (label, parentTopic, objective, keyword for each of the 14) is
+// formatted into a prompt block via _formatRetentionConceptsForPrompt()
+// and injected alongside the curated-exemplar block in every
+// _fetchQuestionsBatch call — applies to custom quiz, Mixed, Daily
+// Challenge, Marathon, and the Exam simulator uniformly.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.62.3 JS: RETENTION_GAP_CONCEPTS const defined',
+  /const\s+RETENTION_GAP_CONCEPTS\s*=\s*\[/.test(js));
+test('v4.62.3 JS: RETENTION_GAP_CONCEPTS seeded with the 14 v4.59.0 Cycle-1 gap topics',
+  /RETENTION_GAP_CONCEPTS[\s\S]{0,6000}label:\s*['"]Powerload['"][\s\S]{0,400}label:\s*['"]NTS['"]/.test(js) &&
+  /label:\s*['"]NAC['"][\s\S]{0,400}label:\s*['"]Preaction fire system['"]/.test(js) &&
+  /label:\s*['"]PCAP File['"]/.test(js));
+test('v4.62.3 JS: _formatRetentionConceptsForPrompt helper defined',
+  /function\s+_formatRetentionConceptsForPrompt\s*\(\)/.test(js));
+test('v4.62.3 JS: helper returns empty string when list is empty (no-op path)',
+  /if\s*\(!Array\.isArray\(RETENTION_GAP_CONCEPTS\)\s*\|\|\s*RETENTION_GAP_CONCEPTS\.length\s*===\s*0\)\s*return\s+['"]['"]/.test(js));
+test('v4.62.3 JS: prompt block header contains "PRIORITY RETENTION CONCEPTS"',
+  /PRIORITY RETENTION CONCEPTS/.test(js));
+test('v4.62.3 JS: prompt block explicitly frames it as a tiebreaker, not a mandate',
+  /tiebreaker[\s\S]{0,200}not a mandate|prefer[\s\S]{0,300}over alternatives/i.test(js));
+test('v4.62.3 JS: retentionBlock declared inside _fetchQuestionsBatch',
+  /function _fetchQuestionsBatch[\s\S]{0,25000}const\s+retentionBlock\s*=\s*\(typeof\s+_formatRetentionConceptsForPrompt/.test(js));
+test('v4.62.3 JS: buildPrompt template interpolates retentionBlock alongside exemplarBlock',
+  /\$\{exemplarBlock\}\$\{retentionBlock\}/.test(js));
+
+// Behavioural — sandbox the formatter against the real const to check it
+// emits the expected structure when non-empty + empty-string when empty.
+(function testRetentionFormat() {
+  try {
+    const vm = require('vm');
+    const helperBody = js.match(/function\s+_formatRetentionConceptsForPrompt\s*\(\)\s*\{([\s\S]*?)\n\}/);
+    const constMatch = js.match(/const\s+RETENTION_GAP_CONCEPTS\s*=\s*\[([\s\S]*?)\];\s*\n/);
+    if (!helperBody || !constMatch) {
+      test('v4.62.3 sandbox: helper + const extracted', false);
+      return;
+    }
+    test('v4.62.3 sandbox: helper + const extracted', true);
+
+    // Non-empty case: use the real const
+    const ctx1 = {};
+    vm.createContext(ctx1);
+    vm.runInContext(`const RETENTION_GAP_CONCEPTS = [${constMatch[1]}];`, ctx1);
+    vm.runInContext(`function _formatRetentionConceptsForPrompt() {${helperBody[1]}}`, ctx1);
+    const output = vm.runInContext('_formatRetentionConceptsForPrompt()', ctx1);
+    test('v4.62.3 sandbox: non-empty list produces a PRIORITY RETENTION CONCEPTS prompt block',
+      typeof output === 'string' && output.indexOf('PRIORITY RETENTION CONCEPTS') > -1);
+    test('v4.62.3 sandbox: prompt block lists "Powerload" concept',
+      output.indexOf('"Powerload"') > -1);
+    test('v4.62.3 sandbox: prompt block lists "PCAP File" concept',
+      output.indexOf('"PCAP File"') > -1);
+    test('v4.62.3 sandbox: prompt block explicitly frames concepts as a tiebreaker',
+      /tiebreaker|prefer/.test(output));
+
+    // Empty case: guard returns '' so prompt collapses to nothing
+    const ctx2 = {};
+    vm.createContext(ctx2);
+    vm.runInContext(`const RETENTION_GAP_CONCEPTS = [];`, ctx2);
+    vm.runInContext(`function _formatRetentionConceptsForPrompt() {${helperBody[1]}}`, ctx2);
+    const emptyOutput = vm.runInContext('_formatRetentionConceptsForPrompt()', ctx2);
+    test('v4.62.3 sandbox: empty list returns empty string (no-op)',
+      emptyOutput === '');
+
+    // Non-array case (defensive): still returns empty string
+    const ctx3 = {};
+    vm.createContext(ctx3);
+    vm.runInContext(`const RETENTION_GAP_CONCEPTS = null;`, ctx3);
+    vm.runInContext(`function _formatRetentionConceptsForPrompt() {${helperBody[1]}}`, ctx3);
+    const nullOutput = vm.runInContext('_formatRetentionConceptsForPrompt()', ctx3);
+    test('v4.62.3 sandbox: non-array (null) returns empty string (defensive)',
+      nullOutput === '');
+  } catch (e) {
+    test('v4.62.3 sandbox: formatter executed without error', false);
   }
 })();
 
