@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.61.0
+   Network+ AI Quiz — styles.css  v4.62.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9195,6 +9195,118 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .tb-inspector-pop { animation: none !important; }
   .tb-pill, .tb-zoom-btn { transition: none !important; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   v4.62.0 — Spanning Tree Protocol Visualisation (issue #186)
+   Auto-computed STP state decorates the canvas with: a floating crown
+   over the root bridge; role-coloured port dots at each cable endpoint
+   (gold root / green designated / red blocked); red dashed cable on
+   blocked segments; a reconvergence pulse on switches whose role
+   changed in the most recent recompute.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* Port endpoint dots */
+.tb-stp-port-dot {
+  stroke: rgba(13, 10, 21, 0.88);
+  stroke-width: 1.5;
+  pointer-events: all;
+  cursor: help;
+}
+.tb-stp-port-root {
+  fill: #f5b73b;
+  filter: drop-shadow(0 0 4px rgba(245, 183, 59, .75));
+}
+.tb-stp-port-designated {
+  fill: #4ade80;
+  filter: drop-shadow(0 0 3px rgba(74, 222, 128, .55));
+}
+.tb-stp-port-blocked {
+  fill: #f87171;
+  filter: drop-shadow(0 0 4px rgba(248, 113, 113, .65));
+}
+
+/* Blocked cable — red dashed override on the conductor */
+.tb-cable.tb-cable-stp-blocked {
+  stroke: #f87171 !important;
+  stroke-dasharray: 8 6 !important;
+  opacity: 0.72 !important;
+  filter: drop-shadow(0 0 3px rgba(248, 113, 113, .35));
+}
+
+/* ✗ badge that sits above a blocked port dot */
+.tb-stp-blocked-badge {
+  pointer-events: none;
+}
+.tb-stp-blocked-badge-bg {
+  fill: rgba(13, 10, 21, 0.94);
+  stroke: #f87171;
+  stroke-width: 1.5;
+}
+.tb-stp-blocked-badge-x {
+  stroke: #f87171;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  fill: none;
+}
+
+/* Root bridge crown marker */
+.tb-stp-crown {
+  pointer-events: all;
+  cursor: help;
+}
+.tb-stp-crown-bg {
+  fill: rgba(245, 183, 59, 0.18);
+  stroke: rgba(245, 183, 59, 0.55);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 8px rgba(245, 183, 59, 0.2));
+}
+.tb-stp-crown-text {
+  font-size: 14px;
+  pointer-events: none;
+}
+.tb-stp-crown-label {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 8.5px;
+  letter-spacing: .14em;
+  fill: #f5b73b;
+  text-transform: uppercase;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Reconvergence pulse — fires on switches whose port-role changed in the
+   most recent recompute; class is removed after 800ms via timeout. */
+[data-tb-device].tb-stp-rethink circle,
+[data-tb-device].tb-stp-rethink rect {
+  animation: tbStpRethink 800ms ease-out;
+}
+@keyframes tbStpRethink {
+  0%   { filter: drop-shadow(0 0 0 rgba(99, 85, 224, .0)); }
+  40%  { filter: drop-shadow(0 0 14px rgba(99, 85, 224, .7)); }
+  100% { filter: drop-shadow(0 0 0 rgba(99, 85, 224, .0)); }
+}
+
+/* Light theme overrides */
+[data-theme="light"] .tb-stp-crown-bg {
+  fill: rgba(245, 183, 59, 0.22);
+  stroke: rgba(200, 143, 30, 0.6);
+}
+[data-theme="light"] .tb-stp-crown-label {
+  fill: #c88f1e;
+}
+[data-theme="light"] .tb-stp-port-dot {
+  stroke: rgba(255, 255, 255, 0.9);
+}
+[data-theme="light"] .tb-cable.tb-cable-stp-blocked {
+  stroke: #e11d48 !important;
+  opacity: 0.82 !important;
+}
+
+/* Reduced motion: no rethink pulse */
+@media (prefers-reduced-motion: reduce) {
+  [data-tb-device].tb-stp-rethink circle,
+  [data-tb-device].tb-stp-rethink rect { animation: none !important; }
 }
 
 /* Light-theme overrides */

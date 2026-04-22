@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.61.0
+// Network+ AI Quiz — app.js  v4.62.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.61.0';
+const APP_VERSION = '4.62.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11855,6 +11855,11 @@ function tbSaveDraft() {
       tbRenderV3Inspector();
     }
   } catch (_) {}
+  // v4.62.0 STP Visualisation: recompute the STP state on every mutation
+  // (new switch, cable add/remove, priority change) so port roles + blocked
+  // state + root crown stay in sync automatically. Affected switches pulse
+  // for 800ms during reconvergence so the change is visible.
+  try { if (typeof tbRefreshStpState === 'function') tbRefreshStpState(); } catch (_) {}
 }
 function tbLoadAllSaves() {
   try {
@@ -18520,6 +18525,361 @@ function tbRenderTraceCanvasState() {
     try { if (_tbTraceState.active) tbRenderTraceCanvasState(); } catch (_) {}
   };
   wrapped._tbTraceWrapped = true;
+  // eslint-disable-next-line no-func-assign
+  tbRenderCanvas = wrapped;
+})();
+
+// ── v4.62.0 Spanning Tree Protocol (802.1D) Visualisation (issue #186) ──
+// Pure function: given a topology, compute the converged STP state.
+// Elects a root bridge by lowest bridge-ID (priority.MAC), runs BFS over
+// switch-to-switch cables to establish cost-to-root, assigns root-port +
+// designated-port + blocked-port roles per cable endpoint.
+//
+// Cable endpoint state shape:
+//   { fromRole: 'root'|'designated'|'blocked', toRole: ..., blocked: bool }
+//
+// Simplifications for v1:
+//   - 802.1D only (no RSTP/MST)
+//   - Uniform cost (1 per hop) — no link-speed cost math
+//   - Non-switch cable endpoints are implicitly 'designated' (no STP role)
+//   - MAC tiebreaker uses the first interface's MAC, or the device id
+//     as a synthetic fallback if the device has no interfaces with MACs.
+
+function _tbStpBridgeMac(dev) {
+  if (Array.isArray(dev.interfaces)) {
+    const withMac = dev.interfaces.find(i => i && typeof i.mac === 'string' && i.mac);
+    if (withMac) return withMac.mac;
+  }
+  // Synthetic: last 12 hex chars of id, padded as a MAC. Deterministic per-id
+  // so tiebreakers are stable across renders.
+  const id = String(dev.id || '');
+  let hex = '';
+  for (let i = 0; i < id.length && hex.length < 12; i++) {
+    const c = id.charCodeAt(i).toString(16);
+    hex += c;
+  }
+  hex = (hex + '000000000000').slice(0, 12);
+  return `${hex.slice(0, 2)}:${hex.slice(2, 4)}:${hex.slice(4, 6)}:${hex.slice(6, 8)}:${hex.slice(8, 10)}:${hex.slice(10, 12)}`;
+}
+
+function _tbStpIsSwitch(dev) {
+  return !!(dev && typeof dev.type === 'string' && dev.type.indexOf('switch') >= 0);
+}
+
+function _tbStpBridgeIdStr(priority, mac) {
+  return `${priority}.${(mac || '').replace(/[^0-9a-f]/gi, '').toLowerCase()}`;
+}
+
+function tbComputeStpState(state) {
+  const result = { rootId: null, bridges: {}, cables: {}, converged: false, blockedCount: 0 };
+  const devices = (state && state.devices) || [];
+  const cables = (state && state.cables) || [];
+
+  const switches = devices.filter(_tbStpIsSwitch);
+  if (switches.length === 0) {
+    result.converged = true;
+    return result;
+  }
+
+  // Build bridge IDs
+  switches.forEach(d => {
+    const priority = (typeof d.stpPriority === 'number') ? d.stpPriority : 32768;
+    const mac = _tbStpBridgeMac(d);
+    result.bridges[d.id] = {
+      id: d.id,
+      hostname: d.hostname || d.id,
+      isRoot: false,
+      priority,
+      mac,
+      bridgeId: _tbStpBridgeIdStr(priority, mac),
+      costToRoot: Infinity,
+      rootCableId: null
+    };
+  });
+
+  // Elect root — lowest bridge-ID string (priority first, then MAC)
+  const sorted = Object.values(result.bridges).slice().sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.mac < b.mac ? -1 : a.mac > b.mac ? 1 : 0;
+  });
+  const root = sorted[0];
+  result.rootId = root.id;
+  root.isRoot = true;
+  root.costToRoot = 0;
+
+  // Build adjacency: for each switch, list cables connecting it to another switch
+  const adj = {};
+  switches.forEach(d => { adj[d.id] = []; });
+  cables.forEach(c => {
+    if (!c || !c.id) return;
+    const fromSw = _tbStpIsSwitch(devices.find(d => d.id === c.from));
+    const toSw = _tbStpIsSwitch(devices.find(d => d.id === c.to));
+    if (fromSw && toSw) {
+      adj[c.from] && adj[c.from].push({ cableId: c.id, peer: c.to });
+      adj[c.to] && adj[c.to].push({ cableId: c.id, peer: c.from });
+    }
+  });
+
+  // BFS from root — uniform cost 1. Also record the parent cable per switch
+  // so we can identify root ports (the cable a non-root switch uses to
+  // reach root).
+  const queue = [root.id];
+  const visited = { [root.id]: true };
+  while (queue.length) {
+    const cur = queue.shift();
+    const curCost = result.bridges[cur].costToRoot;
+    (adj[cur] || []).forEach(edge => {
+      if (!visited[edge.peer]) {
+        visited[edge.peer] = true;
+        const b = result.bridges[edge.peer];
+        if (b) {
+          b.costToRoot = curCost + 1;
+          b.rootCableId = edge.cableId;
+        }
+        queue.push(edge.peer);
+      }
+    });
+  }
+
+  // Assign port roles per cable
+  cables.forEach(c => {
+    if (!c || !c.id) { return; }
+    const fromDev = devices.find(d => d.id === c.from);
+    const toDev = devices.find(d => d.id === c.to);
+    if (!fromDev || !toDev) return;
+
+    const fromIsSw = _tbStpIsSwitch(fromDev);
+    const toIsSw = _tbStpIsSwitch(toDev);
+
+    // Non-switch endpoints get no STP role — they're edge devices. Both sides
+    // of such a cable render as neutral (no port dot, no block).
+    if (!fromIsSw || !toIsSw) {
+      result.cables[c.id] = { fromRole: null, toRole: null, blocked: false };
+      return;
+    }
+
+    const fromBridge = result.bridges[c.from];
+    const toBridge = result.bridges[c.to];
+
+    // Case: this cable IS the BFS-parent for one of the switches → part of the
+    // shortest-path tree, forwarding on both sides.
+    const fromIsChildViaThisCable = fromBridge && fromBridge.rootCableId === c.id;
+    const toIsChildViaThisCable = toBridge && toBridge.rootCableId === c.id;
+
+    if (fromIsChildViaThisCable) {
+      // `from` sees this cable as its root port → `to` is the parent (closer to
+      // root) and owns the designated role on this segment.
+      result.cables[c.id] = { fromRole: 'root', toRole: 'designated', blocked: false };
+      return;
+    }
+    if (toIsChildViaThisCable) {
+      result.cables[c.id] = { fromRole: 'designated', toRole: 'root', blocked: false };
+      return;
+    }
+
+    // Non-tree cable (would form a loop). One side is designated (lower cost
+    // to root, or lower bridge-ID as tiebreaker), the other is blocked.
+    let designatedSide = 'from';
+    if (fromBridge.costToRoot === toBridge.costToRoot) {
+      designatedSide = fromBridge.bridgeId <= toBridge.bridgeId ? 'from' : 'to';
+    } else if (fromBridge.costToRoot > toBridge.costToRoot) {
+      designatedSide = 'to';
+    }
+    if (designatedSide === 'from') {
+      result.cables[c.id] = { fromRole: 'designated', toRole: 'blocked', blocked: true };
+    } else {
+      result.cables[c.id] = { fromRole: 'blocked', toRole: 'designated', blocked: true };
+    }
+    result.blockedCount++;
+  });
+
+  result.converged = true;
+  return result;
+}
+
+// Module-level cache of the most recent STP state so renderers + tests can
+// read it without recomputing. Populated on every tbSaveDraft tick (see hook).
+let _tbStpState = null;
+
+// Decoration renderer — runs AFTER tbRenderCanvas, appends a #tb-stp-layer
+// SVG group with crown markers, port-role dots, role chips. Also toggles a
+// .tb-cable-stp-blocked class on cable conductors for blocked links.
+function tbRenderStpOverlay() {
+  const svg = document.getElementById('tb-canvas');
+  if (!svg) return;
+
+  // Clean up any prior overlay
+  const prior = svg.querySelector('#tb-stp-layer');
+  if (prior) prior.remove();
+  // Also clear any prior blocked-cable class so re-renders don't double up
+  svg.querySelectorAll('.tb-cable-stp-blocked').forEach(el => el.classList.remove('tb-cable-stp-blocked'));
+  svg.querySelectorAll('[data-tb-device].tb-stp-rethink').forEach(el => el.classList.remove('tb-stp-rethink'));
+
+  const stp = _tbStpState;
+  if (!stp || !stp.converged || !stp.rootId) return;
+
+  const devices = (tbState && tbState.devices) || [];
+  const cables = (tbState && tbState.cables) || [];
+  const devById = id => devices.find(d => d.id === id);
+
+  // Group for overlay elements (below devices but above cables is ideal; we
+  // append at end so order is: cables → devices → stp overlay — overlay on top
+  // which is fine for small crown + port dots. Blocked-cable styling is done
+  // by class on the existing cable path, not by a new element.)
+  const NS = 'http://www.w3.org/2000/svg';
+  const layer = document.createElementNS(NS, 'g');
+  layer.setAttribute('id', 'tb-stp-layer');
+  layer.classList.add('tb-stp-layer');
+
+  // Mark blocked cables via class toggle on their conductor path
+  Object.keys(stp.cables).forEach(cableId => {
+    const roles = stp.cables[cableId];
+    if (!roles || !roles.blocked) return;
+    const cablePath = svg.querySelector(`.tb-cable[data-tb-cable-id="${cableId}"]`)
+                   || svg.querySelector(`path.tb-cable-hit[data-tb-cable="${cableId}"]`);
+    // The conductor path doesn't carry a data-tb-cable attr — it's a sibling
+    // of the hit path. Easier to find via sibling relationship from the hit.
+    const hit = svg.querySelector(`[data-tb-cable="${cableId}"]`);
+    if (hit && hit.previousElementSibling) {
+      hit.previousElementSibling.classList.add('tb-cable-stp-blocked');
+    }
+  });
+
+  // Render crown above the root bridge
+  const root = devById(stp.rootId);
+  if (root && typeof root.x === 'number' && typeof root.y === 'number') {
+    const crownGroup = document.createElementNS(NS, 'g');
+    crownGroup.classList.add('tb-stp-crown');
+    crownGroup.setAttribute('transform', `translate(${root.x}, ${root.y - 58})`);
+    const crownBg = document.createElementNS(NS, 'rect');
+    crownBg.classList.add('tb-stp-crown-bg');
+    crownBg.setAttribute('x', -30); crownBg.setAttribute('y', -14);
+    crownBg.setAttribute('width', 60); crownBg.setAttribute('height', 24);
+    crownBg.setAttribute('rx', 12);
+    crownGroup.appendChild(crownBg);
+    const crownText = document.createElementNS(NS, 'text');
+    crownText.classList.add('tb-stp-crown-text');
+    crownText.setAttribute('x', -15); crownText.setAttribute('y', 4);
+    crownText.textContent = '👑';
+    crownGroup.appendChild(crownText);
+    const crownLabel = document.createElementNS(NS, 'text');
+    crownLabel.classList.add('tb-stp-crown-label');
+    crownLabel.setAttribute('x', 14); crownLabel.setAttribute('y', 2);
+    crownLabel.textContent = 'Root';
+    crownGroup.appendChild(crownLabel);
+    // Tooltip for pedagogy
+    const crownTitle = document.createElementNS(NS, 'title');
+    crownTitle.textContent = 'Root bridge — lowest bridge-ID in the L2 domain';
+    crownGroup.appendChild(crownTitle);
+    layer.appendChild(crownGroup);
+  }
+
+  // Render port-role dots at each cable endpoint for switch-to-switch cables
+  const HALF_W = 48, HALF_H = 36;
+  cables.forEach(c => {
+    const roles = stp.cables[c.id];
+    if (!roles || (!roles.fromRole && !roles.toRole)) return;
+    const from = devById(c.from);
+    const to = devById(c.to);
+    if (!from || !to) return;
+    // Edge points (same math as tbEdgePoint used in render)
+    const p1 = (typeof tbEdgePoint === 'function') ? tbEdgePoint(from.x, from.y, to.x, to.y, HALF_W, HALF_H) : { x: from.x, y: from.y };
+    const p2 = (typeof tbEdgePoint === 'function') ? tbEdgePoint(to.x, to.y, from.x, from.y, HALF_W, HALF_H) : { x: to.x, y: to.y };
+
+    // Helper to append an endpoint dot (+ optional X overlay for blocked)
+    const appendEndpoint = (x, y, role, cableBlocked) => {
+      if (!role) return;
+      const dot = document.createElementNS(NS, 'circle');
+      dot.classList.add('tb-stp-port-dot');
+      dot.classList.add('tb-stp-port-' + role);
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+      dot.setAttribute('r', 6.5);
+      // Tooltip per port role for pedagogy
+      const title = document.createElementNS(NS, 'title');
+      title.textContent = role === 'root' ? 'Root port — forwarding toward root bridge'
+                        : role === 'designated' ? 'Designated port — forwarding on this segment'
+                        : 'Blocked port — cable up but not forwarding (prevents loop)';
+      dot.appendChild(title);
+      layer.appendChild(dot);
+      if (role === 'blocked') {
+        // Small ✗ badge above the blocked dot
+        const badgeGroup = document.createElementNS(NS, 'g');
+        badgeGroup.classList.add('tb-stp-blocked-badge');
+        badgeGroup.setAttribute('transform', `translate(${x}, ${y - 18})`);
+        const bg = document.createElementNS(NS, 'circle');
+        bg.classList.add('tb-stp-blocked-badge-bg');
+        bg.setAttribute('cx', 0); bg.setAttribute('cy', 0); bg.setAttribute('r', 8);
+        badgeGroup.appendChild(bg);
+        const x1 = document.createElementNS(NS, 'path');
+        x1.classList.add('tb-stp-blocked-badge-x');
+        x1.setAttribute('d', 'M -3.5 -3.5 L 3.5 3.5 M 3.5 -3.5 L -3.5 3.5');
+        badgeGroup.appendChild(x1);
+        layer.appendChild(badgeGroup);
+      }
+    };
+    appendEndpoint(p1.x, p1.y, roles.fromRole, roles.blocked);
+    appendEndpoint(p2.x, p2.y, roles.toRole, roles.blocked);
+  });
+
+  svg.appendChild(layer);
+}
+
+// Trigger recompute + re-render of STP overlay. Tracks which switches changed
+// since the last compute so we can fire a 'rethinking' pulse on them.
+let _tbStpPrevRoles = {};
+function tbRefreshStpState() {
+  const next = tbComputeStpState(tbState);
+  // Diff: switches whose role changed fire an 800ms pulse on next render
+  const changedDeviceIds = new Set();
+  const prev = _tbStpPrevRoles || {};
+  if (next.rootId !== prev._rootId) {
+    // Whole domain changed root — all switches pulse
+    Object.keys(next.bridges).forEach(id => changedDeviceIds.add(id));
+  } else {
+    Object.keys(next.cables).forEach(cableId => {
+      const prevRoles = prev[cableId];
+      const nextRoles = next.cables[cableId];
+      if (!prevRoles) { return; }
+      if (prevRoles.fromRole !== nextRoles.fromRole || prevRoles.toRole !== nextRoles.toRole) {
+        const c = (tbState.cables || []).find(cc => cc.id === cableId);
+        if (c) { changedDeviceIds.add(c.from); changedDeviceIds.add(c.to); }
+      }
+    });
+  }
+  _tbStpPrevRoles = Object.assign({ _rootId: next.rootId }, next.cables);
+  _tbStpState = next;
+
+  // Render overlay + pulse affected switches
+  tbRenderStpOverlay();
+  if (changedDeviceIds.size > 0) {
+    const svg = document.getElementById('tb-canvas');
+    if (svg) {
+      changedDeviceIds.forEach(id => {
+        const el = svg.querySelector(`[data-tb-device="${id}"]`);
+        if (el) {
+          el.classList.remove('tb-stp-rethink');
+          // force reflow before re-adding so animation restarts
+          void el.getBoundingClientRect();
+          el.classList.add('tb-stp-rethink');
+          setTimeout(() => { el.classList.remove('tb-stp-rethink'); }, 820);
+        }
+      });
+    }
+  }
+}
+
+// Wrap tbRenderCanvas so every canvas re-render refreshes STP overlay too.
+(function wireStpCanvasHook() {
+  if (typeof tbRenderCanvas !== 'function') return;
+  const orig = tbRenderCanvas;
+  if (orig._tbStpWrapped) return;
+  const wrapped = function () {
+    orig.apply(this, arguments);
+    try { tbRenderStpOverlay(); } catch (_) {}
+  };
+  // Preserve any earlier wrapping flags (e.g., trace)
+  Object.keys(orig).forEach(k => { wrapped[k] = orig[k]; });
+  wrapped._tbStpWrapped = true;
   // eslint-disable-next-line no-func-assign
   tbRenderCanvas = wrapped;
 })();

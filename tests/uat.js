@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.61.0', js.includes("const APP_VERSION = '4.61.0"));
+test('APP_VERSION is 4.62.0', js.includes("const APP_VERSION = '4.62.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.61.0', sw.includes('netplus-v4.61.0'));
+test('SW cache bumped to v4.62.0', sw.includes('netplus-v4.62.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7843,6 +7843,155 @@ test('v4.61.0 CSS: light-theme overrides for trace panel + eyebrow + layer chips
       noSrc.hops.length === 1 && noSrc.hops[0].layer === 'FAIL' && noSrc.success === false);
   } catch (e) {
     test('v4.61.0 sandbox: tbComputeTrace executed without error', false);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// v4.62.0 — TB Spanning Tree Protocol Visualisation (issue #186)
+// STP auto-enables on every L2 switch. tbComputeStpState elects a root
+// bridge by lowest priority.MAC, runs BFS over switch-to-switch cables,
+// assigns root/designated/blocked port roles per cable endpoint. Crown
+// marker on root, red dashed cable on blocked segments, 800ms
+// reconvergence pulse on switches whose role changed.
+// ══════════════════════════════════════════════════════════════════════
+
+test('v4.62.0 JS: tbComputeStpState pure function defined',
+  /function\s+tbComputeStpState\s*\(state\)/.test(js));
+test('v4.62.0 JS: _tbStpIsSwitch predicate defined (type includes "switch")',
+  /function\s+_tbStpIsSwitch[\s\S]{0,200}type\.indexOf\('switch'\)\s*>=\s*0/.test(js));
+test('v4.62.0 JS: _tbStpBridgeMac helper handles interface-MAC + synthetic fallback',
+  /function\s+_tbStpBridgeMac[\s\S]{0,600}withMac[\s\S]{0,400}Synthetic/.test(js));
+test('v4.62.0 JS: tbRenderStpOverlay defined + paints crown + port dots',
+  /function\s+tbRenderStpOverlay[\s\S]{0,3000}tb-stp-crown[\s\S]{0,1500}tb-stp-port-dot/.test(js));
+test('v4.62.0 JS: tbRenderStpOverlay toggles tb-cable-stp-blocked class on blocked conductors',
+  /tbRenderStpOverlay[\s\S]{0,2000}tb-cable-stp-blocked/.test(js));
+test('v4.62.0 JS: tbRefreshStpState fires reconvergence pulse on changed switches',
+  /function\s+tbRefreshStpState[\s\S]{0,2000}tb-stp-rethink/.test(js));
+test('v4.62.0 JS: tbSaveDraft calls tbRefreshStpState on every mutation',
+  /function\s+tbSaveDraft[\s\S]*?tbRefreshStpState\(\)/.test(js));
+test('v4.62.0 JS: tbRenderCanvas wrapped so STP overlay survives re-renders',
+  /_tbStpWrapped\s*=\s*true/.test(js));
+
+test('v4.62.0 CSS: port dot role variants styled (root gold / designated green / blocked red)',
+  /\.tb-stp-port-root[\s\S]{0,200}fill:\s*#f5b73b/.test(css) &&
+  /\.tb-stp-port-designated[\s\S]{0,200}fill:\s*#4ade80/.test(css) &&
+  /\.tb-stp-port-blocked[\s\S]{0,200}fill:\s*#f87171/.test(css));
+test('v4.62.0 CSS: blocked cable stroke is red dashed via override',
+  /\.tb-cable\.tb-cable-stp-blocked\s*\{[\s\S]{0,400}stroke:\s*#f87171[\s\S]{0,200}stroke-dasharray:/.test(css));
+test('v4.62.0 CSS: root crown marker bg + label styled',
+  /\.tb-stp-crown-bg\s*\{/.test(css) &&
+  /\.tb-stp-crown-label\s*\{[\s\S]{0,200}fill:\s*#f5b73b/.test(css));
+test('v4.62.0 CSS: blocked ✗ badge styled with red background + X strokes',
+  /\.tb-stp-blocked-badge-bg\s*\{[\s\S]{0,200}stroke:\s*#f87171/.test(css) &&
+  /\.tb-stp-blocked-badge-x\s*\{/.test(css));
+test('v4.62.0 CSS: reconvergence pulse keyframe + rethink class defined',
+  /@keyframes\s+tbStpRethink/.test(css) &&
+  /data-tb-device\]\.tb-stp-rethink\s+circle[\s\S]{0,200}animation:\s*tbStpRethink/.test(css));
+test('v4.62.0 CSS: reduced-motion neutralises rethink pulse',
+  /prefers-reduced-motion[\s\S]{0,600}tb-stp-rethink\s+circle[\s\S]{0,100}animation:\s*none/.test(css));
+test('v4.62.0 CSS: light-theme overrides crown + port dot stroke',
+  /\[data-theme="light"\]\s+\.tb-stp-crown-bg/.test(css) &&
+  /\[data-theme="light"\]\s+\.tb-stp-port-dot/.test(css));
+
+// Behavioural: vm-sandbox tbComputeStpState against a 3-switch triangle +
+// assert root election, root-port selection, and blocked-port logic.
+(function testStpCompute() {
+  try {
+    const vm = require('vm');
+    const body = js.match(/function\s+tbComputeStpState\s*\(state\)\s*\{([\s\S]*?)\n\}\n/);
+    const bridgeMacBody = js.match(/function\s+_tbStpBridgeMac\s*\(dev\)\s*\{([\s\S]*?)\n\}/);
+    const isSwitchBody = js.match(/function\s+_tbStpIsSwitch\s*\(dev\)\s*\{([\s\S]*?)\n\}/);
+    const bridgeIdStrBody = js.match(/function\s+_tbStpBridgeIdStr\s*\(priority,\s*mac\)\s*\{([\s\S]*?)\n\}/);
+    if (!body || !bridgeMacBody || !isSwitchBody || !bridgeIdStrBody) {
+      test('v4.62.0 sandbox: tbComputeStpState body extracted', false);
+      return;
+    }
+    test('v4.62.0 sandbox: tbComputeStpState body extracted', true);
+
+    const ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(`function _tbStpBridgeMac(dev) {${bridgeMacBody[1]}}`, ctx);
+    vm.runInContext(`function _tbStpIsSwitch(dev) {${isSwitchBody[1]}}`, ctx);
+    vm.runInContext(`function _tbStpBridgeIdStr(priority, mac) {${bridgeIdStrBody[1]}}`, ctx);
+    vm.runInContext(`function tbComputeStpState(state) {${body[1]}}`, ctx);
+
+    // 3-switch triangle: SW-A / SW-B / SW-C all with default priority 32768.
+    // MAC tiebreaker means SW-A (lowest MAC) becomes root.
+    const state = {
+      devices: [
+        { id: 'swA', hostname: 'SW-A', type: 'switch', interfaces: [{ mac: '00:00:00:00:00:01' }] },
+        { id: 'swB', hostname: 'SW-B', type: 'switch', interfaces: [{ mac: '00:00:00:00:00:02' }] },
+        { id: 'swC', hostname: 'SW-C', type: 'switch', interfaces: [{ mac: '00:00:00:00:00:03' }] }
+      ],
+      cables: [
+        { id: 'c-ab', from: 'swA', to: 'swB' },
+        { id: 'c-ac', from: 'swA', to: 'swC' },
+        { id: 'c-bc', from: 'swB', to: 'swC' }   // redundant — creates loop
+      ]
+    };
+
+    const stp = vm.runInContext(`tbComputeStpState(${JSON.stringify(state)})`, ctx);
+    test('v4.62.0 sandbox: converged flag set true',
+      stp.converged === true);
+    test('v4.62.0 sandbox: SW-A elected root (lowest MAC at default priority)',
+      stp.rootId === 'swA' && stp.bridges.swA.isRoot === true);
+    test('v4.62.0 sandbox: root cost-to-root is 0',
+      stp.bridges.swA.costToRoot === 0);
+    test('v4.62.0 sandbox: SW-B and SW-C each reach root in 1 hop',
+      stp.bridges.swB.costToRoot === 1 && stp.bridges.swC.costToRoot === 1);
+    test('v4.62.0 sandbox: exactly one cable is blocked (loop prevention)',
+      stp.blockedCount === 1 && Object.values(stp.cables).filter(c => c.blocked).length === 1);
+
+    // c-ab and c-ac are BFS-tree cables → one side root, other side designated
+    test('v4.62.0 sandbox: SW-A ↔ SW-B cable forwarding (A designated, B root)',
+      stp.cables['c-ab'].fromRole === 'designated' && stp.cables['c-ab'].toRole === 'root' &&
+      stp.cables['c-ab'].blocked === false);
+    test('v4.62.0 sandbox: SW-A ↔ SW-C cable forwarding (A designated, C root)',
+      stp.cables['c-ac'].fromRole === 'designated' && stp.cables['c-ac'].toRole === 'root' &&
+      stp.cables['c-ac'].blocked === false);
+
+    // c-bc is the non-tree cable → one side blocked, the side with LOWER
+    // bridge-ID wins designated. SW-B has lower MAC than SW-C.
+    test('v4.62.0 sandbox: SW-B ↔ SW-C cable blocked (loop-prevention)',
+      stp.cables['c-bc'].blocked === true);
+    test('v4.62.0 sandbox: designated wins on lower-bridge-ID side (B); C blocks',
+      stp.cables['c-bc'].fromRole === 'designated' && stp.cables['c-bc'].toRole === 'blocked');
+
+    // ── Force root election via priority override ──
+    const stateWithPriority = JSON.parse(JSON.stringify(state));
+    stateWithPriority.devices[2].stpPriority = 4096;  // SW-C wins by low priority
+    const stp2 = vm.runInContext(`tbComputeStpState(${JSON.stringify(stateWithPriority)})`, ctx);
+    test('v4.62.0 sandbox: lowered priority overrides MAC tiebreaker (SW-C becomes root)',
+      stp2.rootId === 'swC' && stp2.bridges.swC.isRoot === true);
+
+    // ── Empty topology ──
+    const emptyStp = vm.runInContext(`tbComputeStpState({ devices: [], cables: [] })`, ctx);
+    test('v4.62.0 sandbox: empty topology still returns converged with no root',
+      emptyStp.converged === true && emptyStp.rootId === null);
+
+    // ── No switches (only hosts) ──
+    const hostOnly = vm.runInContext(`tbComputeStpState(${JSON.stringify({
+      devices: [{ id: 'h1', type: 'host', interfaces: [] }, { id: 'h2', type: 'host', interfaces: [] }],
+      cables: [{ id: 'c1', from: 'h1', to: 'h2' }]
+    })})`, ctx);
+    test('v4.62.0 sandbox: no switches → no STP election (rootId null, no port roles on host cables)',
+      hostOnly.rootId === null && (!hostOnly.cables['c1'] || hostOnly.cables['c1'].fromRole === null));
+
+    // ── Mixed: one switch + one host ──
+    const mixedStp = vm.runInContext(`tbComputeStpState(${JSON.stringify({
+      devices: [
+        { id: 'sw1', type: 'switch', interfaces: [{ mac: '00:00:00:00:00:10' }] },
+        { id: 'h1', type: 'host', interfaces: [{ mac: '00:00:00:00:00:20' }] }
+      ],
+      cables: [{ id: 'c1', from: 'sw1', to: 'h1' }]
+    })})`, ctx);
+    test('v4.62.0 sandbox: single switch is elected root even with only host-connected cables',
+      mixedStp.rootId === 'sw1');
+    test('v4.62.0 sandbox: cable to non-switch endpoint gets no STP role (null)',
+      mixedStp.cables['c1'] && mixedStp.cables['c1'].fromRole === null &&
+      mixedStp.cables['c1'].toRole === null && mixedStp.cables['c1'].blocked === false);
+  } catch (e) {
+    test('v4.62.0 sandbox: tbComputeStpState executed without error', false);
   }
 })();
 
