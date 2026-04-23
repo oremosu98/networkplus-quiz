@@ -268,6 +268,7 @@ After deleting dead code, add a UAT assertion that fails if it reappears. Keeps 
 - `openGuidedLab` whitelist array — must not reappear (v4.42.5 whitelist trap fix)
 - Scattered `let _tbTraceState`, `let _tbInspPrev*`, `let _tbStpState`, `let _tbStpPrevRoles`, `let _tbInspectorKeydownBound`, `let _tbTracePanelDragBound`, `let _tbInspectorPopDragBound`, `let _tbConfigPopDragBound` — consolidated into `_tbUiState` (v4.62.4 Thursday tech-debt sweep). New TB UI transients should be added as nested fields on `_tbUiState`, not new top-level `let` declarations.
 - Per-overlay `tbRenderCanvas` re-wraps (trace + STP used to each `const orig = tbRenderCanvas; tbRenderCanvas = function() {...}`) — collapsed into the single `_tbOverlayRegistry` + `tbRegisterOverlay(fn)` pattern (v4.62.4 Thursday tech-debt sweep). New canvas overlays should call `tbRegisterOverlay(overlayFn)` once; they automatically run after every `tbRenderCanvas()` call. Do not re-introduce self-wrapping.
+- 8 dead functions removed v4.62.4 (grep-audited to zero callers across app.js + index.html + tests/ + sw.js): `classOfIp`, `wildcardToMask`, `setPortMode`, `nextPortQ`, `nextPortFamilyQ`, `pickPort`, `renderPortFocusInfo`, `tbOpenArpDialog`. If you find yourself "reintroducing" any of these by name, check first whether the real need is a legitimate new function or a resurrection — legacy stubs without callers tend to accumulate indefinitely.
 
 ### Progressive Disclosure
 - Marathon Mode (30 / 45 / 60-Q bulk presets) hidden until `loadHistory().length > 0`

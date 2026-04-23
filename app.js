@@ -19311,9 +19311,8 @@ function tbFilterPingDst() {
     .map(d => `<option value="${d.id}">${escHtml(d.hostname)} (${d.interfaces.find(i=>i.ip)?.ip || '?'})</option>`)
     .join('');
 }
-function tbOpenArpDialog() {
-  tbOpenPingDialog();
-}
+// v4.62.4: tbOpenArpDialog removed — was a 1-line alias for tbOpenPingDialog
+// with zero callers. Use tbOpenPingDialog() directly.
 function tbOpenDhcpDialog() {
   // Find devices without IPs that could request DHCP
   const clients = tbState.devices.filter(d =>
@@ -24010,7 +24009,9 @@ function hostCount(cidr) { return cidr >= 31 ? (cidr === 31 ? 2 : 1) : Math.pow(
 function randOctet() { return Math.floor(Math.random() * 254) + 1; }
 function blockSize(cidr) { return Math.pow(2, 32 - cidr); }
 function maskToWildcard(mask) { return mask.split('.').map(o => 255 - parseInt(o)).join('.'); }
-function wildcardToMask(wc) { return wc.split('.').map(o => 255 - parseInt(o)).join('.'); }
+// v4.62.4: wildcardToMask + classOfIp removed — zero callers anywhere
+// in the project. Subnet quiz uses maskToWildcard (forward) only;
+// ACL wildcards come from user input, not reverse-computed from masks.
 function ipToBinaryStr(ipStr) { return ipStr.split('.').map(o => parseInt(o).toString(2).padStart(8,'0')).join('.'); }
 function cidrForHosts(needed) { for (let p = 2; p <= 24; p++) { if (Math.pow(2,p) - 2 >= needed) return 32 - p; } return 8; }
 function nthSubnet(networkArr, origCidr, newCidr, n) {
@@ -24019,7 +24020,6 @@ function nthSubnet(networkArr, origCidr, newCidr, n) {
   const nthIp = startIp + n * bs;
   return [(nthIp>>>24)&255, (nthIp>>>16)&255, (nthIp>>>8)&255, nthIp&255];
 }
-function classOfIp(ipArr) { if (ipArr[0] < 128) return 'A'; if (ipArr[0] < 192) return 'B'; if (ipArr[0] < 224) return 'C'; return 'D'; }
 function defaultMaskForClass(cls) { return cls==='A'?'/8':cls==='B'?'/16':'/24'; }
 function randCidrForLevel(level) {
   if (level === 'beginner') return [24,25,26,27,28,29,30][Math.floor(Math.random()*7)];
@@ -25205,7 +25205,7 @@ function getPortStatsSummary() {
   const uniqueSeen = entries.filter(e => e.seen > 0).length;
   return { totalSeen, totalCorrect, overallAccuracy: totalSeen > 0 ? totalCorrect / totalSeen : 0, uniqueSeen, totalPorts: portData.length };
 }
-function renderPortFocusInfo() {} // Legacy stub — focus is now in Practice tab
+// v4.62.4: renderPortFocusInfo removed — was a legacy no-op stub with zero callers.
 function resetPortStats() {
   if (!confirm('Reset all port mastery data? Your best score will be kept.')) return;
   try { localStorage.removeItem(STORAGE.PORT_STATS); localStorage.removeItem(STORAGE.PORT_MASTERY); localStorage.removeItem(STORAGE.PORT_LESSONS); } catch {}
@@ -26114,7 +26114,11 @@ function ptRenderDashboard() {
 }
 
 // ── Legacy compat stubs (used by other parts of the app) ──
-function setPortMode(mode) { portMode = mode; }
+// v4.62.4 Thursday tech-debt sweep: removed 4 actually-dead stubs
+// (setPortMode, nextPortQ, nextPortFamilyQ, pickPort) after grep-audit
+// found zero callers anywhere in app.js / index.html / tests / sw.js.
+// The survivors below still have real callers in TopicDeepDive commands
+// and guided labs so they stay.
 function beginPortDrill() { setPortTab('practice'); setPortPracticeMode(portMode === 'family' ? 'family' : portMode === 'pairs' ? 'pairs' : portMode === 'endless' ? 'endless' : 'drill'); }
 function endPortDrill() { ptStopTimer(); }
 function getFamilyEligibleCategories() {
@@ -26122,15 +26126,11 @@ function getFamilyEligibleCategories() {
   portData.forEach(p => { byProto[p.proto] = p; });
   return portCategories.map(cat => ({ name: cat.name, ports: cat.protos.map(n => byProto[n]).filter(Boolean) })).filter(cat => cat.ports.length >= 2);
 }
-// Legacy refs still used by Topic Deep Dive topic commands and guided labs
 function renderPortTerminalList() {}
 function renderPortLabsList() {}
-function nextPortQ() { ptNextQuestion(); }
-function nextPortFamilyQ() { ptGenFamilyQ(); }
 function togglePortFamilyPick(btn) { btn.classList.toggle('pt-mcq-selected'); }
 function submitPortFamilyAnswer() { ptSubmitFamily(); }
 function nextPortPairsQ() { ptGenPairsQ(); }
-function pickPort(chosen, correct) { ptPickAnswer(null, chosen, correct); }
 
 // ══════════════════════════════════════════
 // FEATURE 3: PRE-QUIZ TOPIC BRIEF
