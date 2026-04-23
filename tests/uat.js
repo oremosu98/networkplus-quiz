@@ -7690,7 +7690,11 @@ test('v4.61.0 JS: tbRenderTraceCanvasState applies visited/current/pending class
 test('v4.61.0 JS: trace renderer uses data-tb-device selector (matches existing device attr)',
   /tbRenderTraceCanvasState[\s\S]{0,2000}querySelectorAll\(['"]\[data-tb-device\]/.test(js));
 test('v4.61.0 JS: tbRenderCanvas wrapped so trace decorations survive re-renders',
-  /_tbTraceWrapped\s*=\s*true/.test(js) && // tbRenderCanvas-level sentinel (not part of _tbUiState — it's on the wrapper fn itself)
+  // v4.62.4: canvas wrap moved to _tbOverlayRegistry + tbRegisterOverlay pattern.
+  // Trace overlay now registers via a named closure that calls tbRenderTraceCanvasState
+  // when trace mode is active.
+  /_tbOverlaysWrapped\s*=\s*true/.test(js) &&
+  /tbRegisterOverlay\(function\s+_traceOverlay/.test(js) &&
   /if\s*\(_tbUiState\.trace\.active\)\s*tbRenderTraceCanvasState\(\)/.test(js));
 test('v4.61.0 JS: tbStartTrace respects prefers-reduced-motion (skip auto-play)',
   /function\s+tbStartTrace[\s\S]{0,1200}prefers-reduced-motion[\s\S]{0,200}if\s*\(!rm\)\s*tbTracePlay\(\)/.test(js));
@@ -7869,8 +7873,11 @@ test('v4.62.0 JS: tbRefreshStpState fires reconvergence pulse on changed switche
   /function\s+tbRefreshStpState[\s\S]{0,2000}tb-stp-rethink/.test(js));
 test('v4.62.0 JS: tbSaveDraft calls tbRefreshStpState on every mutation',
   /function\s+tbSaveDraft[\s\S]*?tbRefreshStpState\(\)/.test(js));
-test('v4.62.0 JS: tbRenderCanvas wrapped so STP overlay survives re-renders',
-  /_tbStpWrapped\s*=\s*true/.test(js));
+test('v4.62.0 JS: STP overlay registered in canvas overlay registry (v4.62.4 pattern)',
+  // v4.62.4: canvas wrap unified via _tbOverlayRegistry. STP overlay registers itself
+  // through tbRegisterOverlay(tbRenderStpOverlay) rather than self-wrapping tbRenderCanvas.
+  /_tbOverlaysWrapped\s*=\s*true/.test(js) &&
+  /tbRegisterOverlay\(tbRenderStpOverlay\)/.test(js));
 
 test('v4.62.0 CSS: port dot role variants styled (root gold / designated green / blocked red)',
   /\.tb-stp-port-root[\s\S]{0,200}fill:\s*#f5b73b/.test(css) &&

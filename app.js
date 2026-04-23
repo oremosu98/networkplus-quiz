@@ -18694,19 +18694,37 @@ function tbRenderTraceCanvasState() {
   }
 }
 
-// Hook tbRenderTraceCanvasState into tbRenderCanvas so re-renders preserve decorations
-(function wireTraceCanvasHook() {
+// v4.62.4: Canvas overlay registry. Replaces the earlier double-wrap
+// pattern where each overlay (v4.61.0 trace, v4.62.0 STP) independently
+// wrapped tbRenderCanvas — that grew fragile the moment a third overlay
+// was contemplated. Now: single-wrap, any number of overlay fns register
+// via tbRegisterOverlay() and they all fire AFTER tbRenderCanvas returns.
+// Errors in one overlay don't block the others (per-overlay try/catch).
+const _tbOverlayRegistry = [];
+function tbRegisterOverlay(fn) {
+  if (typeof fn !== 'function') return;
+  if (_tbOverlayRegistry.indexOf(fn) !== -1) return; // idempotent
+  _tbOverlayRegistry.push(fn);
+}
+(function wireCanvasOverlays() {
   if (typeof tbRenderCanvas !== 'function') return;
   const orig = tbRenderCanvas;
-  if (orig._tbTraceWrapped) return;
+  if (orig._tbOverlaysWrapped) return;
   const wrapped = function () {
     orig.apply(this, arguments);
-    try { if (_tbUiState.trace.active) tbRenderTraceCanvasState(); } catch (_) {}
+    for (const overlayFn of _tbOverlayRegistry) {
+      try { overlayFn(); } catch (_) {}
+    }
   };
-  wrapped._tbTraceWrapped = true;
+  wrapped._tbOverlaysWrapped = true;
   // eslint-disable-next-line no-func-assign
   tbRenderCanvas = wrapped;
 })();
+
+// Register the Per-Hop Packet Trace overlay (v4.61.0)
+tbRegisterOverlay(function _traceOverlay() {
+  if (_tbUiState.trace.active) tbRenderTraceCanvasState();
+});
 
 // ── v4.62.0 Spanning Tree Protocol (802.1D) Visualisation (issue #186) ──
 // Pure function: given a topology, compute the converged STP state.
@@ -19045,21 +19063,9 @@ function tbRefreshStpState() {
   }
 }
 
-// Wrap tbRenderCanvas so every canvas re-render refreshes STP overlay too.
-(function wireStpCanvasHook() {
-  if (typeof tbRenderCanvas !== 'function') return;
-  const orig = tbRenderCanvas;
-  if (orig._tbStpWrapped) return;
-  const wrapped = function () {
-    orig.apply(this, arguments);
-    try { tbRenderStpOverlay(); } catch (_) {}
-  };
-  // Preserve any earlier wrapping flags (e.g., trace)
-  Object.keys(orig).forEach(k => { wrapped[k] = orig[k]; });
-  wrapped._tbStpWrapped = true;
-  // eslint-disable-next-line no-func-assign
-  tbRenderCanvas = wrapped;
-})();
+// Register the STP overlay (v4.62.0). Uses the _tbOverlayRegistry wired up
+// above — no separate canvas-wrap needed.
+tbRegisterOverlay(tbRenderStpOverlay);
 
 // ── Traceroute Simulation ──
 function tbTraceroute(dev, dstIp) {
