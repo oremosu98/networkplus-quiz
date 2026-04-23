@@ -99,6 +99,64 @@ for (let i = 0; i < jsLines.length; i++) {
 // over-engineering. Closes out the stale issue #141.
 check('Functions >80 lines', longFunctions, 50);
 
+// v4.62.4: Dead-function check — Thursday tech-debt sweep Option J.
+// Scan every `function name()` definition in app.js; flag any whose name
+// has zero references across app.js, index.html, sw.js, tests/uat.js,
+// and tests/e2e/app.spec.js (excluding the definition itself).
+//
+// Formalizes the ad-hoc Python audit used during Option I (which found +
+// removed 8 dead functions). Going forward, any new function added
+// without a caller trips this check at CI or on the pre-commit hook.
+//
+// False-positive mitigations:
+// - Functions <3 chars are skipped (too likely to collide with 3-letter
+//   words in strings / comments)
+// - HTML onclick handlers count as a reference (e.g., onclick="foo()")
+// - Test files count as references (functions exercised by UAT/Playwright
+//   are legitimate even if not called from app.js directly)
+//
+// If a legitimate-but-dynamically-dispatched function would trip this
+// (e.g., added to a global handler registry), the fix is to add a
+// comment like `// kept: dispatched via <mechanism>` so future
+// grep-audits see the reason — OR add to a carve-out list here.
+function _loadOrEmpty(p) {
+  try { return fs.readFileSync(p, 'utf8'); } catch (_) { return ''; }
+}
+const htmlSrc = _loadOrEmpty('index.html');
+const swSrc = _loadOrEmpty('sw.js');
+const uatSrc = _loadOrEmpty('tests/uat.js');
+const e2eSrc = _loadOrEmpty('tests/e2e/app.spec.js');
+
+// Extract all top-level function defs
+const funcDefRe = /^(?:async\s+)?function\s+(\w+)\s*\(/gm;
+const funcNames = new Set();
+let m;
+while ((m = funcDefRe.exec(js)) !== null) {
+  funcNames.add(m[1]);
+}
+
+const deadFunctions = [];
+for (const name of funcNames) {
+  if (name.length < 3) continue; // skip 1-2 char names — too collision-prone
+  // Count occurrences across all project files. Pattern: \bname\b
+  const pattern = new RegExp('\\b' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+  const appCount = (js.match(pattern) || []).length;
+  const htmlCount = (htmlSrc.match(pattern) || []).length;
+  const swCount = (swSrc.match(pattern) || []).length;
+  const uatCount = (uatSrc.match(pattern) || []).length;
+  const e2eCount = (e2eSrc.match(pattern) || []).length;
+  // appCount === 1 means ONLY the definition matched (no internal calls)
+  // External refs = html/sw/uat/e2e — any of them means "alive"
+  if (appCount <= 1 && htmlCount === 0 && swCount === 0 && uatCount === 0 && e2eCount === 0) {
+    deadFunctions.push(name);
+  }
+}
+check('Dead functions (defined but never called)', deadFunctions.length, 0);
+if (deadFunctions.length > 0) {
+  console.log('\n  Dead functions detected:');
+  deadFunctions.forEach(n => console.log(`    → ${n}()`));
+}
+
 // Duplicated render functions
 const dualRenders = jsLines.filter(line =>
   /^(?:async\s+)?function\s+render(?:Exam)(?:MCQ|MultiSelect|Order|Topology|CliSim)/.test(line)
