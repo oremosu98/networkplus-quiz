@@ -37,13 +37,20 @@ check('styles.css line count', cssLines.length, 3700); // baseline: ~3500 as of 
 // --- Code quality checks ---
 console.log('\n🧹 Code Quality');
 
-// Console statements (excluding error handlers)
+// Debug console.log statements (excluding error-path console.warn which is
+// legitimate production error logging). v4.62.4: tightened from the old
+// `.log|.warn` pattern after a scanner audit found all 10 `console.warn`
+// calls in app.js were tagged-prefix error logs inside try/catch (e.g.
+// `console.warn('[tb] autoBuild failed for', id, err)`) — legitimate
+// production signals, not leftover debug prints. The real concern is
+// `console.log('hello')` style dev leftovers; that's what this check
+// enforces now. `console.warn` + `console.error` are allowed.
 const consoleMatches = jsLines.filter((line, i) => {
   const trimmed = line.trim();
-  return (trimmed.startsWith('console.log(') || trimmed.startsWith('console.warn(')) &&
+  return trimmed.startsWith('console.log(') &&
     !trimmed.includes('error') && !trimmed.includes('Error');
 });
-check('console.log/warn in production', consoleMatches.length, 0);
+check('Debug console.log in production', consoleMatches.length, 0);
 
 // Global variables (let/var at top level, rough heuristic)
 const globalVars = jsLines.filter(line => /^(let|var)\s+\w+/.test(line));
