@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.62.3
+   Network+ AI Quiz — styles.css  v4.62.5
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -9448,7 +9448,10 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   outline-offset: 2px;
 }
 .tb-pane-collapse-btn-left  { right: 8px; }
-.tb-pane-collapse-btn-right { left: 8px; }
+/* v4.62.5: right-pane chevron lives in the pane's outer-right corner
+   (where close/collapse affordances conventionally sit) instead of
+   crowding the "Scenarios" heading. */
+.tb-pane-collapse-btn-right { right: 8px; }
 .tb-left-collapsed  #tb-palette-collapse-btn { transform: rotate(180deg); }
 .tb-right-collapsed #tb-right-collapse-btn   { transform: rotate(180deg); }
 
