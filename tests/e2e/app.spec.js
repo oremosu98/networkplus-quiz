@@ -993,3 +993,103 @@ test.describe('Production Monitor', () => {
     expect(log[0].message).toContain('Test runtime error');
   });
 });
+
+// ══════════════════════════════════════════
+// v4.62.4 — Guided Terminal Lab flow (closes #71)
+//
+// Covers the v4.16.2 regression class: Back button from Guided Lab must
+// return to whichever page the user launched from. Pre-v4.42.5 used a
+// whitelist of page IDs; any page not on the list (e.g. page-ports in
+// v4.16.1, or a new launch point added later) silently fell back to
+// page-topic-dive and dumped the user on a stale screen. Current code
+// (v4.42.5+) finds the active page via `.page.active` — this spec guards
+// both the existing Topic Deep Dive flow AND a programmatic page-ports
+// launch so the regression class can't come back via either path.
+//
+// Tests call `openGuidedLab(...)` directly through page.evaluate() because
+// the real Topic Deep Dive callout only renders after an API-gated Sonnet
+// call — we exercise the Back-navigation contract, not the teacher tier.
+// ══════════════════════════════════════════
+test.describe('Guided Terminal Lab', () => {
+  test('opens a lab and renders step structure (DNS lab)', async ({ page }) => {
+    await page.goto('/');
+
+    // Launch a lab that ships in guidedLabs (DNS Records & DNSSEC → _dnsLab)
+    await page.evaluate(() => window.openGuidedLab('DNS Records & DNSSEC'));
+
+    // Lab page is active
+    await expect(page.locator('#page-guided-lab')).toHaveClass(/active/);
+
+    // Title rendered (italic-accent editorial head)
+    await expect(page.locator('#lab-title')).toContainText(/DNS Records/);
+
+    // Meta pills: objective, duration, step count — all three present
+    const pills = page.locator('#lab-meta .lab-meta-pill');
+    await expect(pills).toHaveCount(3);
+
+    // At least one lab-step, and every step has narration + terminal card + expect block
+    const steps = page.locator('#lab-steps .lab-step');
+    await expect(steps.first()).toBeVisible();
+    const count = await steps.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(steps.nth(i).locator('.lab-step-narration')).toBeVisible();
+      await expect(steps.nth(i).locator('.terminal-card')).toBeVisible();
+      await expect(steps.nth(i).locator('.lab-step-expect')).toBeVisible();
+    }
+
+    // Wrap-up section rendered
+    await expect(page.locator('#lab-wrap .lab-wrap')).toBeVisible();
+  });
+
+  test('Back button returns to page-topic-dive when launched from there', async ({ page }) => {
+    await page.goto('/');
+
+    // Simulate landing on page-topic-dive (the teacher-tier callout that
+    // normally exposes the Start Guided Lab button lives on this page).
+    await page.evaluate(() => window.showPage('topic-dive'));
+    await expect(page.locator('#page-topic-dive')).toHaveClass(/active/);
+
+    await page.evaluate(() => window.openGuidedLab('DNS Records & DNSSEC'));
+    await expect(page.locator('#page-guided-lab')).toHaveClass(/active/);
+
+    // Click Back — the regression check: must land on page-topic-dive, not
+    // some other fallback (e.g. page-ports)
+    await page.locator('#lab-back-btn').click();
+    await expect(page.locator('#page-topic-dive')).toHaveClass(/active/);
+    await expect(page.locator('#page-guided-lab')).not.toHaveClass(/active/);
+  });
+
+  test('Back button returns to page-ports when launched from there (v4.16.2 regression guard)', async ({ page }) => {
+    await page.goto('/');
+
+    // This is the scenario that shipped broken in v4.16.1 → fixed in v4.16.2.
+    // The v4.42.5 refactor replaced the page-whitelist with a `.page.active`
+    // lookup so ANY launching page is tracked — the guard here ensures that
+    // contract holds for page-ports specifically, since that's where the
+    // original regression surfaced.
+    await page.evaluate(() => window.showPage('ports'));
+    await expect(page.locator('#page-ports')).toHaveClass(/active/);
+
+    await page.evaluate(() => window.openGuidedLab('Port Numbers'));
+    await expect(page.locator('#page-guided-lab')).toHaveClass(/active/);
+
+    await page.locator('#lab-back-btn').click();
+    await expect(page.locator('#page-ports')).toHaveClass(/active/);
+    await expect(page.locator('#page-topic-dive')).not.toHaveClass(/active/);
+  });
+
+  test('terminal cards expose a copy button with correct onclick wiring', async ({ page }) => {
+    // Structural check (not a click test) — headless Chromium's clipboard
+    // API resolution is flaky, so assert the button is wired rather than
+    // firing the event. This still fails loud if a refactor strips the
+    // copy affordance entirely, which is what we want to regression-guard.
+    await page.goto('/');
+    await page.evaluate(() => window.openGuidedLab('DNS Records & DNSSEC'));
+
+    const copyBtn = page.locator('#lab-steps .terminal-card').first().locator('button.terminal-card-copy').first();
+    await expect(copyBtn).toBeVisible();
+    await expect(copyBtn).toHaveAttribute('onclick', /copyCmd\(/);
+    await expect(copyBtn).toHaveAttribute('aria-label', /[Cc]opy/);
+  });
+});
