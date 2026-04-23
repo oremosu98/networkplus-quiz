@@ -12226,11 +12226,46 @@ function tbInspectorPopClose() {
   pop.hidden = true;
   pop.classList.remove('tb-inspector-pop-visible');
 }
+// v4.62.4: TB UI state consolidated into one object. Collapses six+ scattered
+// `let _tbX = ...` declarations (v4.60/v4.61/v4.62 inspector + trace + STP
+// + drag/keydown bind flags) that were sprayed across ~7000 lines of app.js.
+// Keeps the per-subsystem nesting clear (inspPrev* for inspector snapshot,
+// trace for trace mode state, stp for STP cached compute, boundFlags for
+// idempotent window-listener sentinels). Thursday tech-debt sweep cleanup —
+// gets global count from 101 → ~94. Single point of truth for all per-TB
+// UI transients.
+let _tbUiState = {
+  // Live Protocol Inspector — row-flash diffing snapshot (v4.60.0)
+  inspPrevArpKeys: new Set(),
+  inspPrevMacKeys: new Set(),
+  inspPrevDeviceId: null,
+  // Per-Hop Packet Trace — state machine (v4.61.0)
+  trace: {
+    active: false,
+    trace: null,
+    currentHop: 0,
+    playing: false,
+    playTimer: null,
+    speedMs: 1500,
+    srcId: null,
+    dstIp: null
+  },
+  // Spanning Tree Protocol viz (v4.62.0)
+  stp: null,
+  stpPrevRoles: {},
+  // Idempotent window/DOM listener bind sentinels
+  boundFlags: {
+    inspectorPopDrag: false,
+    configPanelDrag: false,
+    tracePanelDrag: false,
+    inspectorKeydown: false
+  }
+};
+
 // Drag-by-header. The popup is position:absolute inside .tb-canvas-wrap so
 // movement is relative to the canvas, not the page. Bound once at TB open.
-let _tbInspectorPopDragBound = false;
 function tbBindInspectorPopDrag() {
-  if (_tbInspectorPopDragBound) return;
+  if (_tbUiState.boundFlags.inspectorPopDrag) return;
   const head = document.getElementById('tb-inspector-pop-head');
   const pop = document.getElementById('tb-inspector-pop');
   if (!head || !pop) return;
@@ -12259,7 +12294,7 @@ function tbBindInspectorPopDrag() {
     pop.style.top = nt + 'px';
   });
   window.addEventListener('mouseup', () => { dragging = false; });
-  _tbInspectorPopDragBound = true;
+  _tbUiState.boundFlags.inspectorPopDrag = true;
 }
 
 // v4.60.1: TB side-pane collapse/expand toggles. Left pane = device palette
@@ -12315,9 +12350,8 @@ function tbInitPaneCollapseState() {
 // panel's inner HTML is replaced on every `tbRenderTraceLog()` call, so we
 // bind the listener on the panel element itself + delegate via closest()
 // so re-renders don't break the handler.
-let _tbTracePanelDragBound = false;
 function tbBindTracePanelDrag() {
-  if (_tbTracePanelDragBound) return;
+  if (_tbUiState.boundFlags.tracePanelDrag) return;
   const panel = document.getElementById('tb-trace-panel');
   if (!panel) return;
   let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
@@ -12349,15 +12383,14 @@ function tbBindTracePanelDrag() {
     panel.style.top = nt + 'px';
   });
   window.addEventListener('mouseup', () => { dragging = false; });
-  _tbTracePanelDragBound = true;
+  _tbUiState.boundFlags.tracePanelDrag = true;
 }
 
 // v4.60.0: ESC key closes the Live Protocol Inspector if it's visible.
 // Bound once at TB open. Does not interfere with other ESC handlers —
 // we check visibility first and return early if the inspector is hidden.
-let _tbInspectorKeydownBound = false;
 function tbBindInspectorKeydown() {
-  if (_tbInspectorKeydownBound) return;
+  if (_tbUiState.boundFlags.inspectorKeydown) return;
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     const pop = document.getElementById('tb-inspector-pop');
@@ -12366,15 +12399,14 @@ function tbBindInspectorKeydown() {
     if (document.querySelector('.modal.is-open')) return;
     tbInspectorPopClose();
   });
-  _tbInspectorKeydownBound = true;
+  _tbUiState.boundFlags.inspectorKeydown = true;
 }
 
 // v4.54.7: drag the full-config floating popup by its header. Same pattern
 // as tbBindInspectorPopDrag but for #tb-config-panel (position: fixed, so
 // left/top are viewport-relative, not wrapper-relative).
-let _tbConfigPopDragBound = false;
 function tbBindConfigPanelDrag() {
-  if (_tbConfigPopDragBound) return;
+  if (_tbUiState.boundFlags.configPanelDrag) return;
   const panel = document.getElementById('tb-config-panel');
   if (!panel) return;
   const head = panel.querySelector('.tb-config-head');
@@ -12403,7 +12435,7 @@ function tbBindConfigPanelDrag() {
     panel.style.top = nt + 'px';
   });
   window.addEventListener('mouseup', () => { dragging = false; });
-  _tbConfigPopDragBound = true;
+  _tbUiState.boundFlags.configPanelDrag = true;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -12557,9 +12589,6 @@ function tbSelectPill(mode) {
 //   ARP: ip|mac
 //   MAC: mac|vlan|port
 // Reset on device-change so switching devices doesn't leave stale flashes.
-let _tbInspPrevArpKeys = new Set();
-let _tbInspPrevMacKeys = new Set();
-let _tbInspPrevDeviceId = null;
 
 function _tbInspEsc(s) {
   return (typeof escHtml === 'function') ? escHtml(s) : String(s);
@@ -12677,9 +12706,9 @@ function tbRenderV3Inspector() {
   const dev = (tbState && tbState.devices) ? tbState.devices.find(d => d.id === deviceId) : null;
   if (!dev) {
     // Reset snapshot so flashes don't fire on first show of a new device
-    _tbInspPrevArpKeys = new Set();
-    _tbInspPrevMacKeys = new Set();
-    _tbInspPrevDeviceId = null;
+    _tbUiState.inspPrevArpKeys = new Set();
+    _tbUiState.inspPrevMacKeys = new Set();
+    _tbUiState.inspPrevDeviceId = null;
     el.innerHTML = `<div class="tb-v3-inspector-empty">
       <div class="tb-v3-inspector-empty-ico" aria-hidden="true">\u2139</div>
       <div class="tb-v3-inspector-empty-text"><strong>Click a device</strong> on the canvas to see its interfaces, IPs, and role summary here.</div>
@@ -12696,13 +12725,13 @@ function tbRenderV3Inspector() {
   const currArpKeys = new Set(arpRows.map(r => `${r.ip}|${r.mac}`));
   const currMacKeys = new Set(macRows.map(r => `${r.mac}|${r.vlan}|${r.port}`));
   let flashArp = new Set(), flashMac = new Set();
-  if (_tbInspPrevDeviceId === deviceId) {
-    currArpKeys.forEach(k => { if (!_tbInspPrevArpKeys.has(k)) flashArp.add(k); });
-    currMacKeys.forEach(k => { if (!_tbInspPrevMacKeys.has(k)) flashMac.add(k); });
+  if (_tbUiState.inspPrevDeviceId === deviceId) {
+    currArpKeys.forEach(k => { if (!_tbUiState.inspPrevArpKeys.has(k)) flashArp.add(k); });
+    currMacKeys.forEach(k => { if (!_tbUiState.inspPrevMacKeys.has(k)) flashMac.add(k); });
   }
-  _tbInspPrevArpKeys = currArpKeys;
-  _tbInspPrevMacKeys = currMacKeys;
-  _tbInspPrevDeviceId = deviceId;
+  _tbUiState.inspPrevArpKeys = currArpKeys;
+  _tbUiState.inspPrevMacKeys = currMacKeys;
+  _tbUiState.inspPrevDeviceId = deviceId;
 
   // Device-role metadata
   let typeLabel = dev.type || '';
@@ -18354,16 +18383,6 @@ function tbComputeTrace(state, srcDeviceId, dstIp, maxTtl) {
 }
 
 // ── v4.61.0 Trace mode state machine + UI ──
-let _tbTraceState = {
-  active: false,
-  trace: null,
-  currentHop: 0,
-  playing: false,
-  playTimer: null,
-  speedMs: 1500,
-  srcId: null,
-  dstIp: null
-};
 
 function tbOpenTraceDialog() {
   // Simple prompt-style dialog: pick source device + dst IP
@@ -18398,8 +18417,8 @@ function tbStartTrace(srcId, dstIp) {
     return;
   }
   // Stop any running sim/animation
-  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
-  _tbTraceState = {
+  if (_tbUiState.trace.playTimer) { clearTimeout(_tbUiState.trace.playTimer); _tbUiState.trace.playTimer = null; }
+  _tbUiState.trace = {
     active: true,
     trace,
     currentHop: 0,
@@ -18418,11 +18437,11 @@ function tbStartTrace(srcId, dstIp) {
 }
 
 function tbEndTrace() {
-  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
-  _tbTraceState.active = false;
-  _tbTraceState.playing = false;
-  _tbTraceState.trace = null;
-  _tbTraceState.currentHop = 0;
+  if (_tbUiState.trace.playTimer) { clearTimeout(_tbUiState.trace.playTimer); _tbUiState.trace.playTimer = null; }
+  _tbUiState.trace.active = false;
+  _tbUiState.trace.playing = false;
+  _tbUiState.trace.trace = null;
+  _tbUiState.trace.currentHop = 0;
   const panel = document.getElementById('tb-trace-panel');
   if (panel) panel.hidden = true;
   // Reset canvas decorations
@@ -18430,52 +18449,52 @@ function tbEndTrace() {
 }
 
 function tbTracePlay() {
-  if (!_tbTraceState.active || !_tbTraceState.trace) return;
-  _tbTraceState.playing = true;
+  if (!_tbUiState.trace.active || !_tbUiState.trace.trace) return;
+  _tbUiState.trace.playing = true;
   tbRenderTraceLog(); // refresh play-btn label
   const tick = () => {
-    if (!_tbTraceState.playing || !_tbTraceState.active) return;
-    if (_tbTraceState.currentHop >= _tbTraceState.trace.hops.length - 1) {
-      _tbTraceState.playing = false;
+    if (!_tbUiState.trace.playing || !_tbUiState.trace.active) return;
+    if (_tbUiState.trace.currentHop >= _tbUiState.trace.trace.hops.length - 1) {
+      _tbUiState.trace.playing = false;
       tbRenderTraceLog();
       return;
     }
-    _tbTraceState.currentHop++;
+    _tbUiState.trace.currentHop++;
     tbRenderTraceLog();
     tbRenderTraceCanvasState();
-    _tbTraceState.playTimer = setTimeout(tick, _tbTraceState.speedMs);
+    _tbUiState.trace.playTimer = setTimeout(tick, _tbUiState.trace.speedMs);
   };
-  _tbTraceState.playTimer = setTimeout(tick, _tbTraceState.speedMs);
+  _tbUiState.trace.playTimer = setTimeout(tick, _tbUiState.trace.speedMs);
 }
 
 function tbTracePause() {
-  _tbTraceState.playing = false;
-  if (_tbTraceState.playTimer) { clearTimeout(_tbTraceState.playTimer); _tbTraceState.playTimer = null; }
+  _tbUiState.trace.playing = false;
+  if (_tbUiState.trace.playTimer) { clearTimeout(_tbUiState.trace.playTimer); _tbUiState.trace.playTimer = null; }
   tbRenderTraceLog();
 }
 
 function tbTraceStep() {
-  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  if (!_tbUiState.trace.active || !_tbUiState.trace.trace) return;
   tbTracePause();
-  if (_tbTraceState.currentHop < _tbTraceState.trace.hops.length - 1) {
-    _tbTraceState.currentHop++;
+  if (_tbUiState.trace.currentHop < _tbUiState.trace.trace.hops.length - 1) {
+    _tbUiState.trace.currentHop++;
     tbRenderTraceLog();
     tbRenderTraceCanvasState();
   }
 }
 
 function tbTraceReset() {
-  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  if (!_tbUiState.trace.active || !_tbUiState.trace.trace) return;
   tbTracePause();
-  _tbTraceState.currentHop = 0;
+  _tbUiState.trace.currentHop = 0;
   tbRenderTraceLog();
   tbRenderTraceCanvasState();
 }
 
 function tbTraceSpeedToggle() {
   // Cycle: 1500 → 750 → 3000 → 1500
-  const cur = _tbTraceState.speedMs;
-  _tbTraceState.speedMs = cur === 1500 ? 750 : cur === 750 ? 3000 : 1500;
+  const cur = _tbUiState.trace.speedMs;
+  _tbUiState.trace.speedMs = cur === 1500 ? 750 : cur === 750 ? 3000 : 1500;
   tbRenderTraceLog();
 }
 
@@ -18483,11 +18502,11 @@ function tbTraceSpeedToggle() {
 function tbRenderTraceLog() {
   const host = document.getElementById('tb-trace-panel');
   if (!host) return;
-  if (!_tbTraceState.active || !_tbTraceState.trace) { host.hidden = true; return; }
+  if (!_tbUiState.trace.active || !_tbUiState.trace.trace) { host.hidden = true; return; }
   const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
-  const t = _tbTraceState.trace;
-  const curr = _tbTraceState.currentHop;
-  const srcDev = (tbState.devices || []).find(d => d.id === _tbTraceState.srcId);
+  const t = _tbUiState.trace.trace;
+  const curr = _tbUiState.trace.currentHop;
+  const srcDev = (tbState.devices || []).find(d => d.id === _tbUiState.trace.srcId);
   const srcName = srcDev ? (srcDev.hostname || srcDev.id) : '?';
   const total = t.hops.length;
   const status = t.success ? `${total} hops · delivered` : `${total} hops · failed`;
@@ -18534,27 +18553,27 @@ function tbRenderTraceLog() {
   }).join('');
 
   const atEnd = curr >= total - 1;
-  const playBtnLabel = _tbTraceState.playing ? '⏸' : (atEnd ? '↻' : '▶');
-  const playBtnAction = _tbTraceState.playing ? 'tbTracePause()' : (atEnd ? 'tbTraceReset()' : 'tbTracePlay()');
-  const speedLabel = _tbTraceState.speedMs === 750 ? '2.0×' : _tbTraceState.speedMs === 3000 ? '0.5×' : '1.0×';
+  const playBtnLabel = _tbUiState.trace.playing ? '⏸' : (atEnd ? '↻' : '▶');
+  const playBtnAction = _tbUiState.trace.playing ? 'tbTracePause()' : (atEnd ? 'tbTraceReset()' : 'tbTracePlay()');
+  const speedLabel = _tbUiState.trace.speedMs === 750 ? '2.0×' : _tbUiState.trace.speedMs === 3000 ? '0.5×' : '1.0×';
   const progressPct = Math.min(100, Math.round(((curr + 1) / total) * 100));
 
   host.innerHTML = `
     <div class="tb-trace-head">
       <button type="button" class="tb-trace-close" onclick="tbEndTrace()" aria-label="Exit trace mode" title="Exit trace">×</button>
       <div class="tb-trace-eyebrow">Trace · live replay</div>
-      <div class="tb-trace-title">Ping <em>${esc(_tbTraceState.dstIp)}</em></div>
-      <div class="tb-trace-sub">${esc(srcName)} → ${esc(_tbTraceState.dstIp)} · ${esc(status)}</div>
+      <div class="tb-trace-title">Ping <em>${esc(_tbUiState.trace.dstIp)}</em></div>
+      <div class="tb-trace-sub">${esc(srcName)} → ${esc(_tbUiState.trace.dstIp)} · ${esc(status)}</div>
     </div>
     <div class="tb-trace-hops">${hopsHtml}</div>
     <div class="tb-trace-playback">
       <button type="button" class="tb-trace-btn" onclick="tbTraceReset()" title="Reset">⏮</button>
-      <button type="button" class="tb-trace-btn tb-trace-btn-primary" onclick="${playBtnAction}" title="${_tbTraceState.playing ? 'Pause' : (atEnd ? 'Reset' : 'Play')}">${playBtnLabel}</button>
+      <button type="button" class="tb-trace-btn tb-trace-btn-primary" onclick="${playBtnAction}" title="${_tbUiState.trace.playing ? 'Pause' : (atEnd ? 'Reset' : 'Play')}">${playBtnLabel}</button>
       <button type="button" class="tb-trace-btn" onclick="tbTraceStep()" title="Step">⏭</button>
       <div class="tb-trace-progress">
         <div class="tb-trace-progress-labels">
           <span>HOP ${Math.min(curr + 1, total)} OF ${total}</span>
-          <span>${_tbTraceState.speedMs}ms / hop</span>
+          <span>${_tbUiState.trace.speedMs}ms / hop</span>
         </div>
         <div class="tb-trace-progress-track">
           <div class="tb-trace-progress-fill" style="width:${progressPct}%"></div>
@@ -18572,10 +18591,10 @@ function tbRenderTraceCanvasState() {
   // Always clean up old decorations first
   svg.querySelectorAll('.tb-trace-deco').forEach(el => el.remove());
 
-  if (!_tbTraceState.active || !_tbTraceState.trace) return;
+  if (!_tbUiState.trace.active || !_tbUiState.trace.trace) return;
 
-  const t = _tbTraceState.trace;
-  const curr = _tbTraceState.currentHop;
+  const t = _tbUiState.trace.trace;
+  const curr = _tbUiState.trace.currentHop;
   const currentHop = t.hops[curr];
   const visitedIds = new Set();
   for (let i = 0; i <= curr; i++) {
@@ -18682,7 +18701,7 @@ function tbRenderTraceCanvasState() {
   if (orig._tbTraceWrapped) return;
   const wrapped = function () {
     orig.apply(this, arguments);
-    try { if (_tbTraceState.active) tbRenderTraceCanvasState(); } catch (_) {}
+    try { if (_tbUiState.trace.active) tbRenderTraceCanvasState(); } catch (_) {}
   };
   wrapped._tbTraceWrapped = true;
   // eslint-disable-next-line no-func-assign
@@ -18859,7 +18878,6 @@ function tbComputeStpState(state) {
 
 // Module-level cache of the most recent STP state so renderers + tests can
 // read it without recomputing. Populated on every tbSaveDraft tick (see hook).
-let _tbStpState = null;
 
 // Decoration renderer — runs AFTER tbRenderCanvas, appends a #tb-stp-layer
 // SVG group with crown markers, port-role dots, role chips. Also toggles a
@@ -18875,7 +18893,7 @@ function tbRenderStpOverlay() {
   svg.querySelectorAll('.tb-cable-stp-blocked').forEach(el => el.classList.remove('tb-cable-stp-blocked'));
   svg.querySelectorAll('[data-tb-device].tb-stp-rethink').forEach(el => el.classList.remove('tb-stp-rethink'));
 
-  const stp = _tbStpState;
+  const stp = _tbUiState.stp;
   if (!stp || !stp.converged || !stp.rootId) return;
 
   const devices = (tbState && tbState.devices) || [];
@@ -18986,12 +19004,11 @@ function tbRenderStpOverlay() {
 
 // Trigger recompute + re-render of STP overlay. Tracks which switches changed
 // since the last compute so we can fire a 'rethinking' pulse on them.
-let _tbStpPrevRoles = {};
 function tbRefreshStpState() {
   const next = tbComputeStpState(tbState);
   // Diff: switches whose role changed fire an 800ms pulse on next render
   const changedDeviceIds = new Set();
-  const prev = _tbStpPrevRoles || {};
+  const prev = _tbUiState.stpPrevRoles || {};
   if (next.rootId !== prev._rootId) {
     // Whole domain changed root — all switches pulse
     Object.keys(next.bridges).forEach(id => changedDeviceIds.add(id));
@@ -19006,8 +19023,8 @@ function tbRefreshStpState() {
       }
     });
   }
-  _tbStpPrevRoles = Object.assign({ _rootId: next.rootId }, next.cables);
-  _tbStpState = next;
+  _tbUiState.stpPrevRoles = Object.assign({ _rootId: next.rootId }, next.cables);
+  _tbUiState.stp = next;
 
   // Render overlay + pulse affected switches
   tbRenderStpOverlay();

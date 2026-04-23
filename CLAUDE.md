@@ -266,6 +266,7 @@ After deleting dead code, add a UAT assertion that fails if it reappears. Keeps 
 - `renderTodaysFocus()` must NOT be called from `finish()`/`submitExam()` (FLIP guard, v4.42.0)
 - Bare `max_tokens: <literal>` — must not reappear (v4.42.5 magic-number extraction)
 - `openGuidedLab` whitelist array — must not reappear (v4.42.5 whitelist trap fix)
+- Scattered `let _tbTraceState`, `let _tbInspPrev*`, `let _tbStpState`, `let _tbStpPrevRoles`, `let _tbInspectorKeydownBound`, `let _tbTracePanelDragBound`, `let _tbInspectorPopDragBound`, `let _tbConfigPopDragBound` — consolidated into `_tbUiState` (v4.62.4 Thursday tech-debt sweep). New TB UI transients should be added as nested fields on `_tbUiState`, not new top-level `let` declarations.
 
 ### Progressive Disclosure
 - Marathon Mode (30 / 45 / 60-Q bulk presets) hidden until `loadHistory().length > 0`

@@ -7353,9 +7353,9 @@ test('v4.60.0 JS: _tbInspInapplicable helper defined',
 test('v4.60.0 JS: _tbInspAccSection wrapper defined',
   /function\s+_tbInspAccSection\s*\(icon,\s*label,\s*count,\s*bodyHtml\)/.test(js));
 test('v4.60.0 JS: tbRenderV3Inspector builds flash sets via diff against prev snapshot',
-  /currArpKeys\.forEach\(k\s*=>\s*\{\s*if\s*\(!_tbInspPrevArpKeys\.has\(k\)\)\s*flashArp\.add/.test(js));
+  /currArpKeys\.forEach\(k\s*=>\s*\{\s*if\s*\(!_tbUiState\.inspPrevArpKeys\.has\(k\)\)\s*flashArp\.add/.test(js));
 test('v4.60.0 JS: tbRenderV3Inspector resets snapshot when inspected device changes',
-  /if\s*\(_tbInspPrevDeviceId\s*===\s*deviceId\)/.test(js));
+  /if\s*\(_tbUiState\.inspPrevDeviceId\s*===\s*deviceId\)/.test(js));
 test('v4.60.0 JS: tbSaveDraft refreshes inspector when popup visible',
   /function\s+tbSaveDraft\s*\(\)\s*\{[\s\S]*?getElementById\(['"]tb-inspector-pop['"]\)[\s\S]*?tbRenderV3Inspector\s*\(\)/.test(js));
 test('v4.60.0 JS: tbBindInspectorKeydown defined + wired in openTopologyBuilder',
@@ -7690,8 +7690,8 @@ test('v4.61.0 JS: tbRenderTraceCanvasState applies visited/current/pending class
 test('v4.61.0 JS: trace renderer uses data-tb-device selector (matches existing device attr)',
   /tbRenderTraceCanvasState[\s\S]{0,2000}querySelectorAll\(['"]\[data-tb-device\]/.test(js));
 test('v4.61.0 JS: tbRenderCanvas wrapped so trace decorations survive re-renders',
-  /_tbTraceWrapped\s*=\s*true/.test(js) &&
-  /if\s*\(_tbTraceState\.active\)\s*tbRenderTraceCanvasState\(\)/.test(js));
+  /_tbTraceWrapped\s*=\s*true/.test(js) && // tbRenderCanvas-level sentinel (not part of _tbUiState — it's on the wrapper fn itself)
+  /if\s*\(_tbUiState\.trace\.active\)\s*tbRenderTraceCanvasState\(\)/.test(js));
 test('v4.61.0 JS: tbStartTrace respects prefers-reduced-motion (skip auto-play)',
   /function\s+tbStartTrace[\s\S]{0,1200}prefers-reduced-motion[\s\S]{0,200}if\s*\(!rm\)\s*tbTracePlay\(\)/.test(js));
 
@@ -8005,7 +8005,9 @@ test('v4.62.0 CSS: light-theme overrides crown + port dot stroke',
 test('v4.62.1 JS: tbBindTracePanelDrag function defined',
   /function\s+tbBindTracePanelDrag\s*\(\)/.test(js));
 test('v4.62.1 JS: drag binding uses the idempotent bound-flag pattern',
-  /let\s+_tbTracePanelDragBound[\s\S]{0,100}if\s*\(_tbTracePanelDragBound\)\s*return/.test(js));
+  // v4.62.4: bound flag moved from standalone `let _tbTracePanelDragBound` into `_tbUiState.boundFlags.tracePanelDrag`
+  /if\s*\(_tbUiState\.boundFlags\.tracePanelDrag\)\s*return/.test(js) &&
+  /_tbUiState\.boundFlags\.tracePanelDrag\s*=\s*true/.test(js));
 test('v4.62.1 JS: drag only starts when mousedown is inside .tb-trace-head',
   /tbBindTracePanelDrag[\s\S]{0,2000}closest\(['"]\.tb-trace-head['"]\)/.test(js));
 test('v4.62.1 JS: drag ignores clicks on .tb-trace-close',
