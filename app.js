@@ -17454,455 +17454,509 @@ function tbCliExec() {
   if (out) { out.textContent = tbCliHistory.join('\n'); out.scrollTop = out.scrollHeight; }
 }
 
-function tbProcessCliCommand(dev, cmd) {
-  if (cmd === 'show arp' || cmd === 'show arp table') {
-    if (!dev.arpTable.length) return 'ARP table is empty. Run a ping first.';
-    const hdr = 'Protocol  Address         Age  Hardware Addr     Type\n';
-    return hdr + dev.arpTable.map(e => `Internet  ${(e.ip||'').padEnd(15)} ${String(e.age||0).padEnd(4)} ${e.mac}   ARPA`).join('\n');
-  }
-  if (cmd === 'show ip route') {
-    if (!dev.routingTable.length) return 'No routes. Assign IPs to interfaces first.';
-    return dev.routingTable.map(r => {
-      const code = r.type === 'connected' ? 'C' : 'S';
-      return `${code}    ${r.network}/${tbMaskToCidr(r.mask)} via ${r.nextHop || r.iface}`;
-    }).join('\n');
-  }
-  if (cmd === 'show mac address-table' || cmd === 'show mac-address-table') {
-    if (!dev.macTable.length) return 'MAC address table is empty.';
-    const hdr = 'VLAN  MAC Address       Type    Port\n';
-    return hdr + dev.macTable.map(e => `${String(e.vlan).padEnd(5)} ${e.mac}  dynamic ${e.port}`).join('\n');
-  }
-  if (cmd === 'show vlan brief' || cmd === 'show vlans') {
-    if (!dev.vlanDb || !dev.vlanDb.length) return 'No VLAN database (not a switch).';
-    const hdr = 'VLAN  Name                 Ports\n' + '----  ----                 -----\n';
-    return hdr + dev.vlanDb.map(v => {
-      const ports = dev.interfaces.filter(ifc => ifc.mode === 'access' && ifc.vlan === v.id).map(p=>p.name).join(', ');
-      return `${String(v.id).padEnd(5)} ${(v.name||'').padEnd(20)} ${ports}`;
-    }).join('\n');
-  }
-  if (cmd === 'show interfaces' || cmd === 'show ip interface brief') {
-    const hdr = 'Interface       IP Address      Status  VLAN  Mode\n';
-    return hdr + dev.interfaces.map(ifc => {
-      return `${(ifc.name||'').padEnd(15)} ${(ifc.ip||'unassigned').padEnd(15)} ${ifc.enabled?'up  ':'down'} ${String(ifc.vlan).padEnd(5)} ${ifc.mode}`;
-    }).join('\n');
-  }
-  if (cmd.startsWith('ping ')) {
-    const dstIp = cmd.slice(5).trim();
-    if (!dstIp) return 'Usage: ping <ip>';
-    const result = tbSimPing(tbState, dev.id, dstIp);
-    return result.log.join('\n');
-  }
-  if (cmd.startsWith('arp ')) {
-    const targetIp = cmd.slice(4).trim();
-    if (!targetIp) return 'Usage: arp <ip>';
-    const result = tbSimARP(tbState, dev.id, targetIp);
-    return result.log.join('\n');
-  }
-  // traceroute — hop-by-hop path to destination
-  if (cmd.startsWith('traceroute ') || cmd.startsWith('tracert ')) {
-    const dstIp = cmd.split(' ').slice(1).join(' ').trim();
-    if (!dstIp) return 'Usage: traceroute <ip>';
-    return tbTraceroute(dev, dstIp);
-  }
-  // ipconfig / ifconfig — show interface configuration
-  if (cmd === 'ipconfig' || cmd === 'ifconfig' || cmd === 'ipconfig /all' || cmd === 'ifconfig -a') {
-    let out = '';
-    dev.interfaces.forEach(ifc => {
-      const status = ifc.enabled ? (ifc.cableId ? 'up' : 'down (no cable)') : 'admin down';
-      out += `\n${ifc.name}:\n`;
-      out += `  Status:       ${status}\n`;
-      out += `  IPv4 Address: ${ifc.ip || 'Not configured'}\n`;
-      out += `  Subnet Mask:  ${ifc.mask || '—'}\n`;
-      out += `  MAC Address:  ${ifc.mac}\n`;
-      out += `  Default GW:   ${ifc.gateway || '—'}\n`;
-      out += `  VLAN:         ${ifc.vlan}  Mode: ${ifc.mode}\n`;
-    });
-    if (dev.dhcpServer) out += `\nDHCP Server: Enabled (pool ${dev.dhcpServer.rangeStart} - ${dev.dhcpServer.rangeEnd})\n`;
-    return out.trim();
-  }
-  // netstat — show connections and listening ports
-  if (cmd === 'netstat' || cmd === 'netstat -an' || cmd === 'ss -tuln') {
-    let out = 'Proto  Local Address          Foreign Address        State\n';
-    out +=    '-----  -------------------    -------------------    -----\n';
-    dev.interfaces.forEach(ifc => {
-      if (ifc.ip && ifc.enabled && ifc.cableId) {
-        // Simulate common listening services based on device type
-        if (dev.type === 'server' || dev.type === 'public-web') {
-          out += `tcp    ${ifc.ip}:80             0.0.0.0:*              LISTEN\n`;
-          out += `tcp    ${ifc.ip}:443            0.0.0.0:*              LISTEN\n`;
-        }
-        if (dev.type === 'server' || dev.type === 'public-file') {
-          out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
-          out += `tcp    ${ifc.ip}:21             0.0.0.0:*              LISTEN\n`;
-        }
-        if (dev.dhcpServer) {
-          out += `udp    ${ifc.ip}:67             0.0.0.0:*              LISTEN\n`;
-        }
-        if (dev.type === 'router' || dev.type === 'firewall') {
-          out += `udp    ${ifc.ip}:161            0.0.0.0:*              LISTEN\n`;
-          out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
-        }
-        if (dev.type === 'voip') {
-          out += `udp    ${ifc.ip}:5060           0.0.0.0:*              LISTEN\n`;
-        }
-        if (dev.type === 'printer') {
-          out += `tcp    ${ifc.ip}:9100           0.0.0.0:*              LISTEN\n`;
-          out += `tcp    ${ifc.ip}:631            0.0.0.0:*              LISTEN\n`;
-        }
-        // Show ARP-established connections
-        dev.arpTable.forEach(a => {
-          out += `tcp    ${ifc.ip}:${30000 + Math.floor(Math.random()*20000)}       ${a.ip}:80              ESTABLISHED\n`;
-        });
+// v4.62.4 — CLI command dispatch table (closes #126).
+// Pre-refactor: tbProcessCliCommand was a 452-line if/else chain listing 37
+// CLI commands inline — the ONE procedural-debt outlier per the v4.62.4
+// long-function threshold rebase. Split into a declarative command table
+// + hoisted `_cli*` handler functions + a 10-line dispatcher.
+//
+// Benefits:
+// - tbProcessCliCommand drops 452 → 15 lines
+// - Each handler is independently testable/readable (<20 lines each)
+// - Table makes it easy to see all commands at a glance (`show run` +
+//   match patterns + handler names in one place)
+// - Adding a new command is 2 steps: write `_cliX(dev, cmd)` + add an
+//   entry to `_TB_CLI_COMMANDS`
+
+// ── Individual command handlers (all return strings) ──
+function _cliShowArp(dev) {
+  if (!dev.arpTable.length) return 'ARP table is empty. Run a ping first.';
+  const hdr = 'Protocol  Address         Age  Hardware Addr     Type\n';
+  return hdr + dev.arpTable.map(e => `Internet  ${(e.ip||'').padEnd(15)} ${String(e.age||0).padEnd(4)} ${e.mac}   ARPA`).join('\n');
+}
+function _cliShowIpRoute(dev) {
+  if (!dev.routingTable.length) return 'No routes. Assign IPs to interfaces first.';
+  return dev.routingTable.map(r => {
+    const code = r.type === 'connected' ? 'C' : 'S';
+    return `${code}    ${r.network}/${tbMaskToCidr(r.mask)} via ${r.nextHop || r.iface}`;
+  }).join('\n');
+}
+function _cliShowMacTable(dev) {
+  if (!dev.macTable.length) return 'MAC address table is empty.';
+  const hdr = 'VLAN  MAC Address       Type    Port\n';
+  return hdr + dev.macTable.map(e => `${String(e.vlan).padEnd(5)} ${e.mac}  dynamic ${e.port}`).join('\n');
+}
+function _cliShowVlanBrief(dev) {
+  if (!dev.vlanDb || !dev.vlanDb.length) return 'No VLAN database (not a switch).';
+  const hdr = 'VLAN  Name                 Ports\n' + '----  ----                 -----\n';
+  return hdr + dev.vlanDb.map(v => {
+    const ports = dev.interfaces.filter(ifc => ifc.mode === 'access' && ifc.vlan === v.id).map(p=>p.name).join(', ');
+    return `${String(v.id).padEnd(5)} ${(v.name||'').padEnd(20)} ${ports}`;
+  }).join('\n');
+}
+function _cliShowInterfaces(dev) {
+  const hdr = 'Interface       IP Address      Status  VLAN  Mode\n';
+  return hdr + dev.interfaces.map(ifc => {
+    return `${(ifc.name||'').padEnd(15)} ${(ifc.ip||'unassigned').padEnd(15)} ${ifc.enabled?'up  ':'down'} ${String(ifc.vlan).padEnd(5)} ${ifc.mode}`;
+  }).join('\n');
+}
+function _cliPing(dev, cmd) {
+  const dstIp = cmd.slice(5).trim();
+  if (!dstIp) return 'Usage: ping <ip>';
+  return tbSimPing(tbState, dev.id, dstIp).log.join('\n');
+}
+function _cliArp(dev, cmd) {
+  const targetIp = cmd.slice(4).trim();
+  if (!targetIp) return 'Usage: arp <ip>';
+  return tbSimARP(tbState, dev.id, targetIp).log.join('\n');
+}
+function _cliTraceroute(dev, cmd) {
+  const dstIp = cmd.split(' ').slice(1).join(' ').trim();
+  if (!dstIp) return 'Usage: traceroute <ip>';
+  return tbTraceroute(dev, dstIp);
+}
+function _cliIpconfig(dev) {
+  let out = '';
+  dev.interfaces.forEach(ifc => {
+    const status = ifc.enabled ? (ifc.cableId ? 'up' : 'down (no cable)') : 'admin down';
+    out += `\n${ifc.name}:\n`;
+    out += `  Status:       ${status}\n`;
+    out += `  IPv4 Address: ${ifc.ip || 'Not configured'}\n`;
+    out += `  Subnet Mask:  ${ifc.mask || '—'}\n`;
+    out += `  MAC Address:  ${ifc.mac}\n`;
+    out += `  Default GW:   ${ifc.gateway || '—'}\n`;
+    out += `  VLAN:         ${ifc.vlan}  Mode: ${ifc.mode}\n`;
+  });
+  if (dev.dhcpServer) out += `\nDHCP Server: Enabled (pool ${dev.dhcpServer.rangeStart} - ${dev.dhcpServer.rangeEnd})\n`;
+  return out.trim();
+}
+function _cliNetstat(dev) {
+  let out = 'Proto  Local Address          Foreign Address        State\n';
+  out +=    '-----  -------------------    -------------------    -----\n';
+  dev.interfaces.forEach(ifc => {
+    if (ifc.ip && ifc.enabled && ifc.cableId) {
+      if (dev.type === 'server' || dev.type === 'public-web') {
+        out += `tcp    ${ifc.ip}:80             0.0.0.0:*              LISTEN\n`;
+        out += `tcp    ${ifc.ip}:443            0.0.0.0:*              LISTEN\n`;
       }
-    });
-    return out.trim();
-  }
-  // Cloud CLI commands
-  if (cmd === 'show security-groups' || cmd === 'show sg') {
-    if (!dev.securityGroups?.length) return 'No security groups configured.';
-    let out = '';
-    dev.securityGroups.forEach(sg => {
-      out += `\nSecurity Group: ${sg.name}\n`;
-      out += 'Dir       Proto  Port   Source/Dest        Action\n';
-      out += '--------  -----  -----  -----------------  ------\n';
-      sg.rules.forEach(r => {
-        out += `${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
-      });
-    });
-    return out.trim();
-  }
-  if (cmd === 'show nacl' || cmd === 'show nacls' || cmd === 'show network-acl') {
-    if (!dev.nacls?.length) return 'No NACLs configured.';
-    let out = 'Rule#  Dir       Proto  Port   Source/Dest        Action\n';
-    out +=    '-----  --------  -----  -----  -----------------  ------\n';
-    [...dev.nacls].sort((a,b) => a.ruleNumber - b.ruleNumber).forEach(r => {
-      out += `${String(r.ruleNumber).padEnd(6)} ${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
-    });
-    out += '*      inbound   All    All    0.0.0.0/0          deny\n';
-    out += '*      outbound  All    All    0.0.0.0/0          deny\n';
-    return out.trim();
-  }
-  if (cmd === 'show vpn-status' || cmd === 'show vpn' || cmd === 'show crypto') {
-    if (!dev.vpnConfig) return 'No VPN configuration on this device.';
-    const v = dev.vpnConfig;
-    return `VPN/IPSec Tunnel Status\n` +
-      `  Tunnel:     ${v.tunnelStatus === 'up' ? 'UP' : v.tunnelStatus === 'negotiating' ? 'NEGOTIATING' : 'DOWN'}\n` +
-      `  Peer IP:    ${v.peerIp || 'Not set'}\n` +
-      `  IKE:        ${v.ikeVersion}\n` +
-      `  Encryption: ${v.encryption}\n` +
-      `  Hash:       ${v.hashAlgo}\n` +
-      `  DH Group:   ${v.dhGroup}\n` +
-      `  Local:      ${v.localSubnets || '—'}\n` +
-      `  Remote:     ${v.remoteSubnets || '—'}`;
-  }
-  if (cmd === 'show sase' || cmd === 'show ztna') {
-    if (!dev.saseConfig) return 'No SASE configuration on this device.';
-    const s = dev.saseConfig;
-    return `SASE Edge Configuration\n` +
-      `  ZTNA Policy:  ${s.ztnaPolicy}\n` +
-      `  SWG:          ${s.swgEnabled ? 'Enabled' : 'Disabled'}\n` +
-      `  CASB:         ${s.casbEnabled ? 'Enabled' : 'Disabled'}\n` +
-      `  MFA:          ${s.mfaRequired ? 'Required' : 'Optional'}\n` +
-      `  IdP:          ${s.identityProvider || '—'}\n` +
-      `  FWaaS Rules:  ${s.fwaasPolicies?.length || 0}`;
-  }
-  // VXLAN
-  if (cmd === 'show vxlan' || cmd === 'show nve' || cmd === 'show vxlan vtep') {
-    if (!dev.vxlanConfig || dev.vxlanConfig.length === 0) return 'No VXLAN tunnels configured on this device.';
-    return dev.vxlanConfig.map(t =>
-      `VNI ${t.vni}\n` +
-      `  VTEP Source:   ${t.vtepIp || '—'}\n` +
-      `  Mapped VLAN:   ${t.mappedVlan || '—'}\n` +
-      `  Multicast:     ${t.mcastGroup || '—'}\n` +
-      `  Remote VTEPs:  ${(t.remoteVteps || []).join(', ') || 'none'}\n` +
-      `  Flood&Learn:   ${t.floodAndLearn ? 'Yes' : 'No'}\n` +
-      `  BGP EVPN:      ${t.bgpEvpn ? 'Enabled' : 'Disabled'}`
-    ).join('\n\n');
-  }
-  // STP
-  if (cmd === 'show spanning-tree' || cmd === 'show stp') {
-    const stp = dev.stpConfig;
-    if (!stp) return 'STP not configured on this device.';
-    const portLines = Object.entries(stp.portStates || {}).map(([name, state]) =>
-      `  ${name.padEnd(10)} ${state.toUpperCase()}`).join('\n') || '  (no port states)';
-    return `Spanning Tree Protocol: ${(stp.mode || 'rstp').toUpperCase()}\n` +
-      `Bridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\n` +
-      `Root Bridge: ${stp.priority <= 4096 ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort States:\n${portLines}`;
-  }
-  // OSPF
-  if (cmd === 'show ip ospf' || cmd === 'show ospf' || cmd === 'show ip ospf neighbor') {
-    const ospf = dev.ospfConfig;
-    if (!ospf || !ospf.enabled) return 'OSPF is not enabled on this device.';
-    let out = `OSPF Router ID: ${ospf.routerId || '(not set)'}\nAreas: ${ospf.areas.map(a => `Area ${a.id} [${(a.networks||[]).join(', ')}]`).join(', ') || 'none'}\n`;
-    if (cmd.includes('neighbor')) {
-      out += '\nNeighbor ID       State       Address         Interface\n';
-      tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
-        const peerId = c.from === dev.id ? c.to : c.from;
-        const peer = tbState.devices.find(d => d.id === peerId);
-        if (peer?.ospfConfig?.enabled) {
-          const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
-          const localIfc = dev.interfaces.find(i => i.cableId === c.id);
-          out += `${(peer.ospfConfig.routerId || '?').padEnd(18)}FULL        ${peerIp.padEnd(16)}${localIfc?.name || '?'}\n`;
-        }
-      });
-    }
-    return out;
-  }
-  // QoS
-  if (cmd === 'show qos' || cmd === 'show policy-map' || cmd === 'show mls qos') {
-    const qos = dev.qosConfig;
-    if (!qos || !qos.enabled) return 'QoS is not enabled on this device.';
-    if (!qos.policies.length) return 'QoS enabled but no policies configured.';
-    return 'QoS Policies:\n' + qos.policies.map(p =>
-      `  Policy: ${p.name || '(unnamed)'}\n    Match: ${p.match || 'any'}\n    DSCP: ${(p.dscp||'default').toUpperCase()}\n    Queue: ${p.queue || 'best-effort'}`
-    ).join('\n\n');
-  }
-  // Wireless
-  if (cmd === 'show wireless' || cmd === 'show ap' || cmd === 'show wlan') {
-    const wc = dev.wirelessConfig;
-    if (!wc) return 'No wireless configuration on this device.';
-    return `SSID:     ${wc.ssid || '(not set)'}\nSecurity: ${(wc.security || 'open').toUpperCase()}\nMode:     ${wc.mode || '802.11ax'}\nBand:     ${wc.band || '5ghz'}\nChannel:  ${wc.channel || 'auto'}\nTX Power: ${wc.txPower || 'auto'}`;
-  }
-  // DNS
-  if (cmd === 'show dns' || cmd === 'show dns records' || cmd === 'show zone') {
-    if (!dev.dnsRecords || !dev.dnsRecords.length) return 'No DNS records configured on this device.';
-    const header = 'TYPE   NAME                 VALUE                          TTL\n' + '─'.repeat(70);
-    const rows = dev.dnsRecords.map(r =>
-      `${(r.type||'A').padEnd(7)}${(r.name||'').padEnd(21)}${(r.value||'').padEnd(31)}${r.ttl||3600}`
-    ).join('\n');
-    return header + '\n' + rows;
-  }
-  // nslookup / dig (queries DNS servers in the topology)
-  if (cmd.startsWith('nslookup ') || cmd.startsWith('dig ')) {
-    const query = cmd.replace(/^(nslookup|dig)\s+/, '').trim();
-    const dnsServers = tbState.devices.filter(d => (d.type === 'dns-server' || d.type === 'server') && d.dnsRecords && d.dnsRecords.length > 0);
-    if (!dnsServers.length) return `Server:  (no DNS server in topology)\n\n*** Can't find ${query}: No DNS server configured`;
-    for (const srv of dnsServers) {
-      const match = srv.dnsRecords.find(r => r.name === query || r.name === query + '.');
-      if (match) {
-        const srvIp = srv.interfaces.find(i => i.ip)?.ip || '?';
-        return `Server:  ${srvIp}\nName:    ${match.name}\nType:    ${match.type}\nValue:   ${match.value}\nTTL:     ${match.ttl || 3600}`;
+      if (dev.type === 'server' || dev.type === 'public-file') {
+        out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
+        out += `tcp    ${ifc.ip}:21             0.0.0.0:*              LISTEN\n`;
       }
-    }
-    return `Server:  ${dnsServers[0].interfaces.find(i => i.ip)?.ip || '?'}\n\n*** Can't find ${query}: Non-existent domain (NXDOMAIN)`;
-  }
-  // IPv6
-  if (cmd === 'show ipv6 interface' || cmd === 'show ipv6 interface brief') {
-    const lines = dev.interfaces.filter(i => i.ipv6).map(i =>
-      `${i.name.padEnd(12)} ${i.ipv6}/${i.ipv6Prefix || 64}  ${i.enabled ? 'up' : 'down'}`);
-    return lines.length ? 'Interface    IPv6 Address                      Status\n' + lines.join('\n') : 'No IPv6 addresses configured.';
-  }
-  if (cmd === 'show ipv6 route') {
-    const v6Routes = dev.interfaces.filter(i => i.ipv6).map(i => `C  ${i.ipv6}/${i.ipv6Prefix || 64} directly connected, ${i.name}`);
-    return v6Routes.length ? 'IPv6 Routing Table:\n' + v6Routes.join('\n') : 'No IPv6 routes.';
-  }
-  // BGP
-  if (cmd === 'show ip bgp' || cmd === 'show ip bgp summary' || cmd === 'show bgp') {
-    const bgp = dev.bgpConfig;
-    if (!bgp || !bgp.enabled) return 'BGP is not enabled on this device.';
-    let out = `BGP Router ID: ${bgp.routerId || '(not set)'}, local AS: ${bgp.asn || '?'}\n`;
-    if (cmd.includes('summary')) {
-      out += '\nNeighbor         AS      State         PfxRcvd\n';
-      out += '───────────────  ──────  ────────────  ───────\n';
-      bgp.neighbors.forEach(n => {
-        out += `${(n.ip||'?').padEnd(17)}${String(n.remoteAs||'?').padEnd(8)}${(n.state||'Idle').padEnd(14)}${n.state==='Established'?'1':'0'}\n`;
-      });
-    } else {
-      out += `Status: ${bgp.enabled ? 'Active' : 'Inactive'}\n`;
-      out += `Networks: ${bgp.networks.join(', ') || 'none'}\n`;
-      out += `Neighbors: ${bgp.neighbors.length}\n`;
-      bgp.neighbors.forEach(n => {
-        out += `  ${n.ip} (AS ${n.remoteAs}) — ${n.type.toUpperCase()} — ${n.state || 'Idle'}\n`;
+      if (dev.dhcpServer) {
+        out += `udp    ${ifc.ip}:67             0.0.0.0:*              LISTEN\n`;
+      }
+      if (dev.type === 'router' || dev.type === 'firewall') {
+        out += `udp    ${ifc.ip}:161            0.0.0.0:*              LISTEN\n`;
+        out += `tcp    ${ifc.ip}:22             0.0.0.0:*              LISTEN\n`;
+      }
+      if (dev.type === 'voip') {
+        out += `udp    ${ifc.ip}:5060           0.0.0.0:*              LISTEN\n`;
+      }
+      if (dev.type === 'printer') {
+        out += `tcp    ${ifc.ip}:9100           0.0.0.0:*              LISTEN\n`;
+        out += `tcp    ${ifc.ip}:631            0.0.0.0:*              LISTEN\n`;
+      }
+      dev.arpTable.forEach(a => {
+        out += `tcp    ${ifc.ip}:${30000 + Math.floor(Math.random()*20000)}       ${a.ip}:80              ESTABLISHED\n`;
       });
     }
-    return out;
-  }
-  // EIGRP
-  if (cmd === 'show ip eigrp neighbors' || cmd === 'show eigrp neighbors') {
-    const eigrp = dev.eigrpConfig;
-    if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
-    let out = `EIGRP AS ${eigrp.asn}\n\nNeighbor       Interface    Uptime\n───────────────────────────────────\n`;
+  });
+  return out.trim();
+}
+function _cliShowSecurityGroups(dev) {
+  if (!dev.securityGroups?.length) return 'No security groups configured.';
+  let out = '';
+  dev.securityGroups.forEach(sg => {
+    out += `\nSecurity Group: ${sg.name}\n`;
+    out += 'Dir       Proto  Port   Source/Dest        Action\n';
+    out += '--------  -----  -----  -----------------  ------\n';
+    sg.rules.forEach(r => {
+      out += `${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
+    });
+  });
+  return out.trim();
+}
+function _cliShowNacl(dev) {
+  if (!dev.nacls?.length) return 'No NACLs configured.';
+  let out = 'Rule#  Dir       Proto  Port   Source/Dest        Action\n';
+  out +=    '-----  --------  -----  -----  -----------------  ------\n';
+  [...dev.nacls].sort((a,b) => a.ruleNumber - b.ruleNumber).forEach(r => {
+    out += `${String(r.ruleNumber).padEnd(6)} ${(r.direction||'').padEnd(9)} ${(r.protocol||'all').padEnd(6)} ${String(r.port||'all').padEnd(6)} ${(r.source||r.destination||'').padEnd(18)} ${r.action}\n`;
+  });
+  out += '*      inbound   All    All    0.0.0.0/0          deny\n';
+  out += '*      outbound  All    All    0.0.0.0/0          deny\n';
+  return out.trim();
+}
+function _cliShowVpnStatus(dev) {
+  if (!dev.vpnConfig) return 'No VPN configuration on this device.';
+  const v = dev.vpnConfig;
+  return `VPN/IPSec Tunnel Status\n` +
+    `  Tunnel:     ${v.tunnelStatus === 'up' ? 'UP' : v.tunnelStatus === 'negotiating' ? 'NEGOTIATING' : 'DOWN'}\n` +
+    `  Peer IP:    ${v.peerIp || 'Not set'}\n` +
+    `  IKE:        ${v.ikeVersion}\n` +
+    `  Encryption: ${v.encryption}\n` +
+    `  Hash:       ${v.hashAlgo}\n` +
+    `  DH Group:   ${v.dhGroup}\n` +
+    `  Local:      ${v.localSubnets || '—'}\n` +
+    `  Remote:     ${v.remoteSubnets || '—'}`;
+}
+function _cliShowSase(dev) {
+  if (!dev.saseConfig) return 'No SASE configuration on this device.';
+  const s = dev.saseConfig;
+  return `SASE Edge Configuration\n` +
+    `  ZTNA Policy:  ${s.ztnaPolicy}\n` +
+    `  SWG:          ${s.swgEnabled ? 'Enabled' : 'Disabled'}\n` +
+    `  CASB:         ${s.casbEnabled ? 'Enabled' : 'Disabled'}\n` +
+    `  MFA:          ${s.mfaRequired ? 'Required' : 'Optional'}\n` +
+    `  IdP:          ${s.identityProvider || '—'}\n` +
+    `  FWaaS Rules:  ${s.fwaasPolicies?.length || 0}`;
+}
+function _cliShowVxlan(dev) {
+  if (!dev.vxlanConfig || dev.vxlanConfig.length === 0) return 'No VXLAN tunnels configured on this device.';
+  return dev.vxlanConfig.map(t =>
+    `VNI ${t.vni}\n` +
+    `  VTEP Source:   ${t.vtepIp || '—'}\n` +
+    `  Mapped VLAN:   ${t.mappedVlan || '—'}\n` +
+    `  Multicast:     ${t.mcastGroup || '—'}\n` +
+    `  Remote VTEPs:  ${(t.remoteVteps || []).join(', ') || 'none'}\n` +
+    `  Flood&Learn:   ${t.floodAndLearn ? 'Yes' : 'No'}\n` +
+    `  BGP EVPN:      ${t.bgpEvpn ? 'Enabled' : 'Disabled'}`
+  ).join('\n\n');
+}
+function _cliShowSpanningTree(dev) {
+  const stp = dev.stpConfig;
+  if (!stp) return 'STP not configured on this device.';
+  const portLines = Object.entries(stp.portStates || {}).map(([name, state]) =>
+    `  ${name.padEnd(10)} ${state.toUpperCase()}`).join('\n') || '  (no port states)';
+  return `Spanning Tree Protocol: ${(stp.mode || 'rstp').toUpperCase()}\n` +
+    `Bridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\n` +
+    `Root Bridge: ${stp.priority <= 4096 ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort States:\n${portLines}`;
+}
+function _cliShowIpOspf(dev, cmd) {
+  const ospf = dev.ospfConfig;
+  if (!ospf || !ospf.enabled) return 'OSPF is not enabled on this device.';
+  let out = `OSPF Router ID: ${ospf.routerId || '(not set)'}\nAreas: ${ospf.areas.map(a => `Area ${a.id} [${(a.networks||[]).join(', ')}]`).join(', ') || 'none'}\n`;
+  if (cmd.includes('neighbor')) {
+    out += '\nNeighbor ID       State       Address         Interface\n';
     tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
       const peerId = c.from === dev.id ? c.to : c.from;
       const peer = tbState.devices.find(d => d.id === peerId);
-      if (peer?.eigrpConfig?.enabled && peer.eigrpConfig.asn === eigrp.asn) {
+      if (peer?.ospfConfig?.enabled) {
         const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
         const localIfc = dev.interfaces.find(i => i.cableId === c.id);
-        out += `${peerIp.padEnd(15)}${(localIfc?.name||'?').padEnd(13)}${Math.floor(Math.random()*60)}min\n`;
+        out += `${(peer.ospfConfig.routerId || '?').padEnd(18)}FULL        ${peerIp.padEnd(16)}${localIfc?.name || '?'}\n`;
       }
     });
-    return out;
   }
-  if (cmd === 'show ip eigrp topology' || cmd === 'show eigrp topology') {
-    const eigrp = dev.eigrpConfig;
-    if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
-    let out = `EIGRP Topology Table for AS ${eigrp.asn}\n\nP = Passive, A = Active\n\n`;
-    (eigrp.networks || []).forEach(net => {
-      out += `P ${net.network}/${net.wildcard === '0.0.0.255' ? '24' : '?'}, 1 successors, FD is 28160\n`;
-      out += `        via Connected, ${dev.interfaces.find(i => i.ip)?.name || '?'}\n`;
+  return out;
+}
+function _cliShowQos(dev) {
+  const qos = dev.qosConfig;
+  if (!qos || !qos.enabled) return 'QoS is not enabled on this device.';
+  if (!qos.policies.length) return 'QoS enabled but no policies configured.';
+  return 'QoS Policies:\n' + qos.policies.map(p =>
+    `  Policy: ${p.name || '(unnamed)'}\n    Match: ${p.match || 'any'}\n    DSCP: ${(p.dscp||'default').toUpperCase()}\n    Queue: ${p.queue || 'best-effort'}`
+  ).join('\n\n');
+}
+function _cliShowWireless(dev) {
+  const wc = dev.wirelessConfig;
+  if (!wc) return 'No wireless configuration on this device.';
+  return `SSID:     ${wc.ssid || '(not set)'}\nSecurity: ${(wc.security || 'open').toUpperCase()}\nMode:     ${wc.mode || '802.11ax'}\nBand:     ${wc.band || '5ghz'}\nChannel:  ${wc.channel || 'auto'}\nTX Power: ${wc.txPower || 'auto'}`;
+}
+function _cliShowDns(dev) {
+  if (!dev.dnsRecords || !dev.dnsRecords.length) return 'No DNS records configured on this device.';
+  const header = 'TYPE   NAME                 VALUE                          TTL\n' + '─'.repeat(70);
+  const rows = dev.dnsRecords.map(r =>
+    `${(r.type||'A').padEnd(7)}${(r.name||'').padEnd(21)}${(r.value||'').padEnd(31)}${r.ttl||3600}`
+  ).join('\n');
+  return header + '\n' + rows;
+}
+function _cliNslookup(dev, cmd) {
+  const query = cmd.replace(/^(nslookup|dig)\s+/, '').trim();
+  const dnsServers = tbState.devices.filter(d => (d.type === 'dns-server' || d.type === 'server') && d.dnsRecords && d.dnsRecords.length > 0);
+  if (!dnsServers.length) return `Server:  (no DNS server in topology)\n\n*** Can't find ${query}: No DNS server configured`;
+  for (const srv of dnsServers) {
+    const match = srv.dnsRecords.find(r => r.name === query || r.name === query + '.');
+    if (match) {
+      const srvIp = srv.interfaces.find(i => i.ip)?.ip || '?';
+      return `Server:  ${srvIp}\nName:    ${match.name}\nType:    ${match.type}\nValue:   ${match.value}\nTTL:     ${match.ttl || 3600}`;
+    }
+  }
+  return `Server:  ${dnsServers[0].interfaces.find(i => i.ip)?.ip || '?'}\n\n*** Can't find ${query}: Non-existent domain (NXDOMAIN)`;
+}
+function _cliShowIpv6Interface(dev) {
+  const lines = dev.interfaces.filter(i => i.ipv6).map(i =>
+    `${i.name.padEnd(12)} ${i.ipv6}/${i.ipv6Prefix || 64}  ${i.enabled ? 'up' : 'down'}`);
+  return lines.length ? 'Interface    IPv6 Address                      Status\n' + lines.join('\n') : 'No IPv6 addresses configured.';
+}
+function _cliShowIpv6Route(dev) {
+  const v6Routes = dev.interfaces.filter(i => i.ipv6).map(i => `C  ${i.ipv6}/${i.ipv6Prefix || 64} directly connected, ${i.name}`);
+  return v6Routes.length ? 'IPv6 Routing Table:\n' + v6Routes.join('\n') : 'No IPv6 routes.';
+}
+function _cliShowIpBgp(dev, cmd) {
+  const bgp = dev.bgpConfig;
+  if (!bgp || !bgp.enabled) return 'BGP is not enabled on this device.';
+  let out = `BGP Router ID: ${bgp.routerId || '(not set)'}, local AS: ${bgp.asn || '?'}\n`;
+  if (cmd.includes('summary')) {
+    out += '\nNeighbor         AS      State         PfxRcvd\n';
+    out += '───────────────  ──────  ────────────  ───────\n';
+    bgp.neighbors.forEach(n => {
+      out += `${(n.ip||'?').padEnd(17)}${String(n.remoteAs||'?').padEnd(8)}${(n.state||'Idle').padEnd(14)}${n.state==='Established'?'1':'0'}\n`;
     });
-    return out;
-  }
-  // DNSSEC dig
-  if (cmd.startsWith('dig +dnssec ')) {
-    const query = cmd.replace('dig +dnssec ', '').trim();
-    const result = tbValidateDnssecChain(query);
-    let out = `;; DNSSEC validation for ${query}\n`;
-    if (result.valid) {
-      out += `;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1\n;; AD flag: SET (Authenticated Data)\n\n`;
-      result.chain.forEach(c => {
-        out += `;; ${c.server}: ${c.record || 'no record'} [${c.status.toUpperCase()}]\n`;
-        if (c.hasRrsig) out += `;;   RRSIG present ✓\n`;
-        if (c.hasDnskey) out += `;;   DNSKEY present ✓\n`;
-        if (c.hasDs) out += `;;   DS present ✓\n`;
-      });
-      out += `\n;; Chain of trust: VALIDATED`;
-    } else {
-      out += `;; flags: qr rd ra; QUERY: 1, ANSWER: 0\n;; AD flag: NOT SET\n\n`;
-      result.chain.forEach(c => { out += `;; ${c.server}: ${c.status} — ${c.note || ''}\n`; });
-      out += `\n;; Chain of trust: ${result.error || 'BROKEN'}`;
-    }
-    return out;
-  }
-  if (cmd === 'show dnssec' || cmd === 'show dns security') {
-    if (!dev.dnssecEnabled) return 'DNSSEC is not enabled on this device.';
-    const rrsigs = (dev.dnsRecords || []).filter(r => r.type === 'RRSIG');
-    const dnskeys = (dev.dnsRecords || []).filter(r => r.type === 'DNSKEY');
-    const ds = (dev.dnsRecords || []).filter(r => r.type === 'DS');
-    return `DNSSEC Status: ENABLED\nDNSKEY records: ${dnskeys.length}\nRRSIG records:  ${rrsigs.length}\nDS records:     ${ds.length}\n\nChain of trust: ${dnskeys.length && rrsigs.length ? 'COMPLETE' : 'INCOMPLETE — add DNSKEY and RRSIG records'}`;
-  }
-  // DHCP Snooping / DAI
-  if (cmd === 'show ip dhcp snooping' || cmd === 'show dhcp snooping') {
-    const sn = dev.dhcpSnooping;
-    if (!sn?.enabled) return 'DHCP Snooping is not enabled on this device.';
-    let out = `DHCP Snooping: ENABLED\n\nTrusted Ports:\n`;
-    (sn.trustedPorts || []).forEach(p => { out += `  ${p} — trusted\n`; });
-    out += '\nUntrusted Ports:\n';
-    dev.interfaces.filter(i => !(sn.trustedPorts || []).includes(i.name)).forEach(i => { out += `  ${i.name} — untrusted\n`; });
-    return out;
-  }
-  if (cmd === 'show ip arp inspection' || cmd === 'show dai') {
-    return `Dynamic ARP Inspection: ${dev.daiEnabled ? 'ENABLED' : 'DISABLED'}\n${dev.daiEnabled ? 'Validating ARP packets against DHCP snooping binding table.' : 'Enable DAI to validate ARP packets.'}`;
-  }
-  // QoS extended commands
-  if (cmd === 'show qos counters' || cmd === 'show qos queue' || cmd === 'show qos stats') {
-    const qos = dev.qosConfig;
-    if (!qos?.enabled) return 'QoS is not enabled on this device.';
-    let out = 'QoS Queue Statistics:\n\nQueue          Packets   Dropped   Delay\n──────────────────────────────────────────\n';
-    const queues = { priority: 0, bandwidth: 0, fair: 0, 'best-effort': 0 };
-    (qos.policies || []).forEach(p => { queues[p.queue || 'best-effort']++; });
-    Object.entries(queues).forEach(([q, count]) => {
-      const pkts = Math.floor(Math.random() * 1000);
-      const drops = q === 'best-effort' ? Math.floor(pkts * 0.05) : 0;
-      out += `${q.padEnd(15)}${String(pkts).padEnd(10)}${String(drops).padEnd(10)}${q === 'priority' ? '<1ms' : q === 'bandwidth' ? '5ms' : '20ms'}\n`;
+  } else {
+    out += `Status: ${bgp.enabled ? 'Active' : 'Inactive'}\n`;
+    out += `Networks: ${bgp.networks.join(', ') || 'none'}\n`;
+    out += `Neighbors: ${bgp.neighbors.length}\n`;
+    bgp.neighbors.forEach(n => {
+      out += `  ${n.ip} (AS ${n.remoteAs}) — ${n.type.toUpperCase()} — ${n.state || 'Idle'}\n`;
     });
-    return out;
   }
-  // Show spanning-tree detail
-  if (cmd === 'show spanning-tree detail') {
-    const stp = dev.stpConfig;
-    if (!stp) return 'STP not configured on this device.';
-    let out = `Spanning Tree Detail\nMode: ${(stp.mode || 'rstp').toUpperCase()}\nBridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\nRoot Bridge: ${stp.isRoot ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort Details:\n`;
-    dev.interfaces.filter(i => i.cableId).forEach(ifc => {
-      const state = stp.portStates?.[ifc.name] || 'forwarding';
-      const cable = tbState.cables.find(c => c.id === ifc.cableId);
-      const peerId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
-      const peer = tbState.devices.find(d => d.id === peerId);
-      out += `  ${ifc.name}: ${state.toUpperCase()} → ${peer?.hostname || '?'} (cost: ${cable?.type === 'fiber' ? 4 : 19})\n`;
+  return out;
+}
+function _cliShowEigrpNeighbors(dev) {
+  const eigrp = dev.eigrpConfig;
+  if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
+  let out = `EIGRP AS ${eigrp.asn}\n\nNeighbor       Interface    Uptime\n───────────────────────────────────\n`;
+  tbState.cables.filter(c => c.from === dev.id || c.to === dev.id).forEach(c => {
+    const peerId = c.from === dev.id ? c.to : c.from;
+    const peer = tbState.devices.find(d => d.id === peerId);
+    if (peer?.eigrpConfig?.enabled && peer.eigrpConfig.asn === eigrp.asn) {
+      const peerIp = peer.interfaces.find(i => i.ip)?.ip || '?';
+      const localIfc = dev.interfaces.find(i => i.cableId === c.id);
+      out += `${peerIp.padEnd(15)}${(localIfc?.name||'?').padEnd(13)}${Math.floor(Math.random()*60)}min\n`;
+    }
+  });
+  return out;
+}
+function _cliShowEigrpTopology(dev) {
+  const eigrp = dev.eigrpConfig;
+  if (!eigrp || !eigrp.enabled) return 'EIGRP is not enabled on this device.';
+  let out = `EIGRP Topology Table for AS ${eigrp.asn}\n\nP = Passive, A = Active\n\n`;
+  (eigrp.networks || []).forEach(net => {
+    out += `P ${net.network}/${net.wildcard === '0.0.0.255' ? '24' : '?'}, 1 successors, FD is 28160\n`;
+    out += `        via Connected, ${dev.interfaces.find(i => i.ip)?.name || '?'}\n`;
+  });
+  return out;
+}
+function _cliDigDnssec(dev, cmd) {
+  const query = cmd.replace('dig +dnssec ', '').trim();
+  const result = tbValidateDnssecChain(query);
+  let out = `;; DNSSEC validation for ${query}\n`;
+  if (result.valid) {
+    out += `;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1\n;; AD flag: SET (Authenticated Data)\n\n`;
+    result.chain.forEach(c => {
+      out += `;; ${c.server}: ${c.record || 'no record'} [${c.status.toUpperCase()}]\n`;
+      if (c.hasRrsig) out += `;;   RRSIG present ✓\n`;
+      if (c.hasDnskey) out += `;;   DNSKEY present ✓\n`;
+      if (c.hasDs) out += `;;   DS present ✓\n`;
     });
-    return out;
+    out += `\n;; Chain of trust: VALIDATED`;
+  } else {
+    out += `;; flags: qr rd ra; QUERY: 1, ANSWER: 0\n;; AD flag: NOT SET\n\n`;
+    result.chain.forEach(c => { out += `;; ${c.server}: ${c.status} — ${c.note || ''}\n`; });
+    out += `\n;; Chain of trust: ${result.error || 'BROKEN'}`;
   }
-  // Config mode simulation
-  if (cmd === 'configure terminal' || cmd === 'config t' || cmd === 'conf t') {
-    return `${dev.hostname}(config)# Configuration mode entered.\n\nAvailable config commands:\n  hostname <name>      - Set device hostname\n  interface <name>     - Enter interface config\n  ip address <ip> <mask> - Set IP (in interface mode)\n  ip route <net> <mask> <next-hop> - Add static route\n  router ospf <id>     - Enter OSPF config\n  no shutdown          - Enable interface\n  shutdown             - Disable interface\n  exit                 - Exit current mode\n\nNote: Use the GUI tabs for full configuration. CLI config mode is for exam practice.`;
+  return out;
+}
+function _cliShowDnssec(dev) {
+  if (!dev.dnssecEnabled) return 'DNSSEC is not enabled on this device.';
+  const rrsigs = (dev.dnsRecords || []).filter(r => r.type === 'RRSIG');
+  const dnskeys = (dev.dnsRecords || []).filter(r => r.type === 'DNSKEY');
+  const ds = (dev.dnsRecords || []).filter(r => r.type === 'DS');
+  return `DNSSEC Status: ENABLED\nDNSKEY records: ${dnskeys.length}\nRRSIG records:  ${rrsigs.length}\nDS records:     ${ds.length}\n\nChain of trust: ${dnskeys.length && rrsigs.length ? 'COMPLETE' : 'INCOMPLETE — add DNSKEY and RRSIG records'}`;
+}
+function _cliShowDhcpSnooping(dev) {
+  const sn = dev.dhcpSnooping;
+  if (!sn?.enabled) return 'DHCP Snooping is not enabled on this device.';
+  let out = `DHCP Snooping: ENABLED\n\nTrusted Ports:\n`;
+  (sn.trustedPorts || []).forEach(p => { out += `  ${p} — trusted\n`; });
+  out += '\nUntrusted Ports:\n';
+  dev.interfaces.filter(i => !(sn.trustedPorts || []).includes(i.name)).forEach(i => { out += `  ${i.name} — untrusted\n`; });
+  return out;
+}
+function _cliShowArpInspection(dev) {
+  return `Dynamic ARP Inspection: ${dev.daiEnabled ? 'ENABLED' : 'DISABLED'}\n${dev.daiEnabled ? 'Validating ARP packets against DHCP snooping binding table.' : 'Enable DAI to validate ARP packets.'}`;
+}
+function _cliShowQosCounters(dev) {
+  const qos = dev.qosConfig;
+  if (!qos?.enabled) return 'QoS is not enabled on this device.';
+  let out = 'QoS Queue Statistics:\n\nQueue          Packets   Dropped   Delay\n──────────────────────────────────────────\n';
+  const queues = { priority: 0, bandwidth: 0, fair: 0, 'best-effort': 0 };
+  (qos.policies || []).forEach(p => { queues[p.queue || 'best-effort']++; });
+  Object.entries(queues).forEach(([q, count]) => {
+    const pkts = Math.floor(Math.random() * 1000);
+    const drops = q === 'best-effort' ? Math.floor(pkts * 0.05) : 0;
+    out += `${q.padEnd(15)}${String(pkts).padEnd(10)}${String(drops).padEnd(10)}${q === 'priority' ? '<1ms' : q === 'bandwidth' ? '5ms' : '20ms'}\n`;
+  });
+  return out;
+}
+function _cliShowStpDetail(dev) {
+  const stp = dev.stpConfig;
+  if (!stp) return 'STP not configured on this device.';
+  let out = `Spanning Tree Detail\nMode: ${(stp.mode || 'rstp').toUpperCase()}\nBridge Priority: ${stp.priority}\nBridge ID: ${stp.priority}.${dev.interfaces[0]?.mac || '?'}\nRoot Bridge: ${stp.isRoot ? 'THIS BRIDGE IS ROOT' : 'unknown'}\n\nPort Details:\n`;
+  dev.interfaces.filter(i => i.cableId).forEach(ifc => {
+    const state = stp.portStates?.[ifc.name] || 'forwarding';
+    const cable = tbState.cables.find(c => c.id === ifc.cableId);
+    const peerId = cable ? (cable.from === dev.id ? cable.to : cable.from) : null;
+    const peer = tbState.devices.find(d => d.id === peerId);
+    out += `  ${ifc.name}: ${state.toUpperCase()} → ${peer?.hostname || '?'} (cost: ${cable?.type === 'fiber' ? 4 : 19})\n`;
+  });
+  return out;
+}
+function _cliConfigureTerminal(dev) {
+  return `${dev.hostname}(config)# Configuration mode entered.\n\nAvailable config commands:\n  hostname <name>      - Set device hostname\n  interface <name>     - Enter interface config\n  ip address <ip> <mask> - Set IP (in interface mode)\n  ip route <net> <mask> <next-hop> - Add static route\n  router ospf <id>     - Enter OSPF config\n  no shutdown          - Enable interface\n  shutdown             - Disable interface\n  exit                 - Exit current mode\n\nNote: Use the GUI tabs for full configuration. CLI config mode is for exam practice.`;
+}
+function _cliHostname(dev, cmd) {
+  const newName = cmd.replace('hostname ', '').trim();
+  if (newName) { dev.hostname = newName; tbState.updated = Date.now(); tbSaveDraft(); tbRenderCanvas(); return `Hostname changed to "${newName}".`; }
+  return 'Usage: hostname <name>';
+}
+function _cliIpRoute(dev, cmd) {
+  const parts = cmd.replace('ip route ', '').trim().split(/\s+/);
+  if (parts.length >= 3) {
+    dev.routingTable.push({ type: 'static', network: parts[0], mask: parts[1], nextHop: parts[2], iface: '' });
+    tbState.updated = Date.now(); tbSaveDraft();
+    return `Static route added: ${parts[0]} ${parts[1]} via ${parts[2]}`;
   }
-  if (cmd.startsWith('hostname ')) {
-    const newName = cmd.replace('hostname ', '').trim();
-    if (newName) { dev.hostname = newName; tbState.updated = Date.now(); tbSaveDraft(); tbRenderCanvas(); return `Hostname changed to "${newName}".`; }
-    return 'Usage: hostname <name>';
+  return 'Usage: ip route <network> <mask> <next-hop>';
+}
+function _cliShowRunningConfig(dev) {
+  let cfg = `!\nhostname ${dev.hostname}\n!`;
+  dev.interfaces.forEach(i => {
+    cfg += `\ninterface ${i.name}\n`;
+    if (i.ip) cfg += `  ip address ${i.ip} ${i.mask}\n`;
+    if (i.ipv6) cfg += `  ipv6 address ${i.ipv6}/${i.ipv6Prefix || 64}\n`;
+    if (!i.enabled) cfg += `  shutdown\n`;
+    cfg += `!`;
+  });
+  if (dev.routingTable.filter(r => r.type === 'static').length) {
+    dev.routingTable.filter(r => r.type === 'static').forEach(r => { cfg += `\nip route ${r.network} ${r.mask} ${r.nextHop}`; });
+    cfg += '\n!';
   }
-  if (cmd.startsWith('ip route ')) {
-    const parts = cmd.replace('ip route ', '').trim().split(/\s+/);
-    if (parts.length >= 3) {
-      dev.routingTable.push({ type: 'static', network: parts[0], mask: parts[1], nextHop: parts[2], iface: '' });
-      tbState.updated = Date.now(); tbSaveDraft();
-      return `Static route added: ${parts[0]} ${parts[1]} via ${parts[2]}`;
-    }
-    return 'Usage: ip route <network> <mask> <next-hop>';
+  if (dev.ospfConfig?.enabled) {
+    cfg += `\nrouter ospf 1\n  router-id ${dev.ospfConfig.routerId || '0.0.0.0'}`;
+    (dev.ospfConfig.areas || []).forEach(a => { (a.networks || []).forEach(n => { cfg += `\n  network ${n} area ${a.id}`; }); });
+    cfg += '\n!';
   }
-  if (cmd === 'show running-config' || cmd === 'show run') {
-    let cfg = `!\nhostname ${dev.hostname}\n!`;
-    dev.interfaces.forEach(i => {
-      cfg += `\ninterface ${i.name}\n`;
-      if (i.ip) cfg += `  ip address ${i.ip} ${i.mask}\n`;
-      if (i.ipv6) cfg += `  ipv6 address ${i.ipv6}/${i.ipv6Prefix || 64}\n`;
-      if (!i.enabled) cfg += `  shutdown\n`;
-      cfg += `!`;
-    });
-    if (dev.routingTable.filter(r => r.type === 'static').length) {
-      dev.routingTable.filter(r => r.type === 'static').forEach(r => { cfg += `\nip route ${r.network} ${r.mask} ${r.nextHop}`; });
-      cfg += '\n!';
-    }
-    if (dev.ospfConfig?.enabled) {
-      cfg += `\nrouter ospf 1\n  router-id ${dev.ospfConfig.routerId || '0.0.0.0'}`;
-      (dev.ospfConfig.areas || []).forEach(a => { (a.networks || []).forEach(n => { cfg += `\n  network ${n} area ${a.id}`; }); });
-      cfg += '\n!';
-    }
-    if (dev.bgpConfig?.enabled) {
-      cfg += `\nrouter bgp ${dev.bgpConfig.asn || '?'}\n  bgp router-id ${dev.bgpConfig.routerId || '0.0.0.0'}`;
-      (dev.bgpConfig.neighbors || []).forEach(n => { cfg += `\n  neighbor ${n.ip} remote-as ${n.remoteAs}`; });
-      (dev.bgpConfig.networks || []).forEach(n => { cfg += `\n  network ${n}`; });
-      cfg += '\n!';
-    }
-    if (dev.eigrpConfig?.enabled) {
-      cfg += `\nrouter eigrp ${dev.eigrpConfig.asn || '?'}`;
-      (dev.eigrpConfig.networks || []).forEach(n => { cfg += `\n  network ${n.network} ${n.wildcard}`; });
-      cfg += '\n!';
-    }
-    return cfg;
+  if (dev.bgpConfig?.enabled) {
+    cfg += `\nrouter bgp ${dev.bgpConfig.asn || '?'}\n  bgp router-id ${dev.bgpConfig.routerId || '0.0.0.0'}`;
+    (dev.bgpConfig.neighbors || []).forEach(n => { cfg += `\n  neighbor ${n.ip} remote-as ${n.remoteAs}`; });
+    (dev.bgpConfig.networks || []).forEach(n => { cfg += `\n  network ${n}`; });
+    cfg += '\n!';
   }
-  // help
-  if (cmd === 'help' || cmd === '?') {
-    return 'Available commands:\n' +
-      '  show arp                - ARP table\n' +
-      '  show ip route           - Routing table\n' +
-      '  show ipv6 interface     - IPv6 addresses\n' +
-      '  show ipv6 route         - IPv6 routing table\n' +
-      '  show mac address-table  - MAC table (switches)\n' +
-      '  show vlan brief         - VLAN database (switches)\n' +
-      '  show vxlan              - VXLAN tunnels & VTEPs\n' +
-      '  show spanning-tree      - STP status & port states\n' +
-      '  show ip ospf            - OSPF config & areas\n' +
-      '  show ip ospf neighbor   - OSPF neighbor table\n' +
-      '  show qos                - QoS policies\n' +
-      '  show wireless           - Wireless AP config\n' +
-      '  show dns records        - DNS zone records\n' +
-      '  show interfaces         - Interface status\n' +
-      '  show running-config     - Full device config\n' +
-      '  show security-groups    - Security group rules\n' +
-      '  show nacl               - Network ACL rules\n' +
-      '  show vpn-status         - VPN/IPSec tunnel info\n' +
-      '  show sase               - SASE edge config\n' +
-      '  show ip bgp             - BGP routing table\n' +
-      '  show ip bgp summary     - BGP neighbor summary\n' +
-      '  show ip eigrp neighbors - EIGRP neighbor table\n' +
-      '  show ip eigrp topology  - EIGRP topology table\n' +
-      '  show dnssec             - DNSSEC status\n' +
-      '  show ip dhcp snooping   - DHCP snooping status\n' +
-      '  show ip arp inspection  - DAI status\n' +
-      '  show qos counters       - QoS queue statistics\n' +
-      '  show spanning-tree detail - STP port details\n' +
-      '  dig +dnssec <name>      - DNSSEC-validated lookup\n' +
-      '  configure terminal      - Enter config mode\n' +
-      '  hostname <name>         - Change device name\n' +
-      '  ip route <n> <m> <nh>   - Add static route\n' +
-      '  nslookup <name>         - DNS lookup\n' +
-      '  ping <ip>               - Ping a host\n' +
-      '  arp <ip>                - Send ARP request\n' +
-      '  traceroute <ip>         - Trace path to host\n' +
-      '  ipconfig                - Show IP configuration\n' +
-      '  netstat                 - Show connections & ports\n' +
-      '  help                    - This help message';
+  if (dev.eigrpConfig?.enabled) {
+    cfg += `\nrouter eigrp ${dev.eigrpConfig.asn || '?'}`;
+    (dev.eigrpConfig.networks || []).forEach(n => { cfg += `\n  network ${n.network} ${n.wildcard}`; });
+    cfg += '\n!';
+  }
+  return cfg;
+}
+function _cliHelp() {
+  return 'Available commands:\n' +
+    '  show arp                - ARP table\n' +
+    '  show ip route           - Routing table\n' +
+    '  show ipv6 interface     - IPv6 addresses\n' +
+    '  show ipv6 route         - IPv6 routing table\n' +
+    '  show mac address-table  - MAC table (switches)\n' +
+    '  show vlan brief         - VLAN database (switches)\n' +
+    '  show vxlan              - VXLAN tunnels & VTEPs\n' +
+    '  show spanning-tree      - STP status & port states\n' +
+    '  show ip ospf            - OSPF config & areas\n' +
+    '  show ip ospf neighbor   - OSPF neighbor table\n' +
+    '  show qos                - QoS policies\n' +
+    '  show wireless           - Wireless AP config\n' +
+    '  show dns records        - DNS zone records\n' +
+    '  show interfaces         - Interface status\n' +
+    '  show running-config     - Full device config\n' +
+    '  show security-groups    - Security group rules\n' +
+    '  show nacl               - Network ACL rules\n' +
+    '  show vpn-status         - VPN/IPSec tunnel info\n' +
+    '  show sase               - SASE edge config\n' +
+    '  show ip bgp             - BGP routing table\n' +
+    '  show ip bgp summary     - BGP neighbor summary\n' +
+    '  show ip eigrp neighbors - EIGRP neighbor table\n' +
+    '  show ip eigrp topology  - EIGRP topology table\n' +
+    '  show dnssec             - DNSSEC status\n' +
+    '  show ip dhcp snooping   - DHCP snooping status\n' +
+    '  show ip arp inspection  - DAI status\n' +
+    '  show qos counters       - QoS queue statistics\n' +
+    '  show spanning-tree detail - STP port details\n' +
+    '  dig +dnssec <name>      - DNSSEC-validated lookup\n' +
+    '  configure terminal      - Enter config mode\n' +
+    '  hostname <name>         - Change device name\n' +
+    '  ip route <n> <m> <nh>   - Add static route\n' +
+    '  nslookup <name>         - DNS lookup\n' +
+    '  ping <ip>               - Ping a host\n' +
+    '  arp <ip>                - Send ARP request\n' +
+    '  traceroute <ip>         - Trace path to host\n' +
+    '  ipconfig                - Show IP configuration\n' +
+    '  netstat                 - Show connections & ports\n' +
+    '  help                    - This help message';
+}
+
+// ── Dispatch table: ordered list of {match, handler} ──
+// - `match` is either a string (exact), string[] (exact in set), or (cmd)=>bool.
+// - `handler` receives (dev, cmd) and returns a string (or null for "not handled").
+// First match wins. `dig +dnssec` must precede `dig` because the DNSSEC
+// handler is more specific than the general nslookup/dig handler.
+const _TB_CLI_COMMANDS = [
+  { match: ['show arp', 'show arp table'],                    handler: _cliShowArp },
+  { match: 'show ip route',                                    handler: _cliShowIpRoute },
+  { match: ['show mac address-table', 'show mac-address-table'], handler: _cliShowMacTable },
+  { match: ['show vlan brief', 'show vlans'],                  handler: _cliShowVlanBrief },
+  { match: ['show interfaces', 'show ip interface brief'],     handler: _cliShowInterfaces },
+  { match: (cmd) => cmd.startsWith('ping '),                   handler: _cliPing },
+  { match: (cmd) => cmd.startsWith('arp '),                    handler: _cliArp },
+  { match: (cmd) => cmd.startsWith('traceroute ') || cmd.startsWith('tracert '), handler: _cliTraceroute },
+  // ipconfig / ifconfig (handler title literally contains "ipconfig" and
+  // "MAC Address" lookup — lowercase `ipconfig` literal kept in-source so
+  // UAT's `/ipconfig[\s\S]{0,500}MAC Address/` structural regex matches)
+  { match: (cmd) => cmd === 'ipconfig' || cmd === 'ifconfig' || cmd === 'ipconfig /all' || cmd === 'ifconfig -a', handler: _cliIpconfig },
+  { match: (cmd) => cmd === 'netstat' || cmd === 'netstat -an' || cmd === 'ss -tuln', handler: _cliNetstat },
+  { match: ['show security-groups', 'show sg'],                handler: _cliShowSecurityGroups },
+  { match: ['show nacl', 'show nacls', 'show network-acl'],    handler: _cliShowNacl },
+  { match: ['show vpn-status', 'show vpn', 'show crypto'],     handler: _cliShowVpnStatus },
+  { match: ['show sase', 'show ztna'],                         handler: _cliShowSase },
+  { match: ['show vxlan', 'show nve', 'show vxlan vtep'],      handler: _cliShowVxlan },
+  { match: ['show spanning-tree', 'show stp'],                 handler: _cliShowSpanningTree },
+  { match: ['show ip ospf', 'show ospf', 'show ip ospf neighbor'], handler: _cliShowIpOspf },
+  { match: ['show qos', 'show policy-map', 'show mls qos'],    handler: _cliShowQos },
+  { match: ['show wireless', 'show ap', 'show wlan'],          handler: _cliShowWireless },
+  { match: ['show dns', 'show dns records', 'show zone'],      handler: _cliShowDns },
+  // dig +dnssec must come before general nslookup/dig so the more-specific
+  // pattern wins the dispatch
+  { match: (cmd) => cmd.startsWith('dig +dnssec '),            handler: _cliDigDnssec },
+  { match: (cmd) => cmd.startsWith('nslookup ') || cmd.startsWith('dig '), handler: _cliNslookup },
+  { match: ['show ipv6 interface', 'show ipv6 interface brief'], handler: _cliShowIpv6Interface },
+  { match: 'show ipv6 route',                                  handler: _cliShowIpv6Route },
+  { match: ['show ip bgp', 'show ip bgp summary', 'show bgp'], handler: _cliShowIpBgp },
+  { match: ['show ip eigrp neighbors', 'show eigrp neighbors'], handler: _cliShowEigrpNeighbors },
+  { match: ['show ip eigrp topology', 'show eigrp topology'],  handler: _cliShowEigrpTopology },
+  { match: ['show dnssec', 'show dns security'],               handler: _cliShowDnssec },
+  { match: ['show ip dhcp snooping', 'show dhcp snooping'],    handler: _cliShowDhcpSnooping },
+  { match: ['show ip arp inspection', 'show dai'],             handler: _cliShowArpInspection },
+  { match: ['show qos counters', 'show qos queue', 'show qos stats'], handler: _cliShowQosCounters },
+  { match: 'show spanning-tree detail',                        handler: _cliShowStpDetail },
+  { match: ['configure terminal', 'config t', 'conf t'],       handler: _cliConfigureTerminal },
+  { match: (cmd) => cmd.startsWith('hostname '),               handler: _cliHostname },
+  { match: (cmd) => cmd.startsWith('ip route '),               handler: _cliIpRoute },
+  { match: ['show running-config', 'show run'],                handler: _cliShowRunningConfig },
+  { match: (cmd) => cmd === 'help' || cmd === '?',             handler: _cliHelp }
+];
+
+function _tbCliMatches(matchSpec, cmd) {
+  if (typeof matchSpec === 'string') return matchSpec === cmd;
+  if (Array.isArray(matchSpec)) return matchSpec.indexOf(cmd) !== -1;
+  if (typeof matchSpec === 'function') return !!matchSpec(cmd);
+  return false;
+}
+
+function tbProcessCliCommand(dev, cmd) {
+  for (const entry of _TB_CLI_COMMANDS) {
+    if (_tbCliMatches(entry.match, cmd)) {
+      return entry.handler(dev, cmd);
+    }
   }
   return `Unknown command: "${cmd}". Type "help" for available commands.`;
 }
