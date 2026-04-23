@@ -1,13 +1,79 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════
-# Pre-commit hook: CLAUDE.md freshness check
-# Warns if app.js changed but CLAUDE.md didn't
-# Skip with: git commit --no-verify
+# Pre-commit hook
+#
+# Two gates, in order:
+#   1. UAT run (v4.62.4 / issue #194)   — blocks commit on test failure
+#   2. CLAUDE.md freshness check        — blocks commit if code changed
+#                                         without a docs update
+#
+# Both skippable via: git commit --no-verify
 # ══════════════════════════════════════════
 
 STAGED=$(git diff --cached --name-only)
 
-# Check if app.js or major feature files changed
+# Decide whether to run UAT. Skip for pure-docs commits (CLAUDE.md /
+# CHANGELOG.md / memory only) so trivial docs touches stay fast.
+CODE_CHANGED=false
+for file in app.js index.html styles.css sw.js package.json; do
+  if echo "$STAGED" | grep -q "^${file}$"; then
+    CODE_CHANGED=true
+    break
+  fi
+done
+if echo "$STAGED" | grep -q "^tests/"; then
+  CODE_CHANGED=true
+fi
+if echo "$STAGED" | grep -q "^scripts/"; then
+  CODE_CHANGED=true
+fi
+
+# ── 1. UAT run (v4.62.4 / issue #194) ──
+if [ "$CODE_CHANGED" = true ]; then
+  echo "⏳ Running UAT (tests/uat.js)…"
+
+  # Ensure `node` is in PATH — fall back to nvm's v20.20.2 install if not.
+  if ! command -v node >/dev/null 2>&1; then
+    export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    echo ""
+    echo "  ⚠ node not found in PATH — skipping UAT locally."
+    echo "  CI will still run UAT on push. Consider installing node via nvm"
+    echo "  for the fast local gate. Continuing with commit."
+    echo ""
+  else
+    UAT_OUT=$(mktemp)
+    if ! node tests/uat.js >"$UAT_OUT" 2>&1; then
+      echo ""
+      echo "  ══════════════════════════════════════════════"
+      echo "  ✗ UAT FAILED — commit blocked."
+      echo ""
+      tail -25 "$UAT_OUT"
+      echo ""
+      echo "  Re-run to debug:"
+      echo "    node tests/uat.js"
+      echo ""
+      echo "  To bypass (docs-only / emergency):"
+      echo "    git commit --no-verify"
+      echo "  ══════════════════════════════════════════════"
+      echo ""
+      rm -f "$UAT_OUT"
+      exit 1
+    fi
+    # Extract the summary line for a clean success message
+    SUMMARY=$(grep -oE '[0-9]+/[0-9]+ ALL PASS' "$UAT_OUT" | head -1)
+    rm -f "$UAT_OUT"
+    if [ -n "$SUMMARY" ]; then
+      echo "✓ UAT: $SUMMARY"
+    else
+      echo "✓ UAT passed"
+    fi
+  fi
+fi
+
+# ── 2. CLAUDE.md freshness check (pre-existing) ──
 MAJOR_CHANGED=false
 for file in app.js index.html styles.css; do
   if echo "$STAGED" | grep -q "^${file}$"; then

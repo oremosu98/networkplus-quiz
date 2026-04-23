@@ -380,6 +380,13 @@ python3 -m http.server 3131
 # Open http://localhost:3131
 ```
 
+### Pre-commit hook (v4.62.4 / issue #194)
+`.githooks/pre-commit` runs `node tests/uat.js` locally before every commit and blocks the commit on failure. Skips when only docs-type files (CLAUDE.md, CHANGELOG.md, memory files) are staged so trivial docs touches stay fast. Also runs the pre-existing CLAUDE.md-freshness check. Hook is wired via the `prepare` script in `package.json` setting `core.hooksPath` to `.githooks`, so `npm install` activates it automatically on clone.
+
+- **UAT failure** → commit blocked; hook tails the last 25 lines of UAT output so you see what broke without re-running.
+- **node not in PATH** → UAT skipped with a warning; CI still enforces on push.
+- **Bypass** (docs-only / emergency): `git commit --no-verify`.
+
 ## Test Suite
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
