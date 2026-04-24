@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.70.0', js.includes("const APP_VERSION = '4.70.0"));
+test('APP_VERSION is 4.71.0', js.includes("const APP_VERSION = '4.71.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.70.0', sw.includes('netplus-v4.70.0'));
+test('SW cache bumped to v4.71.0', sw.includes('netplus-v4.71.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9190,6 +9190,42 @@ test('v4.70.0 data: Point-to-Point tour has "The dedicated circuit" step',
   /title:\s*['"]The dedicated circuit['"]/.test(js));
 test('v4.70.0 data: Point-to-Point tour references T1/T3 leased-line capacities',
   /T1\s*\(1\.544 Mbps\)[\s\S]{0,200}T3\/DS3/.test(js));
+
+// ══════════════════════════════════════════
+// v4.71.0 — Three more scenario tours (Site-to-Site VPN + MPLS + SASE)
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.71.0 THREE MORE SCENARIO TOURS ──\x1b[0m');
+// Site-to-Site VPN
+test('v4.71.0 data: s2s-vpn scenario has a tour array',
+  /id:\s*['"]s2s-vpn['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.71.0 data: s2s-vpn tour opens with welcome step',
+  /title:\s*['"]Site-to-Site IPsec VPN['"]/.test(js));
+test('v4.71.0 data: s2s-vpn tour has "The two VPN endpoints" step',
+  /title:\s*['"]The two VPN endpoints['"]/.test(js));
+test('v4.71.0 data: s2s-vpn tour highlights HQ-FW + Branch-FW',
+  /highlight:\s*\[\s*['"]HQ-FW['"]\s*,\s*['"]Branch-FW['"]\s*\]/.test(js));
+
+// MPLS
+test('v4.71.0 data: mpls scenario has a tour array',
+  /id:\s*['"]mpls['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.71.0 data: mpls tour opens with welcome step',
+  /title:\s*['"]MPLS Carrier WAN['"]/.test(js));
+test('v4.71.0 data: mpls tour has "CE vs PE" step',
+  /title:\s*['"]CE vs PE — who does what['"]/.test(js));
+test('v4.71.0 data: mpls tour has "Labels, not IPs" step',
+  /title:\s*['"]Labels, not IPs['"]/.test(js));
+
+// SASE
+test('v4.71.0 data: sase-arch scenario has a tour array',
+  /id:\s*['"]sase-arch['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.71.0 data: sase-arch tour opens with welcome step',
+  /title:\s*['"]SASE Architecture['"]/.test(js));
+test('v4.71.0 data: sase-arch tour has "The SASE PoP" step',
+  /title:\s*['"]The SASE PoP['"]/.test(js));
+test('v4.71.0 data: sase-arch tour has "Zero-trust in practice" step',
+  /title:\s*['"]Zero-trust in practice['"]/.test(js));
+test('v4.71.0 data: sase-arch tour body names all 5 SASE pillars',
+  /SD-WAN[\s\S]{0,400}SWG[\s\S]{0,400}CASB[\s\S]{0,400}ZTNA[\s\S]{0,400}FWaaS/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

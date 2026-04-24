@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.70.0
+// Network+ AI Quiz — app.js  v4.71.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.70.0';
+const APP_VERSION = '4.71.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -14122,6 +14122,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (SASE architecture), 4.1 (zero trust model), 4.3 (identity-based access), 4.4 (cloud security services)',
     },
+    tour: [
+      {
+        title: 'SASE Architecture',
+        body: 'SASE — Secure Access Service Edge — collapses networking + security into a single cloud-delivered service. Remote users on the left, SASE PoP in the middle, corporate resources on the right. Traffic no longer backhauls to HQ just to get inspected; inspection happens at the edge, close to the user.',
+        camera: { position: [36, 32, 40], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The SASE PoP',
+        body: 'The SASE-Edge Point of Presence is the magic box. A single cloud service delivers five converged functions: SD-WAN (transport), SWG (Secure Web Gateway — web filtering + DLP), CASB (Cloud Access Security Broker — SaaS visibility), ZTNA (Zero Trust Network Access — per-app identity auth), and FWaaS (Firewall-as-a-Service — L7 inspection). Users hit the nearest PoP; the PoP enforces policy + forwards on.',
+        camera: { position: [2, 14, 14], target: [-6, 3, 0], durationMs: 1300 },
+        highlight: ['SASE-Edge (PoP)'],
+        durationMs: 17000
+      },
+      {
+        title: 'Zero-trust in practice',
+        body: 'No implicit trust based on network location. Remote-User-01 hitting SaaS-App doesn\'t get "trusted internal" treatment just because they tunneled into the SASE cloud — the SASE-Edge re-verifies their identity + device posture per request, then grants access to that specific app (not the whole network). This is the ZTNA pillar at work.',
+        camera: { position: [-14, 14, 18], target: [-10, 3, 2], durationMs: 1300 },
+        highlight: ['Remote-User-01', 'Remote-User-02', 'Remote-User-03', 'SASE-Edge (PoP)', 'SaaS-App'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'SASE = SD-WAN + SWG + CASB + ZTNA + FWaaS, cloud-delivered, identity-centric. Replaces the old "VPN back to HQ then out" model with "authenticate once at the nearest PoP, apply policy there." Key exam distinctions: SASE is the architecture; SSE is the security-only subset (no SD-WAN). N10-009 1.8 (SASE architecture), 4.1 (zero trust), 4.4 (cloud security services).',
+        camera: { position: [36, 34, 40], target: [0, 2, 0], durationMs: 1400 },
+        highlight: ['SASE-Edge (PoP)'],
+        durationMs: 15000
+      }
+    ],
   },
   // ══════════════════════════════════════════
   // v4.47.0 — New scenarios with deep explanations
@@ -14355,6 +14385,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (WAN — MPLS named explicitly), 2.1 (QoS), 3.3 (WAN routing, BGP)',
     },
+    tour: [
+      {
+        title: 'MPLS Carrier WAN',
+        body: 'A carrier MPLS network connecting Site A and Site B through a provider\'s private backbone. MPLS (Multi-Protocol Label Switching) replaces leased lines for enterprises that want SLA-backed any-to-any connectivity without full-mesh circuits. You buy one connection into the cloud, reach everywhere the carrier goes.',
+        camera: { position: [36, 32, 40], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'CE vs PE — who does what',
+        body: 'Your CE (Customer Edge) routers at each site speak normal IP to the carrier. The PE (Provider Edge) routers at the carrier\'s side push an MPLS label onto every incoming packet. Inside the carrier cloud, routing decisions happen on labels — not IP lookups — which is faster and isolates customers. At egress, the PE pops the label and delivers clean IP.',
+        camera: { position: [0, 16, 18], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Site-A-CE', 'PE-1 (Provider Edge)', 'PE-2 (Provider Edge)', 'Site-B-CE'],
+        durationMs: 16000
+      },
+      {
+        title: 'Labels, not IPs',
+        body: 'Inside MPLS-Core, every packet carries a 20-bit label stack. Routers along the Label Switched Path (LSP) swap labels at each hop, never re-examining the IP header. This is why MPLS can guarantee latency + QoS classes (EF for voice, AF for business traffic, BE for bulk) — the carrier pre-engineers paths per class.',
+        camera: { position: [0, 20, 14], target: [0, 3, -2], durationMs: 1300 },
+        highlight: ['MPLS-Core'],
+        durationMs: 15000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'MPLS = label switching at L2.5 (between L2 and L3). LER (Label Edge Router) = PE; LSR (Label Switch Router) = core. Two flavors: L3VPN (carrier routes for you via MP-BGP) and L2VPN / VPLS (carrier extends your L2 segment). SLA-backed, QoS-native, losing ground to SD-WAN + broadband but still dominant in large enterprises. N10-009 1.7 (WAN topologies, MPLS named explicitly).',
+        camera: { position: [36, 34, 40], target: [0, 2, 0], durationMs: 1400 },
+        highlight: [],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'cloud-natgw',
@@ -14879,6 +14939,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 4.4 (Site-to-site VPN explicitly), 4.4 (IPSec, IKE, ESP, AH), 4.1 (VPN concepts)',
     },
+    tour: [
+      {
+        title: 'Site-to-Site IPsec VPN',
+        body: 'Two offices — HQ on the left, Branch on the right — connected by an IPsec tunnel over the public internet. The modern replacement for leased lines: you reuse commodity broadband and let IPsec\'s encryption compensate for the untrusted transport.',
+        camera: { position: [34, 30, 38], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The two VPN endpoints',
+        body: 'Each office has a firewall that doubles as a VPN gateway. HQ-FW holds a public WAN IP (203.0.113.1); Branch-FW holds another (198.51.100.1). The tunnel terminates on these two devices — everything behind them (10.1.0.0/24 at HQ, 10.2.0.0/24 at Branch) stays on private addressing.',
+        camera: { position: [-6, 14, 16], target: [-10, 2, -4], durationMs: 1300 },
+        highlight: ['HQ-FW', 'Branch-FW'],
+        durationMs: 14000
+      },
+      {
+        title: 'How the tunnel carries traffic',
+        body: 'A packet from HQ-PC to Branch-Srv leaves HQ, hits HQ-FW, gets encapsulated in IPsec (ESP header + encryption), travels the public internet as ciphertext, arrives at Branch-FW, gets decrypted, then routes to Branch-Srv. The internet sees encrypted ESP; only the two firewalls can read the inner payload.',
+        camera: { position: [0, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['HQ-PC-01', 'HQ-FW', 'Internet', 'Branch-FW', 'Branch-Srv'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Site-to-site VPN = always-on tunnel between two gateways (no client software on endpoints — different from remote-access VPN). IPsec has two phases: IKE (Phase 1) negotiates the management channel, ESP (Phase 2) protects the actual data. Both phases\' parameters must match exactly between peers. N10-009 4.4 (Site-to-site + IPsec + IKE + ESP).',
+        camera: { position: [34, 32, 38], target: [0, 2, 0], durationMs: 1400 },
+        highlight: ['HQ-FW', 'Branch-FW'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'remote-vpn',
