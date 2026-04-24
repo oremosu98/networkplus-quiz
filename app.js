@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.66.0
+// Network+ AI Quiz — app.js  v4.65.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.66.0';
+const APP_VERSION = '4.65.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12641,19 +12641,6 @@ async function tbOpen3DView() {
     if (_tbUiState?.trace?.active && _tb3dModule.setTraceState) {
       _tb3dModule.setTraceState(_tbUiState.trace);
     }
-    // v4.66.0: render zones legend + re-host the floating inspector popup
-    // into the right-side dock. Original parent stashed on dataset so
-    // tbClose3DView can restore it.
-    if (typeof _tb3dRenderZonesLegend === 'function') _tb3dRenderZonesLegend();
-    const insp = document.getElementById('tb-inspector-pop');
-    const dock = document.getElementById('tb-3d-inspector-dock');
-    if (insp && dock && !insp.dataset._tb3dOrigParentId) {
-      const origParent = insp.parentElement;
-      insp.dataset._tb3dOrigParentId = origParent?.id || '';
-      if (origParent?.id) {
-        dock.appendChild(insp);
-      }
-    }
   } catch (err) {
     console.warn('[tb3d] failed to load 3D module', err);
     showErrorToast('Could not load 3D View — check network / console.');
@@ -12689,18 +12676,6 @@ function tbClose3DView() {
   // clickable now (auto-picks device if none selected), so we just
   // swap visibility — no `disabled` attribute manipulation.
   if (typeof _tb3dSyncOsiChrome === 'function') _tb3dSyncOsiChrome(false);
-  // v4.66.0: restore the floating inspector popup to its original parent
-  // so 2D mode works normally again.
-  const insp = document.getElementById('tb-inspector-pop');
-  if (insp && insp.dataset._tb3dOrigParentId) {
-    const origParent = document.getElementById(insp.dataset._tb3dOrigParentId);
-    if (origParent) origParent.appendChild(insp);
-    delete insp.dataset._tb3dOrigParentId;
-    // Re-hide the popup since the empty-state should show by default on
-    // re-entry into 3D.
-    insp.hidden = true;
-    insp.classList.remove('tb-inspector-pop-visible');
-  }
 }
 
 function tb3dResetCamera() {
@@ -12708,27 +12683,6 @@ function tb3dResetCamera() {
 }
 function tb3dTopDown() {
   if (_tb3dModule && _tb3dActive) _tb3dModule.topDown();
-}
-// v4.66.0 — camera rail zoom + fit-all + zones legend renderer
-function tb3dZoomCamera(factor) {
-  if (_tb3dModule && _tb3dActive && _tb3dModule.zoomCamera) _tb3dModule.zoomCamera(factor);
-}
-function tb3dFitAll() {
-  if (_tb3dModule && _tb3dActive && _tb3dModule.fitAll) _tb3dModule.fitAll();
-}
-function _tb3dRenderZonesLegend() {
-  const rows = document.getElementById('tb-3d-zones-rows');
-  const legend = document.getElementById('tb-3d-zones-legend');
-  if (!rows || !legend) return;
-  const zones = (_tb3dModule?.getActiveZones) ? _tb3dModule.getActiveZones() : [];
-  if (!zones.length) { legend.hidden = true; return; }
-  legend.hidden = false;
-  rows.innerHTML = zones.map(z =>
-    `<div class="tb-3d-zones-row"><span class="tb-3d-zones-swatch" style="background:${z.colorHex}"></span>${_tb3dEscHtml(z.label)}</div>`
-  ).join('');
-}
-function _tb3dEscHtml(s) {
-  return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
 function tb3dDismissMobileNudge() {
   sessionStorage.setItem('tb3dNudgeDismissed', '1');

@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.66.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.65.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1624,59 +1624,12 @@
                 <span class="tb-3d-trace-hud-dot" aria-hidden="true"></span>
                 <span id="tb-3d-trace-hud-text">Packet Trace</span>
               </div>
-              <!-- v4.66.0: Reset Camera + Top preset moved to the left
-                   camera rail. Kept Reset in chrome as a quick-access
-                   fallback since users instinctively look for it here. -->
               <button type="button" class="tb-pill tb-pill-action" onclick="tb3dResetCamera()" title="Reset camera to isometric view">&#8634; Reset Camera</button>
+              <button type="button" class="tb-pill tb-pill-action" onclick="tb3dTopDown()" title="Top-down view">&#9634; Top</button>
             </div>
           </div>
-          <!-- v4.66.0: canvas + rail + inspector dock as a grid. Camera rail
-               on the left, canvas in the middle, pinned inspector on the
-               right. The inspector re-hosts the existing #tb-inspector-pop
-               element while 3D is active, then returns it to its original
-               floating-popup parent on exit. -->
-          <div class="tb-3d-inner" id="tb-3d-inner">
-            <!-- Left camera rail -->
-            <aside class="tb-3d-camera-rail" id="tb-3d-camera-rail" aria-label="Camera controls">
-              <button type="button" class="tb-3d-rail-btn" title="Isometric" onclick="tb3dResetCamera()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a9 9 0 0 1 9 9"></path></svg>
-              </button>
-              <button type="button" class="tb-3d-rail-btn" title="Top-down" onclick="tb3dTopDown()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>
-              </button>
-              <div class="tb-3d-rail-sep"></div>
-              <button type="button" class="tb-3d-rail-btn" title="Zoom in" onclick="tb3dZoomCamera(0.85)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              </button>
-              <button type="button" class="tb-3d-rail-btn" title="Zoom out" onclick="tb3dZoomCamera(1.18)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-              </button>
-              <button type="button" class="tb-3d-rail-btn" title="Fit all" onclick="tb3dFitAll()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 4 4 4 4 9"></polyline><polyline points="20 9 20 4 15 4"></polyline><polyline points="4 15 4 20 9 20"></polyline><polyline points="20 15 20 20 15 20"></polyline></svg>
-              </button>
-              <div class="tb-3d-rail-label">CAMERA</div>
-            </aside>
-            <!-- Canvas container -->
-            <div class="tb-3d-canvas-wrap">
-              <div class="tb-3d-canvas" id="tb-3d-canvas"></div>
-              <div class="tb-3d-labels" id="tb-3d-labels"></div>
-              <!-- Zones legend -->
-              <div class="tb-3d-zones-legend" id="tb-3d-zones-legend" aria-hidden="true">
-                <div class="tb-3d-zones-head">ZONES</div>
-                <div class="tb-3d-zones-rows" id="tb-3d-zones-rows"></div>
-              </div>
-            </div>
-            <!-- Pinned inspector dock (right side) -->
-            <aside class="tb-3d-inspector-dock" id="tb-3d-inspector-dock" aria-label="Device inspector">
-              <!-- #tb-inspector-pop re-parented here by tbOpen3DView; tbClose3DView
-                   restores it to its original tb-canvas-wrap parent. -->
-              <div class="tb-3d-inspector-empty" id="tb-3d-inspector-empty">
-                <div class="tb-3d-inspector-empty-icon">&#128270;</div>
-                <div class="tb-3d-inspector-empty-title">Click a device</div>
-                <div class="tb-3d-inspector-empty-sub">Tap any device in the scene to inspect its live state &mdash; routing table, ARP cache, MAC address table, DHCP config.</div>
-              </div>
-            </aside>
-          </div>
+          <div class="tb-3d-canvas" id="tb-3d-canvas"></div>
+          <div class="tb-3d-labels" id="tb-3d-labels"></div>
           <!-- v4.64.0: hop-card strip below the 3D canvas, rendered only while a trace is active -->
           <div class="tb-3d-hop-strip" id="tb-3d-hop-strip" hidden>
             <div class="tb-3d-hop-strip-head">
