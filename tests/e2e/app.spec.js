@@ -1362,7 +1362,7 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
     });
   });
 
-  test('OSI button starts disabled + enables when a device is selected', async ({ page }) => {
+  test('OSI button is always clickable + auto-picks a device if none selected (v4.65.1)', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
       window.showPage('topology-builder');
@@ -1373,12 +1373,14 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
 
     const osiBtn = page.locator('#tb-3d-osi-btn');
     await expect(osiBtn).toBeVisible();
-    // Disabled at rest (no selection yet)
-    await expect(osiBtn).toHaveAttribute('disabled', '');
-
-    // Select a device programmatically → button enables
-    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    // Button is always enabled — v4.65.1 removed the disabled-at-rest trap
     await expect(osiBtn).not.toHaveAttribute('disabled', '');
+
+    // Clicking without prior selection should still work — auto-picks a device
+    await page.evaluate(() => { window.tbV3InspectedDeviceId = null; });
+    await osiBtn.click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-osi-active/);
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(7, { timeout: 3000 });
   });
 
   test('entering OSI mode lifts device into 7 layer planes with labels', async ({ page }) => {

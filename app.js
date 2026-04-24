@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.65.0
+// Network+ AI Quiz — app.js  v4.65.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.65.0';
+const APP_VERSION = '4.65.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12672,10 +12672,10 @@ function tbClose3DView() {
     if (typeof tbRenderTraceCanvasState === 'function') tbRenderTraceCanvasState();
   }
   // v4.65.0 Phase 3: reset OSI chrome buttons to starting state so
-  // re-entering 3D has a clean slate.
+  // re-entering 3D has a clean slate. v4.65.1: button is always
+  // clickable now (auto-picks device if none selected), so we just
+  // swap visibility — no `disabled` attribute manipulation.
   if (typeof _tb3dSyncOsiChrome === 'function') _tb3dSyncOsiChrome(false);
-  const osiBtn = document.getElementById('tb-3d-osi-btn');
-  if (osiBtn) osiBtn.setAttribute('disabled', 'true');
 }
 
 function tb3dResetCamera() {
@@ -12731,9 +12731,27 @@ function tb3dTraceEnd() {
 // Entering OSI mode lifts that device into a 7-plane exploded stack.
 function tb3dEnterOsiView() {
   if (!_tb3dActive || !_tb3dModule || typeof _tb3dModule.enterOsiView !== 'function') return;
-  const deviceId = typeof tbV3InspectedDeviceId !== 'undefined' ? tbV3InspectedDeviceId : null;
+  let deviceId = typeof tbV3InspectedDeviceId !== 'undefined' ? tbV3InspectedDeviceId : null;
+  // v4.65.1: if nothing's selected, auto-pick a sensible device so the
+  // feature works on first-click without the user hunting for the "right"
+  // thing to click. Preference: endpoint (pc/laptop/phone) > router >
+  // any non-cloud device.
+  if (!deviceId && tbState?.devices?.length) {
+    const devs = tbState.devices;
+    const pick =
+      devs.find(d => d.type === 'pc' || d.type === 'laptop' || d.type === 'smartphone') ||
+      devs.find(d => d.type === 'router') ||
+      devs.find(d => d.type !== 'cloud' && d.type !== 'isp-router') ||
+      devs[0];
+    if (pick) {
+      deviceId = pick.id;
+      if (typeof tbSelectDeviceForInspector === 'function') {
+        tbSelectDeviceForInspector(deviceId);
+      }
+    }
+  }
   if (!deviceId) {
-    if (typeof showErrorToast === 'function') showErrorToast('Click a device first, then OSI Stack.');
+    if (typeof showErrorToast === 'function') showErrorToast('Add a device first, then OSI Stack.');
     return;
   }
   const ok = _tb3dModule.enterOsiView(deviceId);
@@ -12754,14 +12772,12 @@ function _tb3dSyncOsiChrome(active) {
   if (exitBtn) exitBtn.hidden = !active;
   if (traceBtn) traceBtn.hidden = active;
 }
-// Enable/disable OSI button based on selection state. Called whenever a
-// device is selected (from tbSelectDeviceForInspector).
+// Kept for v4.65.0 backward compat + regression guard. v4.65.1 made the
+// OSI button always clickable (it auto-picks a device if none is selected),
+// so this now only ensures `disabled` is never stuck on.
 function _tb3dUpdateOsiButtonEnabled() {
   const osiBtn = document.getElementById('tb-3d-osi-btn');
-  if (!osiBtn) return;
-  const hasSelection = !!(typeof tbV3InspectedDeviceId !== 'undefined' && tbV3InspectedDeviceId);
-  if (hasSelection) osiBtn.removeAttribute('disabled');
-  else osiBtn.setAttribute('disabled', 'true');
+  if (osiBtn) osiBtn.removeAttribute('disabled');
 }
 
 // v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60

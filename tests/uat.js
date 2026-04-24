@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.65.0', js.includes("const APP_VERSION = '4.65.0"));
+test('APP_VERSION is 4.65.1', js.includes("const APP_VERSION = '4.65.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.65.0', sw.includes('netplus-v4.65.0'));
+test('SW cache bumped to v4.65.1', sw.includes('netplus-v4.65.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8945,8 +8945,8 @@ test('v4.65.0 app.js: tbClose3DView resets OSI chrome to disabled starting state
 // --- HTML wiring ---
 test('v4.65.0 HTML: OSI Stack button in 3D chrome',
   html.includes('id="tb-3d-osi-btn"') && html.includes('tb3dEnterOsiView()'));
-test('v4.65.0 HTML: OSI button ships disabled (no device selected on 3D entry)',
-  /id="tb-3d-osi-btn"[^>]*disabled/.test(html));
+test('v4.65.1 HTML: OSI button ships enabled (auto-picks device if none selected)',
+  !/id="tb-3d-osi-btn"[^>]*disabled/.test(html));
 test('v4.65.0 HTML: Exit OSI button present + hidden by default',
   html.includes('id="tb-3d-osi-exit-btn"') && /id="tb-3d-osi-exit-btn"[^>]*hidden/.test(html));
 test('v4.65.0 HTML: OSI title card with eyebrow + device name + sub',
@@ -8968,10 +8968,11 @@ test('v4.65.0 CSS: OSI title card absolute-positioned, hidden at rest',
   /\.tb-3d-osi-title\s*\{[\s\S]{0,400}display:\s*none/.test(css));
 
 // --- Regression guards ---
-// OSI button must NEVER be enabled without a selected device — otherwise
-// enterOsiView fires on a null deviceId and silently does nothing.
-test('v4.65.0 REGRESSION: OSI button starts disabled in HTML (requires JS enable)',
-  /id="tb-3d-osi-btn"[^>]*disabled/.test(html));
+// OSI button must auto-pick a device if nothing's selected — this
+// avoids the dead-UX trap where the button looked broken without a
+// clear remedy (v4.65.0 bug: button disabled with no visible hint).
+test('v4.65.1 REGRESSION: tb3dEnterOsiView auto-picks a device when none selected',
+  /tb3dEnterOsiView[\s\S]{0,1200}tbSelectDeviceForInspector\(deviceId\)/.test(js));
 // tb3d must never mutate app.js trace state — render-only contract
 test('v4.65.0 REGRESSION: tb3d.js never assigns to _tbUiState',
   !/_tbUiState\.[a-zA-Z]+\s*=/.test(tb3d));
