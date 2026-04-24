@@ -25,6 +25,18 @@ let onDeviceClickCb = null;
 let resizeObserver = null;
 let _reducedMotion = false;
 
+// v4.64.0 Phase 2 — trace rendering state. tb3d.js is render-only;
+// app.js owns the trace state at _tbUiState.trace and pushes updates
+// via setTraceState(). _currTraceState is the last snapshot we received.
+let _currTraceState = null;
+let _packetMesh = null;
+let _packetGlowMesh = null;
+let _frameBadge = null;
+let _frameBadgeObj = null;
+let _tracePathMeshes = [];  // highlight meshes on the visited cable paths
+let _traceAnimToken = 0;    // bump to abort in-flight animations on new updates
+let _prevCurrentHop = -1;
+
 // Scene scale — 2D canvas coords divided by this to map to Three.js world units.
 // tb canvas is 1800x1100 units ≈ map to ~70x40 in 3D world. Tuned during
 // local smoke-test so devices read clearly at in-app viewport size (~600px).
@@ -152,6 +164,35 @@ export function resetCamera() {
 
 export function topDown() {
   _tweenCamera(new THREE.Vector3(0, 60, 0.1), new THREE.Vector3(0, 0, 0));
+}
+
+// v4.64.0 Phase 2 — render-only trace bridge. app.js calls this on every
+// `_tbUiState.trace` mutation (start, tick, step, end). Pass null to
+// clear. traceState shape matches _tbUiState.trace:
+//   { active, trace: {hops, success, path}, currentHop, playing, speedMs, srcId, dstIp }
+export function setTraceState(traceState) {
+  if (!scene) return; // Exited; nothing to render against.
+  _currTraceState = traceState && traceState.active ? traceState : null;
+
+  _updateHopStrip();
+  _updateTraceHud();
+  _updatePlaybackControls();
+  _updateDeviceHighlights();
+  _updateCableHighlights();
+
+  if (!_currTraceState) {
+    _clearPacket();
+    _prevCurrentHop = -1;
+    return;
+  }
+
+  // Animate packet for the NEW current hop (if advanced). Skip animation
+  // on reduced-motion: jump to target + refresh badge.
+  const hopIdx = _currTraceState.currentHop | 0;
+  if (hopIdx !== _prevCurrentHop) {
+    _prevCurrentHop = hopIdx;
+    _animateCurrentHop(hopIdx);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1055,8 +1096,327 @@ function _startAnim() {
   function loop() {
     animId = requestAnimationFrame(loop);
     controls.update();
+    // v4.64.0: packet glow bob — tiny scale oscillation, gated off on reduced-motion
+    if (_packetGlowMesh && _packetGlowMesh.visible && !_reducedMotion) {
+      _packetGlowMesh.scale.setScalar(1 + Math.sin(performance.now() * 0.006) * 0.15);
+    }
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
   }
   loop();
+}
+
+// ══════════════════════════════════════════
+// v4.64.0 Phase 2 — Packet Trace Rendering
+// ══════════════════════════════════════════
+
+function _ensurePacketMeshes() {
+  if (_packetMesh) return;
+  _packetMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 16, 12),
+    new THREE.MeshStandardMaterial({
+      color: 0xffe066, emissive: 0xffe066, emissiveIntensity: 1.5
+    })
+  );
+  _packetMesh.visible = false;
+  scene.add(_packetMesh);
+
+  _packetGlowMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.7, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.25 })
+  );
+  _packetGlowMesh.visible = false;
+  scene.add(_packetGlowMesh);
+
+  // Frame badge — CSS2DObject attached to the packet
+  _frameBadge = document.createElement('div');
+  _frameBadge.className = 'tb-3d-frame-badge';
+  _frameBadge.innerHTML = '<span class="title">Frame</span>';
+  _frameBadgeObj = new CSS2DObject(_frameBadge);
+  _frameBadgeObj.position.set(0, 0.9, 0);
+  _frameBadgeObj.visible = false;
+  _packetMesh.add(_frameBadgeObj);
+}
+
+function _clearPacket() {
+  if (_packetMesh) _packetMesh.visible = false;
+  if (_packetGlowMesh) _packetGlowMesh.visible = false;
+  if (_frameBadgeObj) _frameBadgeObj.visible = false;
+  _traceAnimToken++;
+}
+
+function _positionPacketAtDevice(deviceId) {
+  const dev = devices3D[deviceId];
+  if (!dev) return null;
+  const p = dev.group.position.clone();
+  p.y = _cableAnchorY(dev.type);
+  if (_packetMesh) { _packetMesh.position.copy(p); _packetMesh.visible = true; }
+  if (_packetGlowMesh) { _packetGlowMesh.position.copy(p); _packetGlowMesh.visible = true; }
+  return p;
+}
+
+// _cableAnchorY already defined above (Phase 1 cable factory); reused here.
+
+function _findCableCurve(fromId, toId) {
+  const cable = cables3D.find(c =>
+    (c.fromId === fromId && c.toId === toId) || (c.fromId === toId && c.toId === fromId)
+  );
+  if (!cable) return null;
+  return { curve: cable.curve, reverse: cable.fromId === toId };
+}
+
+// Derive per-hop from→to device pair using the trace's path array
+function _resolveHopEndpoints(hopIdx) {
+  const s = _currTraceState;
+  if (!s || !s.trace || !s.trace.hops) return null;
+  const hop = s.trace.hops[hopIdx];
+  if (!hop) return null;
+  const path = s.trace.path || [];
+  // Strategy: prefer path[hopIdx-1] → path[hopIdx]. For hop 0, use hop.deviceId alone.
+  // For DELIVER hops, the packet has already arrived; we pulse the device instead.
+  if (hop.layer === 'DELIVER' || hop.layer === 'FAIL') {
+    return { fromId: path[hopIdx - 1] || hop.deviceId, toId: hop.deviceId, terminal: true };
+  }
+  if (hopIdx === 0) {
+    return { fromId: hop.deviceId, toId: hop.deviceId, terminal: false, first: true };
+  }
+  return { fromId: path[hopIdx - 1] || hop.deviceId, toId: hop.deviceId, terminal: false };
+}
+
+function _animateCurrentHop(hopIdx) {
+  if (!_currTraceState) return;
+  _ensurePacketMeshes();
+  const token = ++_traceAnimToken;
+
+  const endpoints = _resolveHopEndpoints(hopIdx);
+  if (!endpoints) return;
+
+  const hop = _currTraceState.trace.hops[hopIdx];
+  _updateFrameBadge(hop);
+
+  // Terminal hop (DELIVER / FAIL) — pulse destination, no travel.
+  if (endpoints.terminal || hop.status === 'fail') {
+    _positionPacketAtDevice(endpoints.toId);
+    _pulseDevice(endpoints.toId, hop.status === 'fail' ? 0xef6a7a : 0x3fd28b);
+    return;
+  }
+
+  // First hop — just position at source, no animation (packet emerges here).
+  if (endpoints.first) {
+    _positionPacketAtDevice(endpoints.fromId);
+    return;
+  }
+
+  // Travel hop — animate along the connecting cable curve (or straight line
+  // fallback if no physical cable exists).
+  const { fromId, toId } = endpoints;
+  const fromDev = devices3D[fromId];
+  const toDev = devices3D[toId];
+  if (!fromDev || !toDev) return;
+
+  const cable = _findCableCurve(fromId, toId);
+  const startT = cable ? (cable.reverse ? 1 : 0) : 0;
+  const endT = cable ? (cable.reverse ? 0 : 1) : 1;
+
+  const duration = Math.max(250, (_currTraceState.speedMs || 1500) - 150);
+
+  // Reduced-motion: jump to destination instantly.
+  if (_reducedMotion) {
+    _positionPacketAtDevice(toId);
+    return;
+  }
+
+  const fromPos = new THREE.Vector3(fromDev.group.position.x, _cableAnchorY(fromDev.type), fromDev.group.position.z);
+  const toPos = new THREE.Vector3(toDev.group.position.x, _cableAnchorY(toDev.type), toDev.group.position.z);
+
+  const start = performance.now();
+  function step() {
+    if (token !== _traceAnimToken) return; // cancelled by a newer update
+    const t = Math.min((performance.now() - start) / duration, 1);
+    let p;
+    if (cable) {
+      const tt = startT + (endT - startT) * t;
+      p = cable.curve.getPoint(tt);
+    } else {
+      p = new THREE.Vector3().lerpVectors(fromPos, toPos, t);
+    }
+    if (_packetMesh) { _packetMesh.position.copy(p); _packetMesh.visible = true; }
+    if (_packetGlowMesh) { _packetGlowMesh.position.copy(p); _packetGlowMesh.visible = true; }
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+function _pulseDevice(deviceId, color = 0x3fd28b) {
+  const dev = devices3D[deviceId];
+  if (!dev) return;
+  const mesh = dev.group.children.find(c => c.isMesh);
+  if (!mesh || !mesh.material || !mesh.material.emissive) return;
+  if (_reducedMotion) return;
+  const orig = mesh.material.emissiveIntensity ?? 0.1;
+  const origColor = mesh.material.emissive.getHex();
+  mesh.material.emissive.setHex(color);
+  let t = 0;
+  function pulse() {
+    t += 0.06;
+    mesh.material.emissiveIntensity = orig + Math.sin(t * Math.PI) * 1.2;
+    if (t >= 1) {
+      mesh.material.emissiveIntensity = orig;
+      mesh.material.emissive.setHex(origColor);
+    } else {
+      requestAnimationFrame(pulse);
+    }
+  }
+  pulse();
+}
+
+function _updateFrameBadge(hop) {
+  if (!_frameBadge || !_frameBadgeObj) return;
+  if (!hop) { _frameBadgeObj.visible = false; return; }
+  const meta = hop.meta || {};
+  const mac = meta.srcMac || meta.newSrcMac;
+  const dstMac = meta.dstMac || meta.newDstMac;
+  const ttlBefore = meta.ttlBefore ?? meta.ttl;
+  const ttlAfter = meta.ttlAfter;
+  const fail = hop.status === 'fail';
+  const layerLabel = hop.layer || 'HOP';
+  let rows = '';
+  if (meta.srcIp && meta.dstIp) {
+    rows += `<div class="row"><strong>${_esc(meta.srcIp)}</strong> → <strong>${_esc(meta.dstIp)}</strong></div>`;
+  }
+  if (mac || dstMac) {
+    rows += `<div class="row"><strong>${_esc(mac || '?')}</strong> → <strong>${_esc(dstMac || '?')}</strong></div>`;
+  }
+  if (typeof ttlBefore === 'number') {
+    rows += `<div class="row">TTL <strong>${ttlBefore}${typeof ttlAfter === 'number' && ttlAfter !== ttlBefore ? ` → ${ttlAfter}` : ''}</strong></div>`;
+  }
+  _frameBadge.className = 'tb-3d-frame-badge' + (fail ? ' fail' : '');
+  _frameBadge.innerHTML = `<span class="title">${_esc(fail ? '✗ ' + layerLabel : layerLabel)}</span>${rows}`;
+  _frameBadgeObj.visible = true;
+}
+
+function _updateHopStrip() {
+  const strip = document.getElementById('tb-3d-hop-strip');
+  const row = document.getElementById('tb-3d-hop-strip-row');
+  const title = document.getElementById('tb-3d-hop-strip-title');
+  if (!strip || !row) return;
+
+  if (!_currTraceState) {
+    strip.hidden = true;
+    row.innerHTML = '';
+    return;
+  }
+  strip.hidden = false;
+
+  const s = _currTraceState;
+  const hops = s.trace?.hops || [];
+  const cur = s.currentHop | 0;
+
+  if (title) {
+    const srcDev = devices3D[s.srcId];
+    const srcName = srcDev ? (srcDev.labelEl?.firstChild?.textContent || s.srcId) : s.srcId;
+    title.textContent = `PACKET TRACE · ${_esc(srcName)} → ${_esc(s.dstIp || '?')}`;
+  }
+
+  row.innerHTML = hops.map((h, i) => {
+    let klass = 'tb-3d-hop-card';
+    if (i < cur) klass += ' ' + (h.status === 'fail' ? 'tb-3d-hop-card-blocked' : 'tb-3d-hop-card-ok');
+    else if (i === cur) klass += ' tb-3d-hop-card-current';
+    else klass += ' tb-3d-hop-card-pending';
+
+    const meta = h.meta || {};
+    let status = (h.layer === 'DELIVER') ? 'DELIVERED' : (h.status === 'fail' ? 'BLOCKED' : 'OK');
+    let deviceLine = _esc(h.device || '—');
+    let detailParts = [];
+    if (meta.srcIp && meta.dstIp) detailParts.push(`${_esc(meta.srcIp)} → ${_esc(meta.dstIp)}`);
+    if (meta.outIface) detailParts.push(`out ${_esc(meta.outIface)}`);
+    if (meta.routeMatched) detailParts.push(`route ${_esc(meta.routeMatched)}`);
+    if (typeof meta.ttl === 'number' && typeof meta.ttlAfter === 'number') detailParts.push(`TTL ${meta.ttl} → ${meta.ttlAfter}`);
+    else if (typeof meta.ttl === 'number') detailParts.push(`TTL ${meta.ttl}`);
+    if (h.decision && detailParts.length === 0) detailParts.push(_esc(h.decision));
+
+    return `
+      <div class="${klass}">
+        <div class="tb-3d-hop-card-head">
+          <span class="tb-3d-hop-card-num">${i + 1}</span>
+          <span class="tb-3d-hop-card-layer layer-${_esc(h.layer || 'L3')}">${_esc(h.layer || 'L3')}</span>
+        </div>
+        <div class="tb-3d-hop-card-devices">${deviceLine}</div>
+        <div class="tb-3d-hop-card-detail">${detailParts.join(' · ') || '—'}</div>
+        <span class="tb-3d-hop-card-status">${status}</span>
+      </div>`;
+  }).join('');
+}
+
+function _updateTraceHud() {
+  const hud = document.getElementById('tb-3d-trace-hud');
+  const text = document.getElementById('tb-3d-trace-hud-text');
+  if (!hud) return;
+  if (!_currTraceState) { hud.hidden = true; return; }
+  hud.hidden = false;
+  if (text) {
+    const srcDev = devices3D[_currTraceState.srcId];
+    const srcName = srcDev ? (srcDev.labelEl?.firstChild?.textContent || _currTraceState.srcId) : _currTraceState.srcId;
+    text.textContent = `Packet Trace: ${srcName} → ${_currTraceState.dstIp || '?'}`;
+  }
+}
+
+function _updatePlaybackControls() {
+  const container = document.getElementById('tb-3d-playback-controls');
+  const playBtn = document.getElementById('tb-3d-play-btn');
+  const pauseBtn = document.getElementById('tb-3d-pause-btn');
+  const speedBtn = document.getElementById('tb-3d-speed-btn');
+  if (!container) return;
+  container.hidden = !_currTraceState;
+  if (!_currTraceState) return;
+  if (playBtn && pauseBtn) {
+    const playing = !!_currTraceState.playing;
+    playBtn.hidden = playing;
+    pauseBtn.hidden = !playing;
+  }
+  if (speedBtn) {
+    const ms = _currTraceState.speedMs || 1500;
+    const label = ms <= 800 ? '2×' : ms >= 2800 ? '0.5×' : '1×';
+    speedBtn.textContent = label;
+  }
+}
+
+function _updateDeviceHighlights() {
+  // Label-ring classes on each device label
+  for (const id in devices3D) {
+    const lbl = devices3D[id].labelEl;
+    if (!lbl) continue;
+    lbl.classList.remove('tb-3d-trace-visited', 'tb-3d-trace-current', 'tb-3d-trace-pending');
+    if (!_currTraceState) continue;
+    const path = _currTraceState.trace?.path || [];
+    const cur = _currTraceState.currentHop | 0;
+    const currentDeviceId = _currTraceState.trace?.hops?.[cur]?.deviceId;
+    if (id === currentDeviceId) lbl.classList.add('tb-3d-trace-current');
+    else if (path.indexOf(id) !== -1 && path.indexOf(id) < path.indexOf(currentDeviceId)) lbl.classList.add('tb-3d-trace-visited');
+    else if (path.indexOf(id) !== -1) lbl.classList.add('tb-3d-trace-pending');
+  }
+}
+
+function _updateCableHighlights() {
+  // Reset all cables to base emissive
+  for (const c of cables3D) {
+    if (c.mesh?.material) {
+      c.mesh.material.emissiveIntensity = 0.35;
+      c.mesh.material.opacity = 0.75;
+    }
+  }
+  if (!_currTraceState) return;
+  const path = _currTraceState.trace?.path || [];
+  const cur = _currTraceState.currentHop | 0;
+  // Highlight cables along visited portion of the path
+  for (let i = 1; i <= cur && i < path.length; i++) {
+    const c = cables3D.find(cb =>
+      (cb.fromId === path[i - 1] && cb.toId === path[i]) ||
+      (cb.fromId === path[i] && cb.toId === path[i - 1])
+    );
+    if (c?.mesh?.material) {
+      c.mesh.material.emissiveIntensity = 0.85;
+      c.mesh.material.opacity = 1.0;
+    }
+  }
 }

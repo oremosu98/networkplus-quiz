@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.63.0
+// Network+ AI Quiz — app.js  v4.64.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.63.0';
+const APP_VERSION = '4.64.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12603,6 +12603,11 @@ async function tbOpen3DView() {
   document.getElementById('tb-zoom-ctrls')?.classList.add('is-hidden');
   document.getElementById('tb-empty-hint')?.classList.add('is-hidden');
   document.getElementById('tb-v2-stats')?.classList.add('is-hidden');
+  // v4.64.0 Phase 2: hide the 2D trace panel while 3D is active. 3D has
+  // its own HUD + hop strip; the 2D panel would overlap the scene.
+  const tracePanel = document.getElementById('tb-trace-panel');
+  if (tracePanel) tracePanel.dataset._tb3dHidden = tracePanel.hidden ? '1' : '0';
+  if (tracePanel) tracePanel.hidden = true;
   _tb3dActive = true;
 
   // Respect mobile-nudge gate: if < 768px and the user hasn't yet
@@ -12629,6 +12634,11 @@ async function tbOpen3DView() {
         document.getElementById('tb-3d-loading').style.display = 'none';
       }
     });
+    // v4.64.0 Phase 2: if a trace is already running in 2D, sync the 3D
+    // HUD + hop strip to it so entering 3D mid-trace is continuous.
+    if (_tbUiState?.trace?.active && _tb3dModule.setTraceState) {
+      _tb3dModule.setTraceState(_tbUiState.trace);
+    }
   } catch (err) {
     console.warn('[tb3d] failed to load 3D module', err);
     showErrorToast('Could not load 3D View — check network / console.');
@@ -12650,6 +12660,15 @@ function tbClose3DView() {
   document.getElementById('tb-zoom-ctrls')?.classList.remove('is-hidden');
   document.getElementById('tb-empty-hint')?.classList.remove('is-hidden');
   document.getElementById('tb-v2-stats')?.classList.remove('is-hidden');
+  // v4.64.0 Phase 2: restore the 2D trace panel to its pre-3D state.
+  // If the trace is still active, the panel re-shows automatically.
+  const tracePanel = document.getElementById('tb-trace-panel');
+  if (tracePanel && _tbUiState?.trace?.active) {
+    tracePanel.hidden = false;
+    // Fire a re-render in 2D since the log content needs to refresh
+    if (typeof tbRenderTraceLog === 'function') tbRenderTraceLog();
+    if (typeof tbRenderTraceCanvasState === 'function') tbRenderTraceCanvasState();
+  }
 }
 
 function tb3dResetCamera() {
@@ -12664,6 +12683,40 @@ function tb3dDismissMobileNudge() {
   if (nudge) nudge.style.display = 'none';
   // Retry entry now that nudge is dismissed
   tbOpen3DView();
+}
+
+// v4.64.0 Phase 2 — chrome button delegates. All trace state lives in
+// _tbUiState.trace (owned by app.js / v4.61.0); tb3d.js is render-only.
+// These are thin wrappers so the 3D chrome buttons can call the same
+// underlying 2D trace functions without duplicating state.
+function tb3dOpenTraceDialog() {
+  // Same UX as 2D: tbOpenTraceDialog prompts for src + dst IP, then kicks
+  // off tbStartTrace which fires tbRenderTraceCanvasState → setTraceState.
+  if (typeof tbOpenTraceDialog === 'function') tbOpenTraceDialog();
+}
+function tb3dTracePlay() {
+  if (typeof tbTracePlay === 'function') tbTracePlay();
+  // Play/pause buttons swap visibility — the state-driven update in
+  // tb3d.js handles it on next setTraceState call, but fire one now
+  // so the UI reflects the new playing flag before the next hop tick.
+  if (_tb3dModule?.setTraceState) _tb3dModule.setTraceState(_tbUiState.trace);
+}
+function tb3dTracePause() {
+  if (typeof tbTracePause === 'function') tbTracePause();
+  if (_tb3dModule?.setTraceState) _tb3dModule.setTraceState(_tbUiState.trace);
+}
+function tb3dTraceStep() {
+  if (typeof tbTraceStep === 'function') tbTraceStep();
+}
+function tb3dTraceSpeed() {
+  // Cycle 1× → 2× → 0.5× → 1×
+  const cur = _tbUiState.trace.speedMs || 1500;
+  const next = cur === 1500 ? 750 : (cur === 750 ? 3000 : 1500);
+  _tbUiState.trace.speedMs = next;
+  if (_tb3dModule?.setTraceState) _tb3dModule.setTraceState(_tbUiState.trace);
+}
+function tb3dTraceEnd() {
+  if (typeof tbEndTrace === 'function') tbEndTrace();
 }
 
 // v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60
@@ -18730,6 +18783,12 @@ function tbRenderTraceLog() {
 
 // ── Canvas decorations: node highlights, traced/pending links, packet pill + badge ──
 function tbRenderTraceCanvasState() {
+  // v4.64.0: single hook-point — mirror trace state into 3D (Phase 2).
+  // tb3d.js is render-only; passing null when inactive clears the 3D HUD.
+  if (_tb3dModule && _tb3dModule.setTraceState) {
+    try { _tb3dModule.setTraceState(_tbUiState.trace); } catch (_) { /* render-side errors don't affect 2D */ }
+  }
+
   const svg = document.getElementById('tb-canvas');
   if (!svg) return;
 

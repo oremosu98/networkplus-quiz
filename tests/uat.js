@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.63.0', js.includes("const APP_VERSION = '4.63.0"));
+test('APP_VERSION is 4.64.0', js.includes("const APP_VERSION = '4.64.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.63.0', sw.includes('netplus-v4.63.0'));
+test('SW cache bumped to v4.64.0', sw.includes('netplus-v4.64.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8787,6 +8787,103 @@ test('v4.63.0 REGRESSION: app.js must not statically import tb3d.js',
 test('v4.63.0 REGRESSION: index.html must not load Three.js outside /vendor/',
   !/<script[^>]*src=["'][^"']*(three\.module\.js|three\.min\.js)[^"']*["']/.test(html) ||
   /<script[^>]*src=["']\.?\/?vendor\/three\/.*three\.module\.js["']/.test(html));
+
+// ══════════════════════════════════════════
+// v4.64.0 — TB 3D View Phase 2 (issue #199 Phase 2)
+//
+// Packet trace animation + hop-card strip + playback controls + HUD pill.
+// Render-only contract: tb3d.js exports setTraceState(); app.js owns
+// _tbUiState.trace and pushes updates via the existing
+// tbRenderTraceCanvasState hook point.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.64.0 TB 3D VIEW PHASE 2 — PACKET TRACE (#199) ──\x1b[0m');
+
+// --- tb3d.js: new setTraceState export ---
+test('v4.64.0 tb3d: setTraceState exported',
+  /export function setTraceState\(/.test(tb3d));
+test('v4.64.0 tb3d: setTraceState clears render state when null passed',
+  /setTraceState[\s\S]{0,600}if \(!_currTraceState\)/.test(tb3d));
+test('v4.64.0 tb3d: packet sphere + glow + frame badge built via _ensurePacketMeshes',
+  /function _ensurePacketMeshes\(/.test(tb3d) && /_packetMesh/.test(tb3d) && /_packetGlowMesh/.test(tb3d));
+test('v4.64.0 tb3d: _animateCurrentHop animates along cable bezier curves',
+  /function _animateCurrentHop\(/.test(tb3d) && /curve\.getPoint\(/.test(tb3d));
+test('v4.64.0 tb3d: reduced-motion gate skips packet animation (jump to destination)',
+  /_reducedMotion[\s\S]{0,200}_positionPacketAtDevice/.test(tb3d));
+test('v4.64.0 tb3d: _updateHopStrip renders one .tb-3d-hop-card per hop',
+  /function _updateHopStrip\([\s\S]{0,1200}tb-3d-hop-card/.test(tb3d));
+test('v4.64.0 tb3d: _updateTraceHud fills #tb-3d-trace-hud with src → dst text',
+  /function _updateTraceHud\([\s\S]{0,400}tb-3d-trace-hud-text/.test(tb3d));
+test('v4.64.0 tb3d: _updatePlaybackControls swaps play/pause buttons by playing flag',
+  /function _updatePlaybackControls\([\s\S]{0,400}playing/.test(tb3d));
+test('v4.64.0 tb3d: _updateCableHighlights brightens visited-cable emissive',
+  /function _updateCableHighlights\([\s\S]{0,500}emissiveIntensity/.test(tb3d));
+test('v4.64.0 tb3d: fallback straight-line animation when no physical cable between hop endpoints',
+  /lerpVectors\(fromPos, toPos/.test(tb3d));
+
+// --- app.js: hook + chrome button delegates ---
+test('v4.64.0 app.js: tbRenderTraceCanvasState hooks 3D setTraceState',
+  /tbRenderTraceCanvasState\(\)\s*\{[\s\S]{0,500}_tb3dModule\.setTraceState/.test(js));
+test('v4.64.0 app.js: tb3dOpenTraceDialog delegates to existing tbOpenTraceDialog',
+  /function tb3dOpenTraceDialog\(/.test(js) && /tbOpenTraceDialog\(\)/.test(js));
+test('v4.64.0 app.js: tb3dTracePlay delegates to tbTracePlay',
+  /function tb3dTracePlay\([\s\S]{0,200}tbTracePlay\(\)/.test(js));
+test('v4.64.0 app.js: tb3dTracePause delegates to tbTracePause',
+  /function tb3dTracePause\([\s\S]{0,200}tbTracePause\(\)/.test(js));
+test('v4.64.0 app.js: tb3dTraceStep delegates to tbTraceStep',
+  /function tb3dTraceStep\([\s\S]{0,200}tbTraceStep\(\)/.test(js));
+test('v4.64.0 app.js: tb3dTraceEnd delegates to tbEndTrace',
+  /function tb3dTraceEnd\([\s\S]{0,200}tbEndTrace\(\)/.test(js));
+test('v4.64.0 app.js: tb3dTraceSpeed cycles through 3 speed values (1500/750/3000)',
+  /function tb3dTraceSpeed\([\s\S]{0,400}(1500|750|3000)/.test(js));
+test('v4.64.0 app.js: tbOpen3DView syncs existing trace state to 3D mid-flight',
+  /_tbUiState\?\.trace\?\.active/.test(js) && /setTraceState\(_tbUiState\.trace\)/.test(js));
+test('v4.64.0 app.js: tbOpen3DView hides 2D trace panel while 3D active',
+  /tbOpen3DView[\s\S]{0,2200}(getElementById\(['"]tb-trace-panel['"]\)[\s\S]{0,200}hidden = true)/.test(js));
+
+// --- HTML wiring ---
+test('v4.64.0 HTML: 🔍 Trace button in 3D chrome',
+  html.includes('id="tb-3d-trace-btn"') && html.includes('tb3dOpenTraceDialog()'));
+test('v4.64.0 HTML: playback controls block present',
+  html.includes('id="tb-3d-playback-controls"'));
+test('v4.64.0 HTML: play + pause + step + speed + end buttons all present',
+  html.includes('id="tb-3d-play-btn"') &&
+  html.includes('id="tb-3d-pause-btn"') &&
+  html.includes('onclick="tb3dTraceStep()"') &&
+  html.includes('id="tb-3d-speed-btn"') &&
+  html.includes('onclick="tb3dTraceEnd()"'));
+test('v4.64.0 HTML: trace HUD pill container in chrome right',
+  html.includes('id="tb-3d-trace-hud"') && html.includes('id="tb-3d-trace-hud-text"'));
+test('v4.64.0 HTML: hop-strip container + row + legend',
+  html.includes('id="tb-3d-hop-strip"') &&
+  html.includes('id="tb-3d-hop-strip-row"') &&
+  html.includes('tb-3d-hop-strip-legend'));
+
+// --- CSS wiring ---
+test('v4.64.0 CSS: .tb-3d-trace-hud pill style',
+  /\.tb-3d-trace-hud\s*\{/.test(css));
+test('v4.64.0 CSS: .tb-3d-hop-strip fixed 160px strip',
+  /\.tb-3d-hop-strip\s*\{[^}]*height:\s*160px/.test(css));
+test('v4.64.0 CSS: .tb-3d-hop-card with pending/current/ok/blocked variants',
+  /\.tb-3d-hop-card-pending/.test(css) &&
+  /\.tb-3d-hop-card-current/.test(css) &&
+  /\.tb-3d-hop-card-ok/.test(css) &&
+  /\.tb-3d-hop-card-blocked/.test(css));
+test('v4.64.0 CSS: .tb-3d-frame-badge for in-flight frame annotation',
+  /\.tb-3d-frame-badge\s*\{/.test(css));
+test('v4.64.0 CSS: @keyframes tb3dHudPulse for HUD dot animation',
+  /@keyframes tb3dHudPulse/.test(css));
+test('v4.64.0 CSS: reduced-motion gate kills tb3dHudPulse + hop transitions',
+  /@media\s*\(prefers-reduced-motion[\s\S]{0,800}tb-3d-hop-card.*transition:\s*none/.test(css));
+
+// --- Regression guards ---
+// 2D trace renderer must still exist and fire — 3D is additive, not a replacement.
+test('v4.64.0 REGRESSION: tbRenderTraceCanvasState still exists (2D still works)',
+  /^function tbRenderTraceCanvasState\(/m.test(js));
+test('v4.64.0 REGRESSION: 2D trace panel (#tb-trace-panel) not removed',
+  html.includes('id="tb-trace-panel"'));
+// setTraceState must remain render-only — no state mutations from tb3d.
+test('v4.64.0 REGRESSION: tb3d.js never assigns to _tbUiState (render-only contract)',
+  !/_tbUiState\.[a-zA-Z]+\s*=/.test(tb3d));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

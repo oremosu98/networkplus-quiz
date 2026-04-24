@@ -1186,3 +1186,148 @@ test.describe('Network Builder 3D View', () => {
   });
 });
 
+// ══════════════════════════════════════════
+// v4.64.0 — TB 3D View Phase 2 (issue #199 Phase 2)
+//
+// Packet trace animation + hop-card strip + HUD pill + playback controls.
+// Render-only contract: tb3d.js uses setTraceState(); app.js owns all
+// trace state + mutations.
+// ══════════════════════════════════════════
+test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed a 2-device topology with known IPs in the same subnet.
+    await page.addInitScript(() => {
+      const draft = {
+        id: 'e2e-trace',
+        name: 'E2E Trace',
+        devices: [
+          { id: 'd1', type: 'router', x: 900, y: 450, hostname: 'R1',
+            interfaces: [{ name: 'Gi0/0', ip: '10.0.0.1', mask: '255.255.255.0', mac: 'aa:aa:aa:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: 'c1', subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+          { id: 'd2', type: 'pc', x: 700, y: 650, hostname: 'PC1',
+            interfaces: [{ name: 'eth0', ip: '10.0.0.2', mask: '255.255.255.0', mac: 'bb:bb:bb:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: 'c1', subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] }
+        ],
+        cables: [
+          { id: 'c1', from: 'd1', to: 'd2', type: 'cat6', fromIface: 'Gi0/0', toIface: 'eth0' }
+        ],
+        created: Date.now(),
+        updated: Date.now()
+      };
+      localStorage.setItem('nplus_topology_draft', JSON.stringify(draft));
+    });
+  });
+
+  test('trace pill + playback controls + HUD + hop strip all exist in 3D DOM', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+
+    // Open 3D view
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-host-active/);
+
+    // Assert all Phase 2 chrome elements exist (even if hidden at rest)
+    await expect(page.locator('#tb-3d-trace-btn')).toBeVisible();
+    await expect(page.locator('#tb-3d-playback-controls')).toBeAttached();
+    await expect(page.locator('#tb-3d-trace-hud')).toBeAttached();
+    await expect(page.locator('#tb-3d-hop-strip')).toBeAttached();
+
+    // At rest (no trace), HUD + hop strip + playback controls should be hidden
+    await expect(page.locator('#tb-3d-trace-hud')).toBeHidden();
+    await expect(page.locator('#tb-3d-hop-strip')).toBeHidden();
+    await expect(page.locator('#tb-3d-playback-controls')).toBeHidden();
+  });
+
+  test('firing a trace reveals the HUD, hop-strip, and playback controls', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+
+    // Open 3D view
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-host-active/);
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Fire a trace directly. tbStartTrace kicks tbRenderTraceCanvasState
+    // which invokes the 3D render hook. Fast speed so the test runs quick.
+    await page.evaluate(() => {
+      window.tbStartTrace('d2', '10.0.0.1');
+    });
+
+    // HUD becomes visible with src → dst text
+    const hud = page.locator('#tb-3d-trace-hud');
+    await expect(hud).toBeVisible();
+    await expect(page.locator('#tb-3d-trace-hud-text')).toContainText('PC1');
+    await expect(page.locator('#tb-3d-trace-hud-text')).toContainText('10.0.0.1');
+
+    // Hop strip becomes visible with ≥1 hop card
+    const strip = page.locator('#tb-3d-hop-strip');
+    await expect(strip).toBeVisible();
+    const cards = page.locator('#tb-3d-hop-strip-row .tb-3d-hop-card');
+    expect(await cards.count()).toBeGreaterThan(0);
+
+    // Playback controls become visible
+    await expect(page.locator('#tb-3d-playback-controls')).toBeVisible();
+
+    // After the initial render, hop 0 is the 'current' one
+    const anyCurrent = await page.locator('.tb-3d-hop-card-current').count();
+    expect(anyCurrent).toBeGreaterThan(0);
+  });
+
+  test('trace state persists across 3D → 2D → 3D toggle', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+
+    // Enter 3D and fire a trace
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+    await page.evaluate(() => {
+      window.tbStartTrace('d2', '10.0.0.1');
+    });
+    await expect(page.locator('#tb-3d-trace-hud')).toBeVisible();
+
+    // Back to 2D — the 2D trace panel should re-appear (indirect proof that
+    // _tbUiState.trace.active is still true, since tbClose3DView only
+    // unhides the panel when trace is active).
+    await page.locator('#tb-3d-back-btn').click();
+    await expect(page.locator('#tb-trace-panel')).toBeVisible();
+
+    // Re-enter 3D — HUD should re-appear since trace is still active
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-host-active/);
+    await expect(page.locator('#tb-3d-trace-hud')).toBeVisible();
+  });
+
+  test('2D trace panel is hidden while 3D is active (no overlap)', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+
+    // Fire trace in 2D first — 2D trace panel should be visible
+    await page.evaluate(() => {
+      window.tbStartTrace('d2', '10.0.0.1');
+    });
+    await expect(page.locator('#tb-trace-panel')).toBeVisible();
+
+    // Enter 3D — the 2D trace panel must be hidden
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-host-active/);
+    await expect(page.locator('#tb-trace-panel')).toBeHidden();
+
+    // Exit 3D — 2D trace panel should come back (trace is still active)
+    await page.locator('#tb-3d-back-btn').click();
+    await expect(page.locator('#tb-trace-panel')).toBeVisible();
+  });
+});
+
+

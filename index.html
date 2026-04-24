@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.63.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.64.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1600,14 +1600,42 @@
             <div class="tb-3d-chrome-left">
               <button type="button" class="tb-pill tb-pill-active tb-3d-back-btn" id="tb-3d-back-btn" onclick="tbClose3DView()" title="Back to 2D design mode">&larr; 2D Design</button>
               <span class="tb-3d-chrome-eyebrow">3D VIEW &middot; NETWORK EXPLORER</span>
+              <!-- v4.64.0: Phase 2 trace button + playback controls. Reuse
+                   existing v4.61.0 trace state (_tbUiState.trace) — tb3d.js
+                   is render-only, app.js owns mutations. -->
+              <button type="button" class="tb-pill tb-pill-action tb-3d-trace-btn" id="tb-3d-trace-btn" onclick="tb3dOpenTraceDialog()" title="Start a per-hop packet trace">&#128269; Trace</button>
+              <div class="tb-3d-playback-controls" id="tb-3d-playback-controls" hidden>
+                <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-play-btn" onclick="tb3dTracePlay()" title="Play / resume">&#9654;</button>
+                <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-pause-btn" onclick="tb3dTracePause()" title="Pause" hidden>&#10074;&#10074;</button>
+                <button type="button" class="tb-pill tb-pill-playback" onclick="tb3dTraceStep()" title="Step to next hop">&#9193;</button>
+                <button type="button" class="tb-pill tb-pill-playback tb-3d-speed-btn" id="tb-3d-speed-btn" onclick="tb3dTraceSpeed()" title="Cycle playback speed">1&times;</button>
+                <button type="button" class="tb-pill tb-pill-playback" onclick="tb3dTraceEnd()" title="End trace">&times;</button>
+              </div>
             </div>
             <div class="tb-3d-chrome-right">
+              <!-- HUD pill appears whenever a trace is active -->
+              <div class="tb-3d-trace-hud" id="tb-3d-trace-hud" hidden>
+                <span class="tb-3d-trace-hud-dot" aria-hidden="true"></span>
+                <span id="tb-3d-trace-hud-text">Packet Trace</span>
+              </div>
               <button type="button" class="tb-pill tb-pill-action" onclick="tb3dResetCamera()" title="Reset camera to isometric view">&#8634; Reset Camera</button>
               <button type="button" class="tb-pill tb-pill-action" onclick="tb3dTopDown()" title="Top-down view">&#9634; Top</button>
             </div>
           </div>
           <div class="tb-3d-canvas" id="tb-3d-canvas"></div>
           <div class="tb-3d-labels" id="tb-3d-labels"></div>
+          <!-- v4.64.0: hop-card strip below the 3D canvas, rendered only while a trace is active -->
+          <div class="tb-3d-hop-strip" id="tb-3d-hop-strip" hidden>
+            <div class="tb-3d-hop-strip-head">
+              <span class="tb-3d-hop-strip-title" id="tb-3d-hop-strip-title">PACKET TRACE</span>
+              <span class="tb-3d-hop-strip-legend">
+                <span class="item"><span class="dot" style="background: #3fd28b"></span> Success</span>
+                <span class="item"><span class="dot" style="background: #ef6a7a"></span> Blocked</span>
+                <span class="item"><span class="dot tb-3d-hop-legend-current"></span> Current</span>
+              </span>
+            </div>
+            <div class="tb-3d-hop-strip-row" id="tb-3d-hop-strip-row"></div>
+          </div>
           <!-- Compass rose -->
           <div class="tb-3d-compass" aria-hidden="true">
             <div class="tb-3d-compass-ring"></div>
