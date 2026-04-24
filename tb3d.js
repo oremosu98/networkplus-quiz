@@ -48,15 +48,22 @@ let _osiLayerMeshes = [];  // THREE.Mesh array for the 7 planes
 let _osiLabelObjs = [];    // CSS2DObject array for layer labels
 let _osiCameraBackup = null; // { position, target } to restore on exit
 
+// v4.66.0 — keep a reference to the tbState we entered with so getActiveZones
+// and other read-only helpers can query topology shape without needing app.js
+// to pass it on every call.
+let _currState = null;
+
 // Scene scale — 2D canvas coords divided by this to map to Three.js world units.
 // tb canvas is 1800x1100 units ≈ map to ~70x40 in 3D world. Tuned during
 // local smoke-test so devices read clearly at in-app viewport size (~600px).
 const SCALE = 25;
 const GROUND_Y = 0;
 
-// Initial camera — tuned for in-app viewport (smaller than the full-screen
-// mockup). Closer + slightly lower so devices dominate the frame.
-const INITIAL_CAM = new THREE.Vector3(24, 22, 32);
+// Initial camera — v4.66.0 tuned to match the mockup's comfortable
+// wide-scene framing. Previously (24, 22, 32) showed only the central
+// cluster; bumped back to (36, 28, 44) so all devices + zones fit on
+// first open.
+const INITIAL_CAM = new THREE.Vector3(36, 28, 44);
 const INITIAL_TARGET = new THREE.Vector3(0, 2, 0);
 
 // Device-type palette — authoritative color per type. Mirrors
@@ -118,6 +125,7 @@ function vlanColor(vlanId) {
 export function enter(tbState, opts = {}) {
   onDeviceClickCb = opts.onDeviceClick || null;
   _reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  _currState = tbState;
 
   hostEl = document.getElementById('tb-3d-host');
   canvasEl = document.getElementById('tb-3d-canvas');
@@ -167,6 +175,7 @@ export function exit() {
   }
   scene = null;
   camera = null;
+  _currState = null;
   if (renderer) { renderer.dispose?.(); renderer.forceContextLoss?.(); renderer.domElement?.remove(); renderer = null; }
   if (labelRenderer) { labelRenderer.domElement?.remove(); labelRenderer = null; }
   if (canvasEl) canvasEl.innerHTML = '';
@@ -182,6 +191,68 @@ export function resetCamera() {
 
 export function topDown() {
   _tweenCamera(new THREE.Vector3(0, 60, 0.1), new THREE.Vector3(0, 0, 0));
+}
+
+// v4.66.0 — rail buttons: zoom-in/out moves camera along its look vector,
+// fitAll frames the whole scene's bounding box.
+export function zoomCamera(factor) {
+  if (!controls || !camera) return;
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+  const dist = camera.position.distanceTo(controls.target) * factor;
+  const newPos = controls.target.clone().add(dir.multiplyScalar(dist));
+  _tweenCamera(newPos, controls.target.clone());
+}
+export function fitAll() {
+  if (!scene || !camera || !controls) return;
+  // Compute scene bounding box from all device groups
+  const box = new THREE.Box3();
+  let any = false;
+  for (const id in devices3D) {
+    if (!devices3D[id].group) continue;
+    box.expandByObject(devices3D[id].group);
+    any = true;
+  }
+  if (!any) return;
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const dist = maxDim * 1.6 + 10;
+  const camPos = new THREE.Vector3(
+    center.x + dist * 0.6,
+    center.y + dist * 0.6,
+    center.z + dist * 0.8
+  );
+  _tweenCamera(camPos, center);
+}
+
+// v4.66.0 — zones legend data: on enter/setTraceState, compute which
+// zones exist in tbState and expose them so app.js can render the legend.
+// tb3d.js doesn't touch DOM for the legend directly (render-only), but
+// it HAS the clustering logic so this is the single place that decides
+// "what zones are present."
+export function getActiveZones() {
+  if (!_currState) return [];
+  const zones = [];
+  const seenVlans = new Set();
+  const devs = _currState.devices || [];
+  let hasInternet = false, hasDmz = false;
+  for (const dev of devs) {
+    if (dev.type === 'cloud' || dev.type === 'isp-router' || dev.type === 'onprem-dc') hasInternet = true;
+    if (dev.type && dev.type.startsWith('public-')) hasDmz = true;
+    const vlan = dev.interfaces?.[0]?.vlan;
+    if (vlan && vlan !== 1 && !seenVlans.has(vlan)) {
+      seenVlans.add(vlan);
+    }
+  }
+  if (hasInternet) zones.push({ id: 'internet', label: 'Internet',  colorHex: '#6aa9f0' });
+  if (hasDmz)      zones.push({ id: 'dmz',      label: 'DMZ',       colorHex: '#ef6a7a' });
+  // VLAN colors — mirror _vlanColor's palette
+  const vlanPalette = ['#3fd28b', '#f4c664', '#6aa9f0', '#ef6a7a', '#a99cff', '#2dd4bf', '#fb923c', '#ec4899'];
+  [...seenVlans].sort((a, b) => a - b).forEach(vlan => {
+    const hashIdx = Math.abs((vlan * 2654435761) >>> 0) % vlanPalette.length;
+    zones.push({ id: `vlan-${vlan}`, label: `VLAN ${vlan}`, colorHex: vlanPalette[hashIdx] });
+  });
+  return zones;
 }
 
 // v4.64.0 Phase 2 — render-only trace bridge. app.js calls this on every

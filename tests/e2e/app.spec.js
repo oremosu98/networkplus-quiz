@@ -1443,6 +1443,57 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
     await expect(page.locator('#tb-3d-trace-btn')).toBeVisible();
   });
 
+  test('v4.66.0 UI polish: camera rail + zones legend + pinned inspector dock all visible', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Camera rail visible with 5 buttons + CAMERA label
+    const rail = page.locator('#tb-3d-camera-rail');
+    await expect(rail).toBeVisible();
+    await expect(page.locator('.tb-3d-rail-btn')).toHaveCount(5);
+    await expect(page.locator('.tb-3d-rail-label')).toContainText('CAMERA');
+
+    // Inspector dock visible + empty-state copy showing by default
+    const dock = page.locator('#tb-3d-inspector-dock');
+    await expect(dock).toBeVisible();
+    await expect(page.locator('.tb-3d-inspector-empty-title')).toContainText('Click a device');
+
+    // Inspector popup re-parented into the dock (not floating)
+    const inspInDock = page.locator('#tb-3d-inspector-dock #tb-inspector-pop');
+    await expect(inspInDock).toHaveCount(1);
+
+    // Clicking a device via tbSelectDeviceForInspector should populate
+    // the inspector inside the dock
+    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    await expect(inspInDock).not.toHaveClass(/is-hidden/);
+  });
+
+  test('v4.66.0 Back-to-2D restores floating inspector popup', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Inspector is in the dock while 3D is active
+    await expect(page.locator('#tb-3d-inspector-dock #tb-inspector-pop')).toHaveCount(1);
+
+    // Exit 3D
+    await page.locator('#tb-3d-back-btn').click();
+
+    // Inspector popup is NO LONGER inside the dock (moved back to original parent)
+    await expect(page.locator('#tb-3d-inspector-dock #tb-inspector-pop')).toHaveCount(0);
+    // And is back as a direct child of tb-canvas-wrap
+    await expect(page.locator('#tb-canvas-wrap > #tb-inspector-pop')).toHaveCount(1);
+  });
+
   test('Back-to-2D while in OSI mode properly cleans up', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.65.1', js.includes("const APP_VERSION = '4.65.1"));
+test('APP_VERSION is 4.66.0', js.includes("const APP_VERSION = '4.66.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.65.1', sw.includes('netplus-v4.65.1'));
+test('SW cache bumped to v4.66.0', sw.includes('netplus-v4.66.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8979,6 +8979,93 @@ test('v4.65.0 REGRESSION: tb3d.js never assigns to _tbUiState',
 // exitOsiView must be called on lifecycle exit to avoid leaked materials
 test('v4.65.0 REGRESSION: tb3d exit() triggers exitOsiView cleanup',
   /export function exit\([\s\S]{0,400}exitOsiView/.test(tb3d));
+
+// ══════════════════════════════════════════
+// v4.66.0 — TB 3D View UI Polish Pass (mockup parity)
+//
+// Ports the approved concept mockup's UI into the in-app 3D view:
+// left vertical camera rail, zones legend top-right, pinned inspector
+// dock on the right (replaces floating popup in 3D mode only), and
+// retuned initial camera for a more comfortable wide-scene framing.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.66.0 TB 3D VIEW UI POLISH PASS ──\x1b[0m');
+
+// --- HTML wiring ---
+test('v4.66.0 HTML: 3D inner grid (rail / canvas / dock) container',
+  html.includes('id="tb-3d-inner"'));
+test('v4.66.0 HTML: left camera rail present with 5 preset buttons',
+  html.includes('id="tb-3d-camera-rail"') &&
+  (html.match(/class="tb-3d-rail-btn"/g) || []).length >= 5);
+test('v4.66.0 HTML: camera rail has orbit/top/zoom-in/zoom-out/fit',
+  html.includes('onclick="tb3dResetCamera()"') &&
+  html.includes('onclick="tb3dTopDown()"') &&
+  html.includes('onclick="tb3dZoomCamera(0.85)"') &&
+  html.includes('onclick="tb3dZoomCamera(1.18)"') &&
+  html.includes('onclick="tb3dFitAll()"'));
+test('v4.66.0 HTML: "CAMERA" vertical rail label',
+  html.includes('class="tb-3d-rail-label"') && html.includes('CAMERA'));
+test('v4.66.0 HTML: zones legend top-right of canvas',
+  html.includes('id="tb-3d-zones-legend"') &&
+  html.includes('id="tb-3d-zones-rows"'));
+test('v4.66.0 HTML: inspector dock on right',
+  html.includes('id="tb-3d-inspector-dock"'));
+test('v4.66.0 HTML: inspector empty-state copy in dock',
+  html.includes('id="tb-3d-inspector-empty"') &&
+  html.includes('Click a device'));
+test('v4.66.0 HTML: canvas wrap around #tb-3d-canvas + #tb-3d-labels',
+  html.includes('class="tb-3d-canvas-wrap"'));
+
+// --- CSS wiring ---
+test('v4.66.0 CSS: .tb-3d-inner is a 3-column grid (52px / 1fr / 340px)',
+  /\.tb-3d-inner\s*\{[^}]*grid-template-columns:\s*52px\s+1fr\s+340px/.test(css));
+test('v4.66.0 CSS: .tb-3d-camera-rail flex column',
+  /\.tb-3d-camera-rail\s*\{[^}]*flex-direction:\s*column/.test(css));
+test('v4.66.0 CSS: .tb-3d-rail-btn styled button',
+  /\.tb-3d-rail-btn\s*\{/.test(css));
+test('v4.66.0 CSS: .tb-3d-rail-label vertical-rl writing-mode',
+  /\.tb-3d-rail-label\s*\{[^}]*writing-mode:\s*vertical-rl/.test(css));
+test('v4.66.0 CSS: .tb-3d-zones-legend absolute top-right',
+  /\.tb-3d-zones-legend\s*\{[\s\S]{0,300}position:\s*absolute[\s\S]{0,100}(top:\s*16px|right:\s*16px)/.test(css));
+test('v4.66.0 CSS: .tb-3d-inspector-dock styled panel',
+  /\.tb-3d-inspector-dock\s*\{/.test(css));
+test('v4.66.0 CSS: inspector dock strips floating-popup styling on re-host',
+  /\.tb-3d-inspector-dock\s+\.tb-inspector-pop\s*\{[^}]*position:\s*static/.test(css));
+test('v4.66.0 CSS: narrow viewport hides the dock',
+  /@media\s*\(max-width:\s*1024px\)[\s\S]{0,400}\.tb-3d-inspector-dock[\s\S]{0,100}display:\s*none/.test(css));
+
+// --- tb3d.js exports ---
+test('v4.66.0 tb3d: zoomCamera(factor) exported',
+  /export function zoomCamera\(/.test(tb3d));
+test('v4.66.0 tb3d: fitAll() exported — computes scene bounding box',
+  /export function fitAll\([\s\S]{0,400}Box3\(\)/.test(tb3d));
+test('v4.66.0 tb3d: getActiveZones() exported for legend rendering',
+  /export function getActiveZones\(/.test(tb3d));
+test('v4.66.0 tb3d: _currState module-level ref set in enter()',
+  /let _currState\b/.test(tb3d) && /_currState\s*=\s*tbState/.test(tb3d));
+test('v4.66.0 tb3d: INITIAL_CAM retuned for wider framing (not 24,22,32)',
+  !/new THREE\.Vector3\(24,\s*22,\s*32\)/.test(tb3d));
+
+// --- app.js wiring ---
+test('v4.66.0 app.js: tb3dZoomCamera delegate',
+  /function tb3dZoomCamera\(/.test(js));
+test('v4.66.0 app.js: tb3dFitAll delegate',
+  /function tb3dFitAll\(/.test(js));
+test('v4.66.0 app.js: _tb3dRenderZonesLegend fires from tbOpen3DView',
+  /tbOpen3DView[\s\S]{0,3000}_tb3dRenderZonesLegend\(\)/.test(js));
+test('v4.66.0 app.js: tbOpen3DView re-parents inspector popup into dock',
+  /tb-inspector-pop[\s\S]{0,500}tb-3d-inspector-dock/.test(js));
+test('v4.66.0 app.js: tbClose3DView restores inspector to original parent',
+  /tbClose3DView[\s\S]{0,3000}_tb3dOrigParentId/.test(js));
+
+// --- Regression guards ---
+// Camera rail must never be deleted — it's the primary camera-control
+// affordance as of v4.66.0 (replaced top-chrome Reset + Top buttons).
+test('v4.66.0 REGRESSION: camera rail stays a first-class affordance',
+  html.includes('id="tb-3d-camera-rail"'));
+// Inspector dock re-parenting contract — tb3d.js never touches the
+// 2D inspector popup directly; app.js owns the move.
+test('v4.66.0 REGRESSION: tb3d.js never touches #tb-inspector-pop',
+  !/tb-inspector-pop/.test(tb3d));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
