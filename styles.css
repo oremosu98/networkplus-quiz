@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.64.0
+   Network+ AI Quiz — styles.css  v4.65.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12231,4 +12231,143 @@ html { zoom: 1.10; }
   .tb-3d-hop-card { transition: none; }
   .tb-3d-hop-card.tb-3d-hop-card-current { transform: none; }
   .tb-3d-node-label.tb-3d-trace-current { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   v4.65.0 — TB 3D View Phase 3 (issue #199 Phase 3)
+   OSI Layer Stack View
+   ═══════════════════════════════════════════════════════ */
+
+.tb-3d-osi-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.tb-3d-osi-btn:not([disabled]):hover {
+  background: rgba(124, 111, 247, .14);
+  border-color: rgba(124, 111, 247, .4);
+}
+.tb-3d-osi-btn.tb-3d-osi-active {
+  background: rgba(124, 111, 247, .22);
+  border-color: var(--accent, #7c6ff7);
+  color: var(--accent-light, #a99cff);
+}
+.tb-3d-osi-exit-btn {
+  font-weight: 700;
+  background: rgba(239, 106, 122, .14);
+  border: 1px solid rgba(239, 106, 122, .4);
+  color: #ef6a7a;
+}
+.tb-3d-osi-exit-btn:hover {
+  background: rgba(239, 106, 122, .22);
+}
+
+.tb-3d-osi-label {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  background: rgba(10, 14, 24, .92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #262c48);
+  border-left-width: 4px;
+  border-radius: 7px;
+  padding: 7px 12px;
+  color: var(--text, #e7ebf5);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  min-width: 230px;
+}
+.tb-3d-osi-label .layer-num {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--text-dim, #8a93ae);
+  margin-bottom: 1px;
+}
+.tb-3d-osi-label .layer-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text, #e7ebf5);
+  margin-bottom: 3px;
+}
+.tb-3d-osi-label .layer-pdu {
+  font-size: 10px;
+  color: var(--accent-light, #a99cff);
+  margin-bottom: 3px;
+}
+.tb-3d-osi-label .layer-pdu::before {
+  content: 'PDU: ';
+  color: var(--text-dim, #8a93ae);
+  font-weight: 600;
+}
+.tb-3d-osi-label .layer-protos {
+  font-size: 10px;
+  color: var(--text-dim, #8a93ae);
+  font-weight: 500;
+}
+.tb-3d-osi-label.layer-1 { border-left-color: #ef6a7a; }
+.tb-3d-osi-label.layer-2 { border-left-color: #f97316; }
+.tb-3d-osi-label.layer-3 { border-left-color: #f4c664; }
+.tb-3d-osi-label.layer-4 { border-left-color: #3fd28b; }
+.tb-3d-osi-label.layer-5 { border-left-color: #2dd4bf; }
+.tb-3d-osi-label.layer-6 { border-left-color: #6aa9f0; }
+.tb-3d-osi-label.layer-7 { border-left-color: #a99cff; }
+
+.tb-3d-host.tb-3d-osi-active .tb-3d-node-label:not(.tb-3d-osi-focus) {
+  opacity: 0.2;
+  transition: opacity .3s ease;
+}
+.tb-3d-host.tb-3d-osi-active .tb-3d-node-label.tb-3d-osi-focus {
+  border-color: var(--accent, #7c6ff7);
+  box-shadow: 0 0 18px rgba(124, 111, 247, .5);
+}
+
+.tb-3d-osi-title {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  padding: 8px 18px;
+  background: rgba(10, 14, 24, .92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(124, 111, 247, .4);
+  border-radius: 10px;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  color: var(--text, #e7ebf5);
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 4px 24px rgba(124, 111, 247, .2);
+}
+.tb-3d-host.tb-3d-osi-active .tb-3d-osi-title { display: flex; }
+.tb-3d-osi-title .eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  color: var(--accent-light, #a99cff);
+  text-transform: uppercase;
+}
+.tb-3d-osi-title .name {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.tb-3d-osi-title .sub {
+  font-size: 10px;
+  color: var(--text-dim, #8a93ae);
+}
+
+[data-theme="light"] .tb-3d-osi-label,
+[data-theme="light"] .tb-3d-osi-title {
+  background: rgba(255, 255, 255, .96);
+  color: #1a1f33;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-3d-host.tb-3d-osi-active .tb-3d-node-label:not(.tb-3d-osi-focus) { transition: none; }
 }

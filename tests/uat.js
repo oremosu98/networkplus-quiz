@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.64.0', js.includes("const APP_VERSION = '4.64.0"));
+test('APP_VERSION is 4.65.0', js.includes("const APP_VERSION = '4.65.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.64.0', sw.includes('netplus-v4.64.0'));
+test('SW cache bumped to v4.65.0', sw.includes('netplus-v4.65.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8884,6 +8884,100 @@ test('v4.64.0 REGRESSION: 2D trace panel (#tb-trace-panel) not removed',
 // setTraceState must remain render-only — no state mutations from tb3d.
 test('v4.64.0 REGRESSION: tb3d.js never assigns to _tbUiState (render-only contract)',
   !/_tbUiState\.[a-zA-Z]+\s*=/.test(tb3d));
+
+// ══════════════════════════════════════════
+// v4.65.0 — TB 3D View Phase 3 (issue #199 Phase 3)
+//
+// OSI Layer Stack View — click a device, hit "OSI Stack", device lifts
+// into an exploded view of 7 stacked translucent planes, each labeled
+// with its layer name + PDU + typical protocols. Render-only contract
+// preserved; app.js owns selection state (tbV3InspectedDeviceId), tb3d
+// just renders the stack.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.65.0 TB 3D VIEW PHASE 3 — OSI LAYER STACK (#199) ──\x1b[0m');
+
+// --- tb3d.js exports + shape ---
+test('v4.65.0 tb3d: enterOsiView exported',
+  /export function enterOsiView\(/.test(tb3d));
+test('v4.65.0 tb3d: exitOsiView exported',
+  /export function exitOsiView\(/.test(tb3d));
+test('v4.65.0 tb3d: isOsiActive accessor exported',
+  /export function isOsiActive\(/.test(tb3d));
+test('v4.65.0 tb3d: _OSI_LAYERS const has all 7 OSI layers',
+  /const _OSI_LAYERS\s*=[\s\S]{0,1200}Physical[\s\S]{0,1500}Application/.test(tb3d));
+test('v4.65.0 tb3d: layer metadata includes PDU for each (Bits/Frame/Packet/Segment/Data)',
+  /Bits[\s\S]{0,200}Frame[\s\S]{0,300}Packet[\s\S]{0,300}Segment/.test(tb3d));
+test('v4.65.0 tb3d: enterOsiView creates plane meshes + edge outlines',
+  /function enterOsiView\(/.test(tb3d) &&
+  /PlaneGeometry\(planeWidth, planeDepth\)/.test(tb3d) &&
+  /EdgesGeometry\(geo\)/.test(tb3d));
+test('v4.65.0 tb3d: enterOsiView creates CSS2DObject label per layer',
+  /enterOsiView[\s\S]{0,4500}new CSS2DObject\(labelDiv\)/.test(tb3d));
+test('v4.65.0 tb3d: enterOsiView tweens camera to frame the stack',
+  /enterOsiView[\s\S]{0,5500}_tweenCamera\(camPos, focusPoint\)/.test(tb3d));
+test('v4.65.0 tb3d: enterOsiView backs up camera position for later restore',
+  /_osiCameraBackup\s*=\s*\{[\s\S]{0,200}camera\.position\.clone\(\)/.test(tb3d));
+test('v4.65.0 tb3d: enterOsiView dims non-focus devices to opacity 0.2',
+  /if\s*\(id ===\s*deviceId\)\s*continue[\s\S]{0,400}opacity\s*=\s*0\.2/.test(tb3d));
+test('v4.65.0 tb3d: exitOsiView removes labels from their parents (fires removed event)',
+  /function exitOsiView\(/.test(tb3d) && /lbl\.parent\.remove\(lbl\)/.test(tb3d));
+test('v4.65.0 tb3d: exitOsiView restores camera via tween',
+  /exitOsiView[\s\S]{0,1500}_osiCameraBackup[\s\S]{0,300}_tweenCamera/.test(tb3d));
+test('v4.65.0 tb3d: exit() lifecycle cleans up OSI state before scene disposal',
+  /_osiActive[\s\S]{0,200}exitOsiView/.test(tb3d));
+
+// --- app.js wiring ---
+test('v4.65.0 app.js: tb3dEnterOsiView guard requires selected device',
+  /function tb3dEnterOsiView\([\s\S]{0,400}tbV3InspectedDeviceId/.test(js));
+test('v4.65.0 app.js: tb3dEnterOsiView delegates to module.enterOsiView',
+  /function tb3dEnterOsiView\([\s\S]{0,500}_tb3dModule\.enterOsiView/.test(js));
+test('v4.65.0 app.js: tb3dExitOsiView delegates to module.exitOsiView',
+  /function tb3dExitOsiView\([\s\S]{0,300}_tb3dModule\.exitOsiView/.test(js));
+test('v4.65.0 app.js: _tb3dSyncOsiChrome swaps OSI/Exit button visibility',
+  /function _tb3dSyncOsiChrome\([\s\S]{0,600}osiBtn[\s\S]{0,100}hidden[\s\S]{0,200}exitBtn[\s\S]{0,100}hidden/.test(js));
+test('v4.65.0 app.js: OSI button hidden in OSI mode (trace button too)',
+  /function _tb3dSyncOsiChrome\([\s\S]{0,700}traceBtn[\s\S]{0,100}hidden/.test(js));
+test('v4.65.0 app.js: tbSelectDeviceForInspector calls _tb3dUpdateOsiButtonEnabled',
+  /tbSelectDeviceForInspector\([\s\S]{0,400}_tb3dUpdateOsiButtonEnabled/.test(js));
+test('v4.65.0 app.js: tbClose3DView resets OSI chrome to disabled starting state',
+  /tbClose3DView\([\s\S]{0,3000}_tb3dSyncOsiChrome\(false\)/.test(js));
+
+// --- HTML wiring ---
+test('v4.65.0 HTML: OSI Stack button in 3D chrome',
+  html.includes('id="tb-3d-osi-btn"') && html.includes('tb3dEnterOsiView()'));
+test('v4.65.0 HTML: OSI button ships disabled (no device selected on 3D entry)',
+  /id="tb-3d-osi-btn"[^>]*disabled/.test(html));
+test('v4.65.0 HTML: Exit OSI button present + hidden by default',
+  html.includes('id="tb-3d-osi-exit-btn"') && /id="tb-3d-osi-exit-btn"[^>]*hidden/.test(html));
+test('v4.65.0 HTML: OSI title card with eyebrow + device name + sub',
+  html.includes('id="tb-3d-osi-title"') &&
+  html.includes('id="tb-3d-osi-title-name"') &&
+  html.includes('id="tb-3d-osi-title-sub"'));
+
+// --- CSS wiring ---
+test('v4.65.0 CSS: .tb-3d-osi-label base style',
+  /\.tb-3d-osi-label\s*\{/.test(css));
+test('v4.65.0 CSS: layer-1 through layer-7 border-left colors',
+  /\.tb-3d-osi-label\.layer-1\s*\{[^}]*border-left-color/.test(css) &&
+  /\.tb-3d-osi-label\.layer-7\s*\{[^}]*border-left-color/.test(css));
+test('v4.65.0 CSS: host.tb-3d-osi-active dims non-focus labels',
+  /\.tb-3d-host\.tb-3d-osi-active\s+\.tb-3d-node-label:not\(\.tb-3d-osi-focus\)/.test(css));
+test('v4.65.0 CSS: Exit OSI button styled distinct from regular pill',
+  /\.tb-3d-osi-exit-btn\s*\{/.test(css));
+test('v4.65.0 CSS: OSI title card absolute-positioned, hidden at rest',
+  /\.tb-3d-osi-title\s*\{[\s\S]{0,400}display:\s*none/.test(css));
+
+// --- Regression guards ---
+// OSI button must NEVER be enabled without a selected device — otherwise
+// enterOsiView fires on a null deviceId and silently does nothing.
+test('v4.65.0 REGRESSION: OSI button starts disabled in HTML (requires JS enable)',
+  /id="tb-3d-osi-btn"[^>]*disabled/.test(html));
+// tb3d must never mutate app.js trace state — render-only contract
+test('v4.65.0 REGRESSION: tb3d.js never assigns to _tbUiState',
+  !/_tbUiState\.[a-zA-Z]+\s*=/.test(tb3d));
+// exitOsiView must be called on lifecycle exit to avoid leaked materials
+test('v4.65.0 REGRESSION: tb3d exit() triggers exitOsiView cleanup',
+  /export function exit\([\s\S]{0,400}exitOsiView/.test(tb3d));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

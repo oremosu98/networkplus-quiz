@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.64.0
+// Network+ AI Quiz — app.js  v4.65.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.64.0';
+const APP_VERSION = '4.65.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12212,6 +12212,8 @@ function tbSelectDeviceForInspector(deviceId) {
   tbRenderV3Inspector();
   // v4.54.6: when a device is selected, surface the popup automatically.
   if (deviceId) tbInspectorPopOpen();
+  // v4.65.0 Phase 3: selection drives the OSI button enabled state.
+  if (typeof _tb3dUpdateOsiButtonEnabled === 'function') _tb3dUpdateOsiButtonEnabled();
 }
 // v4.54.6: floating popup show/hide + drag.
 function tbInspectorPopOpen() {
@@ -12669,6 +12671,11 @@ function tbClose3DView() {
     if (typeof tbRenderTraceLog === 'function') tbRenderTraceLog();
     if (typeof tbRenderTraceCanvasState === 'function') tbRenderTraceCanvasState();
   }
+  // v4.65.0 Phase 3: reset OSI chrome buttons to starting state so
+  // re-entering 3D has a clean slate.
+  if (typeof _tb3dSyncOsiChrome === 'function') _tb3dSyncOsiChrome(false);
+  const osiBtn = document.getElementById('tb-3d-osi-btn');
+  if (osiBtn) osiBtn.setAttribute('disabled', 'true');
 }
 
 function tb3dResetCamera() {
@@ -12717,6 +12724,44 @@ function tb3dTraceSpeed() {
 }
 function tb3dTraceEnd() {
   if (typeof tbEndTrace === 'function') tbEndTrace();
+}
+
+// v4.65.0 Phase 3 — OSI Layer Stack view delegates. OSI button is enabled
+// only when a device is selected (tracked via tbV3InspectedDeviceId).
+// Entering OSI mode lifts that device into a 7-plane exploded stack.
+function tb3dEnterOsiView() {
+  if (!_tb3dActive || !_tb3dModule || typeof _tb3dModule.enterOsiView !== 'function') return;
+  const deviceId = typeof tbV3InspectedDeviceId !== 'undefined' ? tbV3InspectedDeviceId : null;
+  if (!deviceId) {
+    if (typeof showErrorToast === 'function') showErrorToast('Click a device first, then OSI Stack.');
+    return;
+  }
+  const ok = _tb3dModule.enterOsiView(deviceId);
+  if (ok) _tb3dSyncOsiChrome(true);
+}
+function tb3dExitOsiView() {
+  if (!_tb3dActive || !_tb3dModule || typeof _tb3dModule.exitOsiView !== 'function') return;
+  _tb3dModule.exitOsiView();
+  _tb3dSyncOsiChrome(false);
+}
+// Swap OSI vs Exit OSI button visibility; also hide Trace while in OSI
+// mode since trace doesn't apply there.
+function _tb3dSyncOsiChrome(active) {
+  const osiBtn = document.getElementById('tb-3d-osi-btn');
+  const exitBtn = document.getElementById('tb-3d-osi-exit-btn');
+  const traceBtn = document.getElementById('tb-3d-trace-btn');
+  if (osiBtn) osiBtn.hidden = active;
+  if (exitBtn) exitBtn.hidden = !active;
+  if (traceBtn) traceBtn.hidden = active;
+}
+// Enable/disable OSI button based on selection state. Called whenever a
+// device is selected (from tbSelectDeviceForInspector).
+function _tb3dUpdateOsiButtonEnabled() {
+  const osiBtn = document.getElementById('tb-3d-osi-btn');
+  if (!osiBtn) return;
+  const hasSelection = !!(typeof tbV3InspectedDeviceId !== 'undefined' && tbV3InspectedDeviceId);
+  if (hasSelection) osiBtn.removeAttribute('disabled');
+  else osiBtn.setAttribute('disabled', 'true');
 }
 
 // v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60

@@ -37,6 +37,17 @@ let _tracePathMeshes = [];  // highlight meshes on the visited cable paths
 let _traceAnimToken = 0;    // bump to abort in-flight animations on new updates
 let _prevCurrentHop = -1;
 
+// v4.65.0 Phase 3 — OSI Layer Stack view state. tb3d.js is still render-only
+// here; app.js drives entry/exit by calling enterOsiView(deviceId) /
+// exitOsiView(). When active, the selected device is lifted into a 7-plane
+// exploded view and other devices fade to 20% opacity. Exiting restores the
+// scene and camera to pre-OSI state.
+let _osiActive = false;
+let _osiDeviceId = null;
+let _osiLayerMeshes = [];  // THREE.Mesh array for the 7 planes
+let _osiLabelObjs = [];    // CSS2DObject array for layer labels
+let _osiCameraBackup = null; // { position, target } to restore on exit
+
 // Scene scale — 2D canvas coords divided by this to map to Three.js world units.
 // tb canvas is 1800x1100 units ≈ map to ~70x40 in 3D world. Tuned during
 // local smoke-test so devices read clearly at in-app viewport size (~600px).
@@ -133,6 +144,13 @@ export function enter(tbState, opts = {}) {
 }
 
 export function exit() {
+  // v4.65.0 Phase 3 — if OSI view is active when user leaves 3D mode,
+  // clean it up first so no layer meshes / labels leak into the scene
+  // dispose below (which would otherwise try to dispose already-removed
+  // materials).
+  if (_osiActive) {
+    try { exitOsiView(); } catch (_) { /* tolerate */ }
+  }
   if (animId) cancelAnimationFrame(animId);
   animId = null;
   if (controls) { controls.dispose(); controls = null; }
@@ -1419,4 +1437,231 @@ function _updateCableHighlights() {
       c.mesh.material.opacity = 1.0;
     }
   }
+}
+
+// ══════════════════════════════════════════
+// v4.65.0 Phase 3 — OSI Layer Stack View
+// ══════════════════════════════════════════
+
+// Layer metadata — 7 layers with colors matching the CSS border-left-color
+// (layer-1 through layer-7). Ordered bottom-up (L1 at ground level).
+const _OSI_LAYERS = [
+  { n: 1, name: 'Physical',     pdu: 'Bits',    protos: 'Ethernet cable · Wi-Fi · Fiber · Coax',      hex: 0xef6a7a },
+  { n: 2, name: 'Data Link',    pdu: 'Frame',   protos: 'Ethernet · MAC · ARP · VLAN · STP',         hex: 0xf97316 },
+  { n: 3, name: 'Network',      pdu: 'Packet',  protos: 'IP · ICMP · IPsec · Routing',                hex: 0xf4c664 },
+  { n: 4, name: 'Transport',    pdu: 'Segment', protos: 'TCP · UDP · Port numbers',                   hex: 0x3fd28b },
+  { n: 5, name: 'Session',      pdu: 'Data',    protos: 'NetBIOS · RPC · SMB · Session tokens',       hex: 0x2dd4bf },
+  { n: 6, name: 'Presentation', pdu: 'Data',    protos: 'TLS · SSL · Compression · Encoding',         hex: 0x6aa9f0 },
+  { n: 7, name: 'Application',  pdu: 'Data',    protos: 'HTTP · HTTPS · DNS · SSH · FTP · SMTP',      hex: 0xa99cff }
+];
+
+// Export — enterOsiView(deviceId) lifts the device into a 7-plane stack.
+// exitOsiView() tears it down + restores camera. Public API invoked by
+// app.js chrome button handlers.
+export function enterOsiView(deviceId) {
+  if (!scene || !deviceId || !devices3D[deviceId]) return false;
+  if (_osiActive) exitOsiView(); // idempotent — exit any previous OSI state
+  _osiActive = true;
+  _osiDeviceId = deviceId;
+
+  // Backup current camera + target
+  _osiCameraBackup = {
+    position: camera.position.clone(),
+    target: controls.target.clone()
+  };
+
+  // Host class for CSS (dims non-focused device labels, shows title card)
+  hostEl?.classList.add('tb-3d-osi-active');
+  const focusLabel = devices3D[deviceId].labelEl;
+  focusLabel?.classList.add('tb-3d-osi-focus');
+
+  // Fade non-focus device meshes down to 20%
+  for (const id in devices3D) {
+    if (id === deviceId) continue;
+    devices3D[id].group.traverse(o => {
+      if (o.isMesh && o.material) {
+        o.material.transparent = true;
+        o.material.opacity = 0.2;
+      }
+    });
+  }
+
+  // Fade cables (packets look cleaner without clutter)
+  for (const c of cables3D) {
+    if (c.mesh?.material) {
+      c.mesh.material.opacity = 0.18;
+    }
+  }
+
+  // Build the 7 layer planes stacked above the focus device.
+  const dev = devices3D[deviceId];
+  const devPos = dev.group.position.clone();
+  const planeWidth = 9;
+  const planeDepth = 5;
+  const gap = 3.2; // vertical spacing between layer planes
+  const baseY = 4.5; // first plane above ground
+
+  _OSI_LAYERS.forEach((layer, i) => {
+    const y = baseY + i * gap;
+    // Plane mesh — translucent colored rectangle
+    const geo = new THREE.PlaneGeometry(planeWidth, planeDepth);
+    const mat = new THREE.MeshBasicMaterial({
+      color: layer.hex,
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.DoubleSide
+    });
+    const plane = new THREE.Mesh(geo, mat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(devPos.x, y, devPos.z);
+    scene.add(plane);
+    _osiLayerMeshes.push(plane);
+
+    // Edge outline (brighter color)
+    const edges = new THREE.EdgesGeometry(geo);
+    const edgeLine = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: layer.hex, transparent: true, opacity: 0.8
+    }));
+    edgeLine.rotation.x = -Math.PI / 2;
+    edgeLine.position.copy(plane.position);
+    edgeLine.position.y += 0.01;
+    scene.add(edgeLine);
+    _osiLayerMeshes.push(edgeLine);
+
+    // Vertical riser — subtle line connecting this plane to the one below
+    if (i > 0) {
+      const riserGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(devPos.x, baseY + (i - 1) * gap, devPos.z),
+        new THREE.Vector3(devPos.x, y, devPos.z)
+      ]);
+      const riser = new THREE.Line(riserGeo, new THREE.LineBasicMaterial({
+        color: 0x7c6ff7, transparent: true, opacity: 0.3
+      }));
+      scene.add(riser);
+      _osiLayerMeshes.push(riser);
+    }
+
+    // CSS2D label — attach to a dedicated anchor Object3D (NOT the plane,
+    // since the plane's -PI/2 X-rotation messes with the label's local
+    // frame). The anchor sits at the desired world position and has no
+    // rotation, so CSS2DRenderer projects its matrixWorld cleanly.
+    try {
+      const labelDiv = document.createElement('div');
+      labelDiv.className = `tb-3d-osi-label layer-${layer.n}`;
+      labelDiv.innerHTML = `
+        <div class="layer-num">LAYER ${layer.n}</div>
+        <div class="layer-name">${_esc(layer.name)}</div>
+        <div class="layer-pdu">${_esc(layer.pdu)}</div>
+        <div class="layer-protos">${_esc(layer.protos)}</div>
+      `;
+      const anchor = new THREE.Object3D();
+      anchor.position.set(devPos.x + planeWidth / 2 + 0.5, y, devPos.z);
+      scene.add(anchor);
+      _osiLayerMeshes.push(anchor); // include in cleanup
+      const labelObj = new CSS2DObject(labelDiv);
+      anchor.add(labelObj);
+      // Force matrixWorld update so CSS2DRenderer sees the correct position
+      // on the very first frame (important — without this, the clip-space
+      // check can fail because matrixWorld is still identity).
+      anchor.updateMatrixWorld(true);
+      _osiLabelObjs.push(labelObj);
+    } catch (e) {
+      console.warn('[tb3d] OSI label creation failed for layer', layer.n, e);
+    }
+  });
+
+  // Kick CSS2DRenderer to attach the newly-created label elements to the
+  // DOM on the NEXT frame. Without this, a timing quirk sometimes leaves
+  // them pending through the tween — one forced render right after the
+  // anchor positions are set ensures the elements land in the DOM before
+  // any user interaction can query them.
+  setTimeout(() => {
+    if (_osiActive && labelRenderer && scene && camera) {
+      labelRenderer.render(scene, camera);
+    }
+  }, 50);
+
+  // Update the OSI title card with device hostname + type
+  const titleName = document.getElementById('tb-3d-osi-title-name');
+  const titleSub = document.getElementById('tb-3d-osi-title-sub');
+  if (titleName) {
+    const hostname = dev.labelEl?.firstChild?.textContent || deviceId;
+    titleName.textContent = hostname;
+  }
+  if (titleSub) {
+    titleSub.textContent = `${dev.type} · 7 layers · click Exit OSI to return`;
+  }
+
+  // Camera tween — frame the stack. Position camera off to the right, angled
+  // so the 7 stacked planes read clearly from bottom to top.
+  const topY = baseY + 6 * gap;
+  const focusPoint = new THREE.Vector3(devPos.x + 3, (baseY + topY) / 2, devPos.z);
+  const camPos = new THREE.Vector3(devPos.x + 28, (baseY + topY) / 2 + 2, devPos.z + 18);
+  _tweenCamera(camPos, focusPoint);
+
+  return true;
+}
+
+export function exitOsiView() {
+  if (!_osiActive || !scene) return;
+  _osiActive = false;
+
+  hostEl?.classList.remove('tb-3d-osi-active');
+  if (_osiDeviceId && devices3D[_osiDeviceId]) {
+    devices3D[_osiDeviceId].labelEl?.classList.remove('tb-3d-osi-focus');
+  }
+
+  // Dispose layer labels first — they're children of plane meshes, so we
+  // remove them from their immediate parent (which fires the CSS2DObject
+  // 'removed' event + cleans up the DOM element). Removing the parent
+  // alone doesn't propagate the event.
+  for (const lbl of _osiLabelObjs) {
+    if (lbl.parent) lbl.parent.remove(lbl);
+  }
+  _osiLabelObjs = [];
+  // Now dispose plane + edge + riser meshes
+  for (const m of _osiLayerMeshes) {
+    scene.remove(m);
+    if (m.geometry) m.geometry.dispose?.();
+    if (m.material) m.material.dispose?.();
+  }
+  _osiLayerMeshes = [];
+
+  // Restore non-focus device opacity + cables
+  for (const id in devices3D) {
+    devices3D[id].group.traverse(o => {
+      if (o.isMesh && o.material) {
+        o.material.opacity = 1;
+      }
+    });
+  }
+  for (const c of cables3D) {
+    if (c.mesh?.material) {
+      c.mesh.material.opacity = 0.75;
+    }
+  }
+
+  // Restore camera
+  if (_osiCameraBackup) {
+    _tweenCamera(_osiCameraBackup.position, _osiCameraBackup.target);
+    _osiCameraBackup = null;
+  }
+  _osiDeviceId = null;
+}
+
+// Helper app.js can poll to know if OSI is active (for button state sync)
+export function isOsiActive() { return _osiActive; }
+
+// Debug-only: expose scene + module state for Chrome MCP smoke tests.
+// Safe to ship since Phase 3 smoke-test needs internal visibility.
+// Test-only debug accessor. Playwright uses this to verify OSI state without
+// poking at module-private variables. Safe to ship — only exposes integers.
+export function _debugState() {
+  return {
+    sceneChildrenCount: scene?.children.length ?? -1,
+    osiActive: _osiActive,
+    osiDeviceId: _osiDeviceId,
+    osiLayerMeshCount: _osiLayerMeshes.length,
+    osiLabelObjCount: _osiLabelObjs.length
+  };
 }

@@ -1330,4 +1330,142 @@ test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
   });
 });
 
+// ══════════════════════════════════════════
+// v4.65.0 — TB 3D View Phase 3 (issue #199 Phase 3)
+//
+// OSI Layer Stack view. Click a device → OSI Stack button enables → click
+// → device lifts into 7-plane stack with layer labels + dimmed siblings.
+// Exit OSI returns to regular 3D view.
+// ══════════════════════════════════════════
+test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed a minimal 2-device topology so tbState has something to 3D-render.
+    await page.addInitScript(() => {
+      const draft = {
+        id: 'e2e-osi',
+        name: 'E2E OSI',
+        devices: [
+          { id: 'd1', type: 'router', x: 900, y: 450, hostname: 'R1',
+            interfaces: [{ name: 'Gi0/0', ip: '10.0.0.1', mask: '255.255.255.0', mac: 'aa:aa:aa:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: 'c1', subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+          { id: 'd2', type: 'pc', x: 700, y: 650, hostname: 'PC1',
+            interfaces: [{ name: 'eth0', ip: '10.0.0.2', mask: '255.255.255.0', mac: 'bb:bb:bb:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: 'c1', subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] }
+        ],
+        cables: [
+          { id: 'c1', from: 'd1', to: 'd2', type: 'cat6', fromIface: 'Gi0/0', toIface: 'eth0' }
+        ],
+        created: Date.now(),
+        updated: Date.now()
+      };
+      localStorage.setItem('nplus_topology_draft', JSON.stringify(draft));
+    });
+  });
+
+  test('OSI button starts disabled + enables when a device is selected', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    const osiBtn = page.locator('#tb-3d-osi-btn');
+    await expect(osiBtn).toBeVisible();
+    // Disabled at rest (no selection yet)
+    await expect(osiBtn).toHaveAttribute('disabled', '');
+
+    // Select a device programmatically → button enables
+    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    await expect(osiBtn).not.toHaveAttribute('disabled', '');
+  });
+
+  test('entering OSI mode lifts device into 7 layer planes with labels', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Select a device then enter OSI view
+    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    await page.locator('#tb-3d-osi-btn').click();
+
+    // Host gets the tb-3d-osi-active class
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-osi-active/);
+
+    // OSI Stack button hides, Exit OSI button + title show
+    await expect(page.locator('#tb-3d-osi-btn')).toBeHidden();
+    await expect(page.locator('#tb-3d-osi-exit-btn')).toBeVisible();
+    await expect(page.locator('#tb-3d-trace-btn')).toBeHidden();
+
+    // Title card shows the focused device hostname
+    await expect(page.locator('#tb-3d-osi-title-name')).toContainText('R1');
+
+    // All 7 OSI layer labels rendered in the DOM
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(7, { timeout: 3000 });
+
+    // Each layer has the expected layer-N class variant
+    for (let n = 1; n <= 7; n++) {
+      await expect(page.locator(`.tb-3d-osi-label.layer-${n}`)).toHaveCount(1);
+    }
+  });
+
+  test('Exit OSI returns to regular 3D view + tears down layer planes', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Enter OSI
+    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    await page.locator('#tb-3d-osi-btn').click();
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(7, { timeout: 3000 });
+
+    // Exit OSI
+    await page.locator('#tb-3d-osi-exit-btn').click();
+
+    // All OSI layer labels gone, host class removed
+    await expect(page.locator('#tb-3d-host')).not.toHaveClass(/tb-3d-osi-active/);
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(0);
+
+    // Chrome buttons swap back: OSI visible, Exit OSI hidden, Trace visible
+    await expect(page.locator('#tb-3d-osi-btn')).toBeVisible();
+    await expect(page.locator('#tb-3d-osi-exit-btn')).toBeHidden();
+    await expect(page.locator('#tb-3d-trace-btn')).toBeVisible();
+  });
+
+  test('Back-to-2D while in OSI mode properly cleans up', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
+
+    // Enter OSI then immediately go back to 2D
+    await page.evaluate(() => window.tbSelectDeviceForInspector('d1'));
+    await page.locator('#tb-3d-osi-btn').click();
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(7, { timeout: 3000 });
+
+    await page.locator('#tb-3d-back-btn').click();
+    await expect(page.locator('#tb-3d-host')).not.toHaveClass(/tb-3d-host-active/);
+
+    // Re-enter 3D — OSI should be reset (button disabled since selection
+    // state is reset too, no device is currently selected in 3D).
+    await page.locator('[data-tb-pill="3d"]').click();
+    await expect(page.locator('#tb-3d-host')).toHaveClass(/tb-3d-host-active/);
+    await expect(page.locator('#tb-3d-host')).not.toHaveClass(/tb-3d-osi-active/);
+    await expect(page.locator('.tb-3d-osi-label')).toHaveCount(0);
+  });
+});
+
+
 
