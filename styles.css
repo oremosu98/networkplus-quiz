@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.62.5
+   Network+ AI Quiz — styles.css  v4.63.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11658,4 +11658,247 @@ html { zoom: 1.10; }
 
 @media (prefers-reduced-motion: reduce) {
   .q-scenario { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   v4.63.0 — Network Builder 3D View Mode (issue #199 Phase 1)
+
+   Read-only 3D explorer that swaps in-place with the 2D SVG canvas.
+   Three.js scene hosted in #tb-3d-canvas, CSS2D labels in #tb-3d-labels.
+   Chrome rail provides back-to-2D + camera presets. Loading overlay
+   masks the Three.js bundle fetch on first entry. Mobile nudge intercepts
+   small-viewport entry; all animations respect prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════ */
+
+.tb-3d-host {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #131a2e 0%, #0b0f1a 70%);
+  display: flex;
+  flex-direction: column;
+  z-index: 4;
+}
+.tb-3d-host[hidden] { display: none !important; }
+
+.tb-pill.tb-pill-3d {
+  border-color: rgba(124, 111, 247, .4);
+  color: var(--accent-light);
+}
+.tb-pill.tb-pill-3d:hover {
+  background: rgba(124, 111, 247, .16);
+}
+
+.tb-3d-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: rgba(10, 14, 24, .92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  z-index: 6;
+}
+.tb-3d-chrome-left, .tb-3d-chrome-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tb-3d-chrome-eyebrow {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--accent-light);
+  opacity: .75;
+}
+.tb-3d-back-btn {
+  font-weight: 700;
+}
+
+.tb-3d-canvas, .tb-3d-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 52px;
+  bottom: 0;
+}
+.tb-3d-labels { pointer-events: none; }
+.tb-3d-canvas canvas { display: block; }
+
+.tb-3d-node-label {
+  color: var(--text, #e7ebf5);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 9px;
+  background: rgba(10, 14, 24, .88);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  white-space: nowrap;
+  user-select: none;
+  transform: translateY(-8px);
+  transition: all .2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tb-3d-node-label .ip {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  display: block;
+  margin-top: 2px;
+}
+.tb-3d-node-label:hover { border-color: var(--accent); }
+.tb-3d-node-label.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(124, 111, 247, .45);
+}
+
+.tb-3d-vlan-label {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  background: rgba(10, 14, 24, .78);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+}
+.tb-3d-vlan-label .subnet {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: .02em;
+}
+
+.tb-3d-compass {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 99px;
+  background: rgba(10, 14, 24, .72);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 5;
+}
+.tb-3d-compass-ring {
+  position: absolute;
+  inset: 8px;
+  border-radius: 99px;
+  border: 1px dashed var(--border);
+}
+.tb-3d-compass-n { position: absolute; top: 6px; color: var(--accent-light); }
+.tb-3d-compass-s { position: absolute; bottom: 6px; }
+.tb-3d-compass-e { position: absolute; right: 6px; }
+.tb-3d-compass-w { position: absolute; left: 6px; }
+.tb-3d-compass-dot {
+  width: 4px; height: 4px;
+  border-radius: 99px;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.tb-3d-loading {
+  position: absolute;
+  inset: 52px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(11, 15, 26, .85);
+  backdrop-filter: blur(4px);
+  color: var(--text-dim);
+  font-size: 13px;
+  z-index: 7;
+  pointer-events: none;
+}
+.tb-3d-host:not(.tb-3d-host-active) .tb-3d-loading { display: none; }
+.tb-3d-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 99px;
+  border: 3px solid rgba(124, 111, 247, .25);
+  border-top-color: var(--accent);
+  animation: tb3dSpin 0.9s linear infinite;
+}
+@keyframes tb3dSpin {
+  to { transform: rotate(360deg); }
+}
+
+.tb-3d-mobile-nudge {
+  position: absolute;
+  inset: 52px 0 0 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  background: rgba(11, 15, 26, .95);
+  backdrop-filter: blur(8px);
+  z-index: 8;
+}
+.tb-3d-mobile-nudge .tb-3d-mobile-icon {
+  font-size: 42px;
+  filter: drop-shadow(0 0 12px rgba(124, 111, 247, .4));
+}
+.tb-3d-mobile-nudge h3 {
+  font-size: 17px;
+  color: var(--text);
+  margin: 0;
+}
+.tb-3d-mobile-nudge p {
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 320px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+[data-theme="light"] .tb-3d-host {
+  background: radial-gradient(ellipse at center, #f8f9fc 0%, #e9ebf4 70%);
+}
+[data-theme="light"] .tb-3d-chrome {
+  background: rgba(255, 255, 255, .95);
+}
+[data-theme="light"] .tb-3d-node-label,
+[data-theme="light"] .tb-3d-vlan-label {
+  background: rgba(255, 255, 255, .95);
+  color: #1a1f33;
+}
+[data-theme="light"] .tb-3d-compass {
+  background: rgba(255, 255, 255, .88);
+}
+[data-theme="light"] .tb-3d-loading {
+  background: rgba(248, 249, 252, .88);
+}
+[data-theme="light"] .tb-3d-mobile-nudge {
+  background: rgba(248, 249, 252, .95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-3d-loading-spinner { animation: none; border-top-color: transparent; }
+  .tb-3d-node-label { transition: none; }
 }

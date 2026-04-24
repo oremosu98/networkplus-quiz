@@ -1093,3 +1093,96 @@ test.describe('Guided Terminal Lab', () => {
     await expect(copyBtn).toHaveAttribute('aria-label', /[Cc]opy/);
   });
 });
+
+// ══════════════════════════════════════════
+// v4.63.0 — Network Builder 3D View Mode (issue #199 Phase 1)
+//
+// End-to-end: click the 3D View pill, verify scene mounts, click a
+// device label, verify the existing v4.60.0 Live Inspector popup opens,
+// click Back to 2D, verify SVG canvas returns. Also verifies the
+// dynamic-import contract: vendored Three.js fetches ONLY on first
+// 3D-View entry (not on initial page load).
+// ══════════════════════════════════════════
+test.describe('Network Builder 3D View', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed localStorage with a minimal saved topology so the 3D scene
+    // has something to render. Goes into the draft key tbState is
+    // restored from.
+    await page.addInitScript(() => {
+      const draft = {
+        id: 'e2e',
+        name: 'E2E',
+        devices: [
+          { id: 'd1', type: 'router', x: 900, y: 550, hostname: 'R1',
+            interfaces: [{ name: 'Gi0/0', ip: '10.0.0.1', mask: '255.255.255.0', mac: 'aa:aa:aa:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: null, subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [], dhcpServer: null, dhcpRelay: null, acls: [] },
+          { id: 'd2', type: 'switch', x: 700, y: 700, hostname: 'SW1',
+            interfaces: [{ name: 'Fa0/1', ip: '10.0.0.2', mask: '255.255.255.0', mac: 'bb:bb:bb:00:00:01', vlan: 1, mode: 'access', enabled: true, cableId: null, subInterfaces: [] }],
+            routingTable: [], arpTable: [], macTable: [], vlanDb: [{ id: 1, name: 'default' }], dhcpServer: null, dhcpRelay: null, acls: [] }
+        ],
+        cables: [
+          { id: 'c1', from: 'd1', to: 'd2', type: 'cat6', fromIface: 'Gi0/0', toIface: 'Fa0/1' }
+        ],
+        created: Date.now(),
+        updated: Date.now()
+      };
+      localStorage.setItem('nplus_topology_draft', JSON.stringify(draft));
+    });
+  });
+
+  test('Three.js is NOT fetched on initial page load (dynamic-import contract)', async ({ page }) => {
+    const vendorRequests = [];
+    page.on('request', req => {
+      if (req.url().includes('/vendor/three/')) vendorRequests.push(req.url());
+    });
+    await page.goto('/');
+    // Wait for all network activity to settle
+    await page.waitForLoadState('networkidle');
+    expect(vendorRequests).toHaveLength(0);
+  });
+
+  test('opens 3D view, mounts canvas, vendored Three.js fetches lazily, back to 2D works', async ({ page }) => {
+    const vendorRequests = [];
+    page.on('request', req => {
+      if (req.url().includes('/vendor/three/')) vendorRequests.push(req.url());
+    });
+    await page.goto('/');
+
+    // showPage activates the page; openTopologyBuilder restores tbState
+    // from the seeded draft. Fire both.
+    await page.evaluate(() => {
+      window.showPage('topology-builder');
+      window.openTopologyBuilder();
+    });
+    await expect(page.locator('#page-topology-builder')).toHaveClass(/active/);
+
+    // Click the 🧭 3D View pill
+    await page.locator('[data-tb-pill="3d"]').click();
+
+    // 3D host becomes visible
+    const host = page.locator('#tb-3d-host');
+    await expect(host).toHaveClass(/tb-3d-host-active/);
+
+    // Three.js WebGL canvas mounts inside #tb-3d-canvas
+    const canvas = page.locator('#tb-3d-canvas canvas');
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+
+    // Dynamic-import contract: vendored Three.js was fetched on this entry
+    expect(vendorRequests.length).toBeGreaterThan(0);
+
+    // Back to 2D
+    await page.locator('#tb-3d-back-btn').click();
+    await expect(host).not.toHaveClass(/tb-3d-host-active/);
+    await expect(page.locator('#tb-canvas')).toBeVisible();
+  });
+
+  test('3D View pill is present in the canvas pill toolbar', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => window.showPage('topology-builder'));
+    const pill = page.locator('[data-tb-pill="3d"]');
+    await expect(pill).toBeVisible();
+    await expect(pill).toHaveAttribute('onclick', /tbOpen3DView/);
+    await expect(pill).toHaveText(/3D View/);
+  });
+});
+

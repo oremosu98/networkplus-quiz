@@ -1,5 +1,5 @@
-// Service Worker v4.62.5 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v4.62.5';
+// Service Worker v4.63.0 — Network+ Quiz App
+const CACHE_NAME = 'netplus-v4.63.0';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -50,6 +50,15 @@ self.addEventListener('fetch', event => {
 
   // Never cache API calls
   if (url.hostname === 'api.anthropic.com') return;
+
+  // v4.63.0 — pass /vendor/ and /mockups/ through untouched. The vendored
+  // Three.js bundle (~1.3 MB) would evict legitimate shell entries under
+  // the 60-entry cap. Mockups are non-production prototypes that
+  // shouldn't clutter the cache either. Browser HTTP cache still applies,
+  // so repeat fetches are still fast.
+  if (url.pathname.startsWith('/vendor/') || url.pathname.startsWith('/mockups/')) {
+    return; // let the network handle it
+  }
 
   event.respondWith(
     caches.match(event.request).then(cached => {

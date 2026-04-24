@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.62.5</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.63.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1529,6 +1529,10 @@
             <!-- v4.61.0: Trace pill \u2014 opens per-hop packet trace mode (issue #185) -->
             <button type="button" class="tb-pill" data-tb-pill="trace" onclick="tbSelectPill('trace'); tbOpenTraceDialog();" aria-pressed="false" title="Per-hop packet trace">&#128269; Trace</button>
             <button type="button" class="tb-pill" data-tb-pill="labs" onclick="tbSelectPill('labs'); tbOpenLabPicker();" aria-pressed="false">&#127891; Labs</button>
+            <!-- v4.63.0: 3D View pill (issue #199 Phase 1). Dynamic-imports
+                 tb3d.js + vendored Three.js on first click. The 2D canvas
+                 remains the source of truth; this is a read-only explorer. -->
+            <button type="button" class="tb-pill tb-pill-3d" data-tb-pill="3d" onclick="tbOpen3DView()" aria-pressed="false" title="Switch to 3D View mode">&#129517; 3D View</button>
           </div>
           <div class="tb-canvas-pills-sep" aria-hidden="true"></div>
           <div class="tb-canvas-pills-actions" role="group" aria-label="Actions">
@@ -1585,6 +1589,47 @@
              default; revealed when user clicks the Trace pill on the canvas
              toolbar. Filled by tbRenderTraceLog() with hop timeline + playback. -->
         <div class="tb-trace-panel" id="tb-trace-panel" role="dialog" aria-label="Packet trace" aria-modal="false" aria-live="polite" hidden></div>
+
+        <!-- v4.63.0: 3D View host (issue #199 Phase 1). Hidden by default;
+             swapped in-place with the SVG canvas when user clicks the 3D
+             View pill. Three.js + OrbitControls + CSS2DRenderer dynamic-
+             imported on first entry via tb3d.js. Build in 2D, understand
+             in 3D — the 2D canvas remains source of truth. -->
+        <div class="tb-3d-host" id="tb-3d-host" hidden>
+          <div class="tb-3d-chrome">
+            <div class="tb-3d-chrome-left">
+              <button type="button" class="tb-pill tb-pill-active tb-3d-back-btn" id="tb-3d-back-btn" onclick="tbClose3DView()" title="Back to 2D design mode">&larr; 2D Design</button>
+              <span class="tb-3d-chrome-eyebrow">3D VIEW &middot; NETWORK EXPLORER</span>
+            </div>
+            <div class="tb-3d-chrome-right">
+              <button type="button" class="tb-pill tb-pill-action" onclick="tb3dResetCamera()" title="Reset camera to isometric view">&#8634; Reset Camera</button>
+              <button type="button" class="tb-pill tb-pill-action" onclick="tb3dTopDown()" title="Top-down view">&#9634; Top</button>
+            </div>
+          </div>
+          <div class="tb-3d-canvas" id="tb-3d-canvas"></div>
+          <div class="tb-3d-labels" id="tb-3d-labels"></div>
+          <!-- Compass rose -->
+          <div class="tb-3d-compass" aria-hidden="true">
+            <div class="tb-3d-compass-ring"></div>
+            <span class="tb-3d-compass-n">N</span>
+            <span class="tb-3d-compass-s">S</span>
+            <span class="tb-3d-compass-e">E</span>
+            <span class="tb-3d-compass-w">W</span>
+            <span class="tb-3d-compass-dot"></span>
+          </div>
+          <!-- Loading overlay (visible while Three.js vendored bundle fetches on first entry) -->
+          <div class="tb-3d-loading" id="tb-3d-loading">
+            <div class="tb-3d-loading-spinner"></div>
+            <div class="tb-3d-loading-text">Preparing 3D scene&hellip;</div>
+          </div>
+          <!-- Mobile nudge (<768px) -->
+          <div class="tb-3d-mobile-nudge" id="tb-3d-mobile-nudge">
+            <div class="tb-3d-mobile-icon">&#128241;</div>
+            <h3>3D View works best on desktop</h3>
+            <p>Orbit, zoom, and click-to-inspect aren't well tuned for small touchscreens yet. Head to a laptop or external monitor for the full effect.</p>
+            <button type="button" class="btn btn-ghost" onclick="tb3dDismissMobileNudge()">Open anyway</button>
+          </div>
+        </div>
       </div>
 
       <!-- v4.54.6: right pane \u2014 Scenarios only (Inspector moved to floating popup) -->
@@ -1921,6 +1966,18 @@
   <div id="monitor-log" class="monitor-log"></div>
 </div>
 
+<!-- v4.63.0: import map for the 3D View mode (issue #199). Resolves bare
+     `three` + `three/addons/*` imports in vendored files + tb3d.js. Loaded
+     BEFORE app.js so tbOpen3DView's dynamic import() picks it up. Three.js
+     itself is NOT loaded here — it only fetches on first 3D-View click. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.62.5
+// Network+ AI Quiz — app.js  v4.63.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.62.5';
+const APP_VERSION = '4.63.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12573,6 +12573,97 @@ function tbSelectPill(mode) {
     btn.classList.toggle('tb-pill-active', isActive);
     btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   });
+}
+
+// ══════════════════════════════════════════
+// v4.63.0 — 3D View Mode (issue #199, Phase 1)
+//
+// Read-only 3D visualization of the current tbState. Uses Three.js +
+// OrbitControls + CSS2DRenderer, all vendored locally under /vendor/three/
+// and resolved via the importmap in index.html. The whole 3D module
+// (tb3d.js + vendored bundle) is dynamic-imported on first use so
+// every user who never opens 3D pays zero bandwidth for it.
+//
+// 2D stays the source of truth for editing. 3D is the explorer.
+// ══════════════════════════════════════════
+let _tb3dModule = null;
+let _tb3dActive = false;
+
+async function tbOpen3DView() {
+  // Mobile nudge: < 768px shows the desktop-recommended card first.
+  // tb3dDismissMobileNudge() continues with the 3D entry.
+  const host = document.getElementById('tb-3d-host');
+  if (!host) return;
+
+  // Swap: show 3D host, hide 2D canvas wrap siblings we don't want
+  host.hidden = false;
+  host.classList.add('tb-3d-host-active');
+  document.getElementById('tb-canvas')?.classList.add('is-hidden');
+  document.getElementById('tb-canvas-pills')?.classList.add('is-hidden');
+  document.getElementById('tb-zoom-ctrls')?.classList.add('is-hidden');
+  document.getElementById('tb-empty-hint')?.classList.add('is-hidden');
+  document.getElementById('tb-v2-stats')?.classList.add('is-hidden');
+  _tb3dActive = true;
+
+  // Respect mobile-nudge gate: if < 768px and the user hasn't yet
+  // dismissed the nudge this session, show the card and bail until
+  // they hit "Open anyway".
+  const nudge = document.getElementById('tb-3d-mobile-nudge');
+  const nudgeDismissed = window.innerWidth >= 768 ||
+                         sessionStorage.getItem('tb3dNudgeDismissed') === '1';
+  if (nudge) nudge.style.display = nudgeDismissed ? 'none' : 'flex';
+  if (!nudgeDismissed) {
+    document.getElementById('tb-3d-loading').style.display = 'none';
+    return;
+  }
+
+  // First entry: dynamic-import the 3D module (fetches vendored
+  // Three.js bundle on first call, cached by browser + SW thereafter).
+  try {
+    if (!_tb3dModule) {
+      _tb3dModule = await import('./tb3d.js');
+    }
+    _tb3dModule.enter(tbState, {
+      onDeviceClick: (deviceId) => tbSelectDeviceForInspector(deviceId),
+      onAfterEnter: () => {
+        document.getElementById('tb-3d-loading').style.display = 'none';
+      }
+    });
+  } catch (err) {
+    console.warn('[tb3d] failed to load 3D module', err);
+    showErrorToast('Could not load 3D View — check network / console.');
+    tbClose3DView();
+  }
+}
+
+function tbClose3DView() {
+  const host = document.getElementById('tb-3d-host');
+  if (!host) return;
+  if (_tb3dModule && _tb3dActive) {
+    try { _tb3dModule.exit(); } catch (_) { /* tolerate */ }
+  }
+  _tb3dActive = false;
+  host.hidden = true;
+  host.classList.remove('tb-3d-host-active');
+  document.getElementById('tb-canvas')?.classList.remove('is-hidden');
+  document.getElementById('tb-canvas-pills')?.classList.remove('is-hidden');
+  document.getElementById('tb-zoom-ctrls')?.classList.remove('is-hidden');
+  document.getElementById('tb-empty-hint')?.classList.remove('is-hidden');
+  document.getElementById('tb-v2-stats')?.classList.remove('is-hidden');
+}
+
+function tb3dResetCamera() {
+  if (_tb3dModule && _tb3dActive) _tb3dModule.resetCamera();
+}
+function tb3dTopDown() {
+  if (_tb3dModule && _tb3dActive) _tb3dModule.topDown();
+}
+function tb3dDismissMobileNudge() {
+  sessionStorage.setItem('tb3dNudgeDismissed', '1');
+  const nudge = document.getElementById('tb-3d-mobile-nudge');
+  if (nudge) nudge.style.display = 'none';
+  // Retry entry now that nudge is dismissed
+  tbOpen3DView();
 }
 
 // v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.62.5', js.includes("const APP_VERSION = '4.62.5"));
+test('APP_VERSION is 4.63.0', js.includes("const APP_VERSION = '4.63.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.62.5', sw.includes('netplus-v4.62.5'));
+test('SW cache bumped to v4.63.0', sw.includes('netplus-v4.63.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8648,7 +8648,147 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
   }
 })();
 
-// ── Validation audit regression gate ──
+// ══════════════════════════════════════════
+// v4.63.0 — Network Builder 3D View Mode (issue #199 Phase 1)
+//
+// Structural + regression assertions for the 3D view. Three.js is vendored
+// under vendor/three/ and dynamic-imported on demand via tb3d.js, so every
+// user who never opens 3D pays zero bandwidth. These assertions gate that
+// contract (vendored bundle exists, dynamic-imported, excluded from SW
+// precache, 35 bespoke device primitives mapped, etc.).
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.63.0 NETWORK BUILDER 3D VIEW (Phase 1, #199) ──\x1b[0m');
+
+// --- Vendored Three.js files present ---
+// (fs + path already required at top of file; no re-require here)
+test('v4.63.0 vendor: three.module.js present',
+  fs.existsSync(path.join(ROOT, 'vendor/three/build/three.module.js')));
+test('v4.63.0 vendor: OrbitControls present',
+  fs.existsSync(path.join(ROOT, 'vendor/three/examples/jsm/controls/OrbitControls.js')));
+test('v4.63.0 vendor: CSS2DRenderer present',
+  fs.existsSync(path.join(ROOT, 'vendor/three/examples/jsm/renderers/CSS2DRenderer.js')));
+test('v4.63.0 vendor: Three.js LICENSE included (MIT attribution)',
+  fs.existsSync(path.join(ROOT, 'vendor/three/LICENSE')));
+
+// --- tb3d.js module ---
+const tb3d = fs.readFileSync(path.join(ROOT, 'tb3d.js'), 'utf8');
+test('v4.63.0 tb3d: exports enter() + exit() lifecycle',
+  /export function enter\(/.test(tb3d) && /export function exit\(/.test(tb3d));
+test('v4.63.0 tb3d: exports resetCamera() + topDown() camera presets',
+  /export function resetCamera\(/.test(tb3d) && /export function topDown\(/.test(tb3d));
+test('v4.63.0 tb3d: imports three via bare specifier (importmap-resolved)',
+  /^import \* as THREE from ['"]three['"];/m.test(tb3d));
+test('v4.63.0 tb3d: imports OrbitControls from three/addons/',
+  /from ['"]three\/addons\/controls\/OrbitControls\.js['"]/.test(tb3d));
+test('v4.63.0 tb3d: imports CSS2DRenderer from three/addons/',
+  /from ['"]three\/addons\/renderers\/CSS2DRenderer\.js['"]/.test(tb3d));
+
+// --- 35 bespoke device primitives in the factory ---
+const primitiveMatch = tb3d.match(/function _makeDevicePrimitive\(type, color\)\s*\{[\s\S]*?(?=\n\/\/ ══)/);
+const primitiveBody = primitiveMatch ? primitiveMatch[0] : '';
+const EXPECTED_DEVICE_TYPES = [
+  'router', 'switch', 'dmz-switch', 'wap', 'pc', 'server', 'firewall',
+  'cloud', 'isp-router', 'load-balancer', 'ids', 'wlc', 'printer', 'voip',
+  'iot', 'public-web', 'public-file', 'public-cloud',
+  'vpc', 'cloud-subnet', 'igw', 'nat-gw', 'tgw', 'vpg', 'onprem-dc',
+  'sase-edge', 'dns-server',
+  'laptop', 'smartphone', 'game-console', 'smart-tv',
+  'satellite', 'cell-tower', 'modem', 'san-array'
+];
+// Just check every type name appears somewhere in the DEVICE_COLORS block
+// (between 'const DEVICE_COLORS' and the closing '};'). Object-literal keys
+// are sometimes quoted, sometimes not — simplest reliable check is substring
+// presence of `<type>:` or `'<type>':`.
+(() => {
+  const cstart = tb3d.indexOf('const DEVICE_COLORS');
+  const cend = tb3d.indexOf('};', cstart);
+  const colorBlock = cstart >= 0 ? tb3d.slice(cstart, cend) : '';
+  const missing = EXPECTED_DEVICE_TYPES.filter(t => !colorBlock.includes(t));
+  test(`v4.63.0 tb3d: all 35 TB_DEVICE_TYPES entries have a color mapping${missing.length ? ' (missing: ' + missing.join(', ') + ')' : ''}`,
+    missing.length === 0);
+})();
+// Each device type appears as a case or falls through to default. We check a
+// representative subset — ones where a missing case would obviously regress.
+['router', 'firewall', 'switch', 'server', 'cloud', 'wap', 'laptop',
+ 'smartphone', 'vpc', 'tgw', 'satellite', 'cell-tower', 'modem', 'san-array',
+ 'onprem-dc', 'sase-edge', 'ids', 'load-balancer', 'iot'].forEach(t => {
+  test(`v4.63.0 tb3d: primitive factory has bespoke case for '${t}'`,
+    new RegExp(`case ['"]${t.replace('-', '\\-')}['"]:`).test(primitiveBody));
+});
+
+// --- Click-to-inspect wires into existing v4.60.0 inspector ---
+test('v4.63.0 app.js: tbOpen3DView dynamic-imports tb3d.js',
+  js.includes("import('./tb3d.js')"));
+test('v4.63.0 app.js: tbOpen3DView passes onDeviceClick callback wired to tbSelectDeviceForInspector',
+  /onDeviceClick[\s\S]{0,120}tbSelectDeviceForInspector\(deviceId\)/.test(js));
+test('v4.63.0 app.js: tbOpen3DView defined',
+  /^async function tbOpen3DView\(/m.test(js));
+test('v4.63.0 app.js: tbClose3DView defined',
+  /^function tbClose3DView\(/m.test(js));
+test('v4.63.0 app.js: mobile nudge dismiss helper defined',
+  /function tb3dDismissMobileNudge\(/.test(js));
+
+// --- HTML wiring ---
+test('v4.63.0 HTML: 3D View pill in #tb-canvas-pills toolbar',
+  html.includes('data-tb-pill="3d"') && html.includes('onclick="tbOpen3DView()"'));
+test('v4.63.0 HTML: #tb-3d-host container present',
+  html.includes('id="tb-3d-host"'));
+test('v4.63.0 HTML: #tb-3d-canvas (Three.js renderer mount) present',
+  html.includes('id="tb-3d-canvas"'));
+test('v4.63.0 HTML: #tb-3d-labels (CSS2DRenderer mount) present',
+  html.includes('id="tb-3d-labels"'));
+test('v4.63.0 HTML: Back-to-2D button wired to tbClose3DView',
+  html.includes('onclick="tbClose3DView()"'));
+test('v4.63.0 HTML: Reset Camera button wired to tb3dResetCamera',
+  html.includes('onclick="tb3dResetCamera()"'));
+test('v4.63.0 HTML: Top-down camera preset wired to tb3dTopDown',
+  html.includes('onclick="tb3dTopDown()"'));
+test('v4.63.0 HTML: compass rose present',
+  html.includes('tb-3d-compass') && html.includes('tb-3d-compass-n') && html.includes('tb-3d-compass-s'));
+test('v4.63.0 HTML: mobile nudge card present',
+  html.includes('tb-3d-mobile-nudge'));
+test('v4.63.0 HTML: loading overlay present for bundle fetch',
+  html.includes('tb-3d-loading'));
+test('v4.63.0 HTML: importmap declares three + three/addons',
+  html.includes('<script type="importmap">') &&
+  html.includes('"three":') &&
+  html.includes('"three/addons/"'));
+
+// --- CSS wiring ---
+test('v4.63.0 CSS: .tb-3d-host absolute-positioned overlay',
+  /\.tb-3d-host\s*\{[^}]*position:\s*absolute/.test(css));
+test('v4.63.0 CSS: .tb-3d-node-label floating pill style defined',
+  /\.tb-3d-node-label\s*\{/.test(css));
+test('v4.63.0 CSS: .tb-3d-vlan-label floor-plate label style defined',
+  /\.tb-3d-vlan-label\s*\{/.test(css));
+test('v4.63.0 CSS: .tb-3d-compass rose style defined',
+  /\.tb-3d-compass\s*\{/.test(css));
+test('v4.63.0 CSS: reduced-motion gate kills spinner animation',
+  /@media\s*\(prefers-reduced-motion[\s\S]{0,400}tb-3d-loading-spinner/.test(css));
+test('v4.63.0 CSS: light-theme override for .tb-3d-host background',
+  /\[data-theme="light"\]\s*\.tb-3d-host\s*\{/.test(css));
+
+// --- Service worker ---
+test('v4.63.0 SW: /vendor/ path is passed through (not precached)',
+  sw.includes("url.pathname.startsWith('/vendor/')"));
+test('v4.63.0 SW: /mockups/ path also passed through',
+  sw.includes("url.pathname.startsWith('/mockups/')"));
+test('v4.63.0 SW: vendored Three.js NOT in SHELL_ASSETS precache list',
+  !/SHELL_ASSETS[\s\S]{0,300}vendor\//.test(sw));
+
+// --- Regression guards ---
+// Dynamic-import contract: tb3d.js must NEVER be loaded via a top-level
+// <script> or static import in app.js — that would ship 600KB to every
+// user who never opens 3D View.
+test('v4.63.0 REGRESSION: index.html must not load tb3d.js via <script>',
+  !/<script[^>]*src=["']\.?\/?tb3d\.js["']/.test(html));
+test('v4.63.0 REGRESSION: app.js must not statically import tb3d.js',
+  !/^import .* from ['"]\.\/tb3d\.js['"];/m.test(js));
+test('v4.63.0 REGRESSION: index.html must not load Three.js outside /vendor/',
+  !/<script[^>]*src=["'][^"']*(three\.module\.js|three\.min\.js)[^"']*["']/.test(html) ||
+  /<script[^>]*src=["']\.?\/?vendor\/three\/.*three\.module\.js["']/.test(html));
+
+// --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
 // zero-tolerance false-positive rate. A refactor to validateQuestions()
 // must not silently regress either. Runs the audit script as a subprocess
