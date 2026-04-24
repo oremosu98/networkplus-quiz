@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.71.0
+// Network+ AI Quiz — app.js  v4.72.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.71.0';
+const APP_VERSION = '4.72.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -14070,6 +14070,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (cloud connectivity — TGW named as a cloud hub), 3.1 (routing between VPCs)',
     },
+    tour: [
+      {
+        title: 'Multi-VPC with Transit Gateway',
+        body: 'Three VPCs — prod, shared, dev — all connecting through a single Transit Gateway (TGW). This is the cloud answer to hub-and-spoke WAN: instead of building N×(N-1)/2 peering links between VPCs, you connect each VPC once to the TGW and let it route between them. One hub, any-to-any routing.',
+        camera: { position: [36, 32, 40], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The TGW hub',
+        body: 'The Transit Gateway is a regional cloud router. Each VPC attaches to it with a single connection; the TGW holds a route table mapping VPC CIDRs to attachments. Adding a new VPC (VPC-staging, VPC-uat) is one attachment + one route entry — not N new peering links. This is why TGW scales where VPC-peering doesn\'t.',
+        camera: { position: [0, 16, 14], target: [0, 3, -2], durationMs: 1300 },
+        highlight: ['Transit-GW'],
+        durationMs: 15000
+      },
+      {
+        title: 'Three VPCs, any-to-any',
+        body: 'Prod talks to shared, dev talks to shared, prod talks to dev — all through the TGW in exactly one hop each. IGW sits above the TGW for internet egress (typically via a shared egress VPC with NAT-GW, not shown). CIDRs must not overlap across attached VPCs, or routing breaks.',
+        camera: { position: [0, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['VPC-prod', 'VPC-shared', 'VPC-dev', 'Transit-GW'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'TGW = cloud transit hub (AWS Transit Gateway, Azure Virtual WAN Hub, GCP Network Connectivity Center). Replaces full-mesh VPC peering at scale. Still requires non-overlapping CIDRs across attachments. Pricing model: per-attachment + per-GB processed — so consolidating to TGW usually beats the peering cost above ~4 VPCs. N10-009 1.8 (cloud connectivity, TGW as cloud hub).',
+        camera: { position: [36, 34, 40], target: [0, 2, 0], durationMs: 1400 },
+        highlight: ['Transit-GW'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'sase-arch',
@@ -14468,6 +14498,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (cloud networking — NAT-GW, subnets), 4.1 (VPC security), 4.2 (access control)',
     },
+    tour: [
+      {
+        title: 'NAT Gateway Cloud (private-subnet outbound)',
+        body: 'A VPC with two subnets: public (holds the NAT-GW) and private (holds backend servers + database). The private subnet hosts compute that needs to reach the internet (package updates, API calls) but must stay unreachable from the internet. NAT-GW is the one-way valve that makes that work.',
+        camera: { position: [34, 30, 38], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The public subnet',
+        body: 'Public subnet has a route `0.0.0.0/0 → IGW` — traffic flows bidirectionally. The NAT-GW lives here with an Elastic IP (a public address). Only the NAT-GW has a public face; the subnet doesn\'t host any user-facing servers. Its entire job is to be the outbound proxy for the private side.',
+        camera: { position: [-14, 14, 18], target: [-10, 3, 0], durationMs: 1300 },
+        highlight: ['public-subnet', 'NAT-GW', 'IGW'],
+        durationMs: 15000
+      },
+      {
+        title: 'The private subnet',
+        body: 'Private subnet has a route `0.0.0.0/0 → NAT-GW` instead of the IGW. Backend-API wants to `yum update`? The request leaves via the NAT-GW, which SNATs the source IP to its own Elastic IP, forwards to the internet, and stitches the reply back. Inbound unsolicited traffic has no route back — the private subnet is dark to the internet.',
+        camera: { position: [14, 14, 18], target: [10, 3, 0], durationMs: 1300 },
+        highlight: ['private-subnet', 'Backend-API', 'DB-Primary', 'NAT-GW'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'NAT-GW = outbound only (one-way). IGW = bidirectional. Private subnets route `0.0.0.0/0 → NAT-GW`; public subnets route `0.0.0.0/0 → IGW`. The NAT-GW itself lives in a public subnet (so it can reach the IGW). This is the foundational cloud pattern — databases and internal APIs go private, load balancers + jump boxes go public. N10-009 1.8 (cloud networking — NAT-GW + subnets).',
+        camera: { position: [34, 32, 38], target: [0, 2, 0], durationMs: 1400 },
+        highlight: ['NAT-GW', 'IGW'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'cloud-igw',
@@ -14520,6 +14580,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (cloud subnets, IGW), 4.1 (cloud security — SG vs NACL)',
     },
+    tour: [
+      {
+        title: 'Internet Gateway Cloud (public web tier)',
+        body: 'A VPC with a public-facing web tier: three web servers behind a load balancer, all reachable from the internet through the IGW. This is the simplest cloud pattern that ships real user traffic — no private subnets, no NAT-GW, just a public subnet with bidirectional internet access.',
+        camera: { position: [34, 30, 38], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The Internet Gateway',
+        body: 'IGW is the VPC\'s public-internet attachment point. It\'s horizontally scaled + redundant — AWS manages it; you just attach it to the VPC and add a `0.0.0.0/0 → IGW` route. Unlike NAT-GW, IGW is bidirectional: inbound packets from the internet can reach the public subnet, and responses flow back unchanged.',
+        camera: { position: [0, 16, 14], target: [0, 3, -2], durationMs: 1300 },
+        highlight: ['IGW', 'Internet'],
+        durationMs: 15000
+      },
+      {
+        title: 'The web tier',
+        body: 'App-LB (the load balancer) holds a public IP; it distributes incoming requests across Web-01, Web-02, Web-03 using round-robin or least-connections. All four live in public-subnet. Security Groups (stateful, instance-level) lock inbound to 443/tcp only. NACLs (stateless, subnet-level) give a second layer of coarse filtering.',
+        camera: { position: [0, 14, 16], target: [0, 2, 4], durationMs: 1300 },
+        highlight: ['App-LB', 'Web-01', 'Web-02', 'Web-03'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'IGW = bidirectional internet access for public subnets. Route table `0.0.0.0/0 → IGW` is what makes a subnet "public." Security Groups are stateful + instance-level (allow rules only); NACLs are stateless + subnet-level (allow + deny). Combine them for defense-in-depth. This VPC also ships a load balancer + 3 identical web instances — the horizontal-scale pattern. N10-009 1.8 + 4.1 (cloud security).',
+        camera: { position: [34, 32, 38], target: [0, 2, 0], durationMs: 1400 },
+        highlight: ['IGW', 'App-LB'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'cloud-peering',
@@ -14571,6 +14661,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (cloud connectivity options — VPC peering), 3.1 (routing between VPCs)',
     },
+    tour: [
+      {
+        title: 'VPC Peering',
+        body: 'Two VPCs — VPC-A running the app tier (10.0.0.0/16), VPC-B running the database tier (10.1.0.0/16) — connected by a direct peering link. The peering is a private bilateral connection between two VPCs, bypassing the internet entirely. Simple, low-latency, cheap — but doesn\'t scale the way TGW does.',
+        camera: { position: [34, 30, 38], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The peering link',
+        body: 'A peering connection is a one-to-one relationship between exactly two VPCs. You create it once, both sides add a route to each other\'s CIDR, and traffic starts flowing over the cloud provider\'s private backbone. No bandwidth limit, no encryption overhead (traffic already stays inside the cloud fabric), no transitive routing — if VPC-C appears later, you need a new peer.',
+        camera: { position: [0, 16, 14], target: [0, 3, -2], durationMs: 1300 },
+        highlight: ['VPC-A (10.0.0.0/16)', 'VPC-B (10.1.0.0/16)'],
+        durationMs: 15000
+      },
+      {
+        title: 'App reaches DB privately',
+        body: 'App-A-Web (10.0.1.10) calls DB-Primary (10.1.1.10) for data. The packet crosses the peering link — never hits the internet, never sees a NAT, never incurs egress charges to the open internet. You still need matching Security Groups on both sides allowing the ports (e.g., 5432/tcp for Postgres). CIDRs MUST NOT overlap, or the peering won\'t accept the route.',
+        camera: { position: [0, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['App-A-Web', 'DB-Primary'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'VPC peering = one-to-one, non-transitive. If you have 5 VPCs needing full mesh, you need 10 peerings (N×(N-1)/2) — past that, TGW wins. Peering works across regions and across accounts (same provider). Key exam fact: peering is NOT transitive — if A↔B and B↔C exist, A cannot reach C through B. N10-009 1.8 (cloud connectivity), 3.1 (routing between VPCs).',
+        camera: { position: [34, 32, 38], target: [0, 2, 0], durationMs: 1400 },
+        highlight: [],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'man',
@@ -14629,6 +14749,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (network types — LAN/WAN/MAN/CAN/PAN — MAN explicitly listed), 1.8 (carrier Ethernet)',
     },
+    tour: [
+      {
+        title: 'Metropolitan Area Network (MAN)',
+        body: 'A hospital system connecting three sites across a city: Main Hospital, a Clinic, and Admin offices — all linked via a carrier\'s metro-fiber ring. A MAN is bigger than a LAN (single-building), smaller than a WAN (cross-country), and typically owned or leased from a regional carrier that runs fiber through city streets.',
+        camera: { position: [36, 32, 40], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The three sites',
+        body: 'Each site has its own router, switch, and endpoints on a distinct subnet: Hospital (10.10.0.0/24), Clinic (10.20.0.0/24), Admin (10.30.0.0/24). These look like independent LANs — except they\'re all owned by the same organisation and stitched together by the metro-fiber backbone, so traffic between them stays on-net.',
+        camera: { position: [0, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Hospital-Edge', 'Clinic-Edge', 'Admin-Edge'],
+        durationMs: 15000
+      },
+      {
+        title: 'The metro-fiber backbone',
+        body: 'The carrier provisions a metro-Ethernet service (or dark fiber you manage yourself) running between all three sites — often in a physical ring for redundancy. Each site\'s edge router has one interface into the metro cloud. Latency between sites is typically ≤5 ms because it\'s all within ~50 km; bandwidth is usually 1 Gbps or 10 Gbps Ethernet.',
+        camera: { position: [0, 20, 14], target: [0, 3, -2], durationMs: 1300 },
+        highlight: ['Metro-Fiber'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'MAN = city-sized network (~5-50 km). Positioned between LAN and WAN in the canonical CompTIA ladder: PAN (personal, Bluetooth) < LAN (building) < CAN (campus, multi-building) < MAN (city) < WAN (regional/global). Common deliveries: metro Ethernet, SONET/SDH rings, dark fiber. Classic use cases: hospital systems, university-system-to-city-branch, municipal networks. N10-009 1.7 (network types).',
+        camera: { position: [36, 34, 40], target: [0, 2, 0], durationMs: 1400 },
+        highlight: [],
+        durationMs: 14000
+      }
+    ],
   },
   // ══════════════════════════════════════════════════════════════════════
   // v4.49.0 — Tier 1: WAN Architectures (7 new)

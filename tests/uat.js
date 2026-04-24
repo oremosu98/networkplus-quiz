@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.71.0', js.includes("const APP_VERSION = '4.71.0"));
+test('APP_VERSION is 4.72.0', js.includes("const APP_VERSION = '4.72.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.71.0', sw.includes('netplus-v4.71.0'));
+test('SW cache bumped to v4.72.0', sw.includes('netplus-v4.72.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9226,6 +9226,79 @@ test('v4.71.0 data: sase-arch tour has "Zero-trust in practice" step',
   /title:\s*['"]Zero-trust in practice['"]/.test(js));
 test('v4.71.0 data: sase-arch tour body names all 5 SASE pillars',
   /SD-WAN[\s\S]{0,400}SWG[\s\S]{0,400}CASB[\s\S]{0,400}ZTNA[\s\S]{0,400}FWaaS/.test(js));
+
+// ══════════════════════════════════════════
+// v4.72.0 — Final 5 scenario tours (Multi-VPC + Cloud NAT-GW + Cloud IGW + Cloud Peering + MAN)
+// Closes the scenario-tour catalog: 16/16 tours authored.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.72.0 FINAL FIVE SCENARIO TOURS ──\x1b[0m');
+// Multi-VPC (TGW)
+test('v4.72.0 data: multi-vpc scenario has a tour array',
+  /id:\s*['"]multi-vpc['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.72.0 data: multi-vpc tour opens with welcome step',
+  /title:\s*['"]Multi-VPC with Transit Gateway['"]/.test(js));
+test('v4.72.0 data: multi-vpc tour has "The TGW hub" step',
+  /title:\s*['"]The TGW hub['"]/.test(js));
+test('v4.72.0 data: multi-vpc tour highlights all 3 VPCs + TGW',
+  /highlight:\s*\[[^\]]*['"]VPC-prod['"][^\]]*['"]VPC-shared['"][^\]]*['"]VPC-dev['"][^\]]*['"]Transit-GW['"][^\]]*\]/.test(js));
+
+// Cloud NAT-GW
+test('v4.72.0 data: cloud-natgw scenario has a tour array',
+  /id:\s*['"]cloud-natgw['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.72.0 data: cloud-natgw tour opens with welcome step',
+  /title:\s*['"]NAT Gateway Cloud \(private-subnet outbound\)['"]/.test(js));
+test('v4.72.0 data: cloud-natgw tour has "The private subnet" step',
+  /title:\s*['"]The private subnet['"]/.test(js));
+test('v4.72.0 data: cloud-natgw tour highlights NAT-GW + IGW for contrast',
+  /highlight:\s*\[\s*['"]NAT-GW['"]\s*,\s*['"]IGW['"]\s*\]/.test(js));
+
+// Cloud IGW
+test('v4.72.0 data: cloud-igw scenario has a tour array',
+  /id:\s*['"]cloud-igw['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.72.0 data: cloud-igw tour opens with welcome step',
+  /title:\s*['"]Internet Gateway Cloud \(public web tier\)['"]/.test(js));
+test('v4.72.0 data: cloud-igw tour has "The web tier" step',
+  /title:\s*['"]The web tier['"]/.test(js));
+test('v4.72.0 data: cloud-igw tour highlights LB + 3 web instances',
+  /highlight:\s*\[[^\]]*['"]App-LB['"][^\]]*['"]Web-01['"][^\]]*['"]Web-02['"][^\]]*['"]Web-03['"][^\]]*\]/.test(js));
+
+// Cloud Peering
+test('v4.72.0 data: cloud-peering scenario has a tour array',
+  /id:\s*['"]cloud-peering['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.72.0 data: cloud-peering tour opens with welcome step',
+  /title:\s*['"]VPC Peering['"]/.test(js));
+test('v4.72.0 data: cloud-peering tour has "The peering link" step',
+  /title:\s*['"]The peering link['"]/.test(js));
+test('v4.72.0 data: cloud-peering tour body emphasises non-transitive routing',
+  /non-transitive|NOT transitive/.test(js));
+
+// MAN
+test('v4.72.0 data: man scenario has a tour array',
+  /id:\s*['"]man['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.72.0 data: man tour opens with welcome step',
+  /title:\s*['"]Metropolitan Area Network \(MAN\)['"]/.test(js));
+test('v4.72.0 data: man tour has "The metro-fiber backbone" step',
+  /title:\s*['"]The metro-fiber backbone['"]/.test(js));
+test('v4.72.0 data: man tour highlights all 3 site edges',
+  /highlight:\s*\[[^\]]*['"]Hospital-Edge['"][^\]]*['"]Clinic-Edge['"][^\]]*['"]Admin-Edge['"][^\]]*\]/.test(js));
+
+// Catalog-complete milestone: all 16 non-free scenarios have tours
+test('v4.72.0 milestone: every non-free TB_SCENARIOS entry has a tour array',
+  (() => {
+    // Extract TB_SCENARIOS slice and assert every `id:` (other than 'free-build')
+    // sits near a `tour: [` sibling. Heuristic: scan each scenario block for
+    // a tour array within 8000 chars of its id line.
+    const scenarioIds = [
+      'home-network', 'small-office', 'dmz', 'enterprise', 'branch-wireless',
+      'sdwan', 'multi-vpc', 'sase-arch', 'cloud-natgw', 'cloud-igw',
+      'cloud-peering', 'mpls', 'point-to-point', 'hub-spoke', 'full-mesh',
+      's2s-vpn', 'hybrid-cloud', 'cloud-vpc', 'man'
+    ];
+    return scenarioIds.every(id => {
+      const re = new RegExp(`id:\\s*['"]${id}['"][\\s\\S]{0,8000}tour:\\s*\\[`);
+      return re.test(js);
+    });
+  })());
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
