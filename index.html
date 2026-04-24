@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.66.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.67.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1614,8 +1614,12 @@
                    loaded scenario has a `tour` field authored. Starts a
                    choreographed camera + caption sequence. -->
               <button type="button" class="tb-pill tb-pill-action tb-3d-tour-btn" id="tb-3d-tour-btn" onclick="tb3dPlayTour()" title="Play a guided tour of this scenario" hidden>&#9654; Play Tour</button>
-              <!-- Tour playback controls — only while a tour is running -->
+              <!-- Tour playback controls — only while a tour is running.
+                   v4.67.0: added Previous button so users can re-read a
+                   step. Previous pauses auto-advance so the tour doesn't
+                   skip forward again while they're reading. -->
               <div class="tb-3d-tour-controls" id="tb-3d-tour-controls" hidden>
+                <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-tour-prev-btn" onclick="tb3dTourPrev()" title="Previous step (pauses auto-advance so you can re-read)">&#9194;</button>
                 <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-tour-play-btn" onclick="tb3dTourResume()" title="Resume" hidden>&#9654;</button>
                 <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-tour-pause-btn" onclick="tb3dTourPause()" title="Pause">&#10074;&#10074;</button>
                 <button type="button" class="tb-pill tb-pill-playback" onclick="tb3dTourSkip()" title="Skip to next step">&#9193;</button>

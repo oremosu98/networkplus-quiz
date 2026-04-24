@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.66.0
+// Network+ AI Quiz — app.js  v4.67.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.66.0';
+const APP_VERSION = '4.67.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12907,6 +12907,18 @@ function tb3dTourSkip() {
     tb3dTourExit();
   }
 }
+// v4.67.0 — Previous button. Goes back one step and PAUSES auto-advance
+// so the user can re-read without the tour skipping forward again while
+// they read. If already at step 0, no-op.
+function tb3dTourPrev() {
+  if (!_tbTourState.active || !_tbTourState.tour) return;
+  if (_tbTourState.currentStep <= 0) return;
+  if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
+  _tbTourState.currentStep--;
+  _tbTourState.playing = false;  // going back means "I want time to read"
+  _tb3dSyncTourControls();
+  _tb3dRenderTourStep();
+}
 function tb3dTourExit() {
   if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
   _tbTourState.active = false;
@@ -13572,6 +13584,48 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 2.4 (firewall placement, DMZ/screened subnet), 4.1 (network segmentation), 4.3 (defense-in-depth)',
     },
+    // v4.67.0 Phase 4 — DMZ guided tour. Five steps covering zones →
+    // perimeter → DMZ containment → internal separation → exam takeaway.
+    // Device hostnames to highlight must match the scenario's autoBuild
+    // (Internet, Perimeter-FW, DMZ-SW, web.example.com, ftp.example.com,
+    // Internal-SW, PC-01, PC-02, Printer).
+    tour: [
+      {
+        title: 'DMZ / Screened Subnet',
+        body: 'A classic defense-in-depth layout. Three security zones — the untrusted internet, a DMZ hosting public-facing servers, and the trusted internal LAN. The firewall in the middle enforces what can cross between them.',
+        camera: { position: [36, 30, 42], target: [-4, 2, -4], durationMs: 1200 },
+        highlight: [],
+        durationMs: 11000
+      },
+      {
+        title: 'The perimeter',
+        body: 'Every packet from the internet hits this firewall first. It\'s dual-homed — one interface faces the DMZ, one faces the internal LAN. Different rules apply to each direction. This is where zone policy lives.',
+        camera: { position: [12, 14, 12], target: [-8, 2, -12], durationMs: 1200 },
+        highlight: ['Internet', 'Perimeter-FW'],
+        durationMs: 14000
+      },
+      {
+        title: 'The DMZ',
+        body: 'The DMZ is a deliberately exposed zone. Public-facing servers — web, FTP, mail — live here. If a DMZ host is ever compromised, the attacker is trapped. Pivoting to the internal LAN requires breaking the firewall a second time. That\'s the whole point of this architecture.',
+        camera: { position: [-4, 14, 18], target: [-20, 2, 4], durationMs: 1300 },
+        highlight: ['DMZ-SW', 'web.example.com', 'ftp.example.com'],
+        durationMs: 17000
+      },
+      {
+        title: 'The trusted inside',
+        body: 'Internal endpoints — user PCs, printers, file shares — live on the internal switch. They never share a broadcast domain with the DMZ. Even when an internal user wants the web server, their request still goes through the firewall, just like the internet does.',
+        camera: { position: [28, 14, 22], target: [10, 2, 4], durationMs: 1300 },
+        highlight: ['Internal-SW', 'PC-01', 'PC-02', 'Printer'],
+        durationMs: 14000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'A public-facing server on the internal LAN is a red flag. They belong in the DMZ, behind a firewall, isolated by policy. "Screened subnet" is just the newer textbook name for DMZ — same concept. N10-009 tests this under network segmentation + defense-in-depth.',
+        camera: { position: [-32, 28, 40], target: [-4, 2, -4], durationMs: 1300 },
+        highlight: ['Perimeter-FW'],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 'enterprise',
@@ -13961,34 +14015,37 @@ const TB_SCENARIOS = [
     // coords (tbState.x maps via (x-900)/25, tbState.y via (y-550)/25, so
     // scene origin is roughly the center of the canvas). Step auto-advance
     // durationMs defaults to 6500ms if not set.
+    // v4.67.0: durationMs calibrated to body word count (~3 words/sec
+    // reading pace + 2s buffer to absorb visuals). Earlier 6.5–9s
+    // durations rushed the narrative on longer body copy.
     tour: [
       {
         title: 'Home Network',
         body: 'A typical residential setup — an ISP cloud feeding a home router that distributes Wi-Fi to a handful of consumer devices. This is what the N10-009 exam means when it references a SOHO network.',
         camera: { position: [32, 26, 38], target: [-8, 2, -4], durationMs: 1100 },
         highlight: [],
-        durationMs: 6500
+        durationMs: 11000
       },
       {
         title: 'The internet edge',
         body: 'The ISP cloud represents your service provider — the outside world. The home router is the boundary: it terminates the modem link and becomes the default gateway for everything on your side. The single public IP lives here.',
         camera: { position: [14, 14, 10], target: [-8, 2, -13], durationMs: 1100 },
         highlight: ['ISP', 'Home-Router'],
-        durationMs: 7500
+        durationMs: 13000
       },
       {
         title: 'Wi-Fi and endpoints',
         body: 'The router\'s 802.11 radio broadcasts an SSID. Laptops, phones, smart TVs, and game consoles all associate to the same access point. They share one /24 subnet, one broadcast domain, and the same default gateway.',
         camera: { position: [10, 12, 24], target: [-8, 1, 4], durationMs: 1200 },
         highlight: ['WiFi-AP', 'Laptop', 'Phone', 'Smart-TV', 'Console'],
-        durationMs: 8000
+        durationMs: 12000
       },
       {
         title: 'Private IPs + NAT',
         body: 'Every device here has an RFC 1918 private address (192.168.x.x). When any of them talks to the internet, the router performs Network Address Translation — rewriting the source IP to its public one. That\'s how one public IP serves many devices. Remember for the exam: NAT runs on the router, not the endpoints.',
         camera: { position: [-18, 24, 34], target: [-8, 2, -4], durationMs: 1200 },
         highlight: ['Home-Router'],
-        durationMs: 9000
+        durationMs: 15000
       }
     ],
   },

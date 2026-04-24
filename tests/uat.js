@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.66.0', js.includes("const APP_VERSION = '4.66.0"));
+test('APP_VERSION is 4.67.0', js.includes("const APP_VERSION = '4.67.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.66.0', sw.includes('netplus-v4.66.0'));
+test('SW cache bumped to v4.67.0', sw.includes('netplus-v4.67.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9042,6 +9042,42 @@ test('v4.66.0 REGRESSION: tb3d.js never touches _tbTourState',
   !/_tbTourState/.test(tb3d));
 test('v4.66.0 REGRESSION: tour data structure invariant (Array.isArray guard)',
   /Array\.isArray\(scen\.tour\)/.test(js));
+
+// ══════════════════════════════════════════
+// v4.67.0 — Tour UX iteration + DMZ tour
+// User feedback on v4.66.0: step auto-advance felt fast; no way to
+// go back and re-read a step. Added Previous button (pauses auto-
+// advance on press so the user can study the step), bumped Home
+// Network step durations to ~3 words/sec reading pace + 2s buffer,
+// authored the DMZ / Screened Subnet tour (5 steps).
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.67.0 TOUR UX + DMZ TOUR ──\x1b[0m');
+test('v4.67.0 app.js: tb3dTourPrev defined',
+  /function tb3dTourPrev\(/.test(js));
+test('v4.67.0 app.js: tb3dTourPrev pauses auto-advance',
+  /tb3dTourPrev[\s\S]{0,600}playing\s*=\s*false/.test(js));
+test('v4.67.0 app.js: tb3dTourPrev decrements currentStep',
+  /tb3dTourPrev[\s\S]{0,500}currentStep--/.test(js));
+test('v4.67.0 app.js: tb3dTourPrev no-op when at step 0',
+  /tb3dTourPrev[\s\S]{0,300}currentStep\s*<=\s*0/.test(js));
+test('v4.67.0 HTML: Previous button in tour controls',
+  html.includes('id="tb-3d-tour-prev-btn"') && html.includes('onclick="tb3dTourPrev()"'));
+test('v4.67.0 data: Home Network step 1 duration at least 10s (was 6.5s pre-patch)',
+  /Home Network['"][\s\S]{0,500}durationMs:\s*(1[0-9]|[2-9]\d)\d{3}/.test(js));
+test('v4.67.0 data: Home Network NAT step duration at least 14s',
+  /Private IPs \+ NAT['"][\s\S]{0,1000}durationMs:\s*(1[4-9]|[2-9]\d)\d{3}/.test(js));
+test('v4.67.0 data: DMZ scenario has a tour array',
+  /id:\s*['"]dmz['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.67.0 data: DMZ tour opens with "DMZ / Screened Subnet" welcome',
+  /title:\s*['"]DMZ \/ Screened Subnet['"]/.test(js));
+test('v4.67.0 data: DMZ tour has all 5 expected titles',
+  /title:\s*['"]DMZ \/ Screened Subnet['"]/.test(js) &&
+  /title:\s*['"]The perimeter['"]/.test(js) &&
+  /title:\s*['"]The DMZ['"]/.test(js) &&
+  /title:\s*['"]The trusted inside['"]/.test(js) &&
+  /title:\s*['"]Remember for the exam['"]/.test(js));
+test('v4.67.0 data: DMZ tour "The DMZ" step duration at least 15s (longest body)',
+  /title:\s*['"]The DMZ['"][\s\S]{0,1500}durationMs:\s*(1[5-9]|[2-9]\d)\d{3}/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
