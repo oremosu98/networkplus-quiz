@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.68.0', js.includes("const APP_VERSION = '4.68.0"));
+test('APP_VERSION is 4.69.0', js.includes("const APP_VERSION = '4.69.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.68.0', sw.includes('netplus-v4.68.0'));
+test('SW cache bumped to v4.69.0', sw.includes('netplus-v4.69.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9120,6 +9120,40 @@ test('v4.68.0 data: SD-WAN tour has "The hub" and "The branches" steps',
 test('v4.68.0 data: SD-WAN tour highlights HQ + branch edges',
   /highlight:\s*\[[^\]]*['"]HQ-SDWAN-Edge['"][^\]]*\]/.test(js) &&
   /highlight:\s*\[[^\]]*['"]Branch-1-Edge['"][^\]]*['"]Branch-2-Edge['"][^\]]*\]/.test(js));
+
+// ══════════════════════════════════════════
+// v4.69.0 — Three more scenario tours (Small Office + Hub-Spoke + Cloud VPC)
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.69.0 THREE MORE SCENARIO TOURS ──\x1b[0m');
+// Small Office
+test('v4.69.0 data: Small Office scenario has a tour array',
+  /id:\s*['"]small-office['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.69.0 data: Small Office tour opens with welcome step',
+  /title:\s*['"]Small Office['"][\s\S]{0,400}body:/.test(js));
+test('v4.69.0 data: Small Office tour has "The flat LAN" step',
+  /title:\s*['"]The flat LAN['"]/.test(js));
+test('v4.69.0 data: Small Office tour highlights Edge-FW for security-boundary step',
+  /highlight:\s*\[\s*['"]Edge-FW['"]\s*\]/.test(js));
+
+// Hub-and-Spoke
+test('v4.69.0 data: Hub-Spoke scenario has a tour array',
+  /id:\s*['"]hub-spoke['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.69.0 data: Hub-Spoke tour has "The hub" + "The spokes" steps',
+  /title:\s*['"]The hub['"][\s\S]{0,3000}title:\s*['"]The spokes['"]/.test(js));
+test('v4.69.0 data: Hub-Spoke tour final step contrasts with SD-WAN',
+  /title:\s*['"]Why it loses to SD-WAN['"]/.test(js));
+test('v4.69.0 data: Hub-Spoke tour highlights all 3 branch routers',
+  /highlight:\s*\[[^\]]*['"]Branch-1-RTR['"][^\]]*['"]Branch-2-RTR['"][^\]]*['"]Branch-3-RTR['"][^\]]*\]/.test(js));
+
+// Cloud VPC
+test('v4.69.0 data: Cloud VPC scenario has a tour array',
+  /id:\s*['"]cloud-vpc['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.69.0 data: Cloud VPC tour opens with welcome step',
+  /title:\s*['"]Cloud VPC Architecture['"]/.test(js));
+test('v4.69.0 data: Cloud VPC tour has "Public vs private subnets" step',
+  /title:\s*['"]Public vs private subnets['"]/.test(js));
+test('v4.69.0 data: Cloud VPC tour highlights both gateways',
+  /highlight:\s*\[[^\]]*['"]IGW['"][^\]]*['"]NAT-GW['"][^\]]*\]/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

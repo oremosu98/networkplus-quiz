@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.68.0
+// Network+ AI Quiz — app.js  v4.69.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.68.0';
+const APP_VERSION = '4.69.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -13530,6 +13530,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.4 (NAT, RFC 1918), 2.4 (firewall types — stateful), 4.1 (perimeter security), 4.3 (principle of least privilege)',
     },
+    // v4.69.0 Phase 4 — Small Office tour (4 steps). Bridges Home Network
+    // (no firewall appliance) and the Enterprise tour (full defense in depth).
+    tour: [
+      {
+        title: 'Small Office',
+        body: 'The canonical small-business network — internet → firewall → one switch, a handful of PCs and a shared printer. No DMZ, no internal segmentation, no complexity. This is what most offices below ~30 people actually run.',
+        camera: { position: [28, 26, 36], target: [-7, 2, -2], durationMs: 1200 },
+        highlight: [],
+        durationMs: 12000
+      },
+      {
+        title: 'The security boundary',
+        body: 'Every packet in or out crosses this firewall. Stateful rules + NAT: outbound traffic allowed and remembered; inbound connections default-denied unless they\'re return traffic for a known session. That\'s the SMB security posture in one sentence.',
+        camera: { position: [10, 12, 10], target: [-8, 2, -9], durationMs: 1200 },
+        highlight: ['Edge-FW'],
+        durationMs: 13000
+      },
+      {
+        title: 'The flat LAN',
+        body: 'One switch, one /24 subnet, one broadcast domain. All endpoints share the same default gateway. Simple, fast, flat — easy to manage, cheap to run. The tradeoff: no internal segmentation means any compromised endpoint can scan every other endpoint unimpeded.',
+        camera: { position: [0, 12, 22], target: [-7, 2, 4], durationMs: 1300 },
+        highlight: ['LAN-SW', 'PC-01', 'PC-02', 'PC-03', 'Printer'],
+        durationMs: 15000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'SMB = trust inside / distrust outside, a single stateful firewall, no DMZ, no internal segmentation. When an exam question says "small office" or "SOHO-plus", this flat-LAN-behind-a-firewall is the expected shape. N10-009 2.4 (firewall placement) + 4.1 (perimeter security).',
+        camera: { position: [-28, 26, 36], target: [-7, 2, -2], durationMs: 1300 },
+        highlight: ['Edge-FW'],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 'dmz',
@@ -13870,6 +13902,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (cloud networking — VPC, subnets, IGW, NAT-GW, SG, NACL), 4.1 (cloud security)',
     },
+    // v4.69.0 Phase 4 — Cloud VPC tour (4 steps). First cloud scenario
+    // tour — covers IGW vs NAT-GW + public-vs-private subnet routing.
+    tour: [
+      {
+        title: 'Cloud VPC Architecture',
+        body: 'The canonical cloud VPC — a classic 3-tier web app layout. An Internet Gateway, a VPC boundary, a public subnet for the web tier, a private subnet for the app + DB tier. AWS, Azure, and GCP all share this exact shape.',
+        camera: { position: [36, 32, 42], target: [-5, 2, -4], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The internet edge',
+        body: 'The IGW (Internet Gateway) is the cloud\'s version of a router-plus-public-IP — bidirectional traffic between the VPC and the internet. The VPC itself is just the network boundary; it doesn\'t route anything. Think of it as the cloud equivalent of a layer-3 boundary.',
+        camera: { position: [14, 16, 10], target: [-8, 2, -12], durationMs: 1300 },
+        highlight: ['Internet', 'IGW', 'VPC-prod'],
+        durationMs: 14000
+      },
+      {
+        title: 'Public vs private subnets',
+        body: 'Public subnet routes 0.0.0.0/0 → IGW. Holds the web tier and the NAT-GW itself. Private subnet routes 0.0.0.0/0 → NAT-GW instead. Holds the app + DB tiers. Private tier can reach the internet for updates, but the internet cannot reach it. Keeps the blast radius small.',
+        camera: { position: [-4, 18, 28], target: [-8, 2, 4], durationMs: 1400 },
+        highlight: ['public-subnet', 'private-subnet', 'NAT-GW', 'Web-Server', 'App-Server', 'DB-Server'],
+        durationMs: 16000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Know the two gateways: IGW is bidirectional internet for public subnets; NAT-GW is outbound-only internet for private subnets (and itself lives in a public subnet). Security Groups are stateful instance-level rules; NACLs are stateless subnet-level rules. N10-009 1.8 (cloud concepts + VPC components).',
+        camera: { position: [-36, 32, 42], target: [-5, 2, -4], durationMs: 1400 },
+        highlight: ['IGW', 'NAT-GW'],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 'hybrid-cloud',
@@ -14582,6 +14646,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (WAN topologies — hub-and-spoke, mesh, point-to-point), 3.1 (routing convergence)',
     },
+    // v4.69.0 Phase 4 — Hub-and-Spoke tour (4 steps). Complements SD-WAN
+    // by showing the pre-SD-WAN classic pattern + its weaknesses.
+    tour: [
+      {
+        title: 'Hub-and-Spoke',
+        body: 'The classic pre-SD-WAN enterprise WAN. HQ sits at the center. Every branch connects ONLY to HQ — no direct branch-to-branch links. This is how enterprise wide-area networks looked for 20 years before SD-WAN took over.',
+        camera: { position: [42, 34, 50], target: [-4, 2, -2], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The hub',
+        body: 'HQ is the center of gravity — the DC, shared services, the internet uplink. Every branch tunnels back to this router for anything it needs. Email, file shares, SaaS — all routed through the hub.',
+        camera: { position: [12, 14, 18], target: [-8, 2, -2], durationMs: 1300 },
+        highlight: ['HQ-Hub', 'HQ-SW', 'HQ-DC-Server'],
+        durationMs: 12000
+      },
+      {
+        title: 'The spokes',
+        body: 'Three branches, each with its own router + switch + endpoints. Each branch has ONE tunnel — to HQ. Branch-1 cannot talk to Branch-3 directly; traffic must backhaul through the hub. One link per branch = simple, but rigid.',
+        camera: { position: [-8, 20, 36], target: [-8, 2, 8], durationMs: 1400 },
+        highlight: ['Branch-1-RTR', 'Branch-2-RTR', 'Branch-3-RTR'],
+        durationMs: 14000
+      },
+      {
+        title: 'Why it loses to SD-WAN',
+        body: 'Three weaknesses: inter-branch latency (everything backhauls through HQ), single point of failure (if HQ dies, every branch is isolated), and backhauled internet egress wastes bandwidth on traffic that belongs direct. SD-WAN fixes all three with dynamic overlay routing. N10-009 1.7 (WAN topologies).',
+        camera: { position: [-42, 34, 50], target: [-4, 2, -2], durationMs: 1400 },
+        highlight: ['HQ-Hub'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'full-mesh',
