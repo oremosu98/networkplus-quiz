@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.72.0
+// Network+ AI Quiz — app.js  v4.72.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.72.0';
+const APP_VERSION = '4.72.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12684,6 +12684,43 @@ function tbClose3DView() {
   if (_tbTourState?.active && typeof tb3dTourExit === 'function') tb3dTourExit();
 }
 
+// v4.72.1: when a scenario is loaded while 3D is active, tear down + rebuild
+// the scene from the fresh tbState so the new topology appears immediately.
+// Without this, users had to toggle back to 2D, pick the scenario, then
+// re-enter 3D — a 3-click detour for what should be a 1-click change.
+// Clears stale tour + OSI state before re-entering since both are keyed to
+// the previous scenario's devices.
+function _tb3dReenterWithCurrentState() {
+  if (!_tb3dActive || !_tb3dModule) return;
+  // End any running tour — step camera/highlights are keyed to old devices.
+  if (_tbTourState?.active && typeof tb3dTourExit === 'function') {
+    try { tb3dTourExit(); } catch (_) { /* tolerate */ }
+  }
+  // Exit OSI view if active — layers are anchored to a device that may
+  // no longer exist in the new scenario.
+  if (_tb3dModule.isOsiActive && _tb3dModule.isOsiActive()) {
+    try { _tb3dModule.exitOsiView(); } catch (_) { /* tolerate */ }
+    if (typeof _tb3dSyncOsiChrome === 'function') _tb3dSyncOsiChrome(false);
+  }
+  // Full dispose + rebuild. enter() is idempotent — it re-mounts into the
+  // same #tb-3d-host container the first entry set up.
+  try { _tb3dModule.exit(); } catch (_) { /* tolerate */ }
+  try {
+    _tb3dModule.enter(tbState, {
+      onDeviceClick: (deviceId) => tbSelectDeviceForInspector(deviceId),
+      onAfterEnter: () => {
+        const loading = document.getElementById('tb-3d-loading');
+        if (loading) loading.style.display = 'none';
+      }
+    });
+    // Refresh Play Tour button visibility — new scenario may or may not
+    // have a tour authored.
+    if (typeof _tb3dUpdateTourButton === 'function') _tb3dUpdateTourButton();
+  } catch (err) {
+    console.warn('[tb3d] failed to re-enter after scenario change', err);
+  }
+}
+
 function tb3dResetCamera() {
   if (_tb3dModule && _tb3dActive) _tb3dModule.resetCamera();
 }
@@ -15926,6 +15963,11 @@ function tbLoadScenarioWithBuild(id) {
   if (id !== 'free' && tbState.devices.length > 0) {
     showSuccessToast(`\u{1F3D7}\uFE0F ${scen.title} built \u2014 ${tbState.devices.length} devices connected. Explore + modify as you learn.`);
   }
+
+  // v4.72.1: if 3D view is currently open, rebuild the scene so the new
+  // scenario appears immediately. Previously the user had to toggle back
+  // to 2D, pick the scenario, then re-enter 3D — a 3-click UX detour.
+  if (_tb3dActive) _tb3dReenterWithCurrentState();
 }
 
 // v4.49.4: true when the current canvas is an unmodified scenario auto-build.

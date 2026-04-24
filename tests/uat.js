@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.72.0', js.includes("const APP_VERSION = '4.72.0"));
+test('APP_VERSION is 4.72.1', js.includes("const APP_VERSION = '4.72.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.72.0', sw.includes('netplus-v4.72.0'));
+test('SW cache bumped to v4.72.1', sw.includes('netplus-v4.72.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9281,6 +9281,52 @@ test('v4.72.0 data: man tour has "The metro-fiber backbone" step',
   /title:\s*['"]The metro-fiber backbone['"]/.test(js));
 test('v4.72.0 data: man tour highlights all 3 site edges',
   /highlight:\s*\[[^\]]*['"]Hospital-Edge['"][^\]]*['"]Clinic-Edge['"][^\]]*['"]Admin-Edge['"][^\]]*\]/.test(js));
+
+// ══════════════════════════════════════════
+// v4.72.1 — 3D scene refreshes on scenario change while 3D view is active
+// Bug fix: picking a new scenario while 3D was open required toggling back
+// to 2D + re-entering 3D. Now the scene rebuilds in place.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.72.1 3D SCENARIO-SWITCH REFRESH ──\x1b[0m');
+test('v4.72.1 structure: _tb3dReenterWithCurrentState defined',
+  /function\s+_tb3dReenterWithCurrentState\s*\(/.test(js));
+test('v4.72.1 structure: reenter helper guards on _tb3dActive',
+  (() => {
+    const body = _fnBody(js, '_tb3dReenterWithCurrentState');
+    return body && /if\s*\(\s*!_tb3dActive/.test(body);
+  })());
+test('v4.72.1 structure: reenter helper calls _tb3dModule.exit() then .enter()',
+  (() => {
+    const body = _fnBody(js, '_tb3dReenterWithCurrentState');
+    if (!body) return false;
+    const exitIdx = body.indexOf('_tb3dModule.exit()');
+    const enterIdx = body.indexOf('_tb3dModule.enter(tbState');
+    return exitIdx > 0 && enterIdx > exitIdx;
+  })());
+test('v4.72.1 structure: reenter helper ends active tour first',
+  (() => {
+    const body = _fnBody(js, '_tb3dReenterWithCurrentState');
+    return body && /_tbTourState\?\.active[\s\S]{0,200}tb3dTourExit\(\)/.test(body);
+  })());
+test('v4.72.1 structure: reenter helper exits OSI if active',
+  (() => {
+    const body = _fnBody(js, '_tb3dReenterWithCurrentState');
+    return body && /isOsiActive\(\)[\s\S]{0,200}exitOsiView\(\)/.test(body);
+  })());
+test('v4.72.1 wiring: tbLoadScenarioWithBuild calls reenter helper',
+  (() => {
+    const body = _fnBody(js, 'tbLoadScenarioWithBuild');
+    return body && /if\s*\(\s*_tb3dActive\s*\)\s*_tb3dReenterWithCurrentState\(\)/.test(body);
+  })());
+test('v4.72.1 regression: reenter call is gated on _tb3dActive (no unconditional rebuild)',
+  (() => {
+    const body = _fnBody(js, 'tbLoadScenarioWithBuild');
+    if (!body) return false;
+    // Ensure no bare `_tb3dReenterWithCurrentState()` call without a guard.
+    const matches = body.match(/_tb3dReenterWithCurrentState\(\)/g) || [];
+    const guarded = (body.match(/if\s*\(\s*_tb3dActive\s*\)\s*_tb3dReenterWithCurrentState\(\)/g) || []).length;
+    return matches.length === guarded && matches.length === 1;
+  })());
 
 // Catalog-complete milestone: all 16 non-free scenarios have tours
 test('v4.72.0 milestone: every non-free TB_SCENARIOS entry has a tour array',
