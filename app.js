@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.69.0
+// Network+ AI Quiz — app.js  v4.70.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.69.0';
+const APP_VERSION = '4.70.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -13986,6 +13986,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.8 (hybrid cloud model), 4.1 (site-to-site VPN), 4.4 (IPSec / IKE / crypto parameters)',
     },
+    // v4.70.0 Phase 4 — Hybrid Cloud tour (4 steps). Most common cloud
+    // migration pattern on the exam.
+    tour: [
+      {
+        title: 'Hybrid Cloud (VPN)',
+        body: 'On-prem ↔ cloud via an IPsec VPN tunnel — the hybrid pattern most enterprises land on when they migrate partial workloads to cloud. Keeps the datacenter relevant while giving you cloud elasticity. One tunnel, two distinct network worlds bridged.',
+        camera: { position: [34, 30, 38], target: [-7, 2, -2], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The on-prem side',
+        body: 'Your datacenter with a firewall that speaks IPsec. The firewall\'s WAN interface terminates the VPN tunnel on this end. Same hardware you\'d use for any site-to-site VPN, now pointed at a cloud peer instead of another office.',
+        camera: { position: [-2, 14, 14], target: [-20, 2, -6], durationMs: 1300 },
+        highlight: ['HQ-DC', 'DC-FW'],
+        durationMs: 13000
+      },
+      {
+        title: 'The cloud side',
+        body: 'A VPN Gateway (VPG) sits at the VPC edge. Matching IPsec parameters on both sides — Phase 1 (IKE: exchange + encryption + hash + DH group + lifetime) and Phase 2 (ESP: encryption + hash + PFS group + lifetime) must match exactly, or the tunnel won\'t come up. Then the VPC routes like any other subnet.',
+        camera: { position: [22, 14, 14], target: [8, 2, 0], durationMs: 1300 },
+        highlight: ['Cloud-VPG', 'VPC-prod', 'app-subnet', 'Cloud-App'],
+        durationMs: 15000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'The exam point: IPsec is symmetric — if Phase 1 or Phase 2 proposals don\'t match byte-for-byte between peers, the tunnel fails. Hybrid cloud is the single most common cloud-migration pattern. N10-009 1.8 (hybrid cloud model) + 4.1 (site-to-site VPN) + 4.4 (IPsec, IKE, crypto parameters).',
+        camera: { position: [-34, 30, 38], target: [-7, 2, -2], durationMs: 1400 },
+        highlight: ['DC-FW', 'Cloud-VPG'],
+        durationMs: 15000
+      }
+    ],
   },
   {
     id: 'multi-vpc',
@@ -14589,6 +14621,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (leased lines named explicitly — T1/T3/OC-x), 1.7 (WAN transmission media), 2.1 (latency + bandwidth)',
     },
+    tour: [
+      {
+        title: 'Point-to-Point (Leased Line)',
+        body: 'Two sites, one dedicated circuit between them. No internet, no shared carrier fabric — just a private fiber line running between Site A and Site B. The purest WAN topology, predating most shared services, still used when guaranteed bandwidth + deterministic latency matter more than cost.',
+        camera: { position: [32, 28, 36], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The dedicated circuit',
+        body: 'The fiber line between the two site routers is a leased line — T1 (1.544 Mbps), T3/DS3 (45 Mbps), or OC-3/OC-48 for higher-speed fiber. You pay for the full bandwidth 24/7; the carrier provisions it end-to-end and guarantees throughput via SLA. No other customer shares this circuit.',
+        camera: { position: [0, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Site-A-RTR', 'Site-B-RTR'],
+        durationMs: 14000
+      },
+      {
+        title: 'How it routes',
+        body: 'Site-A\'s router has a single WAN interface pointing at Site-B — no routing decision, just forward. Packets cross the leased line, arrive at Site-B\'s router, then route locally to the destination subnet. Endpoints don\'t know the WAN is dedicated — it just looks like a remote subnet on their default gateway.',
+        camera: { position: [-20, 16, 16], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Site-A-PC-01', 'Site-A-RTR', 'Site-B-RTR', 'Site-B-Server'],
+        durationMs: 15000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Point-to-point = one dedicated circuit = deterministic latency + guaranteed bandwidth + SLA-backed. Know the capacities: T1 (1.544 Mbps), T3/DS3 (~45 Mbps), OC-3 (~155 Mbps), OC-48 (~2.5 Gbps). Know CSU/DSU converts the leased-line signal for the router. N10-009 1.7 (WAN transmission media — leased lines named explicitly).',
+        camera: { position: [32, 30, 36], target: [0, 2, 0], durationMs: 1400 },
+        highlight: [],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 'hub-spoke',
@@ -14735,6 +14797,36 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (WAN topologies — mesh, full vs partial), 3.1 (routing convergence + redundancy)',
     },
+    tour: [
+      {
+        title: 'Full Mesh WAN',
+        body: 'Every site connects directly to every other site. No hub, no hierarchy, no traffic backhauling. Maximum redundancy at maximum cost — the \"money is no object\" WAN topology. You\'ll see this in financial trading firms, emergency services, and mission-critical small networks.',
+        camera: { position: [36, 32, 40], target: [0, 2, 0], durationMs: 1300 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The geometry',
+        body: 'Count the links: 4 sites × 3 neighbors ÷ 2 = 6 links. The formula is N×(N-1)/2. Scale that up: 5 sites = 10 links. 10 sites = 45 links. 20 sites = 190 links. O(n²) growth — this is why full mesh breaks down past small deployments. The circuit bill quadruples before you feel it.',
+        camera: { position: [0, 22, 22], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Site-A-RTR', 'Site-B-RTR', 'Site-C-RTR', 'Site-D-RTR'],
+        durationMs: 15000
+      },
+      {
+        title: 'The tradeoff',
+        body: 'Upside: any site-to-site path is one hop — minimum latency, and losing any single link leaves every pair still reachable. Downside: you\'re paying for every possible circuit, and most carry light load. Partial mesh is the compromise: direct links only between the busy pairs, indirect for the rest.',
+        camera: { position: [-20, 18, 20], target: [0, 2, 0], durationMs: 1300 },
+        highlight: ['Site-A-RTR', 'Site-B-RTR', 'Site-C-RTR', 'Site-D-RTR'],
+        durationMs: 14000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Full mesh = N×(N-1)/2 links, fits 3–5 critical sites, collapses economically past that. The exam will hand you a WAN scenario and ask you to pick between full mesh, partial mesh, hub-and-spoke, and point-to-point — the correct answer is almost always driven by site count + criticality. N10-009 1.7 (WAN topologies).',
+        camera: { position: [36, 34, 40], target: [0, 2, 0], durationMs: 1400 },
+        highlight: [],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 's2s-vpn',

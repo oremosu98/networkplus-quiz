@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.69.0', js.includes("const APP_VERSION = '4.69.0"));
+test('APP_VERSION is 4.70.0', js.includes("const APP_VERSION = '4.70.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.69.0', sw.includes('netplus-v4.69.0'));
+test('SW cache bumped to v4.70.0', sw.includes('netplus-v4.70.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9154,6 +9154,42 @@ test('v4.69.0 data: Cloud VPC tour has "Public vs private subnets" step',
   /title:\s*['"]Public vs private subnets['"]/.test(js));
 test('v4.69.0 data: Cloud VPC tour highlights both gateways',
   /highlight:\s*\[[^\]]*['"]IGW['"][^\]]*['"]NAT-GW['"][^\]]*\]/.test(js));
+
+// ══════════════════════════════════════════
+// v4.70.0 — Three more scenario tours (Hybrid Cloud + Full Mesh + Point-to-Point)
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.70.0 THREE MORE SCENARIO TOURS ──\x1b[0m');
+// Hybrid Cloud
+test('v4.70.0 data: Hybrid Cloud scenario has a tour array',
+  /id:\s*['"]hybrid-cloud['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.70.0 data: Hybrid Cloud tour opens with welcome step',
+  /title:\s*['"]Hybrid Cloud \(VPN\)['"]/.test(js));
+test('v4.70.0 data: Hybrid Cloud tour has "The on-prem side" step',
+  /title:\s*['"]The on-prem side['"]/.test(js));
+test('v4.70.0 data: Hybrid Cloud tour has "The cloud side" step',
+  /title:\s*['"]The cloud side['"]/.test(js));
+test('v4.70.0 data: Hybrid Cloud tour highlights Cloud-VPG + DC-FW',
+  /highlight:\s*\[\s*['"]DC-FW['"]\s*,\s*['"]Cloud-VPG['"]\s*\]/.test(js));
+
+// Full Mesh
+test('v4.70.0 data: Full Mesh scenario has a tour array',
+  /id:\s*['"]full-mesh['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.70.0 data: Full Mesh tour opens with welcome step',
+  /title:\s*['"]Full Mesh WAN['"]/.test(js));
+test('v4.70.0 data: Full Mesh tour has "The geometry" step with N×(N-1)/2 math',
+  /title:\s*['"]The geometry['"][\s\S]{0,800}N×\(N-1\)\/2/.test(js));
+test('v4.70.0 data: Full Mesh tour highlights all 4 site routers',
+  /highlight:\s*\[[^\]]*['"]Site-A-RTR['"][^\]]*['"]Site-B-RTR['"][^\]]*['"]Site-C-RTR['"][^\]]*['"]Site-D-RTR['"][^\]]*\]/.test(js));
+
+// Point-to-Point
+test('v4.70.0 data: Point-to-Point scenario has a tour array',
+  /id:\s*['"]point-to-point['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.70.0 data: Point-to-Point tour opens with welcome step',
+  /title:\s*['"]Point-to-Point \(Leased Line\)['"]/.test(js));
+test('v4.70.0 data: Point-to-Point tour has "The dedicated circuit" step',
+  /title:\s*['"]The dedicated circuit['"]/.test(js));
+test('v4.70.0 data: Point-to-Point tour references T1/T3 leased-line capacities',
+  /T1\s*\(1\.544 Mbps\)[\s\S]{0,200}T3\/DS3/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
