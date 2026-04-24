@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.65.1
+// Network+ AI Quiz — app.js  v4.66.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.65.1';
+const APP_VERSION = '4.66.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12641,6 +12641,9 @@ async function tbOpen3DView() {
     if (_tbUiState?.trace?.active && _tb3dModule.setTraceState) {
       _tb3dModule.setTraceState(_tbUiState.trace);
     }
+    // v4.66.0 Phase 4: surface Play Tour button if the loaded scenario
+    // has a `tour` authored.
+    if (typeof _tb3dUpdateTourButton === 'function') _tb3dUpdateTourButton();
   } catch (err) {
     console.warn('[tb3d] failed to load 3D module', err);
     showErrorToast('Could not load 3D View — check network / console.');
@@ -12676,6 +12679,9 @@ function tbClose3DView() {
   // clickable now (auto-picks device if none selected), so we just
   // swap visibility — no `disabled` attribute manipulation.
   if (typeof _tb3dSyncOsiChrome === 'function') _tb3dSyncOsiChrome(false);
+  // v4.66.0 Phase 4: end any running tour on 3D exit so it doesn't leak
+  // timers or show stale captions/highlights.
+  if (_tbTourState?.active && typeof tb3dTourExit === 'function') tb3dTourExit();
 }
 
 function tb3dResetCamera() {
@@ -12778,6 +12784,167 @@ function _tb3dSyncOsiChrome(active) {
 function _tb3dUpdateOsiButtonEnabled() {
   const osiBtn = document.getElementById('tb-3d-osi-btn');
   if (osiBtn) osiBtn.removeAttribute('disabled');
+}
+
+// ══════════════════════════════════════════
+// v4.66.0 Phase 4 — Scenario Tours
+// Render-only contract with tb3d.js: app.js owns ALL tour state +
+// step-advance timing; tb3d provides camera tween + device highlight
+// primitives (see tweenCameraTo + highlightDevices exports).
+// ══════════════════════════════════════════
+let _tbTourState = {
+  active: false,
+  tour: null,        // reference to TB_SCENARIOS[id].tour array
+  scenarioId: null,
+  currentStep: 0,
+  playing: false,
+  advanceTimer: null
+};
+
+// Show the Play Tour button only when the currently-loaded scenario has
+// a `tour` field AND 3D mode is active.
+function _tb3dUpdateTourButton() {
+  const btn = document.getElementById('tb-3d-tour-btn');
+  if (!btn) return;
+  const scenId = typeof tbSelectedScenario !== 'undefined' ? tbSelectedScenario : null;
+  const scen = scenId && typeof TB_SCENARIOS !== 'undefined'
+    ? TB_SCENARIOS.find(s => s.id === scenId)
+    : null;
+  const hasTour = !!(scen && Array.isArray(scen.tour) && scen.tour.length);
+  btn.hidden = !hasTour || !_tb3dActive;
+}
+
+// Start the tour. Called from the chrome 🟢 Play Tour button.
+function tb3dPlayTour() {
+  if (!_tb3dActive) return;
+  const scenId = typeof tbSelectedScenario !== 'undefined' ? tbSelectedScenario : null;
+  const scen = scenId && typeof TB_SCENARIOS !== 'undefined'
+    ? TB_SCENARIOS.find(s => s.id === scenId)
+    : null;
+  if (!scen || !Array.isArray(scen.tour) || !scen.tour.length) return;
+  _tbTourState.active = true;
+  _tbTourState.tour = scen.tour;
+  _tbTourState.scenarioId = scen.id;
+  _tbTourState.currentStep = 0;
+  _tbTourState.playing = true;
+  _tb3dShowTourChrome(true);
+  _tb3dRenderTourStep();
+}
+
+// Render the current step: tween camera, update caption, highlight devices,
+// schedule auto-advance if playing.
+function _tb3dRenderTourStep() {
+  const s = _tbTourState;
+  if (!s.active || !s.tour) return;
+  const step = s.tour[s.currentStep];
+  if (!step) { tb3dTourExit(); return; }
+
+  // Camera tween (render-only — delegates to tb3d.tweenCameraTo)
+  if (step.camera && _tb3dModule?.tweenCameraTo) {
+    _tb3dModule.tweenCameraTo(
+      step.camera.position,
+      step.camera.target,
+      step.camera.durationMs || 900
+    );
+  }
+  // Device highlights
+  if (_tb3dModule?.highlightDevices) {
+    _tb3dModule.highlightDevices(step.highlight || []);
+  }
+  // Caption card
+  const cap = document.getElementById('tb-3d-tour-caption');
+  const title = document.getElementById('tb-3d-tour-title');
+  const body = document.getElementById('tb-3d-tour-body');
+  const dots = document.getElementById('tb-3d-tour-dots');
+  if (cap && title && body && dots) {
+    title.textContent = step.title || '';
+    body.textContent = step.body || '';
+    // Step-dot indicator
+    dots.innerHTML = s.tour.map((_, i) => {
+      let klass = 'tb-3d-tour-dot';
+      if (i < s.currentStep) klass += ' is-done';
+      else if (i === s.currentStep) klass += ' is-current';
+      return `<span class="${klass}"></span>`;
+    }).join('');
+    // Force fade-in animation to replay on each step change
+    cap.hidden = false;
+    cap.style.animation = 'none';
+    // Next frame: restore animation so CSS fires again
+    requestAnimationFrame(() => { cap.style.animation = ''; });
+  }
+
+  // Auto-advance if playing, unless this is the last step
+  if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
+  if (s.playing && s.currentStep < s.tour.length - 1) {
+    const ms = step.durationMs || 6500;
+    _tbTourState.advanceTimer = setTimeout(() => {
+      if (!_tbTourState.active || !_tbTourState.playing) return;
+      _tbTourState.currentStep++;
+      _tb3dRenderTourStep();
+    }, ms);
+  }
+}
+
+function tb3dTourPause() {
+  if (!_tbTourState.active) return;
+  _tbTourState.playing = false;
+  if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
+  _tb3dSyncTourControls();
+}
+function tb3dTourResume() {
+  if (!_tbTourState.active) return;
+  _tbTourState.playing = true;
+  _tb3dSyncTourControls();
+  _tb3dRenderTourStep();
+}
+function tb3dTourSkip() {
+  if (!_tbTourState.active || !_tbTourState.tour) return;
+  if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
+  if (_tbTourState.currentStep < _tbTourState.tour.length - 1) {
+    _tbTourState.currentStep++;
+    _tb3dRenderTourStep();
+  } else {
+    tb3dTourExit();
+  }
+}
+function tb3dTourExit() {
+  if (_tbTourState.advanceTimer) { clearTimeout(_tbTourState.advanceTimer); _tbTourState.advanceTimer = null; }
+  _tbTourState.active = false;
+  _tbTourState.playing = false;
+  _tbTourState.tour = null;
+  _tbTourState.currentStep = 0;
+  _tb3dShowTourChrome(false);
+  // Hide caption
+  const cap = document.getElementById('tb-3d-tour-caption');
+  if (cap) cap.hidden = true;
+  // Clear all highlights
+  if (_tb3dModule?.highlightDevices) _tb3dModule.highlightDevices([]);
+  // Restore iso camera
+  if (_tb3dModule?.resetCamera) _tb3dModule.resetCamera();
+}
+
+// Chrome visibility helpers: swap Play Tour button ↔ tour controls
+function _tb3dShowTourChrome(active) {
+  const btn = document.getElementById('tb-3d-tour-btn');
+  const ctl = document.getElementById('tb-3d-tour-controls');
+  if (btn) btn.hidden = active || !_tbTourScenarioHasTour();
+  if (ctl) ctl.hidden = !active;
+  _tb3dSyncTourControls();
+}
+function _tb3dSyncTourControls() {
+  const playBtn = document.getElementById('tb-3d-tour-play-btn');
+  const pauseBtn = document.getElementById('tb-3d-tour-pause-btn');
+  if (!playBtn || !pauseBtn) return;
+  const playing = _tbTourState.playing;
+  playBtn.hidden = playing;
+  pauseBtn.hidden = !playing;
+}
+function _tbTourScenarioHasTour() {
+  const scenId = typeof tbSelectedScenario !== 'undefined' ? tbSelectedScenario : null;
+  const scen = scenId && typeof TB_SCENARIOS !== 'undefined'
+    ? TB_SCENARIOS.find(s => s.id === scenId)
+    : null;
+  return !!(scen && Array.isArray(scen.tour) && scen.tour.length);
 }
 
 // v4.60.0 — Live Protocol Inspector (issue #184). Replaces the pre-v4.60
@@ -13790,6 +13957,40 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.4 (IPv4 + NAT/PAT), 1.6 (DHCP, DNS), 2.3 (wireless 802.11 standards), 4.1 (home-gateway security posture)',
     },
+    // v4.66.0 Phase 4 — guided 3D tour. Camera positions in scene-space
+    // coords (tbState.x maps via (x-900)/25, tbState.y via (y-550)/25, so
+    // scene origin is roughly the center of the canvas). Step auto-advance
+    // durationMs defaults to 6500ms if not set.
+    tour: [
+      {
+        title: 'Home Network',
+        body: 'A typical residential setup — an ISP cloud feeding a home router that distributes Wi-Fi to a handful of consumer devices. This is what the N10-009 exam means when it references a SOHO network.',
+        camera: { position: [32, 26, 38], target: [-8, 2, -4], durationMs: 1100 },
+        highlight: [],
+        durationMs: 6500
+      },
+      {
+        title: 'The internet edge',
+        body: 'The ISP cloud represents your service provider — the outside world. The home router is the boundary: it terminates the modem link and becomes the default gateway for everything on your side. The single public IP lives here.',
+        camera: { position: [14, 14, 10], target: [-8, 2, -13], durationMs: 1100 },
+        highlight: ['ISP', 'Home-Router'],
+        durationMs: 7500
+      },
+      {
+        title: 'Wi-Fi and endpoints',
+        body: 'The router\'s 802.11 radio broadcasts an SSID. Laptops, phones, smart TVs, and game consoles all associate to the same access point. They share one /24 subnet, one broadcast domain, and the same default gateway.',
+        camera: { position: [10, 12, 24], target: [-8, 1, 4], durationMs: 1200 },
+        highlight: ['WiFi-AP', 'Laptop', 'Phone', 'Smart-TV', 'Console'],
+        durationMs: 8000
+      },
+      {
+        title: 'Private IPs + NAT',
+        body: 'Every device here has an RFC 1918 private address (192.168.x.x). When any of them talks to the internet, the router performs Network Address Translation — rewriting the source IP to its public one. That\'s how one public IP serves many devices. Remember for the exam: NAT runs on the router, not the endpoints.',
+        camera: { position: [-18, 24, 34], target: [-8, 2, -4], durationMs: 1200 },
+        highlight: ['Home-Router'],
+        durationMs: 9000
+      }
+    ],
   },
   {
     id: 'sdwan',

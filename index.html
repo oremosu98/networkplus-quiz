@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.65.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.66.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1610,6 +1610,17 @@
                    typical protocols. Exit button appears only in OSI mode. -->
               <button type="button" class="tb-pill tb-pill-action tb-3d-osi-btn" id="tb-3d-osi-btn" onclick="tb3dEnterOsiView()" title="Explode a device into 7 OSI layers (clicks a device for you if none selected)">&#128246; OSI Stack</button>
               <button type="button" class="tb-pill tb-pill-active tb-3d-osi-exit-btn" id="tb-3d-osi-exit-btn" onclick="tb3dExitOsiView()" title="Exit OSI view" hidden>&larr; Exit OSI</button>
+              <!-- v4.66.0 Phase 4: Play Tour button, visible only when the
+                   loaded scenario has a `tour` field authored. Starts a
+                   choreographed camera + caption sequence. -->
+              <button type="button" class="tb-pill tb-pill-action tb-3d-tour-btn" id="tb-3d-tour-btn" onclick="tb3dPlayTour()" title="Play a guided tour of this scenario" hidden>&#9654; Play Tour</button>
+              <!-- Tour playback controls — only while a tour is running -->
+              <div class="tb-3d-tour-controls" id="tb-3d-tour-controls" hidden>
+                <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-tour-play-btn" onclick="tb3dTourResume()" title="Resume" hidden>&#9654;</button>
+                <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-tour-pause-btn" onclick="tb3dTourPause()" title="Pause">&#10074;&#10074;</button>
+                <button type="button" class="tb-pill tb-pill-playback" onclick="tb3dTourSkip()" title="Skip to next step">&#9193;</button>
+                <button type="button" class="tb-pill tb-pill-playback" onclick="tb3dTourExit()" title="Exit tour">&times;</button>
+              </div>
               <div class="tb-3d-playback-controls" id="tb-3d-playback-controls" hidden>
                 <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-play-btn" onclick="tb3dTracePlay()" title="Play / resume">&#9654;</button>
                 <button type="button" class="tb-pill tb-pill-playback" id="tb-3d-pause-btn" onclick="tb3dTracePause()" title="Pause" hidden>&#10074;&#10074;</button>
@@ -1630,6 +1641,15 @@
           </div>
           <div class="tb-3d-canvas" id="tb-3d-canvas"></div>
           <div class="tb-3d-labels" id="tb-3d-labels"></div>
+          <!-- v4.66.0 Phase 4: tour caption card. Fades in bottom-center when
+               a tour is active. Shows step title + body + step-dot
+               indicator. Rendered by app.js _tbTourRenderStep. -->
+          <div class="tb-3d-tour-caption" id="tb-3d-tour-caption" hidden>
+            <div class="tb-3d-tour-eyebrow" id="tb-3d-tour-eyebrow">GUIDED TOUR</div>
+            <div class="tb-3d-tour-title" id="tb-3d-tour-title">Title</div>
+            <div class="tb-3d-tour-body" id="tb-3d-tour-body">Body</div>
+            <div class="tb-3d-tour-dots" id="tb-3d-tour-dots" aria-hidden="true"></div>
+          </div>
           <!-- v4.64.0: hop-card strip below the 3D canvas, rendered only while a trace is active -->
           <div class="tb-3d-hop-strip" id="tb-3d-hop-strip" hidden>
             <div class="tb-3d-hop-strip-head">

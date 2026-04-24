@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.65.1', js.includes("const APP_VERSION = '4.65.1"));
+test('APP_VERSION is 4.66.0', js.includes("const APP_VERSION = '4.66.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.65.1', sw.includes('netplus-v4.65.1'));
+test('SW cache bumped to v4.66.0', sw.includes('netplus-v4.66.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8979,6 +8979,69 @@ test('v4.65.0 REGRESSION: tb3d.js never assigns to _tbUiState',
 // exitOsiView must be called on lifecycle exit to avoid leaked materials
 test('v4.65.0 REGRESSION: tb3d exit() triggers exitOsiView cleanup',
   /export function exit\([\s\S]{0,400}exitOsiView/.test(tb3d));
+
+// ══════════════════════════════════════════
+// v4.66.0 — TB 3D View Phase 4 (issue #199 Phase 4)
+// Scenario Tours — choreographed camera + narrative captions.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.66.0 TB 3D VIEW PHASE 4 — SCENARIO TOURS ──\x1b[0m');
+test('v4.66.0 tb3d: tweenCameraTo exported',
+  /export function tweenCameraTo\(/.test(tb3d));
+test('v4.66.0 tb3d: tweenCameraTo respects prefers-reduced-motion',
+  /tweenCameraTo[\s\S]{0,800}_reducedMotion/.test(tb3d));
+test('v4.66.0 tb3d: highlightDevices exported',
+  /export function highlightDevices\(/.test(tb3d));
+test('v4.66.0 tb3d: highlightDevices resolves by hostname',
+  /highlightDevices[\s\S]{0,600}firstChild\?\.textContent/.test(tb3d));
+test('v4.66.0 app.js: _tbTourState module-level state',
+  /let _tbTourState\s*=\s*\{[\s\S]{0,300}active:\s*false/.test(js));
+test('v4.66.0 app.js: tb3dPlayTour entry point',
+  /function tb3dPlayTour\(/.test(js));
+test('v4.66.0 app.js: tb3dTourPause/Resume/Skip/Exit all defined',
+  /function tb3dTourPause\(/.test(js) && /function tb3dTourResume\(/.test(js) &&
+  /function tb3dTourSkip\(/.test(js) && /function tb3dTourExit\(/.test(js));
+test('v4.66.0 app.js: _tb3dRenderTourStep uses tb3d tweenCameraTo + highlightDevices',
+  /tweenCameraTo\(/.test(js) && /highlightDevices\(/.test(js));
+test('v4.66.0 app.js: auto-advance via setTimeout',
+  /_tbTourState\.advanceTimer\s*=\s*setTimeout/.test(js));
+test('v4.66.0 app.js: tour exit clears highlights + resets camera',
+  /tb3dTourExit[\s\S]{0,800}highlightDevices\(\[\]\)/.test(js) &&
+  /tb3dTourExit[\s\S]{0,800}resetCamera/.test(js));
+test('v4.66.0 app.js: tbOpen3DView calls _tb3dUpdateTourButton',
+  /_tb3dUpdateTourButton/.test(js));
+test('v4.66.0 app.js: tbClose3DView ends active tour',
+  /tbClose3DView[\s\S]{0,3000}tb3dTourExit/.test(js));
+test('v4.66.0 data: Home Network scenario has a `tour` array',
+  /id:\s*['"]home-network['"][\s\S]{0,8000}tour:\s*\[/.test(js));
+test('v4.66.0 data: Home Network tour opens with welcome step',
+  /tour:\s*\[[\s\S]{0,500}title:\s*['"]Home Network['"]/.test(js));
+test('v4.66.0 data: Home Network tour has NAT closing step',
+  /title:\s*['"]Private IPs \+ NAT['"]/.test(js));
+test('v4.66.0 HTML: Play Tour button in chrome',
+  html.includes('id="tb-3d-tour-btn"') && html.includes('tb3dPlayTour()'));
+test('v4.66.0 HTML: tour playback controls (play/pause/skip/exit)',
+  html.includes('id="tb-3d-tour-controls"') &&
+  html.includes('onclick="tb3dTourResume()"') &&
+  html.includes('onclick="tb3dTourPause()"') &&
+  html.includes('onclick="tb3dTourSkip()"') &&
+  html.includes('onclick="tb3dTourExit()"'));
+test('v4.66.0 HTML: caption card with title + body + dots',
+  html.includes('id="tb-3d-tour-caption"') &&
+  html.includes('id="tb-3d-tour-title"') &&
+  html.includes('id="tb-3d-tour-body"') &&
+  html.includes('id="tb-3d-tour-dots"'));
+test('v4.66.0 CSS: .tb-3d-tour-caption bottom-center floating card',
+  /\.tb-3d-tour-caption\s*\{/.test(css) && /bottom:\s*32px/.test(css));
+test('v4.66.0 CSS: step-dot is-done + is-current states',
+  /\.tb-3d-tour-dot\.is-done/.test(css) &&
+  /\.tb-3d-tour-dot\.is-current/.test(css));
+test('v4.66.0 CSS: tour-highlight keyframe + reduced-motion gate',
+  /@keyframes tb3dTourHighlightPulse/.test(css) &&
+  /tb-3d-tour-highlight[^}]*animation:\s*none/.test(css));
+test('v4.66.0 REGRESSION: tb3d.js never touches _tbTourState',
+  !/_tbTourState/.test(tb3d));
+test('v4.66.0 REGRESSION: tour data structure invariant (Array.isArray guard)',
+  /Array\.isArray\(scen\.tour\)/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

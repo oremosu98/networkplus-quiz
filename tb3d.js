@@ -1652,6 +1652,56 @@ export function exitOsiView() {
 // Helper app.js can poll to know if OSI is active (for button state sync)
 export function isOsiActive() { return _osiActive; }
 
+// ══════════════════════════════════════════
+// v4.66.0 Phase 4 — Scenario Tours
+// Render-only primitives used by app.js's tour sequencer. app.js owns
+// all tour state + step timing; tb3d provides camera tween + highlights.
+// ══════════════════════════════════════════
+
+// Tween camera to an arbitrary position + target over a custom duration.
+// Arguments are plain [x, y, z] arrays so tour data is serializable.
+export function tweenCameraTo(position, target, durationMs) {
+  if (!camera || !controls) return;
+  if (!Array.isArray(position) || !Array.isArray(target)) return;
+  const toPos = new THREE.Vector3(position[0], position[1], position[2]);
+  const toTarget = new THREE.Vector3(target[0], target[1], target[2]);
+  if (_reducedMotion) {
+    camera.position.copy(toPos);
+    controls.target.copy(toTarget);
+    controls.update();
+    return;
+  }
+  const fromPos = camera.position.clone();
+  const fromTarget = controls.target.clone();
+  const duration = Math.max(100, durationMs || 800);
+  const start = performance.now();
+  function step() {
+    const t = Math.min((performance.now() - start) / duration, 1);
+    const e = 1 - Math.pow(1 - t, 3); // ease-out-cubic
+    camera.position.lerpVectors(fromPos, toPos, e);
+    controls.target.lerpVectors(fromTarget, toTarget, e);
+    controls.update();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  step();
+}
+
+// Toggle the `.tb-3d-tour-highlight` class on device labels matching the
+// given hostnames. Empty array = clear all. Resolves by hostname since
+// device IDs are runtime-generated (tour data is authored against
+// scenario hostnames).
+export function highlightDevices(hostnames) {
+  const targetSet = new Set((hostnames || []).map(s => String(s).toLowerCase()));
+  for (const id in devices3D) {
+    const dev = devices3D[id];
+    const lbl = dev.labelEl;
+    if (!lbl) continue;
+    const hostname = (lbl.firstChild?.textContent || '').toLowerCase();
+    if (targetSet.has(hostname)) lbl.classList.add('tb-3d-tour-highlight');
+    else lbl.classList.remove('tb-3d-tour-highlight');
+  }
+}
+
 // Debug-only: expose scene + module state for Chrome MCP smoke tests.
 // Safe to ship since Phase 3 smoke-test needs internal visibility.
 // Test-only debug accessor. Playwright uses this to verify OSI state without
