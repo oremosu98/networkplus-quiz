@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.67.0
+// Network+ AI Quiz — app.js  v4.68.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.67.0';
+const APP_VERSION = '4.68.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -13685,6 +13685,45 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 2.4 (IDS/IPS placement, load balancer concepts), 4.1 (defense in depth), 4.3 (network access control)',
     },
+    // v4.68.0 Phase 4 — Enterprise tour (5 steps). Covers IDS/IPS,
+    // load balancer + HA, and defense in depth.
+    tour: [
+      {
+        title: 'Enterprise w/ IDS + Load Balancer',
+        body: 'Enterprise screened subnet with active monitoring + high availability — the layout you see at mid-sized companies where uptime, compliance, and threat detection all matter. Two firewalls, an IDS/IPS, a load balancer fronting three servers.',
+        camera: { position: [40, 32, 44], target: [-9, 2, -4], durationMs: 1200 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'Active threat detection',
+        body: 'The perimeter firewall filters by rule. The IDS/IPS watches what passes. An IDS alerts only — signatures, anomaly scores. An IPS actively drops malicious payloads inline. Every real enterprise runs IPS today.',
+        camera: { position: [14, 14, 10], target: [-3, 2, -11], durationMs: 1300 },
+        highlight: ['Perimeter-FW', 'IDS/IPS'],
+        durationMs: 13000
+      },
+      {
+        title: 'Load balancer + server farm',
+        body: 'One public IP, three backend servers. The load balancer health-checks each server, distributes incoming connections (round-robin, least-connections, or weighted), and terminates TLS. If Web-02 dies, users never notice — traffic routes to Web-01 and Web-03.',
+        camera: { position: [-4, 14, 24], target: [-20, 2, 6], durationMs: 1300 },
+        highlight: ['App-LB', 'Web-01', 'Web-02', 'Web-03'],
+        durationMs: 14000
+      },
+      {
+        title: 'Two firewalls — defense in depth',
+        body: 'Perimeter firewall guards against the internet. Internal firewall guards against the DMZ. Different rulesets per leg. Layered controls mean no single failure compromises the whole network — this is "defense in depth" in one screenshot.',
+        camera: { position: [18, 14, 12], target: [-2, 2, -7], durationMs: 1300 },
+        highlight: ['Perimeter-FW', 'Internal-FW'],
+        durationMs: 13000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Three things the exam tests here: IDS detects / IPS prevents (passive vs active inline); load balancers provide both scale and HA (any one server can die); defense in depth stacks layered controls (perimeter FW → IDS/IPS → DMZ isolation → internal FW). N10-009 2.4 + 4.1 + 4.3.',
+        camera: { position: [-38, 30, 42], target: [-6, 2, -4], durationMs: 1400 },
+        highlight: ['IDS/IPS'],
+        durationMs: 16000
+      }
+    ],
   },
   {
     id: 'branch-wireless',
@@ -13743,6 +13782,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 2.3 (802.11 standards, WLC/WAP), 2.7 (PoE standards), 4.1 (wireless security — WPA2/WPA3)',
     },
+    // v4.68.0 Phase 4 — Branch Wireless tour (4 steps). Covers WLC
+    // architecture + CAPWAP + autonomous-vs-lightweight APs.
+    tour: [
+      {
+        title: 'Branch Office — Wireless',
+        body: 'A branch office where most users are wireless. A Wireless LAN Controller centrally manages multiple access points, pushing consistent SSIDs, security policy, and channel plans. One reception PC hangs off the wired side.',
+        camera: { position: [32, 32, 50], target: [-13, 2, 0], durationMs: 1200 },
+        highlight: [],
+        durationMs: 12000
+      },
+      {
+        title: 'The controller',
+        body: 'The WLC is the brain. It talks to every WAP via a CAPWAP tunnel — Control And Provisioning of Wireless Access Points. All client traffic hairpins through it, so QoS, captive portal, segmentation — everything centralizes here. One policy, N access points.',
+        camera: { position: [0, 14, 20], target: [-20, 2, 3], durationMs: 1300 },
+        highlight: ['WLC'],
+        durationMs: 14000
+      },
+      {
+        title: 'Lightweight WAPs',
+        body: 'These are "lightweight" APs — they don\'t make decisions on their own. They encapsulate every wireless frame in CAPWAP and ship it to the WLC. Clients roam between WAP-01 and WAP-02 seamlessly because the WLC maintains the session.',
+        camera: { position: [-8, 14, 32], target: [-18, 2, 12], durationMs: 1300 },
+        highlight: ['WAP-01', 'WAP-02', 'Laptop-01', 'Laptop-02', 'Phone-01', 'Phone-02'],
+        durationMs: 14000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'Know the difference: autonomous APs make their own decisions; lightweight APs are controlled by a WLC. CAPWAP is the standard control-plane protocol. Seamless roaming requires a controller. N10-009 2.3 (wireless standards + architecture) is where this lands.',
+        camera: { position: [-36, 30, 46], target: [-13, 2, 0], durationMs: 1300 },
+        highlight: ['WLC', 'WAP-01', 'WAP-02'],
+        durationMs: 13000
+      }
+    ],
   },
   // ── Cloud Networking Scenarios ──
   {
@@ -14102,6 +14173,38 @@ const TB_SCENARIOS = [
       ],
       examTies: 'N10-009 1.7 (WAN technologies — SD-WAN explicitly listed), 4.4 (network monitoring), 5.1 (WAN troubleshooting)',
     },
+    // v4.68.0 Phase 4 — SD-WAN tour (4 steps). Covers hub-and-spoke
+    // fabric + dynamic path selection across mixed transports.
+    tour: [
+      {
+        title: 'SD-WAN Network',
+        body: 'Software-Defined WAN — a hub-and-spoke network where branch edges connect to HQ over a shared public transport. A controller pushes policy to every edge device, and traffic dynamically picks the best path per-application.',
+        camera: { position: [40, 34, 48], target: [-8, 2, -5], durationMs: 1200 },
+        highlight: [],
+        durationMs: 13000
+      },
+      {
+        title: 'The hub',
+        body: 'HQ is the central site. Datacenter services, servers, and the SD-WAN controller itself live here. Every branch has a tunnel back to this hub — but in SD-WAN, branches can also talk directly to each other, not just through HQ.',
+        camera: { position: [14, 14, 16], target: [-8, 2, -4], durationMs: 1300 },
+        highlight: ['HQ-SDWAN-Edge', 'HQ-SW', 'HQ-Host'],
+        durationMs: 14000
+      },
+      {
+        title: 'The branches',
+        body: 'Each branch has its own edge router that terminates the SD-WAN fabric. Branch-to-HQ for shared resources. Branch-to-branch for VoIP and app-to-app traffic. All over the same public transport — MPLS, broadband, LTE — whichever has the best quality for the current app.',
+        camera: { position: [-8, 18, 32], target: [-8, 2, -3], durationMs: 1300 },
+        highlight: ['Branch-1-Edge', 'Branch-1-SW', 'Branch-2-Edge', 'Branch-2-SW', 'BR1-Host-01', 'BR1-Laptop', 'BR2-Host-01', 'BR2-VoIP'],
+        durationMs: 14000
+      },
+      {
+        title: 'Remember for the exam',
+        body: 'The exam point: SD-WAN replaces static MPLS-only with dynamic, app-aware path selection over mixed transports. Cheaper, more flexible, and the controller enforces consistent policy across all sites. N10-009 1.2 (WAN topologies + service types) and 2.1 (cloud connectivity).',
+        camera: { position: [-40, 32, 46], target: [-8, 2, -5], durationMs: 1300 },
+        highlight: ['Internet/MPLS'],
+        durationMs: 14000
+      }
+    ],
   },
   {
     id: 'mpls',

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.67.0', js.includes("const APP_VERSION = '4.67.0"));
+test('APP_VERSION is 4.68.0', js.includes("const APP_VERSION = '4.68.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.67.0', sw.includes('netplus-v4.67.0'));
+test('SW cache bumped to v4.68.0', sw.includes('netplus-v4.68.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9078,6 +9078,48 @@ test('v4.67.0 data: DMZ tour has all 5 expected titles',
   /title:\s*['"]Remember for the exam['"]/.test(js));
 test('v4.67.0 data: DMZ tour "The DMZ" step duration at least 15s (longest body)',
   /title:\s*['"]The DMZ['"][\s\S]{0,1500}durationMs:\s*(1[5-9]|[2-9]\d)\d{3}/.test(js));
+
+// ══════════════════════════════════════════
+// v4.68.0 — Three more tours (Enterprise + Branch Wireless + SD-WAN)
+// Sequencer engine is unchanged; these are pure data additions.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.68.0 THREE NEW SCENARIO TOURS ──\x1b[0m');
+// Enterprise tour
+test('v4.68.0 data: Enterprise scenario has a tour array',
+  /id:\s*['"]enterprise['"][\s\S]{0,10000}tour:\s*\[/.test(js));
+test('v4.68.0 data: Enterprise tour opens with welcome step',
+  /title:\s*['"]Enterprise w\/ IDS \+ Load Balancer['"]/.test(js));
+test('v4.68.0 data: Enterprise tour has all 5 expected titles',
+  /title:\s*['"]Enterprise w\/ IDS \+ Load Balancer['"]/.test(js) &&
+  /title:\s*['"]Active threat detection['"]/.test(js) &&
+  /title:\s*['"]Load balancer \+ server farm['"]/.test(js) &&
+  /title:\s*['"]Two firewalls — defense in depth['"]/.test(js));
+test('v4.68.0 data: Enterprise tour highlights include IDS/IPS and App-LB',
+  /highlight:\s*\[[^\]]*['"]IDS\/IPS['"][^\]]*\]/.test(js) &&
+  /highlight:\s*\[[^\]]*['"]App-LB['"][^\]]*\]/.test(js));
+
+// Branch Wireless tour
+test('v4.68.0 data: Branch Wireless scenario has a tour array',
+  /id:\s*['"]branch-wireless['"][\s\S]{0,10000}tour:\s*\[/.test(js));
+test('v4.68.0 data: Branch Wireless tour opens with welcome step',
+  /title:\s*['"]Branch Office — Wireless['"]/.test(js));
+test('v4.68.0 data: Branch Wireless tour has "The controller" step',
+  /title:\s*['"]The controller['"]/.test(js));
+test('v4.68.0 data: Branch Wireless tour highlights WLC and WAPs',
+  /highlight:\s*\[\s*['"]WLC['"]\s*\]/.test(js) &&
+  /highlight:\s*\[[^\]]*['"]WAP-01['"][^\]]*['"]WAP-02['"][^\]]*\]/.test(js));
+
+// SD-WAN tour
+test('v4.68.0 data: SD-WAN scenario has a tour array',
+  /id:\s*['"]sdwan['"][\s\S]{0,10000}tour:\s*\[/.test(js));
+test('v4.68.0 data: SD-WAN tour opens with welcome step',
+  /title:\s*['"]SD-WAN Network['"]/.test(js));
+test('v4.68.0 data: SD-WAN tour has "The hub" and "The branches" steps',
+  /title:\s*['"]The hub['"]/.test(js) &&
+  /title:\s*['"]The branches['"]/.test(js));
+test('v4.68.0 data: SD-WAN tour highlights HQ + branch edges',
+  /highlight:\s*\[[^\]]*['"]HQ-SDWAN-Edge['"][^\]]*\]/.test(js) &&
+  /highlight:\s*\[[^\]]*['"]Branch-1-Edge['"][^\]]*['"]Branch-2-Edge['"][^\]]*\]/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
