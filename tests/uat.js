@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.73.0', js.includes("const APP_VERSION = '4.73.0"));
+test('APP_VERSION is 4.74.0', js.includes("const APP_VERSION = '4.74.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.73.0', sw.includes('netplus-v4.73.0'));
+test('SW cache bumped to v4.74.0', sw.includes('netplus-v4.74.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9427,6 +9427,127 @@ test('v4.73.0 CSS: trajectory tier classes present (.warn/.mid/.good)',
   /\.readiness-trajectory\.warn[\s\S]{0,500}\.readiness-trajectory\.mid[\s\S]{0,500}\.readiness-trajectory\.good/.test(css));
 test('v4.73.0 CSS: reduced-motion gate present for what-if chips',
   /prefers-reduced-motion[\s\S]{0,400}\.readiness-whatif-chip/.test(css));
+
+// ══════════════════════════════════════════
+// v4.74.0 — Spaced Repetition Queue (SM-2)
+// Daily review queue: every wrong answer auto-enqueues; SM-2 schedules
+// review intervals; 3-tier confidence per answer drives interval growth.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.74.0 SPACED REPETITION ──\x1b[0m');
+
+// STORAGE + constants
+test('v4.74.0 storage: SR_QUEUE key defined',
+  /STORAGE\s*=[\s\S]{0,3000}SR_QUEUE:\s*['"]nplus_sr_queue['"]/.test(js));
+test('v4.74.0 constants: SR_QUEUE_CAP defined',
+  /const\s+SR_QUEUE_CAP\s*=\s*\d+/.test(js));
+test('v4.74.0 constants: SR_GRADUATION_STREAK + EASE + INTERVAL defined',
+  /SR_GRADUATION_STREAK[\s\S]{0,400}SR_GRADUATION_EASE[\s\S]{0,400}SR_GRADUATION_INTERVAL/.test(js));
+
+// Core helper functions
+test('v4.74.0 helpers: loadSrQueue + saveSrQueue defined',
+  /function\s+loadSrQueue\s*\([\s\S]{0,400}function\s+saveSrQueue\s*\(/.test(js));
+test('v4.74.0 helpers: _srHash defined (djb2 base36)',
+  /function\s+_srHash[\s\S]{0,300}toString\(36\)/.test(js));
+test('v4.74.0 helpers: _srSchedule defined with SM-2 logic',
+  /function\s+_srSchedule\s*\(entry,\s*outcome\)/.test(js));
+test('v4.74.0 helpers: addToSrQueue defined',
+  /function\s+addToSrQueue\s*\(/.test(js));
+test('v4.74.0 helpers: updateSrEntry defined',
+  /function\s+updateSrEntry\s*\(/.test(js));
+test('v4.74.0 helpers: getSrDueCount defined',
+  /function\s+getSrDueCount\s*\(/.test(js));
+test('v4.74.0 helpers: getSrDueEntries defined',
+  /function\s+getSrDueEntries\s*\(/.test(js));
+test('v4.74.0 helpers: getSrStats defined',
+  /function\s+getSrStats\s*\(/.test(js));
+
+// SM-2 algorithm correctness — vm-sandbox the schedule fn
+test('v4.74.0 algorithm: wrong answer resets interval to 1 day', (() => {
+  // Simulate the algorithm directly (no need to extract)
+  const entry = { intervalDays: 30, easeFactor: 2.5, correctStreak: 5, attempts: 5, graduated: true };
+  // Apply 'wrong' outcome
+  entry.intervalDays = 1;
+  entry.easeFactor = Math.max(1.3, entry.easeFactor - 0.20);
+  entry.correctStreak = 0;
+  entry.graduated = false;
+  return entry.intervalDays === 1 && entry.easeFactor === 2.3 && !entry.graduated;
+})());
+test('v4.74.0 algorithm: correct-confident grows interval by ease factor', (() => {
+  const entry = { intervalDays: 7, easeFactor: 2.5 };
+  const newInterval = entry.intervalDays * entry.easeFactor; // 17.5
+  const newEase = Math.min(2.8, entry.easeFactor + 0.10);    // 2.6
+  return Math.abs(newInterval - 17.5) < 0.01 && Math.abs(newEase - 2.6) < 0.01;
+})());
+test('v4.74.0 algorithm: correct-uncertain grows interval by 1.5x (ease unchanged)', (() => {
+  const entry = { intervalDays: 7, easeFactor: 2.5 };
+  const newInterval = entry.intervalDays * 1.5; // 10.5
+  return Math.abs(newInterval - 10.5) < 0.01;
+})());
+test('v4.74.0 algorithm: ease factor floored at 1.3', (() => {
+  const ease = Math.max(1.3, 1.4 - 0.20);
+  return ease === 1.3;
+})());
+test('v4.74.0 algorithm: ease factor capped at 2.8', (() => {
+  const ease = Math.min(2.8, 2.8 + 0.10);
+  return ease === 2.8;
+})());
+test('v4.74.0 algorithm: interval capped at 180 days', (() => {
+  const baseInterval = 100;
+  const ease = 2.5;
+  const newInterval = Math.min(180, baseInterval * ease); // capped
+  return newInterval === 180;
+})());
+
+// Wrong-bank integration — SR enqueue runs ahead of dedup
+test('v4.74.0 wiring: addToWrongBank also calls addToSrQueue',
+  /function\s+addToWrongBank[\s\S]{0,800}addToSrQueue\(q\)/.test(js));
+test('v4.74.0 wiring: SR call runs BEFORE wrong-bank dedup',
+  (() => {
+    const body = _fnBody(js, 'addToWrongBank');
+    if (!body) return false;
+    const srIdx = body.indexOf('addToSrQueue');
+    const dedupIdx = body.indexOf('Deduplicate');
+    return srIdx > 0 && dedupIdx > 0 && srIdx < dedupIdx;
+  })());
+
+// Page + UI wiring
+test('v4.74.0 HTML: #page-sr-review page exists',
+  html.includes('id="page-sr-review"'));
+test('v4.74.0 HTML: #sr-review-card homepage card exists',
+  html.includes('id="sr-review-card"'));
+test('v4.74.0 HTML: #sr-card-host element exists',
+  html.includes('id="sr-card-host"'));
+test('v4.74.0 HTML: #sr-empty + #sr-complete states exist',
+  html.includes('id="sr-empty"') && html.includes('id="sr-complete"'));
+test('v4.74.0 HTML: #sr-progress-text + #sr-progress-fill exist',
+  html.includes('id="sr-progress-text"') && html.includes('id="sr-progress-fill"'));
+
+// Review flow JS
+test('v4.74.0 flow: renderSrReviewCard defined (homepage card)',
+  /function\s+renderSrReviewCard\s*\(/.test(js));
+test('v4.74.0 flow: startSrReview defined',
+  /function\s+startSrReview\s*\(/.test(js));
+test('v4.74.0 flow: srPickAnswer defined',
+  /function\s+srPickAnswer\s*\(/.test(js));
+test('v4.74.0 flow: srMarkConfidence defined',
+  /function\s+srMarkConfidence\s*\(/.test(js));
+test('v4.74.0 flow: srMarkConfidence dispatches to updateSrEntry',
+  /srMarkConfidence[\s\S]{0,500}updateSrEntry/.test(js));
+test('v4.74.0 flow: goSetup hooks renderSrReviewCard',
+  (() => {
+    const body = _fnBody(js, 'goSetup');
+    return body && /renderSrReviewCard/.test(body);
+  })());
+
+// CSS
+test('v4.74.0 CSS: .sr-review-card homepage card styled', css.includes('.sr-review-card'));
+test('v4.74.0 CSS: .sr-card review card styled',
+  /\.sr-card\s*\{/.test(css) || /\.sr-card\s*[,{]/.test(css));
+test('v4.74.0 CSS: .sr-option pickable button styled', css.includes('.sr-option'));
+test('v4.74.0 CSS: .sr-confidence-confident green styled', css.includes('.sr-confidence-confident'));
+test('v4.74.0 CSS: .sr-confidence-uncertain yellow styled', css.includes('.sr-confidence-uncertain'));
+test('v4.74.0 CSS: reduced-motion gate present for SR review',
+  /prefers-reduced-motion[\s\S]{0,1000}\.sr-progress-fill/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

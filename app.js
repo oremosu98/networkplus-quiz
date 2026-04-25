@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.73.0
+// Network+ AI Quiz — app.js  v4.74.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.73.0';
+const APP_VERSION = '4.74.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -3964,6 +3964,7 @@ const STORAGE = {
   HISTORY: 'nplus_history',
   STREAK: 'nplus_streak',
   WRONG_BANK: 'nplus_wrong_bank',
+  SR_QUEUE: 'nplus_sr_queue',
   REPORTS: 'nplus_reports',
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
@@ -4611,6 +4612,8 @@ function goSetup() {
   renderStatsCard();
   renderStreakBadge();
   renderReadinessCard();
+  // v4.74.0: surface SR review card if there are due cards
+  if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
   renderSessionBanner();
   renderWrongBankBtn();
   renderStreakDefender();
@@ -5389,6 +5392,12 @@ function saveWrongBank(bank) {
 }
 
 function addToWrongBank(q, chosen) {
+  // v4.74.0: also enroll into the spaced-repetition queue. SR runs ahead
+  // of the dedup check below — we WANT a repeated miss on the same
+  // question to re-trigger SR (resets interval, drops ease) even though
+  // the wrong bank itself dedupes.
+  try { addToSrQueue(q); } catch (_) { /* tolerate SR errors — never break wrong bank */ }
+
   const bank = loadWrongBank();
   // Deduplicate by question text
   const exists = bank.find(b => b.question === q.question);
@@ -5421,6 +5430,366 @@ function graduateFromBank(questionText) {
     bank.splice(idx, 1); // Graduated!
   }
   saveWrongBank(bank);
+}
+
+// ══════════════════════════════════════════
+// v4.74.0 — Spaced Repetition Queue (SM-2-style)
+// Every wrong answer auto-enrolls into a scheduled review queue. Items
+// resurface on a growing interval (1d → 3d → 7d → 14d → 30d → 60d…) until
+// the user gets them correct N times in a row at high confidence — then
+// they graduate out of the queue.
+//
+// Algorithm: simplified SM-2 (the same engine Anki has used since 1987).
+// 3-tier confidence per answer (correct-confident / correct-uncertain /
+// wrong) drives the interval growth and the ease-factor adjustment.
+//
+// Lives parallel to the Wrong Bank — Wrong Bank is a flat list for
+// drill, SR Queue is a scheduler for retention. Different mechanics,
+// different surfaces, can co-exist without conflict.
+// ══════════════════════════════════════════
+const SR_QUEUE_CAP = 500;
+const SR_GRADUATION_STREAK = 3;       // correct streak needed to graduate
+const SR_GRADUATION_EASE = 2.5;       // ease factor needed at graduation
+const SR_GRADUATION_INTERVAL = 30;    // days interval needed at graduation
+
+function loadSrQueue() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.SR_QUEUE) || '[]'); }
+  catch { return []; }
+}
+function saveSrQueue(queue) {
+  try { localStorage.setItem(STORAGE.SR_QUEUE, JSON.stringify(queue)); }
+  catch { showToast('Storage full — SR queue not saved', 'error'); }
+}
+
+// Stable hash for question identity. Reuses the djb2 + base36 pattern
+// already used by _aiCacheKey.
+function _srHash(text) {
+  if (!text) return '0';
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+// Apply SM-2 scheduling to an entry based on the user's outcome.
+// outcome: 'correct-confident' | 'correct-uncertain' | 'wrong'
+// Mutates entry in place AND returns it.
+function _srSchedule(entry, outcome) {
+  const now = Date.now();
+  entry.lastSeen = now;
+  entry.attempts = (entry.attempts || 0) + 1;
+
+  if (outcome === 'wrong') {
+    entry.intervalDays = 1;
+    entry.easeFactor = Math.max(1.3, (entry.easeFactor || 2.5) - 0.20);
+    entry.correctStreak = 0;
+    entry.graduated = false;
+  } else if (outcome === 'correct-uncertain') {
+    // Same growth direction but slower (×1.5 vs ×ease). Ease unchanged
+    // because the user wasn't confident — don't reward the easy growth.
+    const baseInterval = entry.intervalDays || 1;
+    entry.intervalDays = Math.max(1, baseInterval * 1.5);
+    entry.correctStreak = (entry.correctStreak || 0) + 1;
+  } else {
+    // 'correct-confident'
+    const baseInterval = entry.intervalDays || 1;
+    const ef = entry.easeFactor || 2.5;
+    entry.intervalDays = Math.max(1, baseInterval * ef);
+    entry.easeFactor = Math.min(2.8, ef + 0.10);
+    entry.correctStreak = (entry.correctStreak || 0) + 1;
+  }
+
+  // Cap interval at 180 days — beyond that, just keep it at 180.
+  entry.intervalDays = Math.min(180, entry.intervalDays);
+  entry.nextReview = now + entry.intervalDays * 86400000;
+
+  // Graduation: sustained mastery means it leaves the active queue.
+  if (entry.correctStreak >= SR_GRADUATION_STREAK
+      && entry.easeFactor >= SR_GRADUATION_EASE
+      && entry.intervalDays >= SR_GRADUATION_INTERVAL) {
+    entry.graduated = true;
+  }
+
+  return entry;
+}
+
+// Add a question to the SR queue on a wrong answer. If already present,
+// re-schedule the existing entry as 'wrong' (resets interval, drops ease).
+function addToSrQueue(q) {
+  const queue = loadSrQueue();
+  const stem = q.question || '';
+  const qHash = _srHash(stem);
+  let entry = queue.find(e => e.qHash === qHash);
+
+  if (entry) {
+    _srSchedule(entry, 'wrong');
+    saveSrQueue(queue);
+    return entry;
+  }
+
+  // Brand new entry — preserve the question payload so the review surface
+  // can re-render it without re-fetching from the API.
+  entry = {
+    qHash,
+    question: stem,
+    options: q.options || null,
+    answer: typeof q.answer === 'number' ? q.answer : null,
+    answers: q.answers || null,
+    items: q.items || null,
+    correctOrder: q.correctOrder || null,
+    type: q.type || 'mcq',
+    topic: q.topic || (typeof activeQuizTopic !== 'undefined' ? activeQuizTopic : null),
+    difficulty: q.difficulty || (typeof diff !== 'undefined' ? diff : null),
+    explanation: q.explanation || '',
+    createdAt: Date.now(),
+    lastSeen: Date.now(),
+    intervalDays: 1,
+    easeFactor: 2.5,
+    attempts: 0,
+    correctStreak: 0,
+    graduated: false,
+    nextReview: Date.now() + 86400000  // due tomorrow by default
+  };
+  queue.push(entry);
+
+  // LRU cap — drop oldest by createdAt if we exceed capacity.
+  if (queue.length > SR_QUEUE_CAP) {
+    queue.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    queue.length = SR_QUEUE_CAP;
+  }
+
+  saveSrQueue(queue);
+  return entry;
+}
+
+// Update an existing entry after a review answer (correct/uncertain/wrong).
+// Returns the updated entry, or null if not found.
+function updateSrEntry(qHash, outcome) {
+  const queue = loadSrQueue();
+  const idx = queue.findIndex(e => e.qHash === qHash);
+  if (idx === -1) return null;
+  _srSchedule(queue[idx], outcome);
+  saveSrQueue(queue);
+  return queue[idx];
+}
+
+// Count of due (non-graduated, nextReview <= now) entries.
+function getSrDueCount() {
+  const queue = loadSrQueue();
+  const now = Date.now();
+  return queue.filter(e => !e.graduated && (e.nextReview || 0) <= now).length;
+}
+
+// Get the actual due entries, sorted oldest-first (longest-overdue first).
+function getSrDueEntries(limit) {
+  const queue = loadSrQueue();
+  const now = Date.now();
+  const due = queue
+    .filter(e => !e.graduated && (e.nextReview || 0) <= now)
+    .sort((a, b) => (a.nextReview || 0) - (b.nextReview || 0));
+  return typeof limit === 'number' ? due.slice(0, limit) : due;
+}
+
+// Graduated count + active count + total — for analytics + homepage card.
+function getSrStats() {
+  const queue = loadSrQueue();
+  const now = Date.now();
+  const total = queue.length;
+  const graduated = queue.filter(e => e.graduated).length;
+  const due = queue.filter(e => !e.graduated && (e.nextReview || 0) <= now).length;
+  const active = total - graduated;
+  return { total, graduated, active, due };
+}
+
+// ── SR Review session state ──
+// Module-scoped state for the daily-review flow. Tracks the active
+// session (loaded due cards + position + per-card answer state).
+let _srSession = null;
+
+function renderSrReviewCard() {
+  // Homepage card surfacing — only visible when there are due cards.
+  const card = document.getElementById('sr-review-card');
+  if (!card) return;
+  const stats = getSrStats();
+  if (stats.due === 0) {
+    card.classList.add('is-hidden');
+    return;
+  }
+  card.classList.remove('is-hidden');
+  const headline = document.getElementById('sr-review-card-headline');
+  const statsEl = document.getElementById('sr-review-card-stats');
+  if (headline) {
+    headline.textContent = stats.due === 1
+      ? '1 card due for review'
+      : stats.due + ' cards due for review';
+  }
+  if (statsEl) {
+    const parts = [];
+    if (stats.active > 0) parts.push(stats.active + ' active');
+    if (stats.graduated > 0) parts.push(stats.graduated + ' graduated');
+    statsEl.textContent = parts.length > 0 ? parts.join(' · ') : '';
+  }
+}
+
+function startSrReview() {
+  const due = getSrDueEntries();
+  if (due.length === 0) {
+    showToast('No cards due for review right now', 'info');
+    return;
+  }
+  _srSession = {
+    cards: due,
+    index: 0,
+    answersGiven: 0,
+    correctConfident: 0,
+    correctUncertain: 0,
+    wrong: 0,
+    pickedIdx: null,
+    revealed: false
+  };
+  showPage('sr-review');
+  document.getElementById('sr-empty').hidden = true;
+  document.getElementById('sr-complete').hidden = true;
+  document.getElementById('sr-progress-row').hidden = false;
+  _renderSrCard();
+}
+
+function _renderSrCard() {
+  const host = document.getElementById('sr-card-host');
+  if (!host || !_srSession) return;
+  const i = _srSession.index;
+  const total = _srSession.cards.length;
+  const card = _srSession.cards[i];
+
+  // Update progress
+  const pTxt = document.getElementById('sr-progress-text');
+  const pFill = document.getElementById('sr-progress-fill');
+  if (pTxt) pTxt.textContent = (i + 1) + ' of ' + total;
+  if (pFill) pFill.style.width = (((i + 1) / total) * 100).toFixed(1) + '%';
+
+  if (!card) { _srEndReview(); return; }
+
+  const opts = card.options || [];
+  const stem = card.question || '';
+  const topicLabel = card.topic || 'Unknown topic';
+  const intervalLabel = card.intervalDays
+    ? 'last interval ' + (card.intervalDays < 1 ? '<1' : Math.round(card.intervalDays)) + 'd'
+    : 'first review';
+
+  let optionsHtml = '';
+  if (Array.isArray(opts) && opts.length > 0) {
+    optionsHtml = '<div class="sr-options">' + opts.map((o, idx) => {
+      let cls = 'sr-option';
+      if (_srSession.revealed) {
+        if (idx === card.answer) cls += ' is-correct';
+        else if (idx === _srSession.pickedIdx) cls += ' is-wrong';
+      } else if (_srSession.pickedIdx === idx) {
+        cls += ' is-picked';
+      }
+      const disabled = _srSession.revealed ? 'disabled' : '';
+      return '<button type="button" class="' + cls + '" ' + disabled
+        + ' onclick="srPickAnswer(' + idx + ')" data-idx="' + idx + '">'
+        + '<span class="sr-option-letter">' + String.fromCharCode(65 + idx) + '</span>'
+        + '<span class="sr-option-text">' + escHtml(o) + '</span>'
+        + '</button>';
+    }).join('') + '</div>';
+  }
+
+  let confidenceHtml = '';
+  if (_srSession.revealed) {
+    const pickedCorrect = _srSession.pickedIdx === card.answer;
+    const explanation = card.explanation
+      ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
+      : '';
+    if (pickedCorrect) {
+      confidenceHtml = explanation
+        + '<div class="sr-confidence-row">'
+        + '<div class="sr-confidence-label">How did that feel?</div>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
+        + '✅ Got it · was confident'
+        + '<span class="sr-confidence-hint">interval grows fast</span></button>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
+        + '🤔 Got it · was unsure'
+        + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
+        + '</div>';
+    } else {
+      confidenceHtml = explanation
+        + '<div class="sr-confidence-row">'
+        + '<div class="sr-confidence-label" style="color: var(--red); font-weight: 600;">'
+        + '✗ Wrong — this card resets to tomorrow.</div>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
+        + 'Got it wrong → next card</button>'
+        + '</div>';
+    }
+  }
+
+  host.innerHTML = '<div class="sr-card">'
+    + '<div class="sr-card-meta">'
+    + '<span class="sr-meta-topic">' + escHtml(topicLabel) + '</span>'
+    + '<span class="sr-meta-sep">·</span>'
+    + '<span class="sr-meta-interval">' + intervalLabel + '</span>'
+    + '<span class="sr-meta-sep">·</span>'
+    + '<span class="sr-meta-streak">streak ' + (card.correctStreak || 0) + '</span>'
+    + '</div>'
+    + '<div class="sr-question">' + escHtml(stem) + '</div>'
+    + optionsHtml
+    + confidenceHtml
+    + '</div>';
+}
+
+function srPickAnswer(idx) {
+  if (!_srSession || _srSession.revealed) return;
+  _srSession.pickedIdx = idx;
+  _srSession.revealed = true;
+  _renderSrCard();
+}
+
+function srMarkConfidence(outcome) {
+  if (!_srSession || !_srSession.revealed) return;
+  const card = _srSession.cards[_srSession.index];
+  if (!card) return;
+
+  // Apply SM-2 scheduling
+  updateSrEntry(card.qHash, outcome);
+
+  // Tally
+  _srSession.answersGiven++;
+  if (outcome === 'correct-confident') _srSession.correctConfident++;
+  else if (outcome === 'correct-uncertain') _srSession.correctUncertain++;
+  else _srSession.wrong++;
+
+  // Advance
+  _srSession.index++;
+  _srSession.pickedIdx = null;
+  _srSession.revealed = false;
+
+  if (_srSession.index >= _srSession.cards.length) {
+    _srEndReview();
+  } else {
+    _renderSrCard();
+  }
+}
+
+function _srEndReview() {
+  document.getElementById('sr-card-host').innerHTML = '';
+  document.getElementById('sr-progress-row').hidden = true;
+  const completeEl = document.getElementById('sr-complete');
+  const stats = document.getElementById('sr-complete-stats');
+  if (stats && _srSession) {
+    const total = _srSession.answersGiven;
+    const cc = _srSession.correctConfident;
+    const cu = _srSession.correctUncertain;
+    const w = _srSession.wrong;
+    stats.innerHTML = total === 0
+      ? 'No cards reviewed.'
+      : '<strong>' + total + ' cards reviewed</strong> — '
+        + '<span style="color: var(--green)">' + cc + ' confident</span> · '
+        + '<span style="color: var(--yellow)">' + cu + ' uncertain</span> · '
+        + '<span style="color: var(--red)">' + w + ' wrong</span>. '
+        + 'Confident answers grow the interval fastest. Wrong cards reset to tomorrow.';
+  }
+  if (completeEl) completeEl.hidden = false;
+  // Refresh the homepage card since the queue changed
+  if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
 }
 
 function renderWrongBankBtn() {
@@ -6927,6 +7296,7 @@ function finish() {
   // old positions instead of re-rendering to an already-updated DOM.
   try { renderStatsCard(); } catch (_) {}
   try { renderReadinessCard(); } catch (_) {}
+  try { if (typeof renderSrReviewCard === 'function') renderSrReviewCard(); } catch (_) {}
   // v4.42.0: fire milestone celebration toasts for anything we just unlocked.
   // Pre-v4.42 evaluateMilestones was never called from finish() — milestones
   // only unlocked lazily when the user opened Analytics. We now capture the
@@ -7316,6 +7686,7 @@ function submitExam() {
   // old positions instead of re-rendering against an already-updated DOM.
   try { renderStatsCard(); } catch (_) {}
   try { renderReadinessCard(); } catch (_) {}
+  try { if (typeof renderSrReviewCard === 'function') renderSrReviewCard(); } catch (_) {}
 
   const scoreEl = document.getElementById('exam-scaled-score');
   scoreEl.style.color  = passed ? '#22c55e' : '#f87171';

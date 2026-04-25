@@ -132,11 +132,24 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.73.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.74.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
     </div>
+  </div>
+
+  <!-- v4.74.0: Spaced Repetition Daily Review card. Hidden when no cards
+       are due; surfaces as the highest-priority CTA when there's a due
+       queue (= the most efficient minute of study the user can do today). -->
+  <div id="sr-review-card" class="sr-review-card is-hidden">
+    <div class="sr-review-card-head">
+      <span class="sr-review-card-eyebrow">📚 Spaced Repetition · Daily Review</span>
+      <span class="sr-review-card-stats" id="sr-review-card-stats"></span>
+    </div>
+    <h3 class="sr-review-card-headline" id="sr-review-card-headline">0 cards due</h3>
+    <p class="sr-review-card-sub">Re-encounter what you've forgotten. Items resurface on a growing schedule until they stick.</p>
+    <button class="btn btn-primary btn-full" id="sr-review-start-btn" onclick="startSrReview()">Start review →</button>
   </div>
 
   <!-- Exam Readiness Card -->
@@ -640,6 +653,39 @@
     </div>
   </div>
   <div id="review-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     v4.74.0 — SPACED REPETITION REVIEW PAGE
+     Daily-review queue. Cards surfaced from the SR queue when their
+     nextReview timestamp has passed. 3-tier confidence on correct
+     answers drives the SM-2 scheduling.
+═══════════════════════════════════════════ -->
+<div id="page-sr-review" class="page">
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to home">&#8592; Back</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Daily Review &middot; spaced repetition</div>
+      <h1 class="ed-pagehead-display">SR <em>queue.</em></h1>
+    </div>
+  </div>
+  <div class="sr-progress-row" id="sr-progress-row">
+    <div class="sr-progress-text" id="sr-progress-text">0 of 0</div>
+    <div class="sr-progress-bar"><div class="sr-progress-fill" id="sr-progress-fill"></div></div>
+  </div>
+  <div id="sr-card-host"></div>
+  <div id="sr-empty" class="sr-empty" hidden>
+    <div class="sr-empty-icon">🎉</div>
+    <h2>Queue empty</h2>
+    <p>No cards are due right now. Come back later — items reschedule based on your last review and resurface when due.</p>
+    <button class="btn btn-primary" onclick="goSetup()">Back to home</button>
+  </div>
+  <div id="sr-complete" class="sr-empty" hidden>
+    <div class="sr-empty-icon">✅</div>
+    <h2>Review complete</h2>
+    <p id="sr-complete-stats">All cards reviewed.</p>
+    <button class="btn btn-primary" onclick="goSetup()">Back to home</button>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════
