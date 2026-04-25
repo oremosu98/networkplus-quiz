@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.0
+// Network+ AI Quiz — app.js  v4.81.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.0';
+const APP_VERSION = '4.81.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4455,6 +4455,16 @@ window.addEventListener('DOMContentLoaded', () => {
   renderTodaysFocus();
   renderTodaySection();
   renderMarathonSection();
+  // v4.81.1: home-page surfaces that were goSetup-only — render on first
+  // paint so the page is consistent between initial load and post-navigation.
+  // Pre-fix the NBM card / SR review card / diagnostic surface only appeared
+  // AFTER the user navigated somewhere and returned (any path that called
+  // goSetup); on raw reload they stayed hidden, producing a visible
+  // "appears then disappears" inconsistency for users who reload from a state
+  // where they'd previously seen them.
+  if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
+  if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
+  if (typeof renderNextBestMove === 'function') renderNextBestMove();
   initMonitorGesture();
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');

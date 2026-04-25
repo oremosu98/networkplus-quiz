@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.0', js.includes("const APP_VERSION = '4.81.0"));
+test('APP_VERSION is 4.81.1', js.includes("const APP_VERSION = '4.81.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.0', sw.includes('netplus-v4.81.0'));
+test('SW cache bumped to v4.81.1', sw.includes('netplus-v4.81.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10114,6 +10114,22 @@ test('v4.81.0 Diagnostic: .pass-plan-week-strip style declared',
   /\.pass-plan-week-strip\s*\{/.test(css));
 test('v4.81.0 Diagnostic: .diag-conf-tier confidence picker style declared',
   /\.diag-conf-tier\s*\{/.test(css));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.1: NBM + SR + Diagnostic surface render on first paint
+// ──────────────────────────────────────────────────────────
+// Pre-fix these home-page surfaces only rendered when goSetup() was called
+// (i.e. after a navigation). On raw page load (DOMContentLoaded only) they
+// stayed in their default-hidden state, producing a "card appears then
+// disappears" inconsistency for users who reloaded from a goSetup'd state.
+// Fix: hoist the three render calls into the DOMContentLoaded handler so
+// initial paint matches the post-navigation state.
+test('v4.81.1: DOMContentLoaded calls renderNextBestMove on first paint',
+  /DOMContentLoaded[\s\S]{0,2500}renderNextBestMove\b/.test(js));
+test('v4.81.1: DOMContentLoaded calls renderSrReviewCard on first paint',
+  /DOMContentLoaded[\s\S]{0,2500}renderSrReviewCard\b/.test(js));
+test('v4.81.1: DOMContentLoaded calls renderDiagnosticSurface on first paint',
+  /DOMContentLoaded[\s\S]{0,2500}renderDiagnosticSurface\b/.test(js));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
