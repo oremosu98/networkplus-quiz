@@ -98,6 +98,21 @@
       <div class="hero-v2-eyebrow" id="hero-v2-eyebrow">—</div>
       <h1 class="hero-v2-display" id="hero-v2-display">Good afternoon, <span class="name">Simi.</span></h1>
       <p class="hero-v2-lede" id="hero-v2-lede">Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.</p>
+      <!-- v4.76.0: dynamic Next-Best-Move CTA card. Decision-tree-driven —
+           surfaces the single highest-pass-rate-impact action right now
+           (SR queue → daily challenge → weak warmup → what-if drill →
+           fallback custom quiz). Replaces the "user has to think which
+           CTA to click" friction. -->
+      <div class="hero-v2-cta" id="hero-v2-cta" hidden>
+        <div class="hero-v2-cta-eyebrow">
+          <span class="hero-v2-cta-icon" id="hero-v2-cta-icon">🎯</span>
+          <span class="hero-v2-cta-eyebrow-text">Your next best move</span>
+        </div>
+        <div class="hero-v2-cta-title" id="hero-v2-cta-title">—</div>
+        <div class="hero-v2-cta-sub" id="hero-v2-cta-sub">—</div>
+        <button type="button" class="hero-v2-cta-btn" id="hero-v2-cta-btn">Start →</button>
+        <div class="hero-v2-cta-reason" id="hero-v2-cta-reason">—</div>
+      </div>
     </div>
     <aside class="hero-v2-aside">
       <div class="readiness-card-v2" id="readiness-card-v2">
@@ -142,7 +157,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.75.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.76.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -240,70 +255,120 @@
     <!-- Filled by renderSetupFocusBanner() on setup-page render -->
   </div>
 
-  <!-- § 01 Quick Start presets -->
-  <div class="presets-section ed-section">
+  <!-- v4.76.0: unified Mode Ladder — replaces former §01 Quick Start +
+       §02 Marathon Mode. Three commitment-level tiers (Quick / Practice /
+       Exam) so the user reads "5-min warmup" as different from "60-min
+       marathon" at a glance, instead of all entries looking equal-weight. -->
+  <div class="modes-ladder ed-section" id="modes-ladder" role="region" aria-label="Pick your session">
     <div class="ed-section-head">
       <div class="ed-section-head-left">
         <span class="ed-section-num">&#167; 01</span>
-        <h3 class="ed-section-title">Quick <em>start</em></h3>
+        <h3 class="ed-section-title">Pick your <em>session</em></h3>
       </div>
-      <div class="ed-section-meta">4 presets &middot; tap to begin</div>
-    </div>
-    <div class="quiz-presets" role="group" aria-label="Quiz presets">
-      <button type="button" class="preset-tile" onclick="applyPreset('warmup')">
-        <span class="preset-icon">&#9889;</span>
-        <span class="preset-title">5-min Warmup</span>
-        <span class="preset-sub">5 Qs &middot; Foundational &middot; Mixed</span>
-      </button>
-      <button type="button" class="preset-tile preset-featured" onclick="applyPreset('focused')">
-        <span class="preset-icon">&#127919;</span>
-        <span class="preset-title">15-min Weak Spots</span>
-        <span class="preset-sub">10 Qs &middot; Exam Level &middot; Your weakest topic</span>
-      </button>
-      <button type="button" class="preset-tile" onclick="applyPreset('grind')">
-        <span class="preset-icon">&#127947;</span>
-        <span class="preset-title">20-min Deep Scan</span>
-        <span class="preset-sub">20 Qs &middot; Exam Level &middot; Mixed</span>
-      </button>
-      <!-- Wrong Answers Drill — surfaces as a preset tile when bank has entries -->
-      <button type="button" class="preset-tile preset-wrong is-hidden" id="wrong-preset-tile" onclick="startWrongDrill()">
-        <span class="preset-icon">&#128308;</span>
-        <span class="preset-title">Drill Mistakes</span>
-        <span class="preset-sub" id="wrong-preset-sub">0 wrong answers saved</span>
-      </button>
+      <div class="ed-section-meta">three commitment levels</div>
     </div>
 
+    <!-- Tier 1: QUICK — 3-5 minutes — daily-habit fuel -->
+    <div class="modes-tier modes-tier-quick">
+      <div class="modes-tier-head">
+        <span class="modes-tier-icon">&#9889;</span>
+        <div class="modes-tier-titles">
+          <span class="modes-tier-eyebrow">Quick &middot; 3-5 min</span>
+          <span class="modes-tier-sub">Daily-habit fuel &middot; low-friction wins</span>
+        </div>
+      </div>
+      <div class="modes-tier-cards">
+        <button type="button" class="modes-card" onclick="applyPreset('warmup')">
+          <span class="modes-card-icon">&#9889;</span>
+          <span class="modes-card-title">5-min Warmup</span>
+          <span class="modes-card-sub">5 Qs &middot; Foundational</span>
+        </button>
+        <button type="button" class="modes-card modes-card-dc" id="modes-dc-tile" onclick="startDailyChallenge()">
+          <span class="modes-card-icon">&#127919;</span>
+          <span class="modes-card-title">Daily Challenge</span>
+          <span class="modes-card-sub" id="modes-dc-sub">5 Qs &middot; ~3 min &middot; streak +1</span>
+        </button>
+        <button type="button" class="modes-card modes-card-wrong is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()">
+          <span class="modes-card-icon">&#128308;</span>
+          <span class="modes-card-title">Drill Mistakes</span>
+          <span class="modes-card-sub" id="modes-wrong-sub">0 wrong answers saved</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tier 2: PRACTICE — 10-30 minutes — focused study session -->
+    <div class="modes-tier modes-tier-practice">
+      <div class="modes-tier-head">
+        <span class="modes-tier-icon">&#128218;</span>
+        <div class="modes-tier-titles">
+          <span class="modes-tier-eyebrow">Practice &middot; 10-30 min</span>
+          <span class="modes-tier-sub">Focused study &middot; build understanding</span>
+        </div>
+      </div>
+      <div class="modes-tier-cards">
+        <button type="button" class="modes-card modes-card-featured" onclick="applyPreset('focused')">
+          <span class="modes-card-icon">&#127919;</span>
+          <span class="modes-card-title">15-min Weak Spots</span>
+          <span class="modes-card-sub">10 Qs &middot; Exam Level &middot; Your weakest topic</span>
+        </button>
+        <button type="button" class="modes-card" onclick="applyPreset('grind')">
+          <span class="modes-card-icon">&#127947;</span>
+          <span class="modes-card-title">20-min Deep Scan</span>
+          <span class="modes-card-sub">20 Qs &middot; Exam Level &middot; Mixed</span>
+        </button>
+        <button type="button" class="modes-card modes-card-marathon" onclick="applyPreset('bulk30')">
+          <span class="modes-card-icon">&#128218;</span>
+          <span class="modes-card-title">30 Questions</span>
+          <span class="modes-card-sub">Marathon mixed &middot; ~25 min</span>
+        </button>
+        <button type="button" class="modes-card modes-card-marathon" onclick="applyPreset('bulk45')">
+          <span class="modes-card-icon">&#128218;</span>
+          <span class="modes-card-title">45 Questions</span>
+          <span class="modes-card-sub">Marathon mixed &middot; ~38 min</span>
+        </button>
+        <button type="button" class="modes-card modes-card-custom" onclick="_jumpToCustomQuiz()">
+          <span class="modes-card-icon">&#9881;&#65039;</span>
+          <span class="modes-card-title">Custom Quiz</span>
+          <span class="modes-card-sub">Tune topic, difficulty, length</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tier 3: EXAM — 60-90 minutes — premium dark treatment -->
+    <div class="modes-tier modes-tier-exam">
+      <div class="modes-tier-head">
+        <span class="modes-tier-icon">&#127891;</span>
+        <div class="modes-tier-titles">
+          <span class="modes-tier-eyebrow">Exam Simulation &middot; 60-90 min</span>
+          <span class="modes-tier-sub">Pressure-test your readiness &middot; scored 100-900</span>
+        </div>
+      </div>
+      <div class="modes-tier-cards">
+        <button type="button" class="modes-card modes-card-exam" onclick="applyPreset('bulk60')">
+          <span class="modes-card-icon">&#128218;</span>
+          <span class="modes-card-title">60-Question SIM</span>
+          <span class="modes-card-sub">Closest to the real thing without the timer</span>
+        </button>
+        <button type="button" class="modes-card modes-card-exam modes-card-exam-full" onclick="startExam()">
+          <span class="modes-card-icon">&#127891;</span>
+          <span class="modes-card-title">Full Exam Simulator</span>
+          <span class="modes-card-sub">90 questions &middot; 90-min timer &middot; scored 100-900</span>
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- § 02 Marathon Mode — hidden until user has completed 1+ quiz (progressive disclosure) -->
-  <div id="marathon-section" class="ed-section is-hidden">
-    <div class="ed-section-head">
-      <div class="ed-section-head-left">
-        <span class="ed-section-num">&#167; 02</span>
-        <h3 class="ed-section-title">Marathon <em>mode</em></h3>
-      </div>
-      <div class="ed-section-meta">for longer sittings</div>
-    </div>
-    <div class="quiz-presets" role="group" aria-label="Bulk mixed presets">
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk30')">
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">30 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
-      <button type="button" class="preset-tile" onclick="applyPreset('bulk45')">
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">45 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
-      <!-- v4.54.8: 60Q tile gets a "SIM" badge \u2014 closest to the 90Q full exam sim. -->
-      <button type="button" class="preset-tile preset-sim" onclick="applyPreset('bulk60')">
-        <span class="preset-sim-badge" aria-hidden="true">SIM</span>
-        <span class="preset-icon">&#128218;</span>
-        <span class="preset-title">60 Questions</span>
-        <span class="preset-sub">Mixed &middot; Exam Level &middot; All domains</span>
-      </button>
-    </div>
-  </div>
+  <!-- v4.76.0: legacy hidden wrong-preset-tile + sub kept so existing
+       renderWrongBankBtn() code still works without modification. The
+       visible "Drill Mistakes" button now lives in the Quick tier. -->
+  <button type="button" id="wrong-preset-tile" class="is-hidden" onclick="startWrongDrill()" hidden></button>
+  <span id="wrong-preset-sub" hidden></span>
+
+  <!-- v4.76.0: legacy marathon-section preserved as an empty hidden wrapper
+       so any JS that toggles its visibility doesn't break. Original
+       Marathon Mode buttons (Quick/30/45/60) now live as `.modes-card-marathon`
+       instances inside the Practice tier of the Mode Ladder above. -->
+  <div id="marathon-section" class="ed-section is-hidden" hidden></div>
 
   <!-- § 03 By Domain — vertical-bar grid, click to drill weakest topic in domain -->
   <div id="domain-grid-section" class="ed-section is-hidden">
@@ -1290,6 +1355,11 @@
       <h1 class="ed-pagehead-display">Performance <em>analytics.</em></h1>
     </div>
   </div>
+  <!-- v4.76.0: actionable headline at top of Analytics. Reuses the
+       v4.73.0 what-if attribution to surface the highest-leverage drill
+       BEFORE the charts. Codex framing: analytics should tell you what
+       to do next, not just show data. -->
+  <div class="ana-action-headline" id="ana-action-headline" hidden></div>
   <!-- v4.54.1: Recent Performance moved here from home page -->
   <div id="history-panel" class="card is-hidden" style="margin-bottom:18px">
     <h3 style="margin-bottom:12px">Recent Performance</h3>

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.75.1', js.includes("const APP_VERSION = '4.75.1"));
+test('APP_VERSION is 4.76.0', js.includes("const APP_VERSION = '4.76.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.75.1', sw.includes('netplus-v4.75.1'));
+test('SW cache bumped to v4.76.0', sw.includes('netplus-v4.76.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -464,7 +464,8 @@ test('Deep dive counter increment', js.includes('STORAGE.DEEP_DIVE_USES') && js.
 test('streak-defender element', html.includes('id="streak-defender"'));
 test('daily-challenge-card element', html.includes('id="daily-challenge-card"'));
 test('todays-focus element', html.includes('id="todays-focus"'));
-test('quiz-presets block', html.includes('class="quiz-presets"'));
+// v4.76.0: legacy `.quiz-presets` block replaced by `.modes-tier-cards` inside the Mode Ladder
+test('v4.76.0: modes-tier-cards block (replaces .quiz-presets)', html.includes('class="modes-tier-cards"'));
 test('Preset tile: warmup', html.includes("applyPreset('warmup')"));
 test('Preset tile: focused', html.includes("applyPreset('focused')"));
 test('Preset tile: grind', html.includes("applyPreset('grind')"));
@@ -600,7 +601,8 @@ test('HTML: bulk45 preset tile', html.includes("applyPreset('bulk45')"));
 test('HTML: bulk60 preset tile', html.includes("applyPreset('bulk60')"));
 test('HTML: 30 Questions title', html.includes('30 Questions'));
 test('HTML: 45 Questions title', html.includes('45 Questions'));
-test('HTML: 60 Questions title', html.includes('60 Questions'));
+// v4.76.0: 60Q preset relocated to Exam tier as "60-Question SIM" — title text changed
+test('HTML: 60-Question SIM title (v4.76.0 — was "60 Questions")', html.includes('60-Question SIM'));
 // v4.45.3 regression guards — old 100-Q preset replaced with 45-Q (30/60/100 → 30/45/60)
 test('v4.45.3: bulk100 preset removed', !html.includes("applyPreset('bulk100')"));
 test('v4.45.3: 100 Questions title removed', !html.includes('100 Questions'));
@@ -1786,12 +1788,19 @@ test('HTML: sidebar exposes Acronym Blitz + OSI Sorter + Cable ID entries',
   /label:\s*'Acronym Blitz'/.test(js) && /label:\s*'OSI Sorter'/.test(js) && /label:\s*'Cable ID'/.test(js));
 test('HTML: sidebar has Analytics entry', /APP_SIDEBAR_PRACTICE[\s\S]{0,800}label:\s*'Analytics'/.test(js));
 test('HTML: sidebar has Network Builder entry', /APP_SIDEBAR_PRACTICE[\s\S]{0,1200}label:\s*'Network Builder'/.test(js));
-test('HTML: presets-section wrapper exists (v4.53.0: now carries ed-section class for editorial styling)',
-  html.includes('class="presets-section ed-section"') || html.includes('class="presets-section"'));
-test('HTML: Quick Start section \u2014 v4.53.0 uses editorial \u00a7 01 numbering',
-  html.includes('&#167; 01') && /Quick\s*<em>start<\/em>/.test(html));
-test('HTML: Marathon Mode section \u2014 v4.53.0 uses editorial \u00a7 02 numbering',
-  html.includes('&#167; 02') && /Marathon\s*<em>mode<\/em>/.test(html));
+// v4.76.0 tombstone: presets-section + Quick Start \u00a701 + Marathon \u00a702 retired
+// in favor of the unified Mode Ladder (Quick / Practice / Exam tiers). The
+// Mode Ladder takes the \u00a701 number now. Marathon presets live in the Practice
+// tier as `.modes-card-marathon` instances. Keeping these tombstones so the
+// markup doesn't accidentally come back.
+test('v4.76.0 tombstone: legacy .presets-section class removed',
+  !html.includes('class="presets-section"') && !html.includes('class="presets-section ed-section"'));
+test('v4.76.0 tombstone: legacy "Quick start" \u00a701 heading replaced',
+  !/Quick\s*<em>start<\/em>/.test(html));
+test('v4.76.0 tombstone: legacy "Marathon mode" \u00a702 heading replaced',
+  !/Marathon\s*<em>mode<\/em>/.test(html));
+test('v4.76.0 replacement: Mode Ladder uses \u00a701 numbering with "Pick your session"',
+  html.includes('&#167; 01') && /Pick your\s*<em>session<\/em>/.test(html));
 test('HTML: wrong-preset-tile exists', html.includes('id="wrong-preset-tile"'));
 test('HTML: custom-quiz-section details exists', html.includes('id="custom-quiz-section"'));
 test('HTML: topic-group inside custom-quiz-section', html.indexOf('id="topic-group"') > html.indexOf('id="custom-quiz-section"'));
@@ -1896,7 +1905,7 @@ test('Tier1: #marathon-section wrapper exists', html.includes('id="marathon-sect
 test('Tier1: #marathon-section starts hidden (is-hidden class)', /id="marathon-section"[^>]*class="[^"]*is-hidden/.test(html));
 test('Tier1: renderMarathonSection() function exists', js.includes('function renderMarathonSection('));
 test('Tier1: renderMarathonSection checks loadHistory().length', js.match(/renderMarathonSection[\s\S]{0,300}loadHistory\(\)\.length/));
-test('Tier1: renderMarathonSection called in goSetup', js.match(/function goSetup\(\)[\s\S]{0,800}renderMarathonSection\(\)/));
+test('Tier1: renderMarathonSection called in goSetup', js.match(/function goSetup\(\)[\s\S]{0,1500}renderMarathonSection\(\)/));
 test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,2000}renderMarathonSection\(\)/));
 // Marathon preset buttons still present inside the wrapper
 test('Tier1: Marathon 30-question preset still wired', html.includes("applyPreset('bulk30')"));
@@ -5373,10 +5382,12 @@ test('v4.53.0 HTML: mobile sidebar toggle button',
   html.includes('class="sb-mobile-toggle"') && html.includes('onclick="toggleSidebarMobile()"'));
 test('v4.53.0 HTML: focus banner container on setup page',
   html.includes('id="focus-banner"') && html.includes('class="focus-banner'));
-test('v4.53.0 HTML: \u00a7 01 Quick Start editorial section head',
-  /&#167;\s*01[\s\S]{0,400}Quick\s*<em>start<\/em>/.test(html));
-test('v4.53.0 HTML: \u00a7 02 Marathon Mode editorial section head',
-  /&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
+// v4.76.0 update: \u00a701 + \u00a702 retired. Mode Ladder now uses \u00a701 with
+// "Pick your session" heading; Marathon presets are inside Practice tier.
+test('v4.53.0 HTML: \u00a7 01 editorial section head (now Mode Ladder, was Quick Start)',
+  /&#167;\s*01[\s\S]{0,400}Pick your\s*<em>session<\/em>/.test(html));
+test('v4.76.0 HTML: \u00a7 02 retired (Marathon Mode merged into Mode Ladder Practice tier)',
+  !/&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
 test('v4.53.0 HTML: \u00a7 03 By Domain editorial section head + grid container',
   /&#167;\s*03[\s\S]{0,400}By\s*<em>domain<\/em>/.test(html) && html.includes('id="setup-domain-grid"'));
 test('v4.53.0 HTML: \u00a7 04 Custom Quiz editorial section head',
@@ -5643,7 +5654,7 @@ test('v4.54.1 HTML: #page-settings exists',
 test('v4.54.1 (v4.54.16 update) HTML: settings has API key + Exam Date + Daily Goal + Export/Import + Clear Wrong Bank',
   html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,5000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,800}clearWrongBank/.test(html));
 test('v4.54.1 HTML: #history-panel moved to #page-analytics',
-  /id="page-analytics"[\s\S]{0,800}id="history-panel"/.test(html));
+  /id="page-analytics"[\s\S]{0,1500}id="history-panel"/.test(html));
 test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
   !html.includes('id="advanced-section"'));
 test('v4.54.1 HTML: regression \u2014 #history-panel no longer inside #page-setup',
@@ -6089,9 +6100,11 @@ test('v4.54.8 CSS: .results-v2-review-list uses 56/1fr/auto grid + hover lift + 
   /\.results-v2-review-mark-bad\s*\{/.test(css));
 
 // Home polish
-test('v4.54.8 HTML: Marathon 60Q cell has SIM badge (preset-sim + preset-sim-badge)',
-  html.includes('class="preset-tile preset-sim"') &&
-  html.includes('class="preset-sim-badge"'));
+// v4.76.0: 60Q tile relocated to Exam tier (as `.modes-card-exam` "60-Question SIM").
+// SIM-badge styling is no longer needed because the tile is already in the Exam tier
+// with its own visual treatment. Tombstone keeps both legacy classes from sneaking back.
+test('v4.76.0 tombstone: legacy preset-sim + preset-sim-badge classes no longer in HTML',
+  !html.includes('class="preset-tile preset-sim"') && !html.includes('class="preset-sim-badge"'));
 test('v4.54.8 HTML: cq-summary-bar prose + CTA exists above Generate button',
   html.includes('id="cq-summary-bar"') &&
   html.includes('id="cq-summary-prose"') &&
@@ -9669,6 +9682,84 @@ test('v4.75.1 CSS: .rc-v2-prediction styled', css.includes('.rc-v2-prediction'))
 test('v4.75.1 CSS: .rc-v2-whatif-chip styled', css.includes('.rc-v2-whatif-chip'));
 test('v4.75.1 CSS: .rc-v2-trajectory tier classes (.warn/.mid/.good)',
   /\.rc-v2-trajectory\.warn[\s\S]{0,300}\.rc-v2-trajectory\.mid[\s\S]{0,300}\.rc-v2-trajectory\.good/.test(css));
+
+// ══════════════════════════════════════════
+// v4.76.0 — Decision-Clarity Polish
+// 1. Next-Best-Move CTA in HeroV2
+// 2. Mode Ladder (Quick / Practice / Exam tiers)
+// 3. Actionable headline on Analytics page
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.76.0 DECISION-CLARITY POLISH ──\x1b[0m');
+
+// 1. Next-Best-Move CTA
+test('v4.76.0 logic: _computeNextBestMove function defined',
+  /function\s+_computeNextBestMove\s*\(/.test(js));
+test('v4.76.0 logic: _computeNextBestMove checks SR queue first',
+  /function\s+_computeNextBestMove[\s\S]{0,1500}getSrStats[\s\S]{0,1500}srStats\.due/.test(js));
+test('v4.76.0 logic: _computeNextBestMove checks daily challenge',
+  /_computeNextBestMove[\s\S]{0,3000}isDailyChallengeDoneToday/.test(js));
+test('v4.76.0 logic: _computeNextBestMove checks weak warmup path',
+  /_computeNextBestMove[\s\S]{0,4000}computeWeakSpotScores/.test(js));
+test('v4.76.0 logic: _computeNextBestMove checks what-if drill',
+  /_computeNextBestMove[\s\S]{0,5000}whatIf/.test(js));
+test('v4.76.0 logic: _computeNextBestMove fallback returns custom-quiz',
+  /_computeNextBestMove[\s\S]{0,6000}type:\s*['"]custom-quiz['"]/.test(js));
+test('v4.76.0 helper: _setWarmupTopic defined', /function\s+_setWarmupTopic\s*\(/.test(js));
+test('v4.76.0 helper: _jumpToCustomQuiz defined', /function\s+_jumpToCustomQuiz\s*\(/.test(js));
+test('v4.76.0 helper: renderNextBestMove defined', /function\s+renderNextBestMove\s*\(/.test(js));
+test('v4.76.0 wiring: goSetup hooks renderNextBestMove',
+  (() => {
+    const body = _fnBody(js, 'goSetup');
+    return body && /renderNextBestMove/.test(body);
+  })());
+
+// HTML
+test('v4.76.0 HTML: #hero-v2-cta card exists in hero', html.includes('id="hero-v2-cta"'));
+test('v4.76.0 HTML: #hero-v2-cta-title element exists', html.includes('id="hero-v2-cta-title"'));
+test('v4.76.0 HTML: #hero-v2-cta-btn element exists', html.includes('id="hero-v2-cta-btn"'));
+test('v4.76.0 HTML: #hero-v2-cta-reason element exists', html.includes('id="hero-v2-cta-reason"'));
+
+// 2. Mode Ladder
+test('v4.76.0 HTML: .modes-ladder container exists', html.includes('class="modes-ladder ed-section"'));
+test('v4.76.0 HTML: 3 mode tiers (quick / practice / exam)',
+  html.includes('modes-tier-quick') && html.includes('modes-tier-practice') && html.includes('modes-tier-exam'));
+test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));
+test('v4.76.0 HTML: Drill Mistakes tile in Quick tier', html.includes('id="modes-wrong-tile"'));
+test('v4.76.0 HTML: Custom Quiz card delegates to _jumpToCustomQuiz',
+  html.includes('onclick="_jumpToCustomQuiz()"'));
+test('v4.76.0 HTML: Full Exam Simulator card delegates to startExam',
+  /modes-card-exam-full[\s\S]{0,200}onclick="startExam\(\)"/.test(html));
+test('v4.76.0 HTML: legacy wrong-preset-tile + sub preserved (renderWrongBankBtn compat)',
+  html.includes('id="wrong-preset-tile"') && html.includes('id="wrong-preset-sub"'));
+test('v4.76.0 HTML: legacy marathon-section preserved as hidden',
+  /id="marathon-section"[^>]*hidden/.test(html));
+
+// 3. Analytics actionable headline
+test('v4.76.0 helper: renderAnalyticsActionHeadline defined',
+  /function\s+renderAnalyticsActionHeadline\s*\(/.test(js));
+test('v4.76.0 wiring: renderAnalytics calls renderAnalyticsActionHeadline',
+  (() => {
+    const body = _fnBody(js, 'renderAnalytics');
+    return body && /renderAnalyticsActionHeadline/.test(body);
+  })());
+test('v4.76.0 HTML: #ana-action-headline element exists',
+  html.includes('id="ana-action-headline"'));
+test('v4.76.0 logic: action headline reads from getReadinessScore().whatIf',
+  /renderAnalyticsActionHeadline[\s\S]{0,800}getReadinessScore[\s\S]{0,400}whatIf/.test(js));
+
+// CSS
+test('v4.76.0 CSS: .hero-v2-cta gradient styled',
+  /\.hero-v2-cta\s*\{[\s\S]{0,500}gradient/.test(css));
+test('v4.76.0 CSS: .modes-tier with quick/practice/exam variants',
+  css.includes('.modes-tier-quick') && css.includes('.modes-tier-practice') && css.includes('.modes-tier-exam'));
+test('v4.76.0 CSS: .modes-card hover treatment',
+  /\.modes-card:hover/.test(css));
+test('v4.76.0 CSS: .modes-card-exam-full premium dark treatment',
+  css.includes('.modes-card-exam-full'));
+test('v4.76.0 CSS: .ana-action-headline gradient styled',
+  /\.ana-action-headline\s*\{[\s\S]{0,500}gradient/.test(css));
+test('v4.76.0 CSS: reduced-motion gate present for new elements',
+  /prefers-reduced-motion[\s\S]{0,800}\.modes-card[\s\S]{0,400}transition:\s*none/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

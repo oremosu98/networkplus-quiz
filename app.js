@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.75.1
+// Network+ AI Quiz — app.js  v4.76.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.75.1';
+const APP_VERSION = '4.76.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4614,6 +4614,8 @@ function goSetup() {
   renderReadinessCard();
   // v4.74.0: surface SR review card if there are due cards
   if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
+  // v4.76.0: dynamic next-best-move CTA in the hero
+  if (typeof renderNextBestMove === 'function') renderNextBestMove();
   renderSessionBanner();
   renderWrongBankBtn();
   renderStreakDefender();
@@ -6112,6 +6114,197 @@ function submitAclPbq() {
   _aclPbqState.orderMatch = orderMatch;
   _aclPbqState.trafficMatch = trafficMatch;
   _renderAclPbq();
+}
+
+// ══════════════════════════════════════════
+// v4.76.0 — Decision-Clarity Polish
+// "Next best move" CTA + Mode ladder + Actionable analytics.
+// Codex review framing: not prettier — guided + premium + obvious.
+// ══════════════════════════════════════════
+
+// Decide what the user should do RIGHT NOW based on app state.
+// Priority order (highest pass-rate impact first):
+//  1. SR queue has cards due  (re-encounter forgotten material — highest leverage)
+//  2. Daily challenge not done today  (keeps streak alive, low friction)
+//  3. No quiz today + has weak topics  (quick warmup on weakest)
+//  4. Has what-if leverage data  (highest-ROI single-topic drill)
+//  5. Fallback  (start a custom quiz)
+function _computeNextBestMove() {
+  // 1. SR queue
+  try {
+    if (typeof getSrStats === 'function') {
+      const srStats = getSrStats();
+      if (srStats && srStats.due > 0) {
+        const minutes = Math.max(2, Math.round(srStats.due * 0.5));
+        return {
+          type: 'sr-review',
+          icon: '📚',
+          title: srStats.due === 1
+            ? 'Review 1 card due for spaced repetition'
+            : 'Review ' + srStats.due + ' cards due',
+          sub: '~' + minutes + ' min · re-encounter what you forgot',
+          ctaLabel: 'Start review →',
+          ctaFn: 'startSrReview()',
+          reason: 'Highest-leverage minute of study you can do today'
+        };
+      }
+    }
+  } catch (_) {}
+
+  // 2. Daily challenge
+  try {
+    if (typeof isDailyChallengeDoneToday === 'function' && !isDailyChallengeDoneToday()) {
+      const dc = (typeof getDailyChallenge === 'function') ? getDailyChallenge() : null;
+      const streak = dc ? (dc.currentStreak || 0) : 0;
+      const streakSub = streak > 0 ? ' · streak ' + streak + ' → ' + (streak + 1) : '';
+      return {
+        type: 'daily-challenge',
+        icon: '🎯',
+        title: 'Today’s daily challenge',
+        sub: '5 questions · ~3 min' + streakSub,
+        ctaLabel: 'Take challenge →',
+        ctaFn: 'startDailyChallenge()',
+        reason: 'Keeps your streak alive'
+      };
+    }
+  } catch (_) {}
+
+  // 3. No quizzes today + has weak topics → quick warmup
+  try {
+    const history = (typeof loadHistory === 'function') ? loadHistory() : [];
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayCount = history.filter(e => (e.date || '').slice(0, 10) === todayStr).length;
+    if (todayCount === 0 && typeof computeWeakSpotScores === 'function') {
+      const weak = computeWeakSpotScores();
+      if (weak && weak.length > 0) {
+        return {
+          type: 'weak-warmup',
+          icon: '⚡',
+          title: '5-min warmup on ' + weak[0].topic,
+          sub: '5 questions · your weakest topic right now',
+          ctaLabel: 'Start warmup →',
+          ctaFn: 'applyPreset(\'warmup\'); _setWarmupTopic(\'' + (weak[0].topic || '').replace(/'/g, "\\'") + '\')',
+          reason: 'Quick win on the area dragging your score'
+        };
+      }
+    }
+  } catch (_) {}
+
+  // 4. What-if highest-leverage drill (returning user)
+  try {
+    if (typeof getReadinessScore === 'function') {
+      const r = getReadinessScore();
+      if (r && Array.isArray(r.whatIf) && r.whatIf.length > 0) {
+        const top = r.whatIf[0];
+        return {
+          type: 'what-if-drill',
+          icon: '📈',
+          title: 'Drill ' + top.topic,
+          sub: '+' + top.deltaPredicted + ' pts predicted · ' + top.currentPct + '% → 80%',
+          ctaLabel: 'Drill now →',
+          ctaFn: 'focusTopic(\'' + (top.topic || '').replace(/'/g, "\\'") + '\')',
+          reason: 'Biggest single-topic score gain available'
+        };
+      }
+    }
+  } catch (_) {}
+
+  // 5. Fallback
+  return {
+    type: 'custom-quiz',
+    icon: '✏️',
+    title: 'Take a custom quiz',
+    sub: 'Pick a topic + length · build your study habit',
+    ctaLabel: 'Start quiz →',
+    ctaFn: '_jumpToCustomQuiz()',
+    reason: 'Build the daily-study habit'
+  };
+}
+
+// Helper: nudge the warmup preset toward a specific topic (best-effort).
+// Used by weak-warmup next-best-move action — applyPreset('warmup') already
+// enqueues a 5-Q quiz; this just makes sure the topic chip selection
+// reflects the suggested topic before generation runs.
+function _setWarmupTopic(topic) {
+  try {
+    const chips = document.querySelectorAll('#topic-group .chip');
+    let matched = false;
+    chips.forEach(c => {
+      if (c.dataset.v === topic) {
+        c.classList.add('on');
+        matched = true;
+      } else {
+        c.classList.remove('on');
+      }
+    });
+    return matched;
+  } catch (_) { return false; }
+}
+
+// Helper: scroll-into-view + open the Custom Quiz details panel.
+function _jumpToCustomQuiz() {
+  try {
+    const cq = document.getElementById('custom-quiz-section');
+    if (cq && !cq.open) cq.open = true;
+    const el = document.getElementById('topic-group');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (_) {}
+}
+
+// Render the Next-Best-Move CTA card on the homepage.
+function renderNextBestMove() {
+  const card = document.getElementById('hero-v2-cta');
+  if (!card) return;
+  // No-data path: blank card stays hidden until at least the SR/DC checks
+  // could yield something. The fallback path always returns an action, so
+  // we always have SOMETHING to show — but for true first-load we keep the
+  // hero clean and let the user pick from the modes ladder.
+  const move = _computeNextBestMove();
+  if (!move) {
+    card.hidden = true;
+    return;
+  }
+  const iconEl = document.getElementById('hero-v2-cta-icon');
+  const titleEl = document.getElementById('hero-v2-cta-title');
+  const subEl = document.getElementById('hero-v2-cta-sub');
+  const reasonEl = document.getElementById('hero-v2-cta-reason');
+  const btnEl = document.getElementById('hero-v2-cta-btn');
+  if (iconEl) iconEl.textContent = move.icon;
+  if (titleEl) titleEl.textContent = move.title;
+  if (subEl) subEl.textContent = move.sub;
+  if (reasonEl) reasonEl.textContent = move.reason;
+  if (btnEl) {
+    btnEl.textContent = move.ctaLabel;
+    btnEl.setAttribute('onclick', move.ctaFn);
+    btnEl.setAttribute('data-move-type', move.type);
+  }
+  card.dataset.moveType = move.type;
+  card.hidden = false;
+}
+
+// Analytics page actionable headline — same logic, different surface.
+// Highlights the highest-leverage drill at the top of Analytics.
+function renderAnalyticsActionHeadline() {
+  const host = document.getElementById('ana-action-headline');
+  if (!host) return;
+  let r = null;
+  try { r = (typeof getReadinessScore === 'function') ? getReadinessScore() : null; } catch (_) {}
+  if (!r || !Array.isArray(r.whatIf) || r.whatIf.length === 0) {
+    host.hidden = true;
+    return;
+  }
+  const top = r.whatIf[0];
+  const safeTopic = (top.topic || '').replace(/'/g, "\\'");
+  host.innerHTML = '<div class="ana-action-eyebrow">🎯 Your next 30 minutes</div>'
+    + '<div class="ana-action-body">'
+    + '<div class="ana-action-text">'
+    + '<div class="ana-action-topic">' + escHtml(top.topic) + '</div>'
+    + '<div class="ana-action-meta">+<strong>' + top.deltaPredicted + ' pts</strong> predicted &middot; '
+    + top.currentPct + '% → 80% · highest-leverage gap</div>'
+    + '</div>'
+    + '<button type="button" class="ana-action-btn" onclick="focusTopic(\'' + safeTopic + '\')">Drill now →</button>'
+    + '</div>';
+  host.hidden = false;
 }
 
 function renderWrongBankBtn() {
@@ -29358,8 +29551,12 @@ function renderAnalytics() {
   if (histPanel) histPanel.classList.add('is-hidden');
   if (h.length < 1) {
     container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
+    // v4.76.0: empty-state path — hide actionable headline
+    if (typeof renderAnalyticsActionHeadline === 'function') renderAnalyticsActionHeadline();
     return;
   }
+  // v4.76.0: surface highest-leverage drill at the top of Analytics
+  if (typeof renderAnalyticsActionHeadline === 'function') renderAnalyticsActionHeadline();
   let html = '';
   html += _renderAnaNav();
   html += _renderAnaReadiness(h);

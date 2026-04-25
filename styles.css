@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.75.1
+   Network+ AI Quiz — styles.css  v4.76.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13040,4 +13040,305 @@ html { zoom: 1.10; }
   .acl-picker-card { transition: none !important; }
   .acl-picker-card:hover { transform: none !important; }
   .acl-arrow-btn { transition: none !important; }
+}
+
+/* ══════════════════════════════════════════
+   v4.76.0 — DECISION-CLARITY POLISH
+   Codex review: not prettier — guided, premium, obvious.
+   1. Next-Best-Move CTA card in the hero
+   2. Mode ladder (Quick / Practice / Exam tiers)
+   3. Actionable headline on Analytics page
+═══════════════════════════════════════════ */
+
+/* ── 1. Next-Best-Move CTA card ── */
+.hero-v2-cta {
+  margin-top: 18px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, var(--accent), #5b4ce0);
+  border-radius: 14px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(124, 111, 247, 0.32);
+  max-width: 560px;
+}
+.hero-v2-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 65%);
+  pointer-events: none;
+}
+.hero-v2-cta-eyebrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  color: rgba(255, 255, 255, 0.78);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.hero-v2-cta-icon { font-size: 18px; line-height: 1; }
+.hero-v2-cta-title {
+  position: relative;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.hero-v2-cta-sub {
+  position: relative;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 14px;
+}
+.hero-v2-cta-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: #fff;
+  color: #4338ca;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.hero-v2-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  background: #f5f3ff;
+}
+.hero-v2-cta-reason {
+  position: relative;
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+/* ── 2. Mode Ladder ── */
+.modes-ladder {
+  /* Inherits .ed-section spacing. Body splits into 3 tiers. */
+}
+.modes-tier {
+  margin-top: 18px;
+  padding: 14px 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+}
+.modes-tier-quick {
+  border-left: 4px solid var(--green, #4ade80);
+}
+.modes-tier-practice {
+  border-left: 4px solid var(--accent);
+}
+.modes-tier-exam {
+  border-left: 4px solid var(--orange, #fb923c);
+  background: linear-gradient(180deg, var(--surface), rgba(251, 146, 60, 0.04));
+}
+.modes-tier-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.modes-tier-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex: none;
+}
+.modes-tier-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.modes-tier-eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.modes-tier-quick .modes-tier-eyebrow { color: var(--green, #4ade80); }
+.modes-tier-practice .modes-tier-eyebrow { color: var(--accent); }
+.modes-tier-exam .modes-tier-eyebrow { color: var(--orange, #fb923c); }
+.modes-tier-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.modes-tier-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.modes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  color: var(--text);
+  min-height: 84px;
+}
+.modes-card:hover {
+  background: rgba(124, 111, 247, 0.08);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 111, 247, 0.15);
+}
+.modes-card-icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.modes-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.modes-card-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.modes-card-featured {
+  background: linear-gradient(135deg, rgba(124, 111, 247, 0.14), rgba(124, 111, 247, 0.06));
+  border-color: rgba(124, 111, 247, 0.42);
+}
+.modes-card-featured .modes-card-title { color: var(--accent); }
+.modes-card-dc {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.04));
+  border-color: rgba(34, 197, 94, 0.32);
+}
+.modes-card-wrong {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.10), rgba(248, 113, 113, 0.04));
+  border-color: rgba(248, 113, 113, 0.32);
+}
+.modes-card-marathon {
+  /* default styling */
+}
+.modes-card-custom {
+  border-style: dashed;
+  background: transparent;
+}
+.modes-card-exam {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.10), rgba(251, 146, 60, 0.04));
+  border-color: rgba(251, 146, 60, 0.40);
+  min-height: 100px;
+}
+.modes-card-exam .modes-card-title { color: var(--orange, #fb923c); }
+.modes-card-exam-full {
+  background: linear-gradient(135deg, #1f1730, #2a1f4a);
+  border-color: var(--orange, #fb923c);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(251, 146, 60, 0.18);
+}
+.modes-card-exam-full .modes-card-title { color: #ffe5d0; }
+.modes-card-exam-full .modes-card-sub { color: rgba(255, 229, 208, 0.75); }
+.modes-card-exam-full:hover {
+  background: linear-gradient(135deg, #28203d, #36275c);
+  border-color: var(--orange, #fb923c);
+}
+
+/* ── 3. Analytics Actionable Headline ── */
+.ana-action-headline {
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--accent), #5b4ce0);
+  border-radius: 12px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(124, 111, 247, 0.28);
+}
+.ana-action-headline::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 65%);
+  pointer-events: none;
+}
+.ana-action-eyebrow {
+  position: relative;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  color: rgba(255, 255, 255, 0.82);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.ana-action-body {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ana-action-text {
+  flex: 1;
+  min-width: 200px;
+}
+.ana-action-topic {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.ana-action-meta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.ana-action-meta strong { color: #fff; }
+.ana-action-btn {
+  padding: 10px 18px;
+  background: #fff;
+  color: #4338ca;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  flex: none;
+}
+.ana-action-btn:hover {
+  transform: translateY(-1px);
+  background: #f5f3ff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-v2-cta-btn,
+  .modes-card,
+  .ana-action-btn { transition: none !important; }
+  .hero-v2-cta-btn:hover,
+  .modes-card:hover,
+  .ana-action-btn:hover { transform: none !important; }
 }
