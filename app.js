@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.80.0
+// Network+ AI Quiz — app.js  v4.81.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.80.0';
+const APP_VERSION = '4.81.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -21,6 +21,11 @@ let _dailyGoalIntroArmed = true;
 const EXAM_TIME_SECONDS = 5400;     // 90 minutes
 const EXAM_QUESTION_COUNT = 90;     // full CompTIA N10-009 exam length
 const EXAM_PASS_SCORE = 720;        // scaled score threshold for pass (CompTIA official)
+// v4.81.0: Baseline Diagnostic + Pass Plan (Codex r5 #1 / Issue #243)
+const DIAGNOSTIC_QUESTION_COUNT = 20;       // single sitting, ~30 min
+const DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30-min timer (no hard cutoff — informational only in MVP)
+const DIAGNOSTIC_RETAKE_COOLDOWN_DAYS = 7;  // user can retake after 7 days
+const DIAGNOSTIC_RETAKE_COOLDOWN_MS = DIAGNOSTIC_RETAKE_COOLDOWN_DAYS * 86400000;
 const EXAM_MAX_SCORE = 900;         // scaled score ceiling
 const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
@@ -4006,6 +4011,11 @@ const STORAGE = {
   ACL_COACH_CACHE: 'nplus_acl_coach_cache',
   // v4.56.1: rolling log of fetchQuestions JSON-parse failures for diagnosis
   AI_PARSE_FAILS: 'nplus_ai_parse_fails',
+  // v4.81.0: Baseline Diagnostic + Pass Plan (Codex r5 #1 / Issue #243).
+  // DIAGNOSTIC stores the latest completed diagnostic state + Pass Plan;
+  // LAST_DIAGNOSTIC_AT is the cooldown anchor for the 7-day retake gate.
+  DIAGNOSTIC: 'nplus_diagnostic',
+  LAST_DIAGNOSTIC_AT: 'nplus_last_diagnostic_at',
 };
 
 // ── STATE ──
@@ -4614,6 +4624,8 @@ function goSetup() {
   renderReadinessCard();
   // v4.74.0: surface SR review card if there are due cards
   if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
+  // v4.81.0: surface Baseline Diagnostic CTA (or Pass Plan tile if completed)
+  if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
   // v4.76.0: dynamic next-best-move CTA in the hero
   if (typeof renderNextBestMove === 'function') renderNextBestMove();
   renderSessionBanner();
@@ -5878,6 +5890,597 @@ const ACL_PBQ_BANK = [
   }
 ];
 
+// ══════════════════════════════════════════
+// v4.81.0: BASELINE DIAGNOSTIC + PASS PLAN (Codex r5 #1 / Issue #243)
+// ──────────────────────────────────────────
+// Single-sitting 20-question diagnostic that produces a Pass Plan: pass
+// probability with CI, top-3 weak domains, 7-day plan, recommended PBQ.
+// Wrong/uncertain answers seed the v4.74.0 SR queue automatically — the
+// diagnostic is the natural seeding event for spaced repetition.
+// ══════════════════════════════════════════
+
+let _diagnosticSession = null;  // { questions, answers, currentIdx, startedAt, pickedIdx, confidence }
+let _diagnosticTimer = null;    // setInterval handle
+
+// Persist the latest completed diagnostic + Pass Plan so the home tile +
+// /view-report path can re-render without recomputing.
+function loadDiagnostic() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.DIAGNOSTIC) || 'null'); }
+  catch { return null; }
+}
+function saveDiagnostic(d) {
+  try { localStorage.setItem(STORAGE.DIAGNOSTIC, JSON.stringify(d)); }
+  catch { showToast('Storage full — diagnostic not saved', 'error'); }
+}
+
+// Days remaining until the user can retake. 0 = retake available now.
+// Returns null if no diagnostic on file.
+function getDiagnosticCooldownDays() {
+  const last = parseInt(localStorage.getItem(STORAGE.LAST_DIAGNOSTIC_AT) || '0', 10);
+  if (!last) return null;
+  const elapsed = Date.now() - last;
+  if (elapsed >= DIAGNOSTIC_RETAKE_COOLDOWN_MS) return 0;
+  return Math.ceil((DIAGNOSTIC_RETAKE_COOLDOWN_MS - elapsed) / 86400000);
+}
+
+// User clicks the "skip for now" link — hide the CTA for this session only.
+// Reappears on next page load (intentional — the diagnostic is high-value
+// enough to nag once per session, not just once forever).
+let _diagnosticCtaSessionDismissed = false;
+function dismissDiagnosticCta(ev) {
+  if (ev) ev.preventDefault();
+  _diagnosticCtaSessionDismissed = true;
+  renderDiagnosticSurface();
+}
+
+// Top-level entry point — wired to the "Take the Diagnostic" button on the
+// home CTA. Confirms intent, fetches 20 Qs across all domains, then enters
+// the quiz flow.
+async function startDiagnostic() {
+  const key = (typeof getApiKey === 'function') ? getApiKey() : (localStorage.getItem(STORAGE.KEY) || '');
+  if (!key) {
+    showToast('Add your API key in Settings first', 'error');
+    if (typeof goSettings === 'function') goSettings();
+    return;
+  }
+  if (!confirm('Take the Baseline Diagnostic? 20 questions, ~30 minutes, single sitting. You can quit mid-flow but progress will be lost.')) return;
+
+  showPage('loading');
+  if (typeof showLoading === 'function') showLoading('Generating your diagnostic — 20 calibrated questions across all 5 domains…');
+
+  try {
+    // Use Mixed topic + Mixed difficulty so the existing 7-layer pipeline
+    // spreads across domains naturally. Over-request DROPOUT_BUFFER so we
+    // can drop low-quality items and still hit 20.
+    const buffer = Math.max(3, Math.ceil(DIAGNOSTIC_QUESTION_COUNT * 0.3));
+    let qs = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', DIAGNOSTIC_QUESTION_COUNT + buffer);
+    qs = (qs || []).slice(0, DIAGNOSTIC_QUESTION_COUNT);
+    if (qs.length < DIAGNOSTIC_QUESTION_COUNT) {
+      // Try one retry-to-fill to recover from a partial first batch.
+      const deficit = DIAGNOSTIC_QUESTION_COUNT - qs.length;
+      try {
+        const more = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + buffer);
+        qs = qs.concat((more || []).slice(0, deficit));
+      } catch (_) { /* swallow — we ship what we have */ }
+    }
+    if (qs.length === 0) {
+      throw new Error('Could not generate diagnostic questions. Please try again in a moment.');
+    }
+
+    _diagnosticSession = {
+      questions: qs,
+      answers: new Array(qs.length).fill(null),
+      currentIdx: 0,
+      startedAt: Date.now(),
+      pickedIdx: null,
+      confidence: null
+    };
+    _diagnosticStartTimer();
+    showPage('diagnostic-quiz');
+    _renderDiagnosticQuestion();
+  } catch (err) {
+    showToast(err.message || 'Diagnostic generation failed. Please try again.', 'error');
+    goSetup();
+  }
+}
+
+function _diagnosticStartTimer() {
+  if (_diagnosticTimer) clearInterval(_diagnosticTimer);
+  const started = _diagnosticSession ? _diagnosticSession.startedAt : Date.now();
+  const tick = () => {
+    const el = document.getElementById('diag-quiz-timer');
+    if (!el) return;
+    const elapsed = Date.now() - started;
+    const remaining = Math.max(0, DIAGNOSTIC_DURATION_MS - elapsed);
+    const m = Math.floor(remaining / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    el.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    el.classList.toggle('overtime', remaining === 0);
+  };
+  tick();
+  _diagnosticTimer = setInterval(tick, 1000);
+}
+
+function _diagnosticStopTimer() {
+  if (_diagnosticTimer) { clearInterval(_diagnosticTimer); _diagnosticTimer = null; }
+}
+
+function _renderDiagnosticQuestion() {
+  if (!_diagnosticSession) return;
+  const sess = _diagnosticSession;
+  const q = sess.questions[sess.currentIdx];
+  if (!q) return;
+
+  // Progress bar + label
+  const total = sess.questions.length;
+  const idx = sess.currentIdx;
+  const pct = Math.round(((idx + 1) / total) * 100);
+  const fill = document.getElementById('diag-quiz-progress-fill');
+  const lbl = document.getElementById('diag-quiz-progress-lbl');
+  if (fill) fill.style.width = pct + '%';
+  if (lbl) lbl.textContent = 'Question ' + (idx + 1) + ' of ' + total + ' · ' + pct + '% complete';
+
+  // Meta pills
+  const meta = document.getElementById('diag-quiz-meta');
+  if (meta) {
+    const topic = q.topic || 'N10-009';
+    const diffLbl = (q.difficulty || 'mid').replace(/^./, c => c.toUpperCase());
+    meta.innerHTML =
+      '<span class="diag-quiz-pill objective">' + escHtml(topic) + '</span>' +
+      '<span class="diag-quiz-pill difficulty">' + escHtml(diffLbl) + ' difficulty</span>';
+  }
+
+  // Question stem + options
+  const qel = document.getElementById('diag-quiz-question');
+  if (qel) setQuestionText(qel, q.question || '');
+  const opts = document.getElementById('diag-quiz-options');
+  if (opts) {
+    opts.innerHTML = '';
+    (q.options || []).forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'diag-quiz-option';
+      btn.dataset.idx = String(i);
+      btn.innerHTML =
+        '<span class="diag-quiz-option-letter">' + 'ABCD'[i] + '</span>' +
+        '<span class="diag-quiz-option-text">' + escHtml(opt) + '</span>';
+      btn.onclick = () => pickDiagnosticOption(i);
+      opts.appendChild(btn);
+    });
+  }
+
+  // Reset picker state for fresh question
+  sess.pickedIdx = null;
+  sess.confidence = null;
+  _refreshDiagnosticActions();
+  document.querySelectorAll('#diag-quiz-confidence-tiers .diag-conf-tier').forEach(b => b.classList.remove('selected'));
+}
+
+function pickDiagnosticOption(i) {
+  if (!_diagnosticSession) return;
+  _diagnosticSession.pickedIdx = i;
+  document.querySelectorAll('#diag-quiz-options .diag-quiz-option').forEach(b => {
+    b.classList.toggle('selected', Number(b.dataset.idx) === i);
+  });
+  _refreshDiagnosticActions();
+}
+
+function setDiagnosticConfidence(tier) {
+  if (!_diagnosticSession) return;
+  _diagnosticSession.confidence = tier;
+  document.querySelectorAll('#diag-quiz-confidence-tiers .diag-conf-tier').forEach(b => {
+    b.classList.toggle('selected', b.dataset.tier === tier);
+  });
+  _refreshDiagnosticActions();
+}
+
+function _refreshDiagnosticActions() {
+  if (!_diagnosticSession) return;
+  const ready = _diagnosticSession.pickedIdx !== null && _diagnosticSession.confidence !== null;
+  const btn = document.getElementById('diag-quiz-next-btn');
+  const hint = document.getElementById('diag-quiz-hint');
+  if (btn) btn.disabled = !ready;
+  if (hint) {
+    if (ready) {
+      hint.textContent = _diagnosticSession.currentIdx === _diagnosticSession.questions.length - 1
+        ? 'Submit final answer to see your Pass Plan'
+        : 'Locked in — go to next question';
+    } else if (_diagnosticSession.pickedIdx === null) {
+      hint.textContent = 'Pick an answer';
+    } else {
+      hint.textContent = 'Pick a confidence level';
+    }
+  }
+  if (btn) {
+    btn.textContent = (_diagnosticSession.currentIdx === _diagnosticSession.questions.length - 1)
+      ? 'Finish & see Pass Plan →'
+      : 'Next →';
+  }
+}
+
+function submitDiagnosticAnswer() {
+  if (!_diagnosticSession) return;
+  const sess = _diagnosticSession;
+  if (sess.pickedIdx === null || sess.confidence === null) return;
+  const q = sess.questions[sess.currentIdx];
+  const correctIdx = (typeof q.answer === 'number') ? q.answer : -1;
+  const correct = sess.pickedIdx === correctIdx;
+  sess.answers[sess.currentIdx] = {
+    pickedIdx: sess.pickedIdx,
+    confidence: sess.confidence,
+    correct,
+    answeredAt: Date.now()
+  };
+  if (sess.currentIdx === sess.questions.length - 1) {
+    completeDiagnostic();
+  } else {
+    sess.currentIdx++;
+    _renderDiagnosticQuestion();
+  }
+}
+
+function quitDiagnostic() {
+  if (!_diagnosticSession) { goSetup(); return; }
+  if (!confirm('Quit the diagnostic? Your progress will be lost — you\'ll need to retake from the start.')) return;
+  _diagnosticStopTimer();
+  _diagnosticSession = null;
+  goSetup();
+}
+
+// Compute the Pass Plan from the answered questions. Returns the data
+// shape the result page expects + the home tile reads from.
+function _buildPassPlan(session) {
+  const questions = session.questions;
+  const answers = session.answers;
+  const total = questions.length;
+
+  // Per-domain accuracy (raw — no recency/Bayesian smoothing because this is
+  // a single-sitting diagnostic with small n-per-domain). We use the same
+  // domain weights as getReadinessScore() so the predicted score is
+  // calibrated against the same scale.
+  const buckets = {};
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => { buckets[d] = { correct: 0, total: 0, label: DOMAIN_LABELS[d] }; });
+
+  questions.forEach((q, i) => {
+    const a = answers[i];
+    if (!a) return;
+    const topic = q.topic;
+    const domain = (typeof TOPIC_DOMAINS !== 'undefined') ? TOPIC_DOMAINS[topic] : null;
+    if (!domain || !buckets[domain]) return;
+    buckets[domain].total++;
+    if (a.correct) buckets[domain].correct++;
+  });
+
+  // Domain-weighted accuracy → 0-100. Domains with no questions in the
+  // diagnostic don't contribute (their weight is redistributed).
+  let totalWeight = 0;
+  let weightedAcc = 0;
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => {
+    if (buckets[d].total > 0) {
+      const acc = (buckets[d].correct / buckets[d].total);
+      weightedAcc += acc * DOMAIN_WEIGHTS[d];
+      totalWeight += DOMAIN_WEIGHTS[d];
+    }
+  });
+  const accNormalized = totalWeight > 0 ? (weightedAcc / totalWeight) : 0;
+  const accPct = accNormalized * 100;
+
+  // Predicted score on the 420-870 scale matches getReadinessScore math.
+  // Diagnostic is single-domain-spread so we apply a slight regression-to-
+  // mean penalty (multiply by 0.95) — 20 questions can't out-predict 200.
+  const predicted = Math.round(420 + (accPct / 100) * 450 * 0.95);
+
+  // CI is wide for a 20-Q sample. Mirror the formula in getReadinessScore
+  // but assume coverageFactor = 1 (we covered all domains) and recency = 1
+  // (just answered them). So sampleWidth dominates: 60/sqrt(1 + 20/50) ≈ 50.
+  const sampleWidth = 60 / Math.sqrt(1 + total / 50);
+  const ciHalfWidth = Math.max(20, Math.min(80, Math.round(sampleWidth)));
+  const lowerBound = Math.max(420, predicted - ciHalfWidth);
+  const upperBound = Math.min(870, predicted + ciHalfWidth);
+
+  // Pass probability via logistic, same as v4.73.0 widget.
+  const sigma = ciHalfWidth / 1.645;
+  const z = (predicted - EXAM_PASS_SCORE) / sigma;
+  const passProbability = 1 / (1 + Math.exp(-z));
+
+  // Confidence ladder tier — drives the 'low/medium/high' badge.
+  // <30 Q answered = low confidence, 30-60 = medium, 60+ = high. v1 always
+  // medium (we just took 20 Qs); ladder is forward-looking infrastructure.
+  let dataConfidence = 'low';
+  if (total >= 50) dataConfidence = 'medium';
+  if (total >= 80) dataConfidence = 'high';
+
+  // Top 3 weak domains — sorted by accuracy ascending, with raw count.
+  const weakDomains = Object.keys(buckets)
+    .filter(d => buckets[d].total > 0)
+    .map(d => ({
+      key: d,
+      label: buckets[d].label,
+      correct: buckets[d].correct,
+      total: buckets[d].total,
+      accuracy: buckets[d].correct / buckets[d].total
+    }))
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .slice(0, 3);
+
+  // Cards seeded count (every wrong + uncertain enrolls into SR).
+  const seededCount = answers.filter(a =>
+    a && (!a.correct || a.confidence === 'uncertain' || a.confidence === 'guessing')
+  ).length;
+
+  // Static 7-day plan recommendations — keyed off top weak domain.
+  // Today = drill weakest, tomorrow = SR review + #2 weakest, etc.
+  const week = _buildWeekPlan(weakDomains, seededCount);
+
+  // PBQ recommendation — ACL Builder is the only PBQ today, so always rec it.
+  const pbqRec = {
+    title: 'Try the ACL Ordering PBQ',
+    sub: 'PBQs are weighted 3-4× on the real exam. ACL ordering is the most-confused firewall concept — build the muscle now.',
+    cta: 'Open ACL PBQ →',
+    targetFn: 'aclOpenFromPassPlan'
+  };
+
+  return {
+    completedAt: Date.now(),
+    questionCount: total,
+    answeredCount: answers.filter(a => a !== null).length,
+    correctCount: answers.filter(a => a && a.correct).length,
+    accPct: Math.round(accPct),
+    predicted,
+    ciHalfWidth,
+    lowerBound,
+    upperBound,
+    passProbability,
+    dataConfidence,
+    weakDomains,
+    seededCount,
+    week,
+    pbqRec
+  };
+}
+
+function _buildWeekPlan(weakDomains, seededCount) {
+  const today = new Date();
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const top1 = weakDomains[0];
+  const top2 = weakDomains[1];
+  const top3 = weakDomains[2];
+  const top1Name = top1 ? top1.label : 'mixed practice';
+  const top2Name = top2 ? top2.label : 'mixed practice';
+  const top3Name = top3 ? top3.label : 'mixed practice';
+  const days = [
+    { name: 'Today', load: 15, task: 'Drill ' + top1Name },
+    { name: dayLabels[(today.getDay() + 1) % 7], load: 20, task: 'Review ' + seededCount + ' SR cards + ' + top2Name },
+    { name: dayLabels[(today.getDay() + 2) % 7], load: 15, task: top3Name + ' deep-dive' },
+    { name: dayLabels[(today.getDay() + 3) % 7], load: 25, task: 'Deep-dive on ' + top1Name },
+    { name: dayLabels[(today.getDay() + 4) % 7], load: 20, task: 'SR review + ACL PBQ' },
+    { name: dayLabels[(today.getDay() + 5) % 7], load: 15, task: 'Mixed practice' },
+    { name: dayLabels[(today.getDay() + 6) % 7], load: 30, task: '30-min mini exam' }
+  ];
+  return days;
+}
+
+// Seeds the v4.74.0 SR queue from diagnostic answers. Wrong answers always
+// enroll. Correct-but-uncertain and correct-but-guessing also enroll
+// (they're the 'I happened to get it right but don't really know' cases —
+// surfacing them again is the whole point of SR).
+function _seedReviewQueueFromDiagnostic(session) {
+  let added = 0;
+  session.questions.forEach((q, i) => {
+    const a = session.answers[i];
+    if (!a) return;
+    const shouldSeed = !a.correct || a.confidence === 'uncertain' || a.confidence === 'guessing';
+    if (!shouldSeed) return;
+    try {
+      addToSrQueue(q);
+      added++;
+    } catch (_) { /* swallow per-card errors so one bad card doesn't kill seeding */ }
+  });
+  return added;
+}
+
+function completeDiagnostic() {
+  if (!_diagnosticSession) return;
+  _diagnosticStopTimer();
+  const session = _diagnosticSession;
+  const passPlan = _buildPassPlan(session);
+  // Override seededCount with the actual addToSrQueue return after seeding,
+  // so a dedup hit against an existing SR entry is reflected accurately.
+  passPlan.seededCount = _seedReviewQueueFromDiagnostic(session);
+
+  const record = {
+    completedAt: passPlan.completedAt,
+    startedAt: session.startedAt,
+    durationMs: passPlan.completedAt - session.startedAt,
+    questionCount: passPlan.questionCount,
+    answeredCount: passPlan.answeredCount,
+    correctCount: passPlan.correctCount,
+    passPlan
+  };
+  saveDiagnostic(record);
+  localStorage.setItem(STORAGE.LAST_DIAGNOSTIC_AT, String(passPlan.completedAt));
+
+  // Clear session BEFORE rendering — keeps memory tidy + signals "done".
+  _diagnosticSession = null;
+  renderDiagnosticResult();
+  showPage('diagnostic-result');
+}
+
+function renderDiagnosticResult() {
+  const record = loadDiagnostic();
+  if (!record || !record.passPlan) return;
+  const p = record.passPlan;
+  const pctStr = Math.round(p.passProbability * 100);
+
+  // Probability ring — set conic-gradient based on percentage.
+  const ring = document.getElementById('pass-plan-prob-ring');
+  if (ring) {
+    ring.style.background = 'conic-gradient(var(--accent) 0% ' + pctStr + '%, var(--surface3) ' + pctStr + '% 100%)';
+  }
+  const pctEl = document.getElementById('pass-plan-prob-pct');
+  if (pctEl) pctEl.textContent = pctStr + '%';
+
+  // Sub line — N20 calibrated questions across N domains
+  const sub = document.getElementById('pass-plan-sub');
+  if (sub) {
+    const domainCount = p.weakDomains.length;
+    sub.textContent = 'Based on ' + p.questionCount + ' calibrated questions across all 5 N10-009 domains · ' + domainCount + ' weak ' + (domainCount === 1 ? 'domain' : 'domains') + ' identified';
+  }
+
+  // CI band rows
+  const rangeEl = document.getElementById('pass-plan-prob-range');
+  const lowerPct = Math.round((1 / (1 + Math.exp(-((p.lowerBound - EXAM_PASS_SCORE) / (p.ciHalfWidth / 1.645))))) * 100);
+  const upperPct = Math.round((1 / (1 + Math.exp(-((p.upperBound - EXAM_PASS_SCORE) / (p.ciHalfWidth / 1.645))))) * 100);
+  if (rangeEl) rangeEl.textContent = lowerPct + ' – ' + upperPct + '%';
+  const predEl = document.getElementById('pass-plan-predicted-score');
+  if (predEl) predEl.textContent = p.predicted + ' / 870';
+  const dataConfEl = document.getElementById('pass-plan-data-confidence');
+  if (dataConfEl) {
+    const labels = { low: 'Low — 20 of ~50 questions answered', medium: 'Medium — 50+ questions answered', high: 'High — 80+ questions answered' };
+    dataConfEl.textContent = labels[p.dataConfidence] || labels.low;
+  }
+
+  // Confidence ladder — highlight active tier
+  document.querySelectorAll('#pass-plan-confidence-ladder .pass-plan-ladder-tier').forEach(t => {
+    t.classList.toggle('active', t.dataset.tier === p.dataConfidence);
+  });
+
+  // Top 3 weak domains
+  const weakHost = document.getElementById('pass-plan-weak-domains');
+  const weakCount = document.getElementById('pass-plan-weak-count');
+  if (weakCount) weakCount.textContent = p.weakDomains.length + ' identified';
+  if (weakHost) {
+    weakHost.innerHTML = p.weakDomains.map(d => {
+      const accPct = Math.round(d.accuracy * 100);
+      const onclick = "focusFirstTopicInDomain('" + d.key + "')";
+      return '<div class="pass-plan-weak-row">' +
+        '<div class="pass-plan-weak-info">' +
+        '<div class="pass-plan-weak-name">' + escHtml(d.label) + '</div>' +
+        '<div class="pass-plan-weak-stat"><span class="pct">' + d.correct + ' of ' + d.total + ' correct</span> · ' + accPct + '% on diagnostic</div>' +
+        '</div>' +
+        '<button class="pass-plan-weak-btn" onclick="' + onclick + '">Fix this →</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Review seeded
+  const reviewNum = document.getElementById('pass-plan-review-num');
+  if (reviewNum) reviewNum.textContent = String(p.seededCount);
+  const reviewSub = document.getElementById('pass-plan-review-sub');
+  if (reviewSub) {
+    reviewSub.textContent = p.seededCount === 0
+      ? 'No cards seeded — strong baseline! Keep practising to build the queue.'
+      : 'First review session: tomorrow morning · auto-paced by SM-2 algorithm';
+  }
+
+  // Week strip
+  const weekHost = document.getElementById('pass-plan-week-strip');
+  if (weekHost) {
+    weekHost.innerHTML = (p.week || []).map((d, i) => {
+      const today = i === 0 ? ' today' : '';
+      return '<div class="pass-plan-day' + today + '">' +
+        '<div class="pass-plan-day-name">' + escHtml(d.name) + '</div>' +
+        '<div class="pass-plan-day-load">' + d.load + ' Q</div>' +
+        '<div class="pass-plan-day-task">' + escHtml(d.task) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // PBQ rec
+  const pbqTitle = document.getElementById('pass-plan-pbq-title');
+  if (pbqTitle && p.pbqRec) pbqTitle.textContent = p.pbqRec.title;
+  const pbqSub = document.getElementById('pass-plan-pbq-sub');
+  if (pbqSub && p.pbqRec) pbqSub.textContent = p.pbqRec.sub;
+  const pbqCta = document.getElementById('pass-plan-pbq-cta');
+  if (pbqCta && p.pbqRec) pbqCta.textContent = p.pbqRec.cta;
+}
+
+// Click-through helper — picks the first topic in a domain and routes to
+// the focus drill (existing wrong-bank-style focus). Topics are looked up
+// via TOPIC_DOMAINS reverse-map.
+function focusFirstTopicInDomain(domainKey) {
+  if (typeof TOPIC_DOMAINS === 'undefined') { goSetup(); return; }
+  const topics = Object.keys(TOPIC_DOMAINS).filter(t => TOPIC_DOMAINS[t] === domainKey);
+  if (topics.length === 0) { goSetup(); return; }
+  if (typeof focusTopic === 'function') {
+    focusTopic(topics[0]);
+  } else {
+    goSetup();
+  }
+}
+
+// "View report" CTA on the home Pass Plan tile.
+function viewPassPlan() {
+  renderDiagnosticResult();
+  showPage('diagnostic-result');
+}
+
+// "Retake in 7d" link → only proceeds if cooldown elapsed.
+function retakeDiagnostic() {
+  const days = getDiagnosticCooldownDays();
+  if (days === null || days === 0) {
+    startDiagnostic();
+  } else {
+    showToast('Retake available in ' + days + ' day' + (days === 1 ? '' : 's') + ' — your current Pass Plan is still fresh', 'info');
+  }
+}
+
+// "Open ACL PBQ →" CTA on the Pass Plan completion screen.
+function aclOpenFromPassPlan() {
+  if (typeof openAclPbqPicker === 'function') openAclPbqPicker();
+  else goSetup();
+}
+
+// "Start today's session →" CTA on the Pass Plan completion screen.
+function closePassPlanReview() {
+  goSetup();
+}
+
+// Render the home-page diagnostic surface. Three states:
+// 1. CTA visible (no diagnostic taken, or session-dismissed=false)
+// 2. Pass Plan tile visible (diagnostic completed)
+// 3. Both hidden (session-dismissed during this session)
+function renderDiagnosticSurface() {
+  const ctaCard = document.getElementById('diagnostic-cta-card');
+  const tile = document.getElementById('pass-plan-tile');
+  if (!ctaCard || !tile) return;
+
+  const record = loadDiagnostic();
+  if (record && record.passPlan) {
+    // Show Pass Plan tile, hide CTA
+    ctaCard.classList.add('is-hidden');
+    tile.classList.remove('is-hidden');
+    const sub = document.getElementById('pass-plan-tile-sub');
+    if (sub) {
+      const probPct = Math.round(record.passPlan.passProbability * 100);
+      const ageMs = Date.now() - record.completedAt;
+      const ageDays = Math.floor(ageMs / 86400000);
+      const ageStr = ageDays === 0 ? 'today' : ageDays === 1 ? '1 day ago' : ageDays + ' days ago';
+      sub.textContent = 'Diagnostic complete · ' + ageStr + ' · ' + probPct + '% pass probability';
+    }
+    const retake = document.getElementById('pass-plan-tile-retake');
+    if (retake) {
+      const days = getDiagnosticCooldownDays();
+      if (days === 0) {
+        retake.textContent = 'Retake now';
+        retake.classList.remove('pass-plan-tile-cooldown');
+      } else {
+        retake.textContent = 'Retake in ' + days + 'd';
+        retake.classList.add('pass-plan-tile-cooldown');
+      }
+    }
+    return;
+  }
+
+  // No diagnostic on file — show CTA unless dismissed this session
+  tile.classList.add('is-hidden');
+  if (_diagnosticCtaSessionDismissed) {
+    ctaCard.classList.add('is-hidden');
+  } else {
+    ctaCard.classList.remove('is-hidden');
+  }
+}
+
 let _aclPbqState = null;
 
 function openAclPbqPicker() {
@@ -6134,6 +6737,26 @@ function submitAclPbq() {
 //  4. Has what-if leverage data  (highest-ROI single-topic drill)
 //  5. Fallback  (start a custom quiz)
 function _computeNextBestMove() {
+  // 0. v4.81.0: If user is brand-new AND hasn't taken the Baseline Diagnostic,
+  // recommend that as the highest-leverage first action. Calibrated baseline
+  // beats random first quiz every time. Skips this branch if the user has
+  // any history (they're not brand-new) or has already taken/dismissed it.
+  try {
+    const hist = (typeof loadHistory === 'function') ? loadHistory() : [];
+    const diag = (typeof loadDiagnostic === 'function') ? loadDiagnostic() : null;
+    if (hist.length === 0 && !diag && !_diagnosticCtaSessionDismissed) {
+      return {
+        type: 'baseline-diagnostic',
+        icon: '🩺',
+        title: 'Take the Baseline Diagnostic',
+        sub: '20 questions · ~30 min · seeds your review queue',
+        ctaLabel: 'Take diagnostic →',
+        ctaFn: 'startDiagnostic()',
+        reason: 'Calibrated baseline before you start drilling — biggest single signal'
+      };
+    }
+  } catch (_) {}
+
   // 1. SR queue
   try {
     if (typeof getSrStats === 'function') {

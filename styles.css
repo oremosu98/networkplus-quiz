@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.80.0
+   Network+ AI Quiz — styles.css  v4.81.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13560,3 +13560,604 @@ html { zoom: 1.10; }
   position: relative;
 }
 .st-lesson-placeholder-v2 .btn { position: relative; font-size: 14px; padding: 10px 22px; }
+
+/* ── v4.81.0: Baseline Diagnostic + Pass Plan (Issue #243) ── */
+
+/* Home-page diagnostic CTA card (above readiness widget on first launch) */
+.diagnostic-cta-card {
+  background: linear-gradient(135deg, rgba(124,111,247,.14), rgba(124,111,247,.04));
+  border: 1px solid rgba(124,111,247,.4);
+  border-radius: var(--radius);
+  padding: 24px 22px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.diagnostic-cta-card::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -15%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(124,111,247,.18) 0%, transparent 60%);
+  pointer-events: none;
+}
+.diagnostic-cta-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 8px;
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-sub {
+  color: var(--text-mid);
+  font-size: 14px;
+  margin: 0 0 16px;
+  line-height: 1.55;
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-pitch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 0 18px;
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-pitch-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  text-align: center;
+}
+.diagnostic-cta-pitch-num { font-size: 20px; font-weight: 800; color: var(--accent-light); display: block; }
+.diagnostic-cta-pitch-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.diagnostic-cta-card .btn-primary {
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-skip {
+  display: block;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+}
+.diagnostic-cta-skip:hover { color: var(--text-mid); }
+
+/* Home-page Pass Plan tile (replaces CTA after diagnostic completes) */
+.pass-plan-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pass-plan-tile-icon {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: rgba(34,197,94,.15);
+  color: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.pass-plan-tile-text { flex: 1; min-width: 0; }
+.pass-plan-tile-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.pass-plan-tile-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.pass-plan-tile-actions { display: flex; gap: 12px; flex-shrink: 0; }
+.pass-plan-tile-actions a {
+  color: var(--accent-light);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.pass-plan-tile-actions a.pass-plan-tile-cooldown {
+  color: var(--text-dim);
+  cursor: default;
+}
+.pass-plan-tile-retake { color: var(--text-dim); }
+@media (max-width: 560px) {
+  .pass-plan-tile { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .pass-plan-tile-actions { width: 100%; justify-content: space-between; }
+}
+
+/* Diagnostic quiz page — single-question flow */
+#page-diagnostic-quiz { padding: 0; }
+.diag-quiz-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+}
+.diag-quiz-progress { flex: 1; min-width: 0; }
+.diag-quiz-progress-track {
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.diag-quiz-progress-fill {
+  height: 100%;
+  width: 5%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: 3px;
+  transition: width .4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.diag-quiz-progress-lbl {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-top: 5px;
+}
+.diag-quiz-timer {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-light);
+  background: rgba(124,111,247,.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.diag-quiz-timer.overtime { color: var(--orange); background: rgba(251,146,60,.12); }
+.diag-quiz-quit {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.diag-quiz-quit:hover { color: var(--text); border-color: var(--text-dim); }
+
+.diag-quiz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.diag-quiz-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.diag-quiz-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.diag-quiz-pill.objective { background: rgba(124,111,247,.15); color: var(--accent-light); }
+.diag-quiz-pill.difficulty { background: rgba(251,191,36,.15); color: var(--yellow); }
+.diag-quiz-question {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.diag-quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.diag-quiz-option {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.diag-quiz-option:hover { border-color: var(--accent); }
+.diag-quiz-option.selected { border-color: var(--accent); background: rgba(124,111,247,.08); }
+.diag-quiz-option-letter {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--surface3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; color: var(--text-mid);
+  flex-shrink: 0;
+}
+.diag-quiz-option.selected .diag-quiz-option-letter {
+  background: var(--accent);
+  color: #fff;
+}
+.diag-quiz-option-text { flex: 1; }
+.diag-quiz-confidence {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.diag-quiz-confidence-lbl {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.diag-quiz-confidence-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.diag-conf-tier {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-mid);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all .15s;
+}
+.diag-conf-tier:hover { border-color: var(--accent); }
+.diag-conf-tier .diag-conf-icon { font-size: 18px; }
+.diag-conf-tier .diag-conf-lbl { font-size: 11px; }
+.diag-conf-tier.selected[data-tier="confident"] {
+  border-color: var(--green);
+  background: rgba(34,197,94,.1);
+  color: var(--green);
+}
+.diag-conf-tier.selected[data-tier="uncertain"] {
+  border-color: var(--yellow);
+  background: rgba(251,191,36,.1);
+  color: var(--yellow);
+}
+.diag-conf-tier.selected[data-tier="guessing"] {
+  border-color: var(--red);
+  background: rgba(248,113,113,.1);
+  color: var(--red);
+}
+.diag-quiz-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 12px;
+}
+.diag-quiz-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Pass Plan completion screen */
+#page-diagnostic-result { padding: 0; }
+.pass-plan-hero {
+  background: linear-gradient(135deg, rgba(124,111,247,.18), rgba(124,111,247,.04));
+  border: 1px solid rgba(124,111,247,.4);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.pass-plan-hero::before {
+  content: '';
+  position: absolute;
+  top: -30%; left: 50%;
+  transform: translateX(-50%);
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(124,111,247,.18) 0%, transparent 55%);
+  pointer-events: none;
+}
+.pass-plan-complete-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34,197,94,.15);
+  color: var(--green);
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+}
+.pass-plan-headline {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+.pass-plan-sub {
+  color: var(--text-mid);
+  font-size: 14px;
+  margin: 0 0 24px;
+  position: relative;
+  z-index: 1;
+}
+.pass-plan-prob-display {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 18px;
+}
+.pass-plan-prob-ring {
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  box-shadow: 0 0 40px rgba(124,111,247,.3);
+}
+.pass-plan-prob-ring::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.pass-plan-prob-inner {
+  position: relative;
+  text-align: center;
+}
+.pass-plan-prob-pct {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+.pass-plan-prob-lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.pass-plan-ci-band {
+  position: relative;
+  z-index: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin: 0 auto;
+  max-width: 380px;
+  font-size: 13px;
+}
+.pass-plan-ci-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  text-align: left;
+}
+.pass-plan-ci-row:last-of-type { margin-bottom: 8px; }
+.pass-plan-ci-row > span:first-child { color: var(--text-dim); font-weight: 600; }
+.pass-plan-ci-row > span:last-child { color: var(--text); font-weight: 700; }
+.pass-plan-confidence-ladder {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.pass-plan-ladder-tier {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: var(--surface3);
+}
+.pass-plan-ladder-tier.active[data-tier="low"] {
+  background: rgba(248,113,113,.15);
+  border-color: rgba(248,113,113,.4);
+  color: var(--red);
+}
+.pass-plan-ladder-tier.active[data-tier="medium"] {
+  background: rgba(251,191,36,.15);
+  border-color: rgba(251,191,36,.4);
+  color: var(--yellow);
+}
+.pass-plan-ladder-tier.active[data-tier="high"] {
+  background: rgba(34,197,94,.15);
+  border-color: rgba(34,197,94,.4);
+  color: var(--green);
+}
+
+.pass-plan-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.pass-plan-section-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 800;
+  margin: 0 0 14px;
+}
+.pass-plan-section-h .icon { font-size: 18px; }
+.pass-plan-section-h .count {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--surface3);
+  color: var(--text-dim);
+  padding: 3px 10px;
+  border-radius: 10px;
+  letter-spacing: .04em;
+}
+
+.pass-plan-weak-row {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.pass-plan-weak-row:last-child { margin-bottom: 0; }
+.pass-plan-weak-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pass-plan-weak-stat { font-size: 12px; color: var(--text-dim); }
+.pass-plan-weak-stat .pct { color: var(--red); font-weight: 700; }
+.pass-plan-weak-btn {
+  background: rgba(124,111,247,.15);
+  border: 1px solid rgba(124,111,247,.35);
+  color: var(--accent-light);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.pass-plan-weak-btn:hover { background: rgba(124,111,247,.25); }
+
+.pass-plan-review-seeded {
+  background: linear-gradient(135deg, rgba(34,197,94,.1), rgba(34,197,94,.02));
+  border: 1px solid rgba(34,197,94,.35);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.pass-plan-review-icon {
+  width: 44px; height: 44px;
+  background: rgba(34,197,94,.18);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.pass-plan-review-text { flex: 1; }
+.pass-plan-review-num { font-size: 22px; font-weight: 800; color: var(--green); }
+.pass-plan-review-lbl { font-size: 13px; color: var(--text); }
+.pass-plan-review-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+.pass-plan-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.pass-plan-day {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.pass-plan-day.today {
+  border-color: var(--accent);
+  background: rgba(124,111,247,.12);
+}
+.pass-plan-day-name {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.pass-plan-day.today .pass-plan-day-name { color: var(--accent-light); }
+.pass-plan-day-load {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.pass-plan-day.today .pass-plan-day-load { color: var(--accent-light); }
+.pass-plan-day-task {
+  font-size: 10px;
+  color: var(--text-mid);
+  line-height: 1.3;
+}
+.pass-plan-day.today .pass-plan-day-task { color: var(--text); font-weight: 600; }
+@media (max-width: 720px) {
+  .pass-plan-week-strip { grid-template-columns: repeat(4, 1fr); }
+  .pass-plan-week-strip .pass-plan-day:nth-child(n+8) { display: none; }
+}
+
+.pass-plan-pbq-rec {
+  background: linear-gradient(135deg, rgba(124,111,247,.1), rgba(124,111,247,.02));
+  border: 1px dashed rgba(124,111,247,.4);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.pass-plan-pbq-icon { font-size: 26px; flex-shrink: 0; }
+.pass-plan-pbq-text { flex: 1; min-width: 0; }
+.pass-plan-pbq-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.pass-plan-pbq-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.pass-plan-pbq-cta {
+  color: var(--accent-light);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pass-plan-final-cta {
+  margin-top: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+/* Reduced-motion gate */
+@media (prefers-reduced-motion: reduce) {
+  .diag-quiz-progress-fill { transition: width .01ms linear !important; }
+  .diag-conf-tier { transition: none !important; }
+}

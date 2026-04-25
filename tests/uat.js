@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.80.0', js.includes("const APP_VERSION = '4.80.0"));
+test('APP_VERSION is 4.81.0', js.includes("const APP_VERSION = '4.81.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.80.0', sw.includes('netplus-v4.80.0'));
+test('SW cache bumped to v4.81.0', sw.includes('netplus-v4.81.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5441,8 +5441,10 @@ test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
 // v4.54.10: renderSetupDomainGrid body grew \u2014 widen the regex window.
 test('v4.53.0 JS: domain grid click wires drillDomain',
   /renderSetupDomainGrid[\s\S]{0,6000}drillDomain\(/.test(js));
+// v4.81.0: window bumped 1000 → 1200 because renderDiagnosticSurface was
+// added before renderSetupFocusBanner.
 test('v4.53.0 JS: goSetup calls renderSetupFocusBanner + renderSetupDomainGrid',
-  /function goSetup\([\s\S]{0,1000}renderSetupFocusBanner[\s\S]{0,200}renderSetupDomainGrid/.test(js));
+  /function goSetup\([\s\S]{0,1200}renderSetupFocusBanner[\s\S]{0,200}renderSetupDomainGrid/.test(js));
 
 // CSS \u2014 sidebar
 test('v4.53.0 CSS: body.has-sidebar adds 240px left padding',
@@ -9962,6 +9964,156 @@ test('v4.80.0 ACL: first-time-default only fires when free-build + 0 rules',
     const body = _fnBody(js, 'aclLoadState');
     return body && /scenarioId\s*===\s*['"]free-build['"][\s\S]{0,200}rules\.length\s*===\s*0/.test(body);
   })());
+
+// ──────────────────────────────────────────────────────────
+// v4.81.0: Baseline Diagnostic + Pass Plan (Codex r5 #1 / Issue #243)
+// ──────────────────────────────────────────────────────────
+test('v4.81.0 Diagnostic: STORAGE.DIAGNOSTIC key declared',
+  /DIAGNOSTIC:\s*['"]nplus_diagnostic['"]/.test(js));
+test('v4.81.0 Diagnostic: STORAGE.LAST_DIAGNOSTIC_AT key declared',
+  /LAST_DIAGNOSTIC_AT:\s*['"]nplus_last_diagnostic_at['"]/.test(js));
+test('v4.81.0 Diagnostic: DIAGNOSTIC_QUESTION_COUNT = 20',
+  /const\s+DIAGNOSTIC_QUESTION_COUNT\s*=\s*20/.test(js));
+test('v4.81.0 Diagnostic: DIAGNOSTIC_DURATION_MS is 30 minutes',
+  /const\s+DIAGNOSTIC_DURATION_MS\s*=\s*30\s*\*\s*60\s*\*\s*1000/.test(js));
+test('v4.81.0 Diagnostic: DIAGNOSTIC_RETAKE_COOLDOWN_DAYS = 7',
+  /const\s+DIAGNOSTIC_RETAKE_COOLDOWN_DAYS\s*=\s*7/.test(js));
+
+// Function existence
+test('v4.81.0 Diagnostic: startDiagnostic function defined',
+  /async\s+function\s+startDiagnostic\b/.test(js));
+test('v4.81.0 Diagnostic: submitDiagnosticAnswer function defined',
+  /function\s+submitDiagnosticAnswer\b/.test(js));
+test('v4.81.0 Diagnostic: completeDiagnostic function defined (renamed from finishDiagnostic to avoid prefix-match trap with finish)',
+  /function\s+completeDiagnostic\b/.test(js));
+// Regression guard: do NOT reintroduce a `function finishDiagnostic` or
+// `function finishPassPlanReview` — both prefix-collide with the existing
+// `function finish` body and break six v4.42.0 finish() UAT regexes.
+test('v4.81.0 Diagnostic: no finishDiagnostic prefix collision with finish()',
+  !/function\s+finishDiagnostic\s*\(/.test(js));
+test('v4.81.0 Diagnostic: no finishPassPlanReview prefix collision with finish()',
+  !/function\s+finishPassPlanReview\s*\(/.test(js));
+test('v4.81.0 Diagnostic: _buildPassPlan function defined',
+  /function\s+_buildPassPlan\b/.test(js));
+test('v4.81.0 Diagnostic: _seedReviewQueueFromDiagnostic function defined',
+  /function\s+_seedReviewQueueFromDiagnostic\b/.test(js));
+test('v4.81.0 Diagnostic: renderDiagnosticResult function defined',
+  /function\s+renderDiagnosticResult\b/.test(js));
+test('v4.81.0 Diagnostic: renderDiagnosticSurface function defined',
+  /function\s+renderDiagnosticSurface\b/.test(js));
+test('v4.81.0 Diagnostic: getDiagnosticCooldownDays function defined',
+  /function\s+getDiagnosticCooldownDays\b/.test(js));
+
+// Wiring checks
+test('v4.81.0 Diagnostic: goSetup calls renderDiagnosticSurface',
+  (() => {
+    const body = _fnBody(js, 'goSetup');
+    return body && /renderDiagnosticSurface\b/.test(body);
+  })());
+test('v4.81.0 Diagnostic: _computeNextBestMove has baseline-diagnostic branch',
+  (() => {
+    const body = _fnBody(js, '_computeNextBestMove');
+    return body && /baseline-diagnostic/.test(body) && /loadDiagnostic/.test(body);
+  })());
+test('v4.81.0 Diagnostic: _seedReviewQueueFromDiagnostic calls addToSrQueue',
+  (() => {
+    const body = _fnBody(js, '_seedReviewQueueFromDiagnostic');
+    return body && /addToSrQueue\b/.test(body);
+  })());
+test('v4.81.0 Diagnostic: _seedReviewQueueFromDiagnostic seeds wrong + uncertain + guessing',
+  (() => {
+    const body = _fnBody(js, '_seedReviewQueueFromDiagnostic');
+    return body && /a\.correct/.test(body) && /uncertain/.test(body) && /guessing/.test(body);
+  })());
+
+// _buildPassPlan math fixture — given known inputs, verify probability + CI shape.
+// Note: _fnBody returns the full `function _buildPassPlan(session) {...}`
+// declaration. Strategy: vm.runInContext(decl) installs the fn in the ctx,
+// then we call it from a second runInContext.
+test('v4.81.0 Diagnostic: _buildPassPlan returns expected shape (vm fixture)',
+  (() => {
+    try {
+      const body = _fnBody(js, '_buildPassPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        DOMAIN_WEIGHTS: { concepts: 0.23, implementation: 0.20, operations: 0.19, security: 0.14, troubleshooting: 0.24 },
+        DOMAIN_LABELS: { concepts: 'Concepts', implementation: 'Implementation', operations: 'Operations', security: 'Security', troubleshooting: 'Troubleshooting' },
+        TOPIC_DOMAINS: { 'A': 'concepts', 'B': 'implementation', 'C': 'operations', 'D': 'security', 'E': 'troubleshooting' },
+        EXAM_PASS_SCORE: 720,
+        _buildWeekPlan: () => [],
+        Math, Date, JSON
+      };
+      vm.createContext(ctx);
+      const questions = Array.from({ length: 20 }, (_, i) => ({ topic: ['A','B','C','D','E'][i % 5] }));
+      const answers = questions.map((_, i) => ({ correct: i < 12, confidence: i < 12 ? 'confident' : 'guessing', answeredAt: 1 }));
+      ctx.session = { questions, answers };
+      vm.runInContext(body, ctx);
+      const plan = vm.runInContext('_buildPassPlan(session)', ctx);
+      return plan && plan.questionCount === 20
+        && typeof plan.predicted === 'number'
+        && plan.predicted >= 420 && plan.predicted <= 870
+        && typeof plan.passProbability === 'number'
+        && plan.passProbability >= 0 && plan.passProbability <= 1
+        && Array.isArray(plan.weakDomains)
+        && plan.weakDomains.length <= 3
+        && plan.lowerBound <= plan.predicted && plan.upperBound >= plan.predicted;
+    } catch (e) { return false; }
+  })());
+
+test('v4.81.0 Diagnostic: _buildPassPlan probability near 0.5 at ~70% accuracy (vm fixture)',
+  (() => {
+    try {
+      const body = _fnBody(js, '_buildPassPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        DOMAIN_WEIGHTS: { concepts: 0.23, implementation: 0.20, operations: 0.19, security: 0.14, troubleshooting: 0.24 },
+        DOMAIN_LABELS: { concepts: 'Concepts', implementation: 'Implementation', operations: 'Operations', security: 'Security', troubleshooting: 'Troubleshooting' },
+        TOPIC_DOMAINS: { 'A': 'concepts', 'B': 'implementation', 'C': 'operations', 'D': 'security', 'E': 'troubleshooting' },
+        EXAM_PASS_SCORE: 720,
+        _buildWeekPlan: () => [],
+        Math, Date, JSON
+      };
+      vm.createContext(ctx);
+      const questions = Array.from({ length: 20 }, (_, i) => ({ topic: ['A','B','C','D','E'][i % 5] }));
+      const answers = questions.map((_, i) => ({ correct: i < 14, confidence: 'confident', answeredAt: 1 }));
+      ctx.session = { questions, answers };
+      vm.runInContext(body, ctx);
+      const plan = vm.runInContext('_buildPassPlan(session)', ctx);
+      return plan.passProbability >= 0.30 && plan.passProbability <= 0.60;
+    } catch (e) { return false; }
+  })());
+
+// HTML structural checks
+test('v4.81.0 Diagnostic: #diagnostic-cta-card on home page',
+  /id="diagnostic-cta-card"/.test(html));
+test('v4.81.0 Diagnostic: #pass-plan-tile on home page',
+  /id="pass-plan-tile"/.test(html));
+test('v4.81.0 Diagnostic: #page-diagnostic-quiz exists',
+  /id="page-diagnostic-quiz"/.test(html));
+test('v4.81.0 Diagnostic: #page-diagnostic-result exists',
+  /id="page-diagnostic-result"/.test(html));
+test('v4.81.0 Diagnostic: 3-tier confidence picker present',
+  /data-tier="confident"/.test(html) && /data-tier="uncertain"/.test(html) && /data-tier="guessing"/.test(html));
+test('v4.81.0 Diagnostic: confidence ladder (low/medium/high) present',
+  /pass-plan-ladder-tier[^>]*data-tier="low"/.test(html)
+  && /pass-plan-ladder-tier[^>]*data-tier="medium"/.test(html)
+  && /pass-plan-ladder-tier[^>]*data-tier="high"/.test(html));
+test('v4.81.0 Diagnostic: "Take the Diagnostic" CTA wired to startDiagnostic()',
+  /onclick="startDiagnostic\(\)"/.test(html));
+test('v4.81.0 Diagnostic: Pass Plan tile View report wired to viewPassPlan()',
+  /viewPassPlan\(\)/.test(html));
+
+// CSS structural checks
+test('v4.81.0 Diagnostic: .diagnostic-cta-card style declared',
+  /\.diagnostic-cta-card\s*\{/.test(css));
+test('v4.81.0 Diagnostic: .pass-plan-prob-ring style declared',
+  /\.pass-plan-prob-ring\s*\{/.test(css));
+test('v4.81.0 Diagnostic: .pass-plan-week-strip style declared',
+  /\.pass-plan-week-strip\s*\{/.test(css));
+test('v4.81.0 Diagnostic: .diag-conf-tier confidence picker style declared',
+  /\.diag-conf-tier\s*\{/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

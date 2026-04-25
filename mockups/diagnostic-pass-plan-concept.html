@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — #243 Baseline Diagnostic + Pass Plan</title>
+<style>
+  /* ── Design tokens (lifted from app styles.css dark theme) ── */
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --green-bg: #061a0e; --green-border: rgba(34,197,94,.35);
+    --red: #f87171; --red-bg: #1c0505; --red-border: rgba(248,113,113,.35);
+    --yellow: #fbbf24; --blue: #60a5fa; --orange: #fb923c;
+    --accent-rgb: 124,111,247; --green-rgb: 34,197,94; --red-rgb: 248,113,113; --yellow-rgb: 251,191,36;
+    --radius: 14px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  .state-divider {
+    margin: 60px 0 24px;
+    padding: 12px 18px;
+    background: rgba(var(--accent-rgb), .08);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--accent-light);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 700;
+  }
+  .state-divider .lbl { color: var(--text-dim); font-weight: 600; }
+  .state-divider:first-child { margin-top: 0; }
+  h1, h2, h3, h4 { color: var(--text); font-weight: 800; }
+  h1 { font-size: 26px; margin-bottom: 6px; }
+  h2 { font-size: 20px; margin-bottom: 14px; }
+  .mockup-banner {
+    text-align: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .15), rgba(var(--accent-rgb), .05));
+    border: 1px solid rgba(var(--accent-rgb), .3);
+    border-radius: var(--radius-sm);
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: var(--text-mid);
+  }
+  .mockup-banner strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 14px; }
+
+  /* ── STATE 1: Home page entry CTA ── */
+  .home-hero {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .12), rgba(var(--accent-rgb), .03));
+    border: 1px solid rgba(var(--accent-rgb), .35);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(var(--accent-rgb), .25) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .new-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 12px;
+    letter-spacing: .08em;
+    margin-bottom: 12px;
+  }
+  .home-hero h1 { font-size: 28px; margin-bottom: 8px; position: relative; z-index: 1; }
+  .home-hero .subtitle { color: var(--text-mid); font-size: 15px; margin-bottom: 20px; position: relative; z-index: 1; }
+  .diag-pitch {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .diag-pitch-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .diag-pitch-item .num { font-size: 22px; font-weight: 800; color: var(--accent-light); }
+  .diag-pitch-item .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), .35);
+    position: relative;
+    z-index: 1;
+  }
+  .btn-primary.full { width: 100%; }
+  .secondary-link {
+    display: block;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Existing widget preview underneath (so the user sees CONTEXT — diagnostic sits ABOVE pass-rate widget) */
+  .existing-widget-stub {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    opacity: .55;
+  }
+  .existing-widget-stub .stub-lbl {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .existing-widget-stub h3 { font-size: 14px; color: var(--text-mid); }
+
+  /* ── STATE 2: Mid-diagnostic question screen ── */
+  .diag-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .diag-progress { flex: 1; }
+  .diag-progress-track {
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .diag-progress-fill {
+    height: 100%;
+    width: 35%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 3px;
+  }
+  .diag-progress-lbl { font-size: 11px; color: var(--text-dim); margin-top: 5px; font-weight: 600; }
+  .diag-timer {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-light);
+    background: rgba(var(--accent-rgb), .1);
+    padding: 6px 14px;
+    border-radius: 8px;
+  }
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+  }
+  .question-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .meta-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .meta-pill.objective { background: rgba(var(--accent-rgb), .15); color: var(--accent-light); }
+  .meta-pill.difficulty { background: rgba(var(--yellow-rgb), .15); color: var(--yellow); }
+  .question-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 22px;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .option:hover { border-color: var(--accent); }
+  .option.selected { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+  .option-letter {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: var(--text-mid);
+    flex-shrink: 0;
+  }
+  .option.selected .option-letter { background: var(--accent); color: #fff; }
+  .confidence-row {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .confidence-row .lbl {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .confidence-tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .confidence-tier {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+  .confidence-tier.selected.confident { border-color: var(--green); background: rgba(var(--green-rgb), .1); color: var(--green); }
+  .confidence-tier .icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .question-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 22px;
+  }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text-mid);
+    border: 1px solid var(--border);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── STATE 3: Pass Plan completion screen ── */
+  .pass-plan-hero {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .18), rgba(var(--accent-rgb), .04));
+    border: 1px solid rgba(var(--accent-rgb), .4);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pass-plan-hero::before {
+    content: '';
+    position: absolute;
+    top: -30%; left: 50%;
+    transform: translateX(-50%);
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(var(--accent-rgb), .2) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  .pass-plan-hero .complete-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(var(--green-rgb), .15);
+    color: var(--green);
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 14px;
+    position: relative; z-index: 1;
+  }
+  .pass-plan-hero h1 {
+    font-size: 30px;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+  }
+  .pass-plan-hero .sub { color: var(--text-mid); font-size: 14px; margin-bottom: 24px; position: relative; z-index: 1; }
+  .probability-display {
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 18px;
+  }
+  .prob-ring {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background:
+      conic-gradient(var(--accent) 0% 51%, var(--surface3) 51% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), .3);
+  }
+  .prob-ring::before {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+  .prob-ring .prob-inner {
+    position: relative;
+    text-align: center;
+  }
+  .prob-ring .prob-pct {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+  .prob-ring .prob-lbl {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .ci-band {
+    position: relative; z-index: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin: 0 auto 18px;
+    max-width: 380px;
+    font-size: 13px;
+  }
+  .ci-band .ci-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .ci-band .ci-row:last-child { margin-bottom: 0; }
+  .ci-band .ci-key { color: var(--text-dim); font-weight: 600; }
+  .ci-band .ci-val { color: var(--text); font-weight: 700; }
+  .confidence-ladder {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .ladder-tier {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: var(--surface3);
+  }
+  .ladder-tier.active.medium {
+    background: rgba(var(--yellow-rgb), .15);
+    border-color: rgba(var(--yellow-rgb), .4);
+    color: var(--yellow);
+  }
+
+  /* Section card pattern */
+  .plan-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+  .plan-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .plan-section h2 .icon { font-size: 20px; }
+  .plan-section h2 .count {
+    margin-left: auto;
+    font-size: 11px;
+    background: var(--surface3);
+    color: var(--text-dim);
+    padding: 3px 10px;
+    border-radius: 10px;
+    letter-spacing: .04em;
+  }
+
+  /* Weak domains */
+  .weak-domain {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .weak-domain:last-child { margin-bottom: 0; }
+  .weak-domain .obj-code {
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--accent-light);
+    background: rgba(var(--accent-rgb), .12);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .weak-domain .obj-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .weak-domain .obj-stat {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .weak-domain .obj-stat .red { color: var(--red); font-weight: 700; }
+  .weak-domain .btn-fix {
+    background: rgba(var(--accent-rgb), .15);
+    border: 1px solid rgba(var(--accent-rgb), .35);
+    color: var(--accent-light);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Review queue card */
+  .review-seeded {
+    background: linear-gradient(135deg, rgba(var(--green-rgb), .1), rgba(var(--green-rgb), .02));
+    border: 1px solid rgba(var(--green-rgb), .35);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .review-seeded .icon-wrap {
+    width: 48px; height: 48px;
+    background: rgba(var(--green-rgb), .18);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .review-seeded .text { flex: 1; }
+  .review-seeded .num { font-size: 22px; font-weight: 800; color: var(--green); }
+  .review-seeded .lbl { font-size: 13px; color: var(--text); margin-top: 2px; }
+  .review-seeded .sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+  /* 7-day plan */
+  .plan-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .plan-day {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .plan-day.today {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), .12);
+  }
+  .plan-day .day-name {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .plan-day.today .day-name { color: var(--accent-light); }
+  .plan-day .day-task {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.3;
+  }
+  .plan-day.today .day-task { color: var(--text); font-weight: 600; }
+  .plan-day .day-load {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .plan-day.today .day-load { color: var(--accent-light); }
+
+  /* PBQ recommendation */
+  .pbq-rec {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .1), rgba(var(--accent-rgb), .02));
+    border: 1px dashed rgba(var(--accent-rgb), .4);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .pbq-rec .pbq-icon { font-size: 28px; flex-shrink: 0; }
+  .pbq-rec .pbq-text { flex: 1; }
+  .pbq-rec .pbq-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .pbq-rec .pbq-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .pbq-rec .pbq-cta {
+    color: var(--accent-light);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  /* Final CTA */
+  .final-cta {
+    text-align: center;
+    margin-top: 24px;
+    padding: 20px;
+  }
+  .final-cta .btn-primary { padding: 16px 36px; font-size: 16px; }
+
+  /* Annotations callouts (helpful for understanding the mockup) */
+  .annotation {
+    background: rgba(var(--yellow-rgb), .08);
+    border-left: 3px solid var(--yellow);
+    padding: 10px 14px;
+    margin: 10px 0 18px;
+    font-size: 12px;
+    color: var(--text-mid);
+    border-radius: 0 6px 6px 0;
+  }
+  .annotation strong { color: var(--yellow); display: block; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── STATE 4: Post-diagnostic home page (matches HeroV2 layout) ── */
+  .state4 { max-width: 920px; margin: 0 auto; }
+  .hero-v2 {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 22px;
+    margin-bottom: 18px;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .12), rgba(var(--accent-rgb), .03));
+    border: 1px solid rgba(var(--accent-rgb), .25);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+  }
+  .hero-v2-main { display: flex; flex-direction: column; }
+  .hero-v2-eyebrow {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .hero-v2-display {
+    font-size: 30px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+  .hero-v2-display .name { color: var(--accent-light); }
+  .hero-v2-lede {
+    color: var(--text-mid);
+    font-size: 14px;
+    margin-bottom: 18px;
+    line-height: 1.55;
+  }
+  .hero-v2-lede strong { color: var(--text); }
+  .nbm-card {
+    background: linear-gradient(135deg, var(--accent), #5d52d8);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(var(--accent-rgb), .3);
+  }
+  .nbm-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.14);
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .nbm-title { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+  .nbm-sub { font-size: 13px; opacity: .9; margin-bottom: 14px; }
+  .nbm-btn {
+    background: #fff;
+    color: var(--accent);
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .nbm-reason { font-size: 11px; opacity: .8; font-style: italic; margin-top: 10px; }
+  .hero-v2-aside { display: flex; flex-direction: column; gap: 10px; }
+  .rc-v2 {
+    background: rgba(0,0,0,.35);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+  }
+  .rc-v2-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .rc-v2-score {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .rc-v2-score .of { font-size: 14px; color: var(--text-dim); font-weight: 600; }
+  .rc-v2-prediction {
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-bottom: 8px;
+  }
+  .rc-v2-prediction .pct { color: var(--yellow); font-weight: 800; }
+  .rc-v2-bar {
+    height: 7px;
+    background: var(--surface3);
+    border-radius: 4px;
+    position: relative;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  .rc-v2-bar-fill {
+    height: 100%;
+    width: 64%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 4px;
+  }
+  .rc-v2-pass-tick {
+    position: absolute;
+    left: 75%;
+    top: -3px;
+    width: 2px;
+    height: 13px;
+    background: var(--yellow);
+    border-radius: 1px;
+  }
+  .rc-v2-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .rc-v2-foot .delta { color: var(--green); font-weight: 700; }
+  .rc-v2-whatif {
+    background: rgba(var(--accent-rgb), .08);
+    border: 1px solid rgba(var(--accent-rgb), .25);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .rc-v2-whatif-label {
+    font-size: 10px;
+    color: var(--accent-light);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .rc-v2-whatif-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .whatif-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .whatif-chip .pts { color: var(--green); font-weight: 800; }
+  .whatif-chip .topic { color: var(--text-mid); }
+  .rc-v2-trajectory {
+    font-size: 11px;
+    color: var(--orange);
+    background: rgba(251,146,60,.08);
+    border: 1px solid rgba(251,146,60,.25);
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .hero-mini-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mini-card {
+    background: rgba(var(--accent-rgb), .06);
+    border: 1px solid rgba(var(--accent-rgb), .15);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+  .mini-card .lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  .mini-card .val { font-size: 16px; font-weight: 800; color: var(--text); display: block; margin: 2px 0; }
+  .mini-card .sub { font-size: 9px; color: var(--text-dim); }
+
+  /* SR review card (post-diagnostic, populated) */
+  .sr-card {
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), .15), rgba(var(--accent-rgb), .04));
+    border: 1px solid rgba(var(--accent-rgb), .4);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .sr-card::after {
+    content: '✨ Just seeded';
+    position: absolute;
+    top: 12px; right: 14px;
+    font-size: 10px;
+    background: var(--green);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .sr-card-eyebrow {
+    font-size: 10px;
+    color: var(--accent-light);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 4px;
+  }
+  .sr-card-headline { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .sr-card-sub { font-size: 13px; color: var(--text-mid); margin-bottom: 14px; }
+  .sr-card-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  /* Pass Plan tile (replaces diagnostic CTA) */
+  .pass-plan-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .pass-plan-tile .check {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(var(--green-rgb), .15);
+    color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .pass-plan-tile .text { flex: 1; }
+  .pass-plan-tile .title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .pass-plan-tile .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .pass-plan-tile .actions { display: flex; gap: 8px; }
+  .pass-plan-tile a {
+    color: var(--accent-light);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .pass-plan-tile .retake { color: var(--text-dim); }
+
+  /* Today section */
+  .today-section { margin-bottom: 18px; }
+  .today-title {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .today-grid { display: grid; grid-template-columns: 200px 1fr; gap: 12px; }
+  .daily-goal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .dg-ring {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) 0% 0%, var(--surface3) 0% 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .dg-ring::before {
+    content: '';
+    position: absolute; inset: 5px;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+  .dg-ring .pct {
+    position: relative;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .dg-info .lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  .dg-info .progress { font-size: 13px; font-weight: 700; margin: 2px 0; }
+  .dg-info .msg { font-size: 11px; color: var(--text-mid); }
+
+  .focus-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+  .focus-card .focus-lbl {
+    font-size: 11px;
+    color: var(--accent-light);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .focus-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .focus-chip {
+    background: rgba(var(--red-rgb), .1);
+    border: 1px solid rgba(var(--red-rgb), .25);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .focus-chip .pct { color: var(--red); font-weight: 800; margin-left: 6px; }
+  .focus-chip .new { color: var(--accent-light); font-size: 9px; font-weight: 700; margin-left: 4px; vertical-align: super; }
+
+  /* Mode Ladder preview */
+  .ladder-section {
+    margin-bottom: 14px;
+  }
+  .ladder-section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ladder-section-head .num {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .ladder-section-head h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .ladder-section-head h3 em {
+    color: var(--accent-light);
+    font-style: normal;
+  }
+  .ladder-tier-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .ladder-tier-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ladder-tier-icon { font-size: 18px; }
+  .ladder-tier-eyebrow { font-size: 11px; color: var(--text); font-weight: 700; }
+  .ladder-tier-sub { font-size: 11px; color: var(--text-dim); }
+  .ladder-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ladder-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .ladder-card .icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .ladder-card .title { font-size: 11px; font-weight: 700; color: var(--text); }
+  .ladder-card .ssub { font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+  .ladder-card.highlight {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), .12);
+  }
+  .ladder-card.highlight .ssub { color: var(--accent-light); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="mockup-banner">
+    <strong>Concept Mockup — Issue #243</strong>
+    Baseline Diagnostic + Pass Plan · 3-state flow · Codex r5b spec
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       STATE 1 — Home page entry (where the user starts)
+       ────────────────────────────────────────────────────────── -->
+  <div class="state-divider">
+    <span class="lbl">State 1 of 3 ·</span> Home page · diagnostic CTA above existing pass-rate widget
+  </div>
+
+  <section class="home-hero">
+    <span class="new-badge">NEW · Recommended</span>
+    <h1>Where do you stand on N10-009?</h1>
+    <p class="subtitle">Take a 30-min Baseline Diagnostic. Get your pass probability, a personalised study plan, and your first review cards — all in one go.</p>
+
+    <div class="diag-pitch">
+      <div class="diag-pitch-item">
+        <div class="num">20</div>
+        <div class="lbl">Questions</div>
+      </div>
+      <div class="diag-pitch-item">
+        <div class="num">~30</div>
+        <div class="lbl">Minutes</div>
+      </div>
+      <div class="diag-pitch-item">
+        <div class="num">5</div>
+        <div class="lbl">Domains covered</div>
+      </div>
+    </div>
+
+    <button class="btn-primary full">🩺 &nbsp;Take the Diagnostic</button>
+    <a class="secondary-link" href="#">Skip for now — I'd rather just practise</a>
+  </section>
+
+  <div class="annotation">
+    <strong>Note</strong>
+    The diagnostic CTA renders <em>above</em> the existing v4.73.0 pass-rate widget on first load. Once the user finishes the diagnostic, this card flips to a "Retake diagnostic in 7 days" tile and the Pass Plan card replaces it.
+  </div>
+
+  <div class="existing-widget-stub">
+    <div class="stub-lbl">Existing v4.73.0 widget (preview)</div>
+    <h3>Pass-Rate Prediction · awaits more data</h3>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       STATE 2 — Mid-diagnostic question screen
+       ────────────────────────────────────────────────────────── -->
+  <div class="state-divider">
+    <span class="lbl">State 2 of 3 ·</span> Mid-diagnostic · question 7 of 20
+  </div>
+
+  <div class="diag-bar">
+    <div class="diag-progress">
+      <div class="diag-progress-track">
+        <div class="diag-progress-fill"></div>
+      </div>
+      <div class="diag-progress-lbl">Question 7 of 20 · 35% complete</div>
+    </div>
+    <div class="diag-timer">22:48</div>
+  </div>
+
+  <section class="question-card">
+    <div class="question-meta">
+      <span class="meta-pill objective">2.1 Routing Concepts</span>
+      <span class="meta-pill difficulty">Mid difficulty</span>
+    </div>
+
+    <div class="question-text">
+      A network engineer notices that traffic between two directly connected OSPF routers is being routed through a third router instead of over the direct link. Both routers show as <strong>FULL</strong> neighbors. What is the most likely cause?
+    </div>
+
+    <div class="options">
+      <div class="option"><span class="option-letter">A</span>The OSPF cost on the direct interface is set higher than the alternate path</div>
+      <div class="option selected"><span class="option-letter">B</span>The direct link is configured as a passive interface</div>
+      <div class="option"><span class="option-letter">C</span>The two routers are in different OSPF areas</div>
+      <div class="option"><span class="option-letter">D</span>OSPF authentication is failing on the direct link</div>
+    </div>
+
+    <div class="confidence-row">
+      <div class="lbl">How confident are you?</div>
+      <div class="confidence-tiers">
+        <div class="confidence-tier selected confident">
+          <span class="icon">✅</span>
+          Confident
+        </div>
+        <div class="confidence-tier">
+          <span class="icon">🤔</span>
+          Uncertain
+        </div>
+        <div class="confidence-tier">
+          <span class="icon">🎲</span>
+          Guessing
+        </div>
+      </div>
+    </div>
+
+    <div class="question-actions">
+      <button class="btn-secondary">← Back</button>
+      <button class="btn-primary">Next question →</button>
+    </div>
+  </section>
+
+  <div class="annotation">
+    <strong>Note</strong>
+    3-tier confidence capture during the diagnostic seeds the SR queue correctly: "Uncertain" + "Guessing" answers (regardless of correctness) become review cards alongside outright wrong answers. This is the bridge between #243 and #251 (SR Empty-State Visibility).
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       STATE 3 — Pass Plan completion (the premium aha moment)
+       ────────────────────────────────────────────────────────── -->
+  <div class="state-divider">
+    <span class="lbl">State 3 of 3 ·</span> Pass Plan completion · the "aha moment" SaaS report
+  </div>
+
+  <section class="pass-plan-hero">
+    <div class="complete-badge">✓ Diagnostic complete</div>
+    <h1>Your Pass Plan</h1>
+    <p class="sub">Based on 20 calibrated questions across all 5 N10-009 domains</p>
+
+    <div class="probability-display">
+      <div class="prob-ring">
+        <div class="prob-inner">
+          <div class="prob-pct">51%</div>
+          <div class="prob-lbl">Pass probability</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ci-band">
+      <div class="ci-row">
+        <span class="ci-key">Pass probability range</span>
+        <span class="ci-val">42 – 58%</span>
+      </div>
+      <div class="ci-row">
+        <span class="ci-key">Predicted score</span>
+        <span class="ci-val">685 / 900</span>
+      </div>
+      <div class="ci-row">
+        <span class="ci-key">Data confidence</span>
+        <span class="ci-val">Low — 20 of 50 questions</span>
+      </div>
+      <div class="confidence-ladder">
+        <div class="ladder-tier">Low</div>
+        <div class="ladder-tier active medium">Medium baseline</div>
+        <div class="ladder-tier">High</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="annotation">
+    <strong>Codex r5b guardrail</strong>
+    No hard "estimated pass date" overlay. Probability + confidence interval + data-confidence ladder only. The user picks their own target date if they want one — we don't fake precision we haven't earned.
+  </div>
+
+  <section class="plan-section">
+    <h2><span class="icon">🎯</span> Top 3 weak domains <span class="count">3 found</span></h2>
+    <div class="weak-domain">
+      <div>
+        <span class="obj-code">2.0</span>
+        <div class="obj-name">Network Implementation</div>
+        <div class="obj-stat"><span class="red">2 of 5 correct</span> · OSPF, VLAN trunking, STP</div>
+      </div>
+      <button class="btn-fix">Fix this →</button>
+    </div>
+    <div class="weak-domain">
+      <div>
+        <span class="obj-code">5.0</span>
+        <div class="obj-name">Network Troubleshooting</div>
+        <div class="obj-stat"><span class="red">1 of 4 correct</span> · Latency, packet loss diagnostics</div>
+      </div>
+      <button class="btn-fix">Fix this →</button>
+    </div>
+    <div class="weak-domain">
+      <div>
+        <span class="obj-code">4.0</span>
+        <div class="obj-name">Network Security</div>
+        <div class="obj-stat"><span class="red">2 of 4 correct</span> · ACL placement, port security</div>
+      </div>
+      <button class="btn-fix">Fix this →</button>
+    </div>
+  </section>
+
+  <section class="plan-section">
+    <h2><span class="icon">📭</span> Review queue seeded</h2>
+    <div class="review-seeded">
+      <div class="icon-wrap">📭</div>
+      <div class="text">
+        <div><span class="num">11</span> <span class="lbl">cards added to your spaced-repetition queue</span></div>
+        <div class="sub">First review session: <strong>Tomorrow morning</strong> · auto-paced by SM-2 algorithm</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan-section">
+    <h2><span class="icon">📅</span> Recommended next 7 days</h2>
+    <div class="plan-strip">
+      <div class="plan-day today">
+        <div class="day-name">Today</div>
+        <div class="day-load">15 Q</div>
+        <div class="day-task">OSPF drill</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Sun</div>
+        <div class="day-load">20 Q</div>
+        <div class="day-task">Review + 2.0 quiz</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Mon</div>
+        <div class="day-load">15 Q</div>
+        <div class="day-task">Troubleshoot tour</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Tue</div>
+        <div class="day-load">25 Q</div>
+        <div class="day-task">5.0 deep dive</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Wed</div>
+        <div class="day-load">20 Q</div>
+        <div class="day-task">Review + ACL PBQ</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Thu</div>
+        <div class="day-load">15 Q</div>
+        <div class="day-task">Mixed practice</div>
+      </div>
+      <div class="plan-day">
+        <div class="day-name">Fri</div>
+        <div class="day-load">30 Q</div>
+        <div class="day-task">Mini exam</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan-section">
+    <h2><span class="icon">🧪</span> Recommended for you</h2>
+    <div class="pbq-rec">
+      <div class="pbq-icon">🔧</div>
+      <div class="pbq-text">
+        <div class="pbq-title">Try a Multi-Step Troubleshooting PBQ</div>
+        <div class="pbq-sub">Your weakest domain. PBQs are weighted 3-4× on the real exam.</div>
+      </div>
+      <a href="#" class="pbq-cta">Open PBQ Labs →</a>
+    </div>
+  </section>
+
+  <div class="final-cta">
+    <button class="btn-primary">Start today's session →</button>
+  </div>
+
+  <div class="annotation">
+    <strong>Why this completion screen matters</strong>
+    This is the "premium-feeling report" Codex flagged as the SaaS aha moment. Every element has dual purpose: today it justifies free-tier engagement, post-pivot it's the moment to surface paid features (per-objective drills, AI Tutor follow-up, advanced PBQs). Build it premium from day one.
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────
+       STATE 4 — Home page AFTER diagnostic (the transformation)
+       ────────────────────────────────────────────────────────── -->
+  <div class="state-divider">
+    <span class="lbl">State 4 of 4 ·</span> Home page · 1 hour after the diagnostic finishes
+  </div>
+
+  <div class="annotation">
+    <strong>What changed</strong>
+    Compare this to State 1. The diagnostic CTA card is gone. The HeroV2 + readiness card V2 + SR review card + Today section + Mode Ladder are all populated with real data the diagnostic produced. This is what "minute one" of post-diagnostic life looks like — and why Codex called the diagnostic the highest-impact feature.
+  </div>
+
+  <div class="state4">
+
+    <!-- HeroV2 — 2-column layout (matches actual app) -->
+    <section class="hero-v2">
+      <div class="hero-v2-main">
+        <div class="hero-v2-eyebrow">Saturday afternoon</div>
+        <h1 class="hero-v2-display">Welcome back, <span class="name">Simi.</span></h1>
+        <p class="hero-v2-lede">Your diagnostic flagged <strong>Routing</strong> as your biggest gap. Closing it earns the most score in the least time — start there.</p>
+
+        <!-- Next-Best-Move CTA (driven by SR queue priority since 11 cards just seeded) -->
+        <div class="nbm-card">
+          <div class="nbm-eyebrow">
+            <span>📭</span>
+            <span>Next best move</span>
+          </div>
+          <div class="nbm-title">Tackle your 11 review cards</div>
+          <div class="nbm-sub">Spaced repetition · highest pass-rate impact per minute</div>
+          <button class="nbm-btn">Start review →</button>
+          <div class="nbm-reason">Diagnostic seeded 11 cards. Reviewing today locks them in before the forgetting curve hits.</div>
+        </div>
+      </div>
+
+      <aside class="hero-v2-aside">
+        <!-- Readiness card V2 (POPULATED — was empty in State 1) -->
+        <div class="rc-v2">
+          <div class="rc-v2-label">Exam readiness · scaled 100–900</div>
+          <div class="rc-v2-score">685<span class="of">/900</span></div>
+          <div class="rc-v2-prediction"><span class="pct">51%</span> pass probability · ±42 pts</div>
+          <div class="rc-v2-bar">
+            <div class="rc-v2-bar-fill"></div>
+            <div class="rc-v2-pass-tick"></div>
+          </div>
+          <div class="rc-v2-foot">
+            <span class="delta">+685 today</span>
+            <span>pass mark 720</span>
+          </div>
+        </div>
+
+        <!-- What-if attribution (v4.73.0 widget — NOW shows 3 leverage chips) -->
+        <div class="rc-v2-whatif">
+          <div class="rc-v2-whatif-label">📊 Drill these to move your score</div>
+          <div class="rc-v2-whatif-row">
+            <div class="whatif-chip"><span class="pts">+25</span> · <span class="topic">Routing</span></div>
+            <div class="whatif-chip"><span class="pts">+18</span> · <span class="topic">Troubleshoot</span></div>
+            <div class="whatif-chip"><span class="pts">+12</span> · <span class="topic">Security</span></div>
+          </div>
+        </div>
+
+        <!-- Trajectory line -->
+        <div class="rc-v2-trajectory">⏰ Set an exam date to see your trajectory</div>
+
+        <!-- Mini cards row -->
+        <div class="hero-mini-row">
+          <div class="mini-card">
+            <span class="lbl">Today</span>
+            <span class="val">0<span style="font-size:10px;color:var(--text-dim)">/20</span></span>
+            <span class="sub">daily goal</span>
+          </div>
+          <div class="mini-card">
+            <span class="lbl">Streak 🔥</span>
+            <span class="val">1<span style="font-size:10px;color:var(--text-dim)">d</span></span>
+            <span class="sub">started today</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- SR Review card (NEW visible state — was hidden in State 1) -->
+    <div class="sr-card">
+      <div class="sr-card-eyebrow">📚 Spaced Repetition · Daily Review</div>
+      <div class="sr-card-headline">11 cards due</div>
+      <div class="sr-card-sub">Re-encounter what you missed in the diagnostic. First reviews build the foundation for everything else.</div>
+      <button class="sr-card-btn">Start review →</button>
+    </div>
+
+    <!-- Pass Plan tile (replaces the diagnostic CTA from State 1) -->
+    <div class="pass-plan-tile">
+      <div class="check">✓</div>
+      <div class="text">
+        <div class="title">Your Pass Plan is active</div>
+        <div class="sub">Diagnostic complete · 1 hour ago · 51% pass probability</div>
+      </div>
+      <div class="actions">
+        <a href="#">View report →</a>
+        <a href="#" class="retake">Retake in 7d</a>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Note · Hero left column</strong>
+      The Next-Best-Move CTA card is dynamic. Its priority ladder is: SR queue due → daily challenge → no-quiz-today + has weak topics → what-if highest-leverage drill → fallback. With 11 cards just seeded, the SR queue wins and the CTA points there. By tomorrow, if the user reviews them, the CTA might shift to "Drill OSPF — your weakest domain."
+    </div>
+
+    <!-- Today section -->
+    <div class="today-section">
+      <h4 class="today-title">Today</h4>
+      <div class="today-grid">
+        <div class="daily-goal">
+          <div class="dg-ring"><span class="pct">0%</span></div>
+          <div class="dg-info">
+            <div class="lbl">Daily goal</div>
+            <div class="progress">0 / 20 questions</div>
+            <div class="msg">Let's get started today</div>
+          </div>
+        </div>
+        <div class="focus-card">
+          <div class="focus-lbl">🎯 Your weak spots (from diagnostic)</div>
+          <div class="focus-chips">
+            <div class="focus-chip">OSPF <span class="pct">40%</span><span class="new">NEW</span></div>
+            <div class="focus-chip">Latency diagnostics <span class="pct">25%</span><span class="new">NEW</span></div>
+            <div class="focus-chip">ACL placement <span class="pct">50%</span><span class="new">NEW</span></div>
+            <div class="focus-chip">VLAN trunking <span class="pct">50%</span><span class="new">NEW</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Ladder section (existing — but Quick tier "Drill Mistakes" tile is now active) -->
+    <div class="ladder-section">
+      <div class="ladder-section-head">
+        <span class="num">§ 01</span>
+        <h3>Pick your <em>session</em></h3>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-dim)">three commitment levels</span>
+      </div>
+
+      <!-- Quick tier — now has Drill Mistakes activated -->
+      <div class="ladder-tier-block">
+        <div class="ladder-tier-head">
+          <span class="ladder-tier-icon">⚡</span>
+          <div>
+            <div class="ladder-tier-eyebrow">Quick · 3-5 min</div>
+            <div class="ladder-tier-sub">Daily-habit fuel · low-friction wins</div>
+          </div>
+        </div>
+        <div class="ladder-cards">
+          <div class="ladder-card">
+            <span class="icon">⚡</span>
+            <div class="title">5-min Warmup</div>
+            <div class="ssub">5 Qs · Foundational</div>
+          </div>
+          <div class="ladder-card">
+            <span class="icon">🎯</span>
+            <div class="title">Daily Challenge</div>
+            <div class="ssub">5 Qs · streak +1</div>
+          </div>
+          <div class="ladder-card highlight">
+            <span class="icon">🔴</span>
+            <div class="title">Drill Mistakes</div>
+            <div class="ssub">11 SR cards waiting</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Practice tier — abbreviated for mockup -->
+      <div class="ladder-tier-block">
+        <div class="ladder-tier-head">
+          <span class="ladder-tier-icon">📚</span>
+          <div>
+            <div class="ladder-tier-eyebrow">Practice · 10-30 min</div>
+            <div class="ladder-tier-sub">Focused study · build understanding</div>
+          </div>
+        </div>
+        <div class="ladder-cards">
+          <div class="ladder-card highlight">
+            <span class="icon">🎯</span>
+            <div class="title">15-min Weak Spots</div>
+            <div class="ssub">Routing · your top gap</div>
+          </div>
+          <div class="ladder-card">
+            <span class="icon">🏋️</span>
+            <div class="title">20-min Deep Scan</div>
+            <div class="ssub">20 Qs · Mixed</div>
+          </div>
+          <div class="ladder-card">
+            <span class="icon">⚙️</span>
+            <div class="title">Custom Quiz</div>
+            <div class="ssub">Tune topic, length</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Note · Three places the diagnostic personalises the home page</strong>
+      <span style="display:block;margin-top:6px">
+        ① <strong>Hero lede + NBM CTA</strong> — references the diagnostic's findings explicitly ("Routing flagged as biggest gap")<br>
+        ② <strong>Today's Focus chips</strong> — pre-populated with the weak domains and labelled "NEW · from diagnostic" so the user knows where the data came from<br>
+        ③ <strong>Mode Ladder highlight states</strong> — Drill Mistakes (11 cards) and 15-min Weak Spots (Routing) get accent borders so the eye lands on the most useful next action
+      </span>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

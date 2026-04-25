@@ -160,10 +160,50 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.80.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
+    </div>
+  </div>
+
+  <!-- v4.81.0: Baseline Diagnostic surface (Codex r5 #1 / Issue #243).
+       Two states swapped by renderDiagnosticSurface():
+       - #diagnostic-cta-card visible when user hasn't taken a diagnostic
+         (or cooldown has elapsed). Hero treatment, gradient card.
+       - #pass-plan-tile visible when a Pass Plan exists. Compact summary
+         tile with "View report" + "Retake in N days" actions.
+       Hidden by default — render fn flips visibility. -->
+  <div id="diagnostic-cta-card" class="diagnostic-cta-card is-hidden">
+    <span class="diagnostic-cta-badge">NEW · Recommended</span>
+    <h3 class="diagnostic-cta-title">🩺 Where do you stand on N10-009?</h3>
+    <p class="diagnostic-cta-sub">Take a 20-question Baseline Diagnostic. Get your pass probability, weak-domain priorities, and your first review cards — all in one go.</p>
+    <div class="diagnostic-cta-pitch">
+      <div class="diagnostic-cta-pitch-item">
+        <span class="diagnostic-cta-pitch-num">20</span>
+        <span class="diagnostic-cta-pitch-lbl">Questions</span>
+      </div>
+      <div class="diagnostic-cta-pitch-item">
+        <span class="diagnostic-cta-pitch-num">~30</span>
+        <span class="diagnostic-cta-pitch-lbl">Minutes</span>
+      </div>
+      <div class="diagnostic-cta-pitch-item">
+        <span class="diagnostic-cta-pitch-num">5</span>
+        <span class="diagnostic-cta-pitch-lbl">Domains</span>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="startDiagnostic()">🩺 Take the Diagnostic</button>
+    <a class="diagnostic-cta-skip" href="#" onclick="dismissDiagnosticCta(event)">Skip for now — I'd rather just practise</a>
+  </div>
+  <div id="pass-plan-tile" class="pass-plan-tile is-hidden">
+    <div class="pass-plan-tile-icon">✓</div>
+    <div class="pass-plan-tile-text">
+      <div class="pass-plan-tile-title">Your Pass Plan is active</div>
+      <div class="pass-plan-tile-sub" id="pass-plan-tile-sub">Diagnostic complete</div>
+    </div>
+    <div class="pass-plan-tile-actions">
+      <a href="#" onclick="event.preventDefault();viewPassPlan()">View report →</a>
+      <a href="#" class="pass-plan-tile-retake" id="pass-plan-tile-retake" onclick="event.preventDefault();retakeDiagnostic()">Retake in 7d</a>
     </div>
   </div>
 
@@ -582,6 +622,111 @@
 <!-- ══════════════════════════════════════════
      LOADING PAGE
 ══════════════════════════════════════════ -->
+<!-- v4.81.0: Baseline Diagnostic flow pages (Issue #243).
+     page-diagnostic-quiz hosts the 20-Q sequential flow with 3-tier
+     confidence picker. page-diagnostic-result hosts the Pass Plan report. -->
+<div id="page-diagnostic-quiz" class="page">
+  <div class="diag-quiz-bar">
+    <div class="diag-quiz-progress">
+      <div class="diag-quiz-progress-track">
+        <div class="diag-quiz-progress-fill" id="diag-quiz-progress-fill"></div>
+      </div>
+      <div class="diag-quiz-progress-lbl" id="diag-quiz-progress-lbl">Question 1 of 20 · 5% complete</div>
+    </div>
+    <div class="diag-quiz-timer" id="diag-quiz-timer">30:00</div>
+    <button class="diag-quiz-quit" onclick="quitDiagnostic()" aria-label="Quit diagnostic">Quit</button>
+  </div>
+  <section class="diag-quiz-card">
+    <div class="diag-quiz-meta" id="diag-quiz-meta"></div>
+    <div class="diag-quiz-question" id="diag-quiz-question"></div>
+    <div class="diag-quiz-options" id="diag-quiz-options"></div>
+    <div class="diag-quiz-confidence">
+      <div class="diag-quiz-confidence-lbl">How confident are you?</div>
+      <div class="diag-quiz-confidence-tiers" id="diag-quiz-confidence-tiers">
+        <button type="button" class="diag-conf-tier" data-tier="confident" onclick="setDiagnosticConfidence('confident')">
+          <span class="diag-conf-icon">✅</span>
+          <span class="diag-conf-lbl">Confident</span>
+        </button>
+        <button type="button" class="diag-conf-tier" data-tier="uncertain" onclick="setDiagnosticConfidence('uncertain')">
+          <span class="diag-conf-icon">🤔</span>
+          <span class="diag-conf-lbl">Uncertain</span>
+        </button>
+        <button type="button" class="diag-conf-tier" data-tier="guessing" onclick="setDiagnosticConfidence('guessing')">
+          <span class="diag-conf-icon">🎲</span>
+          <span class="diag-conf-lbl">Guessing</span>
+        </button>
+      </div>
+    </div>
+    <div class="diag-quiz-actions">
+      <span class="diag-quiz-hint" id="diag-quiz-hint">Pick an answer + a confidence level</span>
+      <button class="btn btn-primary" id="diag-quiz-next-btn" onclick="submitDiagnosticAnswer()" disabled>Next →</button>
+    </div>
+  </section>
+</div>
+
+<div id="page-diagnostic-result" class="page">
+  <section class="pass-plan-hero">
+    <div class="pass-plan-complete-badge">✓ Diagnostic complete</div>
+    <h1 class="pass-plan-headline">Your Pass Plan</h1>
+    <p class="pass-plan-sub" id="pass-plan-sub">Based on 20 calibrated questions across all 5 N10-009 domains</p>
+    <div class="pass-plan-prob-display">
+      <div class="pass-plan-prob-ring" id="pass-plan-prob-ring">
+        <div class="pass-plan-prob-inner">
+          <div class="pass-plan-prob-pct" id="pass-plan-prob-pct">—</div>
+          <div class="pass-plan-prob-lbl">Pass probability</div>
+        </div>
+      </div>
+    </div>
+    <div class="pass-plan-ci-band">
+      <div class="pass-plan-ci-row"><span>Pass probability range</span><span id="pass-plan-prob-range">—</span></div>
+      <div class="pass-plan-ci-row"><span>Predicted score</span><span id="pass-plan-predicted-score">—</span></div>
+      <div class="pass-plan-ci-row"><span>Data confidence</span><span id="pass-plan-data-confidence">—</span></div>
+      <div class="pass-plan-confidence-ladder" id="pass-plan-confidence-ladder">
+        <div class="pass-plan-ladder-tier" data-tier="low">Low</div>
+        <div class="pass-plan-ladder-tier" data-tier="medium">Medium baseline</div>
+        <div class="pass-plan-ladder-tier" data-tier="high">High</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pass-plan-section">
+    <h2 class="pass-plan-section-h"><span class="icon">🎯</span> Top 3 weak domains <span class="count" id="pass-plan-weak-count">—</span></h2>
+    <div id="pass-plan-weak-domains"></div>
+  </section>
+
+  <section class="pass-plan-section">
+    <h2 class="pass-plan-section-h"><span class="icon">📭</span> Review queue seeded</h2>
+    <div class="pass-plan-review-seeded" id="pass-plan-review-seeded">
+      <div class="pass-plan-review-icon">📭</div>
+      <div class="pass-plan-review-text">
+        <div><span class="pass-plan-review-num" id="pass-plan-review-num">0</span> <span class="pass-plan-review-lbl">cards added to your spaced-repetition queue</span></div>
+        <div class="pass-plan-review-sub" id="pass-plan-review-sub">First review session: tomorrow morning · auto-paced by SM-2</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pass-plan-section">
+    <h2 class="pass-plan-section-h"><span class="icon">📅</span> Recommended next 7 days</h2>
+    <div class="pass-plan-week-strip" id="pass-plan-week-strip"></div>
+  </section>
+
+  <section class="pass-plan-section">
+    <h2 class="pass-plan-section-h"><span class="icon">🧪</span> Recommended for you</h2>
+    <div class="pass-plan-pbq-rec">
+      <div class="pass-plan-pbq-icon">🔧</div>
+      <div class="pass-plan-pbq-text">
+        <div class="pass-plan-pbq-title" id="pass-plan-pbq-title">Try the ACL Ordering PBQ</div>
+        <div class="pass-plan-pbq-sub" id="pass-plan-pbq-sub">PBQs are weighted 3-4× on the real exam. Build the muscle now.</div>
+      </div>
+      <a href="#" class="pass-plan-pbq-cta" id="pass-plan-pbq-cta" onclick="event.preventDefault();aclOpenFromPassPlan()">Open ACL PBQ →</a>
+    </div>
+  </section>
+
+  <div class="pass-plan-final-cta">
+    <button class="btn btn-primary btn-full" onclick="closePassPlanReview()">Start today's session →</button>
+  </div>
+</div>
+
 <div id="page-loading" class="page">
   <div class="skeleton-loader">
     <div class="skel-topbar">
