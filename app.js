@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.76.1
+// Network+ AI Quiz — app.js  v4.77.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.76.1';
+const APP_VERSION = '4.77.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -29568,8 +29568,20 @@ function renderAnalytics() {
   const histPanel = document.getElementById('history-panel');
   if (histPanel) histPanel.classList.add('is-hidden');
   if (h.length < 1) {
-    container.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px 0">Complete at least one quiz to see your analytics.</p>';
-    // v4.76.0: empty-state path — hide actionable headline
+    // v4.77.0: motivational empty state per Codex round-2 review. Replaces
+    // the flat "Complete at least one quiz to see your analytics" with a
+    // specific value-prop + a one-click warmup CTA.
+    container.innerHTML = '<div class="ana-empty-card">'
+      + '<div class="ana-empty-icon">📊</div>'
+      + '<h2 class="ana-empty-title">Unlock your first insight</h2>'
+      + '<p class="ana-empty-body">Complete one 5-minute warmup and we\'ll show your '
+      + '<strong>weakest topic</strong>, <strong>readiness trend</strong>, and '
+      + '<strong>next study move</strong>.</p>'
+      + '<button type="button" class="btn btn-primary ana-empty-cta" '
+      + 'onclick="applyPreset(\'warmup\')">⚡ Start 5-min Warmup</button>'
+      + '<p class="ana-empty-foot">5 questions · ~3 min · foundational</p>'
+      + '</div>';
+    // Hide actionable headline in empty state
     if (typeof renderAnalyticsActionHeadline === 'function') renderAnalyticsActionHeadline();
     return;
   }

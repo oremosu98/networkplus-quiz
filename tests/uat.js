@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.76.1', js.includes("const APP_VERSION = '4.76.1"));
+test('APP_VERSION is 4.77.0', js.includes("const APP_VERSION = '4.77.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.76.1', sw.includes('netplus-v4.76.1'));
+test('SW cache bumped to v4.77.0', sw.includes('netplus-v4.77.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9760,6 +9760,36 @@ test('v4.76.0 CSS: .ana-action-headline gradient styled',
   /\.ana-action-headline\s*\{[\s\S]{0,500}gradient/.test(css));
 test('v4.76.0 CSS: reduced-motion gate present for new elements',
   /prefers-reduced-motion[\s\S]{0,800}\.modes-card[\s\S]{0,400}transition:\s*none/.test(css));
+
+// ══════════════════════════════════════════
+// v4.77.0 — Codex round-2 polish
+// 1. NEXT BEST MOVE eyebrow promoted to inline pill (more authoritative)
+// 2. Analytics empty state — "Unlock your first insight" + Start Warmup CTA
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.77.0 CODEX ROUND-2 POLISH ──\x1b[0m');
+
+// 1. Eyebrow upgrade
+test('v4.77.0 HTML: eyebrow text drops "Your" — reads "Next best move"',
+  html.includes('>Next best move<') && !html.includes('>Your next best move<'));
+test('v4.77.0 CSS: eyebrow is now an inline pill (display: inline-flex)',
+  /\.hero-v2-cta-eyebrow\s*\{[\s\S]{0,500}display:\s*inline-flex/.test(css));
+test('v4.77.0 CSS: eyebrow has pill background',
+  /\.hero-v2-cta-eyebrow\s*\{[\s\S]{0,800}background:\s*rgba\(255,\s*255,\s*255,\s*0\.14\)/.test(css));
+test('v4.77.0 CSS: eyebrow border-radius 99px (pill shape)',
+  /\.hero-v2-cta-eyebrow\s*\{[\s\S]{0,800}border-radius:\s*99px/.test(css));
+
+// 2. Analytics empty state
+test('v4.77.0 logic: renderAnalytics empty state uses "Unlock your first insight"',
+  /renderAnalytics[\s\S]{0,3000}Unlock your first insight/.test(js));
+test('v4.77.0 logic: empty state has "Start 5-min Warmup" CTA',
+  /Start 5-min Warmup/.test(js));
+test('v4.77.0 logic: empty state CTA wires to applyPreset(\'warmup\')',
+  /ana-empty-cta[\s\S]{0,400}applyPreset\([\\'"]+warmup[\\'"]+\)/.test(js));
+test('v4.77.0 logic: empty state names the 3 unlocks (weakest topic / readiness trend / next study move)',
+  /weakest topic[\s\S]{0,200}readiness trend[\s\S]{0,200}next study move/.test(js));
+test('v4.77.0 CSS: .ana-empty-card styled', css.includes('.ana-empty-card'));
+test('v4.77.0 CSS: .ana-empty-title styled', css.includes('.ana-empty-title'));
+test('v4.77.0 CSS: .ana-empty-cta styled', css.includes('.ana-empty-cta'));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
