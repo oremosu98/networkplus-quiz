@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.4', js.includes("const APP_VERSION = '4.81.4"));
+test('APP_VERSION is 4.81.5', js.includes("const APP_VERSION = '4.81.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.4', sw.includes('netplus-v4.81.4'));
+test('SW cache bumped to v4.81.5', sw.includes('netplus-v4.81.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10371,6 +10371,118 @@ test('v4.81.4 ApiKey: renderSettingsPage calls _renderApiKeyStatusOnLoad',
   })());
 test('v4.81.4 ApiKey: .api-key-status-ok style declared',
   /\.api-key-status-ok\s*\{/.test(css));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.5: Diagnostic options-render bugfix
+// ──────────────────────────────────────────────────────────
+// User report: "where is the questions??? even when i click on Next nothing
+// even happens" — screenshot showed question stem but no answer buttons.
+// Root cause: _renderDiagnosticQuestion did `(q.options || []).forEach(...)`
+// but q.options is a LETTER-KEYED OBJECT ({A:'…', B:'…', C:'…', D:'…'})
+// matching the rest of the app's MCQ schema, NOT an array. forEach on an
+// object silently throws (forEach is undefined). No options rendered, the
+// "Pick an answer" hint blocked Next.
+test('v4.81.5 Diagnostic: _renderDiagnosticQuestion uses Object.keys for options (not array forEach)',
+  (() => {
+    const body = _fnBody(js, '_renderDiagnosticQuestion');
+    return body && /Object\.keys\(q\.options/.test(body);
+  })());
+test('v4.81.5 Diagnostic: pickDiagnosticOption takes a letter (not numeric index)',
+  (() => {
+    const body = _fnBody(js, 'pickDiagnosticOption');
+    return body && /pickedLetter/.test(body);
+  })());
+test('v4.81.5 Diagnostic: submitDiagnosticAnswer compares pickedLetter to q.answer',
+  (() => {
+    const body = _fnBody(js, 'submitDiagnosticAnswer');
+    return body && /pickedLetter\s*===\s*q\.answer/.test(body);
+  })());
+test('v4.81.5 Diagnostic: regression guard — no .pickedIdx in diagnostic flow (renamed to pickedLetter)',
+  (() => {
+    // pickedIdx is still legitimately used by the SR review session — this
+    // check scopes the regression to the diagnostic functions specifically.
+    const fns = ['_renderDiagnosticQuestion', 'pickDiagnosticOption', '_refreshDiagnosticActions', 'submitDiagnosticAnswer'];
+    for (const fn of fns) {
+      const body = _fnBody(js, fn);
+      if (body && /pickedIdx/.test(body)) return false;
+    }
+    return true;
+  })());
+test('v4.81.5 Diagnostic: startDiagnostic filters to MCQ-only questions',
+  (() => {
+    const body = _fnBody(js, 'startDiagnostic');
+    return body && /_isMcq\b/.test(body);
+  })());
+test('v4.81.5 Diagnostic: MCQ-filter requires 4 letter-keyed options + single-letter answer',
+  (() => {
+    const body = _fnBody(js, 'startDiagnostic');
+    return body && /Object\.keys\(q\.options\)\.length\s*===\s*4/.test(body)
+      && /'ABCD'\.includes\(q\.answer\)/.test(body);
+  })());
+
+// Behavioral fixture — synthetic MCQ question, verify the render code
+// produces 4 buttons with correct letters.
+test('v4.81.5 Diagnostic: render produces 4 option buttons (vm fixture with letter-keyed options)',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderDiagnosticQuestion');
+      if (!renderBody) return false;
+      const vm = require('vm');
+      // Minimal jsdom-lite shim for document + element ops the function uses
+      const elements = {};
+      const make = (id) => {
+        const el = {
+          id, hidden: false, _children: [], _innerHTML: '', _classList: new Set(), _attrs: {},
+          dataset: {},
+          get innerHTML() { return this._innerHTML; },
+          set innerHTML(v) { this._innerHTML = v; this._children = []; },
+          appendChild(child) { this._children.push(child); },
+          classList: { add: function(c) { el._classList.add(c); }, remove: function(c) { el._classList.delete(c); }, toggle: function(c, on) { if (on) el._classList.add(c); else el._classList.delete(c); } },
+          setAttribute(k, v) { el._attrs[k] = v; },
+          textContent: '',
+          style: {}
+        };
+        return el;
+      };
+      ['diag-quiz-progress-fill', 'diag-quiz-progress-lbl', 'diag-quiz-meta', 'diag-quiz-question', 'diag-quiz-options', 'diag-quiz-next-btn', 'diag-quiz-hint'].forEach(id => { elements[id] = make(id); });
+      const ctx = {
+        document: {
+          getElementById: (id) => elements[id] || null,
+          querySelectorAll: () => [],
+          createElement: () => {
+            const el = make('btn');
+            el.type = ''; el.className = ''; el.onclick = null;
+            return el;
+          }
+        },
+        _diagnosticSession: {
+          questions: [{
+            question: 'Test stem?',
+            options: { A: 'first', B: 'second', C: 'third', D: 'fourth' },
+            answer: 'C',
+            topic: 'Test',
+            difficulty: 'Mid'
+          }],
+          answers: [null],
+          currentIdx: 0,
+          pickedLetter: null,
+          confidence: null
+        },
+        setQuestionText: (el, t) => { el.textContent = t; },
+        escHtml: (s) => String(s),
+        _refreshDiagnosticActions: () => {},
+        Object, String, Number, Math
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext('_renderDiagnosticQuestion()', ctx);
+      const optsHost = elements['diag-quiz-options'];
+      // 4 buttons appended, each with a letter
+      if (optsHost._children.length !== 4) return false;
+      const letters = optsHost._children.map(b => b.dataset.letter);
+      return letters.join('') === 'ABCD';
+    } catch (e) { return false; }
+  })());
 
 test('v4.81.3 Safety: pre-commit hook scans for MCP+setItem risk patterns',
   (() => {

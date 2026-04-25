@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.4
+// Network+ AI Quiz — app.js  v4.81.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.4';
+const APP_VERSION = '4.81.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5938,7 +5938,7 @@ const ACL_PBQ_BANK = [
 // diagnostic is the natural seeding event for spaced repetition.
 // ══════════════════════════════════════════
 
-let _diagnosticSession = null;  // { questions, answers, currentIdx, startedAt, pickedIdx, confidence }
+let _diagnosticSession = null;  // { questions, answers, currentIdx, startedAt, pickedLetter, confidence }
 let _diagnosticTimer = null;    // setInterval handle
 
 // Persist the latest completed diagnostic + Pass Plan so the home tile +
@@ -5990,16 +5990,23 @@ async function startDiagnostic() {
   try {
     // Use Mixed topic + Mixed difficulty so the existing 7-layer pipeline
     // spreads across domains naturally. Over-request DROPOUT_BUFFER so we
-    // can drop low-quality items and still hit 20.
-    const buffer = Math.max(3, Math.ceil(DIAGNOSTIC_QUESTION_COUNT * 0.3));
+    // can drop low-quality items + filter out non-MCQ types and still hit 20.
+    // v4.81.5: filter to MCQ-only. The diagnostic UI doesn't render multi-
+    // select / order / cli-sim / topology question types — and PBQs were
+    // sneaking in via injectPBQs (called from fetchQuestions for n>=10).
+    // Bump buffer + filter to keep MCQ-only flow.
+    const buffer = Math.max(8, Math.ceil(DIAGNOSTIC_QUESTION_COUNT * 0.4));
+    const _isMcq = (q) => q && q.options && typeof q.options === 'object' && !Array.isArray(q.options) &&
+      Object.keys(q.options).length === 4 && typeof q.answer === 'string' && q.answer.length === 1 &&
+      'ABCD'.includes(q.answer);
     let qs = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', DIAGNOSTIC_QUESTION_COUNT + buffer);
-    qs = (qs || []).slice(0, DIAGNOSTIC_QUESTION_COUNT);
+    qs = (qs || []).filter(_isMcq).slice(0, DIAGNOSTIC_QUESTION_COUNT);
     if (qs.length < DIAGNOSTIC_QUESTION_COUNT) {
       // Try one retry-to-fill to recover from a partial first batch.
       const deficit = DIAGNOSTIC_QUESTION_COUNT - qs.length;
       try {
         const more = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + buffer);
-        qs = qs.concat((more || []).slice(0, deficit));
+        qs = qs.concat((more || []).filter(_isMcq).slice(0, deficit));
       } catch (_) { /* swallow — we ship what we have */ }
     }
     if (qs.length === 0) {
@@ -6011,7 +6018,7 @@ async function startDiagnostic() {
       answers: new Array(qs.length).fill(null),
       currentIdx: 0,
       startedAt: Date.now(),
-      pickedIdx: null,
+      pickedLetter: null,
       confidence: null
     };
     _diagnosticStartTimer();
@@ -6070,36 +6077,43 @@ function _renderDiagnosticQuestion() {
   }
 
   // Question stem + options
+  // v4.81.5: q.options is a LETTER-KEYED OBJECT ({A:'...', B:'...', C:'...', D:'...'})
+  // matching the rest of the app — NOT an array. The original v4.81.0 code
+  // used array .forEach which silently failed (forEach is undefined on plain
+  // objects), so options never rendered. The user reported "where are the
+  // questions" with a screenshot showing question stem but no answer buttons.
   const qel = document.getElementById('diag-quiz-question');
   if (qel) setQuestionText(qel, q.question || '');
   const opts = document.getElementById('diag-quiz-options');
   if (opts) {
     opts.innerHTML = '';
-    (q.options || []).forEach((opt, i) => {
+    const letters = Object.keys(q.options || {}).sort();
+    letters.forEach(l => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'diag-quiz-option';
-      btn.dataset.idx = String(i);
+      btn.dataset.letter = l;
       btn.innerHTML =
-        '<span class="diag-quiz-option-letter">' + 'ABCD'[i] + '</span>' +
-        '<span class="diag-quiz-option-text">' + escHtml(opt) + '</span>';
-      btn.onclick = () => pickDiagnosticOption(i);
+        '<span class="diag-quiz-option-letter">' + l + '</span>' +
+        '<span class="diag-quiz-option-text">' + escHtml(q.options[l]) + '</span>';
+      btn.onclick = () => pickDiagnosticOption(l);
       opts.appendChild(btn);
     });
   }
 
   // Reset picker state for fresh question
-  sess.pickedIdx = null;
+  sess.pickedLetter = null;
   sess.confidence = null;
   _refreshDiagnosticActions();
   document.querySelectorAll('#diag-quiz-confidence-tiers .diag-conf-tier').forEach(b => b.classList.remove('selected'));
 }
 
-function pickDiagnosticOption(i) {
+function pickDiagnosticOption(letter) {
   if (!_diagnosticSession) return;
-  _diagnosticSession.pickedIdx = i;
+  // v4.81.5: letter-based selection (A/B/C/D), matching q.answer shape
+  _diagnosticSession.pickedLetter = letter;
   document.querySelectorAll('#diag-quiz-options .diag-quiz-option').forEach(b => {
-    b.classList.toggle('selected', Number(b.dataset.idx) === i);
+    b.classList.toggle('selected', b.dataset.letter === letter);
   });
   _refreshDiagnosticActions();
 }
@@ -6115,7 +6129,7 @@ function setDiagnosticConfidence(tier) {
 
 function _refreshDiagnosticActions() {
   if (!_diagnosticSession) return;
-  const ready = _diagnosticSession.pickedIdx !== null && _diagnosticSession.confidence !== null;
+  const ready = _diagnosticSession.pickedLetter !== null && _diagnosticSession.confidence !== null;
   const btn = document.getElementById('diag-quiz-next-btn');
   const hint = document.getElementById('diag-quiz-hint');
   if (btn) btn.disabled = !ready;
@@ -6124,7 +6138,7 @@ function _refreshDiagnosticActions() {
       hint.textContent = _diagnosticSession.currentIdx === _diagnosticSession.questions.length - 1
         ? 'Submit final answer to see your Pass Plan'
         : 'Locked in — go to next question';
-    } else if (_diagnosticSession.pickedIdx === null) {
+    } else if (_diagnosticSession.pickedLetter === null) {
       hint.textContent = 'Pick an answer';
     } else {
       hint.textContent = 'Pick a confidence level';
@@ -6140,12 +6154,13 @@ function _refreshDiagnosticActions() {
 function submitDiagnosticAnswer() {
   if (!_diagnosticSession) return;
   const sess = _diagnosticSession;
-  if (sess.pickedIdx === null || sess.confidence === null) return;
+  if (sess.pickedLetter === null || sess.confidence === null) return;
   const q = sess.questions[sess.currentIdx];
-  const correctIdx = (typeof q.answer === 'number') ? q.answer : -1;
-  const correct = sess.pickedIdx === correctIdx;
+  // v4.81.5: q.answer is a letter ('A'/'B'/'C'/'D'), matching the rest of
+  // the app's MCQ schema. Compare letters, not numeric indices.
+  const correct = sess.pickedLetter === q.answer;
   sess.answers[sess.currentIdx] = {
-    pickedIdx: sess.pickedIdx,
+    pickedLetter: sess.pickedLetter,
     confidence: sess.confidence,
     correct,
     answeredAt: Date.now()
