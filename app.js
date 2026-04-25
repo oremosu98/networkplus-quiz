@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.79.0
+// Network+ AI Quiz — app.js  v4.80.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.79.0';
+const APP_VERSION = '4.80.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -32478,6 +32478,14 @@ let aclState = {
   solutionShown: {}   // { [scenarioId]: true } \u2014 set when "Show solution" fired
 };
 
+// v4.80.0: First-time-user default scenario per Codex round-4. New users
+// landed in Free Build with a blank canvas — too open-ended for first-time
+// pedagogy. They now default to "block-single-host" (the simplest guided
+// beginner scenario: 4.3 ACL fundamentals, single deny rule + implicit
+// allow understanding). Returning users keep whatever scenario they last
+// loaded via the persisted state.
+const ACL_FIRST_TIME_SCENARIO = 'block-single-host';
+
 function aclLoadState() {
   try {
     const raw = localStorage.getItem(STORAGE.ACL_STATE);
@@ -32490,6 +32498,15 @@ function aclLoadState() {
       }
     }
   } catch (_) { /* defensive: localStorage corruption \u2192 fall back to defaults */ }
+  // v4.80.0: First-time-user default \u2192 guided scenario instead of Free Build.
+  // Detection: never-saved state with default 'free-build' + empty rules.
+  // Returning users (saved state with anything different) keep their pick.
+  try {
+    const hasSaved = localStorage.getItem(STORAGE.ACL_STATE) !== null;
+    if (!hasSaved && aclState.scenarioId === 'free-build' && aclState.rules.length === 0) {
+      aclState.scenarioId = ACL_FIRST_TIME_SCENARIO;
+    }
+  } catch (_) {}
   return aclState;
 }
 function aclSaveState() {

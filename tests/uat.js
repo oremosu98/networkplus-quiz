@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.79.0', js.includes("const APP_VERSION = '4.79.0"));
+test('APP_VERSION is 4.80.0', js.includes("const APP_VERSION = '4.80.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.79.0', sw.includes('netplus-v4.79.0'));
+test('SW cache bumped to v4.80.0', sw.includes('netplus-v4.80.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9925,6 +9925,43 @@ test('v4.79.0 a11y: mobile toggle button has aria-expanded',
   /id="sb-mobile-toggle"[^>]*aria-expanded/.test(html));
 test('v4.79.0 a11y: mobile toggle button has aria-controls="app-sidebar"',
   /id="sb-mobile-toggle"[^>]*aria-controls="app-sidebar"/.test(html));
+
+// ══════════════════════════════════════════
+// v4.80.0 — Codex round-4 polish
+// 1. Custom Quiz section hidden by default on homepage (Mode Ladder is sole entry)
+// 2. ACL Builder defaults to a guided scenario for first-time users (not Free Build)
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.80.0 CODEX ROUND-4 POLISH ──\x1b[0m');
+
+// 1. Custom Quiz hide-by-default reverted (broke too many flows + tests).
+// Tombstone keeps the cq-collapsed class from accidentally coming back —
+// if we want to revisit hiding the form, the right path is a modal.
+test('v4.80.0 tombstone: cq-collapsed class NOT applied to live elements',
+  !/class="[^"]*cq-collapsed/.test(html));
+
+// v4.80.0: setup-err relocated OUT of the Custom Quiz <details> for
+// page-level visibility (still applies — error needs to render even if
+// the form is closed/scrolled past).
+test('v4.80.0 home: #setup-err sits at page level (outside Custom Quiz <details>)',
+  (() => {
+    const setupErrIdx = html.indexOf('id="setup-err"');
+    const detailsCloseIdx = html.indexOf('</details>', html.indexOf('id="custom-quiz-section"'));
+    return setupErrIdx > detailsCloseIdx;
+  })());
+
+// 2. ACL Builder first-time scenario
+test('v4.80.0 ACL: ACL_FIRST_TIME_SCENARIO constant defined',
+  /const\s+ACL_FIRST_TIME_SCENARIO\s*=\s*['"]block-single-host['"]/.test(js));
+test('v4.80.0 ACL: aclLoadState applies first-time default when no saved state',
+  (() => {
+    const body = _fnBody(js, 'aclLoadState');
+    return body && /STORAGE\.ACL_STATE/.test(body) && /ACL_FIRST_TIME_SCENARIO/.test(body);
+  })());
+test('v4.80.0 ACL: first-time-default only fires when free-build + 0 rules',
+  (() => {
+    const body = _fnBody(js, 'aclLoadState');
+    return body && /scenarioId\s*===\s*['"]free-build['"][\s\S]{0,200}rules\.length\s*===\s*0/.test(body);
+  })());
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
