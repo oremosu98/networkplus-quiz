@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.77.0
+// Network+ AI Quiz — app.js  v4.78.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.77.0';
+const APP_VERSION = '4.78.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4634,6 +4634,8 @@ function goSetup() {
 // v4.41.0: Drills launcher (consolidated entry point for Port/Acronym/OSI/Cables drills).
 function showDrillsPage() {
   showPage('drills');
+  // v4.78.0: surface weakest-drill recommendation
+  if (typeof renderDrillsRecommendation === 'function') renderDrillsRecommendation();
 }
 
 // v4.41.0: Progressive disclosure — hide Marathon Mode until user has completed 1+ quiz.
@@ -5119,6 +5121,8 @@ function renderProgressPage() {
   progressState.rows = _buildProgressRows();
   _renderProgressSummary(progressState.rows);
   _renderProgressGrouped(progressState.rows);
+  // v4.78.0: surface highest-leverage topic recommendation at top
+  if (typeof renderProgressRecommendation === 'function') renderProgressRecommendation();
 }
 
 function setProgressFilter(name) {
@@ -6305,6 +6309,299 @@ function renderAnalyticsActionHeadline() {
     + '<button type="button" class="ana-action-btn" onclick="focusTopic(\'' + safeTopic + '\')">Drill now →</button>'
     + '</div>';
   host.hidden = false;
+}
+
+// ══════════════════════════════════════════
+// v4.78.0 — Per-page recommendation cards
+// Codex round-2 strategic note: "every page should have one strong
+// recommendation, one primary CTA, and then supporting data underneath."
+// v4.76.0 + v4.77.0 applied this to homepage + analytics. v4.78.0
+// applies it to Drills launcher / Topic Progress / Subnet Trainer /
+// Topology Builder.
+//
+// Single shared visual style (`.page-rec-card`) — each page picks its
+// own recommendation logic from existing data signals.
+// ══════════════════════════════════════════
+
+// Shared card-builder. Returns innerHTML string that any page can drop
+// into a host element. Mirrors the gradient-purple aesthetic of the
+// hero CTA + analytics action headline so users recognize the pattern
+// across pages.
+function _pageRecCard(opts) {
+  const { eyebrow, icon, headline, sub, ctaLabel, ctaFn, reason } = opts;
+  const safeIcon = icon || '🎯';
+  return '<div class="page-rec-card">'
+    + '<div class="page-rec-eyebrow">'
+    + '<span class="page-rec-icon">' + safeIcon + '</span>'
+    + '<span class="page-rec-eyebrow-text">' + escHtml(eyebrow || 'Recommended next') + '</span>'
+    + '</div>'
+    + '<div class="page-rec-headline">' + escHtml(headline) + '</div>'
+    + (sub ? '<div class="page-rec-sub">' + escHtml(sub) + '</div>' : '')
+    + '<button type="button" class="page-rec-btn" onclick="' + ctaFn + '">'
+    + escHtml(ctaLabel || 'Start →') + '</button>'
+    + (reason ? '<div class="page-rec-reason">' + escHtml(reason) + '</div>' : '')
+    + '</div>';
+}
+
+// ── Drills page recommendation ──
+// Picks the user's weakest-or-most-stale drill from the existing per-drill
+// mastery data. Falls back to Port Drill (foundational) for new users +
+// ACL Ordering PBQ as the "you've maxed out the simple drills" recommendation.
+function _pickRecommendedDrill() {
+  // Fast-path: brand-new user → start with the foundational Port Drill
+  let portM = null, abM = null, osM = null, cbM = null;
+  try { portM = (typeof getPortMastery === 'function') ? getPortMastery() : null; } catch (_) {}
+  try { abM = (typeof getAcronymMastery === 'function') ? getAcronymMastery() : null; } catch (_) {}
+  try { osM = (typeof getOsiMastery === 'function') ? getOsiMastery() : null; } catch (_) {}
+  try { cbM = (typeof getCableMastery === 'function') ? getCableMastery() : null; } catch (_) {}
+
+  const totalAnswered = (portM?.totalAnswered || 0) + (abM?.totalAnswered || 0)
+    + (osM?.totalAnswered || 0) + (cbM?.totalAnswered || 0);
+
+  if (totalAnswered === 0) {
+    return {
+      eyebrow: 'Recommended drill',
+      icon: '⚡',
+      headline: 'Start with Port Drill',
+      sub: '40 ports · timed · the foundational cert-prep drill',
+      ctaLabel: 'Start Port Drill →',
+      ctaFn: "showPage('ports'); startPortDrill();",
+      reason: 'Best foundational reps · ports show up in 30%+ of exam questions'
+    };
+  }
+
+  // Compute accuracy per drill (correct/answered)
+  const drills = [
+    { id: 'ports', label: 'Port Drill', m: portM, ctaFn: "showPage('ports'); startPortDrill();" },
+    { id: 'acronyms', label: 'Acronym Blitz', m: abM, ctaFn: "showPage('acronyms'); startAcronymBlitz();" },
+    { id: 'osi', label: 'OSI Sorter', m: osM, ctaFn: "showPage('osi-sorter'); startOsiSorter();" },
+    { id: 'cables', label: 'Cable ID', m: cbM, ctaFn: "showPage('cables'); startCableId();" }
+  ];
+
+  // Score each drill: low accuracy + high days-since-last-touch = priority.
+  const now = Date.now();
+  drills.forEach(d => {
+    const m = d.m || {};
+    const total = m.totalAnswered || 0;
+    const correct = m.totalCorrect || 0;
+    const acc = total > 0 ? correct / total : 0;
+    const lastTouched = m.lastSeen || m.lastDate || 0;
+    const daysStale = lastTouched ? Math.max(0, (now - lastTouched) / 86400000) : 999;
+    // Score: lower accuracy + staleness boost. Untouched drills get HIGH priority.
+    if (total === 0) {
+      d._score = 1000;
+      d._reason = 'Never tried';
+    } else {
+      d._score = (1 - acc) * 100 + Math.min(daysStale, 30);
+      d._reason = `${Math.round(acc * 100)}% accuracy · ${Math.round(daysStale)}d since last drill`;
+    }
+  });
+
+  drills.sort((a, b) => b._score - a._score);
+  const top = drills[0];
+
+  // If everything is strong AND ACL PBQ unattempted → recommend that
+  // (but only check the localStorage flag heuristically — there's no
+  // dedicated ACL PBQ mastery yet, so we skip if total >= ~50 across drills)
+  if (top._score < 30 && totalAnswered >= 50) {
+    return {
+      eyebrow: 'Try something new',
+      icon: '🛡️',
+      headline: 'ACL Ordering PBQ',
+      sub: 'Performance-based question · closest to real exam format',
+      ctaLabel: 'Open ACL PBQ →',
+      ctaFn: 'openAclPbqPicker();',
+      reason: 'You\'ve mastered the drills — try the exam-format PBQ'
+    };
+  }
+
+  return {
+    eyebrow: 'Weakest drill right now',
+    icon: '⚡',
+    headline: top.label,
+    sub: top._reason,
+    ctaLabel: 'Drill ' + top.label + ' →',
+    ctaFn: top.ctaFn,
+    reason: 'Lowest mastery · highest impact per minute'
+  };
+}
+
+function renderDrillsRecommendation() {
+  const host = document.getElementById('drills-rec-host');
+  if (!host) return;
+  try {
+    host.innerHTML = _pageRecCard(_pickRecommendedDrill());
+    host.hidden = false;
+  } catch (err) {
+    console.warn('[drills rec] failed', err);
+    host.hidden = true;
+  }
+}
+
+// ── Topic Progress page recommendation ──
+// Reuses computeWeakSpotScores() to pick the highest-leverage topic.
+function _pickProgressRecommendation() {
+  let weak = null;
+  try { weak = (typeof computeWeakSpotScores === 'function') ? computeWeakSpotScores() : null; } catch (_) {}
+  if (!weak || weak.length === 0) {
+    return {
+      eyebrow: 'Recommended next',
+      icon: '📚',
+      headline: 'Take a custom quiz',
+      sub: 'Pick a topic + length to start tracking progress',
+      ctaLabel: 'Build a quiz →',
+      ctaFn: 'goSetup(); _jumpToCustomQuiz();',
+      reason: 'Need a few quizzes to surface weak spots'
+    };
+  }
+  const top = weak[0];
+  const topicName = top.topic || 'Unknown';
+  return {
+    eyebrow: 'Highest-leverage focus',
+    icon: '🎯',
+    headline: 'Drill ' + topicName,
+    sub: 'Your weakest area right now · short focused session',
+    ctaLabel: 'Drill ' + topicName + ' →',
+    ctaFn: "focusTopic('" + topicName.replace(/'/g, "\\'") + "');",
+    reason: 'Direct hit on your biggest score gap'
+  };
+}
+
+function renderProgressRecommendation() {
+  const host = document.getElementById('progress-rec-host');
+  if (!host) return;
+  try {
+    host.innerHTML = _pageRecCard(_pickProgressRecommendation());
+    host.hidden = false;
+  } catch (err) {
+    console.warn('[progress rec] failed', err);
+    host.hidden = true;
+  }
+}
+
+// ── Subnet Trainer recommendation ──
+// Picks the weakest category from getSubnetMastery() based on box level + accuracy.
+function _pickSubnetRecommendation() {
+  let m = null;
+  try { m = (typeof getSubnetMastery === 'function') ? getSubnetMastery() : null; } catch (_) {}
+  if (!m || !m.categories) {
+    return {
+      eyebrow: 'Recommended start',
+      icon: '🧮',
+      headline: 'Start with the Block Size lesson',
+      sub: 'Foundational subnetting · 5-min lesson + practice',
+      ctaLabel: 'Start lesson →',
+      ctaFn: "showPage('subnet'); if (typeof stShowLesson === 'function') stShowLesson(1);",
+      reason: 'Subnetting clicks fastest with the block-size method'
+    };
+  }
+  // Find lowest-accuracy category with at least 3 attempts
+  let weakest = null;
+  Object.keys(m.categories).forEach(cat => {
+    const c = m.categories[cat];
+    if (!c || c.seen < 3) return;
+    const acc = c.seen > 0 ? c.correct / c.seen : 0;
+    if (!weakest || acc < weakest.acc) {
+      weakest = { id: cat, acc, label: cat };
+    }
+  });
+  if (!weakest) {
+    // Not enough data — recommend a Practice session
+    return {
+      eyebrow: 'Recommended start',
+      icon: '🧮',
+      headline: 'Take a Practice session',
+      sub: '10 mixed subnetting questions · adaptive difficulty',
+      ctaLabel: 'Start practice →',
+      ctaFn: "showPage('subnet'); if (typeof stStartSession === 'function') stStartSession();",
+      reason: 'Build enough attempts to surface your weakest area'
+    };
+  }
+  return {
+    eyebrow: 'Weakest subnet category',
+    icon: '🎯',
+    headline: 'Drill ' + weakest.label,
+    sub: Math.round(weakest.acc * 100) + '% accuracy · highest score impact',
+    ctaLabel: 'Drill ' + weakest.label + ' →',
+    ctaFn: "showPage('subnet'); if (typeof stDashJumpToCategory === 'function') stDashJumpToCategory('" + weakest.id.replace(/'/g, "\\'") + "');",
+    reason: 'Focus the bottleneck · short adaptive session'
+  };
+}
+
+function renderSubnetRecommendation() {
+  const host = document.getElementById('subnet-rec-host');
+  if (!host) return;
+  try {
+    host.innerHTML = _pageRecCard(_pickSubnetRecommendation());
+    host.hidden = false;
+  } catch (err) {
+    console.warn('[subnet rec] failed', err);
+    host.hidden = true;
+  }
+}
+
+// ── Topology Builder recommendation ──
+// Matches user's weakest topic keywords to scenario IDs. Falls back to
+// Home Network for new users (foundational + has a tour).
+function _pickTopologyRecommendation() {
+  let weak = null;
+  try { weak = (typeof computeWeakSpotScores === 'function') ? computeWeakSpotScores() : null; } catch (_) {}
+
+  // Map common weak-topic keywords → scenario id + display name
+  const matches = [
+    { kw: ['vlan', 'switch', 'spanning'], scen: 'enterprise', name: 'Enterprise w/ IDS + LB' },
+    { kw: ['routing', 'ospf', 'bgp'], scen: 'hub-spoke', name: 'Hub-and-Spoke WAN' },
+    { kw: ['vpn', 'ipsec', 'tunnel'], scen: 's2s-vpn', name: 'Site-to-Site IPsec VPN' },
+    { kw: ['cloud', 'vpc', 'aws'], scen: 'cloud-vpc', name: 'Cloud VPC Architecture' },
+    { kw: ['wireless', 'wifi', 'wlan', 'ap'], scen: 'branch-wireless', name: 'Branch Wireless' },
+    { kw: ['firewall', 'dmz', 'security'], scen: 'dmz', name: 'DMZ / Screened Subnet' },
+    { kw: ['sdwan', 'sd-wan'], scen: 'sdwan', name: 'SD-WAN Network' },
+    { kw: ['mpls'], scen: 'mpls', name: 'MPLS Carrier WAN' },
+    { kw: ['nat', 'natgw'], scen: 'cloud-natgw', name: 'NAT Gateway Cloud' }
+  ];
+
+  if (weak && weak.length > 0) {
+    // Look at top 3 weak topics to find a match
+    for (let i = 0; i < Math.min(3, weak.length); i++) {
+      const topicLower = (weak[i].topic || '').toLowerCase();
+      for (const m of matches) {
+        if (m.kw.some(k => topicLower.includes(k))) {
+          return {
+            eyebrow: 'Suggested scenario',
+            icon: '🏗️',
+            headline: m.name,
+            sub: 'Targets your weak area: ' + escHtml(weak[i].topic),
+            ctaLabel: 'Load scenario →',
+            ctaFn: "tbLoadScenarioWithBuild('" + m.scen + "');",
+            reason: 'Matches your weakest topic · scenario tour included'
+          };
+        }
+      }
+    }
+  }
+
+  // Fallback: foundational scenario
+  return {
+    eyebrow: 'Recommended scenario',
+    icon: '🏠',
+    headline: 'Home Network',
+    sub: 'Foundational SOHO topology · 4-step guided tour included',
+    ctaLabel: 'Load Home Network →',
+    ctaFn: "tbLoadScenarioWithBuild('home-network');",
+    reason: 'Best entry point · click 3D View → Play Tour to learn the basics'
+  };
+}
+
+function renderTopologyRecommendation() {
+  const host = document.getElementById('topology-rec-host');
+  if (!host) return;
+  try {
+    host.innerHTML = _pageRecCard(_pickTopologyRecommendation());
+    host.hidden = false;
+  } catch (err) {
+    console.warn('[topology rec] failed', err);
+    host.hidden = true;
+  }
 }
 
 function renderWrongBankBtn() {
@@ -12509,6 +12806,8 @@ function openTopologyBuilder() {
   tbUpdateDeviceCount();
   tbAttachCanvasHandlers();
   tbAttachKeyHandler();
+  // v4.78.0: surface scenario recommendation matched to weak topics
+  if (typeof renderTopologyRecommendation === 'function') renderTopologyRecommendation();
   // v4.54.5: 3-column layout \u2014 render right pane (always-visible scenarios)
   if (typeof tbRenderV3ScenariosList === 'function') tbRenderV3ScenariosList();
   // v4.54.6: inspector renders into floating popup (#tb-inspector-pop body)
@@ -26892,6 +27191,8 @@ function stDashJumpToCategory(catId) {
 function stRenderDashboard() {
   const el = document.getElementById('st-dashboard-content');
   if (!el) return;
+  // v4.78.0: surface weakest-category recommendation at top of Subnet page
+  if (typeof renderSubnetRecommendation === 'function') renderSubnetRecommendation();
   const m = getSubnetMastery();
   const acc = m.totalAnswered > 0 ? Math.round(m.totalCorrect / m.totalAnswered * 100) : 0;
   const levelPcts = { beginner: 0, intermediate: 33, advanced: 66, expert: 100 };

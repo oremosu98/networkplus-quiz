@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.77.0', js.includes("const APP_VERSION = '4.77.0"));
+test('APP_VERSION is 4.78.0', js.includes("const APP_VERSION = '4.78.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.77.0', sw.includes('netplus-v4.77.0'));
+test('SW cache bumped to v4.78.0', sw.includes('netplus-v4.78.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7373,7 +7373,7 @@ test('v4.60.0 JS: tbSaveDraft refreshes inspector when popup visible',
   /function\s+tbSaveDraft\s*\(\)\s*\{[\s\S]*?getElementById\(['"]tb-inspector-pop['"]\)[\s\S]*?tbRenderV3Inspector\s*\(\)/.test(js));
 test('v4.60.0 JS: tbBindInspectorKeydown defined + wired in openTopologyBuilder',
   /function\s+tbBindInspectorKeydown[\s\S]{0,400}keydown[\s\S]{0,200}Escape/.test(js) &&
-  /openTopologyBuilder[\s\S]{0,1200}tbBindInspectorKeydown/.test(js));
+  /openTopologyBuilder[\s\S]{0,2400}tbBindInspectorKeydown/.test(js));
 test('v4.60.0 JS: device-role helpers defined (_tbInspDeviceIsSwitch + _tbInspDeviceHasL3 + _tbInspDeviceIsDhcpServer)',
   /function\s+_tbInspDeviceIsSwitch\b/.test(js) &&
   /function\s+_tbInspDeviceHasL3\b/.test(js) &&
@@ -7532,7 +7532,7 @@ test('v4.60.1 JS: tbToggleScenarios persists state via STORAGE.TB_RIGHT_COLLAPSE
 test('v4.60.1 JS: tbInitPaneCollapseState defined + reads both STORAGE keys',
   /function\s+tbInitPaneCollapseState\s*\(\)[\s\S]{0,600}getItem\(STORAGE\.TB_LEFT_COLLAPSED\)[\s\S]{0,600}getItem\(STORAGE\.TB_RIGHT_COLLAPSED\)/.test(js));
 test('v4.60.1 JS: openTopologyBuilder calls tbInitPaneCollapseState on mount',
-  /openTopologyBuilder[\s\S]{0,1500}tbInitPaneCollapseState/.test(js));
+  /openTopologyBuilder[\s\S]{0,2400}tbInitPaneCollapseState/.test(js));
 
 test('v4.60.1 HTML: #tb-workspace-v3 id added to workspace',
   /id="tb-workspace-v3"/.test(html));
@@ -8033,7 +8033,7 @@ test('v4.62.1 JS: drag only starts when mousedown is inside .tb-trace-head',
 test('v4.62.1 JS: drag ignores clicks on .tb-trace-close',
   /tbBindTracePanelDrag[\s\S]{0,2000}closest\(['"]\.tb-trace-close['"]\)/.test(js));
 test('v4.62.1 JS: openTopologyBuilder wires the trace-panel drag binding',
-  /openTopologyBuilder[\s\S]{0,1600}tbBindTracePanelDrag/.test(js));
+  /openTopologyBuilder[\s\S]{0,2400}tbBindTracePanelDrag/.test(js));
 test('v4.62.1 CSS: .tb-trace-head has cursor: grab',
   /\.tb-trace-head\s*\{[\s\S]{0,400}cursor:\s*grab/.test(css));
 test('v4.62.1 CSS: .tb-trace-head:active switches to cursor: grabbing',
@@ -9790,6 +9790,65 @@ test('v4.77.0 logic: empty state names the 3 unlocks (weakest topic / readiness 
 test('v4.77.0 CSS: .ana-empty-card styled', css.includes('.ana-empty-card'));
 test('v4.77.0 CSS: .ana-empty-title styled', css.includes('.ana-empty-title'));
 test('v4.77.0 CSS: .ana-empty-cta styled', css.includes('.ana-empty-cta'));
+
+// ══════════════════════════════════════════
+// v4.78.0 — Per-page recommendation cards (Codex round-2 strategic note)
+// "Every page should have one strong recommendation, one primary CTA,
+// then supporting data underneath." Applied to Drills + Progress +
+// Subnet Trainer + Topology Builder.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.78.0 PER-PAGE RECOMMENDATIONS ──\x1b[0m');
+
+// Shared helper
+test('v4.78.0 helper: _pageRecCard returns HTML',
+  /function\s+_pageRecCard\s*\(opts\)/.test(js));
+test('v4.78.0 helper: card includes page-rec-eyebrow + page-rec-headline + page-rec-btn',
+  /_pageRecCard[\s\S]{0,2000}page-rec-eyebrow[\s\S]{0,2000}page-rec-headline[\s\S]{0,2000}page-rec-btn/.test(js));
+
+// Per-page picker functions
+test('v4.78.0: _pickRecommendedDrill defined', /function\s+_pickRecommendedDrill\s*\(/.test(js));
+test('v4.78.0: _pickProgressRecommendation defined', /function\s+_pickProgressRecommendation\s*\(/.test(js));
+test('v4.78.0: _pickSubnetRecommendation defined', /function\s+_pickSubnetRecommendation\s*\(/.test(js));
+test('v4.78.0: _pickTopologyRecommendation defined', /function\s+_pickTopologyRecommendation\s*\(/.test(js));
+
+// Per-page render functions
+test('v4.78.0: renderDrillsRecommendation defined', /function\s+renderDrillsRecommendation\s*\(/.test(js));
+test('v4.78.0: renderProgressRecommendation defined', /function\s+renderProgressRecommendation\s*\(/.test(js));
+test('v4.78.0: renderSubnetRecommendation defined', /function\s+renderSubnetRecommendation\s*\(/.test(js));
+test('v4.78.0: renderTopologyRecommendation defined', /function\s+renderTopologyRecommendation\s*\(/.test(js));
+
+// Render-flow wiring
+test('v4.78.0 wiring: showDrillsPage calls renderDrillsRecommendation',
+  (() => { const body = _fnBody(js, 'showDrillsPage'); return body && /renderDrillsRecommendation/.test(body); })());
+test('v4.78.0 wiring: renderProgressPage calls renderProgressRecommendation',
+  (() => { const body = _fnBody(js, 'renderProgressPage'); return body && /renderProgressRecommendation/.test(body); })());
+test('v4.78.0 wiring: stRenderDashboard calls renderSubnetRecommendation',
+  (() => { const body = _fnBody(js, 'stRenderDashboard'); return body && /renderSubnetRecommendation/.test(body); })());
+test('v4.78.0 wiring: openTopologyBuilder calls renderTopologyRecommendation',
+  (() => { const body = _fnBody(js, 'openTopologyBuilder'); return body && /renderTopologyRecommendation/.test(body); })());
+
+// HTML host elements
+test('v4.78.0 HTML: #drills-rec-host exists', html.includes('id="drills-rec-host"'));
+test('v4.78.0 HTML: #progress-rec-host exists', html.includes('id="progress-rec-host"'));
+test('v4.78.0 HTML: #subnet-rec-host exists', html.includes('id="subnet-rec-host"'));
+test('v4.78.0 HTML: #topology-rec-host exists', html.includes('id="topology-rec-host"'));
+
+// Topology recommendation logic — verify keyword-to-scenario map exists
+test('v4.78.0 logic: topology rec maps "vlan" → enterprise scenario',
+  /_pickTopologyRecommendation[\s\S]{0,3000}vlan[\s\S]{0,200}enterprise/.test(js));
+test('v4.78.0 logic: topology rec maps "vpn" → s2s-vpn scenario',
+  /_pickTopologyRecommendation[\s\S]{0,3000}vpn[\s\S]{0,200}s2s-vpn/.test(js));
+test('v4.78.0 logic: topology rec falls back to home-network for new users',
+  /_pickTopologyRecommendation[\s\S]{0,4000}home-network/.test(js));
+
+// CSS
+test('v4.78.0 CSS: .page-rec-card styled', css.includes('.page-rec-card'));
+test('v4.78.0 CSS: .page-rec-eyebrow inline pill styling',
+  /\.page-rec-eyebrow\s*\{[\s\S]{0,500}border-radius:\s*99px/.test(css));
+test('v4.78.0 CSS: .page-rec-btn white CTA',
+  /\.page-rec-btn\s*\{[\s\S]{0,400}background:\s*#fff/.test(css));
+test('v4.78.0 CSS: reduced-motion gate for .page-rec-btn',
+  /prefers-reduced-motion[\s\S]{0,400}\.page-rec-btn/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
