@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.78.0
+   Network+ AI Quiz — styles.css  v4.79.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13269,6 +13269,30 @@ html { zoom: 1.10; }
   border-color: var(--orange, #fb923c);
 }
 
+/* v4.79.0: Strict Mode toggle inside Exam tier (relocated from retired standalone exam-section) */
+.modes-strict-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(251, 146, 60, 0.06);
+  border: 1px dashed rgba(251, 146, 60, 0.40);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  transition: background 0.18s ease;
+}
+.modes-strict-toggle:hover { background: rgba(251, 146, 60, 0.10); }
+.modes-strict-toggle input[type="checkbox"] {
+  accent-color: var(--orange, #fb923c);
+  width: 14px;
+  height: 14px;
+}
+.modes-strict-toggle .modes-strict-text { color: var(--text-dim); }
+.modes-strict-toggle .modes-strict-text strong { color: var(--orange, #fb923c); }
+
 /* ── 3. Analytics Actionable Headline ── */
 .ana-action-headline {
   margin-bottom: 18px;
@@ -13463,9 +13487,13 @@ html { zoom: 1.10; }
   position: relative;
 }
 .ana-empty-title {
-  margin: 0 0 12px;
-  font-size: 24px;
-  font-weight: 700;
+  /* v4.79.0: bumped to H1-class size per Codex round-3 — when this is
+   * the empty state, this IS the page heading. */
+  margin: 0 0 14px;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
   color: var(--text);
   position: relative;
 }
@@ -13490,3 +13518,45 @@ html { zoom: 1.10; }
   letter-spacing: 0.5px;
   position: relative;
 }
+
+/* v4.79.0: strong "Start Lesson 1" CTAs replacing vague "Select a lesson"
+ * placeholders across all 5 drill landing pages (Subnet/Port/Acronym/OSI/Cable).
+ * Per Codex round-3 review. */
+.st-lesson-placeholder-v2 {
+  text-align: center;
+  padding: 56px 28px 48px;
+  max-width: 480px;
+  margin: 24px auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+.st-lesson-placeholder-v2::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(124, 111, 247, 0.10), transparent 60%);
+  pointer-events: none;
+}
+.st-lesson-placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+  position: relative;
+}
+.st-lesson-placeholder-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  position: relative;
+}
+.st-lesson-placeholder-sub {
+  margin: 0 0 22px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  position: relative;
+}
+.st-lesson-placeholder-v2 .btn { position: relative; font-size: 14px; padding: 10px 22px; }

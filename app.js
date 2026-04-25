@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.78.0
+// Network+ AI Quiz — app.js  v4.79.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.78.0';
+const APP_VERSION = '4.79.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6444,14 +6444,19 @@ function _pickProgressRecommendation() {
   let weak = null;
   try { weak = (typeof computeWeakSpotScores === 'function') ? computeWeakSpotScores() : null; } catch (_) {}
   if (!weak || weak.length === 0) {
+    // v4.79.0: per Codex round-3 — specific starter topic instead of
+    // generic "Take a custom quiz." Network Models & OSI is the
+    // canonical N10-009 starter (Domain 1.1, foundational concept,
+    // every other domain builds on it).
+    const STARTER_TOPIC = 'Network Models & OSI';
     return {
-      eyebrow: 'Recommended next',
-      icon: '📚',
-      headline: 'Take a custom quiz',
-      sub: 'Pick a topic + length to start tracking progress',
-      ctaLabel: 'Build a quiz →',
-      ctaFn: 'goSetup(); _jumpToCustomQuiz();',
-      reason: 'Need a few quizzes to surface weak spots'
+      eyebrow: 'Recommended start',
+      icon: '🚀',
+      headline: 'Start your first ' + STARTER_TOPIC + ' quiz',
+      sub: '10 questions · ~10 min · foundational concept',
+      ctaLabel: 'Start ' + STARTER_TOPIC + ' →',
+      ctaFn: "focusTopic('" + STARTER_TOPIC.replace(/'/g, "\\'") + "');",
+      reason: 'Domain 1.1 · every other topic builds on the OSI model'
     };
   }
   const top = weak[0];
@@ -29869,12 +29874,16 @@ function renderAnalytics() {
   const histPanel = document.getElementById('history-panel');
   if (histPanel) histPanel.classList.add('is-hidden');
   if (h.length < 1) {
-    // v4.77.0: motivational empty state per Codex round-2 review. Replaces
-    // the flat "Complete at least one quiz to see your analytics" with a
-    // specific value-prop + a one-click warmup CTA.
+    // v4.77.0: motivational empty state per Codex round-2 review.
+    // v4.79.0: hide the static page header so the action card BECOMES
+    // the dominant H1 (per Codex round-3 — actionable text should be
+    // the first thing the user sees, not the category label
+    // "Performance analytics.").
+    const pageHead = document.querySelector('#page-analytics > .ed-pagehead');
+    if (pageHead) pageHead.classList.add('is-hidden');
     container.innerHTML = '<div class="ana-empty-card">'
       + '<div class="ana-empty-icon">📊</div>'
-      + '<h2 class="ana-empty-title">Unlock your first insight</h2>'
+      + '<h1 class="ana-empty-title">Unlock your first insight</h1>'
       + '<p class="ana-empty-body">Complete one 5-minute warmup and we\'ll show your '
       + '<strong>weakest topic</strong>, <strong>readiness trend</strong>, and '
       + '<strong>next study move</strong>.</p>'
@@ -29886,6 +29895,9 @@ function renderAnalytics() {
     if (typeof renderAnalyticsActionHeadline === 'function') renderAnalyticsActionHeadline();
     return;
   }
+  // v4.79.0: data path — restore page header (was hidden if user previously hit empty state)
+  const pageHead = document.querySelector('#page-analytics > .ed-pagehead');
+  if (pageHead) pageHead.classList.remove('is-hidden');
   // v4.76.0: surface highest-leverage drill at the top of Analytics
   if (typeof renderAnalyticsActionHeadline === 'function') renderAnalyticsActionHeadline();
   let html = '';
@@ -33470,7 +33482,49 @@ function updateSidebarActiveState(pageName) {
 }
 
 function toggleSidebarMobile() {
-  document.body.classList.toggle('sidebar-open');
+  const open = document.body.classList.toggle('sidebar-open');
+  // v4.79.0: a11y polish per Codex round-3 — when the mobile nav is
+  // closed, mark the sidebar `inert` so screen readers + keyboard nav
+  // skip the off-screen drawer entirely. When open, remove inert so
+  // assistive tech can focus the drawer's links.
+  const sb = document.getElementById('app-sidebar');
+  if (sb) {
+    if (open) {
+      sb.removeAttribute('inert');
+      sb.setAttribute('aria-hidden', 'false');
+    } else {
+      // On wide viewports the sidebar is always visible — only set inert
+      // when we're actually in the mobile drawer regime (<900px).
+      if (window.innerWidth < 900) {
+        sb.setAttribute('inert', '');
+        sb.setAttribute('aria-hidden', 'true');
+      }
+    }
+  }
+  // Sync the toggle button's aria-expanded
+  const tgl = document.getElementById('sb-mobile-toggle');
+  if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+// v4.79.0: initial a11y state for the mobile sidebar — mark it inert on
+// load if we're in the mobile-drawer regime. Re-evaluates on resize so
+// switching from mobile to desktop properly removes inert.
+function _syncSidebarA11y() {
+  const sb = document.getElementById('app-sidebar');
+  if (!sb) return;
+  const isMobile = window.innerWidth < 900;
+  const isOpen = document.body.classList.contains('sidebar-open');
+  if (isMobile && !isOpen) {
+    sb.setAttribute('inert', '');
+    sb.setAttribute('aria-hidden', 'true');
+  } else {
+    sb.removeAttribute('inert');
+    sb.setAttribute('aria-hidden', 'false');
+  }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => { try { _syncSidebarA11y(); } catch (_) {} });
+  window.addEventListener('resize', () => { try { _syncSidebarA11y(); } catch (_) {} });
 }
 
 // ── Focus banner pullquote (setup page) ──

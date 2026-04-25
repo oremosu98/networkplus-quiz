@@ -22,7 +22,7 @@
      stays in sync with showPage(). Mobile: hidden off-screen, opens
      as overlay drawer via .sb-mobile-toggle.
 ══════════════════════════════════════════ -->
-<button type="button" class="sb-mobile-toggle" id="sb-mobile-toggle" aria-label="Open navigation menu" onclick="toggleSidebarMobile()">&#9776;</button>
+<button type="button" class="sb-mobile-toggle" id="sb-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar" onclick="toggleSidebarMobile()">&#9776;</button>
 <aside id="app-sidebar" class="app-sidebar" role="navigation" aria-label="Main navigation">
   <!-- Contents filled by renderAppSidebar() -->
 </aside>
@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.78.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.79.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -358,6 +358,12 @@
           <span class="modes-card-sub">90 questions &middot; 90-min timer &middot; scored 100-900</span>
         </button>
       </div>
+      <!-- v4.79.0: Strict Mode toggle relocated here from the retired
+           standalone exam-section (was duplicating the Full Exam button). -->
+      <label class="modes-strict-toggle" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator — Strict CompTIA conditions">
+        <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
+        <span class="modes-strict-text">&#128293; <strong>Strict Mode</strong> &middot; locked order &middot; no flagging &middot; no navigator</span>
+      </label>
     </div>
   </div>
 
@@ -387,15 +393,10 @@
     </div>
   </div>
 
-  <!-- § 04 Custom Quiz — collapsed by default. Wraps existing v4.50.0 polish pass. -->
-  <div class="ed-section">
-    <div class="ed-section-head">
-      <div class="ed-section-head-left">
-        <span class="ed-section-num">&#167; 04</span>
-        <h3 class="ed-section-title">Custom <em>quiz</em></h3>
-      </div>
-      <div class="ed-section-meta">tune topic, difficulty, length</div>
-    </div>
+  <!-- v4.79.0: §04 Custom Quiz section heading retired per Codex round-3
+       review — the Mode Ladder's "Custom Quiz" tile is now the single
+       entry point. The <details> form below is the implementation that
+       the tile reveals (via _jumpToCustomQuiz). No competing IA. -->
   <details class="card custom-quiz-section" id="custom-quiz-section">
     <summary class="custom-quiz-summary">&#9881;&#65039; Custom Quiz <span class="adv-hint">&middot; Topic, Difficulty &amp; Count</span></summary>
     <div class="custom-quiz-body">
@@ -558,17 +559,14 @@
     </div>
   </details>
   </div>
-  <!-- /§ 04 Custom quiz -->
+  <!-- /Custom quiz -->
 
-  <!-- Exam section -->
-  <div class="exam-section">
-    <button class="btn btn-exam btn-full" onclick="startExam()">&#127358; Simulate Full Exam &mdash; 90Q / 90 min</button>
-    <label class="hardcore-toggle" for="hardcore-checkbox" title="Locked Question Order, No Flagging, No Navigator — Strict CompTIA Conditions">
-      <input type="checkbox" id="hardcore-checkbox" onchange="setHardcoreMode(this.checked)">
-      <span>&#128293; Strict Mode <span class="hardcore-sub">&middot; Locked Order &middot; No Flagging &middot; No Navigator</span></span>
-    </label>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:4px">Timed, no hints, scaled 100-900 score. Pass mark: 720</p>
-  </div>
+  <!-- v4.79.0: standalone "Simulate Full Exam" button + foot copy retired
+       per Codex round-3 review — Mode Ladder's Exam tier is now the sole
+       entry. Strict Mode toggle preserved as a hidden compat shim so any
+       JS code that toggles #hardcore-checkbox still works. The visible
+       Strict Mode toggle now lives inside the Mode Ladder Exam tier. -->
+  <input type="checkbox" id="hardcore-checkbox" onchange="setHardcoreMode(this.checked)" hidden style="display:none">
 
   <!-- v4.54.1: #history-panel moved to Analytics page; #advanced-section Settings moved to #page-settings -->
 
@@ -987,7 +985,13 @@
     <div class="st-learn-layout">
       <nav id="st-lesson-sidebar" class="st-lesson-sidebar" aria-label="Lesson list"></nav>
       <div id="st-lesson-main" class="st-lesson-main">
-        <div class="st-lesson-placeholder">Select a lesson from the sidebar to begin your subnetting journey.</div>
+        <!-- v4.79.0: strong "start now" CTA replaces vague "Select a lesson" per Codex round-3. -->
+        <div class="st-lesson-placeholder st-lesson-placeholder-v2">
+          <div class="st-lesson-placeholder-icon">📐</div>
+          <h2 class="st-lesson-placeholder-title">Start Lesson 1: Binary &amp; Powers of 2</h2>
+          <p class="st-lesson-placeholder-sub">Foundational subnetting math · ~5 min · click any lesson in the sidebar to jump around.</p>
+          <button type="button" class="btn btn-primary" onclick="stOpenLesson(1)">⚡ Start Lesson 1 →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1142,7 +1146,13 @@
     <div class="pt-learn-layout">
       <nav id="pt-lesson-sidebar" class="pt-lesson-sidebar" aria-label="Port lesson list"></nav>
       <div id="pt-lesson-main" class="pt-lesson-main">
-        <div class="pt-lesson-placeholder">Select a lesson from the sidebar to begin mastering your ports.</div>
+        <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
+        <div class="pt-lesson-placeholder pt-lesson-placeholder-v2 st-lesson-placeholder-v2">
+          <div class="st-lesson-placeholder-icon">🔌</div>
+          <h2 class="st-lesson-placeholder-title">Start Lesson 1</h2>
+          <p class="st-lesson-placeholder-sub">Foundational port-protocol pairings · ~5 min · click any lesson in the sidebar to jump around.</p>
+          <button type="button" class="btn btn-primary" onclick="ptOpenLesson(1)">⚡ Start Lesson 1 →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1220,7 +1230,13 @@
     <div class="ab-learn-layout">
       <nav id="ab-lesson-sidebar" class="ab-lesson-sidebar" aria-label="Acronym lesson list"></nav>
       <div id="ab-lesson-main" class="ab-lesson-main">
-        <div class="ab-lesson-placeholder">Select a lesson from the sidebar to begin mastering networking acronyms.</div>
+        <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
+        <div class="ab-lesson-placeholder ab-lesson-placeholder-v2 st-lesson-placeholder-v2">
+          <div class="st-lesson-placeholder-icon">💡</div>
+          <h2 class="st-lesson-placeholder-title">Start Lesson 1</h2>
+          <p class="st-lesson-placeholder-sub">Foundational networking acronyms · ~5 min · click any lesson in the sidebar to jump around.</p>
+          <button type="button" class="btn btn-primary" onclick="abOpenLesson(1)">⚡ Start Lesson 1 →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1274,7 +1290,13 @@
     <div class="os-learn-layout">
       <nav id="os-lesson-sidebar" class="os-lesson-sidebar" aria-label="OSI lesson list"></nav>
       <div id="os-lesson-main" class="os-lesson-main">
-        <div class="os-lesson-placeholder">Select a lesson from the sidebar to learn the 7 OSI layers.</div>
+        <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
+        <div class="os-lesson-placeholder os-lesson-placeholder-v2 st-lesson-placeholder-v2">
+          <div class="st-lesson-placeholder-icon">🌐</div>
+          <h2 class="st-lesson-placeholder-title">Start Lesson 1: Layers 1 &amp; 2</h2>
+          <p class="st-lesson-placeholder-sub">Foundational OSI model · ~5 min · click any lesson in the sidebar to jump around.</p>
+          <button type="button" class="btn btn-primary" onclick="osOpenLesson(1)">⚡ Start Lesson 1 →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1323,7 +1345,13 @@
     <div class="cb-learn-layout">
       <nav id="cb-lesson-sidebar" class="cb-lesson-sidebar" aria-label="Cable lesson list"></nav>
       <div id="cb-lesson-main" class="cb-lesson-main">
-        <div class="cb-lesson-placeholder">Select a lesson from the sidebar to learn cable types and connectors.</div>
+        <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
+        <div class="cb-lesson-placeholder cb-lesson-placeholder-v2 st-lesson-placeholder-v2">
+          <div class="st-lesson-placeholder-icon">🔌</div>
+          <h2 class="st-lesson-placeholder-title">Start Lesson 1: Cat5e/6/6A</h2>
+          <p class="st-lesson-placeholder-sub">Foundational cable types · ~5 min · click any lesson in the sidebar to jump around.</p>
+          <button type="button" class="btn btn-primary" onclick="cbOpenLesson(1)">⚡ Start Lesson 1 →</button>
+        </div>
       </div>
     </div>
   </div>

@@ -477,7 +477,9 @@ test.describe('Exam Button Validation', () => {
     await page.goto('/');
     // v4.54.1: API key is on Settings page; use localStorage for this flow-test
     await page.evaluate(() => localStorage.setItem('nplus_key', ''));
-    await page.locator('#page-setup button:has-text("Simulate Full Exam")').click();
+    // v4.79.0: standalone "Simulate Full Exam" button retired; the
+    // Mode Ladder Exam tier is now the entry point (text "Full Exam Simulator").
+    await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
 
     const err = page.locator('#setup-err');
     await expect(err).toBeVisible();
@@ -491,7 +493,9 @@ test.describe('Exam Button Validation', () => {
       const el = document.getElementById('api-key');
       if (el) el.value = 'bad-key';
     });
-    await page.locator('#page-setup button:has-text("Simulate Full Exam")').click();
+    // v4.79.0: standalone "Simulate Full Exam" button retired; the
+    // Mode Ladder Exam tier is now the entry point (text "Full Exam Simulator").
+    await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
 
     const err = page.locator('#setup-err');
     await expect(err).toBeVisible();

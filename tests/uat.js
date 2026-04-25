@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.78.0', js.includes("const APP_VERSION = '4.78.0"));
+test('APP_VERSION is 4.79.0', js.includes("const APP_VERSION = '4.79.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.78.0', sw.includes('netplus-v4.78.0'));
+test('SW cache bumped to v4.79.0', sw.includes('netplus-v4.79.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -330,7 +330,10 @@ test('hardcore_pass milestone defined', js.includes("id: 'hardcore_pass'"));
 test('hardcore_pass evaluated against history',
   /id:\s*'hardcore_pass'[\s\S]{0,200}e\.hardcore/.test(js));
 test('HTML: hardcore-checkbox', html.includes('id="hardcore-checkbox"'));
-test('HTML: hardcore-toggle label', html.includes('class="hardcore-toggle"'));
+// v4.79.0: legacy .hardcore-toggle label retired — Strict Mode now lives
+// inside Mode Ladder Exam tier as .modes-strict-toggle (Codex round-3).
+test('v4.79.0: Strict Mode toggle present in Mode Ladder Exam tier',
+  html.includes('class="modes-strict-toggle"'));
 test('HTML: exam-hardcore-badge', html.includes('id="exam-hardcore-badge"'));
 test('CSS: .hardcore-toggle', css.includes('.hardcore-toggle'));
 test('CSS: .hardcore-badge', css.includes('.hardcore-badge'));
@@ -1806,7 +1809,9 @@ test('HTML: custom-quiz-section details exists', html.includes('id="custom-quiz-
 test('HTML: topic-group inside custom-quiz-section', html.indexOf('id="topic-group"') > html.indexOf('id="custom-quiz-section"'));
 test('HTML: diff-group inside custom-quiz-section', html.indexOf('id="diff-group"') > html.indexOf('id="custom-quiz-section"'));
 test('HTML: count-group inside custom-quiz-section', html.indexOf('id="count-group"') > html.indexOf('id="custom-quiz-section"'));
-test('HTML: exam-section exists', html.includes('class="exam-section"'));
+// v4.79.0: legacy .exam-section retired (was duplicating Mode Ladder Exam tier per Codex round-3).
+test('v4.79.0 tombstone: legacy .exam-section removed from home',
+  !html.includes('class="exam-section"'));
 test('HTML: setup-err inside custom-quiz-section', html.indexOf('id="setup-err"') > html.indexOf('id="custom-quiz-section"'));
 test('CSS: .today-section styles', css.includes('.today-section'));
 test('CSS: .setup-nav styles', css.includes('.setup-nav'));
@@ -5390,8 +5395,11 @@ test('v4.76.0 HTML: \u00a7 02 retired (Marathon Mode merged into Mode Ladder Pra
   !/&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
 test('v4.53.0 HTML: \u00a7 03 By Domain editorial section head + grid container',
   /&#167;\s*03[\s\S]{0,400}By\s*<em>domain<\/em>/.test(html) && html.includes('id="setup-domain-grid"'));
-test('v4.53.0 HTML: \u00a7 04 Custom Quiz editorial section head',
-  /&#167;\s*04[\s\S]{0,400}Custom\s*<em>quiz<\/em>/.test(html));
+// v4.79.0: \u00a704 Custom Quiz editorial section head retired per Codex
+// round-3 \u2014 Mode Ladder's "Custom Quiz" tile is the single entry point;
+// the <details> form below is the implementation.
+test('v4.79.0 tombstone: \u00a704 "Custom quiz" editorial section head removed',
+  !/&#167;\s*04[\s\S]{0,400}Custom\s*<em>quiz<\/em>/.test(html));
 test('v4.53.0 HTML: pass-mark 720 tick positioned at 62.5% on readiness bar',
   /class="readiness-pass-tick"[\s\S]{0,200}left:\s*62\.5%/.test(html));
 test('v4.53.0 HTML: regression \u2014 old .setup-nav-group 6-button row removed',
@@ -9849,6 +9857,74 @@ test('v4.78.0 CSS: .page-rec-btn white CTA',
   /\.page-rec-btn\s*\{[\s\S]{0,400}background:\s*#fff/.test(css));
 test('v4.78.0 CSS: reduced-motion gate for .page-rec-btn',
   /prefers-reduced-motion[\s\S]{0,400}\.page-rec-btn/.test(css));
+
+// ══════════════════════════════════════════
+// v4.79.0 — Codex round-3 hierarchy tightening
+// 1. Home consolidation — retire §04 heading + standalone exam-section
+// 2. Analytics empty H1 swap — hide page header in empty state
+// 3. Progress fallback → specific starter topic ("Network Models & OSI")
+// 4. Drill placeholders → strong "Start Lesson 1" CTAs (5 drills)
+// 5. A11y — inert closed mobile sidebar + aria-expanded toggle
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.79.0 CODEX ROUND-3 HIERARCHY ──\x1b[0m');
+
+// 1. Home consolidation
+test('v4.79.0 home: §04 Custom Quiz section heading retired',
+  !/&#167;\s*04[\s\S]{0,400}Custom\s*<em>quiz<\/em>/.test(html));
+test('v4.79.0 home: standalone exam-section retired (was duplicating Mode Ladder)',
+  !/<div class="exam-section">[\s\S]{0,800}Simulate Full Exam/.test(html));
+test('v4.79.0 home: legacy #hardcore-checkbox preserved as hidden compat shim',
+  /id="hardcore-checkbox"[^>]*hidden/.test(html));
+test('v4.79.0 home: Strict Mode toggle relocated into Mode Ladder Exam tier',
+  html.includes('id="modes-strict-checkbox"') && html.includes('class="modes-strict-toggle"'));
+test('v4.79.0 home: Strict Mode toggle syncs both checkboxes',
+  /modes-strict-checkbox[\s\S]{0,400}hardcore-checkbox/.test(html));
+test('v4.79.0 CSS: .modes-strict-toggle styled', css.includes('.modes-strict-toggle'));
+
+// 2. Analytics empty H1 swap
+test('v4.79.0 analytics: empty path hides #page-analytics > .ed-pagehead',
+  /renderAnalytics[\s\S]{0,2500}page-analytics[\s\S]{0,400}ed-pagehead[\s\S]{0,200}is-hidden/.test(js));
+test('v4.79.0 analytics: data path restores .ed-pagehead (removes is-hidden)',
+  /renderAnalytics[\s\S]{0,4000}classList\.remove\(['"]is-hidden['"]\)/.test(js));
+test('v4.79.0 analytics: empty title is now an <h1> (was <h2>)',
+  /<h1\s+class="ana-empty-title">/.test(js));
+test('v4.79.0 CSS: .ana-empty-title bumped to H1 sizing (font-size 36px)',
+  /\.ana-empty-title\s*\{[\s\S]{0,500}font-size:\s*36px/.test(css));
+
+// 3. Progress fallback → specific starter topic
+test('v4.79.0 progress: fallback recommends Network Models & OSI specifically',
+  /_pickProgressRecommendation[\s\S]{0,1500}Network Models\s*&\s*OSI/.test(js));
+test('v4.79.0 progress: fallback no longer says "Take a custom quiz" generically',
+  (() => {
+    const body = _fnBody(js, '_pickProgressRecommendation');
+    return body && !/headline:\s*['"]Take a custom quiz['"]/.test(body);
+  })());
+
+// 4. Drill placeholders → strong CTAs
+test('v4.79.0 drill: Subnet "Start Lesson 1: Binary & Powers of 2" CTA',
+  /Start Lesson 1: Binary &amp; Powers of 2/.test(html));
+test('v4.79.0 drill: Port "Start Lesson 1" CTA',
+  /pt-lesson-placeholder-v2[\s\S]{0,500}ptOpenLesson\(1\)/.test(html));
+test('v4.79.0 drill: Acronym "Start Lesson 1" CTA',
+  /ab-lesson-placeholder-v2[\s\S]{0,500}abOpenLesson\(1\)/.test(html));
+test('v4.79.0 drill: OSI "Start Lesson 1" CTA',
+  /os-lesson-placeholder-v2[\s\S]{0,500}osOpenLesson\(1\)/.test(html));
+test('v4.79.0 drill: Cable "Start Lesson 1" CTA',
+  /cb-lesson-placeholder-v2[\s\S]{0,500}cbOpenLesson\(1\)/.test(html));
+test('v4.79.0 drill: legacy "Select a lesson" placeholders no longer appear',
+  !html.includes('Select a lesson from the sidebar to begin'));
+test('v4.79.0 CSS: .st-lesson-placeholder-v2 shared style',
+  /\.st-lesson-placeholder-v2/.test(css));
+
+// 5. A11y polish
+test('v4.79.0 a11y: toggleSidebarMobile sets inert on closed mobile sidebar',
+  /toggleSidebarMobile[\s\S]{0,800}setAttribute\(['"]inert['"]/.test(js));
+test('v4.79.0 a11y: _syncSidebarA11y defined for resize-driven inert sync',
+  /function\s+_syncSidebarA11y\s*\(/.test(js));
+test('v4.79.0 a11y: mobile toggle button has aria-expanded',
+  /id="sb-mobile-toggle"[^>]*aria-expanded/.test(html));
+test('v4.79.0 a11y: mobile toggle button has aria-controls="app-sidebar"',
+  /id="sb-mobile-toggle"[^>]*aria-controls="app-sidebar"/.test(html));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
