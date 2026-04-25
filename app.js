@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.1
+// Network+ AI Quiz — app.js  v4.81.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.1';
+const APP_VERSION = '4.81.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4016,7 +4016,14 @@ const STORAGE = {
   // LAST_DIAGNOSTIC_AT is the cooldown anchor for the 7-day retake gate.
   DIAGNOSTIC: 'nplus_diagnostic',
   LAST_DIAGNOSTIC_AT: 'nplus_last_diagnostic_at',
+  // v4.81.2: Auto-backup safety net. AUTOBACKUP_PREFIX is a *prefix* — actual
+  // keys look like nplus_autobackup_2026-04-25 (one snapshot per day, kept 7
+  // days). LAST_AUTOBACKUP_AT pins the last successful snapshot timestamp.
+  AUTOBACKUP_PREFIX: 'nplus_autobackup_',
+  LAST_AUTOBACKUP_AT: 'nplus_last_autobackup_at',
 };
+// v4.81.2: how many daily snapshots to keep before pruning oldest
+const AUTOBACKUP_KEEP_DAYS = 7;
 
 // ── STATE ──
 let questions  = [];
@@ -4465,6 +4472,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
   if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
   if (typeof renderNextBestMove === 'function') renderNextBestMove();
+  // v4.81.2: take a daily auto-backup. Idempotent — once per day. Catches
+  // any catastrophic corruption (test injection, browser bug, user mishap)
+  // with a rolling 7-day rollback window. Filed in direct response to a
+  // localStorage-corruption incident where this safety net would have
+  // fully recovered the user's state.
+  if (typeof _takeAutoBackup === 'function') _takeAutoBackup();
   initMonitorGesture();
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');
@@ -11080,6 +11093,239 @@ function importData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// ══════════════════════════════════════════
+// v4.81.2: AUTO-BACKUP SAFETY NET
+// ──────────────────────────────────────────
+// Daily rolling snapshot of ALL nplus_* keys (excluding autobackup keys
+// themselves to avoid recursion + theme-only keys we don't care about).
+// Keeps the last AUTOBACKUP_KEEP_DAYS snapshots so any catastrophic
+// corruption can be rolled back. Hook fires on every page load via
+// DOMContentLoaded — but is rate-limited to once per day to avoid
+// excess writes.
+//
+// Filed as the immediate response to a localStorage-corruption incident
+// where test-injected state overwrote real user history. The fix:
+// disciplinary boundary (no test writes to user's prod localStorage)
+// PLUS this safety net so any future corruption is recoverable from
+// yesterday's snapshot.
+// ══════════════════════════════════════════
+
+// Build a snapshot of every nplus_* key currently in localStorage,
+// skipping autobackup-namespace keys + the cooldown anchor.
+function _captureSnapshot() {
+  const snap = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith('nplus_')) continue;
+    if (k.startsWith(STORAGE.AUTOBACKUP_PREFIX)) continue; // don't snapshot snapshots
+    if (k === STORAGE.LAST_AUTOBACKUP_AT) continue;
+    snap[k] = localStorage.getItem(k);
+  }
+  return snap;
+}
+
+// Today's date in YYYY-MM-DD format (local time, not UTC) — used as the
+// per-day snapshot key suffix.
+function _autoBackupTodayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return STORAGE.AUTOBACKUP_PREFIX + y + '-' + m + '-' + day;
+}
+
+// Take today's snapshot if not yet taken. Idempotent — calling twice
+// in the same day is a no-op (existing snapshot kept). Prunes older
+// snapshots beyond AUTOBACKUP_KEEP_DAYS.
+function _takeAutoBackup() {
+  try {
+    const todayKey = _autoBackupTodayKey();
+    if (localStorage.getItem(todayKey)) {
+      // Already snapshotted today — skip.
+      return false;
+    }
+    const snap = _captureSnapshot();
+    if (Object.keys(snap).length === 0) {
+      // Empty state — no point snapshotting.
+      return false;
+    }
+    const payload = {
+      version: (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'unknown',
+      capturedAt: new Date().toISOString(),
+      keyCount: Object.keys(snap).length,
+      snapshot: snap
+    };
+    localStorage.setItem(todayKey, JSON.stringify(payload));
+    localStorage.setItem(STORAGE.LAST_AUTOBACKUP_AT, String(Date.now()));
+    _pruneAutoBackups();
+    return true;
+  } catch (e) {
+    // Storage quota exceeded? Try pruning + retrying once.
+    try {
+      _pruneAutoBackups(true); // aggressive: drop to 3 days on quota error
+      const todayKey = _autoBackupTodayKey();
+      const snap = _captureSnapshot();
+      const payload = {
+        version: (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'unknown',
+        capturedAt: new Date().toISOString(),
+        keyCount: Object.keys(snap).length,
+        snapshot: snap
+      };
+      localStorage.setItem(todayKey, JSON.stringify(payload));
+      localStorage.setItem(STORAGE.LAST_AUTOBACKUP_AT, String(Date.now()));
+      return true;
+    } catch (e2) {
+      console.warn('[autobackup] failed:', e2 && e2.message);
+      return false;
+    }
+  }
+}
+
+// Drop oldest snapshots beyond AUTOBACKUP_KEEP_DAYS. When `aggressive` is
+// true, drop to 3 (used during quota-exceeded recovery).
+function _pruneAutoBackups(aggressive) {
+  const keep = aggressive ? 3 : AUTOBACKUP_KEEP_DAYS;
+  const all = listAutoBackups();
+  if (all.length <= keep) return;
+  // listAutoBackups returns newest first; drop from the tail.
+  all.slice(keep).forEach(b => {
+    try { localStorage.removeItem(b.key); } catch (_) {}
+  });
+}
+
+// List all autobackup snapshots, newest first. Each entry: { key, date, capturedAt, keyCount, version }
+function listAutoBackups() {
+  const out = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(STORAGE.AUTOBACKUP_PREFIX)) continue;
+    try {
+      const raw = localStorage.getItem(k);
+      const parsed = JSON.parse(raw || '{}');
+      out.push({
+        key: k,
+        date: k.slice(STORAGE.AUTOBACKUP_PREFIX.length),
+        capturedAt: parsed.capturedAt || null,
+        keyCount: parsed.keyCount || (parsed.snapshot ? Object.keys(parsed.snapshot).length : 0),
+        version: parsed.version || 'unknown',
+        bytes: raw ? raw.length : 0
+      });
+    } catch (_) { /* skip malformed */ }
+  }
+  out.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return out;
+}
+
+// Restore from a snapshot date (e.g. '2026-04-25'). Confirms with user
+// before destructive overwrite, then atomically replaces all nplus_*
+// keys with the snapshot's values.
+function restoreFromAutoBackup(dateOrKey) {
+  const key = dateOrKey.startsWith(STORAGE.AUTOBACKUP_PREFIX) ? dateOrKey : (STORAGE.AUTOBACKUP_PREFIX + dateOrKey);
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    showToast('Snapshot not found', 'error');
+    return false;
+  }
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { showToast('Snapshot is corrupted', 'error'); return false; }
+  const snap = parsed.snapshot || {};
+  const count = Object.keys(snap).length;
+  const date = key.slice(STORAGE.AUTOBACKUP_PREFIX.length);
+  if (!confirm('Restore from snapshot of ' + date + ' (' + count + ' keys)? Your current state will be overwritten — but this snapshot WILL itself become a new backup before restore so you can roll forward.')) {
+    return false;
+  }
+  // Snapshot the CURRENT state under a "pre-restore" key so the user
+  // can roll back if the restore makes things worse.
+  try {
+    const preRestoreKey = STORAGE.AUTOBACKUP_PREFIX + 'pre-restore-' + Date.now();
+    const cur = _captureSnapshot();
+    const curPayload = {
+      version: (typeof APP_VERSION !== 'undefined') ? APP_VERSION : 'unknown',
+      capturedAt: new Date().toISOString(),
+      keyCount: Object.keys(cur).length,
+      snapshot: cur,
+      note: 'pre-restore safety snapshot'
+    };
+    localStorage.setItem(preRestoreKey, JSON.stringify(curPayload));
+  } catch (_) { /* don't block restore on this */ }
+  // Now wipe every nplus_* key (except autobackup namespace + cooldown)
+  const toDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith('nplus_')) continue;
+    if (k.startsWith(STORAGE.AUTOBACKUP_PREFIX)) continue;
+    if (k === STORAGE.LAST_AUTOBACKUP_AT) continue;
+    toDelete.push(k);
+  }
+  toDelete.forEach(k => localStorage.removeItem(k));
+  // And write the snapshot's keys back
+  Object.keys(snap).forEach(k => {
+    try { localStorage.setItem(k, snap[k]); } catch (_) {}
+  });
+  showToast('Restored ' + count + ' keys from ' + date, 'success');
+  setTimeout(() => location.reload(), 600);
+  return true;
+}
+
+// Download the most recent snapshot as a JSON file. If no snapshot exists
+// yet, takes one inline first.
+function downloadAutoBackup(dateOrKey) {
+  let key = dateOrKey;
+  if (!key) {
+    const all = listAutoBackups();
+    if (all.length === 0) {
+      _takeAutoBackup();
+      const fresh = listAutoBackups();
+      if (fresh.length === 0) { showToast('No backup to download', 'error'); return; }
+      key = fresh[0].key;
+    } else {
+      key = all[0].key;
+    }
+  } else if (!key.startsWith(STORAGE.AUTOBACKUP_PREFIX)) {
+    key = STORAGE.AUTOBACKUP_PREFIX + key;
+  }
+  const raw = localStorage.getItem(key);
+  if (!raw) { showToast('Snapshot not found', 'error'); return; }
+  const blob = new Blob([raw], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'networkplus-autobackup-' + key.slice(STORAGE.AUTOBACKUP_PREFIX.length) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Render the Backup History list inside the Settings page. Shows each
+// snapshot as a row with date + size + Restore + Download buttons.
+function renderAutoBackupList() {
+  const host = document.getElementById('autobackup-list');
+  if (!host) return;
+  const all = listAutoBackups();
+  if (all.length === 0) {
+    host.innerHTML = '<div class="ab-empty">No automatic backups yet — one will be created on your next page load.</div>';
+    return;
+  }
+  host.innerHTML = all.map(b => {
+    const sizeKb = (b.bytes / 1024).toFixed(1);
+    const captured = b.capturedAt ? new Date(b.capturedAt).toLocaleString() : b.date;
+    const isPreRestore = /pre-restore-/.test(b.date);
+    const dateLabel = isPreRestore ? 'Pre-restore safety (' + new Date(parseInt(b.date.replace('pre-restore-', ''), 10)).toLocaleString() + ')' : b.date;
+    return '<div class="ab-row">' +
+      '<div class="ab-row-info">' +
+      '<div class="ab-row-date">' + escHtml(dateLabel) + '</div>' +
+      '<div class="ab-row-meta">' + b.keyCount + ' keys · ' + sizeKb + ' KB · ' + escHtml(b.version) + ' · captured ' + escHtml(captured) + '</div>' +
+      '</div>' +
+      '<div class="ab-row-actions">' +
+      '<button class="btn btn-sm btn-ghost" onclick="downloadAutoBackup(\'' + b.key + '\')" aria-label="Download this snapshot">📥 Download</button>' +
+      '<button class="btn btn-sm" onclick="restoreFromAutoBackup(\'' + b.key + '\')" aria-label="Restore from this snapshot">↩ Restore</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -34423,6 +34669,9 @@ function renderSettingsPage() {
   if (typeof syncSettingsDailyGoal === 'function') syncSettingsDailyGoal();
   // v4.54.16: render the exam-date chip using the shared _buildExamDateChipHtml helper
   if (typeof syncSettingsExamDate === 'function') syncSettingsExamDate();
+  // v4.81.2: refresh the auto-backup list every time Settings opens so the
+  // user sees what's available + can restore/download from any snapshot.
+  if (typeof renderAutoBackupList === 'function') renderAutoBackupList();
 }
 
 // v4.54.16: render the exam-date chip on the Settings page. Reuses the

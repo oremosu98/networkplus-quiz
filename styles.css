@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.1
+   Network+ AI Quiz — styles.css  v4.81.2
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14160,4 +14160,53 @@ html { zoom: 1.10; }
 @media (prefers-reduced-motion: reduce) {
   .diag-quiz-progress-fill { transition: width .01ms linear !important; }
   .diag-conf-tier { transition: none !important; }
+}
+
+/* ── v4.81.2: Auto-backup safety net (Settings page list) ── */
+.autobackup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.ab-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 12px 0;
+  text-align: center;
+  font-style: italic;
+}
+.ab-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.ab-row-info { flex: 1; min-width: 0; }
+.ab-row-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'SF Mono', Monaco, monospace;
+}
+.ab-row-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.ab-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.ab-row-actions .btn {
+  padding: 6px 12px !important;
+  font-size: 11px !important;
+}
+.btn-sm { padding: 6px 12px !important; font-size: 11px !important; }
+@media (max-width: 540px) {
+  .ab-row { flex-direction: column; align-items: stretch; }
+  .ab-row-actions { width: 100%; }
+  .ab-row-actions .btn { flex: 1; }
 }

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.1', js.includes("const APP_VERSION = '4.81.1"));
+test('APP_VERSION is 4.81.2', js.includes("const APP_VERSION = '4.81.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.1', sw.includes('netplus-v4.81.1'));
+test('SW cache bumped to v4.81.2', sw.includes('netplus-v4.81.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5661,8 +5661,10 @@ console.log('\n\x1b[1m── v4.54.1 LAYOUT CLEANUP ──\x1b[0m');
 // HTML
 test('v4.54.1 HTML: #page-settings exists',
   html.includes('id="page-settings"'));
+// v4.81.2: window bumped 800 → 2500 chars after the auto-backup section was
+// added between Import Data and Clear Wrong Bank.
 test('v4.54.1 (v4.54.16 update) HTML: settings has API key + Exam Date + Daily Goal + Export/Import + Clear Wrong Bank',
-  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,5000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,800}clearWrongBank/.test(html));
+  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,5000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,2500}clearWrongBank/.test(html));
 test('v4.54.1 HTML: #history-panel moved to #page-analytics',
   /id="page-analytics"[\s\S]{0,1500}id="history-panel"/.test(html));
 test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
@@ -10130,6 +10132,110 @@ test('v4.81.1: DOMContentLoaded calls renderSrReviewCard on first paint',
   /DOMContentLoaded[\s\S]{0,2500}renderSrReviewCard\b/.test(js));
 test('v4.81.1: DOMContentLoaded calls renderDiagnosticSurface on first paint',
   /DOMContentLoaded[\s\S]{0,2500}renderDiagnosticSurface\b/.test(js));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.2: Auto-backup safety net
+// ──────────────────────────────────────────────────────────
+// Filed in direct response to a localStorage-corruption incident where
+// test-injected state overwrote a user's quiz history + streak + exam
+// date. This safety net snapshots every nplus_* key once per day and
+// keeps a rolling 7-day window so any catastrophic corruption is
+// recoverable.
+test('v4.81.2 Backup: STORAGE.AUTOBACKUP_PREFIX declared',
+  /AUTOBACKUP_PREFIX:\s*['"]nplus_autobackup_['"]/.test(js));
+test('v4.81.2 Backup: STORAGE.LAST_AUTOBACKUP_AT declared',
+  /LAST_AUTOBACKUP_AT:\s*['"]nplus_last_autobackup_at['"]/.test(js));
+test('v4.81.2 Backup: AUTOBACKUP_KEEP_DAYS = 7',
+  /const\s+AUTOBACKUP_KEEP_DAYS\s*=\s*7/.test(js));
+
+// Function existence
+test('v4.81.2 Backup: _captureSnapshot function defined',
+  /function\s+_captureSnapshot\b/.test(js));
+test('v4.81.2 Backup: _autoBackupTodayKey function defined',
+  /function\s+_autoBackupTodayKey\b/.test(js));
+test('v4.81.2 Backup: _takeAutoBackup function defined',
+  /function\s+_takeAutoBackup\b/.test(js));
+test('v4.81.2 Backup: _pruneAutoBackups function defined',
+  /function\s+_pruneAutoBackups\b/.test(js));
+test('v4.81.2 Backup: listAutoBackups function defined',
+  /function\s+listAutoBackups\b/.test(js));
+test('v4.81.2 Backup: restoreFromAutoBackup function defined',
+  /function\s+restoreFromAutoBackup\b/.test(js));
+test('v4.81.2 Backup: downloadAutoBackup function defined',
+  /function\s+downloadAutoBackup\b/.test(js));
+test('v4.81.2 Backup: renderAutoBackupList function defined',
+  /function\s+renderAutoBackupList\b/.test(js));
+
+// Wiring checks
+test('v4.81.2 Backup: DOMContentLoaded calls _takeAutoBackup',
+  /DOMContentLoaded[\s\S]{0,2500}_takeAutoBackup\b/.test(js));
+test('v4.81.2 Backup: renderSettingsPage calls renderAutoBackupList',
+  (() => {
+    const body = _fnBody(js, 'renderSettingsPage');
+    return body && /renderAutoBackupList\b/.test(body);
+  })());
+test('v4.81.2 Backup: _captureSnapshot excludes autobackup-namespace keys (no recursion)',
+  (() => {
+    const body = _fnBody(js, '_captureSnapshot');
+    return body && /AUTOBACKUP_PREFIX/.test(body) && /continue/.test(body);
+  })());
+test('v4.81.2 Backup: restoreFromAutoBackup snapshots current state pre-restore (rollback safety)',
+  (() => {
+    const body = _fnBody(js, 'restoreFromAutoBackup');
+    return body && /pre-restore/i.test(body);
+  })());
+
+// Behavioral fixture — round-trip a synthetic snapshot and verify restore
+test('v4.81.2 Backup: snapshot round-trip preserves keys (vm fixture)',
+  (() => {
+    try {
+      const captureBody = _fnBody(js, '_captureSnapshot');
+      if (!captureBody) return false;
+      const vm = require('vm');
+      // In-memory localStorage shim
+      const store = {};
+      const localStorage = {
+        get length() { return Object.keys(store).length; },
+        key(i) { return Object.keys(store)[i]; },
+        getItem(k) { return store[k] === undefined ? null : store[k]; },
+        setItem(k, v) { store[k] = String(v); },
+        removeItem(k) { delete store[k]; }
+      };
+      const ctx = {
+        STORAGE: { AUTOBACKUP_PREFIX: 'nplus_autobackup_', LAST_AUTOBACKUP_AT: 'nplus_last_autobackup_at' },
+        localStorage,
+        Math, Date, JSON
+      };
+      vm.createContext(ctx);
+      // Plant test data
+      store['nplus_history'] = '[{"a":1}]';
+      store['nplus_streak'] = '{"current":3}';
+      store['nplus_autobackup_2026-04-24'] = '{"snapshot":{"old":"x"}}';
+      store['unrelated_key'] = 'should-not-be-captured';
+      vm.runInContext(captureBody, ctx);
+      const snap = vm.runInContext('_captureSnapshot()', ctx);
+      // Should include nplus_history + nplus_streak, EXCLUDE autobackup key + unrelated
+      return snap.nplus_history === '[{"a":1}]'
+        && snap.nplus_streak === '{"current":3}'
+        && !('nplus_autobackup_2026-04-24' in snap)
+        && !('unrelated_key' in snap)
+        && Object.keys(snap).length === 2;
+    } catch (e) { return false; }
+  })());
+
+// HTML structural checks
+test('v4.81.2 Backup: Settings page has #autobackup-list',
+  /id="autobackup-list"/.test(html));
+test('v4.81.2 Backup: Settings page has Snapshot now button',
+  /Snapshot\s+now/i.test(html));
+test('v4.81.2 Backup: Settings page has Download latest snapshot button',
+  /Download\s+latest\s+snapshot/i.test(html));
+
+// CSS structural checks
+test('v4.81.2 Backup: .autobackup-list style declared',
+  /\.autobackup-list\s*\{/.test(css));
+test('v4.81.2 Backup: .ab-row style declared',
+  /\.ab-row\s*\{/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
