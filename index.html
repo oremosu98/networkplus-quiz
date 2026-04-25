@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.74.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.75.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1002,7 +1002,33 @@
       <span class="drills-tile-title">Cable ID</span>
       <span class="drills-tile-sub">Cat5e/6/6a/7/8, fiber, coax, console</span>
     </button>
+    <!-- v4.75.0: ACL Ordering PBQ — first new performance-based-question
+         format. Drag firewall rules into priority order, send test traffic,
+         see what's allowed/denied. Closest to real CompTIA exam PBQs. -->
+    <button type="button" class="drills-tile drills-tile-pbq" onclick="openAclPbqPicker()">
+      <span class="drills-tile-icon">&#128737;&#65039;</span>
+      <span class="drills-tile-title">ACL Ordering <span class="drills-tile-pbq-badge">PBQ</span></span>
+      <span class="drills-tile-sub">Order firewall rules &middot; Test traffic &middot; Real exam format</span>
+    </button>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     v4.75.0 — ACL ORDERING PBQ PAGE
+     Performance-based question: order firewall rules to satisfy a goal,
+     then send test traffic and verify allow/deny matches expectation.
+═══════════════════════════════════════════ -->
+<div id="page-acl-pbq" class="page">
+  <div class="ed-pagehead">
+    <button class="btn btn-ghost ed-pagehead-back" id="acl-pbq-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Back</button>
+    <div class="ed-pagehead-body">
+      <div class="ed-pagehead-eyebrow">Performance-based question &middot; ACL Ordering</div>
+      <h1 class="ed-pagehead-display">Firewall <em>order.</em></h1>
+      <p class="ed-pagehead-lede">Drag rules into priority order, then send test traffic to verify. Real exam format.</p>
+    </div>
+  </div>
+  <div id="acl-pbq-picker"></div>
+  <div id="acl-pbq-host"></div>
 </div>
 
 <!-- ══════════════════════════════════════════

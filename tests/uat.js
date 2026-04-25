@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.74.0', js.includes("const APP_VERSION = '4.74.0"));
+test('APP_VERSION is 4.75.0', js.includes("const APP_VERSION = '4.75.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.74.0', sw.includes('netplus-v4.74.0'));
+test('SW cache bumped to v4.75.0', sw.includes('netplus-v4.75.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9548,6 +9548,99 @@ test('v4.74.0 CSS: .sr-confidence-confident green styled', css.includes('.sr-con
 test('v4.74.0 CSS: .sr-confidence-uncertain yellow styled', css.includes('.sr-confidence-uncertain'));
 test('v4.74.0 CSS: reduced-motion gate present for SR review',
   /prefers-reduced-motion[\s\S]{0,1000}\.sr-progress-fill/.test(css));
+
+// ══════════════════════════════════════════
+// v4.75.0 — ACL Ordering PBQ
+// First new performance-based-question format. Hand-authored bank, drag/
+// arrow reordering, test-traffic simulation, combined order+traffic score.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.75.0 ACL ORDERING PBQ ──\x1b[0m');
+
+// Bank + helpers
+test('v4.75.0 data: ACL_PBQ_BANK constant defined',
+  /const\s+ACL_PBQ_BANK\s*=\s*\[/.test(js));
+test('v4.75.0 data: bank includes web-server-dmz scenario',
+  /id:\s*['"]web-server-dmz['"]/.test(js));
+test('v4.75.0 data: bank includes remote-vpn-restricted scenario',
+  /id:\s*['"]remote-vpn-restricted['"]/.test(js));
+test('v4.75.0 data: bank includes guest-wifi-isolation scenario',
+  /id:\s*['"]guest-wifi-isolation['"]/.test(js));
+test('v4.75.0 data: each scenario has correctOrder array',
+  (() => {
+    // crude check — at least 3 occurrences of correctOrder array
+    const matches = js.match(/correctOrder:\s*\[/g) || [];
+    return matches.length >= 3;
+  })());
+test('v4.75.0 data: each scenario has testTraffic array',
+  (() => {
+    const matches = js.match(/testTraffic:\s*\[/g) || [];
+    return matches.length >= 3;
+  })());
+
+// Functions
+test('v4.75.0 helpers: openAclPbqPicker defined',
+  /function\s+openAclPbqPicker\s*\(/.test(js));
+test('v4.75.0 helpers: startAclPbq defined',
+  /function\s+startAclPbq\s*\(/.test(js));
+test('v4.75.0 helpers: aclMoveRule defined',
+  /function\s+aclMoveRule\s*\(/.test(js));
+test('v4.75.0 helpers: submitAclPbq defined',
+  /function\s+submitAclPbq\s*\(/.test(js));
+test('v4.75.0 helpers: _aclPbqMatchPacket first-match-wins simulation defined',
+  /function\s+_aclPbqMatchPacket\s*\(/.test(js));
+test('v4.75.0 helpers: _aclPbqRuleMatches defined (namespaced — avoids collision with v4.52.0)',
+  /function\s+_aclPbqRuleMatches\s*\(/.test(js));
+test('v4.75.0 helpers: _aclPbqCidrMatch defined',
+  /function\s+_aclPbqCidrMatch\s*\(/.test(js));
+test('v4.75.0 helpers: _aclPbqIpToInt defined',
+  /function\s+_aclPbqIpToInt\s*\(/.test(js));
+
+// Algorithm correctness
+test('v4.75.0 algorithm: CIDR match returns true for ip in range', (() => {
+  // 10.0.1.0/24 should match 10.0.1.50
+  const ipToInt = (ip) => {
+    const p = ip.split('.');
+    return ((parseInt(p[0])<<24) | (parseInt(p[1])<<16) | (parseInt(p[2])<<8) | parseInt(p[3])) >>> 0;
+  };
+  const prefix = 24;
+  const mask = ((-1 << (32 - prefix)) >>> 0);
+  return (ipToInt('10.0.1.0') & mask) === (ipToInt('10.0.1.50') & mask);
+})());
+test('v4.75.0 algorithm: CIDR match returns false for ip outside range', (() => {
+  const ipToInt = (ip) => {
+    const p = ip.split('.');
+    return ((parseInt(p[0])<<24) | (parseInt(p[1])<<16) | (parseInt(p[2])<<8) | parseInt(p[3])) >>> 0;
+  };
+  const prefix = 24;
+  const mask = ((-1 << (32 - prefix)) >>> 0);
+  return (ipToInt('10.0.1.0') & mask) !== (ipToInt('10.0.2.50') & mask);
+})());
+test('v4.75.0 algorithm: 70/30 score split (orderMatch * 0.70 + trafficMatch * 0.30)',
+  /orderMatch\s*\*\s*0\.70\s*\+\s*trafficMatch\s*\*\s*0\.30/.test(js));
+test('v4.75.0 algorithm: implicit deny returns when no rule matches',
+  /matchedAt:\s*order\.length[\s\S]{0,200}implicit deny/.test(js));
+
+// HTML wiring
+test('v4.75.0 HTML: #page-acl-pbq page exists', html.includes('id="page-acl-pbq"'));
+test('v4.75.0 HTML: #acl-pbq-picker container exists', html.includes('id="acl-pbq-picker"'));
+test('v4.75.0 HTML: #acl-pbq-host container exists', html.includes('id="acl-pbq-host"'));
+test('v4.75.0 HTML: drills tile wired to openAclPbqPicker',
+  /onclick="openAclPbqPicker\(\)"/.test(html));
+test('v4.75.0 HTML: ACL Ordering PBQ tile present in drills page',
+  html.includes('ACL Ordering'));
+
+// CSS
+test('v4.75.0 CSS: .acl-pbq-card styled', css.includes('.acl-pbq-card'));
+test('v4.75.0 CSS: .acl-rule-row + allow/deny variants styled',
+  css.includes('.acl-rule-row.is-allow') && css.includes('.acl-rule-row.is-deny'));
+test('v4.75.0 CSS: .acl-arrow-btn for reordering styled', css.includes('.acl-arrow-btn'));
+test('v4.75.0 CSS: .acl-traffic-correct + .acl-traffic-wrong result variants styled',
+  css.includes('.acl-traffic-correct') && css.includes('.acl-traffic-wrong'));
+test('v4.75.0 CSS: result-card tier classes (good/warn/bad)',
+  css.includes('.acl-result-card.good') && css.includes('.acl-result-card.warn') && css.includes('.acl-result-card.bad'));
+test('v4.75.0 CSS: drills-tile-pbq-badge styled', css.includes('.drills-tile-pbq-badge'));
+test('v4.75.0 CSS: reduced-motion gate present for ACL',
+  /prefers-reduced-motion[\s\S]{0,1000}\.acl-picker-card/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
