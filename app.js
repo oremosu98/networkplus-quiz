@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.75.0
+// Network+ AI Quiz — app.js  v4.75.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.75.0';
+const APP_VERSION = '4.75.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -33320,29 +33320,99 @@ function renderReadinessCardV2() {
   const barEl = document.getElementById('rc-v2-bar-fill');
   const deltaEl = document.getElementById('rc-v2-delta');
   const card = document.getElementById('readiness-card-v2');
+  // v4.73.0: prediction extras
+  const predEl = document.getElementById('rc-v2-prediction');
+  const whatIfEl = document.getElementById('rc-v2-whatif');
+  const whatIfRow = document.getElementById('rc-v2-whatif-row');
+  const trajEl = document.getElementById('rc-v2-trajectory');
+
   if (!numEl || !barEl || !deltaEl || !card) return;
   const history = (typeof loadHistory === 'function') ? loadHistory() : [];
   if (history.length === 0 || typeof getReadinessScore !== 'function') {
     numEl.textContent = '\u2014';
     barEl.style.width = '0%';
     deltaEl.textContent = 'first quiz pending';
+    if (predEl) predEl.hidden = true;
+    if (whatIfEl) whatIfEl.hidden = true;
+    if (trajEl) trajEl.hidden = true;
     return;
   }
   try {
-    // getReadinessScore returns { predicted, raw, ... } \u2014 use `predicted` (the 100-900 scaled score)
+    // getReadinessScore returns { predicted, raw, ciHalfWidth, passProbability, whatIf, ... }
     const r = getReadinessScore();
     if (r && typeof r.predicted === 'number') {
       numEl.textContent = r.predicted;
-      // Bar spans 420-870 range (matches the rest of the app's scale)
       const pct = Math.max(0, Math.min(100, ((r.predicted - 420) / 450) * 100));
       barEl.style.width = pct + '%';
-      // Delta is optional (no 7-day delta currently returned by getReadinessScore)
-      deltaEl.textContent = '';
+
+      // v4.73.0: prediction line \u2014 pass probability + CI inside the dark card
+      if (predEl && typeof r.passProbability === 'number') {
+        const probPct = Math.round(r.passProbability * 100);
+        let probClass = 'high';
+        if (probPct < 50) probClass = 'low';
+        else if (probPct < 80) probClass = 'med';
+        predEl.innerHTML = '<span class="prob ' + probClass + '">'
+          + probPct + '% pass probability</span>'
+          + '<span class="ci">\u00b1 ' + r.ciHalfWidth + ' pts</span>';
+        predEl.hidden = false;
+      } else if (predEl) {
+        predEl.hidden = true;
+      }
+
+      // Delta line (compact): show range under bar
+      if (typeof r.lowerBound === 'number' && typeof r.upperBound === 'number') {
+        deltaEl.textContent = 'range ' + r.lowerBound + '\u2013' + r.upperBound;
+      } else {
+        deltaEl.textContent = '';
+      }
+
+      // v4.73.0: what-if chips below the dark card
+      if (whatIfEl && whatIfRow && Array.isArray(r.whatIf) && r.whatIf.length > 0) {
+        whatIfRow.innerHTML = r.whatIf.map(w => {
+          const safeTopic = (w.topic || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return '<button type="button" class="rc-v2-whatif-chip" '
+            + 'onclick="focusTopic(\'' + safeTopic + '\')" '
+            + 'title="Drill ' + escHtml(w.topic) + ' to push your score up">'
+            + '<span class="pts">+' + w.deltaPredicted + ' pts</span>'
+            + '<span class="topic">' + escHtml(w.topic) + '</span>'
+            + '<span class="delta">' + w.currentPct + '% \u2192 80%</span>'
+            + '</button>';
+        }).join('');
+        whatIfEl.hidden = false;
+      } else if (whatIfEl) {
+        whatIfEl.hidden = true;
+      }
+
+      // v4.73.0: trajectory line below the chips
+      if (trajEl) {
+        if (r.daysToExam !== null && r.daysToExam !== undefined) {
+          if (r.targetGap > 0) {
+            const cls = r.targetGap > 60 ? 'warn' : (r.targetGap > 20 ? 'mid' : 'good');
+            trajEl.innerHTML = '\u23f0 <strong>' + r.daysToExam + ' days</strong> to exam &middot; '
+              + 'need <strong>+' + r.targetGap + ' pts</strong> for confident pass';
+            trajEl.className = 'rc-v2-trajectory ' + cls;
+            trajEl.hidden = false;
+          } else {
+            trajEl.innerHTML = '\u2705 <strong>' + r.daysToExam + ' days</strong> to exam &middot; '
+              + 'already confidently above pass.';
+            trajEl.className = 'rc-v2-trajectory good';
+            trajEl.hidden = false;
+          }
+        } else {
+          trajEl.hidden = true;
+        }
+      }
     } else {
       numEl.textContent = '\u2014';
+      if (predEl) predEl.hidden = true;
+      if (whatIfEl) whatIfEl.hidden = true;
+      if (trajEl) trajEl.hidden = true;
     }
   } catch (_) {
     numEl.textContent = '\u2014';
+    if (predEl) predEl.hidden = true;
+    if (whatIfEl) whatIfEl.hidden = true;
+    if (trajEl) trajEl.hidden = true;
   }
 }
 

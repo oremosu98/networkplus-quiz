@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.75.0
+   Network+ AI Quiz — styles.css  v4.75.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7348,6 +7348,135 @@ body.sidebar-collapsed .app-sidebar { transform: translateX(-100%); }
   letter-spacing: .03em;
 }
 .rc-v2-delta { color: var(--citron, #f59e0b); font-weight: 700; }
+
+/* v4.73.0: prediction line inside the dark Hero V2 readiness card.
+ * Sits between the score and the bar. Compact, monospace.
+ */
+.rc-v2-prediction {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin: 6px 0 10px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  gap: 8px;
+}
+.rc-v2-prediction .prob { font-weight: 700; }
+.rc-v2-prediction .prob.high { color: #4ade80; }
+.rc-v2-prediction .prob.med { color: #fbbf24; }
+.rc-v2-prediction .prob.low { color: #f87171; }
+.rc-v2-prediction .ci {
+  color: rgba(250, 250, 255, 0.55);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* v4.73.0: what-if chips below the dark card. Lives in the hero aside,
+ * styled to look like a connected continuation of the readiness card. */
+.rc-v2-whatif {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+}
+.rc-v2-whatif-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.rc-v2-whatif-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rc-v2-whatif-chip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(124, 111, 247, 0.10);
+  border: 1px solid rgba(124, 111, 247, 0.32);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+}
+.rc-v2-whatif-chip:hover {
+  background: rgba(124, 111, 247, 0.20);
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+.rc-v2-whatif-chip .pts {
+  color: var(--green);
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.rc-v2-whatif-chip .topic {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-v2-whatif-chip .delta {
+  color: var(--text-dim);
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+}
+
+/* v4.73.0: trajectory line below the what-if chips */
+.rc-v2-trajectory {
+  margin-top: 8px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-dim);
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.rc-v2-trajectory strong { color: var(--text); }
+.rc-v2-trajectory.warn {
+  color: var(--orange, #fb923c);
+  background: rgba(251, 146, 60, 0.10);
+  border-color: rgba(251, 146, 60, 0.32);
+}
+.rc-v2-trajectory.warn strong { color: var(--orange, #fb923c); }
+.rc-v2-trajectory.mid {
+  color: var(--yellow, #fbbf24);
+  background: rgba(251, 191, 36, 0.10);
+  border-color: rgba(251, 191, 36, 0.32);
+}
+.rc-v2-trajectory.mid strong { color: var(--yellow, #fbbf24); }
+.rc-v2-trajectory.good {
+  color: var(--green, #4ade80);
+  background: rgba(34, 197, 94, 0.10);
+  border-color: rgba(34, 197, 94, 0.32);
+}
+.rc-v2-trajectory.good strong { color: var(--green, #4ade80); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-v2-whatif-chip { transition: none !important; }
+  .rc-v2-whatif-chip:hover { transform: none !important; }
+}
 .rc-v2-empty {
   position: relative;
   font-size: 13px;

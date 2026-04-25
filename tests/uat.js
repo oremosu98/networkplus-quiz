@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.75.0', js.includes("const APP_VERSION = '4.75.0"));
+test('APP_VERSION is 4.75.1', js.includes("const APP_VERSION = '4.75.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.75.0', sw.includes('netplus-v4.75.0'));
+test('SW cache bumped to v4.75.1', sw.includes('netplus-v4.75.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9641,6 +9641,34 @@ test('v4.75.0 CSS: result-card tier classes (good/warn/bad)',
 test('v4.75.0 CSS: drills-tile-pbq-badge styled', css.includes('.drills-tile-pbq-badge'));
 test('v4.75.0 CSS: reduced-motion gate present for ACL',
   /prefers-reduced-motion[\s\S]{0,1000}\.acl-picker-card/.test(css));
+
+// ══════════════════════════════════════════
+// v4.75.1 — Pass-Rate Prediction surfaced in HeroV2 (visible homepage layout)
+// v4.73.0 added prediction to legacy #readiness-card but the homepage uses
+// HeroV2 layout which hides that. Surface the prediction in the visible
+// dark readiness card + below-card what-if chips + trajectory.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.75.1 PREDICTION IN HERO V2 ──\x1b[0m');
+test('v4.75.1 HTML: #rc-v2-prediction element exists in HeroV2 card',
+  html.includes('id="rc-v2-prediction"'));
+test('v4.75.1 HTML: #rc-v2-whatif container exists',
+  html.includes('id="rc-v2-whatif"'));
+test('v4.75.1 HTML: #rc-v2-whatif-row chip slot exists',
+  html.includes('id="rc-v2-whatif-row"'));
+test('v4.75.1 HTML: #rc-v2-trajectory line exists',
+  html.includes('id="rc-v2-trajectory"'));
+test('v4.75.1 wiring: renderReadinessCardV2 populates rc-v2-prediction',
+  /renderReadinessCardV2[\s\S]{0,5000}rc-v2-prediction/.test(js));
+test('v4.75.1 wiring: renderReadinessCardV2 populates rc-v2-whatif',
+  /renderReadinessCardV2[\s\S]{0,5000}rc-v2-whatif/.test(js));
+test('v4.75.1 wiring: renderReadinessCardV2 populates rc-v2-trajectory',
+  /renderReadinessCardV2[\s\S]{0,5000}rc-v2-trajectory/.test(js));
+test('v4.75.1 wiring: rc-v2-whatif chips wire to focusTopic',
+  /rc-v2-whatif-chip[\s\S]{0,500}focusTopic/.test(js));
+test('v4.75.1 CSS: .rc-v2-prediction styled', css.includes('.rc-v2-prediction'));
+test('v4.75.1 CSS: .rc-v2-whatif-chip styled', css.includes('.rc-v2-whatif-chip'));
+test('v4.75.1 CSS: .rc-v2-trajectory tier classes (.warn/.mid/.good)',
+  /\.rc-v2-trajectory\.warn[\s\S]{0,300}\.rc-v2-trajectory\.mid[\s\S]{0,300}\.rc-v2-trajectory\.good/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

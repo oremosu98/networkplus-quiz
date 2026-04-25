@@ -103,6 +103,8 @@
       <div class="readiness-card-v2" id="readiness-card-v2">
         <div class="rc-v2-label">Exam readiness · scaled 100&ndash;900</div>
         <div class="rc-v2-score"><span id="rc-v2-num">&mdash;</span><span class="of">/900</span></div>
+        <!-- v4.73.0: prediction line — pass probability + CI under the score -->
+        <div class="rc-v2-prediction" id="rc-v2-prediction" hidden></div>
         <div class="rc-v2-bar">
           <div class="rc-v2-bar-fill" id="rc-v2-bar-fill" style="width:0%"></div>
           <div class="rc-v2-pass-tick" aria-hidden="true"></div>
@@ -112,6 +114,14 @@
           <span>pass mark 720</span>
         </div>
       </div>
+      <!-- v4.73.0: what-if attribution + exam trajectory. Sits in the hero
+           aside below the dark readiness card — only renders when the user
+           has enough history for a meaningful prediction. -->
+      <div class="rc-v2-whatif" id="rc-v2-whatif" hidden>
+        <div class="rc-v2-whatif-label">📊 Drill these to move your score</div>
+        <div class="rc-v2-whatif-row" id="rc-v2-whatif-row"></div>
+      </div>
+      <div class="rc-v2-trajectory" id="rc-v2-trajectory" hidden></div>
       <div class="hero-v2-mini-row">
         <div class="mini-card-v2">
           <span class="mini-card-v2-label">Today</span>
@@ -132,7 +142,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.75.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.75.1</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
