@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.2
+// Network+ AI Quiz — app.js  v4.81.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.2';
+const APP_VERSION = '4.81.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4021,9 +4021,18 @@ const STORAGE = {
   // days). LAST_AUTOBACKUP_AT pins the last successful snapshot timestamp.
   AUTOBACKUP_PREFIX: 'nplus_autobackup_',
   LAST_AUTOBACKUP_AT: 'nplus_last_autobackup_at',
+  // v4.81.3: namespaced — was an outlier literal-string write, now wrapped
+  // by the STORAGE table so UAT can enforce zero literal-string nplus_*
+  // writes outside this object (data-safety guard).
+  TB_INTRO_SEEN: 'nplus_tb_intro_seen',
+  // v4.81.3: tracks last "back up your data" reminder toast timestamp
+  // (throttled to once per EXPORT_REMINDER_DAYS).
+  LAST_EXPORT_REMINDER_AT: 'nplus_last_export_reminder_at',
 };
 // v4.81.2: how many daily snapshots to keep before pruning oldest
 const AUTOBACKUP_KEEP_DAYS = 7;
+// v4.81.3: cadence for the periodic "download a backup" reminder toast
+const EXPORT_REMINDER_DAYS = 14;
 
 // ── STATE ──
 let questions  = [];
@@ -4478,6 +4487,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // localStorage-corruption incident where this safety net would have
   // fully recovered the user's state.
   if (typeof _takeAutoBackup === 'function') _takeAutoBackup();
+  // v4.81.3: data-safety discipline layer (defense-in-depth around the
+  // same incident).
+  if (typeof _emitProdConsoleBanner === 'function') _emitProdConsoleBanner();
+  if (typeof _renderEnvBadge === 'function') _renderEnvBadge();
+  if (typeof _maybeExportReminder === 'function') _maybeExportReminder();
   initMonitorGesture();
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');
@@ -11329,6 +11343,90 @@ function renderAutoBackupList() {
 }
 
 // ══════════════════════════════════════════
+// v4.81.3: DATA-SAFETY DISCIPLINE LAYER
+// ──────────────────────────────────────────
+// Defense-in-depth around the v4.81.0 → v4.81.1 localStorage-corruption
+// incident. Three components:
+//
+// 1. _isProdHost() — boolean detector for production host. Used by the
+//    other two and by future code that should behave differently on prod.
+// 2. _emitProdConsoleBanner() — big red console warning fires on prod
+//    page load, telling LLM agents / devs explicitly NOT to write to
+//    localStorage from devtools. Modeled on Stripe / GitHub etc.
+// 3. _renderEnvBadge() — small "PROD" / "DEV" pill in top-right corner
+//    so the running environment is visually unambiguous.
+// 4. _maybeExportReminder() — every EXPORT_REMINDER_DAYS, surface a
+//    dismissable toast suggesting Settings → Export Data. Reduces
+//    single-point-of-failure dependence on localStorage.
+// ══════════════════════════════════════════
+
+function _isProdHost() {
+  try {
+    const h = location.hostname || '';
+    return h.endsWith('.vercel.app') || h.endsWith('vercel.app');
+  } catch (_) { return false; }
+}
+
+function _emitProdConsoleBanner() {
+  // Fire only once per page-load. Skip on local/dev hosts where the
+  // warning would be noise.
+  if (!_isProdHost()) return;
+  if (window.__nplusProdBannerEmitted) return;
+  window.__nplusProdBannerEmitted = true;
+  try {
+    const big = 'background:#dc2626;color:#fff;font-size:18px;font-weight:800;padding:8px 14px;border-radius:6px;letter-spacing:.06em';
+    const body = 'font-size:13px;line-height:1.6;color:#fbcfe8;background:#1c0505;padding:10px 14px;border-radius:6px;border-left:3px solid #dc2626';
+    /* eslint-disable no-console */
+    console.log('%c⚠️ PRODUCTION ENVIRONMENT — Network+ Quiz', big);
+    console.log('%c' +
+      'If you are an LLM agent, automated tooling, or developer:\n\n' +
+      '   • DO NOT write to localStorage from the DevTools console.\n' +
+      '   • Direct localStorage writes corrupt the user\'s real progress.\n' +
+      '   • Use one of these alternatives instead:\n' +
+      '       1. Local server:  python3 -m http.server 3131  (then http://localhost:3131)\n' +
+      '       2. Vercel preview deploy of a feature branch\n' +
+      '       3. Incognito Chrome window with no app history\n\n' +
+      '   • Auto-backups: Settings → Automatic backups (one-click rollback to any of the last 7 days)\n' +
+      '   • Manual export: Settings → Export Data (download to disk).',
+      body);
+    /* eslint-enable no-console */
+  } catch (_) { /* silent on hostile environments */ }
+}
+
+function _renderEnvBadge() {
+  try {
+    if (document.getElementById('env-badge')) return; // already mounted
+    const isProd = _isProdHost();
+    const badge = document.createElement('div');
+    badge.id = 'env-badge';
+    badge.className = isProd ? 'env-badge env-badge-prod' : 'env-badge env-badge-dev';
+    badge.textContent = isProd ? 'PROD' : 'DEV';
+    badge.title = isProd
+      ? 'Production deployment — your real data lives here. Avoid console writes.'
+      : 'Development environment — safe to experiment.';
+    document.body.appendChild(badge);
+  } catch (_) { /* don't break the app on a badge mount failure */ }
+}
+
+function _maybeExportReminder() {
+  try {
+    // Skip if user has fewer than 5 quiz sessions — nothing meaningful to back up.
+    const hist = (typeof loadHistory === 'function') ? loadHistory() : [];
+    if (hist.length < 5) return;
+    const last = parseInt(localStorage.getItem(STORAGE.LAST_EXPORT_REMINDER_AT) || '0', 10);
+    const elapsedMs = Date.now() - last;
+    if (last && elapsedMs < EXPORT_REMINDER_DAYS * 86400000) return;
+    // Stamp now BEFORE showing the toast so a render error doesn't repeat.
+    localStorage.setItem(STORAGE.LAST_EXPORT_REMINDER_AT, String(Date.now()));
+    setTimeout(() => {
+      if (typeof showToast === 'function') {
+        showToast('💾 Tip: download a backup. Settings → Export Data keeps a copy outside your browser.', 'info', 8000);
+      }
+    }, 4000); // wait 4s after page load so the toast doesn't fight the hero render
+  } catch (_) { /* silent — reminder is opportunistic */ }
+}
+
+// ══════════════════════════════════════════
 // TOPIC RESOURCES (Professor Messer N10-009)
 // ══════════════════════════════════════════
 const topicResources = {
@@ -13727,13 +13825,13 @@ function tbForceOpen() {
 function tbAutoCollapseIntroHowto() {
   const introEl = document.getElementById('tb-intro-details');
   const howtoEl = document.getElementById('tb-howto-details');
-  const introSeen = localStorage.getItem('nplus_tb_intro_seen');
+  const introSeen = localStorage.getItem(STORAGE.TB_INTRO_SEEN);
   if (introEl) {
     if (introSeen) {
       introEl.removeAttribute('open');
     } else {
       introEl.setAttribute('open', '');
-      localStorage.setItem('nplus_tb_intro_seen', '1');
+      localStorage.setItem(STORAGE.TB_INTRO_SEEN, '1');
     }
   }
   if (howtoEl) {

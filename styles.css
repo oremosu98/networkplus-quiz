@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.2
+   Network+ AI Quiz — styles.css  v4.81.3
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14209,4 +14209,39 @@ html { zoom: 1.10; }
   .ab-row { flex-direction: column; align-items: stretch; }
   .ab-row-actions { width: 100%; }
   .ab-row-actions .btn { flex: 1; }
+}
+
+/* ── v4.81.3: Environment badge (top-right "PROD" / "DEV" pill) ── */
+.env-badge {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9998;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-family: 'SF Mono', Monaco, monospace;
+  pointer-events: auto;
+  cursor: default;
+  user-select: none;
+  opacity: .55;
+  transition: opacity .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.env-badge:hover { opacity: 1; }
+.env-badge-prod {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.env-badge-dev {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+}
+@media (max-width: 540px) {
+  /* On phones the badge would crowd the topbar — keep visible but smaller */
+  .env-badge { top: 8px; right: 8px; font-size: 8px; padding: 3px 8px; }
 }

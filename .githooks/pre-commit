@@ -2,12 +2,14 @@
 # ══════════════════════════════════════════
 # Pre-commit hook
 #
-# Two gates, in order:
+# Three gates, in order:
 #   1. UAT run (v4.62.4 / issue #194)   — blocks commit on test failure
 #   2. CLAUDE.md freshness check        — blocks commit if code changed
 #                                         without a docs update
+#   3. Data-safety scan (v4.81.3)       — warns on risky MCP+localStorage
+#                                         injection patterns
 #
-# Both skippable via: git commit --no-verify
+# All skippable via: git commit --no-verify
 # ══════════════════════════════════════════
 
 STAGED=$(git diff --cached --name-only)
@@ -94,6 +96,97 @@ if [ "$MAJOR_CHANGED" = true ]; then
     echo "  To skip this check: git commit --no-verify"
     echo "  ══════════════════════════════════════════════"
     echo ""
+    exit 1
+  fi
+fi
+
+# ── 3. Data-safety scan (v4.81.3 — post-corruption-incident guard) ──
+# Catches two risky patterns:
+#   A. Literal-string `localStorage.setItem('nplus_…')` outside the
+#      STORAGE namespace — bypasses the typed table where state writes
+#      should be discoverable + auditable.
+#   B. Code that combines `mcp__Claude_in_Chrome__javascript_tool` with
+#      `localStorage.setItem` — the exact pattern that caused the
+#      v4.81.0 → v4.81.1 user-data corruption (test injection on the
+#      user's connected prod browser).
+#
+# Both are warnings, not blocks. False positives possible (e.g. a test
+# fixture that legitimately wraps the pattern in a string literal for
+# regression-guard purposes). Use --no-verify if you've audited and
+# confirmed the pattern is intentional.
+
+DATA_SAFETY_ISSUES=""
+
+# Files that legitimately discuss the patterns we scan for (the rule
+# itself, the regression-guard tests, the institutional-rule docs).
+# These are excluded from the scan because false-positive flagging here
+# would block every commit that touches them.
+META_FILES_REGEX='^(\.githooks/pre-commit|CLAUDE\.md|tests/uat\.js|memory/.*\.md)$'
+
+# Helper: filter staged file list down to non-meta files
+filter_meta() {
+  echo "$STAGED" | grep -vE "$META_FILES_REGEX" || true
+}
+
+NON_META_STAGED=$(filter_meta)
+
+# A. Literal-string nplus_* localStorage writes (in real code, not comments)
+# Strip comment-only lines + meta files. Use grep -P with negative lookbehind
+# so lines starting with `//` or `*` (JS comment) or `<!--` (HTML comment) skip.
+LIT_HITS=""
+if [ -n "$NON_META_STAGED" ]; then
+  LIT_HITS=$(echo "$NON_META_STAGED" | grep -E '\.(js|html)$' | xargs -I{} grep -lE "localStorage\.(setItem|removeItem)\(\s*['\"]nplus_" {} 2>/dev/null || true)
+  # Re-filter: only count lines that aren't comments (no leading // or *)
+  REAL_LIT=""
+  for f in $LIT_HITS; do
+    if grep -nE "localStorage\.(setItem|removeItem)\(\s*['\"]nplus_" "$f" | grep -vE '^\s*[0-9]+:\s*(//|\*|<!--)' > /dev/null; then
+      REAL_LIT="${REAL_LIT}${f} "
+    fi
+  done
+  if [ -n "$REAL_LIT" ]; then
+    DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}A. Literal-string 'nplus_…' localStorage writes (use STORAGE namespace):\n"
+    for f in $REAL_LIT; do
+      DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}     ${f}\n"
+      DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}$(grep -nE "localStorage\.(setItem|removeItem)\(\s*['\"]nplus_" "$f" | grep -vE '^\s*[0-9]+:\s*(//|\*|<!--)' | sed 's/^/       /')\n"
+    done
+  fi
+  LIT_HITS="$REAL_LIT"
+fi
+
+# B. MCP + localStorage.setItem combination (typically in commit
+# messages or commented-out tooling — the live in-chat tool calls
+# never land in code, so this is mostly belt-and-suspenders for
+# accidental pasting of console-output captures).
+MCP_HITS=""
+if [ -n "$NON_META_STAGED" ]; then
+  CANDIDATES=$(echo "$NON_META_STAGED" | xargs grep -lE "mcp__Claude_in_Chrome__javascript_tool" 2>/dev/null || true)
+  for f in $CANDIDATES; do
+    if grep -qE "localStorage\.setItem" "$f"; then
+      MCP_HITS="${MCP_HITS}${f} "
+      DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}B. Chrome MCP javascript_tool paired with localStorage.setItem in ${f}\n"
+      DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}     This is the exact pattern that caused the v4.81.x corruption.\n"
+      DATA_SAFETY_ISSUES="${DATA_SAFETY_ISSUES}     Audit before committing — see CLAUDE.md → Testing Discipline.\n"
+    fi
+  done
+fi
+
+if [ -n "$DATA_SAFETY_ISSUES" ]; then
+  echo ""
+  echo "  ══════════════════════════════════════════════"
+  echo "  ⚠ DATA-SAFETY SCAN — review before committing"
+  echo ""
+  printf "$DATA_SAFETY_ISSUES"
+  echo ""
+  echo "  See CLAUDE.md → 'Testing Discipline' for context."
+  echo "  If audited and intentional: git commit --no-verify"
+  echo "  ══════════════════════════════════════════════"
+  echo ""
+  # NOTE: this is a warning gate, NOT a hard block — false positives are
+  # possible. Block only when the scan finds the EXACT corruption pattern
+  # in NEW code (not test fixtures that document it for regression).
+  if [ -n "$LIT_HITS" ]; then
+    # The literal-string pattern is the structural one that UAT also
+    # guards. Block here so it never reaches CI.
     exit 1
   fi
 fi

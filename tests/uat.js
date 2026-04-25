@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.2', js.includes("const APP_VERSION = '4.81.2"));
+test('APP_VERSION is 4.81.3', js.includes("const APP_VERSION = '4.81.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.2', sw.includes('netplus-v4.81.2'));
+test('SW cache bumped to v4.81.3', sw.includes('netplus-v4.81.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10236,6 +10236,114 @@ test('v4.81.2 Backup: .autobackup-list style declared',
   /\.autobackup-list\s*\{/.test(css));
 test('v4.81.2 Backup: .ab-row style declared',
   /\.ab-row\s*\{/.test(css));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.3: Data-safety discipline layer (defense-in-depth)
+// ──────────────────────────────────────────────────────────
+// Five forward-looking guards added in direct response to the
+// localStorage-corruption incident:
+// 1. _emitProdConsoleBanner() warns on prod page load
+// 2. _renderEnvBadge() puts a PROD/DEV pill in the top-right corner
+// 3. _maybeExportReminder() surfaces a periodic export-reminder toast
+// 4. UAT regression guard: zero literal-string 'nplus_' writes outside STORAGE
+// 5. Pre-commit hook scans for risky MCP+setItem patterns
+
+// Storage / constants
+test('v4.81.3 Safety: STORAGE.TB_INTRO_SEEN namespaced (was outlier literal)',
+  /TB_INTRO_SEEN:\s*['"]nplus_tb_intro_seen['"]/.test(js));
+test('v4.81.3 Safety: STORAGE.LAST_EXPORT_REMINDER_AT declared',
+  /LAST_EXPORT_REMINDER_AT:\s*['"]nplus_last_export_reminder_at['"]/.test(js));
+test('v4.81.3 Safety: EXPORT_REMINDER_DAYS = 14',
+  /const\s+EXPORT_REMINDER_DAYS\s*=\s*14/.test(js));
+
+// Functions exist
+test('v4.81.3 Safety: _isProdHost function defined',
+  /function\s+_isProdHost\b/.test(js));
+test('v4.81.3 Safety: _emitProdConsoleBanner function defined',
+  /function\s+_emitProdConsoleBanner\b/.test(js));
+test('v4.81.3 Safety: _renderEnvBadge function defined',
+  /function\s+_renderEnvBadge\b/.test(js));
+test('v4.81.3 Safety: _maybeExportReminder function defined',
+  /function\s+_maybeExportReminder\b/.test(js));
+
+// DOMContentLoaded wires all three
+test('v4.81.3 Safety: DOMContentLoaded calls _emitProdConsoleBanner',
+  /DOMContentLoaded[\s\S]{0,3000}_emitProdConsoleBanner\b/.test(js));
+test('v4.81.3 Safety: DOMContentLoaded calls _renderEnvBadge',
+  /DOMContentLoaded[\s\S]{0,3000}_renderEnvBadge\b/.test(js));
+test('v4.81.3 Safety: DOMContentLoaded calls _maybeExportReminder',
+  /DOMContentLoaded[\s\S]{0,3000}_maybeExportReminder\b/.test(js));
+
+// Banner content sanity
+test('v4.81.3 Safety: prod banner mentions DO NOT write to localStorage',
+  (() => {
+    const body = _fnBody(js, '_emitProdConsoleBanner');
+    return body && /DO NOT write to localStorage/i.test(body);
+  })());
+test('v4.81.3 Safety: prod banner mentions Auto-backups recovery path',
+  (() => {
+    const body = _fnBody(js, '_emitProdConsoleBanner');
+    return body && /Auto-backups/i.test(body);
+  })());
+test('v4.81.3 Safety: prod banner only fires once per page load',
+  (() => {
+    const body = _fnBody(js, '_emitProdConsoleBanner');
+    return body && /__nplusProdBannerEmitted/.test(body);
+  })());
+
+// _isProdHost detection
+test('v4.81.3 Safety: _isProdHost detects vercel.app hosts',
+  (() => {
+    const body = _fnBody(js, '_isProdHost');
+    return body && /vercel\.app/.test(body);
+  })());
+
+// Export reminder gates
+test('v4.81.3 Safety: _maybeExportReminder skips users with <5 sessions',
+  (() => {
+    const body = _fnBody(js, '_maybeExportReminder');
+    return body && /hist\.length\s*<\s*5/.test(body);
+  })());
+test('v4.81.3 Safety: _maybeExportReminder uses LAST_EXPORT_REMINDER_AT throttle',
+  (() => {
+    const body = _fnBody(js, '_maybeExportReminder');
+    return body && /LAST_EXPORT_REMINDER_AT/.test(body) && /EXPORT_REMINDER_DAYS/.test(body);
+  })());
+
+// CSS for badge
+test('v4.81.3 Safety: .env-badge style declared',
+  /\.env-badge\s*\{/.test(css));
+test('v4.81.3 Safety: .env-badge-prod has red treatment',
+  /\.env-badge-prod[\s\S]{0,300}#dc2626/.test(css));
+test('v4.81.3 Safety: .env-badge-dev has green treatment',
+  /\.env-badge-dev[\s\S]{0,300}#16a34a/.test(css));
+
+// 🛑 THE BIG ONE — zero-tolerance regression guard:
+// No literal-string `localStorage.setItem('nplus_…')` anywhere in app.js.
+// All state writes must go through STORAGE.X. This is the structural
+// guard that prevents the corruption-incident pattern from regressing.
+test('v4.81.3 Safety: ZERO literal-string nplus_* writes outside STORAGE',
+  !/localStorage\.setItem\(\s*['"]nplus_[a-z_]/.test(js));
+test('v4.81.3 Safety: ZERO literal-string nplus_* removeItem outside STORAGE',
+  !/localStorage\.removeItem\(\s*['"]nplus_[a-z_]/.test(js));
+
+// CLAUDE.md institutional rule check
+test('v4.81.3 Safety: CLAUDE.md has Testing Discipline section',
+  (() => {
+    try {
+      const md = require('fs').readFileSync(require('path').join(ROOT, 'CLAUDE.md'), 'utf8');
+      return /Testing Discipline/i.test(md) && /NEVER write to user-state localStorage/.test(md);
+    } catch (_) { return false; }
+  })());
+
+// Pre-commit hook scan for risky patterns
+test('v4.81.3 Safety: pre-commit hook scans for MCP+setItem risk patterns',
+  (() => {
+    try {
+      const hook = require('fs').readFileSync(require('path').join(ROOT, '.githooks', 'pre-commit'), 'utf8');
+      return /mcp__Claude_in_Chrome__javascript_tool/.test(hook) || /localStorage.*setItem/.test(hook);
+    } catch (_) { return false; }
+  })());
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a
