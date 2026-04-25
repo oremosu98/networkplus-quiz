@@ -597,18 +597,21 @@ test.describe('Readiness Card', () => {
 
 test.describe('Wrong Bank Behavior', () => {
   // v4.41.0: legacy #wrong-bank-row deleted. The "Drill Mistakes" preset tile
-  // (#wrong-preset-tile) is now the only drill entry, and the Clear button
-  // moved into the Settings <details> section.
+  // is now the only drill entry, and the Clear button moved into Settings.
+  // v4.76.0: visible "Drill Mistakes" tile relocated from #wrong-preset-tile
+  // (now an empty hidden compat shim) to #modes-wrong-tile inside the Mode
+  // Ladder Quick tier. renderWrongBankBtn() toggles BOTH for back-compat.
+  // Tests check the new visible element: #modes-wrong-tile + #modes-wrong-sub.
 
-  test('wrong-preset-tile hidden when bank is empty', async ({ page }) => {
+  test('Drill Mistakes tile hidden when bank is empty', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_wrong_bank'));
     await page.reload();
 
-    await expect(page.locator('#wrong-preset-tile')).not.toBeVisible();
+    await expect(page.locator('#modes-wrong-tile')).not.toBeVisible();
   });
 
-  test('wrong-preset-tile visible when bank has items', async ({ page }) => {
+  test('Drill Mistakes tile visible when bank has items', async ({ page }) => {
     await page.goto('/');
 
     await page.evaluate(() => {
@@ -621,8 +624,8 @@ test.describe('Wrong Bank Behavior', () => {
 
     await page.reload();
 
-    await expect(page.locator('#wrong-preset-tile')).toBeVisible();
-    await expect(page.locator('#wrong-preset-sub')).toContainText('1');
+    await expect(page.locator('#modes-wrong-tile')).toBeVisible();
+    await expect(page.locator('#modes-wrong-sub')).toContainText('1');
   });
 
   test('Settings clear button triggers confirm dialog', async ({ page }) => {
@@ -675,8 +678,8 @@ test.describe('Wrong Bank Behavior', () => {
     const bank = await page.evaluate(() => localStorage.getItem('nplus_wrong_bank'));
     expect(bank).toBeNull();
 
-    // Preset tile should be hidden
-    await expect(page.locator('#wrong-preset-tile')).not.toBeVisible();
+    // Preset tile should be hidden (v4.76.0: now in Mode Ladder Quick tier)
+    await expect(page.locator('#modes-wrong-tile')).not.toBeVisible();
   });
 });
 

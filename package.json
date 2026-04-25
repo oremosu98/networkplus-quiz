@@ -1,6 +1,6 @@
 {
   "name": "networkplus-quiz",
-  "version": "4.76.0",
+  "version": "4.76.1",
   "private": true,
   "scripts": {
     "test:uat": "node tests/uat.js",

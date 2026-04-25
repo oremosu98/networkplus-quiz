@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.76.0
+// Network+ AI Quiz — app.js  v4.76.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.76.0';
+const APP_VERSION = '4.76.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6311,14 +6311,32 @@ function renderWrongBankBtn() {
   const bank = loadWrongBank();
   // v4.41.0: legacy #wrong-bank-row removed. The preset tile is the only
   // drill entry point; a Clear button lives inside Settings.
+  // v4.76.0: legacy #wrong-preset-tile + #wrong-preset-sub kept as compat
+  // shims (always hidden) so this function doesn't crash. The visible
+  // "Drill Mistakes" tile now lives in the Mode Ladder Quick tier as
+  // #modes-wrong-tile + #modes-wrong-sub. Toggle BOTH sets so old code
+  // that watches the legacy ids still gets the right is-hidden state.
   const wrongTile = document.getElementById('wrong-preset-tile');
   const wrongSub = document.getElementById('wrong-preset-sub');
+  const modesTile = document.getElementById('modes-wrong-tile');
+  const modesSub = document.getElementById('modes-wrong-sub');
+  const subText = bank.length === 0
+    ? '0 wrong answers saved'
+    : bank.length + ' wrong answer' + (bank.length !== 1 ? 's' : '') + ' saved';
   if (wrongTile) {
     if (bank.length === 0) {
       wrongTile.classList.add('is-hidden');
     } else {
       wrongTile.classList.remove('is-hidden');
-      if (wrongSub) wrongSub.textContent = bank.length + ' wrong answer' + (bank.length !== 1 ? 's' : '') + ' saved';
+      if (wrongSub) wrongSub.textContent = subText;
+    }
+  }
+  if (modesTile) {
+    if (bank.length === 0) {
+      modesTile.classList.add('is-hidden');
+    } else {
+      modesTile.classList.remove('is-hidden');
+      if (modesSub) modesSub.textContent = subText;
     }
   }
   // Settings → Clear Wrong Answers Bank count badge
