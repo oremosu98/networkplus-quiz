@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.3', js.includes("const APP_VERSION = '4.81.3"));
+test('APP_VERSION is 4.81.4', js.includes("const APP_VERSION = '4.81.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.3', sw.includes('netplus-v4.81.3'));
+test('SW cache bumped to v4.81.4', sw.includes('netplus-v4.81.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10337,6 +10337,41 @@ test('v4.81.3 Safety: CLAUDE.md has Testing Discipline section',
   })());
 
 // Pre-commit hook scan for risky patterns
+// ──────────────────────────────────────────────────────────
+// v4.81.4: API key auto-save (UX fix from v4.81.3 follow-up)
+// ──────────────────────────────────────────────────────────
+test('v4.81.4 ApiKey: API_KEY_AUTOSAVE_DEBOUNCE_MS constant declared',
+  /const\s+API_KEY_AUTOSAVE_DEBOUNCE_MS\s*=\s*\d+/.test(js));
+test('v4.81.4 ApiKey: autoSaveApiKey function defined',
+  /function\s+autoSaveApiKey\b/.test(js));
+test('v4.81.4 ApiKey: _apiKeyDebouncedSave function defined',
+  /function\s+_apiKeyDebouncedSave\b/.test(js));
+test('v4.81.4 ApiKey: _renderApiKeyStatusOnLoad function defined',
+  /function\s+_renderApiKeyStatusOnLoad\b/.test(js));
+test('v4.81.4 ApiKey: input has onblur=autoSaveApiKey wiring',
+  /id="api-key"[^>]*onblur="autoSaveApiKey\(\)"/.test(html));
+test('v4.81.4 ApiKey: input has oninput=_apiKeyDebouncedSave wiring',
+  /id="api-key"[^>]*oninput="_apiKeyDebouncedSave\(\)"/.test(html));
+test('v4.81.4 ApiKey: #api-key-status status pill present',
+  /id="api-key-status"/.test(html));
+test('v4.81.4 ApiKey: autoSaveApiKey validates sk-ant- prefix',
+  (() => {
+    const body = _fnBody(js, 'autoSaveApiKey');
+    return body && /sk-ant-/.test(body);
+  })());
+test('v4.81.4 ApiKey: autoSaveApiKey trims whitespace before save',
+  (() => {
+    const body = _fnBody(js, 'autoSaveApiKey');
+    return body && /\.trim\(\)/.test(body);
+  })());
+test('v4.81.4 ApiKey: renderSettingsPage calls _renderApiKeyStatusOnLoad',
+  (() => {
+    const body = _fnBody(js, 'renderSettingsPage');
+    return body && /_renderApiKeyStatusOnLoad\b/.test(body);
+  })());
+test('v4.81.4 ApiKey: .api-key-status-ok style declared',
+  /\.api-key-status-ok\s*\{/.test(css));
+
 test('v4.81.3 Safety: pre-commit hook scans for MCP+setItem risk patterns',
   (() => {
     try {

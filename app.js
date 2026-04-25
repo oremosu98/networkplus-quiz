@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.3
+// Network+ AI Quiz — app.js  v4.81.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.3';
+const APP_VERSION = '4.81.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4033,6 +4033,8 @@ const STORAGE = {
 const AUTOBACKUP_KEEP_DAYS = 7;
 // v4.81.3: cadence for the periodic "download a backup" reminder toast
 const EXPORT_REMINDER_DAYS = 14;
+// v4.81.4: debounce delay for API-key auto-save while the user is typing
+const API_KEY_AUTOSAVE_DEBOUNCE_MS = 600;
 
 // ── STATE ──
 let questions  = [];
@@ -11424,6 +11426,93 @@ function _maybeExportReminder() {
       }
     }, 4000); // wait 4s after page load so the toast doesn't fight the hero render
   } catch (_) { /* silent — reminder is opportunistic */ }
+}
+
+// ══════════════════════════════════════════
+// v4.81.4: API KEY AUTO-SAVE (UX fix from v4.81.3 incident follow-up)
+// ──────────────────────────────────────────
+// Pre-fix the API-key input only persisted when the user triggered an
+// action that read it (Generate Quiz, Take Diagnostic, etc). Pasting +
+// reloading lost the key silently — exactly what the user hit after
+// re-creating their key post-corruption-incident. This module auto-
+// saves on every input + on blur, with a small debounce so we don't
+// hammer localStorage while typing. Visible "Saved ✓" status pill so
+// the user gets confirmation.
+// ══════════════════════════════════════════
+
+let _apiKeyDebounceTimer = null;
+
+// Debounced save — fires while the user is typing. Coalesces rapid
+// keystrokes into a single save. The blur handler still runs a final
+// save when the field loses focus.
+function _apiKeyDebouncedSave() {
+  if (_apiKeyDebounceTimer) clearTimeout(_apiKeyDebounceTimer);
+  _apiKeyDebounceTimer = setTimeout(() => {
+    autoSaveApiKey();
+    _apiKeyDebounceTimer = null;
+  }, API_KEY_AUTOSAVE_DEBOUNCE_MS);
+}
+
+// Save whatever's currently in the input (after trimming whitespace)
+// to localStorage and update the visible status pill.
+function autoSaveApiKey() {
+  try {
+    const input = document.getElementById('api-key');
+    if (!input) return;
+    const raw = input.value || '';
+    const key = raw.trim();
+    const status = document.getElementById('api-key-status');
+    if (key.length === 0) {
+      // Empty — clear the saved key + show neutral status
+      try { localStorage.removeItem(STORAGE.KEY); } catch (_) {}
+      if (typeof apiKey !== 'undefined') apiKey = '';
+      if (status) {
+        status.classList.add('is-hidden');
+        status.textContent = '';
+      }
+      return;
+    }
+    // Validate format — Anthropic keys start with sk-ant-
+    if (!key.startsWith('sk-ant-')) {
+      if (status) {
+        status.classList.remove('is-hidden');
+        status.className = 'api-key-status api-key-status-warn';
+        status.textContent = '⚠ Doesn\'t look like an Anthropic key (should start with sk-ant-)';
+      }
+      return; // don't save malformed input
+    }
+    // Persist + update in-memory
+    localStorage.setItem(STORAGE.KEY, key);
+    if (typeof apiKey !== 'undefined') apiKey = key;
+    // If the input had whitespace, replace its value with the trimmed
+    // version so what the user sees matches what's saved.
+    if (raw !== key) input.value = key;
+    if (status) {
+      status.classList.remove('is-hidden');
+      status.className = 'api-key-status api-key-status-ok';
+      status.textContent = '✓ Saved · ' + key.slice(0, 12) + '…' + key.slice(-4);
+    }
+  } catch (_) { /* defensive */ }
+}
+
+// On page load, if a key is already saved, show the "Saved" pill. This
+// reassures the user that the key persisted across reload.
+function _renderApiKeyStatusOnLoad() {
+  try {
+    const status = document.getElementById('api-key-status');
+    const input = document.getElementById('api-key');
+    if (!status || !input) return;
+    const saved = localStorage.getItem(STORAGE.KEY) || '';
+    if (saved.length > 0 && saved.startsWith('sk-ant-')) {
+      // Note: we deliberately DO NOT mirror the saved key back into the
+      // type=password input on load — that's standard browser behaviour
+      // for credentials and changing it would be confusing. The status
+      // pill just confirms a key is on file.
+      status.classList.remove('is-hidden');
+      status.className = 'api-key-status api-key-status-ok';
+      status.textContent = '✓ Key saved · ' + saved.slice(0, 12) + '…' + saved.slice(-4);
+    }
+  } catch (_) {}
 }
 
 // ══════════════════════════════════════════
@@ -34770,6 +34859,9 @@ function renderSettingsPage() {
   // v4.81.2: refresh the auto-backup list every time Settings opens so the
   // user sees what's available + can restore/download from any snapshot.
   if (typeof renderAutoBackupList === 'function') renderAutoBackupList();
+  // v4.81.4: show the "✓ Key saved" status pill on Settings open if a key
+  // is already on file — gives the user immediate confirmation.
+  if (typeof _renderApiKeyStatusOnLoad === 'function') _renderApiKeyStatusOnLoad();
 }
 
 // v4.54.16: render the exam-date chip on the Settings page. Reuses the
