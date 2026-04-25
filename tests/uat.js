@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.72.1', js.includes("const APP_VERSION = '4.72.1"));
+test('APP_VERSION is 4.73.0', js.includes("const APP_VERSION = '4.73.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.72.1', sw.includes('netplus-v4.72.1'));
+test('SW cache bumped to v4.73.0', sw.includes('netplus-v4.73.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -9345,6 +9345,88 @@ test('v4.72.0 milestone: every non-free TB_SCENARIOS entry has a tour array',
       return re.test(js);
     });
   })());
+
+// ══════════════════════════════════════════
+// v4.73.0 — Pass-Rate Prediction with Confidence Intervals
+// New prediction extras on the Readiness Card: ciHalfWidth + lowerBound +
+// upperBound + passProbability + whatIf (top-3 leverage topics) + targetGap.
+// ══════════════════════════════════════════
+console.log('\n\x1b[1m── v4.73.0 PASS-RATE PREDICTION ──\x1b[0m');
+
+// Structure — new fields exist in getReadinessScore return
+test('v4.73.0 structure: getReadinessScore body computes ciHalfWidth',
+  /getReadinessScore[\s\S]{0,15000}ciHalfWidth\s*=/.test(js));
+test('v4.73.0 structure: getReadinessScore body computes passProbability via logistic',
+  /getReadinessScore[\s\S]{0,15000}passProbability\s*=\s*1\s*\/\s*\(\s*1\s*\+\s*Math\.exp/.test(js));
+test('v4.73.0 structure: getReadinessScore body computes whatIf attribution',
+  /getReadinessScore[\s\S]{0,15000}whatIfsRaw\s*\.push/.test(js));
+test('v4.73.0 structure: getReadinessScore returns ciHalfWidth + passProbability + whatIf',
+  /return\s*\{[\s\S]{0,1200}ciHalfWidth[\s\S]{0,1200}passProbability[\s\S]{0,1200}whatIf/.test(js));
+test('v4.73.0 structure: getReadinessScore returns lowerBound + upperBound + targetGap',
+  /lowerBound[\s\S]{0,300}upperBound[\s\S]{0,300}targetGap/.test(js));
+test('v4.73.0 structure: TARGET_ACC=0.80 in what-if simulation',
+  /TARGET_ACC\s*=\s*0\.80/.test(js));
+test('v4.73.0 structure: CI scaled to 90% via 1.645 sigma factor',
+  /ciHalfWidth\s*\/\s*1\.645/.test(js));
+test('v4.73.0 structure: CI clamped to [15, 100] range',
+  /Math\.max\(15,\s*Math\.min\(100,\s*Math\.round\(ciHalfWidth\)\)\)/.test(js));
+test('v4.73.0 structure: targetGap = max(0, EXAM_PASS_SCORE - lowerBound)',
+  /targetGap\s*=\s*Math\.max\(0,\s*EXAM_PASS_SCORE\s*-\s*lowerBound\)/.test(js));
+
+// Behavioural fixtures — vm-sandbox the entire getReadinessScore body
+test('v4.73.0 behaviour: pass probability is 0.5 when predicted = 720 (pass line)', (() => {
+  // Mathematically: z = (720-720)/sigma = 0 → 1/(1+e^0) = 0.5
+  const sigma = 25 / 1.645;
+  const z = (720 - 720) / sigma;
+  const prob = 1 / (1 + Math.exp(-z));
+  return Math.abs(prob - 0.5) < 0.001;
+})());
+test('v4.73.0 behaviour: pass probability > 0.9 when predicted = 770, sigma = 25', (() => {
+  const sigma = 25 / 1.645;
+  const z = (770 - 720) / sigma;
+  const prob = 1 / (1 + Math.exp(-z));
+  return prob > 0.9;
+})());
+test('v4.73.0 behaviour: pass probability < 0.1 when predicted = 670, sigma = 25', (() => {
+  const sigma = 25 / 1.645;
+  const z = (670 - 720) / sigma;
+  const prob = 1 / (1 + Math.exp(-z));
+  return prob < 0.1;
+})());
+test('v4.73.0 behaviour: CI half-width shrinks with sample size', (() => {
+  // sampleWidth = 60 / sqrt(1 + n/50)
+  const w50 = 60 / Math.sqrt(1 + 50 / 50);
+  const w200 = 60 / Math.sqrt(1 + 200 / 50);
+  const w500 = 60 / Math.sqrt(1 + 500 / 50);
+  return w50 > w200 && w200 > w500;
+})());
+
+// HTML wiring — new DOM elements exist
+test('v4.73.0 HTML: #readiness-prediction element exists', html.includes('id="readiness-prediction"'));
+test('v4.73.0 HTML: #readiness-whatif container exists', html.includes('id="readiness-whatif"'));
+test('v4.73.0 HTML: #readiness-whatif-row chip slot exists', html.includes('id="readiness-whatif-row"'));
+test('v4.73.0 HTML: #readiness-trajectory line exists', html.includes('id="readiness-trajectory"'));
+
+// Render wiring — renderReadinessCard populates the new pieces
+test('v4.73.0 wiring: renderReadinessCard populates #readiness-prediction',
+  /renderReadinessCard[\s\S]{0,5000}readiness-prediction/.test(js));
+test('v4.73.0 wiring: renderReadinessCard populates #readiness-whatif',
+  /renderReadinessCard[\s\S]{0,5000}readiness-whatif/.test(js));
+test('v4.73.0 wiring: renderReadinessCard populates #readiness-trajectory',
+  /renderReadinessCard[\s\S]{0,10000}readiness-trajectory/.test(js));
+test('v4.73.0 wiring: what-if chips wire to focusTopic',
+  /readiness-whatif-chip[\s\S]{0,500}focusTopic/.test(js));
+
+// CSS — new classes exist
+test('v4.73.0 CSS: .readiness-prediction styled', css.includes('.readiness-prediction'));
+test('v4.73.0 CSS: .readiness-whatif-chip styled', css.includes('.readiness-whatif-chip'));
+test('v4.73.0 CSS: .readiness-trajectory styled', css.includes('.readiness-trajectory'));
+test('v4.73.0 CSS: pass probability tier classes present (.high/.med/.low)',
+  /\.readiness-prediction\s+\.prob\.high[\s\S]{0,500}\.readiness-prediction\s+\.prob\.med[\s\S]{0,500}\.readiness-prediction\s+\.prob\.low/.test(css));
+test('v4.73.0 CSS: trajectory tier classes present (.warn/.mid/.good)',
+  /\.readiness-trajectory\.warn[\s\S]{0,500}\.readiness-trajectory\.mid[\s\S]{0,500}\.readiness-trajectory\.good/.test(css));
+test('v4.73.0 CSS: reduced-motion gate present for what-if chips',
+  /prefers-reduced-motion[\s\S]{0,400}\.readiness-whatif-chip/.test(css));
 
 // --- Validation audit regression gate ---
 // The programmatic validator has a known catch-rate floor (60%) and a

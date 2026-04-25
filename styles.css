@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.72.1
+   Network+ AI Quiz — styles.css  v4.73.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1741,6 +1741,117 @@ input::placeholder { color: var(--text-dim); }
    rules retired with the 3-element HTML row. */
 .readiness-exam-row { display: flex; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 .readiness-exam-row .ana-ready-datechip { width: 100%; justify-content: center; }
+
+/* v4.73.0: Pass-rate prediction line — shows score with confidence interval
+ * + pass probability. Sits under the score block, before the bar. */
+.readiness-prediction {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  color: var(--accent);
+  margin: 4px 0 10px;
+  padding: 7px 12px;
+  background: rgba(124,111,247,0.08);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+.readiness-prediction strong { color: var(--accent); font-weight: 700; }
+.readiness-prediction .ci { color: var(--text-dim); font-size: 12px; }
+.readiness-prediction .sep { color: var(--text-dim); margin: 0 4px; }
+.readiness-prediction .prob { font-weight: 700; }
+.readiness-prediction .prob.high { color: var(--green); }
+.readiness-prediction .prob.med { color: var(--yellow); }
+.readiness-prediction .prob.low { color: var(--red); }
+
+/* v4.73.0: What-if attribution — top 3 high-leverage topics as clickable chips. */
+.readiness-whatif {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--surface3);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+.readiness-whatif-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.readiness-whatif-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.readiness-whatif-chip {
+  padding: 7px 11px;
+  background: rgba(124,111,247,0.10);
+  border: 1px solid rgba(124,111,247,0.32);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  color: var(--text);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.readiness-whatif-chip:hover {
+  background: rgba(124,111,247,0.20);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(124,111,247,0.18);
+}
+.readiness-whatif-chip .pts {
+  color: var(--green);
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+.readiness-whatif-chip .topic { font-weight: 600; }
+.readiness-whatif-chip .delta {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+}
+
+/* v4.73.0: Trajectory line — countdown to exam + points-to-pass gap. */
+.readiness-trajectory {
+  margin-top: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-dim);
+  border-radius: 4px;
+}
+.readiness-trajectory strong { color: var(--text); }
+.readiness-trajectory .hint { color: var(--text-dim); font-size: 11px; }
+.readiness-trajectory.warn {
+  color: var(--orange);
+  background: rgba(251,146,60,0.08);
+  border-left: 3px solid var(--orange);
+}
+.readiness-trajectory.warn strong { color: var(--orange); }
+.readiness-trajectory.mid {
+  color: var(--yellow);
+  background: rgba(251,191,36,0.08);
+  border-left: 3px solid var(--yellow);
+}
+.readiness-trajectory.mid strong { color: var(--yellow); }
+.readiness-trajectory.good {
+  color: var(--green);
+  background: rgba(34,197,94,0.08);
+  border-left: 3px solid var(--green);
+}
+.readiness-trajectory.good strong { color: var(--green); }
+
+/* Reduced-motion gate */
+@media (prefers-reduced-motion: reduce) {
+  .readiness-whatif-chip { transition: none !important; }
+  .readiness-whatif-chip:hover { transform: none !important; }
+}
 
 /* ── ANALYTICS v2 (v4.5) ── */
 /* ── Exam Readiness hero card (v4.46.0 polish) ──

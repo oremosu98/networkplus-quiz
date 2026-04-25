@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Concept — Subnet Visualizer</title>
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #0f1524; --accent: #a99cff;
+    --text: #e5e7eb; --muted: #6b7280;
+    --green: #3fd28b; --yellow: #f4c664; --red: #ef6a7a; --blue: #6aa9f0;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif; height: 100%; overflow: hidden; }
+  #scene { position: absolute; inset: 0; }
+
+  #chrome-top { position: absolute; top: 0; left: 0; right: 0; padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(10,14,26,0.92), rgba(10,14,26,0));
+    display: flex; justify-content: space-between; align-items: center; z-index: 2;
+    pointer-events: none; }
+  .eyebrow { font-family: monospace; font-size: 11px; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase; }
+  .pill { font-family: monospace; font-size: 11px; color: var(--muted);
+    padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.05); }
+
+  #controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 16px;
+    background: linear-gradient(0deg, rgba(10,14,26,0.96), rgba(10,14,26,0));
+    z-index: 2; display: flex; flex-direction: column; gap: 10px; }
+  #cidr-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  #cidr-slider { flex: 1; min-width: 200px; accent-color: var(--accent); }
+  .btn { background: rgba(169,156,255,0.1); border: 1px solid rgba(169,156,255,0.4);
+    color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-family: inherit; }
+  .btn:hover { background: rgba(169,156,255,0.2); }
+  .btn.active { background: var(--accent); color: #000; font-weight: 500; }
+  .legend { display: flex; gap: 14px; align-items: center; font-family: monospace;
+    font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    margin-right: 5px; vertical-align: middle; }
+
+  #info { position: absolute; top: 56px; right: 16px; width: 340px;
+    max-height: calc(100vh - 180px); overflow-y: auto;
+    background: var(--surface); border: 1px solid rgba(255,255,255,0.08);
+    border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px;
+    font-size: 13px; line-height: 1.5; z-index: 2; }
+  #info h3 { margin: 0 0 8px; font-size: 14px; color: var(--accent); }
+  #info .field { font-family: monospace; font-size: 11px; color: var(--muted); padding: 2px 0; }
+  #info .binary { font-family: monospace; font-size: 12px; padding: 8px; margin-top: 10px;
+    background: rgba(10,14,26,0.5); border-radius: 4px; word-break: break-all;
+    border: 1px solid rgba(255,255,255,0.05); }
+  #info .binary .net { color: var(--blue); font-weight: 700; }
+  #info .binary .host { color: var(--yellow); }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div id="chrome-top">
+  <div><span class="eyebrow">3D Concept · Subnet Visualizer</span></div>
+  <div><span class="pill" id="base-cidr">10.0.0.0/24 → drag slider to carve into smaller subnets</span></div>
+</div>
+
+<div id="info">
+  <h3>Hover to pop a cube · click to inspect</h3>
+  <div id="info-body">
+    <div class="field">256 IP addresses as a 16×16 grid.</div>
+    <div class="field">Each cube is ONE IP address in 10.0.0.0/24.</div>
+    <div class="field">Drag the CIDR slider to carve the /24 into /25 /26 /27... subnets.</div>
+    <div class="field">Watch the grid partition into colored subnet groups.</div>
+  </div>
+</div>
+
+<div id="controls">
+  <div id="cidr-row">
+    <span class="pill" id="cidr-label" style="min-width: 64px; text-align: center;
+      color: var(--accent); border-color: var(--accent); font-weight: 600;">/24</span>
+    <input id="cidr-slider" type="range" min="24" max="30" value="24" step="1">
+    <span class="pill" id="subnet-count">1 subnet · 254 usable hosts</span>
+    <button class="btn" id="btn-binary">Show binary</button>
+    <button class="btn" id="btn-reset">⟲ Reset camera</button>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:#6aa9f0;"></span>Network address (.0)</span>
+    <span><span class="sw" style="background:#3fd28b;"></span>Gateway (.1)</span>
+    <span><span class="sw" style="background:#cbd5e1;"></span>Usable host</span>
+    <span><span class="sw" style="background:#ef6a7a;"></span>Broadcast (.last)</span>
+    <span style="color: var(--accent);">When subdivided: usable cubes tint by their subnet</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three/build/three.module.js",
+    "three/addons/": "../vendor/three/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+  // ── Scene setup ──
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e1a);
+  scene.fog = new THREE.Fog(0x0a0e1a, 50, 180);
+
+  const sceneHost = document.getElementById('scene');
+  const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
+  const INITIAL_CAM = { pos: [24, 30, 28], target: [0, 0, 0] };
+  camera.position.set(...INITIAL_CAM.pos);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  sceneHost.appendChild(renderer.domElement);
+
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(innerWidth, innerHeight);
+  Object.assign(labelRenderer.domElement.style, {
+    position: 'absolute', top: '0', left: '0', pointerEvents: 'none'
+  });
+  sceneHost.appendChild(labelRenderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.target.set(...INITIAL_CAM.target);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  keyLight.position.set(10, 30, 10);
+  scene.add(keyLight);
+
+  // ── Grid of 256 cubes ──
+  const GRID = 16;
+  const CUBE_SIZE = 1;
+  const SPACING = 1.25;
+  const cubes = [];
+  const cubeGroup = new THREE.Group();
+  scene.add(cubeGroup);
+
+  const ROLE_COLORS = {
+    network: 0x6aa9f0,     // blue
+    gateway: 0x3fd28b,     // green
+    usable:  0xcbd5e1,     // light gray
+    broadcast: 0xef6a7a    // red
+  };
+
+  // 8-color palette for subnet tinting when split
+  const SUBNET_PALETTE = [
+    0x6aa9f0, 0x3fd28b, 0xf4c664, 0xef6a7a,
+    0xa99cff, 0x2dd4bf, 0xf97316, 0xe879f9,
+    0xfbbf24, 0x34d399, 0xfb7185, 0x60a5fa,
+    0xc084fc, 0x14b8a6, 0xfde047, 0xf472b6
+  ];
+
+  for (let row = 0; row < GRID; row++) {
+    for (let col = 0; col < GRID; col++) {
+      const ip = row * GRID + col;
+      const geo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+      const mat = new THREE.MeshStandardMaterial({
+        color: ROLE_COLORS.usable,
+        emissive: 0x000000,
+        emissiveIntensity: 0.08
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (col - GRID / 2 + 0.5) * SPACING,
+        0,
+        (row - GRID / 2 + 0.5) * SPACING
+      );
+      mesh.userData = { ip, row, col, baseY: 0 };
+      cubeGroup.add(mesh);
+      cubes.push(mesh);
+    }
+  }
+
+  // Ambient floor plate beneath the grid
+  const floorGeo = new THREE.PlaneGeometry(GRID * SPACING + 2, GRID * SPACING + 2);
+  const floorMat = new THREE.MeshBasicMaterial({
+    color: 0x121826, transparent: true, opacity: 0.5, side: THREE.DoubleSide
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -0.6;
+  scene.add(floor);
+
+  // Subnet boundary lines (rendered when CIDR > 24)
+  const boundaryGroup = new THREE.Group();
+  scene.add(boundaryGroup);
+
+  // ── Apply CIDR logic ──
+  let currentCIDR = 24;
+  let showBinary = false;
+
+  function applyCIDR(cidr) {
+    currentCIDR = cidr;
+    const hostBits = 32 - cidr;
+    const blockSize = Math.pow(2, hostBits);     // 256, 128, 64, ..., 4
+    const subnetCount = 256 / blockSize;         // 1, 2, 4, ..., 64
+    const usablePerSubnet = Math.max(0, blockSize - 2);
+
+    cubes.forEach(cube => {
+      const ip = cube.userData.ip;
+      const subnetIdx = Math.floor(ip / blockSize);
+      const posInSubnet = ip % blockSize;
+
+      let role;
+      if (posInSubnet === 0) role = 'network';
+      else if (posInSubnet === blockSize - 1) role = 'broadcast';
+      else if (posInSubnet === 1) role = 'gateway';
+      else role = 'usable';
+
+      cube.userData.subnetIdx = subnetIdx;
+      cube.userData.subnetSize = blockSize;
+      cube.userData.subnetCIDR = cidr;
+      cube.userData.role = role;
+
+      // Color: network/broadcast/gateway get fixed roles; usable gets subnet tint
+      let color = ROLE_COLORS[role];
+      let opacity = 1.0;
+      let emissiveIntensity = 0.1;
+
+      if (role === 'usable' && subnetCount > 1) {
+        color = SUBNET_PALETTE[subnetIdx % SUBNET_PALETTE.length];
+        opacity = 0.45;
+        emissiveIntensity = 0.12;
+      } else if (role === 'network' || role === 'broadcast') {
+        emissiveIntensity = 0.28;
+      }
+
+      cube.material.color.setHex(color);
+      cube.material.emissive.setHex(color);
+      cube.material.emissiveIntensity = emissiveIntensity;
+      cube.material.opacity = opacity;
+      cube.material.transparent = opacity < 1.0;
+
+      // Slight Y-elevation alternation per subnet to visually separate groups
+      const elev = subnetCount > 1 ? (subnetIdx % 2) * 0.35 : 0;
+      cube.userData.baseY = elev;
+      cube.position.y = elev;
+    });
+
+    // UI sync
+    document.getElementById('cidr-label').textContent = `/${cidr}`;
+    document.getElementById('subnet-count').textContent =
+      `${subnetCount} subnet${subnetCount === 1 ? '' : 's'} · ${usablePerSubnet} usable host${usablePerSubnet === 1 ? '' : 's'} each`;
+    document.getElementById('base-cidr').textContent =
+      `10.0.0.0/${cidr} · block size ${blockSize} · ${subnetCount} subnet${subnetCount === 1 ? '' : 's'}`;
+  }
+
+  applyCIDR(24);
+
+  // ── Picking / hover ──
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let hoveredCube = null;
+
+  function ipToStr(ip) { return `10.0.0.${ip}`; }
+  function ipToBinary(ip) {
+    return '00001010.00000000.00000000.' + ip.toString(2).padStart(8, '0');
+  }
+
+  function buildInfo(cube) {
+    const { ip, role, subnetIdx, subnetSize, subnetCIDR } = cube.userData;
+    const netAddr = subnetIdx * subnetSize;
+    const bcastAddr = netAddr + subnetSize - 1;
+    const usableStart = netAddr + 1;
+    const usableEnd = bcastAddr - 1;
+    const gatewayAddr = netAddr + 1;
+
+    const fields = [
+      `IP: ${ipToStr(ip)}`,
+      `Role: ${role.toUpperCase()}`,
+      `Subnet: ${ipToStr(netAddr)}/${subnetCIDR}`,
+      `Block size: ${subnetSize} addresses`,
+      `Network:   ${ipToStr(netAddr)}`,
+      `Gateway:   ${ipToStr(gatewayAddr)} (conventional)`,
+      `Usable:    ${ipToStr(usableStart)} – ${ipToStr(usableEnd)}`,
+      `Broadcast: ${ipToStr(bcastAddr)}`
+    ];
+
+    let html = `<h3>${ipToStr(ip)} <span style="color: var(--muted); font-weight: 400; font-size: 11px;">${role}</span></h3>`;
+    html += fields.slice(1).map(f => `<div class="field">${f}</div>`).join('');
+
+    if (showBinary) {
+      const netBits = subnetCIDR;
+      const hostBits = 32 - netBits;
+      const plain = ipToBinary(ip).replace(/\./g, '');
+      const netPart = plain.slice(0, netBits);
+      const hostPart = plain.slice(netBits);
+      function addDots(s, startIdx) {
+        let out = '';
+        for (let i = 0; i < s.length; i++) {
+          if ((startIdx + i) > 0 && (startIdx + i) % 8 === 0) out += '.';
+          out += s[i];
+        }
+        return out;
+      }
+      const netStr = addDots(netPart, 0);
+      const hostStr = hostPart.length
+        ? (netBits % 8 === 0 ? '.' : '') + addDots(hostPart, netBits)
+        : '';
+      html += `<div class="binary"><span class="net">${netStr}</span><span class="host">${hostStr}</span></div>`;
+      html += `<div class="field" style="margin-top: 4px;">`
+        + `<span style="color: var(--blue);">blue = network (${netBits} bits)</span> · `
+        + `<span style="color: var(--yellow);">yellow = host (${hostBits} bits)</span></div>`;
+    }
+
+    document.getElementById('info-body').innerHTML = html;
+  }
+
+  renderer.domElement.addEventListener('mousemove', (e) => {
+    mouse.x = (e.clientX / innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+  });
+  renderer.domElement.addEventListener('click', () => {
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(cubes);
+    if (hits.length > 0) buildInfo(hits[0].object);
+  });
+
+  // ── Controls ──
+  document.getElementById('cidr-slider').addEventListener('input', (e) => {
+    applyCIDR(parseInt(e.target.value));
+  });
+  document.getElementById('btn-binary').addEventListener('click', (e) => {
+    showBinary = !showBinary;
+    e.target.classList.toggle('active', showBinary);
+    e.target.textContent = showBinary ? 'Hide binary' : 'Show binary';
+  });
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    camera.position.set(...INITIAL_CAM.pos);
+    controls.target.set(...INITIAL_CAM.target);
+  });
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    labelRenderer.setSize(innerWidth, innerHeight);
+  });
+
+  // ── Render loop with hover pop ──
+  function animate() {
+    requestAnimationFrame(animate);
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(cubes);
+    const newHover = hits.length > 0 ? hits[0].object : null;
+    if (newHover !== hoveredCube) {
+      // Unhover previous
+      if (hoveredCube) {
+        hoveredCube.scale.set(1, 1, 1);
+        hoveredCube.position.y = hoveredCube.userData.baseY;
+      }
+      hoveredCube = newHover;
+      if (hoveredCube) {
+        hoveredCube.scale.set(1.5, 2.2, 1.5);
+        hoveredCube.position.y = hoveredCube.userData.baseY + 0.8;
+      }
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

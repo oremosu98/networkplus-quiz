@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.72.1
+// Network+ AI Quiz — app.js  v4.73.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.72.1';
+const APP_VERSION = '4.73.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7896,6 +7896,64 @@ function getReadinessScore() {
     }
   });
 
+  // ── v4.73.0: Pass-rate prediction extras ──
+  // Confidence interval, pass probability, what-if attribution, trajectory.
+  // The data quality (sample size + coverage + recency) drives the CI width.
+  // The wider the CI, the less confidently we can predict the real exam score.
+  const sampleWidth = 60 / Math.sqrt(1 + totalQs / 50);
+  const coverageFactor = totalTopics > 0 ? studiedCount / totalTopics : 0;
+  const recencyFactor = recencyScore / 100;
+  const coverageWidth = 30 * (1 - coverageFactor);
+  const recencyWidth = 15 * (1 - recencyFactor);
+  let ciHalfWidth = sampleWidth + coverageWidth + recencyWidth;
+  ciHalfWidth = Math.max(15, Math.min(100, Math.round(ciHalfWidth)));
+  const lowerBound = Math.max(420, predicted - ciHalfWidth);
+  const upperBound = Math.min(870, predicted + ciHalfWidth);
+
+  // Pass probability via logistic centered on the pass line. Sigma derived
+  // from CI half-width (90% CI ≈ ±1.645σ). Result is 0-1.
+  const sigma = ciHalfWidth / 1.645;
+  const z = (predicted - EXAM_PASS_SCORE) / sigma;
+  const passProbability = 1 / (1 + Math.exp(-z));
+
+  // What-if attribution: for each studied topic, compute the predicted-score
+  // delta if that topic improved to 80% accuracy. Surfaces the highest-leverage
+  // topics — not just the lowest-mastery, but the ones whose mastery would
+  // most move the final score (factors in domain weight + question count).
+  const TARGET_ACC = 0.80;
+  const whatIfsRaw = [];
+  studiedTopics.forEach(t => {
+    const tData = topicMap[t];
+    const domain = TOPIC_DOMAINS[t];
+    if (!domain) return;
+    const bucket = domainBuckets[domain];
+    if (!bucket || bucket.wTotal === 0) return;
+
+    const currentAcc = tData.wTotal > 0 ? tData.wCorrect / tData.wTotal : 0;
+    const currentPct = Math.round(currentAcc * 100);
+    if (currentAcc >= TARGET_ACC) return;
+
+    const newWCorrect = TARGET_ACC * tData.wTotal;
+    const deltaWCorrect = newWCorrect - tData.wCorrect;
+    // New domain accuracy if THIS topic improved to TARGET_ACC
+    const newDomainAcc = ((bucket.wCorrect + deltaWCorrect) / bucket.wTotal) * 100;
+    const oldDomainAcc = (bucket.wCorrect / bucket.wTotal) * 100;
+    const deltaDomainAccPts = newDomainAcc - oldDomainAcc;
+    // Score delta: deltaDomainAcc * domain weight * accuracy weight (0.40) * scale (4.5)
+    const deltaAccScore = deltaDomainAccPts * DOMAIN_WEIGHTS[domain];
+    const deltaPredicted = Math.round(deltaAccScore * 0.40 * 4.5);
+
+    if (deltaPredicted >= 1) {
+      whatIfsRaw.push({ topic: t, domain, currentPct, targetPct: 80, deltaPredicted });
+    }
+  });
+  whatIfsRaw.sort((a, b) => b.deltaPredicted - a.deltaPredicted);
+  const whatIf = whatIfsRaw.slice(0, 3);
+
+  // Days to exam + the gap to a confident pass (lower CI bound above 720).
+  const daysToExam = (typeof getDaysToExam === 'function') ? getDaysToExam() : null;
+  const targetGap = Math.max(0, EXAM_PASS_SCORE - lowerBound);
+
   return {
     predicted, raw,
     accuracyScore, coverageScore, recencyScore, volumeScore,
@@ -7904,7 +7962,15 @@ function getReadinessScore() {
     worstPct: worstPct === -1 ? null : worstPct,
     studiedCount,
     totalTopics,
-    totalQs
+    totalQs,
+    // v4.73.0 prediction extras
+    ciHalfWidth,
+    lowerBound,
+    upperBound,
+    passProbability,
+    whatIf,
+    daysToExam,
+    targetGap
   };
 }
 
@@ -8882,6 +8948,65 @@ function renderReadinessCard() {
     const dateStr = getExamDate();
     const days = getDaysToExam();
     examRow.innerHTML = _buildExamDateChipHtml(dateStr, days, 'readiness-exam-input');
+  }
+
+  // ── v4.73.0: prediction line + what-if + trajectory ──
+  // Populate the new prediction card pieces. Falls back to hidden when the
+  // data isn't yet ready (early-session, no questions answered).
+  const predEl = document.getElementById('readiness-prediction');
+  if (predEl && data.passProbability !== undefined) {
+    const probPct = Math.round(data.passProbability * 100);
+    let probClass = 'high';
+    if (probPct < 50) probClass = 'low';
+    else if (probPct < 80) probClass = 'med';
+    predEl.innerHTML = '🎯 <strong>' + predicted + '</strong> '
+      + '<span class="ci">± ' + data.ciHalfWidth + '</span> '
+      + '<span class="sep">·</span> '
+      + '<span class="prob ' + probClass + '">' + probPct + '% pass probability</span>';
+    predEl.hidden = false;
+  } else if (predEl) {
+    predEl.hidden = true;
+  }
+
+  // What-if chips — top 3 highest-leverage topics
+  const whatIfEl = document.getElementById('readiness-whatif');
+  const whatIfRow = document.getElementById('readiness-whatif-row');
+  if (whatIfEl && whatIfRow && data.whatIf && data.whatIf.length > 0) {
+    whatIfRow.innerHTML = data.whatIf.map(w => {
+      const safeTopic = (w.topic || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      return '<button type="button" class="readiness-whatif-chip" '
+        + 'onclick="focusTopic(\'' + safeTopic + '\')" '
+        + 'title="Drill ' + escHtml(w.topic) + ' to push your score up">'
+        + '<span class="pts">+' + w.deltaPredicted + ' pts</span> '
+        + '<span class="topic">' + escHtml(w.topic) + '</span> '
+        + '<span class="delta">(' + w.currentPct + '% → 80%)</span>'
+        + '</button>';
+    }).join('');
+    whatIfEl.hidden = false;
+  } else if (whatIfEl) {
+    whatIfEl.hidden = true;
+  }
+
+  // Trajectory: time-bound + confident-pass gap
+  const trajEl = document.getElementById('readiness-trajectory');
+  if (trajEl) {
+    if (data.daysToExam !== null && data.daysToExam !== undefined) {
+      if (data.targetGap > 0) {
+        const cls = data.targetGap > 60 ? 'warn' : (data.targetGap > 20 ? 'mid' : 'good');
+        trajEl.innerHTML = '⏰ <strong>' + data.daysToExam + ' days</strong> to exam &middot; '
+          + 'need <strong>+' + data.targetGap + ' pts</strong> for confident pass '
+          + '<span class="hint">(lower bound → 720)</span>';
+        trajEl.className = 'readiness-trajectory ' + cls;
+        trajEl.hidden = false;
+      } else {
+        trajEl.innerHTML = '✅ <strong>' + data.daysToExam + ' days</strong> to exam &middot; '
+          + 'already confidently above pass.';
+        trajEl.className = 'readiness-trajectory good';
+        trajEl.hidden = false;
+      }
+    } else {
+      trajEl.hidden = true;
+    }
   }
 }
 

@@ -132,7 +132,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.72.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.73.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -154,11 +154,20 @@
       <!-- v4.53.0: pass-mark 720 tick. Position computed: (720-420)/(900-420)*100 = 62.5% -->
       <div class="readiness-pass-tick" aria-hidden="true" style="left:62.5%"></div>
     </div>
+    <!-- v4.73.0: prediction line with confidence interval + pass probability -->
+    <div class="readiness-prediction" id="readiness-prediction" hidden></div>
     <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
     <div class="readiness-exam-row" id="readiness-exam-row">
       <!-- v4.46.1: single chip (built by _buildExamDateChipHtml) replaces old
            3-element row (label + button + countdown). Fills on renderReadinessCard. -->
     </div>
+    <!-- v4.73.0: what-if attribution — top 3 highest-leverage topics. -->
+    <div class="readiness-whatif" id="readiness-whatif" hidden>
+      <div class="readiness-whatif-label">📊 Drill these to move your score</div>
+      <div class="readiness-whatif-row" id="readiness-whatif-row"></div>
+    </div>
+    <!-- v4.73.0: trajectory message — points needed to confidently pass. -->
+    <div class="readiness-trajectory" id="readiness-trajectory" hidden></div>
   </div>
 
   <!-- Today section — conditional cards grouped -->

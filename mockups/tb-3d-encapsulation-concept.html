@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Concept — Packet Encapsulation (Nested Cubes)</title>
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #0f1524; --accent: #a99cff;
+    --text: #e5e7eb; --muted: #6b7280;
+    --green: #3fd28b; --yellow: #f4c664; --red: #ef6a7a; --blue: #6aa9f0;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif; height: 100%; overflow: hidden; }
+  #scene { position: absolute; inset: 0; }
+
+  #chrome-top { position: absolute; top: 0; left: 0; right: 0; padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(10,14,26,0.92), rgba(10,14,26,0));
+    display: flex; justify-content: space-between; align-items: center; z-index: 2;
+    pointer-events: none; }
+  .eyebrow { font-family: monospace; font-size: 11px; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase; }
+  .pill { font-family: monospace; font-size: 11px; color: var(--muted);
+    padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.05); }
+
+  #controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 16px 16px;
+    background: linear-gradient(0deg, rgba(10,14,26,0.96), rgba(10,14,26,0));
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap; z-index: 2; }
+  .btn { background: rgba(169,156,255,0.1); border: 1px solid rgba(169,156,255,0.4);
+    color: var(--text); padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-family: inherit; }
+  .btn:hover { background: rgba(169,156,255,0.2); }
+  .btn.primary { background: var(--accent); color: #000; font-weight: 500; border-color: var(--accent); }
+
+  #info { position: absolute; top: 56px; right: 16px; width: 320px; max-height: calc(100vh - 160px);
+    overflow-y: auto; background: var(--surface); border: 1px solid rgba(255,255,255,0.08);
+    border-left: 3px solid var(--accent); border-radius: 6px; padding: 14px;
+    font-size: 13px; line-height: 1.5; z-index: 2; }
+  #info h3 { margin: 0 0 6px; font-size: 14px; color: var(--accent); }
+  #info .field { font-family: monospace; font-size: 11px; color: var(--muted); padding: 2px 0; }
+  #info .hint { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 12px; color: var(--muted); }
+
+  .layer-legend { display: flex; gap: 16px; align-items: center; padding: 0 4px;
+    font-family: monospace; font-size: 11px; color: var(--muted); }
+  .layer-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div id="chrome-top">
+  <div><span class="eyebrow">3D Concept · Packet Encapsulation</span></div>
+  <div><span class="pill">HTTP GET wrapped L7 → L4 → L3 → L2</span></div>
+</div>
+
+<div id="info">
+  <h3>Click a layer</h3>
+  <div id="info-body">Concentric transparent cubes show how a packet is built up through the OSI model. Inner cube = application data; outer cubes = each protocol header added as it travels down the stack.</div>
+  <div class="hint" id="hint">Try <b>▶ Rebuild</b> to see the encapsulation happen, then <b>Show at next hop</b> to see L2 rewrite while L3 stays the same.</div>
+</div>
+
+<div id="controls">
+  <button class="btn primary" id="btn-rebuild">▶ Rebuild encapsulation</button>
+  <button class="btn" id="btn-explode">💥 Explode layers</button>
+  <button class="btn" id="btn-nexthop">⇒ Show at next hop (L2 rewrite)</button>
+  <span style="flex: 1;"></span>
+  <div class="layer-legend">
+    <span><span class="sw" style="background:#9b8bff;"></span>L7 Payload</span>
+    <span><span class="sw" style="background:#3fd28b;"></span>L4 TCP</span>
+    <span><span class="sw" style="background:#6aa9f0;"></span>L3 IP</span>
+    <span><span class="sw" style="background:#f4c664;"></span>L2 Ethernet</span>
+  </div>
+  <button class="btn" id="btn-reset">⟲ Reset</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../vendor/three/build/three.module.js",
+    "three/addons/": "../vendor/three/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+  // ── Scene setup ──
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e1a);
+  scene.fog = new THREE.Fog(0x0a0e1a, 40, 140);
+
+  const sceneHost = document.getElementById('scene');
+  const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 500);
+  const INITIAL_CAM = { pos: [22, 12, 22], target: [0, 0, 0] };
+  camera.position.set(...INITIAL_CAM.pos);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  sceneHost.appendChild(renderer.domElement);
+
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(innerWidth, innerHeight);
+  Object.assign(labelRenderer.domElement.style, {
+    position: 'absolute', top: '0', left: '0', pointerEvents: 'none'
+  });
+  sceneHost.appendChild(labelRenderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.target.set(...INITIAL_CAM.target);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.75);
+  keyLight.position.set(10, 20, 10);
+  scene.add(keyLight);
+
+  const grid = new THREE.GridHelper(60, 30, 0x1a2030, 0x121826);
+  grid.position.y = -7;
+  scene.add(grid);
+
+  // ── Layer data ──
+  const LAYERS = [
+    { name: 'payload', size: 2.0, color: 0x9b8bff, title: 'Application Data (L7)',
+      fields: [
+        'Payload: "GET /index.html HTTP/1.1"',
+        'Protocol: HTTP (Application layer)',
+        'This is the actual data the user cares about.'
+      ] },
+    { name: 'L4', size: 4.0, color: 0x3fd28b, title: 'Transport (L4) — TCP',
+      fields: [
+        'Source port: 54321 (ephemeral)',
+        'Dest port: 80 (HTTP)',
+        'Sequence #: 1234567890',
+        'Flags: [SYN · ACK · PSH]',
+        'Checksum: 0xABCD',
+        '→ Wraps L7 payload with a 20–60 byte TCP header.'
+      ] },
+    { name: 'L3', size: 6.0, color: 0x6aa9f0, title: 'Network (L3) — IP',
+      fields: [
+        'Source IP: 10.0.0.5',
+        'Dest IP: 203.0.113.42',
+        'TTL: 64',
+        'Protocol: 6 (TCP)',
+        'Version: 4',
+        '→ Wraps L4 segment with 20-byte IP header. IPs stay constant end-to-end.'
+      ] },
+    { name: 'L2', size: 8.0, color: 0xf4c664, title: 'Data Link (L2) — Ethernet',
+      fields: [
+        'Source MAC: aa:bb:cc:11:22:33',
+        'Dest MAC: aa:bb:cc:fe:00:01 (next-hop router)',
+        'EtherType: 0x0800 (IPv4)',
+        'FCS trailer: 0xDEADBEEF',
+        '→ Wraps IP packet with ~18 bytes of framing.',
+        '⚠ This layer is REWRITTEN at every L3 hop.'
+      ] }
+  ];
+
+  const layerMeshes = {};
+
+  function makeLayer(cfg) {
+    const group = new THREE.Group();
+
+    // Translucent fill box
+    const geo = new THREE.BoxGeometry(cfg.size, cfg.size, cfg.size);
+    const mat = new THREE.MeshStandardMaterial({
+      color: cfg.color,
+      transparent: true,
+      opacity: cfg.name === 'payload' ? 0.85 : 0.18,
+      emissive: cfg.color,
+      emissiveIntensity: 0.05
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.layerCfg = cfg;
+    group.add(mesh);
+
+    // Crisp wireframe outline
+    const edges = new THREE.EdgesGeometry(geo);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+      color: cfg.color, transparent: true, opacity: 0.9
+    }));
+    group.add(line);
+
+    // Floating label (hide for innermost payload to avoid clutter inside)
+    if (cfg.name !== 'payload') {
+      const d = document.createElement('div');
+      d.style.cssText = `font-family: monospace; font-size: 10px; color: #${cfg.color.toString(16).padStart(6,'0')};
+        padding: 3px 7px; background: rgba(10,14,26,0.85);
+        border: 1px solid #${cfg.color.toString(16).padStart(6,'0')};
+        border-radius: 3px; white-space: nowrap;`;
+      d.textContent = cfg.title;
+      const lbl = new CSS2DObject(d);
+      lbl.position.set(cfg.size / 2 + 0.4, cfg.size / 2 + 0.3, 0);
+      group.add(lbl);
+    }
+
+    scene.add(group);
+    layerMeshes[cfg.name] = { group, mesh, mat, line, cfg };
+    return group;
+  }
+
+  LAYERS.forEach(makeLayer);
+
+  // ── Info panel ──
+  const infoBody = document.getElementById('info-body');
+  const hintEl = document.getElementById('hint');
+  function showLayerInfo(cfg) {
+    document.querySelector('#info h3').textContent = cfg.title;
+    infoBody.innerHTML = cfg.fields.map(f => `<div class="field">${f}</div>`).join('');
+    hintEl.style.display = 'none';
+  }
+
+  // ── Picking ──
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener('click', (e) => {
+    mouse.x = (e.clientX / innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const meshes = Object.values(layerMeshes).map(l => l.mesh);
+    const hits = raycaster.intersectObjects(meshes);
+    if (hits.length > 0) showLayerInfo(hits[0].object.userData.layerCfg);
+  });
+
+  // ── Animations ──
+  let exploded = false;
+  let animating = false;
+
+  function tween(obj, targets, duration, onStep) {
+    return new Promise(resolve => {
+      const start = {};
+      Object.keys(targets).forEach(k => start[k] = obj[k]);
+      const t0 = performance.now();
+      function step(t) {
+        const p = Math.min(1, (t - t0) / duration);
+        const e = 1 - Math.pow(1 - p, 3);
+        Object.keys(targets).forEach(k => obj[k] = start[k] + (targets[k] - start[k]) * e);
+        if (onStep) onStep(e);
+        if (p < 1) requestAnimationFrame(step);
+        else resolve();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  async function explodeLayers() {
+    if (animating) return;
+    animating = true;
+    exploded = !exploded;
+    const offsets = exploded
+      ? { payload: 0, L4: 4, L3: 8, L2: 12 }
+      : { payload: 0, L4: 0, L3: 0, L2: 0 };
+    await Promise.all(Object.entries(offsets).map(([name, dy]) => {
+      const g = layerMeshes[name].group;
+      return tween(g.position, { y: dy }, 700);
+    }));
+    animating = false;
+  }
+
+  async function rebuildAnimation() {
+    if (animating) return;
+    animating = true;
+    exploded = false;
+    // Reset positions
+    Object.values(layerMeshes).forEach(l => l.group.position.set(0, 0, 0));
+    // Hide all
+    Object.values(layerMeshes).forEach(l => l.group.visible = false);
+    // Show each in order with bounce-in
+    const order = ['payload', 'L4', 'L3', 'L2'];
+    const stepHints = {
+      payload: 'L7 Payload — the HTTP GET request',
+      L4: '+ TCP header (port 54321 → 80)',
+      L3: '+ IP header (10.0.0.5 → 203.0.113.42, TTL 64)',
+      L2: '+ Ethernet header + trailer (MAC rewrites every hop)'
+    };
+    for (const name of order) {
+      const l = layerMeshes[name];
+      l.group.visible = true;
+      l.group.scale.set(0.15, 0.15, 0.15);
+      hintEl.style.display = '';
+      hintEl.innerHTML = `<b style="color: #${l.cfg.color.toString(16).padStart(6,'0')}">${stepHints[name]}</b>`;
+      await tween(l.group.scale, { x: 1, y: 1, z: 1 }, 500);
+      await new Promise(r => setTimeout(r, 700));
+    }
+    animating = false;
+    hintEl.innerHTML = '✓ Full frame assembled. Click any layer to inspect its header fields.';
+  }
+
+  async function showNextHop() {
+    const l2 = layerMeshes.L2;
+    if (!l2) return;
+    hintEl.style.display = '';
+    hintEl.innerHTML = '⚡ <b style="color: var(--red)">L2 header rewriting at next hop</b> — MAC src/dst change. <b style="color: var(--green)">L3 (IP) stays constant</b>.';
+
+    const origColor = l2.cfg.color;
+    l2.mat.color.setHex(0xef6a7a);
+    l2.mat.emissive.setHex(0xef6a7a);
+    l2.mat.emissiveIntensity = 0.7;
+    l2.line.material.color.setHex(0xef6a7a);
+    // Pulse scale
+    await tween(l2.group.scale, { x: 1.15, y: 1.15, z: 1.15 }, 400);
+    await tween(l2.group.scale, { x: 1.0, y: 1.0, z: 1.0 }, 400);
+    // Restore
+    l2.mat.color.setHex(origColor);
+    l2.mat.emissive.setHex(origColor);
+    l2.mat.emissiveIntensity = 0.05;
+    l2.line.material.color.setHex(origColor);
+    hintEl.innerHTML += '<br><br>The IP packet inside is unchanged — that\'s why routing decisions are layer-3 decisions, not layer-2.';
+  }
+
+  function resetAll() {
+    Object.values(layerMeshes).forEach(l => {
+      l.group.visible = true;
+      l.group.position.set(0, 0, 0);
+      l.group.scale.set(1, 1, 1);
+    });
+    exploded = false;
+    camera.position.set(...INITIAL_CAM.pos);
+    controls.target.set(...INITIAL_CAM.target);
+  }
+
+  // ── Wiring ──
+  document.getElementById('btn-rebuild').addEventListener('click', rebuildAnimation);
+  document.getElementById('btn-explode').addEventListener('click', explodeLayers);
+  document.getElementById('btn-nexthop').addEventListener('click', showNextHop);
+  document.getElementById('btn-reset').addEventListener('click', resetAll);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    labelRenderer.setSize(innerWidth, innerHeight);
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    // Subtle rotation for visual interest
+    Object.values(layerMeshes).forEach(l => { l.group.rotation.y += 0.0015; });
+    controls.update();
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  }
+  animate();
+
+  // Auto-play the rebuild once on load
+  setTimeout(rebuildAnimation, 500);
+</script>
+</body>
+</html>
