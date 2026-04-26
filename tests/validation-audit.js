@@ -36,6 +36,9 @@ const smallestSubnetSrc = extractFunction(js, '_smallestSubnetOk');
 const stemInterrogativeSrc = extractFunction(js, '_stemHasInterrogative');
 // v4.62.2: CompTIA troubleshooting-methodology order guard
 const tsOrderOkSrc = extractFunction(js, '_tbTroubleshootingOrderOk');
+// v4.81.16: stem-numeric-vs-answer-count + multi-select GT facts
+const stemNumericSrc = extractFunction(js, '_stemNumericMatchesAnswerCount');
+const multiSelectGtSrc = extractFunction(js, '_multiSelectGroundTruthOk');
 
 // Extract GT_* constants block (GT_PORTS, GT_OSI, GT_WIFI_BROKEN, GT_WIFI_DEPRECATED)
 function extractConstBlock(src, startName) {
@@ -63,6 +66,8 @@ const gtPortsSrc = extractConstBlock(js, 'GT_PORTS');
 const gtOsiSrc = extractConstBlock(js, 'GT_OSI');
 const gtWifiBrokenSrc = extractConstBlock(js, 'GT_WIFI_BROKEN');
 const gtWifiDeprecatedSrc = extractConstBlock(js, 'GT_WIFI_DEPRECATED');
+// v4.81.16: stem-numeric word→int map consumed by _stemNumericMatchesAnswerCount
+const stemNumberWordsSrc = extractConstBlock(js, '_STEM_NUMBER_WORDS');
 
 // Stubs for dependencies
 const stub = `
@@ -73,11 +78,14 @@ const stub = `
   ${gtOsiSrc}
   ${gtWifiBrokenSrc}
   ${gtWifiDeprecatedSrc}
+  ${stemNumberWordsSrc}
   ${groundTruthSrc}
   ${numericOptionSrc}
   ${smallestSubnetSrc}
   ${stemInterrogativeSrc}
   ${tsOrderOkSrc}
+  ${stemNumericSrc}
+  ${multiSelectGtSrc}
   ${validateQuestionsSrc}
   module.exports = validateQuestions;
 `;

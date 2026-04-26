@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.15', js.includes("const APP_VERSION = '4.81.15"));
+test('APP_VERSION is 4.81.16', js.includes("const APP_VERSION = '4.81.16"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.15', sw.includes('netplus-v4.81.15'));
+test('SW cache bumped to v4.81.16', sw.includes('netplus-v4.81.16'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -11227,6 +11227,130 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.16: Question-quality validators — stem-vs-answer-count alignment
+// + multi-select GT lock for canonical N10-009 facts (Wi-Fi 2.4 GHz channels).
+// User report: a "Which TWO" Wi-Fi-channels multi-select shipped with the
+// canonical answer being THREE (1, 6, 11) — no validator caught the stem-vs-
+// answer mismatch because (a) _groundTruthOk early-returned on non-MCQ,
+// (b) no generic check tied stem-numeric to q.answers.length.
+test('v4.81.16 QualityGuard: _stemNumericMatchesAnswerCount helper defined',
+  /function _stemNumericMatchesAnswerCount\(/.test(js));
+test('v4.81.16 QualityGuard: _multiSelectGroundTruthOk helper defined',
+  /function _multiSelectGroundTruthOk\(/.test(js));
+test('v4.81.16 QualityGuard: _STEM_NUMBER_WORDS map declared',
+  /_STEM_NUMBER_WORDS\s*=\s*\{[^}]*two:\s*2[^}]*three:\s*3/.test(js));
+test('v4.81.16 QualityGuard: stem-numeric validator wired into validateQuestions',
+  /_stemNumericMatchesAnswerCount/.test(_fnBody(js, 'validateQuestions') || ''));
+test('v4.81.16 QualityGuard: multi-select GT validator wired into multi-select branch',
+  /_multiSelectGroundTruthOk/.test(_fnBody(js, 'validateQuestions') || ''));
+test('v4.81.16 QualityGuard: 2.4 GHz channel canonical fact (1, 6, 11) referenced',
+  /sorted\[0\]\s*===\s*1\s*&&\s*sorted\[1\]\s*===\s*6\s*&&\s*sorted\[2\]\s*===\s*11/.test(js));
+test('v4.81.16 QualityGuard: stem-numeric regex matches "Which TWO" + "(Choose TWO)" patterns',
+  (() => {
+    const body = _fnBody(js, '_stemNumericMatchesAnswerCount') || '';
+    return /\\bWhich\\s\+/.test(body) && /Choose\\s\+/.test(body) && /TWO\|THREE\|FOUR\|FIVE/.test(body);
+  })());
+test('v4.81.16 QualityGuard: tight regex avoids prose false-positives (no "Identify"/"Pick" verbs)',
+  (() => {
+    const body = _fnBody(js, '_stemNumericMatchesAnswerCount') || '';
+    // The tight regex must NOT include Identify/Pick (would false-positive on
+    // prose like "Pick two factor authentication"). Only Which / Choose with
+    // explicit context (paren or "Which") qualify.
+    return !/\\bIdentify\\s\+|\\bPick\\s\+/.test(body);
+  })());
+
+// vm fixture #1 — _stemNumericMatchesAnswerCount catches the exact bug.
+test('v4.81.16 QualityGuard: vm fixture — "Which TWO" multi-select with 3 answers rejected',
+  (() => {
+    try {
+      const helper = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const numWords = js.match(/const _STEM_NUMBER_WORDS\s*=\s*\{[^}]*\}/)[0];
+      if (!helper) return false;
+      const vm = require('vm');
+      const ctx = {
+        getQType: (q) => q.type || 'mcq',
+        String, Math, Array, parseInt
+      };
+      vm.createContext(ctx);
+      vm.runInContext(numWords, ctx);
+      vm.runInContext(helper, ctx);
+      // The exact user-reported bug: stem says TWO, answers has 3
+      const bug = {
+        type: 'multi-select',
+        question: 'Which TWO of the following are non-overlapping frequency channels in the 2.4 GHz Wi-Fi band?',
+        answers: ['B', 'C', 'E']
+      };
+      // Correct: stem says TWO, answers has 2
+      const ok = {
+        type: 'multi-select',
+        question: '(Choose TWO) Which protocols use TCP?',
+        answers: ['A', 'B']
+      };
+      // No explicit count → pass through
+      const noCount = {
+        type: 'multi-select',
+        question: 'Which protocols use TCP? Select all that apply.',
+        answers: ['A', 'B']
+      };
+      // MCQ with multi-pick stem → reject (type mismatch)
+      const mcqBad = {
+        type: 'mcq',
+        question: 'Which TWO ports does HTTPS use?',
+        answer: 'A'
+      };
+      ctx.bug = bug; ctx.ok = ok; ctx.noCount = noCount; ctx.mcqBad = mcqBad;
+      const r1 = vm.runInContext('_stemNumericMatchesAnswerCount(bug)', ctx);
+      const r2 = vm.runInContext('_stemNumericMatchesAnswerCount(ok)', ctx);
+      const r3 = vm.runInContext('_stemNumericMatchesAnswerCount(noCount)', ctx);
+      const r4 = vm.runInContext('_stemNumericMatchesAnswerCount(mcqBad)', ctx);
+      return r1 === false && r2 === true && r3 === true && r4 === false;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — _multiSelectGroundTruthOk locks the 2.4 GHz channel fact.
+test('v4.81.16 QualityGuard: vm fixture — 2.4 GHz channels GT rejects non-{1,6,11} sets',
+  (() => {
+    try {
+      const body = _fnBody(js, '_multiSelectGroundTruthOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { String, Number, parseInt, Math, Array };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // The exact bug: stem asks "Which TWO non-overlapping 2.4 GHz channels"
+      // with answers being just two of the trio.
+      const bugTwo = {
+        question: 'Which TWO of the following are non-overlapping frequency channels in the 2.4 GHz Wi-Fi band?',
+        options: { A: 'Channel 2', B: 'Channel 1', C: 'Channel 6', D: 'Channel 9', E: 'Channel 11' },
+        answers: ['B', 'C'] // only 1 and 6
+      };
+      // Same fact, full canonical answer
+      const okThree = {
+        question: 'Which THREE of the following are non-overlapping channels in the 2.4 GHz Wi-Fi band?',
+        options: { A: 'Channel 2', B: 'Channel 1', C: 'Channel 6', D: 'Channel 9', E: 'Channel 11' },
+        answers: ['B', 'C', 'E']
+      };
+      // Wrong set (1, 6, 9 — not canonical)
+      const wrongSet = {
+        question: 'Identify the non-overlapping 2.4 GHz channels',
+        options: { A: 'Channel 1', B: 'Channel 6', C: 'Channel 9' },
+        answers: ['A', 'B', 'C']
+      };
+      // Unrelated multi-select — no Wi-Fi 2.4 GHz signal in stem
+      const unrelated = {
+        question: 'Which TWO ports does FTP use?',
+        options: { A: '20', B: '21', C: '80', D: '443' },
+        answers: ['A', 'B']
+      };
+      ctx.bugTwo = bugTwo; ctx.okThree = okThree; ctx.wrongSet = wrongSet; ctx.unrelated = unrelated;
+      const r1 = vm.runInContext('_multiSelectGroundTruthOk(bugTwo)', ctx);
+      const r2 = vm.runInContext('_multiSelectGroundTruthOk(okThree)', ctx);
+      const r3 = vm.runInContext('_multiSelectGroundTruthOk(wrongSet)', ctx);
+      const r4 = vm.runInContext('_multiSelectGroundTruthOk(unrelated)', ctx);
+      return r1 === false && r2 === true && r3 === false && r4 === true;
     } catch (e) { return false; }
   })());
 

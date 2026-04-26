@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.15
+// Network+ AI Quiz — app.js  v4.81.16
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.15';
+const APP_VERSION = '4.81.16';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -12888,6 +12888,77 @@ function _stemHasInterrogative(stem) {
   return pattern.test(s);
 }
 
+// v4.81.16: stem-vs-answer-count guard.
+// User report (v4.81.15 dogfood): a Foundational multi-select shipped with
+// stem "Which TWO of the following are non-overlapping frequency channels in
+// the 2.4 GHz Wi-Fi band..." — the canonical N10-009 answer is the SET of 3
+// channels (1, 6, 11), so a "Which TWO" stem is intrinsically wrong. The
+// validator missed it because (a) _groundTruthOk early-returned on non-MCQ,
+// (b) no generic check tied stem-numeric to q.answers.length.
+//
+// This guard tackles failure-mode (b): catches the generic class of "stem
+// says N but answers array length disagrees" — works for "Which TWO/THREE/
+// FOUR/FIVE" and "(Choose TWO/THREE/...)" patterns. An MCQ stem that demands
+// multiple selections is also rejected — type-mismatch on its face.
+const _STEM_NUMBER_WORDS = { two: 2, three: 3, four: 4, five: 5 };
+function _stemNumericMatchesAnswerCount(q) {
+  if (!q || typeof q.question !== 'string') return true;
+  const stem = q.question;
+  // Tight match — only canonical exam-style explicit-count patterns.
+  // Accepts: "Which TWO", "Which 2", "(Choose TWO)", "Choose TWO".
+  // Rejects: prose like "Choose two factor authentication" (no paren/Which).
+  let expected = null;
+  const wordRe = /(?:\bWhich\s+|\(\s*Choose\s+|^\s*Choose\s+)(TWO|THREE|FOUR|FIVE|two|three|four|five)\b/;
+  const digitRe = /(?:\bWhich\s+|\(\s*Choose\s+|^\s*Choose\s+)([2-5])\b/;
+  const wm = stem.match(wordRe);
+  const dm = stem.match(digitRe);
+  if (wm) expected = _STEM_NUMBER_WORDS[wm[1].toLowerCase()];
+  else if (dm) expected = parseInt(dm[1]);
+  if (!expected) return true; // no explicit count → nothing to check
+
+  const qType = (typeof getQType === 'function') ? getQType(q) : (q.type || 'mcq');
+  if (qType === 'mcq') return false; // MCQ + "Which TWO" = malformed
+  if (qType === 'multi-select') {
+    if (!Array.isArray(q.answers)) return false;
+    return q.answers.length === expected;
+  }
+  return true; // other types (order/cli-sim/topology) — not applicable
+}
+
+// v4.81.16: Multi-select GT facts — locks canonical N10-009 facts that
+// generate-and-grade pipelines tend to misframe. Currently locks the 2.4 GHz
+// non-overlapping channel set (1, 6, 11). Any future multi-select fact that
+// has a single-correct-set answer (e.g. "WPA3-required ciphers", "the 3
+// CIA properties") can join this table by adding a stem-detection regex +
+// the canonical answer set.
+function _multiSelectGroundTruthOk(q) {
+  if (!q || !q.options || !Array.isArray(q.answers)) return true;
+  const stem = String(q.question || '').toLowerCase();
+
+  // ── 2.4 GHz non-overlapping channels: factually {1, 6, 11} ──
+  // Stem signal: "non-overlapping" + (channel) + (2.4 GHz OR Wi-Fi/wireless context)
+  const isNonOverlap = /non[-\s]?overlapp/i.test(stem);
+  const mentionsChannel = /\bchannel/i.test(stem);
+  const mentions24GHz = /2\.4\s*g(?:hz)?\b/i.test(stem) || /\b2\.4\b/.test(stem);
+  const mentionsWiFi = /\b(wi[-\s]?fi|wifi|wlan|802\.11|wireless)\b/i.test(stem);
+  const isWifi24Channels = isNonOverlap && mentionsChannel && (mentions24GHz || mentionsWiFi);
+  if (isWifi24Channels) {
+    // Extract the numeric channel value from each marked answer.
+    const nums = q.answers.map(l => {
+      const t = String(q.options[l] || '');
+      const m = t.match(/channel\s*(\d+)/i) || t.match(/\b(\d+)\b/);
+      return m ? parseInt(m[1]) : NaN;
+    }).filter(n => Number.isFinite(n));
+    const sorted = [...nums].sort((a, b) => a - b);
+    // Canonical answer is exactly the set {1, 6, 11}.
+    const matchesCanonical =
+      sorted.length === 3 && sorted[0] === 1 && sorted[1] === 6 && sorted[2] === 11;
+    if (!matchesCanonical) return false;
+  }
+
+  return true;
+}
+
 // v4.62.2: CompTIA troubleshooting-methodology order-question guard.
 // Context: Haiku generated an `order` question asking the student to arrange
 // the 5-step CompTIA Network+ methodology — stem described the methodology,
@@ -12963,6 +13034,11 @@ function validateQuestions(qs) {
     // the card reads as "here's a situation [silence] pick one of these."
     // Cheap programmatic guard runs before the Sonnet validator.
     if (!_stemHasInterrogative(q.question)) return false;
+
+    // v4.81.16: stem-numeric-vs-answer-count guard. Catches "Which TWO" /
+    // "(Choose TWO)" stems that disagree with q.answers.length, plus MCQs
+    // that wrongly use a multi-pick stem. Generic — runs across all qTypes.
+    if (!_stemNumericMatchesAnswerCount(q)) return false;
 
     // v4.62.2: CompTIA troubleshooting-methodology order guard. Rejects any
     // `order` question where "Document findings/outcomes" is not the final
@@ -13086,6 +13162,11 @@ function validateQuestions(qs) {
       if (!q.options || !q.answers || !Array.isArray(q.answers)) return false;
       if (q.answers.length < 2) return false;
       if (!q.answers.every(a => q.options[a])) return false;
+      // v4.81.16: GT facts for multi-select — locks canonical N10-009 facts
+      // (e.g. 2.4 GHz non-overlapping channels = {1, 6, 11}) that previous
+      // pipeline versions silently let through because _groundTruthOk early-
+      // returned on non-MCQ.
+      if (!_multiSelectGroundTruthOk(q)) return false;
     } else if (qType === 'order') {
       if (!q.items || !q.correctOrder || !Array.isArray(q.items)) return false;
       if (q.items.length < 3) return false;
