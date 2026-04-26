@@ -538,6 +538,7 @@ Files outside the repo that shape decisions here. Update the relevant one when t
 | `~/Desktop/Dev Projects/INFRASTRUCTURE-TEMPLATE.md` | Reusable infra blueprint (CI/CD, UAT, boards, cadence) — the template extracted from this repo for other projects |
 | `~/Desktop/Dev Projects/product-vision/PRODUCT-VISION.md` | Cert-prep SaaS vision — multi-cert platform plan, market positioning, tier structure |
 | `~/Desktop/Dev Projects/product-vision/FINANCIAL-PROJECTIONS.md` | SaaS revenue model, pricing scenarios, cost-floor math |
+| `~/Desktop/Dev Projects/product-vision/ONBOARDING-ROADMAP.md` | **🧊 saas-gated** Cert SaaS user funnel — 11-step onboarding flow (landing → diagnostic → first win → paywall day 7 → retention). Revised from Codex draft (payment moved step 2 → step 8, pass guarantee added, PBQs featured, server-side keys). Revisit when pass-Network+ trigger fires |
 | `~/Desktop/Dev Projects/managed-agents-architecture.html` | Visual: how Managed Agents would plug into this app (Anthropic feature, captured for future) |
 | `~/Desktop/Dev Projects/ai-user-agent-architecture.html` | Visual: deferred AI-user-agent plan (bot personas that file feature requests, triggered at 20-30 real users post-launch) |
 
