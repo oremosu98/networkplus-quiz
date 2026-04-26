@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.16', js.includes("const APP_VERSION = '4.81.16"));
+test('APP_VERSION is 4.81.17', js.includes("const APP_VERSION = '4.81.17"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.16', sw.includes('netplus-v4.81.16'));
+test('SW cache bumped to v4.81.17', sw.includes('netplus-v4.81.17'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -4893,9 +4893,12 @@ test('v4.50.0: Smart card advertises AI weak-spot pick',
   html.includes('AI picks your weak spots'));
 test('v4.50.0: Mixed card advertises random-across-topics',
   html.includes('Random across all topics'));
-// Domain accordions with data-domain-idx (1-5)
+// Domain accordions with data-domain-idx (1-5) — scoped to <details> tags only.
+// v4.81.17 added more data-domain-idx attributes on Mode Ladder tiles + pre-fill
+// pills, so a global count would over-match; this regex matches only the
+// <details class="topic-domain-group" data-domain-idx="N"> shape.
 test('v4.50.0: all 5 domain accordions have data-domain-idx',
-  (html.match(/data-domain-idx="[1-5]"/g) || []).length === 5);
+  (html.match(/<details[^>]*class="topic-domain-group"[^>]*data-domain-idx="[1-5]"/g) || []).length === 5);
 test('v4.50.0: data-domain-idx spans 1..5 (one per domain)',
   html.includes('data-domain-idx="1"') && html.includes('data-domain-idx="2"') &&
   html.includes('data-domain-idx="3"') && html.includes('data-domain-idx="4"') &&
@@ -11227,6 +11230,189 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.17: Domain Drill — one-click 10-Q quiz on a single N10-009 domain
+// (Mode Ladder tile) + Custom Quiz pre-fill pill row that selects all
+// topic chips for a domain. Eliminates the 7-13-chip toggle tedium for
+// domain-focused study sessions. Reuses existing multi-topic infrastructure.
+test('v4.81.17 DomainDrill: applyDomainPreset helper defined',
+  /function applyDomainPreset\(/.test(js));
+test('v4.81.17 DomainDrill: prefillDomainTopics helper defined',
+  /function prefillDomainTopics\(/.test(js));
+test('v4.81.17 DomainDrill: _topicsInDomain reverse-lookup helper defined',
+  /function _topicsInDomain\(/.test(js));
+test('v4.81.17 DomainDrill: _DOMAIN_TOPICS_CACHE memoisation declared',
+  /_DOMAIN_TOPICS_CACHE/.test(js));
+test('v4.81.17 DomainDrill: _DOMAIN_IDX maps all 5 domain keys to indices',
+  /_DOMAIN_IDX\s*=\s*\{[^}]*concepts:\s*1[^}]*implementation:\s*2[^}]*operations:\s*3[^}]*security:\s*4[^}]*troubleshooting:\s*5/.test(js));
+test('v4.81.17 DomainDrill: applyDomainPreset uses Multi: sentinel for topic state',
+  /topic\s*=\s*['"]Multi:\s*['"]\s*\+\s*topics\.join/.test(_fnBody(js, 'applyDomainPreset') || ''));
+test('v4.81.17 DomainDrill: applyDomainPreset defaults to 10 Qs Exam Level',
+  (() => {
+    const body = _fnBody(js, 'applyDomainPreset') || '';
+    return /diff\s*=\s*['"]Exam Level['"]/.test(body) && /qCount\s*=\s*10/.test(body);
+  })());
+test('v4.81.17 DomainDrill: applyDomainPreset fires startQuiz at end',
+  /startQuiz\(\)/.test(_fnBody(js, 'applyDomainPreset') || ''));
+test('v4.81.17 DomainDrill: prefillDomainTopics does NOT call startQuiz (state-only)',
+  (() => {
+    const body = _fnBody(js, 'prefillDomainTopics') || '';
+    return body.length > 0 && !/startQuiz\(\)/.test(body);
+  })());
+test('v4.81.17 DomainDrill: prefillDomainTopics opens the matching accordion',
+  /details\[data-domain-idx=/.test(_fnBody(js, 'prefillDomainTopics') || ''));
+test('v4.81.17 DomainDrill: prefillDomainTopics jumps to Custom Quiz section',
+  /_jumpToCustomQuiz/.test(_fnBody(js, 'prefillDomainTopics') || ''));
+test('v4.81.17 DomainDrill: Mode Ladder domain row HTML present',
+  html.includes('class="modes-domain-row"'));
+test('v4.81.17 DomainDrill: Mode Ladder has 5 modes-domain-tile buttons',
+  (html.match(/class="modes-domain-tile"/g) || []).length === 5);
+test('v4.81.17 DomainDrill: Mode Ladder tiles wired to applyDomainPreset for all 5 domains',
+  /applyDomainPreset\('concepts'\)/.test(html)
+    && /applyDomainPreset\('implementation'\)/.test(html)
+    && /applyDomainPreset\('operations'\)/.test(html)
+    && /applyDomainPreset\('security'\)/.test(html)
+    && /applyDomainPreset\('troubleshooting'\)/.test(html));
+test('v4.81.17 DomainDrill: Custom Quiz pre-fill pill row present in topic-group',
+  html.includes('class="topic-domain-prefill"'));
+test('v4.81.17 DomainDrill: Custom Quiz has 5 tdp-pill buttons',
+  (html.match(/class="tdp-pill"/g) || []).length === 5);
+test('v4.81.17 DomainDrill: Custom Quiz pills wired to prefillDomainTopics for all 5 domains',
+  /prefillDomainTopics\('concepts'\)/.test(html)
+    && /prefillDomainTopics\('implementation'\)/.test(html)
+    && /prefillDomainTopics\('operations'\)/.test(html)
+    && /prefillDomainTopics\('security'\)/.test(html)
+    && /prefillDomainTopics\('troubleshooting'\)/.test(html));
+test('v4.81.17 DomainDrill: .modes-domain-tile CSS declared',
+  /\.modes-domain-tile\s*\{/.test(css));
+test('v4.81.17 DomainDrill: .tdp-pill CSS declared',
+  /\.tdp-pill\s*\{/.test(css));
+test('v4.81.17 DomainDrill: domain tiles use color-coded left borders matching accordion',
+  /\.modes-domain-tile\[data-domain-idx="1"\][\s\S]{0,80}#7c6ff7/.test(css)
+    && /\.modes-domain-tile\[data-domain-idx="5"\][\s\S]{0,80}#ef4444/.test(css));
+test('v4.81.17 DomainDrill: pre-fill pills use color-coded left borders matching accordion',
+  /\.tdp-pill\[data-domain-idx="1"\][\s\S]{0,80}#7c6ff7/.test(css)
+    && /\.tdp-pill\[data-domain-idx="5"\][\s\S]{0,80}#ef4444/.test(css));
+test('v4.81.17 DomainDrill: mobile breakpoint collapses tile grid',
+  /@media[\s\S]{0,50}max-width:\s*720px[\s\S]{0,200}\.modes-domain-tiles[\s\S]{0,100}grid-template-columns:\s*repeat\(2/.test(css));
+test('v4.81.17 DomainDrill: reduced-motion gate present for tiles + pills',
+  /prefers-reduced-motion[\s\S]{0,500}\.modes-domain-tile/.test(css));
+
+// vm fixture — applyDomainPreset produces correct multi-topic state for each
+// of the 5 domains. Validates: (a) topic state uses 'Multi: ' sentinel,
+// (b) all topics in the domain (and ONLY those topics) are listed, (c) diff
+// + qCount defaults are correct.
+test('v4.81.17 DomainDrill: vm fixture — applyDomainPreset produces correct multi-topic state per domain',
+  (() => {
+    try {
+      const helperBody = _fnBody(js, '_topicsInDomain');
+      const presetBody = _fnBody(js, 'applyDomainPreset');
+      // Extract the TOPIC_DOMAINS const block (large, walks brace depth)
+      const tdMatch = js.match(/const TOPIC_DOMAINS\s*=\s*\{[\s\S]*?\n\};/);
+      if (!helperBody || !presetBody || !tdMatch) return false;
+      const vm = require('vm');
+      // State observable to the test
+      let state = { topic: '', diff: '', qCount: 0, started: 0 };
+      const ctx = {
+        document: {
+          getElementById: () => ({
+            querySelectorAll: () => [],
+            classList: { toggle: () => {}, remove: () => {} },
+            setAttribute: () => {}
+          }),
+          querySelectorAll: () => []
+        },
+        syncChipAriaPressed: () => {},
+        startQuiz: () => { state.started++; },
+        Object, String, Array
+      };
+      // Add a getter/setter for `topic`/`diff`/`qCount` so the helper's
+      // top-level assignments mutate our state object.
+      Object.defineProperty(ctx, 'topic', { get: () => state.topic, set: (v) => { state.topic = v; } });
+      Object.defineProperty(ctx, 'diff', { get: () => state.diff, set: (v) => { state.diff = v; } });
+      Object.defineProperty(ctx, 'qCount', { get: () => state.qCount, set: (v) => { state.qCount = v; } });
+      vm.createContext(ctx);
+      vm.runInContext(tdMatch[0], ctx);
+      vm.runInContext('let _DOMAIN_TOPICS_CACHE = null;', ctx);
+      vm.runInContext(helperBody, ctx);
+      vm.runInContext(presetBody, ctx);
+
+      // Test all 5 domain keys
+      // NOTE: 3 topic names contain commas ("NTP, ICMP & Traffic Types",
+      // "SDN, NFV & Automation", "Firewalls, DMZ & Security Zones") so a
+      // naive split(', ') would mis-segment them. Verify presence by
+      // substring match instead — the topic string must CONTAIN every
+      // expected topic name verbatim, and must NOT contain any topic
+      // outside the domain.
+      const results = {};
+      ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'].forEach(k => {
+        state = { topic: '', diff: '', qCount: 0, started: 0 };
+        vm.runInContext('applyDomainPreset(' + JSON.stringify(k) + ')', ctx);
+        const td = vm.runInContext('TOPIC_DOMAINS', ctx);
+        const expectedTopics = Object.keys(td).filter(t => td[t] === k);
+        const outsideTopics = Object.keys(td).filter(t => td[t] !== k);
+        results[k] = {
+          isMultiSentinel: state.topic.startsWith('Multi: '),
+          allDomainTopicsIncluded: expectedTopics.every(t => state.topic.indexOf(t) !== -1),
+          // No outside topic should appear EXCEPT via substring overlap with
+          // an in-domain topic. Check that no outside topic appears as a
+          // standalone item — guarded by ', ' bracketing or end of string.
+          noOutsideTopicsLeaked: outsideTopics.every(t =>
+            state.topic.indexOf(', ' + t + ',') === -1
+            && state.topic.indexOf(', ' + t + '$') === -1
+            && !state.topic.endsWith(', ' + t)
+            && !state.topic.startsWith('Multi: ' + t + ',')
+            && state.topic !== 'Multi: ' + t
+          ),
+          diffCorrect: state.diff === 'Exam Level',
+          qCountCorrect: state.qCount === 10,
+          startQuizFired: state.started === 1
+        };
+      });
+      // All 5 domains must satisfy all 6 invariants
+      return Object.values(results).every(r =>
+        r.isMultiSentinel
+        && r.allDomainTopicsIncluded
+        && r.noOutsideTopicsLeaked
+        && r.diffCorrect
+        && r.qCountCorrect
+        && r.startQuizFired
+      );
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — _topicsInDomain memoisation works correctly + the cache covers
+// all 5 domain keys with non-zero topic counts.
+test('v4.81.17 DomainDrill: vm fixture — _topicsInDomain memoisation + coverage',
+  (() => {
+    try {
+      const helperBody = _fnBody(js, '_topicsInDomain');
+      const tdMatch = js.match(/const TOPIC_DOMAINS\s*=\s*\{[\s\S]*?\n\};/);
+      if (!helperBody || !tdMatch) return false;
+      const vm = require('vm');
+      const ctx = { Object };
+      vm.createContext(ctx);
+      vm.runInContext(tdMatch[0], ctx);
+      vm.runInContext('let _DOMAIN_TOPICS_CACHE = null;', ctx);
+      vm.runInContext(helperBody, ctx);
+      // First call should populate the cache
+      const first = vm.runInContext('_topicsInDomain("concepts")', ctx);
+      const cacheAfter = vm.runInContext('_DOMAIN_TOPICS_CACHE', ctx);
+      // Second call should hit the cache (same array reference)
+      const second = vm.runInContext('_topicsInDomain("concepts")', ctx);
+      // All 5 domains should have at least 5 topics each
+      const counts = ['concepts','implementation','operations','security','troubleshooting'].map(k =>
+        vm.runInContext('_topicsInDomain(' + JSON.stringify(k) + ').length', ctx)
+      );
+      // Unknown domain key → empty array
+      const unknown = vm.runInContext('_topicsInDomain("nonexistent")', ctx);
+      return first === second // memoisation kept the same reference
+        && cacheAfter !== null
+        && counts.every(c => c >= 5)
+        && Array.isArray(unknown)
+        && unknown.length === 0;
     } catch (e) { return false; }
   })());
 

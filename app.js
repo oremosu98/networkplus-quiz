@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.16
+// Network+ AI Quiz — app.js  v4.81.17
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.16';
+const APP_VERSION = '4.81.17';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11425,6 +11425,90 @@ function applyPreset(name) {
   syncChipAriaPressed('#diff-group');
   syncChipAriaPressed('#count-group');
   startQuiz();
+}
+
+// ══════════════════════════════════════════
+// v4.81.17: DOMAIN DRILL — fast-path quizzing on all topics in one of the 5
+// N10-009 domains. Two surfaces:
+//   1. Mode Ladder tile  → applyDomainPreset(key) — fires a 10-Q Exam Level
+//      quiz on that domain immediately (one-click flow).
+//   2. Custom Quiz pill  → prefillDomainTopics(key) — selects all topic
+//      chips in that domain so the user can then customise diff + count
+//      and hit Generate (deep-config flow).
+// Both reuse the existing multi-topic Custom Quiz infrastructure (chip
+// selection state + 'Multi: ...' topic sentinel + startQuiz pipeline) —
+// no new fetch path, no new validation surface.
+// ══════════════════════════════════════════
+let _DOMAIN_TOPICS_CACHE = null;
+function _topicsInDomain(domainKey) {
+  if (!_DOMAIN_TOPICS_CACHE) {
+    _DOMAIN_TOPICS_CACHE = {};
+    Object.keys(TOPIC_DOMAINS).forEach(t => {
+      const d = TOPIC_DOMAINS[t];
+      if (!_DOMAIN_TOPICS_CACHE[d]) _DOMAIN_TOPICS_CACHE[d] = [];
+      _DOMAIN_TOPICS_CACHE[d].push(t);
+    });
+  }
+  return _DOMAIN_TOPICS_CACHE[domainKey] || [];
+}
+
+const _DOMAIN_IDX = { concepts: 1, implementation: 2, operations: 3, security: 4, troubleshooting: 5 };
+
+function applyDomainPreset(domainKey) {
+  const topics = _topicsInDomain(domainKey);
+  if (!topics.length) return;
+  topic = 'Multi: ' + topics.join(', ');
+  diff = 'Exam Level';
+  qCount = 10;
+  // Sync chip state so the Custom Quiz section reflects what's running.
+  const g = document.getElementById('topic-group');
+  if (g) {
+    g.querySelectorAll('.chip.cq-mode-card').forEach(c => {
+      c.classList.remove('on');
+      c.setAttribute('aria-pressed', 'false');
+    });
+    g.querySelectorAll('.chip:not(.cq-mode-card)').forEach(c => {
+      const isInDomain = topics.includes(c.dataset.v);
+      c.classList.toggle('on', isInDomain);
+      c.setAttribute('aria-pressed', isInDomain ? 'true' : 'false');
+    });
+  }
+  document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === diff));
+  document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === String(qCount)));
+  syncChipAriaPressed('#topic-group');
+  syncChipAriaPressed('#diff-group');
+  syncChipAriaPressed('#count-group');
+  startQuiz();
+}
+
+function prefillDomainTopics(domainKey) {
+  const topics = _topicsInDomain(domainKey);
+  if (!topics.length) return;
+  const g = document.getElementById('topic-group');
+  if (!g) return;
+  // Mode cards (Smart / Mixed) contradict explicit domain selection — clear them
+  g.querySelectorAll('.chip.cq-mode-card').forEach(c => {
+    c.classList.remove('on');
+    c.setAttribute('aria-pressed', 'false');
+  });
+  g.querySelectorAll('.chip:not(.cq-mode-card)').forEach(c => {
+    const isInDomain = topics.includes(c.dataset.v);
+    c.classList.toggle('on', isInDomain);
+    c.setAttribute('aria-pressed', isInDomain ? 'true' : 'false');
+  });
+  // Update the topic state via the same computer the multi-select handler uses
+  if (typeof _computeTopicFromChips === 'function') {
+    topic = _computeTopicFromChips();
+  }
+  // Auto-open the corresponding accordion so the user sees the selection
+  const idx = _DOMAIN_IDX[domainKey];
+  if (idx) {
+    const accordion = g.querySelector('details[data-domain-idx="' + idx + '"]');
+    if (accordion) accordion.setAttribute('open', '');
+  }
+  // Refresh the Custom Quiz summary bar + jump into view
+  if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
+  if (typeof _jumpToCustomQuiz === 'function') _jumpToCustomQuiz();
 }
 
 // ══════════════════════════════════════════

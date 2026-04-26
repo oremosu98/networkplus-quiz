@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.16</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.17</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -377,6 +377,40 @@
           <span class="modes-card-sub">Tune topic, difficulty, length</span>
         </button>
       </div>
+      <!-- v4.81.17: Domain Drill — one-click 10-Q Exam Level quiz on any
+           N10-009 domain. Color-coded left border matches the Custom Quiz
+           accordion + Progress page domain rows so the visual language is
+           consistent across surfaces. -->
+      <div class="modes-domain-row" role="group" aria-label="Drill by domain">
+        <span class="modes-domain-label">Drill by <em>domain</em> &rarr;</span>
+        <div class="modes-domain-tiles">
+          <button type="button" class="modes-domain-tile" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics">
+            <span class="mdt-num">1.0</span>
+            <span class="mdt-name">Networking Concepts</span>
+            <span class="mdt-meta">23% &middot; 10 Qs</span>
+          </button>
+          <button type="button" class="modes-domain-tile" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics">
+            <span class="mdt-num">2.0</span>
+            <span class="mdt-name">Network Implementation</span>
+            <span class="mdt-meta">20% &middot; 10 Qs</span>
+          </button>
+          <button type="button" class="modes-domain-tile" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics">
+            <span class="mdt-num">3.0</span>
+            <span class="mdt-name">Network Operations</span>
+            <span class="mdt-meta">19% &middot; 10 Qs</span>
+          </button>
+          <button type="button" class="modes-domain-tile" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics">
+            <span class="mdt-num">4.0</span>
+            <span class="mdt-name">Network Security</span>
+            <span class="mdt-meta">14% &middot; 10 Qs</span>
+          </button>
+          <button type="button" class="modes-domain-tile" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics">
+            <span class="mdt-num">5.0</span>
+            <span class="mdt-name">Network Troubleshooting</span>
+            <span class="mdt-meta">24% &middot; 10 Qs</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Tier 3: EXAM — 60-90 minutes — premium dark treatment -->
@@ -448,6 +482,21 @@
         <h3 class="cq-section-title">Topic</h3>
       </div>
       <div class="chip-group topic-group-v2" id="topic-group">
+        <!-- v4.81.17: Domain pre-fill row — one click selects all topic
+             chips for a domain so you don't have to toggle 7-13 individually.
+             Sets state only — does NOT start the quiz (user picks diff +
+             count + Generate as usual). Same color-coding as the accordion
+             below for visual consistency. -->
+        <div class="topic-domain-prefill" role="group" aria-label="Pre-fill by domain">
+          <span class="tdp-label">Pick a domain:</span>
+          <div class="tdp-pills">
+            <button type="button" class="tdp-pill" data-domain-idx="1" onclick="prefillDomainTopics('concepts')" title="Select all 13 Networking Concepts topics">1.0 Concepts</button>
+            <button type="button" class="tdp-pill" data-domain-idx="2" onclick="prefillDomainTopics('implementation')" title="Select all 13 Network Implementation topics">2.0 Implementation</button>
+            <button type="button" class="tdp-pill" data-domain-idx="3" onclick="prefillDomainTopics('operations')" title="Select all 7 Network Operations topics">3.0 Operations</button>
+            <button type="button" class="tdp-pill" data-domain-idx="4" onclick="prefillDomainTopics('security')" title="Select all 11 Network Security topics">4.0 Security</button>
+            <button type="button" class="tdp-pill" data-domain-idx="5" onclick="prefillDomainTopics('troubleshooting')" title="Select all 6 Network Troubleshooting topics">5.0 Troubleshooting</button>
+          </div>
+        </div>
         <!-- Quick picks — premium mode cards (always visible) -->
         <div class="topic-quickpicks">
           <button class="chip chip-smart cq-mode-card" data-v="&#129504; Smart (Spaced Rep)" type="button">

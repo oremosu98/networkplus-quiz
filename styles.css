@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.16
+   Network+ AI Quiz — styles.css  v4.81.17
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1617,6 +1617,64 @@ input::placeholder { color: var(--text-dim); }
 .topic-domain-group[data-domain-idx="3"][open] .dom-weight { background: rgba(59, 130, 246, .16); color: #60a5fa; }
 .topic-domain-group[data-domain-idx="4"][open] .dom-weight { background: rgba(245, 158, 11, .16); color: #fbbf24; }
 .topic-domain-group[data-domain-idx="5"][open] .dom-weight { background: rgba(239, 68, 68, .16); color: #f87171; }
+
+/* ── v4.81.17: Domain Drill — Mode Ladder secondary row + Custom Quiz pre-fill row ── */
+/* Color-coded left borders match .topic-domain-group + .progress-domain so the
+   visual language stays consistent across all 3 surfaces (Mode Ladder, Custom
+   Quiz accordion, Progress page). */
+.modes-domain-row { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 4px; border-top: 1px dashed var(--border); margin-top: 6px; }
+.modes-domain-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; }
+.modes-domain-label em { font-style: normal; color: var(--accent-light); }
+.modes-domain-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.modes-domain-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; background: var(--surface2); border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius-sm); padding: 10px 12px; cursor: pointer; font-family: inherit; text-align: left; transition: all .15s; min-height: 76px; }
+.modes-domain-tile:hover { background: var(--surface3); border-color: rgba(var(--accent-rgb), .35); transform: translateY(-1px); }
+.modes-domain-tile:active { transform: scale(.97); }
+.modes-domain-tile .mdt-num { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--text-dim); }
+.modes-domain-tile .mdt-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.25; }
+.modes-domain-tile .mdt-meta { font-size: 10.5px; font-weight: 600; color: var(--text-dim); margin-top: auto; }
+.modes-domain-tile[data-domain-idx="1"] { border-left-color: #7c6ff7; }
+.modes-domain-tile[data-domain-idx="2"] { border-left-color: #22c55e; }
+.modes-domain-tile[data-domain-idx="3"] { border-left-color: #3b82f6; }
+.modes-domain-tile[data-domain-idx="4"] { border-left-color: #f59e0b; }
+.modes-domain-tile[data-domain-idx="5"] { border-left-color: #ef4444; }
+.modes-domain-tile[data-domain-idx="1"] .mdt-num { color: #a78bfa; }
+.modes-domain-tile[data-domain-idx="2"] .mdt-num { color: #4ade80; }
+.modes-domain-tile[data-domain-idx="3"] .mdt-num { color: #60a5fa; }
+.modes-domain-tile[data-domain-idx="4"] .mdt-num { color: #fbbf24; }
+.modes-domain-tile[data-domain-idx="5"] .mdt-num { color: #f87171; }
+
+/* Custom Quiz pre-fill pill row — sits above the topic accordion. Smaller,
+   chip-shaped — secondary affordance vs. the Mode Ladder primary tiles. */
+.topic-domain-prefill { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 0 12px; border-bottom: 1px dashed var(--border); margin-bottom: 10px; }
+.tdp-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
+.tdp-pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.tdp-pill { background: var(--surface2); border: 1px solid var(--border); border-left-width: 3px; color: var(--text); font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all .15s; font-family: inherit; }
+.tdp-pill:hover { background: var(--surface3); border-color: rgba(var(--accent-rgb), .4); transform: translateY(-1px); }
+.tdp-pill:active { transform: scale(.97); }
+.tdp-pill[data-domain-idx="1"] { border-left-color: #7c6ff7; }
+.tdp-pill[data-domain-idx="2"] { border-left-color: #22c55e; }
+.tdp-pill[data-domain-idx="3"] { border-left-color: #3b82f6; }
+.tdp-pill[data-domain-idx="4"] { border-left-color: #f59e0b; }
+.tdp-pill[data-domain-idx="5"] { border-left-color: #ef4444; }
+
+/* Mobile responsiveness — collapse the 5-column grid on narrow screens */
+@media (max-width: 720px) {
+  .modes-domain-tiles { grid-template-columns: repeat(2, 1fr); }
+  .modes-domain-tile .mdt-name { font-size: 12px; }
+}
+@media (max-width: 420px) {
+  .modes-domain-tiles { grid-template-columns: 1fr; }
+}
+
+/* Reduced-motion gate — neutralize the hover lift + active scale */
+@media (prefers-reduced-motion: reduce) {
+  .modes-domain-tile { transition: background-color .2s, border-color .2s !important; }
+  .modes-domain-tile:hover { transform: none !important; }
+  .modes-domain-tile:active { transform: none !important; }
+  .tdp-pill { transition: background-color .2s, border-color .2s !important; }
+  .tdp-pill:hover { transform: none !important; }
+  .tdp-pill:active { transform: none !important; }
+}
 
 /* v4.50.0: Difficulty + Questions grid layout */
 .cq-options-grid {
