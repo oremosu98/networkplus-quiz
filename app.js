@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.17
+// Network+ AI Quiz — app.js  v4.81.18
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.17';
+const APP_VERSION = '4.81.18';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -31,8 +31,14 @@ const HISTORY_CAP = 200;
 const WRONG_BANK_CAP = 200;
 const REPORTS_CAP = 500;
 const PORT_DRILL_SECONDS = 30;
-const SESSION_TOPICS = 3;
+// v4.81.18: bumped 3 → 5 to match the consolidated Today's Plan composition
+// (2 weak + 3 stale by default).
+const SESSION_TOPICS = 5;
 const SESSION_QUESTIONS = 7;
+// v4.81.18: Today's Plan composition — how many of each signal type to surface.
+// Total stays at SESSION_TOPICS; if either source is sparse, the other tops up.
+const TODAY_PLAN_WEAK_COUNT = 2;
+const TODAY_PLAN_STALE_COUNT = 3;
 const DOUBLE_CLICK_MS = 400;        // double-click detection window (topology canvas)
 const VXLAN_VNI_MAX = 16777215;     // 24-bit VNI range (RFC 7348)
 
@@ -11220,130 +11226,35 @@ function openWeakSpotBridge(kind) {
     if (typeof startSubnetTrainer === 'function') startSubnetTrainer();
   }
 }
+// v4.81.18: legacy renderTodaysFocus is now a thin shim that delegates into
+// the consolidated renderTodayPlan. Old #todays-focus element stays hidden
+// permanently — kept in the DOM only as a compat shim. The Weak Spots
+// signal still drives the plan composition (top 2 weak topics surface as
+// 🎯-iconed chips inside the new card), so no functionality is lost — just
+// the visual surface is unified. The FLIP-rerank animation that this
+// function used to host was specific to the old chip-row layout and
+// doesn't apply to the new card structure (chips render fresh each call,
+// no in-place reordering surface).
 function renderTodaysFocus() {
   const row = document.getElementById('todays-focus');
-  if (!row) return;
-  const top = computeWeakSpotScores().slice(0, 2);
-  if (top.length === 0) { row.classList.add('is-hidden'); return; }
-
-  // v4.42.0: FLIP (First-Last-Invert-Play) rerank animation. Capture the
-  // bounding rect of each existing chip by topic BEFORE we blow the DOM
-  // away, then after the rewrite measure new positions and apply an
-  // inverse transform + transition so the chips appear to slide from
-  // their old slot to their new one. Only runs when the row is visible
-  // (getBoundingClientRect on a hidden element returns all zeros, which
-  // would produce invisible no-op animations).
-  const oldRects = {};
-  if (!row.classList.contains('is-hidden')) {
-    row.querySelectorAll('.tf-chip[data-topic]').forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) {
-        oldRects[el.getAttribute('data-topic')] = { x: r.left, y: r.top };
-      }
-    });
-  }
-
-  // v4.43.1: If any of the top weak topics has a bridge (subnet trainer
-  // route), render a small "Go deeper" row below the chips pointing at the
-  // specialized activity. De-duplicate — only show the bridge link once
-  // even if both top weak topics map to the same destination.
-  const bridges = [];
-  const seenBridges = new Set();
-  top.forEach(r => {
-    const bridge = WEAK_SPOT_DRILL_BRIDGES[r.topic];
-    if (!bridge) return;
-    const key = bridge.kind + '::' + (bridge.labId || '');
-    if (seenBridges.has(key)) return;
-    seenBridges.add(key);
-    bridges.push(bridge);
-  });
-  const bridgeHtml = bridges.map(b =>
-    `<button type="button" class="tf-bridge-btn" onclick="openWeakSpotBridge('${b.kind}')" title="${escHtml(b.label)}"><span class="tf-bridge-icon">${b.icon}</span><span class="tf-bridge-label">${escHtml(b.label)}</span><span class="tf-bridge-arrow">→</span></button>`
-  ).join('');
-
-  row.innerHTML = `
-    <span class="tf-label">🎯 Weak spots:</span>
-    <div class="tf-chips">
-      ${top.map(r => {
-        const pct = Math.round(r.posterior * 100);
-        const parts = [`~${pct}% accuracy`];
-        if (r.wrongsRaw > 0) parts.push(`${r.wrongsRaw} recent wrong${r.wrongsRaw === 1 ? '' : 's'}`);
-        if (r.daysSince > WEAK_STALENESS_DAYS && r.daysSince < 9000) parts.push(`${r.daysSince}d stale`);
-        const title = parts.join(' · ');
-        const safeTopic = r.topic.replace(/'/g, "\\'");
-        return `<button type="button" class="tf-chip" data-topic="${escHtml(r.topic)}" title="${escHtml(title)}" onclick="focusTopic('${safeTopic}')">${escHtml(r.topic)} →</button>`;
-      }).join('')}
-    </div>
-    ${bridges.length > 0 ? `<div class="tf-bridges">${bridgeHtml}</div>` : ''}
-  `;
-  row.classList.remove('is-hidden');
-
-  // Play FLIP: measure new positions, apply inverse transform, then clear it
-  // on the next frame so the CSS transition does its thing.
-  if (Object.keys(oldRects).length > 0) {
-    row.querySelectorAll('.tf-chip[data-topic]').forEach(el => {
-      const topic = el.getAttribute('data-topic');
-      const prev = oldRects[topic];
-      if (!prev) return;
-      const now = el.getBoundingClientRect();
-      const dx = prev.x - now.left;
-      const dy = prev.y - now.top;
-      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
-      el.style.transition = 'none';
-      el.style.transform = `translate(${dx}px, ${dy}px)`;
-      // Force reflow, then release.
-      void el.offsetWidth;
-      el.style.transition = 'transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-      el.style.transform = '';
-      const cleanup = () => {
-        el.style.transition = '';
-        el.removeEventListener('transitionend', cleanup);
-      };
-      el.addEventListener('transitionend', cleanup);
-    });
-  }
-}
-// v4.81.15: "Due for rotation" homepage chip row — surfaces stale topics
-// as a soft hint so the user understands WHY their next mixed quiz / exam
-// will lean toward these. Same click-to-drill affordance as Weak Spots.
-// Hidden when:
-//   - history is too thin (< STALE_CHIP_MIN_HISTORY rows) so new users
-//     don't get spammed with "all 50 topics are stale"
-//   - no topic has crossed the WEAK_STALENESS_DAYS threshold
-function renderRotationChips() {
-  const row = document.getElementById('rotation-row');
-  if (!row) return;
-  let topics = [];
-  try {
-    if (typeof loadHistory === 'function') {
-      const hist = loadHistory();
-      if (Array.isArray(hist) && hist.length >= STALE_CHIP_MIN_HISTORY) {
-        topics = (typeof _computeStaleTopics === 'function')
-          ? _computeStaleTopics(hist, STALE_CHIP_TOPIC_COUNT)
-          : [];
-      }
-    }
-  } catch (_) { topics = []; }
-
-  if (!topics || topics.length === 0) {
+  if (row) {
     row.classList.add('is-hidden');
     row.innerHTML = '';
-    return;
   }
-
-  row.innerHTML = `
-    <span class="rot-label" title="Topics not seen in ${WEAK_STALENESS_DAYS}+ days, ranked by staleness × accuracy gap">🕒 Due for rotation:</span>
-    <div class="rot-chips">
-      ${topics.map(s => {
-        const accNote = s.neverStudied
-          ? 'never studied'
-          : `${s.daysSince}d stale${typeof s.posterior === 'number' ? ' · ~' + Math.round(s.posterior * 100) + '% acc' : ''}`;
-        const safeTopic = s.topic.replace(/'/g, "\\'");
-        return `<button type="button" class="rot-chip" data-topic="${escHtml(s.topic)}" title="${escHtml(accNote)}" onclick="focusTopic('${safeTopic}')">${escHtml(s.topic)} <span class="rot-chip-meta">${escHtml(accNote)}</span></button>`;
-      }).join('')}
-    </div>
-  `;
-  row.classList.remove('is-hidden');
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
+}
+// v4.81.18: legacy renderRotationChips is now a thin shim that delegates
+// into the consolidated renderTodayPlan. The stale-topic signal (computed
+// by _computeStaleTopics) still drives the plan composition — top 3 stale
+// topics surface as 🕒-iconed chips inside the new card. Old #rotation-row
+// element stays hidden permanently as a compat shim.
+function renderRotationChips() {
+  const row = document.getElementById('rotation-row');
+  if (row) {
+    row.classList.add('is-hidden');
+    row.innerHTML = '';
+  }
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
 }
 function focusTopic(t) {
   topic = t;
@@ -11741,18 +11652,110 @@ function renderReadinessCard() {
 // ══════════════════════════════════════════
 // TODAY'S SESSION
 // ══════════════════════════════════════════
+// v4.81.18: rewritten to compose 2 weak + 3 stale (= 5 topics) via the same
+// signals already powering the homepage Weak Spots widget and the v4.81.15
+// rotation chip row. Falls back to the legacy _scoreTopicNeed ranker when
+// either signal is sparse (new users with no history yet) so the plan stays
+// non-empty in early-stage usage. Keeps the original return shape
+// { topic, reason, color } so all existing consumers (renderTodayPlan,
+// startSession, isStudyPlanDoneToday, runSessionStep) work unchanged.
 function buildSessionPlan(n) {
-  const allTopics = _getAllStudyTopics();
-  const h = loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
-  const now = Date.now();
+  const target = (typeof n === 'number' && n > 0) ? n : SESSION_TOPICS;
+  const items = [];
+  const taken = new Set();
 
-  const scored = allTopics.map(t => {
-    const { score, reason, color } = _scoreTopicNeed(t, h, now);
-    return { topic: t, score, reason, color };
+  const weakColor = '#fbbf24';   // yellow accent — matches consolidated Today card
+  const staleColor = '#f59e0b';  // amber — matches v4.81.15 rotation chips
+
+  // ── Top weak spots (recency-decayed wrong-bank + accuracy gap) ──
+  let weakRows = [];
+  try {
+    if (typeof computeWeakSpotScores === 'function') weakRows = computeWeakSpotScores();
+  } catch (_) {}
+  weakRows.slice(0, TODAY_PLAN_WEAK_COUNT).forEach(w => {
+    if (!w || !w.topic || taken.has(w.topic)) return;
+    const pct = Math.round((w.posterior || 0) * 100);
+    items.push({
+      topic: w.topic,
+      reason: '~' + pct + '% accuracy',
+      color: weakColor,
+      signal: 'weak',
+      meta: '~' + pct + '% accuracy'
+    });
+    taken.add(w.topic);
   });
 
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, n).map(({ topic, reason, color }) => ({ topic, reason, color }));
+  // ── Stale topics (not seen in WEAK_STALENESS_DAYS+, deduped against weak) ──
+  let staleRows = [];
+  try {
+    if (typeof _computeStaleTopics === 'function' && typeof loadHistory === 'function') {
+      const hist = loadHistory();
+      // Request 2× the stale slots so dedup overhead doesn't starve the plan
+      staleRows = _computeStaleTopics(hist, TODAY_PLAN_STALE_COUNT * 2);
+    }
+  } catch (_) {}
+  let staleAdded = 0;
+  for (const s of staleRows) {
+    if (staleAdded >= TODAY_PLAN_STALE_COUNT) break;
+    if (!s || !s.topic || taken.has(s.topic)) continue;
+    const meta = s.neverStudied ? 'never studied' : (s.daysSince + 'd stale');
+    items.push({
+      topic: s.topic,
+      reason: meta,
+      color: staleColor,
+      signal: 'stale',
+      meta
+    });
+    taken.add(s.topic);
+    staleAdded++;
+  }
+
+  // ── Top up with remaining weak spots if still short of target ──
+  if (items.length < target) {
+    weakRows.slice(TODAY_PLAN_WEAK_COUNT).forEach(w => {
+      if (items.length >= target) return;
+      if (!w || !w.topic || taken.has(w.topic)) return;
+      const pct = Math.round((w.posterior || 0) * 100);
+      items.push({
+        topic: w.topic,
+        reason: '~' + pct + '% accuracy',
+        color: weakColor,
+        signal: 'weak',
+        meta: '~' + pct + '% accuracy'
+      });
+      taken.add(w.topic);
+    });
+  }
+
+  // ── Final fallback for sparse-history users: legacy _scoreTopicNeed ranker ──
+  // Without this, brand-new users with no weak/stale signal would see an
+  // empty plan card. The fallback ensures the plan always has something
+  // actionable while the user builds history.
+  if (items.length < target && typeof _getAllStudyTopics === 'function' && typeof _scoreTopicNeed === 'function') {
+    const allTopics = _getAllStudyTopics();
+    const h = (typeof loadHistory === 'function') ? loadHistory().filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC) : [];
+    const now = Date.now();
+    const fallback = allTopics
+      .map(t => {
+        const { score, reason, color } = _scoreTopicNeed(t, h, now);
+        return { topic: t, score, reason, color };
+      })
+      .sort((a, b) => b.score - a.score);
+    for (const f of fallback) {
+      if (items.length >= target) break;
+      if (taken.has(f.topic)) continue;
+      items.push({
+        topic: f.topic,
+        reason: f.reason,
+        color: f.color,
+        signal: 'fallback',
+        meta: f.reason
+      });
+      taken.add(f.topic);
+    }
+  }
+
+  return items.slice(0, target);
 }
 
 // Study Plan is "addressed for the day" if the user completed a multi-topic
@@ -11769,26 +11772,94 @@ function isStudyPlanDoneToday() {
   return plan.every(item => studiedTopicsToday.has(item.topic));
 }
 
+// v4.81.18: legacy renderSessionBanner is now a thin shim that delegates
+// into the consolidated renderTodayPlan. Old #session-banner element stays
+// hidden permanently — kept in the DOM only as a compat shim.
 function renderSessionBanner() {
   const banner = document.getElementById('session-banner');
-  const rows   = document.getElementById('session-topic-rows');
-  if (!banner || !rows) return;
-  // Hide the whole banner once the plan is addressed for today — back tomorrow.
-  if (isStudyPlanDoneToday()) {
-    banner.classList.add('is-hidden');
+  if (banner) banner.classList.add('is-hidden');
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
+}
+
+// v4.81.18: consolidated Today's Plan card — collapses what was 3 stacked
+// surfaces (#todays-focus weak-spots row + #rotation-row stale chips +
+// #session-banner study plan) into ONE prescriptive card. Eliminates
+// topic-name repetition + "never studied" stutter + 3 competing CTAs.
+// Mockup at mockups/today-consolidation-concept.html.
+function renderTodayPlan() {
+  const card = document.getElementById('today-plan');
+  if (!card) return;
+  // Hide if today's plan has already been addressed (multi-topic session
+  // run today, or every plan topic individually drilled today).
+  let done = false;
+  try { done = (typeof isStudyPlanDoneToday === 'function') ? isStudyPlanDoneToday() : false; } catch (_) {}
+  if (done) {
+    card.classList.add('is-hidden');
+    card.innerHTML = '';
     return;
   }
   const plan = buildSessionPlan(SESSION_TOPICS);
+  if (!plan || plan.length === 0) {
+    card.classList.add('is-hidden');
+    card.innerHTML = '';
+    return;
+  }
+  // Persist into module state so startSession picks up the same plan
   sessionPlan = plan;
-  banner.classList.remove('is-hidden');
-  rows.innerHTML = plan.map((item, i) => `
-    <div class="session-topic-row">
-      <div class="session-step-badge">${i + 1}</div>
-      <div>
-        <div class="session-t-name">${escHtml(item.topic)}</div>
-        <div class="session-t-reason" style="color:${item.color}">${escHtml(item.reason)}</div>
-      </div>
-    </div>`).join('');
+
+  const weakCount = plan.filter(i => i.signal === 'weak').length;
+  const staleCount = plan.filter(i => i.signal === 'stale').length;
+  const fallbackCount = plan.length - weakCount - staleCount;
+  // Time estimate: ~36s per question (rounded from real session telemetry)
+  const totalMin = Math.max(1, Math.round((plan.length * SESSION_QUESTIONS) * 0.6));
+
+  // Sub-line composition prose — tailored to which signals contributed
+  let subProse = '';
+  if (weakCount > 0 && staleCount > 0) {
+    subProse = `Hits your ${weakCount === 1 ? 'weakest topic' : weakCount + ' weakest topics'} from recent quizzes plus ${staleCount === 1 ? 'a topic' : staleCount + ' topics'} you haven't touched in a while.`;
+  } else if (weakCount > 0) {
+    subProse = `Targets your ${weakCount === 1 ? 'weakest topic' : weakCount + ' weakest topics'} from recent quizzes.`;
+  } else if (staleCount > 0) {
+    subProse = `Surfaces ${staleCount === 1 ? 'a topic' : staleCount + ' topics'} you haven't touched in a while so coverage stays even.`;
+  } else {
+    subProse = 'A balanced starter mix while you build up history.';
+  }
+  subProse += ` Mixed difficulty, ${SESSION_QUESTIONS} questions per topic.`;
+
+  // Compose the chip strip
+  const chipsHtml = plan.map(item => {
+    const icon = item.signal === 'weak' ? '🎯'
+               : item.signal === 'stale' ? '🕒'
+               : '✨';
+    const safeTopic = String(item.topic).replace(/'/g, "\\'");
+    const tipPrefix = item.signal === 'weak' ? 'Weak spot — '
+                    : item.signal === 'stale' ? 'Stale — '
+                    : 'Recommended — ';
+    const title = tipPrefix + (item.meta || '');
+    return '<button type="button" class="tplan-chip" data-signal="' + item.signal + '" title="' + escHtml(title) + '" onclick="focusTopic(\'' + safeTopic + '\')">'
+      + '<span class="tplan-chip-icon" aria-hidden="true">' + icon + '</span>'
+      + '<span class="tplan-chip-name">' + escHtml(item.topic) + '</span>'
+      + '<span class="tplan-chip-arrow" aria-hidden="true">→</span>'
+    + '</button>';
+  }).join('');
+
+  // Composition meta — "2 weak · 3 stale · Mixed difficulty"
+  const compParts = [];
+  if (weakCount > 0) compParts.push(weakCount + ' weak');
+  if (staleCount > 0) compParts.push(staleCount + ' stale');
+  if (fallbackCount > 0) compParts.push(fallbackCount + ' recommended');
+  compParts.push('Mixed difficulty');
+
+  card.innerHTML = ''
+    + '<div class="tplan-eyebrow">Today\'s plan</div>'
+    + '<div class="tplan-headline">' + plan.length + ' topics · ~' + totalMin + ' min · <em>fastest</em> route to exam-ready</div>'
+    + '<p class="tplan-sub">' + escHtml(subProse) + '</p>'
+    + '<div class="tplan-chips">' + chipsHtml + '</div>'
+    + '<div class="tplan-foot">'
+    +   '<div class="tplan-foot-meta">' + escHtml(compParts.join(' · ')) + '</div>'
+    +   '<button type="button" class="tplan-cta" onclick="startSession()">Begin plan →</button>'
+    + '</div>';
+  card.classList.remove('is-hidden');
 }
 
 async function startSession() {

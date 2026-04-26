@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.17', js.includes("const APP_VERSION = '4.81.17"));
+test('APP_VERSION is 4.81.18', js.includes("const APP_VERSION = '4.81.18"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.17', sw.includes('netplus-v4.81.17'));
+test('SW cache bumped to v4.81.18', sw.includes('netplus-v4.81.18'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -2820,11 +2820,17 @@ test('v4.41.0: computeWeakSpotScores half-credits graduating entries',
 const getTodaysFocusBody = _fnBody(js, 'getTodaysFocusTopics');
 test('v4.41.0: getTodaysFocusTopics delegates to computeWeakSpotScores',
   getTodaysFocusBody.includes('computeWeakSpotScores()'));
+// v4.81.18: renderTodaysFocus is now a thin compat shim that delegates into
+// renderTodayPlan. The weak-spot signal still drives the consolidated card
+// composition via buildSessionPlan → computeWeakSpotScores. Retests scoped
+// to the new render + builder.
 const renderTodaysFocusBody = _fnBody(js, 'renderTodaysFocus');
-test('v4.41.0: renderTodaysFocus uses computeWeakSpotScores for display',
-  renderTodaysFocusBody.includes('computeWeakSpotScores()'));
-test('v4.41.0: renderTodaysFocus shows posterior accuracy in tooltip',
-  renderTodaysFocusBody.includes('posterior'));
+const buildSessionPlanBody = _fnBody(js, 'buildSessionPlan') || '';
+const renderTodayPlanBody = _fnBody(js, 'renderTodayPlan') || '';
+test('v4.41.0 (v4.81.18 retarget): weak-spot signal still drives Today plan composition',
+  buildSessionPlanBody.includes('computeWeakSpotScores'));
+test('v4.41.0 (v4.81.18 retarget): renderTodayPlan surfaces posterior-accuracy meta on weak chips',
+  /~\$\{pct\}% accuracy|posterior/.test(buildSessionPlanBody) || /accuracy/.test(renderTodayPlanBody));
 
 // Real-time refresh hooks: v4.42.0 moved renderTodaysFocus OUT of finish()
 // and submitExam() so the FLIP rerank animation in renderTodaysFocus has a
@@ -3099,16 +3105,22 @@ test('v4.42.0: CSS @keyframes streakPulse defined',
 test('v4.42.0: CSS .streak-pulse class defined',
   css.includes('.streak-pulse'));
 
-// Fix 7: FLIP rerank in renderTodaysFocus.
+// v4.81.18 retirement: the v4.42.0 FLIP rerank animation in renderTodaysFocus
+// was specific to the old chip-row layout (in-place reordering when weak-spots
+// recomputed). The consolidated #today-plan card renders the chip strip fresh
+// every call — there's no in-place reordering surface, so FLIP no longer
+// applies. Tombstone tests below assert the FLIP machinery is GONE from the
+// shim (so it can't sneak back via copy-paste) and that the new renderTodayPlan
+// doesn't accidentally re-introduce it.
 const todaysFocusBody = _fnBody(js, 'renderTodaysFocus');
-test('v4.42.0: renderTodaysFocus stamps data-topic attribute on chips',
-  todaysFocusBody.includes('data-topic='));
-test('v4.42.0: renderTodaysFocus captures oldRects before innerHTML rewrite',
-  todaysFocusBody.includes('oldRects') && todaysFocusBody.includes('getBoundingClientRect'));
-test('v4.42.0: renderTodaysFocus applies inverse transform FLIP',
-  /translate\(\$\{dx\}px/.test(todaysFocusBody));
-test('v4.42.0: renderTodaysFocus uses transitionend cleanup',
-  todaysFocusBody.includes('transitionend'));
+const todayPlanBodyRetired = _fnBody(js, 'renderTodayPlan') || '';
+test('v4.81.18 tombstone: renderTodaysFocus no longer holds FLIP rerank machinery',
+  !todaysFocusBody.includes('oldRects')
+    && !todaysFocusBody.includes('getBoundingClientRect')
+    && !todaysFocusBody.includes('transitionend'));
+test('v4.81.18 tombstone: renderTodayPlan does not re-introduce FLIP machinery',
+  !todayPlanBodyRetired.includes('oldRects')
+    && !todayPlanBodyRetired.includes('getBoundingClientRect'));
 test('v4.42.0: CSS .tf-chip transition includes transform',
   /\.tf-chip\s*\{[^}]*transform/.test(css));
 
@@ -3824,16 +3836,20 @@ test('v4.43.1 #3: bridge routes "IPv6" to subnet',
   /'IPv6':[\s\S]{0,120}kind: 'subnet'/.test(js));
 test('v4.43.1 #3: bridge does NOT route any topology topics (user directive)',
   !/kind: 'topology'/.test(js.match(/const WEAK_SPOT_DRILL_BRIDGES[\s\S]*?\};/)?.[0] || ''));
+// v4.81.18: renderTodaysFocus is now a compat shim → consolidated Today plan
+// card. The Subnet Trainer bridge affordance (v4.43.1 #3) was specific to the
+// old chip-row layout (separate "Drill in Subnet Trainer" link below chips)
+// and is parked as a follow-up — the consolidated card's chip-click currently
+// routes to focusTopic for any topic. The bridge constant + handler are
+// retained (still drive Subnet Trainer dashboard callouts elsewhere); only
+// the Today-section render integration is parked.
 (function() {
   const body = _fnBody(js, 'renderTodaysFocus');
-  test('v4.43.1 #3: renderTodaysFocus reads WEAK_SPOT_DRILL_BRIDGES',
-    body.includes('WEAK_SPOT_DRILL_BRIDGES'));
-  test('v4.43.1 #3: renderTodaysFocus dedupes bridge links by kind+labId',
-    body.includes('seenBridges'));
-  test('v4.43.1 #3: renderTodaysFocus renders tf-bridges row when bridges exist',
-    body.includes('tf-bridges'));
+  test('v4.81.18 retire: renderTodaysFocus is a thin shim (delegates, no bridge logic)',
+    body.includes('renderTodayPlan') && !body.includes('seenBridges'));
 })();
-test('v4.43.1 #3: CSS .tf-bridge-btn defined', css.includes('.tf-bridge-btn'));
+test('v4.43.1 #3: CSS .tf-bridge-btn still defined (Subnet Trainer dashboard uses it)',
+  css.includes('.tf-bridge-btn'));
 
 // ── #4 Topology Builder UI polish ──
 test('v4.43.1 #4 (v4.54.5 update): HTML has editorial .tb-pane-head inside left palette pane',
@@ -11230,6 +11246,172 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.18: Today section consolidation — collapses 3 stacked surfaces
+// (Weak Spots row + Rotation row + Study Plan banner) into ONE prescriptive
+// card that consumes both signals. User-approved mockup at
+// mockups/today-consolidation-concept.html. Codex r7-r9 pattern: every
+// page should have one strong recommendation, not three competing CTAs.
+test('v4.81.18 TodayPlan: renderTodayPlan function defined',
+  /function renderTodayPlan\(/.test(js));
+test('v4.81.18 TodayPlan: TODAY_PLAN_WEAK_COUNT constant declared',
+  /TODAY_PLAN_WEAK_COUNT\s*=\s*\d+/.test(js));
+test('v4.81.18 TodayPlan: TODAY_PLAN_STALE_COUNT constant declared',
+  /TODAY_PLAN_STALE_COUNT\s*=\s*\d+/.test(js));
+test('v4.81.18 TodayPlan: SESSION_TOPICS bumped to 5',
+  /const SESSION_TOPICS\s*=\s*5/.test(js));
+test('v4.81.18 TodayPlan: buildSessionPlan rewritten to compose weak + stale',
+  (() => {
+    const body = _fnBody(js, 'buildSessionPlan') || '';
+    return /computeWeakSpotScores/.test(body)
+      && /_computeStaleTopics/.test(body)
+      && /signal:\s*['"]weak['"]/.test(body)
+      && /signal:\s*['"]stale['"]/.test(body);
+  })());
+test('v4.81.18 TodayPlan: buildSessionPlan keeps _scoreTopicNeed fallback for sparse history',
+  /_scoreTopicNeed/.test(_fnBody(js, 'buildSessionPlan') || ''));
+test('v4.81.18 TodayPlan: renderTodayPlan uses isStudyPlanDoneToday gate',
+  /isStudyPlanDoneToday/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.18 TodayPlan: renderTodayPlan calls buildSessionPlan',
+  /buildSessionPlan\(SESSION_TOPICS\)/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.18 TodayPlan: renderTodayPlan emits chip-strip + foot row + Begin plan CTA',
+  (() => {
+    const body = _fnBody(js, 'renderTodayPlan') || '';
+    return /tplan-chips/.test(body)
+      && /tplan-foot/.test(body)
+      && /tplan-cta/.test(body)
+      && /onclick="startSession\(\)"/.test(body);
+  })());
+test('v4.81.18 TodayPlan: renderTodayPlan uses signal-coded chip data attribute',
+  /data-signal=/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.18 TodayPlan: renderTodaysFocus delegates to renderTodayPlan (compat shim)',
+  (() => {
+    const body = _fnBody(js, 'renderTodaysFocus') || '';
+    return /renderTodayPlan/.test(body) && body.length < 800;
+  })());
+test('v4.81.18 TodayPlan: renderRotationChips delegates to renderTodayPlan (compat shim)',
+  (() => {
+    const body = _fnBody(js, 'renderRotationChips') || '';
+    return /renderTodayPlan/.test(body) && body.length < 800;
+  })());
+test('v4.81.18 TodayPlan: renderSessionBanner delegates to renderTodayPlan (compat shim)',
+  (() => {
+    const body = _fnBody(js, 'renderSessionBanner') || '';
+    return /renderTodayPlan/.test(body) && body.length < 800;
+  })());
+test('v4.81.18 TodayPlan: #today-plan element present in HTML',
+  html.includes('id="today-plan"'));
+test('v4.81.18 TodayPlan: #today-plan defaults to is-hidden',
+  /id="today-plan"[^>]*is-hidden/.test(html));
+test('v4.81.18 TodayPlan: legacy #todays-focus + #rotation-row + #session-banner kept as compat shims (still in DOM)',
+  html.includes('id="todays-focus"')
+    && html.includes('id="rotation-row"')
+    && html.includes('id="session-banner"'));
+test('v4.81.18 TodayPlan: .today-plan CSS declared',
+  /\.today-plan\s*\{/.test(css));
+test('v4.81.18 TodayPlan: .tplan-chip CSS declared with signal variants',
+  /\.tplan-chip\b/.test(css)
+    && /\.tplan-chip\[data-signal="weak"\]/.test(css)
+    && /\.tplan-chip\[data-signal="stale"\]/.test(css));
+test('v4.81.18 TodayPlan: .tplan-cta primary CTA styled',
+  /\.tplan-cta\s*\{/.test(css));
+test('v4.81.18 TodayPlan: mobile breakpoint stacks foot row',
+  /@media[\s\S]{0,80}max-width:\s*540px[\s\S]{0,400}\.tplan-foot[\s\S]{0,150}flex-direction:\s*column/.test(css));
+test('v4.81.18 TodayPlan: reduced-motion gate covers tplan-chip + tplan-cta',
+  /prefers-reduced-motion[\s\S]{0,800}\.tplan-chip[\s\S]{0,500}\.tplan-cta/.test(css));
+
+// vm fixture — buildSessionPlan composes 2 weak + 3 stale correctly when
+// both signals have data. Stubs computeWeakSpotScores + _computeStaleTopics
+// + loadHistory + the fallback ranker so the test is hermetic.
+test('v4.81.18 TodayPlan: vm fixture — buildSessionPlan composes 2 weak + 3 stale',
+  (() => {
+    try {
+      const body = _fnBody(js, 'buildSessionPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        SESSION_TOPICS: 5,
+        TODAY_PLAN_WEAK_COUNT: 2,
+        TODAY_PLAN_STALE_COUNT: 3,
+        MIXED_TOPIC: 'Mixed',
+        EXAM_TOPIC: 'Exam',
+        computeWeakSpotScores: () => ([
+          { topic: 'WAN Connectivity', posterior: 0.62 },
+          { topic: 'Network Troubleshooting Methodology', posterior: 0.55 },
+          { topic: 'Subnetting & IP Addressing', posterior: 0.71 } // overflow
+        ]),
+        _computeStaleTopics: (hist, n) => ([
+          { topic: 'IPv6', neverStudied: true, daysSince: 9999 },
+          { topic: 'NAT & IP Services', neverStudied: true, daysSince: 9999 },
+          { topic: 'NTP, ICMP & Traffic Types', neverStudied: false, daysSince: 30 },
+          { topic: 'TCP/IP Basics', neverStudied: false, daysSince: 22 } // overflow
+        ]),
+        loadHistory: () => [
+          { date: new Date().toISOString(), topic: 'WAN Connectivity', score: 5, total: 10 }
+        ],
+        _getAllStudyTopics: () => ['Foo', 'Bar'],
+        _scoreTopicNeed: () => ({ score: 1, reason: 'fallback', color: '#666' }),
+        Date, Math, Array, Object, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const plan = vm.runInContext('buildSessionPlan(5)', ctx);
+      // Expected: 2 weak followed by 3 stale, total 5
+      if (plan.length !== 5) return false;
+      if (plan[0].topic !== 'WAN Connectivity' || plan[0].signal !== 'weak') return false;
+      if (plan[1].topic !== 'Network Troubleshooting Methodology' || plan[1].signal !== 'weak') return false;
+      if (plan[2].topic !== 'IPv6' || plan[2].signal !== 'stale') return false;
+      if (plan[3].topic !== 'NAT & IP Services' || plan[3].signal !== 'stale') return false;
+      if (plan[4].topic !== 'NTP, ICMP & Traffic Types' || plan[4].signal !== 'stale') return false;
+      // The 3rd weak topic + 4th stale topic should NOT have leaked into the plan
+      if (plan.some(p => p.topic === 'Subnetting & IP Addressing')) return false;
+      if (plan.some(p => p.topic === 'TCP/IP Basics')) return false;
+      // Each item should carry meta + reason fields (existing schema preserved)
+      return plan.every(p => p.topic && p.signal && p.reason && p.color);
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — buildSessionPlan deduplicates between weak and stale signals.
+// If a topic somehow appears in both, it should only be added once to the plan.
+test('v4.81.18 TodayPlan: vm fixture — buildSessionPlan dedupes overlap between weak + stale',
+  (() => {
+    try {
+      const body = _fnBody(js, 'buildSessionPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        SESSION_TOPICS: 5,
+        TODAY_PLAN_WEAK_COUNT: 2,
+        TODAY_PLAN_STALE_COUNT: 3,
+        MIXED_TOPIC: 'Mixed', EXAM_TOPIC: 'Exam',
+        // Weak picks: A, B
+        computeWeakSpotScores: () => ([
+          { topic: 'OSPF', posterior: 0.5 },
+          { topic: 'IPv6', posterior: 0.55 }
+        ]),
+        // Stale picks: IPv6 (overlaps with weak!), C, D
+        _computeStaleTopics: () => ([
+          { topic: 'IPv6', neverStudied: false, daysSince: 25 },
+          { topic: 'BGP', neverStudied: true, daysSince: 9999 },
+          { topic: 'STP/RSTP', neverStudied: true, daysSince: 9999 }
+        ]),
+        loadHistory: () => [{ date: new Date().toISOString(), topic: 'X' }],
+        _getAllStudyTopics: () => ['Filler1', 'Filler2', 'Filler3'],
+        _scoreTopicNeed: () => ({ score: 1, reason: 'fb', color: '#666' }),
+        Date, Math, Array, Object, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const plan = vm.runInContext('buildSessionPlan(5)', ctx);
+      // IPv6 should appear EXACTLY ONCE (as weak — it was added first)
+      const ipv6Hits = plan.filter(p => p.topic === 'IPv6');
+      if (ipv6Hits.length !== 1) return false;
+      if (ipv6Hits[0].signal !== 'weak') return false;
+      // Plan should still have 5 unique topics — top-up from fallback ranker
+      const topics = new Set(plan.map(p => p.topic));
+      return topics.size === 5;
     } catch (e) { return false; }
   })());
 

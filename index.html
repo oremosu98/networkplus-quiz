@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.17</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.18</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -274,11 +274,20 @@
     <div id="streak-defender" class="streak-defender is-hidden" role="status" aria-live="polite"></div>
     <!-- Daily Challenge card (conditional) -->
     <div id="daily-challenge-card" class="daily-challenge-card is-hidden" role="region" aria-label="Daily Challenge"></div>
-    <!-- Today's Focus / Weak Spots (conditional) -->
+    <!-- v4.81.18: Consolidated Today's Plan card — collapses 3 stacked
+         surfaces (Weak Spots row + Rotation row + Study Plan banner)
+         into ONE prescriptive card. Mockup at
+         mockups/today-consolidation-concept.html. The 3 legacy elements
+         below are kept hidden for backwards-compat (some UAT tests +
+         possible external code references) but render functions delegate
+         into renderTodayPlan() which paints THIS card. -->
+    <div id="today-plan" class="today-plan is-hidden" role="region" aria-label="Today's study plan"></div>
+    <!-- Today's Focus / Weak Spots — v4.81.18 compat shim (always hidden) -->
     <div id="todays-focus" class="todays-focus is-hidden" role="region" aria-label="Weak spot topics"></div>
-    <!-- v4.81.15: Due for rotation — stale topics surfaced as soft hints (conditional) -->
+    <!-- v4.81.15 Due for rotation — v4.81.18 compat shim (always hidden) -->
     <div id="rotation-row" class="rotation-row is-hidden" role="region" aria-label="Topics due for rotation"></div>
-    <!-- Study Plan banner (a.k.a. session) -->
+    <!-- Study Plan banner — v4.81.18 compat shim (always hidden, content
+         migrated into the consolidated #today-plan above) -->
     <div id="session-banner" class="is-hidden">
       <div class="session-card">
         <h3>&#128218; STUDY PLAN</h3>

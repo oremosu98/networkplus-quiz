@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.17
+   Network+ AI Quiz — styles.css  v4.81.18
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1440,9 +1440,60 @@ input::placeholder { color: var(--text-dim); }
 .tf-chip:hover { background: rgba(var(--accent-rgb), 0.18); border-color: var(--accent); transform: translateY(-1px); }
 .tf-chip:active { transform: scale(.97); }
 
+/* ── v4.81.18: Consolidated Today's Plan card ──
+   Replaces the 3 stacked surfaces (Weak Spots row + Rotation row +
+   Study Plan banner) with one prescriptive card. Purple gradient matches
+   the legacy session-banner so the visual weight stays familiar.
+   Mockup: mockups/today-consolidation-concept.html */
+.today-plan { position: relative; background: linear-gradient(135deg, #6c5ce7 0%, #5a4ed4 100%); border-radius: var(--radius); padding: 28px 28px 24px; color: #fff; overflow: hidden; margin-bottom: 14px; }
+.today-plan::before { content: '\201C'; position: absolute; left: 16px; top: -10px; font-size: 90px; line-height: 1; color: rgba(255,255,255,.16); font-family: Georgia, serif; pointer-events: none; }
+.tplan-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: rgba(255,255,255,.78); text-transform: uppercase; margin-left: 36px; margin-bottom: 8px; }
+.tplan-headline { font-size: 22px; font-weight: 800; line-height: 1.2; color: #fff; margin-left: 36px; margin-bottom: 6px; }
+.tplan-headline em { font-style: normal; color: #fbbf24; }
+.tplan-sub { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,.88); margin-left: 36px; margin-bottom: 18px; max-width: 580px; }
+.tplan-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px 36px; }
+.tplan-chip { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.22); border-left-width: 3px; color: #fff; font-weight: 600; font-size: 13px; padding: 7px 13px; border-radius: 8px; cursor: pointer; font-family: inherit; transition: background .15s, transform .12s, border-color .15s; }
+.tplan-chip:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.4); transform: translateY(-1px); }
+.tplan-chip:active { transform: scale(.97); }
+.tplan-chip-icon { font-size: 13px; opacity: .9; }
+.tplan-chip-name { line-height: 1.2; }
+.tplan-chip-arrow { font-size: 11px; opacity: .6; margin-left: 2px; }
+/* Signal-type left-border colours */
+.tplan-chip[data-signal="weak"] { border-left-color: #fbbf24; }
+.tplan-chip[data-signal="stale"] { border-left-color: #f59e0b; opacity: .94; }
+.tplan-chip[data-signal="fallback"] { border-left-color: rgba(255,255,255,.5); }
+/* Footer: composition meta + primary CTA */
+.tplan-foot { display: flex; align-items: center; gap: 16px; margin-left: 36px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.14); flex-wrap: wrap; }
+.tplan-foot-meta { flex: 1; min-width: 160px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.7); text-transform: uppercase; }
+.tplan-cta { background: #fff; color: #5a4ed4; border: none; padding: 11px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; transition: transform .12s, box-shadow .12s; font-family: inherit; }
+.tplan-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.22); }
+.tplan-cta:active { transform: scale(.97); }
+/* Mobile: stack the foot row, shrink the eyebrow indent */
+@media (max-width: 540px) {
+  .today-plan { padding: 22px 18px 20px; }
+  .today-plan::before { left: 8px; font-size: 70px; }
+  .tplan-eyebrow, .tplan-headline, .tplan-sub, .tplan-chips, .tplan-foot { margin-left: 24px; }
+  .tplan-headline { font-size: 19px; }
+  .tplan-foot { flex-direction: column; align-items: stretch; }
+  .tplan-cta { width: 100%; }
+}
+/* Reduced-motion: neutralize hover lift + active scale */
+@media (prefers-reduced-motion: reduce) {
+  .tplan-chip { transition: background-color .2s, border-color .2s !important; }
+  .tplan-chip:hover { transform: none !important; }
+  .tplan-chip:active { transform: none !important; }
+  .tplan-cta { transition: background-color .2s !important; }
+  .tplan-cta:hover { transform: none !important; box-shadow: none !important; }
+  .tplan-cta:active { transform: none !important; }
+}
+.today-section .today-plan { margin-bottom: 0; }
+
 /* v4.81.15: Due for rotation chip row — softer styling than weak-spots
    so users read it as "FYI" rather than "URGENT." Same surface card +
-   chip layout for consistency, but amber-tinted instead of accent-tinted. */
+   chip layout for consistency, but amber-tinted instead of accent-tinted.
+   v4.81.18: legacy CSS retained because #rotation-row stays in the DOM
+   as a compat shim (always is-hidden). Renderer now delegates to
+   renderTodayPlan(). */
 .rotation-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
 .rot-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
 .rot-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
