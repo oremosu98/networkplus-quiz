@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.23', js.includes("const APP_VERSION = '4.81.23"));
+test('APP_VERSION is 4.81.24', js.includes("const APP_VERSION = '4.81.24"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.23', sw.includes('netplus-v4.81.23'));
+test('SW cache bumped to v4.81.24', sw.includes('netplus-v4.81.24'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12510,6 +12510,27 @@ test('v4.81.3 Safety: pre-commit hook scans for MCP+setItem risk patterns',
       const hook = require('fs').readFileSync(require('path').join(ROOT, '.githooks', 'pre-commit'), 'utf8');
       return /mcp__Claude_in_Chrome__javascript_tool/.test(hook) || /localStorage.*setItem/.test(hook);
     } catch (_) { return false; }
+  })());
+
+// v4.81.24: cross-check that deploy-verify.js's REQUIRED_IDS list matches
+// what's actually in index.html. Caught the v4.81.23 deploy-verification
+// failure where the verifier still expected #todays-focus after we removed
+// it. Future ship that removes/renames a DOM element will now fail UAT
+// locally before it can fail Deploy Verification post-deploy.
+test('v4.81.24 DeploySync: deploy-verify REQUIRED_IDS match live index.html',
+  (() => {
+    try {
+      const verifierSrc = require('fs').readFileSync(require('path').join(ROOT, 'tests', 'deploy-verify.js'), 'utf8');
+      const m = verifierSrc.match(/const REQUIRED_IDS\s*=\s*\[([\s\S]*?)\];/);
+      if (!m) return false;
+      const ids = m[1].match(/'[^']+'/g).map(s => s.slice(1, -1));
+      const missing = ids.filter(id => !html.includes('id="' + id + '"'));
+      if (missing.length > 0) {
+        results.errors.push('deploy-verify REQUIRED_IDS missing in index.html: ' + missing.join(', '));
+        return false;
+      }
+      return true;
+    } catch (e) { return false; }
   })());
 
 // --- Validation audit regression gate ---

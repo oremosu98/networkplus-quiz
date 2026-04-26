@@ -25,11 +25,13 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const TS = Date.now();
 
 // ── Required DOM IDs that must exist in the live index.html ──
+// v4.81.23: replaced 'todays-focus' (removed in cleanup) with 'today-plan'
+// (the consolidated card that replaces 4 legacy stacked surfaces).
 const REQUIRED_IDS = [
   'page-setup', 'page-quiz', 'page-results', 'page-exam', 'page-exam-results',
   'page-review', 'page-loading', 'page-subnet', 'page-ports', 'page-analytics',
   'page-progress', 'topic-group', 'diff-group', 'count-group', 'api-key',
-  'version-badge', 'todays-focus'
+  'version-badge', 'today-plan'
 ];
 
 // ── Required security headers (Check 7 — WARN only, not FAIL) ──
