@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.10
+// Network+ AI Quiz — app.js  v4.81.11
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.10';
+const APP_VERSION = '4.81.11';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7719,7 +7719,17 @@ function renderTodaySection() {
 function clearWrongBank() {
   const bank = loadWrongBank();
   if (bank.length === 0) return;
-  if (!confirm(`Clear all ${bank.length} wrong answers? This cannot be undone.`)) return;
+  // v4.81.11: stronger confirmation copy (Codex r9 #3) — explicit
+  // about what gets removed + the recovery path via auto-backup.
+  const msg = 'Delete ' + bank.length + ' saved wrong answers?\n\n' +
+    'This will:\n' +
+    '  • Remove your "Drill Mistakes" study material from the home page\n' +
+    '  • Reset which questions appear in the Spaced Repetition queue\n' +
+    '  • Clear the wrong-answer counter\n\n' +
+    'Cannot be undone via Edit menu. If you have an automatic backup ' +
+    'from today (Settings → Automatic backups), you can restore from ' +
+    'there if you change your mind.';
+  if (!confirm(msg)) return;
   localStorage.removeItem(STORAGE.WRONG_BANK);
   renderWrongBankBtn();
 }
@@ -11647,7 +11657,29 @@ function restoreFromAutoBackup(dateOrKey) {
   const snap = parsed.snapshot || {};
   const count = Object.keys(snap).length;
   const date = key.slice(STORAGE.AUTOBACKUP_PREFIX.length);
-  if (!confirm('Restore from snapshot of ' + date + ' (' + count + ' keys)? Your current state will be overwritten — but this snapshot WILL itself become a new backup before restore so you can roll forward.')) {
+  // v4.81.11: enumerate what gets replaced (Codex r9 #4). Pre-fix the
+  // dialog said "Your current state will be overwritten" — accurate but
+  // vague. Now lists the data categories explicitly so the user knows
+  // exactly what's about to change before they confirm.
+  const captured = parsed.capturedAt
+    ? new Date(parsed.capturedAt).toLocaleString()
+    : date;
+  const prettyDate = /^pre-restore-/.test(date)
+    ? 'pre-restore safety snapshot from ' + new Date(parseInt(date.replace('pre-restore-', ''), 10)).toLocaleString()
+    : 'snapshot of ' + captured;
+  const msg = 'Restore from ' + prettyDate + '?\n\n' +
+    'This will REPLACE your current:\n' +
+    '  • Quiz history + streak + readiness score\n' +
+    '  • Daily goal + exam date\n' +
+    '  • Wrong bank + Spaced Repetition queue\n' +
+    '  • All drill mastery (Subnet / Port / Acronym / OSI / Cable)\n' +
+    '  • Topology saves + ACL Builder state\n' +
+    '  • API key, milestones, type stats\n\n' +
+    'Your CURRENT state will be auto-snapshotted first as a "pre-restore" ' +
+    'safety backup, so you can roll forward again if this restore makes ' +
+    'things worse.\n\n' +
+    'Continue?';
+  if (!confirm(msg)) {
     return false;
   }
   // Snapshot the CURRENT state under a "pre-restore" key so the user
@@ -35507,6 +35539,134 @@ function renderSettingsPage() {
   // v4.81.4: show the "✓ Key saved" status pill on Settings open if a key
   // is already on file — gives the user immediate confirmation.
   if (typeof _renderApiKeyStatusOnLoad === 'function') _renderApiKeyStatusOnLoad();
+  // v4.81.11: top-of-page glanceable health (Codex r9 #5) — surfaces
+  // exam date / daily goal / API key / backup status in one card so
+  // the user can see whether their setup is safe at a glance.
+  if (typeof renderSettingsHealthCard === 'function') renderSettingsHealthCard();
+}
+
+// v4.81.11: Study Setup Health card (Codex r9 #5) — top-of-Settings
+// status panel. Read-only. 5 rows:
+//   • API key      — connected (sk-ant-…XXXX) / not set
+//   • Exam date    — set + days-away / not set
+//   • Daily goal   — N questions/day / not set
+//   • Auto-backup  — last snapshot timestamp / no backups yet
+//   • Today        — N/goal questions answered today (% complete)
+// Each row has a status icon (✓ green / ⚠ amber / ✗ red).
+function renderSettingsHealthCard() {
+  const host = document.getElementById('settings-health-grid');
+  if (!host) return;
+  const rows = [];
+
+  // 1. API key
+  let apiKey = '';
+  try { apiKey = localStorage.getItem(STORAGE.KEY) || ''; } catch (_) {}
+  if (apiKey && apiKey.startsWith('sk-ant-')) {
+    rows.push({
+      icon: '✓', tier: 'ok', label: 'API key',
+      value: 'Connected · ' + apiKey.slice(0, 12) + '…' + apiKey.slice(-4)
+    });
+  } else {
+    rows.push({
+      icon: '✗', tier: 'warn', label: 'API key',
+      value: 'Not connected — paste your Anthropic key below'
+    });
+  }
+
+  // 2. Exam date
+  let examDate = null;
+  try { examDate = (typeof getExamDate === 'function') ? getExamDate() : null; } catch (_) {}
+  if (examDate) {
+    let daysToExam = null;
+    try { daysToExam = (typeof getDaysToExam === 'function') ? getDaysToExam() : null; } catch (_) {}
+    const formatted = new Date(examDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const tier = daysToExam !== null && daysToExam < 0 ? 'warn' : 'ok';
+    const suffix = daysToExam !== null
+      ? (daysToExam > 0 ? ' · ' + daysToExam + ' day' + (daysToExam === 1 ? '' : 's') + ' away' : daysToExam === 0 ? ' · today!' : ' · passed')
+      : '';
+    rows.push({ icon: tier === 'ok' ? '✓' : '⚠', tier, label: 'Exam date', value: formatted + suffix });
+  } else {
+    rows.push({
+      icon: '⚠', tier: 'warn', label: 'Exam date',
+      value: 'Not set — keeps your countdown honest'
+    });
+  }
+
+  // 3. Daily goal
+  let goal = 0;
+  try {
+    const dg = JSON.parse(localStorage.getItem(STORAGE.DAILY_GOAL) || 'null');
+    goal = (dg && typeof dg.goal === 'number') ? dg.goal : 0;
+  } catch (_) {}
+  if (goal > 0) {
+    rows.push({
+      icon: '✓', tier: 'ok', label: 'Daily goal',
+      value: goal + ' question' + (goal === 1 ? '' : 's') + ' / day'
+    });
+  } else {
+    rows.push({
+      icon: '⚠', tier: 'warn', label: 'Daily goal',
+      value: 'Not set — pick something you can hit every day'
+    });
+  }
+
+  // 4. Auto-backup
+  try {
+    const backups = (typeof listAutoBackups === 'function') ? listAutoBackups() : [];
+    if (backups.length === 0) {
+      rows.push({
+        icon: '⚠', tier: 'warn', label: 'Automatic backup',
+        value: 'No backups yet — one will be created on next page load'
+      });
+    } else {
+      const newest = backups[0];
+      const ageMs = newest.capturedAt ? Date.now() - new Date(newest.capturedAt).getTime() : null;
+      let ageStr = 'recent';
+      if (ageMs !== null) {
+        const mins = Math.floor(ageMs / 60000);
+        const hrs = Math.floor(mins / 60);
+        const days = Math.floor(hrs / 24);
+        if (days > 0) ageStr = days + 'd ago';
+        else if (hrs > 0) ageStr = hrs + 'h ago';
+        else if (mins > 0) ageStr = mins + 'm ago';
+        else ageStr = 'just now';
+      }
+      rows.push({
+        icon: '✓', tier: 'ok', label: 'Automatic backup',
+        value: backups.length + ' snapshot' + (backups.length === 1 ? '' : 's') + ' · last: ' + ageStr
+      });
+    }
+  } catch (_) {
+    rows.push({ icon: '?', tier: 'warn', label: 'Automatic backup', value: 'Status unavailable' });
+  }
+
+  // 5. Today's progress
+  try {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const dg = JSON.parse(localStorage.getItem(STORAGE.DAILY_GOAL) || 'null');
+    const todayCount = (dg && dg.date === todayKey && typeof dg.current === 'number') ? dg.current : 0;
+    if (goal > 0) {
+      const pct = Math.min(100, Math.round((todayCount / goal) * 100));
+      const tier = todayCount >= goal ? 'ok' : todayCount >= goal * 0.5 ? 'mid' : 'warn';
+      const icon = tier === 'ok' ? '✓' : tier === 'mid' ? '◐' : '○';
+      rows.push({
+        icon, tier, label: 'Today',
+        value: todayCount + ' / ' + goal + ' questions · ' + pct + '%'
+      });
+    } else {
+      rows.push({ icon: '○', tier: 'warn', label: 'Today', value: 'Set a daily goal first' });
+    }
+  } catch (_) {}
+
+  host.innerHTML = rows.map(r =>
+    '<div class="settings-health-row settings-health-' + r.tier + '">' +
+    '<span class="settings-health-icon">' + r.icon + '</span>' +
+    '<div class="settings-health-text">' +
+    '<div class="settings-health-label">' + escHtml(r.label) + '</div>' +
+    '<div class="settings-health-value">' + escHtml(r.value) + '</div>' +
+    '</div>' +
+    '</div>'
+  ).join('');
 }
 
 // v4.54.16: render the exam-date chip on the Settings page. Reuses the

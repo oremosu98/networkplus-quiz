@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.10
+   Network+ AI Quiz — styles.css  v4.81.11
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14341,4 +14341,74 @@ html { zoom: 1.10; }
 }
 @media (prefers-reduced-motion: reduce) {
   .acl-rm-input-flash { animation: none; }
+}
+
+/* ── v4.81.11: Settings Study Setup Health card (Codex r9 #5) ── */
+.settings-health-card {
+  background: linear-gradient(135deg, rgba(124,111,247,.08), rgba(124,111,247,.02));
+  border: 1px solid rgba(124,111,247,.25);
+}
+.settings-health-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+  margin-left: 8px;
+  text-transform: none;
+}
+.settings-health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.settings-health-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.settings-health-icon {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+.settings-health-ok .settings-health-icon {
+  background: rgba(34,197,94,.18);
+  color: var(--green);
+}
+.settings-health-warn .settings-health-icon {
+  background: rgba(251,191,36,.18);
+  color: var(--yellow);
+}
+.settings-health-mid .settings-health-icon {
+  background: rgba(251,146,60,.18);
+  color: var(--orange);
+}
+.settings-health-text { flex: 1; min-width: 0; }
+.settings-health-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.settings-health-value {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 2px;
+  font-weight: 600;
+  word-break: break-word;
+}
+.settings-health-warn .settings-health-value { color: var(--text-mid); font-weight: 500; }
+[data-theme="light"] .settings-health-card {
+  background: linear-gradient(135deg, rgba(99,85,224,.06), rgba(99,85,224,.02));
+  border-color: rgba(99,85,224,.25);
 }

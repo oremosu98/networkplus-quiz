@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.10', js.includes("const APP_VERSION = '4.81.10"));
+test('APP_VERSION is 4.81.11', js.includes("const APP_VERSION = '4.81.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.10', sw.includes('netplus-v4.81.10'));
+test('SW cache bumped to v4.81.11', sw.includes('netplus-v4.81.11'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10845,6 +10845,115 @@ test('v4.81.10 DrillMission: drill entry points wire into mission renderers',
   })());
 
 // Behavioral fixture — picker correctly handles "new user" state
+// ──────────────────────────────────────────────────────────
+// v4.81.11: Settings polish (Codex r9 — trust + safety layer)
+// ──────────────────────────────────────────────────────────
+// Codex r9 rated Settings 7.6/10 — utility drawer not trust centre.
+// Shipped 4 of the 6 enhancements as a focused polish ship:
+//   #2 Import button a11y (real <button>, not a <label> wrapper)
+//   #3 Danger confirmations explicit about what gets deleted/replaced
+//   #4 Restore "what will change" enumerates data categories
+//   #5 Study Setup Health card at top — at-a-glance status
+// Deferred: #1 BYOK (saas-gated) + #6 Control Centre reorg
+
+// #2 — Import button a11y
+test('v4.81.11 Settings: Import is now a real <button>, not a <label> wrapper',
+  /<button[^>]+aria-label="Import data from JSON file"[^>]*>[^<]*Import Data/.test(html));
+test('v4.81.11 Settings: hidden #import-file-input input present',
+  /<input[^>]*id="import-file-input"/.test(html) && /<input[^>]*type="file"[^>]*id="import-file-input"|<input[^>]*id="import-file-input"[^>]*type="file"/.test(html));
+test('v4.81.11 Settings: Import button triggers hidden input via .click()',
+  /onclick="document\.getElementById\('import-file-input'\)\.click\(\)"/.test(html));
+test('v4.81.11 Settings: regression — Import is no longer a <label> wrapping <input type="file">',
+  !/<label[^>]+class="btn btn-ghost"[^>]*>[\s\S]{0,200}<input type="file"[\s\S]{0,200}importData/.test(html));
+
+// #3 — Stronger clearWrongBank confirmation
+test('v4.81.11 Settings: clearWrongBank confirm enumerates what gets deleted',
+  (() => {
+    const body = _fnBody(js, 'clearWrongBank');
+    return body
+      && /Drill Mistakes/.test(body)
+      && /Spaced Repetition queue/.test(body)
+      && /Automatic backups/.test(body);
+  })());
+
+// #4 — Restore "what will change" copy
+test('v4.81.11 Settings: restoreFromAutoBackup confirm enumerates data categories',
+  (() => {
+    const body = _fnBody(js, 'restoreFromAutoBackup');
+    return body
+      && /Quiz history/.test(body)
+      && /Wrong bank/.test(body)
+      && /drill mastery/i.test(body)
+      && /pre-restore/i.test(body);
+  })());
+
+// #5 — Study Setup Health card
+test('v4.81.11 Settings: renderSettingsHealthCard function defined',
+  /function\s+renderSettingsHealthCard\b/.test(js));
+test('v4.81.11 Settings: renderSettingsPage calls renderSettingsHealthCard',
+  (() => {
+    const body = _fnBody(js, 'renderSettingsPage');
+    return body && /renderSettingsHealthCard/.test(body);
+  })());
+test('v4.81.11 Settings: #settings-health-card container in markup',
+  /id="settings-health-card"/.test(html) && /id="settings-health-grid"/.test(html));
+test('v4.81.11 Settings: health card surfaces all 5 rows (api/exam/goal/backup/today)',
+  (() => {
+    const body = _fnBody(js, 'renderSettingsHealthCard');
+    return body
+      && /API key/.test(body)
+      && /Exam date/.test(body)
+      && /Daily goal/.test(body)
+      && /Automatic backup/.test(body)
+      && /Today/.test(body);
+  })());
+test('v4.81.11 Settings: .settings-health-row CSS declared',
+  /\.settings-health-row\s*\{/.test(css));
+test('v4.81.11 Settings: 3 status tiers (ok/mid/warn) styled',
+  /\.settings-health-ok\s/.test(css)
+  && /\.settings-health-warn\s/.test(css)
+  && /\.settings-health-mid\s/.test(css));
+
+// vm fixture — health card surfaces "Not connected" when no API key,
+// "Connected · sk-ant-..." when key present
+test('v4.81.11 Settings: vm fixture — health card surfaces correct API key status',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderSettingsHealthCard');
+      if (!body) return false;
+      const vm = require('vm');
+      // Stub minimal env — just localStorage + the helpers + a host element
+      let storage = {};
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        STORAGE: { KEY: 'k', DAILY_GOAL: 'dg' },
+        localStorage: {
+          getItem: (k) => storage[k] === undefined ? null : storage[k],
+          setItem: (k, v) => { storage[k] = String(v); },
+          removeItem: (k) => { delete storage[k]; }
+        },
+        document: { getElementById: () => fakeHost },
+        getExamDate: () => null,
+        getDaysToExam: () => null,
+        listAutoBackups: () => [],
+        escHtml: (s) => String(s),
+        Math, Date, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // No API key → "Not connected"
+      vm.runInContext('renderSettingsHealthCard()', ctx);
+      const noKeyHtml = fakeHost._innerHTML;
+      // With API key → "Connected"
+      storage['k'] = 'sk-ant-api03-xxxxxxxxxxxx-yyyy';
+      vm.runInContext('renderSettingsHealthCard()', ctx);
+      const withKeyHtml = fakeHost._innerHTML;
+      return /Not connected/.test(noKeyHtml)
+        && /Connected/.test(withKeyHtml)
+        && /sk-ant-/.test(withKeyHtml);
+    } catch (e) { return false; }
+  })());
+
 test('v4.81.10 DrillMission: vm fixture — empty mastery suggests Lesson 1',
   (() => {
     try {
