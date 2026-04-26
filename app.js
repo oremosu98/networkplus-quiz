@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.19
+// Network+ AI Quiz — app.js  v4.81.20
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.19';
+const APP_VERSION = '4.81.20';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -35967,74 +35967,25 @@ if (typeof window !== 'undefined') {
 }
 
 // ── Focus banner pullquote (setup page) ──
-// Real-data greeting with weakest-topic callout + today's daily-goal stats.
-// Falls back to friendly empty state when history is empty (first-run).
+// v4.81.20: retired. The v4.54.0 #focus-banner was the previous attempt at a
+// prescriptive "today's plan" surface. The v4.81.18 consolidated #today-plan
+// card now does this job AND respects the isStudyPlanDoneToday() gate. With
+// both surfaces live, the focus-banner showed stale "Seven questions per
+// topic..." text any time the consolidated card was correctly hidden post-
+// session — surfaced by user dogfood screenshot. This function is now a
+// thin compat shim that hides #focus-banner permanently and delegates to
+// renderTodayPlan() so the canonical plan render path handles all states.
+//
+// The legacy #focus-banner element stays in the DOM as a hidden compat
+// shim (some UAT regression guards check for its existence). CSS for the
+// .focus-banner-v2 + .fb-* classes also retained.
 function renderSetupFocusBanner() {
   const el = document.getElementById('focus-banner');
-  if (!el) return;
-  const history = (typeof loadHistory === 'function') ? loadHistory() : [];
-  const hour = new Date().getHours();
-  const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Working late';
-  const greetingLine = `${greeting}, <em>Simi</em>`;
-
-  let bodyHtml, metaHtml, ctaLabel, ctaAction;
-  if (history.length === 0) {
-    bodyHtml = `<div class="focus-greeting">${greetingLine}</div>
-      <div class="focus-text">Start with a <strong>5-minute warmup</strong>. Pick any preset below \u2014 your readiness appears here after your first quiz.</div>
-      <div class="focus-meta">N10-009 \u00b7 90Q exam \u00b7 passing score 720/900</div>`;
-    ctaLabel = 'Start warmup';
-    ctaAction = "applyPreset('warmup')";
-  } else {
-    // Pull weakest topic + readiness delta
-    let weakLine = '';
-    try {
-      if (typeof computeWeakSpotScores === 'function') {
-        const weak = computeWeakSpotScores();
-        if (weak && weak.length > 0) {
-          const topWeak = weak.slice(0, 2).map(w => `<strong>${escHtml(w.topic)}</strong>`).join(' and ');
-          weakLine = `Your weakest areas right now: ${topWeak}.`;
-        }
-      }
-    } catch (_) {}
-    if (!weakLine) weakLine = 'Pick a topic below or dive into your weakest domain.';
-    bodyHtml = `<div class="focus-greeting">${greetingLine}</div>
-      <div class="focus-text">${weakLine} <em>Fifteen focused minutes</em> now compounds more than an hour tomorrow.</div>
-      <div class="focus-meta">TODAY'S STUDY PLAN \u00b7 WEAK-SPOT DRILL \u00b7 ~15 MIN</div>`;
-    ctaLabel = 'Begin plan';
-    ctaAction = "applyPreset('focused')";
+  if (el) {
+    el.classList.add('is-hidden');
+    el.innerHTML = '';
   }
-
-  // v4.54.0: Emit the full-width purple-gradient banner structure.
-  // Simpler DOM than v4.53.0 — single line of "study plan" copy, accent-highlighted verb,
-  // and a white-pill CTA. Matches the mockup screenshot exactly.
-  let planText, planMeta;
-  if (history.length === 0) {
-    planText = `Start with a <em>5-minute warmup</em> \u2014 your readiness appears here after your first quiz.`;
-    planMeta = 'TODAY\u2019S STUDY PLAN \u00B7 WARMUP \u00B7 ~5 MIN';
-  } else {
-    // Try to pull top 1-2 weakest topics for a data-driven pullquote
-    let weakHint = '';
-    try {
-      if (typeof computeWeakSpotScores === 'function') {
-        const weak = computeWeakSpotScores();
-        if (weak && weak.length >= 2) {
-          weakHint = ` Focus: ${escHtml(weak[0].topic)} and ${escHtml(weak[1].topic)}.`;
-        } else if (weak && weak.length === 1) {
-          weakHint = ` Focus: ${escHtml(weak[0].topic)}.`;
-        }
-      }
-    } catch (_) {}
-    planText = `Seven questions per topic, mixed difficulty. Your <em>fastest</em> route to exam-ready.${weakHint}`;
-    planMeta = 'TODAY\u2019S STUDY PLAN \u00B7 ~21 MIN \u00B7 5 TOPICS';
-  }
-  el.innerHTML = `
-    <div class="fb-quote" aria-hidden="true">\u201C</div>
-    <div class="fb-body">
-      <div class="fb-text">${planText}</div>
-      <div class="fb-meta">${planMeta}</div>
-    </div>
-    <button type="button" class="fb-cta" onclick="${ctaAction}" aria-label="${ctaLabel}">${ctaLabel} <span aria-hidden="true">\u2192</span></button>`;
-  el.classList.remove('is-hidden');
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
 }
 
 // ══════════════════════════════════════════

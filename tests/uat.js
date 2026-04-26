@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.19', js.includes("const APP_VERSION = '4.81.19"));
+test('APP_VERSION is 4.81.20', js.includes("const APP_VERSION = '4.81.20"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.19', sw.includes('netplus-v4.81.19'));
+test('SW cache bumped to v4.81.20', sw.includes('netplus-v4.81.20'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5445,14 +5445,23 @@ test('v4.53.0 JS: has-sidebar body class applied on init',
   js.includes("document.body.classList.add('has-sidebar')"));
 
 // JS \u2014 focus banner + domain grid
-test('v4.53.0 JS: renderSetupFocusBanner function defined',
+// v4.81.20: renderSetupFocusBanner is now a thin compat shim that hides
+// the legacy #focus-banner element + delegates to renderTodayPlan. The
+// v4.53.0/v4.54.0 in-banner content (greeting + weak-topic callout +
+// empty-state copy) was retired because the v4.81.18 #today-plan card
+// fully replaces this surface AND respects the isStudyPlanDoneToday
+// gate. Tests below converted to tombstones \u2014 guarding that the legacy
+// content stays gone, not that it still renders.
+test('v4.53.0 JS: renderSetupFocusBanner function defined (now a compat shim)',
   js.includes('function renderSetupFocusBanner('));
-test('v4.53.0 JS: focus banner greets user by name (Simi)',
-  /renderSetupFocusBanner[\s\S]{0,2000}<em>Simi<\/em>/.test(js));
-test('v4.53.0 JS: focus banner has empty-state fallback (no history)',
-  /renderSetupFocusBanner[\s\S]{0,3000}history\.length\s*===\s*0/.test(js));
-test('v4.53.0 JS: focus banner pulls weakest topics from computeWeakSpotScores',
-  /renderSetupFocusBanner[\s\S]{0,3000}computeWeakSpotScores/.test(js));
+test('v4.81.20 tombstone: renderSetupFocusBanner no longer renders greeting copy',
+  !/renderSetupFocusBanner[\s\S]{0,3000}<em>Simi<\/em>/.test(js));
+test('v4.81.20 tombstone: renderSetupFocusBanner no longer reads computeWeakSpotScores directly',
+  !/renderSetupFocusBanner[\s\S]{0,2000}computeWeakSpotScores/.test(js));
+test('v4.81.20 tombstone: renderSetupFocusBanner no longer renders "Seven questions per topic" copy',
+  !/Seven questions per topic, mixed difficulty/.test(js));
+test('v4.81.20 retire: renderSetupFocusBanner delegates to renderTodayPlan',
+  /renderTodayPlan/.test(_fnBody(js, 'renderSetupFocusBanner') || ''));
 test('v4.53.0 JS: renderSetupDomainGrid function defined',
   js.includes('function renderSetupDomainGrid('));
 test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
@@ -5607,8 +5616,12 @@ test('v4.54.0 JS: renderHeroV2MiniCards pulls from getDailyGoal + getStreak',
   /renderHeroV2MiniCards[\s\S]{0,2500}getDailyGoal[\s\S]{0,1000}getStreak/.test(js));
 test('v4.54.0 JS: goSetup calls renderHeroV2',
   /function goSetup\([\s\S]{0,1500}renderHeroV2/.test(js));
-test('v4.54.0 JS: renderSetupFocusBanner outputs v2 structure (fb-quote + fb-body + fb-cta)',
-  /renderSetupFocusBanner[\s\S]{0,4000}fb-quote[\s\S]{0,400}fb-body[\s\S]{0,400}fb-cta/.test(js));
+// v4.81.20: tombstone — focus-banner v2 structure was retired (the function
+// is now a compat shim that delegates to renderTodayPlan). The CSS for
+// .focus-banner-v2 + .fb-* classes is retained for the (now hidden)
+// element shell, but the banner no longer emits those children.
+test('v4.81.20 tombstone: renderSetupFocusBanner no longer emits fb-quote/fb-body/fb-cta children',
+  !/renderSetupFocusBanner[\s\S]{0,4000}fb-quote[\s\S]{0,400}fb-body[\s\S]{0,400}fb-cta/.test(js));
 
 // CSS \u2014 topbar
 test('v4.54.0 CSS: .app-topbar sticky + flex',
@@ -11252,6 +11265,76 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.20: retire orphan v4.54.0 #focus-banner. User dogfood after
+// v4.81.18 ship revealed the focus-banner was a SECOND prescriptive
+// surface OUTSIDE the today-section — still rendering "Seven questions
+// per topic, mixed difficulty..." stale copy any time the new
+// #today-plan was correctly hidden by the isStudyPlanDoneToday gate.
+// renderSetupFocusBanner now a thin compat shim that delegates to
+// renderTodayPlan so all states route through the canonical card.
+test('v4.81.20 FocusRetire: renderSetupFocusBanner is now a thin shim',
+  (() => {
+    const body = _fnBody(js, 'renderSetupFocusBanner') || '';
+    return /renderTodayPlan/.test(body) && body.length < 800;
+  })());
+test('v4.81.20 FocusRetire: shim hides #focus-banner element',
+  /focus-banner[\s\S]{0,200}is-hidden/.test(_fnBody(js, 'renderSetupFocusBanner') || ''));
+test('v4.81.20 FocusRetire: stale "Seven questions per topic" copy fully removed from app.js',
+  !/Seven questions per topic, mixed difficulty/.test(js));
+test('v4.81.20 FocusRetire: stale "fastest route to exam-ready" copy only in renderTodayPlan',
+  (() => {
+    // Should appear only in the new #today-plan render path, nowhere else.
+    const matches = (js.match(/fastest[^"]*route to exam-ready/g) || []);
+    if (matches.length === 0) return false;
+    // Verify all occurrences are within renderTodayPlan body
+    const tpBody = _fnBody(js, 'renderTodayPlan') || '';
+    return matches.every(m => tpBody.includes(m));
+  })());
+test('v4.81.20 FocusRetire: #focus-banner element stays in HTML as compat shim',
+  html.includes('id="focus-banner"'));
+test('v4.81.20 FocusRetire: #focus-banner defaults to is-hidden',
+  /id="focus-banner"[^>]*is-hidden/.test(html));
+test('v4.81.20 FocusRetire: focus-banner CSS retained (element still in DOM)',
+  /\.focus-banner-v2\s*\{/.test(css));
+test('v4.81.20 FocusRetire: goSetup still calls renderSetupFocusBanner (delegation chain)',
+  /renderSetupFocusBanner/.test(_fnBody(js, 'goSetup') || ''));
+
+// vm fixture — renderSetupFocusBanner correctly hides its element +
+// delegates to renderTodayPlan. Stubs DOM elements + renderTodayPlan
+// so the test is hermetic.
+test('v4.81.20 FocusRetire: vm fixture — shim hides #focus-banner + delegates to renderTodayPlan',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderSetupFocusBanner');
+      if (!body) return false;
+      const vm = require('vm');
+      let calls = { renderTodayPlanFired: 0, hideAdded: false, innerHtmlCleared: false };
+      const fakeFocusBanner = {
+        _classes: new Set(['focus-banner-v2']),
+        classList: {
+          add: function(c) { fakeFocusBanner._classes.add(c); if (c === 'is-hidden') calls.hideAdded = true; },
+          remove: function(c) { fakeFocusBanner._classes.delete(c); }
+        },
+        innerHTML: 'old content',
+      };
+      Object.defineProperty(fakeFocusBanner, 'innerHTML', {
+        get: function() { return this._innerHTML || ''; },
+        set: function(v) { this._innerHTML = v; if (v === '') calls.innerHtmlCleared = true; }
+      });
+      const ctx = {
+        document: { getElementById: (id) => id === 'focus-banner' ? fakeFocusBanner : null },
+        renderTodayPlan: () => { calls.renderTodayPlanFired++; },
+        Object, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('renderSetupFocusBanner()', ctx);
+      return calls.hideAdded === true
+        && calls.innerHtmlCleared === true
+        && calls.renderTodayPlanFired === 1;
     } catch (e) { return false; }
   })());
 
