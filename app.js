@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.21
+// Network+ AI Quiz — app.js  v4.81.22
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.21';
+const APP_VERSION = '4.81.22';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7728,12 +7728,38 @@ function renderWrongBankBtn() {
 function renderTodaySection() {
   const section = document.getElementById('today-section');
   if (!section) return;
-  // Show the section if any child card is visible.
-  // v4.41.0: #weak-banner removed — Weak Spots chip row (#todays-focus) covers the same concept.
-  const children = section.querySelectorAll('#daily-goal-card, #streak-defender, #daily-challenge-card, #todays-focus, #session-banner');
-  const anyVisible = Array.from(children).some(c => !c.classList.contains('is-hidden'));
-  // Daily goal card is always visible, so the section is always shown
-  section.classList.remove('is-hidden');
+  // v4.81.22: properly hide the wrapper when nothing meaningful renders inside.
+  // Pre-fix the wrapper always showed because the original comment assumed
+  // "daily goal card is always visible." But the v4.54.0 hero v2 redesign
+  // hides #daily-goal-card via `body.hero-v2-active` CSS rule, AND the v4.81.18
+  // consolidation made #todays-focus / #rotation-row / #session-banner permanent
+  // hidden compat shims. Result: when `#today-plan` was also correctly hidden
+  // (plan done today, isStudyPlanDoneToday true), the section rendered as an
+  // empty card with just the "TODAY" title — surfaced by user dogfood screenshot.
+  // Now check actual visibility per child + account for hero-v2 CSS rule.
+  const candidateIds = [
+    '#daily-goal-card',         // v4.54.0 hero v2 hides this via CSS
+    '#streak-defender',         // amber warning when streak at risk
+    '#daily-challenge-card',    // shown until daily challenge done
+    '#today-plan'               // v4.81.18 consolidated card (gates on isStudyPlanDoneToday)
+  ];
+  const isHeroV2 = document.body && document.body.classList && document.body.classList.contains('hero-v2-active');
+  let anyVisible = false;
+  for (const sel of candidateIds) {
+    const el = section.querySelector(sel);
+    if (!el) continue;
+    if (el.classList.contains('is-hidden')) continue;
+    // Hero v2 hides #daily-goal-card via CSS (`display: none !important`)
+    // — treat it as effectively hidden when computing section visibility.
+    if (isHeroV2 && sel === '#daily-goal-card') continue;
+    anyVisible = true;
+    break;
+  }
+  if (anyVisible) {
+    section.classList.remove('is-hidden');
+  } else {
+    section.classList.add('is-hidden');
+  }
 }
 
 function clearWrongBank() {

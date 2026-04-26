@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.21', js.includes("const APP_VERSION = '4.81.21"));
+test('APP_VERSION is 4.81.22', js.includes("const APP_VERSION = '4.81.22"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.21', sw.includes('netplus-v4.81.21'));
+test('SW cache bumped to v4.81.22', sw.includes('netplus-v4.81.22'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -11265,6 +11265,111 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.22: hide today-section wrapper when nothing meaningful renders
+// inside. User dogfood screenshot post-v4.81.21 showed the section
+// rendering as an empty card with just "TODAY" title — because
+// hero-v2-active CSS hides #daily-goal-card AND #today-plan was
+// correctly hidden (plan done today). renderTodaySection now properly
+// hides the wrapper when no candidate child is effectively visible.
+test('v4.81.22 EmptyHide: renderTodaySection considers #today-plan in candidate list',
+  /#today-plan/.test(_fnBody(js, 'renderTodaySection') || ''));
+test('v4.81.22 EmptyHide: renderTodaySection accounts for hero-v2-active hide rule',
+  /hero-v2-active/.test(_fnBody(js, 'renderTodaySection') || ''));
+test('v4.81.22 EmptyHide: renderTodaySection conditionally hides the wrapper',
+  (() => {
+    const body = _fnBody(js, 'renderTodaySection') || '';
+    return /classList\.add\(['"]is-hidden['"]\)/.test(body)
+      && /classList\.remove\(['"]is-hidden['"]\)/.test(body);
+  })());
+test('v4.81.22 EmptyHide: tombstone — old "section is always shown" comment removed',
+  !/Daily goal card is always visible, so the section is always shown/.test(_fnBody(js, 'renderTodaySection') || ''));
+
+// vm fixture #1 — section hidden when all candidates effectively hidden
+test('v4.81.22 EmptyHide: vm fixture — section hidden when daily-goal hero-v2-hidden + today-plan hidden',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderTodaySection');
+      if (!body) return false;
+      const vm = require('vm');
+      // Build fake DOM that mirrors the v4.81.21 dogfood state:
+      // hero-v2-active on body, daily-goal not is-hidden but display:none via CSS,
+      // today-plan IS is-hidden, others all is-hidden.
+      const makeChild = (id, hidden) => ({
+        id, _classes: new Set(hidden ? ['is-hidden'] : []),
+        classList: { contains: function(c) { return makeChild_classes(this, c); } }
+      });
+      // Simpler: real Set with contains check
+      const childMap = {
+        '#daily-goal-card':      { _classes: new Set([]) },              // not is-hidden, but hero-v2 hides via CSS
+        '#streak-defender':      { _classes: new Set(['is-hidden']) },
+        '#daily-challenge-card': { _classes: new Set(['is-hidden']) },
+        '#today-plan':           { _classes: new Set(['is-hidden']) }
+      };
+      Object.values(childMap).forEach(c => {
+        c.classList = { contains: (cls) => c._classes.has(cls) };
+      });
+      const sectionState = { _classes: new Set([]) };
+      sectionState.classList = {
+        contains: (c) => sectionState._classes.has(c),
+        add: (c) => sectionState._classes.add(c),
+        remove: (c) => sectionState._classes.delete(c)
+      };
+      const ctx = {
+        document: {
+          getElementById: (id) => id === 'today-section' ? sectionState : null,
+          body: { classList: { contains: (c) => c === 'hero-v2-active' } }
+        },
+        Array
+      };
+      sectionState.querySelector = (sel) => childMap[sel] || null;
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('renderTodaySection()', ctx);
+      // Should be is-hidden because daily-goal is hidden by hero-v2 CSS rule
+      // and all other candidates carry the is-hidden class.
+      return sectionState._classes.has('is-hidden');
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — section visible when ANY candidate has content
+test('v4.81.22 EmptyHide: vm fixture — section visible when daily-challenge-card visible',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderTodaySection');
+      if (!body) return false;
+      const vm = require('vm');
+      const childMap = {
+        '#daily-goal-card':      { _classes: new Set([]) },
+        '#streak-defender':      { _classes: new Set(['is-hidden']) },
+        '#daily-challenge-card': { _classes: new Set([]) },              // VISIBLE
+        '#today-plan':           { _classes: new Set(['is-hidden']) }
+      };
+      Object.values(childMap).forEach(c => {
+        c.classList = { contains: (cls) => c._classes.has(cls) };
+      });
+      const sectionState = { _classes: new Set(['is-hidden']) };
+      sectionState.classList = {
+        contains: (c) => sectionState._classes.has(c),
+        add: (c) => sectionState._classes.add(c),
+        remove: (c) => sectionState._classes.delete(c)
+      };
+      const ctx = {
+        document: {
+          getElementById: () => sectionState,
+          // hero-v2 active — so daily-goal is "hidden" but daily-challenge isn't
+          body: { classList: { contains: (c) => c === 'hero-v2-active' } }
+        },
+        Array
+      };
+      sectionState.querySelector = (sel) => childMap[sel] || null;
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('renderTodaySection()', ctx);
+      // Section should be made visible because daily-challenge-card is visible
+      return !sectionState._classes.has('is-hidden');
     } catch (e) { return false; }
   })());
 
