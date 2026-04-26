@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.25
+// Network+ AI Quiz — app.js  v4.81.26
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.25';
+const APP_VERSION = '4.81.26';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -36293,12 +36293,24 @@ function renderSettingsHealthCard() {
   }
 
   // 3. Daily goal
+  // v4.81.26 FIX: this section was reading the daily goal as a JSON object
+  // `{goal: N, date: "YYYY-MM-DD", current: N}` — but `setDailyGoal()` writes
+  // a plain string number. Schema mismatch bug introduced in v4.81.11. The
+  // user-set value never matched, so the row always reported "Not set" even
+  // when a goal was explicitly saved (visible in the Daily Goal input below).
+  // Same bug class as v4.81.5's diagnostic options-render schema mismatch —
+  // direct hit on `feedback_behavioral_fixtures.md` (vm-fixture would have
+  // caught this in v4.81.11). Now reads via getDailyGoal() + checks raw
+  // localStorage to distinguish "user explicitly set" from "default fallback".
   let goal = 0;
+  let isUserSetGoal = false;
   try {
-    const dg = JSON.parse(localStorage.getItem(STORAGE.DAILY_GOAL) || 'null');
-    goal = (dg && typeof dg.goal === 'number') ? dg.goal : 0;
-  } catch (_) {}
-  if (goal > 0) {
+    const rawStored = localStorage.getItem(STORAGE.DAILY_GOAL);
+    const stored = parseInt(rawStored, 10);
+    isUserSetGoal = rawStored !== null && Number.isFinite(stored) && stored > 0;
+    goal = isUserSetGoal ? stored : 0;
+  } catch (_) { isUserSetGoal = false; goal = 0; }
+  if (isUserSetGoal) {
     rows.push({
       icon: '✓', tier: 'ok', label: 'Daily goal',
       value: goal + ' question' + (goal === 1 ? '' : 's') + ' / day'
@@ -36341,11 +36353,16 @@ function renderSettingsHealthCard() {
   }
 
   // 5. Today's progress
+  // v4.81.26 FIX: this section was reading today's progress from a JSON
+  // object stored at STORAGE.DAILY_GOAL with a `current` + `date` field —
+  // same v4.81.11 schema-mismatch bug as section 3 above. Today's question
+  // count actually comes from `getTodayQuestionCount()` (sum of e.total
+  // across history rows with today's date — see app.js:4793). Switched
+  // to use that helper, matching what `renderDailyGoalCard()` does on
+  // the homepage so the two surfaces stay in sync.
   try {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const dg = JSON.parse(localStorage.getItem(STORAGE.DAILY_GOAL) || 'null');
-    const todayCount = (dg && dg.date === todayKey && typeof dg.current === 'number') ? dg.current : 0;
-    if (goal > 0) {
+    const todayCount = (typeof getTodayQuestionCount === 'function') ? getTodayQuestionCount() : 0;
+    if (isUserSetGoal && goal > 0) {
       const pct = Math.min(100, Math.round((todayCount / goal) * 100));
       const tier = todayCount >= goal ? 'ok' : todayCount >= goal * 0.5 ? 'mid' : 'warn';
       const icon = tier === 'ok' ? '✓' : tier === 'mid' ? '◐' : '○';

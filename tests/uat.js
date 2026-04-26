@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.25', js.includes("const APP_VERSION = '4.81.25"));
+test('APP_VERSION is 4.81.26', js.includes("const APP_VERSION = '4.81.26"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.25', sw.includes('netplus-v4.81.25'));
+test('SW cache bumped to v4.81.26', sw.includes('netplus-v4.81.26'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12347,7 +12347,10 @@ test('v4.81.11 Settings: vm fixture — health card surfaces correct API key sta
         getExamDate: () => null,
         getDaysToExam: () => null,
         listAutoBackups: () => [],
+        getDailyGoal: () => 20,
+        getTodayQuestionCount: () => 0,
         escHtml: (s) => String(s),
+        Number, parseInt,
         Math, Date, JSON, Object
       };
       vm.createContext(ctx);
@@ -12364,6 +12367,77 @@ test('v4.81.11 Settings: vm fixture — health card surfaces correct API key sta
         && /sk-ant-/.test(withKeyHtml);
     } catch (e) { return false; }
   })());
+
+// v4.81.26: regression test for the schema-mismatch bug. Pre-fix,
+// renderSettingsHealthCard read DAILY_GOAL as a JSON object {goal, date,
+// current} but setDailyGoal writes a plain string number. So the row
+// always reported "Not set" even when a goal was explicitly saved. This
+// fixture saves "100" via the same path setDailyGoal would, then asserts
+// the Health card reports the goal as set. Direct hit on
+// `feedback_behavioral_fixtures.md` — would have caught the bug in v4.81.11
+// if a vm fixture covered the daily-goal path.
+test('v4.81.26 Settings: vm fixture — health card reads daily goal correctly when set',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderSettingsHealthCard');
+      if (!body) return false;
+      const vm = require('vm');
+      let storage = {};
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        STORAGE: { KEY: 'k', DAILY_GOAL: 'dg' },
+        localStorage: {
+          getItem: (k) => storage[k] === undefined ? null : storage[k],
+          setItem: (k, v) => { storage[k] = String(v); },
+          removeItem: (k) => { delete storage[k]; }
+        },
+        document: { getElementById: () => fakeHost },
+        getExamDate: () => null,
+        getDaysToExam: () => null,
+        listAutoBackups: () => [],
+        getDailyGoal: () => {
+          const raw = parseInt(storage['dg'], 10);
+          return (Number.isFinite(raw) && raw > 0) ? raw : 20;
+        },
+        getTodayQuestionCount: () => 0,
+        escHtml: (s) => String(s),
+        Number, parseInt,
+        Math, Date, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+
+      // Case 1: no goal set → "Not set"
+      vm.runInContext('renderSettingsHealthCard()', ctx);
+      const noGoalHtml = fakeHost._innerHTML;
+      const notSetVisible = /Not set/.test(noGoalHtml) && /Set a daily goal first/.test(noGoalHtml);
+
+      // Case 2: goal saved via setDailyGoal-style write (plain string number)
+      storage['dg'] = '100';
+      vm.runInContext('renderSettingsHealthCard()', ctx);
+      const setGoalHtml = fakeHost._innerHTML;
+      const goalDetected = /100 questions \/ day/.test(setGoalHtml);
+      const todayRowOk = /0 \/ 100 questions/.test(setGoalHtml);
+
+      // Case 3: legacy/junk write (the buggy schema we used to expect)
+      storage['dg'] = '{"goal":50,"date":"2026-04-26","current":12}';
+      vm.runInContext('renderSettingsHealthCard()', ctx);
+      const legacyHtml = fakeHost._innerHTML;
+      const legacyHandled = /Not set/.test(legacyHtml); // parseInt of JSON string yields NaN → "Not set"
+
+      return notSetVisible && goalDetected && todayRowOk && legacyHandled;
+    } catch (e) { return false; }
+  })());
+
+test('v4.81.26 Settings: tombstone — old buggy `dg.goal` schema check removed',
+  (() => {
+    const body = _fnBody(js, 'renderSettingsHealthCard') || '';
+    // Should no longer read DAILY_GOAL as JSON with a `.goal` property
+    return !/JSON\.parse\(localStorage\.getItem\(STORAGE\.DAILY_GOAL\)[\s\S]{0,80}dg\.goal/.test(body);
+  })());
+
+test('v4.81.26 Settings: today row uses getTodayQuestionCount (matches home page renderer)',
+  /getTodayQuestionCount/.test(_fnBody(js, 'renderSettingsHealthCard') || ''));
 
 test('v4.81.10 DrillMission: vm fixture — empty mastery suggests Lesson 1',
   (() => {
