@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.7', js.includes("const APP_VERSION = '4.81.7"));
+test('APP_VERSION is 4.81.8', js.includes("const APP_VERSION = '4.81.8"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.7', sw.includes('netplus-v4.81.7'));
+test('SW cache bumped to v4.81.8', sw.includes('netplus-v4.81.8'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10592,6 +10592,52 @@ test('v4.81.7 Retake: renderDiagnosticSurface flags corrupted Plan in tile',
 
 // Behavioral fixture — given a synthetic corrupted Pass Plan, verify
 // _isCorruptedPassPlan returns true. Given a healthy one, false.
+// ──────────────────────────────────────────────────────────
+// v4.81.8: 3D View defensive observability (Codex external review)
+// ──────────────────────────────────────────────────────────
+// Codex hit: clicking 3D View after loading Home Network → red toast
+// "Could not load 3D View — check network / console". Couldn't reproduce
+// locally; Playwright tests pass. Shipped defensive observability instead
+// of speculative patch:
+//   1. WebGL preflight — fail-fast if browser lacks WebGL
+//   2. Phase tracking — error toast names which step failed
+//   3. Error log persistence — full stack + state captured to ERROR_LOG
+test('v4.81.8 TB3D: _tb3dWebGLAvailable preflight defined',
+  /function\s+_tb3dWebGLAvailable\b/.test(js));
+test('v4.81.8 TB3D: WebGL check tries webgl2 / webgl / experimental-webgl',
+  (() => {
+    const body = _fnBody(js, '_tb3dWebGLAvailable');
+    return body && /webgl2/.test(body) && /experimental-webgl/.test(body);
+  })());
+test('v4.81.8 TB3D: tbOpen3DView preflights WebGL before importing tb3d.js',
+  (() => {
+    const body = _fnBody(js, 'tbOpen3DView');
+    return body && /_tb3dWebGLAvailable/.test(body) && /requires WebGL/i.test(body);
+  })());
+test('v4.81.8 TB3D: _tb3dHandleOpenFailure helper defined',
+  /function\s+_tb3dHandleOpenFailure\b/.test(js));
+test('v4.81.8 TB3D: failure handler captures phase label + error message',
+  (() => {
+    const body = _fnBody(js, '_tb3dHandleOpenFailure');
+    return body && /phaseLabel/.test(body) && /\binitialis/i.test(body);
+  })());
+test('v4.81.8 TB3D: failure handler persists to ERROR_LOG via logError',
+  (() => {
+    const body = _fnBody(js, '_tb3dHandleOpenFailure');
+    return body && /logError/.test(body) && /tb3d-open-failure/.test(body);
+  })());
+test('v4.81.8 TB3D: tbOpen3DView tracks phase across import/enter/setTraceState/updateTourButton',
+  (() => {
+    const body = _fnBody(js, 'tbOpen3DView');
+    return body
+      && /phase\s*=\s*['"]import['"]/.test(body)
+      && /phase\s*=\s*['"]enter['"]/.test(body)
+      && /phase\s*=\s*['"]setTraceState['"]/.test(body)
+      && /phase\s*=\s*['"]updateTourButton['"]/.test(body);
+  })());
+test('v4.81.8 TB3D: regression guard — old generic toast text removed',
+  !/'Could not load 3D View — check network \/ console\.'/.test(js));
+
 test('v4.81.7 Retake: vm fixture — corruption signature detected',
   (() => {
     try {

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.7
+// Network+ AI Quiz — app.js  v4.81.8
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.7';
+const APP_VERSION = '4.81.8';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -15163,12 +15163,31 @@ async function tbOpen3DView() {
     return;
   }
 
+  // v4.81.8: WebGL preflight — fail-fast with a specific message rather
+  // than the generic "check network / console" if the browser/environment
+  // can't render WebGL at all (some headless browsers, locked-down
+  // corporate environments, ancient devices). Codex's external-review
+  // env may have hit this.
+  if (!_tb3dWebGLAvailable()) {
+    showErrorToast('3D View requires WebGL, which isn\'t available in this browser.');
+    tbClose3DView();
+    return;
+  }
+
   // First entry: dynamic-import the 3D module (fetches vendored
   // Three.js bundle on first call, cached by browser + SW thereafter).
+  // v4.81.8: split the try block into specific phases so error toasts
+  // point at the actual failure (import vs init) rather than collapsing
+  // into a generic "check console" — Codex's external-review surfaced
+  // the toast but we couldn't reproduce, so the new fix is observability
+  // (better error messages + diagnostics persisted to error log) rather
+  // than a hypothetical patch.
+  let phase = 'import';
   try {
     if (!_tb3dModule) {
       _tb3dModule = await import('./tb3d.js');
     }
+    phase = 'enter';
     _tb3dModule.enter(tbState, {
       onDeviceClick: (deviceId) => tbSelectDeviceForInspector(deviceId),
       onAfterEnter: () => {
@@ -15178,16 +15197,72 @@ async function tbOpen3DView() {
     // v4.64.0 Phase 2: if a trace is already running in 2D, sync the 3D
     // HUD + hop strip to it so entering 3D mid-trace is continuous.
     if (_tbUiState?.trace?.active && _tb3dModule.setTraceState) {
+      phase = 'setTraceState';
       _tb3dModule.setTraceState(_tbUiState.trace);
     }
     // v4.66.0 Phase 4: surface Play Tour button if the loaded scenario
     // has a `tour` authored.
-    if (typeof _tb3dUpdateTourButton === 'function') _tb3dUpdateTourButton();
+    if (typeof _tb3dUpdateTourButton === 'function') {
+      phase = 'updateTourButton';
+      _tb3dUpdateTourButton();
+    }
   } catch (err) {
-    console.warn('[tb3d] failed to load 3D module', err);
-    showErrorToast('Could not load 3D View — check network / console.');
+    _tb3dHandleOpenFailure(phase, err, tbState);
     tbClose3DView();
   }
+}
+
+// v4.81.8: lightweight WebGL availability check. Returns true if the
+// browser can construct a WebGL context — false otherwise. Run once and
+// cached so we don't recreate canvases on every 3D entry.
+let _tb3dWebGLChecked = false;
+let _tb3dWebGLOk = false;
+function _tb3dWebGLAvailable() {
+  if (_tb3dWebGLChecked) return _tb3dWebGLOk;
+  _tb3dWebGLChecked = true;
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    _tb3dWebGLOk = !!gl;
+  } catch (_) {
+    _tb3dWebGLOk = false;
+  }
+  return _tb3dWebGLOk;
+}
+
+// v4.81.8: structured failure handler for tbOpen3DView. Surfaces a
+// phase-specific toast + persists the underlying error to the
+// error-log (used by the in-app monitor) so we have evidence next
+// time it happens. Pre-fix the catch block just showed "check
+// console" which left zero diagnostic trail.
+function _tb3dHandleOpenFailure(phase, err, tbState) {
+  const errMsg = (err && err.message) || String(err);
+  const truncated = errMsg.length > 120 ? errMsg.slice(0, 120) + '…' : errMsg;
+  const phaseLabel = {
+    'import': 'Loading 3D module',
+    'enter': 'Initialising 3D scene',
+    'setTraceState': 'Syncing trace state',
+    'updateTourButton': 'Setting up tour button'
+  }[phase] || phase;
+  // Console — full stack for devs
+  console.warn('[tb3d] open failed @ ' + phase, err);
+  // Toast — phase + truncated message
+  showErrorToast('3D View failed (' + phaseLabel + ') — ' + truncated);
+  // Error log — persist via existing logError helper so the in-app
+  // monitor (triple-tap version badge) + any future debugging session
+  // has the diagnostic. Auto-reports to GitHub if user has the monitor
+  // configured.
+  try {
+    if (typeof logError === 'function') {
+      logError('tb3d-open-failure', errMsg, {
+        phase,
+        stack: (err && err.stack) || null,
+        deviceCount: tbState?.devices?.length || 0,
+        cableCount: tbState?.cables?.length || 0,
+        scenario: typeof tbSelectedScenario !== 'undefined' ? tbSelectedScenario : null
+      });
+    }
+  } catch (_) { /* swallow — error logging itself must never throw */ }
 }
 
 function tbClose3DView() {
