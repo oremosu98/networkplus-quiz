@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.14
+// Network+ AI Quiz — app.js  v4.81.15
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.14';
+const APP_VERSION = '4.81.15';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4471,6 +4471,8 @@ window.addEventListener('DOMContentLoaded', () => {
   renderStreakDefender();
   renderDailyChallengeCard();
   renderTodaysFocus();
+  // v4.81.15: stale-topic rotation chips below the weak-spots row
+  if (typeof renderRotationChips === 'function') renderRotationChips();
   renderTodaySection();
   renderMarathonSection();
   // v4.81.1: home-page surfaces that were goSetup-only — render on first
@@ -4672,6 +4674,8 @@ function goSetup() {
   renderStreakDefender();
   renderDailyChallengeCard();
   renderTodaysFocus();
+  // v4.81.15: stale-topic rotation chips below the weak-spots row
+  if (typeof renderRotationChips === 'function') renderRotationChips();
   renderTodaySection();
   renderMarathonSection();
   // v4.53.0: editorial redesign hooks
@@ -8092,7 +8096,12 @@ async function startExam() {
       let rawBatch = null;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          rawBatch = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', EXAM_BATCH_BASE + EXAM_BATCH_BUFFER);
+          // v4.81.15: pass batch index `i` (0..4) as staleSliceIdx so each
+          // of the 5 sequential exam batches sees a different rotating
+          // window of stale topics. Without this all 5 batches would see
+          // the SAME stale-topic top-N and Haiku would cluster picks at
+          // the top, defeating the breadth goal across a 90-Q exam.
+          rawBatch = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', EXAM_BATCH_BASE + EXAM_BATCH_BUFFER, i);
           break;
         } catch(retryErr) {
           if (attempt === MAX_RETRIES) throw retryErr;
@@ -8132,7 +8141,9 @@ async function startExam() {
         const deficit = EXAM_BATCH_BASE - batch.length;
         lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 filling ${deficit} more\u2026`;
         try {
-          const extraRaw = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + EXAM_BATCH_BUFFER);
+          // v4.81.15: retry-to-fill stays on the same staleSliceIdx as
+          // the parent batch so we keep filling the same rotation window.
+          const extraRaw = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + EXAM_BATCH_BUFFER, i);
           let extraValidated = validateQuestions(await aiValidateQuestions(key, extraRaw));
           // v4.81.14: dedupe the retry-to-fill payload against accumulated
           // examQuestions + the current batch's already-deduped contents.
@@ -8231,11 +8242,15 @@ function _normalizeStemForDedup(stem) {
     .slice(0, 200);             // cap to avoid weird unicode tail issues
 }
 
-async function fetchQuestions(key, qTopic, difficulty, n) {
+async function fetchQuestions(key, qTopic, difficulty, n, staleSliceIdx) {
+  // v4.81.15: optional staleSliceIdx threads through to the per-batch
+  // prompt builder for stale-topic rotation. Callers who fire fetchQuestions
+  // multiple times (startExam's 5 sequential calls) pass i=0..4 so each
+  // batch sees a different rotating window of stale topics. Default 0.
   // Single-shot path for small requests — avoids concurrency overhead + keeps
   // cache semantics identical to pre-v4.56.1 behaviour.
   if (n <= QUIZ_BATCH_THRESHOLD) {
-    const result = await _fetchQuestionsBatch(key, qTopic, difficulty, n);
+    const result = await _fetchQuestionsBatch(key, qTopic, difficulty, n, undefined, staleSliceIdx);
     cacheQuestions(qTopic, difficulty, n, result);
     return result;
   }
@@ -8253,11 +8268,18 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
   const pbqBudgets = new Array(numBatches).fill(0);
   for (let i = 0; i < totalPbqBudget; i++) pbqBudgets[i % numBatches]++;
 
+  // v4.81.15: inner-batch rotation. Each parallel sub-batch within this
+  // single fetchQuestions call gets a different sliceIdx so they don't
+  // all see the same top-of-list stale topics. Combined with the outer
+  // staleSliceIdx (from startExam) this gives coverage breadth at both
+  // levels.
+  const outerIdx = (typeof staleSliceIdx === 'number') ? staleSliceIdx : 0;
+
   // Fire all batches concurrently — Haiku handles this well and end-to-end
   // latency ends up close to a single batch's latency (~3-5s) instead of
   // n×batch-latency sequential.
   const settled = await Promise.allSettled(
-    batchSizes.map((size, i) => _fetchQuestionsBatch(key, qTopic, difficulty, size, pbqBudgets[i]))
+    batchSizes.map((size, i) => _fetchQuestionsBatch(key, qTopic, difficulty, size, pbqBudgets[i], outerIdx + i))
   );
 
   // Collect successes; reject the whole call only if EVERY batch failed.
@@ -8306,7 +8328,9 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
 // + parse + retry-without-scenario logic. Exposed via _fetchQuestionsBatch so
 // the outer fetchQuestions can batch large requests concurrently. pbqCountOverride
 // lets the outer coordinator parcel out PBQ budget across batches.
-async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride) {
+// v4.81.15: staleSliceIdx threaded through from fetchQuestions for stale-
+// topic rotation in the prompt-injection layer. See _computeStaleTopics.
+async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride, staleSliceIdx) {
   const topicHints = {
     'Integrating Networked Devices': 'IoT devices, ICS/SCADA systems, OT/IT convergence, smart building tech, embedded systems, segmentation of IoT, industrial control risks.',
     'Network Troubleshooting & Tools': 'Troubleshooting methodology, ping, traceroute/tracert, ipconfig/ifconfig, nslookup, dig, netstat, arp, route, Wireshark/packet capture, cable testers, TDR, loopback testing, common network faults.',
@@ -8396,6 +8420,25 @@ For ordering: correctOrder is an array of indices (0-based) representing the cor
     ? _formatRetentionConceptsForPrompt()
     : '';
 
+  // v4.81.15: stale-topic rotation block — surfaces topics the user
+  // hasn't practised in WEAK_STALENESS_DAYS+ as a soft preference within
+  // the existing MANDATORY DOMAIN DISTRIBUTION. Only fires for MIXED_TOPIC
+  // (single-topic quizzes already focus there; multi-topic mode honours
+  // the user's explicit selection). Defensive — never blocks the fetch
+  // on a stale-topic compute error.
+  let staleBlock = '';
+  if (qTopic === MIXED_TOPIC && (difficulty === 'Mixed' || difficulty === 'Exam Level' || difficulty === 'Foundational' || difficulty === 'Hard / Tricky')) {
+    try {
+      if (typeof _computeStaleTopics === 'function' && typeof loadHistory === 'function') {
+        const hist = loadHistory();
+        if (Array.isArray(hist) && hist.length >= STALE_CHIP_MIN_HISTORY) {
+          const staleTopics = _computeStaleTopics(hist, STALE_PROMPT_TOPIC_COUNT, staleSliceIdx, STALE_PROMPT_SLICE_SIZE);
+          staleBlock = _formatStaleTopicsForPrompt(staleTopics);
+        }
+      }
+    } catch (_) { staleBlock = ''; }
+  }
+
   // v4.56.1: Scenario field instructions isolated so they can be omitted on
   // retry. They were the main prompt bloat added in v4.56.0 and on complex
   // runs (multi-topic + Mixed + 20 questions) they occasionally push Haiku
@@ -8413,7 +8456,7 @@ SCENARIO CONTEXT FIELD (optional, exam-realism):
 
 ${topicStr}${mixedDistributionStr}
 Difficulty: ${diffStr}
-${exemplarBlock}${retentionBlock}
+${exemplarBlock}${retentionBlock}${staleBlock}
 Generate exactly ${n} multiple choice questions. Requirements:
 - 4 options each (or 5 for multi-select): A, B, C, D (E for multi-select)
 - One correct answer only (unless multi-select)
@@ -11045,6 +11088,115 @@ function getTodaysFocusTopics(limit = 2) {
   return computeWeakSpotScores().slice(0, limit).map(r => r.topic);
 }
 
+// ── v4.81.15: Stale-topic surfacing (rotation algorithm) ─────────────
+// Identifies topics the student hasn't practised in WEAK_STALENESS_DAYS+
+// AND surfaces them with a *compound* priority weight: priority =
+// daysSince × (1 + accuracyGap). A topic last seen 21d ago at 50% accuracy
+// outranks one last seen 28d ago at 90% accuracy — the second is more
+// stale by raw days, but the first has more learning value to reclaim.
+// Reuses computeWeakSpotScores for posterior accuracy + decayed staleness;
+// supplements with raw history scan so single-attempt topics (which the
+// weak-spot scorer's low-signal filter excludes) still show up here.
+//
+// Includes never-studied topics — they're infinitely stale by definition.
+// Caller can pass sliceIdx + sliceSize to rotate through the stale set
+// across multiple batches in the same exam (per-batch rotation amplifier).
+//
+// Returns [{ topic, daysSince, posterior, accGap, neverStudied, priority }].
+const STALE_PROMPT_TOPIC_COUNT = 10;        // injected into Haiku prompt
+const STALE_PROMPT_SLICE_SIZE  = 10;        // rotation window
+const STALE_CHIP_TOPIC_COUNT   = 5;         // surfaced in homepage chip row
+const STALE_CHIP_MIN_HISTORY   = 5;         // min history rows before chip row appears
+function _computeStaleTopics(historyRows, n, sliceIdx, sliceSize) {
+  if (typeof TOPIC_DOMAINS === 'undefined') return [];
+  if (typeof n !== 'number' || n <= 0) return [];
+
+  const now = Date.now();
+  const lastSeen = {};
+  const accSignal = {};
+
+  // Pull posterior accuracy + recent last-seen from computeWeakSpotScores
+  // (it has the Bayesian Beta(2,2) prior + recency-decayed accuracy that
+  // we want for the accuracy gap factor).
+  let scored = [];
+  try {
+    if (typeof computeWeakSpotScores === 'function') scored = computeWeakSpotScores();
+  } catch (_) { scored = []; }
+  scored.forEach(r => {
+    if (!r || !r.topic) return;
+    accSignal[r.topic] = r.posterior;
+    if (typeof r.daysSince === 'number' && r.daysSince < 9000) {
+      lastSeen[r.topic] = now - (r.daysSince * 86400000);
+    }
+  });
+
+  // Walk raw history for topics computeWeakSpotScores filtered out (single
+  // attempt under wTotal<1 && wrongsRecent<0.5). Even one attempt is
+  // enough to track last-seen-ness for the staleness signal.
+  const hist = (Array.isArray(historyRows) ? historyRows : [])
+    .filter(e => e && e.topic && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
+  hist.forEach(e => {
+    const ts = new Date(e.date).getTime();
+    if (!isFinite(ts)) return;
+    if (!lastSeen[e.topic] || ts > lastSeen[e.topic]) {
+      lastSeen[e.topic] = ts;
+    }
+  });
+
+  // Score every topic in TOPIC_DOMAINS — including never-touched ones.
+  const rows = [];
+  Object.keys(TOPIC_DOMAINS).forEach(t => {
+    const lastTs = lastSeen[t];
+    const daysSince = (typeof lastTs === 'number' && lastTs > 0)
+      ? Math.max(0, (now - lastTs) / 86400000)
+      : 9999;
+    if (daysSince < WEAK_STALENESS_DAYS) return; // not stale yet — skip
+    const posterior = (typeof accSignal[t] === 'number') ? accSignal[t] : 0.5;
+    const accGap = Math.max(0, WEAK_TARGET_ACC - posterior);
+    // Compound priority: stale AND weak ranks above stale-but-mastered.
+    // accGap is in [0, 0.85]; (1 + accGap) is in [1, 1.85]. A topic at
+    // 50% accuracy (gap 0.35) gets ~1.35× the weight of a same-stale topic
+    // at 85% (gap 0). Untouched topics use 0.5 posterior — neutral midpoint
+    // so they don't dominate over genuinely-weak studied topics.
+    const priority = daysSince * (1 + accGap);
+    rows.push({
+      topic: t,
+      daysSince: Math.round(daysSince),
+      posterior,
+      accGap,
+      neverStudied: !lastTs,
+      priority
+    });
+  });
+  rows.sort((a, b) => b.priority - a.priority);
+
+  // Slice rotation: each call with a different sliceIdx returns an
+  // overlapping but rotated window of n topics. step = floor(size/2)
+  // so consecutive slices overlap by ~50% → coverage continuity stays
+  // intact even when the stale pool is small. No slicing → top n.
+  if (typeof sliceIdx !== 'number' || typeof sliceSize !== 'number' || sliceSize <= 0 || rows.length === 0) {
+    return rows.slice(0, n);
+  }
+  const step = Math.max(1, Math.floor(sliceSize / 2));
+  const start = (sliceIdx * step) % rows.length;
+  const sliced = [];
+  for (let i = 0; i < n && sliced.length < n; i++) {
+    sliced.push(rows[(start + i) % rows.length]);
+  }
+  return sliced;
+}
+
+function _formatStaleTopicsForPrompt(staleTopics) {
+  if (!Array.isArray(staleTopics) || staleTopics.length === 0) return '';
+  const lines = staleTopics.map(s => {
+    const accNote = s.neverStudied
+      ? 'never studied'
+      : `last seen ${s.daysSince}d ago, ~${Math.round(s.posterior * 100)}% accuracy`;
+    return `- "${s.topic}" (${accNote})`;
+  }).join('\n');
+  return `\n\nROTATION PRIORITY: the student hasn't practised these ${staleTopics.length} topics in a while AND/OR has historically struggled with them. Within the MANDATORY DOMAIN DISTRIBUTION above, prefer these topics whenever a domain slot can plausibly cover one. Do NOT force them into unrelated domains, and do NOT skew the domain percentages — stay within the blueprint weights, but bias topic selection within each domain toward this list when reasonable:\n${lines}`;
+}
+
 // ── v4.43.1: Weak-spots → Subnet Trainer bridge ───────────────────────
 // The main-page weak-spots chip row historically only offered "drill this
 // topic in a quiz." For subnetting / IP-math topics though, the Subnet
@@ -11150,6 +11302,48 @@ function renderTodaysFocus() {
       el.addEventListener('transitionend', cleanup);
     });
   }
+}
+// v4.81.15: "Due for rotation" homepage chip row — surfaces stale topics
+// as a soft hint so the user understands WHY their next mixed quiz / exam
+// will lean toward these. Same click-to-drill affordance as Weak Spots.
+// Hidden when:
+//   - history is too thin (< STALE_CHIP_MIN_HISTORY rows) so new users
+//     don't get spammed with "all 50 topics are stale"
+//   - no topic has crossed the WEAK_STALENESS_DAYS threshold
+function renderRotationChips() {
+  const row = document.getElementById('rotation-row');
+  if (!row) return;
+  let topics = [];
+  try {
+    if (typeof loadHistory === 'function') {
+      const hist = loadHistory();
+      if (Array.isArray(hist) && hist.length >= STALE_CHIP_MIN_HISTORY) {
+        topics = (typeof _computeStaleTopics === 'function')
+          ? _computeStaleTopics(hist, STALE_CHIP_TOPIC_COUNT)
+          : [];
+      }
+    }
+  } catch (_) { topics = []; }
+
+  if (!topics || topics.length === 0) {
+    row.classList.add('is-hidden');
+    row.innerHTML = '';
+    return;
+  }
+
+  row.innerHTML = `
+    <span class="rot-label" title="Topics not seen in ${WEAK_STALENESS_DAYS}+ days, ranked by staleness × accuracy gap">🕒 Due for rotation:</span>
+    <div class="rot-chips">
+      ${topics.map(s => {
+        const accNote = s.neverStudied
+          ? 'never studied'
+          : `${s.daysSince}d stale${typeof s.posterior === 'number' ? ' · ~' + Math.round(s.posterior * 100) + '% acc' : ''}`;
+        const safeTopic = s.topic.replace(/'/g, "\\'");
+        return `<button type="button" class="rot-chip" data-topic="${escHtml(s.topic)}" title="${escHtml(accNote)}" onclick="focusTopic('${safeTopic}')">${escHtml(s.topic)} <span class="rot-chip-meta">${escHtml(accNote)}</span></button>`;
+      }).join('')}
+    </div>
+  `;
+  row.classList.remove('is-hidden');
 }
 function focusTopic(t) {
   topic = t;
@@ -11280,7 +11474,10 @@ async function startBulkQuiz(count) {
       let batch = null;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          batch = await fetchQuestions(key, MIXED_TOPIC, 'Exam Level', thisBatch);
+          // v4.81.15: pass batch index as staleSliceIdx so each marathon
+          // batch sees a different rotating window of stale topics \u2014
+          // same rotation amplifier as the exam simulator's 5 batches.
+          batch = await fetchQuestions(key, MIXED_TOPIC, 'Exam Level', thisBatch, i);
           break;
         } catch(retryErr) {
           if (attempt === MAX_RETRIES) throw retryErr;

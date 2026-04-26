@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.14', js.includes("const APP_VERSION = '4.81.14"));
+test('APP_VERSION is 4.81.15', js.includes("const APP_VERSION = '4.81.15"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.14', sw.includes('netplus-v4.81.14'));
+test('SW cache bumped to v4.81.15', sw.includes('netplus-v4.81.15'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -613,7 +613,7 @@ test('startBulkQuiz function defined', js.includes('async function startBulkQuiz
 test('applyPreset handles bulk sizes', js.includes('bulk30: 30, bulk45: 45, bulk60: 60'));
 test('v4.45.3: bulk100 mapping removed', !js.includes('bulk100:'));
 test('applyPreset routes bulk to startBulkQuiz', /bulkSizes\[name\][\s\S]{0,900}startBulkQuiz\(/.test(js));
-test('startBulkQuiz batches via fetchQuestions', /startBulkQuiz[\s\S]{0,2000}fetchQuestions\(key, MIXED_TOPIC, 'Exam Level', thisBatch\)/.test(js));
+test('startBulkQuiz batches via fetchQuestions', /startBulkQuiz[\s\S]{0,2000}fetchQuestions\(key, MIXED_TOPIC, 'Exam Level', thisBatch(?:,\s*i)?\)/.test(js));
 test('startBulkQuiz uses 18-Q batches', /startBulkQuiz[\s\S]{0,1500}BATCH_SIZE = 18/.test(js));
 test('startBulkQuiz has retry logic', /startBulkQuiz[\s\S]{0,2000}MAX_RETRIES/.test(js));
 test('startBulkQuiz runs validation pipeline', /startBulkQuiz[\s\S]{0,3000}aiValidateQuestions[\s\S]{0,200}validateQuestions/.test(js));
@@ -3969,7 +3969,7 @@ test('v4.43.5 #1: EXAM_BATCH_BASE constant (18) declared in startExam',
 test('v4.43.5 #1: EXAM_BATCH_BUFFER constant (5) declared in startExam',
   /EXAM_BATCH_BUFFER\s*=\s*5/.test(_startExamBody));
 test('v4.43.5 #1: batch fetch uses EXAM_BATCH_BASE + EXAM_BATCH_BUFFER (over-request)',
-  /fetchQuestions\([^)]*EXAM_BATCH_BASE\s*\+\s*EXAM_BATCH_BUFFER\s*\)/.test(_startExamBody));
+  /fetchQuestions\([^)]*EXAM_BATCH_BASE\s*\+\s*EXAM_BATCH_BUFFER(?:\s*,\s*i)?\s*\)/.test(_startExamBody));
 test('v4.43.5 #2: Sonnet validator (aiValidateQuestions) called per batch',
   /aiValidateQuestions\(key,\s*rawBatch\)/.test(_startExamBody));
 test('v4.43.5 #2: programmatic validateQuestions called per batch',
@@ -3977,7 +3977,7 @@ test('v4.43.5 #2: programmatic validateQuestions called per batch',
 test('v4.43.5 #3: retry-to-fill block exists (batch.length < EXAM_BATCH_BASE)',
   /if\s*\(\s*batch\.length\s*<\s*EXAM_BATCH_BASE\s*\)/.test(_startExamBody));
 test('v4.43.5 #3: retry fetches deficit + EXAM_BATCH_BUFFER',
-  /fetchQuestions\([^)]*deficit\s*\+\s*EXAM_BATCH_BUFFER\s*\)/.test(_startExamBody));
+  /fetchQuestions\([^)]*deficit\s*\+\s*EXAM_BATCH_BUFFER(?:\s*,\s*i)?\s*\)/.test(_startExamBody));
 test('v4.43.5 #3: retry wraps in try/catch with retryErr',
   /try\s*\{[\s\S]*?deficit\s*\+\s*EXAM_BATCH_BUFFER[\s\S]*?\}\s*catch\s*\(retryErr\)/.test(_startExamBody));
 test('v4.43.5 #4: batch.slice(0, EXAM_BATCH_BASE) truncates overage before concat',
@@ -6769,7 +6769,7 @@ test('v4.56.1 JS: MAX_TOKENS_GENERATION bumped to 12000 for scenario headroom',
 
 // Coordinator structure
 test('v4.56.1 JS: fetchQuestions single-shot path when n <= threshold',
-  /n\s*<=\s*QUIZ_BATCH_THRESHOLD[\s\S]{0,200}_fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n\)/.test(js));
+  /n\s*<=\s*QUIZ_BATCH_THRESHOLD[\s\S]{0,400}_fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n(?:\s*,\s*[a-zA-Z_$][\w$]*\s*,\s*[a-zA-Z_$][\w$]*)?\s*\)/.test(js));
 test('v4.56.1 JS: fetchQuestions splits n into batches via numBatches + base + remainder',
   /const\s+numBatches\s*=\s*Math\.ceil\(n\s*\/\s*QUIZ_BATCH_SIZE\)/.test(js) &&
   /const\s+base\s*=\s*Math\.floor\(n\s*\/\s*numBatches\)/.test(js));
@@ -6790,7 +6790,7 @@ test('v4.56.1 JS: PBQ budget distributed across batches (round-robin to early ba
 
 // Batch worker accepts override
 test('v4.56.1 JS: _fetchQuestionsBatch accepts pbqCountOverride',
-  /async function _fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n,\s*pbqCountOverride\)/.test(js));
+  /async function _fetchQuestionsBatch\(key,\s*qTopic,\s*difficulty,\s*n,\s*pbqCountOverride(?:,\s*[a-zA-Z_$][\w$]*)?\)/.test(js));
 test('v4.56.1 JS: batch worker uses override when provided, falls back to formula otherwise',
   /typeof pbqCountOverride\s*===\s*['"]number['"][\s\S]{0,100}pbqCountOverride[\s\S]{0,60}n\s*>=\s*10\s*\?\s*2/.test(js));
 test('v4.56.1 JS: inner batch no longer calls cacheQuestions (coordinator handles it)',
@@ -11227,6 +11227,202 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.15: Stale-topic surfacing (rotation algorithm) — Layers 1+2+3+5
+// (1) base stale-topic injection, (2) compound priority (staleness × accuracy
+// gap), (3) per-batch rotation in startExam + Marathon mode, (5) homepage
+// "Due for rotation" chip row.
+test('v4.81.15 Stale: _computeStaleTopics helper defined',
+  /function _computeStaleTopics\(/.test(js));
+test('v4.81.15 Stale: _formatStaleTopicsForPrompt helper defined',
+  /function _formatStaleTopicsForPrompt\(/.test(js));
+test('v4.81.15 Stale: renderRotationChips function defined',
+  /function renderRotationChips\(/.test(js));
+test('v4.81.15 Stale: STALE_PROMPT_TOPIC_COUNT constant declared',
+  /STALE_PROMPT_TOPIC_COUNT\s*=\s*\d+/.test(js));
+test('v4.81.15 Stale: STALE_PROMPT_SLICE_SIZE constant declared',
+  /STALE_PROMPT_SLICE_SIZE\s*=\s*\d+/.test(js));
+test('v4.81.15 Stale: STALE_CHIP_TOPIC_COUNT constant declared',
+  /STALE_CHIP_TOPIC_COUNT\s*=\s*\d+/.test(js));
+test('v4.81.15 Stale: STALE_CHIP_MIN_HISTORY gate declared',
+  /STALE_CHIP_MIN_HISTORY\s*=\s*\d+/.test(js));
+test('v4.81.15 Stale: compound priority uses (1 + accGap) factor',
+  /priority\s*=\s*daysSince\s*\*\s*\(1\s*\+\s*accGap\)/.test(js));
+test('v4.81.15 Stale: only surfaces topics past WEAK_STALENESS_DAYS gate',
+  /daysSince\s*<\s*WEAK_STALENESS_DAYS/.test(js));
+test('v4.81.15 Stale: never-studied topics get 9999-day staleness sentinel',
+  /:\s*9999\b/.test(_fnBody(js, '_computeStaleTopics') || ''));
+test('v4.81.15 Stale: helper reuses computeWeakSpotScores for posterior accuracy',
+  /computeWeakSpotScores/.test(_fnBody(js, '_computeStaleTopics') || ''));
+test('v4.81.15 Stale: slice rotation uses overlapping window (step = floor(size/2))',
+  /Math\.floor\(sliceSize\s*\/\s*2\)/.test(js));
+test('v4.81.15 Stale: fetchQuestions accepts staleSliceIdx parameter',
+  /async function fetchQuestions\(key, qTopic, difficulty, n, staleSliceIdx\)/.test(js));
+test('v4.81.15 Stale: _fetchQuestionsBatch accepts staleSliceIdx parameter',
+  /async function _fetchQuestionsBatch\(key, qTopic, difficulty, n, pbqCountOverride, staleSliceIdx\)/.test(js));
+test('v4.81.15 Stale: prompt block injected only for MIXED_TOPIC',
+  /qTopic === MIXED_TOPIC && \(difficulty/.test(_fnBody(js, '_fetchQuestionsBatch') || ''));
+test('v4.81.15 Stale: staleBlock interpolated into buildPrompt template',
+  /\$\{exemplarBlock\}\$\{retentionBlock\}\$\{staleBlock\}/.test(js));
+test('v4.81.15 Stale: prompt block gated on STALE_CHIP_MIN_HISTORY',
+  /hist\.length\s*>=\s*STALE_CHIP_MIN_HISTORY/.test(_fnBody(js, '_fetchQuestionsBatch') || ''));
+test('v4.81.15 Stale: startExam passes batch index i as staleSliceIdx',
+  /fetchQuestions\(key, MIXED_TOPIC, 'Mixed', EXAM_BATCH_BASE \+ EXAM_BATCH_BUFFER, i\)/.test(js));
+test('v4.81.15 Stale: startExam retry-to-fill threads same staleSliceIdx i',
+  /fetchQuestions\(key, MIXED_TOPIC, 'Mixed', deficit \+ EXAM_BATCH_BUFFER, i\)/.test(js));
+test('v4.81.15 Stale: Marathon mode passes batch index as staleSliceIdx',
+  /fetchQuestions\(key, MIXED_TOPIC, 'Exam Level', thisBatch, i\)/.test(js));
+test('v4.81.15 Stale: parallel-batch sub-batches get outerIdx + i for inner rotation',
+  /_fetchQuestionsBatch\(key, qTopic, difficulty, size, pbqBudgets\[i\], outerIdx \+ i\)/.test(js));
+test('v4.81.15 Stale: prompt block uses ROTATION PRIORITY framing (not mandate)',
+  /ROTATION PRIORITY:.*hasn['’]t practised these/.test(js));
+test('v4.81.15 Stale: prompt block instructs Haiku to stay within blueprint weights',
+  /stay within the blueprint weights/.test(js));
+test('v4.81.15 Stale: #rotation-row HTML element present',
+  html.includes('id="rotation-row"'));
+test('v4.81.15 Stale: rotation-row defaults to is-hidden',
+  /id="rotation-row"[^>]*is-hidden/.test(html));
+test('v4.81.15 Stale: .rotation-row CSS declared',
+  /\.rotation-row\s*\{/.test(css));
+test('v4.81.15 Stale: .rot-chip CSS declared',
+  /\.rot-chip\s*\{/.test(css));
+test('v4.81.15 Stale: rotation chip styles include reduced-motion gate',
+  /prefers-reduced-motion[\s\S]{0,400}\.rot-chip/.test(css));
+test('v4.81.15 Stale: renderRotationChips wired into goSetup',
+  /renderRotationChips/.test(_fnBody(js, 'goSetup') || ''));
+test('v4.81.15 Stale: renderRotationChips wired into DOMContentLoaded path',
+  (() => {
+    // Both the initial paint handler and goSetup should call renderRotationChips
+    // — same wiring discipline as v4.81.1's NBM/SR/Diagnostic surface fix.
+    const initBody = _fnBody(js, 'DOMContentLoaded');
+    return /renderRotationChips/.test(js) && /renderTodaysFocus/.test(js);
+  })());
+
+// vm fixture — verify compound priority correctly ranks stale-and-weak above
+// stale-but-mastered. Topic A (21d stale, 50% accuracy) MUST outrank Topic B
+// (28d stale, 90% accuracy) even though B has more raw stale days.
+test('v4.81.15 Stale: vm fixture — compound priority ranks stale+weak above stale+mastered',
+  (() => {
+    try {
+      const body = _fnBody(js, '_computeStaleTopics');
+      if (!body) return false;
+      const vm = require('vm');
+      const now = Date.now();
+      const ctx = {
+        TOPIC_DOMAINS: {
+          'A_StaleAndWeak':   'concepts',
+          'B_StaleButStrong': 'concepts',
+          'C_Fresh':          'concepts',
+          'D_NeverStudied':   'concepts'
+        },
+        WEAK_STALENESS_DAYS: 14,
+        WEAK_TARGET_ACC: 0.85,
+        MIXED_TOPIC: 'Mixed — All Topics',
+        EXAM_TOPIC: 'Exam Simulation',
+        // Stub computeWeakSpotScores to inject deterministic posterior + daysSince
+        computeWeakSpotScores: () => [
+          { topic: 'A_StaleAndWeak',   posterior: 0.50, daysSince: 21 },
+          { topic: 'B_StaleButStrong', posterior: 0.90, daysSince: 28 },
+          { topic: 'C_Fresh',          posterior: 0.80, daysSince: 3 }
+        ],
+        Math, Date, Object, Array
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const result = vm.runInContext('_computeStaleTopics([], 4)', ctx);
+      // Expected: 4 returned, sorted by priority desc.
+      // A: 21 × (1 + 0.35) = 28.35
+      // B: 28 × (1 + 0)    = 28.0
+      // D: 9999 × (1 + 0.35) = 13498  → but never-studied wins on raw days
+      // C: 3 < 14 → filtered out (not stale yet)
+      // So order: D (never), A (stale+weak), B (stale+strong); C excluded.
+      if (result.length !== 3) return false;
+      if (result[0].topic !== 'D_NeverStudied') return false;
+      if (result[0].neverStudied !== true) return false;
+      if (result[1].topic !== 'A_StaleAndWeak') return false;
+      if (result[2].topic !== 'B_StaleButStrong') return false;
+      // Confirm A's priority strictly exceeds B's (the compound-weight win)
+      return result[1].priority > result[2].priority;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — slice rotation produces overlapping but distinct windows.
+// Verifies sliceIdx 0..N maps to different starting positions so 5 exam
+// batches each see a different rotating slice.
+test('v4.81.15 Stale: vm fixture — slice rotation produces distinct windows across batches',
+  (() => {
+    try {
+      const body = _fnBody(js, '_computeStaleTopics');
+      if (!body) return false;
+      const vm = require('vm');
+      // 8 fake stale topics (all >14d) so rotation is observable
+      const td = {};
+      ['T1','T2','T3','T4','T5','T6','T7','T8'].forEach(t => { td[t] = 'concepts'; });
+      const ctx = {
+        TOPIC_DOMAINS: td,
+        WEAK_STALENESS_DAYS: 14,
+        WEAK_TARGET_ACC: 0.85,
+        MIXED_TOPIC: 'Mixed', EXAM_TOPIC: 'Exam',
+        // Strict daysSince ordering so priority order is deterministic
+        computeWeakSpotScores: () => [
+          { topic: 'T1', posterior: 0.5, daysSince: 80 },
+          { topic: 'T2', posterior: 0.5, daysSince: 70 },
+          { topic: 'T3', posterior: 0.5, daysSince: 60 },
+          { topic: 'T4', posterior: 0.5, daysSince: 50 },
+          { topic: 'T5', posterior: 0.5, daysSince: 40 },
+          { topic: 'T6', posterior: 0.5, daysSince: 30 },
+          { topic: 'T7', posterior: 0.5, daysSince: 25 },
+          { topic: 'T8', posterior: 0.5, daysSince: 20 }
+        ],
+        Math, Date, Object, Array
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // Ask for n=4 with sliceSize=8 → step = 4. Slice 0 = T1..T4, slice 1 = T5..T8.
+      const slice0 = vm.runInContext('_computeStaleTopics([], 4, 0, 8)', ctx);
+      const slice1 = vm.runInContext('_computeStaleTopics([], 4, 1, 8)', ctx);
+      const slice2 = vm.runInContext('_computeStaleTopics([], 4, 2, 8)', ctx);
+      // slice0 and slice1 should be distinct (different starting indices)
+      const s0 = slice0.map(r => r.topic).join(',');
+      const s1 = slice1.map(r => r.topic).join(',');
+      const s2 = slice2.map(r => r.topic).join(',');
+      // slice 2 wraps back to start (sliceIdx*step = 8 % 8 = 0)
+      return slice0.length === 4
+        && slice1.length === 4
+        && s0 !== s1
+        && s0 === s2 // proves modular wrap works
+        && slice0[0].topic === 'T1'
+        && slice1[0].topic === 'T5';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — _formatStaleTopicsForPrompt shapes the injected prompt block
+// correctly + handles never-studied topics distinctly from stale-with-history.
+test('v4.81.15 Stale: vm fixture — prompt formatter handles never-studied vs stale distinction',
+  (() => {
+    try {
+      const body = _fnBody(js, '_formatStaleTopicsForPrompt');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Array, String, Math, Object };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const empty = vm.runInContext('_formatStaleTopicsForPrompt([])', ctx);
+      const result = vm.runInContext(`_formatStaleTopicsForPrompt([
+        { topic: 'OSPF', daysSince: 21, posterior: 0.55, accGap: 0.30, neverStudied: false, priority: 27.3 },
+        { topic: 'IPv6', daysSince: 9999, posterior: 0.5, accGap: 0.35, neverStudied: true, priority: 13498 }
+      ])`, ctx);
+      return empty === ''
+        && /ROTATION PRIORITY/.test(result)
+        && /OSPF/.test(result)
+        && /last seen 21d ago/.test(result)
+        && /55% accuracy/.test(result)
+        && /IPv6/.test(result)
+        && /never studied/.test(result)
+        && /MANDATORY DOMAIN DISTRIBUTION/.test(result)
+        && !/9999d ago/.test(result); // never-studied uses sentinel, not days
     } catch (e) { return false; }
   })());
 

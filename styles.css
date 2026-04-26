@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.14
+   Network+ AI Quiz — styles.css  v4.81.15
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1439,6 +1439,23 @@ input::placeholder { color: var(--text-dim); }
 .tf-chip { background: rgba(var(--accent-rgb), 0.08); border: 1.5px solid rgba(var(--accent-rgb), 0.35); color: var(--text); font-weight: 600; font-size: 13px; padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s; font-family: inherit; }
 .tf-chip:hover { background: rgba(var(--accent-rgb), 0.18); border-color: var(--accent); transform: translateY(-1px); }
 .tf-chip:active { transform: scale(.97); }
+
+/* v4.81.15: Due for rotation chip row — softer styling than weak-spots
+   so users read it as "FYI" rather than "URGENT." Same surface card +
+   chip layout for consistency, but amber-tinted instead of accent-tinted. */
+.rotation-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
+.rot-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
+.rot-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.rot-chip { display: inline-flex; align-items: baseline; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1.25px solid rgba(245, 158, 11, 0.32); color: var(--text); font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: 9px; cursor: pointer; transition: all .15s; font-family: inherit; }
+.rot-chip:hover { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.55); transform: translateY(-1px); }
+.rot-chip:active { transform: scale(.97); }
+.rot-chip-meta { font-size: 10.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
+.today-section .rotation-row { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .rot-chip { transition: background-color .2s, border-color .2s !important; }
+  .rot-chip:hover { transform: none !important; }
+  .rot-chip:active { transform: none !important; }
+}
 
 /* ── Today section (v4.32) ── */
 .today-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
