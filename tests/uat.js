@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.18', js.includes("const APP_VERSION = '4.81.18"));
+test('APP_VERSION is 4.81.19', js.includes("const APP_VERSION = '4.81.19"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.18', sw.includes('netplus-v4.81.18'));
+test('SW cache bumped to v4.81.19', sw.includes('netplus-v4.81.19'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7215,7 +7215,10 @@ test('v4.57.4 JS: _filterHistoryByTopic helper defined',
 test('v4.57.4 JS: helper handles exact-match case (post-v4.57.1 entries)',
   /if\s*\(e\.topic === topic\)\s*return true/.test(js));
 test('v4.57.4 JS: helper handles Multi: sentinel case (pre-v4.57.1 entries)',
-  /e\.topic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,200}\.split\(['"],['"]\)[\s\S]{0,100}\.includes\(topic\)/.test(js));
+  // v4.81.19: window widened (200→500, 100→300) because comma-safe parser
+  // wraps the legacy split(',') in a ternary fallback. The .includes(topic)
+  // check is now on a `list.includes(...)` call instead of inline.
+  /e\.topic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,500}\.split\(['"],['"]\)[\s\S]{0,300}\.includes\(topic\)/.test(js));
 
 // Apply-site checks — all 4 exact-match sites should now use the helper
 test('v4.57.4 JS: _scoreTopicNeed (Study Plan) uses _filterHistoryByTopic',
@@ -8384,7 +8387,10 @@ test('v4.58.0 JS: _formatExemplarsForPrompt helper defined',
 test('v4.58.0 JS: helper caps max at 5 (no prompt-bloat runaway)',
   /max\s*=\s*Math\.max\(0,\s*Math\.min\(5,\s*max \|\| 3\)\)/.test(js));
 test('v4.58.0 JS: helper strips "Multi: " sentinel before matching',
-  /qTopic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,100}\.slice\(7\)\.split\(['"],['"]\)/.test(js));
+  // v4.81.19: window widened 100 → 250 chars because the comma-safe parser
+  // wraps the legacy slice(7).split(',') in a ternary fallback, pushing
+  // the literal further from the startsWith check.
+  /qTopic\.startsWith\(['"]Multi: ['"]\)[\s\S]{0,250}\.slice\(7\)\.split\(['"],['"]\)/.test(js));
 test('v4.58.0 JS: helper uses tiered pool (exact topic \u2192 same domain \u2192 others)',
   /const exact = QUESTION_EXEMPLARS\.filter[\s\S]{0,200}const sameDomain[\s\S]{0,400}const others[\s\S]{0,200}const pool = exact\.concat\(sameDomain\)\.concat\(others\)/.test(js));
 
@@ -11246,6 +11252,124 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.19: comma-safe Multi: topic sentinel parser. Pre-existing bug
+// surfaced by v4.81.17 Domain Drill — 3 topic names contain commas
+// ("NTP, ICMP & Traffic Types", "SDN, NFV & Automation", "Firewalls,
+// DMZ & Security Zones") and 4 split sites all used naive .split(',')
+// which mis-segmented those topics. New helper does greedy longest-match
+// against TOPIC_DOMAINS catalog (sorted by length desc) so multi-word
+// names with commas are preserved verbatim.
+test('v4.81.19 MultiParse: _parseMultiTopicSentinel helper defined',
+  /function _parseMultiTopicSentinel\(/.test(js));
+test('v4.81.19 MultiParse: helper sorts catalog by length descending for greedy match',
+  (() => {
+    const body = _fnBody(js, '_parseMultiTopicSentinel') || '';
+    return /\.sort\(\(a,\s*b\)\s*=>\s*b\.length\s*-\s*a\.length\)/.test(body);
+  })());
+test('v4.81.19 MultiParse: helper accepts both full sentinel and bare body',
+  (() => {
+    const body = _fnBody(js, '_parseMultiTopicSentinel') || '';
+    return /startsWith\(['"]Multi: ['"]\)/.test(body) && /\.slice\(7\)/.test(body);
+  })());
+test('v4.81.19 MultiParse: helper has fallback split for unknown TOPIC_DOMAINS',
+  (() => {
+    const body = _fnBody(js, '_parseMultiTopicSentinel') || '';
+    return /typeof TOPIC_DOMAINS\s*===\s*['"]undefined['"]/.test(body)
+      || /!TOPIC_DOMAINS/.test(body);
+  })());
+test('v4.81.19 MultiParse: _pickExemplarsForTopic uses _parseMultiTopicSentinel',
+  /_parseMultiTopicSentinel/.test(_fnBody(js, '_pickExemplarsForTopic') || ''));
+test('v4.81.19 MultiParse: _filterHistoryByTopic uses _parseMultiTopicSentinel',
+  /_parseMultiTopicSentinel/.test(_fnBody(js, '_filterHistoryByTopic') || ''));
+test('v4.81.19 MultiParse: fetchQuestions Multi: parse uses _parseMultiTopicSentinel',
+  /_parseMultiTopicSentinel/.test(_fnBody(js, '_fetchQuestionsBatch') || ''));
+test('v4.81.19 MultiParse: startQuiz _multiCount uses _parseMultiTopicSentinel',
+  /_parseMultiTopicSentinel/.test(_fnBody(js, 'startQuiz') || ''));
+
+// vm fixture #1 — comma-containing topic names parse correctly.
+test('v4.81.19 MultiParse: vm fixture — comma-containing topics parsed verbatim',
+  (() => {
+    try {
+      const body = _fnBody(js, '_parseMultiTopicSentinel');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        TOPIC_DOMAINS: {
+          'IPv6': 'concepts',
+          'BGP': 'implementation',
+          'NTP, ICMP & Traffic Types': 'concepts',
+          'SDN, NFV & Automation': 'implementation',
+          'Firewalls, DMZ & Security Zones': 'security'
+        },
+        Array, Object, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // Worst-case: all 3 comma-containing topics in one Multi: sentinel
+      // alongside non-comma topics
+      const parsed = vm.runInContext(
+        '_parseMultiTopicSentinel("Multi: IPv6, NTP, ICMP & Traffic Types, BGP, SDN, NFV & Automation, Firewalls, DMZ & Security Zones")',
+        ctx
+      );
+      return parsed.length === 5
+        && parsed[0] === 'IPv6'
+        && parsed[1] === 'NTP, ICMP & Traffic Types'
+        && parsed[2] === 'BGP'
+        && parsed[3] === 'SDN, NFV & Automation'
+        && parsed[4] === 'Firewalls, DMZ & Security Zones';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — naive parser would have failed; confirm regression.
+test('v4.81.19 MultiParse: vm fixture — naive split(",") would mis-segment but new parser does not',
+  (() => {
+    try {
+      const body = _fnBody(js, '_parseMultiTopicSentinel');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        TOPIC_DOMAINS: { 'NTP, ICMP & Traffic Types': 'concepts', 'IPv6': 'concepts' },
+        Array, Object, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const sentinel = 'Multi: NTP, ICMP & Traffic Types, IPv6';
+      // Naive baseline: split(',') on body "NTP, ICMP & Traffic Types, IPv6"
+      // produces 3 segments (over-segmented — the comma-containing topic is
+      // chopped in half). New parser correctly returns 2 segments.
+      const naive = sentinel.slice(7).split(',').map(s => s.trim());
+      const parsed = vm.runInContext('_parseMultiTopicSentinel(' + JSON.stringify(sentinel) + ')', ctx);
+      return naive.length === 3        // proves the bug exists in naive split
+        && naive[0] === 'NTP'           // proves the comma-topic gets chopped
+        && parsed.length === 2          // new parser segments correctly
+        && parsed[0] === 'NTP, ICMP & Traffic Types'
+        && parsed[1] === 'IPv6';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 — accepts both full sentinel ("Multi: A, B") and body alone ("A, B").
+test('v4.81.19 MultiParse: vm fixture — accepts both full sentinel and bare body',
+  (() => {
+    try {
+      const body = _fnBody(js, '_parseMultiTopicSentinel');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { TOPIC_DOMAINS: { 'IPv6': 'concepts', 'BGP': 'implementation' }, Array, Object, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const fromSentinel = vm.runInContext('_parseMultiTopicSentinel("Multi: IPv6, BGP")', ctx);
+      const fromBody     = vm.runInContext('_parseMultiTopicSentinel("IPv6, BGP")', ctx);
+      const empty        = vm.runInContext('_parseMultiTopicSentinel("")', ctx);
+      const nullish      = vm.runInContext('_parseMultiTopicSentinel(null)', ctx);
+      return fromSentinel.length === 2
+        && fromBody.length === 2
+        && fromSentinel[0] === fromBody[0]
+        && fromSentinel[1] === fromBody[1]
+        && empty.length === 0
+        && nullish.length === 0;
     } catch (e) { return false; }
   })());
 

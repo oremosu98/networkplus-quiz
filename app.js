@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.18
+// Network+ AI Quiz — app.js  v4.81.19
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.18';
+const APP_VERSION = '4.81.19';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -3906,8 +3906,10 @@ function _pickExemplarsForTopic(qTopic, max) {
 
   // Strip the "Multi: " prefix if present — pick exemplars for the first named
   // topic rather than the sentinel string.
+  // v4.81.19: comma-safe parsing — first topic could be e.g.
+  // "NTP, ICMP & Traffic Types" which a naive split(',')[0] would chop in half.
   const primary = qTopic.startsWith('Multi: ')
-    ? qTopic.slice(7).split(',')[0].trim()
+    ? (typeof _parseMultiTopicSentinel === 'function' ? (_parseMultiTopicSentinel(qTopic)[0] || qTopic.slice(7).split(',')[0].trim()) : qTopic.slice(7).split(',')[0].trim())
     : qTopic;
 
   const domain = (typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS[primary]) || null;
@@ -5293,7 +5295,15 @@ function _filterHistoryByTopic(history, topic) {
     if (!e || typeof e.topic !== 'string') return false;
     if (e.topic === topic) return true;
     if (e.topic.startsWith('Multi: ')) {
-      return e.topic.slice(7).split(',').map(s => s.trim()).includes(topic);
+      // v4.81.19: comma-safe — naive comma-splitting would mis-segment
+      // topics like "NTP, ICMP & Traffic Types" so .includes(topic)
+      // would never match. Helper does greedy longest-match against
+      // TOPIC_DOMAINS catalog so multi-word topic names with commas
+      // are preserved verbatim.
+      const list = (typeof _parseMultiTopicSentinel === 'function')
+        ? _parseMultiTopicSentinel(e.topic)
+        : e.topic.slice(7).split(',').map(s => s.trim());
+      return list.includes(topic);
     }
     return false;
   });
@@ -7907,7 +7917,13 @@ async function startQuiz() {
 
   document.getElementById('load-progress').classList.add('is-hidden');
   showPage('loading');
-  const _multiCount = topic.startsWith('Multi: ') ? topic.slice(7).split(',').length : 0;
+  // v4.81.19: comma-safe count — naive split(',') over-counts when any
+  // topic name contains commas (e.g. "NTP, ICMP & Traffic Types").
+  const _multiCount = topic.startsWith('Multi: ')
+    ? (typeof _parseMultiTopicSentinel === 'function'
+        ? _parseMultiTopicSentinel(topic).length
+        : topic.slice(7).split(',').length)
+    : 0;
   document.getElementById('loading-msg').textContent = topic.includes('Smart')
     ? '\ud83e\udde0 Smart pick: ' + activeQuizTopic + '\u2026'
     : _multiCount >= 2
@@ -8368,7 +8384,14 @@ async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride
   const isMulti = typeof qTopic === 'string' && qTopic.startsWith('Multi: ');
   let multiTopicList = [];
   if (isMulti) {
-    multiTopicList = qTopic.slice(7).split(',').map(s => s.trim()).filter(Boolean);
+    // v4.81.19: comma-safe parse — preserves topic names like
+    // "NTP, ICMP & Traffic Types" verbatim instead of mis-splitting them.
+    // Critical for the prompt to Haiku — a mis-split list would tell Haiku
+    // to write questions tagged with "NTP" + "ICMP & Traffic Types" instead
+    // of the canonical "NTP, ICMP & Traffic Types" topic.
+    multiTopicList = (typeof _parseMultiTopicSentinel === 'function')
+      ? _parseMultiTopicSentinel(qTopic)
+      : qTopic.slice(7).split(',').map(s => s.trim()).filter(Boolean);
     const per = Math.max(1, Math.floor(n / multiTopicList.length));
     const remainder = n - (per * multiTopicList.length);
     mixedDistributionStr = `\n\nMANDATORY MULTI-TOPIC DISTRIBUTION: Of the ${n} questions, generate ${per} question${per === 1 ? '' : 's'} per topic from this list of ${multiTopicList.length} topics:\n${multiTopicList.map((t, i) => `- ${t}${topicHints[t] ? ' \u2014 ' + topicHints[t] : ''}${i < remainder ? ' (generate 1 EXTRA here)' : ''}`).join('\n')}\n\nDo not stray outside these ${multiTopicList.length} topics. Each question must explicitly focus on ONE of them, and the .topic field of every returned question must match one of these exact strings.`;
@@ -10194,6 +10217,57 @@ const TOPIC_DOMAINS = {
   'Connection Issues':                 'troubleshooting', // v4.42.3: split — blueprint 5.5 (tool/protocol selection for connection troubleshooting)
   'CompTIA Troubleshooting Methodology': 'troubleshooting'
 };
+
+// v4.81.19: comma-safe Multi: topic sentinel parser.
+// 3 topic names contain literal commas:
+//   - 'NTP, ICMP & Traffic Types'      (concepts)
+//   - 'SDN, NFV & Automation'          (implementation)
+//   - 'Firewalls, DMZ & Security Zones' (security)
+// A naive `.split(',')` on a Multi: sentinel like
+//   "Multi: IPv6, NTP, ICMP & Traffic Types, BGP"
+// mis-segments those topics — "NTP" + "ICMP & Traffic Types" instead of
+// the canonical "NTP, ICMP & Traffic Types". Surfaces in 4 sites:
+//   - _pickExemplarsForTopic       (first-topic extraction)
+//   - loadHistory filter           (multi-list .includes(topic))
+//   - _multiCount counting         (display counts)
+//   - fetchQuestions Multi: parse  (worst impact: feeds Haiku a mis-split list)
+// Bug got more visible with v4.81.17 Domain Drill (3 of 5 domain presets
+// contain a comma-named topic).
+//
+// This helper does greedy longest-match against the TOPIC_DOMAINS catalog
+// (sorted by length desc) so multi-word topic names with commas are
+// preserved verbatim. Falls back to a naive split when TOPIC_DOMAINS isn't
+// defined (defensive — should never happen in practice).
+//
+// Returns an array of topic names. Accepts either the full sentinel
+// ("Multi: A, B, C") or the body alone ("A, B, C").
+function _parseMultiTopicSentinel(qTopic) {
+  if (typeof qTopic !== 'string') return [];
+  const body = qTopic.startsWith('Multi: ') ? qTopic.slice(7) : qTopic;
+  if (typeof TOPIC_DOMAINS === 'undefined' || !TOPIC_DOMAINS) {
+    return body.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  const allTopics = Object.keys(TOPIC_DOMAINS).sort((a, b) => b.length - a.length);
+  const found = [];
+  let remaining = body.trim();
+  while (remaining.length > 0) {
+    let matched = null;
+    for (const t of allTopics) {
+      if (remaining.startsWith(t)) { matched = t; break; }
+    }
+    if (matched) {
+      found.push(matched);
+      remaining = remaining.slice(matched.length).replace(/^[,\s]+/, '');
+    } else {
+      // Fallback: skip to next comma. Shouldn't happen if catalog is up
+      // to date, but keeps the parser non-blocking on unknown strings.
+      const idx = remaining.indexOf(',');
+      if (idx === -1) break;
+      remaining = remaining.slice(idx + 1).replace(/^\s+/, '');
+    }
+  }
+  return found;
+}
 
 function diffWeight(d) {
   if (!d) return 1.5;
