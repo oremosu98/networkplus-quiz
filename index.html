@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.12</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.13</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1098,6 +1098,19 @@
         <div class="results-v2-row"><span class="k">Skipped</span><span class="v" id="exam-r-skipped">0</span></div>
         <div class="results-v2-row"><span class="k">Raw %</span><span class="v" id="exam-r-pct">0%</span></div>
       </aside>
+    </div>
+    <!-- v4.81.13: per-domain breakdown card (Codex r5+ thesis: feedback layer
+         is the cert-mode SaaS differentiator). Populated by
+         renderExamDomainBreakdown() after every exam submit. Five rows,
+         one per CompTIA domain, with correct/total + accuracy + status tier. -->
+    <div class="exam-domain-breakdown" id="exam-domain-breakdown" hidden>
+      <div class="exam-domain-breakdown-head">
+        <h3 class="exam-domain-breakdown-title">By <em>domain</em></h3>
+        <p class="exam-domain-breakdown-sub">How you performed across each N10-009 domain.</p>
+      </div>
+      <div class="exam-domain-breakdown-grid" id="exam-domain-breakdown-grid">
+        <!-- Populated by renderExamDomainBreakdown() -->
+      </div>
     </div>
     <div class="results-v2-cta-row">
       <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Menu</button>

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.12', js.includes("const APP_VERSION = '4.81.12"));
+test('APP_VERSION is 4.81.13', js.includes("const APP_VERSION = '4.81.13"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.12', sw.includes('netplus-v4.81.12'));
+test('SW cache bumped to v4.81.13', sw.includes('netplus-v4.81.13'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6459,8 +6459,11 @@ test('v4.54.17 JS: daily recap gated by localStorage once-per-day',
   /_maybeShowDailyRecap[\s\S]{0,2000}STORAGE_DAILY_RECAP_SHOWN[\s\S]{0,400}todayKey/.test(js));
 test('v4.54.17 JS: finish() calls _maybeShowDailyRecap after saveToHistory',
   /function finish\(\)[\s\S]{0,10000}saveToHistory[\s\S]{0,1500}_maybeShowDailyRecap/.test(js));  // v4.57.1: widened both gaps (6000→10000, 500→1500) for multi-topic split branch
+// v4.81.13: window bumped 400 → 1500 chars after _saveExamPerTopicSplit
+// + renderExamDomainBreakdown calls were added between the summary
+// saveToHistory and _maybeShowDailyRecap.
 test('v4.54.17 JS: submitExam calls _maybeShowDailyRecap after saveToHistory',
-  /submitExam[\s\S]{0,12000}saveToHistory[\s\S]{0,400}_maybeShowDailyRecap/.test(js));
+  /submitExam[\s\S]{0,12000}saveToHistory[\s\S]{0,1500}_maybeShowDailyRecap/.test(js));
 test('v4.54.17 JS: recap shows today\'s stats + delta + streak + days-to-exam',
   /_maybeShowDailyRecap[\s\S]{0,3500}todayAcc[\s\S]{0,600}deltaAcc[\s\S]{0,400}streak[\s\S]{0,400}daysToExam/.test(js));
 test('v4.54.17 CSS: .daily-recap-card uses dark gradient + overshoot entrance animation',
@@ -10958,6 +10961,167 @@ test('v4.81.12 Settings: .settings-group-danger has red tint',
   /\.settings-group-danger\s*\{[^}]*background:\s*rgba\(248,113,113/.test(css));
 test('v4.81.12 Settings: mobile breakpoint exists for settings-group',
   /max-width:\s*540px[\s\S]{0,500}\.settings-group\b/.test(css));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.13: Exam → readiness/progress/analytics integration (user request)
+// ──────────────────────────────────────────────────────────
+// User report: "i did my first exam simulator on the app and i got 780.
+// ideally this should reflect somehow on the exam readiness score...
+// rather than just a standalone entity and it should reflect somehow in
+// the progress and analytics part for what topics i got right/wrong and
+// their domains."
+//
+// Pre-fix: submitExam saved ONE summary row tagged `topic: EXAM_TOPIC`.
+// getReadinessScore explicitly filters EXAM_TOPIC out → exam contributed
+// zero signal to readiness/progress/analytics/weak-spots/what-if.
+// Wrong-bank + SR seeding worked but headline metrics ignored the exam.
+//
+// Fix: per-topic history split (A) writes one row per topic from log[]
+// after the summary, tagged `mode: 'exam'` (gets 1.3× boost) and
+// `via: 'exam-split'` (traceable). Plus domain breakdown card on the
+// exam-results page (C) for immediate post-exam visibility.
+
+test('v4.81.13 Exam: _saveExamPerTopicSplit helper defined',
+  /function\s+_saveExamPerTopicSplit\b/.test(js));
+test('v4.81.13 Exam: _buildExamDomainBreakdown helper defined',
+  /function\s+_buildExamDomainBreakdown\b/.test(js));
+test('v4.81.13 Exam: renderExamDomainBreakdown function defined',
+  /function\s+renderExamDomainBreakdown\b/.test(js));
+test('v4.81.13 Exam: submitExam wires _saveExamPerTopicSplit after summary save',
+  (() => {
+    const body = _fnBody(js, 'submitExam');
+    return body && /_saveExamPerTopicSplit\(log,/.test(body);
+  })());
+test('v4.81.13 Exam: submitExam wires renderExamDomainBreakdown',
+  (() => {
+    const body = _fnBody(js, 'submitExam');
+    return body && /renderExamDomainBreakdown\(log\)/.test(body);
+  })());
+test('v4.81.13 Exam: per-topic split tags rows with via:"exam-split" marker',
+  (() => {
+    const body = _fnBody(js, '_saveExamPerTopicSplit');
+    return body && /via:\s*['"]exam-split['"]/.test(body);
+  })());
+test('v4.81.13 Exam: per-topic split uses mode:"exam" so 1.3× boost applies',
+  (() => {
+    const body = _fnBody(js, '_saveExamPerTopicSplit');
+    return body && /mode:\s*['"]exam['"]/.test(body);
+  })());
+test('v4.81.13 Exam: per-topic split skips MIXED_TOPIC + EXAM_TOPIC entries (defensive)',
+  (() => {
+    const body = _fnBody(js, '_saveExamPerTopicSplit');
+    return body && /MIXED_TOPIC/.test(body) && /EXAM_TOPIC/.test(body);
+  })());
+test('v4.81.13 Exam: domain breakdown uses tier system anchored to 55/70/85',
+  (() => {
+    const body = _fnBody(js, '_buildExamDomainBreakdown');
+    return body && />=\s*85/.test(body) && />=\s*70/.test(body) && />=\s*55/.test(body);
+  })());
+test('v4.81.13 Exam: #exam-domain-breakdown card present in HTML',
+  /id="exam-domain-breakdown"/.test(html) && /id="exam-domain-breakdown-grid"/.test(html));
+test('v4.81.13 Exam: .exam-domain-breakdown CSS declared',
+  /\.exam-domain-breakdown\s*\{/.test(css));
+test('v4.81.13 Exam: tier classes styled (mastered/proficient/developing/novice/empty)',
+  /\.exam-domain-mastered\s/.test(css)
+  && /\.exam-domain-proficient\s/.test(css)
+  && /\.exam-domain-developing\s/.test(css)
+  && /\.exam-domain-novice\s/.test(css)
+  && /\.exam-domain-empty\s/.test(css));
+
+// Behavioral fixture — vm-sandbox _saveExamPerTopicSplit with a synthetic
+// log of 5 questions across 3 topics. Pre-fix this was not a function;
+// post-fix it should call saveToHistory 3 times with correct shapes.
+test('v4.81.13 Exam: vm fixture — per-topic split writes one row per unique topic',
+  (() => {
+    try {
+      const body = _fnBody(js, '_saveExamPerTopicSplit');
+      if (!body) return false;
+      const vm = require('vm');
+      const writes = [];
+      const ctx = {
+        MIXED_TOPIC: 'Mixed — All Topics',
+        EXAM_TOPIC: 'Exam Simulation',
+        saveToHistory: (entry) => { writes.push(entry); },
+        Date, Math, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const log = [
+        { q: { topic: 'OSPF' }, isRight: true,  isSkipped: false },
+        { q: { topic: 'OSPF' }, isRight: true,  isSkipped: false },
+        { q: { topic: 'OSPF' }, isRight: false, isSkipped: false },
+        { q: { topic: 'BGP' },  isRight: true,  isSkipped: false },
+        { q: { topic: 'STP' },  isRight: false, isSkipped: false }
+      ];
+      ctx.log = log;
+      const written = vm.runInContext('_saveExamPerTopicSplit(log, false)', ctx);
+      // Expect 3 writes (one per unique topic), all with mode='exam' + via='exam-split'
+      return written === 3
+        && writes.length === 3
+        && writes.every(w => w.mode === 'exam' && w.via === 'exam-split')
+        && writes.find(w => w.topic === 'OSPF' && w.score === 2 && w.total === 3)
+        && writes.find(w => w.topic === 'BGP' && w.score === 1 && w.total === 1)
+        && writes.find(w => w.topic === 'STP' && w.score === 0 && w.total === 1);
+    } catch (e) { return false; }
+  })());
+
+test('v4.81.13 Exam: vm fixture — per-topic split skips EXAM_TOPIC + MIXED_TOPIC entries',
+  (() => {
+    try {
+      const body = _fnBody(js, '_saveExamPerTopicSplit');
+      if (!body) return false;
+      const vm = require('vm');
+      const writes = [];
+      const ctx = {
+        MIXED_TOPIC: 'Mixed',
+        EXAM_TOPIC: 'Exam',
+        saveToHistory: (entry) => { writes.push(entry); },
+        Date, Math, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const log = [
+        { q: { topic: 'OSPF' }, isRight: true, isSkipped: false },
+        { q: { topic: 'Mixed' }, isRight: true, isSkipped: false },  // skipped
+        { q: { topic: 'Exam' }, isRight: false, isSkipped: false },  // skipped
+        { q: { topic: '' }, isRight: true, isSkipped: false }        // skipped (empty)
+      ];
+      ctx.log = log;
+      const written = vm.runInContext('_saveExamPerTopicSplit(log, false)', ctx);
+      return written === 1 && writes.length === 1 && writes[0].topic === 'OSPF';
+    } catch (e) { return false; }
+  })());
+
+test('v4.81.13 Exam: vm fixture — domain breakdown buckets correct/total per domain',
+  (() => {
+    try {
+      const body = _fnBody(js, '_buildExamDomainBreakdown');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        DOMAIN_WEIGHTS: { concepts: 0.23, implementation: 0.20, operations: 0.19, security: 0.14, troubleshooting: 0.24 },
+        DOMAIN_LABELS: { concepts: 'Concepts', implementation: 'Implementation', operations: 'Operations', security: 'Security', troubleshooting: 'Troubleshooting' },
+        TOPIC_DOMAINS: { 'OSI Model': 'concepts', 'OSPF': 'implementation', 'Network Troubleshooting & Tools': 'troubleshooting' },
+        Math, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const log = [
+        { q: { topic: 'OSI Model' }, isRight: true,  isSkipped: false },
+        { q: { topic: 'OSI Model' }, isRight: true,  isSkipped: false },
+        { q: { topic: 'OSPF' },      isRight: false, isSkipped: false },
+        { q: { topic: 'OSPF' },      isRight: true,  isSkipped: false },
+        { q: { topic: 'Network Troubleshooting & Tools' }, isRight: false, isSkipped: false }
+      ];
+      ctx.log = log;
+      const buckets = vm.runInContext('_buildExamDomainBreakdown(log)', ctx);
+      return buckets.concepts.correct === 2 && buckets.concepts.total === 2 && buckets.concepts.pct === 100 && buckets.concepts.tier === 'mastered'
+        && buckets.implementation.correct === 1 && buckets.implementation.total === 2 && buckets.implementation.pct === 50 && buckets.implementation.tier === 'novice'
+        && buckets.troubleshooting.correct === 0 && buckets.troubleshooting.total === 1 && buckets.troubleshooting.tier === 'novice'
+        && buckets.security.total === 0 && buckets.security.tier === 'empty'
+        && buckets.operations.total === 0 && buckets.operations.tier === 'empty';
+    } catch (e) { return false; }
+  })());
 
 test('v4.81.11 Settings: vm fixture — health card surfaces correct API key status',
   (() => {

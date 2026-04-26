@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.12
+// Network+ AI Quiz — app.js  v4.81.13
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.12';
+const APP_VERSION = '4.81.13';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9581,6 +9581,16 @@ function submitExam() {
     if ((getStreak().current || 0) > _prevStreakBefore) _pendingStreakPulse = true;
   } catch (_) {}
   saveToHistory({ date: new Date().toISOString(), topic: EXAM_TOPIC, difficulty: 'Mixed', score: correct, total, pct, mode: 'exam', hardcore: examHardcore });
+  // v4.81.13 (Codex r∞ user request): also write per-topic split rows so the
+  // exam contributes to readiness / progress / weak-spots / what-if /
+  // domain mastery — pre-fix the rolled-up EXAM_TOPIC sentinel was filtered
+  // OUT by getReadinessScore (and every other surface that reads history
+  // per-topic), so a 90-question exam was a "standalone entity" with zero
+  // signal contribution beyond the wrong-bank + SR seed.
+  try { _saveExamPerTopicSplit(log, examHardcore); } catch (e) { console.warn('[exam-split]', e); }
+  // v4.81.13 (C): render the per-domain breakdown card on the exam-results
+  // page so the user sees their domain split immediately after submit.
+  try { if (typeof renderExamDomainBreakdown === 'function') renderExamDomainBreakdown(log); } catch (e) { console.warn('[exam-domain]', e); }
   // v4.54.17: end-of-day recap check after exam too
   try { if (typeof _maybeShowDailyRecap === 'function') _maybeShowDailyRecap(); } catch (_) {}
   // v4.42.0: refresh the homepage cards that depend on history state so
@@ -10490,6 +10500,102 @@ function _buildMilestoneCtx() {
 
 // Helper: scaled exam score per CompTIA's 100-900 scale (used by exam_pass + hardcore_pass)
 function _scaledExamScore(e) { return Math.round(100 + (e.score / e.total) * 800); }
+
+// v4.81.13: per-topic exam split (Codex r∞ user request). Pre-fix the
+// exam summary row tagged `topic: EXAM_TOPIC` was filtered out by every
+// per-topic surface (readiness, progress, analytics, weak-spots,
+// what-if attribution). The wrong-bank + SR queue seeded fine but
+// the headline metrics ignored the exam entirely. Fix: after the
+// summary row is saved, group log[] by q.topic and write one history
+// row per topic with `mode: 'exam'` (so the existing 1.3× exam boost
+// in buildWeightedTopicMap applies) and `via: 'exam-split'` (marker
+// so we can distinguish these from regular exam summary rows).
+//
+// No double-counting: getReadinessScore filters EXAM_TOPIC (the
+// summary) explicitly, so only the per-topic splits contribute.
+function _saveExamPerTopicSplit(log, hardcore) {
+  if (!Array.isArray(log) || log.length === 0) return 0;
+  const byTopic = {};
+  log.forEach(entry => {
+    const q = entry && entry.q;
+    if (!q) return;
+    const t = q.topic;
+    if (!t || t === MIXED_TOPIC || t === EXAM_TOPIC) return;
+    if (!byTopic[t]) byTopic[t] = { correct: 0, total: 0 };
+    byTopic[t].total++;
+    if (entry.isRight && !entry.isSkipped) byTopic[t].correct++;
+  });
+  const date = new Date().toISOString();
+  let written = 0;
+  Object.keys(byTopic).forEach(topic => {
+    const b = byTopic[topic];
+    if (b.total < 1) return;
+    const pct = Math.round((b.correct / b.total) * 100);
+    saveToHistory({
+      date, topic, difficulty: 'Mixed',
+      score: b.correct, total: b.total, pct,
+      mode: 'exam', hardcore: !!hardcore,
+      via: 'exam-split'
+    });
+    written++;
+  });
+  return written;
+}
+
+// v4.81.13: per-domain breakdown for the exam-results page. Same input
+// (log[]) as _saveExamPerTopicSplit. Returns { domainKey: {correct,
+// total, pct} } for all 5 N10-009 domains. Domains with zero questions
+// contribute an empty bucket so the rendered grid stays consistent
+// (renders as "—" rather than missing entirely).
+function _buildExamDomainBreakdown(log) {
+  const buckets = {};
+  Object.keys(DOMAIN_WEIGHTS).forEach(d => {
+    buckets[d] = { key: d, label: DOMAIN_LABELS[d], correct: 0, total: 0 };
+  });
+  if (!Array.isArray(log)) return buckets;
+  log.forEach(entry => {
+    const q = entry && entry.q;
+    if (!q || !q.topic) return;
+    const domain = (typeof TOPIC_DOMAINS !== 'undefined') ? TOPIC_DOMAINS[q.topic] : null;
+    if (!domain || !buckets[domain]) return;
+    buckets[domain].total++;
+    if (entry.isRight && !entry.isSkipped) buckets[domain].correct++;
+  });
+  Object.keys(buckets).forEach(d => {
+    const b = buckets[d];
+    b.pct = b.total > 0 ? Math.round((b.correct / b.total) * 100) : null;
+    // tier mirrors the v4.45.1 anchored thresholds (55/70/85)
+    if (b.pct === null) b.tier = 'empty';
+    else if (b.pct >= 85) b.tier = 'mastered';
+    else if (b.pct >= 70) b.tier = 'proficient';
+    else if (b.pct >= 55) b.tier = 'developing';
+    else b.tier = 'novice';
+  });
+  return buckets;
+}
+
+function renderExamDomainBreakdown(log) {
+  const host = document.getElementById('exam-domain-breakdown');
+  const grid = document.getElementById('exam-domain-breakdown-grid');
+  if (!host || !grid) return;
+  const buckets = _buildExamDomainBreakdown(log);
+  // Show domains in CompTIA blueprint order (concepts → troubleshooting)
+  const order = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  const html = order.map(d => {
+    const b = buckets[d];
+    const pctStr = b.pct === null ? '—' : (b.pct + '%');
+    const detail = b.total > 0 ? (b.correct + ' of ' + b.total + ' correct') : 'No questions in this exam';
+    return '<div class="exam-domain-row exam-domain-' + b.tier + '">' +
+      '<div class="exam-domain-row-meta">' +
+      '<div class="exam-domain-row-name">' + escHtml(b.label) + '</div>' +
+      '<div class="exam-domain-row-detail">' + escHtml(detail) + '</div>' +
+      '</div>' +
+      '<div class="exam-domain-row-pct">' + pctStr + '</div>' +
+      '</div>';
+  }).join('');
+  grid.innerHTML = html;
+  host.hidden = false;
+}
 
 const MILESTONE_CHECKS = [
   { id: 'first_quiz',          check: c => c.h.length >= 1 },
