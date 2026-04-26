@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.22', js.includes("const APP_VERSION = '4.81.22"));
+test('APP_VERSION is 4.81.23', js.includes("const APP_VERSION = '4.81.23"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.22', sw.includes('netplus-v4.81.22'));
+test('SW cache bumped to v4.81.23', sw.includes('netplus-v4.81.23'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -454,7 +454,9 @@ test('Daily challenge completion hook', js.includes('completeDailyChallenge()') 
 test("Daily challenge history entry mode 'daily'", js.includes("mode: 'daily'") || js.includes("dailyChallengeMode ? 'daily'"));
 test('dailyChallengeMode state', js.includes('dailyChallengeMode'));
 test('getTodaysFocusTopics function', js.includes('function getTodaysFocusTopics('));
-test('renderTodaysFocus function', js.includes('function renderTodaysFocus('));
+// v4.81.23 tombstone: renderTodaysFocus removed (consolidated into renderTodayPlan)
+test('v4.81.23 tombstone: renderTodaysFocus function removed',
+  !js.includes('function renderTodaysFocus('));
 test('focusTopic function', js.includes('function focusTopic('));
 test('renderStreakDefender function', js.includes('function renderStreakDefender('));
 test('startStreakSave function', js.includes('function startStreakSave('));
@@ -466,7 +468,8 @@ test('Deep dive counter increment', js.includes('STORAGE.DEEP_DIVE_USES') && js.
 // HTML
 test('streak-defender element', html.includes('id="streak-defender"'));
 test('daily-challenge-card element', html.includes('id="daily-challenge-card"'));
-test('todays-focus element', html.includes('id="todays-focus"'));
+// v4.81.23 tombstone: #todays-focus element removed (consolidated into #today-plan)
+test('v4.81.23 tombstone: #todays-focus element removed', !html.includes('id="todays-focus"'));
 // v4.76.0: legacy `.quiz-presets` block replaced by `.modes-tier-cards` inside the Mode Ladder
 test('v4.76.0: modes-tier-cards block (replaces .quiz-presets)', html.includes('class="modes-tier-cards"'));
 test('Preset tile: warmup', html.includes("applyPreset('warmup')"));
@@ -1773,8 +1776,11 @@ test('HTML: today-section wrapper exists', html.includes('id="today-section"'));
 test('HTML: today-section contains daily-goal-card', html.includes('today-section') && html.indexOf('id="daily-goal-card"') > html.indexOf('id="today-section"'));
 test('HTML: today-section contains streak-defender', html.indexOf('id="streak-defender"') > html.indexOf('id="today-section"'));
 test('HTML: today-section contains daily-challenge-card', html.indexOf('id="daily-challenge-card"') > html.indexOf('id="today-section"'));
-test('HTML: today-section contains todays-focus', html.indexOf('id="todays-focus"') > html.indexOf('id="today-section"'));
-test('HTML: today-section contains session-banner', html.indexOf('id="session-banner"') > html.indexOf('id="today-section"'));
+// v4.81.23 tombstones: legacy chip rows + session banner removed; #today-plan
+// is now the single canonical card inside #today-section.
+test('v4.81.23 tombstone: #todays-focus removed from today-section', !html.includes('id="todays-focus"'));
+test('v4.81.23 tombstone: #session-banner removed from today-section', !html.includes('id="session-banner"'));
+test('v4.81.23: #today-plan lives inside #today-section', html.indexOf('id="today-plan"') > html.indexOf('id="today-section"'));
 // v4.41.0: #weak-banner removed from Today section (redundant with #todays-focus chip row)
 test('HTML: weak-banner REMOVED (v4.41.0 density pass)', !html.includes('id="weak-banner"'));
 test('HTML: persistent sidebar exists (v4.53.0 replaces old setup-nav row)',
@@ -3121,8 +3127,8 @@ test('v4.81.18 tombstone: renderTodaysFocus no longer holds FLIP rerank machiner
 test('v4.81.18 tombstone: renderTodayPlan does not re-introduce FLIP machinery',
   !todayPlanBodyRetired.includes('oldRects')
     && !todayPlanBodyRetired.includes('getBoundingClientRect'));
-test('v4.42.0: CSS .tf-chip transition includes transform',
-  /\.tf-chip\s*\{[^}]*transform/.test(css));
+// v4.81.23 tombstone: .tf-chip CSS retired (Weak Spots chip row consolidated into #today-plan)
+test('v4.81.23 tombstone: .tf-chip CSS removed', !/\.tf-chip\s*\{/.test(css));
 
 // Fix 8: mini confetti variant (distinct from launchConfetti).
 test('v4.42.0: launchMiniConfetti helper defined',
@@ -3843,13 +3849,15 @@ test('v4.43.1 #3: bridge does NOT route any topology topics (user directive)',
 // routes to focusTopic for any topic. The bridge constant + handler are
 // retained (still drive Subnet Trainer dashboard callouts elsewhere); only
 // the Today-section render integration is parked.
-(function() {
-  const body = _fnBody(js, 'renderTodaysFocus');
-  test('v4.81.18 retire: renderTodaysFocus is a thin shim (delegates, no bridge logic)',
-    body.includes('renderTodayPlan') && !body.includes('seenBridges'));
-})();
-test('v4.43.1 #3: CSS .tf-bridge-btn still defined (Subnet Trainer dashboard uses it)',
-  css.includes('.tf-bridge-btn'));
+// v4.81.23 tombstone: renderTodaysFocus removed entirely (consolidation finalised).
+// v4.81.21 → v4.81.23: Subnet Trainer bridge integrated into #today-plan
+// (.tplan-bridge-btn CSS); legacy .tf-bridge-btn class no longer used.
+test('v4.81.23 tombstone: renderTodaysFocus function removed (cleanup)',
+  !js.includes('function renderTodaysFocus('));
+test('v4.81.23 tombstone: .tf-bridge-btn CSS rule removed (replaced by .tplan-bridge-btn)',
+  !/\.tf-bridge-btn\s*\{/.test(css));
+test('v4.81.21: .tplan-bridge-btn CSS in use for Subnet Trainer bridge',
+  css.includes('.tplan-bridge-btn'));
 
 // ── #4 Topology Builder UI polish ──
 test('v4.43.1 #4 (v4.54.5 update): HTML has editorial .tb-pane-head inside left palette pane',
@@ -5404,8 +5412,8 @@ test('v4.53.0 HTML: #app-sidebar container exists',
   html.includes('id="app-sidebar"') && html.includes('class="app-sidebar"'));
 test('v4.53.0 HTML: mobile sidebar toggle button',
   html.includes('class="sb-mobile-toggle"') && html.includes('onclick="toggleSidebarMobile()"'));
-test('v4.53.0 HTML: focus banner container on setup page',
-  html.includes('id="focus-banner"') && html.includes('class="focus-banner'));
+// v4.81.23 tombstone: #focus-banner element removed (retired in v4.81.20, deleted in v4.81.23)
+test('v4.81.23 tombstone: #focus-banner element removed', !html.includes('id="focus-banner"'));
 // v4.76.0 update: \u00a701 + \u00a702 retired. Mode Ladder now uses \u00a701 with
 // "Pick your session" heading; Marathon presets are inside Practice tier.
 test('v4.53.0 HTML: \u00a7 01 editorial section head (now Mode Ladder, was Quick Start)',
@@ -5469,10 +5477,11 @@ test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
 // v4.54.10: renderSetupDomainGrid body grew \u2014 widen the regex window.
 test('v4.53.0 JS: domain grid click wires drillDomain',
   /renderSetupDomainGrid[\s\S]{0,6000}drillDomain\(/.test(js));
-// v4.81.0: window bumped 1000 → 1200 because renderDiagnosticSurface was
-// added before renderSetupFocusBanner.
-test('v4.53.0 JS: goSetup calls renderSetupFocusBanner + renderSetupDomainGrid',
-  /function goSetup\([\s\S]{0,1200}renderSetupFocusBanner[\s\S]{0,200}renderSetupDomainGrid/.test(js));
+// v4.81.23: renderSetupFocusBanner stopped being called from goSetup (retired
+// in v4.81.20 as a shim; element removed entirely in v4.81.23). goSetup
+// still calls renderSetupDomainGrid + renderTodayPlan.
+test('v4.53.0 JS (retargeted): goSetup calls renderSetupDomainGrid + renderTodayPlan',
+  /function goSetup\([\s\S]{0,1500}renderSetupDomainGrid[\s\S]{0,200}renderTodayPlan|function goSetup\([\s\S]{0,1500}renderTodayPlan[\s\S]{0,200}renderSetupDomainGrid/.test(js));
 
 // CSS \u2014 sidebar
 test('v4.53.0 CSS: body.has-sidebar adds 240px left padding',
@@ -5486,13 +5495,11 @@ test('v4.53.0 CSS: .sb-item-active has accent-tinted background + left rail',
 test('v4.53.0 CSS: mobile breakpoint collapses sidebar to drawer',
   /@media \(max-width:\s*900px\)[\s\S]{0,800}\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
 
-// CSS \u2014 focus banner
-test('v4.53.0 CSS: .focus-banner has radial+linear gradient bg',
-  /\.focus-banner\s*\{[\s\S]{0,600}radial-gradient[\s\S]{0,300}linear-gradient\(160deg/.test(css));
-test('v4.53.0 CSS: .focus-cta uses 135deg gradient + shadow',
-  /\.focus-cta\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
-test('v4.53.0 CSS: @keyframes focusBannerFadeIn (entry animation)',
-  /@keyframes focusBannerFadeIn/.test(css));
+// v4.81.23 tombstones: legacy v4.53.0 focus banner CSS retired (element
+// removed in v4.81.23 cleanup; was retired in v4.81.20 as a shim).
+test('v4.81.23 tombstone: .focus-banner CSS rule removed', !/\.focus-banner\s*\{/.test(css));
+test('v4.81.23 tombstone: .focus-cta CSS rule removed', !/\.focus-cta\s*\{/.test(css));
+test('v4.81.23 tombstone: @keyframes focusBannerFadeIn removed', !/@keyframes focusBannerFadeIn/.test(css));
 
 // CSS \u2014 editorial numbered sections
 test('v4.53.0 CSS: .ed-section-num monospace accent-light',
@@ -5530,8 +5537,9 @@ test('v4.53.0 CSS: reduced-motion kills hover translateY on focus-cta + domain-c
 // CSS \u2014 light-theme overrides
 test('v4.53.0 CSS: light-theme .app-sidebar recoloured',
   /\[data-theme="light"\]\s+\.app-sidebar\s*\{/.test(css));
-test('v4.53.0 CSS: light-theme .focus-banner recoloured to #6355e0 brand',
-  /\[data-theme="light"\]\s+\.focus-banner\s*\{[\s\S]{0,800}99,\s*85,\s*224/.test(css));
+// v4.81.23 tombstone: light-theme .focus-banner override retired (element removed)
+test('v4.81.23 tombstone: light-theme .focus-banner override removed',
+  !/\[data-theme="light"\]\s+\.focus-banner\s*\{/.test(css));
 test('v4.53.0 CSS: light-theme .sb-item-active recoloured',
   /\[data-theme="light"\]\s+\.sb-item\.sb-item-active\s*\{/.test(css));
 test('v4.53.0 CSS: light-theme .ed-section-num recoloured',
@@ -5566,8 +5574,8 @@ test('v4.54.0 HTML: readiness card v2 has score + bar fill + pass tick + delta',
 test('v4.54.0 HTML: two mini cards (today + streak) in hero-v2-mini-row',
   html.includes('id="mc-today-done"') && html.includes('id="mc-today-goal"') &&
   html.includes('id="mc-streak-num"') && html.includes('id="mc-streak-sub"'));
-test('v4.54.0 HTML: focus banner upgraded to focus-banner-v2 class',
-  html.includes('class="focus-banner-v2 is-hidden"'));
+// v4.81.23 tombstone: .focus-banner-v2 element removed (retired in v4.81.20)
+test('v4.81.23 tombstone: .focus-banner-v2 class removed from HTML', !/class="focus-banner-v2/.test(html));
 test('v4.54.0 HTML: legacy hero hidden (.hero.is-hidden)',
   /class="hero is-hidden"/.test(html));
 
@@ -5655,16 +5663,13 @@ test('v4.54.0 CSS: mini-card-v2 uses monospace label + tabular-nums value',
   /\.mini-card-v2-label\s*\{[\s\S]{0,300}font-family:\s*monospace/.test(css) &&
   /\.mini-card-v2-val\s*\{[\s\S]{0,400}tabular-nums/.test(css));
 
-// CSS \u2014 focus banner v2
-test('v4.54.0 CSS: .focus-banner-v2 purple gradient + diagonal stripe texture',
-  /\.focus-banner-v2\s*\{[\s\S]{0,1000}repeating-linear-gradient\(\s*135deg/.test(css) &&
-  /\.focus-banner-v2\s*\{[\s\S]{0,1500}linear-gradient\(135deg,\s*var\(--accent-deep/.test(css));
-test('v4.54.0 CSS: .focus-banner-v2 giant 80px quote mark',
-  /\.focus-banner-v2\s+\.fb-quote\s*\{[\s\S]{0,400}font-size:\s*80px/.test(css));
-test('v4.54.0 CSS: .focus-banner-v2 fb-text em uses citron accent',
-  /\.focus-banner-v2\s+\.fb-text\s+em\s*\{[^}]*color:\s*var\(--citron/.test(css));
-test('v4.54.0 CSS: .fb-cta is white pill with accent-deep text',
-  /\.focus-banner-v2\s+\.fb-cta\s*\{[\s\S]{0,300}background:\s*#fff/.test(css));
+// v4.81.23 tombstones: .focus-banner-v2 + all .fb-* CSS classes retired
+// (the v4.54.0 focus banner was retired in v4.81.20 and the CSS was
+// removed in v4.81.23 cleanup pass).
+test('v4.81.23 tombstone: .focus-banner-v2 CSS removed', !/\.focus-banner-v2\s*\{/.test(css));
+test('v4.81.23 tombstone: .fb-quote CSS removed', !/\.fb-quote\s*\{/.test(css));
+test('v4.81.23 tombstone: .fb-text CSS removed', !/\.fb-text\s*\{/.test(css));
+test('v4.81.23 tombstone: .fb-cta CSS removed', !/\.fb-cta\s*\{/.test(css));
 
 // CSS \u2014 responsive
 test('v4.54.0 CSS: narrow-viewport (<900px) collapses hero to single-col',
@@ -5681,8 +5686,9 @@ test('v4.54.0 CSS: light-theme .app-topbar bg override',
   /\[data-theme="light"\]\s+\.app-topbar\s*\{/.test(css));
 test('v4.54.0 CSS: light-theme .hero-v2-display .name recoloured #6355e0',
   /\[data-theme="light"\]\s+\.hero-v2-display\s+\.name\s*\{[^}]*color:\s*#6355e0/.test(css));
-test('v4.54.0 CSS: light-theme .focus-banner-v2 keeps accent-deep gradient (readable on light)',
-  /\[data-theme="light"\]\s+\.focus-banner-v2\s*\{/.test(css));
+// v4.81.23 tombstone: light-theme .focus-banner-v2 override retired (element removed)
+test('v4.81.23 tombstone: light-theme .focus-banner-v2 override removed',
+  !/\[data-theme="light"\]\s+\.focus-banner-v2\s*\{/.test(css));
 
 // ── v4.54.1 RECENT PERF \u2192 ANALYTICS, SETTINGS \u2192 OWN PAGE ──
 // User asked to move Recent Performance off the home page to Analytics,
@@ -10325,7 +10331,8 @@ test('v4.81.3 Safety: DOMContentLoaded calls _emitProdConsoleBanner',
 test('v4.81.3 Safety: DOMContentLoaded calls _renderEnvBadge',
   /DOMContentLoaded[\s\S]{0,3000}_renderEnvBadge\b/.test(js));
 test('v4.81.3 Safety: DOMContentLoaded calls _maybeExportReminder',
-  /DOMContentLoaded[\s\S]{0,3000}_maybeExportReminder\b/.test(js));
+  // v4.81.23: window widened 3000 → 3500 (v4.81.23 cleanup added a comment block)
+  /DOMContentLoaded[\s\S]{0,3500}_maybeExportReminder\b/.test(js));
 
 // Banner content sanity
 test('v4.81.3 Safety: prod banner mentions DO NOT write to localStorage',
@@ -11488,68 +11495,29 @@ test('v4.81.21 BridgeRestore: vm fixture — no bridges rendered when plan has n
 // #today-plan was correctly hidden by the isStudyPlanDoneToday gate.
 // renderSetupFocusBanner now a thin compat shim that delegates to
 // renderTodayPlan so all states route through the canonical card.
-test('v4.81.20 FocusRetire: renderSetupFocusBanner is now a thin shim',
+// v4.81.23: cleanup pass — the v4.81.20 compat shim was retired entirely.
+// renderSetupFocusBanner is now a no-op stub (kept for any external
+// callers); the #focus-banner element + its CSS are removed.
+test('v4.81.23 FocusCleanup: renderSetupFocusBanner is a no-op stub',
   (() => {
     const body = _fnBody(js, 'renderSetupFocusBanner') || '';
-    return /renderTodayPlan/.test(body) && body.length < 800;
+    return body.length < 200; // tiny stub, no logic
   })());
-test('v4.81.20 FocusRetire: shim hides #focus-banner element',
-  /focus-banner[\s\S]{0,200}is-hidden/.test(_fnBody(js, 'renderSetupFocusBanner') || ''));
-test('v4.81.20 FocusRetire: stale "Seven questions per topic" copy fully removed from app.js',
+test('v4.81.23 FocusCleanup: stale "Seven questions per topic" copy gone',
   !/Seven questions per topic, mixed difficulty/.test(js));
-test('v4.81.20 FocusRetire: stale "fastest route to exam-ready" copy only in renderTodayPlan',
+test('v4.81.23 FocusCleanup: "fastest route to exam-ready" copy only in renderTodayPlan',
   (() => {
-    // Should appear only in the new #today-plan render path, nowhere else.
     const matches = (js.match(/fastest[^"]*route to exam-ready/g) || []);
     if (matches.length === 0) return false;
-    // Verify all occurrences are within renderTodayPlan body
     const tpBody = _fnBody(js, 'renderTodayPlan') || '';
     return matches.every(m => tpBody.includes(m));
   })());
-test('v4.81.20 FocusRetire: #focus-banner element stays in HTML as compat shim',
-  html.includes('id="focus-banner"'));
-test('v4.81.20 FocusRetire: #focus-banner defaults to is-hidden',
-  /id="focus-banner"[^>]*is-hidden/.test(html));
-test('v4.81.20 FocusRetire: focus-banner CSS retained (element still in DOM)',
-  /\.focus-banner-v2\s*\{/.test(css));
-test('v4.81.20 FocusRetire: goSetup still calls renderSetupFocusBanner (delegation chain)',
-  /renderSetupFocusBanner/.test(_fnBody(js, 'goSetup') || ''));
-
-// vm fixture — renderSetupFocusBanner correctly hides its element +
-// delegates to renderTodayPlan. Stubs DOM elements + renderTodayPlan
-// so the test is hermetic.
-test('v4.81.20 FocusRetire: vm fixture — shim hides #focus-banner + delegates to renderTodayPlan',
-  (() => {
-    try {
-      const body = _fnBody(js, 'renderSetupFocusBanner');
-      if (!body) return false;
-      const vm = require('vm');
-      let calls = { renderTodayPlanFired: 0, hideAdded: false, innerHtmlCleared: false };
-      const fakeFocusBanner = {
-        _classes: new Set(['focus-banner-v2']),
-        classList: {
-          add: function(c) { fakeFocusBanner._classes.add(c); if (c === 'is-hidden') calls.hideAdded = true; },
-          remove: function(c) { fakeFocusBanner._classes.delete(c); }
-        },
-        innerHTML: 'old content',
-      };
-      Object.defineProperty(fakeFocusBanner, 'innerHTML', {
-        get: function() { return this._innerHTML || ''; },
-        set: function(v) { this._innerHTML = v; if (v === '') calls.innerHtmlCleared = true; }
-      });
-      const ctx = {
-        document: { getElementById: (id) => id === 'focus-banner' ? fakeFocusBanner : null },
-        renderTodayPlan: () => { calls.renderTodayPlanFired++; },
-        Object, String
-      };
-      vm.createContext(ctx);
-      vm.runInContext(body, ctx);
-      vm.runInContext('renderSetupFocusBanner()', ctx);
-      return calls.hideAdded === true
-        && calls.innerHtmlCleared === true
-        && calls.renderTodayPlanFired === 1;
-    } catch (e) { return false; }
-  })());
+test('v4.81.23 FocusCleanup tombstone: #focus-banner element removed from HTML',
+  !html.includes('id="focus-banner"'));
+test('v4.81.23 FocusCleanup tombstone: .focus-banner-v2 CSS removed',
+  !/\.focus-banner-v2\s*\{/.test(css));
+test('v4.81.23 FocusCleanup tombstone: goSetup no longer calls renderSetupFocusBanner',
+  !/renderSetupFocusBanner/.test(_fnBody(js, 'goSetup') || ''));
 
 // v4.81.19: comma-safe Multi: topic sentinel parser. Pre-existing bug
 // surfaced by v4.81.17 Domain Drill — 3 topic names contain commas
@@ -11706,29 +11674,22 @@ test('v4.81.18 TodayPlan: renderTodayPlan emits chip-strip + foot row + Begin pl
   })());
 test('v4.81.18 TodayPlan: renderTodayPlan uses signal-coded chip data attribute',
   /data-signal=/.test(_fnBody(js, 'renderTodayPlan') || ''));
-test('v4.81.18 TodayPlan: renderTodaysFocus delegates to renderTodayPlan (compat shim)',
-  (() => {
-    const body = _fnBody(js, 'renderTodaysFocus') || '';
-    return /renderTodayPlan/.test(body) && body.length < 800;
-  })());
-test('v4.81.18 TodayPlan: renderRotationChips delegates to renderTodayPlan (compat shim)',
-  (() => {
-    const body = _fnBody(js, 'renderRotationChips') || '';
-    return /renderTodayPlan/.test(body) && body.length < 800;
-  })());
-test('v4.81.18 TodayPlan: renderSessionBanner delegates to renderTodayPlan (compat shim)',
-  (() => {
-    const body = _fnBody(js, 'renderSessionBanner') || '';
-    return /renderTodayPlan/.test(body) && body.length < 800;
-  })());
+// v4.81.23: cleanup pass — the v4.81.18 compat-shim functions were
+// retired. Callers now invoke renderTodayPlan directly.
+test('v4.81.23 cleanup tombstone: renderTodaysFocus function removed',
+  !js.includes('function renderTodaysFocus('));
+test('v4.81.23 cleanup tombstone: renderRotationChips function removed',
+  !js.includes('function renderRotationChips('));
+test('v4.81.23 cleanup tombstone: renderSessionBanner function removed',
+  !js.includes('function renderSessionBanner('));
 test('v4.81.18 TodayPlan: #today-plan element present in HTML',
   html.includes('id="today-plan"'));
 test('v4.81.18 TodayPlan: #today-plan defaults to is-hidden',
   /id="today-plan"[^>]*is-hidden/.test(html));
-test('v4.81.18 TodayPlan: legacy #todays-focus + #rotation-row + #session-banner kept as compat shims (still in DOM)',
-  html.includes('id="todays-focus"')
-    && html.includes('id="rotation-row"')
-    && html.includes('id="session-banner"'));
+test('v4.81.23 cleanup tombstone: legacy compat shim DOM elements removed',
+  !html.includes('id="todays-focus"')
+    && !html.includes('id="rotation-row"')
+    && !html.includes('id="session-banner"'));
 test('v4.81.18 TodayPlan: .today-plan CSS declared',
   /\.today-plan\s*\{/.test(css));
 test('v4.81.18 TodayPlan: .tplan-chip CSS declared with signal variants',
@@ -12150,8 +12111,10 @@ test('v4.81.15 Stale: _computeStaleTopics helper defined',
   /function _computeStaleTopics\(/.test(js));
 test('v4.81.15 Stale: _formatStaleTopicsForPrompt helper defined',
   /function _formatStaleTopicsForPrompt\(/.test(js));
-test('v4.81.15 Stale: renderRotationChips function defined',
-  /function renderRotationChips\(/.test(js));
+// v4.81.23 tombstone: renderRotationChips removed (stale-topic signal now
+// drives the consolidated #today-plan card via buildSessionPlan).
+test('v4.81.23 tombstone: renderRotationChips function removed',
+  !js.includes('function renderRotationChips('));
 test('v4.81.15 Stale: STALE_PROMPT_TOPIC_COUNT constant declared',
   /STALE_PROMPT_TOPIC_COUNT\s*=\s*\d+/.test(js));
 test('v4.81.15 Stale: STALE_PROMPT_SLICE_SIZE constant declared',
@@ -12192,25 +12155,20 @@ test('v4.81.15 Stale: prompt block uses ROTATION PRIORITY framing (not mandate)'
   /ROTATION PRIORITY:.*hasn['’]t practised these/.test(js));
 test('v4.81.15 Stale: prompt block instructs Haiku to stay within blueprint weights',
   /stay within the blueprint weights/.test(js));
-test('v4.81.15 Stale: #rotation-row HTML element present',
-  html.includes('id="rotation-row"'));
-test('v4.81.15 Stale: rotation-row defaults to is-hidden',
-  /id="rotation-row"[^>]*is-hidden/.test(html));
-test('v4.81.15 Stale: .rotation-row CSS declared',
-  /\.rotation-row\s*\{/.test(css));
-test('v4.81.15 Stale: .rot-chip CSS declared',
-  /\.rot-chip\s*\{/.test(css));
-test('v4.81.15 Stale: rotation chip styles include reduced-motion gate',
-  /prefers-reduced-motion[\s\S]{0,400}\.rot-chip/.test(css));
-test('v4.81.15 Stale: renderRotationChips wired into goSetup',
-  /renderRotationChips/.test(_fnBody(js, 'goSetup') || ''));
-test('v4.81.15 Stale: renderRotationChips wired into DOMContentLoaded path',
-  (() => {
-    // Both the initial paint handler and goSetup should call renderRotationChips
-    // — same wiring discipline as v4.81.1's NBM/SR/Diagnostic surface fix.
-    const initBody = _fnBody(js, 'DOMContentLoaded');
-    return /renderRotationChips/.test(js) && /renderTodaysFocus/.test(js);
-  })());
+// v4.81.23 tombstones: stale-topic rendering surfaces consolidated.
+// The stale signal now drives #today-plan via buildSessionPlan; the
+// dedicated #rotation-row element + .rotation-row/.rot-* CSS were
+// removed in this cleanup pass.
+test('v4.81.23 tombstone: #rotation-row HTML element removed',
+  !html.includes('id="rotation-row"'));
+test('v4.81.23 tombstone: .rotation-row CSS removed',
+  !/\.rotation-row\s*\{/.test(css));
+test('v4.81.23 tombstone: .rot-chip CSS removed',
+  !/\.rot-chip\s*\{/.test(css));
+test('v4.81.23 tombstone: renderRotationChips no longer called from goSetup',
+  !/renderRotationChips/.test(_fnBody(js, 'goSetup') || ''));
+test('v4.81.15 Stale: stale signal still drives the consolidated card via buildSessionPlan',
+  /_computeStaleTopics/.test(_fnBody(js, 'buildSessionPlan') || ''));
 
 // vm fixture — verify compound priority correctly ranks stale-and-weak above
 // stale-but-mastered. Topic A (21d stale, 50% accuracy) MUST outrank Topic B

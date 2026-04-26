@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.22</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.23</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -274,40 +274,22 @@
     <div id="streak-defender" class="streak-defender is-hidden" role="status" aria-live="polite"></div>
     <!-- Daily Challenge card (conditional) -->
     <div id="daily-challenge-card" class="daily-challenge-card is-hidden" role="region" aria-label="Daily Challenge"></div>
-    <!-- v4.81.18: Consolidated Today's Plan card — collapses 3 stacked
-         surfaces (Weak Spots row + Rotation row + Study Plan banner)
-         into ONE prescriptive card. Mockup at
-         mockups/today-consolidation-concept.html. The 3 legacy elements
-         below are kept hidden for backwards-compat (some UAT tests +
-         possible external code references) but render functions delegate
-         into renderTodayPlan() which paints THIS card. -->
+    <!-- v4.81.18 / v4.81.23: Consolidated Today's Plan card. Replaces 3
+         legacy stacked surfaces (Weak Spots row + Rotation row + Study
+         Plan banner) and the v4.54.0 #focus-banner. Painted by
+         renderTodayPlan() which reads weak + stale signals. The legacy
+         compat-shim elements (#todays-focus, #rotation-row, #session-banner,
+         #focus-banner) were removed in v4.81.23 — all routes converge on
+         this single card. Mockup: mockups/today-consolidation-concept.html. -->
     <div id="today-plan" class="today-plan is-hidden" role="region" aria-label="Today's study plan"></div>
-    <!-- Today's Focus / Weak Spots — v4.81.18 compat shim (always hidden) -->
-    <div id="todays-focus" class="todays-focus is-hidden" role="region" aria-label="Weak spot topics"></div>
-    <!-- v4.81.15 Due for rotation — v4.81.18 compat shim (always hidden) -->
-    <div id="rotation-row" class="rotation-row is-hidden" role="region" aria-label="Topics due for rotation"></div>
-    <!-- Study Plan banner — v4.81.18 compat shim (always hidden, content
-         migrated into the consolidated #today-plan above) -->
-    <div id="session-banner" class="is-hidden">
-      <div class="session-card">
-        <h3>&#128218; STUDY PLAN</h3>
-        <div id="session-topic-rows"></div>
-        <p class="session-est">&#128336; ~21 min &nbsp;&bull;&nbsp; 7 questions per topic &nbsp;&bull;&nbsp; Mixed difficulty</p>
-      </div>
-      <button class="btn btn-primary btn-full" onclick="startSession()">Start Study Plan &#9889;</button>
-    </div>
-    <!-- v4.41.0: legacy amber weak-banner removed — Weak Spots chip row
-         (#todays-focus) already covers the same concept with better UX -->
   </div>
 
   <!-- v4.53.0: tools nav moved into persistent left sidebar (#app-sidebar).
        The old .setup-nav-group 6-button row is gone; sidebar holds the same
        entries plus Drills sub-items broken out. -->
-
-  <!-- v4.54.0: Focus banner — full-width purple gradient with giant quote mark -->
-  <div id="focus-banner" class="focus-banner-v2 is-hidden" role="region" aria-label="Today's focus">
-    <!-- Filled by renderSetupFocusBanner() on setup-page render -->
-  </div>
+  <!-- v4.81.20: legacy v4.54.0 #focus-banner retired (was a redundant
+       prescriptive surface). v4.81.23 removed the element entirely; the
+       canonical card is #today-plan above. -->
 
   <!-- v4.76.0: unified Mode Ladder — replaces former §01 Quick Start +
        §02 Marathon Mode. Three commitment-level tiers (Quick / Practice /

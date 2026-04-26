@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.22
+   Network+ AI Quiz — styles.css  v4.81.23
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1054,16 +1054,9 @@ input::placeholder { color: var(--text-dim); }
 .readiness-action { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
 .readiness-action strong { color: var(--text); }
 
-/* ── TODAY'S SESSION BANNER ── */
-.session-card { background: linear-gradient(135deg,rgba(124,111,247,.1),rgba(124,111,247,.04)); border: 1.5px solid rgba(124,111,247,.4); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
-.session-card h3 { color: var(--accent-light); margin-bottom: 14px; font-size: 11px; }
-.session-topic-row { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-.session-topic-row:last-of-type { border-bottom: none; }
-.session-step-badge { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-dim); color: var(--accent-light); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.session-t-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
-.session-t-reason { font-size: 11px; margin-top: 1px; }
-.session-est { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 12px; }
-[data-theme="light"] .session-topic-row { border-bottom-color: rgba(0,0,0,.06); }
+/* v4.81.23: legacy session-banner CSS retired. The Study Plan banner was
+   consolidated into #today-plan in v4.81.18; the DOM element + CSS are
+   now removed. .session-* classes are no longer in use anywhere. */
 
 /* ── SESSION TRANSITION / COMPLETE ── */
 .session-hero { text-align: center; padding: 36px 20px 24px; }
@@ -1433,12 +1426,9 @@ input::placeholder { color: var(--text-dim); }
 .dc-btn:active { transform: scale(.97); }
 .dc-count { font-size: 11px; font-weight: 800; color: var(--green); background: rgba(34, 197, 94, 0.15); padding: 4px 10px; border-radius: 99px; flex-shrink: 0; }
 
-.todays-focus { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px; }
-.tf-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
-.tf-chips { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-.tf-chip { background: rgba(var(--accent-rgb), 0.08); border: 1.5px solid rgba(var(--accent-rgb), 0.35); color: var(--text); font-weight: 600; font-size: 13px; padding: 8px 14px; border-radius: 10px; cursor: pointer; transition: all .15s; font-family: inherit; }
-.tf-chip:hover { background: rgba(var(--accent-rgb), 0.18); border-color: var(--accent); transform: translateY(-1px); }
-.tf-chip:active { transform: scale(.97); }
+/* v4.81.23: legacy .todays-focus + .tf-* classes retired. The Weak Spots
+   chip row was consolidated into #today-plan in v4.81.18; the DOM element
+   + CSS are now removed. */
 
 /* ── v4.81.18: Consolidated Today's Plan card ──
    Replaces the 3 stacked surfaces (Weak Spots row + Rotation row +
@@ -1508,25 +1498,9 @@ input::placeholder { color: var(--text-dim); }
 }
 .today-section .today-plan { margin-bottom: 0; }
 
-/* v4.81.15: Due for rotation chip row — softer styling than weak-spots
-   so users read it as "FYI" rather than "URGENT." Same surface card +
-   chip layout for consistency, but amber-tinted instead of accent-tinted.
-   v4.81.18: legacy CSS retained because #rotation-row stays in the DOM
-   as a compat shim (always is-hidden). Renderer now delegates to
-   renderTodayPlan(). */
-.rotation-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
-.rot-label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
-.rot-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.rot-chip { display: inline-flex; align-items: baseline; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1.25px solid rgba(245, 158, 11, 0.32); color: var(--text); font-weight: 600; font-size: 12.5px; padding: 6px 12px; border-radius: 9px; cursor: pointer; transition: all .15s; font-family: inherit; }
-.rot-chip:hover { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.55); transform: translateY(-1px); }
-.rot-chip:active { transform: scale(.97); }
-.rot-chip-meta { font-size: 10.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
-.today-section .rotation-row { margin-bottom: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .rot-chip { transition: background-color .2s, border-color .2s !important; }
-  .rot-chip:hover { transform: none !important; }
-  .rot-chip:active { transform: none !important; }
-}
+/* v4.81.23: legacy .rotation-row + .rot-* classes retired. The Due for
+   Rotation chip row was consolidated into #today-plan in v4.81.18; the
+   DOM element + CSS are now removed. */
 
 /* ── Today section (v4.32) ── */
 .today-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -1534,10 +1508,8 @@ input::placeholder { color: var(--text-dim); }
 .today-section .daily-goal-card { border: none; padding: 0; background: transparent; }
 .today-section .streak-defender { margin-bottom: 0; }
 .today-section .daily-challenge-card { margin-bottom: 0; }
-.today-section .todays-focus { margin-bottom: 0; }
-.today-section .weak-banner { margin-bottom: 0; }
-.today-section .session-card { margin-bottom: 10px; }
-.today-section #session-banner .btn { margin-bottom: 0; }
+/* v4.81.23: .today-section .todays-focus / .session-card / #session-banner /
+   .weak-banner descendant rules removed (target elements no longer exist). */
 
 /* ── Setup nav bar (v4.38.1) ── */
 .setup-nav-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -5102,7 +5074,8 @@ input::placeholder { color: var(--text-dim); }
    rerank animation has something to ride on. The actual play is driven by
    JS (transform set + cleared across frames), but the CSS transition is
    what smooths it. */
-.tf-chip { transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color .2s, border-color .2s; }
+/* v4.81.23: .tf-chip FLIP-rerank transition retired with the Weak Spots
+   chip row in v4.81.18 consolidation. */
 
 /* Accessibility gate — reduce or suppress motion for users who request it.
    We keep *transitional* animations (short, functional) but kill long
@@ -5113,7 +5086,7 @@ input::placeholder { color: var(--text-dim); }
   .celebration-toast,
   .celebration-toast.show { transition: opacity .01ms linear !important; transform: translateX(-50%) translateY(0) !important; }
   .streak-pulse { animation: none !important; }
-  .tf-chip { transition: background-color .2s, border-color .2s !important; }
+  /* v4.81.23: .tf-chip rule retired with the Weak Spots chip row. */
   /* Daily Goal + Grade ring transitions kept short but non-zero so the
      final state is still painted. */
   .dg-ring-fill, .grade-fill { transition: stroke-dashoffset .01ms linear, stroke .01ms linear !important; }
@@ -5271,34 +5244,9 @@ input::placeholder { color: var(--text-dim); }
 .st-dash-callout-type-name { font-weight: 600; }
 .st-dash-callout-type-pct { color: var(--text-dim); font-size: 12px; }
 
-/* ─── v4.43.1 — Weak-spots → Subnet Trainer bridge ──────────────────── */
-.tf-bridges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.tf-bridge-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 12px;
-  color: var(--accent-light);
-  background: rgba(124,111,247,.08);
-  border: 1px dashed rgba(124,111,247,.3);
-  border-radius: 99px;
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
-}
-.tf-bridge-btn:hover {
-  background: rgba(124,111,247,.15);
-  border-color: rgba(124,111,247,.5);
-  border-style: solid;
-}
-.tf-bridge-icon { font-size: 14px; }
-.tf-bridge-label { font-weight: 500; }
-.tf-bridge-arrow { font-size: 13px; opacity: .7; }
+/* v4.81.23: legacy .tf-bridges + .tf-bridge-btn classes retired. The
+   Subnet Trainer bridge was re-integrated into #today-plan as
+   .tplan-bridges + .tplan-bridge-btn in v4.81.21. */
 
 /* ─── v4.43.1 — Topology Builder UI polish ─────────────────────────── */
 /* Compact hero (replaces wall-of-text intro banner) */
@@ -6886,90 +6834,9 @@ body.has-sidebar { padding-left: 240px; transition: padding-left .25s cubic-bezi
   }
 }
 
-/* ── FOCUS BANNER (editorial pullquote on setup page) ── */
-.focus-banner {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 18px;
-  padding: 20px 24px;
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(var(--accent-rgb), .10), transparent 55%),
-    linear-gradient(160deg, rgba(var(--accent-rgb), .04), rgba(var(--accent-rgb), .012));
-  border: 1px solid rgba(var(--accent-rgb), .22);
-  border-radius: 14px;
-  margin-bottom: 18px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px -14px rgba(var(--accent-rgb), .24);
-  animation: focusBannerFadeIn .45s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-@keyframes focusBannerFadeIn {
-  0%   { opacity: 0; transform: translateY(-4px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-.focus-quote-mark {
-  font-size: 64px;
-  font-weight: 900;
-  line-height: 0.55;
-  color: var(--accent);
-  opacity: .32;
-  font-family: Georgia, 'Times New Roman', serif;
-  margin-top: 8px;
-  user-select: none;
-}
-.focus-text-wrap { min-width: 0; }
-.focus-greeting {
-  font-size: 11px;
-  font-family: monospace;
-  color: var(--text-dim);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  font-weight: 700;
-}
-.focus-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.5;
-  letter-spacing: -0.005em;
-}
-.focus-text em { font-style: normal; color: var(--accent-light); font-weight: 700; }
-.focus-text strong { font-weight: 700; color: var(--text); }
-.focus-meta {
-  font-size: 10.5px;
-  font-family: monospace;
-  color: var(--text-dim);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  margin-top: 6px;
-  font-weight: 700;
-}
-.focus-cta {
-  padding: 10px 18px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform .2s ease, box-shadow .2s ease;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px -2px rgba(var(--accent-rgb), .4);
-}
-.focus-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -2px rgba(var(--accent-rgb), .5); }
-.focus-cta span { transition: transform .2s ease; }
-.focus-cta:hover span { transform: translateX(3px); }
-
-@media (max-width: 680px) {
-  .focus-banner { grid-template-columns: auto 1fr; gap: 14px; padding: 18px 18px; }
-  .focus-cta { grid-column: 1 / 3; justify-content: center; }
-  .focus-quote-mark { font-size: 48px; }
-}
+/* v4.81.23: legacy v4.53.0 .focus-banner CSS retired — the element was
+   replaced by .focus-banner-v2 in v4.54.0, retired in v4.81.20, removed
+   entirely in v4.81.23 cleanup pass. */
 
 /* ── § 01-04 NUMBERED EDITORIAL SECTIONS ── */
 .ed-section { margin-top: 26px; }
@@ -7177,13 +7044,13 @@ body.has-sidebar { padding-left: 240px; transition: padding-left .25s cubic-bezi
 /* ── REDUCED MOTION ── */
 @media (prefers-reduced-motion: reduce) {
   .app-sidebar, .sb-item, .sb-streak,
-  .focus-banner, .focus-cta, .focus-cta span,
   .domain-cell, .dg-bar,
   body.has-sidebar {
     transition: none !important;
     animation: none !important;
   }
-  .focus-cta:hover, .sb-streak:hover, .domain-cell:hover { transform: none !important; }
+  .sb-streak:hover, .domain-cell:hover { transform: none !important; }
+  /* v4.81.23: .focus-banner + .focus-cta retired (element removed) */
 }
 
 /* ── LIGHT-THEME OVERRIDES ── */
@@ -7206,22 +7073,11 @@ body.has-sidebar { padding-left: 240px; transition: padding-left .25s cubic-bezi
   background: linear-gradient(135deg, rgba(217, 119, 6, .12), rgba(217, 119, 6, .03));
   border-color: rgba(217, 119, 6, .28);
 }
-[data-theme="light"] .focus-banner {
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(99, 85, 224, .10), transparent 55%),
-    linear-gradient(160deg, rgba(99, 85, 224, .04), rgba(99, 85, 224, .012));
-  border-color: rgba(99, 85, 224, .24);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 8px 24px -14px rgba(99, 85, 224, .22);
-}
-[data-theme="light"] .focus-quote-mark { color: #6355e0; opacity: .32; }
-[data-theme="light"] .focus-cta {
-  background: linear-gradient(135deg, #6355e0, #8b7af5);
-  box-shadow: 0 4px 12px -2px rgba(99, 85, 224, .4);
-}
+/* v4.81.23: light-theme .focus-banner + .focus-quote-mark + .focus-cta
+   + .focus-text overrides retired (element removed in v4.81.23 cleanup). */
 [data-theme="light"] .ed-section-head { border-bottom-color: rgba(99, 85, 224, .24); }
 [data-theme="light"] .ed-section-num,
 [data-theme="light"] .ed-section-title em,
-[data-theme="light"] .focus-text em,
 [data-theme="light"] .readiness-pass-tick::after { color: #6355e0; }
 [data-theme="light"] .dg-weight { background: rgba(99, 85, 224, .08); border-color: rgba(99, 85, 224, .2); }
 [data-theme="light"] .sb-mobile-toggle {
@@ -7679,85 +7535,10 @@ body.sidebar-collapsed .app-sidebar { transform: translateX(-100%); }
   margin-top: 2px;
 }
 
-/* ── FOCUS BANNER v2 (full-width purple gradient) ── */
-.focus-banner-v2 {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 18px;
-  padding: 24px 28px;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent 0px,
-      transparent 20px,
-      rgba(255, 255, 255, .03) 20px,
-      rgba(255, 255, 255, .03) 21px
-    ),
-    linear-gradient(135deg, var(--accent-deep, #4F46E5), var(--accent, #6366F1) 50%, var(--electric, #7C3AED));
-  border: 1px solid rgba(var(--accent-rgb), .4);
-  border-radius: 16px;
-  margin-bottom: 18px;
-  color: #fff;
-  box-shadow: 0 10px 30px -10px rgba(var(--accent-rgb), .4);
-  position: relative;
-  overflow: hidden;
-}
-.focus-banner-v2 .fb-quote {
-  font-size: 80px;
-  font-weight: 900;
-  line-height: 0.55;
-  color: rgba(255, 255, 255, .25);
-  font-family: Georgia, 'Times New Roman', serif;
-  margin-top: 14px;
-  user-select: none;
-  letter-spacing: -0.05em;
-}
-.focus-banner-v2 .fb-body { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.focus-banner-v2 .fb-text {
-  font-size: 19px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-.focus-banner-v2 .fb-text em {
-  font-style: normal;
-  color: var(--citron, #f59e0b);
-  font-weight: 800;
-}
-.focus-banner-v2 .fb-meta {
-  font-size: 10px;
-  font-family: monospace;
-  color: rgba(255, 255, 255, .7);
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-.focus-banner-v2 .fb-cta {
-  padding: 12px 20px;
-  background: #fff;
-  color: var(--accent-deep, #4F46E5);
-  border: none;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform .2s ease, box-shadow .2s ease;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, .3);
-}
-.focus-banner-v2 .fb-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -2px rgba(0, 0, 0, .4); }
-.focus-banner-v2 .fb-cta span { transition: transform .2s ease; }
-.focus-banner-v2 .fb-cta:hover span { transform: translateX(3px); }
-
-/* Retire the old v4.53.0 focus banner styling — replaced by .focus-banner-v2 */
-.focus-banner { padding: 0; border: none; background: none; box-shadow: none; margin: 0; animation: none; display: block; }
-.focus-banner.is-hidden { display: none; }
+/* v4.81.23: legacy .focus-banner-v2 + .focus-banner + all .fb-* classes
+   retired. The v4.54.0 focus banner was retired in v4.81.20 (function
+   became compat shim) and the DOM element + CSS are now removed in v4.81.23.
+   The consolidated #today-plan card replaces this surface entirely. */
 
 /* Hide legacy hero elements when v2 hero is active */
 body.hero-v2-active #page-setup .hero,
@@ -7774,10 +7555,7 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 @media (max-width: 680px) {
   .hero-v2-display { font-size: 38px; }
   .hero-v2-mini-row { grid-template-columns: 1fr; }
-  .focus-banner-v2 { grid-template-columns: auto 1fr; gap: 14px; padding: 20px 20px; }
-  .focus-banner-v2 .fb-cta { grid-column: 1 / 3; justify-content: center; }
-  .focus-banner-v2 .fb-text { font-size: 17px; }
-  .focus-banner-v2 .fb-quote { font-size: 56px; }
+  /* v4.81.23: .focus-banner-v2 mobile rules retired (element removed). */
 }
 @media (max-width: 540px) {
   .topbar-time { display: none; }
@@ -7789,11 +7567,10 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   .app-sidebar,
   .topbar-toggle, .topbar-iconbtn,
   .sb-collapse-btn,
-  .focus-banner-v2 .fb-cta, .focus-banner-v2 .fb-cta span,
   .rc-v2-bar-fill {
     transition: none !important;
   }
-  .focus-banner-v2 .fb-cta:hover { transform: none !important; }
+  /* v4.81.23: .focus-banner-v2 reduced-motion rules retired (element removed). */
 }
 
 /* ── LIGHT-THEME OVERRIDES ── */
@@ -7827,20 +7604,8 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   border-color: rgba(99, 85, 224, .14);
 }
 [data-theme="light"] .mini-card-v2-val { color: #1f1b2e; }
-[data-theme="light"] .focus-banner-v2 {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent 0px,
-      transparent 20px,
-      rgba(255, 255, 255, .08) 20px,
-      rgba(255, 255, 255, .08) 21px
-    ),
-    linear-gradient(135deg, #4F46E5, #6366F1 50%, #7C3AED);
-  border-color: rgba(79, 70, 229, .5);
-  box-shadow: 0 10px 30px -10px rgba(79, 70, 229, .4);
-}
-[data-theme="light"] .focus-banner-v2 .fb-cta { color: #4F46E5; }
+/* v4.81.23: light-theme .focus-banner-v2 + .fb-cta overrides retired
+   (element removed in v4.81.23 cleanup). */
 /* Readiness card stays dark in both modes — that's the design intent from the mockup */
 
 /* ═══════════════════════════════════════════════════════════════════

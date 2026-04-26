@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.22
+// Network+ AI Quiz — app.js  v4.81.23
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.22';
+const APP_VERSION = '4.81.23';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4474,13 +4474,13 @@ window.addEventListener('DOMContentLoaded', () => {
   renderStatsCard();
   renderStreakBadge();
   renderReadinessCard();
-  renderSessionBanner();
   renderWrongBankBtn();
   renderStreakDefender();
   renderDailyChallengeCard();
-  renderTodaysFocus();
-  // v4.81.15: stale-topic rotation chips below the weak-spots row
-  if (typeof renderRotationChips === 'function') renderRotationChips();
+  // v4.81.18 + v4.81.23: consolidated Today's Plan card replaces the
+  // legacy chip rows + study plan banner. renderTodayPlan reads weak +
+  // stale signals and paints the single #today-plan card.
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
   renderTodaySection();
   renderMarathonSection();
   // v4.81.1: home-page surfaces that were goSetup-only — render on first
@@ -4677,17 +4677,15 @@ function goSetup() {
   if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
   // v4.76.0: dynamic next-best-move CTA in the hero
   if (typeof renderNextBestMove === 'function') renderNextBestMove();
-  renderSessionBanner();
   renderWrongBankBtn();
   renderStreakDefender();
   renderDailyChallengeCard();
-  renderTodaysFocus();
-  // v4.81.15: stale-topic rotation chips below the weak-spots row
-  if (typeof renderRotationChips === 'function') renderRotationChips();
+  // v4.81.18 + v4.81.23: consolidated Today's Plan card replaces the
+  // legacy chip rows + study plan banner + focus banner.
+  if (typeof renderTodayPlan === 'function') renderTodayPlan();
   renderTodaySection();
   renderMarathonSection();
-  // v4.53.0: editorial redesign hooks
-  if (typeof renderSetupFocusBanner === 'function') renderSetupFocusBanner();
+  // v4.53.0: editorial redesign hooks (focus banner retired in v4.81.20)
   if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
   // v4.54.0: hero v2 (display heading + dark readiness + mini cards)
   if (typeof renderHeroV2 === 'function') renderHeroV2();
@@ -11326,36 +11324,11 @@ function openWeakSpotBridge(kind) {
     if (typeof startSubnetTrainer === 'function') startSubnetTrainer();
   }
 }
-// v4.81.18: legacy renderTodaysFocus is now a thin shim that delegates into
-// the consolidated renderTodayPlan. Old #todays-focus element stays hidden
-// permanently — kept in the DOM only as a compat shim. The Weak Spots
-// signal still drives the plan composition (top 2 weak topics surface as
-// 🎯-iconed chips inside the new card), so no functionality is lost — just
-// the visual surface is unified. The FLIP-rerank animation that this
-// function used to host was specific to the old chip-row layout and
-// doesn't apply to the new card structure (chips render fresh each call,
-// no in-place reordering surface).
-function renderTodaysFocus() {
-  const row = document.getElementById('todays-focus');
-  if (row) {
-    row.classList.add('is-hidden');
-    row.innerHTML = '';
-  }
-  if (typeof renderTodayPlan === 'function') renderTodayPlan();
-}
-// v4.81.18: legacy renderRotationChips is now a thin shim that delegates
-// into the consolidated renderTodayPlan. The stale-topic signal (computed
-// by _computeStaleTopics) still drives the plan composition — top 3 stale
-// topics surface as 🕒-iconed chips inside the new card. Old #rotation-row
-// element stays hidden permanently as a compat shim.
-function renderRotationChips() {
-  const row = document.getElementById('rotation-row');
-  if (row) {
-    row.classList.add('is-hidden');
-    row.innerHTML = '';
-  }
-  if (typeof renderTodayPlan === 'function') renderTodayPlan();
-}
+// v4.81.23: legacy renderTodaysFocus + renderRotationChips removed. Both
+// were thin shims that delegated to renderTodayPlan. All callers now invoke
+// renderTodayPlan directly. The signals these functions used to surface
+// (computeWeakSpotScores for weak-spot chips, _computeStaleTopics for
+// rotation chips) still drive the consolidated card via buildSessionPlan.
 function focusTopic(t) {
   topic = t;
   diff = DEFAULT_DIFF;
@@ -11872,18 +11845,14 @@ function isStudyPlanDoneToday() {
   return plan.every(item => studiedTopicsToday.has(item.topic));
 }
 
-// v4.81.18: legacy renderSessionBanner is now a thin shim that delegates
-// into the consolidated renderTodayPlan. Old #session-banner element stays
-// hidden permanently — kept in the DOM only as a compat shim.
-function renderSessionBanner() {
-  const banner = document.getElementById('session-banner');
-  if (banner) banner.classList.add('is-hidden');
-  if (typeof renderTodayPlan === 'function') renderTodayPlan();
-}
+// v4.81.23: legacy renderSessionBanner removed. Was a thin shim that
+// delegated to renderTodayPlan. Callers now invoke renderTodayPlan directly.
 
-// v4.81.18: consolidated Today's Plan card — collapses what was 3 stacked
-// surfaces (#todays-focus weak-spots row + #rotation-row stale chips +
-// #session-banner study plan) into ONE prescriptive card. Eliminates
+// v4.81.18 / v4.81.23: consolidated Today's Plan card — collapses what
+// were 4 stacked surfaces (#todays-focus weak-spots row + #rotation-row
+// stale chips + #session-banner study plan + v4.54.0 #focus-banner) into
+// ONE prescriptive card. v4.81.23 removed all 4 legacy elements + their
+// shim render functions. Eliminates
 // topic-name repetition + "never studied" stutter + 3 competing CTAs.
 // Mockup at mockups/today-consolidation-concept.html.
 function renderTodayPlan() {
@@ -36028,26 +35997,12 @@ if (typeof window !== 'undefined') {
 }
 
 // ── Focus banner pullquote (setup page) ──
-// v4.81.20: retired. The v4.54.0 #focus-banner was the previous attempt at a
-// prescriptive "today's plan" surface. The v4.81.18 consolidated #today-plan
-// card now does this job AND respects the isStudyPlanDoneToday() gate. With
-// both surfaces live, the focus-banner showed stale "Seven questions per
-// topic..." text any time the consolidated card was correctly hidden post-
-// session — surfaced by user dogfood screenshot. This function is now a
-// thin compat shim that hides #focus-banner permanently and delegates to
-// renderTodayPlan() so the canonical plan render path handles all states.
-//
-// The legacy #focus-banner element stays in the DOM as a hidden compat
-// shim (some UAT regression guards check for its existence). CSS for the
-// .focus-banner-v2 + .fb-* classes also retained.
-function renderSetupFocusBanner() {
-  const el = document.getElementById('focus-banner');
-  if (el) {
-    el.classList.add('is-hidden');
-    el.innerHTML = '';
-  }
-  if (typeof renderTodayPlan === 'function') renderTodayPlan();
-}
+// v4.81.20 retired the v4.54.0 #focus-banner (was a redundant prescriptive
+// surface duplicating #today-plan's role). v4.81.23 removed the function +
+// element entirely. All callers now invoke renderTodayPlan directly. This
+// stub remains as a no-op safety net for any external code that may still
+// reference renderSetupFocusBanner — calling it does nothing harmful.
+function renderSetupFocusBanner() { /* retired in v4.81.23 — see renderTodayPlan */ }
 
 // ══════════════════════════════════════════
 // v4.54.0 \u2014 Editorial hero + top bar + sidebar collapse
@@ -36815,11 +36770,12 @@ function _v453Init() {
   try {
     document.body.classList.add('has-sidebar');
     if (typeof renderAppSidebar === 'function') renderAppSidebar();
-    // Initial focus banner + domain grid if we land on setup
+    // v4.81.23: focus banner retired in v4.81.20; consolidated #today-plan
+    // is rendered via renderTodayPlan() from goSetup() / DOMContentLoaded.
     const setupPage = document.getElementById('page-setup');
     if (setupPage && setupPage.classList.contains('active')) {
-      if (typeof renderSetupFocusBanner === 'function') renderSetupFocusBanner();
       if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
+      if (typeof renderTodayPlan === 'function') renderTodayPlan();
     }
   } catch (e) {
     // Defensive — sidebar is net-new; any bug here must not crash the app
