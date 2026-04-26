@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.9
+// Network+ AI Quiz — app.js  v4.81.10
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.9';
+const APP_VERSION = '4.81.10';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7345,6 +7345,263 @@ function renderSubnetRecommendation() {
     console.warn('[subnet rec] failed', err);
     host.hidden = true;
   }
+}
+
+// v4.81.10: Drill Mission Cards (Codex r8) — same per-page-rec pattern as
+// Subnet (v4.78.0) extended to the other 4 drills. Each picker reads the
+// drill's existing localStorage state, decides on a "next best move", and
+// reuses the shared `_pageRecCard` builder for visual consistency.
+//
+// Detection priority across all 4 pickers:
+//   1. New user (empty mastery)        → "Start Lesson 1: <name>"
+//   2. Has lessons but never practised → "Try the practice mode"
+//   3. Has weak focus area             → "Drill <weak-area>"
+//   4. Fallback                        → mode-specific entry CTA
+
+// Helper: read mastery + lessons localStorage for a drill prefix and
+// produce a uniform shape: { hasAny, hasLessons, hasPractice, weakest }
+function _drillMissionState(masteryKey, lessonsKey) {
+  let mastery = null, lessons = null;
+  try { mastery = JSON.parse(localStorage.getItem(masteryKey) || 'null'); } catch (_) {}
+  try { lessons = JSON.parse(localStorage.getItem(lessonsKey) || 'null'); } catch (_) {}
+  const lessonsCompleted = lessons && Array.isArray(lessons.completed) ? lessons.completed.length : 0;
+  // Mastery shape varies — use a permissive "has any data" check
+  const masteryEntries = mastery && typeof mastery === 'object'
+    ? Object.values(mastery).filter(v => v && (v.seen || v.attempts || v.correct))
+    : [];
+  const totalSeen = masteryEntries.reduce((sum, m) => sum + (m.seen || m.attempts || 0), 0);
+  // Find weakest entry by accuracy (min 3 attempts to qualify)
+  let weakest = null;
+  if (mastery && typeof mastery === 'object') {
+    Object.keys(mastery).forEach(k => {
+      const m = mastery[k];
+      if (!m) return;
+      const seen = m.seen || m.attempts || 0;
+      const correct = m.correct || 0;
+      if (seen < 3) return;
+      const acc = correct / seen;
+      if (!weakest || acc < weakest.acc) weakest = { id: k, acc, label: k };
+    });
+  }
+  return {
+    hasAny: lessonsCompleted > 0 || totalSeen > 0,
+    hasLessons: lessonsCompleted > 0,
+    hasPractice: totalSeen > 5,
+    lessonsCompleted,
+    weakest
+  };
+}
+
+// ── Port Drill mission picker ──
+function _pickPortMission() {
+  const s = _drillMissionState(STORAGE.PORT_MASTERY, STORAGE.PORT_LESSONS);
+  if (!s.hasAny) {
+    return {
+      eyebrow: 'Recommended start',
+      icon: '🔌',
+      headline: 'Start Lesson 1: Web Protocols',
+      sub: 'Foundational port-protocol pairings · ~5 min',
+      ctaLabel: '⚡ Start Lesson 1 →',
+      ctaFn: 'setPortTab(\'learn\'); ptOpenLesson(1);',
+      reason: 'Web protocols (HTTP/HTTPS) are the highest-frequency exam content'
+    };
+  }
+  if (s.hasLessons && !s.hasPractice) {
+    return {
+      eyebrow: 'Recommended next',
+      icon: '🎯',
+      headline: 'Try Adaptive Practice',
+      sub: 'Mixed port-recall questions · adaptive difficulty',
+      ctaLabel: 'Start practice →',
+      ctaFn: 'setPortTab(\'practice\');',
+      reason: 'Lessons taught the recognition · practice cements recall'
+    };
+  }
+  if (s.weakest) {
+    return {
+      eyebrow: 'Weakest port family',
+      icon: '🎯',
+      headline: 'Drill ' + s.weakest.label,
+      sub: Math.round(s.weakest.acc * 100) + '% accuracy · highest score impact',
+      ctaLabel: 'Drill →',
+      ctaFn: 'setPortTab(\'practice\');',
+      reason: 'Focus the bottleneck · short adaptive session'
+    };
+  }
+  return {
+    eyebrow: 'Keep training',
+    icon: '⏱️',
+    headline: 'Run a Timed Mode',
+    sub: '30 ports in 60 seconds · build speed under pressure',
+    ctaLabel: 'Start timed →',
+    ctaFn: 'setPortTab(\'practice\');',
+    reason: 'Speed matters on the real exam'
+  };
+}
+function renderPortMission() {
+  const host = document.getElementById('port-rec-host');
+  if (!host) return;
+  try { host.innerHTML = _pageRecCard(_pickPortMission()); host.hidden = false; }
+  catch (err) { console.warn('[port mission]', err); host.hidden = true; }
+}
+
+// ── Acronym Blitz mission picker ──
+function _pickAcronymMission() {
+  const s = _drillMissionState(STORAGE.AB_MASTERY, STORAGE.AB_LESSONS);
+  if (!s.hasAny) {
+    return {
+      eyebrow: 'Recommended start',
+      icon: '📜',
+      headline: 'Start Lesson 1: Core Protocols',
+      sub: 'TCP, UDP, HTTP, DNS, DHCP and friends · ~5 min',
+      ctaLabel: '⚡ Start Lesson 1 →',
+      ctaFn: 'setAbTab(\'learn\'); abOpenLesson(1);',
+      reason: '110+ acronyms become exam-ready by category'
+    };
+  }
+  if (s.hasLessons && !s.hasPractice) {
+    return {
+      eyebrow: 'Recommended next',
+      icon: '⚡',
+      headline: 'Mixed Lightning Round',
+      sub: 'Rapid-fire acronym recall · build speed',
+      ctaLabel: 'Start lightning →',
+      ctaFn: 'setAbTab(\'practice\');',
+      reason: 'Lessons taught categories · lightning fuses them together'
+    };
+  }
+  if (s.weakest) {
+    return {
+      eyebrow: 'Weakest acronym category',
+      icon: '🎯',
+      headline: 'Drill ' + s.weakest.label,
+      sub: Math.round(s.weakest.acc * 100) + '% accuracy',
+      ctaLabel: 'Drill →',
+      ctaFn: 'setAbTab(\'practice\');',
+      reason: 'Focus the bottleneck'
+    };
+  }
+  return {
+    eyebrow: 'Keep training',
+    icon: '⏱️',
+    headline: 'Run Timed Mode',
+    sub: 'Acronym recall under time pressure',
+    ctaLabel: 'Start timed →',
+    ctaFn: 'setAbTab(\'practice\');',
+    reason: 'Speed = exam confidence'
+  };
+}
+function renderAcronymMission() {
+  const host = document.getElementById('acronym-rec-host');
+  if (!host) return;
+  try { host.innerHTML = _pageRecCard(_pickAcronymMission()); host.hidden = false; }
+  catch (err) { console.warn('[acronym mission]', err); host.hidden = true; }
+}
+
+// ── OSI Sorter mission picker ──
+function _pickOsiMission() {
+  const s = _drillMissionState(STORAGE.OS_MASTERY, STORAGE.OS_LESSONS);
+  if (!s.hasAny) {
+    return {
+      eyebrow: 'Recommended start',
+      icon: '📚',
+      headline: 'Start Lesson 1: Layers 1 & 2',
+      sub: 'Physical + Data Link · the foundation of OSI · ~5 min',
+      ctaLabel: '⚡ Start Lesson 1 →',
+      ctaFn: 'setOsTab(\'learn\'); osOpenLesson(1);',
+      reason: 'Layer placement is a constant on N10-009 — start at the bottom'
+    };
+  }
+  if (s.hasLessons && !s.hasPractice) {
+    return {
+      eyebrow: 'Recommended next',
+      icon: '🎯',
+      headline: 'Sort protocols into layers',
+      sub: 'Drag-and-drop practice · all 7 layers',
+      ctaLabel: 'Start sorting →',
+      ctaFn: 'setOsTab(\'practice\');',
+      reason: 'Lessons taught each layer · practice locks in placement'
+    };
+  }
+  if (s.weakest) {
+    return {
+      eyebrow: 'Weakest layer',
+      icon: '🎯',
+      headline: 'Master ' + s.weakest.label,
+      sub: Math.round(s.weakest.acc * 100) + '% accuracy',
+      ctaLabel: 'Drill →',
+      ctaFn: 'setOsTab(\'practice\');',
+      reason: 'Common exam-trap layer · focus here'
+    };
+  }
+  return {
+    eyebrow: 'Keep training',
+    icon: '🔀',
+    headline: 'Mixed-layer challenge',
+    sub: 'Random protocols across all 7 layers',
+    ctaLabel: 'Start mixed →',
+    ctaFn: 'setOsTab(\'practice\');',
+    reason: 'Maintain coverage across the full stack'
+  };
+}
+function renderOsiMission() {
+  const host = document.getElementById('osi-rec-host');
+  if (!host) return;
+  try { host.innerHTML = _pageRecCard(_pickOsiMission()); host.hidden = false; }
+  catch (err) { console.warn('[osi mission]', err); host.hidden = true; }
+}
+
+// ── Cable ID mission picker ──
+function _pickCableMission() {
+  const s = _drillMissionState(STORAGE.CB_MASTERY, STORAGE.CB_LESSONS);
+  if (!s.hasAny) {
+    return {
+      eyebrow: 'Recommended start',
+      icon: '🔌',
+      headline: 'Start Lesson 1: Twisted Pair',
+      sub: 'Cat 5e through Cat 8 · speeds, distances, differences · ~5 min',
+      ctaLabel: '⚡ Start Lesson 1 →',
+      ctaFn: 'setCbTab(\'learn\'); cbOpenLesson(1);',
+      reason: 'Cabling is N10-009 1.5 — pure rote that becomes muscle memory'
+    };
+  }
+  if (s.hasLessons && !s.hasPractice) {
+    return {
+      eyebrow: 'Recommended next',
+      icon: '🎯',
+      headline: 'Identify cables',
+      sub: 'Match cable images to names · build instant recognition',
+      ctaLabel: 'Start ID →',
+      ctaFn: 'setCbTab(\'practice\');',
+      reason: 'Visual recall beats memorisation for cabling'
+    };
+  }
+  if (s.weakest) {
+    return {
+      eyebrow: 'Weakest cable family',
+      icon: '🎯',
+      headline: 'Master ' + s.weakest.label,
+      sub: Math.round(s.weakest.acc * 100) + '% accuracy',
+      ctaLabel: 'Drill →',
+      ctaFn: 'setCbTab(\'practice\');',
+      reason: 'Focus the gap'
+    };
+  }
+  return {
+    eyebrow: 'Keep training',
+    icon: '🔀',
+    headline: 'Mixed cable challenge',
+    sub: 'All cable types · timed identification',
+    ctaLabel: 'Start mixed →',
+    ctaFn: 'setCbTab(\'practice\');',
+    reason: 'Maintain breadth across the cabling catalog'
+  };
+}
+function renderCableMission() {
+  const host = document.getElementById('cable-rec-host');
+  if (!host) return;
+  try { host.innerHTML = _pageRecCard(_pickCableMission()); host.hidden = false; }
+  catch (err) { console.warn('[cable mission]', err); host.hidden = true; }
 }
 
 // ── Topology Builder recommendation ──
@@ -28101,6 +28358,10 @@ function isLessonUnlocked(lesson) {
 function startSubnetTrainer() {
   setSubnetTab('learn');
   stRenderLevelBadge();
+  // v4.81.10: render Drill Mission Card on entry (was previously
+  // dashboard-only — Codex r8 wants it visible immediately on every
+  // drill so the user sees their next-best-move without navigating)
+  if (typeof renderSubnetRecommendation === 'function') renderSubnetRecommendation();
 }
 
 function setSubnetTab(tabId) {
@@ -28346,6 +28607,15 @@ function stRenderLessonSidebar() {
 }
 
 function stOpenLesson(id) {
+  // v4.81.10: tolerate the "Start Lesson 1" CTA passing 1 / '1' — the
+  // placeholder card uses that as a friendly shorthand for "first
+  // lesson". Lesson IDs are strings ('binary', 'ip_anatomy', ...) so a
+  // strict-equality find() against a numeric 1 returned undefined and
+  // the click silently no-op'd. Codex r8 flagged: "Start Lesson 1
+  // buttons did not visibly transition into lesson content." Fix: if
+  // the caller passes 1 or '1' (or anything that doesn't match an
+  // existing lesson id directly), fall back to the first lesson.
+  if ((id === 1 || id === '1') && SUBNET_LESSONS[0]) id = SUBNET_LESSONS[0].id;
   stActiveLesson = id;
   stRenderLessonSidebar();
   const lesson = SUBNET_LESSONS.find(l => l.id === id);
@@ -29321,6 +29591,8 @@ function filterPortReference() {
 function startPortDrill() {
   setPortTab('learn');
   ptRenderLevelBadge();
+  // v4.81.10: Drill Mission Card (Codex r8)
+  if (typeof renderPortMission === 'function') renderPortMission();
 }
 
 // ── Tabs ──
@@ -29649,6 +29921,9 @@ function ptRenderLessonSidebar() {
 }
 
 function ptOpenLesson(id) {
+  // v4.81.10: tolerate "Start Lesson 1" CTA passing 1 / '1' — see
+  // stOpenLesson for full context. Same fix across all 5 drill modules.
+  if ((id === 1 || id === '1') && PORT_LESSONS[0]) id = PORT_LESSONS[0].id;
   ptActiveLesson = id;
   ptRenderLessonSidebar();
   const lesson = PORT_LESSONS.find(l => l.id === id);
@@ -31308,6 +31583,11 @@ function createDrillScaffold(cfg) {
   }
 
   function openLesson(id) {
+    // v4.81.10: tolerate "Start Lesson 1" CTA passing 1 / '1'.
+    // See stOpenLesson for full context — same fix applied across all
+    // 5 drill modules. Lesson IDs are strings; the placeholder buttons
+    // pass the number 1 as a friendly shorthand for "first lesson".
+    if ((id === 1 || id === '1') && cfg.lessons[0]) id = cfg.lessons[0].id;
     cfg.activeLesson.set(id);
     renderLessonSidebar();
     const lesson = cfg.lessons.find(l => l.id === id);
@@ -31783,7 +32063,12 @@ function abPickItem(focusCat) {
   return pool[pool.length - 1];
 }
 
-function startAcronymBlitz() { setAbTab('learn'); abRenderLevelBadge(); }
+function startAcronymBlitz() {
+  setAbTab('learn');
+  abRenderLevelBadge();
+  // v4.81.10: Drill Mission Card (Codex r8)
+  if (typeof renderAcronymMission === 'function') renderAcronymMission();
+}
 
 function abSetFocusCat(catId) {
   abFocusCat = catId;
@@ -32104,7 +32389,12 @@ function updateOsMastery(itemName, wasCorrect) {
   saveOsMastery(m);
 }
 
-function startOsiSorter() { setOsTab('learn'); osRenderLevelBadge(); }
+function startOsiSorter() {
+  setOsTab('learn');
+  osRenderLevelBadge();
+  // v4.81.10: Drill Mission Card (Codex r8)
+  if (typeof renderOsiMission === 'function') renderOsiMission();
+}
 
 function setOsDifficulty(diff) {
   osDifficulty = diff;
@@ -32577,7 +32867,12 @@ function updateCbMastery(itemName, catId, wasCorrect) {
   saveCbMastery(m);
 }
 
-function startCableId() { setCbTab('learn'); cbRenderLevelBadge(); }
+function startCableId() {
+  setCbTab('learn');
+  cbRenderLevelBadge();
+  // v4.81.10: Drill Mission Card (Codex r8)
+  if (typeof renderCableMission === 'function') renderCableMission();
+}
 
 function cbNextQuestion() {
   cbIdx++;

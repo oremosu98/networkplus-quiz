@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.9</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.10</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1285,6 +1285,8 @@
     </div>
     <span id="pt-level-badge" class="pt-level-badge">Beginner</span>
   </div>
+  <!-- v4.81.10: Drill Mission Card (Codex r8) — surfaces next-best-move for this drill -->
+  <div id="port-rec-host" hidden></div>
 
   <!-- Tab bar -->
   <div class="pt-tab-bar" role="tablist">
@@ -1373,6 +1375,8 @@
     </div>
     <span id="ab-level-badge" class="ab-level-badge">Beginner</span>
   </div>
+  <!-- v4.81.10: Drill Mission Card (Codex r8) -->
+  <div id="acronym-rec-host" hidden></div>
   <div class="ab-tab-bar" role="tablist" aria-label="Acronym Blitz tabs">
     <button class="ab-tab-btn ab-tab-active" id="ab-tab-btn-learn" role="tab" aria-selected="true" aria-controls="ab-tab-learn" tabindex="0" onclick="setAbTab('learn')">&#128218; Learn</button>
     <button class="ab-tab-btn" id="ab-tab-btn-practice" role="tab" aria-selected="false" aria-controls="ab-tab-practice" tabindex="-1" onclick="setAbTab('practice')">&#127919; Practice</button>
@@ -1433,6 +1437,8 @@
     </div>
     <span id="os-level-badge" class="os-level-badge">Beginner</span>
   </div>
+  <!-- v4.81.10: Drill Mission Card (Codex r8) -->
+  <div id="osi-rec-host" hidden></div>
   <div class="os-tab-bar" role="tablist" aria-label="OSI Layer Sorter tabs">
     <button class="os-tab-btn os-tab-active" id="os-tab-btn-learn" role="tab" aria-selected="true" aria-controls="os-tab-learn" tabindex="0" onclick="setOsTab('learn')">&#128218; Learn</button>
     <button class="os-tab-btn" id="os-tab-btn-practice" role="tab" aria-selected="false" aria-controls="os-tab-practice" tabindex="-1" onclick="setOsTab('practice')">&#127919; Practice</button>
@@ -1488,6 +1494,8 @@
     </div>
     <span id="cb-level-badge" class="cb-level-badge">Beginner</span>
   </div>
+  <!-- v4.81.10: Drill Mission Card (Codex r8) -->
+  <div id="cable-rec-host" hidden></div>
   <div class="cb-tab-bar" role="tablist" aria-label="Cable &amp; Connector ID tabs">
     <button class="cb-tab-btn cb-tab-active" id="cb-tab-btn-learn" role="tab" aria-selected="true" aria-controls="cb-tab-learn" tabindex="0" onclick="setCbTab('learn')">&#128218; Learn</button>
     <button class="cb-tab-btn" id="cb-tab-btn-practice" role="tab" aria-selected="false" aria-controls="cb-tab-practice" tabindex="-1" onclick="setCbTab('practice')">&#127919; Practice</button>

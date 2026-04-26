@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.9', js.includes("const APP_VERSION = '4.81.9"));
+test('APP_VERSION is 4.81.10', js.includes("const APP_VERSION = '4.81.10"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.9', sw.includes('netplus-v4.81.9'));
+test('SW cache bumped to v4.81.10', sw.includes('netplus-v4.81.10'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10750,6 +10750,126 @@ test('v4.81.9 ACL: vm fixture — default-deny scenario suggests specific permit
 // Behavioral fixture — when rules already exist, NO suggested first rule
 // (only chips). The "specific-deny-first" guidance only fires for the
 // empty-state.
+// ──────────────────────────────────────────────────────────
+// v4.81.10: "Start Lesson 1" bug fix + Drill Mission Cards (Codex r8)
+// ──────────────────────────────────────────────────────────
+// Codex r8: clicking "Start Lesson 1" CTAs on all 5 drill placeholder
+// cards silently no-op'd. Root cause: lesson IDs are strings ('binary',
+// 'ip_anatomy', 'web', 'protocols', etc.) but the buttons passed the
+// number 1. find(l => l.id === id) returned undefined → function exited
+// at `if (!lesson) return;`. Fix: id-normalization in all 5 *OpenLesson
+// functions tolerates 1 / '1' as "first lesson".
+//
+// Also adds the "Drill Mission Card" surface (Codex r8 strategic ask)
+// to the 4 drills that didn't have one (Subnet had it from v4.78.0).
+test('v4.81.10 Lesson1Fix: stOpenLesson normalizes id 1 / "1" to first lesson',
+  (() => {
+    const body = _fnBody(js, 'stOpenLesson');
+    return body && /SUBNET_LESSONS\[0\]/.test(body) && /id === 1\s*\|\|\s*id === '1'/.test(body);
+  })());
+test('v4.81.10 Lesson1Fix: ptOpenLesson normalizes id 1 / "1" to first lesson',
+  (() => {
+    const body = _fnBody(js, 'ptOpenLesson');
+    return body && /PORT_LESSONS\[0\]/.test(body) && /id === 1\s*\|\|\s*id === '1'/.test(body);
+  })());
+test('v4.81.10 Lesson1Fix: scaffold openLesson normalizes id 1 / "1" to first lesson',
+  (() => {
+    // The scaffold openLesson is inside createDrillScaffold — extract by name
+    const body = _fnBody(js, 'createDrillScaffold');
+    return body && /id === 1\s*\|\|\s*id === '1'/.test(body) && /cfg\.lessons\[0\]/.test(body);
+  })());
+
+// vm fixture — simulate the exact Codex-flagged path: pass 1 to
+// stOpenLesson against a realistic SUBNET_LESSONS schema. Pre-fix this
+// would silently exit; post-fix it should resolve to the first lesson.
+test('v4.81.10 Lesson1Fix: vm fixture — stOpenLesson(1) resolves to first lesson',
+  (() => {
+    try {
+      const body = _fnBody(js, 'stOpenLesson');
+      if (!body) return false;
+      const vm = require('vm');
+      // Stub minimal env — only need the find() resolution to succeed
+      const ctx = {
+        SUBNET_LESSONS: [
+          { id: 'binary', title: 'Binary', icon: '💻', desc: 'Binary basics', theory: ['t1'] },
+          { id: 'ip_anatomy', title: 'IP', icon: '🌐', desc: 'IP', theory: ['t2'] }
+        ],
+        stActiveLesson: null,
+        stRenderLessonSidebar: () => {},
+        stRenderGate: () => {},
+        _stSetupBlockMatchObserver: () => {},
+        document: {
+          getElementById: () => ({ innerHTML: '' })
+        },
+        escHtml: (s) => String(s)
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('stOpenLesson(1)', ctx);
+      // Pre-fix: stActiveLesson would be 1 (number) and find() would not match
+      // Post-fix: stActiveLesson should be 'binary' (the first lesson's string ID)
+      return ctx.stActiveLesson === 'binary';
+    } catch (e) { return false; }
+  })());
+
+// Drill Mission Card structural checks
+test('v4.81.10 DrillMission: _drillMissionState helper defined',
+  /function\s+_drillMissionState\b/.test(js));
+test('v4.81.10 DrillMission: 4 picker functions defined (Port/Acronym/OSI/Cable)',
+  /function\s+_pickPortMission\b/.test(js)
+  && /function\s+_pickAcronymMission\b/.test(js)
+  && /function\s+_pickOsiMission\b/.test(js)
+  && /function\s+_pickCableMission\b/.test(js));
+test('v4.81.10 DrillMission: 4 render functions defined',
+  /function\s+renderPortMission\b/.test(js)
+  && /function\s+renderAcronymMission\b/.test(js)
+  && /function\s+renderOsiMission\b/.test(js)
+  && /function\s+renderCableMission\b/.test(js));
+test('v4.81.10 DrillMission: HTML hosts present for 4 new drills',
+  /id="port-rec-host"/.test(html)
+  && /id="acronym-rec-host"/.test(html)
+  && /id="osi-rec-host"/.test(html)
+  && /id="cable-rec-host"/.test(html));
+test('v4.81.10 DrillMission: drill entry points wire into mission renderers',
+  (() => {
+    const port = _fnBody(js, 'startPortDrill');
+    const ab   = _fnBody(js, 'startAcronymBlitz');
+    const os   = _fnBody(js, 'startOsiSorter');
+    const cb   = _fnBody(js, 'startCableId');
+    const sub  = _fnBody(js, 'startSubnetTrainer');
+    return port && /renderPortMission/.test(port)
+      && ab && /renderAcronymMission/.test(ab)
+      && os && /renderOsiMission/.test(os)
+      && cb && /renderCableMission/.test(cb)
+      && sub && /renderSubnetRecommendation/.test(sub);
+  })());
+
+// Behavioral fixture — picker correctly handles "new user" state
+test('v4.81.10 DrillMission: vm fixture — empty mastery suggests Lesson 1',
+  (() => {
+    try {
+      const helperBody = _fnBody(js, '_drillMissionState');
+      const portBody = _fnBody(js, '_pickPortMission');
+      if (!helperBody || !portBody) return false;
+      const vm = require('vm');
+      const ctx = {
+        STORAGE: { PORT_MASTERY: 'k_pm', PORT_LESSONS: 'k_pl' },
+        localStorage: {
+          getItem: () => null,  // empty state
+          setItem: () => {}, removeItem: () => {}
+        },
+        Math, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(helperBody, ctx);
+      vm.runInContext(portBody, ctx);
+      const mission = vm.runInContext('_pickPortMission()', ctx);
+      return mission
+        && /Lesson 1/i.test(mission.headline)
+        && /ptOpenLesson\(1\)/.test(mission.ctaFn);
+    } catch (e) { return false; }
+  })());
+
 test('v4.81.9 ACL: vm fixture — currentRuleCount > 0 returns no suggestion (chips only)',
   (() => {
     try {
