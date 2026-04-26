@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.5', js.includes("const APP_VERSION = '4.81.5"));
+test('APP_VERSION is 4.81.6', js.includes("const APP_VERSION = '4.81.6"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.5', sw.includes('netplus-v4.81.5'));
+test('SW cache bumped to v4.81.6', sw.includes('netplus-v4.81.6'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10044,6 +10044,10 @@ test('v4.81.0 Diagnostic: _buildPassPlan returns expected shape (vm fixture)',
         TOPIC_DOMAINS: { 'A': 'concepts', 'B': 'implementation', 'C': 'operations', 'D': 'security', 'E': 'troubleshooting' },
         EXAM_PASS_SCORE: 720,
         _buildWeekPlan: () => [],
+        // v4.81.6: _buildPassPlan now calls _resolveDomainForTopic; stub
+        // it to use the simple TOPIC_DOMAINS lookup for these existing
+        // fixtures (which use exact-match canonical keys A-E).
+        _resolveDomainForTopic: (t) => ({ A: 'concepts', B: 'implementation', C: 'operations', D: 'security', E: 'troubleshooting' })[t] || null,
         Math, Date, JSON
       };
       vm.createContext(ctx);
@@ -10075,6 +10079,10 @@ test('v4.81.0 Diagnostic: _buildPassPlan probability near 0.5 at ~70% accuracy (
         TOPIC_DOMAINS: { 'A': 'concepts', 'B': 'implementation', 'C': 'operations', 'D': 'security', 'E': 'troubleshooting' },
         EXAM_PASS_SCORE: 720,
         _buildWeekPlan: () => [],
+        // v4.81.6: _buildPassPlan now calls _resolveDomainForTopic; stub
+        // it to use the simple TOPIC_DOMAINS lookup for these existing
+        // fixtures (which use exact-match canonical keys A-E).
+        _resolveDomainForTopic: (t) => ({ A: 'concepts', B: 'implementation', C: 'operations', D: 'security', E: 'troubleshooting' })[t] || null,
         Math, Date, JSON
       };
       vm.createContext(ctx);
@@ -10422,6 +10430,127 @@ test('v4.81.5 Diagnostic: MCQ-filter requires 4 letter-keyed options + single-le
 
 // Behavioral fixture — synthetic MCQ question, verify the render code
 // produces 4 buttons with correct letters.
+// ──────────────────────────────────────────────────────────
+// v4.81.6: Pass Plan resilience to non-canonical topic strings
+// ──────────────────────────────────────────────────────────
+// User report (after taking diagnostic, getting most correct): "i kwow for
+// a fact i got most of them correct yet this was the score" — screenshot
+// showed 0% pass probability, 420/870 predicted, 0 weak domains. Root
+// cause: Haiku returned verbose topic strings like "NETWORKING CONCEPTS
+// - OSI MODEL & TCP/IP" that didn't match canonical TOPIC_DOMAINS keys
+// (e.g. "Network Models & OSI"), so every answer was silently skipped
+// from the score calculation. Fix: _resolveDomainForTopic adds fuzzy
+// matching + raw-accuracy fallback when domain coverage drops below 50%.
+test('v4.81.6 PassPlan: _resolveDomainForTopic helper defined',
+  /function\s+_resolveDomainForTopic\b/.test(js));
+test('v4.81.6 PassPlan: _resolveDomainForTopic does substring + keyword fallback',
+  (() => {
+    const body = _fnBody(js, '_resolveDomainForTopic');
+    return body && /toLowerCase\(\)/.test(body) && /keywordMap/.test(body);
+  })());
+test('v4.81.6 PassPlan: _buildPassPlan tracks rawCorrect + rawTotal alongside domain bucketing',
+  (() => {
+    const body = _fnBody(js, '_buildPassPlan');
+    return body && /rawCorrect/.test(body) && /rawTotal/.test(body);
+  })());
+test('v4.81.6 PassPlan: _buildPassPlan falls back to raw accuracy when domain coverage <50%',
+  (() => {
+    const body = _fnBody(js, '_buildPassPlan');
+    return body && /domainCoverageOk/.test(body) && />= 0\.5/.test(body);
+  })());
+
+// Behavioral fixture — the exact failure mode the user hit. Synthesises
+// a session where Haiku returned verbose topics that don't match
+// TOPIC_DOMAINS exactly. Pre-fix this would yield 0% accuracy; post-fix
+// it should yield the actual raw-accuracy score.
+test('v4.81.6 PassPlan: VM fixture — non-canonical topics produce real score (regression for the user-reported bug)',
+  (() => {
+    try {
+      const resolveBody = _fnBody(js, '_resolveDomainForTopic');
+      const buildBody = _fnBody(js, '_buildPassPlan');
+      if (!resolveBody || !buildBody) return false;
+      const vm = require('vm');
+      const ctx = {
+        DOMAIN_WEIGHTS: { concepts: 0.23, implementation: 0.20, operations: 0.19, security: 0.14, troubleshooting: 0.24 },
+        DOMAIN_LABELS: { concepts: 'Concepts', implementation: 'Implementation', operations: 'Operations', security: 'Security', troubleshooting: 'Troubleshooting' },
+        // Realistic TOPIC_DOMAINS subset — short canonical keys
+        TOPIC_DOMAINS: {
+          'Network Models & OSI': 'concepts',
+          'OSPF': 'implementation',
+          'Network Troubleshooting & Tools': 'troubleshooting',
+          'Network Security': 'security',
+          'Network Operations': 'operations'
+        },
+        EXAM_PASS_SCORE: 720,
+        _buildWeekPlan: () => [],
+        Math, Date, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(resolveBody, ctx);
+      vm.runInContext(buildBody, ctx);
+      // Build session: 20 questions with VERBOSE topic strings (the actual
+      // failure mode), 18 of which are correct.
+      const verboseTopics = [
+        'NETWORKING CONCEPTS - OSI MODEL & TCP/IP',
+        'NETWORKING CONCEPTS - PORTS & PROTOCOLS',
+        'NETWORK IMPLEMENTATION - OSPF & ROUTING',
+        'NETWORK SECURITY - FIREWALL FUNDAMENTALS',
+        'NETWORK TROUBLESHOOTING - LATENCY DIAGNOSIS'
+      ];
+      const questions = Array.from({ length: 20 }, (_, i) => ({
+        topic: verboseTopics[i % verboseTopics.length]
+      }));
+      const answers = questions.map((_, i) => ({
+        correct: i < 18,
+        confidence: 'confident',
+        answeredAt: 1
+      }));
+      ctx.session = { questions, answers };
+      const plan = vm.runInContext('_buildPassPlan(session)', ctx);
+      // 18/20 = 90% raw accuracy → predicted ~ 420 + 90 * 4.275 ≈ 805
+      // → way above the 720 pass mark → high probability
+      // Pre-fix would have returned predicted=420 / probability ~= 0
+      return plan.predicted > 700
+        && plan.passProbability > 0.5
+        && plan.accPct >= 80;
+    } catch (e) { return false; }
+  })());
+test('v4.81.6 PassPlan: VM fixture — exact-match canonical topics still work (no regression)',
+  (() => {
+    try {
+      const resolveBody = _fnBody(js, '_resolveDomainForTopic');
+      const buildBody = _fnBody(js, '_buildPassPlan');
+      if (!resolveBody || !buildBody) return false;
+      const vm = require('vm');
+      const ctx = {
+        DOMAIN_WEIGHTS: { concepts: 0.23, implementation: 0.20, operations: 0.19, security: 0.14, troubleshooting: 0.24 },
+        DOMAIN_LABELS: { concepts: 'Concepts', implementation: 'Implementation', operations: 'Operations', security: 'Security', troubleshooting: 'Troubleshooting' },
+        TOPIC_DOMAINS: { 'A': 'concepts', 'B': 'implementation', 'C': 'operations', 'D': 'security', 'E': 'troubleshooting' },
+        EXAM_PASS_SCORE: 720,
+        _buildWeekPlan: () => [],
+        Math, Date, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(resolveBody, ctx);
+      vm.runInContext(buildBody, ctx);
+      const questions = Array.from({ length: 20 }, (_, i) => ({ topic: ['A','B','C','D','E'][i % 5] }));
+      const answers = questions.map((_, i) => ({ correct: i < 12, confidence: 'confident', answeredAt: 1 }));
+      ctx.session = { questions, answers };
+      const plan = vm.runInContext('_buildPassPlan(session)', ctx);
+      return plan.questionCount === 20
+        && typeof plan.passProbability === 'number'
+        && plan.passProbability > 0;
+    } catch (e) { return false; }
+  })());
+
+// ──────────────────────────────────────────────────────────
+// v4.81.6: ENV badge relocated bottom-left (was overlapping topbar)
+// ──────────────────────────────────────────────────────────
+test('v4.81.6 EnvBadge: .env-badge uses bottom-left positioning (not top-right)',
+  /\.env-badge\s*\{[^}]*bottom:\s*12px[^}]*left:\s*12px/.test(css));
+test('v4.81.6 EnvBadge: regression guard — .env-badge no longer uses top-right positioning',
+  !/\.env-badge\s*\{[^}]*\btop:\s*12px[^}]*\bright:\s*12px/.test(css));
+
 test('v4.81.5 Diagnostic: render produces 4 option buttons (vm fixture with letter-keyed options)',
   (() => {
     try {

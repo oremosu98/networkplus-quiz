@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.5
+   Network+ AI Quiz — styles.css  v4.81.6
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14211,11 +14211,15 @@ html { zoom: 1.10; }
   .ab-row-actions .btn { flex: 1; }
 }
 
-/* ── v4.81.3: Environment badge (top-right "PROD" / "DEV" pill) ── */
+/* ── v4.81.3: Environment badge ("PROD" / "DEV" pill) ──
+ * v4.81.6: relocated from top-right to bottom-LEFT — was overlapping the
+ * topbar avatar circle (user report). Bottom-left is the standard
+ * dev-tool placement (Vercel, Stripe) and avoids any topbar/sidebar
+ * elements entirely. */
 .env-badge {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  bottom: 12px;
+  left: 12px;
   z-index: 9998;
   font-size: 9px;
   font-weight: 800;
@@ -14242,8 +14246,9 @@ html { zoom: 1.10; }
   border: 1px solid rgba(255,255,255,.2);
 }
 @media (max-width: 540px) {
-  /* On phones the badge would crowd the topbar — keep visible but smaller */
-  .env-badge { top: 8px; right: 8px; font-size: 8px; padding: 3px 8px; }
+  /* On phones keep visible but smaller; still bottom-left so it doesn't
+   * crowd the mobile topbar / hamburger menu */
+  .env-badge { bottom: 8px; left: 8px; font-size: 8px; padding: 3px 8px; }
 }
 
 /* ── v4.81.4: API key status pill ── */

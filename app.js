@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.5
+// Network+ AI Quiz — app.js  v4.81.6
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.5';
+const APP_VERSION = '4.81.6';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6181,6 +6181,47 @@ function quitDiagnostic() {
   goSetup();
 }
 
+// v4.81.6: resilient topic→domain resolver for diagnostic answers.
+// Haiku doesn't always return canonical TOPIC_DOMAINS keys (e.g. it
+// may return "NETWORKING CONCEPTS - OSI MODEL & TCP/IP" instead of
+// "Network Models & OSI"). This tries:
+//   1. Exact match against TOPIC_DOMAINS
+//   2. Case-insensitive substring match against canonical topic keys
+//   3. Keyword fallback against domain-characteristic terms
+// Returns null if no match found — caller falls back to raw accuracy.
+function _resolveDomainForTopic(topic) {
+  if (!topic || typeof TOPIC_DOMAINS === 'undefined') return null;
+  // 1. Exact match (the happy path)
+  if (TOPIC_DOMAINS[topic]) return TOPIC_DOMAINS[topic];
+  // 2. Case-insensitive substring match — find a canonical topic that
+  //    appears inside the verbose Haiku topic string (or vice-versa)
+  const lowerTopic = topic.toLowerCase();
+  const canonical = Object.keys(TOPIC_DOMAINS);
+  for (const c of canonical) {
+    const lowerC = c.toLowerCase();
+    if (lowerTopic.includes(lowerC) || lowerC.includes(lowerTopic)) {
+      return TOPIC_DOMAINS[c];
+    }
+  }
+  // 3. Keyword fallback — match against domain-characteristic terms.
+  //    Conservative: only fires for unambiguous keywords. If a topic
+  //    is genuinely off-blueprint, return null and let the raw-
+  //    accuracy fallback handle it.
+  const keywordMap = [
+    { keys: ['osi', 'tcp/ip', 'tcp ip', 'protocol', 'port', 'network model', 'topology', 'cabling', 'ipv4', 'ipv6', 'subnet', 'wan', 'lan', 'cloud'], domain: 'concepts' },
+    { keys: ['routing', 'switching', 'vlan', 'stp', 'wireless', 'wifi', 'ospf', 'bgp', 'rip', 'eigrp', 'spanning tree', 'trunk', 'lacp'], domain: 'implementation' },
+    { keys: ['monitoring', 'snmp', 'syslog', 'documentation', 'change management', 'lifecycle', 'patch', 'inventory', 'baseline'], domain: 'operations' },
+    { keys: ['security', 'firewall', 'acl', 'authentication', 'authorization', 'aaa', 'vpn', 'ipsec', 'encryption', 'attack', 'malware', 'phishing', 'zero trust'], domain: 'security' },
+    { keys: ['troubleshoot', 'diagnose', 'latency', 'packet loss', 'jitter', 'cable issue', 'perf issue', 'tools', 'ping', 'traceroute', 'tcpdump'], domain: 'troubleshooting' }
+  ];
+  for (const km of keywordMap) {
+    for (const k of km.keys) {
+      if (lowerTopic.includes(k)) return km.domain;
+    }
+  }
+  return null;
+}
+
 // Compute the Pass Plan from the answered questions. Returns the data
 // shape the result page expects + the home tile reads from.
 function _buildPassPlan(session) {
@@ -6195,12 +6236,28 @@ function _buildPassPlan(session) {
   const buckets = {};
   Object.keys(DOMAIN_WEIGHTS).forEach(d => { buckets[d] = { correct: 0, total: 0, label: DOMAIN_LABELS[d] }; });
 
+  // v4.81.6: track raw correct/total alongside domain bucketing as a
+  // resilient fallback. Pre-fix, if Haiku returned a topic that didn't
+  // map cleanly to TOPIC_DOMAINS (e.g. the verbose "NETWORKING CONCEPTS
+  // - OSI MODEL & TCP/IP" instead of canonical "Network Models & OSI"),
+  // the answer was silently skipped from the score → user could get 18/20
+  // correct and see 0% pass probability because no domain bucket got
+  // populated. The user reported exactly this. Fix: keep the domain-
+  // weighted path as the preferred score (it's exam-realistic), but
+  // fall back to raw accuracy when the domain mapping fails for too
+  // many questions to give a reliable weighted result.
+  let rawCorrect = 0;
+  let rawTotal = 0;
+  let domainMappedCount = 0;
   questions.forEach((q, i) => {
     const a = answers[i];
     if (!a) return;
+    rawTotal++;
+    if (a.correct) rawCorrect++;
     const topic = q.topic;
-    const domain = (typeof TOPIC_DOMAINS !== 'undefined') ? TOPIC_DOMAINS[topic] : null;
+    const domain = (typeof TOPIC_DOMAINS !== 'undefined') ? _resolveDomainForTopic(topic) : null;
     if (!domain || !buckets[domain]) return;
+    domainMappedCount++;
     buckets[domain].total++;
     if (a.correct) buckets[domain].correct++;
   });
@@ -6216,7 +6273,18 @@ function _buildPassPlan(session) {
       totalWeight += DOMAIN_WEIGHTS[d];
     }
   });
-  const accNormalized = totalWeight > 0 ? (weightedAcc / totalWeight) : 0;
+  // v4.81.6: trust the weighted score only when ≥50% of questions mapped
+  // to a domain — otherwise the domain-weighted % is a sample-size lie
+  // that ignores most of the user's answers. Fall back to raw accuracy.
+  const domainCoverageOk = rawTotal > 0 && (domainMappedCount / rawTotal) >= 0.5;
+  let accNormalized;
+  if (domainCoverageOk && totalWeight > 0) {
+    accNormalized = weightedAcc / totalWeight;
+  } else if (rawTotal > 0) {
+    accNormalized = rawCorrect / rawTotal;
+  } else {
+    accNormalized = 0;
+  }
   const accPct = accNormalized * 100;
 
   // Predicted score on the 420-870 scale matches getReadinessScore math.
