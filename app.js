@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.27
+// Network+ AI Quiz — app.js  v4.81.28
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.27';
+const APP_VERSION = '4.81.28';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5589,13 +5589,42 @@ function _srSchedule(entry, outcome) {
 
 // Add a question to the SR queue on a wrong answer. If already present,
 // re-schedule the existing entry as 'wrong' (resets interval, drops ease).
+//
+// v4.81.28 Fix 3: filter to MCQ + multi-select only. Order / cli-sim /
+// topology PBQs have schemas the SR review surface can't render
+// (no `options`), and even if they could, drag-drop / terminal-sim
+// review doesn't fit the flashcard model. Returning null without
+// enrolling is the correct outcome — the wrong-bank still tracks the
+// miss, but SR stays focused on review-able question types.
 function addToSrQueue(q) {
+  if (!q) return null;
+  const allowedTypes = new Set(['mcq', 'multi-select']);
+  const qType = q.type || 'mcq';
+  if (!allowedTypes.has(qType)) return null;
+
   const queue = loadSrQueue();
   const stem = q.question || '';
   const qHash = _srHash(stem);
   let entry = queue.find(e => e.qHash === qHash);
 
   if (entry) {
+    // v4.81.28 Fix 2: refresh the question payload on re-enrollment.
+    // Pre-fix the existing entry was rescheduled but the cached
+    // options/answer/explanation stayed at whatever they were when
+    // first enrolled — including the `answer: null` corruption from
+    // the v4.81.27-fixed `addToSrQueue` type-guard bug. Now any
+    // re-encounter (which fires on every wrong answer in a quiz)
+    // overwrites the payload with the fresh question shape, so
+    // legacy corrupt entries self-heal.
+    entry.options = q.options || entry.options || null;
+    entry.answer = (q.answer != null) ? q.answer : entry.answer;
+    entry.answers = q.answers || entry.answers || null;
+    entry.items = q.items || entry.items || null;
+    entry.correctOrder = q.correctOrder || entry.correctOrder || null;
+    entry.type = q.type || entry.type || 'mcq';
+    entry.topic = q.topic || entry.topic || null;
+    entry.difficulty = q.difficulty || entry.difficulty || null;
+    entry.explanation = q.explanation || entry.explanation || '';
     _srSchedule(entry, 'wrong');
     saveSrQueue(queue);
     return entry;
@@ -5852,6 +5881,17 @@ function _renderSrCard() {
     // Multi-select + corrupt-answer cards. Show options read-only with
     // letters (so the user can reason), show explanation immediately,
     // ask the user to self-rate. Same SM-2 outcomes; no auto-check.
+    //
+    // v4.81.28 Fix 1: mark session as `revealed: true` for self-grade
+    // cards so the confidence buttons can fire. Pre-fix `srMarkConfidence`
+    // had a `!_srSession.revealed` early-return that blocked the click
+    // entirely — user clicked any of the 3 buttons and nothing happened.
+    // Self-grade IS effectively "already revealed" because the
+    // explanation renders immediately, so flipping the flag here is
+    // semantically correct AND it preserves the existing defensive
+    // guard for the auto-grade path (where revealed must remain false
+    // until the user picks an option).
+    _srSession.revealed = true;
     if (optionLetters.length > 0) {
       optionsHtml = '<div class="sr-options sr-options-readonly">' + optionLetters.map(letter =>
         '<div class="sr-option sr-option-readonly" data-letter="' + letter + '">'

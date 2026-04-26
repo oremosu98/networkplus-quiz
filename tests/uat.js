@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.27', js.includes("const APP_VERSION = '4.81.27"));
+test('APP_VERSION is 4.81.28', js.includes("const APP_VERSION = '4.81.28"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.27', sw.includes('netplus-v4.81.27'));
+test('SW cache bumped to v4.81.28', sw.includes('netplus-v4.81.28'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12438,6 +12438,193 @@ test('v4.81.26 Settings: tombstone — old buggy `dg.goal` schema check removed'
 
 test('v4.81.26 Settings: today row uses getTodayQuestionCount (matches home page renderer)',
   /getTodayQuestionCount/.test(_fnBody(js, 'renderSettingsHealthCard') || ''));
+
+// v4.81.28: SR review three follow-up fixes after v4.81.27 dogfood.
+// (1) self-grade fallback shipped in v4.81.27 had a fatal flaw —
+//     srMarkConfidence early-returned on `!_srSession.revealed`,
+//     blocking the confidence buttons. User stuck on every multi-select
+//     card. Fix: set _srSession.revealed = true in self-grade render.
+// (2) addToSrQueue re-enrollment didn't refresh the payload, so any
+//     legacy entry with the v4.81.27 fixed corruption (answer=null)
+//     stayed corrupt forever. Fix: overwrite payload fields on
+//     re-encounter so legacy entries self-heal.
+// (3) addToSrQueue accepted any q.type, so order/cli-sim/topology PBQs
+//     ended up in the queue but rendered with empty bodies (no options).
+//     Fix: filter at enrollment to mcq + multi-select only.
+test('v4.81.28 SR: self-grade render sets _srSession.revealed = true',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    // The fallback branch must set revealed = true so srMarkConfidence
+    // accepts confidence-button clicks. Window widened to 1500 because
+    // the explanatory comment between `} else {` and the assignment is
+    // intentionally verbose (documents the bug fix).
+    return /} else \{[\s\S]{0,1500}_srSession\.revealed\s*=\s*true/.test(body);
+  })());
+test('v4.81.28 SR: addToSrQueue refreshes payload on re-enrollment',
+  (() => {
+    const body = _fnBody(js, 'addToSrQueue') || '';
+    // On re-encounter, payload fields should be overwritten so legacy
+    // corrupt entries self-heal. Look for assignments to entry.options/
+    // entry.answer in the existing-entry branch.
+    return /entry\.options\s*=\s*q\.options/.test(body)
+      && /entry\.answer\s*=/.test(body);
+  })());
+test('v4.81.28 SR: addToSrQueue filters non-reviewable types',
+  (() => {
+    const body = _fnBody(js, 'addToSrQueue') || '';
+    // Should reject types that can't render in SR review.
+    return /allowedTypes\s*=\s*new Set\(\[['"]mcq['"]/.test(body)
+      && /multi-select/.test(body)
+      && /!allowedTypes\.has\(qType\)\s*\)\s*return null/.test(body);
+  })());
+
+// vm fixture #1 — self-grade flow end-to-end: render multi-select card,
+// verify revealed=true is set, then call srMarkConfidence to confirm
+// it advances the index (was blocked pre-v4.81.28).
+test('v4.81.28 SR: vm fixture — self-grade button advances card (was blocked)',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderSrCard');
+      const markBody = _fnBody(js, 'srMarkConfidence');
+      if (!renderBody || !markBody) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {}, hidden: false } },
+        _srSession: {
+          cards: [
+            { qHash: 'h1', type: 'multi-select', question: 'Q1', options: { A: 'a', B: 'b' }, answers: ['A'], topic: 'T', intervalDays: 1, correctStreak: 0 },
+            { qHash: 'h2', type: 'mcq', question: 'Q2', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', topic: 'T', intervalDays: 1, correctStreak: 0 }
+          ],
+          index: 0,
+          answersGiven: 0,
+          correctConfident: 0,
+          correctUncertain: 0,
+          wrong: 0,
+          pickedLetter: null,
+          revealed: false
+        },
+        updateSrEntry: () => {},
+        _srEndReview: () => {},
+        renderSrReviewCard: () => {},
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext(markBody, ctx);
+
+      // Render first (multi-select) card — should set revealed=true
+      vm.runInContext('_renderSrCard()', ctx);
+      const revealedAfterRender = ctx._srSession.revealed;
+
+      // Click "Confident" — should advance to card 2 (was blocked pre-fix)
+      vm.runInContext("srMarkConfidence('correct-confident')", ctx);
+      const indexAdvanced = ctx._srSession.index === 1;
+      const confidentTallied = ctx._srSession.correctConfident === 1;
+
+      return revealedAfterRender === true && indexAdvanced && confidentTallied;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — re-enrollment refreshes corrupt legacy payload.
+// Simulates an existing entry with answer=null (the pre-v4.81.27 bug)
+// and verifies that re-enrolling with a fresh question fixes it.
+test('v4.81.28 SR: vm fixture — re-enrollment heals legacy null-answer entry',
+  (() => {
+    try {
+      const body = _fnBody(js, 'addToSrQueue');
+      if (!body) return false;
+      const vm = require('vm');
+      let storage = {};
+      const ctx = {
+        STORAGE: { WRONG_BANK: 'wb', SR_QUEUE: 'srq' },
+        localStorage: {
+          getItem: (k) => storage[k] === undefined ? null : storage[k],
+          setItem: (k, v) => { storage[k] = String(v); }
+        },
+        loadSrQueue: () => {
+          try { return JSON.parse(storage['srq'] || '[]'); } catch { return []; }
+        },
+        saveSrQueue: (q) => { storage['srq'] = JSON.stringify(q); },
+        _srHash: (s) => 'h_' + s.length, // stub hash
+        _srSchedule: (entry) => { entry.intervalDays = 1; return entry; },
+        SR_QUEUE_CAP: 200,
+        Date, JSON, Set, Object, Array, Number
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+
+      // Pre-seed queue with a corrupt legacy entry: answer=null, options={A,B,C,D}
+      const corruptEntry = {
+        qHash: 'h_5',
+        question: 'stem1',
+        options: { A: 'a', B: 'b', C: 'c', D: 'd' },
+        answer: null, // corruption from pre-v4.81.27 bug
+        type: 'mcq',
+        intervalDays: 4,
+        easeFactor: 2.5,
+        attempts: 1,
+        correctStreak: 0,
+        graduated: false,
+        nextReview: Date.now() - 86400000 // due
+      };
+      storage['srq'] = JSON.stringify([corruptEntry]);
+
+      // Re-enroll with a fresh question that has a valid answer letter
+      vm.runInContext("addToSrQueue({question: 'stem1', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'C', type: 'mcq', explanation: 'Because.'})", ctx);
+
+      const updated = JSON.parse(storage['srq'])[0];
+      return updated.answer === 'C' && updated.explanation === 'Because.';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 — non-reviewable types are rejected at enrollment.
+test('v4.81.28 SR: vm fixture — order/cli-sim/topology types not enrolled',
+  (() => {
+    try {
+      const body = _fnBody(js, 'addToSrQueue');
+      if (!body) return false;
+      const vm = require('vm');
+      let storage = {};
+      const ctx = {
+        STORAGE: { SR_QUEUE: 'srq' },
+        localStorage: {
+          getItem: (k) => storage[k] === undefined ? null : storage[k],
+          setItem: (k, v) => { storage[k] = String(v); }
+        },
+        loadSrQueue: () => {
+          try { return JSON.parse(storage['srq'] || '[]'); } catch { return []; }
+        },
+        saveSrQueue: (q) => { storage['srq'] = JSON.stringify(q); },
+        _srHash: (s) => 'h_' + s.length,
+        _srSchedule: (entry) => entry,
+        SR_QUEUE_CAP: 200,
+        Date, JSON, Set, Object, Array, Number
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+
+      // Order question — should NOT enroll
+      const orderResult = vm.runInContext("addToSrQueue({question: 'arrange these', items: ['a','b','c'], correctOrder: [0,1,2], type: 'order'})", ctx);
+      // CLI-sim — should NOT enroll
+      const cliResult = vm.runInContext("addToSrQueue({question: 'cli sim', type: 'cli-sim'})", ctx);
+      // Topology — should NOT enroll
+      const topoResult = vm.runInContext("addToSrQueue({question: 'topology q', type: 'topology'})", ctx);
+      // MCQ — SHOULD enroll
+      const mcqResult = vm.runInContext("addToSrQueue({question: 'a question?', options: {A:'a',B:'b',C:'c',D:'d'}, answer: 'A', type: 'mcq'})", ctx);
+      // Multi-select — SHOULD enroll
+      const multiResult = vm.runInContext("addToSrQueue({question: 'choose two', options: {A:'a',B:'b',C:'c',D:'d',E:'e'}, answers: ['A','C'], type: 'multi-select'})", ctx);
+
+      const queue = JSON.parse(storage['srq'] || '[]');
+      return orderResult === null
+        && cliResult === null
+        && topoResult === null
+        && mcqResult !== null
+        && multiResult !== null
+        && queue.length === 2; // only mcq + multi-select got in
+    } catch (e) { return false; }
+  })());
 
 // v4.81.27: SR review render fix — letter-keyed options + multi-select
 // self-grade fallback + addToSrQueue answer-preservation bug.
