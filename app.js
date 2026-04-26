@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.13
+// Network+ AI Quiz — app.js  v4.81.14
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.13';
+const APP_VERSION = '4.81.14';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8107,13 +8107,47 @@ async function startExam() {
       const aiValidated = await aiValidateQuestions(key, rawBatch);
       let batch = validateQuestions(aiValidated);
 
+      // v4.81.14: cross-batch dedup (user report: same questions repeating
+      // across the 5 exam batches). fetchQuestions dedupes within a single
+      // call; this catches duplicates between sequential exam batches where
+      // Haiku has no state from prior batches. Drop duplicates here so the
+      // retry-to-fill logic below treats them as deficit and refills.
+      if (examQuestions.length > 0) {
+        const seenStems = new Set(examQuestions.map(q => _normalizeStemForDedup(q && q.question)));
+        const before = batch.length;
+        batch = batch.filter(q => {
+          const norm = _normalizeStemForDedup(q && q.question);
+          if (!norm) return true; // keep questions with no stem (defensive)
+          if (seenStems.has(norm)) return false;
+          seenStems.add(norm);
+          return true;
+        });
+        if (batch.length < before) {
+          console.info(`[exam] batch ${i + 1}: dropped ${before - batch.length} duplicate stem(s) already in earlier batches`);
+        }
+      }
+
       // Step 3: Retry-to-fill if post-validation short — ONE retry per batch
       if (batch.length < EXAM_BATCH_BASE) {
         const deficit = EXAM_BATCH_BASE - batch.length;
         lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 filling ${deficit} more\u2026`;
         try {
           const extraRaw = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + EXAM_BATCH_BUFFER);
-          const extraValidated = validateQuestions(await aiValidateQuestions(key, extraRaw));
+          let extraValidated = validateQuestions(await aiValidateQuestions(key, extraRaw));
+          // v4.81.14: dedupe the retry-to-fill payload against accumulated
+          // examQuestions + the current batch's already-deduped contents.
+          // Otherwise we'd undo the dedup we just did.
+          const seenStemsRetry = new Set([
+            ...examQuestions.map(q => _normalizeStemForDedup(q && q.question)),
+            ...batch.map(q => _normalizeStemForDedup(q && q.question))
+          ]);
+          extraValidated = extraValidated.filter(q => {
+            const norm = _normalizeStemForDedup(q && q.question);
+            if (!norm) return true;
+            if (seenStemsRetry.has(norm)) return false;
+            seenStemsRetry.add(norm);
+            return true;
+          });
           batch = batch.concat(extraValidated);
         } catch(retryErr) {
           console.warn(`Exam batch ${i + 1} retry-to-fill failed, continuing with partial batch:`, retryErr);
@@ -8181,6 +8215,22 @@ function showExamShortfallBanner(actualCount) {
 const QUIZ_BATCH_SIZE      = 10;  // per-batch question count — chosen so Haiku reliably emits well-formed JSON
 const QUIZ_BATCH_THRESHOLD = 12;  // requests at or below this size stay single-shot (no batching overhead)
 
+// v4.81.14: stem-normalize for cross-batch dedup (user report: "some
+// questions kept repeating themselves" in exam mode + occasionally in
+// regular quizzes). Lowercase + strip punctuation + collapse whitespace
+// + length-cap for stable comparison. Catches "Which of the following
+// best describes ARP?" vs "which of the following BEST describes arp."
+// as the same stem.
+function _normalizeStemForDedup(stem) {
+  if (!stem) return '';
+  return String(stem)
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')   // strip punctuation
+    .replace(/\s+/g, ' ')       // collapse whitespace
+    .trim()
+    .slice(0, 200);             // cap to avoid weird unicode tail issues
+}
+
 async function fetchQuestions(key, qTopic, difficulty, n) {
   // Single-shot path for small requests — avoids concurrency overhead + keeps
   // cache semantics identical to pre-v4.56.1 behaviour.
@@ -8213,11 +8263,24 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
   // Collect successes; reject the whole call only if EVERY batch failed.
   // Partial success is surfaced as a short list — the caller's DROPOUT_BUFFER
   // retry-to-fill logic (startQuiz / startExam) handles the shortfall.
+  // v4.81.14: dedupe across parallel batches by normalized stem. First-seen
+  // wins. Catches the case where two parallel _fetchQuestionsBatch calls
+  // independently produce the same/similar question (Haiku doesn't share
+  // state across concurrent requests). The caller's DROPOUT_BUFFER + retry-
+  // to-fill logic handles any shortfall created by dedup.
   const merged = [];
+  const seenStems = new Set();
   let failed = 0;
+  let deduped = 0;
   settled.forEach(r => {
-    if (r.status === 'fulfilled') merged.push(...r.value);
-    else {
+    if (r.status === 'fulfilled') {
+      r.value.forEach(q => {
+        const norm = _normalizeStemForDedup(q && q.question);
+        if (norm && seenStems.has(norm)) { deduped++; return; }
+        if (norm) seenStems.add(norm);
+        merged.push(q);
+      });
+    } else {
       failed++;
       // Bubble an API error up immediately (don't mask 401 / 429 as "malformed data")
       if (r.reason && r.reason.apiError) throw r.reason;
@@ -8230,6 +8293,9 @@ async function fetchQuestions(key, qTopic, difficulty, n) {
 
   if (failed > 0 && typeof console !== 'undefined' && console.warn) {
     console.warn(`[fetchQuestions] ${failed}/${numBatches} batches failed — returning ${merged.length}/${n} questions; caller will retry-to-fill if needed`);
+  }
+  if (deduped > 0 && typeof console !== 'undefined' && console.info) {
+    console.info(`[fetchQuestions] dropped ${deduped} duplicate stem(s) across batches; merged ${merged.length}/${n}`);
   }
 
   cacheQuestions(qTopic, difficulty, n, merged);

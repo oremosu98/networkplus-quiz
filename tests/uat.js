@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.13', js.includes("const APP_VERSION = '4.81.13"));
+test('APP_VERSION is 4.81.14', js.includes("const APP_VERSION = '4.81.14"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.13', sw.includes('netplus-v4.81.13'));
+test('SW cache bumped to v4.81.14', sw.includes('netplus-v4.81.14'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -11089,6 +11089,144 @@ test('v4.81.13 Exam: vm fixture — per-topic split skips EXAM_TOPIC + MIXED_TOP
       ctx.log = log;
       const written = vm.runInContext('_saveExamPerTopicSplit(log, false)', ctx);
       return written === 1 && writes.length === 1 && writes[0].topic === 'OSPF';
+    } catch (e) { return false; }
+  })());
+
+// ──────────────────────────────────────────────────────────
+// v4.81.14: Cross-batch question dedup (user report)
+// ──────────────────────────────────────────────────────────
+// User: "some questions kept repeating themselves lol... in the exam
+// simulator... also this happens in regular quizzes sometimes too"
+//
+// Pre-fix: zero dedup anywhere. fetchQuestions split n>10 into parallel
+// batches via Promise.allSettled; concurrent batches couldn't see each
+// other's output. startExam called fetchQuestions 5 times sequentially;
+// no cross-call dedup either. Validator caught structural bugs but had
+// no cross-batch awareness — duplicates passed right through.
+//
+// Fix: stem normalization (lowercase + strip punctuation + collapse
+// whitespace + 200-char cap) + first-seen-wins dedup at two levels:
+// inside fetchQuestions's parallel-batch merge, and across startExam's
+// 5 sequential batches. Dedup happens BEFORE the existing retry-to-fill
+// logic so deficit auto-refills.
+
+test('v4.81.14 Dedup: _normalizeStemForDedup helper defined',
+  /function\s+_normalizeStemForDedup\b/.test(js));
+test('v4.81.14 Dedup: helper lowercases + strips punctuation + collapses whitespace + caps length',
+  (() => {
+    const body = _fnBody(js, '_normalizeStemForDedup');
+    return body
+      && /toLowerCase/.test(body)
+      && /\[\^\\w\\s\]/.test(body)
+      && /\\s\+/.test(body)
+      && /slice\(0,\s*200\)/.test(body);
+  })());
+test('v4.81.14 Dedup: fetchQuestions merge step uses Set + _normalizeStemForDedup',
+  (() => {
+    const body = _fnBody(js, 'fetchQuestions');
+    return body
+      && /seenStems/.test(body)
+      && /_normalizeStemForDedup/.test(body)
+      && /new Set\(\)/.test(body);
+  })());
+test('v4.81.14 Dedup: fetchQuestions logs deduped count when > 0',
+  (() => {
+    const body = _fnBody(js, 'fetchQuestions');
+    return body && /deduped\b/.test(body) && /console\.info/.test(body);
+  })());
+test('v4.81.14 Dedup: startExam dedupes new batch against accumulated examQuestions',
+  (() => {
+    const body = _fnBody(js, 'startExam');
+    return body
+      && /examQuestions\.length\s*>\s*0/.test(body)
+      && /seenStems/.test(body)
+      && /_normalizeStemForDedup/.test(body);
+  })());
+test('v4.81.14 Dedup: startExam retry-to-fill payload also deduped (no undoing prior dedup)',
+  (() => {
+    const body = _fnBody(js, 'startExam');
+    return body && /seenStemsRetry/.test(body);
+  })());
+
+// vm fixture — synthesize realistic stems with case/punctuation/whitespace
+// variation + verify normalization collapses them to the same key.
+test('v4.81.14 Dedup: vm fixture — normalization collapses case + punctuation + whitespace',
+  (() => {
+    try {
+      const body = _fnBody(js, '_normalizeStemForDedup');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const a = vm.runInContext("_normalizeStemForDedup('Which of the following BEST describes ARP?')", ctx);
+      const b = vm.runInContext("_normalizeStemForDedup('  which of the following best describes arp.  ')", ctx);
+      const c = vm.runInContext("_normalizeStemForDedup('Which   of\\nthe following best describes\\tARP???')", ctx);
+      const empty1 = vm.runInContext("_normalizeStemForDedup('')", ctx);
+      const empty2 = vm.runInContext("_normalizeStemForDedup(null)", ctx);
+      const empty3 = vm.runInContext("_normalizeStemForDedup(undefined)", ctx);
+      // All three variations should normalize to the same string
+      return a === b
+        && a === c
+        && a === 'which of the following best describes arp'
+        && empty1 === ''
+        && empty2 === ''
+        && empty3 === '';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — simulate the merge dedup logic across 3 parallel batches
+// where batch 2 has a duplicate of batch 1 + batch 3 has a duplicate of
+// batch 2. Verify only first-seen versions survive.
+test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
+  (() => {
+    try {
+      const helperBody = _fnBody(js, '_normalizeStemForDedup');
+      if (!helperBody) return false;
+      const vm = require('vm');
+      const ctx = { String, Set };
+      vm.createContext(ctx);
+      vm.runInContext(helperBody, ctx);
+      // Simulate the merge logic from fetchQuestions
+      const mergeLogic = `
+        const merged = [];
+        const seenStems = new Set();
+        let deduped = 0;
+        results.forEach(r => {
+          if (r.status === 'fulfilled') {
+            r.value.forEach(q => {
+              const norm = _normalizeStemForDedup(q && q.question);
+              if (norm && seenStems.has(norm)) { deduped++; return; }
+              if (norm) seenStems.add(norm);
+              merged.push(q);
+            });
+          }
+        });
+        ({ merged, deduped });
+      `;
+      const results = [
+        { status: 'fulfilled', value: [
+          { question: 'What is OSPF?', answer: 'A' },
+          { question: 'What is BGP?', answer: 'B' }
+        ]},
+        { status: 'fulfilled', value: [
+          { question: 'what is OSPF?', answer: 'A' },  // duplicate of batch 1
+          { question: 'What is RIP?', answer: 'C' }
+        ]},
+        { status: 'fulfilled', value: [
+          { question: 'WHAT IS BGP???', answer: 'B' },  // duplicate of batch 1
+          { question: 'What is EIGRP?', answer: 'D' }
+        ]}
+      ];
+      ctx.results = results;
+      const out = vm.runInContext(mergeLogic, ctx);
+      // Should have 4 unique: OSPF, BGP, RIP, EIGRP — and 2 deduped
+      return out.merged.length === 4
+        && out.deduped === 2
+        && out.merged[0].question === 'What is OSPF?'  // original case kept
+        && out.merged[1].question === 'What is BGP?'   // original case kept
+        && out.merged[2].question === 'What is RIP?'
+        && out.merged[3].question === 'What is EIGRP?';
     } catch (e) { return false; }
   })());
 
