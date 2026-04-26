@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.20', js.includes("const APP_VERSION = '4.81.20"));
+test('APP_VERSION is 4.81.21', js.includes("const APP_VERSION = '4.81.21"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.20', sw.includes('netplus-v4.81.20'));
+test('SW cache bumped to v4.81.21', sw.includes('netplus-v4.81.21'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -11265,6 +11265,114 @@ test('v4.81.14 Dedup: vm fixture — first-seen wins across parallel batches',
         && out.merged[1].question === 'What is BGP?'   // original case kept
         && out.merged[2].question === 'What is RIP?'
         && out.merged[3].question === 'What is EIGRP?';
+    } catch (e) { return false; }
+  })());
+
+// v4.81.21: Restore Subnet Trainer bridge in #today-plan. The v4.43.1
+// affordance ("Drill in Subnet Trainer →" link for subnet-heavy weak
+// topics) was retired in v4.81.18 consolidation. WEAK_SPOT_DRILL_BRIDGES
+// constant + openWeakSpotBridge handler stayed (used by Subnet Trainer
+// dashboard); this restores the integration point in the new
+// consolidated card. Bridges render below the chip strip when the plan
+// includes any of: Subnetting & IP Addressing, IPv6, NAT & IP Services.
+test('v4.81.21 BridgeRestore: renderTodayPlan reads WEAK_SPOT_DRILL_BRIDGES',
+  /WEAK_SPOT_DRILL_BRIDGES/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.21 BridgeRestore: renderTodayPlan dedupes bridges by kind+labId',
+  /seenBridgeKeys/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.21 BridgeRestore: renderTodayPlan emits .tplan-bridges container',
+  /tplan-bridges/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.21 BridgeRestore: renderTodayPlan emits .tplan-bridge-btn buttons',
+  /tplan-bridge-btn/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.21 BridgeRestore: bridge button onclick wired to openWeakSpotBridge',
+  /openWeakSpotBridge\(['"]\\?\\?[^']+['"]\)|openWeakSpotBridge\(\\['"]/.test(_fnBody(js, 'renderTodayPlan') || '')
+    || /openWeakSpotBridge\(['"]/.test(_fnBody(js, 'renderTodayPlan') || ''));
+test('v4.81.21 BridgeRestore: .tplan-bridges CSS declared',
+  /\.tplan-bridges\s*\{/.test(css));
+test('v4.81.21 BridgeRestore: .tplan-bridge-btn CSS declared',
+  /\.tplan-bridge-btn\s*\{/.test(css));
+test('v4.81.21 BridgeRestore: bridge buttons get reduced-motion gate',
+  /prefers-reduced-motion[\s\S]{0,800}\.tplan-bridge-btn/.test(css));
+test('v4.81.21 BridgeRestore: bridge buttons get mobile breakpoint margin reset',
+  /@media[\s\S]{0,80}max-width:\s*540px[\s\S]{0,400}\.tplan-bridges/.test(css));
+
+// vm fixture — bridge logic emits buttons for subnet topics in plan.
+test('v4.81.21 BridgeRestore: vm fixture — bridge buttons rendered for matching plan topics',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderTodayPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeCard = { _innerHTML: '', _classes: new Set(['is-hidden']),
+        get innerHTML() { return this._innerHTML; },
+        set innerHTML(v) { this._innerHTML = v; },
+        classList: { add: function(c) { fakeCard._classes.add(c); }, remove: function(c) { fakeCard._classes.delete(c); } }
+      };
+      const ctx = {
+        document: { getElementById: (id) => id === 'today-plan' ? fakeCard : null },
+        WEAK_SPOT_DRILL_BRIDGES: {
+          'Subnetting & IP Addressing': { kind: 'subnet', label: 'Drill in Subnet Trainer', icon: '🧮' },
+          'IPv6':                       { kind: 'subnet', label: 'Practice IPv6 math',       icon: '🧮' }
+        },
+        SESSION_TOPICS: 5,
+        SESSION_QUESTIONS: 7,
+        sessionPlan: [],
+        // Stub plan with a subnet topic
+        buildSessionPlan: () => ([
+          { topic: 'WAN Connectivity', signal: 'weak', meta: '~55% accuracy', reason: '~55% accuracy', color: '#fbbf24' },
+          { topic: 'Subnetting & IP Addressing', signal: 'weak', meta: '~50% accuracy', reason: '~50% accuracy', color: '#fbbf24' },
+          { topic: 'IPv6', signal: 'stale', meta: '21d stale', reason: '21d stale', color: '#f59e0b' }
+        ]),
+        isStudyPlanDoneToday: () => false,
+        escHtml: (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'),
+        Math, JSON, Object, Array, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('renderTodayPlan()', ctx);
+      const html = fakeCard._innerHTML;
+      // Should contain ONE bridge container (deduped — both Subnetting + IPv6
+      // map to the SAME kind 'subnet' so only one button renders)
+      const bridgeOpens = (html.match(/class="tplan-bridges"/g) || []).length;
+      const bridgeBtns = (html.match(/class="tplan-bridge-btn"/g) || []).length;
+      return bridgeOpens === 1 && bridgeBtns === 1
+        && html.includes('openWeakSpotBridge')
+        && html.includes('subnet');
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — bridges hidden when plan has no subnet topics
+test('v4.81.21 BridgeRestore: vm fixture — no bridges rendered when plan has no subnet topics',
+  (() => {
+    try {
+      const body = _fnBody(js, 'renderTodayPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeCard = { _innerHTML: '',
+        get innerHTML() { return this._innerHTML; },
+        set innerHTML(v) { this._innerHTML = v; },
+        classList: { add: () => {}, remove: () => {} }
+      };
+      const ctx = {
+        document: { getElementById: () => fakeCard },
+        WEAK_SPOT_DRILL_BRIDGES: {
+          'Subnetting & IP Addressing': { kind: 'subnet', label: 'Drill in Subnet Trainer', icon: '🧮' }
+        },
+        SESSION_TOPICS: 5,
+        SESSION_QUESTIONS: 7,
+        sessionPlan: [],
+        buildSessionPlan: () => ([
+          { topic: 'WAN Connectivity', signal: 'weak', meta: '~55%', reason: '~55%', color: '#fbbf24' },
+          { topic: 'BGP', signal: 'stale', meta: '21d', reason: '21d', color: '#f59e0b' }
+        ]),
+        isStudyPlanDoneToday: () => false,
+        escHtml: (s) => String(s),
+        Math, JSON, Object, Array, String
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('renderTodayPlan()', ctx);
+      const html = fakeCard._innerHTML;
+      return !html.includes('tplan-bridges') && !html.includes('tplan-bridge-btn');
     } catch (e) { return false; }
   })());
 

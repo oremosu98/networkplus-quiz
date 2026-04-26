@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.20
+// Network+ AI Quiz — app.js  v4.81.21
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.20';
+const APP_VERSION = '4.81.21';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11924,11 +11924,46 @@ function renderTodayPlan() {
   if (fallbackCount > 0) compParts.push(fallbackCount + ' recommended');
   compParts.push('Mixed difficulty');
 
+  // v4.81.21: Subnet Trainer bridge re-integration. Restored from v4.43.1
+  // (was retired in v4.81.18 consolidation). When the plan includes a
+  // subnet-heavy topic (Subnetting & IP Addressing / IPv6 / NAT & IP
+  // Services), surface a small "Drill in Subnet Trainer →" bridge link
+  // so users get the deeper binary-breakdown affordance instead of just
+  // the regular MCQ quiz drill. Dedupe by kind+labId so we don't show
+  // multiple identical buttons when 2 subnet topics are in the plan.
+  let bridgesHtml = '';
+  try {
+    if (typeof WEAK_SPOT_DRILL_BRIDGES !== 'undefined') {
+      const seenBridgeKeys = new Set();
+      const bridges = [];
+      plan.forEach(item => {
+        const bridge = WEAK_SPOT_DRILL_BRIDGES[item.topic];
+        if (!bridge) return;
+        const key = bridge.kind + '::' + (bridge.labId || '');
+        if (seenBridgeKeys.has(key)) return;
+        seenBridgeKeys.add(key);
+        bridges.push(bridge);
+      });
+      if (bridges.length > 0) {
+        bridgesHtml = '<div class="tplan-bridges" role="group" aria-label="Specialized drill alternatives">'
+          + bridges.map(b =>
+              '<button type="button" class="tplan-bridge-btn" onclick="openWeakSpotBridge(\'' + b.kind + '\')" title="' + escHtml(b.label) + '">'
+                + '<span class="tplan-bridge-icon" aria-hidden="true">' + b.icon + '</span>'
+                + '<span class="tplan-bridge-label">' + escHtml(b.label) + '</span>'
+                + '<span class="tplan-bridge-arrow" aria-hidden="true">→</span>'
+              + '</button>'
+            ).join('')
+          + '</div>';
+      }
+    }
+  } catch (_) { bridgesHtml = ''; }
+
   card.innerHTML = ''
     + '<div class="tplan-eyebrow">Today\'s plan</div>'
     + '<div class="tplan-headline">' + plan.length + ' topics · ~' + totalMin + ' min · <em>fastest</em> route to exam-ready</div>'
     + '<p class="tplan-sub">' + escHtml(subProse) + '</p>'
     + '<div class="tplan-chips">' + chipsHtml + '</div>'
+    + bridgesHtml
     + '<div class="tplan-foot">'
     +   '<div class="tplan-foot-meta">' + escHtml(compParts.join(' · ')) + '</div>'
     +   '<button type="button" class="tplan-cta" onclick="startSession()">Begin plan →</button>'
