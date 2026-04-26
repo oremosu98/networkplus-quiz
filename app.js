@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.6
+// Network+ AI Quiz — app.js  v4.81.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.6';
+const APP_VERSION = '4.81.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6538,12 +6538,57 @@ function viewPassPlan() {
 }
 
 // "Retake in 7d" link → only proceeds if cooldown elapsed.
+// v4.81.7: detect a corrupted Pass Plan from a known bug version. Returns
+// true if the stored Pass Plan shows the v4.81.0-v4.81.5 corruption
+// signature (accPct=0 yet seededCount < questionCount — mathematically
+// impossible from a real run because if you got 0 correct, ALL questions
+// would seed). Used to bypass the 7-day cooldown so the user isn't
+// stuck with a buggy Pass Plan.
+function _isCorruptedPassPlan(record) {
+  if (!record || !record.passPlan) return false;
+  const p = record.passPlan;
+  // Signature: 0% accuracy AND seededCount < questionCount
+  // (a legitimate 0% would seed every question)
+  if (typeof p.accPct === 'number' && p.accPct === 0
+      && typeof p.seededCount === 'number'
+      && typeof p.questionCount === 'number'
+      && p.seededCount < p.questionCount) {
+    return true;
+  }
+  // Secondary signature: predicted floored at 420 with non-zero correct count
+  // (the Pass Plan thought you got 0% but your raw correct says otherwise)
+  if (typeof p.predicted === 'number' && p.predicted === 420
+      && typeof p.correctCount === 'number' && p.correctCount > 0) {
+    return true;
+  }
+  return false;
+}
+
+// v4.81.7: cooldown softened from hard-block to confirm-dialog. Pre-fix,
+// users stuck with a buggy Pass Plan (like the v4.81.5 0%-bug) couldn't
+// retake for 7 days. Now: if cooldown is active, show a soft confirm;
+// if the stored Pass Plan is detectably corrupted, bypass cooldown
+// entirely (no confirm — just retake).
 function retakeDiagnostic() {
+  const record = (typeof loadDiagnostic === 'function') ? loadDiagnostic() : null;
+  if (_isCorruptedPassPlan(record)) {
+    // Auto-bypass: the stored Plan is from a known bug version
+    if (typeof showToast === 'function') {
+      showToast('Your last Pass Plan was affected by a fixed bug — retaking now', 'info', 4000);
+    }
+    startDiagnostic();
+    return;
+  }
   const days = getDiagnosticCooldownDays();
   if (days === null || days === 0) {
     startDiagnostic();
-  } else {
-    showToast('Retake available in ' + days + ' day' + (days === 1 ? '' : 's') + ' — your current Pass Plan is still fresh', 'info');
+    return;
+  }
+  // Soft confirm — cooldown was a UX hint, not a hard rule
+  const msg = 'Your last diagnostic was ' + (DIAGNOSTIC_RETAKE_COOLDOWN_DAYS - days) + ' day' + (DIAGNOSTIC_RETAKE_COOLDOWN_DAYS - days === 1 ? '' : 's') +
+    ' ago. The 7-day cooldown is a UX hint to let your Pass Plan settle, not a hard limit. Retake anyway?';
+  if (confirm(msg)) {
+    startDiagnostic();
   }
 }
 
@@ -6582,13 +6627,25 @@ function renderDiagnosticSurface() {
     }
     const retake = document.getElementById('pass-plan-tile-retake');
     if (retake) {
-      const days = getDiagnosticCooldownDays();
-      if (days === 0) {
-        retake.textContent = 'Retake now';
+      // v4.81.7: detect corrupted Pass Plan from a known bug version and
+      // surface "Retake now (fix bug)" so the user knows they're not stuck
+      if (_isCorruptedPassPlan(record)) {
+        retake.textContent = 'Retake (fix bug result)';
         retake.classList.remove('pass-plan-tile-cooldown');
+        retake.title = 'Your last Pass Plan was affected by a known bug — click to retake immediately';
+        // Override the sub-line too — show the user this isn't a real result
+        if (sub) sub.textContent = '⚠ Last Pass Plan affected by a fixed bug · click "Retake" to get a real result';
       } else {
-        retake.textContent = 'Retake in ' + days + 'd';
-        retake.classList.add('pass-plan-tile-cooldown');
+        const days = getDiagnosticCooldownDays();
+        if (days === 0) {
+          retake.textContent = 'Retake now';
+          retake.classList.remove('pass-plan-tile-cooldown');
+        } else {
+          // v4.81.7: cooldown is now soft — still show the day count as a hint,
+          // but remove the cursor-default styling. Click confirms via dialog.
+          retake.textContent = 'Retake (last: ' + (DIAGNOSTIC_RETAKE_COOLDOWN_DAYS - days) + 'd ago)';
+          retake.classList.remove('pass-plan-tile-cooldown');
+        }
       }
     }
     return;

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.6', js.includes("const APP_VERSION = '4.81.6"));
+test('APP_VERSION is 4.81.7', js.includes("const APP_VERSION = '4.81.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.6', sw.includes('netplus-v4.81.6'));
+test('SW cache bumped to v4.81.7', sw.includes('netplus-v4.81.7'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10550,6 +10550,73 @@ test('v4.81.6 EnvBadge: .env-badge uses bottom-left positioning (not top-right)'
   /\.env-badge\s*\{[^}]*bottom:\s*12px[^}]*left:\s*12px/.test(css));
 test('v4.81.6 EnvBadge: regression guard — .env-badge no longer uses top-right positioning',
   !/\.env-badge\s*\{[^}]*\btop:\s*12px[^}]*\bright:\s*12px/.test(css));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.7: Retake-cooldown softened + corruption detection
+// ──────────────────────────────────────────────────────────
+// User report after v4.81.6 ship: "it makes sense to allow me to redo the
+// diagnostic now. since it already has logged me as 0% pass probability".
+// The 7-day cooldown was a hard block — users with a buggy Pass Plan
+// (from v4.81.0-v4.81.5) couldn't retake to verify the fix. Two changes:
+// 1. _isCorruptedPassPlan() detects the v4.81.0-v4.81.5 bug signature
+//    (accPct=0 yet seededCount<questionCount, or predicted=420 with
+//    correctCount>0) — auto-bypasses cooldown entirely
+// 2. Cooldown softened from hard block to confirm dialog ("Retake anyway?")
+test('v4.81.7 Retake: _isCorruptedPassPlan helper defined',
+  /function\s+_isCorruptedPassPlan\b/.test(js));
+test('v4.81.7 Retake: corruption detection checks accPct=0 + seededCount mismatch',
+  (() => {
+    const body = _fnBody(js, '_isCorruptedPassPlan');
+    return body && /accPct[\s\S]{0,100}=== 0/.test(body) && /seededCount[\s\S]{0,100}questionCount/.test(body);
+  })());
+test('v4.81.7 Retake: corruption detection checks predicted=420 + correctCount>0 (secondary)',
+  (() => {
+    const body = _fnBody(js, '_isCorruptedPassPlan');
+    return body && /predicted[\s\S]{0,80}=== 420/.test(body) && /correctCount[\s\S]{0,80}>\s*0/.test(body);
+  })());
+test('v4.81.7 Retake: retakeDiagnostic checks _isCorruptedPassPlan first',
+  (() => {
+    const body = _fnBody(js, 'retakeDiagnostic');
+    return body && /_isCorruptedPassPlan/.test(body);
+  })());
+test('v4.81.7 Retake: cooldown is now confirm-based (not hard block)',
+  (() => {
+    const body = _fnBody(js, 'retakeDiagnostic');
+    return body && /confirm\(/.test(body);
+  })());
+test('v4.81.7 Retake: renderDiagnosticSurface flags corrupted Plan in tile',
+  (() => {
+    const body = _fnBody(js, 'renderDiagnosticSurface');
+    return body && /_isCorruptedPassPlan/.test(body) && /fix bug/i.test(body);
+  })());
+
+// Behavioral fixture — given a synthetic corrupted Pass Plan, verify
+// _isCorruptedPassPlan returns true. Given a healthy one, false.
+test('v4.81.7 Retake: vm fixture — corruption signature detected',
+  (() => {
+    try {
+      const body = _fnBody(js, '_isCorruptedPassPlan');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Math, JSON };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // Signature 1: accPct=0 + seededCount<questionCount
+      const corrupt1 = { passPlan: { accPct: 0, seededCount: 2, questionCount: 20 } };
+      // Signature 2: predicted=420 + correctCount>0
+      const corrupt2 = { passPlan: { predicted: 420, correctCount: 18 } };
+      // Healthy: matches both fields' invariants
+      const healthy = { passPlan: { accPct: 90, seededCount: 2, questionCount: 20, predicted: 805, correctCount: 18 } };
+      // Genuine 0%: would seed all 20
+      const genuineZero = { passPlan: { accPct: 0, seededCount: 20, questionCount: 20, predicted: 420, correctCount: 0 } };
+      ctx.corrupt1 = corrupt1; ctx.corrupt2 = corrupt2; ctx.healthy = healthy; ctx.genuineZero = genuineZero;
+      const r1 = vm.runInContext('_isCorruptedPassPlan(corrupt1)', ctx);
+      const r2 = vm.runInContext('_isCorruptedPassPlan(corrupt2)', ctx);
+      const r3 = vm.runInContext('_isCorruptedPassPlan(healthy)', ctx);
+      const r4 = vm.runInContext('_isCorruptedPassPlan(genuineZero)', ctx);
+      return r1 === true && r2 === true && r3 === false && r4 === false;
+    } catch (e) { return false; }
+  })());
 
 test('v4.81.5 Diagnostic: render produces 4 option buttons (vm fixture with letter-keyed options)',
   (() => {
