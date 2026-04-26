@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.8', js.includes("const APP_VERSION = '4.81.8"));
+test('APP_VERSION is 4.81.9', js.includes("const APP_VERSION = '4.81.9"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.8', sw.includes('netplus-v4.81.8'));
+test('SW cache bumped to v4.81.9', sw.includes('netplus-v4.81.9'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10637,6 +10637,144 @@ test('v4.81.8 TB3D: tbOpen3DView tracks phase across import/enter/setTraceState/
   })());
 test('v4.81.8 TB3D: regression guard — old generic toast text removed',
   !/'Could not load 3D View — check network \/ console\.'/.test(js));
+
+// ──────────────────────────────────────────────────────────
+// v4.81.9: ACL Builder scenario-aware Add Rule defaults (Codex r7 #1)
+// ──────────────────────────────────────────────────────────
+// Codex r7: pre-fix the Add Rule modal defaulted to `permit any any any
+// any` regardless of scenario context — for "Block a Single Host" that's
+// the OPPOSITE of the right first move. Fix derives smart defaults from
+// scenario.testPackets + scenario.zones (no schema change needed).
+test('v4.81.9 ACL: _aclDeriveRuleHints helper defined',
+  /function\s+_aclDeriveRuleHints\b/.test(js));
+test('v4.81.9 ACL: _aclRenderRuleChips helper defined',
+  /function\s+_aclRenderRuleChips\b/.test(js));
+test('v4.81.9 ACL: _aclChipClick handler defined',
+  /function\s+_aclChipClick\b/.test(js));
+test('v4.81.9 ACL: hints helper handles free-build scenario (returns null)',
+  (() => {
+    const body = _fnBody(js, '_aclDeriveRuleHints');
+    return body && /free-build/.test(body) && /return null/.test(body);
+  })());
+test('v4.81.9 ACL: aclOpenAddRuleModal calls _aclDeriveRuleHints',
+  (() => {
+    const body = _fnBody(js, 'aclOpenAddRuleModal');
+    return body && /_aclDeriveRuleHints/.test(body);
+  })());
+test('v4.81.9 ACL: modal markup has #acl-rm-helper strip',
+  /id="acl-rm-helper"/.test(html));
+test('v4.81.9 ACL: modal markup has chip containers for src/dst addr + port',
+  /id="acl-rm-srcAddr-chips"/.test(html)
+  && /id="acl-rm-dstAddr-chips"/.test(html)
+  && /id="acl-rm-srcPort-chips"/.test(html)
+  && /id="acl-rm-dstPort-chips"/.test(html));
+test('v4.81.9 ACL: .acl-rm-helper CSS declared',
+  /\.acl-rm-helper\s*\{/.test(css));
+test('v4.81.9 ACL: .acl-rm-chip CSS declared',
+  /\.acl-rm-chip\s*\{/.test(css));
+test('v4.81.9 ACL: input-flash animation honors reduced-motion',
+  /prefers-reduced-motion[\s\S]{0,200}\.acl-rm-input-flash/.test(css));
+
+// Behavioral fixture — derive hints for "Block a Single Host" pattern
+// (mixed deny + permit packets with different srcs) and verify the
+// suggested first rule is a SPECIFIC DENY, not the generic permit-any.
+test('v4.81.9 ACL: vm fixture — block-a-host scenario suggests specific deny',
+  (() => {
+    try {
+      const body = _fnBody(js, '_aclDeriveRuleHints');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Math, JSON, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const scen = {
+        id: 'block-single-host',
+        zones: [
+          { name: 'Quarantined', cidr: '10.0.0.50/32' },
+          { name: 'LAN', cidr: '10.0.0.0/24' },
+          { name: 'Internet', cidr: 'any' }
+        ],
+        testPackets: [
+          { src: '10.0.0.50', dst: '8.8.8.8',  dp: 53,  proto: 'udp', expected: 'deny' },
+          { src: '10.0.0.50', dst: '93.184.216.34', dp: 443, proto: 'tcp', expected: 'deny' },
+          { src: '10.0.0.20', dst: '8.8.8.8',  dp: 53,  proto: 'udp', expected: 'permit' }
+        ]
+      };
+      ctx.scen = scen;
+      const hints = vm.runInContext('_aclDeriveRuleHints(scen, 0)', ctx);
+      return hints
+        && hints.suggested
+        && hints.suggested.action === 'deny'
+        && hints.suggested.srcAddr === '10.0.0.50'
+        && /first-match/i.test(hints.helper || '')
+        && hints.chips
+        && hints.chips.addr.includes('10.0.0.50')
+        && hints.chips.addr.includes('10.0.0.0/24');
+    } catch (e) { return false; }
+  })());
+
+// Behavioral fixture — default-deny pattern (permits + implicit deny)
+// suggests a specific PERMIT first.
+test('v4.81.9 ACL: vm fixture — default-deny scenario suggests specific permit',
+  (() => {
+    try {
+      const body = _fnBody(js, '_aclDeriveRuleHints');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Math, JSON, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const scen = {
+        id: 'https-only',
+        zones: [
+          { name: 'Secure Workstations', cidr: '192.168.50.0/24' },
+          { name: 'Internet', cidr: 'any' }
+        ],
+        testPackets: [
+          { src: '192.168.50.10', dst: '93.184.216.34', dp: 443, proto: 'tcp', expected: 'permit' },
+          { src: '192.168.50.10', dst: '93.184.216.34', dp: 80,  proto: 'tcp', expected: 'deny' },
+          { src: '192.168.50.10', dst: '93.184.216.34', dp: 21,  proto: 'tcp', expected: 'deny' }
+        ]
+      };
+      ctx.scen = scen;
+      const hints = vm.runInContext('_aclDeriveRuleHints(scen, 0)', ctx);
+      return hints
+        && hints.suggested
+        && hints.suggested.action === 'permit'
+        && hints.suggested.srcAddr === '192.168.50.10'
+        && hints.suggested.dstPort === '443'
+        && /implicit deny/i.test(hints.helper || '');
+    } catch (e) { return false; }
+  })());
+
+// Behavioral fixture — when rules already exist, NO suggested first rule
+// (only chips). The "specific-deny-first" guidance only fires for the
+// empty-state.
+test('v4.81.9 ACL: vm fixture — currentRuleCount > 0 returns no suggestion (chips only)',
+  (() => {
+    try {
+      const body = _fnBody(js, '_aclDeriveRuleHints');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Math, JSON, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const scen = {
+        id: 'block-single-host',
+        zones: [{ cidr: '10.0.0.50/32' }],
+        testPackets: [
+          { src: '10.0.0.50', dst: '8.8.8.8', dp: 53, expected: 'deny' },
+          { src: '10.0.0.20', dst: '8.8.8.8', dp: 53, expected: 'permit' }
+        ]
+      };
+      ctx.scen = scen;
+      const hints = vm.runInContext('_aclDeriveRuleHints(scen, 2)', ctx);
+      return hints
+        && hints.suggested === null
+        && hints.chips
+        && hints.chips.addr.length > 1;
+    } catch (e) { return false; }
+  })());
 
 test('v4.81.7 Retake: vm fixture — corruption signature detected',
   (() => {

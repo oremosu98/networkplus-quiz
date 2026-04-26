@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.8</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.9</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -2331,6 +2331,8 @@
         <button type="button" class="acl-modal-close" onclick="aclCloseAddRuleModal()" aria-label="Close add rule">&times;</button>
       </div>
       <div class="acl-modal-body">
+        <!-- v4.81.9: scenario-aware helper strip (Codex r7 #1) -->
+        <div id="acl-rm-helper" class="acl-rm-helper" hidden></div>
         <div class="acl-rm-grid">
           <label class="acl-rm-lbl">Action
             <select id="acl-rm-action" class="acl-rm-input">
@@ -2348,15 +2350,19 @@
           </label>
           <label class="acl-rm-lbl">Source address
             <input id="acl-rm-srcAddr" class="acl-rm-input" placeholder="any, 10.0.0.5, 10.0.0.0/24" value="any">
+            <div id="acl-rm-srcAddr-chips" class="acl-rm-chips" hidden></div>
           </label>
           <label class="acl-rm-lbl">Source port
             <input id="acl-rm-srcPort" class="acl-rm-input" placeholder="any, 443, or 1024-65535" value="any">
+            <div id="acl-rm-srcPort-chips" class="acl-rm-chips" hidden></div>
           </label>
           <label class="acl-rm-lbl">Dest address
             <input id="acl-rm-dstAddr" class="acl-rm-input" placeholder="any, 10.20.0.10, 10.20.0.0/24" value="any">
+            <div id="acl-rm-dstAddr-chips" class="acl-rm-chips" hidden></div>
           </label>
           <label class="acl-rm-lbl">Dest port
             <input id="acl-rm-dstPort" class="acl-rm-input" placeholder="any, 443, or 1024-65535" value="any">
+            <div id="acl-rm-dstPort-chips" class="acl-rm-chips" hidden></div>
           </label>
         </div>
         <div class="acl-rm-actions">

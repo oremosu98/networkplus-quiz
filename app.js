@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.8
+// Network+ AI Quiz — app.js  v4.81.9
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.8';
+const APP_VERSION = '4.81.9';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -34369,17 +34369,152 @@ function aclCloseScenarioPicker() {
 }
 
 // ── Add-Rule modal ──
+// v4.81.9: derive scenario-aware rule hints (Codex r7 #1). Pulls suggested
+// first-rule defaults + IP/port chips from the active scenario's existing
+// data (testPackets + zones). No schema change — purely a derivation.
+//
+// Returns { suggested, helper, chips } where:
+//   suggested: pre-fill values for the modal (only when ruleCount === 0)
+//   helper:    one-line scenario-specific guidance shown above the modal grid
+//   chips:     { addr: [...], port: [...] } click-to-fill quick-pick rows
+//
+// Detection rules:
+//   - If a scenario has BOTH deny + permit test packets with different srcs,
+//     it's a "block-a-host" pattern → suggest specific-deny first.
+//   - If only permit packets exist (with implicit-deny everything else),
+//     it's a "default-deny" pattern → suggest the most specific permit first.
+//   - Free Build / sandbox scenarios → no hints (return null).
+function _aclDeriveRuleHints(scen, currentRuleCount) {
+  if (!scen || scen.id === 'free-build') return null;
+
+  // Collect unique IPs/CIDRs from zones + test packets for chips
+  const addrChips = ['any'];
+  const seen = new Set(['any']);
+  const addAddr = (a) => { if (a && !seen.has(a)) { seen.add(a); addrChips.push(a); } };
+  (scen.zones || []).forEach(z => addAddr(z.cidr));
+  (scen.testPackets || []).forEach(p => { addAddr(p.src); addAddr(p.dst); });
+
+  // Common ports from test packets
+  const portChips = ['any'];
+  const seenP = new Set(['any']);
+  const addPort = (p) => {
+    if (p === undefined || p === null || p === 'any' || p === '') return;
+    const s = String(p);
+    if (!seenP.has(s)) { seenP.add(s); portChips.push(s); }
+  };
+  (scen.testPackets || []).forEach(p => { addPort(p.sp); addPort(p.dp); });
+
+  // Suggested first-rule defaults — only when no rules yet
+  let suggested = null;
+  let helper = null;
+  if (currentRuleCount === 0 && Array.isArray(scen.testPackets) && scen.testPackets.length > 0) {
+    const denies = scen.testPackets.filter(p => p.expected === 'deny');
+    const permits = scen.testPackets.filter(p => p.expected === 'permit');
+    const firstDeny = denies[0];
+    const firstPermit = permits[0];
+
+    // "Block-a-host" pattern: deny + permit packets with different srcs
+    if (firstDeny && firstPermit && firstDeny.src && firstPermit.src && firstDeny.src !== firstPermit.src) {
+      suggested = {
+        action: 'deny',
+        proto: 'any',
+        srcAddr: firstDeny.src,
+        srcPort: 'any',
+        dstAddr: 'any',
+        dstPort: 'any'
+      };
+      helper = 'For this scenario, start with the specific deny before broader permits — ACLs are first-match-wins, so the narrowest rule must come first.';
+    } else if (firstPermit && permits.length > 0 && denies.length > 0) {
+      // "Default-deny" pattern: implicit deny + specific permits
+      const dst = firstPermit.dst;
+      const isPublicDns = dst === '8.8.8.8' || dst === '1.1.1.1';
+      suggested = {
+        action: 'permit',
+        proto: firstPermit.proto || 'any',
+        srcAddr: firstPermit.src || 'any',
+        srcPort: 'any',
+        dstAddr: isPublicDns ? 'any' : (dst || 'any'),
+        dstPort: String(firstPermit.dp || 'any')
+      };
+      helper = 'Add the most specific permit first. Implicit deny at the end will block everything else.';
+    }
+  }
+
+  return { suggested, helper, chips: { addr: addrChips, port: portChips } };
+}
+
+// v4.81.9: render a click-to-fill chip row. Clicking a chip writes its
+// value to the targetInputId — saves typing common IPs/ports.
+function _aclRenderRuleChips(containerId, values, targetInputId) {
+  const host = document.getElementById(containerId);
+  if (!host) return;
+  if (!values || values.length === 0) { host.innerHTML = ''; host.hidden = true; return; }
+  host.hidden = false;
+  host.innerHTML = values.map(v =>
+    '<button type="button" class="acl-rm-chip" data-target="' + targetInputId +
+    '" data-value="' + escHtml(v) + '" onclick="_aclChipClick(event)">' +
+    escHtml(v) + '</button>'
+  ).join('');
+}
+
+// v4.81.9: chip-click handler. Reads data-target + data-value and writes
+// the value into the named input.
+function _aclChipClick(ev) {
+  const btn = ev.currentTarget;
+  if (!btn) return;
+  const targetId = btn.getAttribute('data-target');
+  const value = btn.getAttribute('data-value');
+  const input = document.getElementById(targetId);
+  if (!input) return;
+  input.value = value;
+  // Briefly highlight to confirm the fill
+  input.classList.add('acl-rm-input-flash');
+  setTimeout(() => input.classList.remove('acl-rm-input-flash'), 350);
+  // Move focus to the input so the user can edit further
+  try { input.focus(); } catch (_) {}
+}
+
 function aclOpenAddRuleModal() {
   const modal = document.getElementById('acl-rule-modal');
   if (!modal) return;
-  // Reset fields
+  // Reset fields — defaults shift based on scenario context (Codex r7 #1)
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  set('acl-rm-action', 'permit');
-  set('acl-rm-proto',  'any');
-  set('acl-rm-srcAddr', 'any');
-  set('acl-rm-srcPort', 'any');
-  set('acl-rm-dstAddr', 'any');
-  set('acl-rm-dstPort', 'any');
+  const scen = (typeof ACL_SCENARIOS !== 'undefined' && aclState && aclState.scenarioId)
+    ? ACL_SCENARIOS.find(s => s.id === aclState.scenarioId)
+    : null;
+  const hints = _aclDeriveRuleHints(scen, (aclState && aclState.rules) ? aclState.rules.length : 0);
+  const sugg = (hints && hints.suggested) || {
+    action: 'permit', proto: 'any',
+    srcAddr: 'any', srcPort: 'any',
+    dstAddr: 'any', dstPort: 'any'
+  };
+  set('acl-rm-action',  sugg.action);
+  set('acl-rm-proto',   sugg.proto);
+  set('acl-rm-srcAddr', sugg.srcAddr);
+  set('acl-rm-srcPort', sugg.srcPort);
+  set('acl-rm-dstAddr', sugg.dstAddr);
+  set('acl-rm-dstPort', sugg.dstPort);
+
+  // Helper strip — scenario-specific guidance for the first rule
+  const helperEl = document.getElementById('acl-rm-helper');
+  if (helperEl) {
+    if (hints && hints.helper) {
+      helperEl.textContent = hints.helper;
+      helperEl.hidden = false;
+    } else {
+      helperEl.hidden = true;
+      helperEl.textContent = '';
+    }
+  }
+
+  // Quick chips — IPs for src/dst, ports for src/dst-port
+  const chipAddrs = (hints && hints.chips && hints.chips.addr) || ['any'];
+  const chipPorts = (hints && hints.chips && hints.chips.port) || ['any'];
+  _aclRenderRuleChips('acl-rm-srcAddr-chips', chipAddrs, 'acl-rm-srcAddr');
+  _aclRenderRuleChips('acl-rm-dstAddr-chips', chipAddrs, 'acl-rm-dstAddr');
+  _aclRenderRuleChips('acl-rm-srcPort-chips', chipPorts, 'acl-rm-srcPort');
+  _aclRenderRuleChips('acl-rm-dstPort-chips', chipPorts, 'acl-rm-dstPort');
+
   modal.classList.remove('is-hidden');
   setTimeout(() => { const el = document.getElementById('acl-rm-srcAddr'); if (el) el.focus(); }, 40);
 }
