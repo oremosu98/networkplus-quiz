@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.24
+// Network+ AI Quiz — app.js  v4.81.25
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.24';
+const APP_VERSION = '4.81.25';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -13243,10 +13243,32 @@ function _tbTroubleshootingOrderOk(q) {
 
   const stem = (q.question || '').toLowerCase();
   const topic = (q.topic || '').toLowerCase();
+
+  // v4.81.25: widened gate. Original gate required "comptia" + "methodology"
+  // / "X-step" — too tight; missed user-reported question whose stem said
+  // "Arrange the following troubleshooting steps in the correct order when
+  // diagnosing a network connectivity issue." That stem mentions
+  // "troubleshooting steps" but neither "comptia" nor "methodology" — so
+  // the methodology rules weren't applied and a malformed item slipped
+  // through. Now also fire when items themselves contain methodology
+  // keywords (Identify-the-problem + Document-findings combo) regardless
+  // of stem wording.
+  const hasIdentifyKw = items.some(it =>
+    typeof it === 'string' && /\bidentify\b[\s\S]{0,40}\bproblem\b/i.test(it));
+  const hasDocumentKw = items.some(it =>
+    typeof it === 'string' && /\bdocument\b[\s\S]{0,80}(findings|actions?|outcomes?|future|reference)/i.test(it));
   const looksLikeTsMethodology =
-    (stem.includes('comptia') || topic.includes('comptia') || topic.includes('troubleshooting methodology')) &&
-    (stem.includes('troubleshoot') || stem.includes('methodology') ||
-     stem.includes('7-step') || stem.includes('seven-step') || stem.includes('5-step') || stem.includes('five-step'));
+    // Original tight gate
+    ((stem.includes('comptia') || topic.includes('comptia') || topic.includes('troubleshooting methodology')) &&
+     (stem.includes('troubleshoot') || stem.includes('methodology') ||
+      stem.includes('7-step') || stem.includes('seven-step') || stem.includes('5-step') || stem.includes('five-step')))
+    // v4.81.25 widening — generic "troubleshooting steps" / diagnostic-process ordering
+    || (stem.includes('troubleshooting step') && (stem.includes('order') || stem.includes('sequence') || stem.includes('arrange')))
+    || (stem.includes('diagnostic') && (stem.includes('order') || stem.includes('sequence')))
+    // v4.81.25 widening — items themselves contain the canonical
+    // Identify+Document methodology pair (resilient to stem wording)
+    || (hasIdentifyKw && hasDocumentKw);
+
   if (!looksLikeTsMethodology) return true;
 
   // Locate the Identify and Document items by keyword — resilient to exact
@@ -13274,6 +13296,38 @@ function _tbTroubleshootingOrderOk(q) {
     const posTh = order.indexOf(theoryIdx);
     if (posId !== -1 && posTh !== -1 && posTh <= posId) return false;
   }
+
+  // v4.81.25 LAYER A — Implement-before-Verify invariant.
+  // CompTIA methodology: Step 5 (Implement solution) → Step 6 (Verify
+  // functionality). Reverse order is logically impossible — you can't
+  // verify something you haven't implemented. User-reported question
+  // had "Test the solution and verify connectivity is restored" placed
+  // BEFORE the item that mentioned implementation, which is wrong.
+  const implementIdx = items.findIndex(it =>
+    typeof it === 'string' &&
+    /\bimplement(?:ing)?\b[\s\S]{0,80}\b(?:solution|fix|workaround|change|plan)\b/i.test(it));
+  const verifyIdx = items.findIndex(it =>
+    typeof it === 'string' &&
+    /\b(?:verify|verification)\b[\s\S]{0,120}(?:solution|connectivity|functionality|resolved|restored|preventive|fixed)\b/i.test(it));
+  if (implementIdx !== -1 && verifyIdx !== -1 && implementIdx !== verifyIdx) {
+    const posImpl = order.indexOf(implementIdx);
+    const posVer = order.indexOf(verifyIdx);
+    if (posImpl !== -1 && posVer !== -1 && posImpl >= posVer) return false;
+  }
+
+  // v4.81.25 LAYER B — reject items that conflate Implement + Document.
+  // Steps 5 (Implement) and 7 (Document) are NON-ADJACENT in the
+  // methodology — Step 6 (Verify) sits between them. A single item
+  // containing both keywords is structurally malformed (forces the
+  // grader to put either implementation after verification, or
+  // documentation before verification — both wrong). User-reported
+  // question had "Document findings AND implement a permanent solution"
+  // as one item — exactly this bug.
+  const conflatedImplementDocIdx = items.findIndex(it =>
+    typeof it === 'string'
+    && /\bimplement(?:ing)?\b[\s\S]{0,200}\b(?:solution|fix|workaround|plan)\b/i.test(it)
+    && /\bdocument(?:ing)?\b[\s\S]{0,200}\b(?:findings?|actions?|outcomes?)\b/i.test(it));
+  if (conflatedImplementDocIdx !== -1) return false;
 
   return true;
 }

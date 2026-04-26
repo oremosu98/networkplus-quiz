@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.24', js.includes("const APP_VERSION = '4.81.24"));
+test('APP_VERSION is 4.81.25', js.includes("const APP_VERSION = '4.81.25"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.24', sw.includes('netplus-v4.81.24'));
+test('SW cache bumped to v4.81.25', sw.includes('netplus-v4.81.25'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12530,6 +12530,150 @@ test('v4.81.24 DeploySync: deploy-verify REQUIRED_IDS match live index.html',
         return false;
       }
       return true;
+    } catch (e) { return false; }
+  })());
+
+// v4.81.25: Order-question quality fix — Implement-before-Verify invariant
+// + conflated-step rejection. User dogfood: a Hard ordering question
+// produced a "correct order" with item 4 = "Document findings AND implement
+// a permanent solution" — items 5 (Implement) and 7 (Document) of the
+// CompTIA methodology are non-adjacent (Step 6 Verify sits between them),
+// so smashing them in one item is structurally malformed AND placing it
+// after a Verify item creates an Implement-after-Verify ordering error.
+// Existing _tbTroubleshootingOrderOk also missed it because the gate was
+// too tight (required "comptia"/"methodology"/"X-step" in stem; user's
+// stem just said "troubleshooting steps when diagnosing...").
+test('v4.81.25 OrderGuard: gate widened to catch generic "troubleshooting steps" stems',
+  (() => {
+    const body = _fnBody(js, '_tbTroubleshootingOrderOk') || '';
+    return /troubleshooting step/.test(body)
+      && /\b(?:order|sequence|arrange)\b/.test(body);
+  })());
+test('v4.81.25 OrderGuard: gate widened to fire on Identify+Document item-keyword combo',
+  (() => {
+    const body = _fnBody(js, '_tbTroubleshootingOrderOk') || '';
+    return /hasIdentifyKw\s*&&\s*hasDocumentKw/.test(body);
+  })());
+test('v4.81.25 OrderGuard: implementIdx + verifyIdx variables declared',
+  (() => {
+    const body = _fnBody(js, '_tbTroubleshootingOrderOk') || '';
+    return /\bimplementIdx\b/.test(body) && /\bverifyIdx\b/.test(body);
+  })());
+test('v4.81.25 OrderGuard: Implement-before-Verify ordering invariant enforced',
+  (() => {
+    const body = _fnBody(js, '_tbTroubleshootingOrderOk') || '';
+    return /posImpl\s*>=\s*posVer/.test(body) || /posVer\s*<=\s*posImpl/.test(body);
+  })());
+test('v4.81.25 OrderGuard: conflated Implement+Document item rejected',
+  (() => {
+    const body = _fnBody(js, '_tbTroubleshootingOrderOk') || '';
+    return /conflatedImplementDocIdx/.test(body);
+  })());
+
+// vm fixture #1 — the EXACT user-reported bug case rejected.
+test('v4.81.25 OrderGuard: vm fixture — exact user bug case rejected (Implement+Document conflated item)',
+  (() => {
+    try {
+      const body = _fnBody(js, '_tbTroubleshootingOrderOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Array, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      // Reproduce the user's screenshot exactly:
+      const bug = {
+        type: 'order',
+        question: 'Arrange the following troubleshooting steps in the correct order when diagnosing a network connectivity issue reported by an end user.',
+        items: [
+          'Document findings and implement a permanent solution or workaround',                         // 0 — conflated, malformed
+          'Gather information about the problem, including when it started and what is affected',       // 1 — Identify (step 1)
+          'Test the solution and verify that connectivity is restored',                                 // 2 — Verify (step 6)
+          'Narrow the scope by testing basic connectivity (ping, ipconfig) and reviewing logs to identify the root cause' // 3 — Theory + Test (steps 2-3-4)
+        ],
+        correctOrder: [1, 3, 2, 0] // matches the app's "correct order" — 1=Identify, 3=Theory, 2=Verify, 0=Document+Implement
+      };
+      ctx.bug = bug;
+      const r = vm.runInContext('_tbTroubleshootingOrderOk(bug)', ctx);
+      return r === false; // rejected
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — Implement-after-Verify (without conflation) rejected.
+test('v4.81.25 OrderGuard: vm fixture — Implement-after-Verify rejected even when items are clean',
+  (() => {
+    try {
+      const body = _fnBody(js, '_tbTroubleshootingOrderOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Array, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const bad = {
+        type: 'order',
+        question: 'Arrange these troubleshooting steps in the correct order:',
+        items: [
+          'Identify the problem by gathering information',                              // 0 — step 1
+          'Establish a theory of probable cause',                                       // 1 — step 2
+          'Verify full system functionality and that connectivity is restored',         // 2 — step 6 (VERIFY)
+          'Implement the solution or workaround to the problem',                        // 3 — step 5 (IMPLEMENT)
+          'Document findings and outcomes for future reference'                         // 4 — step 7
+        ],
+        correctOrder: [0, 1, 2, 3, 4] // wrong: implement should be BEFORE verify
+      };
+      ctx.bad = bad;
+      const r = vm.runInContext('_tbTroubleshootingOrderOk(bad)', ctx);
+      return r === false; // rejected
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 — correct ordering passes (regression guard, no false positive).
+test('v4.81.25 OrderGuard: vm fixture — correct 5-step ordering accepted',
+  (() => {
+    try {
+      const body = _fnBody(js, '_tbTroubleshootingOrderOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Array, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const good = {
+        type: 'order',
+        question: 'Arrange these troubleshooting steps in the correct order:',
+        items: [
+          'Identify the problem by gathering information',
+          'Establish a theory of probable cause',
+          'Test the theory to determine cause',
+          'Implement the solution or workaround',
+          'Verify full system functionality is restored',
+          'Document findings, actions, and outcomes for future reference'
+        ],
+        correctOrder: [0, 1, 2, 3, 4, 5]
+      };
+      ctx.good = good;
+      const r = vm.runInContext('_tbTroubleshootingOrderOk(good)', ctx);
+      return r === true; // accepted
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #4 — non-troubleshooting order question untouched.
+test('v4.81.25 OrderGuard: vm fixture — non-troubleshooting order question passes through',
+  (() => {
+    try {
+      const body = _fnBody(js, '_tbTroubleshootingOrderOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Array, String };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const unrelated = {
+        type: 'order',
+        question: 'Arrange these OSI layers in correct top-to-bottom order:',
+        items: ['Application', 'Transport', 'Network', 'Data Link'],
+        correctOrder: [0, 1, 2, 3]
+      };
+      ctx.unrelated = unrelated;
+      const r = vm.runInContext('_tbTroubleshootingOrderOk(unrelated)', ctx);
+      return r === true;
     } catch (e) { return false; }
   })());
 
