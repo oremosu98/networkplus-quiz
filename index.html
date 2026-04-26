@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.11</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.12</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1582,80 +1582,119 @@
       <h1 class="ed-pagehead-display">Your <em>settings.</em></h1>
     </div>
   </div>
+  <!-- v4.81.12: Settings Control Centre (Codex r9 #6 / Issue #266).
+       4 deliberate groupings — Study Setup / AI Coach / Data & Backups /
+       Danger Zone. Each section keeps its existing IDs + handlers; only
+       the wrapping structure changes. Section ordering reflects the trust
+       hierarchy (read-only health → study cadence → AI → data → destruct). -->
   <div class="settings-layout">
-    <!-- v4.81.11: Study Setup Health card (Codex r9 #5) — top-of-page
-         glanceable status: API key, exam date, daily goal, backup, last
-         backup time. Read-only, populated by renderSettingsHealthCard()
-         on every Settings page visit. -->
-    <section class="card settings-section settings-health-card" id="settings-health-card">
-      <h3 class="settings-section-title">Study setup health <span class="settings-health-eyebrow">at a glance</span></h3>
-      <div class="settings-health-grid" id="settings-health-grid">
-        <!-- Populated by renderSettingsHealthCard() -->
+    <!-- ═══════ § 01 STUDY SETUP ═══════ -->
+    <div class="settings-group" data-group="study-setup">
+      <div class="settings-group-head">
+        <span class="settings-group-num">&sect; 01</span>
+        <div class="settings-group-titles">
+          <h2 class="settings-group-h">Study <em>setup</em></h2>
+          <p class="settings-group-sub">Goals, exam date, and at-a-glance status &mdash; the inputs that shape your daily study cadence.</p>
+        </div>
       </div>
-    </section>
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Anthropic API Key</h3>
-      <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" onblur="autoSaveApiKey()" oninput="_apiKeyDebouncedSave()" />
-      <p class="settings-section-hint">Stored in your browser only. Used only to call the Anthropic API. Auto-saves as you type.</p>
-      <div id="api-key-status" class="api-key-status is-hidden" role="status" aria-live="polite"></div>
-    </section>
-    <!-- v4.54.16: editable exam date. Uses the same chip component as Home + Analytics. -->
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Exam Date</h3>
-      <div class="settings-exam-row" id="settings-exam-row">
-        <!-- Populated by syncSettingsExamDate() on every Settings page visit -->
+      <!-- v4.81.11: Study Setup Health card (Codex r9 #5) -->
+      <section class="card settings-section settings-health-card" id="settings-health-card">
+        <h3 class="settings-section-title">Study setup health <span class="settings-health-eyebrow">at a glance</span></h3>
+        <div class="settings-health-grid" id="settings-health-grid">
+          <!-- Populated by renderSettingsHealthCard() -->
+        </div>
+      </section>
+      <!-- v4.54.16: editable exam date. Uses the same chip component as Home + Analytics. -->
+      <section class="card settings-section">
+        <h3 class="settings-section-title">Exam Date</h3>
+        <div class="settings-exam-row" id="settings-exam-row">
+          <!-- Populated by syncSettingsExamDate() on every Settings page visit -->
+        </div>
+        <p class="settings-section-hint">Powers the <strong>days until exam</strong> countdown on Home + Analytics, and the red marker cell on the 365-day study heatmap. Set it &mdash; keep your study pressure honest.</p>
+      </section>
+      <!-- v4.54.10: editable daily question goal. -->
+      <section class="card settings-section">
+        <h3 class="settings-section-title">Daily Goal</h3>
+        <div class="settings-daily-row">
+          <input type="number" id="settings-daily-input" min="1" max="500" step="1" aria-label="Daily question goal" class="settings-daily-input" />
+          <span class="settings-daily-unit">questions per day</span>
+          <button class="btn btn-primary settings-daily-save" id="settings-daily-save" onclick="saveSettingsDailyGoal()">Save</button>
+        </div>
+        <div class="settings-daily-presets" role="group" aria-label="Daily goal presets">
+          <button type="button" class="settings-daily-chip" data-goal="10" onclick="pickSettingsDailyPreset(10)">10</button>
+          <button type="button" class="settings-daily-chip" data-goal="20" onclick="pickSettingsDailyPreset(20)">20</button>
+          <button type="button" class="settings-daily-chip" data-goal="30" onclick="pickSettingsDailyPreset(30)">30</button>
+          <button type="button" class="settings-daily-chip" data-goal="50" onclick="pickSettingsDailyPreset(50)">50</button>
+        </div>
+        <p class="settings-section-hint">The count behind the "Today" card on your home page. Aim for something you can hit every day without burning out.</p>
+      </section>
+    </div>
+
+    <!-- ═══════ § 02 AI COACH ═══════ -->
+    <div class="settings-group" data-group="ai-coach">
+      <div class="settings-group-head">
+        <span class="settings-group-num">&sect; 02</span>
+        <div class="settings-group-titles">
+          <h2 class="settings-group-h">AI <em>coach</em></h2>
+          <p class="settings-group-sub">Anthropic API connection. Stored in your browser only &mdash; never sent to any other server.</p>
+        </div>
       </div>
-      <p class="settings-section-hint">Powers the <strong>days until exam</strong> countdown on Home + Analytics, and the red marker cell on the 365-day study heatmap. Set it \u2014 keep your study pressure honest.</p>
-    </section>
-    <!-- v4.54.10: editable daily question goal. Saves via setDailyGoal() +
-         refreshes the homepage readiness/hero so the "Today" card updates. -->
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Daily Goal</h3>
-      <div class="settings-daily-row">
-        <input type="number" id="settings-daily-input" min="1" max="500" step="1" aria-label="Daily question goal" class="settings-daily-input" />
-        <span class="settings-daily-unit">questions per day</span>
-        <button class="btn btn-primary settings-daily-save" id="settings-daily-save" onclick="saveSettingsDailyGoal()">Save</button>
+      <section class="card settings-section">
+        <h3 class="settings-section-title">Anthropic API Key</h3>
+        <input type="password" id="api-key" placeholder="sk-ant-api03-&#8230;" autocomplete="off" aria-label="Anthropic API key" onblur="autoSaveApiKey()" oninput="_apiKeyDebouncedSave()" />
+        <p class="settings-section-hint">Stored in your browser only. Used only to call the Anthropic API. Auto-saves as you type.</p>
+        <div id="api-key-status" class="api-key-status is-hidden" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <!-- ═══════ § 03 DATA & BACKUPS ═══════ -->
+    <div class="settings-group" data-group="data-backups">
+      <div class="settings-group-head">
+        <span class="settings-group-num">&sect; 03</span>
+        <div class="settings-group-titles">
+          <h2 class="settings-group-h">Data &amp; <em>backups</em></h2>
+          <p class="settings-group-sub">Export to disk, import a JSON snapshot, or roll back to a recent automatic backup.</p>
+        </div>
       </div>
-      <div class="settings-daily-presets" role="group" aria-label="Daily goal presets">
-        <button type="button" class="settings-daily-chip" data-goal="10" onclick="pickSettingsDailyPreset(10)">10</button>
-        <button type="button" class="settings-daily-chip" data-goal="20" onclick="pickSettingsDailyPreset(20)">20</button>
-        <button type="button" class="settings-daily-chip" data-goal="30" onclick="pickSettingsDailyPreset(30)">30</button>
-        <button type="button" class="settings-daily-chip" data-goal="50" onclick="pickSettingsDailyPreset(50)">50</button>
+      <section class="card settings-section">
+        <h3 class="settings-section-title">Manual export &amp; import</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
+          <!-- v4.81.11: Import is a real <button> (Codex r9 #2). -->
+          <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="document.getElementById('import-file-input').click()" aria-label="Import data from JSON file">&#128228; Import Data</button>
+          <input type="file" id="import-file-input" accept=".json" class="is-hidden" onchange="importData(event)" tabindex="-1" aria-hidden="true" />
+        </div>
+        <p class="settings-section-hint">Exports all quiz history, streaks, drill stats, topology saves, and ACL state to a JSON file. Import merges into your current local data.</p>
+      </section>
+      <!-- v4.81.2: automatic-backup safety net -->
+      <section class="card settings-section">
+        <h3 class="settings-section-title">Automatic backups</h3>
+        <p class="settings-section-hint" style="margin-top:0;margin-bottom:10px">Daily rolling snapshots of every progress key in your browser. Kept for the last 7 days plus any pre-restore safety snapshots. Restore rolls back ALL of your data to that day&#39;s state &mdash; current state is auto-snapshotted first so you can roll forward again.</p>
+        <div id="autobackup-list" class="autobackup-list">
+          <div class="ab-empty">No automatic backups yet &mdash; one will be created on your next page load.</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="downloadAutoBackup()">&#128229; Download latest snapshot</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="if(typeof _takeAutoBackup===&#39;function&#39;){_takeAutoBackup();renderAutoBackupList();}">&#128190; Snapshot now</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════ § 04 DANGER ZONE ═══════ -->
+    <div class="settings-group settings-group-danger" data-group="danger-zone">
+      <div class="settings-group-head settings-group-head-danger">
+        <span class="settings-group-num">&sect; 04</span>
+        <div class="settings-group-titles">
+          <h2 class="settings-group-h">Danger <em>zone</em></h2>
+          <p class="settings-group-sub">Destructive actions. Cannot be undone via Edit menu &mdash; only via Automatic Backups in &sect; 03.</p>
+        </div>
       </div>
-      <p class="settings-section-hint">The count behind the "Today" card on your home page. Aim for something you can hit every day without burning out.</p>
-    </section>
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Backup</h3>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
-        <!-- v4.81.11: Import is now a real <button> (Codex r9 #2) — pre-fix
-             a <label> wrapping a hidden <input type="file"> wasn't a focusable
-             control + screen readers announced it as plain text. Now uses a
-             button + adjacent hidden input pattern: button.click() → triggers
-             input.click() programmatically. Proper focus state, keyboard
-             accessible, screen-reader friendly. -->
-        <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="document.getElementById('import-file-input').click()" aria-label="Import data from JSON file">&#128228; Import Data</button>
-        <input type="file" id="import-file-input" accept=".json" class="is-hidden" onchange="importData(event)" tabindex="-1" aria-hidden="true" />
-      </div>
-      <p class="settings-section-hint">Exports all quiz history, streaks, drill stats, topology saves, and ACL state to a JSON file. Import merges into your current local data.</p>
-    </section>
-    <!-- v4.81.2: automatic-backup safety net -->
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Automatic backups <span style="font-size:10px;color:var(--accent-light);background:rgba(124,111,247,.12);padding:2px 8px;border-radius:99px;margin-left:6px;letter-spacing:.06em">v4.81.2 · NEW</span></h3>
-      <p class="settings-section-hint" style="margin-top:0;margin-bottom:10px">Daily rolling snapshots of every progress key in your browser. Kept for the last 7 days plus any pre-restore safety snapshots. Restore rolls back ALL of your data to that day's state — current state is auto-snapshotted first so you can roll forward again.</p>
-      <div id="autobackup-list" class="autobackup-list">
-        <div class="ab-empty">No automatic backups yet — one will be created on your next page load.</div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="downloadAutoBackup()">&#128229; Download latest snapshot</button>
-        <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="if(typeof _takeAutoBackup==='function'){_takeAutoBackup();renderAutoBackupList();}">&#128190; Snapshot now</button>
-      </div>
-    </section>
-    <section class="card settings-section">
-      <h3 class="settings-section-title">Wrong Answers Bank</h3>
-      <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
-      <p class="settings-section-hint">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
-    </section>
+      <section class="card settings-section settings-section-danger">
+        <h3 class="settings-section-title">Wrong Answers Bank</h3>
+        <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
+        <p class="settings-section-hint">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
+      </section>
+    </div>
   </div>
 </div>
 

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.11', js.includes("const APP_VERSION = '4.81.11"));
+test('APP_VERSION is 4.81.12', js.includes("const APP_VERSION = '4.81.12"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.11', sw.includes('netplus-v4.81.11'));
+test('SW cache bumped to v4.81.12', sw.includes('netplus-v4.81.12'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5663,8 +5663,12 @@ test('v4.54.1 HTML: #page-settings exists',
   html.includes('id="page-settings"'));
 // v4.81.2: window bumped 800 → 2500 chars after the auto-backup section was
 // added between Import Data and Clear Wrong Bank.
+// v4.81.12: page-settings → exportData window bumped 5000 → 7000 because the
+// Control Centre reorg put §01 Study Setup + §02 AI Coach BEFORE §03 Data &
+// Backups. Also bumped importData → clearWrongBank window 2500 → 3500 for
+// headroom (current gap ~2250 with §04 Danger Zone wrapper).
 test('v4.54.1 (v4.54.16 update) HTML: settings has API key + Exam Date + Daily Goal + Export/Import + Clear Wrong Bank',
-  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,5000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,2500}clearWrongBank/.test(html));
+  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,7000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,3500}clearWrongBank/.test(html));
 test('v4.54.1 HTML: #history-panel moved to #page-analytics',
   /id="page-analytics"[\s\S]{0,1500}id="history-panel"/.test(html));
 test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
@@ -10916,6 +10920,45 @@ test('v4.81.11 Settings: 3 status tiers (ok/mid/warn) styled',
 
 // vm fixture — health card surfaces "Not connected" when no API key,
 // "Connected · sk-ant-..." when key present
+// ──────────────────────────────────────────────────────────
+// v4.81.12: Settings Control Centre 4-section reorg (Codex r9 #6 / #266)
+// ──────────────────────────────────────────────────────────
+// Settings page restructured into 4 deliberate groups: Study Setup /
+// AI Coach / Data & Backups / Danger Zone. Each group has a section
+// header (eyebrow + display heading + sub) for trust hierarchy.
+// Existing IDs + handlers all preserved; only wrapping structure changed.
+test('v4.81.12 Settings: 4 settings-group containers present',
+  /data-group="study-setup"/.test(html)
+  && /data-group="ai-coach"/.test(html)
+  && /data-group="data-backups"/.test(html)
+  && /data-group="danger-zone"/.test(html));
+test('v4.81.12 Settings: each group has a settings-group-head with §-numbered eyebrow',
+  /class="settings-group-num">&sect; 01/.test(html)
+  && /class="settings-group-num">&sect; 02/.test(html)
+  && /class="settings-group-num">&sect; 03/.test(html)
+  && /class="settings-group-num">&sect; 04/.test(html));
+test('v4.81.12 Settings: Danger Zone has settings-group-danger class',
+  /class="settings-group settings-group-danger"/.test(html));
+test('v4.81.12 Settings: Wrong Answers Bank section has settings-section-danger class',
+  /class="card settings-section settings-section-danger"/.test(html));
+test('v4.81.12 Settings: Health card lives in §01 Study Setup',
+  /data-group="study-setup"[\s\S]{0,2000}id="settings-health-card"/.test(html));
+test('v4.81.12 Settings: API key lives in §02 AI Coach',
+  /data-group="ai-coach"[\s\S]{0,800}id="api-key"/.test(html));
+test('v4.81.12 Settings: Export+Import live in §03 Data & Backups',
+  /data-group="data-backups"[\s\S]{0,2000}exportData\(\)/.test(html)
+  && /data-group="data-backups"[\s\S]{0,2000}id="import-file-input"/.test(html));
+test('v4.81.12 Settings: Auto-backups list lives in §03 Data & Backups',
+  /data-group="data-backups"[\s\S]{0,3000}id="autobackup-list"/.test(html));
+test('v4.81.12 Settings: Wrong Answers Bank lives in §04 Danger Zone',
+  /data-group="danger-zone"[\s\S]{0,2000}id="wrong-bank-clear"/.test(html));
+test('v4.81.12 Settings: .settings-group CSS declared',
+  /\.settings-group\s*\{/.test(css));
+test('v4.81.12 Settings: .settings-group-danger has red tint',
+  /\.settings-group-danger\s*\{[^}]*background:\s*rgba\(248,113,113/.test(css));
+test('v4.81.12 Settings: mobile breakpoint exists for settings-group',
+  /max-width:\s*540px[\s\S]{0,500}\.settings-group\b/.test(css));
+
 test('v4.81.11 Settings: vm fixture — health card surfaces correct API key status',
   (() => {
     try {
