@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.26
+   Network+ AI Quiz — styles.css  v4.81.27
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12717,6 +12717,23 @@ html { zoom: 1.10; }
   transform: translateX(2px);
 }
 .sr-option:disabled { cursor: default; }
+
+/* v4.81.27: read-only options + self-grade banner for cards that can't
+   be auto-graded (multi-select, or legacy MCQs with corrupt null answer
+   from the v4.81.27-fixed addToSrQueue bug). User reads the question +
+   options, recalls the answer, and self-grades — same SM-2 outcomes,
+   no auto-check. */
+.sr-options-readonly .sr-option-readonly {
+  cursor: default; opacity: 0.92;
+  background: var(--surface2); border: 1px dashed var(--border);
+}
+.sr-options-readonly .sr-option-readonly:hover { transform: none; background: var(--surface2); border-color: var(--border); }
+.sr-self-grade-banner {
+  font-size: 12.5px; color: var(--text-mid);
+  background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
+  font-style: italic;
+}
 .sr-option.is-picked {
   background: rgba(124,111,247,0.12); border-color: var(--accent);
 }

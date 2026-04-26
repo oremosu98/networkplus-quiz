@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.26
+// Network+ AI Quiz — app.js  v4.81.27
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.26';
+const APP_VERSION = '4.81.27';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5603,11 +5603,16 @@ function addToSrQueue(q) {
 
   // Brand new entry — preserve the question payload so the review surface
   // can re-render it without re-fetching from the API.
+  // v4.81.27 FIX: pre-fix `answer` had a type guard `typeof q.answer === 'number'`
+  // that always evaluated false for MCQs (our app stores answers as letter
+  // strings 'A'/'B'/etc., not numeric indices). Result: every MCQ ever
+  // enrolled had `answer: null`, breaking auto-grade in _renderSrCard.
+  // Now preserves the answer as-is (string letter or number index).
   entry = {
     qHash,
     question: stem,
     options: q.options || null,
-    answer: typeof q.answer === 'number' ? q.answer : null,
+    answer: (q.answer != null) ? q.answer : null,
     answers: q.answers || null,
     items: q.items || null,
     correctOrder: q.correctOrder || null,
@@ -5718,7 +5723,8 @@ function startSrReview() {
     correctConfident: 0,
     correctUncertain: 0,
     wrong: 0,
-    pickedIdx: null,
+    pickedLetter: null, // v4.81.27 — letter-keyed picks (was pickedIdx, broken for our app's MCQ schema)
+    pickedIdx: null,    // legacy — kept for any external observer
     revealed: false
   };
   showPage('sr-review');
@@ -5728,6 +5734,20 @@ function startSrReview() {
   _renderSrCard();
 }
 
+// v4.81.27: rewritten render.
+// Three fixes vs the v4.81.0 version that just shipped:
+//   1. Options were stored as a letter-keyed object {A,B,C,D} (matches
+//      renderMCQ + the live app), not an array. Pre-fix the renderer
+//      checked Array.isArray() and never matched, so options never
+//      rendered. Same bug class as v4.81.5 (diagnostic options).
+//   2. MCQ answer was a letter string ('A', 'B'); pre-fix the auto-grade
+//      check compared against an array index (number). Now compares
+//      letter-to-letter.
+//   3. Multi-select questions + cards with corrupt null answer (legacy
+//      enrollment bug — see addToSrQueue v4.81.27 fix above) fall back
+//      to a self-grade UI: read question, recall, click confidence.
+//      No auto-grade because we can't compare against null/multiple.
+//      Once enough new MCQ cards enroll, this fallback fires rarely.
 function _renderSrCard() {
   const host = document.getElementById('sr-card-host');
   if (!host || !_srSession) return;
@@ -5743,58 +5763,124 @@ function _renderSrCard() {
 
   if (!card) { _srEndReview(); return; }
 
-  const opts = card.options || [];
   const stem = card.question || '';
   const topicLabel = card.topic || 'Unknown topic';
   const intervalLabel = card.intervalDays
     ? 'last interval ' + (card.intervalDays < 1 ? '<1' : Math.round(card.intervalDays)) + 'd'
     : 'first review';
 
+  // Normalise options shape — accept either letter-keyed object {A:'..'}
+  // or legacy array form. Returns { letters: ['A','B',...], textOf: fn }.
+  const cardType = card.type || 'mcq';
+  let optionLetters = [];
+  let optionMap = {};
+  if (card.options && typeof card.options === 'object' && !Array.isArray(card.options)) {
+    optionMap = card.options;
+    optionLetters = Object.keys(optionMap).sort();
+  } else if (Array.isArray(card.options)) {
+    card.options.forEach((o, idx) => {
+      const letter = String.fromCharCode(65 + idx);
+      optionMap[letter] = o;
+    });
+    optionLetters = Object.keys(optionMap).sort();
+  }
+
+  // Decide whether this card can be auto-graded.
+  // MCQ + letter answer + valid options = auto-grade.
+  // Multi-select + answers array = could be auto-graded but render UI is
+  // not yet built (v4.81.28+); fall back to self-grade for now.
+  // Null/missing answer (legacy corruption) = self-grade.
+  const canAutoGrade =
+    cardType === 'mcq'
+    && optionLetters.length > 0
+    && (typeof card.answer === 'string' || typeof card.answer === 'number')
+    && card.answer !== null && card.answer !== '';
+
   let optionsHtml = '';
-  if (Array.isArray(opts) && opts.length > 0) {
-    optionsHtml = '<div class="sr-options">' + opts.map((o, idx) => {
+  let confidenceHtml = '';
+
+  if (canAutoGrade) {
+    // ── MCQ auto-grade path ──
+    // Coerce numeric-index answers (legacy data) to letter form.
+    const correctLetter = (typeof card.answer === 'number')
+      ? String.fromCharCode(65 + card.answer)
+      : String(card.answer);
+    optionsHtml = '<div class="sr-options">' + optionLetters.map(letter => {
       let cls = 'sr-option';
       if (_srSession.revealed) {
-        if (idx === card.answer) cls += ' is-correct';
-        else if (idx === _srSession.pickedIdx) cls += ' is-wrong';
-      } else if (_srSession.pickedIdx === idx) {
+        if (letter === correctLetter) cls += ' is-correct';
+        else if (letter === _srSession.pickedLetter) cls += ' is-wrong';
+      } else if (_srSession.pickedLetter === letter) {
         cls += ' is-picked';
       }
       const disabled = _srSession.revealed ? 'disabled' : '';
       return '<button type="button" class="' + cls + '" ' + disabled
-        + ' onclick="srPickAnswer(' + idx + ')" data-idx="' + idx + '">'
-        + '<span class="sr-option-letter">' + String.fromCharCode(65 + idx) + '</span>'
-        + '<span class="sr-option-text">' + escHtml(o) + '</span>'
+        + ' onclick="srPickAnswer(\'' + letter + '\')" data-letter="' + letter + '">'
+        + '<span class="sr-option-letter">' + letter + '</span>'
+        + '<span class="sr-option-text">' + escHtml(optionMap[letter] || '') + '</span>'
         + '</button>';
     }).join('') + '</div>';
-  }
 
-  let confidenceHtml = '';
-  if (_srSession.revealed) {
-    const pickedCorrect = _srSession.pickedIdx === card.answer;
+    if (_srSession.revealed) {
+      const pickedCorrect = _srSession.pickedLetter === correctLetter;
+      const explanation = card.explanation
+        ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
+        : '';
+      if (pickedCorrect) {
+        confidenceHtml = explanation
+          + '<div class="sr-confidence-row">'
+          + '<div class="sr-confidence-label">How did that feel?</div>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
+          + '✅ Got it · was confident'
+          + '<span class="sr-confidence-hint">interval grows fast</span></button>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
+          + '🤔 Got it · was unsure'
+          + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
+          + '</div>';
+      } else {
+        confidenceHtml = explanation
+          + '<div class="sr-confidence-row">'
+          + '<div class="sr-confidence-label" style="color: var(--red); font-weight: 600;">'
+          + '✗ Wrong — this card resets to tomorrow.</div>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
+          + 'Got it wrong → next card</button>'
+          + '</div>';
+      }
+    }
+  } else {
+    // ── Self-grade fallback path ──
+    // Multi-select + corrupt-answer cards. Show options read-only with
+    // letters (so the user can reason), show explanation immediately,
+    // ask the user to self-rate. Same SM-2 outcomes; no auto-check.
+    if (optionLetters.length > 0) {
+      optionsHtml = '<div class="sr-options sr-options-readonly">' + optionLetters.map(letter =>
+        '<div class="sr-option sr-option-readonly" data-letter="' + letter + '">'
+        + '<span class="sr-option-letter">' + letter + '</span>'
+        + '<span class="sr-option-text">' + escHtml(optionMap[letter] || '') + '</span>'
+        + '</div>'
+      ).join('') + '</div>';
+    }
     const explanation = card.explanation
       ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
       : '';
-    if (pickedCorrect) {
-      confidenceHtml = explanation
-        + '<div class="sr-confidence-row">'
-        + '<div class="sr-confidence-label">How did that feel?</div>'
-        + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
-        + '✅ Got it · was confident'
-        + '<span class="sr-confidence-hint">interval grows fast</span></button>'
-        + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
-        + '🤔 Got it · was unsure'
-        + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
-        + '</div>';
-    } else {
-      confidenceHtml = explanation
-        + '<div class="sr-confidence-row">'
-        + '<div class="sr-confidence-label" style="color: var(--red); font-weight: 600;">'
-        + '✗ Wrong — this card resets to tomorrow.</div>'
-        + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
-        + 'Got it wrong → next card</button>'
-        + '</div>';
-    }
+    const isMultiSelect = cardType === 'multi-select';
+    const fallbackHint = isMultiSelect
+      ? 'Multi-select review — read the question + options, recall the correct picks, then self-grade.'
+      : 'Self-grade review — read the question, recall the answer, then mark how it felt.';
+    confidenceHtml = '<div class="sr-self-grade-banner">' + escHtml(fallbackHint) + '</div>'
+      + explanation
+      + '<div class="sr-confidence-row">'
+      + '<div class="sr-confidence-label">How did you do?</div>'
+      + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
+      + '✅ Got it · was confident'
+      + '<span class="sr-confidence-hint">interval grows fast</span></button>'
+      + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
+      + '🤔 Got it · was unsure'
+      + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
+      + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
+      + '✗ Got it wrong'
+      + '<span class="sr-confidence-hint">resets to tomorrow</span></button>'
+      + '</div>';
   }
 
   host.innerHTML = '<div class="sr-card">'
@@ -5811,9 +5897,9 @@ function _renderSrCard() {
     + '</div>';
 }
 
-function srPickAnswer(idx) {
+function srPickAnswer(letter) {
   if (!_srSession || _srSession.revealed) return;
-  _srSession.pickedIdx = idx;
+  _srSession.pickedLetter = letter;
   _srSession.revealed = true;
   _renderSrCard();
 }
@@ -5834,7 +5920,8 @@ function srMarkConfidence(outcome) {
 
   // Advance
   _srSession.index++;
-  _srSession.pickedIdx = null;
+  _srSession.pickedLetter = null;
+  _srSession.pickedIdx = null; // legacy — kept for any external observer
   _srSession.revealed = false;
 
   if (_srSession.index >= _srSession.cards.length) {

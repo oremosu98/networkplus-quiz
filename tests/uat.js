@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.26', js.includes("const APP_VERSION = '4.81.26"));
+test('APP_VERSION is 4.81.27', js.includes("const APP_VERSION = '4.81.27"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.26', sw.includes('netplus-v4.81.26'));
+test('SW cache bumped to v4.81.27', sw.includes('netplus-v4.81.27'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12438,6 +12438,175 @@ test('v4.81.26 Settings: tombstone — old buggy `dg.goal` schema check removed'
 
 test('v4.81.26 Settings: today row uses getTodayQuestionCount (matches home page renderer)',
   /getTodayQuestionCount/.test(_fnBody(js, 'renderSettingsHealthCard') || ''));
+
+// v4.81.27: SR review render fix — letter-keyed options + multi-select
+// self-grade fallback + addToSrQueue answer-preservation bug.
+// User screenshot: SR review showed a multi-select question stem but
+// no answer options rendered (Array.isArray check on letter-keyed
+// options object failed). Same bug class as v4.81.5 diagnostic-options
+// schema mismatch. PLUS addToSrQueue had a type-guard bug that stored
+// MCQ answers as null because `typeof 'A' === 'number'` is false.
+test('v4.81.27 SR: addToSrQueue preserves MCQ letter answer (not null)',
+  (() => {
+    const body = _fnBody(js, 'addToSrQueue') || '';
+    // The actual code line should be `answer: (q.answer != null) ? q.answer : null`.
+    // The old buggy line was `answer: typeof q.answer === 'number' ? q.answer : null`.
+    // Look for the new pattern as an actual assignment (with leading `answer:`)
+    // — that excludes any comments documenting the historical pre-fix code.
+    return /answer:\s*\(q\.answer\s*!=\s*null\)/.test(body)
+      && !/answer:\s*typeof q\.answer\s*===\s*['"]number['"]/.test(body);
+  })());
+test('v4.81.27 SR tombstone: pickedIdx-based comparison removed from auto-grade',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    // Old: `idx === card.answer` (number-based)
+    // New: `letter === correctLetter` (string-based)
+    return !/idx\s*===\s*card\.answer/.test(body) && /letter\s*===\s*correctLetter/.test(body);
+  })());
+test('v4.81.27 SR: _renderSrCard handles letter-keyed options object',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    return /Object\.keys\(optionMap\)\.sort\(\)/.test(body)
+      && /typeof card\.options === ['"]object['"]/.test(body);
+  })());
+test('v4.81.27 SR: srPickAnswer accepts letter (was idx)',
+  (() => {
+    const body = _fnBody(js, 'srPickAnswer') || '';
+    return /pickedLetter\s*=\s*letter/.test(body);
+  })());
+test('v4.81.27 SR: self-grade fallback path exists for multi-select / null-answer cards',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    return /canAutoGrade/.test(body)
+      && /sr-self-grade-banner/.test(body)
+      && /multi-select/.test(body);
+  })());
+test('v4.81.27 SR CSS: .sr-self-grade-banner declared',
+  /\.sr-self-grade-banner\s*\{/.test(css));
+test('v4.81.27 SR CSS: .sr-options-readonly declared',
+  /\.sr-options-readonly\s*\.sr-option-readonly/.test(css));
+
+// vm fixture #1 — letter-keyed MCQ renders 4 option buttons
+test('v4.81.27 SR: vm fixture — MCQ with letter-keyed options renders 4 buttons',
+  (() => {
+    try {
+      const body = _fnBody(js, '_renderSrCard');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {} } },
+        _srSession: {
+          cards: [{
+            type: 'mcq',
+            question: 'Test stem?',
+            options: { A: 'first', B: 'second', C: 'third', D: 'fourth' },
+            answer: 'C',
+            topic: 'Test',
+            intervalDays: 1,
+            correctStreak: 0
+          }],
+          index: 0,
+          pickedLetter: null,
+          revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number,
+        Math
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('_renderSrCard()', ctx);
+      const html = fakeHost._innerHTML;
+      // Should render 4 sr-option buttons with letters A,B,C,D
+      const buttons = (html.match(/onclick="srPickAnswer\('[A-D]'\)"/g) || []);
+      return buttons.length === 4
+        && /data-letter="A"/.test(html)
+        && /data-letter="D"/.test(html)
+        && !/sr-self-grade-banner/.test(html); // should NOT fall back
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — multi-select question falls back to self-grade UI
+test('v4.81.27 SR: vm fixture — multi-select card falls back to self-grade banner',
+  (() => {
+    try {
+      const body = _fnBody(js, '_renderSrCard');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {} } },
+        _srSession: {
+          cards: [{
+            type: 'multi-select',
+            question: '(Choose TWO) ...',
+            options: { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e' },
+            answer: null,
+            answers: ['A', 'C'],
+            topic: 'WAN Connectivity',
+            intervalDays: 1,
+            correctStreak: 0
+          }],
+          index: 0,
+          pickedLetter: null,
+          revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('_renderSrCard()', ctx);
+      const html = fakeHost._innerHTML;
+      // Should render the self-grade banner + read-only options + 3 confidence buttons
+      return /sr-self-grade-banner/.test(html)
+        && /sr-options-readonly/.test(html)
+        && /Multi-select review/.test(html)
+        && /sr-confidence-confident/.test(html)
+        && /sr-confidence-uncertain/.test(html)
+        && /sr-confidence-wrong/.test(html);
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 — legacy MCQ with corrupt null answer (the addToSrQueue
+// pre-fix bug) also falls back to self-grade.
+test('v4.81.27 SR: vm fixture — null-answer MCQ (legacy corruption) falls back to self-grade',
+  (() => {
+    try {
+      const body = _fnBody(js, '_renderSrCard');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {} } },
+        _srSession: {
+          cards: [{
+            type: 'mcq',
+            question: 'Legacy enrollment with null answer',
+            options: { A: 'a', B: 'b', C: 'c', D: 'd' },
+            answer: null,
+            topic: 'Test',
+            intervalDays: 1,
+            correctStreak: 0
+          }],
+          index: 0,
+          pickedLetter: null,
+          revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('_renderSrCard()', ctx);
+      const html = fakeHost._innerHTML;
+      // Should render the read-only fallback + self-grade buttons
+      return /sr-self-grade-banner/.test(html)
+        && /sr-options-readonly/.test(html)
+        && /sr-confidence-confident/.test(html);
+    } catch (e) { return false; }
+  })());
 
 test('v4.81.10 DrillMission: vm fixture — empty mastery suggests Lesson 1',
   (() => {
