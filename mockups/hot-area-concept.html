@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Hot-Area question type (v4.83.0 candidate)</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --red: #f87171; --yellow: #fbbf24; --orange: #f59e0b;
+    --accent-rgb: 124,111,247;
+    --radius: 14px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 40px 20px 80px; min-height: 100vh;
+  }
+  .container { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; }
+  .state-divider {
+    margin: 56px 0 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; }
+
+  /* ── Quiz card surface ── */
+  .quiz-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+  .q-meta-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .q-num { font-size: 12px; font-weight: 700; color: var(--text-mid); letter-spacing: .04em; }
+  .pbq-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white; font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 99px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .diff-badge {
+    background: rgba(251,146,60,.15); color: var(--orange);
+    font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 99px; letter-spacing: .05em; text-transform: uppercase;
+  }
+
+  .q-stem { font-size: 17px; font-weight: 600; line-height: 1.5; margin: 8px 0 18px; color: var(--text); }
+
+  /* ── Hot-area SVG container ── */
+  .hot-area-stage {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+  }
+  .hot-area-svg { max-width: 100%; height: auto; }
+
+  /* Hot region styling */
+  .hot-region {
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .hot-region rect, .hot-region circle, .hot-region path, .hot-region polygon {
+    fill: var(--surface3);
+    stroke: var(--border);
+    stroke-width: 1.5;
+    transition: all .2s ease;
+  }
+  .hot-region:hover rect, .hot-region:hover circle, .hot-region:hover path, .hot-region:hover polygon {
+    fill: rgba(124,111,247,.18);
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+  .hot-region text {
+    fill: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .hot-region.is-picked rect, .hot-region.is-picked circle {
+    fill: rgba(124,111,247,.35);
+    stroke: var(--accent-light);
+    stroke-width: 2.5;
+  }
+  .hot-region.is-correct rect, .hot-region.is-correct circle {
+    fill: rgba(34,197,94,.35);
+    stroke: var(--green);
+    stroke-width: 2.5;
+  }
+  .hot-region.is-wrong rect, .hot-region.is-wrong circle {
+    fill: rgba(248,113,113,.30);
+    stroke: var(--red);
+    stroke-width: 2.5;
+  }
+  .hot-region.is-dimmed rect, .hot-region.is-dimmed circle {
+    opacity: 0.4;
+  }
+  .hot-region.is-reveal-correct rect, .hot-region.is-reveal-correct circle {
+    fill: rgba(34,197,94,.18);
+    stroke: var(--green);
+    stroke-width: 2;
+    stroke-dasharray: 4 3;
+  }
+
+  /* Submit row */
+  .ha-submit-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px;
+    background: rgba(124,111,247,.05);
+    border: 1px dashed rgba(124,111,247,.25);
+    border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--text-mid);
+  }
+  .ha-submit-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: white; border: none; padding: 8px 18px;
+    border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
+    cursor: pointer;
+  }
+  .ha-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; background: var(--surface3); color: var(--text-dim); }
+
+  /* Explanation box */
+  .explanation-box {
+    margin-top: 16px; padding: 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .exp-label { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .exp-label.correct { color: var(--green); }
+  .exp-label.wrong { color: var(--red); }
+  .exp-text { font-size: 13px; color: var(--text-mid); }
+
+  /* OSI stack (vertical) — different layout */
+  .osi-stack { display: flex; flex-direction: column; gap: 4px; min-width: 240px; }
+  .osi-layer {
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .2s ease;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .osi-layer:hover { background: rgba(124,111,247,.12); border-color: var(--accent); }
+  .osi-layer.is-picked { background: rgba(124,111,247,.30); border-color: var(--accent-light); }
+  .osi-layer.is-correct { background: rgba(34,197,94,.30); border-color: var(--green); color: var(--green); font-weight: 600; }
+  .osi-layer.is-wrong { background: rgba(248,113,113,.25); border-color: var(--red); }
+  .osi-layer.is-dimmed { opacity: 0.4; }
+  .osi-layer.is-reveal-correct { background: rgba(34,197,94,.12); border: 2px dashed var(--green); }
+  .osi-layer-num { font-weight: 700; color: var(--accent-light); }
+  .osi-layer-name { font-weight: 600; }
+
+  /* Cable grid */
+  .cable-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  .cable-card {
+    padding: 14px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface3);
+    border: 2px solid var(--border);
+    cursor: pointer;
+    text-align: center;
+    transition: all .2s ease;
+  }
+  .cable-card:hover { background: rgba(124,111,247,.10); border-color: var(--accent); transform: translateY(-2px); }
+  .cable-card.is-picked { border-color: var(--accent-light); background: rgba(124,111,247,.20); }
+  .cable-card.is-correct { border-color: var(--green); background: rgba(34,197,94,.20); }
+  .cable-card.is-wrong { border-color: var(--red); background: rgba(248,113,113,.18); }
+  .cable-card.is-dimmed { opacity: 0.4; }
+  .cable-card.is-reveal-correct { border: 2px dashed var(--green); background: rgba(34,197,94,.10); }
+  .cable-icon {
+    font-size: 28px; display: block; margin-bottom: 6px;
+  }
+  .cable-name { font-size: 12px; font-weight: 600; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Hot-Area question type — concept mockup</h1>
+  <p class="lede">User: <em>"types-of-thinking are well-covered. The biggest authenticity-gap is hot-area clicking … if you want, I could spin up a mockup."</em> → <em>"lets spin up a mockup and if we like it, we can ship it today."</em></p>
+
+  <div class="annotation">
+    <strong>Shape-of-solution decisions baked into this mockup (override before code if any feel wrong)</strong>
+    <ul style="margin: 8px 0 0 20px; padding: 0;">
+      <li><strong>3 sub-shapes for v1</strong>: network-topology click, OSI stack click, cable/connector grid click. Each tested below.</li>
+      <li><strong>Curated bank, not AI-generated</strong>: ~8–10 hand-authored questions for v1 (inline SVGs + answer keys + explanations). Same legal/quality discipline as the curated exemplar bank — never ingest paid content. Future: AI generation if it works for MCQs.</li>
+      <li><strong>Single-click + Submit</strong>: matches our other PBQ types (multi-select, order, topology). User clicks a region → tentative selection ring → Submit grades it. Allows changing pick before commit.</li>
+      <li><strong>Where they appear</strong>: regular quiz mix + exam simulator (via existing <code>injectPBQs</code>). NOT in diagnostic — diagnostic stays MCQ-only to honor the 30-min time budget (per v4.81.0 design).</li>
+      <li><strong>Revisit-aware</strong>: integrates with the v4.82.0 revisit infrastructure — clicking a dot re-renders with the previous pick highlighted + Submit re-enabled, same as multi-select / order.</li>
+      <li><strong>Schema</strong>: <code>{ type: 'hot-area', subShape: 'topology'|'osi'|'cable-grid', question, svgInline, regions: [{id, label, isCorrect}], answer: 'r3', explanation }</code>. Stored in <code>HOT_AREA_BANK</code> array, injected into questions same way <code>injectPBQs</code> handles cli-sim and topology.</li>
+    </ul>
+  </div>
+
+  <!-- ── EXAMPLE 1: Network Topology Click ── -->
+  <div class="state-divider"><span class="state-label">Example 1 · Network topology click · pre-pick</span></div>
+  <div class="quiz-card">
+    <div class="q-meta-row">
+      <span class="q-num">Q4</span>
+      <span class="pbq-badge">Hot Area · Topology</span>
+      <span class="diff-badge">Exam Level</span>
+    </div>
+    <div class="q-stem">A user reports they cannot reach the internet from the LAN. ICMP from PC1 to the default gateway succeeds, but ICMP from PC1 to 8.8.8.8 fails. Click the device most likely misconfigured.</div>
+    <div class="hot-area-stage">
+      <svg class="hot-area-svg" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background grid lines -->
+        <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(124,111,247,.1)" stroke-width="1" stroke-dasharray="3 4"/>
+        <!-- PC1 -->
+        <g class="hot-region" data-region="pc1">
+          <rect x="20" y="120" width="80" height="60" rx="6"/>
+          <text x="60" y="150">PC1</text>
+        </g>
+        <!-- Switch -->
+        <g class="hot-region" data-region="switch">
+          <rect x="160" y="120" width="80" height="60" rx="6"/>
+          <text x="200" y="150">SW1</text>
+        </g>
+        <!-- Router -->
+        <g class="hot-region" data-region="router">
+          <rect x="300" y="120" width="80" height="60" rx="6"/>
+          <text x="340" y="150">R1</text>
+        </g>
+        <!-- Firewall -->
+        <g class="hot-region" data-region="firewall">
+          <rect x="440" y="120" width="80" height="60" rx="6"/>
+          <text x="480" y="150">FW1</text>
+        </g>
+        <!-- Cloud / internet -->
+        <g class="hot-region" data-region="internet">
+          <circle cx="560" cy="150" r="28"/>
+          <text x="560" y="155" style="font-size:9px">INET</text>
+        </g>
+        <!-- Connecting lines -->
+        <line x1="100" y1="150" x2="160" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="240" y1="150" x2="300" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="380" y1="150" x2="440" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="520" y1="150" x2="535" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="ha-submit-row">
+      <span>Click a device to select your answer</span>
+      <button class="ha-submit-btn" disabled>Submit</button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>SVG region pattern</strong>
+    Each clickable region is a <code>&lt;g class="hot-region" data-region="X"&gt;</code> wrapping the visible shape + label. CSS hover rules live on <code>.hot-region:hover</code> children. The same group becomes <code>.is-picked</code> / <code>.is-correct</code> / <code>.is-wrong</code> / <code>.is-dimmed</code> / <code>.is-reveal-correct</code> via JS class toggling — no DOM rebuilding.
+  </div>
+
+  <!-- ── EXAMPLE 1: REVEALED ── -->
+  <div class="state-divider"><span class="state-label">Example 1 · revealed · user picked R1, correct was FW1</span></div>
+  <div class="quiz-card">
+    <div class="q-meta-row">
+      <span class="q-num">Q4</span>
+      <span class="pbq-badge">Hot Area · Topology</span>
+      <span class="diff-badge">Exam Level</span>
+    </div>
+    <div class="q-stem">A user reports they cannot reach the internet from the LAN. ICMP from PC1 to the default gateway succeeds, but ICMP from PC1 to 8.8.8.8 fails. Click the device most likely misconfigured.</div>
+    <div class="hot-area-stage">
+      <svg class="hot-area-svg" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(124,111,247,.1)" stroke-width="1" stroke-dasharray="3 4"/>
+        <g class="hot-region is-dimmed" data-region="pc1"><rect x="20" y="120" width="80" height="60" rx="6"/><text x="60" y="150">PC1</text></g>
+        <g class="hot-region is-dimmed" data-region="switch"><rect x="160" y="120" width="80" height="60" rx="6"/><text x="200" y="150">SW1</text></g>
+        <g class="hot-region is-wrong" data-region="router"><rect x="300" y="120" width="80" height="60" rx="6"/><text x="340" y="150">R1</text></g>
+        <g class="hot-region is-correct" data-region="firewall"><rect x="440" y="120" width="80" height="60" rx="6"/><text x="480" y="150">FW1</text></g>
+        <g class="hot-region is-dimmed" data-region="internet"><circle cx="560" cy="150" r="28"/><text x="560" y="155" style="font-size:9px">INET</text></g>
+        <line x1="100" y1="150" x2="160" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="240" y1="150" x2="300" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="380" y1="150" x2="440" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+        <line x1="520" y1="150" x2="535" y2="150" stroke="var(--accent)" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="explanation-box">
+      <div class="exp-label wrong">✗ Wrong — correct device: FW1 (firewall)</div>
+      <div class="exp-text">PC1 reaching its default gateway means LAN, switch, and router are all functional at L2/L3. Failure occurs only when traffic crosses the firewall — most likely cause is an outbound rule denying ICMP or a missing NAT/PAT translation. R1 has Layer 3 routing working (it forwarded to FW1), so it is not the misconfigured device.</div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Pedagogical pattern matches our other PBQs</strong>
+    Picked region = red ring (your wrong choice). Correct region = solid green. Other 3 dimmed (not relevant to this question). Same vocabulary as <code>.option.wrong</code> / <code>.option.correct</code> / <code>.option.dimmed</code> from MCQ + multi-select. Reduces user mental load — the visual language of "right vs wrong" is already learned.
+  </div>
+
+  <!-- ── EXAMPLE 2: OSI Stack ── -->
+  <div class="state-divider"><span class="state-label">Example 2 · OSI stack click · pre-pick</span></div>
+  <div class="quiz-card">
+    <div class="q-meta-row">
+      <span class="q-num">Q7</span>
+      <span class="pbq-badge">Hot Area · OSI</span>
+      <span class="diff-badge">Foundational</span>
+    </div>
+    <div class="q-stem">At which OSI layer does ARP (Address Resolution Protocol) operate?</div>
+    <div class="hot-area-stage">
+      <div class="osi-stack">
+        <div class="osi-layer"><span><span class="osi-layer-num">L7</span> · <span class="osi-layer-name">Application</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L6</span> · <span class="osi-layer-name">Presentation</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L5</span> · <span class="osi-layer-name">Session</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L4</span> · <span class="osi-layer-name">Transport</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L3</span> · <span class="osi-layer-name">Network</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L2</span> · <span class="osi-layer-name">Data Link</span></span></div>
+        <div class="osi-layer"><span><span class="osi-layer-num">L1</span> · <span class="osi-layer-name">Physical</span></span></div>
+      </div>
+    </div>
+    <div class="ha-submit-row">
+      <span>Click the layer to select your answer</span>
+      <button class="ha-submit-btn" disabled>Submit</button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Sub-shape variant: not all hot-areas are SVG</strong>
+    OSI stack uses a flexbox of <code>&lt;div class="osi-layer"&gt;</code> elements rather than SVG — same hover/picked/correct/wrong pattern, just rendered with HTML primitives. Cable grid (next) uses the same approach. <code>renderHotArea(q)</code> dispatches by <code>q.subShape</code> and picks the right renderer (svg / osi-stack / cable-grid). Adding a future sub-shape is one if/else + one renderer fn.
+  </div>
+
+  <!-- ── EXAMPLE 3: Cable grid · revealed ── -->
+  <div class="state-divider"><span class="state-label">Example 3 · cable connector grid · revealed (correct first try)</span></div>
+  <div class="quiz-card">
+    <div class="q-meta-row">
+      <span class="q-num">Q12</span>
+      <span class="pbq-badge">Hot Area · Cable</span>
+      <span class="diff-badge">Foundational</span>
+    </div>
+    <div class="q-stem">Which connector would you use to terminate single-mode fiber for long-haul SFP+ uplinks in a data centre?</div>
+    <div class="hot-area-stage">
+      <div class="cable-grid">
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">🔌</span>
+          <span class="cable-name">RJ-45</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">🔗</span>
+          <span class="cable-name">RJ-11</span>
+        </div>
+        <div class="cable-card is-correct">
+          <span class="cable-icon">💎</span>
+          <span class="cable-name">LC</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">🟦</span>
+          <span class="cable-name">SC</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">📐</span>
+          <span class="cable-name">ST</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">🔘</span>
+          <span class="cable-name">F-Type</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">📺</span>
+          <span class="cable-name">BNC</span>
+        </div>
+        <div class="cable-card is-dimmed">
+          <span class="cable-icon">⚡</span>
+          <span class="cable-name">USB-C</span>
+        </div>
+      </div>
+    </div>
+    <div class="explanation-box">
+      <div class="exp-label correct">✓ Correct! · LC connector</div>
+      <div class="exp-text">LC (Lucent Connector) is the small-form-factor fibre connector used in SFP and SFP+ transceivers. It supports both single-mode and multi-mode fibre. SC connectors are bulkier and typically used in older termination panels; ST is bayonet-style and rarely seen in modern data-centre uplinks.</div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Cable grid uses emoji as v1 placeholder iconography</strong>
+    For ship-today scope: emoji are good-enough visual differentiation without us having to author or license SVG icons for 8+ connector types. Curated bank covers ~8 connectors. If/when we want true visual realism, swap the emoji span for an inline SVG per connector — same DOM shape, no logic changes.
+  </div>
+
+  <!-- ── REVISIT EXAMPLE ── -->
+  <div class="state-divider"><span class="state-label">Revisit · OSI stack · user picked L4 originally, now revisiting</span></div>
+  <div class="quiz-card">
+    <div class="q-meta-row">
+      <span class="q-num">Q7 · revisiting</span>
+      <span class="pbq-badge">Hot Area · OSI</span>
+      <span class="diff-badge">Foundational</span>
+    </div>
+    <div class="q-stem">At which OSI layer does ARP (Address Resolution Protocol) operate?</div>
+    <div class="hot-area-stage">
+      <div class="osi-stack">
+        <div class="osi-layer is-dimmed"><span><span class="osi-layer-num">L7</span> · <span class="osi-layer-name">Application</span></span></div>
+        <div class="osi-layer is-dimmed"><span><span class="osi-layer-num">L6</span> · <span class="osi-layer-name">Presentation</span></span></div>
+        <div class="osi-layer is-dimmed"><span><span class="osi-layer-num">L5</span> · <span class="osi-layer-name">Session</span></span></div>
+        <div class="osi-layer is-wrong"><span><span class="osi-layer-num">L4</span> · <span class="osi-layer-name">Transport</span></span></div>
+        <div class="osi-layer is-reveal-correct"><span><span class="osi-layer-num">L3</span> · <span class="osi-layer-name">Network</span></span></div>
+        <div class="osi-layer is-reveal-correct"><span><span class="osi-layer-num">L2</span> · <span class="osi-layer-name">Data Link</span></span></div>
+        <div class="osi-layer is-dimmed"><span><span class="osi-layer-num">L1</span> · <span class="osi-layer-name">Physical</span></span></div>
+      </div>
+    </div>
+    <div class="explanation-box">
+      <div class="exp-label wrong">✗ Wrong — ARP operates at Layers 2 / 3 (boundary protocol)</div>
+      <div class="exp-text">ARP is the canonical OSI-boundary protocol — it lives at Layer 2 (uses MAC addresses, broadcast frames) but resolves Layer 3 IP addresses. CompTIA accepts both L2 and L3 as correct answers; some sources call it "Layer 2.5". The most common single-layer answer on the exam is Layer 2 (Data Link).</div>
+    </div>
+    <div style="margin-top: 14px; padding: 10px 14px; background: rgba(251,191,36,.08); border: 1px dashed rgba(251,191,36,.4); border-radius: var(--radius-sm); font-size: 12px; color: var(--yellow); font-weight: 600;">
+      ✏️ Revisiting — pick again to change your answer. Score updates; streak stays.
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Revisit + ambiguous-answer handling</strong>
+    Two-fold: <strong>(1)</strong> Revisit works the same as v4.82.0 — clicking a dot re-renders with previous pick + the v4.82.0 yellow banner + re-enabled Submit. The re-pick branch in <code>submitHotArea(q)</code> updates the log entry in place, recomputes counters, leaves streak alone. <strong>(2)</strong> ARP is genuinely ambiguous between L2 / L3, so this question's schema lists BOTH as correct (<code>regions: [..., {id:'L3', isCorrect:true}, {id:'L2', isCorrect:true}, ...]</code>). Same dual-correct pattern works for any question where CompTIA accepts multiple answers.
+  </div>
+
+  <!-- ── IMPLEMENTATION SUMMARY ── -->
+  <div class="state-divider"><span class="state-label">Implementation summary · same-day ship scope</span></div>
+  <div class="annotation" style="background:rgba(34,197,94,.05);border-left-color:var(--green);">
+    <strong>What ships today (~6 surfaces, modest LOC)</strong>
+    <ol style="margin: 8px 0 0 20px; padding: 0; line-height: 1.7;">
+      <li><code>HOT_AREA_BANK</code> — curated array of <strong>~8 questions</strong>: 3 topology, 3 OSI, 2 cable. Hand-authored SVGs + answer keys + explanations. Topic-tagged so it injects into the right quizzes.</li>
+      <li><code>renderHotArea(q, box, ans)</code> + <code>submitHotArea(q)</code> + <code>_restoreAnsweredHotAreaState(q, entry)</code> — three new helpers. <code>render()</code> dispatch already exists per the existing pattern.</li>
+      <li><code>injectPBQs</code> extension — current code injects 1 cli-sim/topology PBQ per quiz of n>=10, 2 in exam. Extend to also pull from <code>HOT_AREA_BANK</code> in the same rotation.</li>
+      <li><code>getQType</code> — already returns <code>q.type</code>, no change needed.</li>
+      <li>CSS: <code>.hot-region</code> hover + state classes (svg subShape), <code>.osi-layer</code> + <code>.cable-card</code> for non-svg subShapes, full reduced-motion gate.</li>
+      <li>Tests: UAT vm-fixtures for <code>submitHotArea</code> (pick → Submit → reveal markers + log entry shape), <code>_restoreAnsweredHotAreaState</code> (revisit). Playwright E2E: seed quiz with hot-area Q via <code>_testInjectQuiz</code>, click region, click Submit, assert reveal markers.</li>
+    </ol>
+  </div>
+
+  <p class="lede" style="margin-top: 32px; color:var(--text-dim); font-size: 12px;">
+    Mockup for v4.83.0 candidate · Per <code>feedback_concept_mockup_first.md</code> — confirm before code · 2026-04-27
+  </p>
+</div>
+</body>
+</html>

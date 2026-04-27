@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.82.1', js.includes("const APP_VERSION = '4.82.1"));
+test('APP_VERSION is 4.83.0', js.includes("const APP_VERSION = '4.83.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.82.1', sw.includes('netplus-v4.82.1'));
+test('SW cache bumped to v4.83.0', sw.includes('netplus-v4.83.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -13282,6 +13282,250 @@ test('v4.82.1 Loader: vm fixture — _loadingProgressFinish snaps to 100% + hide
       return fakeBar.style.width === '100%'
         && fakeLabel.textContent === 'Ready!'
         && progHidden === true;
+    } catch (e) { return false; }
+  })());
+
+// v4.83.0: Hot-Area question type — three sub-shapes (topology / OSI / cable-grid)
+// for click-on-diagram PBQs. Curated bank of 8 hand-authored questions with inline
+// SVGs for cable connectors. Closes the realism gap vs the real CompTIA exam,
+// which sometimes asks "click the misconfigured device" or "click the OSI layer
+// where ARP operates." Single-click + Submit + reveal pattern matches our other
+// PBQs (multi-select / order / topology). Revisit-aware via the v4.82.0
+// infrastructure — clicking a dot back re-renders with previous pick highlighted
+// and Submit re-enabled.
+test('v4.83.0 HotArea: HOT_AREA_BANK constant defined',
+  /const HOT_AREA_BANK = \[/.test(js));
+test('v4.83.0 HotArea: bank has at least 8 questions',
+  (() => {
+    const m = js.match(/const HOT_AREA_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    const entries = m[1].match(/type: 'hot-area'/g) || [];
+    return entries.length >= 8;
+  })());
+test('v4.83.0 HotArea: bank covers all 3 sub-shapes (topology + osi + cable-grid)',
+  (() => {
+    const m = js.match(/const HOT_AREA_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    return /subShape: 'topology'/.test(m[1])
+      && /subShape: 'osi'/.test(m[1])
+      && /subShape: 'cable-grid'/.test(m[1]);
+  })());
+test('v4.83.0 HotArea: CABLE_CONNECTORS icon library defined',
+  /const CABLE_CONNECTORS = \{/.test(js));
+test('v4.83.0 HotArea: CABLE_CONNECTORS covers 8 connector types',
+  (() => {
+    const m = js.match(/const CABLE_CONNECTORS = \{([\s\S]*?)\n\};/);
+    if (!m) return false;
+    const ids = ['rj45', 'rj11', 'lc', 'sc', 'st', 'f-type', 'bnc', 'usb-c'];
+    return ids.every(id => m[1].includes("'" + id + "'"));
+  })());
+test('v4.83.0 HotArea: cable connector SVGs use currentColor for theme awareness',
+  (() => {
+    const m = js.match(/const CABLE_CONNECTORS = \{([\s\S]*?)\n\};/);
+    if (!m) return false;
+    // At least 4 of 8 should use currentColor (verifies pattern, not strict for every shape)
+    const matches = m[1].match(/currentColor/g) || [];
+    return matches.length >= 4;
+  })());
+
+// Renderer + dispatch
+test('v4.83.0 HotArea: renderHotArea defined',
+  /function renderHotArea\(q, box\)/.test(js));
+test('v4.83.0 HotArea: 3 sub-renderers defined (topology + osi + cable-grid)',
+  /function _renderHotAreaTopology\(q, box\)/.test(js)
+    && /function _renderHotAreaOsi\(q, box\)/.test(js)
+    && /function _renderHotAreaCableGrid\(q, box\)/.test(js));
+test('v4.83.0 HotArea: submitHotArea defined',
+  /function submitHotArea\(q\)/.test(js));
+test('v4.83.0 HotArea: _restoreAnsweredHotAreaState defined',
+  /function _restoreAnsweredHotAreaState\(q, entry\)/.test(js));
+test('v4.83.0 HotArea: render() dispatches hot-area to renderHotArea',
+  (() => {
+    if (!_renderQuizBody) return false;
+    return /qType === 'hot-area'/.test(_renderQuizBody)
+      && /renderHotArea\(q, box\)/.test(_renderQuizBody);
+  })());
+test('v4.83.0 HotArea: render() PBQ badge handles hot-area sub-shapes',
+  (() => {
+    if (!_renderQuizBody) return false;
+    return /Hot Area · /.test(_renderQuizBody);
+  })());
+
+// _restoreAnsweredQuizState routes hot-area
+test('v4.83.0 HotArea: _restoreAnsweredQuizState handles hot-area',
+  (() => {
+    const body = _fnBody(js, '_restoreAnsweredQuizState');
+    if (!body) return false;
+    return /qType === 'hot-area'/.test(body)
+      && /_restoreAnsweredHotAreaState\(q, entry\)/.test(body);
+  })());
+
+// injectPBQs pulls from HOT_AREA_BANK
+test('v4.83.0 HotArea: getMatchingScenarios returns hotArea pool',
+  (() => {
+    const body = _fnBody(js, 'getMatchingScenarios');
+    if (!body) return false;
+    return /HOT_AREA_BANK\.filter/.test(body)
+      && /hotArea/.test(body);
+  })());
+test('v4.83.0 HotArea: injectPBQs pool includes hotArea',
+  (() => {
+    const body = _fnBody(js, 'injectPBQs');
+    if (!body) return false;
+    return /\.\.\.\(hotArea \|\| \[\]\)/.test(body)
+      || /\.\.\.hotArea/.test(body);
+  })());
+
+// submitHotArea uses v4.82.0 update-or-push pattern
+test('v4.83.0 HotArea: submitHotArea has revisit re-submit branch',
+  (() => {
+    const body = _fnBody(js, 'submitHotArea');
+    if (!body) return false;
+    return /_findLogEntryFor\(q\)/.test(body)
+      && /log\[existing\.idx\]/.test(body)
+      && /_recomputeQuizCounters\(\)/.test(body);
+  })());
+test('v4.83.0 HotArea: submitHotArea truth-ups wrong-bank on re-submit',
+  (() => {
+    const body = _fnBody(js, 'submitHotArea');
+    if (!body) return false;
+    return /if \(!isCorrect && wasRight\) addToWrongBank/.test(body)
+      && /else if \(isCorrect && !wasRight\) graduateFromBank/.test(body);
+  })());
+
+// CSS structural
+test('v4.83.0 HotArea CSS: .hot-area-stage container declared',
+  /\.hot-area-stage\s*\{/.test(css));
+test('v4.83.0 HotArea CSS: .hot-region states (picked/correct/wrong/dimmed/reveal-correct)',
+  /\.hot-region\.is-picked/.test(css)
+    && /\.hot-region\.is-correct/.test(css)
+    && /\.hot-region\.is-wrong/.test(css)
+    && /\.hot-region\.is-reveal-correct/.test(css)
+    && /\.hot-region\.is-dimmed/.test(css));
+test('v4.83.0 HotArea CSS: .osi-stack + .osi-layer states declared',
+  /\.osi-stack\s*\{/.test(css)
+    && /\.osi-layer\.is-picked/.test(css)
+    && /\.osi-layer\.is-correct/.test(css));
+test('v4.83.0 HotArea CSS: .cable-grid + .cable-card states declared',
+  /\.cable-grid\s*\{/.test(css)
+    && /\.cable-card\.is-picked/.test(css)
+    && /\.cable-card\.is-correct/.test(css));
+test('v4.83.0 HotArea CSS: reduced-motion gate kills transitions',
+  /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]{0,500}\.hot-region[\s\S]{0,200}transition: none/.test(css));
+
+// vm fixture #1 — _haRegionIsCorrect for topology + osi + cable-grid
+test('v4.83.0 HotArea: vm fixture — _haRegionIsCorrect dispatches by sub-shape',
+  (() => {
+    try {
+      const correctIdsBody = _fnBody(js, '_haCorrectRegionIds');
+      const isCorrectBody = _fnBody(js, '_haRegionIsCorrect');
+      if (!correctIdsBody || !isCorrectBody) return false;
+      const vm = require('vm');
+      const ctx = { Array };
+      vm.createContext(ctx);
+      vm.runInContext(correctIdsBody, ctx);
+      vm.runInContext(isCorrectBody, ctx);
+
+      // Topology
+      const topo = { subShape: 'topology', regions: [
+        { id: 'r1', isCorrect: false }, { id: 'r2', isCorrect: true }, { id: 'r3', isCorrect: false }
+      ]};
+      const t1 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(topo) + ", 'r2')", ctx);
+      const t2 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(topo) + ", 'r1')", ctx);
+
+      // OSI dual-correct
+      const osi = { subShape: 'osi', correctLayers: ['L2', 'L3'] };
+      const o1 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(osi) + ", 'L2')", ctx);
+      const o2 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(osi) + ", 'L3')", ctx);
+      const o3 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(osi) + ", 'L4')", ctx);
+
+      // Cable-grid
+      const cable = { subShape: 'cable-grid', cables: [
+        { id: 'rj45', isCorrect: false }, { id: 'lc', isCorrect: true }
+      ]};
+      const c1 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(cable) + ", 'lc')", ctx);
+      const c2 = vm.runInContext('_haRegionIsCorrect(' + JSON.stringify(cable) + ", 'rj45')", ctx);
+
+      return t1 === true && t2 === false
+        && o1 === true && o2 === true && o3 === false  // dual-correct works
+        && c1 === true && c2 === false;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — submitHotArea logs an entry on first-submit + recomputes on re-submit
+test('v4.83.0 HotArea: vm fixture — submitHotArea logs entry on first submit, updates on re-submit',
+  (() => {
+    try {
+      const submitBody = _fnBody(js, 'submitHotArea');
+      const findBody = _fnBody(js, '_findLogEntryFor');
+      const recomputeBody = _fnBody(js, '_recomputeQuizCounters');
+      const correctIdsBody = _fnBody(js, '_haCorrectRegionIds');
+      const isCorrectBody = _fnBody(js, '_haRegionIsCorrect');
+      if (!submitBody || !findBody || !recomputeBody) return false;
+      const vm = require('vm');
+      const q = { type: 'hot-area', subShape: 'osi', question: 'ARP layer?', correctLayers: ['L2', 'L3'], explanation: 'L2/L3 boundary' };
+      const graduateCalls = [];
+      const addToBankCalls = [];
+      const fakeScore = { textContent: '' };
+      const fakeStreak = { textContent: '' };
+      const ctx = {
+        log: [], score: 0, answered: 0, streak: 0, bestStreak: 0,
+        quizFlags: [false], current: 0, wrongDrillMode: false,
+        addToWrongBank: (q, ch) => addToBankCalls.push({ q, ch }),
+        graduateFromBank: (qstr) => graduateCalls.push(qstr),
+        updateTypeStat: () => {},
+        document: {
+          getElementById: (id) => id === 'live-score' ? fakeScore : id === 'live-streak' ? fakeStreak : id === 'options' ? { classList: { add: () => {} } } : id === 'ha-submit-row' ? { classList: { add: () => {} } } : null,
+          querySelectorAll: () => []
+        },
+        showExplanation: () => {},
+        _renderQuizProgressDots: () => {},
+        _renderQuizNavArrows: () => {},
+        _hotAreaPick: 'L4', // user's first wrong pick
+        q,
+        Array, Number, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(findBody, ctx);
+      vm.runInContext(recomputeBody, ctx);
+      vm.runInContext(correctIdsBody, ctx);
+      vm.runInContext(isCorrectBody, ctx);
+      vm.runInContext(submitBody, ctx);
+
+      // First submit: pick = L4 (wrong)
+      vm.runInContext('submitHotArea(q)', ctx);
+      const afterFirst = ctx.log.length === 1
+        && ctx.log[0].chosen === 'L4'
+        && ctx.log[0].isRight === false
+        && ctx.score === 0
+        && ctx.answered === 1
+        && addToBankCalls.length === 1;
+
+      // Re-submit: change pick to L2 (correct via dual-correct)
+      ctx._hotAreaPick = 'L2';
+      vm.runInContext('submitHotArea(q)', ctx);
+      const afterResubmit = ctx.log.length === 1  // updated, not pushed
+        && ctx.log[0].chosen === 'L2'
+        && ctx.log[0].isRight === true
+        && ctx.score === 1
+        && ctx.answered === 1
+        && graduateCalls.length === 1;
+
+      return afterFirst && afterResubmit;
+    } catch (e) { return false; }
+  })());
+
+// Playwright spec coverage check
+test('v4.83.0 HotArea: Playwright spec covers Hot-Area flow',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /Hot-Area|Hot Area/.test(spec)
+        && /ha-submit-btn/.test(spec)
+        && /hot-area/.test(spec);
     } catch (e) { return false; }
   })());
 

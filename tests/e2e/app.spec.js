@@ -1789,6 +1789,155 @@ test.describe('Quiz Revisit — editable navigation', () => {
   });
 });
 
+// v4.83.0 — Hot-Area question type E2E coverage. Tests all 3 sub-shapes
+// (topology, OSI stack, cable-grid) end-to-end: render → click region →
+// Submit → assert reveal markers + log entry. Uses _testInjectQuiz to
+// drop a hot-area question into a quiz session without real Haiku calls.
+test.describe('Quiz Hot-Area — click-on-diagram PBQs', () => {
+  // Topology hot-area fixture
+  const TOPOLOGY_FIXTURE = [{
+    type: 'hot-area',
+    subShape: 'topology',
+    question: 'Click the device most likely misconfigured.',
+    topic: 'Network Troubleshooting Methodology',
+    difficulty: 'Exam Level',
+    svgViewBox: '0 0 600 200',
+    svgConnectors: [{ x1: 100, y1: 100, x2: 160, y2: 100 }],
+    regions: [
+      { id: 'pc1', label: 'PC1', shape: 'rect', x: 20, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'firewall', label: 'FW1', shape: 'rect', x: 440, y: 70, w: 80, h: 60, isCorrect: true }
+    ],
+    explanation: 'Firewall is most likely misconfigured.'
+  }];
+
+  // OSI dual-correct fixture (ARP at L2/L3)
+  const OSI_FIXTURE = [{
+    type: 'hot-area',
+    subShape: 'osi',
+    question: 'Click the OSI layer where ARP operates.',
+    topic: 'Network Models & OSI',
+    difficulty: 'Foundational',
+    correctLayers: ['L2', 'L3'],
+    explanation: 'ARP is the L2/L3 boundary protocol.'
+  }];
+
+  // Cable-grid fixture
+  const CABLE_FIXTURE = [{
+    type: 'hot-area',
+    subShape: 'cable-grid',
+    question: 'Which connector for SFP+ uplinks?',
+    topic: 'Cabling & Topology',
+    difficulty: 'Foundational',
+    cables: [
+      { id: 'rj45', isCorrect: false },
+      { id: 'lc', isCorrect: true },
+      { id: 'sc', isCorrect: false },
+      { id: 'st', isCorrect: false }
+    ],
+    explanation: 'LC for SFP+.'
+  }];
+
+  test('topology: click region → Submit → reveal markers (correct pick)', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), TOPOLOGY_FIXTURE);
+    await expect(page.locator('#page-quiz')).toHaveClass(/active/);
+    await expect(page.locator('#pbq-badge')).toContainText('Hot Area · Topology');
+
+    // 2 regions render
+    const regions = page.locator('.hot-region[data-region]');
+    await expect(regions).toHaveCount(2);
+
+    // Submit disabled at start
+    await expect(page.locator('#ha-submit-btn')).toBeDisabled();
+
+    // Click the firewall (correct)
+    await page.locator('.hot-region[data-region="firewall"]').click();
+    await expect(page.locator('.hot-region[data-region="firewall"]')).toHaveClass(/is-picked/);
+    await expect(page.locator('#ha-submit-btn')).toBeEnabled();
+
+    // Submit
+    await page.locator('#ha-submit-btn').click();
+    // Reveal: firewall = correct, others dimmed
+    await expect(page.locator('.hot-region[data-region="firewall"]')).toHaveClass(/is-correct/);
+    await expect(page.locator('.hot-region[data-region="pc1"]')).toHaveClass(/is-dimmed/);
+    await expect(page.locator('#exp-box')).toBeVisible();
+    // Score updates to 1/1
+    await expect(page.locator('#live-score')).toContainText('1 / 1');
+  });
+
+  test('osi: dual-correct accepts either L2 or L3 (picked L3 = correct)', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), OSI_FIXTURE);
+    await expect(page.locator('#pbq-badge')).toContainText('Hot Area · OSI');
+
+    // 7 layers rendered
+    const layers = page.locator('.osi-layer[data-region]');
+    await expect(layers).toHaveCount(7);
+
+    // Click L3 (one of two correct answers via dual-correct)
+    await page.locator('.osi-layer[data-region="L3"]').click();
+    await expect(page.locator('.osi-layer[data-region="L3"]')).toHaveClass(/is-picked/);
+    await page.locator('#ha-submit-btn').click();
+
+    // L3 should be correct, L2 should be reveal-correct (the OTHER correct layer)
+    await expect(page.locator('.osi-layer[data-region="L3"]')).toHaveClass(/is-correct/);
+    await expect(page.locator('.osi-layer[data-region="L2"]')).toHaveClass(/is-reveal-correct/);
+    await expect(page.locator('#live-score')).toContainText('1 / 1');
+  });
+
+  test('cable-grid: wrong pick → red marker + correct shown as reveal-correct', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), CABLE_FIXTURE);
+    await expect(page.locator('#pbq-badge')).toContainText('Hot Area · Cable');
+
+    // 4 cable cards render with SVG icons
+    const cards = page.locator('.cable-card[data-region]');
+    await expect(cards).toHaveCount(4);
+    // SVG icon present in at least one card
+    await expect(page.locator('.cable-card[data-region="lc"] svg')).toBeAttached();
+
+    // Click ST (wrong — correct is LC)
+    await page.locator('.cable-card[data-region="st"]').click();
+    await page.locator('#ha-submit-btn').click();
+
+    await expect(page.locator('.cable-card[data-region="st"]')).toHaveClass(/is-wrong/);
+    await expect(page.locator('.cable-card[data-region="lc"]')).toHaveClass(/is-reveal-correct/);
+    await expect(page.locator('#live-score')).toContainText('0 / 1');
+  });
+
+  test('revisit: re-pick after first submit updates score (wrong → right)', async ({ page }) => {
+    await page.goto('/');
+    // Use a 2-question quiz so we can advance + revisit
+    const TWO_Q = [
+      TOPOLOGY_FIXTURE[0],
+      { type: 'mcq', question: 'Filler MCQ', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', explanation: '.', topic: 'X', difficulty: 'Foundational' }
+    ];
+    await page.evaluate((qs) => window._testInjectQuiz(qs), TWO_Q);
+
+    // Submit wrong on Q1 (pick PC1 instead of firewall)
+    await page.locator('.hot-region[data-region="pc1"]').click();
+    await page.locator('#ha-submit-btn').click();
+    await expect(page.locator('#live-score')).toContainText('0 / 1');
+
+    // Advance to Q2
+    await page.locator('#quiz-next-arrow-btn').click();
+    await expect(page.locator('#q-label')).toContainText('Question 2 of 2');
+
+    // Click dot back to Q1
+    await page.locator('#quiz-prog-dots .qpd-cell').nth(0).click();
+    await expect(page.locator('#q-label')).toContainText('Question 1 of 2 · revisiting');
+
+    // Re-pick the firewall (correct) and re-submit
+    await page.locator('.hot-region[data-region="firewall"]').click();
+    await page.locator('#ha-submit-btn').click();
+
+    // Score truth-up: 0/1 → 1/1
+    await expect(page.locator('#live-score')).toContainText('1 / 1');
+    // Dot for Q1 now green (qpd-done)
+    await expect(page.locator('#quiz-prog-dots .qpd-cell').nth(0)).toHaveClass(/qpd-done/);
+  });
+});
+
 test.describe('SR Review — v4.81.31 legacy-card scrub', () => {
   test('order-type cards are filtered out of session and scrubbed from queue', async ({ page }) => {
     // Seed two cards: one valid MCQ (due) + one legacy order-type card (due).

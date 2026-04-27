@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.82.1
+// Network+ AI Quiz — app.js  v4.83.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.82.1';
+const APP_VERSION = '4.83.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -9193,6 +9193,12 @@ function render() {
     else if (qType === 'order') { pbqBadge.textContent = 'Ordering'; pbqBadge.classList.remove('is-hidden'); }
     else if (qType === 'cli-sim') { pbqBadge.textContent = 'CLI Sim'; pbqBadge.classList.remove('is-hidden'); }
     else if (qType === 'topology') { pbqBadge.textContent = 'Topology'; pbqBadge.classList.remove('is-hidden'); }
+    else if (qType === 'hot-area') {
+      // v4.83.0 — sub-shape-aware label
+      const sub = q.subShape === 'osi' ? 'OSI' : q.subShape === 'cable-grid' ? 'Cable' : 'Topology';
+      pbqBadge.textContent = 'Hot Area · ' + sub;
+      pbqBadge.classList.remove('is-hidden');
+    }
     else { pbqBadge.classList.add('is-hidden'); }
   }
 
@@ -9220,6 +9226,9 @@ function render() {
     renderCliSim(q, box);
   } else if (qType === 'topology') {
     renderTopology(q, box);
+  } else if (qType === 'hot-area') {
+    // v4.83.0 — hot-area click-on-diagram PBQ
+    renderHotArea(q, box);
   } else {
     renderMCQ(q, box);
   }
@@ -9372,6 +9381,9 @@ function _restoreAnsweredQuizState(q, entry) {
     if (submitBtn) submitBtn.classList.remove('is-hidden');
     const resetBtn = document.querySelector('.topo-controls .btn-ghost');
     if (resetBtn) resetBtn.classList.remove('is-hidden');
+  } else if (qType === 'hot-area') {
+    // v4.83.0 — hot-area revisit: re-apply reveal markers based on stored entry
+    _restoreAnsweredHotAreaState(q, entry);
   }
 
   // Show explanation populated from THIS log entry (not log[log.length-1] which
@@ -13443,6 +13455,486 @@ const topoScenarios = [
 ];
 
 // ══════════════════════════════════════════
+// v4.83.0 — Hot-Area question type (curated bank)
+// ══════════════════════════════════════════
+// User feature: hot-area click-on-diagram PBQs to fill the realism gap vs the
+// real CompTIA exam (which sometimes asks "click the misconfigured device" or
+// "click the OSI layer where ARP operates"). Three sub-shapes covered:
+//   - 'topology'   : SVG network diagram, click a device shape
+//   - 'osi'        : 7-layer vertical stack, click a layer (supports dual-correct
+//                     for boundary protocols like ARP at L2/L3)
+//   - 'cable-grid' : grid of connector cards, click the right connector
+//
+// Schema is sub-shape specific (cleaner than a forced unified schema):
+//   - topology: { svgViewBox, svgConnectors[], regions[{id,label,shape,x,y,w,h,r,isCorrect}] }
+//   - osi: { correctLayers: ['L2'] or ['L2','L3'] }
+//   - cable-grid: { cables: [{id, isCorrect}] }   (icons live in CABLE_CONNECTORS)
+//
+// Renderer dispatches by q.subShape. Submit handler is `submitHotArea(q)` which
+// follows the v4.82.0 update-or-push pattern for revisit-aware re-submits.
+
+// SVG icon library for the cable-grid sub-shape. Each connector is a 60×60
+// viewBox with a stylised geometric representation. Designed to read at small
+// sizes — the goal is "you can pick this out from a row of others" not photo-
+// realism. Icons use currentColor for stroke + fill so they inherit theme tints.
+const CABLE_CONNECTORS = {
+  'rj45': {
+    label: 'RJ-45',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<rect x="10" y="20" width="40" height="24" rx="2" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<path d="M 22 20 L 22 14 L 38 14 L 38 20" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+      '<line x1="14" y1="38" x2="14" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="18" y1="38" x2="18" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="22" y1="38" x2="22" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="26" y1="38" x2="26" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="30" y1="38" x2="30" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="34" y1="38" x2="34" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="38" y1="38" x2="38" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="42" y1="38" x2="42" y2="44" stroke="currentColor" stroke-width="1.2"/>' +
+    '</svg>'
+  },
+  'rj11': {
+    label: 'RJ-11',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<rect x="18" y="22" width="24" height="22" rx="2" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<path d="M 24 22 L 24 16 L 36 16 L 36 22" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+      '<line x1="22" y1="38" x2="22" y2="42" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="26" y1="38" x2="26" y2="42" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="30" y1="38" x2="30" y2="42" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="34" y1="38" x2="34" y2="42" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="38" y1="38" x2="38" y2="42" stroke="currentColor" stroke-width="1.2"/>' +
+    '</svg>'
+  },
+  'lc': {
+    label: 'LC',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<rect x="14" y="20" width="32" height="24" rx="3" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<rect x="20" y="38" width="6" height="10" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+      '<rect x="34" y="38" width="6" height="10" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+      '<path d="M 30 14 L 26 20 L 34 20 Z" fill="currentColor" stroke="currentColor" stroke-width="1.2"/>' +
+    '</svg>'
+  },
+  'sc': {
+    label: 'SC',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<rect x="12" y="18" width="36" height="22" rx="2" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<rect x="26" y="38" width="8" height="14" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+      '<line x1="18" y1="22" x2="18" y2="36" stroke="currentColor" stroke-width="1"/>' +
+      '<line x1="42" y1="22" x2="42" y2="36" stroke="currentColor" stroke-width="1"/>' +
+    '</svg>'
+  },
+  'st': {
+    label: 'ST',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<circle cx="30" cy="30" r="14" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<circle cx="30" cy="30" r="8" fill="none" stroke="currentColor" stroke-width="1"/>' +
+      '<rect x="28" y="44" width="4" height="10" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+      '<line x1="22" y1="22" x2="20" y2="20" stroke="currentColor" stroke-width="1.2"/>' +
+      '<line x1="38" y1="22" x2="40" y2="20" stroke="currentColor" stroke-width="1.2"/>' +
+    '</svg>'
+  },
+  'f-type': {
+    label: 'F-Type',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<polygon points="18,18 42,18 48,30 42,42 18,42 12,30" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<circle cx="30" cy="30" r="6" fill="none" stroke="currentColor" stroke-width="1"/>' +
+      '<line x1="30" y1="30" x2="30" y2="22" stroke="currentColor" stroke-width="1.5"/>' +
+      '<line x1="30" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="1.5"/>' +
+    '</svg>'
+  },
+  'bnc': {
+    label: 'BNC',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<circle cx="30" cy="30" r="13" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<circle cx="30" cy="30" r="3" fill="currentColor"/>' +
+      '<rect x="14" y="28" width="6" height="4" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+      '<rect x="40" y="28" width="6" height="4" fill="currentColor" fill-opacity="0.4" stroke="currentColor" stroke-width="1"/>' +
+    '</svg>'
+  },
+  'usb-c': {
+    label: 'USB-C',
+    svg: '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="48" height="48" aria-hidden="true">' +
+      '<rect x="12" y="24" width="36" height="14" rx="7" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.8"/>' +
+      '<rect x="20" y="29" width="20" height="4" rx="2" fill="currentColor" fill-opacity="0.4"/>' +
+    '</svg>'
+  }
+};
+
+const HOT_AREA_BANK = [
+  // ── TOPOLOGY (3) ──
+  {
+    type: 'hot-area', subShape: 'topology', difficulty: 'Exam Level', topic: 'Network Troubleshooting Methodology',
+    question: 'A user reports they cannot reach the internet from the LAN. ICMP from PC1 to the default gateway succeeds, but ICMP from PC1 to 8.8.8.8 fails. Click the device most likely misconfigured.',
+    svgViewBox: '0 0 600 200',
+    svgConnectors: [
+      { x1: 100, y1: 100, x2: 160, y2: 100 },
+      { x1: 240, y1: 100, x2: 300, y2: 100 },
+      { x1: 380, y1: 100, x2: 440, y2: 100 },
+      { x1: 520, y1: 100, x2: 535, y2: 100 }
+    ],
+    regions: [
+      { id: 'pc1', label: 'PC1', shape: 'rect', x: 20, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'switch', label: 'SW1', shape: 'rect', x: 160, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'router', label: 'R1', shape: 'rect', x: 300, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'firewall', label: 'FW1', shape: 'rect', x: 440, y: 70, w: 80, h: 60, isCorrect: true },
+      { id: 'internet', label: 'INET', shape: 'circle', cx: 560, cy: 100, r: 28, isCorrect: false }
+    ],
+    explanation: 'PC1 reaching its default gateway means LAN, switch, and router are all functional at L2/L3. Failure occurs only when traffic crosses the firewall — most likely cause is an outbound rule denying ICMP or a missing NAT/PAT translation. R1 has Layer 3 routing working (it forwarded to FW1), so it is not the misconfigured device.'
+  },
+  {
+    type: 'hot-area', subShape: 'topology', difficulty: 'Foundational', topic: 'Routing Fundamentals',
+    question: 'A broadcast frame is sent from PC1 onto the LAN. Click the device where the broadcast is dropped (does not propagate further).',
+    svgViewBox: '0 0 600 200',
+    svgConnectors: [
+      { x1: 100, y1: 100, x2: 160, y2: 100 },
+      { x1: 240, y1: 100, x2: 300, y2: 100 },
+      { x1: 380, y1: 100, x2: 440, y2: 100 },
+      { x1: 520, y1: 100, x2: 540, y2: 100 }
+    ],
+    regions: [
+      { id: 'pc1', label: 'PC1', shape: 'rect', x: 20, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'hub', label: 'Hub', shape: 'rect', x: 160, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'switch', label: 'SW1', shape: 'rect', x: 300, y: 70, w: 80, h: 60, isCorrect: false },
+      { id: 'router', label: 'R1', shape: 'rect', x: 440, y: 70, w: 80, h: 60, isCorrect: true },
+      { id: 'pc2', label: 'PC2', shape: 'rect', x: 540, y: 70, w: 50, h: 60, isCorrect: false }
+    ],
+    explanation: 'A router defines the broadcast domain boundary at Layer 3 — it does NOT forward broadcast frames to other subnets. Hubs and switches both forward broadcasts (a hub is one broadcast and one collision domain; a switch is one broadcast domain but separates collision domains per port). The broadcast reaches every device on the LAN side but stops at R1.'
+  },
+  {
+    type: 'hot-area', subShape: 'topology', difficulty: 'Foundational', topic: 'Wireless Networking',
+    question: 'Click the device that centrally manages multiple lightweight (thin) access points in an enterprise wireless deployment.',
+    svgViewBox: '0 0 600 220',
+    svgConnectors: [
+      { x1: 100, y1: 60, x2: 280, y2: 110 },
+      { x1: 100, y1: 110, x2: 280, y2: 110 },
+      { x1: 100, y1: 160, x2: 280, y2: 110 },
+      { x1: 360, y1: 110, x2: 440, y2: 110 }
+    ],
+    regions: [
+      { id: 'ap1', label: 'AP1', shape: 'rect', x: 20, y: 30, w: 80, h: 50, isCorrect: false },
+      { id: 'ap2', label: 'AP2', shape: 'rect', x: 20, y: 90, w: 80, h: 50, isCorrect: false },
+      { id: 'ap3', label: 'AP3', shape: 'rect', x: 20, y: 150, w: 80, h: 50, isCorrect: false },
+      { id: 'wlc', label: 'WLC', shape: 'rect', x: 280, y: 80, w: 80, h: 60, isCorrect: true },
+      { id: 'firewall', label: 'FW', shape: 'rect', x: 440, y: 80, w: 80, h: 60, isCorrect: false }
+    ],
+    explanation: 'A Wireless LAN Controller (WLC) centrally manages thin/lightweight APs in an enterprise deployment. The APs forward all client traffic and management decisions to the WLC, which handles authentication, channel/power assignments, roaming coordination, and policy enforcement. Autonomous (fat) APs do not require a WLC — they handle these functions individually.'
+  },
+  // ── OSI (3) ──
+  {
+    type: 'hot-area', subShape: 'osi', difficulty: 'Foundational', topic: 'Network Models & OSI',
+    question: 'Click the OSI layer where ARP (Address Resolution Protocol) operates. (Some sources accept either of two adjacent layers — both are correct here.)',
+    correctLayers: ['L2', 'L3'],
+    explanation: 'ARP is the canonical OSI-boundary protocol — it lives at Layer 2 (uses MAC addresses, broadcast frames) but resolves Layer 3 IP addresses. Some sources call it "Layer 2.5". CompTIA accepts both Layer 2 (Data Link) and Layer 3 (Network) as correct depending on the question framing. The most common single-layer answer on the exam is Layer 2 (Data Link) since that is where the MAC address resolution happens.'
+  },
+  {
+    type: 'hot-area', subShape: 'osi', difficulty: 'Foundational', topic: 'Network Models & OSI',
+    question: 'Click the OSI layer where TLS encryption operates.',
+    correctLayers: ['L6'],
+    explanation: 'TLS (Transport Layer Security) operates at Layer 6 (Presentation) in the OSI model — encryption, decryption, and data formatting are Presentation-layer functions. The name "Transport Layer Security" is misleading; it does NOT operate at OSI Layer 4. TLS sits ABOVE the transport layer (TCP) and BELOW the application layer (HTTP, SMTP, IMAP), which puts it squarely at Layer 6. Some texts conflate this with Layer 5 (Session), but the canonical CompTIA mapping is L6.'
+  },
+  {
+    type: 'hot-area', subShape: 'osi', difficulty: 'Foundational', topic: 'Switching & VLANs',
+    question: 'A switch builds a CAM table by learning source MAC addresses from incoming frames. Click the OSI layer where this learning happens.',
+    correctLayers: ['L2'],
+    explanation: 'Switches operate at Layer 2 (Data Link) — they learn MAC addresses from the source field of incoming frames and populate the CAM (Content-Addressable Memory) table. When a frame arrives for a destination MAC, the switch consults the CAM table and forwards out the correct port (or floods if unknown). MAC addresses are Layer 2 identifiers; IP addresses (Layer 3) are not used by a basic L2 switch. Multilayer switches additionally do L3 routing but the MAC-learning function itself is L2.'
+  },
+  // ── CABLE-GRID (2) ──
+  {
+    type: 'hot-area', subShape: 'cable-grid', difficulty: 'Foundational', topic: 'Cabling & Topology',
+    question: 'Which connector would you use to terminate single-mode fiber for long-haul SFP+ uplinks in a data centre?',
+    cables: [
+      { id: 'rj45', isCorrect: false },
+      { id: 'rj11', isCorrect: false },
+      { id: 'lc', isCorrect: true },
+      { id: 'sc', isCorrect: false },
+      { id: 'st', isCorrect: false },
+      { id: 'f-type', isCorrect: false },
+      { id: 'bnc', isCorrect: false },
+      { id: 'usb-c', isCorrect: false }
+    ],
+    explanation: 'LC (Lucent Connector) is the small-form-factor fibre connector used in SFP and SFP+ transceivers. It supports both single-mode and multi-mode fibre. SC connectors are bulkier and typically used in older termination panels; ST is bayonet-style and rarely seen in modern data-centre uplinks. RJ-45/RJ-11 are copper twisted-pair, F-Type/BNC are coax, USB-C is for client devices.'
+  },
+  {
+    type: 'hot-area', subShape: 'cable-grid', difficulty: 'Foundational', topic: 'Cabling & Topology',
+    question: 'A residential customer needs to connect their cable modem to the wall outlet for broadband internet over coax. Which connector terminates the coaxial cable?',
+    cables: [
+      { id: 'rj45', isCorrect: false },
+      { id: 'rj11', isCorrect: false },
+      { id: 'lc', isCorrect: false },
+      { id: 'sc', isCorrect: false },
+      { id: 'st', isCorrect: false },
+      { id: 'f-type', isCorrect: true },
+      { id: 'bnc', isCorrect: false },
+      { id: 'usb-c', isCorrect: false }
+    ],
+    explanation: 'F-Type connectors are the threaded coax connectors used for residential cable TV and cable modem (DOCSIS) connections. BNC is also a coax connector but uses a bayonet locking mechanism and is found in older networking and video applications, not residential cable modems. RJ-45/RJ-11 are twisted-pair copper, LC/SC/ST are fibre, USB-C is for client devices.'
+  }
+];
+
+// Hot-area renderer dispatches by sub-shape. Each sub-renderer builds its own
+// DOM (svg group / div stack / div grid) and wires onclick handlers to
+// _haPickRegion(regionId). The picked region is tracked in the module-scoped
+// `_hotAreaPick` so the user can change their pick before clicking Submit.
+let _hotAreaPick = null;
+
+function renderHotArea(q, box) {
+  // Reset pick state on fresh render (revisit hydrates this separately).
+  _hotAreaPick = null;
+  box.classList.remove('is-revisiting'); // cleared per-render; restore re-adds if needed
+
+  if (q.subShape === 'topology') {
+    _renderHotAreaTopology(q, box);
+  } else if (q.subShape === 'osi') {
+    _renderHotAreaOsi(q, box);
+  } else if (q.subShape === 'cable-grid') {
+    _renderHotAreaCableGrid(q, box);
+  } else {
+    box.innerHTML = '<div style="color:var(--red);font-size:13px">Unknown hot-area sub-shape: ' + escHtml(String(q.subShape)) + '</div>';
+    return;
+  }
+
+  // Submit row (shared across all sub-shapes)
+  const row = document.createElement('div');
+  row.className = 'ha-submit-row';
+  row.id = 'ha-submit-row';
+  row.innerHTML = '<span class="ha-hint" id="ha-hint">Click a region to select your answer</span>';
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn btn-primary';
+  submitBtn.id = 'ha-submit-btn';
+  submitBtn.textContent = 'Submit';
+  submitBtn.disabled = true;
+  submitBtn.classList.add('is-dimmed');
+  submitBtn.onclick = () => submitHotArea(q);
+  row.appendChild(submitBtn);
+  box.appendChild(row);
+}
+
+function _renderHotAreaTopology(q, box) {
+  const stage = document.createElement('div');
+  stage.className = 'hot-area-stage';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'hot-area-svg');
+  svg.setAttribute('viewBox', q.svgViewBox || '0 0 600 200');
+
+  // Background connectors (non-clickable lines)
+  (q.svgConnectors || []).forEach(c => {
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', c.x1); line.setAttribute('y1', c.y1);
+    line.setAttribute('x2', c.x2); line.setAttribute('y2', c.y2);
+    line.setAttribute('class', 'hot-area-connector');
+    svg.appendChild(line);
+  });
+
+  // Regions (clickable groups)
+  (q.regions || []).forEach(r => {
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'hot-region');
+    g.setAttribute('data-region', r.id);
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', r.label);
+    g.onclick = () => _haPickRegion(r.id);
+    g.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _haPickRegion(r.id); } };
+
+    if (r.shape === 'circle') {
+      const circle = document.createElementNS(svgNS, 'circle');
+      circle.setAttribute('cx', r.cx); circle.setAttribute('cy', r.cy); circle.setAttribute('r', r.r);
+      g.appendChild(circle);
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('x', r.cx); text.setAttribute('y', r.cy + 4);
+      text.textContent = r.label;
+      g.appendChild(text);
+    } else {
+      // default: rect
+      const rect = document.createElementNS(svgNS, 'rect');
+      rect.setAttribute('x', r.x); rect.setAttribute('y', r.y);
+      rect.setAttribute('width', r.w); rect.setAttribute('height', r.h);
+      rect.setAttribute('rx', '6');
+      g.appendChild(rect);
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('x', r.x + r.w / 2); text.setAttribute('y', r.y + r.h / 2 + 4);
+      text.textContent = r.label;
+      g.appendChild(text);
+    }
+    svg.appendChild(g);
+  });
+
+  stage.appendChild(svg);
+  box.appendChild(stage);
+}
+
+function _renderHotAreaOsi(q, box) {
+  const stage = document.createElement('div');
+  stage.className = 'hot-area-stage';
+  const stack = document.createElement('div');
+  stack.className = 'osi-stack';
+  const layers = [
+    { id: 'L7', name: 'Application' },
+    { id: 'L6', name: 'Presentation' },
+    { id: 'L5', name: 'Session' },
+    { id: 'L4', name: 'Transport' },
+    { id: 'L3', name: 'Network' },
+    { id: 'L2', name: 'Data Link' },
+    { id: 'L1', name: 'Physical' }
+  ];
+  layers.forEach(l => {
+    const div = document.createElement('div');
+    div.className = 'osi-layer';
+    div.setAttribute('data-region', l.id);
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('role', 'button');
+    div.setAttribute('aria-label', l.id + ' ' + l.name);
+    div.innerHTML = '<span><span class="osi-layer-num">' + l.id + '</span> · <span class="osi-layer-name">' + l.name + '</span></span>';
+    div.onclick = () => _haPickRegion(l.id);
+    div.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _haPickRegion(l.id); } };
+    stack.appendChild(div);
+  });
+  stage.appendChild(stack);
+  box.appendChild(stage);
+}
+
+function _renderHotAreaCableGrid(q, box) {
+  const stage = document.createElement('div');
+  stage.className = 'hot-area-stage';
+  const grid = document.createElement('div');
+  grid.className = 'cable-grid';
+  (q.cables || []).forEach(c => {
+    const conn = CABLE_CONNECTORS[c.id];
+    if (!conn) return;
+    const card = document.createElement('div');
+    card.className = 'cable-card';
+    card.setAttribute('data-region', c.id);
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', conn.label);
+    card.innerHTML = '<div class="cable-icon">' + conn.svg + '</div><div class="cable-name">' + escHtml(conn.label) + '</div>';
+    card.onclick = () => _haPickRegion(c.id);
+    card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _haPickRegion(c.id); } };
+    grid.appendChild(card);
+  });
+  stage.appendChild(grid);
+  box.appendChild(stage);
+}
+
+// Click handler — toggles the picked class on the just-clicked region (and
+// removes it from any previously-picked region). Enables Submit when a pick
+// exists.
+function _haPickRegion(regionId) {
+  const submitBtn = document.getElementById('ha-submit-btn');
+  if (submitBtn && submitBtn.disabled === false && document.querySelector('.hot-region.is-correct, .osi-layer.is-correct, .cable-card.is-correct')) {
+    // Already revealed — _restoreAnsweredHotAreaState handles re-pick affordance separately
+    // by intercepting here and routing through submitHotArea-style update branch.
+  }
+  _hotAreaPick = regionId;
+  // Clear all previous selection markers
+  document.querySelectorAll('#options [data-region]').forEach(el => {
+    el.classList.remove('is-picked');
+  });
+  // Mark the clicked one
+  const clicked = document.querySelector('#options [data-region="' + regionId + '"]');
+  if (clicked) clicked.classList.add('is-picked');
+  // Enable submit
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('is-dimmed');
+  }
+  const hint = document.getElementById('ha-hint');
+  if (hint) hint.textContent = 'Selected: ' + regionId + '. Click Submit to grade.';
+}
+
+function submitHotArea(q) {
+  if (!_hotAreaPick) return; // shouldn't happen since Submit is disabled, but defensive
+  const isCorrect = _haRegionIsCorrect(q, _hotAreaPick);
+  const correctIds = _haCorrectRegionIds(q);
+  const existing = _findLogEntryFor(q);
+
+  if (existing) {
+    // v4.82.0 revisit pattern: update existing log entry, recompute counters, truth-up wrong-bank
+    const wasRight = existing.entry.isRight === true;
+    log[existing.idx] = { q, chosen: _hotAreaPick, correct: correctIds.join(','), isRight: isCorrect, flagged: quizFlags[current] };
+    if (!isCorrect && wasRight) addToWrongBank(q, _hotAreaPick);
+    else if (isCorrect && !wasRight) graduateFromBank(q.question);
+    _recomputeQuizCounters();
+  } else {
+    answered++;
+    updateTypeStat('hot-area', isCorrect);
+    if (isCorrect) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
+    else { streak = 0; }
+    log.push({ q, chosen: _hotAreaPick, correct: correctIds.join(','), isRight: isCorrect, flagged: quizFlags[current] });
+    if (!isCorrect) addToWrongBank(q, _hotAreaPick);
+    else if (wrongDrillMode) graduateFromBank(q.question);
+    document.getElementById('live-score').textContent = score + ' / ' + answered;
+    document.getElementById('live-streak').textContent = '🔥 ' + streak;
+  }
+
+  // Apply reveal classes — mark the picked region correct/wrong, mark all
+  // genuinely-correct regions reveal-correct (for dual-correct cases), dim
+  // the rest.
+  document.querySelectorAll('#options [data-region]').forEach(el => {
+    const id = el.getAttribute('data-region');
+    el.classList.remove('is-picked');
+    if (id === _hotAreaPick && isCorrect) el.classList.add('is-correct');
+    else if (id === _hotAreaPick && !isCorrect) el.classList.add('is-wrong');
+    else if (correctIds.includes(id)) el.classList.add('is-reveal-correct');
+    else el.classList.add('is-dimmed');
+  });
+
+  // Hide submit row, show explanation
+  const row = document.getElementById('ha-submit-row');
+  if (row) row.classList.add('is-hidden');
+
+  const optionsBox = document.getElementById('options');
+  if (optionsBox) optionsBox.classList.add('is-revisiting');
+
+  _renderQuizProgressDots();
+  _renderQuizNavArrows();
+
+  const haEntry = _findLogEntryFor(q);
+  showExplanation(q, isCorrect, haEntry ? haEntry.entry : null);
+}
+
+function _haCorrectRegionIds(q) {
+  if (q.subShape === 'topology') {
+    return (q.regions || []).filter(r => r.isCorrect).map(r => r.id);
+  } else if (q.subShape === 'osi') {
+    return q.correctLayers || [];
+  } else if (q.subShape === 'cable-grid') {
+    return (q.cables || []).filter(c => c.isCorrect).map(c => c.id);
+  }
+  return [];
+}
+
+function _haRegionIsCorrect(q, regionId) {
+  return _haCorrectRegionIds(q).includes(regionId);
+}
+
+// v4.83.0 — restore answered-state for hot-area on revisit. Walks the just-
+// rendered regions and re-applies the reveal markers based on the stored
+// log entry. Keeps regions click-enabled so user can re-pick.
+function _restoreAnsweredHotAreaState(q, entry) {
+  const chosen = entry.chosen;
+  _hotAreaPick = chosen;
+  const correctIds = _haCorrectRegionIds(q);
+  document.querySelectorAll('#options [data-region]').forEach(el => {
+    const id = el.getAttribute('data-region');
+    el.classList.remove('is-picked', 'is-correct', 'is-wrong', 'is-reveal-correct', 'is-dimmed');
+    if (id === chosen && entry.isRight) el.classList.add('is-correct');
+    else if (id === chosen && !entry.isRight) el.classList.add('is-wrong');
+    else if (correctIds.includes(id)) el.classList.add('is-reveal-correct');
+    else el.classList.add('is-dimmed');
+  });
+  // Submit row still visible during revisit so user can re-submit after re-picking.
+  const row = document.getElementById('ha-submit-row');
+  if (row) row.classList.remove('is-hidden');
+  const submitBtn = document.getElementById('ha-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('is-dimmed');
+  }
+}
+
+// ══════════════════════════════════════════
 // GROUND TRUTH TABLES — deterministic N10-009 facts (v4.38.4)
 // Catches factual errors no amount of keyword scoring can.
 // Covers the high-frequency deterministic question patterns: port numbers,
@@ -14544,13 +15036,19 @@ function submitTopology(q) {
 function getMatchingScenarios(qTopic) {
   const cli = cliScenarios.filter(s => qTopic === MIXED_TOPIC || s.topic === qTopic || qTopic.includes('Troubleshoot'));
   const topo = topoScenarios.filter(s => qTopic === MIXED_TOPIC || s.topic === qTopic);
-  return { cli, topo };
+  // v4.83.0 — hot-area bank joins the mixable PBQ pool. Same topic-matching
+  // discipline as cli/topo: Mixed mode pulls everything; topic-locked quizzes
+  // pull only same-topic hot-areas. Multi: sentinel falls through to Mixed-style
+  // matching so multi-topic quizzes still see hot-areas.
+  const hotArea = HOT_AREA_BANK.filter(h => qTopic === MIXED_TOPIC || qTopic.startsWith('Multi:') || h.topic === qTopic);
+  return { cli, topo, hotArea };
 }
 
 function injectPBQs(qs, qTopic, count) {
   if (count <= 0 || qs.length < 5) return qs;
-  const { cli, topo } = getMatchingScenarios(qTopic);
-  const pool = [...cli, ...topo].sort(() => Math.random() - 0.5);
+  const { cli, topo, hotArea } = getMatchingScenarios(qTopic);
+  // v4.83.0 — pool now includes hot-area entries. Random shuffle, take top N.
+  const pool = [...cli, ...topo, ...(hotArea || [])].sort(() => Math.random() - 0.5);
   if (pool.length === 0) return qs;
   const toInject = pool.slice(0, Math.min(count, pool.length));
   const result = [...qs];
