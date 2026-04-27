@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.30
+// Network+ AI Quiz — app.js  v4.81.31
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.30';
+const APP_VERSION = '4.81.31';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5740,7 +5740,30 @@ function renderSrReviewCard() {
 }
 
 function startSrReview() {
-  const due = getSrDueEntries();
+  let due = getSrDueEntries();
+
+  // v4.81.31: scrub legacy non-reviewable cards from the queue.
+  // The v4.81.28 enrollment filter (mcq + multi-select only) prevents
+  // NEW order/cli-sim/topology cards from entering the queue, but pre-
+  // v4.81.28 entries are still there and render as broken stem-only
+  // cards (no options field → empty body). User dogfood screenshot
+  // showed an order question rendering with just the stem.
+  // Solution: defensive filter at session start AND quietly write the
+  // scrubbed queue back so the bad entries don't keep coming up.
+  const reviewable = new Set(['mcq', 'multi-select']);
+  const dueOk = due.filter(c => reviewable.has(c.type || 'mcq'));
+  if (dueOk.length < due.length) {
+    // Permanently scrub non-reviewable cards from storage too.
+    try {
+      const queue = loadSrQueue();
+      const cleaned = queue.filter(c => reviewable.has(c.type || 'mcq'));
+      if (cleaned.length < queue.length) {
+        saveSrQueue(cleaned);
+      }
+    } catch (_) { /* tolerate scrub errors — defensive only */ }
+    due = dueOk;
+  }
+
   if (due.length === 0) {
     showToast('No cards due for review right now', 'info');
     return;

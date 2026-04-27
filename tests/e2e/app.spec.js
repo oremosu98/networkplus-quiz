@@ -1476,5 +1476,242 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
   });
 });
 
+// v4.81.31 — SR review E2E coverage. Closes the gap surfaced by the user
+// after v4.81.30 ("would make sense for you to do an E2E walkthrough in UAT
+// just to make sure these things are actually passing. this has happened a
+// few times where you ship something and then we see its broken in live").
+//
+// vm-fixtures pass the structure, but real-browser interaction with the SR
+// page (option click → reveal → confidence advance, multi-select Submit
+// gate, post-v4.81.31 scrub of legacy non-reviewable cards) needs DOM-level
+// coverage. These tests seed localStorage directly with crafted SR queue
+// entries, navigate to the page, click through the flow, and assert the
+// rendered DOM matches the expected state at each step.
+test.describe('SR Review — MCQ happy path', () => {
+  test('user picks an answer → reveal → confidence advances + completes', async ({ page }) => {
+    // Seed one due MCQ card before navigation. nextReview = 0 so it's due now.
+    await page.addInitScript(() => {
+      const queue = [{
+        id: 'sr-test-mcq-1',
+        type: 'mcq',
+        question: 'Which port does HTTPS use by default?',
+        options: { A: '21', B: '80', C: '443', D: '22' },
+        answer: 'C',
+        explanation: 'HTTPS uses TCP port 443 by default.',
+        topic: 'Ports & Protocols',
+        difficulty: 'Foundational',
+        nextReview: 0,
+        intervalDays: 0,
+        easiness: 2.5,
+        repetitions: 0,
+        graduated: false
+      }];
+      localStorage.setItem('nplus_sr_queue', JSON.stringify(queue));
+    });
+
+    await page.goto('/');
+
+    // Homepage card should be visible since we have 1 due card.
+    await expect(page.locator('#sr-review-card')).not.toHaveClass(/is-hidden/);
+    await expect(page.locator('#sr-review-card-headline')).toContainText('1 card due');
+
+    // Start review.
+    await page.locator('#sr-review-start-btn').click();
+    await expect(page.locator('#page-sr-review')).toHaveClass(/active/);
+
+    // Card should render with 4 options and the stem.
+    await expect(page.locator('#sr-card-host')).toContainText('HTTPS');
+    const options = page.locator('.sr-option[data-letter]');
+    await expect(options).toHaveCount(4);
+
+    // No reveal yet — explanation hidden, no confidence row.
+    await expect(page.locator('.sr-explanation')).toHaveCount(0);
+    await expect(page.locator('.sr-confidence-row')).toHaveCount(0);
+
+    // Pick the correct answer C.
+    await page.locator('.sr-option[data-letter="C"]').click();
+
+    // After pick: reveal happened — explanation visible, picked option marked correct.
+    await expect(page.locator('.sr-option[data-letter="C"]')).toHaveClass(/is-correct/);
+    await expect(page.locator('.sr-explanation')).toBeVisible();
+    await expect(page.locator('.sr-confidence-row')).toBeVisible();
+
+    // Click confidence — Got it · was confident.
+    await page.locator('.sr-confidence-confident').click();
+
+    // Session advances. Only 1 card → completion screen.
+    await expect(page.locator('#sr-complete')).toBeVisible();
+  });
+
+  test('user picks WRONG answer → reveal shows red marker + wrong-only confidence', async ({ page }) => {
+    await page.addInitScript(() => {
+      const queue = [{
+        id: 'sr-test-mcq-2',
+        type: 'mcq',
+        question: 'What layer is ICMP at?',
+        options: { A: 'Layer 2', B: 'Layer 3', C: 'Layer 4', D: 'Layer 7' },
+        answer: 'B',
+        explanation: 'ICMP operates at Layer 3 (Network).',
+        topic: 'OSI Model',
+        difficulty: 'Foundational',
+        nextReview: 0,
+        intervalDays: 0,
+        easiness: 2.5,
+        repetitions: 0,
+        graduated: false
+      }];
+      localStorage.setItem('nplus_sr_queue', JSON.stringify(queue));
+    });
+
+    await page.goto('/');
+    await page.locator('#sr-review-start-btn').click();
+
+    // Pick A (wrong — answer is B).
+    await page.locator('.sr-option[data-letter="A"]').click();
+
+    // A should be wrong-marked, B should be correct-marked.
+    await expect(page.locator('.sr-option[data-letter="A"]')).toHaveClass(/is-wrong/);
+    await expect(page.locator('.sr-option[data-letter="B"]')).toHaveClass(/is-correct/);
+
+    // Only the wrong-confidence button should appear (no confident/uncertain pair).
+    await expect(page.locator('.sr-confidence-wrong')).toBeVisible();
+    await expect(page.locator('.sr-confidence-confident')).toHaveCount(0);
+
+    await page.locator('.sr-confidence-wrong').click();
+    await expect(page.locator('#sr-complete')).toBeVisible();
+  });
+});
+
+test.describe('SR Review — Multi-select happy path', () => {
+  test('user toggles 2 picks → Submit enables → reveal shows correct/wrong/missed markers', async ({ page }) => {
+    // Multi-select with answers C+E. We'll pick A (wrong) + C (correct), miss E.
+    await page.addInitScript(() => {
+      const queue = [{
+        id: 'sr-test-multi-1',
+        type: 'multi-select',
+        question: '(Choose TWO) Which of the following are AAA protocols?',
+        options: {
+          A: 'HTTP',
+          B: 'SMTP',
+          C: 'RADIUS',
+          D: 'SNMP',
+          E: 'TACACS+'
+        },
+        answers: ['C', 'E'],
+        explanation: 'RADIUS and TACACS+ are AAA protocols. The others are not.',
+        topic: 'AAA',
+        difficulty: 'Foundational',
+        nextReview: 0,
+        intervalDays: 0,
+        easiness: 2.5,
+        repetitions: 0,
+        graduated: false
+      }];
+      localStorage.setItem('nplus_sr_queue', JSON.stringify(queue));
+    });
+
+    await page.goto('/');
+    await page.locator('#sr-review-start-btn').click();
+    await expect(page.locator('#page-sr-review')).toHaveClass(/active/);
+
+    // Submit row should exist with disabled button.
+    const submitBtn = page.locator('.sr-multi-submit-btn');
+    await expect(submitBtn).toBeVisible();
+    await expect(submitBtn).toBeDisabled();
+    await expect(page.locator('.sr-multi-hint')).toContainText('0 selected');
+
+    // Pick A (wrong) — Submit still disabled (only 1 picked).
+    await page.locator('.sr-option[data-letter="A"]').click();
+    await expect(submitBtn).toBeDisabled();
+    await expect(page.locator('.sr-multi-hint')).toContainText('1 selected');
+    await expect(page.locator('.sr-option[data-letter="A"]')).toHaveClass(/is-picked/);
+
+    // Pick C (correct) — Submit enables.
+    await page.locator('.sr-option[data-letter="C"]').click();
+    await expect(submitBtn).toBeEnabled();
+    await expect(page.locator('.sr-multi-hint')).toContainText('2 selected');
+
+    // Click Submit → reveal.
+    await submitBtn.click();
+
+    // Markers: A wrong, C correct, E missed.
+    await expect(page.locator('.sr-option[data-letter="A"]')).toHaveClass(/is-wrong/);
+    await expect(page.locator('.sr-option[data-letter="C"]')).toHaveClass(/is-correct/);
+    await expect(page.locator('.sr-option[data-letter="E"]')).toHaveClass(/is-missed/);
+
+    // Partial-credit = wrong for SR. Only wrong-confidence button visible.
+    await expect(page.locator('.sr-confidence-wrong')).toBeVisible();
+    await expect(page.locator('.sr-confidence-confident')).toHaveCount(0);
+
+    // Advance.
+    await page.locator('.sr-confidence-wrong').click();
+    await expect(page.locator('#sr-complete')).toBeVisible();
+  });
+});
+
+test.describe('SR Review — v4.81.31 legacy-card scrub', () => {
+  test('order-type cards are filtered out of session and scrubbed from queue', async ({ page }) => {
+    // Seed two cards: one valid MCQ (due) + one legacy order-type card (due).
+    // Pre-v4.81.31: order card would render as empty stem-only card.
+    // Post-v4.81.31: order card filtered at session start AND removed from queue.
+    await page.addInitScript(() => {
+      const queue = [
+        {
+          id: 'sr-legacy-order',
+          type: 'order',
+          question: 'Arrange the following troubleshooting steps in the correct order.',
+          items: ['Identify the problem', 'Establish a theory', 'Test the theory'],
+          correctOrder: [0, 1, 2],
+          topic: 'Troubleshooting Methodology',
+          difficulty: 'Foundational',
+          nextReview: 0,
+          intervalDays: 0,
+          easiness: 2.5,
+          repetitions: 0,
+          graduated: false
+        },
+        {
+          id: 'sr-valid-mcq',
+          type: 'mcq',
+          question: 'Which subnet mask matches /24?',
+          options: { A: '255.255.0.0', B: '255.255.255.0', C: '255.255.255.128', D: '255.0.0.0' },
+          answer: 'B',
+          explanation: '/24 is 255.255.255.0.',
+          topic: 'Subnetting',
+          difficulty: 'Foundational',
+          nextReview: 0,
+          intervalDays: 0,
+          easiness: 2.5,
+          repetitions: 0,
+          graduated: false
+        }
+      ];
+      localStorage.setItem('nplus_sr_queue', JSON.stringify(queue));
+    });
+
+    await page.goto('/');
+
+    // Homepage card shows 2 due (queue has 2 entries before scrub — this is
+    // by design; getSrDueCount runs before startSrReview's scrub).
+    await expect(page.locator('#sr-review-card-headline')).toContainText('2 cards due');
+
+    await page.locator('#sr-review-start-btn').click();
+    await expect(page.locator('#page-sr-review')).toHaveClass(/active/);
+
+    // Session should only have 1 card — the MCQ. Order card filtered out.
+    await expect(page.locator('#sr-progress-text')).toContainText('1 of 1');
+    await expect(page.locator('#sr-card-host')).toContainText('subnet mask');
+    await expect(page.locator('.sr-option[data-letter]')).toHaveCount(4);
+
+    // Verify the queue was scrubbed — order card is GONE from storage.
+    const remainingQueue = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('nplus_sr_queue') || '[]');
+    });
+    expect(remainingQueue).toHaveLength(1);
+    expect(remainingQueue[0].id).toBe('sr-valid-mcq');
+    expect(remainingQueue.some(c => c.type === 'order')).toBe(false);
+  });
+});
+
 
 

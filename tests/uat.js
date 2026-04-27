@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.30', js.includes("const APP_VERSION = '4.81.30"));
+test('APP_VERSION is 4.81.31', js.includes("const APP_VERSION = '4.81.31"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.30', sw.includes('netplus-v4.81.30'));
+test('SW cache bumped to v4.81.31', sw.includes('netplus-v4.81.31'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12636,6 +12636,173 @@ test('v4.81.30 SRInteractive: vm fixture — commit-then-self-grade requires pic
         && explanationNowShows
         && selfGradeButtonsShow
         && bannerShows;
+    } catch (e) { return false; }
+  })());
+
+// v4.81.31: SR queue scrub for legacy non-reviewable cards + Playwright E2E
+// coverage for SR review flow. User dogfood after v4.81.30 deploy: an
+// order-type question still in the queue from before v4.81.28's enrollment
+// filter rendered as a stem-only card with empty body. The v4.81.28 filter
+// only prevented NEW order/cli-sim/topology cards from entering — pre-filter
+// entries persisted. Solution: defensive filter at session start in
+// startSrReview() AND a silent migration that writes the cleaned queue back.
+//
+// Process critique that drove the Playwright additions: "this has happened
+// a few times where you ship something and then we see its broken in live."
+// vm-fixtures pass the structure but real-browser DOM rendering of the SR
+// page wasn't covered. Three new Playwright tests now exercise the full
+// flow end-to-end (MCQ pick → reveal → confidence → completion;
+// multi-select toggle → submit → reveal markers; legacy order-card scrub).
+test('v4.81.31 SRScrub: startSrReview filters cards to mcq + multi-select only',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    if (!body) return false;
+    const hasReviewableSet = /const reviewable = new Set\(\['mcq', 'multi-select'\]\)/.test(body);
+    const filtersDue = /const dueOk = due\.filter\(c => reviewable\.has\(c\.type \|\| 'mcq'\)\)/.test(body);
+    return hasReviewableSet && filtersDue;
+  })());
+test('v4.81.31 SRScrub: startSrReview persists scrubbed queue to localStorage',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    if (!body) return false;
+    return /loadSrQueue\(\)/.test(body)
+      && /saveSrQueue\(cleaned\)/.test(body)
+      && /reviewable\.has\(c\.type \|\| 'mcq'\)/.test(body);
+  })());
+test('v4.81.31 SRScrub: scrub is wrapped in try/catch (defensive)',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    if (!body) return false;
+    return /tolerate scrub errors/.test(body) || /catch \(_\)/.test(body);
+  })());
+
+// vm fixture — startSrReview filters out order/cli-sim/topology cards from
+// the session AND scrubs them from storage. This is the exact regression
+// the user reported on prod (order question rendering as empty stem).
+test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq retained, queue scrubbed',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      if (!body) return false;
+      const vm = require('vm');
+      let savedPayload = null;
+      const fakeQueue = [
+        { id: 'order-legacy', type: 'order', question: 'Arrange steps', nextReview: 0, graduated: false, items: ['a', 'b', 'c'], correctOrder: [0, 1, 2] },
+        { id: 'cli-legacy', type: 'cli-sim', question: 'Run a command', nextReview: 0, graduated: false },
+        { id: 'topo-legacy', type: 'topology', question: 'Place devices', nextReview: 0, graduated: false },
+        { id: 'mcq-good', type: 'mcq', question: 'Real Q?', options: { A: 'a', B: 'b' }, answer: 'A', nextReview: 0, graduated: false },
+        { id: 'multi-good', type: 'multi-select', question: 'Pick 2', options: { A: 'a', B: 'b', C: 'c' }, answers: ['A', 'C'], nextReview: 0, graduated: false }
+      ];
+      const ctx = {
+        getSrDueEntries: () => fakeQueue.slice(),
+        loadSrQueue: () => fakeQueue.slice(),
+        saveSrQueue: (q) => { savedPayload = q; },
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        Set, Object, Array, console
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+
+      // Session should contain ONLY the mcq + multi-select cards (2), in original order.
+      const session = ctx._srSession;
+      if (!session) return false;
+      const sessionIds = session.cards.map(c => c.id);
+      const correctSession = sessionIds.length === 2
+        && sessionIds.includes('mcq-good')
+        && sessionIds.includes('multi-good')
+        && !sessionIds.includes('order-legacy')
+        && !sessionIds.includes('cli-legacy')
+        && !sessionIds.includes('topo-legacy');
+
+      // Queue scrub: saveSrQueue called with the 3 legacy cards removed.
+      const scrubbed = savedPayload !== null
+        && savedPayload.length === 2
+        && savedPayload.every(c => c.type === 'mcq' || c.type === 'multi-select')
+        && !savedPayload.some(c => ['order', 'cli-sim', 'topology'].includes(c.type));
+
+      return correctSession && scrubbed;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — when ALL due cards are reviewable (mcq + multi-select),
+// startSrReview should NOT call saveSrQueue (no scrub work needed).
+test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      if (!body) return false;
+      const vm = require('vm');
+      let saveCallCount = 0;
+      const fakeQueue = [
+        { id: 'mcq-1', type: 'mcq', nextReview: 0, graduated: false },
+        { id: 'multi-1', type: 'multi-select', nextReview: 0, graduated: false }
+      ];
+      const ctx = {
+        getSrDueEntries: () => fakeQueue.slice(),
+        loadSrQueue: () => fakeQueue.slice(),
+        saveSrQueue: () => { saveCallCount++; },
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        Set, Object, Array, console
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+      return saveCallCount === 0 && ctx._srSession && ctx._srSession.cards.length === 2;
+    } catch (e) { return false; }
+  })());
+
+// Playwright E2E coverage check — ensures the v4.81.31 SR review tests
+// actually exist in the spec file. This is a meta-guard against the
+// regression class the user called out: "ship something and we see its
+// broken in live." If a future ship retires the SR review or refactors it
+// without updating Playwright, this fails fast at UAT time.
+test('v4.81.31 SRScrub: Playwright spec covers SR Review MCQ happy path',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /SR Review.*MCQ happy path/.test(spec)
+        && /sr-review-start-btn/.test(spec)
+        && /sr-confidence-confident/.test(spec);
+    } catch (e) { return false; }
+  })());
+test('v4.81.31 SRScrub: Playwright spec covers SR Review multi-select flow',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /Multi-select happy path/.test(spec)
+        && /sr-multi-submit-btn/.test(spec)
+        && /is-missed/.test(spec);
+    } catch (e) { return false; }
+  })());
+test('v4.81.31 SRScrub: Playwright spec covers v4.81.31 legacy-card scrub regression',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /v4\.81\.31 legacy-card scrub/.test(spec)
+        && /'sr-legacy-order'/.test(spec)
+        && /toHaveLength\(1\)/.test(spec);
     } catch (e) { return false; }
   })());
 

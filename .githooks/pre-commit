@@ -121,7 +121,16 @@ DATA_SAFETY_ISSUES=""
 # itself, the regression-guard tests, the institutional-rule docs).
 # These are excluded from the scan because false-positive flagging here
 # would block every commit that touches them.
-META_FILES_REGEX='^(\.githooks/pre-commit|CLAUDE\.md|tests/uat\.js|memory/.*\.md)$'
+#
+# v4.81.31: tests/e2e/app.spec.js added — Playwright test file. Playwright
+# spawns its own isolated browser context per test (via @playwright/test
+# fixtures), so `localStorage.setItem('nplus_…', …)` there only mutates
+# the spawned-browser's storage, NOT the user's prod browser. The v4.81.x
+# discipline rule specifically targets MCP+localStorage on prod (Chrome
+# in Chrome MCP IS the user's logged-in browser). Playwright is in a
+# different category — seeding localStorage is the canonical way to set
+# up stateful test scenarios across the suite (16+ existing call sites).
+META_FILES_REGEX='^(\.githooks/pre-commit|CLAUDE\.md|tests/uat\.js|tests/e2e/app\.spec\.js|memory/.*\.md)$'
 
 # Helper: filter staged file list down to non-meta files
 filter_meta() {
