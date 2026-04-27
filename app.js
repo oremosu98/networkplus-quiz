@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.31
+// Network+ AI Quiz — app.js  v4.82.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.31';
+const APP_VERSION = '4.82.0';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8281,6 +8281,11 @@ async function startQuiz() {
 // v4.54.8: render segmented per-question progress dots. Derives state
 // from `log` entries (which store isRight per answered question) + `current`
 // for the active-question pill. Pending questions get a small grey dot.
+// v4.82.0: dots are now clickable <button>s wired to jumpToQuestion(i).
+// Numbered labels, hover lift, full keyboard reachability. The visual
+// styling for the new circular treatment lives in `#quiz-prog-dots .qpd-cell`
+// (scoped to quiz only — exam dots stay thin since exam has its own
+// navigator UI).
 function _renderQuizProgressDots() {
   const el = document.getElementById('quiz-prog-dots');
   if (!el || !Array.isArray(questions)) return;
@@ -8295,13 +8300,138 @@ function _renderQuizProgressDots() {
     const entry = logByQ.get(q);
     let cls = 'qpd-cell';
     let aria;
-    if (i === current && !entry) { cls += ' qpd-now'; aria = `Question ${i + 1}, current`; }
-    else if (entry && entry.isRight === true) { cls += ' qpd-done'; aria = `Question ${i + 1}, correct`; }
-    else if (entry && entry.isRight === false) { cls += ' qpd-wrong'; aria = `Question ${i + 1}, wrong`; }
-    else { aria = `Question ${i + 1}, pending`; }
-    cells.push(`<span class="${cls}" role="presentation" title="${aria}"></span>`);
+    let stateLabel;
+    // v4.82.0: classes are no longer mutually exclusive — when revisiting a
+    // previously-answered question, the dot is BOTH qpd-now AND qpd-done/wrong
+    // so styling can show "you're here, and here's the past outcome."
+    if (i === current) cls += ' qpd-now';
+    if (entry && entry.isRight === true) { cls += ' qpd-done'; stateLabel = 'correct'; }
+    else if (entry && entry.isRight === false) { cls += ' qpd-wrong'; stateLabel = 'wrong'; }
+    else stateLabel = 'pending';
+    aria = `Question ${i + 1}, ${stateLabel}` + (i === current ? ' (current)' : '');
+    cells.push(`<button type="button" class="${cls}" onclick="jumpToQuestion(${i})" title="${aria}" aria-label="${aria}">${i + 1}</button>`);
   }
   el.innerHTML = cells.join('');
+}
+
+// ══════════════════════════════════════════
+// v4.82.0 — Quiz revisit nav helpers
+// ══════════════════════════════════════════
+// All three helpers are pure index navigation. They re-render and refresh
+// the prev/next arrow enabled-state. `render()` checks for an existing
+// log entry on the target question and restores its answered-state UI
+// (markers + explanation + revisit banner + re-enabled inputs) so the
+// user can re-pick.
+
+// Find the existing log entry for a question (by object identity, matching
+// how _renderQuizProgressDots builds its map). Returns { entry, idx } or null.
+function _findLogEntryFor(q) {
+  if (!Array.isArray(log) || !q) return null;
+  for (let i = 0; i < log.length; i++) {
+    if (log[i] && log[i].q === q) return { entry: log[i], idx: i };
+  }
+  return null;
+}
+
+// v4.82.0: recompute score + answered from `log` after a re-pick. Streak
+// is intentionally NOT recomputed — we treat streak as a forward-only
+// "you got X correct in a row on first attempt" signal. Re-picks after
+// seeing the answer don't move it.
+function _recomputeQuizCounters() {
+  if (!Array.isArray(log)) return;
+  answered = log.length;
+  score = log.filter(e => e && e.isRight === true).length;
+  const scoreEl = document.getElementById('live-score');
+  const streakEl = document.getElementById('live-streak');
+  if (scoreEl) scoreEl.textContent = `${score} / ${answered}`;
+  if (streakEl) streakEl.textContent = `\u{1F525} ${streak}`;
+}
+
+// v4.82.0: enable/disable prev/next arrows based on current position.
+// Prev: enabled when current > 0.
+// Next-arrow: enabled when current < questions.length - 1 AND the current
+//             question is either answered OR a future question is answered
+//             (so user can navigate over already-answered questions freely
+//             without being forced to re-answer pending ones first).
+function _renderQuizNavArrows() {
+  const prevBtn = document.getElementById('quiz-prev-btn');
+  const nextBtn = document.getElementById('quiz-next-arrow-btn');
+  if (!prevBtn || !nextBtn || !Array.isArray(questions)) return;
+  const total = questions.length;
+  prevBtn.disabled = current <= 0;
+  // Enable next-arrow if there's any answered or current question after this one,
+  // OR this question is already answered (so we can move forward).
+  const thisAnswered = !!_findLogEntryFor(questions[current]);
+  let canForward = false;
+  if (current < total - 1) {
+    if (thisAnswered) {
+      canForward = true;
+    } else {
+      // Pending current — only allow forward if any LATER question is also answered.
+      // (This handles the case where user jumped over a pending and came back.)
+      for (let i = current + 1; i < total; i++) {
+        if (_findLogEntryFor(questions[i])) { canForward = true; break; }
+      }
+    }
+  }
+  nextBtn.disabled = !canForward;
+}
+
+function jumpToQuestion(idx) {
+  if (!Array.isArray(questions)) return;
+  if (typeof idx !== 'number' || idx < 0 || idx >= questions.length) return;
+  if (idx === current) return;
+  current = idx;
+  render();
+  window.scrollTo(0, 0);
+}
+
+// v4.82.0: TEST-ONLY hook so Playwright can drop us into a quiz session
+// without making real Haiku API calls. The top-level `let questions` etc.
+// aren't reachable via `window.questions = ...` (let-declared vars don't
+// attach to window), so without this hook the E2E flow can't seed state.
+// Always safe — no destructive behavior; just resets module state.
+window._testInjectQuiz = function(qs) {
+  if (!Array.isArray(qs) || qs.length === 0) return false;
+  questions = qs;
+  current = 0;
+  score = 0;
+  streak = 0;
+  bestStreak = 0;
+  answered = 0;
+  log = [];
+  quizFlags = qs.map(() => false);
+  msSelections = [];
+  orderSequence = [];
+  topoDevices = {};
+  topic = MIXED_TOPIC;
+  activeQuizTopic = MIXED_TOPIC;
+  showPage('quiz');
+  render();
+  return true;
+};
+
+function prevQuestion() {
+  if (current > 0) jumpToQuestion(current - 1);
+}
+
+function nextQuestion() {
+  if (!Array.isArray(questions)) return;
+  if (current < questions.length - 1) jumpToQuestion(current + 1);
+  else if (current === questions.length - 1 && _findLogEntryFor(questions[current])) {
+    // Last question + answered → show results.
+    finish();
+  }
+}
+
+// v4.82.0: surface/hide the revisit banner. Visible whenever the rendered
+// question has a log entry (i.e. user is looking at a question they've
+// already answered). Inert affordance — just sets expectation.
+function _renderRevisitBanner(hasEntry) {
+  const banner = document.getElementById('quiz-revisit-banner');
+  if (!banner) return;
+  if (hasEntry) banner.classList.remove('is-hidden');
+  else banner.classList.add('is-hidden');
 }
 
 // v4.54.9: exam-mode segmented progress dots. Mirrors the quiz version but
@@ -9029,11 +9159,130 @@ function render() {
     el.classList.add('option-stagger-in');
   });
 
+  // v4.82.0: refresh score/streak header (in case re-pick recomputed them)
+  // and refresh prev/next arrow enabled-state.
+  _recomputeQuizCounters();
+  _renderQuizNavArrows();
+
+  // v4.82.0: if this question is already in the log, restore its answered-
+  // state UI on top of the pristine render — markers, explanation, revisit
+  // banner, and re-enabled inputs so the user can re-pick.
+  const existingEntry = _findLogEntryFor(q);
+  if (existingEntry) {
+    _restoreAnsweredQuizState(q, existingEntry.entry);
+    _renderRevisitBanner(true);
+    const qLabelEl = document.getElementById('q-label');
+    if (qLabelEl) qLabelEl.textContent = `Question ${current + 1} of ${total} · revisiting`;
+  } else {
+    _renderRevisitBanner(false);
+  }
+
   // Focus the question text for screen readers, first option for keyboard users
   setTimeout(() => {
     const firstOption = box.querySelector('.option, .ms-option, .order-item, button');
     if (firstOption) firstOption.focus();
   }, 150);
+}
+
+// v4.82.0: restore the answered-state UI on top of a pristine render. Walks
+// the just-rendered options and applies correct/wrong/reveal-correct/dimmed
+// markers based on q's answer key + entry.chosen. Crucially does NOT
+// disable the option click handlers — re-picks are allowed. Then surfaces
+// showExplanation so the user sees their previous outcome + the correct
+// answer + the explanation. Submit buttons for PBQ types are kept visible
+// so the user can re-submit after re-arranging.
+function _restoreAnsweredQuizState(q, entry) {
+  if (!q || !entry) return;
+  const qType = getQType(q);
+  const box = document.getElementById('options');
+  if (!box) return;
+  // Tag the options container so CSS can re-enable clickable affordance.
+  box.classList.add('is-revisiting');
+
+  if (qType === 'mcq' || qType === 'cli-sim') {
+    const chosen = entry.chosen;
+    const correct = q.answer;
+    const optionEls = box.querySelectorAll('.option');
+    optionEls.forEach((btn, i) => {
+      const l = ['A', 'B', 'C', 'D'][i];
+      btn.classList.remove('correct', 'wrong', 'reveal-correct', 'dimmed');
+      if (l === correct && l === chosen) btn.classList.add('correct');
+      else if (l === chosen && l !== correct) btn.classList.add('wrong');
+      else if (l === correct) btn.classList.add('reveal-correct');
+      else btn.classList.add('dimmed');
+    });
+    if (qType === 'cli-sim') {
+      const diag = document.getElementById('cli-diagnosis');
+      if (diag) diag.classList.remove('is-hidden');
+    }
+  } else if (qType === 'multi-select') {
+    const chosenSet = new Set((entry.chosen || '').split(',').filter(Boolean));
+    const correctSet = new Set(q.answers || []);
+    msSelections = [...chosenSet];
+    const optBtns = box.querySelectorAll('.option');
+    optBtns.forEach(btn => {
+      const l = btn.dataset.letter;
+      if (!l) return;
+      btn.classList.remove('correct', 'wrong', 'reveal-correct', 'dimmed', 'ms-selected');
+      const cb = btn.querySelector('.ms-checkbox');
+      if (chosenSet.has(l)) { btn.classList.add('ms-selected'); if (cb) cb.textContent = '✓'; }
+      else if (cb) cb.textContent = '';
+      if (correctSet.has(l) && chosenSet.has(l)) btn.classList.add('correct');
+      else if (chosenSet.has(l) && !correctSet.has(l)) btn.classList.add('wrong');
+      else if (correctSet.has(l)) btn.classList.add('reveal-correct');
+      else btn.classList.add('dimmed');
+    });
+    const submitBtn = document.getElementById('ms-submit-btn');
+    if (submitBtn) {
+      submitBtn.classList.remove('is-hidden');
+      const reqCount = (q.answers || []).length || 2;
+      submitBtn.disabled = msSelections.length !== reqCount;
+      submitBtn.classList.toggle('is-dimmed', submitBtn.disabled);
+    }
+  } else if (qType === 'order') {
+    const chosen = (entry.chosen || '').split(',').filter(Boolean).map(Number);
+    orderSequence = chosen.slice();
+    const items = q.items || [];
+    document.querySelectorAll('#order-items .order-item').forEach(btn => {
+      const idx = parseInt(btn.dataset.idx);
+      btn.classList.toggle('placed', orderSequence.includes(idx));
+    });
+    const list = document.getElementById('order-placed-list');
+    if (list) {
+      if (orderSequence.length === 0) {
+        list.innerHTML = '<span style="color:var(--text-dim);font-size:13px">Click items above in the correct order</span>';
+      } else {
+        list.innerHTML = orderSequence.map((idx, pos) =>
+          `<div class="order-placed-item"><span class="order-placed-num">${pos + 1}</span>${escHtml(items[idx])}</div>`
+        ).join('');
+      }
+    }
+    const submitBtn = document.getElementById('order-submit-btn');
+    if (submitBtn) {
+      submitBtn.classList.remove('is-hidden');
+      submitBtn.disabled = orderSequence.length !== items.length;
+      submitBtn.classList.toggle('is-dimmed', submitBtn.disabled);
+    }
+  } else if (qType === 'topology') {
+    try { topoDevices = JSON.parse(entry.chosen || '{}'); }
+    catch (_) { topoDevices = {}; }
+    const zones = q.zones || [];
+    zones.forEach(zone => {
+      const zoneId = 'topo-zone-' + zone.replace(/[^a-zA-Z0-9]/g, '-');
+      const el = document.getElementById(zoneId);
+      if (!el) return;
+      const placed = topoDevices[zone] || [];
+      el.innerHTML = placed.map(d => `<span class="topo-placed">${escHtml(d)}</span>`).join('');
+    });
+    const submitBtn = document.getElementById('topo-submit-btn');
+    if (submitBtn) submitBtn.classList.remove('is-hidden');
+    const resetBtn = document.querySelector('.topo-controls .btn-ghost');
+    if (resetBtn) resetBtn.classList.remove('is-hidden');
+  }
+
+  // Show explanation populated from THIS log entry (not log[log.length-1] which
+  // is the most-recently-pushed entry — could be a different question now).
+  showExplanation(q, entry.isRight, entry);
 }
 
 // ── MCQ Render (unified quiz + exam mode) ──
@@ -9079,7 +9328,9 @@ function renderMultiSelect(q, box, ans) {
         else ans.msChosen.push(l);
         renderExam();
       } else {
-        if (btn.closest('.options').querySelector('.option.correct, .option.wrong')) return;
+        // v4.82.0: removed the post-submit click-guard so re-picks are
+        // possible during revisit. submitMultiSelect's update-branch
+        // handles truth-up.
         const idx = msSelections.indexOf(l);
         if (idx >= 0) {
           msSelections.splice(idx, 1);
@@ -9134,40 +9385,54 @@ function submitMultiSelect(q) {
   const correctAnswers = (q.answers || []).sort();
   const chosen = [...msSelections].sort();
   const isRight = JSON.stringify(chosen) === JSON.stringify(correctAnswers);
+  const existing = _findLogEntryFor(q);
 
-  answered++;
-  updateTypeStat('multi-select', isRight);
-  if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
-  else { streak = 0; }
+  if (existing) {
+    // v4.82.0: re-submit path — update existing entry, recompute counters, truth-up wrong-bank
+    const wasRight = existing.entry.isRight === true;
+    log[existing.idx] = { q, chosen: chosen.join(','), correct: correctAnswers.join(','), isRight, flagged: quizFlags[current] };
+    if (!isRight && wasRight) addToWrongBank(q, chosen.join(','));
+    else if (isRight && !wasRight) graduateFromBank(q.question);
+    _recomputeQuizCounters();
+  } else {
+    answered++;
+    updateTypeStat('multi-select', isRight);
+    if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
+    else { streak = 0; }
+    log.push({ q, chosen: chosen.join(','), correct: correctAnswers.join(','), isRight, flagged: quizFlags[current] });
+    if (!isRight) addToWrongBank(q, chosen.join(','));
+    else if (wrongDrillMode) graduateFromBank(q.question);
+    document.getElementById('live-score').textContent = `${score} / ${answered}`;
+    const streakEl = document.getElementById('live-streak');
+    streakEl.textContent = `\u{1F525} ${streak}`;
+  }
 
-  log.push({ q, chosen: chosen.join(','), correct: correctAnswers.join(','), isRight, flagged: quizFlags[current] });
-
-  // Track wrong answers
-  if (!isRight) addToWrongBank(q, chosen.join(','));
-  else if (wrongDrillMode) graduateFromBank(q.question);
-
-  document.getElementById('live-score').textContent = `${score} / ${answered}`;
-  const streakEl = document.getElementById('live-streak');
-  streakEl.textContent = `\u{1F525} ${streak}`;
-
-  // Highlight options
+  // Highlight options. v4.82.0: don't disable — re-picks via toggle remain possible.
   const optBtns = document.querySelectorAll('#options .option');
   optBtns.forEach(btn => {
     const l = btn.dataset.letter;
     if (!l) return;
-    btn.setAttribute('disabled', true);
-    btn.onclick = null;
+    btn.classList.remove('correct', 'wrong', 'reveal-correct', 'dimmed');
     if (correctAnswers.includes(l) && chosen.includes(l)) btn.classList.add('correct');
     else if (chosen.includes(l) && !correctAnswers.includes(l)) btn.classList.add('wrong');
     else if (correctAnswers.includes(l)) btn.classList.add('reveal-correct');
     else btn.classList.add('dimmed');
   });
 
-  // Hide submit row
-  const submitBtn = document.getElementById('ms-submit-btn');
-  if (submitBtn) submitBtn.classList.add('is-hidden');
+  // v4.82.0: keep the options container tagged for revisit affordance.
+  const optionsBox = document.getElementById('options');
+  if (optionsBox) optionsBox.classList.add('is-revisiting');
 
-  showExplanation(q, isRight);
+  // v4.82.0: keep submit button visible (re-submittable). It re-disables based
+  // on whether selection still matches reqCount when user toggles.
+  const submitBtn = document.getElementById('ms-submit-btn');
+  if (submitBtn) submitBtn.classList.remove('is-hidden');
+
+  _renderQuizProgressDots();
+  _renderQuizNavArrows();
+
+  const currentEntry = _findLogEntryFor(q);
+  showExplanation(q, isRight, currentEntry ? currentEntry.entry : null);
 }
 
 // ── Order Render (unified quiz + exam mode) ──
@@ -9283,25 +9548,39 @@ function renderOrderState(items, q) {
 function submitOrder(q) {
   const correctOrder = q.correctOrder || [];
   const isRight = JSON.stringify(orderSequence) === JSON.stringify(correctOrder);
+  const existing = _findLogEntryFor(q);
 
-  answered++;
-  updateTypeStat('order', isRight);
-  if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
-  else { streak = 0; }
+  if (existing) {
+    // v4.82.0: re-submit path
+    const wasRight = existing.entry.isRight === true;
+    log[existing.idx] = { q, chosen: orderSequence.join(','), correct: correctOrder.join(','), isRight, flagged: quizFlags[current] };
+    if (!isRight && wasRight) addToWrongBank(q, orderSequence.join(','));
+    else if (isRight && !wasRight) graduateFromBank(q.question);
+    _recomputeQuizCounters();
+  } else {
+    answered++;
+    updateTypeStat('order', isRight);
+    if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
+    else { streak = 0; }
+    log.push({ q, chosen: orderSequence.join(','), correct: correctOrder.join(','), isRight, flagged: quizFlags[current] });
+    if (!isRight) addToWrongBank(q, orderSequence.join(','));
+    else if (wrongDrillMode) graduateFromBank(q.question);
+    document.getElementById('live-score').textContent = `${score} / ${answered}`;
+    const streakEl = document.getElementById('live-streak');
+    streakEl.textContent = `\u{1F525} ${streak}`;
+  }
 
-  log.push({ q, chosen: orderSequence.join(','), correct: correctOrder.join(','), isRight, flagged: quizFlags[current] });
-
-  if (!isRight) addToWrongBank(q, orderSequence.join(','));
-  else if (wrongDrillMode) graduateFromBank(q.question);
-
-  document.getElementById('live-score').textContent = `${score} / ${answered}`;
-  const streakEl = document.getElementById('live-streak');
-  streakEl.textContent = `\u{1F525} ${streak}`;
-
-  // Disable items
-  document.querySelectorAll('#order-items .order-item').forEach(btn => { btn.onclick = null; btn.style.pointerEvents = 'none'; });
-  document.getElementById('order-submit-btn').classList.add('is-hidden');
-  document.querySelector('.order-controls .btn-ghost').classList.add('is-hidden');
+  // v4.82.0: keep items + submit button clickable so user can re-arrange + re-submit.
+  // (Previous behavior was to disable everything after first submit.)
+  document.querySelectorAll('#order-items .order-item').forEach(btn => { btn.style.pointerEvents = ''; });
+  const orderSubmitBtn = document.getElementById('order-submit-btn');
+  if (orderSubmitBtn) orderSubmitBtn.classList.remove('is-hidden');
+  const orderResetBtn = document.querySelector('.order-controls .btn-ghost');
+  if (orderResetBtn) orderResetBtn.classList.remove('is-hidden');
+  const optionsBox = document.getElementById('options');
+  if (optionsBox) optionsBox.classList.add('is-revisiting');
+  _renderQuizProgressDots();
+  _renderQuizNavArrows();
 
   // Show correct vs wrong in placed list
   const items = q.items || [];
@@ -9327,47 +9606,75 @@ function submitOrder(q) {
     }, 1500);
   }
 
-  showExplanation(q, isRight);
+  const submittedEntry = _findLogEntryFor(q);
+  showExplanation(q, isRight, submittedEntry ? submittedEntry.entry : null);
 }
 
 // ══════════════════════════════════════════
 // ANSWER SELECTION (MCQ)
 // ══════════════════════════════════════════
 function pick(chosen, q) {
-  if (document.querySelector('#options .option.correct, #options .option.wrong')) return;
+  // v4.82.0: previously this guarded against re-picks via DOM state
+  // (`document.querySelector('#options .option.correct, .option.wrong')`),
+  // which made re-picks silently noop. Replaced with a proper revisit path:
+  // if a log entry already exists for this question, UPDATE it instead of
+  // pushing a new entry, then truth-up score/answered/wrong-bank.
   const isRight = chosen === q.answer;
-  answered++;
-  updateTypeStat(q.type || 'mcq', isRight);
+  const existing = _findLogEntryFor(q);
 
-  if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
-  else { streak = 0; }
+  if (existing) {
+    // ── Re-pick path: update existing log entry, recompute counters, truth-up wrong-bank ──
+    const wasRight = existing.entry.isRight === true;
+    log[existing.idx] = { q, chosen, correct: q.answer, isRight, flagged: quizFlags[current] };
+    // Wrong-bank truth-up: reflect current answer truth, not first-attempt
+    if (!isRight && wasRight) addToWrongBank(q, chosen);
+    else if (isRight && !wasRight) graduateFromBank(q.question);
+    // Recompute score + answered from log; streak intentionally untouched
+    _recomputeQuizCounters();
+  } else {
+    // ── First-pick path (existing behavior) ──
+    answered++;
+    updateTypeStat(q.type || 'mcq', isRight);
+    if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
+    else { streak = 0; }
+    log.push({ q, chosen, correct: q.answer, isRight, flagged: quizFlags[current] });
+    if (!isRight) addToWrongBank(q, chosen);
+    else if (wrongDrillMode) graduateFromBank(q.question);
+    document.getElementById('live-score').textContent = `${score} / ${answered}`;
+    const streakEl = document.getElementById('live-streak');
+    streakEl.textContent = `\u{1F525} ${streak}`;
+    streakEl.classList.remove('streak-pop');
+    void streakEl.offsetWidth;
+    if (isRight && streak > 1) streakEl.classList.add('streak-pop');
+  }
 
-  log.push({ q, chosen, correct: q.answer, isRight, flagged: quizFlags[current] });
-
-  // Track wrong answers
-  if (!isRight) addToWrongBank(q, chosen);
-  else if (wrongDrillMode) graduateFromBank(q.question);
-
-  document.getElementById('live-score').textContent = `${score} / ${answered}`;
-  const streakEl = document.getElementById('live-streak');
-  streakEl.textContent = `\u{1F525} ${streak}`;
-  streakEl.classList.remove('streak-pop');
-  void streakEl.offsetWidth;
-  if (isRight && streak > 1) streakEl.classList.add('streak-pop');
-
+  // Walk option buttons: apply markers WITHOUT disabling so re-picks remain possible.
   document.querySelectorAll('#options .option').forEach((btn, i) => {
     const l = ['A','B','C','D'][i];
-    btn.setAttribute('disabled', true);
+    btn.classList.remove('correct', 'wrong', 'reveal-correct', 'dimmed');
     if (l === q.answer && l === chosen)      btn.classList.add('correct');
     else if (l === chosen && !isRight)       btn.classList.add('wrong');
     else if (l === q.answer)                 btn.classList.add('reveal-correct');
     else                                     btn.classList.add('dimmed');
   });
 
-  showExplanation(q, isRight);
+  // v4.82.0: keep the options container tagged for the revisit affordance
+  // so future re-picks render with the right cursor/hover styling.
+  const optionsBox = document.getElementById('options');
+  if (optionsBox) optionsBox.classList.add('is-revisiting');
+
+  // Refresh dot strip + nav arrow state since the log changed.
+  _renderQuizProgressDots();
+  _renderQuizNavArrows();
+
+  // Pass the current entry to showExplanation so the wrong-explain block
+  // reads the right chosen-letter (not log[log.length-1] which could be a
+  // different question if user is revisiting).
+  const currentEntry = _findLogEntryFor(q);
+  showExplanation(q, isRight, currentEntry ? currentEntry.entry : null);
 }
 
-function showExplanation(q, isRight) {
+function showExplanation(q, isRight, entryOverride) {
   const expBox = document.getElementById('exp-box');
   const qType = getQType(q);
   let label;
@@ -9383,10 +9690,13 @@ function showExplanation(q, isRight) {
   // v4.54.8: per-choice wrongExplain paragraph. If the question carries a
   // wrongExplain map keyed by option letter AND the user picked one of them,
   // surface the targeted explanation as an italic muted block.
+  // v4.82.0: prefer entryOverride (passed by re-pick + restore paths) so we
+  // read THIS question's chosen letter, not log[log.length-1] which could be
+  // a different question's entry when user is revisiting.
   const wrongExplainEl = document.getElementById('exp-wrong-explain');
   if (wrongExplainEl) {
-    const lastLog = (Array.isArray(log) && log.length > 0) ? log[log.length - 1] : null;
-    const chosenLetter = lastLog ? lastLog.chosen : null;
+    const sourceEntry = entryOverride || ((Array.isArray(log) && log.length > 0) ? log[log.length - 1] : null);
+    const chosenLetter = sourceEntry ? sourceEntry.chosen : null;
     const pickExplain = (q.wrongExplain && typeof q.wrongExplain === 'object') ? q.wrongExplain[chosenLetter] : null;
     if (!isRight && pickExplain && typeof pickExplain === 'string') {
       wrongExplainEl.textContent = `On your choice (${chosenLetter}): ${pickExplain}`;
@@ -10406,6 +10716,9 @@ document.addEventListener('keydown', e => {
 
   if (e.key === 'ArrowRight' && onExam) { examNext(); return; }
   if (e.key === 'ArrowLeft'  && onExam) { examPrev(); return; }
+  // v4.82.0: quiz prev/next via arrow keys for revisit nav.
+  if (e.key === 'ArrowRight' && onQuiz) { nextQuestion(); return; }
+  if (e.key === 'ArrowLeft'  && onQuiz) { prevQuestion(); return; }
 });
 
 // ══════════════════════════════════════════
@@ -14079,25 +14392,38 @@ function submitTopology(q) {
     results[device] = { userZone, correctZone, isRight };
   });
 
-  answered++;
-  updateTypeStat('topology', allCorrect);
-  if (allCorrect) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
-  else { streak = 0; }
+  const existing = _findLogEntryFor(q);
 
-  log.push({ q, chosen: JSON.stringify(topoDevices), correct: JSON.stringify(correct), isRight: allCorrect, flagged: quizFlags[current] });
+  if (existing) {
+    // v4.82.0: re-submit path
+    const wasRight = existing.entry.isRight === true;
+    log[existing.idx] = { q, chosen: JSON.stringify(topoDevices), correct: JSON.stringify(correct), isRight: allCorrect, flagged: quizFlags[current] };
+    if (!allCorrect && wasRight) addToWrongBank(q, JSON.stringify(topoDevices));
+    else if (allCorrect && !wasRight) graduateFromBank(q.question);
+    _recomputeQuizCounters();
+  } else {
+    answered++;
+    updateTypeStat('topology', allCorrect);
+    if (allCorrect) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
+    else { streak = 0; }
+    log.push({ q, chosen: JSON.stringify(topoDevices), correct: JSON.stringify(correct), isRight: allCorrect, flagged: quizFlags[current] });
+    if (!allCorrect) addToWrongBank(q, JSON.stringify(topoDevices));
+    else if (wrongDrillMode) graduateFromBank(q.question);
+    document.getElementById('live-score').textContent = score + ' / ' + answered;
+    document.getElementById('live-streak').textContent = '\ud83d\udd25 ' + streak;
+  }
 
-  if (!allCorrect) addToWrongBank(q, JSON.stringify(topoDevices));
-  else if (wrongDrillMode) graduateFromBank(q.question);
-
-  document.getElementById('live-score').textContent = score + ' / ' + answered;
-  document.getElementById('live-streak').textContent = '\ud83d\udd25 ' + streak;
-
-  document.querySelectorAll('.topo-device').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
-  document.querySelectorAll('.topo-zone').forEach(z => { z.onclick = null; z.style.cursor = 'default'; });
+  // v4.82.0: keep devices + zones + submit + reset clickable so user can re-place + re-submit.
+  document.querySelectorAll('.topo-device').forEach(b => { b.style.pointerEvents = ''; });
+  document.querySelectorAll('.topo-zone').forEach(z => { z.style.cursor = ''; });
   const topoSubmit = document.getElementById('topo-submit-btn');
-  if (topoSubmit) topoSubmit.classList.add('is-hidden');
+  if (topoSubmit) topoSubmit.classList.remove('is-hidden');
   const topoReset = document.querySelector('.topo-controls .btn-ghost');
-  if (topoReset) topoReset.classList.add('is-hidden');
+  if (topoReset) topoReset.classList.remove('is-hidden');
+  const optionsBox2 = document.getElementById('options');
+  if (optionsBox2) optionsBox2.classList.add('is-revisiting');
+  _renderQuizProgressDots();
+  _renderQuizNavArrows();
 
   const zones = q.zones || [];
   zones.forEach(zone => {
@@ -14113,7 +14439,8 @@ function submitTopology(q) {
     }).join('');
   });
 
-  showExplanation(q, allCorrect);
+  const topoEntry = _findLogEntryFor(q);
+  showExplanation(q, allCorrect, topoEntry ? topoEntry.entry : null);
 }
 
 // ══════════════════════════════════════════

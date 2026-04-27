@@ -160,7 +160,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.81.31</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.82.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -814,13 +814,22 @@
 
   <div class="progress-wrap">
     <div class="progress-label">
+      <!-- v4.82.0: Prev/Next nav arrows for revisiting previously answered
+           questions. Disabled appropriately based on current/total. Keyboard:
+           ArrowLeft / ArrowRight bound in the global keydown handler. -->
+      <button class="quiz-nav-arrow" id="quiz-prev-btn" onclick="prevQuestion()"
+              title="Previous question (←)" aria-label="Previous question" disabled>&#8249;</button>
       <span id="q-label">Question 1 of 10</span>
+      <button class="quiz-nav-arrow" id="quiz-next-arrow-btn" onclick="nextQuestion()"
+              title="Next question (→)" aria-label="Next question" disabled>&#8250;</button>
       <span id="q-pct">0%</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
     <!-- v4.54.8: segmented per-question progress dots (prototype pattern).
          One dot per question: moss-green=correct, red=wrong, tall ink=current,
-         grey=pending. Rendered by _renderQuizProgressDots() in render(). -->
+         grey=pending. Rendered by _renderQuizProgressDots() in render().
+         v4.82.0: dots are now clickable buttons. Click any answered dot to
+         revisit that question; click any pending dot to jump ahead. -->
     <div class="quiz-prog-dots" id="quiz-prog-dots" role="progressbar" aria-label="Per-question progress"></div>
   </div>
 
@@ -840,6 +849,15 @@
       <!-- v4.54.8: per-choice wrong-explain paragraph. If q.wrongExplain[chosen]
            exists, showExplanation populates this block; otherwise hidden. -->
       <div class="exp-wrong-explain is-hidden" id="exp-wrong-explain" role="note"></div>
+    </div>
+    <!-- v4.82.0: revisit banner. Visible when the currently-rendered question
+         already has a log entry AND user is not on the highest-answered
+         question (i.e. they navigated back via prev/dots). Inert affordance —
+         just sets expectation that score updates but streak doesn't on
+         re-pick. Populated by _renderRevisitBanner(). -->
+    <div class="quiz-revisit-banner is-hidden" id="quiz-revisit-banner" role="note">
+      <span class="revisit-banner-icon" aria-hidden="true">&#9999;&#65039;</span>
+      <span class="revisit-banner-text">Revisiting — pick again to change your answer. Score updates; streak stays.</span>
     </div>
     <div class="next-btn-row">
       <button class="btn-next" id="btn-next">Next &#8594;</button>

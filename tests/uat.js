@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.31', js.includes("const APP_VERSION = '4.81.31"));
+test('APP_VERSION is 4.82.0', js.includes("const APP_VERSION = '4.82.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.31', sw.includes('netplus-v4.81.31'));
+test('SW cache bumped to v4.82.0', sw.includes('netplus-v4.82.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12803,6 +12803,320 @@ test('v4.81.31 SRScrub: Playwright spec covers v4.81.31 legacy-card scrub regres
       return /v4\.81\.31 legacy-card scrub/.test(spec)
         && /'sr-legacy-order'/.test(spec)
         && /toHaveLength\(1\)/.test(spec);
+    } catch (e) { return false; }
+  })());
+
+// v4.82.0: Quiz Revisit — Prev/Next nav arrows + clickable dots + editable
+// re-pick across all question types. User feature request: "ability to revisit
+// a previously answered question whilst ur in a quiz session." Editable
+// (re-pick allowed), prev/next + dots (matches exam-mode UX), all qTypes
+// covered (mcq + multi-select + order + cli-sim + topology).
+//
+// Truth-up rules: score + answered recompute from log on every re-pick.
+// Streak intentionally NOT touched (re-picks happen after seeing the answer).
+// Wrong-bank reflects current pick: wrong→right graduates from bank,
+// right→wrong adds to bank.
+test('v4.82.0 Revisit: _findLogEntryFor helper defined',
+  /function _findLogEntryFor\(q\)/.test(js));
+test('v4.82.0 Revisit: _recomputeQuizCounters helper defined',
+  /function _recomputeQuizCounters\(\)/.test(js));
+test('v4.82.0 Revisit: _renderQuizNavArrows helper defined',
+  /function _renderQuizNavArrows\(\)/.test(js));
+test('v4.82.0 Revisit: jumpToQuestion handler defined',
+  /function jumpToQuestion\(idx\)/.test(js));
+test('v4.82.0 Revisit: prevQuestion handler defined',
+  /function prevQuestion\(\)/.test(js));
+test('v4.82.0 Revisit: nextQuestion handler defined',
+  /function nextQuestion\(\)/.test(js));
+test('v4.82.0 Revisit: _restoreAnsweredQuizState helper defined',
+  /function _restoreAnsweredQuizState\(q, entry\)/.test(js));
+test('v4.82.0 Revisit: _renderRevisitBanner helper defined',
+  /function _renderRevisitBanner\(hasEntry\)/.test(js));
+
+// HTML: prev/next nav arrows + revisit banner element
+test('v4.82.0 Revisit HTML: #quiz-prev-btn exists',
+  /id="quiz-prev-btn"[\s\S]{0,200}onclick="prevQuestion\(\)"/.test(html));
+test('v4.82.0 Revisit HTML: #quiz-next-arrow-btn exists',
+  /id="quiz-next-arrow-btn"[\s\S]{0,200}onclick="nextQuestion\(\)"/.test(html));
+test('v4.82.0 Revisit HTML: #quiz-revisit-banner element exists',
+  /class="quiz-revisit-banner is-hidden"[\s\S]{0,80}id="quiz-revisit-banner"/.test(html));
+
+// CSS: clickable quiz dots + nav arrows + revisit banner
+test('v4.82.0 Revisit CSS: #quiz-prog-dots .qpd-cell becomes clickable button',
+  /#quiz-prog-dots \.qpd-cell\s*\{[\s\S]*?cursor:\s*pointer/.test(css));
+test('v4.82.0 Revisit CSS: .progress-label .quiz-nav-arrow declared',
+  /\.progress-label \.quiz-nav-arrow\s*\{/.test(css));
+test('v4.82.0 Revisit CSS: .quiz-revisit-banner declared',
+  /\.quiz-revisit-banner\s*\{/.test(css));
+test('v4.82.0 Revisit CSS: .options.is-revisiting affordance class declared',
+  /\.options\.is-revisiting\s+\.option/.test(css));
+test('v4.82.0 Revisit CSS: reduced-motion gate added for new transitions',
+  /#quiz-prog-dots \.qpd-cell[\s\S]{0,500}transition:\s*none\s*!important/.test(css));
+
+// _renderQuizProgressDots — buttons with onclick + numbered labels
+test('v4.82.0 Revisit: progress dots are <button> with onclick="jumpToQuestion(...)"',
+  (() => {
+    const body = _fnBody(js, '_renderQuizProgressDots');
+    if (!body) return false;
+    return /<button type="button"/.test(body)
+      && /onclick="jumpToQuestion\(\$\{i\}\)"/.test(body);
+  })());
+
+// pick() — re-pick branch updates existing entry instead of pushing new one
+// Note: avoid _fnBody('pick') because of prefix-collision with pickDiagnosticOption.
+// Slice the file from `function pick(chosen, q)` to next top-level function.
+const _pickBody = (() => {
+  const m = js.match(/function pick\(chosen, q\)\s*\{[\s\S]*?\n\}\n/);
+  return m ? m[0] : '';
+})();
+test('v4.82.0 Revisit: pick() has re-pick branch via _findLogEntryFor',
+  /_findLogEntryFor\(q\)/.test(_pickBody)
+    && /log\[existing\.idx\] = \{ q, chosen,/.test(_pickBody)
+    && /_recomputeQuizCounters\(\)/.test(_pickBody));
+
+// pick() — wrong-bank truth-up logic (wrong→right graduates, right→wrong adds)
+test('v4.82.0 Revisit: pick() truth-ups wrong-bank on re-pick',
+  /if \(!isRight && wasRight\) addToWrongBank/.test(_pickBody)
+    && /else if \(isRight && !wasRight\) graduateFromBank/.test(_pickBody));
+
+// submitMultiSelect — re-submit branch
+test('v4.82.0 Revisit: submitMultiSelect has re-submit branch',
+  (() => {
+    const body = _fnBody(js, 'submitMultiSelect');
+    if (!body) return false;
+    return /_findLogEntryFor\(q\)/.test(body)
+      && /log\[existing\.idx\]/.test(body)
+      && /_recomputeQuizCounters\(\)/.test(body);
+  })());
+
+// submitOrder — re-submit branch
+test('v4.82.0 Revisit: submitOrder has re-submit branch',
+  (() => {
+    const body = _fnBody(js, 'submitOrder');
+    if (!body) return false;
+    return /_findLogEntryFor\(q\)/.test(body)
+      && /log\[existing\.idx\]/.test(body)
+      && /_recomputeQuizCounters\(\)/.test(body);
+  })());
+
+// submitTopology — re-submit branch
+test('v4.82.0 Revisit: submitTopology has re-submit branch',
+  (() => {
+    const body = _fnBody(js, 'submitTopology');
+    if (!body) return false;
+    return /_findLogEntryFor\(q\)/.test(body)
+      && /log\[existing\.idx\]/.test(body)
+      && /_recomputeQuizCounters\(\)/.test(body);
+  })());
+
+// pick() — guard removed (used to be `if (querySelector('.option.correct, .option.wrong')) return;`)
+test('v4.82.0 Revisit: pick() no longer guards re-picks via DOM .correct/.wrong query',
+  (() => {
+    const body = _fnBody(js, 'pick');
+    if (!body) return false;
+    // The new comment about removing the guard should be present;
+    // the actual pre-fix guard line should not.
+    const hasOldGuard = /if \(document\.querySelector\('#options \.option\.correct, #options \.option\.wrong'\)\) return;/.test(body);
+    return !hasOldGuard;
+  })());
+
+// streak intentionally untouched on re-pick
+test('v4.82.0 Revisit: _recomputeQuizCounters explicitly does NOT touch streak',
+  (() => {
+    const body = _fnBody(js, '_recomputeQuizCounters');
+    if (!body) return false;
+    // Streak should not be assigned in this function; should only update score + answered
+    return /answered\s*=\s*log\.length/.test(body)
+      && /score\s*=\s*log\.filter/.test(body)
+      && !/streak\s*=/.test(body);
+  })());
+
+// Keyboard ←/→ wired for onQuiz (was previously only for onExam)
+test('v4.82.0 Revisit: ArrowRight on quiz calls nextQuestion()',
+  /e\.key === 'ArrowRight' && onQuiz[\s\S]{0,80}nextQuestion\(\)/.test(js));
+test('v4.82.0 Revisit: ArrowLeft on quiz calls prevQuestion()',
+  /e\.key === 'ArrowLeft'\s*&& onQuiz[\s\S]{0,80}prevQuestion\(\)/.test(js));
+
+// render() wires the new helpers
+// Note: avoid _fnBody('render') prefix-collision with renderMCQ etc.
+const _renderQuizBody = (() => {
+  const m = js.match(/\nfunction render\(\)\s*\{[\s\S]*?\n\}\n/);
+  return m ? m[0] : '';
+})();
+test('v4.82.0 Revisit: render() calls _restoreAnsweredQuizState when log entry exists',
+  /_findLogEntryFor\(q\)/.test(_renderQuizBody)
+    && /_restoreAnsweredQuizState\(q,/.test(_renderQuizBody)
+    && /_renderQuizNavArrows\(\)/.test(_renderQuizBody));
+
+// vm fixture #1 — _recomputeQuizCounters truth-ups score + answered from log
+test('v4.82.0 Revisit: vm fixture — _recomputeQuizCounters recomputes from log, leaves streak',
+  (() => {
+    try {
+      const body = _fnBody(js, '_recomputeQuizCounters');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeScore = { textContent: '' };
+      const fakeStreak = { textContent: '' };
+      const ctx = {
+        log: [
+          { q: { question: 'a' }, isRight: true },
+          { q: { question: 'b' }, isRight: false },
+          { q: { question: 'c' }, isRight: true },
+          { q: { question: 'd' }, isRight: true }
+        ],
+        score: 0,    // simulate stale state — should be recomputed to 3
+        answered: 0, // should be recomputed to 4
+        streak: 7,   // should NOT be touched
+        document: { getElementById: (id) => id === 'live-score' ? fakeScore : id === 'live-streak' ? fakeStreak : null },
+        Array, Number
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('_recomputeQuizCounters()', ctx);
+      return ctx.score === 3 && ctx.answered === 4 && ctx.streak === 7
+        && fakeScore.textContent === '3 / 4';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — _findLogEntryFor returns matching entry by object identity
+test('v4.82.0 Revisit: vm fixture — _findLogEntryFor matches by question object identity',
+  (() => {
+    try {
+      const body = _fnBody(js, '_findLogEntryFor');
+      if (!body) return false;
+      const vm = require('vm');
+      const qA = { question: 'A?' };
+      const qB = { question: 'B?' };
+      const qC = { question: 'C?' };
+      const ctx = {
+        log: [
+          { q: qA, chosen: 'A', isRight: false },
+          { q: qB, chosen: 'C', isRight: true }
+        ],
+        qA, qB, qC,
+        Array
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const resA = vm.runInContext('_findLogEntryFor(qA)', ctx);
+      const resB = vm.runInContext('_findLogEntryFor(qB)', ctx);
+      const resC = vm.runInContext('_findLogEntryFor(qC)', ctx);
+      return resA && resA.idx === 0 && resA.entry.chosen === 'A'
+        && resB && resB.idx === 1 && resB.entry.chosen === 'C'
+        && resC === null;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 + #4 — pick() re-pick paths: wrong→right and right→wrong both truth-up.
+// Use _pickBody (regex-extracted via specific signature) to avoid prefix-collision.
+test('v4.82.0 Revisit: vm fixture — pick re-pick wrong→right updates entry + graduates wrong-bank',
+  (() => {
+    try {
+      const findBody = _fnBody(js, '_findLogEntryFor');
+      const recomputeBody = _fnBody(js, '_recomputeQuizCounters');
+      if (!_pickBody || !findBody || !recomputeBody) return false;
+      const vm = require('vm');
+      const q = { question: 'Test?', answer: 'C' };
+      const graduateCalls = [];
+      const addToBankCalls = [];
+      const fakeScore = { textContent: '' };
+      const fakeStreak = { textContent: '', classList: { remove: () => {}, add: () => {} }, offsetWidth: 0 };
+      const ctx = {
+        log: [{ q, chosen: 'B', correct: 'C', isRight: false, flagged: false }],
+        score: 0, answered: 1, streak: 0, bestStreak: 0,
+        quizFlags: [false],
+        current: 0,
+        wrongDrillMode: false,
+        addToWrongBank: (q, ch) => addToBankCalls.push({ q, ch }),
+        graduateFromBank: (qstr) => graduateCalls.push(qstr),
+        updateTypeStat: () => {},
+        getQType: () => 'mcq',
+        q,
+        document: {
+          getElementById: (id) => id === 'live-score' ? fakeScore : id === 'live-streak' ? fakeStreak : id === 'options' ? { classList: { add: () => {} } } : null,
+          querySelectorAll: () => []
+        },
+        showExplanation: () => {},
+        _renderQuizProgressDots: () => {},
+        _renderQuizNavArrows: () => {},
+        Array, Number, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(findBody, ctx);
+      vm.runInContext(recomputeBody, ctx);
+      vm.runInContext(_pickBody, ctx);
+      vm.runInContext("pick('C', q)", ctx);
+      const entry = ctx.log[0];
+      return entry.chosen === 'C'
+        && entry.isRight === true
+        && ctx.score === 1
+        && ctx.answered === 1
+        && ctx.streak === 0
+        && graduateCalls.length === 1
+        && addToBankCalls.length === 0;
+    } catch (e) { return false; }
+  })());
+
+test('v4.82.0 Revisit: vm fixture — pick re-pick right→wrong downscores + adds to wrong-bank',
+  (() => {
+    try {
+      const findBody = _fnBody(js, '_findLogEntryFor');
+      const recomputeBody = _fnBody(js, '_recomputeQuizCounters');
+      if (!_pickBody || !findBody || !recomputeBody) return false;
+      const vm = require('vm');
+      const q = { question: 'Test?', answer: 'C' };
+      const graduateCalls = [];
+      const addToBankCalls = [];
+      const fakeScore = { textContent: '' };
+      const fakeStreak = { textContent: '', classList: { remove: () => {}, add: () => {} }, offsetWidth: 0 };
+      const ctx = {
+        log: [{ q, chosen: 'C', correct: 'C', isRight: true, flagged: false }],
+        score: 1, answered: 1, streak: 1, bestStreak: 1,
+        quizFlags: [false],
+        current: 0,
+        wrongDrillMode: false,
+        addToWrongBank: (q, ch) => addToBankCalls.push({ q, ch }),
+        graduateFromBank: (qstr) => graduateCalls.push(qstr),
+        updateTypeStat: () => {},
+        getQType: () => 'mcq',
+        q,
+        document: {
+          getElementById: (id) => id === 'live-score' ? fakeScore : id === 'live-streak' ? fakeStreak : id === 'options' ? { classList: { add: () => {} } } : null,
+          querySelectorAll: () => []
+        },
+        showExplanation: () => {},
+        _renderQuizProgressDots: () => {},
+        _renderQuizNavArrows: () => {},
+        Array, Number, JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(findBody, ctx);
+      vm.runInContext(recomputeBody, ctx);
+      vm.runInContext(_pickBody, ctx);
+      vm.runInContext("pick('A', q)", ctx);
+      const entry = ctx.log[0];
+      return entry.chosen === 'A'
+        && entry.isRight === false
+        && ctx.score === 0
+        && ctx.answered === 1
+        && ctx.streak === 1
+        && graduateCalls.length === 0
+        && addToBankCalls.length === 1
+        && addToBankCalls[0].ch === 'A';
+    } catch (e) { return false; }
+  })());
+
+// Playwright spec coverage check
+test('v4.82.0 Revisit: Playwright spec covers Quiz Revisit flow',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /Quiz Revisit/.test(spec)
+        && /quiz-prev-btn/.test(spec)
+        && /quiz-revisit-banner/.test(spec);
     } catch (e) { return false; }
   })());
 

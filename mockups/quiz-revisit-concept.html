@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Quiz Revisit (v4.82.0 candidate)</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --red: #f87171; --yellow: #fbbf24; --orange: #f59e0b;
+    --radius: 14px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 40px 20px 80px; min-height: 100vh;
+  }
+  .container { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; }
+  .state-divider {
+    margin: 56px 0 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; }
+
+  /* ── Quiz card surface ── */
+  .quiz-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 24px 18px;
+    margin-bottom: 8px;
+  }
+  .quiz-toprow {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px;
+  }
+  .quiz-toprow-left, .quiz-toprow-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .q-label { font-size: 12px; font-weight: 700; color: var(--text-mid); letter-spacing: .04em; text-transform: uppercase; }
+  .live-stat {
+    font-size: 12px; font-weight: 700; color: var(--text);
+    background: var(--surface3); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 99px;
+  }
+
+  /* ── NEW: Prev / Next arrow buttons ── */
+  .nav-arrow {
+    background: var(--surface3); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    transition: all .15s ease;
+  }
+  .nav-arrow:hover:not(:disabled) {
+    background: rgba(124,111,247,.18); border-color: var(--accent); color: var(--accent-light);
+  }
+  .nav-arrow:disabled {
+    opacity: 0.3; cursor: not-allowed;
+  }
+
+  /* ── Progress dots strip (now clickable) ── */
+  .qpd-row {
+    display: flex; gap: 5px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .qpd-cell {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--surface3); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-dim);
+    cursor: pointer; transition: all .15s ease; user-select: none;
+  }
+  .qpd-cell:hover {
+    transform: scale(1.15); border-color: var(--accent);
+  }
+  .qpd-cell.qpd-done { background: rgba(34,197,94,.15); border-color: var(--green); color: var(--green); }
+  .qpd-cell.qpd-wrong { background: rgba(248,113,113,.15); border-color: var(--red); color: var(--red); }
+  .qpd-cell.qpd-now { background: var(--accent); border-color: var(--accent-light); color: white; box-shadow: 0 0 0 2px rgba(124,111,247,.3); }
+  .qpd-cell.qpd-pending { color: var(--text-dim); }
+
+  /* ── Question content ── */
+  .q-stem { font-size: 18px; font-weight: 600; line-height: 1.5; margin: 8px 0 18px; color: var(--text); }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+    color: var(--text); cursor: pointer; text-align: left;
+    transition: all .15s ease;
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; line-height: 1.45;
+  }
+  .option:hover:not(:disabled) {
+    border-color: var(--accent); background: rgba(124,111,247,.08);
+  }
+  .option-letter {
+    font-weight: 700; color: var(--accent-light); flex-shrink: 0;
+    width: 22px;
+  }
+  .option.correct { background: rgba(34,197,94,.15); border-color: var(--green); }
+  .option.wrong { background: rgba(248,113,113,.15); border-color: var(--red); }
+  .option.reveal-correct { background: rgba(34,197,94,.08); border-color: var(--green); border-style: dashed; }
+  .option.dimmed { opacity: 0.55; }
+  .option.dimmed:hover { opacity: 1; }
+
+  /* ── Explanation box ── */
+  .explanation-box {
+    margin-top: 18px; padding: 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .explanation-box.correct { border-left: 4px solid var(--green); }
+  .explanation-box.wrong { border-left: 4px solid var(--red); }
+  .exp-label { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+  .exp-label.correct { color: var(--green); }
+  .exp-label.wrong { color: var(--red); }
+  .exp-text { font-size: 13px; color: var(--text-mid); }
+
+  /* ── Revisit banner ── */
+  .revisit-banner {
+    margin-top: 14px; padding: 10px 14px;
+    background: rgba(251,191,36,.08); border: 1px dashed rgba(251,191,36,.4);
+    border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--yellow); font-weight: 600;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .revisit-banner-icon { font-size: 16px; }
+
+  /* ── Bottom nav row ── */
+  .quiz-bottomrow {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+  }
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface3); color: var(--text); cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    transition: all .15s ease;
+  }
+  .btn-primary { background: var(--accent); border-color: var(--accent-light); color: white; }
+  .btn-primary:hover { background: var(--accent-light); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent-light); }
+
+  /* ── Order PBQ surface ── */
+  .order-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .order-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    cursor: grab; font-size: 13px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .order-item.placed-correct { border-left: 4px solid var(--green); background: rgba(34,197,94,.08); }
+  .order-item.placed-wrong { border-left: 4px solid var(--red); background: rgba(248,113,113,.08); }
+  .order-handle { font-size: 16px; color: var(--text-dim); }
+  .order-num { width: 22px; font-weight: 700; color: var(--accent-light); }
+  .live-bar {
+    display: flex; gap: 14px; padding: 10px 14px;
+    background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border);
+    margin-bottom: 14px; font-size: 12px; font-weight: 600;
+  }
+  .live-bar span { color: var(--text-mid); }
+  .live-bar strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Quiz Revisit — Editable navigation</h1>
+  <p class="lede">Three-state-stack mockup: <strong>before</strong> (current quiz, no way back), <strong>after</strong> (Prev/Next + clickable dots), and <strong>editable revisit</strong> (re-pick after seeing the answer; score updates). PBQ revisit example included.</p>
+
+  <!-- ── BEFORE ── -->
+  <div class="state-divider"><span class="state-label">Before — current quiz, no revisit</span></div>
+  <div class="quiz-card">
+    <div class="quiz-toprow">
+      <div class="quiz-toprow-left">
+        <span class="q-label">Question 3 of 10</span>
+      </div>
+      <div class="quiz-toprow-right">
+        <span class="live-stat">2 / 2</span>
+        <span class="live-stat">🔥 2</span>
+      </div>
+    </div>
+    <p style="font-size:11px; color: var(--text-dim); margin-bottom: 14px;">Progress strip is presentation-only — green/red dots show past, but you can't click them.</p>
+    <div class="qpd-row">
+      <span class="qpd-cell qpd-done" style="cursor:default" title="not clickable">●</span>
+      <span class="qpd-cell qpd-wrong" style="cursor:default" title="not clickable">●</span>
+      <span class="qpd-cell qpd-now" style="cursor:default" title="current">3</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">4</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">5</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">6</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">7</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">8</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">9</span>
+      <span class="qpd-cell qpd-pending" style="cursor:default">10</span>
+    </div>
+    <div class="q-stem">Which port does HTTPS use by default?</div>
+    <div class="options">
+      <button class="option"><span class="option-letter">A</span><span>21</span></button>
+      <button class="option"><span class="option-letter">B</span><span>80</span></button>
+      <button class="option"><span class="option-letter">C</span><span>443</span></button>
+      <button class="option"><span class="option-letter">D</span><span>22</span></button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Pain point</strong>
+    Once a question scrolls past, it's gone. If a later question made you realise you misread q1, no way to go back and re-think. Exam mode has prev/next + navigator — regular quizzes don't.
+  </div>
+
+  <!-- ── AFTER (idle / current question) ── -->
+  <div class="state-divider"><span class="state-label">After — Prev / Next arrows + clickable dots</span></div>
+  <div class="quiz-card">
+    <div class="quiz-toprow">
+      <div class="quiz-toprow-left">
+        <button class="nav-arrow" title="Previous question (←)">‹</button>
+        <span class="q-label">Question 3 of 10</span>
+        <button class="nav-arrow" title="Next question (→)" disabled>›</button>
+      </div>
+      <div class="quiz-toprow-right">
+        <span class="live-stat">2 / 2</span>
+        <span class="live-stat">🔥 2</span>
+      </div>
+    </div>
+    <div class="qpd-row">
+      <span class="qpd-cell qpd-done" title="Q1 — correct (click to revisit)">1</span>
+      <span class="qpd-cell qpd-wrong" title="Q2 — wrong (click to revisit)">2</span>
+      <span class="qpd-cell qpd-now" title="Q3 — current">3</span>
+      <span class="qpd-cell qpd-pending" title="Q4 — pending">4</span>
+      <span class="qpd-cell qpd-pending">5</span>
+      <span class="qpd-cell qpd-pending">6</span>
+      <span class="qpd-cell qpd-pending">7</span>
+      <span class="qpd-cell qpd-pending">8</span>
+      <span class="qpd-cell qpd-pending">9</span>
+      <span class="qpd-cell qpd-pending">10</span>
+    </div>
+    <div class="q-stem">Which port does HTTPS use by default?</div>
+    <div class="options">
+      <button class="option"><span class="option-letter">A</span><span>21</span></button>
+      <button class="option"><span class="option-letter">B</span><span>80</span></button>
+      <button class="option"><span class="option-letter">C</span><span>443</span></button>
+      <button class="option"><span class="option-letter">D</span><span>22</span></button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Three new affordances, one consistent mental model</strong>
+    Prev arrow is enabled when there's a question behind you. Next arrow is disabled until you've answered the current one (or if you're already at the last). Dots have numbers now + hover lift + a click handler — click any dot to jump straight there. Keyboard: ← / → mirror the arrows. This matches exam-mode UX so users learn one nav pattern, not two.
+  </div>
+
+  <!-- ── EDITABLE REVISIT ── -->
+  <div class="state-divider"><span class="state-label">Editable revisit — clicked dot for Q2 (was wrong)</span></div>
+  <div class="quiz-card">
+    <div class="quiz-toprow">
+      <div class="quiz-toprow-left">
+        <button class="nav-arrow" title="Previous question (←)">‹</button>
+        <span class="q-label">Question 2 of 10 · revisiting</span>
+        <button class="nav-arrow" title="Next question (→)">›</button>
+      </div>
+      <div class="quiz-toprow-right">
+        <span class="live-stat">1 / 2</span>
+        <span class="live-stat">🔥 2</span>
+      </div>
+    </div>
+    <div class="qpd-row">
+      <span class="qpd-cell qpd-done">1</span>
+      <span class="qpd-cell qpd-now qpd-wrong" style="background:var(--red);border-color:var(--red);box-shadow:0 0 0 2px rgba(248,113,113,.3)">2</span>
+      <span class="qpd-cell qpd-pending" style="opacity:.7;border-color:var(--accent-dim)">3</span>
+      <span class="qpd-cell qpd-pending">4</span>
+      <span class="qpd-cell qpd-pending">5</span>
+      <span class="qpd-cell qpd-pending">6</span>
+      <span class="qpd-cell qpd-pending">7</span>
+      <span class="qpd-cell qpd-pending">8</span>
+      <span class="qpd-cell qpd-pending">9</span>
+      <span class="qpd-cell qpd-pending">10</span>
+    </div>
+    <div class="q-stem">At which OSI layer does ICMP operate?</div>
+    <div class="options">
+      <button class="option dimmed"><span class="option-letter">A</span><span>Layer 2 (Data Link)</span></button>
+      <button class="option wrong"><span class="option-letter">B</span><span>Layer 4 (Transport) <span style="color:var(--red);font-size:11px;margin-left:8px;">← your pick · click any other to change</span></span></button>
+      <button class="option reveal-correct"><span class="option-letter">C</span><span>Layer 3 (Network)</span></button>
+      <button class="option dimmed"><span class="option-letter">D</span><span>Layer 7 (Application)</span></button>
+    </div>
+    <div class="explanation-box wrong">
+      <div class="exp-label wrong">✗ Wrong — correct answer: C</div>
+      <div class="exp-text">ICMP operates at Layer 3 (Network). It's the protocol used by tools like ping and traceroute to diagnose connectivity. Even though it carries no transport-layer port, it rides directly on top of IP at Layer 3.</div>
+    </div>
+    <div class="revisit-banner">
+      <span class="revisit-banner-icon">✏️</span>
+      <span>Click a different option to change your answer. Score will update. (Streak stays — you've already seen the answer.)</span>
+    </div>
+    <div class="quiz-bottomrow">
+      <button class="btn btn-ghost">‹ Prev</button>
+      <button class="btn btn-primary">Next ›</button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Editable, but honest</strong>
+    Options are re-enabled with their correct/wrong markers still visible. Click a different one to re-pick — log entry updates, <code>score</code> recomputes from the log (e.g. wrong→right bumps score from 1/2 to 2/2). Wrong-bank truth-ups too: changing wrong→right removes from the bank, right→wrong adds. <strong>Streak doesn't change on re-pick</strong> (you've seen the answer; rewarding it would inflate the streak signal). Yellow banner sets expectations clearly so the user knows score moves but streak doesn't.
+  </div>
+
+  <!-- ── PBQ REVISIT ── -->
+  <div class="state-divider"><span class="state-label">PBQ revisit — Order question, drag-to-rearrange re-enabled</span></div>
+  <div class="quiz-card">
+    <div class="quiz-toprow">
+      <div class="quiz-toprow-left">
+        <button class="nav-arrow">‹</button>
+        <span class="q-label">Question 5 of 10 · revisiting</span>
+        <span style="background:var(--accent-dim);color:var(--accent-light);font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.05em;text-transform:uppercase;">Ordering</span>
+        <button class="nav-arrow">›</button>
+      </div>
+      <div class="quiz-toprow-right">
+        <span class="live-stat">3 / 4</span>
+      </div>
+    </div>
+    <div class="q-stem">Arrange the OSI layers from physical (bottom) to application (top).</div>
+    <div class="order-list">
+      <div class="order-item placed-correct"><span class="order-handle">⋮⋮</span><span class="order-num">1</span><span>Physical</span></div>
+      <div class="order-item placed-correct"><span class="order-handle">⋮⋮</span><span class="order-num">2</span><span>Data Link</span></div>
+      <div class="order-item placed-wrong"><span class="order-handle">⋮⋮</span><span class="order-num">3</span><span>Transport</span></div>
+      <div class="order-item placed-wrong"><span class="order-handle">⋮⋮</span><span class="order-num">4</span><span>Network</span></div>
+      <div class="order-item placed-correct"><span class="order-handle">⋮⋮</span><span class="order-num">5</span><span>Session</span></div>
+      <div class="order-item placed-correct"><span class="order-handle">⋮⋮</span><span class="order-num">6</span><span>Presentation</span></div>
+      <div class="order-item placed-correct"><span class="order-handle">⋮⋮</span><span class="order-num">7</span><span>Application</span></div>
+    </div>
+    <div class="explanation-box wrong">
+      <div class="exp-label wrong">✗ Wrong order — Network (3) and Transport (4) are swapped.</div>
+      <div class="exp-text">Below the transport layer, network is responsible for routing packets across networks; transport (TCP/UDP) sits one layer up and provides reliability + ports. Mnemonic: "Please Do Not Throw Sausage Pizza Away."</div>
+    </div>
+    <div class="revisit-banner">
+      <span class="revisit-banner-icon">✏️</span>
+      <span>Drag items to rearrange. When you submit again, score updates if you got it right this time.</span>
+    </div>
+    <div class="quiz-bottomrow">
+      <button class="btn btn-ghost">‹ Prev</button>
+      <button class="btn btn-primary">Re-submit order ›</button>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>PBQ revisit — same model, different surface</strong>
+    Each PBQ type re-enables its native interactivity: <strong>order</strong> (drag-to-rearrange), <strong>multi-select</strong> (toggle picks + Submit again), <strong>cli-sim</strong> (CLI buttons + diagnosis MCQ re-pickable), <strong>topology</strong> (device placement re-enabled). Submit fires the existing <code>submitOrder()</code> / <code>submitMultiSelect()</code> / <code>submitTopology()</code> with a "we're updating an existing log entry" branch. Same truth-up rules as MCQ — score recomputes from log, wrong-bank reflects current pick, streak doesn't move.
+  </div>
+
+  <!-- ── SUMMARY ── -->
+  <div class="state-divider"><span class="state-label">Implementation summary</span></div>
+  <div class="annotation" style="background:rgba(34,197,94,.05);border-left-color:var(--green);">
+    <strong>Architecture changes (~6 surfaces)</strong>
+    <ol style="margin:8px 0 0 20px; padding:0; line-height:1.7;">
+      <li><code>render()</code> — adds an "is this question already in log[]?" check at the top. If yes → render in answered-state with options/PBQ inputs RE-ENABLED (markers preserved). If no → existing pristine path.</li>
+      <li><code>pick()</code> + <code>submitMultiSelect()</code> + <code>submitOrder()</code> + <code>submitCliSim()</code> + <code>submitTopology()</code> — each gets an "if log entry exists, update it; else push new" branch. Truth-up score/answered/wrong-bank from the log; streak untouched on re-pick.</li>
+      <li>NEW <code>jumpToQuestion(idx)</code> + <code>prevQuestion()</code> wired to clickable dots + Prev arrow + ← key. Existing <code>advance()</code> renamed conceptually to "next question" + bound to → key.</li>
+      <li><code>_renderQuizProgressDots()</code> — span → button, click handler, numbered labels, hover state.</li>
+      <li>HTML: 2 new nav-arrow buttons in the quiz top-row. CSS: <code>.qpd-cell</code> hover + clickable styling. <code>.revisit-banner</code> for the yellow strip.</li>
+      <li>Tests: UAT vm-fixtures for log-update branch (wrong→right truth-up, right→wrong truth-up, streak invariance). Playwright E2E for the full revisit flow (answer Q1, advance to Q2, click dot back to Q1, change answer, verify score updated).</li>
+    </ol>
+  </div>
+
+  <p class="lede" style="margin-top: 32px; color:var(--text-dim); font-size: 12px;">
+    Mockup for v4.82.0 candidate · Per <code>feedback_concept_mockup_first.md</code> — confirm before code · 2026-04-27
+  </p>
+</div>
+</body>
+</html>

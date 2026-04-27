@@ -1649,6 +1649,146 @@ test.describe('SR Review — Multi-select happy path', () => {
   });
 });
 
+// v4.82.0 — Quiz Revisit E2E coverage. Tests the full editable-revisit flow:
+// answer Q1 → advance → click dot back to Q1 → re-pick a different option →
+// verify score/answered truth-up + streak preserved + revisit banner shows.
+// Uses the v4.82.0 _testInjectQuiz hook to seed quiz state without making
+// real Haiku API calls.
+test.describe('Quiz Revisit — editable navigation', () => {
+  // Seed a 3-question quiz with one MCQ + one multi-select + one order.
+  // Each test below starts with this fixture freshly injected.
+  const QUIZ_FIXTURE = [
+    {
+      type: 'mcq',
+      question: 'Which port does HTTPS use by default?',
+      options: { A: '21', B: '80', C: '443', D: '22' },
+      answer: 'C',
+      explanation: 'HTTPS uses TCP port 443 by default.',
+      topic: 'Ports & Protocols',
+      difficulty: 'Foundational'
+    },
+    {
+      type: 'mcq',
+      question: 'At which OSI layer does ICMP operate?',
+      options: { A: 'Layer 2', B: 'Layer 3', C: 'Layer 4', D: 'Layer 7' },
+      answer: 'B',
+      explanation: 'ICMP operates at Layer 3 (Network).',
+      topic: 'OSI Model',
+      difficulty: 'Foundational'
+    },
+    {
+      type: 'mcq',
+      question: 'Which subnet mask matches /24?',
+      options: { A: '255.255.0.0', B: '255.255.255.0', C: '255.255.255.128', D: '255.0.0.0' },
+      answer: 'B',
+      explanation: '/24 is 255.255.255.0.',
+      topic: 'Subnetting',
+      difficulty: 'Foundational'
+    }
+  ];
+
+  test('happy path: answer Q1 → next → dot back to Q1 → re-pick changes score', async ({ page }) => {
+    await page.goto('/');
+    // Inject the fixture quiz state via the v4.82.0 hook.
+    await page.evaluate((qs) => window._testInjectQuiz(qs), QUIZ_FIXTURE);
+
+    // Verify quiz page is active + nav arrows + dots rendered.
+    await expect(page.locator('#page-quiz')).toHaveClass(/active/);
+    await expect(page.locator('#q-label')).toContainText('Question 1 of 3');
+    await expect(page.locator('#quiz-prev-btn')).toBeDisabled();
+    await expect(page.locator('#quiz-next-arrow-btn')).toBeDisabled();
+    await expect(page.locator('#quiz-revisit-banner')).toHaveClass(/is-hidden/);
+    const dots = page.locator('#quiz-prog-dots .qpd-cell');
+    await expect(dots).toHaveCount(3);
+
+    // Pick wrong answer A on Q1 (correct is C).
+    await page.locator('#options .option').nth(0).click();
+    await expect(page.locator('#live-score')).toContainText('0 / 1');
+
+    // Next-arrow should now be enabled (Q1 answered).
+    await expect(page.locator('#quiz-next-arrow-btn')).toBeEnabled();
+
+    // Click next-arrow → advance to Q2.
+    await page.locator('#quiz-next-arrow-btn').click();
+    await expect(page.locator('#q-label')).toContainText('Question 2 of 3');
+    await expect(page.locator('#quiz-revisit-banner')).toHaveClass(/is-hidden/);
+    // Prev should be enabled now.
+    await expect(page.locator('#quiz-prev-btn')).toBeEnabled();
+
+    // Click dot for Q1 → revisit.
+    await page.locator('#quiz-prog-dots .qpd-cell').nth(0).click();
+    await expect(page.locator('#q-label')).toContainText('Question 1 of 3 · revisiting');
+    // Revisit banner now visible.
+    await expect(page.locator('#quiz-revisit-banner')).not.toHaveClass(/is-hidden/);
+    // Explanation visible (since Q1 is answered).
+    await expect(page.locator('#exp-box')).toBeVisible();
+    // Option A should be marked wrong, C marked reveal-correct (correct answer).
+    await expect(page.locator('#options .option').nth(0)).toHaveClass(/wrong/);
+    await expect(page.locator('#options .option').nth(2)).toHaveClass(/reveal-correct/);
+    // Options should NOT be disabled — re-pick allowed.
+    await expect(page.locator('#options .option').nth(2)).not.toBeDisabled();
+
+    // Re-pick C (correct) — score should update from 0/1 to 1/1.
+    await page.locator('#options .option').nth(2).click();
+    await expect(page.locator('#live-score')).toContainText('1 / 1');
+    // Option C should now be 'correct' class (was reveal-correct).
+    await expect(page.locator('#options .option').nth(2)).toHaveClass(/correct/);
+    // Option A should still be present but no longer 'wrong' (now 'dimmed' since user picked C).
+    await expect(page.locator('#options .option').nth(0)).not.toHaveClass(/wrong/);
+
+    // Dot for Q1 should now reflect green (qpd-done) since updated answer is correct.
+    await expect(page.locator('#quiz-prog-dots .qpd-cell').nth(0)).toHaveClass(/qpd-done/);
+  });
+
+  test('streak does not move on re-pick after revisit', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), QUIZ_FIXTURE);
+
+    // Pick correct answer C on Q1 — streak goes to 1.
+    await page.locator('#options .option').nth(2).click();
+    await expect(page.locator('#live-streak')).toContainText('🔥 1');
+
+    // Advance to Q2 via next-arrow.
+    await page.locator('#quiz-next-arrow-btn').click();
+    await expect(page.locator('#q-label')).toContainText('Question 2 of 3');
+
+    // Click dot for Q1 → revisit.
+    await page.locator('#quiz-prog-dots .qpd-cell').nth(0).click();
+    // Re-pick A (wrong) — score should drop, but streak should stay at 1.
+    await page.locator('#options .option').nth(0).click();
+    await expect(page.locator('#live-score')).toContainText('0 / 1');
+    await expect(page.locator('#live-streak')).toContainText('🔥 1');
+  });
+
+  test('keyboard ←/→ navigate prev/next', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), QUIZ_FIXTURE);
+
+    // Pick any option on Q1 to enable forward nav.
+    await page.locator('#options .option').nth(2).click();
+    await expect(page.locator('#q-label')).toContainText('Question 1 of 3');
+
+    // Press → to advance to Q2.
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#q-label')).toContainText('Question 2 of 3');
+
+    // Press ← to go back to Q1.
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('#q-label')).toContainText('Question 1 of 3 · revisiting');
+  });
+
+  test('progress dots are clickable buttons with onclick handler', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate((qs) => window._testInjectQuiz(qs), QUIZ_FIXTURE);
+    // Verify dots are <button> with the expected onclick attribute.
+    const firstDot = page.locator('#quiz-prog-dots .qpd-cell').first();
+    await expect(firstDot).toHaveAttribute('onclick', /jumpToQuestion\(0\)/);
+    // Verify they're buttons (not spans)
+    const tagName = await firstDot.evaluate(el => el.tagName);
+    expect(tagName).toBe('BUTTON');
+  });
+});
+
 test.describe('SR Review — v4.81.31 legacy-card scrub', () => {
   test('order-type cards are filtered out of session and scrubbed from queue', async ({ page }) => {
     // Seed two cards: one valid MCQ (due) + one legacy order-type card (due).
