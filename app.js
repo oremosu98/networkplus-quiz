@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.82.0
+// Network+ AI Quiz — app.js  v4.82.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.82.0';
+const APP_VERSION = '4.82.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -6252,6 +6252,8 @@ async function startDiagnostic() {
 
   showPage('loading');
   if (typeof showLoading === 'function') showLoading('Generating your diagnostic — 20 calibrated questions across all 5 domains…');
+  // v4.82.1: smooth loading bar across the diagnostic flow too.
+  _loadingProgressBegin('Generating diagnostic questions…');
 
   try {
     // Use Mixed topic + Mixed difficulty so the existing 7-layer pipeline
@@ -6266,10 +6268,12 @@ async function startDiagnostic() {
       Object.keys(q.options).length === 4 && typeof q.answer === 'string' && q.answer.length === 1 &&
       'ABCD'.includes(q.answer);
     let qs = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', DIAGNOSTIC_QUESTION_COUNT + buffer);
+    _loadingProgressUpdate('Filtering to MCQ-only…', 60);
     qs = (qs || []).filter(_isMcq).slice(0, DIAGNOSTIC_QUESTION_COUNT);
     if (qs.length < DIAGNOSTIC_QUESTION_COUNT) {
       // Try one retry-to-fill to recover from a partial first batch.
       const deficit = DIAGNOSTIC_QUESTION_COUNT - qs.length;
+      _loadingProgressUpdate('Topping up (' + deficit + ' more)…', 75);
       try {
         const more = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + buffer);
         qs = qs.concat((more || []).filter(_isMcq).slice(0, deficit));
@@ -6278,6 +6282,7 @@ async function startDiagnostic() {
     if (qs.length === 0) {
       throw new Error('Could not generate diagnostic questions. Please try again in a moment.');
     }
+    _loadingProgressUpdate('Finalizing…', 95);
 
     _diagnosticSession = {
       questions: qs,
@@ -6288,9 +6293,11 @@ async function startDiagnostic() {
       confidence: null
     };
     _diagnosticStartTimer();
+    _loadingProgressFinish();
     showPage('diagnostic-quiz');
     _renderDiagnosticQuestion();
   } catch (err) {
+    _loadingProgressFinish();
     showToast(err.message || 'Diagnostic generation failed. Please try again.', 'error');
     goSetup();
   }
@@ -8202,6 +8209,9 @@ async function startQuiz() {
       ? `Generating ${qCount} ${diff} questions across ${_multiCount} topics\u2026`
       : 'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
 
+  // v4.82.1: surface the smooth loading progress bar with stage milestones.
+  _loadingProgressBegin('Generating questions\u2026');
+
   showCacheNotice(false);
   // Fire topic brief in parallel (non-blocking). Skip for Mixed AND Multi
   // modes \u2014 a brief only makes sense for a single focused topic.
@@ -8224,9 +8234,11 @@ async function startQuiz() {
     document.getElementById('loading-msg').textContent =
       'Generating ' + qCount + ' ' + diff + ' questions on ' + activeQuizTopic + '\u2026';
     let raw = await fetchQuestions(key, activeQuizTopic, diff, qCount + DROPOUT_BUFFER);
+    _loadingProgressUpdate('Verifying quality\u2026', 45);
     // Enhancement 1: AI second-pass validation
     document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
     raw = await aiValidateQuestions(key, raw);
+    _loadingProgressUpdate('Finalizing\u2026', 80);
     // Enhancement 2 + 4: Programmatic validation + reported question exclusion
     questions = validateQuestions(raw);
     if (questions.length === 0) throw new Error('All generated questions failed validation. Try again.');
@@ -8234,6 +8246,7 @@ async function startQuiz() {
     // Retry-to-fill: if validation left us short of qCount, fetch the deficit + buffer.
     if (questions.length < qCount) {
       const deficit = qCount - questions.length;
+      _loadingProgressUpdate('Topping up (' + deficit + ' more)\u2026', 85);
       document.getElementById('loading-msg').textContent =
         'Generating ' + deficit + ' more to complete your ' + qCount + '-question set\u2026';
       try {
@@ -8259,6 +8272,7 @@ async function startQuiz() {
       questions = cached.slice(0, qCount);
       showCacheNotice(true);
     } else {
+      _loadingProgressFinish(); // hide bar before returning to setup
       showPage('setup');
       errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
       errBox.classList.remove('is-hidden');
@@ -8274,6 +8288,8 @@ async function startQuiz() {
   quizFlags = new Array(questions.length).fill(false);
   // v4.54.8: mark session start for the elapsed-time row on Results
   _sessionStartTs = Date.now();
+  // v4.82.1: snap progress bar to 100% then hide before the quiz renders.
+  _loadingProgressFinish();
   showPage('quiz');
   render();
 }
@@ -8434,6 +8450,82 @@ function _renderRevisitBanner(hasEntry) {
   else banner.classList.add('is-hidden');
 }
 
+// ══════════════════════════════════════════
+// v4.82.1 — Smooth quiz/diagnostic loading progress
+// ══════════════════════════════════════════
+// User feature request: "when the questions are loading there needs to be
+// some kind of loading bar aswell." Pre-fix, regular quizzes showed only a
+// skeleton + status text — exam mode had a per-batch percentage bar but
+// quizzes/diagnostic flows didn't. This module surfaces the existing
+// #load-progress element on the loading page with a determinate stage-based
+// fill that smoothly eases between milestones.
+//
+// Smoothness is the key UX requirement. Three patterns combined:
+//   1. Each milestone is a real event (Haiku resolved, Sonnet resolved,
+//      programmatic validation done) — no fakery.
+//   2. The fill width transitions via cubic-bezier(0.16, 1, 0.3, 1) over
+//      1.6s — races forward then decelerates. Makes the bar feel responsive
+//      at first then settle near the milestone (creates anticipation for
+//      the next jump).
+//   3. A shimmer overlay (CSS pseudo-element + @keyframes) animates
+//      continuously regardless of width changes, so the bar always feels
+//      "alive" even between real events.
+//
+// Stage milestones (default for `startQuiz`):
+//   Start   →   8% (immediate visual "we're working")
+//   Generating questions   →   45%
+//   Verifying quality   →   80%
+//   Finalizing   →   95%
+//   Complete   →   100% (fade out)
+//
+// For multi-batch flows (n>10 parallel batches OR exam mode), call
+// `_loadingProgressUpdate(label, pct)` directly with real per-batch %.
+
+let _loadingProgressBar = null;
+let _loadingProgressLabel = null;
+
+function _loadingProgressBegin(initialLabel) {
+  const prog = document.getElementById('load-progress');
+  _loadingProgressBar = document.getElementById('load-bar-fill');
+  _loadingProgressLabel = document.getElementById('load-progress-label');
+  if (!prog || !_loadingProgressBar) return;
+  prog.classList.remove('is-hidden');
+  // Reset to 0 instantly, then fade to initial milestone after a tiny tick.
+  _loadingProgressBar.style.transition = 'none';
+  _loadingProgressBar.style.width = '0%';
+  // Force reflow so the next transition fires from 0 cleanly.
+  void _loadingProgressBar.offsetWidth;
+  _loadingProgressBar.style.transition = ''; // restore CSS-defined transition
+  // Initial visual nudge so the bar shows immediate progress on click.
+  setTimeout(() => {
+    if (_loadingProgressBar) _loadingProgressBar.style.width = '8%';
+  }, 30);
+  if (_loadingProgressLabel && initialLabel) _loadingProgressLabel.textContent = initialLabel;
+}
+
+function _loadingProgressUpdate(label, pct) {
+  if (!_loadingProgressBar) return;
+  if (typeof pct === 'number') {
+    const clamped = Math.max(0, Math.min(100, pct));
+    _loadingProgressBar.style.width = clamped + '%';
+  }
+  if (_loadingProgressLabel && label) _loadingProgressLabel.textContent = label;
+}
+
+function _loadingProgressFinish() {
+  if (!_loadingProgressBar) return;
+  // Snap to 100% then schedule hide. The 100% bump uses the same eased
+  // transition so it doesn't feel jarring relative to the prior milestones.
+  _loadingProgressBar.style.width = '100%';
+  if (_loadingProgressLabel) _loadingProgressLabel.textContent = 'Ready!';
+  setTimeout(() => {
+    const prog = document.getElementById('load-progress');
+    if (prog) prog.classList.add('is-hidden');
+    _loadingProgressBar = null;
+    _loadingProgressLabel = null;
+  }, 400);
+}
+
 // v4.54.9: exam-mode segmented progress dots. Mirrors the quiz version but
 // reads examAnswers[i].chosen/msChosen/orderSeq to decide per-question state.
 // In exam mode we can't know correct/wrong until submit, so we only distinguish
@@ -8496,11 +8588,11 @@ async function startExam() {
 
   showPage('loading');
   document.getElementById('loading-msg').textContent = 'Building 90-question exam\u2026';
-  const prog = document.getElementById('load-progress');
-  const fill = document.getElementById('load-bar-fill');
-  const lbl  = document.getElementById('load-progress-label');
-  fill.style.width = '0%';
-  prog.classList.remove('is-hidden');
+  // v4.82.1: use the unified smooth loading-progress module so exam mode
+  // gets the same eased transition + shimmer overlay as quiz/diagnostic.
+  // The label updates per-batch use _loadingProgressUpdate(label, pct).
+  _loadingProgressBegin('Building 90-question exam\u2026');
+  const lbl = document.getElementById('load-progress-label'); // kept for legacy textContent writes
 
   // v4.43.5 — Exam now runs the same validation pipeline as quiz mode (was
   // shipping raw Haiku batches). Per-batch: over-request → Sonnet semantic pass
@@ -8511,10 +8603,9 @@ async function startExam() {
   const BATCHES = 5, EXAM_BATCH_BASE = 18, EXAM_BATCH_BUFFER = 5, MAX_RETRIES = 2;
   try {
     for (let i = 0; i < BATCHES; i++) {
-      fill.style.width = ((i / BATCHES) * 100) + '%';
+      _loadingProgressUpdate(`Batch ${i + 1} / ${BATCHES} \u2014 generating\u2026`, (i / BATCHES) * 100);
 
       // Step 1: Generate (over-request) with fetch-retry on throw
-      lbl.textContent = `Batch ${i + 1} / ${BATCHES} \u2014 generating\u2026`;
       document.getElementById('loading-msg').textContent =
         `Generating questions (${examQuestions.length} / 90)\u2026`;
       let rawBatch = null;
@@ -8593,7 +8684,7 @@ async function startExam() {
       // If still < EXAM_BATCH_BASE here, the final exam will be short of 90 — handled below.
       examQuestions = examQuestions.concat(batch.slice(0, EXAM_BATCH_BASE));
     }
-    fill.style.width = '100%';
+    _loadingProgressUpdate('Finalizing…', 98);
     // Inject 2 CLI/topo PBQs into exam (predefined bank — already known good, skip validation)
     examQuestions = injectPBQs(examQuestions, MIXED_TOPIC, 2);
     // Defensive truncate: if injectPBQs somehow grew past 90 (shouldn't — it splices 1-for-1)
@@ -8604,6 +8695,8 @@ async function startExam() {
     const examShortfall = examQuestions.length < EXAM_QUESTION_COUNT;
 
     examAnswers = examQuestions.map(() => ({ chosen: null, flagged: false, msChosen: [], orderSeq: [], cliRan: [], topoState: {} }));
+    // v4.82.1: hide loading bar before swapping to the exam page.
+    _loadingProgressFinish();
     showPage('exam');
     renderExam();
     startExamTimer();
@@ -8612,6 +8705,7 @@ async function startExam() {
     if (examShortfall) showExamShortfallBanner(examQuestions.length);
   } catch(e) {
     examMode = false;
+    _loadingProgressFinish();
     showPage('setup');
     errBox.textContent = '\u26a0\ufe0f ' + e.message;
     errBox.classList.remove('is-hidden');
@@ -12093,11 +12187,9 @@ async function startBulkQuiz(count) {
   const tb = document.getElementById('topic-brief');
   if (tb) tb.classList.add('is-hidden');
 
-  const prog = document.getElementById('load-progress');
-  const fill = document.getElementById('load-bar-fill');
-  const lbl  = document.getElementById('load-progress-label');
-  if (fill) fill.style.width = '0%';
-  if (prog) prog.classList.remove('is-hidden');
+  // v4.82.1: smooth loading bar across marathon mode too.
+  _loadingProgressBegin('Generating questions\u2026');
+  const lbl = document.getElementById('load-progress-label'); // legacy textContent writes for retry banner
 
   const BATCH_SIZE = 18, MAX_RETRIES = 2;
   const batches = Math.ceil(count / BATCH_SIZE);
@@ -12106,8 +12198,7 @@ async function startBulkQuiz(count) {
     for (let i = 0; i < batches; i++) {
       const remaining = count - collected.length;
       const thisBatch = Math.min(BATCH_SIZE, remaining);
-      if (fill) fill.style.width = ((i / batches) * 100) + '%';
-      if (lbl) lbl.textContent = `Batch ${i + 1} / ${batches}\u2026`;
+      _loadingProgressUpdate(`Batch ${i + 1} / ${batches}\u2026`, (i / batches) * 100);
       document.getElementById('loading-msg').textContent = `Generating questions (${collected.length + thisBatch} / ${count})\u2026`;
       let batch = null;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -12125,14 +12216,16 @@ async function startBulkQuiz(count) {
       }
       collected = collected.concat(batch);
     }
-    if (fill) fill.style.width = '100%';
+    _loadingProgressUpdate('Verifying quality\u2026', 88);
     document.getElementById('loading-msg').textContent = 'Verifying question accuracy\u2026';
     collected = await aiValidateQuestions(key, collected);
     collected = validateQuestions(collected);
     if (collected.length === 0) throw new Error('All generated questions failed validation. Try again.');
+    _loadingProgressUpdate('Finalizing…', 95);
     // Enforce target count — truncate extras from AI
     if (collected.length > count) collected = collected.slice(0, count);
   } catch(e) {
+    _loadingProgressFinish();
     showPage('setup');
     errBox.textContent = '\u26a0\ufe0f ' + (e.message || 'Failed. Check your API key.');
     errBox.classList.remove('is-hidden');
@@ -12141,6 +12234,8 @@ async function startBulkQuiz(count) {
   questions = injectPBQs(collected, MIXED_TOPIC, 2);
   current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
   quizFlags = new Array(questions.length).fill(false);
+  // v4.82.1: hide loading bar before swapping to the quiz page.
+  _loadingProgressFinish();
   showPage('quiz');
   render();
 }

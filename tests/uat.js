@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.82.0', js.includes("const APP_VERSION = '4.82.0"));
+test('APP_VERSION is 4.82.1', js.includes("const APP_VERSION = '4.82.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.82.0', sw.includes('netplus-v4.82.0'));
+test('SW cache bumped to v4.82.1', sw.includes('netplus-v4.82.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -621,7 +621,12 @@ test('startBulkQuiz uses 18-Q batches', /startBulkQuiz[\s\S]{0,1500}BATCH_SIZE =
 test('startBulkQuiz has retry logic', /startBulkQuiz[\s\S]{0,2000}MAX_RETRIES/.test(js));
 test('startBulkQuiz runs validation pipeline', /startBulkQuiz[\s\S]{0,3000}aiValidateQuestions[\s\S]{0,200}validateQuestions/.test(js));
 test('startBulkQuiz forces Mixed topic', /startBulkQuiz[\s\S]{0,800}activeQuizTopic = MIXED_TOPIC/.test(js));
-test('startBulkQuiz clears progress bar at end', /startBulkQuiz[\s\S]{0,2500}fill\.style\.width = '100%'/.test(js));
+// v4.82.1: marathon mode now uses _loadingProgressFinish() instead of direct
+// fill.style.width = '100%'. Same end-state (bar at 100% then hidden), via
+// the new unified module. Window widened from 2500 → 5000 chars since the
+// function body grew with v4.81.14 cross-batch dedup + v4.81.15 stale-slice
+// rotation logic.
+test('startBulkQuiz clears progress bar at end', /startBulkQuiz[\s\S]{0,5000}_loadingProgressFinish\(\)/.test(js));
 
 // ── Try It In Terminal + Guided Labs (v4.16.1 #68, #69) ──
 console.log('\n\x1b[1m── TRY IT IN TERMINAL + GUIDED LABS (v4.16.1 #68, #69) ──\x1b[0m');
@@ -13117,6 +13122,166 @@ test('v4.82.0 Revisit: Playwright spec covers Quiz Revisit flow',
       return /Quiz Revisit/.test(spec)
         && /quiz-prev-btn/.test(spec)
         && /quiz-revisit-banner/.test(spec);
+    } catch (e) { return false; }
+  })());
+
+// v4.82.1: smooth loading progress bar — eased continuous fill + shimmer
+// overlay across all question-fetching flows. User feature request: "when
+// the questions are loading there needs to be some kind of loading bar
+// aswel." Pre-fix only exam mode had a per-batch progress bar; regular
+// quizzes/diagnostic/marathon showed only a skeleton + status text.
+//
+// Smoothness pattern: each milestone is a real event (Haiku resolved,
+// Sonnet resolved, etc.) — no fakery. Width transitions via 1.6s
+// cubic-bezier ease-out so the fill smoothly decelerates between
+// milestones. Shimmer overlay (CSS pseudo-element) animates continuously
+// regardless of width changes so the bar feels alive even between events.
+test('v4.82.1 Loader: _loadingProgressBegin defined',
+  /function _loadingProgressBegin\(initialLabel\)/.test(js));
+test('v4.82.1 Loader: _loadingProgressUpdate defined',
+  /function _loadingProgressUpdate\(label, pct\)/.test(js));
+test('v4.82.1 Loader: _loadingProgressFinish defined',
+  /function _loadingProgressFinish\(\)/.test(js));
+test('v4.82.1 Loader: progress bar resets transition before first paint (avoids backflow)',
+  (() => {
+    const m = js.match(/function _loadingProgressBegin[\s\S]{0,1500}\}/);
+    if (!m) return false;
+    const body = m[0];
+    return /style\.transition = 'none'/.test(body)
+      && /style\.width = '0%'/.test(body)
+      && /void _loadingProgressBar\.offsetWidth/.test(body);
+  })());
+
+// CSS: shimmer overlay + cubic-bezier easing
+test('v4.82.1 Loader CSS: load-bar-fill has cubic-bezier transition',
+  /\.load-bar-fill\s*\{[\s\S]*?cubic-bezier\(0\.16, 1, 0\.3, 1\)/.test(css));
+test('v4.82.1 Loader CSS: shimmer overlay defined via ::after pseudo',
+  /\.load-bar-fill::after\s*\{[\s\S]*?animation:\s*loadBarShimmer/.test(css));
+test('v4.82.1 Loader CSS: @keyframes loadBarShimmer defined',
+  /@keyframes loadBarShimmer\s*\{[\s\S]*?background-position/.test(css));
+test('v4.82.1 Loader CSS: load-bar height bumped from 4px to 8px',
+  /\.load-bar\s*\{[\s\S]*?height:\s*8px/.test(css));
+test('v4.82.1 Loader CSS: reduced-motion gate kills shimmer animation',
+  /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\.load-bar-fill::after\s*\{[\s\S]*?animation:\s*none/.test(css));
+
+// Wiring into all 4 flows
+test('v4.82.1 Loader: startQuiz calls _loadingProgressBegin',
+  (() => {
+    const body = _fnBody(js, 'startQuiz');
+    if (!body) return false;
+    return /_loadingProgressBegin\(/.test(body)
+      && /_loadingProgressUpdate\(/.test(body)
+      && /_loadingProgressFinish\(\)/.test(body);
+  })());
+test('v4.82.1 Loader: startDiagnostic calls _loadingProgressBegin',
+  (() => {
+    const body = _fnBody(js, 'startDiagnostic');
+    if (!body) return false;
+    return /_loadingProgressBegin\(/.test(body)
+      && /_loadingProgressFinish\(\)/.test(body);
+  })());
+test('v4.82.1 Loader: startExam uses unified loading-progress module',
+  (() => {
+    const body = _fnBody(js, 'startExam');
+    if (!body) return false;
+    return /_loadingProgressBegin\(/.test(body)
+      && /_loadingProgressUpdate\(/.test(body)
+      && /_loadingProgressFinish\(\)/.test(body);
+  })());
+test('v4.82.1 Loader: startBulkQuiz (marathon) uses unified loading-progress module',
+  (() => {
+    const body = _fnBody(js, 'startBulkQuiz');
+    if (!body) return false;
+    return /_loadingProgressBegin\(/.test(body)
+      && /_loadingProgressUpdate\(/.test(body)
+      && /_loadingProgressFinish\(\)/.test(body);
+  })());
+
+// Tombstone: legacy direct fill.style.width = '0%' on un-hide should be gone
+// from startExam (replaced by _loadingProgressBegin which handles transition reset).
+test('v4.82.1 Loader: tombstone — startExam no longer does manual fill.style.width = "0%" un-hide pattern',
+  (() => {
+    const body = _fnBody(js, 'startExam');
+    if (!body) return false;
+    // The pattern "fill.style.width = '0%';\n  prog.classList.remove('is-hidden')"
+    // was the legacy un-hide. After v4.82.1 the helper handles both.
+    return !/fill\.style\.width = '0%';\s*\n\s*prog\.classList\.remove\('is-hidden'\)/.test(body);
+  })());
+
+// vm fixture — _loadingProgressBegin resets transition + sets width=0% then
+// nudges to 8% after a tick.
+test('v4.82.1 Loader: vm fixture — _loadingProgressBegin resets bar then nudges to 8%',
+  (() => {
+    try {
+      const beginBody = _fnBody(js, '_loadingProgressBegin');
+      if (!beginBody) return false;
+      const vm = require('vm');
+      let widthHistory = [];
+      let transitionHistory = [];
+      const fakeBar = {
+        style: {
+          set transition(v) { transitionHistory.push(v); },
+          get transition() { return transitionHistory[transitionHistory.length - 1] || ''; },
+          set width(v) { widthHistory.push(v); },
+          get width() { return widthHistory[widthHistory.length - 1] || ''; }
+        },
+        offsetWidth: 0
+      };
+      const fakeLabel = { textContent: '' };
+      const fakeProg = { classList: { remove: () => {} } };
+      const ctx = {
+        document: {
+          getElementById: (id) => {
+            if (id === 'load-progress') return fakeProg;
+            if (id === 'load-bar-fill') return fakeBar;
+            if (id === 'load-progress-label') return fakeLabel;
+            return null;
+          }
+        },
+        setTimeout: (fn, ms) => fn(), // fire synchronously so we can assert the 8% bump
+        _loadingProgressBar: null,
+        _loadingProgressLabel: null
+      };
+      vm.createContext(ctx);
+      vm.runInContext(beginBody, ctx);
+      vm.runInContext("_loadingProgressBegin('Test label')", ctx);
+      // Should have: transition='none', width='0%', then transition='', then setTimeout fired width='8%'
+      return widthHistory.length >= 2
+        && widthHistory[0] === '0%'
+        && widthHistory[widthHistory.length - 1] === '8%'
+        && transitionHistory.includes('none')
+        && fakeLabel.textContent === 'Test label';
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — _loadingProgressFinish snaps to 100% then schedules hide
+test('v4.82.1 Loader: vm fixture — _loadingProgressFinish snaps to 100% + hides container',
+  (() => {
+    try {
+      const finishBody = _fnBody(js, '_loadingProgressFinish');
+      if (!finishBody) return false;
+      const vm = require('vm');
+      let progHidden = false;
+      const fakeBar = { style: {} };
+      const fakeLabel = { textContent: '' };
+      const fakeProg = { classList: { add: (c) => { if (c === 'is-hidden') progHidden = true; } } };
+      const ctx = {
+        document: {
+          getElementById: (id) => {
+            if (id === 'load-progress') return fakeProg;
+            return null;
+          }
+        },
+        setTimeout: (fn, ms) => fn(), // fire synchronously
+        _loadingProgressBar: fakeBar,
+        _loadingProgressLabel: fakeLabel
+      };
+      vm.createContext(ctx);
+      vm.runInContext(finishBody, ctx);
+      vm.runInContext('_loadingProgressFinish()', ctx);
+      return fakeBar.style.width === '100%'
+        && fakeLabel.textContent === 'Ready!'
+        && progHidden === true;
     } catch (e) { return false; }
   })());
 

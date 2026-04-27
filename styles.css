@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.82.0
+   Network+ AI Quiz — styles.css  v4.82.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -291,9 +291,63 @@ input::placeholder { color: var(--text-dim); }
 .skel-status { text-align: center; color: var(--text-dim); font-size: 14px; margin-top: 20px; animation: skelPulse 2s ease-in-out infinite; }
 @keyframes skelPulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 [data-theme="light"] .skel-block::after { background: linear-gradient(90deg, transparent, rgba(0,0,0,.04), transparent); }
-.load-progress { margin: 20px auto 0; max-width: 300px; }
-.load-bar { height: 4px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
-.load-bar-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent-light)); border-radius: 99px; transition: width .4s ease; }
+/* v4.82.1: smoother loading bar — taller (8px), cubic-bezier ease-out so the
+   fill smoothly decelerates toward each milestone rather than snapping, and a
+   shimmer overlay that always animates so the bar feels "alive" even when
+   we're waiting on a stage. Pattern is the YouTube/Stripe-checkout/Chrome-
+   pageload approach: real milestones (no fakery) but visually continuous. */
+.load-progress { margin: 24px auto 0; max-width: 360px; }
+.load-bar {
+  height: 8px;
+  background: var(--surface3);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(var(--accent-rgb), .15);
+}
+.load-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: 99px;
+  position: relative;
+  /* v4.82.1: smooth + slow eased transition. cubic-bezier(0.16, 1, 0.3, 1)
+     is a standard ease-out that races forward then decelerates — feels
+     responsive while being slow enough to bridge gaps between real events. */
+  transition: width 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* v4.82.1: shimmer overlay — always animating, gives the bar a sense of
+   liveness even when the fill width isn't currently transitioning. */
+.load-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .35) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: loadBarShimmer 1.6s linear infinite;
+  border-radius: 99px;
+}
+@keyframes loadBarShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .load-bar-fill { transition: width .3s linear; }
+  .load-bar-fill::after { animation: none; opacity: 0; }
+}
+[data-theme="light"] .load-bar-fill::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .55) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
 
 /* ── QUIZ PAGE ── */
 .quiz-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
