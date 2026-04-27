@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.28
+// Network+ AI Quiz — app.js  v4.81.29
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.28';
+const APP_VERSION = '4.81.29';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8580,6 +8580,15 @@ For PBQ, use ONE of these two formats:
 
 1. MULTI-SELECT (choose 2 or 3 correct answers from 5 options):
 {"type":"multi-select","question":"(Choose TWO) ...","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"answers":["A","C"],"explanation":"..."}
+
+CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
+- BOTH (or all 3) correct answers must be CORE, well-known facts about the topic — at similar levels of prominence/familiarity. Do NOT make one correct answer obvious and the other obscure or edge-case. Difficulty in multi-select comes from BREADTH (knowing multiple facts apply), NOT from one being a buried trivia point.
+- DISTRACTORS must be FACTUALLY WRONG about the topic. They should describe things that are categorically false, NOT things that are "less correct" or are correct facts about an adjacent/related topic. The user must be able to rule them out with actual knowledge — not by elimination.
+- AVOID the trap of "1 obvious correct + 1 obscure correct + 2 plausible-sounding adjacent-topic distractors" — that produces partial-credit scoring and frustration without testing real understanding.
+- The EXPLANATION must enumerate, separately and concretely:
+  • WHY each correct answer is correct (1-2 sentences each)
+  • WHY each distractor is wrong — naming a specific factual error, not just "less applicable" or "not the best fit"
+- Multi-select stems should ask about what IS true / IS valid / DOES apply — not about ranking, fit, or "best."
 
 2. ORDERING (put 4-5 items in correct order):
 {"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}

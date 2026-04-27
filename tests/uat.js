@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.28', js.includes("const APP_VERSION = '4.81.28"));
+test('APP_VERSION is 4.81.29', js.includes("const APP_VERSION = '4.81.29"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.28', sw.includes('netplus-v4.81.28'));
+test('SW cache bumped to v4.81.29', sw.includes('netplus-v4.81.29'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12438,6 +12438,31 @@ test('v4.81.26 Settings: tombstone — old buggy `dg.goal` schema check removed'
 
 test('v4.81.26 Settings: today row uses getTodayQuestionCount (matches home page renderer)',
   /getTodayQuestionCount/.test(_fnBody(js, 'renderSettingsHealthCard') || ''));
+
+// v4.81.29: multi-select prompt quality criteria — user dogfood feedback
+// that the second correct answer was almost always obscure while distractors
+// were too plausible (typically borrowed from adjacent topics). Pre-fix the
+// prompt only specified the schema, not quality criteria. Post-fix Haiku
+// gets explicit guidance: both correct answers core/well-known, distractors
+// factually wrong (not "less correct"), difficulty = breadth not obscurity,
+// explanation must enumerate why each correct + why each wrong.
+test('v4.81.29 MultiSelectQuality: prompt has CRITICAL — MULTI-SELECT QUALITY CRITERIA section',
+  /CRITICAL\s*—\s*MULTI-SELECT QUALITY CRITERIA/.test(js));
+test('v4.81.29 MultiSelectQuality: requires both correct answers be core/well-known',
+  /(BOTH|both)[\s\S]{0,200}correct answers must be CORE, well-known facts/.test(js));
+test('v4.81.29 MultiSelectQuality: forbids obscure/edge-case correct answers',
+  /Do NOT make one correct answer obvious and the other obscure or edge-case/.test(js));
+test('v4.81.29 MultiSelectQuality: requires distractors be factually wrong',
+  /DISTRACTORS must be FACTUALLY WRONG/.test(js));
+test('v4.81.29 MultiSelectQuality: warns against adjacent-topic distractor trap',
+  /borrowed from an adjacent\/related topic|adjacent-topic distractors/i.test(js));
+test('v4.81.29 MultiSelectQuality: explanation must enumerate each correct + each distractor',
+  (() => {
+    const matches = js.match(/WHY each correct answer is correct[\s\S]{0,400}WHY each distractor is wrong/);
+    return matches !== null;
+  })());
+test('v4.81.29 MultiSelectQuality: criteria block lives inside _fetchQuestionsBatch (not orphan)',
+  /_fetchQuestionsBatch[\s\S]{0,40000}CRITICAL\s*—\s*MULTI-SELECT QUALITY CRITERIA/.test(js));
 
 // v4.81.28: SR review three follow-up fixes after v4.81.27 dogfood.
 // (1) self-grade fallback shipped in v4.81.27 had a fatal flaw —
