@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.81.29
+   Network+ AI Quiz — styles.css  v4.81.30
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12745,6 +12745,47 @@ html { zoom: 1.10; }
   background: rgba(248,113,113,0.10); border-color: var(--red);
 }
 .sr-option.is-wrong .sr-option-letter { background: var(--red); color: #fff; }
+/* v4.81.30: multi-select reveal — "correct but not picked" marker.
+   Differentiates from .is-correct (you got it) and .is-wrong (you picked
+   wrong). Amber/yellow tone reads as "you missed this one" without the
+   alarm of red-wrong. */
+.sr-option.is-missed {
+  background: rgba(245,158,11,0.10); border-color: var(--yellow, #fbbf24);
+  border-style: dashed;
+}
+.sr-option.is-missed .sr-option-letter { background: var(--yellow, #fbbf24); color: #1f1b2e; }
+.sr-option.is-missed::after {
+  content: '⚠ missed'; margin-left: auto; padding-left: 12px;
+  font-size: 11px; font-weight: 600; color: #b45309;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* v4.81.30: multi-select submit row — Submit button enabled when user
+   has picked at least 2 options. Hint shows expected vs picked count. */
+.sr-multi-submit-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; margin-bottom: 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.sr-multi-hint {
+  flex: 1; font-size: 12.5px; color: var(--text-mid);
+  font-family: var(--font-mono, monospace);
+}
+.sr-multi-submit-btn {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 8px; padding: 8px 16px;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: background .15s ease, transform .15s ease;
+}
+.sr-multi-submit-btn:hover:not(:disabled) {
+  background: var(--accent-light); transform: translateY(-1px);
+}
+.sr-multi-submit-btn:disabled {
+  background: var(--surface3); color: var(--text-dim);
+  cursor: not-allowed; opacity: 0.6;
+}
+
 .sr-option-letter {
   flex: none; width: 24px; height: 24px; border-radius: 50%;
   background: var(--surface); display: inline-flex; align-items: center;

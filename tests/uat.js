@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.81.29', js.includes("const APP_VERSION = '4.81.29"));
+test('APP_VERSION is 4.81.30', js.includes("const APP_VERSION = '4.81.30"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.81.29', sw.includes('netplus-v4.81.29'));
+test('SW cache bumped to v4.81.30', sw.includes('netplus-v4.81.30'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12439,6 +12439,206 @@ test('v4.81.26 Settings: tombstone — old buggy `dg.goal` schema check removed'
 test('v4.81.26 Settings: today row uses getTodayQuestionCount (matches home page renderer)',
   /getTodayQuestionCount/.test(_fnBody(js, 'renderSettingsHealthCard') || ''));
 
+// v4.81.30: SR review interactive answering — commit-before-reveal across
+// all 3 modes. User feedback: "im just reading the answers and self grading.
+// the risk of this is that someone can just lie and say yeah i knew that
+// when deep down they didnt." Pre-fix the v4.81.27/28 self-grade path
+// showed the explanation immediately, structurally encouraging
+// self-deception. Now: every mode requires the user to commit (pick a
+// letter, or pick multiple + submit) BEFORE the explanation reveals.
+test('v4.81.30 SRInteractive: srToggleMultiPick handler defined',
+  /function srToggleMultiPick\(/.test(js));
+test('v4.81.30 SRInteractive: srSubmitMultiPick handler defined',
+  /function srSubmitMultiPick\(/.test(js));
+test('v4.81.30 SRInteractive: pickedLetters Set initialised in startSrReview',
+  /pickedLetters:\s*new Set\(\)/.test(_fnBody(js, 'startSrReview') || ''));
+test('v4.81.30 SRInteractive: pickedLetters cleared on advance in srMarkConfidence',
+  /pickedLetters\s*=\s*new Set\(\)/.test(_fnBody(js, 'srMarkConfidence') || ''));
+test('v4.81.30 SRInteractive: tombstone — v4.81.28 revealed=true hack removed from render',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    // Should no longer pre-set revealed=true in any branch
+    return !/_srSession\.revealed\s*=\s*true/.test(body);
+  })());
+test('v4.81.30 SRInteractive: render has 3 explicit modes (mcq-auto / multi-auto / commit-self-grade)',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    return /['"]mcq-auto['"]/.test(body)
+      && /['"]multi-auto['"]/.test(body)
+      && /['"]commit-self-grade['"]/.test(body);
+  })());
+test('v4.81.30 SRInteractive: multi-auto mode emits Submit button + sr-multi-submit-row',
+  (() => {
+    const body = _fnBody(js, '_renderSrCard') || '';
+    return /sr-multi-submit-row/.test(body)
+      && /srSubmitMultiPick/.test(body);
+  })());
+test('v4.81.30 SRInteractive: multi-auto reveal applies is-missed class for correct-but-not-picked',
+  /is-missed/.test(_fnBody(js, '_renderSrCard') || ''));
+test('v4.81.30 SRInteractive: srSubmitMultiPick guards on minimum 2 picks',
+  /picks\.size\s*<\s*2/.test(_fnBody(js, 'srSubmitMultiPick') || ''));
+test('v4.81.30 SRInteractive CSS: .sr-option.is-missed declared',
+  /\.sr-option\.is-missed\s*\{/.test(css));
+test('v4.81.30 SRInteractive CSS: .sr-multi-submit-btn declared',
+  /\.sr-multi-submit-btn\s*\{/.test(css));
+
+// vm fixture #1 — multi-select interactive: toggle picks, submit, reveal markers.
+test('v4.81.30 SRInteractive: vm fixture — multi-select pick → submit → reveal flow',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderSrCard');
+      const toggleBody = _fnBody(js, 'srToggleMultiPick');
+      const submitBody = _fnBody(js, 'srSubmitMultiPick');
+      if (!renderBody || !toggleBody || !submitBody) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {}, hidden: false } },
+        _srSession: {
+          cards: [{
+            type: 'multi-select',
+            question: '(Choose TWO) Q?',
+            options: { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e' },
+            answers: ['A', 'C'],
+            topic: 'T', intervalDays: 1, correctStreak: 0
+          }],
+          index: 0,
+          pickedLetter: null,
+          pickedLetters: new Set(),
+          revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math, Set
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext(toggleBody, ctx);
+      vm.runInContext(submitBody, ctx);
+
+      // Initial render — pre-pick, no submit yet
+      vm.runInContext('_renderSrCard()', ctx);
+      const initial = fakeHost._innerHTML;
+      const submitDisabledInitially = /sr-multi-submit-btn[\s"']*disabled/.test(initial);
+
+      // Toggle pick A → C (correct picks)
+      vm.runInContext("srToggleMultiPick('A')", ctx);
+      vm.runInContext("srToggleMultiPick('C')", ctx);
+      const afterPicks = fakeHost._innerHTML;
+      const submitEnabledAfter2Picks = !/sr-multi-submit-btn[\s"']*disabled/.test(afterPicks);
+
+      // Submit → reveal
+      vm.runInContext('srSubmitMultiPick()', ctx);
+      const revealed = ctx._srSession.revealed === true;
+      const finalHtml = fakeHost._innerHTML;
+
+      // After reveal: A and C should have is-correct class, D/E neither
+      const aCorrect = /data-letter="A"[^>]*>[\s\S]*?is-correct|is-correct[\s\S]*?data-letter="A"/.test(finalHtml);
+      const cCorrect = /data-letter="C"[^>]*>[\s\S]*?is-correct|is-correct[\s\S]*?data-letter="C"/.test(finalHtml);
+
+      return submitDisabledInitially && submitEnabledAfter2Picks && revealed && aCorrect && cCorrect;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — multi-select wrong picks reveal as is-wrong + missed correct as is-missed
+test('v4.81.30 SRInteractive: vm fixture — wrong pick + missed correct render correct markers',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderSrCard');
+      const toggleBody = _fnBody(js, 'srToggleMultiPick');
+      const submitBody = _fnBody(js, 'srSubmitMultiPick');
+      if (!renderBody || !toggleBody || !submitBody) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {}, hidden: false } },
+        _srSession: {
+          cards: [{
+            type: 'multi-select', question: 'Q?',
+            options: { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e' },
+            answers: ['A', 'C'], // correct = A, C
+            topic: 'T', intervalDays: 1, correctStreak: 0
+          }],
+          index: 0, pickedLetter: null, pickedLetters: new Set(), revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math, Set
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext(toggleBody, ctx);
+      vm.runInContext(submitBody, ctx);
+
+      // User picks A (correct) + B (wrong) — misses C
+      vm.runInContext("srToggleMultiPick('A')", ctx);
+      vm.runInContext("srToggleMultiPick('B')", ctx);
+      vm.runInContext('srSubmitMultiPick()', ctx);
+      const html = fakeHost._innerHTML;
+
+      // A picked + correct → is-correct
+      // B picked + wrong → is-wrong
+      // C missed correct → is-missed
+      const aGreen = /data-letter="A"[\s\S]*?is-correct|is-correct[\s\S]*?data-letter="A"/.test(html);
+      const bRed = /data-letter="B"[\s\S]*?is-wrong|is-wrong[\s\S]*?data-letter="B"/.test(html);
+      const cMissed = /data-letter="C"[\s\S]*?is-missed|is-missed[\s\S]*?data-letter="C"/.test(html);
+      // Should show "Got it wrong" path because not fully correct
+      const wrongOutcomeShown = /sr-confidence-wrong/.test(html) && !/sr-confidence-confident/.test(html);
+
+      return aGreen && bRed && cMissed && wrongOutcomeShown;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #3 — commit-then-self-grade path requires picking before reveal
+test('v4.81.30 SRInteractive: vm fixture — commit-then-self-grade requires pick before reveal',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderSrCard');
+      const pickBody = _fnBody(js, 'srPickAnswer');
+      if (!renderBody || !pickBody) return false;
+      const vm = require('vm');
+      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
+      const ctx = {
+        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {}, hidden: false } },
+        _srSession: {
+          cards: [{
+            type: 'mcq', question: 'Legacy null-answer Q?',
+            options: { A: 'a', B: 'b', C: 'c', D: 'd' },
+            answer: null, // legacy corruption — falls to commit-self-grade
+            topic: 'T', intervalDays: 1, correctStreak: 0
+          }],
+          index: 0, pickedLetter: null, pickedLetters: new Set(), revealed: false
+        },
+        escHtml: (s) => String(s),
+        Object, String, Array, Number, Math, Set
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext(pickBody, ctx);
+
+      // Initial render — options clickable, no explanation, no self-grade buttons yet
+      vm.runInContext('_renderSrCard()', ctx);
+      const beforePick = fakeHost._innerHTML;
+      const noExplanationYet = !/sr-explanation/.test(beforePick);
+      const noSelfGradeButtonsYet = !/sr-confidence-confident/.test(beforePick);
+      const optionsClickable = /onclick="srPickAnswer/.test(beforePick);
+
+      // Now pick an option
+      vm.runInContext("srPickAnswer('B')", ctx);
+      const afterPick = fakeHost._innerHTML;
+      const explanationNowShows = ctx._srSession.revealed === true;
+      const selfGradeButtonsShow = /sr-confidence-confident/.test(afterPick)
+        && /sr-confidence-uncertain/.test(afterPick)
+        && /sr-confidence-wrong/.test(afterPick);
+      const bannerShows = /sr-self-grade-banner/.test(afterPick);
+
+      return noExplanationYet
+        && noSelfGradeButtonsYet
+        && optionsClickable
+        && explanationNowShows
+        && selfGradeButtonsShow
+        && bannerShows;
+    } catch (e) { return false; }
+  })());
+
 // v4.81.29: multi-select prompt quality criteria — user dogfood feedback
 // that the second correct answer was almost always obscure while distractors
 // were too plausible (typically borrowed from adjacent topics). Pre-fix the
@@ -12476,14 +12676,14 @@ test('v4.81.29 MultiSelectQuality: criteria block lives inside _fetchQuestionsBa
 // (3) addToSrQueue accepted any q.type, so order/cli-sim/topology PBQs
 //     ended up in the queue but rendered with empty bodies (no options).
 //     Fix: filter at enrollment to mcq + multi-select only.
-test('v4.81.28 SR: self-grade render sets _srSession.revealed = true',
+// v4.81.30 retire: the v4.81.28 hack of pre-setting `revealed=true` in the
+// self-grade render branch is gone. The new commit-then-self-grade mode
+// flips revealed=true on user pick (via srPickAnswer), matching the MCQ
+// auto-grade flow. Tombstone now: the hack must NOT be in the render.
+test('v4.81.30 retire: v4.81.28 revealed=true hack removed from render',
   (() => {
     const body = _fnBody(js, '_renderSrCard') || '';
-    // The fallback branch must set revealed = true so srMarkConfidence
-    // accepts confidence-button clicks. Window widened to 1500 because
-    // the explanatory comment between `} else {` and the assignment is
-    // intentionally verbose (documents the bug fix).
-    return /} else \{[\s\S]{0,1500}_srSession\.revealed\s*=\s*true/.test(body);
+    return !/_srSession\.revealed\s*=\s*true/.test(body);
   })());
 test('v4.81.28 SR: addToSrQueue refreshes payload on re-enrollment',
   (() => {
@@ -12503,53 +12703,15 @@ test('v4.81.28 SR: addToSrQueue filters non-reviewable types',
       && /!allowedTypes\.has\(qType\)\s*\)\s*return null/.test(body);
   })());
 
-// vm fixture #1 — self-grade flow end-to-end: render multi-select card,
-// verify revealed=true is set, then call srMarkConfidence to confirm
-// it advances the index (was blocked pre-v4.81.28).
-test('v4.81.28 SR: vm fixture — self-grade button advances card (was blocked)',
+// v4.81.30 retire: this fixture asserted the v4.81.28 behavior (revealed=true
+// auto-set on render → confidence button works). The v4.81.30 redesign requires
+// commit BEFORE reveal (toggle picks → submit → reveal → confidence). Replaced
+// by the v4.81.30 vm fixtures below.
+test('v4.81.30 retire: v4.81.28 self-grade auto-reveal pattern is gone',
   (() => {
-    try {
-      const renderBody = _fnBody(js, '_renderSrCard');
-      const markBody = _fnBody(js, 'srMarkConfidence');
-      if (!renderBody || !markBody) return false;
-      const vm = require('vm');
-      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
-      const ctx = {
-        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {}, hidden: false } },
-        _srSession: {
-          cards: [
-            { qHash: 'h1', type: 'multi-select', question: 'Q1', options: { A: 'a', B: 'b' }, answers: ['A'], topic: 'T', intervalDays: 1, correctStreak: 0 },
-            { qHash: 'h2', type: 'mcq', question: 'Q2', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', topic: 'T', intervalDays: 1, correctStreak: 0 }
-          ],
-          index: 0,
-          answersGiven: 0,
-          correctConfident: 0,
-          correctUncertain: 0,
-          wrong: 0,
-          pickedLetter: null,
-          revealed: false
-        },
-        updateSrEntry: () => {},
-        _srEndReview: () => {},
-        renderSrReviewCard: () => {},
-        escHtml: (s) => String(s),
-        Object, String, Array, Number, Math
-      };
-      vm.createContext(ctx);
-      vm.runInContext(renderBody, ctx);
-      vm.runInContext(markBody, ctx);
-
-      // Render first (multi-select) card — should set revealed=true
-      vm.runInContext('_renderSrCard()', ctx);
-      const revealedAfterRender = ctx._srSession.revealed;
-
-      // Click "Confident" — should advance to card 2 (was blocked pre-fix)
-      vm.runInContext("srMarkConfidence('correct-confident')", ctx);
-      const indexAdvanced = ctx._srSession.index === 1;
-      const confidentTallied = ctx._srSession.correctConfident === 1;
-
-      return revealedAfterRender === true && indexAdvanced && confidentTallied;
-    } catch (e) { return false; }
+    const body = _fnBody(js, '_renderSrCard') || '';
+    // Tombstone — the auto-reveal in render is no longer present.
+    return !/_srSession\.revealed\s*=\s*true/.test(body);
   })());
 
 // vm fixture #2 — re-enrollment refreshes corrupt legacy payload.
@@ -12686,16 +12848,18 @@ test('v4.81.27 SR: srPickAnswer accepts letter (was idx)',
     const body = _fnBody(js, 'srPickAnswer') || '';
     return /pickedLetter\s*=\s*letter/.test(body);
   })());
-test('v4.81.27 SR: self-grade fallback path exists for multi-select / null-answer cards',
+// v4.81.30 retarget: v4.81.27 self-grade-fallback assertion replaced with
+// the v4.81.30 commit-self-grade equivalent. Multi-select cards no longer
+// fall back — they get full auto-grade (Bug 2 from user feedback).
+test('v4.81.30 retarget: render has commit-self-grade mode for legacy null-answer cards',
   (() => {
     const body = _fnBody(js, '_renderSrCard') || '';
-    return /canAutoGrade/.test(body)
-      && /sr-self-grade-banner/.test(body)
-      && /multi-select/.test(body);
+    return /['"]commit-self-grade['"]/.test(body)
+      && /sr-self-grade-banner/.test(body);
   })());
-test('v4.81.27 SR CSS: .sr-self-grade-banner declared',
+test('v4.81.27 SR CSS: .sr-self-grade-banner declared (still used for commit-self-grade mode)',
   /\.sr-self-grade-banner\s*\{/.test(css));
-test('v4.81.27 SR CSS: .sr-options-readonly declared',
+test('v4.81.27 SR CSS: .sr-options-readonly declared (legacy class — retained)',
   /\.sr-options-readonly\s*\.sr-option-readonly/.test(css));
 
 // vm fixture #1 — letter-keyed MCQ renders 4 option buttons
@@ -12739,85 +12903,24 @@ test('v4.81.27 SR: vm fixture — MCQ with letter-keyed options renders 4 button
     } catch (e) { return false; }
   })());
 
-// vm fixture #2 — multi-select question falls back to self-grade UI
-test('v4.81.27 SR: vm fixture — multi-select card falls back to self-grade banner',
+// v4.81.30 retargets the v4.81.27 self-grade-fallback fixtures. Multi-select
+// cards now go to multi-auto mode (Bug 2 from user feedback "im just reading
+// the answers and self grading"). The new multi-auto + commit-self-grade
+// fixtures live in the v4.81.30 block above. These two are kept as light
+// regression guards confirming the OLD auto-reveal-on-render behavior is
+// definitively gone — the user's self-deception loophole stays closed.
+test('v4.81.30 retire: multi-select with valid answers no longer routes to self-grade fallback',
   (() => {
-    try {
-      const body = _fnBody(js, '_renderSrCard');
-      if (!body) return false;
-      const vm = require('vm');
-      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
-      const ctx = {
-        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {} } },
-        _srSession: {
-          cards: [{
-            type: 'multi-select',
-            question: '(Choose TWO) ...',
-            options: { A: 'a', B: 'b', C: 'c', D: 'd', E: 'e' },
-            answer: null,
-            answers: ['A', 'C'],
-            topic: 'WAN Connectivity',
-            intervalDays: 1,
-            correctStreak: 0
-          }],
-          index: 0,
-          pickedLetter: null,
-          revealed: false
-        },
-        escHtml: (s) => String(s),
-        Object, String, Array, Number, Math
-      };
-      vm.createContext(ctx);
-      vm.runInContext(body, ctx);
-      vm.runInContext('_renderSrCard()', ctx);
-      const html = fakeHost._innerHTML;
-      // Should render the self-grade banner + read-only options + 3 confidence buttons
-      return /sr-self-grade-banner/.test(html)
-        && /sr-options-readonly/.test(html)
-        && /Multi-select review/.test(html)
-        && /sr-confidence-confident/.test(html)
-        && /sr-confidence-uncertain/.test(html)
-        && /sr-confidence-wrong/.test(html);
-    } catch (e) { return false; }
+    const body = _fnBody(js, '_renderSrCard') || '';
+    // Multi-select with valid answers should now hit the multi-auto mode,
+    // not the commit-self-grade fallback. Look for the explicit branch.
+    return /['"]multi-auto['"]/.test(body)
+      && /hasMultiAnswers/.test(body);
   })());
-
-// vm fixture #3 — legacy MCQ with corrupt null answer (the addToSrQueue
-// pre-fix bug) also falls back to self-grade.
-test('v4.81.27 SR: vm fixture — null-answer MCQ (legacy corruption) falls back to self-grade',
+test('v4.81.30 retire: legacy null-answer cards still get a fallback (now commit-self-grade, not auto-reveal)',
   (() => {
-    try {
-      const body = _fnBody(js, '_renderSrCard');
-      if (!body) return false;
-      const vm = require('vm');
-      const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
-      const ctx = {
-        document: { getElementById: (id) => id === 'sr-card-host' ? fakeHost : { textContent: '', style: {} } },
-        _srSession: {
-          cards: [{
-            type: 'mcq',
-            question: 'Legacy enrollment with null answer',
-            options: { A: 'a', B: 'b', C: 'c', D: 'd' },
-            answer: null,
-            topic: 'Test',
-            intervalDays: 1,
-            correctStreak: 0
-          }],
-          index: 0,
-          pickedLetter: null,
-          revealed: false
-        },
-        escHtml: (s) => String(s),
-        Object, String, Array, Number, Math
-      };
-      vm.createContext(ctx);
-      vm.runInContext(body, ctx);
-      vm.runInContext('_renderSrCard()', ctx);
-      const html = fakeHost._innerHTML;
-      // Should render the read-only fallback + self-grade buttons
-      return /sr-self-grade-banner/.test(html)
-        && /sr-options-readonly/.test(html)
-        && /sr-confidence-confident/.test(html);
-    } catch (e) { return false; }
+    const body = _fnBody(js, '_renderSrCard') || '';
+    return /['"]commit-self-grade['"]/.test(body);
   })());
 
 test('v4.81.10 DrillMission: vm fixture — empty mastery suggests Lesson 1',

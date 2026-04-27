@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.81.29
+// Network+ AI Quiz — app.js  v4.81.30
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.81.29';
+const APP_VERSION = '4.81.30';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5752,8 +5752,9 @@ function startSrReview() {
     correctConfident: 0,
     correctUncertain: 0,
     wrong: 0,
-    pickedLetter: null, // v4.81.27 — letter-keyed picks (was pickedIdx, broken for our app's MCQ schema)
-    pickedIdx: null,    // legacy — kept for any external observer
+    pickedLetter: null,        // v4.81.27 — letter-keyed pick for MCQ + commit-then-self-grade modes
+    pickedLetters: new Set(),  // v4.81.30 — multi-letter picks for multi-select auto-grade mode
+    pickedIdx: null,           // legacy — kept for any external observer
     revealed: false
   };
   showPage('sr-review');
@@ -5763,20 +5764,22 @@ function startSrReview() {
   _renderSrCard();
 }
 
-// v4.81.27: rewritten render.
-// Three fixes vs the v4.81.0 version that just shipped:
-//   1. Options were stored as a letter-keyed object {A,B,C,D} (matches
-//      renderMCQ + the live app), not an array. Pre-fix the renderer
-//      checked Array.isArray() and never matched, so options never
-//      rendered. Same bug class as v4.81.5 (diagnostic options).
-//   2. MCQ answer was a letter string ('A', 'B'); pre-fix the auto-grade
-//      check compared against an array index (number). Now compares
-//      letter-to-letter.
-//   3. Multi-select questions + cards with corrupt null answer (legacy
-//      enrollment bug — see addToSrQueue v4.81.27 fix above) fall back
-//      to a self-grade UI: read question, recall, click confidence.
-//      No auto-grade because we can't compare against null/multiple.
-//      Once enough new MCQ cards enroll, this fallback fires rarely.
+// v4.81.30: rewritten for commit-before-reveal across all 3 review modes.
+// User feedback: "im just reading the answers and self grading the risk of
+// this is that someone can just lie and say yeah i knew that when deep down
+// they didnt." Right — the v4.81.27/28 self-grade path showed the
+// explanation immediately, structurally encouraging self-deception.
+//
+// Three render modes now, all gated behind user commitment:
+//   1. MCQ AUTO-GRADE — pick one → reveal → auto-check (✓/✗) → confidence
+//   2. MULTI-SELECT AUTO-GRADE — toggle picks → Submit → reveal with
+//      ✓ correct picks, ✗ wrong picks, ⚠ missed correct → confidence
+//   3. COMMIT-THEN-SELF-GRADE (legacy null-answer fallback) — pick one
+//      → reveal explanation (no correctness markers) → self-grade buttons.
+//      Used only for cards where we lost the answer key (the v4.81.27
+//      addToSrQueue type-guard bug). User still commits before seeing
+//      the explanation, so the self-deception loophole is closed even
+//      in this fallback case.
 function _renderSrCard() {
   const host = document.getElementById('sr-card-host');
   if (!host || !_srSession) return;
@@ -5798,9 +5801,10 @@ function _renderSrCard() {
     ? 'last interval ' + (card.intervalDays < 1 ? '<1' : Math.round(card.intervalDays)) + 'd'
     : 'first review';
 
-  // Normalise options shape — accept either letter-keyed object {A:'..'}
-  // or legacy array form. Returns { letters: ['A','B',...], textOf: fn }.
   const cardType = card.type || 'mcq';
+
+  // Normalise options shape — accept either letter-keyed object {A:'..'}
+  // or legacy array form.
   let optionLetters = [];
   let optionMap = {};
   if (card.options && typeof card.options === 'object' && !Array.isArray(card.options)) {
@@ -5814,23 +5818,26 @@ function _renderSrCard() {
     optionLetters = Object.keys(optionMap).sort();
   }
 
-  // Decide whether this card can be auto-graded.
-  // MCQ + letter answer + valid options = auto-grade.
-  // Multi-select + answers array = could be auto-graded but render UI is
-  // not yet built (v4.81.28+); fall back to self-grade for now.
-  // Null/missing answer (legacy corruption) = self-grade.
-  const canAutoGrade =
-    cardType === 'mcq'
-    && optionLetters.length > 0
-    && (typeof card.answer === 'string' || typeof card.answer === 'number')
+  // Decide render mode.
+  const hasMcqAnswer = (typeof card.answer === 'string' || typeof card.answer === 'number')
     && card.answer !== null && card.answer !== '';
+  const hasMultiAnswers = cardType === 'multi-select'
+    && Array.isArray(card.answers) && card.answers.length > 0;
+
+  let renderMode;
+  if (cardType === 'mcq' && hasMcqAnswer && optionLetters.length > 0) {
+    renderMode = 'mcq-auto';
+  } else if (cardType === 'multi-select' && hasMultiAnswers && optionLetters.length > 0) {
+    renderMode = 'multi-auto';
+  } else {
+    renderMode = 'commit-self-grade';
+  }
 
   let optionsHtml = '';
   let confidenceHtml = '';
 
-  if (canAutoGrade) {
-    // ── MCQ auto-grade path ──
-    // Coerce numeric-index answers (legacy data) to letter form.
+  if (renderMode === 'mcq-auto') {
+    // ── MCQ auto-grade: pick one → reveal → confidence ──
     const correctLetter = (typeof card.answer === 'number')
       ? String.fromCharCode(65 + card.answer)
       : String(card.answer);
@@ -5876,51 +5883,115 @@ function _renderSrCard() {
           + '</div>';
       }
     }
-  } else {
-    // ── Self-grade fallback path ──
-    // Multi-select + corrupt-answer cards. Show options read-only with
-    // letters (so the user can reason), show explanation immediately,
-    // ask the user to self-rate. Same SM-2 outcomes; no auto-check.
-    //
-    // v4.81.28 Fix 1: mark session as `revealed: true` for self-grade
-    // cards so the confidence buttons can fire. Pre-fix `srMarkConfidence`
-    // had a `!_srSession.revealed` early-return that blocked the click
-    // entirely — user clicked any of the 3 buttons and nothing happened.
-    // Self-grade IS effectively "already revealed" because the
-    // explanation renders immediately, so flipping the flag here is
-    // semantically correct AND it preserves the existing defensive
-    // guard for the auto-grade path (where revealed must remain false
-    // until the user picks an option).
-    _srSession.revealed = true;
-    if (optionLetters.length > 0) {
-      optionsHtml = '<div class="sr-options sr-options-readonly">' + optionLetters.map(letter =>
-        '<div class="sr-option sr-option-readonly" data-letter="' + letter + '">'
+  } else if (renderMode === 'multi-auto') {
+    // ── Multi-select auto-grade: toggle picks → Submit → reveal with markers ──
+    const correctSet = new Set(card.answers);
+    const expectedCount = correctSet.size;
+    const pickedSet = (_srSession.pickedLetters instanceof Set)
+      ? _srSession.pickedLetters
+      : new Set();
+
+    optionsHtml = '<div class="sr-options sr-options-multi">' + optionLetters.map(letter => {
+      let cls = 'sr-option';
+      if (_srSession.revealed) {
+        const isCorrect = correctSet.has(letter);
+        const wasPicked = pickedSet.has(letter);
+        if (isCorrect && wasPicked) cls += ' is-correct';
+        else if (!isCorrect && wasPicked) cls += ' is-wrong';
+        else if (isCorrect && !wasPicked) cls += ' is-missed';
+      } else if (pickedSet.has(letter)) {
+        cls += ' is-picked';
+      }
+      const disabled = _srSession.revealed ? 'disabled' : '';
+      const onclick = _srSession.revealed
+        ? ''
+        : ' onclick="srToggleMultiPick(\'' + letter + '\')"';
+      return '<button type="button" class="' + cls + '" ' + disabled + onclick + ' data-letter="' + letter + '">'
         + '<span class="sr-option-letter">' + letter + '</span>'
         + '<span class="sr-option-text">' + escHtml(optionMap[letter] || '') + '</span>'
-        + '</div>'
-      ).join('') + '</div>';
+        + '</button>';
+    }).join('') + '</div>';
+
+    if (!_srSession.revealed) {
+      // Submit row — enabled when user picks at least 2 (or matches expected count if known)
+      const pickedCount = pickedSet.size;
+      const canSubmit = pickedCount >= 2;
+      optionsHtml += '<div class="sr-multi-submit-row">'
+        + '<span class="sr-multi-hint">Pick ' + expectedCount + ' answer'
+        + (expectedCount === 1 ? '' : 's') + ' · ' + pickedCount + ' selected</span>'
+        + '<button type="button" class="sr-multi-submit-btn"' + (canSubmit ? '' : ' disabled')
+        + ' onclick="srSubmitMultiPick()">Reveal answer →</button>'
+        + '</div>';
+    } else {
+      // Compute correctness — all-or-nothing
+      const correctlyPicked = [...correctSet].every(l => pickedSet.has(l));
+      const noWrongPicks = [...pickedSet].every(l => correctSet.has(l));
+      const fullyCorrect = correctlyPicked && noWrongPicks;
+      const explanation = card.explanation
+        ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
+        : '';
+      if (fullyCorrect) {
+        confidenceHtml = explanation
+          + '<div class="sr-confidence-row">'
+          + '<div class="sr-confidence-label">How did that feel?</div>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
+          + '✅ Got it · was confident'
+          + '<span class="sr-confidence-hint">interval grows fast</span></button>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
+          + '🤔 Got it · was unsure'
+          + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
+          + '</div>';
+      } else {
+        // Partial credit counts as wrong for SR purposes (forces re-review).
+        const correctList = [...correctSet].sort().join(', ');
+        confidenceHtml = explanation
+          + '<div class="sr-confidence-row">'
+          + '<div class="sr-confidence-label" style="color: var(--red); font-weight: 600;">'
+          + '✗ Not quite — correct answers were ' + escHtml(correctList) + '. This card resets to tomorrow.</div>'
+          + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
+          + 'Got it wrong → next card</button>'
+          + '</div>';
+      }
     }
-    const explanation = card.explanation
-      ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
-      : '';
-    const isMultiSelect = cardType === 'multi-select';
-    const fallbackHint = isMultiSelect
-      ? 'Multi-select review — read the question + options, recall the correct picks, then self-grade.'
-      : 'Self-grade review — read the question, recall the answer, then mark how it felt.';
-    confidenceHtml = '<div class="sr-self-grade-banner">' + escHtml(fallbackHint) + '</div>'
-      + explanation
-      + '<div class="sr-confidence-row">'
-      + '<div class="sr-confidence-label">How did you do?</div>'
-      + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
-      + '✅ Got it · was confident'
-      + '<span class="sr-confidence-hint">interval grows fast</span></button>'
-      + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
-      + '🤔 Got it · was unsure'
-      + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
-      + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
-      + '✗ Got it wrong'
-      + '<span class="sr-confidence-hint">resets to tomorrow</span></button>'
-      + '</div>';
+  } else {
+    // ── Commit-then-self-grade: pick one → reveal explanation → self-grade ──
+    // For legacy null-answer cards (the v4.81.27-fixed addToSrQueue bug).
+    // User still commits before seeing the explanation — the self-deception
+    // loophole from v4.81.27/28 is closed even in this fallback.
+    optionsHtml = '<div class="sr-options">' + optionLetters.map(letter => {
+      let cls = 'sr-option';
+      if (_srSession.pickedLetter === letter) cls += ' is-picked';
+      const disabled = _srSession.revealed ? 'disabled' : '';
+      const onclick = _srSession.revealed
+        ? ''
+        : ' onclick="srPickAnswer(\'' + letter + '\')"';
+      return '<button type="button" class="' + cls + '" ' + disabled + onclick + ' data-letter="' + letter + '">'
+        + '<span class="sr-option-letter">' + letter + '</span>'
+        + '<span class="sr-option-text">' + escHtml(optionMap[letter] || '') + '</span>'
+        + '</button>';
+    }).join('') + '</div>';
+
+    if (_srSession.revealed) {
+      const explanation = card.explanation
+        ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
+        : '';
+      confidenceHtml = '<div class="sr-self-grade-banner">'
+        + 'No saved answer key for this card — read the explanation, then mark how you actually did.'
+        + '</div>'
+        + explanation
+        + '<div class="sr-confidence-row">'
+        + '<div class="sr-confidence-label">How did you do?</div>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-confident" onclick="srMarkConfidence(\'correct-confident\')">'
+        + '✅ Got it · was confident'
+        + '<span class="sr-confidence-hint">interval grows fast</span></button>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-uncertain" onclick="srMarkConfidence(\'correct-uncertain\')">'
+        + '🤔 Got it · was unsure'
+        + '<span class="sr-confidence-hint">interval grows slowly</span></button>'
+        + '<button type="button" class="sr-confidence-btn sr-confidence-wrong" onclick="srMarkConfidence(\'wrong\')">'
+        + '✗ Got it wrong'
+        + '<span class="sr-confidence-hint">resets to tomorrow</span></button>'
+        + '</div>';
+    }
   }
 
   host.innerHTML = '<div class="sr-card">'
@@ -5944,6 +6015,32 @@ function srPickAnswer(letter) {
   _renderSrCard();
 }
 
+// v4.81.30: multi-select review handlers — toggle picks + submit-to-reveal.
+// Multi-select is 2-3 correct answers from 5 options; user toggles picks
+// freely until clicking Submit, then the reveal shows correct/wrong/missed
+// markers per option. Caps "submit" at minimum 2 picks (enforces engagement
+// — clicking submit with 0 picks would be a self-deception loophole back).
+function srToggleMultiPick(letter) {
+  if (!_srSession || _srSession.revealed) return;
+  if (!(_srSession.pickedLetters instanceof Set)) {
+    _srSession.pickedLetters = new Set();
+  }
+  if (_srSession.pickedLetters.has(letter)) {
+    _srSession.pickedLetters.delete(letter);
+  } else {
+    _srSession.pickedLetters.add(letter);
+  }
+  _renderSrCard();
+}
+
+function srSubmitMultiPick() {
+  if (!_srSession || _srSession.revealed) return;
+  const picks = (_srSession.pickedLetters instanceof Set) ? _srSession.pickedLetters : new Set();
+  if (picks.size < 2) return; // guard — Submit button is disabled in this case anyway
+  _srSession.revealed = true;
+  _renderSrCard();
+}
+
 function srMarkConfidence(outcome) {
   if (!_srSession || !_srSession.revealed) return;
   const card = _srSession.cards[_srSession.index];
@@ -5961,7 +6058,8 @@ function srMarkConfidence(outcome) {
   // Advance
   _srSession.index++;
   _srSession.pickedLetter = null;
-  _srSession.pickedIdx = null; // legacy — kept for any external observer
+  _srSession.pickedLetters = new Set(); // v4.81.30 — clear multi-select picks for next card
+  _srSession.pickedIdx = null;          // legacy — kept for any external observer
   _srSession.revealed = false;
 
   if (_srSession.index >= _srSession.cards.length) {
