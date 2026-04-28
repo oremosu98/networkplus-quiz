@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.83.0', js.includes("const APP_VERSION = '4.83.0"));
+test('APP_VERSION is 4.84.0', js.includes("const APP_VERSION = '4.84.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.83.0', sw.includes('netplus-v4.83.0'));
+test('SW cache bumped to v4.84.0', sw.includes('netplus-v4.84.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -13526,6 +13526,242 @@ test('v4.83.0 HotArea: Playwright spec covers Hot-Area flow',
       return /Hot-Area|Hot Area/.test(spec)
         && /ha-submit-btn/.test(spec)
         && /hot-area/.test(spec);
+    } catch (e) { return false; }
+  })());
+
+// v4.84.0 — Network Analysis Drill (Phase 1, issue #270). 5th drill in the
+// launcher row. 32-Q curated bank across 4 categories (tcpdump filters /
+// Wireshark display filters / Nmap scan types / output reading) + 3 stepped
+// lessons + Practice/Lessons/Dashboard mode tabs. Closes the N10-009 Domain
+// 5.5 ("use the appropriate tool") gap.
+test('v4.84.0 NetAnalysis: NETWORK_ANALYSIS_BANK constant defined',
+  /const NETWORK_ANALYSIS_BANK = \[/.test(js));
+test('v4.84.0 NetAnalysis: bank has at least 32 questions',
+  (() => {
+    const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    const entries = m[1].match(/id: 'na-/g) || [];
+    return entries.length >= 32;
+  })());
+test('v4.84.0 NetAnalysis: bank covers all 4 categories',
+  (() => {
+    const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    return /category: 'tcpdump'/.test(m[1])
+      && /category: 'wireshark'/.test(m[1])
+      && /category: 'nmap'/.test(m[1])
+      && /category: 'output-reading'/.test(m[1]);
+  })());
+test('v4.84.0 NetAnalysis: NETWORK_ANALYSIS_LESSONS constant defined',
+  /const NETWORK_ANALYSIS_LESSONS = \[/.test(js));
+test('v4.84.0 NetAnalysis: lessons cover tcpdump + wireshark + nmap',
+  (() => {
+    const m = js.match(/const NETWORK_ANALYSIS_LESSONS = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    return /id: 'tcpdump-cheatsheet'/.test(m[1])
+      && /id: 'wireshark-cheatsheet'/.test(m[1])
+      && /id: 'nmap-decision-tree'/.test(m[1]);
+  })());
+test('v4.84.0 NetAnalysis: each lesson has 5 steps',
+  (() => {
+    // Walk each lesson's steps array — count entries with `title:` inside.
+    const m = js.match(/const NETWORK_ANALYSIS_LESSONS = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    // Three lessons, each with 5 steps + 1 cheatsheet — count `steps: [` blocks
+    // and within them count `{ title:` entries.
+    const lessonBlocks = m[1].split(/\n  \{\n    id: '/);
+    if (lessonBlocks.length < 4) return false; // header + 3 lessons
+    // For each of the 3 lesson chunks, count `title:` occurrences inside steps
+    let allFiveSteps = true;
+    for (let i = 1; i < lessonBlocks.length; i++) {
+      const block = lessonBlocks[i];
+      const stepsMatch = block.match(/steps: \[([\s\S]*?)\],\s*\n\s*cheatsheet/);
+      if (!stepsMatch) { allFiveSteps = false; break; }
+      const stepCount = (stepsMatch[1].match(/title: '/g) || []).length;
+      if (stepCount !== 5) { allFiveSteps = false; break; }
+    }
+    return allFiveSteps;
+  })());
+test('v4.84.0 NetAnalysis: NA_CATEGORIES constant has 4 categories',
+  /const NA_CATEGORIES = \['tcpdump', 'wireshark', 'nmap', 'output-reading'\]/.test(js));
+
+// Storage keys + helpers
+test('v4.84.0 NetAnalysis: STORAGE.NA_MASTERY key declared',
+  /NA_MASTERY: 'nplus_na_mastery'/.test(js));
+test('v4.84.0 NetAnalysis: STORAGE.NA_LESSONS key declared',
+  /NA_LESSONS: 'nplus_na_lessons'/.test(js));
+test('v4.84.0 NetAnalysis: STORAGE.NA_STATS key declared',
+  /NA_STATS: 'nplus_na_stats'/.test(js));
+
+// Renderer + handlers
+test('v4.84.0 NetAnalysis: startNetworkAnalysisDrill defined',
+  /function startNetworkAnalysisDrill\(\)/.test(js));
+test('v4.84.0 NetAnalysis: naSetTab defined',
+  /function naSetTab\(tabId\)/.test(js));
+test('v4.84.0 NetAnalysis: naRenderPractice defined',
+  /function naRenderPractice\(\)/.test(js));
+test('v4.84.0 NetAnalysis: naRenderDashboard defined',
+  /function naRenderDashboard\(\)/.test(js));
+test('v4.84.0 NetAnalysis: naRenderLessonsIndex defined',
+  /function naRenderLessonsIndex\(\)/.test(js));
+test('v4.84.0 NetAnalysis: naSubmitAnswer defined',
+  /function naSubmitAnswer\(letter\)/.test(js));
+test('v4.84.0 NetAnalysis: naOpenLesson defined',
+  /function naOpenLesson\(lessonId\)/.test(js));
+
+// HTML structural
+test('v4.84.0 NetAnalysis HTML: #page-network-analysis exists',
+  /id="page-network-analysis"/.test(html));
+test('v4.84.0 NetAnalysis HTML: 5th drill tile (drills-tile-new) exists',
+  /class="drills-tile drills-tile-new"[\s\S]{0,200}startNetworkAnalysisDrill\(\)/.test(html));
+test('v4.84.0 NetAnalysis HTML: Practice/Lessons/Dashboard tab buttons exist',
+  /id="na-tab-btn-practice"/.test(html)
+    && /id="na-tab-btn-lessons"/.test(html)
+    && /id="na-tab-btn-dashboard"/.test(html));
+
+// CSS structural
+test('v4.84.0 NetAnalysis CSS: .na-tabs declared',
+  /\.na-tabs\s*\{/.test(css));
+test('v4.84.0 NetAnalysis CSS: .na-question-card declared',
+  /\.na-question-card\s*\{/.test(css));
+test('v4.84.0 NetAnalysis CSS: .na-output-block + token color classes declared',
+  /\.na-output-block\s*\{/.test(css)
+    && /\.na-out-time/.test(css)
+    && /\.na-out-ip/.test(css)
+    && /\.na-out-port/.test(css)
+    && /\.na-out-flag/.test(css));
+test('v4.84.0 NetAnalysis CSS: .na-cat-card mastery states declared',
+  /\.na-cat-bar-fill\.na-cat-high/.test(css)
+    && /\.na-cat-bar-fill\.na-cat-mid/.test(css)
+    && /\.na-cat-bar-fill\.na-cat-low/.test(css)
+    && /\.na-cat-bar-fill\.na-cat-empty/.test(css));
+test('v4.84.0 NetAnalysis CSS: .drills-tile-new + NEW badge declared',
+  /\.drills-tile-new\s*\{/.test(css)
+    && /\.drills-tile-new-badge\s*\{/.test(css));
+test('v4.84.0 NetAnalysis CSS: .na-cheat-table declared',
+  /\.na-cheat-table\s*\{/.test(css));
+test('v4.84.0 NetAnalysis CSS: reduced-motion gate kills transitions',
+  /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]{0,500}\.na-cat-card[\s\S]{0,200}transition: none/.test(css));
+
+// vm fixture #1 — naSubmitAnswer updates mastery correctly
+test('v4.84.0 NetAnalysis: vm fixture — naSubmitAnswer updates mastery on right + wrong',
+  (() => {
+    try {
+      const submitBody = _fnBody(js, 'naSubmitAnswer');
+      const renderBody = _fnBody(js, 'naRenderPractice');
+      const getMasteryBody = _fnBody(js, 'naGetMastery');
+      const initBody = _fnBody(js, '_naInitMastery');
+      const saveBody = _fnBody(js, 'naSaveMastery');
+      if (!submitBody || !getMasteryBody || !initBody || !saveBody) return false;
+      const vm = require('vm');
+      let savedMastery = null;
+      const ctx = {
+        STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading'],
+        localStorage: {
+          getItem: () => null,
+          setItem: (key, val) => { savedMastery = JSON.parse(val); }
+        },
+        JSON, Object,
+        // Stub renderPractice — we only care that mastery gets updated correctly
+        naRenderPractice: () => {},
+        _naCurrentQuestion: { id: 'na-tcpdump-001', category: 'tcpdump', answer: 'A' },
+        _naQuestionAnswered: false
+      };
+      vm.createContext(ctx);
+      vm.runInContext(initBody, ctx);
+      vm.runInContext(saveBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      vm.runInContext(submitBody, ctx);
+
+      // Submit correct answer 'A'
+      vm.runInContext("naSubmitAnswer('A')", ctx);
+      const afterRight = savedMastery && savedMastery.tcpdump
+        && savedMastery.tcpdump.right === 1
+        && savedMastery.tcpdump.total === 1;
+
+      // Reset _naQuestionAnswered for second submission
+      ctx._naQuestionAnswered = false;
+      ctx._naCurrentQuestion = { id: 'na-tcpdump-002', category: 'tcpdump', answer: 'B' };
+      // Mock getItem to return current state so the next save merges correctly
+      ctx.localStorage.getItem = () => JSON.stringify(savedMastery);
+      vm.runInContext(submitBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      vm.runInContext(saveBody, ctx);
+
+      // Submit wrong answer (pick 'A' when correct is 'B')
+      vm.runInContext("naSubmitAnswer('A')", ctx);
+      const afterWrong = savedMastery && savedMastery.tcpdump
+        && savedMastery.tcpdump.right === 1   // still 1 right
+        && savedMastery.tcpdump.total === 2;  // total bumped to 2
+
+      return afterRight && afterWrong;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture #2 — _naPickNextQuestion biases to weakest category
+test('v4.84.0 NetAnalysis: vm fixture — _naPickNextQuestion weights weakest higher',
+  (() => {
+    try {
+      const pickBody = _fnBody(js, '_naPickNextQuestion');
+      const getMasteryBody = _fnBody(js, 'naGetMastery');
+      const initBody = _fnBody(js, '_naInitMastery');
+      if (!pickBody || !getMasteryBody || !initBody) return false;
+      const vm = require('vm');
+      // Mock bank: 1 question per category
+      const fakeBank = [
+        { id: 'q-tcpdump', category: 'tcpdump' },
+        { id: 'q-wireshark', category: 'wireshark' },
+        { id: 'q-nmap', category: 'nmap' },
+        { id: 'q-output', category: 'output-reading' }
+      ];
+      // Mock mastery: tcpdump = 100% (10/10), wireshark = 0% (5/5), nmap = 50% (4/8), output = never
+      const fakeMastery = {
+        'tcpdump': { right: 10, total: 10 },
+        'wireshark': { right: 0, total: 5 },
+        'nmap': { right: 4, total: 8 },
+        'output-reading': { right: 0, total: 0 }
+      };
+      const ctx = {
+        STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading'],
+        NETWORK_ANALYSIS_BANK: fakeBank,
+        localStorage: { getItem: () => JSON.stringify(fakeMastery) },
+        JSON, Math, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(initBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      vm.runInContext(pickBody, ctx);
+
+      // Run picker many times, count distribution
+      const counts = { 'tcpdump': 0, 'wireshark': 0, 'nmap': 0, 'output-reading': 0 };
+      for (let i = 0; i < 1000; i++) {
+        const pick = vm.runInContext('_naPickNextQuestion(null)', ctx);
+        if (pick && counts[pick.category] !== undefined) counts[pick.category]++;
+      }
+
+      // Semantic check: high-priority categories (output-reading + wireshark)
+      // must each beat the highest-acc category (tcpdump). tcpdump and nmap
+      // tie on weight (both 1x) so we can't strictly order those — but
+      // output-reading (3x weight) and wireshark (2x weight) must dominate.
+      return counts['output-reading'] > counts['tcpdump']
+        && counts['wireshark'] > counts['tcpdump']
+        && (counts['output-reading'] + counts['wireshark']) > 500; // > half of 1000
+    } catch (e) { return false; }
+  })());
+
+// Playwright spec coverage check
+test('v4.84.0 NetAnalysis: Playwright spec covers drill flow',
+  (() => {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const specPath = path.join(__dirname, 'e2e', 'app.spec.js');
+      const spec = fs.readFileSync(specPath, 'utf8');
+      return /Network Analysis Drill/.test(spec)
+        && /startNetworkAnalysisDrill/.test(spec)
+        && /na-tab-btn/.test(spec);
     } catch (e) { return false; }
   })());
 

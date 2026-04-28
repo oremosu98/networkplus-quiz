@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Network Analysis Drill MVP (Phase 1 / Issue #270)</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --red: #f87171; --yellow: #fbbf24; --orange: #f59e0b;
+    --cyan: #06b6d4;
+    --accent-rgb: 124,111,247;
+    --radius: 14px; --radius-sm: 10px;
+    --mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 40px 20px 80px; min-height: 100vh;
+  }
+  .container { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; }
+  .state-divider {
+    margin: 56px 0 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; }
+  code { font-family: var(--mono); font-size: 0.9em; background: rgba(124,111,247,.1); padding: 1px 5px; border-radius: 4px; color: var(--accent-light); }
+
+  /* ── Drills launcher tile row ── */
+  .drills-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 720px) {
+    .drills-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  .drill-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .drill-tile:hover {
+    background: rgba(var(--accent-rgb), .08);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .drill-tile.is-new {
+    background: linear-gradient(135deg, rgba(6,182,212,.10), rgba(124,111,247,.08));
+    border-color: var(--cyan);
+    position: relative;
+  }
+  .drill-tile.is-new::before {
+    content: 'NEW';
+    position: absolute;
+    top: -6px; right: 8px;
+    background: var(--cyan);
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: .08em;
+  }
+  .drill-icon { font-size: 26px; margin-bottom: 6px; }
+  .drill-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .drill-sub { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+
+  /* ── Drill landing / mode tabs ── */
+  .drill-page {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .drill-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .drill-head h2 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .drill-head .back-btn {
+    background: var(--surface3); border: 1px solid var(--border);
+    color: var(--text-mid); padding: 6px 14px; border-radius: 99px;
+    font-size: 12px; cursor: pointer;
+  }
+  .drill-tabs {
+    display: flex; gap: 4px;
+    background: var(--surface3);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+  .drill-tab {
+    padding: 8px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-mid);
+    background: transparent;
+    border: none;
+    transition: all .15s ease;
+  }
+  .drill-tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  .drill-tab:not(.active):hover { color: var(--text); }
+
+  /* ── Dashboard ── */
+  .dash-callout {
+    background: linear-gradient(135deg, rgba(124,111,247,.12), rgba(124,111,247,.04));
+    border: 1px solid rgba(var(--accent-rgb), .3);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+  }
+  .dash-callout-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--accent-light); text-transform: uppercase; }
+  .dash-callout-headline { font-size: 16px; font-weight: 700; margin: 4px 0; }
+  .dash-callout-sub { font-size: 12px; color: var(--text-mid); }
+  .dash-callout-cta {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-weight: 600; font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 540px) { .category-grid { grid-template-columns: 1fr; } }
+  .cat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .cat-card:hover { border-color: var(--accent); }
+  .cat-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .cat-card-name { font-size: 14px; font-weight: 700; }
+  .cat-card-attempts { font-size: 11px; color: var(--text-dim); }
+  .cat-card-bar { height: 6px; background: var(--surface3); border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
+  .cat-card-bar-fill { height: 100%; border-radius: 99px; transition: width .8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .cat-card-bar-fill.high { background: linear-gradient(90deg, var(--green), #16a34a); }
+  .cat-card-bar-fill.mid { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .cat-card-bar-fill.low { background: linear-gradient(90deg, var(--red), #dc2626); }
+  .cat-card-bar-fill.empty { background: var(--surface3); }
+  .cat-card-pct { font-size: 12px; font-weight: 600; }
+  .cat-card-pct.high { color: var(--green); }
+  .cat-card-pct.mid { color: var(--orange); }
+  .cat-card-pct.low { color: var(--red); }
+  .cat-card-pct.empty { color: var(--text-dim); }
+
+  /* ── Question card ── */
+  .question-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+  }
+  .q-meta-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .q-num { font-size: 11px; font-weight: 700; color: var(--text-mid); letter-spacing: .04em; }
+  .cat-badge {
+    background: rgba(6,182,212,.15); color: var(--cyan);
+    font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 99px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .diff-badge {
+    background: rgba(251,146,60,.15); color: var(--orange);
+    font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 99px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .q-stem { font-size: 16px; font-weight: 600; line-height: 1.5; margin: 8px 0 14px; }
+  .q-stem code { font-size: 0.95em; }
+  .output-block {
+    background: #0a0a12;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+    color: #c8d8e8;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .output-block .out-time { color: var(--text-dim); }
+  .output-block .out-flag { color: var(--accent-light); font-weight: 600; }
+  .output-block .out-ip { color: var(--green); }
+  .output-block .out-port { color: var(--yellow); }
+  .output-block .out-comment { color: var(--text-dim); font-style: italic; }
+
+  .options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .option {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s ease;
+    font-size: 13.5px;
+    line-height: 1.45;
+    display: flex; gap: 12px; align-items: flex-start;
+    color: var(--text);
+  }
+  .option:hover { border-color: var(--accent); background: rgba(var(--accent-rgb), .06); }
+  .option-letter { font-weight: 700; color: var(--accent-light); flex-shrink: 0; width: 22px; }
+  .option code { font-size: 0.9em; }
+  .option.correct { background: rgba(34,197,94,.12); border-color: var(--green); }
+  .option.wrong { background: rgba(248,113,113,.12); border-color: var(--red); }
+  .option.reveal-correct { background: rgba(34,197,94,.06); border-color: var(--green); border-style: dashed; }
+  .option.dimmed { opacity: 0.5; }
+
+  /* ── Explanation box ── */
+  .explanation-box {
+    margin-top: 16px; padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--green);
+  }
+  .explanation-box.wrong { border-left-color: var(--red); }
+  .exp-label { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .exp-label.correct { color: var(--green); }
+  .exp-label.wrong { color: var(--red); }
+  .exp-text { font-size: 13px; color: var(--text-mid); }
+  .exp-text code { font-size: 0.95em; }
+
+  .next-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .btn-next {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-weight: 600; font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ── Lesson card ── */
+  .lesson-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+  }
+  .lesson-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--cyan); text-transform: uppercase; margin-bottom: 4px; }
+  .lesson-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .lesson-sub { color: var(--text-mid); font-size: 13px; margin-bottom: 18px; }
+  .step-progress {
+    display: flex; gap: 4px; margin-bottom: 20px;
+  }
+  .step-pip {
+    flex: 1; height: 4px; background: var(--surface3); border-radius: 99px;
+  }
+  .step-pip.done { background: var(--cyan); }
+  .step-pip.current { background: var(--accent); height: 6px; align-self: center; }
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    margin-bottom: 12px;
+  }
+  .step-num {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent-light);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+    margin-bottom: 8px;
+  }
+  .step-h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .step-body { font-size: 13.5px; color: var(--text-mid); line-height: 1.6; }
+  .step-body code { font-size: 0.92em; }
+  .step-example {
+    background: #0a0a12;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #c8d8e8;
+    overflow-x: auto;
+  }
+  .lesson-cta-row { display: flex; justify-content: space-between; margin-top: 20px; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-mid);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 600; font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ── Cheatsheet table ── */
+  .cheat-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-top: 14px;
+  }
+  .cheat-row { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .cheat-row:last-child { border-bottom: none; }
+  .cheat-pattern { font-family: var(--mono); color: var(--accent-light); font-size: 12px; }
+  .cheat-desc { color: var(--text-mid); font-size: 12.5px; }
+
+  /* ── Sample question previews list ── */
+  .sample-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 0; }
+  .sample-item {
+    background: var(--surface);
+    border-left: 3px solid var(--cyan);
+    padding: 10px 12px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 12px;
+  }
+  .sample-cat {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 4px;
+  }
+  .sample-q { color: var(--text); font-weight: 500; line-height: 1.5; }
+  .sample-q code { font-size: 0.95em; }
+  .sample-a { color: var(--green); font-family: var(--mono); font-size: 11px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Network Analysis Drill — MVP (Phase 1)</h1>
+  <p class="lede">Issue <a href="https://github.com/oremosu98/networkplus-quiz/issues/270" style="color:var(--accent-light)">#270</a> · 5th drill in the launcher row · 32 curated questions across 4 categories · 3 lessons · Practice + Lessons + Dashboard modes</p>
+
+  <div class="annotation">
+    <strong>Shape-of-solution decisions baked into this mockup (override before code if any feel wrong)</strong>
+    <ul style="margin: 8px 0 0 20px; padding: 0;">
+      <li><strong>Drill placement</strong>: 5th tile in <code>#page-drills</code> launcher row — same shape as Port Drill / Acronym Blitz / OSI Sorter / Cable ID. Marked NEW with cyan accent so it's discoverable.</li>
+      <li><strong>3 modes via existing scaffold</strong>: <code>createDrillScaffold</code> at <code>app.js:17766</code> handles tab switching. Tabs: Practice / Lessons / Dashboard. Same pattern as Subnet Trainer.</li>
+      <li><strong>Default tab = Dashboard</strong> for users with attempts; <strong>Default tab = Practice</strong> for first-time users (drives engagement). Same heuristic as Subnet Trainer.</li>
+      <li><strong>Question UX</strong>: simple MCQ flow — click option → grade + reveal explanation → Next. No timer (Port Drill flavor), no streak (drill is for accuracy, not speed). Matches the regular quiz <code>pick()</code> mental model.</li>
+      <li><strong>Output snippets</strong>: monospace block in question stem with semantic color highlighting (timestamp / IP / port / flag). NO clickable tokens for v1 — that's Phase 3.</li>
+      <li><strong>Lessons = stepped cards</strong>: same pedagogical format as Subnet Trainer Lesson 4/5 (per CLAUDE.md "Learn-Tab Lesson Authoring" convention) — one step per logical concept + cheatsheet table at the end.</li>
+      <li><strong>Storage</strong>: <code>STORAGE.NA_MASTERY</code>, <code>NA_LESSONS</code>, <code>NA_STATS</code> per the existing PORT_*/AB_*/OS_*/CB_* convention.</li>
+    </ul>
+  </div>
+
+  <!-- ── STATE 1: Drills launcher with 5th tile ── -->
+  <div class="state-divider"><span class="state-label">State 1 · Drills launcher row · 5th tile is NEW</span></div>
+  <div class="drills-row">
+    <div class="drill-tile">
+      <div class="drill-icon">🔌</div>
+      <div class="drill-name">Port Drill</div>
+      <div class="drill-sub">Protocol &rarr; port matching</div>
+    </div>
+    <div class="drill-tile">
+      <div class="drill-icon">🔤</div>
+      <div class="drill-name">Acronym Blitz</div>
+      <div class="drill-sub">130+ N10-009 acronyms</div>
+    </div>
+    <div class="drill-tile">
+      <div class="drill-icon">🥞</div>
+      <div class="drill-name">OSI Sorter</div>
+      <div class="drill-sub">Drag protocols to layers</div>
+    </div>
+    <div class="drill-tile">
+      <div class="drill-icon">🔗</div>
+      <div class="drill-name">Cable ID</div>
+      <div class="drill-sub">Cable &amp; connector recognition</div>
+    </div>
+    <div class="drill-tile is-new">
+      <div class="drill-icon">🔍</div>
+      <div class="drill-name">Network Analysis</div>
+      <div class="drill-sub">tcpdump · Wireshark · Nmap · Output</div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>NEW badge for first 7 days post-ship</strong>
+    Cyan border + "NEW" pill drives first-click discoverability. Auto-removes after the user has visited the drill 3+ times OR 7 days have passed (whichever first). Pattern lifted from typical app onboarding — visual hint, not blocking, fades organically.
+  </div>
+
+  <!-- ── STATE 2: Drill landing / Dashboard view ── -->
+  <div class="state-divider"><span class="state-label">State 2 · Drill landing · Dashboard tab (returning user)</span></div>
+  <div class="drill-page">
+    <div class="drill-head">
+      <h2>🔍 Network Analysis Drill</h2>
+      <button class="back-btn">&larr; Drills</button>
+    </div>
+    <div class="drill-tabs">
+      <button class="drill-tab">Practice</button>
+      <button class="drill-tab">Lessons</button>
+      <button class="drill-tab active">Dashboard</button>
+    </div>
+
+    <div class="dash-callout">
+      <div>
+        <div class="dash-callout-eyebrow">Weakest area</div>
+        <div class="dash-callout-headline">Wireshark display filters</div>
+        <div class="dash-callout-sub">52% accuracy across 6 attempts — mostly tripping on protocol-prefix syntax</div>
+      </div>
+      <button class="dash-callout-cta">Drill this →</button>
+    </div>
+
+    <div class="category-grid">
+      <div class="cat-card">
+        <div class="cat-card-head">
+          <span class="cat-card-name">tcpdump filters</span>
+          <span class="cat-card-attempts">8 attempts</span>
+        </div>
+        <div class="cat-card-bar"><div class="cat-card-bar-fill high" style="width:78%"></div></div>
+        <span class="cat-card-pct high">78% mastery</span>
+      </div>
+      <div class="cat-card">
+        <div class="cat-card-head">
+          <span class="cat-card-name">Wireshark display filters</span>
+          <span class="cat-card-attempts">6 attempts</span>
+        </div>
+        <div class="cat-card-bar"><div class="cat-card-bar-fill low" style="width:52%"></div></div>
+        <span class="cat-card-pct low">52% mastery · weakest</span>
+      </div>
+      <div class="cat-card">
+        <div class="cat-card-head">
+          <span class="cat-card-name">Nmap scan types</span>
+          <span class="cat-card-attempts">4 attempts</span>
+        </div>
+        <div class="cat-card-bar"><div class="cat-card-bar-fill mid" style="width:67%"></div></div>
+        <span class="cat-card-pct mid">67% mastery</span>
+      </div>
+      <div class="cat-card">
+        <div class="cat-card-head">
+          <span class="cat-card-name">Output reading</span>
+          <span class="cat-card-attempts">0 attempts</span>
+        </div>
+        <div class="cat-card-bar"><div class="cat-card-bar-fill empty" style="width:0%"></div></div>
+        <span class="cat-card-pct empty">Not started</span>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Dashboard prescriptive pattern</strong>
+    Same shape as Subnet Trainer's dashboard: <em>one strong recommendation</em> at the top (cyan callout) + <em>data underneath</em> (4 category cards with mastery bars). Per the "every page should have one strong recommendation" lesson from Codex r7. Click any card → jumps to Practice tab with that category pre-selected. "Drill this →" CTA jumps directly into the weakest category. Empty state for "Output reading" shows "Not started" + grey bar — discoverability nudge without being preachy.
+  </div>
+
+  <!-- ── STATE 3: Practice — tcpdump filter Q ── -->
+  <div class="state-divider"><span class="state-label">State 3 · Practice mode · tcpdump filter question · pre-pick</span></div>
+  <div class="drill-page" style="padding: 18px 24px;">
+    <div class="drill-tabs">
+      <button class="drill-tab active">Practice</button>
+      <button class="drill-tab">Lessons</button>
+      <button class="drill-tab">Dashboard</button>
+    </div>
+    <div class="question-card">
+      <div class="q-meta-row">
+        <span class="q-num">Q3 of 10</span>
+        <span class="cat-badge">tcpdump filters</span>
+        <span class="diff-badge">Foundational</span>
+      </div>
+      <div class="q-stem">You need to capture only HTTPS traffic going TO the server at <code>10.0.0.50</code>. Which tcpdump filter expresses this?</div>
+      <div class="options">
+        <button class="option"><span class="option-letter">A</span><span><code>tcp port 443 and dst host 10.0.0.50</code></span></button>
+        <button class="option"><span class="option-letter">B</span><span><code>tcp.port == 443 &amp;&amp; ip.dst == 10.0.0.50</code></span></button>
+        <button class="option"><span class="option-letter">C</span><span><code>port 443 and src host 10.0.0.50</code></span></button>
+        <button class="option"><span class="option-letter">D</span><span><code>tcp dst port 443 and host 10.0.0.50</code></span></button>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>The MCQ pattern teaches the BPF-vs-display-filter distinction directly</strong>
+    Option B is intentional bait — it's the WIRESHARK display filter syntax (uses <code>==</code> and dot-notation), not a tcpdump BPF filter. Putting it side-by-side with valid BPF options forces the user to recognize the syntactic differences. Distractor C (uses <code>src</code> instead of <code>dst</code>) tests directional awareness. Distractor D (<code>host</code> without <code>dst</code>) is technically valid syntax but matches BOTH directions — over-broad.
+  </div>
+
+  <!-- ── STATE 4: Practice — same question revealed ── -->
+  <div class="state-divider"><span class="state-label">State 4 · Same question · revealed (user picked A — correct)</span></div>
+  <div class="drill-page" style="padding: 18px 24px;">
+    <div class="drill-tabs">
+      <button class="drill-tab active">Practice</button>
+      <button class="drill-tab">Lessons</button>
+      <button class="drill-tab">Dashboard</button>
+    </div>
+    <div class="question-card">
+      <div class="q-meta-row">
+        <span class="q-num">Q3 of 10</span>
+        <span class="cat-badge">tcpdump filters</span>
+        <span class="diff-badge">Foundational</span>
+      </div>
+      <div class="q-stem">You need to capture only HTTPS traffic going TO the server at <code>10.0.0.50</code>. Which tcpdump filter expresses this?</div>
+      <div class="options">
+        <button class="option correct"><span class="option-letter">A</span><span><code>tcp port 443 and dst host 10.0.0.50</code></span></button>
+        <button class="option dimmed"><span class="option-letter">B</span><span><code>tcp.port == 443 &amp;&amp; ip.dst == 10.0.0.50</code></span></button>
+        <button class="option dimmed"><span class="option-letter">C</span><span><code>port 443 and src host 10.0.0.50</code></span></button>
+        <button class="option dimmed"><span class="option-letter">D</span><span><code>tcp dst port 443 and host 10.0.0.50</code></span></button>
+      </div>
+      <div class="explanation-box">
+        <div class="exp-label correct">✓ Correct</div>
+        <div class="exp-text">tcpdump uses BPF (Berkeley Packet Filter) syntax — keywords like <code>tcp port</code>, <code>dst host</code>, joined by <code>and</code>/<code>or</code>/<code>not</code>. Option B is Wireshark's display filter syntax (different grammar — uses <code>==</code> and <code>protocol.field</code> dot-notation). Option C captures traffic FROM the server, not TO it. Option D's <code>host</code> matches both directions — too broad.</div>
+      </div>
+      <div class="next-row"><button class="btn-next">Next →</button></div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Reveal pattern matches the regular quiz <code>pick()</code></strong>
+    Picked + correct = green; correct answer if user got wrong = dashed green border (reveal-correct); other options dimmed. Same vocabulary as MCQ + multi-select + hot-area in the quiz — visual continuity reduces the cognitive load of learning a new drill UI.
+  </div>
+
+  <!-- ── STATE 5: Practice — Output reading Q ── -->
+  <div class="state-divider"><span class="state-label">State 5 · Practice mode · Output reading question</span></div>
+  <div class="drill-page" style="padding: 18px 24px;">
+    <div class="drill-tabs">
+      <button class="drill-tab active">Practice</button>
+      <button class="drill-tab">Lessons</button>
+      <button class="drill-tab">Dashboard</button>
+    </div>
+    <div class="question-card">
+      <div class="q-meta-row">
+        <span class="q-num">Q7 of 10</span>
+        <span class="cat-badge">Output reading</span>
+        <span class="diff-badge">Foundational</span>
+      </div>
+      <div class="q-stem">A technician runs <code>tcpdump -i eth0 -n</code> and captures the following 3 packets. What protocol-level event is shown?</div>
+<div class="output-block"><span class="out-time">14:22:08.103442</span> IP <span class="out-ip">10.0.0.5</span>.<span class="out-port">52414</span> &gt; <span class="out-ip">10.0.0.50</span>.<span class="out-port">443</span>: Flags [<span class="out-flag">S</span>], seq 1234567890, win 64240, length 0
+<span class="out-time">14:22:08.103998</span> IP <span class="out-ip">10.0.0.50</span>.<span class="out-port">443</span> &gt; <span class="out-ip">10.0.0.5</span>.<span class="out-port">52414</span>: Flags [<span class="out-flag">S.</span>], seq 9876543210, ack 1234567891, win 65535, length 0
+<span class="out-time">14:22:08.104210</span> IP <span class="out-ip">10.0.0.5</span>.<span class="out-port">52414</span> &gt; <span class="out-ip">10.0.0.50</span>.<span class="out-port">443</span>: Flags [<span class="out-flag">.</span>], ack 9876543211, win 64240, length 0</div>
+      <div class="options">
+        <button class="option"><span class="option-letter">A</span><span>A failed connection — the server reset the request</span></button>
+        <button class="option"><span class="option-letter">B</span><span>A TCP three-way handshake completing successfully (SYN, SYN-ACK, ACK)</span></button>
+        <button class="option"><span class="option-letter">C</span><span>A TLS handshake — the client and server exchanging certificates</span></button>
+        <button class="option"><span class="option-letter">D</span><span>A connection teardown via four-way handshake (FIN, ACK, FIN, ACK)</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Output reading without click-on-token (Phase 3 territory)</strong>
+    For v1, the output snippet is rendered as a syntax-highlighted monospace block — the user reads it and picks the MCQ answer. No clickable elements yet (Phase 3 adds <code>output-read</code> question type with hot-area on tokens). Highlighting cues for v1: timestamps (grey), IPs (green), ports (yellow), TCP flags (purple). Visual hierarchy makes the structure obvious without drowning the eye.
+  </div>
+
+  <!-- ── STATE 6: Sample question previews ── -->
+  <div class="state-divider"><span class="state-label">State 6 · Sample bank previews — quality bar for the 32 questions</span></div>
+  <div class="drill-page">
+    <p style="font-size: 13px; color: var(--text-mid); margin-bottom: 12px;">A few representative questions from each category — what the bank quality looks like at v1 ship.</p>
+    <div class="sample-list">
+      <div class="sample-item">
+        <span class="sample-cat">tcpdump · Foundational</span>
+        <div class="sample-q">Which filter captures all UDP traffic on port 53 (DNS)?</div>
+        <div class="sample-a">→ <code>udp port 53</code></div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">tcpdump · Exam Level</span>
+        <div class="sample-q">Capture all traffic except ARP. Which filter?</div>
+        <div class="sample-a">→ <code>not arp</code></div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Wireshark · Foundational</span>
+        <div class="sample-q">In Wireshark, which display filter shows only HTTP requests (not responses)?</div>
+        <div class="sample-a">→ <code>http.request</code></div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Wireshark · Exam Level</span>
+        <div class="sample-q">A user wants to see only failed TCP connections. Which display filter?</div>
+        <div class="sample-a">→ <code>tcp.flags.reset == 1</code></div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Nmap · Foundational</span>
+        <div class="sample-q">Which Nmap scan does NOT complete the TCP three-way handshake (avoids logging on most systems)?</div>
+        <div class="sample-a">→ SYN scan (<code>-sS</code>)</div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Nmap · Exam Level</span>
+        <div class="sample-q">A pentester runs <code>nmap -sV 192.168.1.10</code>. What is the primary purpose?</div>
+        <div class="sample-a">→ Detect service versions running on open ports</div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Output reading · Foundational</span>
+        <div class="sample-q">tcpdump output shows <code>Flags [R]</code> on a single packet. What happened?</div>
+        <div class="sample-a">→ Connection was reset by the sender (RST flag)</div>
+      </div>
+      <div class="sample-item">
+        <span class="sample-cat">Output reading · Exam Level</span>
+        <div class="sample-q">Wireshark shows protocol column = "ICMP" with type 3, code 1. What does this indicate?</div>
+        <div class="sample-a">→ Destination Host Unreachable (Type 3 = unreachable, Code 1 = host)</div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Bank composition: ~50% Foundational + ~50% Exam Level</strong>
+    Foundational questions test direct recall (port + scan type + filter syntax). Exam Level questions test interpretation (when to use what / what does this output mean). Mix mirrors the real CompTIA Network+ — single-fact recall AND scenario reasoning. Each question has 1 correct + 3 plausible distractors (the existing exemplar bank's quality bar).
+  </div>
+
+  <!-- ── STATE 7: Lesson card ── -->
+  <div class="state-divider"><span class="state-label">State 7 · Lessons mode · "tcpdump filter cheatsheet" Lesson 1 of 3</span></div>
+  <div class="drill-page" style="padding: 18px 24px;">
+    <div class="drill-tabs">
+      <button class="drill-tab">Practice</button>
+      <button class="drill-tab active">Lessons</button>
+      <button class="drill-tab">Dashboard</button>
+    </div>
+    <div class="lesson-card">
+      <div class="lesson-eyebrow">Lesson 1 of 3</div>
+      <div class="lesson-title">tcpdump filter cheatsheet</div>
+      <div class="lesson-sub">BPF (Berkeley Packet Filter) syntax — what tcpdump uses on the command line</div>
+      <div class="step-progress">
+        <div class="step-pip done"></div>
+        <div class="step-pip current"></div>
+        <div class="step-pip"></div>
+        <div class="step-pip"></div>
+        <div class="step-pip"></div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">Step 2 of 5</div>
+        <div class="step-h3">Filter by host or network</div>
+        <div class="step-body">
+          tcpdump's <code>host</code> qualifier matches a specific IP — by default in BOTH directions (source OR destination). Add <code>src</code> or <code>dst</code> to narrow it.
+        </div>
+        <div class="step-example">tcpdump host 10.0.0.5            <span class="out-comment"># traffic to OR from 10.0.0.5</span>
+tcpdump src host 10.0.0.5        <span class="out-comment"># only FROM 10.0.0.5</span>
+tcpdump dst host 10.0.0.5        <span class="out-comment"># only TO 10.0.0.5</span>
+tcpdump net 10.0.0.0/24          <span class="out-comment"># whole subnet</span></div>
+      </div>
+
+      <div class="cheat-table" style="margin-top: 16px;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px;">Quick reference</div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">host X</span>
+          <span class="cheat-desc">Match traffic to OR from IP X</span>
+        </div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">src host X / dst host X</span>
+          <span class="cheat-desc">Direction-specific match</span>
+        </div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">net X.X.X.X/Y</span>
+          <span class="cheat-desc">Match a whole subnet</span>
+        </div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">port N / src port N / dst port N</span>
+          <span class="cheat-desc">Port match (any/source-only/destination-only)</span>
+        </div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">tcp / udp / icmp / arp</span>
+          <span class="cheat-desc">Protocol match</span>
+        </div>
+        <div class="cheat-row">
+          <span class="cheat-pattern">and / or / not</span>
+          <span class="cheat-desc">Boolean combinators (also &amp;&amp; / || / !)</span>
+        </div>
+      </div>
+
+      <div class="lesson-cta-row">
+        <button class="btn-ghost">← Prev</button>
+        <button class="btn-next">Next step →</button>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Stepped lesson format follows Subnet Trainer Lesson 4/5</strong>
+    Per CLAUDE.md "Learn-Tab Lesson Authoring (v4.43.6/4.43.7)" convention. One concept per step, code examples in monospace, cheatsheet table at the end as quick-reference. Step progress pips at the top. Steps tracked in <code>STORAGE.NA_LESSONS</code> per-lesson ID. The 3 lessons for v1: tcpdump filters / Wireshark display filters / Nmap scan-type decision tree.
+  </div>
+
+  <!-- ── IMPLEMENTATION SUMMARY ── -->
+  <div class="state-divider"><span class="state-label">Implementation summary · same-day ship scope</span></div>
+  <div class="annotation" style="background:rgba(34,197,94,.05);border-left-color:var(--green);">
+    <strong>What ships in Phase 1 (~7 surfaces, modest LOC)</strong>
+    <ol style="margin: 8px 0 0 20px; padding: 0; line-height: 1.7;">
+      <li><code>NETWORK_ANALYSIS_BANK</code> — curated array of 32 questions: 8 tcpdump filters / 6 Wireshark display filters / 8 Nmap scan types / 10 Output reading. Each tagged with category + difficulty + explanation.</li>
+      <li><code>NETWORK_ANALYSIS_LESSONS</code> — 3 lessons × 5 steps each = 15 step-cards total. Each step has <code>{title, body, example, cheatsheetRow?}</code>.</li>
+      <li><code>renderNetworkAnalysisDrill()</code> + <code>naRenderPractice()</code> + <code>naRenderLessons()</code> + <code>naRenderDashboard()</code> — drill-page rendering, mode-tab dispatch, all wired through <code>createDrillScaffold</code>.</li>
+      <li><code>naSubmitAnswer(qIdx, chosen)</code> — grades answer, updates <code>STORAGE.NA_MASTERY</code> per category, advances to next Q or completes session.</li>
+      <li>HTML: new <code>#page-network-analysis</code> page block + 5th tile in <code>#page-drills</code> launcher row.</li>
+      <li>CSS: <code>.cat-card</code> mastery cards + <code>.output-block</code> syntax-highlighted monospace + <code>.cheat-table</code> cheatsheet + <code>.dash-callout</code> prescriptive recommendation. Reduced-motion gate.</li>
+      <li>UAT: structural assertions for bank size + category coverage + lesson step counts + storage namespace; vm-fixture for <code>naSubmitAnswer</code> updates mastery correctly. Playwright E2E: open drill, answer 3 Qs in Practice mode, verify dashboard shows attempts.</li>
+    </ol>
+    <strong style="display:block; margin-top: 14px;">Effort estimate</strong>
+    <ul style="margin: 4px 0 0 20px; padding: 0;">
+      <li>Bank authoring (32 Qs with realistic output snippets): <strong>~3 hrs</strong> — the longest part</li>
+      <li>Lessons (3 × 5 steps): <strong>~2 hrs</strong></li>
+      <li>Drill scaffold + integration: <strong>~1.5 hrs</strong> (reuses <code>createDrillScaffold</code>)</li>
+      <li>CSS + HTML: <strong>~1 hr</strong></li>
+      <li>Tests + commit + push: <strong>~1 hr</strong></li>
+      <li><strong>Total: ~8.5 hrs</strong> — reasonable same-evening ship if we start now.</li>
+    </ul>
+  </div>
+
+  <p class="lede" style="margin-top: 32px; color:var(--text-dim); font-size: 12px;">
+    Mockup for v4.84.0 candidate (Phase 1 of issue <a href="https://github.com/oremosu98/networkplus-quiz/issues/270" style="color:var(--text-dim)">#270</a>) · Per <code>feedback_concept_mockup_first.md</code> — confirm before code · 2026-04-28
+  </p>
+</div>
+</body>
+</html>

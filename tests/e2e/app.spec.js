@@ -1793,6 +1793,132 @@ test.describe('Quiz Revisit — editable navigation', () => {
 // (topology, OSI stack, cable-grid) end-to-end: render → click region →
 // Submit → assert reveal markers + log entry. Uses _testInjectQuiz to
 // drop a hot-area question into a quiz session without real Haiku calls.
+// v4.84.0 — Network Analysis Drill (Phase 1, issue #270) E2E coverage.
+// Tests the full flow: navigate to drill, see all 3 tabs, answer a Practice
+// question, verify mastery storage updates, browse to Lessons + Dashboard.
+test.describe('Network Analysis Drill — Phase 1 MVP', () => {
+  test('drill tile is visible in launcher with NEW badge', async ({ page }) => {
+    await page.goto('/');
+    // Navigate to drills page via sidebar link
+    await page.evaluate(() => window.showPage('drills'));
+    await expect(page.locator('#page-drills')).toHaveClass(/active/);
+    // 5th tile is Network Analysis
+    const tile = page.locator('.drills-tile-new');
+    await expect(tile).toBeVisible();
+    await expect(tile).toContainText('Network Analysis');
+    await expect(tile.locator('.drills-tile-new-badge')).toContainText('NEW');
+  });
+
+  test('clicking drill tile opens the drill page with all 3 tabs', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    await expect(page.locator('#page-network-analysis')).toHaveClass(/active/);
+    // 3 tab buttons exist
+    await expect(page.locator('#na-tab-btn-practice')).toBeVisible();
+    await expect(page.locator('#na-tab-btn-lessons')).toBeVisible();
+    await expect(page.locator('#na-tab-btn-dashboard')).toBeVisible();
+  });
+
+  test('first-time user lands on Practice tab', async ({ page }) => {
+    await page.goto('/');
+    // Clear mastery so the drill thinks it's a first-time user
+    await page.evaluate(() => localStorage.removeItem('nplus_na_mastery'));
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    await expect(page.locator('#na-tab-btn-practice')).toHaveClass(/na-tab-active/);
+    await expect(page.locator('#na-tab-practice')).not.toHaveClass(/is-hidden/);
+    // A question card is visible
+    await expect(page.locator('.na-question-card')).toBeVisible();
+    await expect(page.locator('.na-options .na-option')).toHaveCount(4);
+  });
+
+  test('answering a Practice question reveals explanation + advances', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('nplus_na_mastery'));
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    await expect(page.locator('.na-question-card')).toBeVisible();
+
+    // Click any option (don't care which — we're testing the flow, not correctness)
+    await page.locator('.na-options .na-option').first().click();
+
+    // Explanation appears
+    await expect(page.locator('.na-explanation')).toBeVisible();
+    // Either is-correct or is-wrong class present
+    const expHasState = await page.locator('.na-explanation').evaluate(el =>
+      el.classList.contains('is-correct') || el.classList.contains('is-wrong')
+    );
+    expect(expHasState).toBe(true);
+
+    // Mastery storage updated
+    const mastery = await page.evaluate(() => JSON.parse(localStorage.getItem('nplus_na_mastery')));
+    expect(mastery).toBeTruthy();
+    const totalAnswered = ['tcpdump', 'wireshark', 'nmap', 'output-reading']
+      .reduce((sum, c) => sum + (mastery[c]?.total || 0), 0);
+    expect(totalAnswered).toBe(1);
+
+    // Click Next → new question card
+    await page.locator('.na-next-row .btn').click();
+    await expect(page.locator('.na-explanation')).toHaveCount(0); // explanation gone on fresh Q
+  });
+
+  test('Lessons tab shows 3 lessons with progress indicators', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    await page.locator('#na-tab-btn-lessons').click();
+    await expect(page.locator('#na-tab-lessons')).not.toHaveClass(/is-hidden/);
+
+    // 3 lesson tiles
+    const tiles = page.locator('.na-lesson-tile');
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles.nth(0)).toContainText('tcpdump');
+    await expect(tiles.nth(1)).toContainText('Wireshark');
+    await expect(tiles.nth(2)).toContainText('Nmap');
+  });
+
+  test('opening a lesson shows step 1 with cheatsheet on final step', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('nplus_na_lessons'));
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    await page.locator('#na-tab-btn-lessons').click();
+    await page.locator('.na-lesson-tile').first().click();
+
+    // Step 1 of 5
+    await expect(page.locator('.na-step-num')).toContainText('Step 1 of 5');
+    await expect(page.locator('.na-step-progress .na-step-pip')).toHaveCount(5);
+
+    // Cheatsheet is NOT shown on step 1
+    await expect(page.locator('.na-cheat-table')).toHaveCount(0);
+
+    // Click Next 4 times to get to step 5
+    for (let i = 0; i < 4; i++) {
+      await page.locator('.na-lesson-cta-row .btn-primary').click();
+    }
+
+    // Now on step 5 — cheatsheet appears
+    await expect(page.locator('.na-step-num')).toContainText('Step 5 of 5');
+    await expect(page.locator('.na-cheat-table')).toBeVisible();
+  });
+
+  test('Dashboard shows category mastery cards after attempts', async ({ page }) => {
+    await page.goto('/');
+    // Seed mastery so dashboard has data
+    await page.evaluate(() => {
+      localStorage.setItem('nplus_na_mastery', JSON.stringify({
+        'tcpdump': { right: 8, total: 10 },
+        'wireshark': { right: 3, total: 6 },
+        'nmap': { right: 4, total: 4 },
+        'output-reading': { right: 0, total: 0 }
+      }));
+    });
+    await page.evaluate(() => window.startNetworkAnalysisDrill());
+    // With data, default tab should be Dashboard
+    await expect(page.locator('#na-tab-btn-dashboard')).toHaveClass(/na-tab-active/);
+    // 4 category cards
+    await expect(page.locator('.na-cat-card')).toHaveCount(4);
+    // Weakest callout — wireshark at 50%
+    await expect(page.locator('.na-dash-callout')).toContainText('Wireshark display filters');
+  });
+});
+
 test.describe('Quiz Hot-Area — click-on-diagram PBQs', () => {
   // Topology hot-area fixture
   const TOPOLOGY_FIXTURE = [{
