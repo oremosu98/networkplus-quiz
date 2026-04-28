@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.84.0
+// Network+ AI Quiz — app.js  v4.84.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.84.0';
+const APP_VERSION = '4.84.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -37990,11 +37990,15 @@ const APP_SIDEBAR_SETTINGS = [
   { page: 'settings',          label: 'Settings',         icon: '\u2699', handler: () => { showPage('settings'); if (typeof renderSettingsPage === 'function') renderSettingsPage(); } }
 ];
 const APP_SIDEBAR_DRILLS = [
-  { page: 'subnet',            label: 'Subnet Mastery',   handler: () => { showPage('subnet'); if (typeof startSubnetTrainer === 'function') startSubnetTrainer(); } },
-  { page: 'ports',             label: 'Port Drill',       handler: () => { showPage('ports'); if (typeof startPortDrill === 'function') startPortDrill(); } },
-  { page: 'acronyms',          label: 'Acronym Blitz',    handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } },
-  { page: 'osi-sorter',        label: 'OSI Sorter',       handler: () => { showPage('osi-sorter'); if (typeof startOsiSorter === 'function') startOsiSorter(); } },
-  { page: 'cables',            label: 'Cable ID',         handler: () => { showPage('cables'); if (typeof startCableId === 'function') startCableId(); } }
+  { page: 'subnet',             label: 'Subnet Mastery',    handler: () => { showPage('subnet'); if (typeof startSubnetTrainer === 'function') startSubnetTrainer(); } },
+  { page: 'ports',              label: 'Port Drill',        handler: () => { showPage('ports'); if (typeof startPortDrill === 'function') startPortDrill(); } },
+  { page: 'acronyms',           label: 'Acronym Blitz',     handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } },
+  { page: 'osi-sorter',         label: 'OSI Sorter',        handler: () => { showPage('osi-sorter'); if (typeof startOsiSorter === 'function') startOsiSorter(); } },
+  { page: 'cables',             label: 'Cable ID',          handler: () => { showPage('cables'); if (typeof startCableId === 'function') startCableId(); } },
+  // v4.84.1: Network Analysis Drill (Phase 1) sidebar entry. Was reachable
+  // only via the #page-drills tile launcher in v4.84.0 — discoverability bug
+  // surfaced immediately by user dogfood.
+  { page: 'network-analysis',   label: 'Network Analysis',  handler: () => { if (typeof startNetworkAnalysisDrill === 'function') startNetworkAnalysisDrill(); } }
 ];
 
 // Map arbitrary page names to their sidebar highlight target. Quiz/exam/review
@@ -38013,6 +38017,7 @@ const SIDEBAR_ACTIVE_MAP = {
   'acronyms': 'acronyms',
   'osi-sorter': 'osi-sorter',
   'cables': 'cables',
+  'network-analysis': 'network-analysis',
   'topic-dive': 'progress',
   'drills': 'setup',  // launcher shell; highlight Home until specific drill chosen
   'settings': 'settings'
@@ -38175,6 +38180,7 @@ const TOPBAR_CRUMBS = {
   'acronyms': 'Acronym Blitz',
   'osi-sorter': 'OSI Sorter',
   'cables': 'Cable ID',
+  'network-analysis': 'Network Analysis',
   'drills': 'Drills',
   'settings': 'Settings',
   'monitor': 'Production Monitor'

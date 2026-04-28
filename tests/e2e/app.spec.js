@@ -1898,6 +1898,18 @@ test.describe('Network Analysis Drill — Phase 1 MVP', () => {
     await expect(page.locator('.na-cheat-table')).toBeVisible();
   });
 
+  test('drill is reachable from sidebar nav (v4.84.1 regression guard)', async ({ page }) => {
+    await page.goto('/');
+    // Sidebar should have a "Network Analysis" entry under Drills section.
+    // v4.84.0 shipped the drill but missed wiring it to the sidebar — caught
+    // immediately by user dogfood. This test prevents that regression.
+    const sidebarLink = page.locator('#app-sidebar').locator('text=Network Analysis');
+    await expect(sidebarLink).toBeVisible();
+    // Clicking it opens the drill page
+    await sidebarLink.click();
+    await expect(page.locator('#page-network-analysis')).toHaveClass(/active/);
+  });
+
   test('Dashboard shows category mastery cards after attempts', async ({ page }) => {
     await page.goto('/');
     // Seed mastery so dashboard has data

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.84.0', js.includes("const APP_VERSION = '4.84.0"));
+test('APP_VERSION is 4.84.1', js.includes("const APP_VERSION = '4.84.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.84.0', sw.includes('netplus-v4.84.0'));
+test('SW cache bumped to v4.84.1', sw.includes('netplus-v4.84.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -13764,6 +13764,26 @@ test('v4.84.0 NetAnalysis: Playwright spec covers drill flow',
         && /na-tab-btn/.test(spec);
     } catch (e) { return false; }
   })());
+
+// v4.84.1 hotfix — Network Analysis drill must appear in the sidebar nav.
+// v4.84.0 only wired the drill to the #page-drills tile launcher; the
+// sidebar drills section (Subnet/Port/Acronym/OSI/Cable) was missing the
+// 6th entry, causing user dogfood to immediately surface "cant see it."
+// This regression-guard ensures Network Analysis is in the sidebar drills
+// list AND the active-state map AND the breadcrumb label map — the three
+// places that need to know about a new drill page for full discoverability.
+test('v4.84.1 SidebarFix: Network Analysis is in APP_SIDEBAR_DRILLS',
+  (() => {
+    const m = js.match(/const APP_SIDEBAR_DRILLS = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    return /page: 'network-analysis'/.test(m[1])
+      && /label: 'Network Analysis'/.test(m[1])
+      && /startNetworkAnalysisDrill/.test(m[1]);
+  })());
+test('v4.84.1 SidebarFix: network-analysis maps to itself in SIDEBAR_ACTIVE_MAP',
+  /'network-analysis': 'network-analysis'/.test(js));
+test('v4.84.1 SidebarFix: network-analysis label declared in breadcrumb map',
+  /'network-analysis': 'Network Analysis'/.test(js));
 
 // v4.81.29: multi-select prompt quality criteria — user dogfood feedback
 // that the second correct answer was almost always obscure while distractors
