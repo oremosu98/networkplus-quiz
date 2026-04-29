@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.2', js.includes("const APP_VERSION = '4.85.2"));
+test('APP_VERSION is 4.85.3', js.includes("const APP_VERSION = '4.85.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.2', sw.includes('netplus-v4.85.2'));
+test('SW cache bumped to v4.85.3', sw.includes('netplus-v4.85.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12105,6 +12105,76 @@ test('v4.81.16 QualityGuard: vm fixture — 2.4 GHz channels GT rejects non-{1,6
       const r3 = vm.runInContext('_multiSelectGroundTruthOk(wrongSet)', ctx);
       const r4 = vm.runInContext('_multiSelectGroundTruthOk(unrelated)', ctx);
       return r1 === false && r2 === true && r3 === false && r4 === true;
+    } catch (e) { return false; }
+  })());
+
+// v4.85.3: IPv6 transition methods — reject "pick N" when more than N
+// options are valid methods. User dogfood: "Which TWO" with 6to4, NAT64
+// as answers and Teredo as a "distractor" — but Teredo IS a valid method,
+// making the question unsolvable. Prompt also updated to explicitly warn
+// against this pattern.
+test('v4.85.3 IPv6TransGT: _multiSelectGroundTruthOk checks IPv6 transition methods',
+  (() => {
+    const body = _fnBody(js, '_multiSelectGroundTruthOk');
+    return body && /isIPv6Trans/.test(body) && /knownMethods/.test(body)
+      && /6to4/.test(body) && /teredo/.test(body) && /nat64/.test(body);
+  })());
+
+test('v4.85.3 IPv6TransGT: prompt warns against "pick fewer than total valid" pattern',
+  (() => {
+    const body = _fnBody(js, '_fetchQuestionsBatch');
+    return body && /NEVER create a question where MORE options are factually correct/.test(body)
+      && /6to4.*Teredo.*NAT64/.test(body);
+  })());
+
+// vm-fixture: the exact user bug case — "Which TWO" with 6to4 + NAT64 as
+// answers but Teredo in the options. Should be rejected because 3 valid
+// methods > 2 answers.
+test('v4.85.3 IPv6TransGT: vm fixture — "Which TWO" with 3 valid IPv6 methods rejected',
+  (() => {
+    try {
+      const body = _fnBody(js, '_multiSelectGroundTruthOk');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { String, Number, parseInt, Math, Array, Object };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+
+      // The exact bug: 6to4+NAT64 as answers, Teredo as distractor — all 3 valid
+      const bugCase = {
+        question: 'Which TWO of the following are valid methods to tunnel or translate IPv6 traffic in an IPv4-only environment?',
+        options: {
+          A: '6to4 tunneling — encapsulates IPv6 packets inside IPv4',
+          B: 'NAT64 — translates between IPv6 and IPv4 address spaces',
+          C: 'Classful addressing — converting IPv6 to legacy Class A/B/C',
+          D: 'Teredo tunneling — IPv6 over IPv4 with NAT traversal',
+          E: 'Dual-stack routing — using separate routing protocols'
+        },
+        answers: ['A', 'B'] // only 2, but 3 options (A,B,D) are valid
+      };
+      // Valid case: only 2 valid methods in options, matching answer count
+      const okCase = {
+        question: 'Which TWO of the following are valid methods to tunnel IPv6 traffic?',
+        options: {
+          A: '6to4 tunneling',
+          B: 'Teredo tunneling',
+          C: 'Classful addressing',
+          D: 'MAC spoofing',
+          E: 'Port forwarding'
+        },
+        answers: ['A', 'B'] // 2 valid methods, 2 answers — correct
+      };
+      // Unrelated multi-select (no IPv6 transition signal)
+      const unrelated = {
+        question: 'Which TWO ports does HTTPS use?',
+        options: { A: '443', B: '8443', C: '80', D: '22' },
+        answers: ['A', 'B']
+      };
+      ctx.bugCase = bugCase; ctx.okCase = okCase; ctx.unrelated = unrelated;
+      const r1 = vm.runInContext('_multiSelectGroundTruthOk(bugCase)', ctx);
+      const r2 = vm.runInContext('_multiSelectGroundTruthOk(okCase)', ctx);
+      const r3 = vm.runInContext('_multiSelectGroundTruthOk(unrelated)', ctx);
+      return r1 === false && r2 === true && r3 === true;
     } catch (e) { return false; }
   })());
 

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.2
+// Network+ AI Quiz — app.js  v4.85.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.2';
+const APP_VERSION = '4.85.3';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8991,6 +8991,7 @@ CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
   • WHY each correct answer is correct (1-2 sentences each)
   • WHY each distractor is wrong — naming a specific factual error, not just "less applicable" or "not the best fit"
 - Multi-select stems should ask about what IS true / IS valid / DOES apply — not about ranking, fit, or "best."
+- NEVER create a question where MORE options are factually correct than the stem asks for. Example: 6to4, Teredo, AND NAT64 are ALL valid IPv6 transition methods — a "Which TWO" stem forces the student to guess which 2 of 3 correct answers the grader prefers, which is NOT how CompTIA writes exams. If a topic has N valid answers, either ask for all N or reframe the stem to narrow which subset is being tested (e.g., "Which TWO are tunneling methods?" excludes NAT64 since it's translation, not tunneling).
 
 2. ORDERING (put 4-5 items in correct order):
 {"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
@@ -15499,6 +15500,27 @@ function _multiSelectGroundTruthOk(q) {
     const matchesCanonical =
       sorted.length === 3 && sorted[0] === 1 && sorted[1] === 6 && sorted[2] === 11;
     if (!matchesCanonical) return false;
+  }
+
+  // ── IPv6 transition methods: reject "pick N of M" when M > N ──
+  // v4.85.3: user dogfood — "Which TWO" with 6to4 + NAT64 as answers but
+  // Teredo as a distractor. All three are valid IPv6 transition methods;
+  // the question is unsolvable because the student can't distinguish
+  // "correct" from "also correct." Detect: if the stem mentions IPv6
+  // tunneling/translation/transition AND more options are valid methods
+  // than the answer count, reject.
+  const isIPv6Trans = /\b(tunnel|translat|transition)\w*/i.test(stem)
+    && /\b(ipv[46]|dual[-\s]?stack)\b/i.test(stem);
+  if (isIPv6Trans) {
+    var allOptTexts = Object.values(q.options).map(function(v) { return String(v).toLowerCase(); });
+    var knownMethods = ['6to4', 'teredo', 'nat64', 'isatap', 'dual-stack', 'dual stack', '6rd', '6in4'];
+    var validCount = 0;
+    for (var ki = 0; ki < knownMethods.length; ki++) {
+      for (var oi = 0; oi < allOptTexts.length; oi++) {
+        if (allOptTexts[oi].indexOf(knownMethods[ki]) !== -1) { validCount++; break; }
+      }
+    }
+    if (validCount > q.answers.length) return false;
   }
 
   return true;
