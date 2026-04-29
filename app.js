@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.0
+// Network+ AI Quiz — app.js  v4.85.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.0';
+const APP_VERSION = '4.85.1';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5527,6 +5527,7 @@ function graduateFromBank(questionText) {
 // different surfaces, can co-exist without conflict.
 // ══════════════════════════════════════════
 const SR_QUEUE_CAP = 500;
+const SR_SESSION_CAP = 20;            // max cards per review session (~10 min)
 const SR_GRADUATION_STREAK = 3;       // correct streak needed to graduate
 const SR_GRADUATION_EASE = 2.5;       // ease factor needed at graduation
 const SR_GRADUATION_INTERVAL = 30;    // days interval needed at graduation
@@ -5731,9 +5732,13 @@ function renderSrReviewCard() {
   const headline = document.getElementById('sr-review-card-headline');
   const statsEl = document.getElementById('sr-review-card-stats');
   if (headline) {
-    headline.textContent = stats.due === 1
-      ? '1 card due for review'
-      : stats.due + ' cards due for review';
+    if (stats.due <= SR_SESSION_CAP) {
+      headline.textContent = stats.due === 1
+        ? '1 card due for review'
+        : stats.due + ' cards due for review';
+    } else {
+      headline.textContent = SR_SESSION_CAP + ' of ' + stats.due + ' cards due for review';
+    }
   }
   if (statsEl) {
     const parts = [];
@@ -5772,8 +5777,17 @@ function startSrReview() {
     showToast('No cards due for review right now', 'info');
     return;
   }
+  // v4.85.1: cap session size to SR_SESSION_CAP (20) to prevent review fatigue.
+  // Queue stays intact — remaining cards surface on the next session or the
+  // homepage "N remaining" prompt. 20 cards × ~30s = ~10 min, which is the
+  // sweet spot for SR retention without fatigue (Anki best-practice range).
+  const totalDueCount = due.length;
+  if (due.length > SR_SESSION_CAP) {
+    due = due.slice(0, SR_SESSION_CAP);
+  }
   _srSession = {
     cards: due,
+    totalDueCount: totalDueCount,  // original queue size (for "N remaining" on completion)
     index: 0,
     answersGiven: 0,
     correctConfident: 0,
@@ -6106,13 +6120,23 @@ function _srEndReview() {
     const cc = _srSession.correctConfident;
     const cu = _srSession.correctUncertain;
     const w = _srSession.wrong;
-    stats.innerHTML = total === 0
+    let html = total === 0
       ? 'No cards reviewed.'
       : '<strong>' + total + ' cards reviewed</strong> — '
         + '<span style="color: var(--green)">' + cc + ' confident</span> · '
         + '<span style="color: var(--yellow)">' + cu + ' uncertain</span> · '
         + '<span style="color: var(--red)">' + w + ' wrong</span>. '
         + 'Confident answers grow the interval fastest. Wrong cards reset to tomorrow.';
+    // v4.85.1: show remaining cards count + "Continue" button when session was capped
+    const remaining = (typeof getSrStats === 'function') ? getSrStats().due : 0;
+    if (remaining > 0) {
+      const remMin = Math.max(2, Math.round(Math.min(remaining, SR_SESSION_CAP) * 0.5));
+      html += '<div class="sr-remaining-row">'
+        + '<span class="sr-remaining-text">' + remaining + ' more card' + (remaining === 1 ? '' : 's') + ' still due</span>'
+        + '<button class="btn btn-primary sr-continue-btn" onclick="startSrReview()">Continue · ~' + remMin + ' min →</button>'
+        + '</div>';
+    }
+    stats.innerHTML = html;
   }
   if (completeEl) completeEl.hidden = false;
   // Refresh the homepage card since the queue changed
@@ -7218,13 +7242,17 @@ function _computeNextBestMove() {
     if (typeof getSrStats === 'function') {
       const srStats = getSrStats();
       if (srStats && srStats.due > 0) {
-        const minutes = Math.max(2, Math.round(srStats.due * 0.5));
+        const capped = Math.min(srStats.due, SR_SESSION_CAP);
+        const minutes = Math.max(2, Math.round(capped * 0.5));
+        const titleText = srStats.due <= SR_SESSION_CAP
+          ? (srStats.due === 1
+              ? 'Review 1 card due'
+              : 'Review ' + srStats.due + ' cards due')
+          : 'Review ' + capped + ' of ' + srStats.due + ' cards due';
         return {
           type: 'sr-review',
           icon: '📚',
-          title: srStats.due === 1
-            ? 'Review 1 card due for spaced repetition'
-            : 'Review ' + srStats.due + ' cards due',
+          title: titleText,
           sub: '~' + minutes + ' min · re-encounter what you forgot',
           ctaLabel: 'Start review →',
           ctaFn: 'startSrReview()',

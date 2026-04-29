@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.0', js.includes("const APP_VERSION = '4.85.0"));
+test('APP_VERSION is 4.85.1', js.includes("const APP_VERSION = '4.85.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.0', sw.includes('netplus-v4.85.0'));
+test('SW cache bumped to v4.85.1', sw.includes('netplus-v4.85.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12709,6 +12709,8 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         },
         _renderSrCard: () => {},
         _srSession: null,
+        SR_SESSION_CAP: 20,
+        Math,
         Set, Object, Array, console
       };
       vm.createContext(ctx);
@@ -12760,6 +12762,8 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
         },
         _renderSrCard: () => {},
         _srSession: null,
+        SR_SESSION_CAP: 20,
+        Math,
         Set, Object, Array, console
       };
       vm.createContext(ctx);
@@ -13881,6 +13885,142 @@ test('v4.85.0 FilterRecognition: vm fixture — filter category gets weighted in
       }
       // filter (3x weight, never-tried) should be > 50% of picks
       return filterCount > 100;
+    } catch (e) { return false; }
+  })());
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.85.1 — SR Session Cap: cap SR review sessions to SR_SESSION_CAP (20)
+// to prevent review fatigue. Queue stays intact; remaining cards surface
+// on the next session or via the completion-screen "Continue" button.
+// ═══════════════════════════════════════════════════════════════════════
+
+test('v4.85.1 SRSessionCap: SR_SESSION_CAP constant declared at 20',
+  /const\s+SR_SESSION_CAP\s*=\s*20\b/.test(js));
+
+test('v4.85.1 SRSessionCap: startSrReview caps due array to SR_SESSION_CAP',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /due\.length\s*>\s*SR_SESSION_CAP/.test(body)
+      && /due\s*=\s*due\.slice\(0,\s*SR_SESSION_CAP\)/.test(body);
+  })());
+
+test('v4.85.1 SRSessionCap: startSrReview records totalDueCount for completion screen',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /totalDueCount/.test(body) && /totalDueCount:\s*totalDueCount/.test(body);
+  })());
+
+test('v4.85.1 SRSessionCap: renderSrReviewCard shows capped headline when due > cap',
+  (() => {
+    const body = _fnBody(js, 'renderSrReviewCard');
+    return body && /SR_SESSION_CAP/.test(body)
+      && /stats\.due\s*<=\s*SR_SESSION_CAP/.test(body);
+  })());
+
+test('v4.85.1 SRSessionCap: NBM (_computeNextBestMove) shows capped title',
+  (() => {
+    const body = _fnBody(js, '_computeNextBestMove');
+    return body && /Math\.min\(srStats\.due,\s*SR_SESSION_CAP\)/.test(body)
+      && /srStats\.due\s*<=\s*SR_SESSION_CAP/.test(body);
+  })());
+
+test('v4.85.1 SRSessionCap: _srEndReview shows remaining cards + Continue button',
+  (() => {
+    const body = _fnBody(js, '_srEndReview');
+    return body && /sr-remaining-row/.test(body)
+      && /sr-remaining-text/.test(body)
+      && /sr-continue-btn/.test(body)
+      && /startSrReview\(\)/.test(body)
+      && /remaining\s*>\s*0/.test(body);
+  })());
+
+test('v4.85.1 SRSessionCap: CSS — .sr-remaining-row declared',
+  /\.sr-remaining-row\s*\{/.test(css));
+
+test('v4.85.1 SRSessionCap: CSS — .sr-remaining-text declared',
+  /\.sr-remaining-text\s*\{/.test(css));
+
+test('v4.85.1 SRSessionCap: CSS — mobile breakpoint for .sr-remaining-row',
+  css.includes('.sr-remaining-row') && /flex-direction:\s*column/.test(css));
+
+// vm-fixture: 30 due cards → session contains exactly 20 + totalDueCount=30
+test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with totalDueCount preserved',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      if (!body) return false;
+      const vm = require('vm');
+      // Build 30 fake due mcq cards
+      const fakeQueue = [];
+      for (let i = 0; i < 30; i++) {
+        fakeQueue.push({ id: 'card-' + i, type: 'mcq', nextReview: 0, graduated: false });
+      }
+      const ctx = {
+        getSrDueEntries: () => fakeQueue.slice(),
+        loadSrQueue: () => fakeQueue.slice(),
+        saveSrQueue: () => {},
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        SR_SESSION_CAP: 20,
+        Math,
+        Set, Object, Array, console
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+
+      const session = ctx._srSession;
+      if (!session) return false;
+      // Session should have exactly SR_SESSION_CAP (20) cards
+      const cappedCorrectly = session.cards.length === 20;
+      // totalDueCount should preserve the original 30
+      const totalPreserved = session.totalDueCount === 30;
+      // First card should be card-0 (slice preserves order)
+      const orderPreserved = session.cards[0].id === 'card-0'
+        && session.cards[19].id === 'card-19';
+      return cappedCorrectly && totalPreserved && orderPreserved;
+    } catch (e) { return false; }
+  })());
+
+// vm-fixture: when due <= SR_SESSION_CAP, no capping occurs + totalDueCount matches
+test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount matches cards.length',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeQueue = [];
+      for (let i = 0; i < 5; i++) {
+        fakeQueue.push({ id: 'card-' + i, type: 'mcq', nextReview: 0, graduated: false });
+      }
+      const ctx = {
+        getSrDueEntries: () => fakeQueue.slice(),
+        loadSrQueue: () => fakeQueue.slice(),
+        saveSrQueue: () => {},
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        SR_SESSION_CAP: 20,
+        Math,
+        Set, Object, Array, console
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+
+      const session = ctx._srSession;
+      if (!session) return false;
+      // All 5 cards present (no capping)
+      return session.cards.length === 5 && session.totalDueCount === 5;
     } catch (e) { return false; }
   })());
 
