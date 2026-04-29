@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.3', js.includes("const APP_VERSION = '4.85.3"));
+test('APP_VERSION is 4.85.4', js.includes("const APP_VERSION = '4.85.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.3', sw.includes('netplus-v4.85.3'));
+test('SW cache bumped to v4.85.4', sw.includes('netplus-v4.85.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6983,8 +6983,8 @@ test('v4.56.2 JS: Sonnet API error still bubbles up immediately (not masked)',
 // ══════════════════════════════════════════════════════════════════════
 
 // Validator prompt expansion
-test('v4.57.0 validator: expanded from THREE checks to SIX checks',
-  /Review each question below and check SIX things/.test(js));
+test('v4.57.0 validator: expanded from THREE checks to SEVEN checks (v4.85.4: +multi-select balance)',
+  /Review each question below and check SEVEN things/.test(js));
 test('v4.57.0 validator: check 4 = CONCEPTUAL COHERENCE',
   /4\.\s*CONCEPTUAL COHERENCE[\s\S]{0,300}different concept/i.test(js));
 test('v4.57.0 validator: check 5 = FRAMING MATCH',
@@ -6997,10 +6997,10 @@ test('v4.57.0 validator: new failure modes listed in common-errors section',
   /WEAK DISTRACTORS:/.test(js));
 test('v4.57.0 validator: classful-addressing conflation explicitly called out as AMBIGUOUS trigger',
   /classful addressing[\s\S]{0,200}obsoleted by CIDR/.test(js));
-test('v4.57.0 validator: OK requires passing all 6 checks (including conceptual + framing + distractors)',
+test('v4.57.0 validator: OK requires passing all 7 checks (v4.85.4: +balanced for multi-select)',
   /Q1:OK[\s\S]{0,400}conceptually coherent[\s\S]{0,100}well-framed[\s\S]{0,100}plausible distractors/.test(js));
-test('v4.57.0 validator: AMBIGUOUS trigger expanded to cover checks 4/5/6',
-  /AMBIGUOUS[\s\S]{0,400}fails any of checks 4\/5\/6/.test(js));
+test('v4.57.0 validator: AMBIGUOUS trigger expanded to cover checks 4/5/6/7',
+  /AMBIGUOUS[\s\S]{0,400}fails any of checks 4\/5\/6\/7/.test(js));
 
 // Generation prompt hardening
 test('v4.57.0 gen: CONCEPTUAL COHERENCE RULES section added',
@@ -12176,6 +12176,32 @@ test('v4.85.3 IPv6TransGT: vm fixture — "Which TWO" with 3 valid IPv6 methods 
       const r3 = vm.runInContext('_multiSelectGroundTruthOk(unrelated)', ctx);
       return r1 === false && r2 === true && r3 === true;
     } catch (e) { return false; }
+  })());
+
+// v4.85.4: Sonnet validator extended to multi-select + prompt concrete examples
+test('v4.85.4 MultiSelectSonnet: aiValidateQuestions filters multi-select alongside mcq',
+  (() => {
+    const body = _fnBody(js, 'aiValidateQuestions');
+    return body && /multi-select/.test(body)
+      && /MULTI-SELECT/.test(body)
+      && /validatedIndices/.test(body);
+  })());
+
+test('v4.85.4 MultiSelectSonnet: check 7 = MULTI-SELECT ANSWER BALANCE',
+  /7\.\s*MULTI-SELECT ANSWER BALANCE/.test(js));
+
+test('v4.85.4 MultiSelectSonnet: Sonnet checks for MULTI-SELECT IMBALANCE error',
+  /MULTI-SELECT IMBALANCE:/.test(js));
+
+test('v4.85.4 MultiSelectSonnet: Sonnet checks for MULTI-SELECT DISTRACTOR LEAK error',
+  /MULTI-SELECT DISTRACTOR LEAK:/.test(js));
+
+test('v4.85.4 MultiSelectSonnet: prompt has concrete good/bad multi-select examples',
+  (() => {
+    const body = _fnBody(js, '_fetchQuestionsBatch');
+    return body && /BAD:.*OSPF.*obvious/.test(body)
+      && /GOOD:.*link-state routing protocols/.test(body)
+      && /SELF-TEST before finalizing/.test(body);
   })());
 
 // v4.81.15: Stale-topic surfacing (rotation algorithm) — Layers 1+2+3+5

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.3
+// Network+ AI Quiz — app.js  v4.85.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.3';
+const APP_VERSION = '4.85.4';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8992,6 +8992,12 @@ CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
   • WHY each distractor is wrong — naming a specific factual error, not just "less applicable" or "not the best fit"
 - Multi-select stems should ask about what IS true / IS valid / DOES apply — not about ranking, fit, or "best."
 - NEVER create a question where MORE options are factually correct than the stem asks for. Example: 6to4, Teredo, AND NAT64 are ALL valid IPv6 transition methods — a "Which TWO" stem forces the student to guess which 2 of 3 correct answers the grader prefers, which is NOT how CompTIA writes exams. If a topic has N valid answers, either ask for all N or reframe the stem to narrow which subset is being tested (e.g., "Which TWO are tunneling methods?" excludes NAT64 since it's translation, not tunneling).
+- SELF-TEST before finalizing: for each correct answer, ask "could a student who studied this topic for 2 weeks identify this as correct?" If the answer is no for ANY correct option, the question fails the balance test. Replace the obscure correct answer with a more recognizable one.
+- CONCRETE EXAMPLES of good vs bad multi-select:
+  BAD: "Which TWO describe OSPF?" → A) Uses Dijkstra's algorithm (obvious) B) Uses area 0 as backbone (obscure detail) — student gets A easily, guesses on B.
+  GOOD: "Which TWO are link-state routing protocols?" → A) OSPF B) IS-IS — both are CORE facts at the same prominence level. A student who studied routing protocols knows both.
+  BAD: "Which TWO are used for network monitoring?" → A) SNMP (obvious) B) NetFlow (less obvious) C) Syslog (also valid!) — 3 correct answers crammed into "pick 2."
+  GOOD: "Which TWO protocols use UDP port 161 or 162?" → A) SNMP GET B) SNMP TRAP — narrow, factual, both equally knowable.
 
 2. ORDERING (put 4-5 items in correct order):
 {"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
@@ -16217,27 +16223,36 @@ function injectPBQs(qs, qTopic, count) {
 // AI SECOND-PASS VALIDATOR (Enhancement 1)
 // ══════════════════════════════════════════
 async function aiValidateQuestions(key, qs) {
-  // Only validate MCQ questions (most error-prone)
-  const mcqs = qs.filter(q => getQType(q) === 'mcq');
-  if (mcqs.length === 0) return qs;
+  // Validate MCQ + multi-select questions (v4.85.4: extended from MCQ-only)
+  const toValidate = qs.filter(q => {
+    var t = getQType(q);
+    return t === 'mcq' || t === 'multi-select';
+  });
+  if (toValidate.length === 0) return qs;
 
   // Build a compact verification prompt
-  const qList = mcqs.map((q, i) => {
+  const qList = toValidate.map((q, i) => {
+    var t = getQType(q);
+    if (t === 'multi-select') {
+      var opts = Object.keys(q.options).sort().map(function(l) { return l + ') ' + q.options[l]; }).join('\n');
+      return 'Q' + (i+1) + ' [MULTI-SELECT]: "' + q.question + '"\n' + opts + '\nMarked answers: ' + q.answers.join(', ') + '\nExplanation: ' + q.explanation;
+    }
     return `Q${i+1}: "${q.question}"\nA) ${q.options.A}\nB) ${q.options.B}\nC) ${q.options.C}\nD) ${q.options.D}\nMarked answer: ${q.answer}\nExplanation: ${q.explanation}`;
   }).join('\n\n');
 
-  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check SIX things:
+  const prompt = `You are a CompTIA Network+ N10-009 expert verifier. Review each question below and check SEVEN things:
 1. Is the marked answer FACTUALLY CORRECT?
 2. Does the correct answer CONTRADICT any fact stated in the question stem?
 3. Does the EXPLANATION actually support the MARKED answer letter, or does it champion a different option?
 4. CONCEPTUAL COHERENCE: Does the stem ask about one concept but the answer test a DIFFERENT concept? (e.g. stem asks for a "fundamental TCP/IP principle" but the answer is about deprecated classful addressing — those are distinct concepts.)
 5. FRAMING MATCH: Is the question's abstraction level aligned with the answer? (e.g. stem asks for a "principle" or "root cause," but the answer is a specific configuration detail; or stem asks what is "most likely" but only one option is even plausible.)
 6. DISTRACTOR QUALITY: Are the wrong options plausible alternatives a student might pick, or are 3/4 obviously wrong? A good MCQ has at least two tempting-looking distractors.
+7. MULTI-SELECT ANSWER BALANCE (for [MULTI-SELECT] questions only): Are ALL marked correct answers at a SIMILAR level of prominence and familiarity? A well-formed multi-select tests BREADTH (knowing that multiple core facts apply), NOT obscurity. If one correct answer is an obvious well-known fact and the other is an obscure edge-case detail that only specialists would know, the question is UNBALANCED — mark AMBIGUOUS. Also check: are any of the DISTRACTORS actually factually correct answers to the stem? If so, mark AMBIGUOUS.
 
 For each question, respond with ONLY:
-- "Q1:OK" if the marked answer is correct AND consistent with the stem AND supported by the explanation AND conceptually coherent AND well-framed AND has plausible distractors
+- "Q1:OK" if the marked answer is correct AND consistent with the stem AND supported by the explanation AND conceptually coherent AND well-framed AND has plausible distractors (AND balanced, for multi-select)
 - "Q1:WRONG:X" if the correct answer should be letter X instead (use this when the explanation itself says X is correct but the answer field says something else)
-- "Q1:AMBIGUOUS" if the question is unclear, has multiple valid answers, the correct answer contradicts the question's own stated premises, OR fails any of checks 4/5/6 above
+- "Q1:AMBIGUOUS" if the question is unclear, has multiple valid answers, the correct answer contradicts the question's own stated premises, OR fails any of checks 4/5/6/7 above
 
 Be strict. Check actual networking facts. Common errors to catch:
 - Port numbers matched to wrong protocols
@@ -16250,6 +16265,8 @@ Be strict. Check actual networking facts. Common errors to catch:
 - CONCEPTUAL CONFLATION: The stem mentions one framework or concept (e.g. "TCP/IP principle," "OSI Layer 3 function," "CIDR subnetting") but the correct answer is actually about a different, unrelated concept (e.g. "classful addressing," which was obsoleted by CIDR in 1993). These are pedagogically broken — they teach the wrong concept under the wrong label. Mark AMBIGUOUS.
 - FRAMING DRIFT: The stem asks for a high-level principle, root cause, or fundamental concept, but the correct answer is a narrow configuration detail (e.g. stem: "what principle explains why X fails?"; answer: "the default gateway isn't configured"). Principles are not configuration steps. Mark AMBIGUOUS if the abstraction levels don't match.
 - WEAK DISTRACTORS: 3 of 4 options are obviously wrong to any reader with basic networking knowledge, making the "correct" option a giveaway rather than a real test. Mark AMBIGUOUS.
+- MULTI-SELECT IMBALANCE: One correct answer is a widely-known core fact (e.g. "OSPF uses Dijkstra's algorithm") while the other is an obscure detail only specialists know (e.g. "OSPF uses area 0 as backbone"). Both correct answers MUST be at similar prominence levels — difficulty should come from breadth, not obscurity. Mark AMBIGUOUS.
+- MULTI-SELECT DISTRACTOR LEAK: A distractor option is ALSO a factually correct answer to the stem (e.g. stem asks "Which TWO are valid IPv6 transition methods?" and a distractor lists Teredo, which IS a valid method). If any distractor is factually correct, the question is unsolvable. Mark AMBIGUOUS.
 
 ${qList}
 
@@ -16288,18 +16305,21 @@ Respond with one line per question, nothing else:`;
       }
     });
 
-    // Apply fixes
+    // Apply fixes (v4.85.4: handles both MCQ + multi-select via toValidate indices)
     let fixCount = 0;
     let removeCount = 0;
-    const mcqIndices = [];
-    qs.forEach((q, i) => { if (getQType(q) === 'mcq') mcqIndices.push(i); });
+    const validatedIndices = [];
+    qs.forEach((q, i) => {
+      var t = getQType(q);
+      if (t === 'mcq' || t === 'multi-select') validatedIndices.push(i);
+    });
 
     const result = qs.filter((q, i) => {
-      const mcqIdx = mcqIndices.indexOf(i);
-      if (mcqIdx === -1 || !fixes[mcqIdx]) return true;
-      if (fixes[mcqIdx].action === 'remove') { removeCount++; return false; }
-      if (fixes[mcqIdx].action === 'fix') {
-        const newAnswer = fixes[mcqIdx].letter;
+      const valIdx = validatedIndices.indexOf(i);
+      if (valIdx === -1 || !fixes[valIdx]) return true;
+      if (fixes[valIdx].action === 'remove') { removeCount++; return false; }
+      if (fixes[valIdx].action === 'fix') {
+        const newAnswer = fixes[valIdx].letter;
         if (q.options[newAnswer]) {
           q.answer = newAnswer;
           fixCount++;
