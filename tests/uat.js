@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.4', js.includes("const APP_VERSION = '4.85.4"));
+test('APP_VERSION is 4.85.5', js.includes("const APP_VERSION = '4.85.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.4', sw.includes('netplus-v4.85.4'));
+test('SW cache bumped to v4.85.5', sw.includes('netplus-v4.85.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12202,6 +12202,80 @@ test('v4.85.4 MultiSelectSonnet: prompt has concrete good/bad multi-select examp
     return body && /BAD:.*OSPF.*obvious/.test(body)
       && /GOOD:.*link-state routing protocols/.test(body)
       && /SELF-TEST before finalizing/.test(body);
+  })());
+
+// v4.85.5: naGetMastery backfills missing categories (fixes crash when NA_CATEGORIES
+// expands but stored mastery lacks new keys — broke the NA drill page entirely)
+test('v4.85.5 NA mastery backfill: naGetMastery backfills missing categories from NA_CATEGORIES',
+  (() => {
+    const body = _fnBody(js, 'naGetMastery');
+    return body && /NA_CATEGORIES/.test(body) && /forEach/.test(body)
+      && /if\s*\(\s*!m\[/.test(body);
+  })());
+test('v4.85.5 NA mastery backfill: vm fixture — old mastery without filter category gets backfilled',
+  (() => {
+    try {
+      const getMasteryBody = _fnBody(js, 'naGetMastery');
+      const initBody = _fnBody(js, '_naInitMastery');
+      if (!getMasteryBody || !initBody) return false;
+      const vm = require('vm');
+      // Simulate old stored mastery missing the 'filter' category added in v4.85.0
+      const oldMastery = {
+        'tcpdump': { right: 5, total: 10 },
+        'wireshark': { right: 3, total: 8 },
+        'nmap': { right: 2, total: 4 },
+        'output-reading': { right: 1, total: 2 }
+        // 'filter' deliberately MISSING — this is the bug
+      };
+      const ctx = {
+        STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'],
+        localStorage: { getItem: () => JSON.stringify(oldMastery) },
+        JSON, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(initBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      const result = vm.runInContext('naGetMastery()', ctx);
+      // filter should be backfilled with zeros
+      const filterOk = result.filter && result.filter.right === 0 && result.filter.total === 0;
+      // existing data should be preserved
+      const existingOk = result.tcpdump.right === 5 && result.tcpdump.total === 10;
+      return filterOk && existingOk;
+    } catch (e) { return false; }
+  })());
+test('v4.85.5 NA mastery backfill: vm fixture — startNetworkAnalysisDrill survives old mastery',
+  (() => {
+    try {
+      const startBody = _fnBody(js, 'startNetworkAnalysisDrill');
+      const getMasteryBody = _fnBody(js, 'naGetMastery');
+      const initBody = _fnBody(js, '_naInitMastery');
+      if (!startBody || !getMasteryBody || !initBody) return false;
+      const vm = require('vm');
+      const oldMastery = {
+        'tcpdump': { right: 1, total: 2 },
+        'wireshark': { right: 0, total: 0 },
+        'nmap': { right: 0, total: 0 },
+        'output-reading': { right: 0, total: 0 }
+        // 'filter' MISSING
+      };
+      let tabSet = null;
+      const ctx = {
+        STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'],
+        localStorage: { getItem: () => JSON.stringify(oldMastery) },
+        JSON, Object,
+        showPage: () => {},
+        naSetTab: (id) => { tabSet = id; }
+      };
+      vm.createContext(ctx);
+      vm.runInContext(initBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      vm.runInContext(startBody, ctx);
+      // Should NOT throw, and should set tab to 'dashboard' (totalAttempts = 2)
+      vm.runInContext('startNetworkAnalysisDrill()', ctx);
+      return tabSet === 'dashboard';
+    } catch (e) { return false; }
   })());
 
 // v4.81.15: Stale-topic surfacing (rotation algorithm) — Layers 1+2+3+5

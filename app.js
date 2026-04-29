@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.4
+// Network+ AI Quiz — app.js  v4.85.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.4';
+const APP_VERSION = '4.85.5';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -14459,7 +14459,12 @@ let _naCurrentQuestion = null;      // currently-rendered Q for the practice flo
 let _naQuestionAnswered = false;    // toggles between pristine / revealed states
 
 function naGetMastery() {
-  try { return JSON.parse(localStorage.getItem(STORAGE.NA_MASTERY) || 'null') || _naInitMastery(); }
+  try {
+    var m = JSON.parse(localStorage.getItem(STORAGE.NA_MASTERY) || 'null') || _naInitMastery();
+    // Backfill any categories added after the user's data was first created (e.g. 'filter' in v4.85.0)
+    NA_CATEGORIES.forEach(function(c) { if (!m[c]) m[c] = { right: 0, total: 0 }; });
+    return m;
+  }
   catch { return _naInitMastery(); }
 }
 function _naInitMastery() {
