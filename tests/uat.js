@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.84.1', js.includes("const APP_VERSION = '4.84.1"));
+test('APP_VERSION is 4.85.0', js.includes("const APP_VERSION = '4.85.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.84.1', sw.includes('netplus-v4.84.1'));
+test('SW cache bumped to v4.85.0', sw.includes('netplus-v4.85.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -13536,42 +13536,44 @@ test('v4.83.0 HotArea: Playwright spec covers Hot-Area flow',
 // 5.5 ("use the appropriate tool") gap.
 test('v4.84.0 NetAnalysis: NETWORK_ANALYSIS_BANK constant defined',
   /const NETWORK_ANALYSIS_BANK = \[/.test(js));
-test('v4.84.0 NetAnalysis: bank has at least 32 questions',
+test('v4.85.0 NetAnalysis: bank has at least 42 questions (32 original + 10 filter)',
   (() => {
     const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
     if (!m) return false;
     const entries = m[1].match(/id: 'na-/g) || [];
-    return entries.length >= 32;
+    return entries.length >= 42;
   })());
-test('v4.84.0 NetAnalysis: bank covers all 4 categories',
+test('v4.85.0 NetAnalysis: bank covers all 5 categories (incl. filter)',
   (() => {
     const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
     if (!m) return false;
     return /category: 'tcpdump'/.test(m[1])
       && /category: 'wireshark'/.test(m[1])
       && /category: 'nmap'/.test(m[1])
-      && /category: 'output-reading'/.test(m[1]);
+      && /category: 'output-reading'/.test(m[1])
+      && /category: 'filter'/.test(m[1]);
   })());
 test('v4.84.0 NetAnalysis: NETWORK_ANALYSIS_LESSONS constant defined',
   /const NETWORK_ANALYSIS_LESSONS = \[/.test(js));
-test('v4.84.0 NetAnalysis: lessons cover tcpdump + wireshark + nmap',
+test('v4.85.0 NetAnalysis: lessons cover tcpdump + wireshark + nmap + bpf-vs-display',
   (() => {
     const m = js.match(/const NETWORK_ANALYSIS_LESSONS = \[([\s\S]*?)\n\];/);
     if (!m) return false;
     return /id: 'tcpdump-cheatsheet'/.test(m[1])
       && /id: 'wireshark-cheatsheet'/.test(m[1])
-      && /id: 'nmap-decision-tree'/.test(m[1]);
+      && /id: 'nmap-decision-tree'/.test(m[1])
+      && /id: 'bpf-vs-display'/.test(m[1]);
   })());
-test('v4.84.0 NetAnalysis: each lesson has 5 steps',
+test('v4.85.0 NetAnalysis: each lesson has 5 steps',
   (() => {
     // Walk each lesson's steps array — count entries with `title:` inside.
     const m = js.match(/const NETWORK_ANALYSIS_LESSONS = \[([\s\S]*?)\n\];/);
     if (!m) return false;
-    // Three lessons, each with 5 steps + 1 cheatsheet — count `steps: [` blocks
+    // Four lessons, each with 5 steps + 1 cheatsheet — count `steps: [` blocks
     // and within them count `{ title:` entries.
     const lessonBlocks = m[1].split(/\n  \{\n    id: '/);
-    if (lessonBlocks.length < 4) return false; // header + 3 lessons
-    // For each of the 3 lesson chunks, count `title:` occurrences inside steps
+    if (lessonBlocks.length < 5) return false; // header + 4 lessons
+    // For each of the 4 lesson chunks, count `title:` occurrences inside steps
     let allFiveSteps = true;
     for (let i = 1; i < lessonBlocks.length; i++) {
       const block = lessonBlocks[i];
@@ -13582,8 +13584,8 @@ test('v4.84.0 NetAnalysis: each lesson has 5 steps',
     }
     return allFiveSteps;
   })());
-test('v4.84.0 NetAnalysis: NA_CATEGORIES constant has 4 categories',
-  /const NA_CATEGORIES = \['tcpdump', 'wireshark', 'nmap', 'output-reading'\]/.test(js));
+test('v4.85.0 NetAnalysis: NA_CATEGORIES constant has 5 categories (incl. filter)',
+  /const NA_CATEGORIES = \['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'\]/.test(js));
 
 // Storage keys + helpers
 test('v4.84.0 NetAnalysis: STORAGE.NA_MASTERY key declared',
@@ -13657,7 +13659,7 @@ test('v4.84.0 NetAnalysis: vm fixture — naSubmitAnswer updates mastery on righ
       let savedMastery = null;
       const ctx = {
         STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
-        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading'],
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'],
         localStorage: {
           getItem: () => null,
           setItem: (key, val) => { savedMastery = JSON.parse(val); }
@@ -13713,18 +13715,20 @@ test('v4.84.0 NetAnalysis: vm fixture — _naPickNextQuestion weights weakest hi
         { id: 'q-tcpdump', category: 'tcpdump' },
         { id: 'q-wireshark', category: 'wireshark' },
         { id: 'q-nmap', category: 'nmap' },
-        { id: 'q-output', category: 'output-reading' }
+        { id: 'q-output', category: 'output-reading' },
+        { id: 'q-filter', category: 'filter' }
       ];
-      // Mock mastery: tcpdump = 100% (10/10), wireshark = 0% (5/5), nmap = 50% (4/8), output = never
+      // Mock mastery: tcpdump = 100% (10/10), wireshark = 0% (5/5), nmap = 50% (4/8), output = never, filter = never
       const fakeMastery = {
         'tcpdump': { right: 10, total: 10 },
         'wireshark': { right: 0, total: 5 },
         'nmap': { right: 4, total: 8 },
-        'output-reading': { right: 0, total: 0 }
+        'output-reading': { right: 0, total: 0 },
+        'filter': { right: 0, total: 0 }
       };
       const ctx = {
         STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
-        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading'],
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'],
         NETWORK_ANALYSIS_BANK: fakeBank,
         localStorage: { getItem: () => JSON.stringify(fakeMastery) },
         JSON, Math, Object
@@ -13735,19 +13739,19 @@ test('v4.84.0 NetAnalysis: vm fixture — _naPickNextQuestion weights weakest hi
       vm.runInContext(pickBody, ctx);
 
       // Run picker many times, count distribution
-      const counts = { 'tcpdump': 0, 'wireshark': 0, 'nmap': 0, 'output-reading': 0 };
+      const counts = { 'tcpdump': 0, 'wireshark': 0, 'nmap': 0, 'output-reading': 0, 'filter': 0 };
       for (let i = 0; i < 1000; i++) {
         const pick = vm.runInContext('_naPickNextQuestion(null)', ctx);
         if (pick && counts[pick.category] !== undefined) counts[pick.category]++;
       }
 
-      // Semantic check: high-priority categories (output-reading + wireshark)
-      // must each beat the highest-acc category (tcpdump). tcpdump and nmap
-      // tie on weight (both 1x) so we can't strictly order those — but
-      // output-reading (3x weight) and wireshark (2x weight) must dominate.
+      // Semantic check: never-tried categories (output-reading + filter) get 3x and 2x
+      // weight respectively. Both must individually beat tcpdump (100%, 1x weight).
+      // wireshark (0%, 3rd slot = 1x) ties with tcpdump/nmap on weight, so can't
+      // assert wireshark > tcpdump. But the two never-tried categories must dominate.
       return counts['output-reading'] > counts['tcpdump']
-        && counts['wireshark'] > counts['tcpdump']
-        && (counts['output-reading'] + counts['wireshark']) > 500; // > half of 1000
+        && counts['filter'] > counts['tcpdump']
+        && (counts['output-reading'] + counts['filter']) > 500;
     } catch (e) { return false; }
   })());
 
@@ -13784,6 +13788,101 @@ test('v4.84.1 SidebarFix: network-analysis maps to itself in SIDEBAR_ACTIVE_MAP'
   /'network-analysis': 'network-analysis'/.test(js));
 test('v4.84.1 SidebarFix: network-analysis label declared in breadcrumb map',
   /'network-analysis': 'Network Analysis'/.test(js));
+
+// ══════════════════════════════════════════════════════════════════════════
+// v4.85.0 — Network Analysis Phase 2 (descoped): Filter Recognition Qs +
+// BPF vs Display Filter lesson. Original Phase 2 was a full filter-builder
+// UI; descoped to filter-recognition MCQs + side-by-side cheatsheet after
+// exam-prep review showed the N10-009 tests recognition, not construction.
+// ══════════════════════════════════════════════════════════════════════════
+
+test('v4.85.0 FilterRecognition: bank has at least 42 questions (32 original + 10 filter)',
+  (() => {
+    const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    const entries = m[1].match(/id: 'na-/g) || [];
+    return entries.length >= 42;
+  })());
+test('v4.85.0 FilterRecognition: bank has 10 filter-category questions',
+  (() => {
+    const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
+    if (!m) return false;
+    const filterEntries = m[1].match(/id: 'na-filter-/g) || [];
+    return filterEntries.length >= 10;
+  })());
+test('v4.85.0 FilterRecognition: NA_CATEGORY_LABELS includes filter entry',
+  /'filter': 'Filter syntax recognition'/.test(js));
+test('v4.85.0 FilterRecognition: 4th lesson (bpf-vs-display) has side-by-side cheatsheet',
+  (() => {
+    const m = js.match(/id: 'bpf-vs-display'[\s\S]*?cheatsheet: \[([\s\S]*?)\]/);
+    if (!m) return false;
+    // Cheatsheet should contain BPF/Display comparison entries
+    return /BPF:/.test(m[1]) && /Display:/.test(m[1]);
+  })());
+test('v4.85.0 FilterRecognition: dashboard text updated to 5 categories',
+  /all 5 categories/.test(js));
+test('v4.85.0 FilterRecognition: drills tile subtitle includes Filters',
+  /Filters/.test(html));
+
+// vm fixture — filter questions test the BPF-vs-display-filter conceptual gap
+test('v4.85.0 FilterRecognition: vm fixture — filter question tests BPF vs display syntax',
+  (() => {
+    try {
+      // Verify the bank contains the #1 trip-up question (BPF syntax in tcpdump)
+      const m = js.match(/const NETWORK_ANALYSIS_BANK = \[([\s\S]*?)\n\];/);
+      if (!m) return false;
+      const bankStr = m[1];
+      // The killer question: using display filter syntax in tcpdump
+      const hasBpfTripUp = /tcp\.port == 80.*tcpdump.*BPF syntax, not Wireshark display filter/s.test(bankStr)
+        || /tcpdump.*BPF syntax.*tcp\.port == 80/s.test(bankStr);
+      // The comparison question: same query in both syntaxes
+      const hasSideBySide = /same logical filter.*BOTH.*BPF.*display filter/si.test(bankStr);
+      return hasBpfTripUp && hasSideBySide;
+    } catch (e) { return false; }
+  })());
+
+// vm fixture — new filter category integrates into weighted picker
+test('v4.85.0 FilterRecognition: vm fixture — filter category gets weighted in picker',
+  (() => {
+    try {
+      const pickBody = _fnBody(js, '_naPickNextQuestion');
+      const getMasteryBody = _fnBody(js, 'naGetMastery');
+      const initBody = _fnBody(js, '_naInitMastery');
+      if (!pickBody || !getMasteryBody || !initBody) return false;
+      const vm = require('vm');
+      const fakeBank = [
+        { id: 'q-tcpdump', category: 'tcpdump' },
+        { id: 'q-filter', category: 'filter' }
+      ];
+      // tcpdump mastered, filter never tried
+      const fakeMastery = {
+        'tcpdump': { right: 10, total: 10 },
+        'wireshark': { right: 10, total: 10 },
+        'nmap': { right: 10, total: 10 },
+        'output-reading': { right: 10, total: 10 },
+        'filter': { right: 0, total: 0 }
+      };
+      const ctx = {
+        STORAGE: { NA_MASTERY: 'nplus_na_mastery' },
+        NA_CATEGORIES: ['tcpdump', 'wireshark', 'nmap', 'output-reading', 'filter'],
+        NETWORK_ANALYSIS_BANK: fakeBank,
+        localStorage: { getItem: () => JSON.stringify(fakeMastery) },
+        JSON, Math, Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(initBody, ctx);
+      vm.runInContext(getMasteryBody, ctx);
+      vm.runInContext(pickBody, ctx);
+      // With all others mastered and filter never-tried, filter must dominate
+      let filterCount = 0;
+      for (let i = 0; i < 200; i++) {
+        const pick = vm.runInContext('_naPickNextQuestion(null)', ctx);
+        if (pick && pick.category === 'filter') filterCount++;
+      }
+      // filter (3x weight, never-tried) should be > 50% of picks
+      return filterCount > 100;
+    } catch (e) { return false; }
+  })());
 
 // v4.81.29: multi-select prompt quality criteria — user dogfood feedback
 // that the second correct answer was almost always obscure while distractors

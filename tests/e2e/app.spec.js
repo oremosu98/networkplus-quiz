@@ -1860,18 +1860,19 @@ test.describe('Network Analysis Drill — Phase 1 MVP', () => {
     await expect(page.locator('.na-explanation')).toHaveCount(0); // explanation gone on fresh Q
   });
 
-  test('Lessons tab shows 3 lessons with progress indicators', async ({ page }) => {
+  test('Lessons tab shows 4 lessons with progress indicators', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => window.startNetworkAnalysisDrill());
     await page.locator('#na-tab-btn-lessons').click();
     await expect(page.locator('#na-tab-lessons')).not.toHaveClass(/is-hidden/);
 
-    // 3 lesson tiles
+    // 4 lesson tiles (v4.85.0 added bpf-vs-display)
     const tiles = page.locator('.na-lesson-tile');
-    await expect(tiles).toHaveCount(3);
+    await expect(tiles).toHaveCount(4);
     await expect(tiles.nth(0)).toContainText('tcpdump');
     await expect(tiles.nth(1)).toContainText('Wireshark');
     await expect(tiles.nth(2)).toContainText('Nmap');
+    await expect(tiles.nth(3)).toContainText('BPF vs Display');
   });
 
   test('opening a lesson shows step 1 with cheatsheet on final step', async ({ page }) => {
@@ -1912,20 +1913,21 @@ test.describe('Network Analysis Drill — Phase 1 MVP', () => {
 
   test('Dashboard shows category mastery cards after attempts', async ({ page }) => {
     await page.goto('/');
-    // Seed mastery so dashboard has data
+    // Seed mastery so dashboard has data (v4.85.0: 5 categories incl. filter)
     await page.evaluate(() => {
       localStorage.setItem('nplus_na_mastery', JSON.stringify({
         'tcpdump': { right: 8, total: 10 },
         'wireshark': { right: 3, total: 6 },
         'nmap': { right: 4, total: 4 },
-        'output-reading': { right: 0, total: 0 }
+        'output-reading': { right: 0, total: 0 },
+        'filter': { right: 0, total: 0 }
       }));
     });
     await page.evaluate(() => window.startNetworkAnalysisDrill());
     // With data, default tab should be Dashboard
     await expect(page.locator('#na-tab-btn-dashboard')).toHaveClass(/na-tab-active/);
-    // 4 category cards
-    await expect(page.locator('.na-cat-card')).toHaveCount(4);
+    // 5 category cards (v4.85.0: added filter syntax recognition)
+    await expect(page.locator('.na-cat-card')).toHaveCount(5);
     // Weakest callout — wireshark at 50%
     await expect(page.locator('.na-dash-callout')).toContainText('Wireshark display filters');
   });
