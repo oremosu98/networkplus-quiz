@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.1
+// Network+ AI Quiz — app.js  v4.85.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.1';
+const APP_VERSION = '4.85.2';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5772,6 +5772,31 @@ function startSrReview() {
     } catch (_) { /* tolerate scrub errors — defensive only */ }
     due = dueOk;
   }
+
+  // v4.85.2: quality scrub — remove cards enrolled before v4.81.16 that
+  // would now fail validation. User dogfood: "Which TWO non-overlapping
+  // 2.4 GHz channels" kept surfacing in SR review because the card was
+  // enrolled pre-fix. Runs the same two checks that validateQuestions
+  // uses: stem-vs-answer-count mismatch + multi-select GT facts.
+  // Permanently scrubs bad cards so they don't keep resurfacing.
+  try {
+    const qualityOk = due.filter(c => {
+      if (typeof _stemNumericMatchesAnswerCount === 'function' && !_stemNumericMatchesAnswerCount(c)) return false;
+      if (typeof _multiSelectGroundTruthOk === 'function' && !_multiSelectGroundTruthOk(c)) return false;
+      return true;
+    });
+    if (qualityOk.length < due.length) {
+      const badIds = new Set(due.filter(c => !qualityOk.includes(c)).map(c => c.id || c.question));
+      try {
+        const queue = loadSrQueue();
+        const cleaned = queue.filter(c => !badIds.has(c.id || c.question));
+        if (cleaned.length < queue.length) {
+          saveSrQueue(cleaned);
+        }
+      } catch (_) { /* tolerate scrub errors */ }
+      due = qualityOk;
+    }
+  } catch (_) { /* tolerate quality-scrub errors — defensive only */ }
 
   if (due.length === 0) {
     showToast('No cards due for review right now', 'info');

@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.1', js.includes("const APP_VERSION = '4.85.1"));
+test('APP_VERSION is 4.85.2', js.includes("const APP_VERSION = '4.85.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.1', sw.includes('netplus-v4.85.1'));
+test('SW cache bumped to v4.85.2', sw.includes('netplus-v4.85.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12698,6 +12698,9 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         { id: 'mcq-good', type: 'mcq', question: 'Real Q?', options: { A: 'a', B: 'b' }, answer: 'A', nextReview: 0, graduated: false },
         { id: 'multi-good', type: 'multi-select', question: 'Pick 2', options: { A: 'a', B: 'b', C: 'c' }, answers: ['A', 'C'], nextReview: 0, graduated: false }
       ];
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
       const ctx = {
         getSrDueEntries: () => fakeQueue.slice(),
         loadSrQueue: () => fakeQueue.slice(),
@@ -12709,11 +12712,18 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         },
         _renderSrCard: () => {},
         _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
-        Math,
-        Set, Object, Array, console
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
       };
       vm.createContext(ctx);
+      if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
+      if (stemBody) vm.runInContext(stemBody, ctx);
+      if (gtBody) vm.runInContext(gtBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -12747,13 +12757,16 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
       if (!body) return false;
       const vm = require('vm');
       let saveCallCount = 0;
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
       const fakeQueue = [
-        { id: 'mcq-1', type: 'mcq', nextReview: 0, graduated: false },
-        { id: 'multi-1', type: 'multi-select', nextReview: 0, graduated: false }
+        { id: 'mcq-1', type: 'mcq', question: 'What is DNS?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', nextReview: 0, graduated: false },
+        { id: 'multi-1', type: 'multi-select', question: '(Choose TWO) Pick two.', options: { A: 'a', B: 'b', C: 'c' }, answers: ['A', 'B'], nextReview: 0, graduated: false }
       ];
       const ctx = {
-        getSrDueEntries: () => fakeQueue.slice(),
-        loadSrQueue: () => fakeQueue.slice(),
+        getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
+        loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => { saveCallCount++; },
         showToast: () => {},
         showPage: () => {},
@@ -12762,11 +12775,18 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
         },
         _renderSrCard: () => {},
         _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
-        Math,
-        Set, Object, Array, console
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
       };
       vm.createContext(ctx);
+      if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
+      if (stemBody) vm.runInContext(stemBody, ctx);
+      if (gtBody) vm.runInContext(gtBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
       return saveCallCount === 0 && ctx._srSession && ctx._srSession.cards.length === 2;
@@ -13950,14 +13970,17 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
       const body = _fnBody(js, 'startSrReview');
       if (!body) return false;
       const vm = require('vm');
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
       // Build 30 fake due mcq cards
       const fakeQueue = [];
       for (let i = 0; i < 30; i++) {
-        fakeQueue.push({ id: 'card-' + i, type: 'mcq', nextReview: 0, graduated: false });
+        fakeQueue.push({ id: 'card-' + i, type: 'mcq', question: 'Q' + i + '?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', nextReview: 0, graduated: false });
       }
       const ctx = {
-        getSrDueEntries: () => fakeQueue.slice(),
-        loadSrQueue: () => fakeQueue.slice(),
+        getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
+        loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => {},
         showToast: () => {},
         showPage: () => {},
@@ -13966,11 +13989,18 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
         },
         _renderSrCard: () => {},
         _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
-        Math,
-        Set, Object, Array, console
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
       };
       vm.createContext(ctx);
+      if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
+      if (stemBody) vm.runInContext(stemBody, ctx);
+      if (gtBody) vm.runInContext(gtBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -13994,13 +14024,16 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
       const body = _fnBody(js, 'startSrReview');
       if (!body) return false;
       const vm = require('vm');
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
       const fakeQueue = [];
       for (let i = 0; i < 5; i++) {
-        fakeQueue.push({ id: 'card-' + i, type: 'mcq', nextReview: 0, graduated: false });
+        fakeQueue.push({ id: 'card-' + i, type: 'mcq', question: 'Q' + i + '?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', nextReview: 0, graduated: false });
       }
       const ctx = {
-        getSrDueEntries: () => fakeQueue.slice(),
-        loadSrQueue: () => fakeQueue.slice(),
+        getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
+        loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => {},
         showToast: () => {},
         showPage: () => {},
@@ -14009,11 +14042,18 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
         },
         _renderSrCard: () => {},
         _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
-        Math,
-        Set, Object, Array, console
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
       };
       vm.createContext(ctx);
+      if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
+      if (stemBody) vm.runInContext(stemBody, ctx);
+      if (gtBody) vm.runInContext(gtBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -14021,6 +14061,155 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
       if (!session) return false;
       // All 5 cards present (no capping)
       return session.cards.length === 5 && session.totalDueCount === 5;
+    } catch (e) { return false; }
+  })());
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.85.2 — SR Quality Scrub: remove pre-v4.81.16 bad cards from the
+// SR queue at session start. User dogfood: "Which TWO non-overlapping
+// 2.4 GHz channels" kept surfacing because the card was enrolled before
+// the stem-vs-answer-count + GT facts validators were added.
+// ═══════════════════════════════════════════════════════════════════════
+
+test('v4.85.2 SRQualityScrub: startSrReview calls _stemNumericMatchesAnswerCount',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /_stemNumericMatchesAnswerCount/.test(body);
+  })());
+
+test('v4.85.2 SRQualityScrub: startSrReview calls _multiSelectGroundTruthOk',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /_multiSelectGroundTruthOk/.test(body);
+  })());
+
+test('v4.85.2 SRQualityScrub: quality scrub permanently removes bad cards from storage',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /qualityOk\.length\s*<\s*due\.length/.test(body)
+      && /saveSrQueue/.test(body);
+  })());
+
+test('v4.85.2 SRQualityScrub: quality scrub wrapped in try/catch for safety',
+  (() => {
+    const body = _fnBody(js, 'startSrReview');
+    return body && /tolerate quality-scrub errors/.test(body);
+  })());
+
+// vm-fixture: "Which TWO" + 2 answers (bad stem-vs-count) gets scrubbed,
+// valid mcq card survives.
+test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrubbed from session + storage',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
+      if (!body || !stemBody || !gtBody || !getQTypeBody) return false;
+      const vm = require('vm');
+      let savedQueue = null;
+      // Bad card: "Which TWO" but only 2 answers when it should be 3
+      const badCard = {
+        id: 'bad-wifi-channels',
+        type: 'multi-select',
+        question: 'Which TWO of the following are non-overlapping frequency channels in the 2.4 GHz Wi-Fi band?',
+        options: { A: 'Channel 2', B: 'Channel 1', C: 'Channel 6', D: 'Channel 9', E: 'Channel 11' },
+        answers: ['B', 'C'],  // only 2 — but the stem says TWO and the real answer is 1,6,11 (THREE)
+        nextReview: 0,
+        graduated: false
+      };
+      const goodCard = {
+        id: 'good-mcq',
+        type: 'mcq',
+        question: 'What does ARP stand for?',
+        options: { A: 'Address Resolution Protocol', B: 'Application Routing Protocol', C: 'Automatic Resource Protocol', D: 'Access Relay Protocol' },
+        answer: 'A',
+        nextReview: 0,
+        graduated: false
+      };
+      const fakeQueue = [badCard, goodCard];
+      const ctx = {
+        getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
+        loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
+        saveSrQueue: (q) => { savedQueue = q; },
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
+        SR_SESSION_CAP: 20,
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
+      };
+      vm.createContext(ctx);
+      vm.runInContext(getQTypeBody, ctx);
+      vm.runInContext(stemBody, ctx);
+      vm.runInContext(gtBody, ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+
+      const session = ctx._srSession;
+      if (!session) return false;
+      // Session should have only the good card (bad one scrubbed)
+      const sessionOk = session.cards.length === 1
+        && session.cards[0].id === 'good-mcq';
+      // Storage should have been permanently cleaned
+      const storageOk = savedQueue !== null
+        && savedQueue.length === 1
+        && savedQueue[0].id === 'good-mcq';
+      return sessionOk && storageOk;
+    } catch (e) { return false; }
+  })());
+
+// vm-fixture: all-clean queue → no quality scrub write
+test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scrub write',
+  (() => {
+    try {
+      const body = _fnBody(js, 'startSrReview');
+      const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
+      const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
+      const getQTypeBody = _fnBody(js, 'getQType');
+      if (!body || !stemBody || !gtBody || !getQTypeBody) return false;
+      const vm = require('vm');
+      let saveCallCount = 0;
+      const goodCards = [
+        { id: 'mcq-1', type: 'mcq', question: 'What is DNS?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', nextReview: 0, graduated: false },
+        { id: 'mcq-2', type: 'mcq', question: 'What is DHCP?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'B', nextReview: 0, graduated: false }
+      ];
+      const ctx = {
+        getSrDueEntries: () => goodCards.map(c => Object.assign({}, c)),
+        loadSrQueue: () => goodCards.map(c => Object.assign({}, c)),
+        saveSrQueue: () => { saveCallCount++; },
+        showToast: () => {},
+        showPage: () => {},
+        document: {
+          getElementById: () => ({ hidden: true, textContent: '', style: {} })
+        },
+        _renderSrCard: () => {},
+        _srSession: null,
+        _stemNumericMatchesAnswerCount: null,
+        _multiSelectGroundTruthOk: null,
+        getQType: null,
+        _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
+        SR_SESSION_CAP: 20,
+        Math, parseInt, Number,
+        Set, Object, Array, String, console, RegExp
+      };
+      vm.createContext(ctx);
+      vm.runInContext(getQTypeBody, ctx);
+      vm.runInContext(stemBody, ctx);
+      vm.runInContext(gtBody, ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('startSrReview()', ctx);
+
+      // No scrub writes should have fired (both type-scrub and quality-scrub skip)
+      return saveCallCount === 0 && ctx._srSession && ctx._srSession.cards.length === 2;
     } catch (e) { return false; }
   })());
 
