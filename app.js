@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.8
+// Network+ AI Quiz — app.js  v4.85.9
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.8';
+const APP_VERSION = '4.85.9';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -7295,7 +7295,7 @@ function _computeNextBestMove() {
         type: 'daily-challenge',
         icon: '🎯',
         title: 'Today’s daily challenge',
-        sub: '5 questions · ~3 min' + streakSub,
+        sub: '1 question · ~1 min' + streakSub,
         ctaLabel: 'Take challenge →',
         ctaFn: 'startDailyChallenge()',
         reason: 'Keeps your streak alive'
