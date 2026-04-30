@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.7', js.includes("const APP_VERSION = '4.85.7"));
+test('APP_VERSION is 4.85.8', js.includes("const APP_VERSION = '4.85.8"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.7', sw.includes('netplus-v4.85.7'));
+test('SW cache bumped to v4.85.8', sw.includes('netplus-v4.85.8'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -343,7 +343,7 @@ test('computeDomainDistribution helper', js.includes('function computeDomainDist
 test('N10-009 objective regex used in validation', /\(\[1-5\]\\\.\[1-8\]\)/.test(js));
 test('Prompt requires objective field', js.includes('MANDATORY N10-009 OBJECTIVE TAGGING'));
 test('Prompt: objective in JSON schema', js.includes('"objective":"X.Y"'));
-test('Mixed mode domain distribution', js.includes('MANDATORY DOMAIN DISTRIBUTION'));
+test('Mixed mode topic lottery (v4.85.8: replaces MANDATORY DOMAIN DISTRIBUTION)', js.includes('MANDATORY TOPIC LOTTERY'));
 test('validateQuestions enforces objective', js.includes('q.objective') && js.includes('[1-5]\\.[1-8]'));
 test('injectPBQs stamps objective', js.includes('objective: obj'));
 // computeDomainDistribution math — largest remainder adds up to n, respects 23/20/19/14/24
@@ -12317,6 +12317,94 @@ test('v4.81.15 Stale: _computeStaleTopics helper defined',
   /function _computeStaleTopics\(/.test(js));
 test('v4.81.15 Stale: _formatStaleTopicsForPrompt helper defined',
   /function _formatStaleTopicsForPrompt\(/.test(js));
+// v4.85.8: Mixed mode TOPIC LOTTERY — pre-samples specific topics from each
+// domain so Haiku can't default to its 4-5 favorite topics. User: "increase
+// the randomization of the topics so it's genuinely like a lottery."
+test('v4.85.8 Lottery: _sampleTopicsForMixedBatch helper defined',
+  /function _sampleTopicsForMixedBatch\(/.test(js));
+test('v4.85.8 Lottery: prompt uses MANDATORY TOPIC LOTTERY label',
+  js.includes('MANDATORY TOPIC LOTTERY'));
+test('v4.85.8 Lottery: stale-topic block updated to reference TOPIC LOTTERY',
+  (() => {
+    const body = _fnBody(js, '_formatStaleTopicsForPrompt');
+    return body && /TOPIC LOTTERY/.test(body) && !/MANDATORY DOMAIN DISTRIBUTION/.test(body);
+  })());
+test('v4.85.8 Lottery: vm fixture — sampler returns dist[domain] distinct topics per domain',
+  (() => {
+    try {
+      const body = _fnBody(js, '_sampleTopicsForMixedBatch');
+      if (!body) return false;
+      const vm = require('vm');
+      // Minimal fake TOPIC_DOMAINS for deterministic test
+      const fakeDomains = {
+        'C1': 'concepts', 'C2': 'concepts', 'C3': 'concepts', 'C4': 'concepts',
+        'I1': 'implementation', 'I2': 'implementation', 'I3': 'implementation',
+        'O1': 'operations', 'O2': 'operations',
+        'S1': 'security', 'S2': 'security',
+        'T1': 'troubleshooting', 'T2': 'troubleshooting'
+      };
+      const ctx = { TOPIC_DOMAINS: fakeDomains, Math, Object, Array };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const dist = { concepts: 3, implementation: 2, operations: 1, security: 2, troubleshooting: 1 };
+      const result = vm.runInContext('_sampleTopicsForMixedBatch(' + JSON.stringify(dist) + ')', ctx);
+      // Each domain should have exactly dist[domain] entries, all distinct
+      const sizesOk = result.concepts.length === 3
+        && result.implementation.length === 2
+        && result.operations.length === 1
+        && result.security.length === 2
+        && result.troubleshooting.length === 1;
+      const distinctOk = new Set(result.concepts).size === 3
+        && new Set(result.implementation).size === 2
+        && new Set(result.security).size === 2;
+      // Topics should come from the right domain
+      const domainOk = result.concepts.every(t => fakeDomains[t] === 'concepts')
+        && result.implementation.every(t => fakeDomains[t] === 'implementation')
+        && result.troubleshooting.every(t => fakeDomains[t] === 'troubleshooting');
+      return sizesOk && distinctOk && domainOk;
+    } catch (e) { return false; }
+  })());
+test('v4.85.8 Lottery: vm fixture — sampler handles need > pool size with replacement',
+  (() => {
+    try {
+      const body = _fnBody(js, '_sampleTopicsForMixedBatch');
+      if (!body) return false;
+      const vm = require('vm');
+      // Tiny domain with only 2 topics; ask for 5
+      const fakeDomains = { 'A': 'security', 'B': 'security' };
+      const ctx = { TOPIC_DOMAINS: fakeDomains, Math, Object, Array };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const dist = { concepts: 0, implementation: 0, operations: 0, security: 5, troubleshooting: 0 };
+      const result = vm.runInContext('_sampleTopicsForMixedBatch(' + JSON.stringify(dist) + ')', ctx);
+      // Should still return exactly 5 entries
+      return result.security.length === 5
+        && result.security.every(t => t === 'A' || t === 'B');
+    } catch (e) { return false; }
+  })());
+test('v4.85.8 Lottery: vm fixture — two consecutive samples produce different orderings',
+  (() => {
+    try {
+      const body = _fnBody(js, '_sampleTopicsForMixedBatch');
+      if (!body) return false;
+      const vm = require('vm');
+      const fakeDomains = {};
+      // Build a domain with 10 topics so collision is unlikely
+      for (let i = 0; i < 10; i++) fakeDomains['T' + i] = 'concepts';
+      const ctx = { TOPIC_DOMAINS: fakeDomains, Math, Object, Array };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const dist = { concepts: 5, implementation: 0, operations: 0, security: 0, troubleshooting: 0 };
+      // Run 5 samples — at least 2 should be different (with 10 choose 5 = 252 combos, collision is rare)
+      const samples = [];
+      for (let i = 0; i < 5; i++) {
+        samples.push(vm.runInContext('_sampleTopicsForMixedBatch(' + JSON.stringify(dist) + ')', ctx).concepts.join(','));
+      }
+      const distinctCount = new Set(samples).size;
+      return distinctCount >= 2;
+    } catch (e) { return false; }
+  })());
+
 // v4.81.23 tombstone: renderRotationChips removed (stale-topic signal now
 // drives the consolidated #today-plan card via buildSessionPlan).
 test('v4.81.23 tombstone: renderRotationChips function removed',
@@ -12359,8 +12447,8 @@ test('v4.81.15 Stale: parallel-batch sub-batches get outerIdx + i for inner rota
   /_fetchQuestionsBatch\(key, qTopic, difficulty, size, pbqBudgets\[i\], outerIdx \+ i\)/.test(js));
 test('v4.81.15 Stale: prompt block uses ROTATION PRIORITY framing (not mandate)',
   /ROTATION PRIORITY:.*hasn['’]t practised these/.test(js));
-test('v4.81.15 Stale: prompt block instructs Haiku to stay within blueprint weights',
-  /stay within the blueprint weights/.test(js));
+test('v4.81.15 Stale: prompt block instructs Haiku not to substitute lottery topics (v4.85.8: replaced "stay within blueprint weights" with "lottery is fixed")',
+  /lottery is fixed/.test(js));
 // v4.81.23 tombstones: stale-topic rendering surfaces consolidated.
 // The stale signal now drives #today-plan via buildSessionPlan; the
 // dedicated #rotation-row element + .rotation-row/.rot-* CSS were
@@ -12497,7 +12585,7 @@ test('v4.81.15 Stale: vm fixture — prompt formatter handles never-studied vs s
         && /55% accuracy/.test(result)
         && /IPv6/.test(result)
         && /never studied/.test(result)
-        && /MANDATORY DOMAIN DISTRIBUTION/.test(result)
+        && /TOPIC LOTTERY/.test(result)
         && !/9999d ago/.test(result); // never-studied uses sentinel, not days
     } catch (e) { return false; }
   })());

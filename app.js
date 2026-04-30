@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.7
+// Network+ AI Quiz — app.js  v4.85.8
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.7';
+const APP_VERSION = '4.85.8';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -8919,11 +8919,33 @@ async function _fetchQuestionsBatch(key, qTopic, difficulty, n, pbqCountOverride
     'SDN, NFV & Automation': 'SDN: control/data plane separation. SDN controller, northbound/southbound APIs, OpenFlow. NFV: VNF, virtualising network functions. IaC: Ansible, Terraform, Puppet. YANG/NETCONF. Intent-based networking. REST APIs. Zero-touch provisioning.',
     'Network Appliances & Device Functions': 'Load balancers (hardware vs software, Layer 4 vs Layer 7, algorithms: round-robin / least-connections / weighted / source-IP hash, active-active vs active-passive, health checks, SSL/TLS offloading). Proxy servers: forward proxy (outbound filtering, anonymity, caching), reverse proxy (inbound distribution, caching, SSL termination, hides backend topology), transparent proxy (inline, no client config needed). IDS/IPS/NIDS/NIPS: detection vs prevention, signature-based vs anomaly-based/behavioural, in-line vs passive/tap placement. Next-Generation Firewall (NGFW) and Unified Threat Management (UTM) — app-aware filtering, deep packet inspection, bundled AV + IPS + content filter. VPN concentrator. Content/URL filter / web filter. Wireless access points (WAP) and Wireless LAN Controllers (WLC) — autonomous vs lightweight APs. Layer 3 capable switch / multilayer switch. Cable modem, DSL modem, ONT (fiber optical network terminal). Covers device selection, placement, distinctions between similar appliances (proxy vs reverse proxy vs load balancer; IDS vs IPS; NGFW vs UTM).'
   };
-  // N10-009 domain-weighted distribution for Mixed mode (23/20/19/14/24)
+  // v4.85.8: N10-009 domain-weighted distribution + per-batch TOPIC LOTTERY for
+  // Mixed mode. Pre-samples specific topics from each domain (vs letting Haiku
+  // choose) so the user gets a genuinely random spread instead of Haiku's
+  // 4-5 default-favorite topics. Each batch independently re-samples, so two
+  // back-to-back Mixed sessions produce different topic mixes.
   let mixedDistributionStr = '';
   if (qTopic === MIXED_TOPIC) {
     const dist = computeDomainDistribution(n);
-    mixedDistributionStr = `\n\nMANDATORY DOMAIN DISTRIBUTION (CompTIA N10-009 official weights): Of the ${n} questions, generate exactly:\n- ${dist.concepts} from Domain 1.0 Networking Concepts (23%) — topics like OSI, TCP/IP, subnetting, IPv6, DNS, DHCP, NAT, ports, cloud, virtualisation\n- ${dist.implementation} from Domain 2.0 Network Implementation (20%) — routing, switching, VLANs, wireless, Ethernet, cabling, SDN, data center architectures\n- ${dist.operations} from Domain 3.0 Network Operations (19%) — network ops, monitoring/SNMP, WAN, SD-WAN/SASE, BCDR, data centres\n- ${dist.security} from Domain 4.0 Network Security (14%) — securing TCP/IP, firewalls, AAA, IPsec/VPN, PKI, WPA3, attacks & threats, physical security\n- ${dist.troubleshooting} from Domain 5.0 Network Troubleshooting (24%) — methodology, tools (ping/trace/netstat), common faults\n`;
+    const sampled = _sampleTopicsForMixedBatch(dist);
+    const fmt = (arr) => arr.length === 0 ? '  (none this batch)' : arr.map(t => '  - "' + t + '"').join('\n');
+    mixedDistributionStr = `\n\nMANDATORY TOPIC LOTTERY — Of the ${n} questions, generate EXACTLY ONE question per topic listed below (${n} topics total). Each question's .topic field MUST match the assigned topic verbatim. This is a true random sample — do NOT skip topics, do NOT repeat topics, and do NOT substitute "easier" topics for the ones listed.
+
+Domain 1.0 — Networking Concepts (${dist.concepts} questions, 23% of exam):
+${fmt(sampled.concepts)}
+
+Domain 2.0 — Network Implementation (${dist.implementation} questions, 20%):
+${fmt(sampled.implementation)}
+
+Domain 3.0 — Network Operations (${dist.operations} questions, 19%):
+${fmt(sampled.operations)}
+
+Domain 4.0 — Network Security (${dist.security} questions, 14%):
+${fmt(sampled.security)}
+
+Domain 5.0 — Network Troubleshooting (${dist.troubleshooting} questions, 24%):
+${fmt(sampled.troubleshooting)}
+`;
   }
   // v4.54.15: multi-topic mode \u2014 Custom Quiz selected 2+ specific topics.
   // Parse the list out of the "Multi: ..." sentinel and build a distribution
@@ -9008,8 +9030,8 @@ CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
     : '';
 
   // v4.81.15: stale-topic rotation block — surfaces topics the user
-  // hasn't practised in WEAK_STALENESS_DAYS+ as a soft preference within
-  // the existing MANDATORY DOMAIN DISTRIBUTION. Only fires for MIXED_TOPIC
+  // hasn't practised in WEAK_STALENESS_DAYS+ as a depth/difficulty hint
+  // within the v4.85.8 TOPIC LOTTERY. Only fires for MIXED_TOPIC
   // (single-topic quizzes already focus there; multi-topic mode honours
   // the user's explicit selection). Defensive — never blocks the fetch
   // on a stale-topic compute error.
@@ -10898,6 +10920,44 @@ const DOMAIN_LABELS = {
   security:        'Network Security',
   troubleshooting: 'Network Troubleshooting'
 };
+// v4.85.8: Mixed mode topic lottery — randomly samples distinct topics from each
+// domain's pool so Haiku can't default to its 4-5 favorite topics (subnetting,
+// OSI, DNS, ping, troubleshooting methodology). Returns
+// { concepts: [topicA, topicB, ...], implementation: [...], ... } where each
+// array contains exactly dist[domain] topic names. Topics are unique within a
+// domain unless dist[domain] exceeds pool size (then sampling-with-replacement).
+// User: *"increase the randomization of the topics so it's genuinely like a lottery."*
+function _sampleTopicsForMixedBatch(dist) {
+  const byDomain = { concepts: [], implementation: [], operations: [], security: [], troubleshooting: [] };
+  Object.keys(TOPIC_DOMAINS).forEach(t => {
+    const d = TOPIC_DOMAINS[t];
+    if (byDomain[d]) byDomain[d].push(t);
+  });
+  const shuffle = (arr) => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const result = { concepts: [], implementation: [], operations: [], security: [], troubleshooting: [] };
+  Object.keys(byDomain).forEach(d => {
+    const need = dist[d] || 0;
+    if (need <= 0) return;
+    const pool = byDomain[d];
+    if (need <= pool.length) {
+      result[d] = shuffle(pool).slice(0, need);
+    } else {
+      // Need more than available — fill from shuffled pool, repeat as needed
+      const out = [];
+      while (out.length < need) out.push(...shuffle(pool));
+      result[d] = out.slice(0, need);
+    }
+  });
+  return result;
+}
+
 // Largest-remainder allocation of n questions across the 5 CompTIA domains per official weights
 function computeDomainDistribution(n) {
   const order = ['concepts','implementation','operations','security','troubleshooting'];
@@ -12037,7 +12097,7 @@ function _formatStaleTopicsForPrompt(staleTopics) {
       : `last seen ${s.daysSince}d ago, ~${Math.round(s.posterior * 100)}% accuracy`;
     return `- "${s.topic}" (${accNote})`;
   }).join('\n');
-  return `\n\nROTATION PRIORITY: the student hasn't practised these ${staleTopics.length} topics in a while AND/OR has historically struggled with them. Within the MANDATORY DOMAIN DISTRIBUTION above, prefer these topics whenever a domain slot can plausibly cover one. Do NOT force them into unrelated domains, and do NOT skew the domain percentages — stay within the blueprint weights, but bias topic selection within each domain toward this list when reasonable:\n${lines}`;
+  return `\n\nROTATION PRIORITY: the student hasn't practised these ${staleTopics.length} topics in a while AND/OR has historically struggled with them. If any of these topics appears in the TOPIC LOTTERY above, dig deeper — pick the trickier exam edge cases for that topic, not the easy recall question. Do NOT add or substitute topics; the lottery is fixed:\n${lines}`;
 }
 
 // ── v4.43.1: Weak-spots → Subnet Trainer bridge ───────────────────────
