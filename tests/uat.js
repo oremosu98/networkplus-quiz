@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.5', js.includes("const APP_VERSION = '4.85.5"));
+test('APP_VERSION is 4.85.6', js.includes("const APP_VERSION = '4.85.6"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.5', sw.includes('netplus-v4.85.5'));
+test('SW cache bumped to v4.85.6', sw.includes('netplus-v4.85.6'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12275,6 +12275,37 @@ test('v4.85.5 NA mastery backfill: vm fixture — startNetworkAnalysisDrill surv
       // Should NOT throw, and should set tab to 'dashboard' (totalAttempts = 2)
       vm.runInContext('startNetworkAnalysisDrill()', ctx);
       return tabSet === 'dashboard';
+    } catch (e) { return false; }
+  })());
+
+// v4.85.6: Remove order-type questions — not on CompTIA N10-009 exam
+test('v4.85.6 NoOrder: generation prompt has no ORDERING format',
+  (() => {
+    const body = _fnBody(js, '_fetchQuestionsBatch');
+    return body && !/ORDERING \(put 4-5 items/.test(body)
+      && !/type.*order.*question.*Arrange/.test(body);
+  })());
+test('v4.85.6 NoOrder: validateQuestions rejects order type',
+  (() => {
+    const body = _fnBody(js, 'validateQuestions');
+    return body && /qType === 'order'/.test(body) && /return false/.test(body);
+  })());
+test('v4.85.6 NoOrder: vm fixture — order type rejected by validateQuestions filter logic',
+  (() => {
+    try {
+      // Test the early-exit path: getQType returns 'order' → return false
+      const getQTypeBody = _fnBody(js, 'getQType');
+      if (!getQTypeBody) return false;
+      const vm = require('vm');
+      const ctx = { getQType: null, JSON, String };
+      vm.createContext(ctx);
+      vm.runInContext(getQTypeBody, ctx);
+      // Simulate the filter predicate from validateQuestions lines 15651-15656
+      const orderQ = { type: 'order', question: 'Arrange steps?', explanation: 'Because' };
+      const mcqQ = { type: 'mcq', question: 'Which?', explanation: 'Because' };
+      const msQ = { type: 'multi-select', question: 'Choose TWO?', explanation: 'Because' };
+      const reject = vm.runInContext("(function(q) { var qType = getQType(q); return qType === 'order'; })", ctx);
+      return reject(orderQ) === true && reject(mcqQ) === false && reject(msQ) === false;
     } catch (e) { return false; }
   })());
 

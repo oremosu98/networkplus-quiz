@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.5
+// Network+ AI Quiz — app.js  v4.85.6
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.5';
+const APP_VERSION = '4.85.6';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -74,7 +74,7 @@ const DEFAULT_DIFF = 'Exam Level';
 //
 // Schema per exemplar:
 //   {
-//     type: 'mcq' | 'multi-select' | 'order',  // PBQ types supported later
+//     type: 'mcq' | 'multi-select',  // order type removed in v4.85.6 (not on CompTIA exam)
 //     question: 'The stem — original wording, clear interrogative',
 //     scenario: '(optional) 1-2 sentence setup when context disambiguates',
 //     difficulty: 'Foundational' | 'Exam Level' | 'Hard',
@@ -8978,9 +8978,7 @@ IMPORTANT: Out of the ${n} questions, generate exactly ${mcqCount} as standard M
 For standard MCQ, use this format (scenario is OPTIONAL — only include on ~30-40% of Exam Level / Hard questions where real-world context genuinely disambiguates the answer):
 {"type":"mcq","question":"...","scenario":"(optional — 1-2 sentences of setup context)","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A|B|C|D","explanation":"..."}
 
-For PBQ, use ONE of these two formats:
-
-1. MULTI-SELECT (choose 2 or 3 correct answers from 5 options):
+For PBQ, use MULTI-SELECT format (choose 2 or 3 correct answers from 5 options):
 {"type":"multi-select","question":"(Choose TWO) ...","difficulty":"...","topic":"...","objective":"X.Y","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"answers":["A","C"],"explanation":"..."}
 
 CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
@@ -8997,11 +8995,7 @@ CRITICAL — MULTI-SELECT QUALITY CRITERIA (CompTIA exam style):
   BAD: "Which TWO describe OSPF?" → A) Uses Dijkstra's algorithm (obvious) B) Uses area 0 as backbone (obscure detail) — student gets A easily, guesses on B.
   GOOD: "Which TWO are link-state routing protocols?" → A) OSPF B) IS-IS — both are CORE facts at the same prominence level. A student who studied routing protocols knows both.
   BAD: "Which TWO are used for network monitoring?" → A) SNMP (obvious) B) NetFlow (less obvious) C) Syslog (also valid!) — 3 correct answers crammed into "pick 2."
-  GOOD: "Which TWO protocols use UDP port 161 or 162?" → A) SNMP GET B) SNMP TRAP — narrow, factual, both equally knowable.
-
-2. ORDERING (put 4-5 items in correct order):
-{"type":"order","question":"Arrange these in the correct order...","difficulty":"...","topic":"...","objective":"X.Y","items":["Item one","Item two","Item three","Item four"],"correctOrder":[2,0,3,1],"explanation":"..."}
-For ordering: correctOrder is an array of indices (0-based) representing the correct sequence. correctOrder[0] = index of the item that should be FIRST.` : '';
+  GOOD: "Which TWO protocols use UDP port 161 or 162?" → A) SNMP GET B) SNMP TRAP — narrow, factual, both equally knowable.` : '';
 
   // v4.58.0: pull 3-5 curated exemplars matching this topic/domain to inject
   // as few-shot style references. Empty bank → no-op (returns empty block) so
@@ -9206,7 +9200,7 @@ function getQType(q) {
 // v4.56.0 — Scenario context block helper. Exam-realism practice: real N10-009
 // questions lean on scenario framing ("A technician is configuring X..."). We
 // render an optional 1-3 sentence context block between the question stem and
-// the answer grid. Only fires for MCQ / multi-select / order types — cli-sim
+// the answer grid. Only fires for MCQ / multi-select types — cli-sim
 // and topology already have their own scenario containers inside the options
 // box. Rule enforced by authors: scenario describes ENVIRONMENT, never restates
 // the subject of the question (avoid the "L2 switch → which layer?" trap).
@@ -15656,6 +15650,10 @@ function validateQuestions(qs) {
   return qs.filter(q => {
     const qType = getQType(q);
     if (!q.question || !q.explanation) return false;
+
+    // v4.85.6: Reject ordering questions — CompTIA N10-009 does not use this
+    // format. Stops generation leakage and scrubs any residual order Qs.
+    if (qType === 'order') return false;
 
     // v4.57.2: Reject questions with no actual interrogative in the stem.
     // Caught in the wild: a v4.56.x-era VPN question where the `question`
@@ -34415,19 +34413,15 @@ function _renderAnaWrongPatterns() {
     });
   }
 
-  // Multi-select / Order concentration (PBQ structure issues)
+  // Multi-select concentration (PBQ structure issues)
   const msCount = typeCount['multi-select'] || 0;
-  const orCount = typeCount['order'] || 0;
-  if (msCount + orCount >= 2) {
-    const msDominant = msCount >= orCount;
+  if (msCount >= 2) {
     patterns.push({
       icon: '\ud83e\udd39',
-      title: msDominant ? 'MULTI-SELECT (\u201cCHOOSE TWO\u201d)' : 'ORDER / SEQUENCE',
-      count: msCount + orCount,
-      pctStr: pctStr(msCount + orCount),
-      desc: msDominant
-        ? `You're picking the first correct answer but missing the second. Read <em>every</em> option before submitting \u2014 "Choose TWO" means don't stop at one.`
-        : `Step-by-step sequencing trips you up. Read the whole list before picking the first step \u2014 the "obvious" start is often wrong.`,
+      title: 'MULTI-SELECT (\u201cCHOOSE TWO\u201d)',
+      count: msCount,
+      pctStr: pctStr(msCount),
+      desc: `You're picking the first correct answer but missing the second. Read <em>every</em> option before submitting \u2014 "Choose TWO" means don't stop at one.`,
       drillBtn: null,
       accent: '#8b5cf6'
     });
