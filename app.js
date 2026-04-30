@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.6
+// Network+ AI Quiz — app.js  v4.85.7
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.6';
+const APP_VERSION = '4.85.7';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5748,37 +5748,25 @@ function renderSrReviewCard() {
   }
 }
 
-function startSrReview() {
-  let due = getSrDueEntries();
-
-  // v4.81.31: scrub legacy non-reviewable cards from the queue.
-  // The v4.81.28 enrollment filter (mcq + multi-select only) prevents
-  // NEW order/cli-sim/topology cards from entering the queue, but pre-
-  // v4.81.28 entries are still there and render as broken stem-only
-  // cards (no options field → empty body). User dogfood screenshot
-  // showed an order question rendering with just the stem.
-  // Solution: defensive filter at session start AND quietly write the
-  // scrubbed queue back so the bad entries don't keep coming up.
+// v4.85.7: SR queue scrub helper — extracted from startSrReview() to keep that
+// function under the 80-line tech-debt threshold. Runs both scrub passes:
+//   (1) v4.81.31 type-based: remove non-reviewable types (only mcq + multi-select)
+//   (2) v4.85.2 quality:     remove cards that fail current validators
+// Both passes also persist their scrubs to storage so bad cards don't resurface.
+// All errors swallowed defensively — scrub failure must never block a session.
+function _srScrubQueue(due) {
+  // Pass 1: type-based scrub
   const reviewable = new Set(['mcq', 'multi-select']);
   const dueOk = due.filter(c => reviewable.has(c.type || 'mcq'));
   if (dueOk.length < due.length) {
-    // Permanently scrub non-reviewable cards from storage too.
     try {
       const queue = loadSrQueue();
       const cleaned = queue.filter(c => reviewable.has(c.type || 'mcq'));
-      if (cleaned.length < queue.length) {
-        saveSrQueue(cleaned);
-      }
+      if (cleaned.length < queue.length) saveSrQueue(cleaned);
     } catch (_) { /* tolerate scrub errors — defensive only */ }
     due = dueOk;
   }
-
-  // v4.85.2: quality scrub — remove cards enrolled before v4.81.16 that
-  // would now fail validation. User dogfood: "Which TWO non-overlapping
-  // 2.4 GHz channels" kept surfacing in SR review because the card was
-  // enrolled pre-fix. Runs the same two checks that validateQuestions
-  // uses: stem-vs-answer-count mismatch + multi-select GT facts.
-  // Permanently scrubs bad cards so they don't keep resurfacing.
+  // Pass 2: quality-based scrub
   try {
     const qualityOk = due.filter(c => {
       if (typeof _stemNumericMatchesAnswerCount === 'function' && !_stemNumericMatchesAnswerCount(c)) return false;
@@ -5790,13 +5778,16 @@ function startSrReview() {
       try {
         const queue = loadSrQueue();
         const cleaned = queue.filter(c => !badIds.has(c.id || c.question));
-        if (cleaned.length < queue.length) {
-          saveSrQueue(cleaned);
-        }
+        if (cleaned.length < queue.length) saveSrQueue(cleaned);
       } catch (_) { /* tolerate scrub errors */ }
       due = qualityOk;
     }
-  } catch (_) { /* tolerate quality-scrub errors — defensive only */ }
+  } catch (_) { /* tolerate quality-scrub errors */ }
+  return due;
+}
+
+function startSrReview() {
+  let due = _srScrubQueue(getSrDueEntries());
 
   if (due.length === 0) {
     showToast('No cards due for review right now', 'info');
@@ -6754,6 +6745,41 @@ function completeDiagnostic() {
   showPage('diagnostic-result');
 }
 
+// v4.85.7: extracted from renderDiagnosticResult() — renders the weak-domains
+// list with per-domain accuracy + Fix-this CTA. Mutates DOM directly.
+function _renderPassPlanWeakDomains(p) {
+  const weakHost = document.getElementById('pass-plan-weak-domains');
+  const weakCount = document.getElementById('pass-plan-weak-count');
+  if (weakCount) weakCount.textContent = p.weakDomains.length + ' identified';
+  if (!weakHost) return;
+  weakHost.innerHTML = p.weakDomains.map(d => {
+    const accPct = Math.round(d.accuracy * 100);
+    const onclick = "focusFirstTopicInDomain('" + d.key + "')";
+    return '<div class="pass-plan-weak-row">' +
+      '<div class="pass-plan-weak-info">' +
+      '<div class="pass-plan-weak-name">' + escHtml(d.label) + '</div>' +
+      '<div class="pass-plan-weak-stat"><span class="pct">' + d.correct + ' of ' + d.total + ' correct</span> · ' + accPct + '% on diagnostic</div>' +
+      '</div>' +
+      '<button class="pass-plan-weak-btn" onclick="' + onclick + '">Fix this →</button>' +
+      '</div>';
+  }).join('');
+}
+
+// v4.85.7: extracted from renderDiagnosticResult() — renders the 7-day study
+// strip (today + 6 upcoming days, each with question count + task label).
+function _renderPassPlanWeekStrip(p) {
+  const weekHost = document.getElementById('pass-plan-week-strip');
+  if (!weekHost) return;
+  weekHost.innerHTML = (p.week || []).map((d, i) => {
+    const today = i === 0 ? ' today' : '';
+    return '<div class="pass-plan-day' + today + '">' +
+      '<div class="pass-plan-day-name">' + escHtml(d.name) + '</div>' +
+      '<div class="pass-plan-day-load">' + d.load + ' Q</div>' +
+      '<div class="pass-plan-day-task">' + escHtml(d.task) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
 function renderDiagnosticResult() {
   const record = loadDiagnostic();
   if (!record || !record.passPlan) return;
@@ -6793,23 +6819,8 @@ function renderDiagnosticResult() {
     t.classList.toggle('active', t.dataset.tier === p.dataConfidence);
   });
 
-  // Top 3 weak domains
-  const weakHost = document.getElementById('pass-plan-weak-domains');
-  const weakCount = document.getElementById('pass-plan-weak-count');
-  if (weakCount) weakCount.textContent = p.weakDomains.length + ' identified';
-  if (weakHost) {
-    weakHost.innerHTML = p.weakDomains.map(d => {
-      const accPct = Math.round(d.accuracy * 100);
-      const onclick = "focusFirstTopicInDomain('" + d.key + "')";
-      return '<div class="pass-plan-weak-row">' +
-        '<div class="pass-plan-weak-info">' +
-        '<div class="pass-plan-weak-name">' + escHtml(d.label) + '</div>' +
-        '<div class="pass-plan-weak-stat"><span class="pct">' + d.correct + ' of ' + d.total + ' correct</span> · ' + accPct + '% on diagnostic</div>' +
-        '</div>' +
-        '<button class="pass-plan-weak-btn" onclick="' + onclick + '">Fix this →</button>' +
-        '</div>';
-    }).join('');
-  }
+  _renderPassPlanWeakDomains(p);
+  _renderPassPlanWeekStrip(p);
 
   // Review seeded
   const reviewNum = document.getElementById('pass-plan-review-num');
@@ -6819,19 +6830,6 @@ function renderDiagnosticResult() {
     reviewSub.textContent = p.seededCount === 0
       ? 'No cards seeded — strong baseline! Keep practising to build the queue.'
       : 'First review session: tomorrow morning · auto-paced by SM-2 algorithm';
-  }
-
-  // Week strip
-  const weekHost = document.getElementById('pass-plan-week-strip');
-  if (weekHost) {
-    weekHost.innerHTML = (p.week || []).map((d, i) => {
-      const today = i === 0 ? ' today' : '';
-      return '<div class="pass-plan-day' + today + '">' +
-        '<div class="pass-plan-day-name">' + escHtml(d.name) + '</div>' +
-        '<div class="pass-plan-day-load">' + d.load + ' Q</div>' +
-        '<div class="pass-plan-day-task">' + escHtml(d.task) + '</div>' +
-        '</div>';
-    }).join('');
   }
 
   // PBQ rec
@@ -8857,14 +8855,16 @@ async function fetchQuestions(key, qTopic, difficulty, n, staleSliceIdx) {
     batchSizes.map((size, i) => _fetchQuestionsBatch(key, qTopic, difficulty, size, pbqBudgets[i], outerIdx + i))
   );
 
-  // Collect successes; reject the whole call only if EVERY batch failed.
-  // Partial success is surfaced as a short list — the caller's DROPOUT_BUFFER
-  // retry-to-fill logic (startQuiz / startExam) handles the shortfall.
-  // v4.81.14: dedupe across parallel batches by normalized stem. First-seen
-  // wins. Catches the case where two parallel _fetchQuestionsBatch calls
-  // independently produce the same/similar question (Haiku doesn't share
-  // state across concurrent requests). The caller's DROPOUT_BUFFER + retry-
-  // to-fill logic handles any shortfall created by dedup.
+  const merged = _mergeBatchedFetchResults(settled, numBatches, n);
+  cacheQuestions(qTopic, difficulty, n, merged);
+  return merged;
+}
+
+// v4.85.7: extracted from fetchQuestions() to keep it under 80 lines. Merges
+// the Promise.allSettled results, dedupes cross-batch duplicate stems by
+// normalized stem (first-seen wins), bubbles up API errors, and emits diag
+// console.warn/info messages so partial failures show in dev.
+function _mergeBatchedFetchResults(settled, numBatches, n) {
   const merged = [];
   const seenStems = new Set();
   let failed = 0;
@@ -8879,23 +8879,18 @@ async function fetchQuestions(key, qTopic, difficulty, n, staleSliceIdx) {
       });
     } else {
       failed++;
-      // Bubble an API error up immediately (don't mask 401 / 429 as "malformed data")
       if (r.reason && r.reason.apiError) throw r.reason;
     }
   });
-
   if (merged.length === 0) {
     throw new Error('AI returned malformed data. Please try again.');
   }
-
   if (failed > 0 && typeof console !== 'undefined' && console.warn) {
     console.warn(`[fetchQuestions] ${failed}/${numBatches} batches failed — returning ${merged.length}/${n} questions; caller will retry-to-fill if needed`);
   }
   if (deduped > 0 && typeof console !== 'undefined' && console.info) {
     console.info(`[fetchQuestions] dropped ${deduped} duplicate stem(s) across batches; merged ${merged.length}/${n}`);
   }
-
-  cacheQuestions(qTopic, difficulty, n, merged);
   return merged;
 }
 
@@ -11399,7 +11394,21 @@ function _buildMilestoneCtx() {
   });
   const diversity5 = Object.values(dayTopics).some(s => s.size >= 5);
 
-  // Drill mastery — defensive read (optional APIs that may not be loaded)
+  const drill = _buildMilestoneDrillCtx();
+
+  return {
+    h, totalQs, studied, exams, readiness, streak, allDomainsHit, allTopicCount,
+    subStats, portBest, portStreakBest, portStats, ddUses, dc,
+    nightOwl, earlyBird, weekendWarrior, diversity5,
+    ...drill,
+  };
+}
+
+// v4.85.7: extracted from _buildMilestoneCtx() — defensive reads for the
+// per-drill mastery counters (labs, A/B drills, OSI drills, cable/connector,
+// fix-it). Each block is wrapped in try/catch so a missing optional API or
+// stored payload can't break the whole milestone evaluation.
+function _buildMilestoneDrillCtx() {
   let labsDone = 0, totalLabs = 22;
   try {
     labsDone = Object.keys(JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}')).length;
@@ -11432,11 +11441,7 @@ function _buildMilestoneCtx() {
       fixAllEasy = easyIds.length > 0 && easyIds.every(id => fixSaved[id]);
     }
   } catch (_) {}
-
   return {
-    h, totalQs, studied, exams, readiness, streak, allDomainsHit, allTopicCount,
-    subStats, portBest, portStreakBest, portStats, ddUses, dc,
-    nightOwl, earlyBird, weekendWarrior, diversity5,
     labsDone, totalLabs,
     abM, abSeenCount, abTotalItems,
     osM, osSeenCount, osTotalItems,
@@ -18533,13 +18538,11 @@ function tbSelectPill(mode) {
 let _tb3dModule = null;
 let _tb3dActive = false;
 
-async function tbOpen3DView() {
-  // Mobile nudge: < 768px shows the desktop-recommended card first.
-  // tb3dDismissMobileNudge() continues with the 3D entry.
-  const host = document.getElementById('tb-3d-host');
-  if (!host) return;
-
-  // Swap: show 3D host, hide 2D canvas wrap siblings we don't want
+// v4.85.7: 2D-UI hide helper extracted from tbOpen3DView() for length
+// budget. Hides the 2D canvas + pills + zoom + hint + v2-stats panels and
+// stashes the 2D trace panel's hidden state on a data attr so we can
+// restore it on close.
+function _tb3dHide2DUI(host) {
   host.hidden = false;
   host.classList.add('tb-3d-host-active');
   document.getElementById('tb-canvas')?.classList.add('is-hidden');
@@ -18547,11 +18550,20 @@ async function tbOpen3DView() {
   document.getElementById('tb-zoom-ctrls')?.classList.add('is-hidden');
   document.getElementById('tb-empty-hint')?.classList.add('is-hidden');
   document.getElementById('tb-v2-stats')?.classList.add('is-hidden');
-  // v4.64.0 Phase 2: hide the 2D trace panel while 3D is active. 3D has
-  // its own HUD + hop strip; the 2D panel would overlap the scene.
   const tracePanel = document.getElementById('tb-trace-panel');
-  if (tracePanel) tracePanel.dataset._tb3dHidden = tracePanel.hidden ? '1' : '0';
-  if (tracePanel) tracePanel.hidden = true;
+  if (tracePanel) {
+    tracePanel.dataset._tb3dHidden = tracePanel.hidden ? '1' : '0';
+    tracePanel.hidden = true;
+  }
+}
+
+async function tbOpen3DView() {
+  // Mobile nudge: < 768px shows the desktop-recommended card first.
+  // tb3dDismissMobileNudge() continues with the 3D entry.
+  const host = document.getElementById('tb-3d-host');
+  if (!host) return;
+
+  _tb3dHide2DUI(host);
   _tb3dActive = true;
 
   // Respect mobile-nudge gate: if < 768px and the user hasn't yet
@@ -25605,6 +25617,49 @@ function tbTraceSpeedToggle() {
   tbRenderTraceLog();
 }
 
+// v4.85.7: hop-row renderer extracted from tbRenderTraceLog() for length budget.
+// Computes the visual state (done/current/future/failed), layer pill class,
+// optional "current" marker, and meta row (MAC/IP/TTL/iface). Pure HTML out.
+function _tbRenderTraceHop(h, i, curr, esc) {
+  let state;
+  if (i < curr) state = 'done';
+  else if (i === curr) state = 'current';
+  else state = 'future';
+  if (h.status === 'fail' && i === curr) state = 'failed';
+  if (h.status === 'fail' && i < curr) state = 'failed';
+
+  const layerClass = h.layer === 'L2' ? 'l2'
+                   : h.layer === 'L3' ? 'l3'
+                   : h.layer === 'ARP' ? 'arp'
+                   : h.layer === 'FAIL' ? 'fail'
+                   : 'arp';
+  const layerLabel = h.layer === 'DELIVER' ? 'DELIVER' : h.layer;
+  const currentPill = (i === curr) ? '<span class="tb-trace-current-pill">► current</span>' : '';
+  const m = h.meta || {};
+  const metaBits = [];
+  if (m.srcMac) metaBits.push(`<span><span class="tb-trace-meta-k">src MAC</span> <span class="tb-trace-meta-v">${esc(m.srcMac)}</span></span>`);
+  if (m.dstMac) metaBits.push(`<span><span class="tb-trace-meta-k">dst MAC</span> <span class="tb-trace-meta-v">${esc(m.dstMac)}</span></span>`);
+  if (m.srcIp) metaBits.push(`<span><span class="tb-trace-meta-k">src IP</span> <span class="tb-trace-meta-v">${esc(m.srcIp)}</span></span>`);
+  if (m.dstIp) metaBits.push(`<span><span class="tb-trace-meta-k">dst IP</span> <span class="tb-trace-meta-v">${esc(m.dstIp)}</span></span>`);
+  if (typeof m.ttlBefore === 'number' && typeof m.ttlAfter === 'number') {
+    metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttlBefore} → ${m.ttlAfter}</span></span>`);
+  } else if (typeof m.ttl === 'number') {
+    metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttl}</span></span>`);
+  }
+  if (m.outIface) metaBits.push(`<span><span class="tb-trace-meta-k">out</span> <span class="tb-trace-meta-v">${esc(m.outIface)}</span></span>`);
+
+  return `<div class="tb-trace-hop tb-trace-hop-${state}">
+    <div class="tb-trace-hop-dot"></div>
+    <div class="tb-trace-hop-header">
+      <span class="tb-trace-hop-device">${esc(h.device)}</span>
+      <span class="tb-trace-hop-layer tb-trace-hop-layer-${layerClass}">${esc(layerLabel)}</span>
+      ${currentPill}
+    </div>
+    <div class="tb-trace-hop-decision">${esc(h.decision)}</div>
+    ${metaBits.length ? `<div class="tb-trace-hop-meta">${metaBits.join('')}</div>` : ''}
+  </div>`;
+}
+
 // ── Trace log panel renderer ──
 function tbRenderTraceLog() {
   const host = document.getElementById('tb-trace-panel');
@@ -25618,46 +25673,7 @@ function tbRenderTraceLog() {
   const total = t.hops.length;
   const status = t.success ? `${total} hops · delivered` : `${total} hops · failed`;
 
-  const hopsHtml = t.hops.map((h, i) => {
-    let state;
-    if (i < curr) state = 'done';
-    else if (i === curr) state = 'current';
-    else state = 'future';
-    if (h.status === 'fail' && i === curr) state = 'failed';
-    if (h.status === 'fail' && i < curr) state = 'failed';
-
-    const layerClass = h.layer === 'L2' ? 'l2'
-                     : h.layer === 'L3' ? 'l3'
-                     : h.layer === 'ARP' ? 'arp'
-                     : h.layer === 'FAIL' ? 'fail'
-                     : 'arp';
-    const layerLabel = h.layer === 'DELIVER' ? 'DELIVER' : h.layer;
-    const currentPill = (i === curr) ? '<span class="tb-trace-current-pill">► current</span>' : '';
-    // Build meta row
-    const m = h.meta || {};
-    const metaBits = [];
-    if (m.srcMac) metaBits.push(`<span><span class="tb-trace-meta-k">src MAC</span> <span class="tb-trace-meta-v">${esc(m.srcMac)}</span></span>`);
-    if (m.dstMac) metaBits.push(`<span><span class="tb-trace-meta-k">dst MAC</span> <span class="tb-trace-meta-v">${esc(m.dstMac)}</span></span>`);
-    if (m.srcIp) metaBits.push(`<span><span class="tb-trace-meta-k">src IP</span> <span class="tb-trace-meta-v">${esc(m.srcIp)}</span></span>`);
-    if (m.dstIp) metaBits.push(`<span><span class="tb-trace-meta-k">dst IP</span> <span class="tb-trace-meta-v">${esc(m.dstIp)}</span></span>`);
-    if (typeof m.ttlBefore === 'number' && typeof m.ttlAfter === 'number') {
-      metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttlBefore} → ${m.ttlAfter}</span></span>`);
-    } else if (typeof m.ttl === 'number') {
-      metaBits.push(`<span><span class="tb-trace-meta-k">TTL</span> <span class="tb-trace-meta-v">${m.ttl}</span></span>`);
-    }
-    if (m.outIface) metaBits.push(`<span><span class="tb-trace-meta-k">out</span> <span class="tb-trace-meta-v">${esc(m.outIface)}</span></span>`);
-
-    return `<div class="tb-trace-hop tb-trace-hop-${state}">
-      <div class="tb-trace-hop-dot"></div>
-      <div class="tb-trace-hop-header">
-        <span class="tb-trace-hop-device">${esc(h.device)}</span>
-        <span class="tb-trace-hop-layer tb-trace-hop-layer-${layerClass}">${esc(layerLabel)}</span>
-        ${currentPill}
-      </div>
-      <div class="tb-trace-hop-decision">${esc(h.decision)}</div>
-      ${metaBits.length ? `<div class="tb-trace-hop-meta">${metaBits.join('')}</div>` : ''}
-    </div>`;
-  }).join('');
+  const hopsHtml = t.hops.map((h, i) => _tbRenderTraceHop(h, i, curr, esc)).join('');
 
   const atEnd = curr >= total - 1;
   const playBtnLabel = _tbUiState.trace.playing ? '⏸' : (atEnd ? '↻' : '▶');
@@ -26246,37 +26262,20 @@ function tbTraceroute(dev, dstIp) {
 }
 
 // ── DHCP DORA Simulation ──
-function tbSimDHCP(state, clientDeviceId) {
-  const log = [];
-  const client = state.devices.find(d => d.id === clientDeviceId);
-  if (!client) { log.push('[ERR] Client device not found.'); return { log, success: false }; }
-  const clientIface = client.interfaces.find(ifc => ifc.enabled);
-  if (!clientIface) { log.push('[ERR] No enabled interface on client.'); return { log, success: false }; }
-
-  const vlan = clientIface.vlan || 1;
-  log.push(`[DHCP] ${client.hostname} sends DHCP Discover (broadcast on VLAN ${vlan})`);
-
-  // Find DHCP server in broadcast domain
-  const domain = tbGetBroadcastDomain(state, clientDeviceId, vlan);
-  let server = null;
-  let serverDev = null;
-
+// v4.85.7: extracted from tbSimDHCP() — finds a DHCP server in the broadcast
+// domain, falling back to ip-helper-address relay if none directly reachable.
+// Mutates `log` for trace messages. Returns { server, serverDev } or null/null.
+function _tbDhcpFindServer(state, domain, log) {
+  let server = null, serverDev = null;
   for (const member of domain) {
     const d = state.devices.find(x => x.id === member.deviceId);
-    if (d && d.dhcpServer && d.dhcpServer.network) {
-      server = d.dhcpServer;
-      serverDev = d;
-      break;
-    }
+    if (d && d.dhcpServer && d.dhcpServer.network) { server = d.dhcpServer; serverDev = d; break; }
   }
-
-  // If no server found, check for DHCP relay
   if (!server) {
     for (const member of domain) {
       const d = state.devices.find(x => x.id === member.deviceId);
       if (d && d.dhcpRelay && d.dhcpRelay.helperAddress) {
         log.push(`[DHCP] ${d.hostname} relays Discover to ${d.dhcpRelay.helperAddress} (ip helper-address)`);
-        // Find the server at the helper address
         const relayTarget = state.devices.find(x => x.interfaces && x.interfaces.some(ifc => ifc.ip === d.dhcpRelay.helperAddress));
         if (relayTarget && relayTarget.dhcpServer) {
           server = relayTarget.dhcpServer;
@@ -26287,33 +26286,45 @@ function tbSimDHCP(state, clientDeviceId) {
       }
     }
   }
+  return { server, serverDev };
+}
 
+// v4.85.7: extracted from tbSimDHCP() — picks the first IP in the configured
+// pool range that isn't already assigned to any interface in the topology.
+// Returns offered IP string or null if pool invalid/exhausted.
+function _tbDhcpPickFreeIp(state, server, log) {
+  const startArr = tbIpToArr(server.rangeStart);
+  const endArr = tbIpToArr(server.rangeEnd);
+  if (!startArr || !endArr) { log.push('[DHCP] Server pool range is invalid.'); return null; }
+  const usedIps = new Set();
+  state.devices.forEach(d => d.interfaces && d.interfaces.forEach(ifc => { if (ifc.ip) usedIps.add(ifc.ip); }));
+  for (let last = startArr[3]; last <= endArr[3]; last++) {
+    const candidate = `${startArr[0]}.${startArr[1]}.${startArr[2]}.${last}`;
+    if (!usedIps.has(candidate)) return candidate;
+  }
+  log.push('[DHCP] Server pool exhausted — no addresses available.');
+  return null;
+}
+
+function tbSimDHCP(state, clientDeviceId) {
+  const log = [];
+  const client = state.devices.find(d => d.id === clientDeviceId);
+  if (!client) { log.push('[ERR] Client device not found.'); return { log, success: false }; }
+  const clientIface = client.interfaces.find(ifc => ifc.enabled);
+  if (!clientIface) { log.push('[ERR] No enabled interface on client.'); return { log, success: false }; }
+
+  const vlan = clientIface.vlan || 1;
+  log.push(`[DHCP] ${client.hostname} sends DHCP Discover (broadcast on VLAN ${vlan})`);
+
+  const domain = tbGetBroadcastDomain(state, clientDeviceId, vlan);
+  const { server, serverDev } = _tbDhcpFindServer(state, domain, log);
   if (!server || !serverDev) {
     log.push('[DHCP] No DHCP server found. Request timed out.');
     return { log, success: false };
   }
 
-  // Generate an IP from the pool
-  const startArr = tbIpToArr(server.rangeStart);
-  const endArr = tbIpToArr(server.rangeEnd);
-  if (!startArr || !endArr) {
-    log.push('[DHCP] Server pool range is invalid.');
-    return { log, success: false };
-  }
-
-  // Find first available IP (check all device interfaces)
-  const usedIps = new Set();
-  state.devices.forEach(d => d.interfaces && d.interfaces.forEach(ifc => { if (ifc.ip) usedIps.add(ifc.ip); }));
-  let offeredIp = null;
-  for (let last = startArr[3]; last <= endArr[3]; last++) {
-    const candidate = `${startArr[0]}.${startArr[1]}.${startArr[2]}.${last}`;
-    if (!usedIps.has(candidate)) { offeredIp = candidate; break; }
-  }
-
-  if (!offeredIp) {
-    log.push('[DHCP] Server pool exhausted — no addresses available.');
-    return { log, success: false };
-  }
+  const offeredIp = _tbDhcpPickFreeIp(state, server, log);
+  if (!offeredIp) return { log, success: false };
 
   log.push(`[DHCP] ${serverDev.hostname} sends DHCP Offer: ${offeredIp}`);
   log.push(`[DHCP] ${client.hostname} sends DHCP Request for ${offeredIp}`);
@@ -26558,69 +26569,73 @@ function tbParseAiTopologyJson(text) {
   return payload || null;
 }
 
+// v4.85.7: extracted from tbBuildFromAiPayload() — builds a single device
+// object (id, interfaces, all the per-feature configs) from one entry in the
+// AI payload. Mirrors the scenario-autobuild device shape so downstream code
+// (validators, renderers) sees identical structure regardless of source.
+function _tbBuildAiDevice(dd, targetState) {
+  const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+  const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
+  const ifaces = (dd.interfaces || []).map((aiIfc, idx) => ({
+    name: aiIfc.name || `eth${idx}`,
+    cableId: null,
+    ip: aiIfc.ip || '',
+    mask: aiIfc.mask || '255.255.255.0',
+    mac: tbGenerateMac(id, idx),
+    vlan: aiIfc.vlan || 1,
+    mode: aiIfc.mode || 'access',
+    trunkAllowed: aiIfc.trunkAllowed || [1],
+    gateway: aiIfc.gateway || '',
+    enabled: true,
+    subInterfaces: [],
+  }));
+  const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
+  while (ifaces.length < def.count) {
+    ifaces.push({
+      name: def.naming(ifaces.length), cableId: null, ip: '', mask: '255.255.255.0',
+      mac: tbGenerateMac(id, ifaces.length), vlan: 1, mode: 'access', trunkAllowed: [1],
+      gateway: '', enabled: true, subInterfaces: [],
+    });
+  }
+  return {
+    id, type, x: dd.x || 400, y: dd.y || 400,
+    hostname: dd.hostname || tbAutoHostname(type, targetState.devices),
+    interfaces: ifaces,
+    routingTable: dd.routingTable || [],
+    arpTable: [], macTable: [],
+    vlanDb: type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [],
+    dhcpServer: dd.dhcpServer || null,
+    dhcpRelay: dd.dhcpRelay || null,
+    acls: [],
+    securityGroups: dd.securityGroups || [],
+    nacls: dd.nacls || [],
+    vpcConfig: dd.vpcConfig || null,
+    vpnConfig: dd.vpnConfig || null,
+    saseConfig: dd.saseConfig || null,
+    vxlanConfig: dd.vxlanConfig || [],
+    stpConfig: dd.stpConfig || null,
+    ospfConfig: dd.ospfConfig || null,
+    qosConfig: dd.qosConfig || null,
+    wirelessConfig: dd.wirelessConfig || null,
+    dnsRecords: dd.dnsRecords || [],
+    bgpConfig: dd.bgpConfig || null,
+    eigrpConfig: dd.eigrpConfig || null,
+    dnssecEnabled: dd.dnssecEnabled || false,
+    dhcpSnooping: dd.dhcpSnooping || null,
+    daiEnabled: dd.daiEnabled || false,
+    portSecurity: dd.portSecurity || null,
+  };
+}
+
 // Shared: build devices + cables from AI payload into a target state
 function tbBuildFromAiPayload(payload, targetState, hostnameToId) {
   // v4.49.3: reset the link-local counter so AI-generated topologies get
   // a clean pool (same convention as scenario autoBuild).
   _tbLinkLocalSlot = 0;
   payload.devices.forEach(dd => {
-    const id = 'd_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-    const type = TB_DEVICE_TYPES[dd.type] ? dd.type : 'pc';
-    const ifaces = (dd.interfaces || []).map((aiIfc, idx) => ({
-      name: aiIfc.name || `eth${idx}`,
-      cableId: null,
-      ip: aiIfc.ip || '',
-      mask: aiIfc.mask || '255.255.255.0',
-      mac: tbGenerateMac(id, idx),
-      vlan: aiIfc.vlan || 1,
-      mode: aiIfc.mode || 'access',
-      trunkAllowed: aiIfc.trunkAllowed || [1],
-      gateway: aiIfc.gateway || '',
-      enabled: true,
-      subInterfaces: [],
-    }));
-    const def = TB_IFACE_DEFAULTS[type] || { count: 1, naming: i => `eth${i}` };
-    while (ifaces.length < def.count) {
-      ifaces.push({
-        name: def.naming(ifaces.length), cableId: null, ip: '', mask: '255.255.255.0',
-        mac: tbGenerateMac(id, ifaces.length), vlan: 1, mode: 'access', trunkAllowed: [1],
-        gateway: '', enabled: true, subInterfaces: [],
-      });
-    }
-    const device = {
-      id, type, x: dd.x || 400, y: dd.y || 400,
-      hostname: dd.hostname || tbAutoHostname(type, targetState.devices),
-      interfaces: ifaces,
-      routingTable: dd.routingTable || [],
-      arpTable: [], macTable: [],
-      vlanDb: type.indexOf('switch') >= 0 ? [{ id: 1, name: 'default' }] : [],
-      dhcpServer: dd.dhcpServer || null,
-      dhcpRelay: dd.dhcpRelay || null,
-      acls: [],
-      // Cloud properties — copy from AI payload if provided
-      securityGroups: dd.securityGroups || [],
-      nacls: dd.nacls || [],
-      vpcConfig: dd.vpcConfig || null,
-      vpnConfig: dd.vpnConfig || null,
-      saseConfig: dd.saseConfig || null,
-      // VXLAN overlay
-      vxlanConfig: dd.vxlanConfig || [],
-      // v4.30.0 — STP, OSPF, IPv6, DNS, QoS, Wireless
-      stpConfig: dd.stpConfig || null,
-      ospfConfig: dd.ospfConfig || null,
-      qosConfig: dd.qosConfig || null,
-      wirelessConfig: dd.wirelessConfig || null,
-      dnsRecords: dd.dnsRecords || [],
-      // v4.31.0 — BGP, EIGRP, DNSSEC, Attack scenarios
-      bgpConfig: dd.bgpConfig || null,
-      eigrpConfig: dd.eigrpConfig || null,
-      dnssecEnabled: dd.dnssecEnabled || false,
-      dhcpSnooping: dd.dhcpSnooping || null,
-      daiEnabled: dd.daiEnabled || false,
-      portSecurity: dd.portSecurity || null,
-    };
+    const device = _tbBuildAiDevice(dd, targetState);
     tbRebuildConnectedRoutes(device);
-    hostnameToId[dd.hostname] = id;
+    hostnameToId[dd.hostname] = device.id;
     targetState.devices.push(device);
   });
 
@@ -34073,6 +34088,47 @@ function computeDomainRawAccuracy(h) {
   return out;
 }
 
+// v4.85.7: extracted from _renderAnaDomainMastery() — renders a single row.
+// Either the unstudied "Not started" state or the active progress bar with
+// tier badge + drill button. Pure HTML out.
+function _renderAnaDomainMasteryRow(d, data, tierInfo) {
+  if (data.t === 0) {
+    return `<div class="dm-row dm-row-unstudied" style="--dm-accent:${d.color}">
+      <div class="dm-row-head">
+        <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+        <div class="dm-row-badge dm-badge-unstudied">Not started</div>
+      </div>
+      <div class="dm-bar-wrap">
+        <div class="dm-bar-track"><div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div></div>
+        <div class="dm-bar-pct dm-bar-pct-empty">—</div>
+      </div>
+      <div class="dm-row-foot">
+        <span class="dm-row-stats">No questions answered yet</span>
+        <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">Start drilling →</button>
+      </div>
+    </div>`;
+  }
+  const pct = Math.round((data.c / data.t) * 100);
+  const tier = tierInfo(pct);
+  return `<div class="dm-row" style="--dm-accent:${d.color}">
+    <div class="dm-row-head">
+      <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+      <div class="dm-row-badge ${tier.cls}">${tier.label}</div>
+    </div>
+    <div class="dm-bar-wrap">
+      <div class="dm-bar-track">
+        <div class="dm-bar-fill" style="width:${Math.min(pct, 100)}%"></div>
+        <div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div>
+      </div>
+      <div class="dm-bar-pct">${pct}%</div>
+    </div>
+    <div class="dm-row-foot">
+      <span class="dm-row-stats">${data.c} correct of ${data.t} attempts</span>
+      <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">${pct >= 85 ? 'Review →' : 'Drill weakest →'}</button>
+    </div>
+  </div>`;
+}
+
 // drill button that fires focusTopic() on the weakest topic within that
 // domain. Unstudied domains get a "Not started" state with a prompt.
 function _renderAnaDomainMastery(h) {
@@ -34117,44 +34173,7 @@ function _renderAnaDomainMastery(h) {
     <h3>DOMAIN MASTERY</h3>
     <div class="ana-subtitle">How close each N10-009 domain is to the 85% mastery threshold</div>
     <div class="dm-list">
-      ${domains.map(d => {
-        const data = byDomain[d.id];
-        if (data.t === 0) {
-          return `<div class="dm-row dm-row-unstudied" style="--dm-accent:${d.color}">
-            <div class="dm-row-head">
-              <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
-              <div class="dm-row-badge dm-badge-unstudied">Not started</div>
-            </div>
-            <div class="dm-bar-wrap">
-              <div class="dm-bar-track"><div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div></div>
-              <div class="dm-bar-pct dm-bar-pct-empty">\u2014</div>
-            </div>
-            <div class="dm-row-foot">
-              <span class="dm-row-stats">No questions answered yet</span>
-              <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">Start drilling \u2192</button>
-            </div>
-          </div>`;
-        }
-        const pct = Math.round((data.c / data.t) * 100);
-        const tier = tierInfo(pct);
-        return `<div class="dm-row" style="--dm-accent:${d.color}">
-          <div class="dm-row-head">
-            <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
-            <div class="dm-row-badge ${tier.cls}">${tier.label}</div>
-          </div>
-          <div class="dm-bar-wrap">
-            <div class="dm-bar-track">
-              <div class="dm-bar-fill" style="width:${Math.min(pct, 100)}%"></div>
-              <div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div>
-            </div>
-            <div class="dm-bar-pct">${pct}%</div>
-          </div>
-          <div class="dm-row-foot">
-            <span class="dm-row-stats">${data.c} correct of ${data.t} attempts</span>
-            <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">${pct >= 85 ? 'Review \u2192' : 'Drill weakest \u2192'}</button>
-          </div>
-        </div>`;
-      }).join('')}
+      ${domains.map(d => _renderAnaDomainMasteryRow(d, byDomain[d.id], tierInfo)).join('')}
     </div>
     <div class="dm-footer">Weights from official CompTIA N10-009 exam blueprint.</div>
   </div>`;
@@ -38080,6 +38099,44 @@ function _aclSaveCoachCache(cache) {
   try { localStorage.setItem(STORAGE.ACL_COACH_CACHE, JSON.stringify(trimmed)); } catch (_) {}
 }
 
+// v4.85.7: extracted from aclAskCoach() — builds the Sonnet teacher-tier
+// prompt (rules serialization + grader output + scenario context + JSON
+// response shape). Pure: takes scenario, returns prompt string. Reads
+// aclState.rules indirectly via _aclGradeScenario.
+function _aclBuildCoachPrompt(scen) {
+  const rulesText = aclState.rules.length
+    ? aclState.rules.map((r, i) => `${i + 1}. ${r.action} ${r.proto} ${r.srcAddr}:${r.srcPort} → ${r.dstAddr}:${r.dstPort}`).join('\n')
+    : '(empty rule list)';
+  const g = _aclGradeScenario(aclState.rules, scen);
+  const gradeText = g.details.length
+    ? g.details.map(d => `  - ${d.label}: expected ${d.expected}, got ${d.actual}${d.implicit ? ' (implicit deny)' : ` (rule #${d.ruleIdx + 1})`} — ${d.pass ? 'PASS' : 'FAIL'}`).join('\n')
+    : '(no grading data)';
+  return `You are a CompTIA Network+ (N10-009) instructor reviewing a student's Access Control List for the following scenario. Be direct, specific, and tie observations to Security-domain exam concepts. Focus on why their rule list passes/fails the test packets — especially rule ordering and implicit-deny behaviour.
+
+SCENARIO: ${scen.title}
+${scen.description}
+
+REQUIREMENTS:
+${scen.requirements.map((r, i) => (i + 1) + '. ' + r).join('\n')}
+
+STUDENT'S RULE LIST:
+${rulesText}
+
+GRADER OUTPUT (${g.passed}/${g.total} passing):
+${gradeText}
+
+Respond with ONLY a JSON object (no preamble, no markdown fences) with these keys:
+{
+  "tour": "A 2-3 sentence plain-English walkthrough of what their rule list actually DOES when packets hit it.",
+  "strengths": ["2-3 things they got right"],
+  "concerns": ["1-3 specific issues with this rule list — wrong rule order, missing rule, wrong port, etc. Reference rule numbers."],
+  "fixes": ["2-3 concrete edits to make. Be specific: 'swap rules 1 and 2', 'add a permit for UDP 53', etc."],
+  "concept": "1 N10-009 concept this scenario really teaches — first-match-wins, implicit deny, specific-before-general, layered defence."
+}
+
+Keep total response under 400 words. Respond with ONLY the JSON object.`;
+}
+
 async function aclAskCoach() {
   const scen = aclActiveScenario();
   if (scen.id === 'free-build') {
@@ -38102,38 +38159,7 @@ async function aclAskCoach() {
     return;
   }
   _aclShowCoachModalLoading(scen);
-  // Build a plain-text ACL serialization for the prompt
-  const rulesText = aclState.rules.length
-    ? aclState.rules.map((r, i) => `${i + 1}. ${r.action} ${r.proto} ${r.srcAddr}:${r.srcPort} \u2192 ${r.dstAddr}:${r.dstPort}`).join('\n')
-    : '(empty rule list)';
-  const g = _aclGradeScenario(aclState.rules, scen);
-  const gradeText = g.details.length
-    ? g.details.map(d => `  - ${d.label}: expected ${d.expected}, got ${d.actual}${d.implicit ? ' (implicit deny)' : ` (rule #${d.ruleIdx + 1})`} \u2014 ${d.pass ? 'PASS' : 'FAIL'}`).join('\n')
-    : '(no grading data)';
-  const prompt = `You are a CompTIA Network+ (N10-009) instructor reviewing a student's Access Control List for the following scenario. Be direct, specific, and tie observations to Security-domain exam concepts. Focus on why their rule list passes/fails the test packets \u2014 especially rule ordering and implicit-deny behaviour.
-
-SCENARIO: ${scen.title}
-${scen.description}
-
-REQUIREMENTS:
-${scen.requirements.map((r, i) => (i + 1) + '. ' + r).join('\n')}
-
-STUDENT'S RULE LIST:
-${rulesText}
-
-GRADER OUTPUT (${g.passed}/${g.total} passing):
-${gradeText}
-
-Respond with ONLY a JSON object (no preamble, no markdown fences) with these keys:
-{
-  "tour": "A 2-3 sentence plain-English walkthrough of what their rule list actually DOES when packets hit it.",
-  "strengths": ["2-3 things they got right"],
-  "concerns": ["1-3 specific issues with this rule list \u2014 wrong rule order, missing rule, wrong port, etc. Reference rule numbers."],
-  "fixes": ["2-3 concrete edits to make. Be specific: 'swap rules 1 and 2', 'add a permit for UDP 53', etc."],
-  "concept": "1 N10-009 concept this scenario really teaches \u2014 first-match-wins, implicit deny, specific-before-general, layered defence."
-}
-
-Keep total response under 400 words. Respond with ONLY the JSON object.`;
+  const prompt = _aclBuildCoachPrompt(scen);
   try {
     const res = await fetch(CLAUDE_API_URL, {
       method: 'POST',

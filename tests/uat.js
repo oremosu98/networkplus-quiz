@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.6', js.includes("const APP_VERSION = '4.85.6"));
+test('APP_VERSION is 4.85.7', js.includes("const APP_VERSION = '4.85.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.6', sw.includes('netplus-v4.85.6'));
+test('SW cache bumped to v4.85.7', sw.includes('netplus-v4.85.7'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -7759,8 +7759,8 @@ test('v4.61.0 JS: tbStartTrace + tbEndTrace lifecycle defined',
   /function\s+tbEndTrace\s*\(\)/.test(js));
 test('v4.61.0 JS: tbOpenTraceDialog picks source device and prompts for destination IP',
   /function\s+tbOpenTraceDialog[\s\S]{0,2000}prompt\(/.test(js));
-test('v4.61.0 JS: tbRenderTraceLog emits hop timeline with layer chips',
-  /function\s+tbRenderTraceLog[\s\S]{0,4000}tb-trace-hop-layer-\$\{layerClass\}/.test(js));
+test('v4.61.0 JS: tbRenderTraceLog emits hop timeline with layer chips (v4.85.7: extracted to _tbRenderTraceHop)',
+  /function\s+_tbRenderTraceHop[\s\S]{0,4000}tb-trace-hop-layer-\$\{layerClass\}/.test(js));
 test('v4.61.0 JS: tbRenderTraceLog emits playback controls (reset, play/pause, step, speed)',
   /tbTraceReset\(\)[\s\S]{0,2500}tbTraceStep\(\)[\s\S]{0,500}tbTraceSpeedToggle\(\)/.test(js));
 test('v4.61.0 JS: tbRenderTraceCanvasState applies visited/current/pending classes to devices',
@@ -11171,17 +11171,17 @@ test('v4.81.14 Dedup: helper lowercases + strips punctuation + collapses whitesp
       && /\\s\+/.test(body)
       && /slice\(0,\s*200\)/.test(body);
   })());
-test('v4.81.14 Dedup: fetchQuestions merge step uses Set + _normalizeStemForDedup',
+test('v4.81.14 Dedup: fetchQuestions merge step uses Set + _normalizeStemForDedup (v4.85.7: extracted to _mergeBatchedFetchResults)',
   (() => {
-    const body = _fnBody(js, 'fetchQuestions');
+    const body = _fnBody(js, '_mergeBatchedFetchResults');
     return body
       && /seenStems/.test(body)
       && /_normalizeStemForDedup/.test(body)
       && /new Set\(\)/.test(body);
   })());
-test('v4.81.14 Dedup: fetchQuestions logs deduped count when > 0',
+test('v4.81.14 Dedup: merge step logs deduped count when > 0 (v4.85.7: extracted to _mergeBatchedFetchResults)',
   (() => {
-    const body = _fnBody(js, 'fetchQuestions');
+    const body = _fnBody(js, '_mergeBatchedFetchResults');
     return body && /deduped\b/.test(body) && /console\.info/.test(body);
   })());
 test('v4.81.14 Dedup: startExam dedupes new batch against accumulated examQuestions',
@@ -12859,25 +12859,25 @@ test('v4.81.30 SRInteractive: vm fixture — commit-then-self-grade requires pic
 // page wasn't covered. Three new Playwright tests now exercise the full
 // flow end-to-end (MCQ pick → reveal → confidence → completion;
 // multi-select toggle → submit → reveal markers; legacy order-card scrub).
-test('v4.81.31 SRScrub: startSrReview filters cards to mcq + multi-select only',
+test('v4.81.31 SRScrub: scrub helper filters cards to mcq + multi-select only (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     if (!body) return false;
     const hasReviewableSet = /const reviewable = new Set\(\['mcq', 'multi-select'\]\)/.test(body);
     const filtersDue = /const dueOk = due\.filter\(c => reviewable\.has\(c\.type \|\| 'mcq'\)\)/.test(body);
     return hasReviewableSet && filtersDue;
   })());
-test('v4.81.31 SRScrub: startSrReview persists scrubbed queue to localStorage',
+test('v4.81.31 SRScrub: scrub helper persists scrubbed queue to localStorage (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     if (!body) return false;
     return /loadSrQueue\(\)/.test(body)
       && /saveSrQueue\(cleaned\)/.test(body)
       && /reviewable\.has\(c\.type \|\| 'mcq'\)/.test(body);
   })());
-test('v4.81.31 SRScrub: scrub is wrapped in try/catch (defensive)',
+test('v4.81.31 SRScrub: scrub is wrapped in try/catch (defensive) (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     if (!body) return false;
     return /tolerate scrub errors/.test(body) || /catch \(_\)/.test(body);
   })());
@@ -12889,7 +12889,8 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
-      if (!body) return false;
+      const scrubBody = _fnBody(js, '_srScrubQueue');
+      if (!body || !scrubBody) return false;
       const vm = require('vm');
       let savedPayload = null;
       const fakeQueue = [
@@ -12915,6 +12916,7 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -12925,6 +12927,7 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
       if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
       if (stemBody) vm.runInContext(stemBody, ctx);
       if (gtBody) vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -12955,7 +12958,8 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
-      if (!body) return false;
+      const scrubBody = _fnBody(js, '_srScrubQueue');
+      if (!body || !scrubBody) return false;
       const vm = require('vm');
       let saveCallCount = 0;
       const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
@@ -12978,6 +12982,7 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -12988,6 +12993,7 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
       if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
       if (stemBody) vm.runInContext(stemBody, ctx);
       if (gtBody) vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
       return saveCallCount === 0 && ctx._srSession && ctx._srSession.cards.length === 2;
@@ -14169,7 +14175,8 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
-      if (!body) return false;
+      const scrubBody = _fnBody(js, '_srScrubQueue');
+      if (!body || !scrubBody) return false;
       const vm = require('vm');
       const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
       const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
@@ -14192,6 +14199,7 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -14202,6 +14210,7 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
       if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
       if (stemBody) vm.runInContext(stemBody, ctx);
       if (gtBody) vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -14223,7 +14232,8 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
-      if (!body) return false;
+      const scrubBody = _fnBody(js, '_srScrubQueue');
+      if (!body || !scrubBody) return false;
       const vm = require('vm');
       const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
       const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
@@ -14245,6 +14255,7 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -14255,6 +14266,7 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
       if (getQTypeBody) vm.runInContext(getQTypeBody, ctx);
       if (stemBody) vm.runInContext(stemBody, ctx);
       if (gtBody) vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -14272,28 +14284,28 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
 // the stem-vs-answer-count + GT facts validators were added.
 // ═══════════════════════════════════════════════════════════════════════
 
-test('v4.85.2 SRQualityScrub: startSrReview calls _stemNumericMatchesAnswerCount',
+test('v4.85.2 SRQualityScrub: scrub helper calls _stemNumericMatchesAnswerCount (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     return body && /_stemNumericMatchesAnswerCount/.test(body);
   })());
 
-test('v4.85.2 SRQualityScrub: startSrReview calls _multiSelectGroundTruthOk',
+test('v4.85.2 SRQualityScrub: scrub helper calls _multiSelectGroundTruthOk (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     return body && /_multiSelectGroundTruthOk/.test(body);
   })());
 
-test('v4.85.2 SRQualityScrub: quality scrub permanently removes bad cards from storage',
+test('v4.85.2 SRQualityScrub: quality scrub permanently removes bad cards from storage (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     return body && /qualityOk\.length\s*<\s*due\.length/.test(body)
       && /saveSrQueue/.test(body);
   })());
 
-test('v4.85.2 SRQualityScrub: quality scrub wrapped in try/catch for safety',
+test('v4.85.2 SRQualityScrub: quality scrub wrapped in try/catch for safety (v4.85.7: extracted to _srScrubQueue)',
   (() => {
-    const body = _fnBody(js, 'startSrReview');
+    const body = _fnBody(js, '_srScrubQueue');
     return body && /tolerate quality-scrub errors/.test(body);
   })());
 
@@ -14303,10 +14315,11 @@ test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrub
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
+      const scrubBody = _fnBody(js, '_srScrubQueue');
       const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
       const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
       const getQTypeBody = _fnBody(js, 'getQType');
-      if (!body || !stemBody || !gtBody || !getQTypeBody) return false;
+      if (!body || !scrubBody || !stemBody || !gtBody || !getQTypeBody) return false;
       const vm = require('vm');
       let savedQueue = null;
       // Bad card: "Which TWO" but only 2 answers when it should be 3
@@ -14342,6 +14355,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrub
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -14352,6 +14366,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrub
       vm.runInContext(getQTypeBody, ctx);
       vm.runInContext(stemBody, ctx);
       vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 
@@ -14373,10 +14388,11 @@ test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scr
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
+      const scrubBody = _fnBody(js, '_srScrubQueue');
       const stemBody = _fnBody(js, '_stemNumericMatchesAnswerCount');
       const gtBody = _fnBody(js, '_multiSelectGroundTruthOk');
       const getQTypeBody = _fnBody(js, 'getQType');
-      if (!body || !stemBody || !gtBody || !getQTypeBody) return false;
+      if (!body || !scrubBody || !stemBody || !gtBody || !getQTypeBody) return false;
       const vm = require('vm');
       let saveCallCount = 0;
       const goodCards = [
@@ -14396,6 +14412,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scr
         _srSession: null,
         _stemNumericMatchesAnswerCount: null,
         _multiSelectGroundTruthOk: null,
+        _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
         SR_SESSION_CAP: 20,
@@ -14406,6 +14423,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scr
       vm.runInContext(getQTypeBody, ctx);
       vm.runInContext(stemBody, ctx);
       vm.runInContext(gtBody, ctx);
+      vm.runInContext(scrubBody, ctx);
       vm.runInContext(body, ctx);
       vm.runInContext('startSrReview()', ctx);
 

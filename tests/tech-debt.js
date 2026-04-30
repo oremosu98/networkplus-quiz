@@ -45,10 +45,31 @@ console.log('\n🧹 Code Quality');
 // production signals, not leftover debug prints. The real concern is
 // `console.log('hello')` style dev leftovers; that's what this check
 // enforces now. `console.warn` + `console.error` are allowed.
+//
+// v4.85.7: also honor /* eslint-disable no-console */ blocks. Code marked
+// with that pragma is an explicit intentional console.log (e.g. the prod-
+// environment banner that warns LLM agents not to corrupt localStorage).
+// Rationale: scanner enforcement should only catch leftover debug prints,
+// not deliberate user-facing console messages the developer has flagged.
+const consoleDisabledRanges = [];
+{
+  let inDisable = false, disableStart = -1;
+  jsLines.forEach((line, i) => {
+    if (line.includes('eslint-disable no-console')) { inDisable = true; disableStart = i; }
+    if (inDisable && line.includes('eslint-enable no-console')) {
+      consoleDisabledRanges.push([disableStart, i]);
+      inDisable = false;
+    }
+  });
+}
+const isInsideDisableBlock = (lineIdx) =>
+  consoleDisabledRanges.some(([s, e]) => lineIdx >= s && lineIdx <= e);
 const consoleMatches = jsLines.filter((line, i) => {
   const trimmed = line.trim();
-  return trimmed.startsWith('console.log(') &&
-    !trimmed.includes('error') && !trimmed.includes('Error');
+  if (!trimmed.startsWith('console.log(')) return false;
+  if (trimmed.includes('error') || trimmed.includes('Error')) return false;
+  if (isInsideDisableBlock(i)) return false;
+  return true;
 });
 check('Debug console.log in production', consoleMatches.length, 0);
 
