@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.15
+// Network+ AI Quiz — app.js  v4.85.16
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.15';
+const APP_VERSION = '4.85.16';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4632,6 +4632,14 @@ function showPage(name) {
   if (typeof updateTopbarCrumb === 'function') updateTopbarCrumb(name);
   // v4.53.0: auto-close mobile drawer when navigating
   try { document.body.classList.remove('sidebar-open'); } catch (_) {}
+  // v4.85.16: clear any stale .err-box banners on every page change so a
+  // failed-quiz error from page X doesn't follow the user to page Y. The
+  // err-box auto-hides via display:none on the parent .page when it's not
+  // active — but if any future surface positions an .err-box outside a
+  // .page wrapper, this sweep keeps things clean.
+  if (typeof _clearStaleErrBoxes === 'function') {
+    try { _clearStaleErrBoxes(); } catch (_) { /* never block navigation */ }
+  }
   const current = document.querySelector('.page.active');
   const next = document.getElementById('page-' + name);
   const activate = () => {
@@ -13391,7 +13399,34 @@ function autoSaveApiKey() {
       status.className = 'api-key-status api-key-status-ok';
       status.textContent = '✓ Saved · ' + key.slice(0, 12) + '…' + key.slice(-4);
     }
+    // v4.85.16: clear any stale "invalid x-api-key" / similar API-error
+    // banners now that a fresh valid key is on file. Defensive sweep —
+    // the user-visible setup-err DIV could be lingering from a quiz that
+    // failed before they fixed the key, and there's no other code path
+    // that re-hides it once shown. Also clears any other .err-box on the
+    // page in case future surfaces use the same pattern.
+    if (typeof _clearStaleErrBoxes === 'function') _clearStaleErrBoxes();
   } catch (_) { /* defensive */ }
+}
+
+// v4.85.16: shared err-box cleanup helper. Sweeps the DOM for any visible
+// .err-box, .setup-err, or related stale-error elements and re-hides them.
+// Called from (1) successful API key save, (2) showPage navigation, so a
+// banner from one flow can't leak into another. Idempotent + defensive.
+function _clearStaleErrBoxes() {
+  try {
+    // Direct hit: the known persistent banner inside page-setup
+    const setupErr = document.getElementById('setup-err');
+    if (setupErr) {
+      setupErr.classList.add('is-hidden');
+      setupErr.textContent = '';
+    }
+    // Defensive sweep: any other .err-box that's been left visible
+    document.querySelectorAll('.err-box:not(.is-hidden)').forEach(el => {
+      el.classList.add('is-hidden');
+      el.textContent = '';
+    });
+  } catch (_) { /* defensive — never block a page transition on a cleanup error */ }
 }
 
 // On page load, if a key is already saved, show the "Saved" pill. This

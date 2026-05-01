@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.15', js.includes("const APP_VERSION = '4.85.15"));
+test('APP_VERSION is 4.85.16', js.includes("const APP_VERSION = '4.85.16"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.15', sw.includes('netplus-v4.85.15'));
+test('SW cache bumped to v4.85.16', sw.includes('netplus-v4.85.16'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12662,6 +12662,74 @@ test('v4.85.15 MixedSplit: vm fixture — getReadinessScore now counts 1-Q-per-t
       const filterBody = filterMatch[1];
       // Should NOT contain "total" anymore
       return !/e\.total/.test(filterBody);
+    } catch (e) { return false; }
+  })());
+
+// v4.85.16 — Stale err-box safety patches. User reported a "⚠ invalid x-api-key"
+// banner persisting on Settings even after the API key validated as Connected.
+// Root cause: setup-err DIV gets text+is-hidden-removed when a quiz fails, but
+// is never re-hidden once the user fixes the key or navigates away. Two patches:
+//   (1) clear setup-err on successful API key save
+//   (2) clear setup-err on every showPage() navigation
+test('v4.85.16 ErrBoxSafety: _clearStaleErrBoxes helper defined',
+  /function _clearStaleErrBoxes\(/.test(js));
+test('v4.85.16 ErrBoxSafety: helper hides #setup-err + sweeps all .err-box',
+  (() => {
+    const body = _fnBody(js, '_clearStaleErrBoxes');
+    return body
+      && /getElementById\('setup-err'\)/.test(body)
+      && /querySelectorAll\('\.err-box:not\(\.is-hidden\)'\)/.test(body)
+      && /classList\.add\('is-hidden'\)/.test(body);
+  })());
+test('v4.85.16 ErrBoxSafety: autoSaveApiKey calls _clearStaleErrBoxes after successful save',
+  (() => {
+    const body = _fnBody(js, 'autoSaveApiKey');
+    return body && /_clearStaleErrBoxes\(\)/.test(body);
+  })());
+test('v4.85.16 ErrBoxSafety: showPage calls _clearStaleErrBoxes on every page change',
+  (() => {
+    const body = _fnBody(js, 'showPage');
+    return body && /_clearStaleErrBoxes\(\)/.test(body);
+  })());
+test('v4.85.16 ErrBoxSafety: vm fixture — clearStaleErrBoxes hides setup-err + clears textContent',
+  (() => {
+    try {
+      const body = _fnBody(js, '_clearStaleErrBoxes');
+      if (!body) return false;
+      const vm = require('vm');
+      // Build a fake DOM that mirrors the bug: setup-err visible with stale error text
+      const setupErrEl = {
+        classList: {
+          _set: new Set(['err-box']),
+          add(c) { this._set.add(c); },
+          remove(c) { this._set.delete(c); },
+          contains(c) { return this._set.has(c); }
+        },
+        textContent: '⚠️ invalid x-api-key'
+      };
+      const otherErrBox = {
+        classList: {
+          _set: new Set(['err-box']),
+          add(c) { this._set.add(c); },
+          remove(c) { this._set.delete(c); },
+          contains(c) { return this._set.has(c); }
+        },
+        textContent: '⚠️ Some other lingering error'
+      };
+      const ctx = {
+        document: {
+          getElementById: (id) => id === 'setup-err' ? setupErrEl : null,
+          querySelectorAll: (sel) => sel === '.err-box:not(.is-hidden)' ? [setupErrEl, otherErrBox] : []
+        }
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      vm.runInContext('_clearStaleErrBoxes()', ctx);
+      // Both elements should have is-hidden class + empty text
+      return setupErrEl.classList.contains('is-hidden')
+        && setupErrEl.textContent === ''
+        && otherErrBox.classList.contains('is-hidden')
+        && otherErrBox.textContent === '';
     } catch (e) { return false; }
   })());
 
