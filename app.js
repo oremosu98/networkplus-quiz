@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.10
+// Network+ AI Quiz — app.js  v4.85.11
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.10';
+const APP_VERSION = '4.85.11';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -4755,7 +4755,7 @@ function renderHistoryPanel() {
     const date = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     // Tier-aligned colours (matches Domain Mastery 55/70/85 cutoffs from v4.45.1).
     let tierColor, tierName;
-    if (e.pct >= 85)      { tierColor = '#22c55e';                tierName = 'mastered';   }
+    if (e.pct >= 80)      { tierColor = '#22c55e';                tierName = 'mastered';   }
     else if (e.pct >= 70) { tierColor = 'var(--accent-light)';    tierName = 'proficient'; }
     else if (e.pct >= 55) { tierColor = '#eab308';                tierName = 'developing'; }
     else                  { tierColor = '#ef4444';                tierName = 'novice';     }
@@ -11576,9 +11576,9 @@ function _buildExamDomainBreakdown(log) {
   Object.keys(buckets).forEach(d => {
     const b = buckets[d];
     b.pct = b.total > 0 ? Math.round((b.correct / b.total) * 100) : null;
-    // tier mirrors the v4.45.1 anchored thresholds (55/70/85)
+    // tier mirrors the v4.85.11 anchored thresholds (55/70/80; lowered from 85)
     if (b.pct === null) b.tier = 'empty';
-    else if (b.pct >= 85) b.tier = 'mastered';
+    else if (b.pct >= 80) b.tier = 'mastered';
     else if (b.pct >= 70) b.tier = 'proficient';
     else if (b.pct >= 55) b.tier = 'developing';
     else b.tier = 'novice';
@@ -11874,7 +11874,7 @@ async function startDailyChallenge() {
 // completion updates the front-page chips immediately.
 const WEAK_HALF_LIFE_WRONGS_MS = 7  * 86400000; // 7d recency half-life for wrong bank
 const WEAK_HALF_LIFE_HIST_MS   = 14 * 86400000; // 14d half-life for history accuracy
-const WEAK_TARGET_ACC          = 0.85;          // mastery threshold (Bayesian gap = 0.85 - posterior)
+const WEAK_TARGET_ACC          = 0.80;          // mastery threshold (Bayesian gap = 0.80 - posterior; v4.85.11: lowered from 0.85)
 const WEAK_STALENESS_DAYS      = 14;            // untouched grace period
 const WEAK_STALENESS_CAP       = 2.0;           // max staleness multiplier
 const WEAK_AVG_DOMAIN_WEIGHT   = 0.2;           // avg of the 5 DOMAIN_WEIGHTS values
@@ -33778,9 +33778,9 @@ function _renderAnaReadiness(h) {
   // users see at a glance how far past (or short of) the pass mark they are.
   const passTickPct = ((EXAM_PASS_SCORE - 420) / 450) * 100;
 
-  // v4.46.0: Domain rows — tier-anchored color dots (matches v4.45.1 Domain
-  // Mastery thresholds 55/70/85), weight as subtle subtext under the domain
-  // name, 85% target tick on each bar (matches Domain Mastery card convention).
+  // v4.46.0: Domain rows — tier-anchored color dots (matches Domain Mastery
+  // thresholds 55/70/80; v4.85.11 lowered Mastered 85→80), weight as subtle
+  // subtext under the domain name, 80% target tick on each bar.
   // v4.57.5: user-visible pct now comes from the shared computeDomainRawAccuracy
   // helper so this matches the Domain Mastery card (pre-v4.57.5 used the weighted
   // `domainAccuracy` from Readiness internals — disagreed by 1-2% with Domain
@@ -33790,7 +33790,7 @@ function _renderAnaReadiness(h) {
   const domainBars = Object.entries(DOMAIN_WEIGHTS).map(([d, w]) => {
     const pct = Math.round(domainRawAccuracy[d] || 0);
     let tier, barColor;
-    if (pct >= 85)      { tier = 'mastered'; barColor = 'var(--green)'; }
+    if (pct >= 80)      { tier = 'mastered'; barColor = 'var(--green)'; }
     else if (pct >= 70) { tier = 'proficient'; barColor = 'var(--accent-light)'; }
     else if (pct >= 55) { tier = 'developing'; barColor = 'var(--yellow)'; }
     else if (pct > 0)   { tier = 'novice'; barColor = 'var(--red)'; }
@@ -33806,7 +33806,7 @@ function _renderAnaReadiness(h) {
       </div>
       <div class="ana-domain-bar">
         <div class="ana-domain-fill" style="width:${pct}%;background:${barColor}"></div>
-        <div class="ana-domain-target" aria-hidden="true" title="85% mastery target"></div>
+        <div class="ana-domain-target" aria-hidden="true" title="80% mastery target"></div>
       </div>
       <div class="ana-domain-pct" style="color:${barColor}">${pct > 0 ? pct + '%' : '—'}</div>
     </div>`;
@@ -34111,8 +34111,9 @@ function _renderAnaStreak() {
 
 // v4.45.0 — replaces the old Difficulty × Topic Heatmap. Prescriptive over
 // descriptive: for each of the 5 official N10-009 domains, shows current
-// accuracy as a progress bar toward the 85% mastery threshold, a tier
-// badge (Novice / Developing / Proficient / Mastered), and a one-click
+// accuracy as a progress bar toward the 80% mastery threshold (lowered from
+// 85% in v4.85.11), a tier badge (Novice / Developing / Proficient / Mastered),
+// and a one-click
 // v4.57.5: Shared raw-accuracy aggregator per CompTIA domain. Used by BOTH
 // the Domain Mastery card AND the Readiness hero's Domain Breakdown so the
 // two surfaces always agree. Uses simple sum(correct)/sum(total) across all
@@ -34159,7 +34160,7 @@ function _renderAnaDomainMasteryRow(d, data, tierInfo) {
         <div class="dm-row-badge dm-badge-unstudied">Not started</div>
       </div>
       <div class="dm-bar-wrap">
-        <div class="dm-bar-track"><div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div></div>
+        <div class="dm-bar-track"><div class="dm-bar-target" style="left:80%" title="80% mastery threshold"></div></div>
         <div class="dm-bar-pct dm-bar-pct-empty">—</div>
       </div>
       <div class="dm-row-foot">
@@ -34178,13 +34179,13 @@ function _renderAnaDomainMasteryRow(d, data, tierInfo) {
     <div class="dm-bar-wrap">
       <div class="dm-bar-track">
         <div class="dm-bar-fill" style="width:${Math.min(pct, 100)}%"></div>
-        <div class="dm-bar-target" style="left:85%" title="85% mastery threshold"></div>
+        <div class="dm-bar-target" style="left:80%" title="80% mastery threshold"></div>
       </div>
       <div class="dm-bar-pct">${pct}%</div>
     </div>
     <div class="dm-row-foot">
       <span class="dm-row-stats">${data.c} correct of ${data.t} attempts</span>
-      <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">${pct >= 85 ? 'Review →' : 'Drill weakest →'}</button>
+      <button class="dm-drill-btn" onclick="drillDomain('${d.id}')">${pct >= 80 ? 'Review →' : 'Drill weakest →'}</button>
     </div>
   </div>`;
 }
@@ -34219,11 +34220,12 @@ function _renderAnaDomainMastery(h) {
   // (even 15-pt bands above Novice) but that put users who'd likely pass the
   // real CompTIA exam (70-75% raw accuracy) into "Developing," which is
   // psychologically wrong — 70% is refining, not still-learning-fundamentals.
-  // New thresholds 55/70/85 match the real-world N10-009 raw-accuracy pass
-  // equivalent (~70-75% per form) and make "Proficient" mean "you'd likely
-  // pass today." 85% Mastered ceiling unchanged — aspirational target still reads.
+  // v4.45.1 set thresholds 55/70/85; v4.85.11 lowered Mastered 85→80 (user
+  // request — 85% felt aspirational to the point of unreachable; 80% still
+  // exceeds the real CompTIA pass equivalent (~70-75%) but is achievable
+  // through normal practice instead of needing perfect runs).
   const tierInfo = (pct) => {
-    if (pct >= 85) return { label: 'Mastered',   cls: 'dm-badge-mastered' };
+    if (pct >= 80) return { label: 'Mastered',   cls: 'dm-badge-mastered' };
     if (pct >= 70) return { label: 'Proficient', cls: 'dm-badge-proficient' };
     if (pct >= 55) return { label: 'Developing', cls: 'dm-badge-developing' };
     return           { label: 'Novice',     cls: 'dm-badge-novice' };
@@ -34231,7 +34233,7 @@ function _renderAnaDomainMastery(h) {
 
   return `<div class="ana-card ana-card-dm" id="ana-s-domain-mastery">
     <h3>DOMAIN MASTERY</h3>
-    <div class="ana-subtitle">How close each N10-009 domain is to the 85% mastery threshold</div>
+    <div class="ana-subtitle">How close each N10-009 domain is to the 80% mastery threshold</div>
     <div class="dm-list">
       ${domains.map(d => _renderAnaDomainMasteryRow(d, byDomain[d.id], tierInfo)).join('')}
     </div>
@@ -34283,7 +34285,7 @@ function _computeConstellationData(h) {
     const correct = entries.reduce((a, e) => a + (e.score || 0), 0);
     const mastery = total > 0 ? Math.round((correct / total) * 100) : null;
     const tier = mastery === null ? 'novice'
-      : mastery >= 85 ? 'mastered'
+      : mastery >= 80 ? 'mastered'
       : mastery >= 70 ? 'proficient'
       : mastery >= 55 ? 'developing'
       : 'novice';
@@ -34393,7 +34395,14 @@ function _renderAnaConstellation(h) {
     ].filter(Boolean);
     const title = esc(titleParts.join(' \u00b7 '));
     const topicEsc = esc(n.topic).replace(/'/g, "&#39;");
-    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" onclick="focusTopic('${topicEsc}')" role="button" tabindex="0" aria-label="${title}">
+    // v4.85.11: data-tt-* attrs feed the custom tooltip helpers below
+    const ttDomain = esc(CLUSTERS[n.domain].label);
+    const ttMastery = n.mastery !== null ? esc(n.mastery + '%') : 'Not studied yet';
+    const ttAttempts = n.attempts > 0 ? esc(String(n.attempts)) : '0';
+    const ttLast = n.lastDays !== null
+      ? (n.lastDays === 0 ? 'today' : n.lastDays === 1 ? 'yesterday' : esc(n.lastDays + ' days ago'))
+      : '\u2014';
+    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" data-tt-topic="${esc(n.topic)}" data-tt-domain="${ttDomain}" data-tt-tier="${esc(n.tier)}" data-tt-mastery="${ttMastery}" data-tt-attempts="${ttAttempts}" data-tt-last="${ttLast}" onclick="focusTopic('${topicEsc}')" onmouseenter="_anaConstTooltipShow(event, this)" onmousemove="_anaConstTooltipPosition(event)" onmouseleave="_anaConstTooltipHide()" onfocus="_anaConstTooltipShow(event, this)" onblur="_anaConstTooltipHide()" role="button" tabindex="0" aria-label="${title}">
       <title>${title}</title>
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${n.r.toFixed(1)}" class="ana-const-halo" />
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${innerR.toFixed(1)}" class="ana-const-core" />
@@ -34403,7 +34412,7 @@ function _renderAnaConstellation(h) {
   // Legend: tier dots matching v4.45.1 Domain Mastery thresholds
   const legendHtml = `
     <div class="ana-const-legend">
-      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-mastered"></span>\u226585% mastered</span>
+      <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-mastered"></span>\u226580% mastered</span>
       <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-proficient"></span>\u226570% proficient</span>
       <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-developing"></span>\u226555% developing</span>
       <span class="ana-const-legend-item"><span class="ana-const-legend-dot ana-const-tier-novice"></span>\u003c55% / not studied</span>
@@ -34420,10 +34429,77 @@ function _renderAnaConstellation(h) {
         ${tetherLines}
         ${nodeCircles}
       </svg>
+      <div class="ana-const-tooltip is-hidden" id="ana-const-tooltip" role="tooltip" aria-hidden="true">
+        <div class="ana-const-tt-topic"></div>
+        <div class="ana-const-tt-domain"></div>
+        <div class="ana-const-tt-stats"></div>
+        <div class="ana-const-tt-cta">Click to drill \u2192</div>
+      </div>
     </div>
     ${legendHtml}
     <div class="ana-const-hint">Click any node to drill that topic \u00b7 hover for stats</div>
   </div>`;
+}
+
+// v4.85.11: Knowledge Constellation custom tooltip \u2014 replaces the slow,
+// OS-styled native SVG `<title>` tooltip with a styled, instantly-visible
+// blurb on node hover/focus. Reads data-tt-* attributes from the hovered
+// node so we don't duplicate state in two places. Falls back gracefully
+// when the tooltip element is missing (e.g. constellation re-rendered
+// mid-hover). Mouse + keyboard surfaces both wired.
+function _anaConstTooltipShow(evt, nodeEl) {
+  try {
+    const tt = document.getElementById('ana-const-tooltip');
+    if (!tt || !nodeEl) return;
+    const d = nodeEl.dataset || {};
+    const tiers = { mastered: '\u2605 Mastered', proficient: '\u25c6 Proficient', developing: '\u25d0 Developing', novice: '\u25cb Novice / not studied' };
+    const tierBadge = tiers[d.ttTier] || d.ttTier || '';
+    const ttTopic = tt.querySelector('.ana-const-tt-topic');
+    const ttDomain = tt.querySelector('.ana-const-tt-domain');
+    const ttStats = tt.querySelector('.ana-const-tt-stats');
+    if (ttTopic) ttTopic.textContent = d.ttTopic || '';
+    if (ttDomain) ttDomain.textContent = d.ttDomain || '';
+    if (ttStats) {
+      const lines = [];
+      if (tierBadge) lines.push(tierBadge);
+      if (d.ttMastery && d.ttMastery !== 'Not studied yet') lines.push('Mastery: ' + d.ttMastery);
+      else if (d.ttMastery === 'Not studied yet') lines.push(d.ttMastery);
+      if (d.ttAttempts && d.ttAttempts !== '0') lines.push('Attempts: ' + d.ttAttempts);
+      if (d.ttLast && d.ttLast !== '\u2014') lines.push('Last: ' + d.ttLast);
+      ttStats.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
+    }
+    // Set a tier class on the tooltip itself so the accent border can match
+    tt.className = 'ana-const-tooltip ana-const-tt-tier-' + (d.ttTier || 'novice');
+    tt.setAttribute('aria-hidden', 'false');
+    _anaConstTooltipPosition(evt);
+  } catch (_) { /* defensive \u2014 tooltip is decorative */ }
+}
+
+function _anaConstTooltipPosition(evt) {
+  try {
+    const tt = document.getElementById('ana-const-tooltip');
+    if (!tt || tt.classList.contains('is-hidden') === true && tt.getAttribute('aria-hidden') === 'true') return;
+    const map = tt.parentElement;
+    if (!map) return;
+    const rect = map.getBoundingClientRect();
+    const x = (evt.clientX || 0) - rect.left + 14;
+    const y = (evt.clientY || 0) - rect.top + 14;
+    const ttW = tt.offsetWidth || 220;
+    const ttH = tt.offsetHeight || 80;
+    const clampX = Math.min(rect.width - ttW - 8, Math.max(8, x));
+    const clampY = Math.min(rect.height - ttH - 8, Math.max(8, y));
+    tt.style.left = clampX + 'px';
+    tt.style.top = clampY + 'px';
+  } catch (_) { /* defensive */ }
+}
+
+function _anaConstTooltipHide() {
+  try {
+    const tt = document.getElementById('ana-const-tooltip');
+    if (!tt) return;
+    tt.className = 'ana-const-tooltip is-hidden';
+    tt.setAttribute('aria-hidden', 'true');
+  } catch (_) { /* defensive */ }
 }
 
 // v4.45.0 — replaces the old Question Type Breakdown. Clusters your last 20
@@ -39208,7 +39284,7 @@ function renderSetupDomainGrid() {
     const barH = pct !== null ? Math.max(6, Math.min(100, pct)) : 6;
     const pctTxt = pct !== null ? pct : '\u2014';
     const pctSub = pct !== null ? '%' : '';
-    const status = pct === null ? 'Not studied' : pct >= 85 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
+    const status = pct === null ? 'Not studied' : pct >= 80 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
     // v4.54.10: vertical canonical-topic list per domain
     const topics = CANONICAL_DOMAIN_TOPICS[dk] || [];
     const topicsHtml = `<ul class="dg-topic-list" aria-label="Topics in this domain">${topics.map(t => {

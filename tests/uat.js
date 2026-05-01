@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.10', js.includes("const APP_VERSION = '4.85.10"));
+test('APP_VERSION is 4.85.11', js.includes("const APP_VERSION = '4.85.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.10', sw.includes('netplus-v4.85.10'));
+test('SW cache bumped to v4.85.11', sw.includes('netplus-v4.85.11'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -2795,8 +2795,8 @@ test('v4.41.0: WEAK_HALF_LIFE_WRONGS_MS 7-day constant defined',
   /WEAK_HALF_LIFE_WRONGS_MS\s*=\s*7\s*\*\s*86400000/.test(js));
 test('v4.41.0: WEAK_HALF_LIFE_HIST_MS 14-day constant defined',
   /WEAK_HALF_LIFE_HIST_MS\s*=\s*14\s*\*\s*86400000/.test(js));
-test('v4.41.0: WEAK_TARGET_ACC mastery threshold defined',
-  /WEAK_TARGET_ACC\s*=\s*0\.85/.test(js));
+test('v4.41.0: WEAK_TARGET_ACC mastery threshold defined (v4.85.11: lowered 0.85 → 0.80)',
+  /WEAK_TARGET_ACC\s*=\s*0\.80/.test(js));
 test('v4.41.0: WEAK_STALENESS_DAYS grace period defined',
   /WEAK_STALENESS_DAYS\s*=\s*14/.test(js));
 test('v4.41.0: _weakDecay exponential helper defined',
@@ -4264,8 +4264,8 @@ test('v4.45.0: all 4 tier badge CSS classes defined',
   /\.dm-badge-proficient/.test(css) && /\.dm-badge-mastered/.test(css));
 test('v4.45.0: .dm-bar-fill uses 800ms cubic-bezier width transition',
   /\.dm-bar-fill\s*\{[^}]*transition:\s*width\s+800ms\s+cubic-bezier/.test(css));
-test('v4.45.0: .dm-bar-target positioned at 85% (mastery threshold marker)',
-  /style="left:85%"/.test(js) || /left:\s*85%/.test(js));
+test('v4.45.0: .dm-bar-target positioned at 80% (v4.85.11: lowered from 85%)',
+  /style="left:80%"/.test(js) || /left:\s*80%/.test(js));
 test('v4.45.0: .wp-pattern + .wp-pattern-rank + .wp-pattern-count CSS present',
   /\.wp-pattern\s*\{/.test(css) && /\.wp-pattern-rank\s*\{/.test(css) &&
   /\.wp-pattern-count\s*\{/.test(css));
@@ -4297,8 +4297,8 @@ test('v4.45.1: Proficient threshold at 70% (was 75%)',
   /pct\s*>=\s*70\)\s*return\s*\{\s*label:\s*'Proficient'/.test(js));
 test('v4.45.1: Developing / Novice boundary at 55% (was 60%)',
   /pct\s*>=\s*55\)\s*return\s*\{\s*label:\s*'Developing'/.test(js));
-test('v4.45.1: Mastered threshold unchanged at 85%',
-  /pct\s*>=\s*85\)\s*return\s*\{\s*label:\s*'Mastered'/.test(js));
+test('v4.85.11: Mastered threshold lowered to 80% (was 85% per v4.45.1)',
+  /pct\s*>=\s*80\)\s*return\s*\{\s*label:\s*'Mastered'/.test(js));
 // Regression guards — old thresholds must stay gone
 test('v4.45.1: old 75% Proficient threshold removed (regression guard)',
   !/pct\s*>=\s*75\)\s*return\s*\{\s*label:\s*'Proficient'/.test(js));
@@ -4366,8 +4366,8 @@ test('v4.46.0: domain weight shows "% of exam" subtext',
   js.includes('% of exam'));
 test('v4.46.0: domain row wrapper classed by tier (ana-domain-row-${tier})',
   /ana-domain-row ana-domain-row-\$\{tier\}/.test(js));
-test('v4.46.0: domain tier cutoffs match Domain Mastery card (55/70/85)',
-  /pct >= 85[\s\S]{0,80}mastered[\s\S]{0,120}pct >= 70[\s\S]{0,80}proficient[\s\S]{0,120}pct >= 55[\s\S]{0,80}developing/.test(js));
+test('v4.46.0: domain tier cutoffs match Domain Mastery card (v4.85.11: 55/70/80, lowered from 85)',
+  /pct >= 80[\s\S]{0,80}mastered[\s\S]{0,120}pct >= 70[\s\S]{0,80}proficient[\s\S]{0,120}pct >= 55[\s\S]{0,80}developing/.test(js));
 test('v4.46.0: domain bar 85% target tick element', js.includes('class="ana-domain-target"'));
 // Stats strip — icons above values
 test('v4.46.0: stats strip has icon layer (.ana-hero-stat-icon)',
@@ -4385,7 +4385,7 @@ test('v4.46.0 CSS: .ana-ready-hero-row grid', /\.ana-ready-hero-row\s*\{[^}]*dis
 test('v4.46.0 CSS: .ana-ready-bar-passtick positioned absolute',
   /\.ana-ready-bar-passtick\s*\{[^}]*position:\s*absolute/.test(css));
 test('v4.46.0 CSS: .ana-domain-dot styled', css.includes('.ana-domain-dot '));
-test('v4.46.0 CSS: .ana-domain-target 85% position', /\.ana-domain-target\s*\{[^}]*left:\s*85%/.test(css));
+test('v4.46.0 CSS: .ana-domain-target 80% position (v4.85.11: lowered from 85%)', /\.ana-domain-target\s*\{[^}]*left:\s*80%/.test(css));
 test('v4.46.0 CSS: .ana-ready-datechip styled', css.includes('.ana-ready-datechip '));
 test('v4.46.0 CSS: stats tiles have hairline dividers via ::before',
   /\.ana-hero-stat\s*\+\s*\.ana-hero-stat::before/.test(css));
@@ -4992,8 +4992,8 @@ test('v4.50.1: Deep Scan preset relabeled to 20-min (was 30-min)',
 test('v4.50.1: regression \u2014 old 30-min Deep Scan label removed',
   !html.includes('30-min Deep Scan'));
 // Recent Performance polish
-test('v4.50.1: renderHistoryPanel uses tier thresholds 55/70/85 (matches Domain Mastery)',
-  /renderHistoryPanel[\s\S]{0,2500}pct\s*>=\s*85[\s\S]{0,300}pct\s*>=\s*70[\s\S]{0,300}pct\s*>=\s*55/.test(js));
+test('v4.50.1: renderHistoryPanel uses tier thresholds (v4.85.11: 55/70/80, lowered from 85)',
+  /renderHistoryPanel[\s\S]{0,2500}pct\s*>=\s*80[\s\S]{0,300}pct\s*>=\s*70[\s\S]{0,300}pct\s*>=\s*55/.test(js));
 test('v4.50.1: renderHistoryPanel includes domain-color dot via DOMAIN_COLOURS map',
   /renderHistoryPanel[\s\S]{0,2500}DOMAIN_COLOURS[\s\S]{0,800}h-domain-dot/.test(js));
 test('v4.50.1: renderHistoryPanel uses the TOPIC_DOMAINS lookup for dot colour',
@@ -5763,8 +5763,8 @@ test('v4.54.2 JS: renderAnalytics calls _renderAnaConstellation after Domain Mas
   /_renderAnaDomainMastery\(h\);[\s\S]{0,400}_renderAnaConstellation\(h\)/.test(js));
 test('v4.54.2 JS: constellation uses TOPIC_DOMAINS for domain lookup',
   /_computeConstellationData[\s\S]{0,800}TOPIC_DOMAINS\[topic\]/.test(js));
-test('v4.54.2 JS: tier thresholds match Domain Mastery (55/70/85)',
-  /_computeConstellationData[\s\S]{0,1500}mastery\s*>=\s*85[\s\S]{0,200}mastery\s*>=\s*70[\s\S]{0,200}mastery\s*>=\s*55/.test(js));
+test('v4.54.2 JS: tier thresholds match Domain Mastery (v4.85.11: 55/70/80, lowered from 85)',
+  /_computeConstellationData[\s\S]{0,1500}mastery\s*>=\s*80[\s\S]{0,200}mastery\s*>=\s*70[\s\S]{0,200}mastery\s*>=\s*55/.test(js));
 test('v4.54.2 JS: 5 domain cluster anchors defined (concepts/implementation/operations/security/troubleshooting)',
   /const CLUSTERS\s*=\s*\{[\s\S]{0,600}concepts[\s\S]{0,200}implementation[\s\S]{0,200}operations[\s\S]{0,200}security[\s\S]{0,200}troubleshooting/.test(js));
 test('v4.54.2 JS: golden-angle jitter for stable deterministic layout',
@@ -5773,8 +5773,8 @@ test('v4.54.2 JS: node radius uses sqrt scale on attempts',
   /Math\.sqrt\(t\.attempts\)\s*\*\s*2\.2/.test(js));
 test('v4.54.2 JS: nodes click through to focusTopic',
   /_renderAnaConstellation[\s\S]{0,6000}onclick="focusTopic/.test(js));
-test('v4.54.2 JS: SVG <title> tooltip with topic + mastery + attempts + last-studied',
-  /_renderAnaConstellation[\s\S]{0,5000}<title>\$\{title\}<\/title>/.test(js));
+test('v4.54.2 JS: SVG <title> tooltip with topic + mastery + attempts + last-studied (v4.85.11: still present as a11y fallback alongside custom hover tooltip)',
+  /_renderAnaConstellation[\s\S]{0,8000}<title>\$\{title\}<\/title>/.test(js));
 test('v4.54.2 JS: empty state when no studied topics',
   /_renderAnaConstellation[\s\S]{0,1500}studied\s*===\s*0/.test(js));
 test('v4.54.2 JS: legend HTML with 4 tiers (mastered/proficient/developing/novice)',
@@ -11062,10 +11062,10 @@ test('v4.81.13 Exam: per-topic split skips MIXED_TOPIC + EXAM_TOPIC entries (def
     const body = _fnBody(js, '_saveExamPerTopicSplit');
     return body && /MIXED_TOPIC/.test(body) && /EXAM_TOPIC/.test(body);
   })());
-test('v4.81.13 Exam: domain breakdown uses tier system anchored to 55/70/85',
+test('v4.81.13 Exam: domain breakdown uses tier system anchored to 55/70/80 (v4.85.11: lowered from 85)',
   (() => {
     const body = _fnBody(js, '_buildExamDomainBreakdown');
-    return body && />=\s*85/.test(body) && />=\s*70/.test(body) && />=\s*55/.test(body);
+    return body && />=\s*80/.test(body) && />=\s*70/.test(body) && />=\s*55/.test(body);
   })());
 test('v4.81.13 Exam: #exam-domain-breakdown card present in HTML',
   /id="exam-domain-breakdown"/.test(html) && /id="exam-domain-breakdown-grid"/.test(html));
@@ -12425,6 +12425,30 @@ test('v4.85.10 Constellation: legend dot developing tier no longer uses var(--ye
   !/\.ana-const-legend-dot\.ana-const-tier-developing\s*\{[^}]*background:\s*var\(--yellow\)/.test(css));
 test('v4.85.10 Constellation: subtitle clarifies color = domain encoding',
   /color = domain, brightness = mastery/.test(js));
+
+// v4.85.11: Constellation hover tooltip + Mastered threshold lowered 85→80
+test('v4.85.11 Tooltip: _anaConstTooltipShow helper defined',
+  /function _anaConstTooltipShow\(/.test(js));
+test('v4.85.11 Tooltip: _anaConstTooltipPosition helper defined',
+  /function _anaConstTooltipPosition\(/.test(js));
+test('v4.85.11 Tooltip: _anaConstTooltipHide helper defined',
+  /function _anaConstTooltipHide\(/.test(js));
+test('v4.85.11 Tooltip: nodes wire onmouseenter/onmouseleave/onmousemove handlers',
+  /onmouseenter="_anaConstTooltipShow[\s\S]{0,200}onmousemove="_anaConstTooltipPosition[\s\S]{0,200}onmouseleave="_anaConstTooltipHide/.test(js));
+test('v4.85.11 Tooltip: nodes also wire onfocus/onblur for keyboard accessibility',
+  /onfocus="_anaConstTooltipShow[\s\S]{0,80}onblur="_anaConstTooltipHide/.test(js));
+test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',
+  /data-tt-topic[\s\S]{0,200}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
+test('v4.85.11 Tooltip: tooltip container HTML present',
+  /id="ana-const-tooltip"[\s\S]{0,300}ana-const-tt-topic[\s\S]{0,200}ana-const-tt-domain[\s\S]{0,200}ana-const-tt-stats/.test(js));
+test('v4.85.11 Tooltip CSS: .ana-const-tooltip rule defined',
+  /\.ana-const-tooltip\s*\{[^}]*position:\s*absolute/.test(css));
+test('v4.85.11 Tooltip CSS: tier-colored left borders defined',
+  /\.ana-const-tooltip\.ana-const-tt-tier-mastered\s*\{[^}]*border-left-color/.test(css));
+test('v4.85.11 Threshold: legend label shows ≥80% mastered (was ≥85%)',
+  js.includes('\\u226580% mastered') && !js.includes('\\u226585% mastered'));
+test('v4.85.11 Threshold: ana-domain-target tick at left: 80%',
+  /\.ana-domain-target\s*\{[^}]*left:\s*80%/.test(css));
 
 // v4.81.23 tombstone: renderRotationChips removed (stale-topic signal now
 // drives the consolidated #today-plan card via buildSessionPlan).

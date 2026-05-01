@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.85.10
+   Network+ AI Quiz — styles.css  v4.85.11
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2114,7 +2114,7 @@ input::placeholder { color: var(--text-dim); }
 .ana-domain-bar { position: relative; height: 8px; background: var(--surface3); border-radius: 99px; overflow: visible; }
 .ana-domain-fill { height: 100%; border-radius: 99px; transition: width .7s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset; }
 .ana-domain-target {
-  position: absolute; top: -2px; left: 85%; width: 2px; height: 12px;
+  position: absolute; top: -2px; left: 80%; width: 2px; height: 12px;
   background: rgba(var(--accent-rgb),.35); border-radius: 1px;
 }
 .ana-domain-pct { font-size: 14px; font-weight: 800; text-align: right; min-width: 36px; font-variant-numeric: tabular-nums; }
@@ -2236,7 +2236,7 @@ input::placeholder { color: var(--text-dim); }
 /* Heatmap */
 /* v4.45.0 — Domain Mastery card (replaces the old .ana-heatmap cluster).
    Full-width above the 2-col grid. Each row is a domain with a progress
-   bar toward the 85% mastery target, a tier badge, and a one-click drill
+   bar toward the 80% mastery target, a tier badge, and a one-click drill
    button. Left-border accent per domain gives an at-a-glance signal. */
 .ana-card-dm { grid-column: 1 / -1; }
 .dm-list { display: flex; flex-direction: column; gap: 14px; }
@@ -7845,6 +7845,71 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   font-style: italic;
   margin-top: 6px;
   padding: 0 4px;
+}
+
+/* v4.85.11: Custom hover tooltip for constellation nodes — replaces the
+   slow native SVG <title> tooltip. Positioned absolutely inside the
+   .ana-const-map container by JS (mouse-follow with edge-clamp). */
+.ana-const-map { position: relative; }
+.ana-const-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.15);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  opacity: 1;
+  transform: translateZ(0);
+  transition: opacity .12s ease;
+}
+.ana-const-tooltip.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.ana-const-tt-topic {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.ana-const-tt-domain {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+.ana-const-tt-stats {
+  font-size: 11.5px;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+}
+.ana-const-tt-stats > div { margin-bottom: 1px; }
+.ana-const-tt-cta {
+  font-size: 10.5px;
+  color: var(--accent);
+  font-weight: 600;
+  border-top: 1px dashed var(--border);
+  padding-top: 5px;
+  margin-top: 2px;
+}
+/* Tier-colored left border so the tooltip subtly echoes mastery state */
+.ana-const-tooltip.ana-const-tt-tier-mastered { border-left-color: var(--green); }
+.ana-const-tooltip.ana-const-tt-tier-mastered .ana-const-tt-cta { color: var(--green); }
+.ana-const-tooltip.ana-const-tt-tier-proficient { border-left-color: var(--accent); }
+.ana-const-tooltip.ana-const-tt-tier-developing { border-left-color: var(--yellow); }
+.ana-const-tooltip.ana-const-tt-tier-novice { border-left-color: var(--text-dim); }
+@media (prefers-reduced-motion: reduce) {
+  .ana-const-tooltip { transition: none; }
 }
 
 /* Empty state */
