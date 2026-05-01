@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.9
+// Network+ AI Quiz — app.js  v4.85.10
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.9';
+const APP_VERSION = '4.85.10';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -34412,7 +34412,7 @@ function _renderAnaConstellation(h) {
   return `<div class="ana-card ana-constellation" id="ana-s-constellation">
     <div class="ana-card-head">
       <h3>\u2728 Knowledge <em>constellation</em></h3>
-      <span class="ana-card-sub">${studied} of ${totalTopics} topics studied \u00b7 size = practice, brightness = mastery</span>
+      <span class="ana-card-sub">${studied} of ${totalTopics} topics studied \u00b7 size = practice, color = domain, brightness = mastery</span>
     </div>
     <div class="ana-const-map">
       <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" class="ana-const-svg" role="img" aria-label="Knowledge constellation map">

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.85.9
+   Network+ AI Quiz — styles.css  v4.85.10
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7821,18 +7821,23 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   letter-spacing: .02em;
   font-weight: 600;
 }
+/* v4.85.10: legend dots now use a neutral base color and differentiate via
+   opacity + glow only — matches the chart's actual encoding (color = domain,
+   brightness = mastery). Pre-fix the legend used green/purple/yellow/gray
+   which clashed with the domain colors (Domain 2 = green, Domain 1 = purple,
+   Domain 4 = orange) and made the legend impossible to map onto the chart. */
 .ana-const-legend-dot {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px currentColor;
+  background: var(--text);
+  color: var(--text);
 }
-.ana-const-legend-dot.ana-const-tier-mastered { background: var(--green); color: var(--green); }
-.ana-const-legend-dot.ana-const-tier-proficient { background: var(--accent); color: var(--accent); }
-.ana-const-legend-dot.ana-const-tier-developing { background: var(--yellow); color: var(--yellow); opacity: .7; }
-.ana-const-legend-dot.ana-const-tier-novice { background: var(--text-dim); color: var(--text-dim); opacity: .5; box-shadow: none; }
+.ana-const-legend-dot.ana-const-tier-mastered { opacity: 1; box-shadow: 0 0 6px currentColor; }
+.ana-const-legend-dot.ana-const-tier-proficient { opacity: .85; box-shadow: 0 0 3px currentColor; }
+.ana-const-legend-dot.ana-const-tier-developing { opacity: .55; box-shadow: none; }
+.ana-const-legend-dot.ana-const-tier-novice { opacity: .3; box-shadow: none; }
 
 .ana-const-hint {
   font-size: 10.5px;
