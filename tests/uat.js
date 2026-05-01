@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.12', js.includes("const APP_VERSION = '4.85.12"));
+test('APP_VERSION is 4.85.13', js.includes("const APP_VERSION = '4.85.13"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.12', sw.includes('netplus-v4.85.12'));
+test('SW cache bumped to v4.85.13', sw.includes('netplus-v4.85.13'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5771,8 +5771,8 @@ test('v4.54.2 JS: golden-angle jitter for stable deterministic layout',
   /_renderAnaConstellation[\s\S]{0,3500}i\s*\*\s*2\.399/.test(js));
 test('v4.54.2 JS: node radius uses sqrt scale on attempts',
   /Math\.sqrt\(t\.attempts\)\s*\*\s*2\.2/.test(js));
-test('v4.54.2 JS: nodes click through to focusTopic',
-  /_renderAnaConstellation[\s\S]{0,6000}onclick="focusTopic/.test(js));
+test('v4.54.2 JS: nodes drill to focusTopic via tooltip button (v4.85.13: moved from inline onclick on <g> to explicit button inside tooltip)',
+  /_anaConstTooltipShow[\s\S]{0,2000}focusTopic\(topicRaw\)/.test(js));
 test('v4.54.2 JS: SVG <title> tooltip with topic + mastery + attempts + last-studied (v4.85.11: still present as a11y fallback alongside custom hover tooltip)',
   /_renderAnaConstellation[\s\S]{0,8000}<title>\$\{title\}<\/title>/.test(js));
 test('v4.54.2 JS: empty state when no studied topics',
@@ -12429,19 +12429,20 @@ test('v4.85.10 Constellation: subtitle clarifies color = domain encoding',
 // v4.85.11: Constellation hover tooltip + Mastered threshold lowered 85→80
 test('v4.85.11 Tooltip: _anaConstTooltipShow helper defined',
   /function _anaConstTooltipShow\(/.test(js));
-test('v4.85.11 Tooltip: _anaConstTooltipPosition helper defined',
-  /function _anaConstTooltipPosition\(/.test(js));
+// v4.85.13 tombstone: _anaConstTooltipPosition removed — tooltip now uses
+// fixed top-center positioning via CSS, no cursor tracking.
+test('v4.85.13 Tooltip: _anaConstTooltipPosition removed (replaced by CSS top-center positioning)',
+  !/function _anaConstTooltipPosition\(/.test(js));
 test('v4.85.11 Tooltip: _anaConstTooltipHide helper defined',
   /function _anaConstTooltipHide\(/.test(js));
 test('v4.85.12 Tooltip: _anaConstWireTooltip event-delegation helper defined (replaces v4.85.11 inline handlers)',
   /function _anaConstWireTooltip\(/.test(js));
-test('v4.85.12 Tooltip: wireup uses mouseover/mouseout/mousemove + focusin/focusout (delegation pattern)',
+test('v4.85.13 Tooltip: wireup uses mouseover + focusin (show) and mouseleave + focusout (hide)',
   (() => {
     const body = _fnBody(js, '_anaConstWireTooltip');
     return body
       && /addEventListener\('mouseover'/.test(body)
-      && /addEventListener\('mouseout'/.test(body)
-      && /addEventListener\('mousemove'/.test(body)
+      && /addEventListener\('mouseleave'/.test(body)
       && /addEventListener\('focusin'/.test(body)
       && /addEventListener\('focusout'/.test(body);
   })());
@@ -12454,14 +12455,55 @@ test('v4.85.12 Tooltip: renderAnalytics calls _anaConstWireTooltip after innerHT
   /container\.innerHTML\s*=\s*html;[\s\S]{0,400}_anaConstWireTooltip\(\)/.test(js));
 test('v4.85.12 Tooltip: <g> nodes no longer have inline onmouseenter (moved to delegation)',
   !/data-tt-topic[^>]*onmouseenter/.test(js));
+
+// v4.85.13 — Constellation tooltip rebuild after user feedback that v4.85.12
+// version was unusable: cursor-following position landed at the bottom of
+// the map; click-to-drill on nodes caused tooltip to flash for ~50ms before
+// page navigated away. New design: fixed top-center position, drill via
+// explicit button inside tooltip, no auto-drill on node click.
+test('v4.85.13 Tooltip rebuild: <g> nodes no longer have onclick="focusTopic" (drill goes through tooltip button)',
+  !/data-tt-topic[^>]*onclick="focusTopic/.test(js));
+test('v4.85.13 Tooltip rebuild: tooltip HTML has explicit drill button (replaces v4.85.11 div CTA)',
+  /id="ana-const-tt-btn"/.test(js)
+  && /Drill into this topic/.test(js));
+test('v4.85.13 Tooltip rebuild: _anaConstTooltipShow signature is (nodeEl) — no more (evt, nodeEl)',
+  (() => {
+    const body = _fnBody(js, '_anaConstTooltipShow');
+    return body && /function _anaConstTooltipShow\(nodeEl\)/.test(body);
+  })());
+test('v4.85.13 Tooltip rebuild: show binds button onclick to focusTopic(topicRaw)',
+  (() => {
+    const body = _fnBody(js, '_anaConstTooltipShow');
+    return body && /ttBtn\.onclick/.test(body) && /focusTopic\(topicRaw\)/.test(body);
+  })());
+test('v4.85.13 Tooltip rebuild: wireup uses map-level mouseleave for hide (not per-node mouseout)',
+  (() => {
+    const body = _fnBody(js, '_anaConstWireTooltip');
+    return body
+      && /addEventListener\('mouseleave'/.test(body)
+      && !/addEventListener\('mouseout'/.test(body)
+      && !/addEventListener\('mousemove'/.test(body);
+  })());
+test('v4.85.13 Tooltip rebuild: nodes carry data-tt-topic-raw for unescaped topic name (drill button needs raw form)',
+  /data-tt-topic-raw="\$\{topicEsc\}"/.test(js));
+test('v4.85.13 Tooltip CSS: tooltip positioned at fixed top-center via top:14px + left:50% + translateX',
+  /\.ana-const-tooltip\s*\{[^}]*top:\s*14px[\s\S]{0,200}left:\s*50%[\s\S]{0,200}transform:\s*translateX\(-50%\)/.test(css));
+test('v4.85.13 Tooltip CSS: pointer-events: auto so drill button is clickable',
+  /\.ana-const-tooltip\s*\{[^}]*pointer-events:\s*auto/.test(css));
+test('v4.85.13 Tooltip CSS: drill button styled (.ana-const-tt-btn)',
+  /\.ana-const-tt-btn\s*\{[^}]*background:\s*var\(--accent\)/.test(css));
+test('v4.85.13 Tooltip CSS: mobile breakpoint stacks tooltip flush left/right at <540px',
+  /@media\s*\(max-width:\s*540px\)[\s\S]{0,500}\.ana-const-tooltip\s*\{[\s\S]{0,200}left:\s*12px[\s\S]{0,200}right:\s*12px/.test(css));
+test('v4.85.13 Tooltip hint text: "Hover any node to see stats"',
+  /Hover any node to see stats/.test(js));
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',
-  /data-tt-topic[\s\S]{0,200}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
+  /data-tt-topic[\s\S]{0,300}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
 test('v4.85.11 Tooltip: tooltip container HTML present',
   /id="ana-const-tooltip"[\s\S]{0,300}ana-const-tt-topic[\s\S]{0,200}ana-const-tt-domain[\s\S]{0,200}ana-const-tt-stats/.test(js));
 test('v4.85.11 Tooltip CSS: .ana-const-tooltip rule defined',
   /\.ana-const-tooltip\s*\{[^}]*position:\s*absolute/.test(css));
-test('v4.85.11 Tooltip CSS: tier-colored left borders defined',
-  /\.ana-const-tooltip\.ana-const-tt-tier-mastered\s*\{[^}]*border-left-color/.test(css));
+test('v4.85.13 Tooltip CSS: tier-colored TOP borders (replaces left borders from v4.85.11)',
+  /\.ana-const-tooltip\.ana-const-tt-tier-mastered\s*\{[^}]*border-top-color/.test(css));
 test('v4.85.11 Threshold: legend label shows ≥80% mastered (was ≥85%)',
   js.includes('\\u226580% mastered') && !js.includes('\\u226585% mastered'));
 test('v4.85.11 Threshold: ana-domain-target tick at left: 80%',

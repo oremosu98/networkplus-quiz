@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.12
+// Network+ AI Quiz — app.js  v4.85.13
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.12';
+const APP_VERSION = '4.85.13';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -34402,12 +34402,13 @@ function _renderAnaConstellation(h) {
     const ttLast = n.lastDays !== null
       ? (n.lastDays === 0 ? 'today' : n.lastDays === 1 ? 'yesterday' : esc(n.lastDays + ' days ago'))
       : '\u2014';
-    // v4.85.12: handlers wired via event delegation on .ana-const-map (not
-    // inline) — inline mouseenter/leave on SVG <g> elements injected via
-    // innerHTML is unreliable across browsers. onclick is kept because that
-    // path was already proven in production. Tooltip events wire in
-    // _anaConstWireTooltip after the constellation renders.
-    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" data-tt-topic="${esc(n.topic)}" data-tt-domain="${ttDomain}" data-tt-tier="${esc(n.tier)}" data-tt-mastery="${ttMastery}" data-tt-attempts="${ttAttempts}" data-tt-last="${ttLast}" onclick="focusTopic('${topicEsc}')" role="button" tabindex="0" aria-label="${title}">
+    // v4.85.13: removed onclick auto-drill — caused the "tooltip flashes then
+    // page navigates" UX bug user reported. Drill action now lives on an
+    // explicit button INSIDE the tooltip. Node hover/focus only SHOWS the
+    // tooltip; user reads, then clicks the button to drill. Works cleanly
+    // on both desktop and touch. Topic name stored on the node so the
+    // wireup helper can pull it for the button.
+    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" data-tt-topic="${esc(n.topic)}" data-tt-topic-raw="${topicEsc}" data-tt-domain="${ttDomain}" data-tt-tier="${esc(n.tier)}" data-tt-mastery="${ttMastery}" data-tt-attempts="${ttAttempts}" data-tt-last="${ttLast}" tabindex="0" aria-label="${title}">
       <title>${title}</title>
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${n.r.toFixed(1)}" class="ana-const-halo" />
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${innerR.toFixed(1)}" class="ana-const-core" />
@@ -34438,29 +34439,30 @@ function _renderAnaConstellation(h) {
         <div class="ana-const-tt-topic"></div>
         <div class="ana-const-tt-domain"></div>
         <div class="ana-const-tt-stats"></div>
-        <div class="ana-const-tt-cta">Click to drill \u2192</div>
+        <button type="button" class="ana-const-tt-btn" id="ana-const-tt-btn">Drill into this topic \u2192</button>
       </div>
     </div>
     ${legendHtml}
-    <div class="ana-const-hint">Click any node to drill that topic \u00b7 hover for stats</div>
+    <div class="ana-const-hint">Hover any node to see stats \u00b7 use the button to drill</div>
   </div>`;
 }
 
-// v4.85.12: event delegation on .ana-const-map \u2014 wires mouseover/mouseout/
-// mousemove/focusin/focusout once per render. Inline onmouseenter/onmouseleave
-// on SVG <g> elements injected via innerHTML proved unreliable in real
-// browsers (inline attribute serialized but listener never bound). Delegation
-// at the container level uses bubbling events (mouseover/mouseout) so SVG
-// children of <g> trigger correctly. Idempotent: marks the map with
-// data-tooltip-wired so re-renders don't double-bind.
+// v4.85.13: rebuilt event-delegation pattern after user feedback that v4.85.12
+// tooltip was buggy ("pops up at bottom, only on click, flashes then navigates").
+// New behavior:
+//   - Tooltip shows on mouseover/focusin of any node (delegation, not inline)
+//   - Tooltip stays visible while cursor is anywhere inside the .ana-const-map
+//     (including over the tooltip itself, so user can click the Drill button)
+//   - Tooltip hides only when cursor LEAVES the map entirely (mouseleave on map)
+//   - Click on node does NOTHING (auto-drill removed); drilling goes through
+//     the explicit Drill button inside the tooltip
+//   - Tooltip is positioned at fixed top-center via CSS, never follows the cursor
 function _anaConstWireTooltip() {
   try {
     const map = document.querySelector('#ana-s-constellation .ana-const-map');
     if (!map || map.dataset.tooltipWired === '1') return;
     map.dataset.tooltipWired = '1';
     const findNode = (target) => {
-      // Walk up from target to the .ana-const-node <g> ancestor (target may
-      // be a <circle> or <title> child).
       let el = target;
       while (el && el !== map) {
         if (el.classList && el.classList.contains && el.classList.contains('ana-const-node')) return el;
@@ -34468,31 +34470,23 @@ function _anaConstWireTooltip() {
       }
       return null;
     };
+    // Show on hover/focus of any node \u2014 delegation via bubbling events
     map.addEventListener('mouseover', (e) => {
       const node = findNode(e.target);
       if (!node) return;
-      _anaConstTooltipShow(e, node);
-    });
-    map.addEventListener('mousemove', (e) => {
-      const node = findNode(e.target);
-      if (!node) return;
-      _anaConstTooltipPosition(e);
-    });
-    map.addEventListener('mouseout', (e) => {
-      const node = findNode(e.target);
-      if (!node) return;
-      // Skip if moving to a child of the same node (mouseout fires on internal moves)
-      if (e.relatedTarget && node.contains && node.contains(e.relatedTarget)) return;
-      _anaConstTooltipHide();
+      _anaConstTooltipShow(node);
     });
     map.addEventListener('focusin', (e) => {
       const node = findNode(e.target);
       if (!node) return;
-      _anaConstTooltipShow(e, node);
+      _anaConstTooltipShow(node);
     });
+    // Hide ONLY when leaving the entire map (not when leaving a single node).
+    // mouseleave does not bubble, so we listen directly on the map element.
+    map.addEventListener('mouseleave', () => _anaConstTooltipHide());
+    // Keyboard: hide when focus leaves the map entirely (relatedTarget outside)
     map.addEventListener('focusout', (e) => {
-      const node = findNode(e.target);
-      if (!node) return;
+      if (e.relatedTarget && map.contains(e.relatedTarget)) return;
       _anaConstTooltipHide();
     });
   } catch (_) { /* defensive */ }
@@ -34504,7 +34498,10 @@ function _anaConstWireTooltip() {
 // node so we don't duplicate state in two places. Falls back gracefully
 // when the tooltip element is missing (e.g. constellation re-rendered
 // mid-hover). Mouse + keyboard surfaces both wired.
-function _anaConstTooltipShow(evt, nodeEl) {
+// v4.85.13: simplified \u2014 tooltip lives at fixed top-center via CSS, no cursor
+// tracking. Show populates content + binds the Drill button to focusTopic for
+// the hovered topic. Hide just toggles visibility. Position fn removed.
+function _anaConstTooltipShow(nodeEl) {
   try {
     const tt = document.getElementById('ana-const-tooltip');
     if (!tt || !nodeEl) return;
@@ -34514,6 +34511,7 @@ function _anaConstTooltipShow(evt, nodeEl) {
     const ttTopic = tt.querySelector('.ana-const-tt-topic');
     const ttDomain = tt.querySelector('.ana-const-tt-domain');
     const ttStats = tt.querySelector('.ana-const-tt-stats');
+    const ttBtn = tt.querySelector('.ana-const-tt-btn');
     if (ttTopic) ttTopic.textContent = d.ttTopic || '';
     if (ttDomain) ttDomain.textContent = d.ttDomain || '';
     if (ttStats) {
@@ -34525,29 +34523,18 @@ function _anaConstTooltipShow(evt, nodeEl) {
       if (d.ttLast && d.ttLast !== '\u2014') lines.push('Last: ' + d.ttLast);
       ttStats.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
     }
-    // Set a tier class on the tooltip itself so the accent border can match
+    if (ttBtn) {
+      // Wire the explicit drill action to this topic. Re-bind every show so
+      // the button reflects whatever topic is currently displayed.
+      const topicRaw = d.ttTopicRaw || d.ttTopic || '';
+      ttBtn.textContent = 'Drill into ' + (d.ttTopic || 'this topic') + ' \u2192';
+      ttBtn.onclick = function() {
+        if (typeof focusTopic === 'function' && topicRaw) focusTopic(topicRaw);
+      };
+    }
     tt.className = 'ana-const-tooltip ana-const-tt-tier-' + (d.ttTier || 'novice');
     tt.setAttribute('aria-hidden', 'false');
-    _anaConstTooltipPosition(evt);
   } catch (_) { /* defensive \u2014 tooltip is decorative */ }
-}
-
-function _anaConstTooltipPosition(evt) {
-  try {
-    const tt = document.getElementById('ana-const-tooltip');
-    if (!tt || tt.classList.contains('is-hidden') === true && tt.getAttribute('aria-hidden') === 'true') return;
-    const map = tt.parentElement;
-    if (!map) return;
-    const rect = map.getBoundingClientRect();
-    const x = (evt.clientX || 0) - rect.left + 14;
-    const y = (evt.clientY || 0) - rect.top + 14;
-    const ttW = tt.offsetWidth || 220;
-    const ttH = tt.offsetHeight || 80;
-    const clampX = Math.min(rect.width - ttW - 8, Math.max(8, x));
-    const clampY = Math.min(rect.height - ttH - 8, Math.max(8, y));
-    tt.style.left = clampX + 'px';
-    tt.style.top = clampY + 'px';
-  } catch (_) { /* defensive */ }
 }
 
 function _anaConstTooltipHide() {
