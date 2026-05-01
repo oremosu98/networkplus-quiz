@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.11', js.includes("const APP_VERSION = '4.85.11"));
+test('APP_VERSION is 4.85.12', js.includes("const APP_VERSION = '4.85.12"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.11', sw.includes('netplus-v4.85.11'));
+test('SW cache bumped to v4.85.12', sw.includes('netplus-v4.85.12'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12433,10 +12433,27 @@ test('v4.85.11 Tooltip: _anaConstTooltipPosition helper defined',
   /function _anaConstTooltipPosition\(/.test(js));
 test('v4.85.11 Tooltip: _anaConstTooltipHide helper defined',
   /function _anaConstTooltipHide\(/.test(js));
-test('v4.85.11 Tooltip: nodes wire onmouseenter/onmouseleave/onmousemove handlers',
-  /onmouseenter="_anaConstTooltipShow[\s\S]{0,200}onmousemove="_anaConstTooltipPosition[\s\S]{0,200}onmouseleave="_anaConstTooltipHide/.test(js));
-test('v4.85.11 Tooltip: nodes also wire onfocus/onblur for keyboard accessibility',
-  /onfocus="_anaConstTooltipShow[\s\S]{0,80}onblur="_anaConstTooltipHide/.test(js));
+test('v4.85.12 Tooltip: _anaConstWireTooltip event-delegation helper defined (replaces v4.85.11 inline handlers)',
+  /function _anaConstWireTooltip\(/.test(js));
+test('v4.85.12 Tooltip: wireup uses mouseover/mouseout/mousemove + focusin/focusout (delegation pattern)',
+  (() => {
+    const body = _fnBody(js, '_anaConstWireTooltip');
+    return body
+      && /addEventListener\('mouseover'/.test(body)
+      && /addEventListener\('mouseout'/.test(body)
+      && /addEventListener\('mousemove'/.test(body)
+      && /addEventListener\('focusin'/.test(body)
+      && /addEventListener\('focusout'/.test(body);
+  })());
+test('v4.85.12 Tooltip: wireup is idempotent via data-tooltip-wired guard',
+  (() => {
+    const body = _fnBody(js, '_anaConstWireTooltip');
+    return body && /tooltipWired\s*===\s*'1'/.test(body) && /tooltipWired\s*=\s*'1'/.test(body);
+  })());
+test('v4.85.12 Tooltip: renderAnalytics calls _anaConstWireTooltip after innerHTML',
+  /container\.innerHTML\s*=\s*html;[\s\S]{0,400}_anaConstWireTooltip\(\)/.test(js));
+test('v4.85.12 Tooltip: <g> nodes no longer have inline onmouseenter (moved to delegation)',
+  !/data-tt-topic[^>]*onmouseenter/.test(js));
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',
   /data-tt-topic[\s\S]{0,200}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
 test('v4.85.11 Tooltip: tooltip container HTML present',

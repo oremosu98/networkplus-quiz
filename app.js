@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.11
+// Network+ AI Quiz — app.js  v4.85.12
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.11';
+const APP_VERSION = '4.85.12';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -34402,7 +34402,12 @@ function _renderAnaConstellation(h) {
     const ttLast = n.lastDays !== null
       ? (n.lastDays === 0 ? 'today' : n.lastDays === 1 ? 'yesterday' : esc(n.lastDays + ' days ago'))
       : '\u2014';
-    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" data-tt-topic="${esc(n.topic)}" data-tt-domain="${ttDomain}" data-tt-tier="${esc(n.tier)}" data-tt-mastery="${ttMastery}" data-tt-attempts="${ttAttempts}" data-tt-last="${ttLast}" onclick="focusTopic('${topicEsc}')" onmouseenter="_anaConstTooltipShow(event, this)" onmousemove="_anaConstTooltipPosition(event)" onmouseleave="_anaConstTooltipHide()" onfocus="_anaConstTooltipShow(event, this)" onblur="_anaConstTooltipHide()" role="button" tabindex="0" aria-label="${title}">
+    // v4.85.12: handlers wired via event delegation on .ana-const-map (not
+    // inline) — inline mouseenter/leave on SVG <g> elements injected via
+    // innerHTML is unreliable across browsers. onclick is kept because that
+    // path was already proven in production. Tooltip events wire in
+    // _anaConstWireTooltip after the constellation renders.
+    return `<g class="ana-const-node ana-const-tier-${n.tier}" data-domain-idx="${CLUSTERS[n.domain].idx}" data-tt-topic="${esc(n.topic)}" data-tt-domain="${ttDomain}" data-tt-tier="${esc(n.tier)}" data-tt-mastery="${ttMastery}" data-tt-attempts="${ttAttempts}" data-tt-last="${ttLast}" onclick="focusTopic('${topicEsc}')" role="button" tabindex="0" aria-label="${title}">
       <title>${title}</title>
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${n.r.toFixed(1)}" class="ana-const-halo" />
       <circle cx="${n.cx.toFixed(1)}" cy="${n.cy.toFixed(1)}" r="${innerR.toFixed(1)}" class="ana-const-core" />
@@ -34439,6 +34444,58 @@ function _renderAnaConstellation(h) {
     ${legendHtml}
     <div class="ana-const-hint">Click any node to drill that topic \u00b7 hover for stats</div>
   </div>`;
+}
+
+// v4.85.12: event delegation on .ana-const-map \u2014 wires mouseover/mouseout/
+// mousemove/focusin/focusout once per render. Inline onmouseenter/onmouseleave
+// on SVG <g> elements injected via innerHTML proved unreliable in real
+// browsers (inline attribute serialized but listener never bound). Delegation
+// at the container level uses bubbling events (mouseover/mouseout) so SVG
+// children of <g> trigger correctly. Idempotent: marks the map with
+// data-tooltip-wired so re-renders don't double-bind.
+function _anaConstWireTooltip() {
+  try {
+    const map = document.querySelector('#ana-s-constellation .ana-const-map');
+    if (!map || map.dataset.tooltipWired === '1') return;
+    map.dataset.tooltipWired = '1';
+    const findNode = (target) => {
+      // Walk up from target to the .ana-const-node <g> ancestor (target may
+      // be a <circle> or <title> child).
+      let el = target;
+      while (el && el !== map) {
+        if (el.classList && el.classList.contains && el.classList.contains('ana-const-node')) return el;
+        el = el.parentNode;
+      }
+      return null;
+    };
+    map.addEventListener('mouseover', (e) => {
+      const node = findNode(e.target);
+      if (!node) return;
+      _anaConstTooltipShow(e, node);
+    });
+    map.addEventListener('mousemove', (e) => {
+      const node = findNode(e.target);
+      if (!node) return;
+      _anaConstTooltipPosition(e);
+    });
+    map.addEventListener('mouseout', (e) => {
+      const node = findNode(e.target);
+      if (!node) return;
+      // Skip if moving to a child of the same node (mouseout fires on internal moves)
+      if (e.relatedTarget && node.contains && node.contains(e.relatedTarget)) return;
+      _anaConstTooltipHide();
+    });
+    map.addEventListener('focusin', (e) => {
+      const node = findNode(e.target);
+      if (!node) return;
+      _anaConstTooltipShow(e, node);
+    });
+    map.addEventListener('focusout', (e) => {
+      const node = findNode(e.target);
+      if (!node) return;
+      _anaConstTooltipHide();
+    });
+  } catch (_) { /* defensive */ }
 }
 
 // v4.85.11: Knowledge Constellation custom tooltip \u2014 replaces the slow,
@@ -34789,6 +34846,9 @@ function renderAnalytics() {
   html += '</div>';
   html += _renderAnaMilestones();
   container.innerHTML = html;
+  // v4.85.12: wire constellation hover tooltip after innerHTML insertion.
+  // Idempotent (data-tooltip-wired guard) so re-renders don't double-bind.
+  if (typeof _anaConstWireTooltip === 'function') _anaConstWireTooltip();
 }
 
 // Wired to the exam date input on the analytics page
