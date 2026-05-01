@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.13', js.includes("const APP_VERSION = '4.85.13"));
+test('APP_VERSION is 4.85.14', js.includes("const APP_VERSION = '4.85.14"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.13', sw.includes('netplus-v4.85.13'));
+test('SW cache bumped to v4.85.14', sw.includes('netplus-v4.85.14'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -6203,8 +6203,8 @@ test('v4.54.8 JS: _renderAnaAccuracyChart defined with SVG 960x220 + pass line',
 test('v4.54.8 JS: _anaAccChartTab tab-switcher defined + 3 ranges (week/month/all)',
   js.includes('function _anaAccChartTab(') &&
   /_anaAccChartTab[\s\S]{0,800}ana-accchart-tab-active/.test(js));
-test('v4.54.8 JS: renderAnalytics chains _renderAnaAccuracyChart after _renderAnaReadiness',
-  /renderAnalytics[\s\S]{0,3000}_renderAnaReadiness\(h\)[\s\S]{0,400}_renderAnaAccuracyChart\(h\)/.test(js));
+test('v4.54.8 JS: renderAnalytics chains _renderAnaAccuracyChart after _renderAnaReadiness (v4.85.14: _renderAnaWhyScore now sits between them)',
+  /_renderAnaReadiness\(h\)[\s\S]{0,800}_renderAnaAccuracyChart\(h\)/.test(js));
 test('v4.54.8 CSS: .ana-accchart-card editorial head (eyebrow + italic-accent title)',
   /\.ana-accchart-eyebrow\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,300}text-transform:\s*uppercase/.test(css) &&
   /\.ana-accchart-title\s+em\s*\{[\s\S]{0,200}color:\s*var\(--accent-light\)/.test(css));
@@ -12496,6 +12496,105 @@ test('v4.85.13 Tooltip CSS: mobile breakpoint stacks tooltip flush left/right at
   /@media\s*\(max-width:\s*540px\)[\s\S]{0,500}\.ana-const-tooltip\s*\{[\s\S]{0,200}left:\s*12px[\s\S]{0,200}right:\s*12px/.test(css));
 test('v4.85.13 Tooltip hint text: "Hover any node to see stats"',
   /Hover any node to see stats/.test(js));
+
+// v4.85.14: "Why your score?" breakdown card — sits under Exam Readiness card
+// on Analytics. 4 component bars + plain-English diagnosis + 2 click-through
+// action cards (refresh recency / drill weakest). User-approved mockup at
+// mockups/readiness-why-card-concept.html.
+test('v4.85.14 WhyScore: _renderAnaWhyScore renderer defined',
+  /function _renderAnaWhyScore\(/.test(js));
+test('v4.85.14 WhyScore: _startReadinessRefreshQuiz click handler defined',
+  /function _startReadinessRefreshQuiz\(/.test(js));
+test('v4.85.14 WhyScore: _startReadinessWeakestQuiz click handler defined',
+  /function _startReadinessWeakestQuiz\(/.test(js));
+test('v4.85.14 WhyScore: getReadinessScore returns staleTopics array (sorted oldest-first)',
+  (() => {
+    const body = _fnBody(js, 'getReadinessScore');
+    return body && /staleTopics/.test(body) && /sort\(\(a, b\) => b\.daysSince - a\.daysSince\)/.test(body);
+  })());
+test('v4.85.14 WhyScore: card wired into renderAnalytics after _renderAnaReadiness',
+  /_renderAnaReadiness\(h\)[\s\S]{0,500}_renderAnaWhyScore\(_readiness\)/.test(js));
+test('v4.85.14 WhyScore: 4 component bars (accuracy, coverage, recency, volume)',
+  (() => {
+    const body = _fnBody(js, '_renderAnaWhyScore');
+    return body
+      && /Accuracy[\s\S]{0,500}Coverage[\s\S]{0,500}Recency[\s\S]{0,500}Volume/.test(body);
+  })());
+test('v4.85.14 WhyScore: bottleneck detection picks highest-drag component',
+  (() => {
+    const body = _fnBody(js, '_renderAnaWhyScore');
+    return body && /bottleneck/.test(body) && /dragPts/.test(body);
+  })());
+test('v4.85.14 WhyScore: refresh handler builds Multi: sentinel from staleTopics',
+  (() => {
+    const body = _fnBody(js, '_startReadinessRefreshQuiz');
+    return body
+      && /staleTopics\.slice\(0,\s*8\)/.test(body)
+      && /'Multi: '\s*\+\s*topicNames\.join\(', '\)/.test(body);
+  })());
+test('v4.85.14 WhyScore: weakest handler builds Multi: sentinel from whatIf',
+  (() => {
+    const body = _fnBody(js, '_startReadinessWeakestQuiz');
+    return body
+      && /whatIf\.slice\(0,\s*3\)/.test(body)
+      && /'Multi: '\s*\+\s*topicNames\.join\(', '\)/.test(body)
+      && /diff\s*=\s*'Hard \/ Tricky'/.test(body);
+  })());
+test('v4.85.14 WhyScore: refresh handler uses 5 Qs per topic (Mixed difficulty)',
+  (() => {
+    const body = _fnBody(js, '_startReadinessRefreshQuiz');
+    return body && /topicNames\.length\s*\*\s*5/.test(body);
+  })());
+test('v4.85.14 WhyScore: weakest handler uses 10 Qs per topic',
+  (() => {
+    const body = _fnBody(js, '_startReadinessWeakestQuiz');
+    return body && /topicNames\.length\s*\*\s*10/.test(body);
+  })());
+test('v4.85.14 WhyScore CSS: .ana-why-score grid spans full width',
+  /\.ana-card\.ana-why-score\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/.test(css));
+test('v4.85.14 WhyScore CSS: tier color classes for component bars (good/ok/low/critical)',
+  /\.why-bar-fill\.tier-good[\s\S]{0,200}\.why-bar-fill\.tier-ok[\s\S]{0,200}\.why-bar-fill\.tier-low[\s\S]{0,200}\.why-bar-fill\.tier-critical/.test(css));
+test('v4.85.14 WhyScore CSS: action card has hover lift + primary orange variant',
+  /\.why-action-card\.is-primary[\s\S]{0,400}rgba\(251,\s*146,\s*60/.test(css));
+test('v4.85.14 WhyScore CSS: mobile breakpoint (<720px) stacks action row vertically',
+  /@media\s*\(max-width:\s*720px\)[\s\S]{0,800}\.ana-why-score\s+\.why-action-row\s*\{[^}]*grid-template-columns:\s*1fr/.test(css));
+test('v4.85.14 WhyScore: vm fixture — bottleneck = recency when recencyScore is lowest',
+  (() => {
+    try {
+      const body = _fnBody(js, '_renderAnaWhyScore');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = {
+        EXAM_PASS_SCORE: 720,
+        escHtml: s => String(s || ''),
+        Math, Object, Array, String, JSON
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const fakeReadiness = {
+        predicted: 702,
+        accuracyScore: 78,
+        coverageScore: 100,
+        recencyScore: 28,
+        volumeScore: 100,
+        totalTopics: 50,
+        studiedCount: 50,
+        totalQs: 611,
+        staleTopics: [
+          { topic: 'BGP', daysSince: 21 },
+          { topic: 'OSPF', daysSince: 18 }
+        ],
+        whatIf: [
+          { topic: 'BGP', currentPct: 61, targetPct: 80, deltaPredicted: 4 }
+        ]
+      };
+      const html = vm.runInContext('_renderAnaWhyScore(' + JSON.stringify(fakeReadiness) + ')', ctx);
+      // Should call out recency as the bottleneck and show 18-pt gap
+      return /Recency is the bottleneck/.test(html)
+        && /18 pts to pass/.test(html)
+        && /Refresh recency/.test(html);
+    } catch (e) { return false; }
+  })());
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',
   /data-tt-topic[\s\S]{0,300}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
 test('v4.85.11 Tooltip: tooltip container HTML present',

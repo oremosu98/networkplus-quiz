@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.13
+// Network+ AI Quiz — app.js  v4.85.14
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.13';
+const APP_VERSION = '4.85.14';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -11241,6 +11241,15 @@ function getReadinessScore() {
   const daysToExam = (typeof getDaysToExam === 'function') ? getDaysToExam() : null;
   const targetGap = Math.max(0, EXAM_PASS_SCORE - lowerBound);
 
+  // v4.85.14: stale-topic list for the "Why your score?" breakdown card.
+  // Sorted oldest-first so the renderer can take the top N stalest topics
+  // and seed a refresh quiz to lift the recency component back up. Topics
+  // not yet studied (no entry in topicMap) are not included — they're a
+  // coverage problem, not a recency problem.
+  const staleTopics = studiedTopics
+    .map(t => ({ topic: t, daysSince: Math.round((now - topicMap[t].lastDate) / 86400000) }))
+    .sort((a, b) => b.daysSince - a.daysSince);
+
   return {
     predicted, raw,
     accuracyScore, coverageScore, recencyScore, volumeScore,
@@ -11257,7 +11266,9 @@ function getReadinessScore() {
     passProbability,
     whatIf,
     daysToExam,
-    targetGap
+    targetGap,
+    // v4.85.14 — stale-topic list for the score-breakdown card
+    staleTopics
   };
 }
 
@@ -33885,6 +33896,227 @@ function _renderAnaReadiness(h) {
   </div>`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// v4.85.14 — "Why your score?" breakdown card
+//
+// Sits directly under the Exam Readiness card on the Analytics page and
+// surfaces the readiness formula as a 4-bar component breakdown + plain-
+// English diagnosis + 2 click-through action cards. Replaces the previous
+// "user asks Claude to explain why my score is X" feedback loop with a
+// permanent self-explaining UI surface.
+//
+// Reads existing data from getReadinessScore() — no new state, no new
+// computation pipeline. The two action cards reuse existing flows:
+//   - "Refresh recency" → multi-topic quiz seeded with the 8 staleest topics
+//   - "Drill 3 weakest" → multi-topic quiz seeded with whatIf top 3
+//
+// Concept-mockup-first per memory feedback_concept_mockup_first.md —
+// mockup at mockups/readiness-why-card-concept.html, user approved 2026-05-01.
+// ─────────────────────────────────────────────────────────────────────────
+function _renderAnaWhyScore(readiness) {
+  if (!readiness) return '';
+  const r = readiness;
+  const esc = (typeof escHtml === 'function') ? escHtml : (s => s);
+  const passLine = (typeof EXAM_PASS_SCORE === 'number') ? EXAM_PASS_SCORE : 720;
+  const gap = Math.max(0, passLine - r.predicted);
+
+  // Component drag = how many points each component is leaving on the table.
+  // (100 - score) × weight × 4.5 → equivalent scaled-score points lost.
+  const dragPts = {
+    accuracy: Math.round((100 - r.accuracyScore) * 0.40 * 4.5),
+    coverage: Math.round((100 - r.coverageScore) * 0.25 * 4.5),
+    recency:  Math.round((100 - r.recencyScore)  * 0.20 * 4.5),
+    volume:   Math.round((100 - r.volumeScore)   * 0.15 * 4.5)
+  };
+  const components = [
+    { key: 'accuracy', name: 'Accuracy', meta: '40% weight · domain-weighted, recency-decayed', score: r.accuracyScore, drag: dragPts.accuracy },
+    { key: 'coverage', name: 'Coverage', meta: '25% weight · how many of ' + r.totalTopics + ' topics studied', score: r.coverageScore, drag: dragPts.coverage },
+    { key: 'recency',  name: 'Recency',  meta: '20% weight · 14-day half-life on every topic', score: r.recencyScore, drag: dragPts.recency },
+    { key: 'volume',   name: 'Volume',   meta: '15% weight · capped at 500+ Qs', score: r.volumeScore, drag: dragPts.volume }
+  ];
+  // Bottleneck = component with the highest drag points.
+  const bottleneck = Object.keys(dragPts).reduce((best, k) => dragPts[k] > dragPts[best] ? k : best, 'accuracy');
+
+  const tierClass = (score) => {
+    if (score >= 80) return 'tier-good';
+    if (score >= 50) return 'tier-ok';
+    if (score >= 25) return 'tier-low';
+    return 'tier-critical';
+  };
+  const pctClass = (score) => score >= 50 ? '' : (score >= 25 ? 'is-low' : 'is-critical');
+
+  const barsHtml = components.map(c => {
+    const w = Math.max(2, Math.round(c.score));
+    return `<div class="why-bar-row">
+      <div class="why-bar-label">
+        <div class="why-bar-name">${esc(c.name)}</div>
+        <div class="why-bar-meta">${esc(c.meta)}</div>
+      </div>
+      <div class="why-bar-track">
+        <div class="why-bar-fill ${tierClass(c.score)}" style="width: ${w}%"></div>
+      </div>
+      <div class="why-bar-pct ${pctClass(c.score)}">${Math.round(c.score)}%</div>
+    </div>`;
+  }).join('');
+
+  // Diagnosis paragraph — generated from the bottleneck component.
+  const stale7d = Array.isArray(r.staleTopics) ? r.staleTopics.filter(s => s.daysSince > 7).length : 0;
+  const stale14d = Array.isArray(r.staleTopics) ? r.staleTopics.filter(s => s.daysSince > 14).length : 0;
+  const unstudied = r.totalTopics - r.studiedCount;
+  let diagnosisHtml = '';
+  if (bottleneck === 'recency') {
+    diagnosisHtml = `<strong>Recency is the bottleneck.</strong> ${stale7d} of your ${r.totalTopics} topics were last practised over a week ago${stale14d > 0 ? ` (${stale14d} of those over two weeks ago, fully decayed)` : ''}, so they're slipping out of the formula. Refreshing them is the fastest way to gain points.`;
+  } else if (bottleneck === 'accuracy') {
+    diagnosisHtml = `<strong>Accuracy is the bottleneck.</strong> Your domain-weighted accuracy is ${Math.round(r.accuracyScore)}%. Tightening your weakest topics moves the needle most — see the action cards below.`;
+  } else if (bottleneck === 'coverage') {
+    diagnosisHtml = `<strong>Coverage is the bottleneck.</strong> You've studied ${r.studiedCount} of ${r.totalTopics} topics. ${unstudied} topics with no practice yet are dragging the average down — even a few questions on each closes the gap quickly.`;
+  } else {
+    diagnosisHtml = `<strong>Volume is the bottleneck.</strong> ${r.totalQs} questions counted toward readiness so far. Volume caps at 500+ — keep practising and it's a free win.`;
+  }
+
+  // Action cards — the higher-leverage card gets the "is-primary" orange treatment.
+  const refreshTopics = Array.isArray(r.staleTopics) ? r.staleTopics.slice(0, 8) : [];
+  const refreshAvailable = refreshTopics.length > 0 && refreshTopics[0].daysSince > 0;
+  const weakAvailable = Array.isArray(r.whatIf) && r.whatIf.length > 0;
+  const refreshGain = dragPts.recency > 0 ? Math.round(dragPts.recency * 0.55) : 0; // ~55% recovery from refreshing top 8
+  const weakGain = weakAvailable ? r.whatIf.reduce((s, w) => s + (w.deltaPredicted || 0), 0) : 0;
+  const refreshIsPrimary = bottleneck === 'recency' || (refreshGain >= weakGain && refreshAvailable);
+
+  const refreshCardHtml = refreshAvailable ? `
+    <button type="button" class="why-action-card ${refreshIsPrimary ? 'is-primary' : ''}" onclick="_startReadinessRefreshQuiz()">
+      <div class="why-action-eyebrow">Refresh recency · ${refreshTopics.length} stale topic${refreshTopics.length === 1 ? '' : 's'}</div>
+      <div class="why-action-title">Refresh recency → +${refreshGain} pts</div>
+      <div class="why-action-body">5 questions on each of your ${refreshTopics.length} staleest topics${refreshTopics[0] ? ` (oldest: ${esc(refreshTopics[0].topic)}, ${refreshTopics[0].daysSince}d ago)` : ''} — about ${Math.max(15, refreshTopics.length * 3)} minutes total.</div>
+      <div class="why-action-cta">Start refresh quiz →</div>
+    </button>` : `
+    <div class="why-action-card is-disabled">
+      <div class="why-action-eyebrow">Refresh recency</div>
+      <div class="why-action-title">Already fresh</div>
+      <div class="why-action-body">No topics older than today. Keep up the regular practice cadence.</div>
+    </div>`;
+
+  const weakCardHtml = weakAvailable ? `
+    <button type="button" class="why-action-card ${!refreshIsPrimary ? 'is-primary' : ''}" onclick="_startReadinessWeakestQuiz()">
+      <div class="why-action-eyebrow">Tighten accuracy · 3 weakest</div>
+      <div class="why-action-title">Drill 3 weakest topics → +${weakGain} pts</div>
+      <div class="why-action-body">${r.whatIf.map(w => esc(w.topic) + ' (' + w.currentPct + '%)').join(', ')}. 10 questions each at Hard difficulty.</div>
+      <div class="why-action-cta">Start weakest drill →</div>
+    </button>` : `
+    <div class="why-action-card is-disabled">
+      <div class="why-action-eyebrow">Tighten accuracy</div>
+      <div class="why-action-title">All topics already strong</div>
+      <div class="why-action-body">Every studied topic is at or above 80%. Focus on coverage or recency.</div>
+    </div>`;
+
+  return `<div class="ana-card ana-why-score" id="ana-s-why-score">
+    <div class="why-head">
+      <div>
+        <div class="why-eyebrow">Score breakdown</div>
+        <h3 class="why-title">Why you're at <em>${r.predicted}</em></h3>
+        <div class="why-sub">CompTIA-blueprinted. 4 components contribute to your 100-900 scaled score.</div>
+      </div>
+      ${gap > 0 ? `<div class="why-gap-pill">${gap} pts to pass · ~5-10 min/day</div>` : `<div class="why-gap-pill is-passing">Above the pass line · keep it up</div>`}
+    </div>
+
+    <div class="why-section-label">Where your score comes from</div>
+    <div class="why-bars">${barsHtml}</div>
+
+    <div class="why-diagnosis">
+      <div class="why-diagnosis-head">⚠ What's holding you back</div>
+      <div class="why-diagnosis-body">${diagnosisHtml}</div>
+    </div>
+
+    <div class="why-actions">
+      <div class="why-section-label">${gap > 0 ? `Closing the ${gap}-point gap` : 'Where to spend the next session'}</div>
+      <div class="why-action-row">
+        ${refreshCardHtml}
+        ${weakCardHtml}
+      </div>
+    </div>
+
+    <div class="why-foot">Updates live as you study · all four components recompute after every session</div>
+  </div>`;
+}
+
+// v4.85.14 — Click handler for the "Refresh recency" action card. Seeds a
+// multi-topic quiz with the 8 staleest topics × 5 Qs each at Mixed difficulty.
+// Reuses the Custom Quiz Multi: sentinel + startQuiz pipeline.
+function _startReadinessRefreshQuiz() {
+  try {
+    const r = (typeof getReadinessScore === 'function') ? getReadinessScore() : null;
+    if (!r || !Array.isArray(r.staleTopics) || r.staleTopics.length === 0) {
+      if (typeof showToast === 'function') showToast('No stale topics to refresh — keep practising the rotation.', 'info');
+      return;
+    }
+    const stale = r.staleTopics.slice(0, 8);
+    const topicNames = stale.map(s => s.topic);
+    if (topicNames.length === 0) return;
+    topic = 'Multi: ' + topicNames.join(', ');
+    activeQuizTopic = topic;
+    diff = 'Exam Level';
+    qCount = topicNames.length * 5; // 5 per topic
+    // Sync chip state so Custom Quiz reflects what's running (matches applyDomainPreset pattern)
+    const g = document.getElementById('topic-group');
+    if (g) {
+      g.querySelectorAll('.chip.cq-mode-card').forEach(c => { c.classList.remove('on'); c.setAttribute('aria-pressed', 'false'); });
+      g.querySelectorAll('.chip:not(.cq-mode-card)').forEach(c => {
+        const isInList = topicNames.includes(c.dataset.v);
+        c.classList.toggle('on', isInList);
+        c.setAttribute('aria-pressed', isInList ? 'true' : 'false');
+      });
+    }
+    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === diff));
+    document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === String(qCount)));
+    if (typeof syncChipAriaPressed === 'function') {
+      syncChipAriaPressed('#topic-group');
+      syncChipAriaPressed('#diff-group');
+      syncChipAriaPressed('#count-group');
+    }
+    if (typeof startQuiz === 'function') startQuiz();
+  } catch (e) {
+    if (typeof showErrorToast === 'function') showErrorToast('Could not start refresh quiz: ' + (e && e.message ? e.message : 'unknown error'));
+  }
+}
+
+// v4.85.14 — Click handler for the "Drill weakest" action card. Seeds a
+// multi-topic quiz with the top 3 highest-leverage weak topics from the
+// existing whatIf attribution × 10 Qs each at Hard difficulty.
+function _startReadinessWeakestQuiz() {
+  try {
+    const r = (typeof getReadinessScore === 'function') ? getReadinessScore() : null;
+    if (!r || !Array.isArray(r.whatIf) || r.whatIf.length === 0) {
+      if (typeof showToast === 'function') showToast('No weak topics identified yet — keep studying to surface them.', 'info');
+      return;
+    }
+    const weak = r.whatIf.slice(0, 3);
+    const topicNames = weak.map(w => w.topic).filter(Boolean);
+    if (topicNames.length === 0) return;
+    topic = 'Multi: ' + topicNames.join(', ');
+    activeQuizTopic = topic;
+    diff = 'Hard / Tricky';
+    qCount = topicNames.length * 10;
+    const g = document.getElementById('topic-group');
+    if (g) {
+      g.querySelectorAll('.chip.cq-mode-card').forEach(c => { c.classList.remove('on'); c.setAttribute('aria-pressed', 'false'); });
+      g.querySelectorAll('.chip:not(.cq-mode-card)').forEach(c => {
+        const isInList = topicNames.includes(c.dataset.v);
+        c.classList.toggle('on', isInList);
+        c.setAttribute('aria-pressed', isInList ? 'true' : 'false');
+      });
+    }
+    document.querySelectorAll('#diff-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === diff));
+    document.querySelectorAll('#count-group .chip').forEach(c => c.classList.toggle('on', c.dataset.v === String(qCount)));
+    if (typeof syncChipAriaPressed === 'function') {
+      syncChipAriaPressed('#topic-group');
+      syncChipAriaPressed('#diff-group');
+      syncChipAriaPressed('#count-group');
+    }
+    if (typeof startQuiz === 'function') startQuiz();
+  } catch (e) {
+    if (typeof showErrorToast === 'function') showErrorToast('Could not start weakest drill: ' + (e && e.message ? e.message : 'unknown error'));
+  }
+}
+
 // v4.54.14: reusable card-level editorial head (eyebrow + italic-accent
 // mini-title) \u2014 unifies the Analytics secondary cards that still had plain
 // `<h3>CAPS TITLE</h3>` with the editorial branding used everywhere else.
@@ -34800,6 +35032,14 @@ function renderAnalytics() {
   let html = '';
   html += _renderAnaNav();
   html += _renderAnaReadiness(h);
+  // v4.85.14: "Why your score?" breakdown card sits directly under the
+  // Exam Readiness card. Reads existing readiness data, no new compute.
+  if (typeof _renderAnaWhyScore === 'function') {
+    try {
+      const _readiness = (typeof getReadinessScore === 'function') ? getReadinessScore() : null;
+      if (_readiness) html += _renderAnaWhyScore(_readiness);
+    } catch (_) { /* defensive — never block the rest of the page on this card */ }
+  }
   // v4.54.8: Accuracy-over-time chart with pass-mark line + week/month/all tabs
   html += _renderAnaAccuracyChart(h);
   // v4.54.10: GitHub-style study activity heatmap (365 days). Named

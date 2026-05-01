@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Readiness — "Why am I at this score?" card concept</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Match the app's dark theme + purple/orange palette */
+  :root {
+    --bg: #0e0a1f;
+    --surface: #1a1431;
+    --surface2: #221a3a;
+    --surface3: #2c2247;
+    --border: rgba(124,111,247,.16);
+    --text: #f0f0f8;
+    --text-mid: #b0b0cc;
+    --text-dim: #6b6b90;
+    --accent: #7c6ff7;
+    --green: #22c55e;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: linear-gradient(180deg, #0a0617 0%, var(--bg) 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    padding: 32px;
+    min-height: 100vh;
+    margin: 0;
+  }
+  .preview-label {
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .preview-title {
+    font-size: 18px;
+    color: var(--text-mid);
+    font-weight: 500;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .preview-title em { font-style: normal; color: var(--accent); }
+
+  /* The card itself — matches .ana-card-readiness style */
+  .why-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    max-width: 920px;
+    margin: 0 auto 40px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  }
+  .why-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .why-eyebrow {
+    font-size: 11px;
+    letter-spacing: .14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .why-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin: 0;
+  }
+  .why-title em { font-style: normal; color: var(--accent); }
+  .why-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .why-gap-pill {
+    background: rgba(251, 146, 60, .15);
+    border: 1px solid rgba(251, 146, 60, .35);
+    color: var(--orange);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .why-gap-pill::before { content: '⚠️'; }
+
+  /* Component breakdown bars */
+  .why-section-label {
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin: 24px 0 12px;
+  }
+  .why-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .why-bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 70px;
+    align-items: center;
+    gap: 14px;
+  }
+  .why-bar-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .why-bar-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .why-bar-meta {
+    font-size: 10.5px;
+    color: var(--text-dim);
+    letter-spacing: .04em;
+  }
+  .why-bar-track {
+    position: relative;
+    height: 12px;
+    background: var(--surface3);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .why-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    transition: width .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .why-bar-fill.tier-good     { background: var(--green); }
+  .why-bar-fill.tier-ok       { background: var(--accent); }
+  .why-bar-fill.tier-low      { background: var(--orange); }
+  .why-bar-fill.tier-critical { background: var(--red); }
+  .why-bar-pct {
+    text-align: right;
+    font-weight: 800;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .why-bar-pct.is-low { color: var(--orange); }
+  .why-bar-pct.is-critical { color: var(--red); }
+
+  /* Diagnosis box */
+  .why-diagnosis {
+    margin-top: 28px;
+    padding: 16px 20px;
+    background: rgba(251, 146, 60, .08);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+  }
+  .why-diagnosis-head {
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--orange);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .why-diagnosis-body {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .why-diagnosis-body strong { color: var(--orange); }
+
+  /* Action cards row */
+  .why-actions {
+    margin-top: 28px;
+  }
+  .why-action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .why-action-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .why-action-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(124,111,247,.35);
+    background: var(--surface3);
+  }
+  .why-action-card.is-primary {
+    border-color: rgba(251, 146, 60, .4);
+    background: linear-gradient(135deg, rgba(251,146,60,.10), rgba(251,146,60,.02));
+  }
+  .why-action-card.is-primary:hover {
+    border-color: rgba(251, 146, 60, .65);
+  }
+  .why-action-eyebrow {
+    font-size: 10px;
+    letter-spacing: .14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .why-action-card.is-primary .why-action-eyebrow {
+    color: var(--orange);
+  }
+  .why-action-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .why-action-body {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+  .why-action-cta {
+    font-size: 12.5px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .why-action-card.is-primary .why-action-cta {
+    color: var(--orange);
+  }
+
+  /* Footer hint */
+  .why-foot {
+    margin-top: 22px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* Header strip — minimal "score above" treatment to mimic placement on the analytics page */
+  .above-context {
+    max-width: 920px;
+    margin: 0 auto 16px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,.02);
+    border: 1px dashed rgba(255,255,255,.06);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .above-context strong { color: var(--text); }
+
+  /* Mobile */
+  @media (max-width: 720px) {
+    body { padding: 16px; }
+    .why-card { padding: 20px 18px; }
+    .why-head { flex-direction: column; align-items: flex-start; }
+    .why-bar-row { grid-template-columns: 130px 1fr 50px; gap: 10px; }
+    .why-bar-name { font-size: 12.5px; }
+    .why-bar-meta { font-size: 9.5px; }
+    .why-action-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-label">Concept mockup · 2026-05-01</div>
+<div class="preview-title">Readiness — <em>"Why am I at this score?"</em> card</div>
+
+<!-- Context — sits below the existing Exam Readiness card on Analytics -->
+<div class="above-context">
+  <span>↑ Sits directly below the existing <strong>Exam Readiness</strong> card</span>
+  <span>Replaces the user-asks-Claude-to-explain feedback loop</span>
+</div>
+
+<!-- THE CARD -->
+<div class="why-card">
+
+  <!-- Head -->
+  <div class="why-head">
+    <div>
+      <div class="why-eyebrow">Score breakdown</div>
+      <h3 class="why-title">Why you're at <em>702</em></h3>
+      <div class="why-sub">CompTIA-blueprinted. 4 components contribute to your 100-900 scaled score.</div>
+    </div>
+    <div class="why-gap-pill">18 pts to pass · ~5-10 min/day</div>
+  </div>
+
+  <!-- Component breakdown -->
+  <div class="why-section-label">Where your score comes from</div>
+  <div class="why-bars">
+
+    <div class="why-bar-row">
+      <div class="why-bar-label">
+        <div class="why-bar-name">Accuracy</div>
+        <div class="why-bar-meta">40% weight · domain-weighted, recency-decayed</div>
+      </div>
+      <div class="why-bar-track">
+        <div class="why-bar-fill tier-ok" style="width: 78%"></div>
+      </div>
+      <div class="why-bar-pct">78%</div>
+    </div>
+
+    <div class="why-bar-row">
+      <div class="why-bar-label">
+        <div class="why-bar-name">Coverage</div>
+        <div class="why-bar-meta">25% weight · how many of 50 topics studied</div>
+      </div>
+      <div class="why-bar-track">
+        <div class="why-bar-fill tier-good" style="width: 100%"></div>
+      </div>
+      <div class="why-bar-pct">100%</div>
+    </div>
+
+    <div class="why-bar-row">
+      <div class="why-bar-label">
+        <div class="why-bar-name">Recency</div>
+        <div class="why-bar-meta">20% weight · 14-day half-life on every topic</div>
+      </div>
+      <div class="why-bar-track">
+        <div class="why-bar-fill tier-low" style="width: 28%"></div>
+      </div>
+      <div class="why-bar-pct is-low">28%</div>
+    </div>
+
+    <div class="why-bar-row">
+      <div class="why-bar-label">
+        <div class="why-bar-name">Volume</div>
+        <div class="why-bar-meta">15% weight · capped at 500+ Qs</div>
+      </div>
+      <div class="why-bar-track">
+        <div class="why-bar-fill tier-good" style="width: 100%"></div>
+      </div>
+      <div class="why-bar-pct">100%</div>
+    </div>
+
+  </div>
+
+  <!-- Diagnosis -->
+  <div class="why-diagnosis">
+    <div class="why-diagnosis-head">⚠ What's holding you back</div>
+    <div class="why-diagnosis-body">
+      <strong>Recency is the bottleneck.</strong> 22 of your 50 topics were last practised over a week ago, so they're decaying out of the formula. Accuracy and volume are already maxed — the fastest way to gain points is refreshing stale topics, not grinding more questions on what you already know.
+    </div>
+  </div>
+
+  <!-- Action cards -->
+  <div class="why-actions">
+    <div class="why-section-label">Closing the 18-point gap</div>
+    <div class="why-action-row">
+
+      <div class="why-action-card is-primary">
+        <div class="why-action-eyebrow">Highest leverage · 8 stale topics</div>
+        <div class="why-action-title">Refresh recency → +14 pts</div>
+        <div class="why-action-body">5 questions on each of your 8 staleest topics — about 20-25 minutes total. Brings recency from 28% → 60%.</div>
+        <div class="why-action-cta">Start refresh quiz →</div>
+      </div>
+
+      <div class="why-action-card">
+        <div class="why-action-eyebrow">Tightening accuracy</div>
+        <div class="why-action-title">Drill 3 weakest topics → +8 pts</div>
+        <div class="why-action-body">BGP (61%), VLAN Trunking (64%), Cable Issues (67%). 10 Qs each at Hard difficulty.</div>
+        <div class="why-action-cta">See what-if attribution →</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="why-foot">
+    Updates live as you study · all four components recompute after every session
+  </div>
+
+</div>
+
+<!-- Variant B — narrower / mobile preview -->
+<div style="max-width: 480px; margin: 60px auto 20px;">
+  <div class="preview-label">Mobile rendering · &lt;540px</div>
+</div>
+<div style="max-width: 380px; margin: 0 auto 40px;">
+  <div class="why-card" style="padding: 20px 18px;">
+    <div class="why-head" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+      <div>
+        <div class="why-eyebrow">Score breakdown</div>
+        <h3 class="why-title">Why you're at <em>702</em></h3>
+      </div>
+      <div class="why-gap-pill">18 pts to pass</div>
+    </div>
+    <div class="why-section-label">Where your score comes from</div>
+    <div class="why-bars">
+      <div class="why-bar-row" style="grid-template-columns: 110px 1fr 40px; gap: 8px;">
+        <div class="why-bar-label">
+          <div class="why-bar-name" style="font-size: 12px;">Accuracy</div>
+          <div class="why-bar-meta" style="font-size: 9.5px;">40% weight</div>
+        </div>
+        <div class="why-bar-track"><div class="why-bar-fill tier-ok" style="width: 78%"></div></div>
+        <div class="why-bar-pct" style="font-size: 12px;">78%</div>
+      </div>
+      <div class="why-bar-row" style="grid-template-columns: 110px 1fr 40px; gap: 8px;">
+        <div class="why-bar-label">
+          <div class="why-bar-name" style="font-size: 12px;">Coverage</div>
+          <div class="why-bar-meta" style="font-size: 9.5px;">25% weight</div>
+        </div>
+        <div class="why-bar-track"><div class="why-bar-fill tier-good" style="width: 100%"></div></div>
+        <div class="why-bar-pct" style="font-size: 12px;">100%</div>
+      </div>
+      <div class="why-bar-row" style="grid-template-columns: 110px 1fr 40px; gap: 8px;">
+        <div class="why-bar-label">
+          <div class="why-bar-name" style="font-size: 12px;">Recency</div>
+          <div class="why-bar-meta" style="font-size: 9.5px;">20% weight</div>
+        </div>
+        <div class="why-bar-track"><div class="why-bar-fill tier-low" style="width: 28%"></div></div>
+        <div class="why-bar-pct is-low" style="font-size: 12px;">28%</div>
+      </div>
+      <div class="why-bar-row" style="grid-template-columns: 110px 1fr 40px; gap: 8px;">
+        <div class="why-bar-label">
+          <div class="why-bar-name" style="font-size: 12px;">Volume</div>
+          <div class="why-bar-meta" style="font-size: 9.5px;">15% weight</div>
+        </div>
+        <div class="why-bar-track"><div class="why-bar-fill tier-good" style="width: 100%"></div></div>
+        <div class="why-bar-pct" style="font-size: 12px;">100%</div>
+      </div>
+    </div>
+    <div class="why-diagnosis" style="padding: 12px 14px; margin-top: 18px;">
+      <div class="why-diagnosis-head">⚠ Holding you back</div>
+      <div class="why-diagnosis-body" style="font-size: 12px;">
+        <strong>Recency is the bottleneck.</strong> 22/50 topics were last practised over a week ago. Refreshing them is the fastest path to 720.
+      </div>
+    </div>
+    <div class="why-actions" style="margin-top: 18px;">
+      <div class="why-action-row" style="grid-template-columns: 1fr;">
+        <div class="why-action-card is-primary" style="padding: 12px 14px;">
+          <div class="why-action-eyebrow">Refresh stale</div>
+          <div class="why-action-title" style="font-size: 14px;">+14 pts</div>
+          <div class="why-action-body" style="font-size: 11.5px;">5 Qs × 8 staleest topics, ~20 min.</div>
+          <div class="why-action-cta">Start refresh quiz →</div>
+        </div>
+        <div class="why-action-card" style="padding: 12px 14px;">
+          <div class="why-action-eyebrow">Tighten weak</div>
+          <div class="why-action-title" style="font-size: 14px;">+8 pts</div>
+          <div class="why-action-body" style="font-size: 11.5px;">3 weakest topics, 10 Hard Qs each.</div>
+          <div class="why-action-cta">See what-if →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notes section -->
+<div style="max-width: 920px; margin: 60px auto 40px; padding: 24px; background: var(--surface2); border-radius: 12px; border: 1px solid var(--border);">
+  <div class="why-eyebrow" style="margin-bottom: 12px;">Design notes</div>
+  <ul style="font-size: 13px; line-height: 1.7; color: var(--text-mid); padding-left: 20px; margin: 0;">
+    <li>Sits directly under the existing <strong>Exam Readiness</strong> card on the Analytics page (same width, same theme).</li>
+    <li>4 component bars use a tier color palette: <span style="color: var(--green); font-weight: 700;">good (≥80)</span> · <span style="color: var(--accent); font-weight: 700;">ok (50-79)</span> · <span style="color: var(--orange); font-weight: 700;">low (25-49)</span> · <span style="color: var(--red); font-weight: 700;">critical (&lt;25)</span>.</li>
+    <li>The diagnosis paragraph is dynamically generated. Algorithm: pick the lowest-contribution component, name how many topics/factors are pulling it down, suggest the cheapest fix.</li>
+    <li>The 2 action cards are derived from the existing <code>whatIf</code> attribution data already computed in <code>getReadinessScore()</code> — no new math needed. The "primary" (orange) card is the highest-leverage option.</li>
+    <li>"+14 pts" / "+8 pts" labels: computed from the same formula. Click-throughs go to existing focused-quiz flows (refresh stale uses the v4.81.15 stale-topic rotation, weakest uses the existing weak-spots drill).</li>
+    <li>Mobile (&lt;540px): card stacks vertically, action cards stack vertically, bar labels shrink. No new components needed.</li>
+    <li>Implementation cost estimate: ~150 LOC in <code>app.js</code> for <code>_renderAnaWhyScore()</code>, ~120 LOC in <code>styles.css</code>, no new state — reads <code>getReadinessScore()</code> output directly.</li>
+  </ul>
+</div>
+
+</body>
+</html>
