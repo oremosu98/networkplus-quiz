@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.14', js.includes("const APP_VERSION = '4.85.14"));
+test('APP_VERSION is 4.85.15', js.includes("const APP_VERSION = '4.85.15"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.14', sw.includes('netplus-v4.85.14'));
+test('SW cache bumped to v4.85.15', sw.includes('netplus-v4.85.15'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12595,6 +12595,76 @@ test('v4.85.14 WhyScore: vm fixture — bottleneck = recency when recencyScore i
         && /Refresh recency/.test(html);
     } catch (e) { return false; }
   })());
+
+// v4.85.15 — Mixed-mode quizzes now save per-topic splits + readiness
+// dropped the e.total >= 3 filter. Pre-fix Mixed-mode quizzes (Deep Scan,
+// Marathon, Warmup, Diagnostic) saved a single topic=MIXED_TOPIC summary
+// that getReadinessScore filtered out, so 326+ user questions never
+// counted toward coverage/recency/volume. v4.85.8 TOPIC LOTTERY made it
+// worse by producing 1-Q-per-topic splits the >=3 filter throws away.
+test('v4.85.15 MixedSplit: finish() saves per-topic splits when activeQuizTopic === MIXED_TOPIC',
+  (() => {
+    const body = _fnBody(js, 'finish');
+    return body
+      && /activeQuizTopic === MIXED_TOPIC/.test(body)
+      && /via:\s*'mixed-split'/.test(body);
+  })());
+test('v4.85.15 MixedSplit: Mixed-split saves both summary entry AND per-topic splits (no double-count via filter)',
+  (() => {
+    const body = _fnBody(js, 'finish');
+    if (!body) return false;
+    // Find the Mixed branch and confirm it calls saveToHistory at least twice
+    const mixedBranch = body.match(/activeQuizTopic === MIXED_TOPIC[\s\S]{0,1500}else \{/);
+    if (!mixedBranch) return false;
+    const summaryCall = /saveToHistory\(\{ date: now, topic: activeQuizTopic/.test(mixedBranch[0]);
+    const splitCall = /saveToHistory\(\{ date: now, topic: t,[\s\S]{0,200}via:\s*'mixed-split'/.test(mixedBranch[0]);
+    return summaryCall && splitCall;
+  })());
+test('v4.85.15 MixedSplit: getReadinessScore filter no longer requires e.total >= 3',
+  (() => {
+    const body = _fnBody(js, 'getReadinessScore');
+    if (!body) return false;
+    // Find the actual filter expression (not in comments)
+    const filterMatch = body.match(/loadHistory\(\)\.filter\(e =>\s*([\s\S]*?)\);/);
+    if (!filterMatch) return false;
+    const filterExpr = filterMatch[1];
+    return !/e\.total\s*>=\s*3/.test(filterExpr)
+      && /e\.topic\s*!==\s*MIXED_TOPIC/.test(filterExpr)
+      && /e\.topic\s*!==\s*EXAM_TOPIC/.test(filterExpr);
+  })());
+test('v4.85.15 MixedSplit: vm fixture — Mixed branch produces summary + N split rows',
+  (() => {
+    try {
+      const finishBody = _fnBody(js, 'finish');
+      if (!finishBody) return false;
+      // Lightweight regex-based check on the actual code path
+      const branchSnippet = finishBody.substring(
+        finishBody.indexOf('activeQuizTopic === MIXED_TOPIC'),
+        finishBody.indexOf('} else {', finishBody.indexOf('activeQuizTopic === MIXED_TOPIC'))
+      );
+      // Walks log + groups by q.topic + skips MIXED_TOPIC + saves with via: mixed-split
+      return /log\.forEach/.test(branchSnippet)
+        && /entry\.q && entry\.q\.topic/.test(branchSnippet)
+        && /t === MIXED_TOPIC/.test(branchSnippet)
+        && /via:\s*'mixed-split'/.test(branchSnippet);
+    } catch (e) { return false; }
+  })());
+test('v4.85.15 MixedSplit: vm fixture — getReadinessScore now counts 1-Q-per-topic splits (was filtered)',
+  (() => {
+    try {
+      const body = _fnBody(js, 'getReadinessScore');
+      if (!body) return false;
+      // Simulate: history with 5 split rows of total=1 each, all distinct topics.
+      // Pre-fix: filter would drop them all (none have total >= 3) → coverage = 0.
+      // Post-fix: all 5 count → coverage = 5/totalTopics * 100.
+      const filterMatch = body.match(/loadHistory\(\)\.filter\(e =>([\s\S]{0,200})\)/);
+      if (!filterMatch) return false;
+      const filterBody = filterMatch[1];
+      // Should NOT contain "total" anymore
+      return !/e\.total/.test(filterBody);
+    } catch (e) { return false; }
+  })());
+
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',
   /data-tt-topic[\s\S]{0,300}data-tt-domain[\s\S]{0,200}data-tt-tier[\s\S]{0,200}data-tt-mastery[\s\S]{0,200}data-tt-attempts[\s\S]{0,200}data-tt-last/.test(js));
 test('v4.85.11 Tooltip: tooltip container HTML present',

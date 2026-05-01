@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.14
+// Network+ AI Quiz — app.js  v4.85.15
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.14';
+const APP_VERSION = '4.85.15';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -10095,6 +10095,30 @@ function finish() {
         const tPct = tTotal > 0 ? Math.round((tScore / tTotal) * 100) : 0;
         saveToHistory({ date: now, topic: t, difficulty: diff, score: tScore, total: tTotal, pct: tPct, mode: entryMode, multi: true });
       });
+    } else if (activeQuizTopic === MIXED_TOPIC) {
+      // v4.85.15: Mixed-mode per-topic split — pre-fix, Mixed quizzes (Deep
+      // Scan, Marathon 30/45, Warmup, Diagnostic) saved a single summary
+      // entry with topic = MIXED_TOPIC. getReadinessScore filters those out
+      // → 326+ questions of practice were invisible to coverage/recency/
+      // volume. Now we save BOTH the summary (for chronological history +
+      // anything that filters on MIXED_TOPIC explicitly) AND a per-topic
+      // split row per Haiku-assigned q.topic so readiness sees the actual
+      // topics studied. Same pattern as the v4.81.13 exam-split. Marker
+      // `via: 'mixed-split'` distinguishes from Multi: splits.
+      saveToHistory({ date: now, topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
+      const byTopicMixed = {};
+      log.forEach(entry => {
+        const t = (entry.q && entry.q.topic) || null;
+        if (!t || t === MIXED_TOPIC) return;
+        if (!byTopicMixed[t]) byTopicMixed[t] = { total: 0, score: 0 };
+        byTopicMixed[t].total++;
+        if (entry.isRight) byTopicMixed[t].score++;
+      });
+      Object.keys(byTopicMixed).forEach(t => {
+        const { total: tTotal, score: tScore } = byTopicMixed[t];
+        const tPct = tTotal > 0 ? Math.round((tScore / tTotal) * 100) : 0;
+        saveToHistory({ date: now, topic: t, difficulty: diff, score: tScore, total: tTotal, pct: tPct, mode: entryMode, via: 'mixed-split' });
+      });
     } else {
       saveToHistory({ date: now, topic: activeQuizTopic, difficulty: diff, score, total, pct, mode: entryMode });
     }
@@ -11117,8 +11141,15 @@ function getReadinessScore() {
     .filter(v => !v.includes('Mixed') && !v.includes('Smart'));
   const totalTopics = allTopics.length;
 
+  // v4.85.15: dropped the `e.total >= 3` filter. v4.85.8's TOPIC LOTTERY +
+  // v4.85.15's mixed-split now produce 1-Q-per-topic split rows; the >=3
+  // filter was throwing those away, so a 20-Q Mixed quiz contributed 0
+  // topics to coverage. Aggregation in buildWeightedTopicMap sums across
+  // sessions per topic, so noise control still works at the topic level.
+  // MIXED + EXAM summary rows still filtered explicitly to avoid double-
+  // counting (the per-topic splits cover them).
   const h = loadHistory().filter(e =>
-    e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC && e.total >= 3
+    e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC
   );
   if (h.length === 0) return null;
 
