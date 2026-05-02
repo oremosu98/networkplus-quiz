@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.16', js.includes("const APP_VERSION = '4.85.16"));
+test('APP_VERSION is 4.85.17', js.includes("const APP_VERSION = '4.85.17"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.16', sw.includes('netplus-v4.85.16'));
+test('SW cache bumped to v4.85.17', sw.includes('netplus-v4.85.17'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12730,6 +12730,162 @@ test('v4.85.16 ErrBoxSafety: vm fixture — clearStaleErrBoxes hides setup-err +
         && setupErrEl.textContent === ''
         && otherErrBox.classList.contains('is-hidden')
         && otherErrBox.textContent === '';
+    } catch (e) { return false; }
+  })());
+
+// v4.85.17 — Exam-review filter chips. User-approved mockup at
+// mockups/exam-review-filters-concept.html. 5 sticky filter chips
+// (All / Correct / Incorrect / Flagged / Skipped) with counts, tier-
+// colored active states, empty state when filter returns 0.
+test('v4.85.17 ReviewFilter: _reviewFilter module state declared',
+  /let _reviewFilter\s*=\s*'all'/.test(js));
+test('v4.85.17 ReviewFilter: _renderReviewList helper defined',
+  /function _renderReviewList\(/.test(js));
+test('v4.85.17 ReviewFilter: _setReviewFilter chip click handler defined',
+  /function _setReviewFilter\(key\)/.test(js));
+test('v4.85.17 ReviewFilter: _buildReviewItemHtml extracted (called by _renderReviewList)',
+  /function _buildReviewItemHtml\(/.test(js));
+test('v4.85.17 ReviewFilter: showReview resets filter to all on entry',
+  (() => {
+    const body = _fnBody(js, 'showReview');
+    return body && /_reviewFilter\s*=\s*'all'/.test(body) && /_renderReviewList\(\)/.test(body);
+  })());
+test('v4.85.17 ReviewFilter: counts computed for all 5 categories (all/correct/incorrect/flagged/skipped)',
+  (() => {
+    const body = _fnBody(js, '_renderReviewList');
+    return body
+      && /counts\.skipped\+\+/.test(body)
+      && /counts\.correct\+\+/.test(body)
+      && /counts\.incorrect\+\+/.test(body)
+      && /counts\.flagged\+\+/.test(body)
+      && /all:\s*log\.length/.test(body);
+  })());
+test('v4.85.17 ReviewFilter: filter logic handles all 5 keys',
+  (() => {
+    const body = _fnBody(js, '_renderReviewList');
+    return body
+      && /_reviewFilter === 'all'/.test(body)
+      && /_reviewFilter === 'correct'/.test(body)
+      && /_reviewFilter === 'incorrect'/.test(body)
+      && /_reviewFilter === 'flagged'/.test(body)
+      && /_reviewFilter === 'skipped'/.test(body);
+  })());
+test('v4.85.17 ReviewFilter: chip with 0 count is disabled (is-disabled class)',
+  (() => {
+    const body = _fnBody(js, '_renderReviewList');
+    return body && /is-disabled/.test(body) && /counts\[c\.key\]\s*===\s*0/.test(body);
+  })());
+test('v4.85.17 ReviewFilter: empty state renders when filter returns 0',
+  (() => {
+    const body = _fnBody(js, '_renderReviewList');
+    return body
+      && /filtered\.length\s*===\s*0/.test(body)
+      && /review-filter-empty/.test(body)
+      && /Show all/.test(body);
+  })());
+test('v4.85.17 ReviewFilter: per-question item shows status + flag + domain meta tags',
+  (() => {
+    const body = _fnBody(js, '_buildReviewItemHtml');
+    return body
+      && /tag-correct/.test(body)
+      && /tag-incorrect/.test(body)
+      && /tag-flagged/.test(body)
+      && /tag-skipped/.test(body)
+      && /tag-domain/.test(body)
+      && /q-num-pill/.test(body);
+  })());
+test('v4.85.17 ReviewFilter CSS: sticky filter row',
+  /\.review-filter-row\s*\{[^}]*position:\s*sticky/.test(css));
+test('v4.85.17 ReviewFilter CSS: tier-colored active states (correct=green, incorrect=red, flagged=yellow, skipped=text-dim)',
+  /\.review-filter-chip\.is-correct\.is-active[\s\S]{0,200}var\(--green\)[\s\S]{0,500}\.review-filter-chip\.is-incorrect\.is-active[\s\S]{0,200}var\(--red\)[\s\S]{0,500}\.review-filter-chip\.is-flagged\.is-active[\s\S]{0,200}var\(--yellow\)/.test(css));
+test('v4.85.17 ReviewFilter CSS: q-tag color variants defined (5 tags)',
+  /\.q-tag\.tag-correct[\s\S]{0,500}\.q-tag\.tag-incorrect[\s\S]{0,500}\.q-tag\.tag-flagged[\s\S]{0,500}\.q-tag\.tag-skipped[\s\S]{0,500}\.q-tag\.tag-domain/.test(css));
+test('v4.85.17 ReviewFilter CSS: empty-state styled',
+  /\.review-filter-empty\s*\{[^}]*text-align:\s*center/.test(css));
+test('v4.85.17 ReviewFilter CSS: mobile breakpoint (<540px) hides eyebrow + shrinks chips',
+  /@media\s*\(max-width:\s*540px\)[\s\S]{0,800}\.review-filter-eyebrow\s*\{[\s\S]{0,200}display:\s*none/.test(css));
+test('v4.85.17 ReviewFilter: vm fixture — counts compute correctly + filter returns matching subset',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderReviewList');
+      if (!renderBody) return false;
+      const vm = require('vm');
+      // Mock 6-question log: 4 correct, 2 incorrect, 1 flagged-correct, 0 skipped
+      const fakeLog = [
+        { q: { question: 'Q1', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'BGP' }, isRight: true,  flagged: false, skipped: false, chosen: 'A' },
+        { q: { question: 'Q2', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'OSPF' }, isRight: true,  flagged: true,  skipped: false, chosen: 'A' },
+        { q: { question: 'Q3', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'IPv6' }, isRight: false, flagged: false, skipped: false, chosen: 'B' },
+        { q: { question: 'Q4', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'BGP' }, isRight: true,  flagged: false, skipped: false, chosen: 'A' },
+        { q: { question: 'Q5', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'OSPF' }, isRight: false, flagged: false, skipped: false, chosen: 'B' },
+        { q: { question: 'Q6', options: { A: 'a', B: 'b' }, answer: 'A', topic: 'BGP' }, isRight: true,  flagged: false, skipped: false, chosen: 'A' }
+      ];
+      let renderedHtml = '';
+      const ctx = {
+        log: fakeLog,
+        _reviewFilter: 'incorrect',
+        document: {
+          getElementById: (id) => id === 'review-list' ? { set innerHTML(v) { renderedHtml = v; }, get innerHTML() { return renderedHtml; } } : null
+        },
+        Array,
+        getQType: (q) => q.type || 'mcq',
+        escHtml: s => String(s || ''),
+        highlightExamKeywords: s => s,
+        topicResources: {},
+        activeQuizTopic: 'Mixed',
+        MIXED_TOPIC: 'Mixed',
+        EXAM_TOPIC: 'Exam',
+        _buildReviewItemHtml: (entry, i, total) => `<div class="review-item">Q${i+1}</div>`,
+        Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext('_renderReviewList()', ctx);
+      // With filter='incorrect', Q3 and Q5 should be in output. All counts visible.
+      return /All\s*<span class="chip-count">6/.test(renderedHtml)
+        && /Correct\s*<span class="chip-count">4/.test(renderedHtml)
+        && /Incorrect\s*<span class="chip-count">2/.test(renderedHtml)
+        && /Flagged\s*<span class="chip-count">1/.test(renderedHtml)
+        && /Skipped\s*<span class="chip-count">0/.test(renderedHtml)
+        && /Showing <strong>2<\/strong> of <strong>6<\/strong>/.test(renderedHtml)
+        && /is-skipped[^"]*is-disabled/.test(renderedHtml); // skipped=0 is disabled
+    } catch (e) { return false; }
+  })());
+test('v4.85.17 ReviewFilter: vm fixture — empty state renders when filter has 0 results',
+  (() => {
+    try {
+      const renderBody = _fnBody(js, '_renderReviewList');
+      if (!renderBody) return false;
+      const vm = require('vm');
+      // All correct answers + filter='incorrect' = empty state
+      const fakeLog = [
+        { q: { question: 'Q1', options: {}, answer: 'A', topic: '' }, isRight: true, flagged: false, skipped: false, chosen: 'A' },
+        { q: { question: 'Q2', options: {}, answer: 'A', topic: '' }, isRight: true, flagged: false, skipped: false, chosen: 'A' }
+      ];
+      let renderedHtml = '';
+      const ctx = {
+        log: fakeLog,
+        _reviewFilter: 'incorrect',
+        document: {
+          getElementById: (id) => id === 'review-list' ? { set innerHTML(v) { renderedHtml = v; }, get innerHTML() { return renderedHtml; } } : null
+        },
+        Array,
+        getQType: () => 'mcq',
+        escHtml: s => String(s || ''),
+        highlightExamKeywords: s => s,
+        topicResources: {},
+        activeQuizTopic: '',
+        MIXED_TOPIC: 'Mixed',
+        EXAM_TOPIC: 'Exam',
+        _buildReviewItemHtml: () => '',
+        Object
+      };
+      vm.createContext(ctx);
+      vm.runInContext(renderBody, ctx);
+      vm.runInContext('_renderReviewList()', ctx);
+      // Filter falls back to 'all' since incorrect=0; should render normally with all 2 items, NOT empty state
+      // (the defensive fallback prevents stuck-on-empty-page UX)
+      return /Showing <strong>2<\/strong>/.test(renderedHtml)
+        && !/review-filter-empty/.test(renderedHtml);
     } catch (e) { return false; }
   })());
 

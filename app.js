@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.16
+// Network+ AI Quiz — app.js  v4.85.17
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.16';
+const APP_VERSION = '4.85.17';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -10812,65 +10812,169 @@ function launchMiniConfetti() {
 // ══════════════════════════════════════════
 // REVIEW
 // ══════════════════════════════════════════
+// v4.85.17: filter state for the exam-review screen. One of:
+//   'all' | 'correct' | 'incorrect' | 'flagged' | 'skipped'
+// Module-level so chip clicks can re-render against the same log[].
+let _reviewFilter = 'all';
+
 function showReview(fromExam) {
   document.getElementById('review-back-btn').onclick = () => showPage(fromExam ? 'exam-results' : 'results');
+  // Reset filter when entering a fresh review (don't leak state from a previous session)
+  _reviewFilter = 'all';
+  _renderReviewList();
+  showPage('review');
+}
 
-  const list = document.getElementById('review-list');
-  list.innerHTML = '';
+// v4.85.17: extracted from showReview() so chip clicks can re-render the
+// list without leaving + re-entering the page. Reads `log[]` (the global
+// session log, populated by finish() / submitExam()) and `_reviewFilter`.
+// Computes counts once + renders the filter chip row + filtered item list
+// (or empty state when count = 0).
+function _renderReviewList() {
+  const host = document.getElementById('review-list');
+  if (!host || !Array.isArray(log)) return;
 
-  log.forEach((entry, i) => {
-    const { q, chosen, correct, isRight, flagged, skipped } = entry;
-    const qType = getQType(q);
-    const div = document.createElement('div');
-    let cls = 'review-item ';
-    if (skipped)      cls += 'skipped';
-    else if (isRight) cls += 'correct';
-    else              cls += 'missed';
-    if (flagged) cls += ' flagged-item';
-    div.className = cls;
-
-    let optsHtml;
-    if (qType === 'order') {
-      const items = q.items || [];
-      const correctOrd = q.correctOrder || [];
-      optsHtml = '<div class="review-options">' +
-        correctOrd.map((idx, pos) => `<div class="review-opt is-correct"><span class="r-letter">${pos+1})</span><span>${escHtml(items[idx])}</span></div>`).join('') +
-        '</div>';
-    } else if (qType === 'topology') {
-      const cp = q.correctPlacements || {};
-      optsHtml = '<div class="review-options">' +
-        Object.entries(cp).map(([dev, zone]) => `<div class="review-opt is-correct"><span class="r-letter">\u2192</span><span>${escHtml(dev)} \u2192 ${escHtml(zone)}</span></div>`).join('') +
-        '</div>';
-    } else {
-      const letters = Object.keys(q.options || {}).sort();
-      const correctArr = qType === 'multi-select' ? (q.answers || []) : [q.answer];
-      const chosenArr = typeof chosen === 'string' ? chosen.split(',') : [];
-      optsHtml = '<div class="review-options">' + letters.map(l => {
-        let optCls = '';
-        if (correctArr.includes(l)) optCls = 'is-correct';
-        else if (chosenArr.includes(l) && !isRight) optCls = 'was-chosen';
-        return `<div class="review-opt ${optCls}"><span class="r-letter">${l})</span><span>${escHtml(q.options[l])}</span></div>`;
-      }).join('') + '</div>';
-    }
-
-    const flagTag    = flagged ? '<span class="review-flag-tag">&#9873; Flagged</span><br>' : '';
-    const skippedTag = skipped ? '<em style="color:var(--text-dim);font-size:13px">Skipped</em><br>' : '';
-    const typeLabels = { 'multi-select': 'Multi-Select', 'order': 'Ordering', 'cli-sim': 'CLI Sim', 'topology': 'Topology' };
-    const typeBadge = qType !== 'mcq' ? `<span class="pbq-badge" style="margin-bottom:8px;display:inline-block">${typeLabels[qType] || qType}</span><br>` : '';
-
-    const reviewTopic = q.topic || activeQuizTopic;
-    const reviewRes = topicResources[reviewTopic];
-    const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">📚 Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
-
-    div.innerHTML = `
-      <div class="review-q">${i+1}. ${highlightExamKeywords(escHtml(q.question))}</div>
-      ${typeBadge}${flagTag}${skippedTag}
-      ${optsHtml}
-      <div class="review-exp">${escHtml(q.explanation)}${resLink}</div>`;
-    list.appendChild(div);
+  // Count each filter category
+  const counts = { all: log.length, correct: 0, incorrect: 0, flagged: 0, skipped: 0 };
+  log.forEach(entry => {
+    if (entry.skipped) counts.skipped++;
+    else if (entry.isRight) counts.correct++;
+    else counts.incorrect++;
+    if (entry.flagged) counts.flagged++;
   });
 
-  showPage('review');
+  // If active filter has 0 results (defensive), fall back to 'all'.
+  if (_reviewFilter !== 'all' && counts[_reviewFilter] === 0) _reviewFilter = 'all';
+
+  // Apply current filter
+  const filtered = log.filter(entry => {
+    if (_reviewFilter === 'all') return true;
+    if (_reviewFilter === 'correct') return entry.isRight && !entry.skipped;
+    if (_reviewFilter === 'incorrect') return !entry.isRight && !entry.skipped;
+    if (_reviewFilter === 'flagged') return !!entry.flagged;
+    if (_reviewFilter === 'skipped') return !!entry.skipped;
+    return true;
+  });
+
+  // Filter chip row
+  const chipDef = [
+    { key: 'all',       label: 'All',         icon: '' },
+    { key: 'correct',   label: 'Correct',     icon: '\u2713 ' },
+    { key: 'incorrect', label: 'Incorrect',   icon: '\u2717 ' },
+    { key: 'flagged',   label: 'Flagged',     icon: '\u2691 ' },
+    { key: 'skipped',   label: 'Skipped',     icon: '\u21B7 ' }
+  ];
+  const filterRowHtml = `<div class="review-filter-row">
+    <span class="review-filter-eyebrow">Filter</span>
+    ${chipDef.map(c => {
+      const isActive = _reviewFilter === c.key;
+      const isDisabled = c.key !== 'all' && counts[c.key] === 0;
+      const cls = ['review-filter-chip', 'is-' + c.key, isActive ? 'is-active' : '', isDisabled ? 'is-disabled' : ''].filter(Boolean).join(' ');
+      const onclick = isDisabled ? '' : `onclick="_setReviewFilter('${c.key}')"`;
+      const aria = isDisabled ? 'aria-disabled="true"' : (isActive ? 'aria-pressed="true"' : 'aria-pressed="false"');
+      return `<button type="button" class="${cls}" ${aria} ${onclick}>${c.icon}${c.label} <span class="chip-count">${counts[c.key]}</span></button>`;
+    }).join('')}
+    <span class="review-filter-meta">Showing <strong>${filtered.length}</strong> of <strong>${log.length}</strong></span>
+  </div>`;
+
+  // Empty state when filter returns 0
+  if (filtered.length === 0) {
+    const activeChip = chipDef.find(c => c.key === _reviewFilter);
+    const label = activeChip ? activeChip.label.toLowerCase() : '';
+    host.innerHTML = filterRowHtml + `
+      <div class="review-filter-empty">
+        <span class="review-filter-empty-ico">\uD83C\uDFAF</span>
+        <div class="review-filter-empty-title">Nothing here \u2014 no ${escHtml(label)} answers</div>
+        <div class="review-filter-empty-body">Try a different filter to review your answers.</div>
+        <button type="button" class="review-filter-empty-cta" onclick="_setReviewFilter('all')">Show all ${log.length} \u2192</button>
+      </div>`;
+    return;
+  }
+
+  // Build all item HTML up front (avoids per-item DOM cost)
+  const itemsHtml = filtered.map(entry => _buildReviewItemHtml(entry, log.indexOf(entry), log.length)).join('');
+  host.innerHTML = filterRowHtml + itemsHtml;
+}
+
+// v4.85.17: chip click handler. Sets filter state then re-renders.
+function _setReviewFilter(key) {
+  _reviewFilter = key;
+  _renderReviewList();
+  // Scroll the host into view so the user lands at the top of the filtered list
+  try {
+    const host = document.getElementById('review-list');
+    if (host) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (_) { /* defensive */ }
+}
+
+// v4.85.17: per-question item builder, extracted so the renderer can rebuild
+// items in different filter states without duplicating markup. `i` is the
+// 0-based original question index; `total` is full log length so the
+// "Q N of M" badge stays accurate even after filtering.
+function _buildReviewItemHtml(entry, i, total) {
+  const { q, chosen, isRight, flagged, skipped } = entry;
+  const qType = getQType(q);
+
+  let cls = 'review-item ';
+  if (skipped)      cls += 'skipped';
+  else if (isRight) cls += 'correct';
+  else              cls += 'missed';
+  if (flagged) cls += ' flagged-item';
+
+  let optsHtml;
+  if (qType === 'order') {
+    const items = q.items || [];
+    const correctOrd = q.correctOrder || [];
+    optsHtml = '<div class="review-options">' +
+      correctOrd.map((idx, pos) => `<div class="review-opt is-correct"><span class="r-letter">${pos+1})</span><span>${escHtml(items[idx])}</span></div>`).join('') +
+      '</div>';
+  } else if (qType === 'topology') {
+    const cp = q.correctPlacements || {};
+    optsHtml = '<div class="review-options">' +
+      Object.entries(cp).map(([dev, zone]) => `<div class="review-opt is-correct"><span class="r-letter">\u2192</span><span>${escHtml(dev)} \u2192 ${escHtml(zone)}</span></div>`).join('') +
+      '</div>';
+  } else {
+    const letters = Object.keys(q.options || {}).sort();
+    const correctArr = qType === 'multi-select' ? (q.answers || []) : [q.answer];
+    const chosenArr = typeof chosen === 'string' ? chosen.split(',') : [];
+    optsHtml = '<div class="review-options">' + letters.map(l => {
+      let optCls = '';
+      if (correctArr.includes(l)) optCls = 'is-correct';
+      else if (chosenArr.includes(l) && !isRight) optCls = 'was-chosen';
+      return `<div class="review-opt ${optCls}"><span class="r-letter">${l})</span><span>${escHtml(q.options[l])}</span></div>`;
+    }).join('') + '</div>';
+  }
+
+  // Meta-tag row above question stem - status + flag + domain
+  const statusTag = skipped
+    ? '<span class="q-tag tag-skipped">\u21B7 Skipped</span>'
+    : (isRight
+      ? '<span class="q-tag tag-correct">\u2713 Correct</span>'
+      : '<span class="q-tag tag-incorrect">\u2717 Incorrect</span>');
+  const flagTag = flagged ? '<span class="q-tag tag-flagged">\u2691 Flagged</span>' : '';
+  const reviewTopic = q.topic || activeQuizTopic;
+  const reviewRes = topicResources[reviewTopic];
+  const domainTag = reviewTopic && reviewTopic !== MIXED_TOPIC && reviewTopic !== EXAM_TOPIC
+    ? '<span class="q-tag tag-domain">' + escHtml(reviewTopic) + '</span>'
+    : '';
+
+  const typeLabels = { 'multi-select': 'Multi-Select', 'order': 'Ordering', 'cli-sim': 'CLI Sim', 'topology': 'Topology' };
+  const typeBadge = qType !== 'mcq' ? `<span class="pbq-badge" style="margin-left:6px">${typeLabels[qType] || qType}</span>` : '';
+
+  const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">\uD83D\uDCDA Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
+
+  return `<div class="${cls}">
+    <div class="review-q-meta-row">
+      <span class="q-num-pill">Q ${i+1} of ${total}</span>
+      ${statusTag}
+      ${flagTag}
+      ${domainTag}
+      ${typeBadge}
+    </div>
+    <div class="review-q">${i+1}. ${highlightExamKeywords(escHtml(q.question))}</div>
+    ${optsHtml}
+    <div class="review-exp">${escHtml(q.explanation)}${resLink}</div>
+  </div>`;
 }
 
 // ══════════════════════════════════════════
