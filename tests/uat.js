@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.17', js.includes("const APP_VERSION = '4.85.17"));
+test('APP_VERSION is 4.85.18', js.includes("const APP_VERSION = '4.85.18"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.17', sw.includes('netplus-v4.85.17'));
+test('SW cache bumped to v4.85.18', sw.includes('netplus-v4.85.18'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12887,6 +12887,50 @@ test('v4.85.17 ReviewFilter: vm fixture — empty state renders when filter has 
       return /Showing <strong>2<\/strong>/.test(renderedHtml)
         && !/review-filter-empty/.test(renderedHtml);
     } catch (e) { return false; }
+  })());
+
+// v4.85.18 — domain-grid topic chips now have 3 states: weak / studied /
+// untouched. Pre-fix only weak/not-weak existed, conflating "studied + strong"
+// with "never studied" — both rendered identical greyed-out style.
+test('v4.85.18 DomainGridStates: studiedSet built from history in renderSetupDomainGrid',
+  (() => {
+    const body = _fnBody(js, 'renderSetupDomainGrid');
+    return body
+      && /const studiedSet = new Set\(\)/.test(body)
+      && /history\.forEach/.test(body)
+      && /studiedSet\.add\(e\.topic\)/.test(body);
+  })());
+test('v4.85.18 DomainGridStates: studiedSet excludes MIXED_TOPIC + EXAM_TOPIC',
+  (() => {
+    const body = _fnBody(js, 'renderSetupDomainGrid');
+    return body
+      && /e\.topic === MIXED_TOPIC \|\| e\.topic === EXAM_TOPIC/.test(body);
+  })());
+test('v4.85.18 DomainGridStates: chip rendering branches on isWeak / isStudied / untouched',
+  (() => {
+    const body = _fnBody(js, 'renderSetupDomainGrid');
+    return body
+      && /const isWeak = weakSet\.has/.test(body)
+      && /const isStudied = studiedSet\.has/.test(body)
+      && /dg-topic-weak/.test(body)
+      && /dg-topic-studied/.test(body)
+      && /dg-topic-untouched/.test(body);
+  })());
+test('v4.85.18 DomainGridStates CSS: default .dg-topic uses --text-mid (was --text-dim)',
+  /\.dg-topic\s*\{[^}]*color:\s*var\(--text-mid\)/.test(css));
+test('v4.85.18 DomainGridStates CSS: dg-topic-studied class defined',
+  /\.dg-topic-studied\s*\{[^}]*color:\s*var\(--text-mid\)/.test(css));
+test('v4.85.18 DomainGridStates CSS: dg-topic-untouched class defined (italic + dim + opacity)',
+  /\.dg-topic-untouched\s*\{[^}]*color:\s*var\(--text-dim\)[^}]*font-style:\s*italic[^}]*opacity:\s*\.7/.test(css));
+test('v4.85.18 DomainGridStates CSS: untouched uses hollow dot (transparent + border)',
+  /\.dg-topic-untouched\s+\.dg-topic-dot\s*\{[^}]*background:\s*transparent[^}]*border:\s*1px\s+solid\s+var\(--text-dim\)/.test(css));
+test('v4.85.18 DomainGridStates: chip aria-label includes state hint (weak/practised/not yet studied)',
+  (() => {
+    const body = _fnBody(js, 'renderSetupDomainGrid');
+    return body
+      && /weak.*needs work/.test(body)
+      && /\(practised\)/.test(body)
+      && /\(not yet studied\)/.test(body);
   })());
 
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',

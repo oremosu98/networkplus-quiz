@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.85.17
+   Network+ AI Quiz — styles.css  v4.85.18
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12151,13 +12151,20 @@ html { zoom: 1.10; }
   border-top: 1px dashed rgba(var(--accent-rgb), .14);
   padding-top: 8px;
 }
+/* v4.85.18: 3 visual states for the domain-grid topic chips:
+   • dg-topic-weak     — needs work (accent color, bold, glowing dot)
+   • dg-topic-studied  — practised, no urgent action (normal text-mid color)
+   • dg-topic-untouched— never studied (dim + italic + hollow dot)
+   Pre-v4.85.18 default state used --text-dim which made studied-but-strong
+   topics look identical to never-studied ones. User dogfood: "why are some
+   of these still greyed out? ive already attempted all topics." */
 .dg-topic {
   display: flex;
   align-items: center;
   gap: 7px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-mid);
   line-height: 1.25;
   min-width: 0;
 }
@@ -12174,6 +12181,7 @@ html { zoom: 1.10; }
   white-space: nowrap;
   min-width: 0;
 }
+/* State 1 — weak: accent color + bold + glowing dot */
 .dg-topic-weak { color: var(--accent-light); font-weight: 600; }
 .dg-topic-weak .dg-topic-dot {
   background: var(--accent);
@@ -12183,6 +12191,27 @@ html { zoom: 1.10; }
 [data-theme="light"] .dg-topic-weak .dg-topic-dot {
   background: #6355e0;
   box-shadow: 0 0 0 2px rgba(99, 85, 224, .2);
+}
+/* State 2 — studied (default-ish): readable text, no urgent treatment */
+.dg-topic-studied {
+  color: var(--text-mid);
+  font-weight: 500;
+}
+.dg-topic-studied .dg-topic-dot {
+  background: rgba(var(--accent-rgb), .35);
+}
+/* State 3 — untouched: dim + italic + hollow dot */
+.dg-topic-untouched {
+  color: var(--text-dim);
+  font-style: italic;
+  opacity: .7;
+}
+.dg-topic-untouched .dg-topic-dot {
+  background: transparent;
+  border: 1px solid var(--text-dim);
+  width: 5px;
+  height: 5px;
+  box-sizing: border-box;
 }
 /* Retire the v4.54.8 wrap-chip styles */
 .dg-weak-chips, .dg-weak-chip { display: none !important; }

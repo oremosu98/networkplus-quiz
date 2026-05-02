@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.17
+// Network+ AI Quiz — app.js  v4.85.18
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.17';
+const APP_VERSION = '4.85.18';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -39735,6 +39735,17 @@ function renderSetupDomainGrid() {
     }
   } catch (_) {}
 
+  // v4.85.18: build a set of topics the user has actually attempted, so the
+  // chip rendering can distinguish "studied + strong" from "never studied"
+  // (pre-fix both rendered the same dim greyed-out style, making it look
+  // like the user hadn't practised topics they actually had).
+  const studiedSet = new Set();
+  history.forEach(e => {
+    if (!e.topic) return;
+    if (e.topic === MIXED_TOPIC || e.topic === EXAM_TOPIC) return;
+    if ((e.total || 0) > 0) studiedSet.add(e.topic);
+  });
+
   const html = domainOrder.map((dk, idx) => {
     const s = stats[dk];
     const pct = s.total > 0 ? Math.round((s.score / s.total) * 100) : null;
@@ -39743,10 +39754,18 @@ function renderSetupDomainGrid() {
     const pctSub = pct !== null ? '%' : '';
     const status = pct === null ? 'Not studied' : pct >= 80 ? 'Mastered' : pct >= 70 ? 'Proficient' : pct >= 55 ? 'Developing' : 'Novice';
     // v4.54.10: vertical canonical-topic list per domain
+    // v4.85.18: 3 states per topic \u2014 weak (accent + bold) / studied (normal)
+    // / untouched (dim italic). Was 2 states which conflated mastered + untouched.
     const topics = CANONICAL_DOMAIN_TOPICS[dk] || [];
     const topicsHtml = `<ul class="dg-topic-list" aria-label="Topics in this domain">${topics.map(t => {
       const isWeak = weakSet.has(t.key);
-      return `<li class="dg-topic${isWeak ? ' dg-topic-weak' : ''}"><span class="dg-topic-dot" aria-hidden="true"></span><span class="dg-topic-label">${escHtml(t.label)}</span></li>`;
+      const isStudied = studiedSet.has(t.key);
+      let stateClass = '';
+      if (isWeak) stateClass = ' dg-topic-weak';
+      else if (isStudied) stateClass = ' dg-topic-studied';
+      else stateClass = ' dg-topic-untouched';
+      const ariaLabel = isWeak ? ' (weak \u2014 needs work)' : (isStudied ? ' (practised)' : ' (not yet studied)');
+      return `<li class="dg-topic${stateClass}" aria-label="${escHtml(t.label)}${ariaLabel}"><span class="dg-topic-dot" aria-hidden="true"></span><span class="dg-topic-label">${escHtml(t.label)}</span></li>`;
     }).join('')}</ul>`;
     return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" onclick="drillDomain('${DOMAIN_LABELS[dk].replace(/'/g, "\\'")}')">
       <span class="dg-weight">${weightPct[dk]}% exam</span>
