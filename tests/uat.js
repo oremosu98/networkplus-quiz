@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.19', js.includes("const APP_VERSION = '4.85.19"));
+test('APP_VERSION is 4.85.20', js.includes("const APP_VERSION = '4.85.20"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.19', sw.includes('netplus-v4.85.19'));
+test('SW cache bumped to v4.85.20', sw.includes('netplus-v4.85.20'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12951,6 +12951,72 @@ test('v4.85.18 DomainGridStates: chip aria-label includes state hint (weak/pract
       && /weak.*needs work/.test(body)
       && /\(practised\)/.test(body)
       && /\(not yet studied\)/.test(body);
+  })());
+
+// v4.85.20 — Per-topic exam splits (v4.81.13) were leaking into 4 surfaces
+// that count "exams" by `mode === 'exam'`. A 90-Q exam saves ~50 split rows,
+// each tagged mode='exam' with actual topic name. Surfaces filter on summary
+// entries only (topic === EXAM_TOPIC) to avoid double-count.
+test('v4.85.20 ExamSplitFilter: _renderAnaExams filters to summary entries (topic === EXAM_TOPIC)',
+  (() => {
+    const body = _fnBody(js, '_renderAnaExams');
+    return body && /e\.mode === 'exam' && e\.topic === EXAM_TOPIC/.test(body);
+  })());
+test('v4.85.20 ExamSplitFilter: bestExam in getStudyStats filters to summary entries',
+  (() => {
+    const body = _fnBody(js, 'getStudyStats');
+    return body
+      && /bestExam.*=.*h\.filter\(e => e\.mode === 'exam' && e\.topic === EXAM_TOPIC\)/.test(body);
+  })());
+test('v4.85.20 ExamSplitFilter: milestone exam count filters to summary entries',
+  (() => {
+    const body = _fnBody(js, '_buildMilestoneCtx');
+    return body
+      && /const exams = h\.filter\(e => e\.mode === 'exam' && e\.topic === EXAM_TOPIC\)/.test(body);
+  })());
+test('v4.85.20 ExamSplitFilter: _renderAnaExamVsQuiz filters to summary entries',
+  (() => {
+    const body = _fnBody(js, '_renderAnaExamVsQuiz');
+    return body
+      && /examEntries = h\.filter\(e => e\.mode === 'exam' && e\.topic === EXAM_TOPIC\)/.test(body);
+  })());
+test('v4.85.20 ExamSplitFilter: vm fixture — _renderAnaExams shows 2 entries when history has 2 summaries + 50 splits',
+  (() => {
+    try {
+      const body = _fnBody(js, '_renderAnaExams');
+      if (!body) return false;
+      const vm = require('vm');
+      // Build fake history: 2 exam summaries + 50 per-topic splits (varied topics)
+      const fakeHistory = [
+        { date: '2026-05-02T10:00:00Z', topic: 'Exam', mode: 'exam', score: 78, total: 90, pct: 87 },
+        { date: '2026-05-01T10:00:00Z', topic: 'Exam', mode: 'exam', score: 75, total: 90, pct: 83 }
+      ];
+      // Add 50 fake per-topic split rows (each 1-2 questions, scoring 100% — these should be EXCLUDED)
+      const splitTopics = ['BGP', 'OSPF', 'IPv6', 'NAT & IP Services', 'Subnetting & IP Addressing'];
+      for (let i = 0; i < 50; i++) {
+        fakeHistory.push({
+          date: '2026-05-02T10:00:00Z',
+          topic: splitTopics[i % 5],
+          mode: 'exam',
+          score: 1,
+          total: 1,
+          pct: 100,
+          via: 'exam-split'
+        });
+      }
+      const ctx = {
+        EXAM_TOPIC: 'Exam',
+        EXAM_PASS_SCORE: 720,
+        _edCardhead: () => '',
+        Math, Date, Array
+      };
+      vm.createContext(ctx);
+      vm.runInContext(body, ctx);
+      const html = vm.runInContext('_renderAnaExams(' + JSON.stringify(fakeHistory) + ')', ctx);
+      // Should render exactly 2 .ana-exam-row elements (one per summary), not 52
+      const matches = html.match(/class="ana-exam-row"/g) || [];
+      return matches.length === 2;
+    } catch (e) { return false; }
   })());
 
 test('v4.85.11 Tooltip: tooltip element has data-tt-* attrs (topic, domain, tier, mastery, attempts, last)',

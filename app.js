@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.19
+// Network+ AI Quiz — app.js  v4.85.20
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.19';
+const APP_VERSION = '4.85.20';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -5419,7 +5419,10 @@ function getStudyStats() {
   const totalQ    = h.reduce((a, e) => a + e.total, 0);
   const sessions  = h.length;
   const avgPct    = Math.round(h.reduce((a, e) => a + e.pct, 0) / sessions);
-  const bestExam  = h.filter(e => e.mode === 'exam').reduce((best, e) => {
+  // v4.85.20: filter to summary entries only (topic === EXAM_TOPIC) to prevent
+  // per-topic split rows (1/1 correct = scaled 900) from inflating the best-exam
+  // headline number.
+  const bestExam  = h.filter(e => e.mode === 'exam' && e.topic === EXAM_TOPIC).reduce((best, e) => {
     const scaled = Math.round(100 + (e.score / e.total) * 800);
     return scaled > best ? scaled : best;
   }, 0);
@@ -12195,7 +12198,10 @@ function _buildMilestoneCtx() {
   const h = loadHistory();
   const totalQs = h.reduce((a, e) => a + e.total, 0);
   const studied = new Set(h.filter(e => e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC).map(e => e.topic));
-  const exams = h.filter(e => e.mode === 'exam');
+  // v4.85.20: count actual exam SUMMARY entries only (one per exam, topic === EXAM_TOPIC).
+  // Without this filter, the per-topic splits (~50 per 90-Q exam) inflate milestone
+  // counts like "10 exams completed" — a single exam would unlock it.
+  const exams = h.filter(e => e.mode === 'exam' && e.topic === EXAM_TOPIC);
   const readiness = (typeof document !== 'undefined' && document.querySelector('#topic-group')) ? getReadinessScore() : null;
   const streak = getStreakData();
   const allDomainsHit = new Set(Array.from(studied).map(t => TOPIC_DOMAINS[t]).filter(Boolean));
@@ -35031,7 +35037,12 @@ function _renderAnaActivity(h) {
 }
 
 function _renderAnaExams(h) {
-  const exams = h.filter(e => e.mode === 'exam');
+  // v4.85.20: filter to actual exam SUMMARY entries only — exclude the per-topic
+  // splits that v4.81.13 saves alongside each exam. Splits have actual topic names
+  // (e.g., "BGP", "OSPF") while the summary uses topic === EXAM_TOPIC. Pre-v4.85.20
+  // splits with 1-4 questions each were rendering as "900 PASS" rows, making one
+  // 90-Q exam look like 50+ separate exams in the history list.
+  const exams = h.filter(e => e.mode === 'exam' && e.topic === EXAM_TOPIC);
   if (exams.length === 0) return '';
   return `<div class="ana-card">
     ${_edCardhead('Exams \u00b7 scaled scores over time', 'Exam', 'history.')}
@@ -35696,8 +35707,11 @@ function _renderAnaWrongPatterns() {
 }
 
 function _renderAnaExamVsQuiz(h) {
+  // v4.85.20: filter exams to summary entries only (topic === EXAM_TOPIC) so the
+  // exam-side avg reflects whole-exam scores, not per-topic split percentages
+  // (which trend toward 100% on 1-Q rows and skew the comparison).
   const quizEntries = h.filter(e => e.mode !== 'exam' && e.topic !== MIXED_TOPIC && e.topic !== EXAM_TOPIC);
-  const examEntries = h.filter(e => e.mode === 'exam');
+  const examEntries = h.filter(e => e.mode === 'exam' && e.topic === EXAM_TOPIC);
   if (quizEntries.length < 2 || examEntries.length < 1) return '';
   const quizAvg = Math.round(quizEntries.reduce((a, e) => a + e.pct, 0) / quizEntries.length);
   const examAvg = Math.round(examEntries.reduce((a, e) => a + e.pct, 0) / examEntries.length);
