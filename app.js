@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.18
+// Network+ AI Quiz — app.js  v4.85.19
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.18';
+const APP_VERSION = '4.85.19';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -128,7 +128,19 @@ const RETENTION_GAP_CONCEPTS = [
   { label: 'Clientless VPN',     parentTopic: 'SSL/TLS VPN',                       objective: '4.4', keyword: 'Clientless SSL VPN \u2014 browser-based, no VPN software needed' },
   { label: 'Class of Service',   parentTopic: 'Network Operations',                objective: '3.2', keyword: 'CoS (802.1p) \u2014 Layer 2 QoS priority (0\u20137) distinct from DSCP' },
   { label: 'RAID Controller',    parentTopic: 'Business Continuity & Disaster Recovery', objective: '3.3', keyword: 'RAID levels \u2014 RAID 5 (striping + parity), RAID 1 (mirror), RAID 10 (striped mirrors)' },
-  { label: 'PCAP File',          parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'PCAP file format \u2014 captured by tcpdump/Wireshark, used for packet forensics' }
+  { label: 'PCAP File',          parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'PCAP file format \u2014 captured by tcpdump/Wireshark, used for packet forensics' },
+  // \u2500\u2500 v4.85.19 \u2014 Phase 3 Cycle 1 (Jason Dion practice test gaps, 2026-05-02) \u2500\u2500
+  { label: 'IPv6 Anycast',       parentTopic: 'IPv6',                              objective: '1.4', keyword: 'IPv6 anycast \u2014 same address on multiple interfaces, routed to nearest by metric (NOT broadcast, NOT multicast)' },
+  { label: 'Media Converter',    parentTopic: 'Cabling & Topology',                objective: '1.5', keyword: 'Media converter \u2014 Layer 1 device that bridges copper Ethernet and fiber media types' },
+  { label: 'SD-WAN App-aware',   parentTopic: 'SD-WAN & SASE',                     objective: '1.2', keyword: 'SD-WAN application-aware steering \u2014 Layer 7 DPI/SaaS ID + per-app SLA-based path selection' },
+  { label: 'Jumbo frames (SAN)', parentTopic: 'Data Center Architectures',         objective: '1.8', keyword: 'Jumbo frames (\u22489000 byte MTU) deployed on dedicated VLAN/SAN to guarantee end-to-end MTU consistency' },
+  { label: 'Band Steering',      parentTopic: 'Wireless Networking',               objective: '2.4', keyword: 'Band steering \u2014 AP/WLC pushes dual-band clients onto less-congested 5 GHz' },
+  { label: 'Anomaly detection',  parentTopic: 'Network Monitoring & Observability', objective: '3.2', keyword: 'Anomaly-based detection \u2014 baseline learned, alerts on deviation; catches zero-days but more false positives than signature-based' },
+  { label: 'DHCP Reservation',   parentTopic: 'Network Naming (DNS & DHCP)',       objective: '1.6', keyword: 'DHCP reservation \u2014 MAC tied to specific IP within scope; centrally managed alternative to local static config' },
+  { label: 'DHCP Options',       parentTopic: 'Network Naming (DNS & DHCP)',       objective: '1.6', keyword: 'DHCP options 3=router, 6=DNS, 51=lease time, 66=TFTP server, 67=boot file (VoIP/PXE provisioning)' },
+  { label: 'Separation of Duties', parentTopic: 'Protecting Networks',             objective: '4.1', keyword: 'Separation of duties \u2014 critical task split across people (initiate vs approve) so no single person can complete it alone' },
+  { label: 'Non-persistent NAC', parentTopic: 'Protecting Networks',               objective: '4.3', keyword: 'Non-persistent (dissolvable) NAC agent \u2014 fetched at connect, runs posture, exits; ideal for guests/contractors' },
+  { label: 'Wavelength Mismatch', parentTopic: 'Cable Issues',                     objective: '5.2', keyword: 'Optical wavelength mismatch \u2014 e.g., 1310 nm SM transceiver vs 850 nm MM transceiver fails to link, even though both are Ethernet SFPs' }
 ];
 
 function _formatRetentionConceptsForPrompt() {
@@ -3891,6 +3903,617 @@ const QUESTION_EXEMPLARS = [
     source: 'curated',
     addedVersion: '4.59.6',
     addedDate: '2026-04-21'
+  },
+  // ───── Phase 3 Cycle 1 — 2026-05-02 (Jason Dion practice test gap recalibration) ─────
+  // 11 user-reported gap topics × 3 exemplars each = 33 new exemplars.
+  // All content original. Sourced from public N10-009 blueprint + RFC/standard
+  // references. NO copying or paraphrasing of paid-bank content per the
+  // documented legal boundary (reference_jason_dion_method.md).
+  // Gap topics: IPv6 Anycast, Media Converter, SD-WAN App Layer, Jumbo Frames
+  // (SAN context), Band Steering, Anomaly Detection, DHCP Reservation, DHCP
+  // Options, Separation of Duties, NAC Non-Persistent Agent, Wavelength Mismatch.
+
+  // ── 1. IPv6 ANYCAST ──
+  {
+    type: 'mcq',
+    question: 'Which IPv6 address type delivers a packet to the topologically nearest member of a group of interfaces sharing the same address?',
+    difficulty: 'Foundational',
+    topic: 'IPv6',
+    objective: '1.4',
+    options: { A: 'Unicast', B: 'Multicast', C: 'Anycast', D: 'Broadcast' },
+    answer: 'C',
+    explanation: 'Anycast assigns the same address to multiple interfaces, and the network routes a packet to whichever member is nearest by routing metric. Unicast (A) delivers to one specific interface. Multicast (B) delivers to every member of a group. Broadcast (D) does not exist in IPv6 — it is replaced by all-nodes multicast (FF02::1).',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A content delivery provider configures three geographically distributed DNS resolvers with the same IPv6 address so client queries are answered by the closest resolver. Which addressing model does this implement?',
+    difficulty: 'Exam Level',
+    topic: 'IPv6',
+    objective: '1.4',
+    options: {
+      A: 'Anycast — multiple interfaces share an address; routing picks the nearest',
+      B: 'Multicast — packets fan out to every member of the group',
+      C: 'Unicast — each resolver gets its own unique address',
+      D: 'Loopback — resolvers respond on a private link-local address'
+    },
+    answer: 'A',
+    explanation: 'Anycast is the design pattern for distributing the same service across multiple sites — clients hit whichever node the routing layer decides is closest. Multicast (B) would deliver each query to every resolver simultaneously, wasteful. Unicast (C) defeats the purpose since each resolver has a different address. Loopback (D) is not routable.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which statements correctly describe IPv6 anycast addresses?',
+    difficulty: 'Hard',
+    topic: 'IPv6',
+    objective: '1.4',
+    options: {
+      A: 'They are syntactically indistinguishable from unicast addresses',
+      B: 'They are reserved in their own dedicated address range like multicast addresses',
+      C: 'A packet sent to an anycast address is delivered to the nearest member by routing metric',
+      D: 'They replace IPv6 broadcast for all-nodes-on-a-link delivery',
+      E: 'They are used for one-to-many fan-out where every member receives a copy'
+    },
+    answers: ['A', 'C'],
+    explanation: 'A and C are correct. Anycast addresses look identical to unicast addresses (A) — the difference is that more than one interface shares the address; routing decides the destination by nearest metric (C). B is wrong: there is no dedicated "anycast range" in IPv6 — they share the unicast space. D is wrong: all-nodes delivery uses multicast (FF02::1), not anycast. E is wrong: that describes multicast (one-to-many), not anycast (one-to-nearest).',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 2. MEDIA CONVERTER ──
+  {
+    type: 'mcq',
+    question: 'A network technician needs to extend a 1000BASE-T Ethernet link from a copper switch port to a remote building 600 meters away over existing fiber. Which device should they use to bridge the two media types?',
+    difficulty: 'Foundational',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: { A: 'Repeater', B: 'Media converter', C: 'Hub', D: 'Patch panel' },
+    answer: 'B',
+    explanation: 'A media converter is a Layer 1 device that converts signals between two physical media — most commonly copper Ethernet and fiber optic. A repeater (A) regenerates the signal but on the same media. A hub (C) is a multi-port repeater for copper Ethernet. A patch panel (D) is a passive cable termination point with no signal conversion.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'Which best describes the OSI layer at which a media converter operates and the function it performs?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'Layer 1 — converts the physical signal between media types (e.g., copper to fiber)',
+      B: 'Layer 2 — translates Ethernet frames between media types',
+      C: 'Layer 3 — routes packets across different physical connections',
+      D: 'Layer 7 — translates application-layer protocols between hosts'
+    },
+    answer: 'A',
+    explanation: 'A media converter is purely a Layer 1 (Physical) device. It converts electrical signals on copper to optical pulses on fiber (or vice versa) without inspecting frames, MAC addresses, or any higher-layer information. Options B–D describe functions of switches, routers, and application gateways respectively.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician installs an SFP-based copper-to-fiber media converter and the link comes up but throughput is significantly lower than the rated speed. Which is the MOST LIKELY cause to investigate first?',
+    difficulty: 'Hard',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'A duplex or speed mismatch on the copper interface',
+      B: 'The fiber strands are connected to the wrong polarity (TX/RX swap)',
+      C: 'The media converter does not support jumbo frames',
+      D: 'The fiber type is multi-mode instead of single-mode'
+    },
+    answer: 'A',
+    explanation: 'A duplex or speed mismatch on the copper side is the most common cause of degraded throughput on an otherwise-up media-converter link — auto-negotiation failures cause one side to fall back to half-duplex while the other runs full-duplex, producing collisions and retransmissions visible only at the application layer. B (TX/RX polarity) typically prevents the link from coming up at all, not degrade throughput. C (jumbo frames) only matters if the workload uses oversized frames. D (fiber type) over short distances usually still passes traffic at full speed, though it may not be best practice.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 3. SD-WAN APPLICATION LAYER ──
+  {
+    type: 'mcq',
+    question: 'Which capability distinguishes SD-WAN from traditional WAN routing?',
+    difficulty: 'Exam Level',
+    topic: 'SD-WAN & SASE',
+    objective: '1.2',
+    options: {
+      A: 'It uses IPsec instead of GRE for site-to-site tunnels',
+      B: 'It steers traffic dynamically based on application identity and real-time link conditions',
+      C: 'It eliminates the need for any branch-office router hardware',
+      D: 'It runs exclusively on private MPLS circuits'
+    },
+    answer: 'B',
+    explanation: 'SD-WAN distinguishes itself by being application-aware — it identifies traffic by application (Office 365, Zoom, Salesforce, etc.) and steers each application across the best-performing transport (MPLS, broadband, LTE) based on real-time measurements of latency, jitter, and loss. A is irrelevant — SD-WAN supports both IPsec and other tunnel types. C is incorrect — branch hardware (uCPE / SD-WAN edge) is required. D is the opposite — SD-WAN was specifically designed to use any transport, including cheap broadband.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'An SD-WAN edge device classifies incoming traffic as a Microsoft Teams video call and routes it over the lowest-jitter link, while sending bulk file backups over the cheapest link. At which layer must the SD-WAN device operate to make this decision?',
+    difficulty: 'Exam Level',
+    topic: 'SD-WAN & SASE',
+    objective: '1.2',
+    options: {
+      A: 'Layer 2 — it inspects the source MAC address',
+      B: 'Layer 3 — it inspects the destination IP address',
+      C: 'Layer 4 — it inspects port numbers only',
+      D: 'Layer 7 — it inspects the application identity via deep packet inspection or DNS-based classification'
+    },
+    answer: 'D',
+    explanation: 'Application-aware steering requires Layer 7 (Application Layer) intelligence — the SD-WAN edge identifies traffic by application signature, DNS lookup, or SaaS endpoint metadata. Layer 4 (port numbers) is insufficient because modern SaaS apps share common ports (443/TCP for nearly everything). Layer 2/3 has no concept of application identity.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which capabilities are core to SD-WAN application-aware routing?',
+    difficulty: 'Hard',
+    topic: 'SD-WAN & SASE',
+    objective: '1.2',
+    options: {
+      A: 'Application identification via DPI (deep packet inspection) or SaaS endpoint signatures',
+      B: 'Real-time path selection based on per-application SLA thresholds (latency, jitter, loss)',
+      C: 'Replacing IPsec encryption with a proprietary key exchange',
+      D: 'Eliminating the need for a centralized controller or orchestrator',
+      E: 'Operating exclusively at Layer 3 with no Layer 7 awareness'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are the foundational capabilities. SD-WAN edges classify each flow by application (A) and then dynamically select the best path that meets that application’s SLA (B). C is wrong — SD-WAN typically still uses IPsec underneath for site-to-site tunnels. D is wrong — SD-WAN architecturally requires a centralized controller (the orchestrator) to push policy. E directly contradicts A — Layer 7 visibility is the whole point.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 4. JUMBO FRAMES (SAN / DEDICATED NETWORK CONTEXT) ──
+  {
+    type: 'mcq',
+    question: 'Which frame payload size is defined by the standard Ethernet MTU, and which size is typical for jumbo frames?',
+    difficulty: 'Foundational',
+    topic: 'Ethernet Standards',
+    objective: '2.1',
+    options: {
+      A: 'Standard 1500 bytes; jumbo 9000 bytes',
+      B: 'Standard 1500 bytes; jumbo 4500 bytes',
+      C: 'Standard 1024 bytes; jumbo 8192 bytes',
+      D: 'Standard 9000 bytes; jumbo 9216 bytes'
+    },
+    answer: 'A',
+    explanation: 'Standard Ethernet defines an MTU of 1500 bytes. Jumbo frames extend this to approximately 9000 bytes (often 9000 or 9216, vendor-dependent). The other options are not standard sizes for either format.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A storage administrator wants to enable jumbo frames to improve iSCSI SAN throughput. What is the MOST IMPORTANT precondition for the change to actually deliver the expected benefit without breaking traffic?',
+    difficulty: 'Exam Level',
+    topic: 'Data Center Architectures',
+    objective: '1.8',
+    options: {
+      A: 'Every device along the path — initiator NIC, every switch port, and target NIC — must be configured with the same jumbo MTU; mixing standard and jumbo causes fragmentation or drops',
+      B: 'The iSCSI target must be reconfigured to use TCP port 860 instead of 3260',
+      C: 'The SAN must run at 10 Gbps or higher; jumbo frames have no effect on 1 Gbps links',
+      D: 'The SAN must use a dedicated fiber-channel fabric — Ethernet does not support jumbo frames'
+    },
+    answer: 'A',
+    explanation: 'Jumbo-frame deployments require end-to-end consistency. If even one switch port along the path uses standard MTU, frames are dropped (or fragmented if PMTU discovery is allowed). This is why jumbo frames are typically deployed on DEDICATED storage networks or VLANs (e.g., a SAN VLAN) — to guarantee that every device on the path supports the same MTU. B is wrong — iSCSI uses 3260, not 860. C is wrong — jumbo frames help on any speed, though benefits scale with throughput. D is wrong — Ethernet absolutely supports jumbo frames; that is the entire premise.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'Why are jumbo frames typically deployed on a dedicated storage VLAN rather than a general-purpose user network?',
+    difficulty: 'Hard',
+    topic: 'Data Center Architectures',
+    objective: '1.8',
+    options: {
+      A: 'Jumbo frames are illegal on multi-tenant networks per IEEE 802.3 regulation',
+      B: 'Mixing 1500-byte and 9000-byte MTUs on the same path causes drops or PMTU-discovery overhead, so isolation guarantees end-to-end MTU consistency',
+      C: 'User devices are physically incapable of transmitting frames larger than 1500 bytes',
+      D: 'Jumbo frames consume more CPU than 1500-byte frames, slowing user devices'
+    },
+    answer: 'B',
+    explanation: 'The end-to-end MTU consistency requirement is the architectural reason — putting jumbo frames on a dedicated VLAN or SAN guarantees every device on that segment supports the larger MTU, eliminating black-hole drops or PMTU negotiation overhead. A is fictional. C is wrong — most modern NICs support jumbo frames; they are just not enabled by default. D is the opposite — jumbo frames REDUCE per-byte CPU overhead because each frame carries more payload per interrupt.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 5. BAND STEERING ──
+  {
+    type: 'mcq',
+    question: 'What is the name of the wireless feature that encourages dual-band-capable client devices to associate with the 5 GHz radio rather than the more crowded 2.4 GHz radio?',
+    difficulty: 'Foundational',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: { A: 'Roaming assistance', B: 'Band steering', C: 'Channel bonding', D: 'Fast transition (802.11r)' },
+    answer: 'B',
+    explanation: 'Band steering is the AP/WLC feature that detects dual-band clients and proactively guides them onto 5 GHz (less interference, more channels, higher capacity) by withholding or delaying 2.4 GHz probe responses. Roaming assistance (A) helps clients hand off between APs. Channel bonding (C) combines adjacent channels for wider RF width. 802.11r (D) speeds up roaming key handshakes.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A WLC with band steering enabled is observed to delay or suppress 2.4 GHz probe responses for clients that have recently been seen on 5 GHz. What is the MOST LIKELY motivation for this behavior?',
+    difficulty: 'Exam Level',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'It conserves battery life on the AP radio',
+      B: 'It pushes dual-band clients onto the less-congested 5 GHz band, improving overall capacity',
+      C: 'It enforces WPA3-only encryption on 2.4 GHz',
+      D: 'It blocks IoT devices from joining the network'
+    },
+    answer: 'B',
+    explanation: 'Band steering exists specifically to reduce 2.4 GHz congestion by encouraging dual-band clients to use 5 GHz (which has more non-overlapping channels and less interference). A is irrelevant — band steering does not affect AP power. C is unrelated to band steering. D would be device filtering or MAC blocking, not band steering.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'Band steering can occasionally cause connectivity issues for which type of client?',
+    difficulty: 'Hard',
+    topic: 'Wireless Networking',
+    objective: '2.4',
+    options: {
+      A: 'Single-band 2.4 GHz-only IoT devices that briefly fail to connect because their probe responses are temporarily delayed',
+      B: 'Wired desktops connected via Ethernet',
+      C: 'Devices using static IP addresses',
+      D: 'Devices using MAC randomization'
+    },
+    answer: 'A',
+    explanation: 'A poorly-tuned band-steering policy can mistakenly suppress 2.4 GHz probe responses for legitimately single-band-only clients (older IoT, certain medical/embedded devices), causing slow association or perceived dropouts. Wired clients (B) are unaffected by Wi-Fi behavior. Static IPs (C) and MAC randomization (D) operate at higher layers and are unrelated to RF association.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 6. ANOMALY DETECTION / NOTIFICATION SYSTEM ──
+  {
+    type: 'mcq',
+    question: 'Which detection method flags traffic that deviates from a learned baseline of normal network behavior?',
+    difficulty: 'Foundational',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Signature-based detection',
+      B: 'Anomaly-based detection',
+      C: 'Heuristic blacklist matching',
+      D: 'Static threshold alerting'
+    },
+    answer: 'B',
+    explanation: 'Anomaly-based detection establishes a baseline of normal behavior (traffic volume, protocol distribution, login patterns, etc.) and alerts when actual traffic deviates from that baseline. Signature-based (A) matches against known-bad patterns. Heuristic blacklists (C) check identifiers against known-bad lists. Static thresholds (D) trigger on fixed numbers regardless of normal — not anomaly-based.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which statements correctly describe anomaly-based detection compared to signature-based detection?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Anomaly-based detection can identify zero-day attacks because no prior signature is required',
+      B: 'Anomaly-based detection produces fewer false positives than signature-based',
+      C: 'Anomaly-based detection requires a learning/baseline period before becoming effective',
+      D: 'Anomaly-based detection cannot detect known malware',
+      E: 'Anomaly-based detection only works on encrypted traffic'
+    },
+    answers: ['A', 'C'],
+    explanation: 'A and C correctly describe anomaly-based detection. The trade-off is that it can catch zero-days (A) but requires a baseline to be learned first (C). B is wrong — anomaly-based typically produces MORE false positives than signature-based, since "different from baseline" can mean legitimate change. D is wrong — anomaly-based can detect known malware too if its behavior deviates from baseline. E is fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A NIDS is configured with anomaly-based detection. After deployment, the system generates many alerts during the normal monthly billing run. What is the MOST LIKELY cause and the appropriate response?',
+    difficulty: 'Hard',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The NIDS is malfunctioning — replace the appliance',
+      B: 'The baseline did not include the billing run\'s legitimate traffic spike — extend the learning period or whitelist the pattern',
+      C: 'The billing run is using outdated TLS — upgrade the application',
+      D: 'The signatures are out of date — apply the latest signature update'
+    },
+    answer: 'B',
+    explanation: 'Anomaly-based detection learns a baseline of normal behavior; if the baseline period missed a recurring legitimate spike (like a monthly billing run), that spike registers as an anomaly the first time it happens. The fix is to extend the learning period to cover full billing cycles or whitelist the known pattern. A is overreaction. C is unrelated. D applies to signature-based, not anomaly-based, detection.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 7. DHCP RESERVATION ──
+  {
+    type: 'mcq',
+    question: 'A network administrator wants a specific networked printer to ALWAYS receive the same IP address from DHCP, without statically configuring the IP on the printer itself. Which DHCP feature implements this?',
+    difficulty: 'Foundational',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'DHCP exclusion range',
+      B: 'DHCP relay agent',
+      C: 'DHCP reservation',
+      D: 'DHCP lease renewal'
+    },
+    answer: 'C',
+    explanation: 'A DHCP reservation ties a specific MAC address to a specific IP within the DHCP scope, so the device receives the same lease each time without manual static configuration. Exclusion ranges (A) prevent the server from handing out specific IPs to anyone. Relay agents (B) forward DHCP requests across subnets. Lease renewal (D) is the lifecycle process for any DHCP client.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'Which information is REQUIRED to create a DHCP reservation?',
+    difficulty: 'Exam Level',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'The hostname and the operating system of the client',
+      B: 'The MAC address of the client and the desired IP within the scope',
+      C: 'The default gateway and DNS suffix',
+      D: 'The vendor class identifier and the DHCP option 60 string'
+    },
+    answer: 'B',
+    explanation: 'A DHCP reservation requires the client identifier (typically MAC address) and the desired IP address within the DHCP scope. The server then ensures that MAC always receives that IP. A is unnecessary — hostname/OS are not required. C describes options handed out, not reservation criteria. D is a more advanced PXE/vendor-class scenario, not a basic reservation.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'What is the KEY operational difference between a DHCP reservation and a static IP assignment configured locally on the device?',
+    difficulty: 'Hard',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'A reservation is managed centrally on the DHCP server, so subnet/gateway/DNS changes apply automatically; a local static config must be touched on each device',
+      B: 'A static IP can be any address; a reservation must use a private RFC 1918 range',
+      C: 'A reservation requires the device to support DHCPv6; static does not',
+      D: 'A static IP renews periodically while a reservation is permanent'
+    },
+    answer: 'A',
+    explanation: 'The operational benefit of reservations is centralized management — when network parameters change (default gateway, DNS server, subnet mask), updating the DHCP scope propagates automatically to every reserved client at next renewal. A locally-configured static IP requires touching every device manually. B is fabricated. C is wrong — both reservation and static work for v4 and v6. D is reversed — DHCP leases (including reservations) renew; static configs do not.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 8. DHCP OPTIONS ──
+  {
+    type: 'mcq',
+    question: 'Which DHCP option is used to inform clients of the address of a TFTP boot server (commonly used for VoIP phone provisioning and PXE boot)?',
+    difficulty: 'Foundational',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: { A: 'Option 3 (Router)', B: 'Option 6 (DNS server)', C: 'Option 66 (TFTP server name)', D: 'Option 51 (Lease time)' },
+    answer: 'C',
+    explanation: 'Option 66 supplies the TFTP server name/address that clients use for boot or provisioning files. Option 3 (A) provides the default gateway. Option 6 (B) provides DNS server addresses. Option 51 (D) sets the lease duration.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which DHCP options would you configure on a scope to prepare it for VoIP phone auto-provisioning?',
+    difficulty: 'Exam Level',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'Option 66 — TFTP server name (where the phone fetches config)',
+      B: 'Option 67 — Boot file name (the specific file to download)',
+      C: 'Option 80 — Web HTTP server',
+      D: 'Option 25 — Path MTU discovery',
+      E: 'Option 99 — User identification token'
+    },
+    answers: ['A', 'B'],
+    explanation: 'Options 66 and 67 are the canonical pair for boot/provisioning workflows: option 66 tells the client WHERE to fetch (TFTP server), option 67 tells it WHAT to fetch (boot file name). C–E are not standard DHCP options used for VoIP provisioning.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer is configuring DHCP options. Which mapping of option number to its function is CORRECT?',
+    difficulty: 'Hard',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'Option 3 = DNS server, Option 6 = Default gateway',
+      B: 'Option 3 = Default gateway, Option 6 = DNS server',
+      C: 'Option 3 = NTP server, Option 6 = WINS server',
+      D: 'Option 3 = Subnet mask, Option 6 = Lease time'
+    },
+    answer: 'B',
+    explanation: 'Option 3 = Router (default gateway), Option 6 = Domain Name Server (DNS). A reverses the two — a common trap. C maps both to wrong functions (NTP is option 42; WINS is option 44). D conflates with subnet mask (option 1) and lease time (option 51).',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 9. SEPARATION OF DUTIES ──
+  {
+    type: 'mcq',
+    question: 'Which security principle requires that no single individual can perform a critical task end-to-end without input or approval from another person?',
+    difficulty: 'Foundational',
+    topic: 'Protecting Networks',
+    objective: '4.1',
+    options: {
+      A: 'Least privilege',
+      B: 'Defense in depth',
+      C: 'Separation of duties',
+      D: 'Implicit deny'
+    },
+    answer: 'C',
+    explanation: 'Separation of duties divides a critical task across multiple people so that no single individual can complete it alone, reducing fraud and error risk. Least privilege (A) is about minimum permissions per person, not splitting tasks across people. Defense in depth (B) is about layered controls. Implicit deny (D) is a firewall rule-set concept.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A finance department requires that the person who APPROVES a wire transfer cannot also be the person who INITIATES it. Which security principle is this implementing?',
+    difficulty: 'Exam Level',
+    topic: 'Protecting Networks',
+    objective: '4.1',
+    options: {
+      A: 'Separation of duties — splitting approval and initiation across two roles',
+      B: 'Least privilege — limiting each role to only required permissions',
+      C: 'Mandatory access control — labels enforce who can approve',
+      D: 'Need to know — restricting visibility of the transfer details'
+    },
+    answer: 'A',
+    explanation: 'Separation of duties is precisely the principle of splitting initiation and approval into two distinct roles to prevent a single person from completing a high-risk task alone. Least privilege (B) is related but addresses individual permissions, not task partitioning. MAC (C) governs access to labeled data. Need-to-know (D) restricts visibility, not workflow steps.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which controls implement separation of duties in a typical IT environment?',
+    difficulty: 'Hard',
+    topic: 'Protecting Networks',
+    objective: '4.1',
+    options: {
+      A: 'Requiring change-management approvals from a different person than the one who proposed the change',
+      B: 'Splitting password vault access from system administration access into separate roles',
+      C: 'Encrypting backup archives at rest with AES-256',
+      D: 'Installing a stateful firewall at the network edge',
+      E: 'Configuring account lockout after 5 failed logins'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are workflow controls that split a sensitive task between two roles — change approval (A) and credentials management (B) — preventing a single individual from completing the entire chain. C, D, and E are valuable security controls but address different principles (data confidentiality, perimeter defense, and brute-force protection respectively), not separation of duties.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 10. NAC NON-PERSISTENT AGENT ──
+  {
+    type: 'mcq',
+    question: 'In a NAC (Network Access Control) deployment, what distinguishes a NON-PERSISTENT agent from a persistent agent?',
+    difficulty: 'Exam Level',
+    topic: 'Protecting Networks',
+    objective: '4.3',
+    options: {
+      A: 'A non-persistent agent is downloaded for the session, runs the posture check, then is removed; a persistent agent is installed permanently',
+      B: 'A non-persistent agent only checks for malware; a persistent agent also checks patches',
+      C: 'A non-persistent agent uses certificates; a persistent agent uses passwords',
+      D: 'A non-persistent agent runs only on Windows; a persistent agent runs on any OS'
+    },
+    answer: 'A',
+    explanation: 'A non-persistent (sometimes "dissolvable") NAC agent is fetched at connection time (often via a captive portal), performs the posture/health check, then exits — leaving nothing behind on the host. A persistent agent is installed as a permanent service that monitors continuously and can re-evaluate posture without user action. B–D are fabricated distinctions.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A consultancy firm allows visiting contractors\' personal laptops to connect to the guest VLAN after passing a NAC posture check. The IT team prefers not to install permanent software on the contractor devices. Which NAC agent type best fits this scenario?',
+    difficulty: 'Exam Level',
+    topic: 'Protecting Networks',
+    objective: '4.3',
+    options: {
+      A: 'Non-persistent (dissolvable) agent — downloads, runs the check, then removes itself',
+      B: 'Persistent agent — installed as a permanent service for ongoing posture monitoring',
+      C: 'Agentless NAC — relies entirely on network-side traffic inspection without any client-side check',
+      D: 'Hardware token — issued to each contractor for the visit'
+    },
+    answer: 'A',
+    explanation: 'A non-persistent agent is purpose-built for guest/contractor scenarios — it is fetched once, performs the posture check, then exits and can be removed without trace. A persistent agent (B) would require installation, which the IT team explicitly wants to avoid. Agentless (C) doesn\'t do client-side posture (no patch/AV/firewall checks). D is unrelated to NAC posture.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which are accurate trade-offs of using a non-persistent NAC agent compared to a persistent agent?',
+    difficulty: 'Hard',
+    topic: 'Protecting Networks',
+    objective: '4.3',
+    options: {
+      A: 'Non-persistent leaves no permanent software footprint on the client',
+      B: 'Non-persistent only checks posture once at connection time; it cannot continuously monitor compliance during the session',
+      C: 'Non-persistent requires the user to provide root/admin credentials every time',
+      D: 'Non-persistent provides stronger encryption than persistent agents',
+      E: 'Non-persistent is mandated by 802.1X for all wireless authentication'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are the correct trade-offs. The benefit (A) is no permanent footprint — ideal for guests/contractors. The cost (B) is one-time-only posture: if the host\'s compliance changes mid-session (AV gets disabled, an exploit lands), the non-persistent agent is gone and cannot detect it. C is fabricated. D is irrelevant — encryption strength is independent. E is wrong — 802.1X does not mandate any specific NAC agent type.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+
+  // ── 11. WAVELENGTH MISMATCH ──
+  {
+    type: 'mcq',
+    question: 'A new fiber link between two switches will not come up. Both ends use SFP+ transceivers, but one end is a 1310 nm (single-mode) module and the other is an 850 nm (multi-mode) module. What is the MOST LIKELY cause?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Wavelength mismatch — the transceivers operate at different wavelengths, so the receiver cannot detect the transmitted optical signal',
+      B: 'Polarity reversal — the TX and RX strands are crossed',
+      C: 'Excessive cable length — the signal is attenuated below the receiver sensitivity',
+      D: 'Auto-negotiation mismatch — one switch is forcing 10 Gbps while the other is set to auto'
+    },
+    answer: 'A',
+    explanation: 'Optical transceivers must use matching wavelengths and fiber types on both ends. A 1310 nm single-mode module cannot communicate with an 850 nm multi-mode module — different wavelengths, different fiber characteristics. The receiver cannot recover the signal. B (polarity) and C (attenuation) are common fiber problems but secondary. D applies to copper auto-negotiation.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician swaps an LX SFP (1310 nm, single-mode) for an SX SFP (850 nm, multi-mode) on one end of a fiber run while the other end remains LX. What outcome is expected?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'The link will negotiate down to a lower speed but stay up',
+      B: 'The link will not establish — the transceivers operate at different wavelengths',
+      C: 'The link will work but at half-duplex',
+      D: 'The link will work but with intermittent CRC errors'
+    },
+    answer: 'B',
+    explanation: 'Mismatched optical transceivers on a fiber run will not establish a link — the receiver is tuned for a specific wavelength, and the transmitter\'s mismatched wavelength will not be detected. The transceiver pair must match in wavelength, fiber type, and connector type for the link to come up. A, C, and D describe behaviors that occur on copper duplex/speed mismatches, not optical wavelength mismatches.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which conditions must match between two fiber-optic transceivers for a link to come up?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Wavelength (e.g., both 1310 nm or both 850 nm)',
+      B: 'Fiber type (both single-mode or both multi-mode)',
+      C: 'Manufacturer brand (e.g., both Cisco)',
+      D: 'Connector color (both LC blue or both LC green)',
+      E: 'Power supply voltage rating'
+    },
+    answers: ['A', 'B'],
+    explanation: 'Wavelength (A) and fiber type (B) are the technical requirements for an optical link to come up. C is wrong — vendor interop is generally fine for standards-compliant SFPs (subject to vendor "lock" on some platforms, but not a physical-layer constraint). D is cosmetic, not functional. E is unrelated to optical signaling.',
+    source: 'curated',
+    addedVersion: '4.85.19',
+    addedDate: '2026-05-02'
   }
 ];
 

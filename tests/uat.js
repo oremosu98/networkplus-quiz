@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.18', js.includes("const APP_VERSION = '4.85.18"));
+test('APP_VERSION is 4.85.19', js.includes("const APP_VERSION = '4.85.19"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.18', sw.includes('netplus-v4.85.18'));
+test('SW cache bumped to v4.85.19', sw.includes('netplus-v4.85.19'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8562,25 +8562,42 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.59.6 bank: 200 exemplars present (178 + 22 Road-to-200 Batch 6 — FINAL)',
-      Array.isArray(bank) && bank.length === 200);
+    test('v4.85.19 bank: 233 exemplars present (200 from Road-to-200 + 33 from Phase 3 Cycle 1 Jason Dion gaps)',
+      Array.isArray(bank) && bank.length === 233);
 
-    // Every exemplar has required fields
-    const requiredFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'answer', 'explanation', 'source', 'addedVersion', 'addedDate'];
+    // Every exemplar has required fields. v4.85.19: relaxed to allow type-specific
+    // answer field — 'mcq' uses `answer` (string), 'multi-select' uses `answers` (array).
+    const baseFields = ['type', 'question', 'difficulty', 'topic', 'objective', 'options', 'explanation', 'source', 'addedVersion', 'addedDate'];
     const missingFields = [];
     bank.forEach((ex, i) => {
-      requiredFields.forEach(f => {
+      baseFields.forEach(f => {
         if (ex[f] === undefined || ex[f] === null || ex[f] === '') {
           missingFields.push(`Exemplar ${i} missing: ${f}`);
         }
       });
+      // Type-specific answer field
+      if (ex.type === 'multi-select') {
+        if (!Array.isArray(ex.answers) || ex.answers.length === 0) {
+          missingFields.push(`Exemplar ${i} (multi-select) missing: answers array`);
+        }
+      } else {
+        if (ex.answer === undefined || ex.answer === null || ex.answer === '') {
+          missingFields.push(`Exemplar ${i} missing: answer`);
+        }
+      }
     });
-    test('v4.58.1 bank: every exemplar has all 11 required fields',
+    test('v4.58.1 bank: every exemplar has all required fields (v4.85.19: type-aware answer/answers)',
       missingFields.length === 0);
 
-    // Every answer maps to a real option
-    const badAnswers = bank.filter(ex => !ex.options || !ex.options[ex.answer]);
-    test('v4.58.1 bank: every answer letter maps to a real option',
+    // Every answer maps to a real option (handles both mcq + multi-select)
+    const badAnswers = bank.filter(ex => {
+      if (!ex.options) return true;
+      if (ex.type === 'multi-select') {
+        return !Array.isArray(ex.answers) || ex.answers.some(a => !ex.options[a]);
+      }
+      return !ex.options[ex.answer];
+    });
+    test('v4.58.1 bank: every answer letter maps to a real option (v4.85.19: handles multi-select answers array)',
       badAnswers.length === 0);
 
     // Every exemplar has 4 options (A-D)
@@ -8655,21 +8672,24 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     const d3Count = bank.filter(ex => d3Topics.includes(ex.topic)).length;
     const d4Count = bank.filter(ex => d4Topics.includes(ex.topic)).length;
     const d5Count = bank.filter(ex => d5Topics.includes(ex.topic)).length;
-    // v4.59.0: Phase 3 Cycle 1 added 14 exemplars. Updated per-domain counts:
-    // D1 +2 (NTS, Teredo), D2 +2 (WAP channels, 802.3bt), D3 +2 (CoS, RAID),
-    // D4 +6 (4 VPN types + Pre-action + NAC), D5 +2 (Nmap, PCAP).
-    test('v4.59.6 bank: Domain 1.0 contains 46 exemplars (+6 Batch 6) — 23% CompTIA target',
-      d1Count === 46);
-    test('v4.59.6 bank: Domain 2.0 contains 40 exemplars (+4 Batch 6) — 20% CompTIA target',
-      d2Count === 40);
-    test('v4.59.6 bank: Domain 3.0 contains 38 exemplars (+4 Batch 6) — 19% CompTIA target',
-      d3Count === 38);
-    test('v4.59.6 bank: Domain 4.0 contains 28 exemplars (+0 Batch 6) — 14% CompTIA target',
-      d4Count === 28);
-    test('v4.59.6 bank: Domain 5.0 contains 48 exemplars (+8 Batch 6) — 24% CompTIA target',
-      d5Count === 48);
-    test('v4.59.6 bank: domain distribution sums to 200 (46+40+38+28+48) — ROAD TO 200 COMPLETE',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 200);
+    // v4.85.19: Phase 3 Cycle 1 (Jason Dion gaps) added 33 exemplars across all 5 domains:
+    // D1 +9 (IPv6 Anycast x3, Media Converter goes to D2, DHCP Reservation x3, DHCP Options x3)
+    // D2 +9 (Media Converter x3, Band Steering x3, Jumbo Frames x3 to Data Center)
+    // D3 +6 (SD-WAN x3, Anomaly Detection x3)
+    // D4 +6 (Separation of Duties x3, NAC Non-persistent x3)
+    // D5 +3 (Wavelength Mismatch x3 — Cable Issues domain)
+    test('v4.85.19 bank: Domain 1.0 contains 55 exemplars (+9 Phase 3 Cycle 1)',
+      d1Count === 55);
+    test('v4.85.19 bank: Domain 2.0 contains 49 exemplars (+9 Phase 3 Cycle 1)',
+      d2Count === 49);
+    test('v4.85.19 bank: Domain 3.0 contains 44 exemplars (+6 Phase 3 Cycle 1)',
+      d3Count === 44);
+    test('v4.85.19 bank: Domain 4.0 contains 34 exemplars (+6 Phase 3 Cycle 1)',
+      d4Count === 34);
+    test('v4.85.19 bank: Domain 5.0 contains 51 exemplars (+3 Phase 3 Cycle 1)',
+      d5Count === 51);
+    test('v4.85.19 bank: domain distribution sums to 233 (55+49+44+34+51) — Phase 3 Cycle 1 complete',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 233);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));
