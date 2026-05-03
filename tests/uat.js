@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.22', js.includes("const APP_VERSION = '4.85.22"));
+test('APP_VERSION is 4.85.23', js.includes("const APP_VERSION = '4.85.23"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.22', sw.includes('netplus-v4.85.22'));
+test('SW cache bumped to v4.85.23', sw.includes('netplus-v4.85.23'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8562,8 +8562,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.85.22 bank: 272 exemplars present (269 + 3 from Phase 3 Cycle 2 add-on TCP RST flag)',
-      Array.isArray(bank) && bank.length === 272);
+    test('v4.85.23 bank: 305 exemplars present (272 + 33 from Cycle 2 Round 2 add-on)',
+      Array.isArray(bank) && bank.length === 305);
 
     // Every exemplar has required fields. v4.85.19: relaxed to allow type-specific
     // answer field — 'mcq' uses `answer` (string), 'multi-select' uses `answers` (array).
@@ -8680,18 +8680,18 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     // D3 +15 (PSI/PSE Data Centres x3, Switch Imaging x3, PTP x3, OOB x3, LLDP x3)
     // D4 +0
     // D5 +6 (OTDR x3, Toner x3 → Cable Issues + Network Troubleshooting & Tools)
-    test('v4.85.22 bank: Domain 1.0 contains 64 exemplars (+9 Cycle 2 + RST add-on)',
+    test('v4.85.23 bank: Domain 1.0 contains 64 exemplars',
       d1Count === 64);
-    test('v4.85.21 bank: Domain 2.0 contains 58 exemplars (+9 Phase 3 Cycle 2)',
-      d2Count === 58);
-    test('v4.85.21 bank: Domain 3.0 contains 59 exemplars (+15 Phase 3 Cycle 2)',
-      d3Count === 59);
-    test('v4.85.21 bank: Domain 4.0 contains 34 exemplars (+0 Phase 3 Cycle 2)',
-      d4Count === 34);
-    test('v4.85.21 bank: Domain 5.0 contains 57 exemplars (+6 Phase 3 Cycle 2)',
-      d5Count === 57);
-    test('v4.85.22 bank: domain distribution sums to 272 (64+58+59+34+57) — Cycle 2 + RST add-on',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 272);
+    test('v4.85.23 bank: Domain 2.0 contains 61 exemplars (+3 Patch Panel from R2 add-on)',
+      d2Count === 61);
+    test('v4.85.23 bank: Domain 3.0 contains 80 exemplars (+21 R2 add-on: Microwave WAN + Bandwidth + Latency + Jitter + Throughput + Clean Agent + Wet Pipe)',
+      d3Count === 80);
+    test('v4.85.23 bank: Domain 4.0 contains 40 exemplars (+6 R2 add-on: Exploit + Vulnerability)',
+      d4Count === 40);
+    test('v4.85.23 bank: Domain 5.0 contains 60 exemplars (+3 R2 add-on: Visual Fault Locator)',
+      d5Count === 60);
+    test('v4.85.23 bank: domain distribution sums to 305 (64+61+80+40+60) — Cycle 2 R2 add-on complete',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 305);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));

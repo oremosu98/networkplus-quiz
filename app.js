@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.22
+// Network+ AI Quiz — app.js  v4.85.23
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.22';
+const APP_VERSION = '4.85.23';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -154,7 +154,19 @@ const RETENTION_GAP_CONCEPTS = [
   { label: 'OTDR',               parentTopic: 'Cable Issues',                      objective: '5.2', keyword: 'OTDR \u2014 Optical Time-Domain Reflectometer pinpoints fiber breaks/splices/loss by distance; sharp drop with no continuation = break' },
   { label: 'Toner Probe',        parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'Tone generator + inductive probe \u2014 traces unmarked copper cables by injecting AC tone and detecting magnetic field; tone bleed in tight bundles is a known limitation' },
   { label: 'LLDP',               parentTopic: 'Network Operations',                objective: '3.1', keyword: 'LLDP (IEEE 802.1AB) \u2014 vendor-neutral L2 discovery protocol (vs Cisco-proprietary CDP); advertises system name, port, capabilities to neighbors' },
-  { label: 'TCP RST flag',       parentTopic: 'TCP/IP Basics',                     objective: '1.1', keyword: 'TCP RST \u2014 abortive immediate connection termination (distinct from graceful FIN four-way close). Sent on closed-port SYN, active firewall reject, or app-side abort.' }
+  { label: 'TCP RST flag',       parentTopic: 'TCP/IP Basics',                     objective: '1.1', keyword: 'TCP RST \u2014 abortive immediate connection termination (distinct from graceful FIN four-way close). Sent on closed-port SYN, active firewall reject, or app-side abort.' },
+  // \u2500\u2500 v4.85.23 \u2014 Phase 3 Cycle 2 Round 2 add-on (Jason Dion gaps continued, 2026-05-03) \u2500\u2500
+  { label: 'Microwave WAN',      parentTopic: 'WAN Connectivity',                  objective: '1.2', keyword: 'Microwave point-to-point \u2014 line-of-sight wireless WAN backbone, multi-Gbps over km; rain fade above 10 GHz; needs Fresnel zone clearance' },
+  { label: 'Patch Panel',        parentTopic: 'Cabling & Topology',                objective: '1.5', keyword: 'Patch panel \u2014 passive (non-powered) cable termination; in-wall horizontal cabling on rear punch-downs, RJ45 jacks on front, patch cords to active gear' },
+  { label: 'Bandwidth',          parentTopic: 'Network Monitoring & Observability', objective: '3.2', keyword: 'Bandwidth \u2014 THEORETICAL maximum capacity of a link (vs throughput which is actual delivered rate)' },
+  { label: 'Latency',            parentTopic: 'Network Monitoring & Observability', objective: '3.2', keyword: 'Latency \u2014 delay from source to destination; long-distance dominated by propagation delay (~5ms per 1000 km in fiber)' },
+  { label: 'Jitter',             parentTopic: 'Network Monitoring & Observability', objective: '3.2', keyword: 'Jitter \u2014 variation in packet arrival timing; critical for real-time voice/video; caused by variable queueing delays + path variability' },
+  { label: 'Throughput',         parentTopic: 'Network Monitoring & Observability', objective: '3.2', keyword: 'Throughput \u2014 actual measured useful data rate (always \u2264 bandwidth due to overhead, congestion, errors)' },
+  { label: 'Clean Agent',        parentTopic: 'Data Centres',                      objective: '3.3', keyword: 'Clean agent fire suppression (FM-200, Novec 1230, Inergen) \u2014 non-conductive gas, no water damage, no residue; needs sealed room' },
+  { label: 'Wet Pipe',           parentTopic: 'Data Centres',                      objective: '3.3', keyword: 'Wet pipe sprinkler \u2014 pressurized water in pipes, immediate discharge when head opens; risks accidental water damage on live electronics' },
+  { label: 'Exploit',            parentTopic: 'Network Attacks & Threats',         objective: '4.2', keyword: 'Exploit \u2014 code/technique that takes advantage of a vulnerability to compromise; vulnerability is the flaw, exploit is the weapon' },
+  { label: 'Vulnerability',      parentTopic: 'Network Attacks & Threats',         objective: '4.2', keyword: 'Vulnerability \u2014 flaw/weakness/misconfiguration that could be exploited; identified by scanners, remediated by patching or compensating controls' },
+  { label: 'Visual Fault Locator', parentTopic: 'Cable Issues',                    objective: '5.2', keyword: 'VFL \u2014 visible red laser injected into fiber; light leaks from breaks/sharp bends/bad connectors; short-range visual troubleshooting (vs OTDR for long-run quantitative)' }
 ];
 
 function _formatRetentionConceptsForPrompt() {
@@ -5259,6 +5271,619 @@ const QUESTION_EXEMPLARS = [
     explanation: 'A and B are common RST triggers. A — closed-port response: the OS sends RST when no service is listening. B — active firewall reject (vs silent drop) where the firewall returns RST to make the connection fail fast rather than time out. C is wrong — normal completion uses FIN, not RST. D — three duplicate ACKs triggers fast retransmit (not RST). E — successful handshake establishes the connection (no RST involved).',
     source: 'curated',
     addedVersion: '4.85.22',
+    addedDate: '2026-05-03'
+  },
+  // ── Phase 3 Cycle 2 (Round 2 add-on) — 2026-05-03 (continued Dion gaps) ──
+  // 11 more topics × 3 exemplars = 33. All original, public N10-009 + standards refs.
+
+  // ── 1. MICROWAVE CONNECTION (POINT-TO-POINT WIRELESS WAN) ──
+  {
+    type: 'mcq',
+    question: 'A campus needs to connect two buildings 5 km apart where running fiber would require expensive trenching. Which line-of-sight wireless technology is COMMONLY used as a building-to-building backbone link?',
+    difficulty: 'Foundational',
+    topic: 'WAN Connectivity',
+    objective: '1.2',
+    options: { A: 'Microwave point-to-point', B: 'Bluetooth mesh', C: '802.11ac Wi-Fi', D: 'NFC' },
+    answer: 'A',
+    explanation: 'Microwave point-to-point links use highly directional antennas to deliver multi-Gbps connectivity over line-of-sight distances of several km, making them a common alternative to trenched fiber for inter-building backbones. Bluetooth (B) is short-range PAN, not multi-km. 802.11ac (C) is indoor/short-range wireless LAN. NFC (D) is centimeters, not kilometers.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A microwave point-to-point link between two buildings was working perfectly, but during heavy rain the link drops or shows high error rates. What is this phenomenon called?',
+    difficulty: 'Exam Level',
+    topic: 'WAN Connectivity',
+    objective: '1.2',
+    options: {
+      A: 'Rain fade — atmospheric water absorbs and scatters microwave signal energy at higher frequencies',
+      B: 'Multipath interference — water droplets create reflections',
+      C: 'Co-channel interference — rain shifts the microwave frequency',
+      D: 'Antenna decoupling — wet antennas detune'
+    },
+    answer: 'A',
+    explanation: 'Rain fade is the well-known degradation of microwave (and satellite) links during heavy precipitation — water droplets absorb and scatter signal energy, especially at higher frequency bands (above 10 GHz). Mitigations include link-budget margin in design, automatic transmit-power adjustment, or deploying lower-frequency bands which are less affected. B/C/D describe unrelated phenomena.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which is a critical requirement for a microwave point-to-point link to function correctly?',
+    difficulty: 'Hard',
+    topic: 'WAN Connectivity',
+    objective: '1.2',
+    options: {
+      A: 'Clear line-of-sight between the two antennas, including Fresnel zone clearance — obstructions reduce signal strength even when "visible"',
+      B: 'A copper grounding strap shared between both buildings',
+      C: 'A fiber backup running underground in parallel with the microwave path',
+      D: 'A licensed satellite uplink for synchronization'
+    },
+    answer: 'A',
+    explanation: 'Microwave point-to-point requires unobstructed line-of-sight including Fresnel zone clearance — the elliptical 3D region around the direct path that must be ~60% clear of obstacles even though the antennas are technically "visible" to each other. Trees, buildings, or even terrain that intrudes into the Fresnel zone causes diffraction loss. B is fabricated. C is a desirable redundancy but not a microwave operational requirement. D is unrelated.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 2. PATCH PANEL ──
+  {
+    type: 'mcq',
+    question: 'In a structured cabling system, what is the role of a patch panel?',
+    difficulty: 'Foundational',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'A passive cable termination unit that organizes fixed horizontal cabling into a central point where short patch cords connect to active switch/router ports',
+      B: 'An active device that switches frames between VLANs',
+      C: 'A managed PoE injector for IP phones',
+      D: 'A wireless access point with multiple antenna ports'
+    },
+    answer: 'A',
+    explanation: 'A patch panel is a passive (non-powered) device — it terminates the building\'s fixed horizontal cabling on the back, exposing labeled jacks on the front. Short patch cords then connect those jacks to the active equipment (switches/routers). The win is flexibility: you can change which port a wall jack connects to without touching the in-wall cabling. B (switch), C (PoE injector), D (WAP) are all active devices, fundamentally different from a passive patch panel.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Why do enterprise networks typically use patch panels between in-wall cabling and switches, rather than running cables directly from wall jacks to switches?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'Patch panels protect the in-wall (horizontal) cable from wear, simplify port reassignment via patch cords, and provide a labeled organization layer',
+      B: 'Patch panels add electrical isolation that prevents EMI from corrupting frames',
+      C: 'Patch panels increase the maximum cable length beyond 100m',
+      D: 'Patch panels are required by 802.1Q for VLAN trunk operation'
+    },
+    answer: 'A',
+    explanation: 'Patch panels exist for cable management + flexibility: the rigid in-wall cabling terminates once at the panel, and short flexible patch cords handle the wear of frequent re-cabling. This protects the punch-down terminations from repeated stress and lets admins re-route ports without touching the in-wall plant. B is fabricated — patch panels don\'t isolate EMI. C is wrong — patch panels don\'t extend reach (they consume it). D is fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which statements correctly describe a patch panel?',
+    difficulty: 'Hard',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'It is a passive (non-powered) device — no electrical processing, just physical termination',
+      B: 'It typically uses 110-style or Krone-style punch-down terminations on the rear and RJ45 (or fiber) jacks on the front',
+      C: 'It performs Layer 2 frame switching internally',
+      D: 'It always has built-in PoE for connected devices',
+      E: 'It is a single-port device — multiple panels are needed for multiple cables'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B accurately describe patch panels — passive, with punch-down terminations on the back and modular jacks on the front. C is wrong (no L2 switching — that\'s a switch\'s job). D is wrong (panels are passive, no PoE). E is wrong — patch panels come in 12, 24, 48, 96-port and even larger configurations.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 3. BANDWIDTH ──
+  {
+    type: 'mcq',
+    question: 'Which of the following BEST defines bandwidth in a networking context?',
+    difficulty: 'Foundational',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The maximum theoretical data-carrying capacity of a link, typically expressed in bits per second',
+      B: 'The actual measured rate of data successfully delivered over a link',
+      C: 'The delay between a packet leaving the source and arriving at the destination',
+      D: 'The variation in delay over time'
+    },
+    answer: 'A',
+    explanation: 'Bandwidth is the THEORETICAL max capacity of a link — e.g., 1 Gbps Ethernet has 1 Gbps of bandwidth. B is throughput (the actual measured rate, which is always ≤ bandwidth due to overhead, congestion, errors). C is latency. D is jitter. Confusing bandwidth with throughput is one of the most common networking mix-ups.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A 1 Gbps Ethernet link consistently delivers 940 Mbps of useful data when transferring large files. How should this be characterized?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The bandwidth is 1 Gbps; the throughput is 940 Mbps; the difference is normal protocol overhead (framing, headers, IFG, etc.)',
+      B: 'The bandwidth is 940 Mbps; the link is mislabeled',
+      C: 'The throughput is 1 Gbps; the bandwidth is 940 Mbps',
+      D: 'The link is failing and should be replaced — 1 Gbps should deliver exactly 1 Gbps of useful data'
+    },
+    answer: 'A',
+    explanation: 'Bandwidth = max theoretical (1 Gbps). Throughput = actual delivered useful data (940 Mbps). The ~6% gap is expected overhead: Ethernet framing, IP/TCP headers, inter-frame gap (12 bytes between frames), preamble. Achieving 940 Mbps on a 1 Gbps link is, in fact, exceptional throughput. B and C confuse the terms. D misunderstands that bandwidth is theoretical maximum, not guaranteed delivered useful payload.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'An ISP advertises "up to 100 Mbps" download speeds. A user runs a speed test and consistently sees 85-92 Mbps. Which statement BEST describes the situation?',
+    difficulty: 'Hard',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The bandwidth is 100 Mbps (advertised theoretical max); the throughput is 85-92 Mbps (actual delivered, reduced by protocol overhead, ISP equipment, and contention)',
+      B: 'The user is being throttled — they should call the ISP for a refund',
+      C: 'The link is broken — 100 Mbps should always deliver exactly 100 Mbps',
+      D: 'The user has a malware infection consuming bandwidth'
+    },
+    answer: 'A',
+    explanation: '"Up to" advertised speeds are bandwidth (theoretical maximum). Throughput is what actually arrives, and it\'s always less due to: protocol overhead, equipment processing, contention with other users on the same link, and Wi-Fi/cabling losses. 85-92% of advertised is normal performance for a residential broadband connection. B is a misunderstanding. C confuses bandwidth with throughput. D is unsupported by the data given.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 4. LATENCY ──
+  {
+    type: 'mcq',
+    question: 'In networking, what does latency measure?',
+    difficulty: 'Foundational',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The delay between a packet leaving the source and arriving at the destination',
+      B: 'The maximum theoretical data rate of a link',
+      C: 'The variation in arrival time of consecutive packets',
+      D: 'The percentage of packets lost during transmission'
+    },
+    answer: 'A',
+    explanation: 'Latency = delay from source to destination, typically measured in milliseconds. B is bandwidth. C is jitter (latency variation). D is packet loss. Round-trip latency (RTT) is what tools like ping measure — it\'s 2× one-way latency.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A web application user complains of slow performance, specifically "the page takes a long time to start loading even though it loads quickly once it starts." Which network metric is MOST LIKELY the issue?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'High latency — initial connection setup (DNS, TCP handshake, TLS) is delayed but then transfers fast once established',
+      B: 'Low bandwidth — transfers are slow throughout',
+      C: 'High jitter — would cause uneven streaming but not slow start',
+      D: 'High packet loss — would cause TCP retransmissions throughout'
+    },
+    answer: 'A',
+    explanation: 'High latency (typically RTT) primarily impacts CONNECTION SETUP — DNS lookup, TCP three-way handshake, TLS handshake all add multiple round-trips before any data flows. A user with high RTT but adequate bandwidth would see "slow to start, fast once started." Low bandwidth (B) would cause slow throughout. Jitter (C) affects real-time streaming. Loss (D) would cause variability and retransmits, not specifically slow-start behavior.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which contributes MOST significantly to latency on a long-distance fiber link spanning thousands of kilometers?',
+    difficulty: 'Hard',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Propagation delay — light travels at ~200,000 km/s in fiber, so each 1000 km adds ~5ms one-way regardless of bandwidth',
+      B: 'Serialization delay — large frames take time to clock out',
+      C: 'Processing delay at endpoints',
+      D: 'Wireless interference along the path'
+    },
+    answer: 'A',
+    explanation: 'For long-distance links, propagation delay dominates: light in fiber travels at roughly 200,000 km/s (about 2/3 c due to refractive index), so 1000 km of fiber adds ~5ms of one-way propagation latency, regardless of how fast the endpoints are. This is the fundamental physics floor — you cannot beat the speed of light in glass. Serialization (B), processing (C), and wireless interference (D) become relatively minor on long-distance high-speed links.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 5. JITTER ──
+  {
+    type: 'mcq',
+    question: 'In networking, what does jitter measure?',
+    difficulty: 'Foundational',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The variation in delay between consecutive packets arriving at the destination',
+      B: 'The total round-trip delay between source and destination',
+      C: 'The percentage of packets that arrive out of order',
+      D: 'The percentage of packets that fail to arrive at all'
+    },
+    answer: 'A',
+    explanation: 'Jitter = variability in packet arrival timing. If packets sent at 20ms intervals arrive at 18ms, 22ms, 19ms, 25ms intervals, that variation IS jitter. B is latency (the delay itself, not its variation). C is reordering (different metric). D is packet loss.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which application is MOST sensitive to jitter, and why?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Real-time voice (VoIP) and video conferencing — uneven packet arrival causes audio/video stutter and gaps in the playback buffer',
+      B: 'Email — slow delivery is acceptable',
+      C: 'Bulk file transfer — TCP automatically reorders out-of-order packets',
+      D: 'Web browsing — pages load asynchronously'
+    },
+    answer: 'A',
+    explanation: 'Real-time voice and video are extremely jitter-sensitive because they have a fixed-size playout buffer. If packets arrive too unevenly, the buffer either runs dry (causing audible/visible gaps) or overflows (causing dropped audio/video). Email (B) and file transfer (C) are buffered and order-tolerant — TCP retransmits and reassembles. Web (D) tolerates uneven page loads acceptably.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which network conditions can cause jitter?',
+    difficulty: 'Hard',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'Variable queueing delays at intermediate routers under fluctuating congestion',
+      B: 'Different packets taking different paths with different propagation latencies',
+      C: 'A perfectly stable high-bandwidth link with no contention',
+      D: 'A direct fiber connection between adjacent equipment racks',
+      E: 'Symmetric routing with low utilization'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are common causes of jitter. Variable queueing (A) — when one packet sails through a router but the next finds a full queue and has to wait, that\'s jitter. Path variability (B) — load-balanced or asymmetric routing can send packets along different-length paths, producing varying latency. C, D, and E describe stable conditions that produce LOW jitter.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 6. THROUGHPUT ──
+  {
+    type: 'mcq',
+    question: 'In networking, what does throughput measure?',
+    difficulty: 'Foundational',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The actual rate of useful data successfully delivered over a link in a given time period',
+      B: 'The maximum theoretical capacity of a link',
+      C: 'The variation in latency between packets',
+      D: 'The number of hops between source and destination'
+    },
+    answer: 'A',
+    explanation: 'Throughput = real-world delivered data rate, measured. B is bandwidth (theoretical max). C is jitter. D is hop count. Throughput is always ≤ bandwidth because of overhead (protocol headers, IFG), congestion, and errors that reduce useful payload below the theoretical maximum.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A 10 Gbps fiber link is being benchmarked. The test reports 9.2 Gbps of measured useful data delivery. Which is the MOST ACCURATE description?',
+    difficulty: 'Exam Level',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'The link\'s bandwidth is 10 Gbps; its throughput is 9.2 Gbps; the 8% gap is normal overhead and processing',
+      B: 'The link is failing — 10 Gbps should deliver 10 Gbps',
+      C: 'The link is over-provisioned — measured throughput exceeds bandwidth',
+      D: 'The benchmark tool is broken — single tests can\'t measure throughput'
+    },
+    answer: 'A',
+    explanation: 'Bandwidth = 10 Gbps theoretical. Throughput = 9.2 Gbps actual measured useful data. The 8% gap is normal protocol overhead (Ethernet framing, IP/TCP headers, IFG, NIC processing). On 10 Gigabit Ethernet, anything north of 9 Gbps is solid throughput. B misunderstands the bandwidth/throughput distinction. C is impossible — throughput cannot exceed bandwidth. D is unsupported.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A user complains that their 1 Gbps office connection consistently delivers only ~400 Mbps when transferring files to a server, despite the link showing as 1 Gbps full-duplex on both ends. What is the MOST LIKELY cause to investigate FIRST?',
+    difficulty: 'Hard',
+    topic: 'Network Monitoring & Observability',
+    objective: '3.2',
+    options: {
+      A: 'A bottleneck somewhere in the path: TCP window-size limits, an intermediate slower link, server disk I/O cap, or overall path congestion',
+      B: 'The bandwidth is mislabeled — 1 Gbps was a typo for 400 Mbps',
+      C: 'Jitter — variable latency drops effective throughput',
+      D: 'The cable needs to be replaced'
+    },
+    answer: 'A',
+    explanation: 'When throughput on a 1 Gbps link is consistently sub-50%, the issue is almost always a bottleneck somewhere — small TCP window for the BDP (bandwidth-delay product), an intermediate link at lower capacity, server-side disk/CPU bottleneck, or congestion. Start with `iperf` to test pure network throughput end-to-end without server-side disk involvement. B is unrealistic. C — jitter affects real-time apps but bulk TCP transfer is jitter-tolerant. D is a guess; cable issues usually show as errors, not consistent capped throughput.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 7. CLEAN AGENT FIRE SUPPRESSION ──
+  {
+    type: 'mcq',
+    question: 'A data center needs a fire suppression system that can extinguish a fire WITHOUT damaging electronic equipment. Which type of system is appropriate?',
+    difficulty: 'Foundational',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'Clean agent system (e.g., FM-200, Novec 1230, Inergen) — discharges a non-conductive gas that suppresses fire without water or residue',
+      B: 'Wet pipe sprinkler system — water in pipes ready to discharge',
+      C: 'Dry pipe sprinkler system — air in pipes, water released on activation',
+      D: 'Foam suppression — best for electrical fires'
+    },
+    answer: 'A',
+    explanation: 'Clean agent systems use specially-engineered gases (FM-200, Novec 1230, Inergen, etc.) that suppress fire by chemically interrupting combustion or displacing oxygen — they leave no residue, are non-conductive, and don\'t damage electronics. The trade-off is high cost and concerns about CO2 levels for occupants. Wet/dry pipe sprinklers (B/C) damage electronics with water. Foam (D) is for liquid fires (fuel), not electronics — it would also damage equipment.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which is a key operational consideration when deploying a clean agent fire suppression system in a server room?',
+    difficulty: 'Exam Level',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'The room must be sealed to maintain agent concentration; rapid evacuation procedures and audible/visual warnings are required because some agents reduce oxygen below safe breathing levels',
+      B: 'The system must use ozone-depleting Halon for compliance',
+      C: 'It only works at temperatures below 0°C',
+      D: 'It requires a constant water feed to recharge'
+    },
+    answer: 'A',
+    explanation: 'Clean agent systems require room sealing to maintain effective gas concentration. Some agents (especially those that work by oxygen displacement) can reduce O2 below safe breathing levels, requiring evacuation procedures, audible alarms, and visual indicators that give occupants time to exit before discharge. B is wrong — Halon is being phased out due to ozone-depletion treaty (Montreal Protocol); modern clean agents are FM-200 / Novec 1230 / Inergen. C is fabricated. D contradicts "clean agent" — these systems use gas, not water.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which are advantages of clean agent fire suppression compared to water-based sprinkler systems for data center protection?',
+    difficulty: 'Hard',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'No water damage to powered electronics during discharge',
+      B: 'No residue or cleanup required after discharge',
+      C: 'Lower cost than water-based systems',
+      D: 'Effective on outdoor fires',
+      E: 'No need for room sealing'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are the canonical clean-agent advantages — gas leaves no water damage (A) and no residue (B), so equipment can be back online quickly. C is reversed — clean agents are SIGNIFICANTLY MORE expensive than wet sprinklers. D is wrong — clean agents need to be contained in a sealed enclosure. E contradicts the operational reality of clean agent deployment.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 8. WET PIPE FIRE SUPPRESSION SYSTEM ──
+  {
+    type: 'mcq',
+    question: 'In a wet pipe fire suppression system, what is in the pipes BEFORE activation?',
+    difficulty: 'Foundational',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'Pressurized water — released immediately when a sprinkler head melts open',
+      B: 'Compressed air — water enters only after activation',
+      C: 'Halon gas — discharged on heat detection',
+      D: 'Foam concentrate — mixed with water on activation'
+    },
+    answer: 'A',
+    explanation: 'Wet pipe systems keep water pressurized in the pipes at all times. When a sprinkler head\'s heat-sensitive element (typically a glass bulb that breaks at a specific temperature) opens, water discharges immediately — no delay. B describes a DRY pipe system. C is clean agent. D is foam suppression.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which is a KEY advantage of a wet pipe sprinkler system over a dry pipe system?',
+    difficulty: 'Exam Level',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'Faster water delivery to a fire — water is already in the pipes, so it discharges immediately when a sprinkler head opens',
+      B: 'Lower cost of installation',
+      C: 'Suitable for unheated spaces where pipes might freeze',
+      D: 'No water present, so accidental discharge is impossible'
+    },
+    answer: 'A',
+    explanation: 'Wet pipe systems deliver water FASTER than dry pipe — there\'s no air-purge delay because water is already present in the pipes. The advantage is critical because faster suppression = less property damage. B is debatable. C is the OPPOSITE — wet pipe systems are NOT used in unheated spaces because water in pipes can freeze; that\'s exactly why dry pipe systems exist. D is wrong — wet pipe systems CAN cause water damage from accidental head activation, leaks, or freezing burst.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Why might a data center prefer a clean agent or pre-action system over a traditional wet pipe sprinkler system?',
+    difficulty: 'Hard',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'A wet pipe system can discharge water from accidentally-triggered heads or burst pipes, causing severe water damage to live electronic equipment',
+      B: 'Wet pipe systems do not comply with NFPA 25',
+      C: 'Wet pipe systems require continuous compressed air',
+      D: 'Wet pipe systems are illegal in commercial buildings'
+    },
+    answer: 'A',
+    explanation: 'The classic data center concern with wet pipe is "head failure or pipe burst dumps water onto powered equipment with no fire even occurring." Pre-action systems require TWO triggers (heat detection AND a head opening) before water is admitted into the pipes, dramatically reducing accidental-discharge risk. Clean agent systems sidestep water entirely. B is fabricated. C describes dry pipe, not wet. D is fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 9. EXPLOIT ──
+  {
+    type: 'mcq',
+    question: 'In a security context, what is an EXPLOIT?',
+    difficulty: 'Foundational',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'A piece of code, technique, or sequence of actions that takes advantage of a vulnerability to compromise a system',
+      B: 'A flaw or weakness in software or configuration',
+      C: 'A defensive control that mitigates risk',
+      D: 'A security audit report'
+    },
+    answer: 'A',
+    explanation: 'An exploit is the WEAPON — code or technique that uses a vulnerability to actually compromise a target. B describes the vulnerability (the flaw being exploited). The relationship: a vulnerability is the unlocked door; an exploit is the act of walking through it. C is a control. D is documentation.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Researchers discover a previously-unknown flaw in a popular web server. Within hours, attacker code circulates that uses that flaw to gain remote code execution. Which term BEST describes the attacker code?',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'Zero-day exploit — code that exploits a vulnerability before a patch is available',
+      B: 'Patch — corrects the vulnerability',
+      C: 'Vulnerability disclosure — describes the flaw responsibly',
+      D: 'Threat actor — the human or group behind the attack'
+    },
+    answer: 'A',
+    explanation: 'A zero-day exploit is attacker code targeting a vulnerability for which no patch exists yet (defenders have had "zero days" to fix). The flaw itself is the zero-day vulnerability; the attacker code is the zero-day exploit. B is the defensive fix. C is the public report describing the vulnerability. D is the human/group, not the code.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which are accurate statements about exploits?',
+    difficulty: 'Hard',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'An exploit requires an underlying vulnerability to target — without a flaw, there is nothing to exploit',
+      B: 'Exploit code is often shared on hacker forums and within penetration-testing toolkits like Metasploit',
+      C: 'An exploit is identical to the vulnerability it targets',
+      D: 'Exploits only work on Windows systems',
+      E: 'Once a vulnerability has a CVE assigned, no exploit is possible'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are correct. Exploits chain to vulnerabilities (A) — no flaw, no exploit. Exploits are widely traded/published, including in legitimate pentest tools like Metasploit (B). C confuses two distinct concepts (vulnerability = flaw; exploit = the technique that uses it). D is fabricated. E is reversed — assigning a CVE means the vulnerability is now widely known and exploits become MORE common until patched.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 10. VULNERABILITY ──
+  {
+    type: 'mcq',
+    question: 'In a security context, what is a VULNERABILITY?',
+    difficulty: 'Foundational',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'A flaw, weakness, or misconfiguration in software, hardware, or process that could be exploited to compromise security',
+      B: 'A piece of attacker code',
+      C: 'A successful security breach',
+      D: 'An automated patching tool'
+    },
+    answer: 'A',
+    explanation: 'A vulnerability is the FLAW — a buffer overflow, an unpatched library, a default password, an open port. It is the condition that makes compromise possible. B is the exploit (the weapon). C is a breach (the outcome of successful exploitation). D is a defense.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A scan of a corporate web server identifies that it is running an outdated version of OpenSSL with a known buffer-overflow flaw. The flaw could allow remote code execution if successfully targeted. What is this finding called?',
+    difficulty: 'Exam Level',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'A vulnerability — the flaw exists, but exploitation has not yet occurred (and may never if the system is patched in time)',
+      B: 'An exploit — by virtue of being identified',
+      C: 'A breach — the attacker has already compromised the server',
+      D: 'A patch — the scanner has automatically resolved the issue'
+    },
+    answer: 'A',
+    explanation: 'A vulnerability finding is "the flaw exists" — it has been IDENTIFIED but not necessarily EXPLOITED. Vulnerability scanners (Nessus, Qualys, OpenVAS) generate inventories of vulnerabilities so admins can prioritize patching. B confuses vulnerability with exploit. C confuses vulnerability with breach (the actual compromise). D is fabricated — scanners report, they don\'t auto-patch.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which best describes the relationship between THREAT, VULNERABILITY, EXPLOIT, and RISK?',
+    difficulty: 'Hard',
+    topic: 'Network Attacks & Threats',
+    objective: '4.2',
+    options: {
+      A: 'A threat actor uses an exploit to take advantage of a vulnerability, creating risk; remediation requires patching the vulnerability or compensating with controls',
+      B: 'They are synonyms — the terms can be used interchangeably',
+      C: 'Vulnerabilities and exploits are the same thing; threats and risks are the same thing',
+      D: 'A risk is a piece of attacker code; a threat is a flaw in software'
+    },
+    answer: 'A',
+    explanation: 'The relationship: a threat actor (the human or group) uses an exploit (technique/code) to take advantage of a vulnerability (flaw), causing impact = risk to the organization. To reduce risk, you remove or remediate the vulnerability (patch, configuration change, compensating control). B and C confuse distinct concepts. D inverts the definitions.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 11. VISUAL FAULT LOCATOR (VFL) ──
+  {
+    type: 'mcq',
+    question: 'Which fiber-optic test tool injects visible red laser light into a fiber to make breaks, sharp bends, or bad connectors visible by the light leaking from the defect?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: { A: 'Visual Fault Locator (VFL)', B: 'OTDR', C: 'Power meter', D: 'Cable certifier' },
+    answer: 'A',
+    explanation: 'A VFL is a handheld pen-shaped device that emits a bright visible (typically red, ~650 nm) laser into a fiber. Where the fiber is broken, sharply bent, or has a bad connector, the red light leaks out and can be seen with the naked eye. It\'s a quick first-line tool for short-run troubleshooting. OTDR (B) is for long-run quantitative analysis. Power meter (C) measures total signal loss. Cable certifier (D) tests Cat copper.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A technician suspects a sharp bend or hidden break in a 50m fiber patch cable inside a server cabinet. Which tool gives the FASTEST visual confirmation of the defect\'s location?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'Visual Fault Locator — the red light leaking from the defect is immediately visible to the eye',
+      B: 'OTDR — must be brought out and configured for short-run mode',
+      C: 'Tone generator and probe — works only on copper',
+      D: 'Multimeter — measures continuity'
+    },
+    answer: 'A',
+    explanation: 'A VFL is purpose-built for the short-distance "where exactly is the bend or break" question. Plug it in, look for red glow leaking from the cable. OTDR (B) works at this range but requires more setup time. Toner (C) is copper, not fiber. Multimeter (D) doesn\'t work on fiber.',
+    source: 'curated',
+    addedVersion: '4.85.23',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which are accurate statements about a Visual Fault Locator?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'It uses a visible-wavelength (typically red ~650 nm) laser so the user can see light leaking from a defect',
+      B: 'It is most useful for short-run troubleshooting (typically a few hundred meters or less)',
+      C: 'It can measure exact loss in dB at each point',
+      D: 'It is the same tool as an OTDR',
+      E: 'It only works on copper cables'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B accurately describe a VFL. The visible red light (A) is the whole point — it\'s about visual identification, not quantitative measurement. The reach (B) is limited because the source is low-power and visible light attenuates faster than the IR wavelengths used for data — beyond a few hundred meters the leak is too dim to see. C is what an OTDR or power meter does. D confuses two distinct tools. E is wrong — VFL is exclusively for fiber.',
+    source: 'curated',
+    addedVersion: '4.85.23',
     addedDate: '2026-05-03'
   }
 ];
