@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.20
+// Network+ AI Quiz — app.js  v4.85.21
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.20';
+const APP_VERSION = '4.85.21';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -140,7 +140,20 @@ const RETENTION_GAP_CONCEPTS = [
   { label: 'DHCP Options',       parentTopic: 'Network Naming (DNS & DHCP)',       objective: '1.6', keyword: 'DHCP options 3=router, 6=DNS, 51=lease time, 66=TFTP server, 67=boot file (VoIP/PXE provisioning)' },
   { label: 'Separation of Duties', parentTopic: 'Protecting Networks',             objective: '4.1', keyword: 'Separation of duties \u2014 critical task split across people (initiate vs approve) so no single person can complete it alone' },
   { label: 'Non-persistent NAC', parentTopic: 'Protecting Networks',               objective: '4.3', keyword: 'Non-persistent (dissolvable) NAC agent \u2014 fetched at connect, runs posture, exits; ideal for guests/contractors' },
-  { label: 'Wavelength Mismatch', parentTopic: 'Cable Issues',                     objective: '5.2', keyword: 'Optical wavelength mismatch \u2014 e.g., 1310 nm SM transceiver vs 850 nm MM transceiver fails to link, even though both are Ethernet SFPs' }
+  { label: 'Wavelength Mismatch', parentTopic: 'Cable Issues',                     objective: '5.2', keyword: 'Optical wavelength mismatch \u2014 e.g., 1310 nm SM transceiver vs 850 nm MM transceiver fails to link, even though both are Ethernet SFPs' },
+  // \u2500\u2500 v4.85.21 \u2014 Phase 3 Cycle 2 (Jason Dion practice test #2 gaps, 2026-05-03) \u2500\u2500
+  { label: 'RFC 1918 Private Ranges', parentTopic: 'NAT & IP Services',             objective: '1.4', keyword: 'RFC 1918 private IPv4 ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 \u2014 distinct from APIPA 169.254.0.0/16' },
+  { label: 'MDF / IDF',          parentTopic: 'Cabling & Topology',                objective: '1.5', keyword: 'Main Distribution Frame (building-level termination + carrier feed) vs Intermediate Distribution Frame (per-floor/zone)' },
+  { label: 'Port-side intake/exhaust', parentTopic: 'Data Centres',                objective: '3.3', keyword: 'PSI (port-side intake \u2014 front intake, rear exhaust) aligns with cold-aisle/hot-aisle containment; PSE is reverse direction' },
+  { label: 'MTRJ Connector',     parentTopic: 'Cabling & Topology',                objective: '1.5', keyword: 'MTRJ \u2014 small-form-factor duplex fiber connector, 1.25mm ferrule, two fibers in one body (RJ45-like housing)' },
+  { label: 'DAC Cable',          parentTopic: 'Data Center Architectures',         objective: '1.8', keyword: 'Direct Attach Copper \u2014 short-range (\u22647m passive) high-speed twinax with fixed transceivers, lower cost/power/latency than fiber for top-of-rack' },
+  { label: 'Switch Imaging',     parentTopic: 'Network Operations',                objective: '3.1', keyword: 'Switch imaging \u2014 loading/upgrading IOS/firmware via TFTP (DHCP options 66+67 for ZTP), zero-touch provisioning' },
+  { label: 'DoH (DNS over HTTPS)', parentTopic: 'Network Naming (DNS & DHCP)',     objective: '1.6', keyword: 'DoH (RFC 8484) \u2014 DNS encrypted over TCP/443, indistinguishable from web traffic; complicates enterprise DNS filtering' },
+  { label: 'PTP (IEEE 1588)',    parentTopic: 'Network Operations',                objective: '3.1', keyword: 'PTP \u2014 sub-microsecond time sync via hardware timestamping at NIC + transparent/boundary clocks; required for 5G, HFT, industrial automation (NTP is millisecond-level)' },
+  { label: 'Out-of-Band Mgmt',   parentTopic: 'Network Operations',                objective: '3.1', keyword: 'OOB management \u2014 separate dedicated network OR direct console/serial; works when production data plane is broken (in-band management does not)' },
+  { label: 'OTDR',               parentTopic: 'Cable Issues',                      objective: '5.2', keyword: 'OTDR \u2014 Optical Time-Domain Reflectometer pinpoints fiber breaks/splices/loss by distance; sharp drop with no continuation = break' },
+  { label: 'Toner Probe',        parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'Tone generator + inductive probe \u2014 traces unmarked copper cables by injecting AC tone and detecting magnetic field; tone bleed in tight bundles is a known limitation' },
+  { label: 'LLDP',               parentTopic: 'Network Operations',                objective: '3.1', keyword: 'LLDP (IEEE 802.1AB) \u2014 vendor-neutral L2 discovery protocol (vs Cisco-proprietary CDP); advertises system name, port, capabilities to neighbors' }
 ];
 
 function _formatRetentionConceptsForPrompt() {
@@ -4514,6 +4527,682 @@ const QUESTION_EXEMPLARS = [
     source: 'curated',
     addedVersion: '4.85.19',
     addedDate: '2026-05-02'
+  },
+  // ───── Phase 3 Cycle 2 — 2026-05-03 (Jason Dion practice test #2 gap recalibration) ─────
+  // 12 user-reported gap topics × 3 exemplars each = 36 new exemplars.
+  // All content original. Sourced from public N10-009 blueprint + RFC/IEEE/standards
+  // references. NO copying or paraphrasing of paid-bank content per
+  // reference_jason_dion_method.md legal boundary.
+  // Gap topics: RFC 1918 Private Address Ranges, MDF (vs IDF), Hot/Cold Aisle
+  // Portside Exhaust/Intake, MTRJ fiber connector, DAC Cable, Imaging a switch
+  // (IOS/firmware), DoH (DNS over HTTPS), PTP (IEEE 1588), Out-of-Band
+  // Management, OTDR, Toner Probe, LLDP.
+
+  // ── 1. RFC 1918 PRIVATE ADDRESS RANGES ──
+  {
+    type: 'mcq',
+    question: 'Which of the following is a valid RFC 1918 private IPv4 address range?',
+    difficulty: 'Foundational',
+    topic: 'NAT & IP Services',
+    objective: '1.4',
+    options: {
+      A: '169.254.0.0/16',
+      B: '172.16.0.0/12',
+      C: '224.0.0.0/4',
+      D: '127.0.0.0/8'
+    },
+    answer: 'B',
+    explanation: 'RFC 1918 defines three private IPv4 ranges: 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16. 169.254.0.0/16 (A) is APIPA / link-local. 224.0.0.0/4 (C) is multicast. 127.0.0.0/8 (D) is loopback.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer is designing IP addressing for a small company and needs to choose a private range that supports up to 65,000 hosts on a single contiguous /16 subnet. Which RFC 1918 range BEST fits this requirement?',
+    difficulty: 'Exam Level',
+    topic: 'NAT & IP Services',
+    objective: '1.4',
+    options: {
+      A: '10.0.0.0/8 — flat /16 carved out (e.g., 10.50.0.0/16)',
+      B: '172.16.0.0/12 — flat /16 carved out (e.g., 172.20.0.0/16)',
+      C: '192.168.0.0/16 — use the entire allocation as one /16',
+      D: 'Any of A, B, or C — all RFC 1918 ranges support /16 allocations'
+    },
+    answer: 'D',
+    explanation: 'All three RFC 1918 ranges can supply a /16 (~65k hosts). 10.0.0.0/8 has 256 possible /16s, 172.16.0.0/12 has 16 possible /16s (172.16-172.31), and 192.168.0.0/16 IS a /16. Any of them works for this requirement; the choice usually depends on the org\'s addressing scheme and avoiding overlap with VPN peers. Convention often uses 10/8 for medium-large enterprises, 192.168/16 for SOHO, and 172.16/12 for the in-between.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which addresses fall within RFC 1918 private address space?',
+    difficulty: 'Hard',
+    topic: 'NAT & IP Services',
+    objective: '1.4',
+    options: {
+      A: '10.255.255.254',
+      B: '172.32.0.5',
+      C: '192.168.100.1',
+      D: '169.254.10.20',
+      E: '198.18.0.1'
+    },
+    answers: ['A', 'C'],
+    explanation: 'A (10.255.255.254 — within 10.0.0.0/8) and C (192.168.100.1 — within 192.168.0.0/16) are RFC 1918 private. B (172.32.0.5) is just OUTSIDE the 172.16.0.0/12 range, which ends at 172.31.255.255 — common trap. D (169.254.x.x) is APIPA link-local. E (198.18.0.0/15) is RFC 2544 benchmark testing space, not RFC 1918.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 2. MDF (MAIN DISTRIBUTION FRAME) ──
+  {
+    type: 'mcq',
+    question: 'In a structured cabling design, what is the role of the Main Distribution Frame (MDF)?',
+    difficulty: 'Foundational',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'It is the central termination point for the building\'s telecom feed and the source of all backbone cabling to floor or zone wiring closets',
+      B: 'It is the wall plate where each user\'s desk connects to the network',
+      C: 'It is the patch cable between a switch and a server',
+      D: 'It is the optical-to-electrical conversion device used at the building entrance'
+    },
+    answer: 'A',
+    explanation: 'The MDF is the primary cross-connect for a building — where the carrier service enters and where backbone cables run out to IDFs (Intermediate Distribution Frames) on each floor or wing. B describes a wall plate / work-area outlet. C is a patch cord. D describes a media converter / optical network terminal.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A multi-floor office building has one MDF in the basement and an IDF on each of 8 floors. Which type of cable typically runs between the MDF and each IDF?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'Backbone (vertical/riser) cabling — usually multi-strand fiber for distance and bandwidth',
+      B: 'Horizontal cabling — Cat 6 from each user wall plate',
+      C: 'Crossover Ethernet — required between distribution frames',
+      D: 'Coaxial RG-6 — standard for inter-floor links'
+    },
+    answer: 'A',
+    explanation: 'Backbone cabling (also called vertical or riser cabling in multi-floor buildings) connects the MDF to each IDF. It is typically multi-strand fiber (single-mode or multi-mode) because of distance, bandwidth, and EMI immunity in the riser shaft. Horizontal cabling (B) runs WITHIN a floor from the IDF to user wall plates — usually Cat 6 — but does not link MDF to IDFs. C (crossover) is irrelevant — modern switches auto-MDIX. D (coax) is for video/cable TV, not enterprise data backbones.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which best describes the difference between an MDF and an IDF?',
+    difficulty: 'Hard',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'MDF is the central termination for the building (carrier feed + backbone source); IDF is a per-floor or per-zone distribution point that aggregates horizontal cabling from work-area outlets back to the MDF',
+      B: 'MDF is for fiber, IDF is for copper',
+      C: 'MDF is for management traffic, IDF is for user data',
+      D: 'MDF is in the data center, IDF is in the wiring closet — they serve different network tiers'
+    },
+    answer: 'A',
+    explanation: 'A correctly captures the structural relationship — MDF is the building-level "main" termination point (typically one per building, where the carrier feed enters), and IDFs are downstream distribution frames per-floor or per-zone that handle horizontal cabling. B is wrong — both MDF and IDF can have copper and fiber. C confuses the topic with out-of-band management. D is partially true (MDF is often in the data center) but doesn\'t capture the structural relationship.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 3. PORTSIDE EXHAUST / INTAKE (HOT-AISLE / COLD-AISLE) ──
+  {
+    type: 'mcq',
+    question: 'In a data center using hot-aisle / cold-aisle containment, what should the PORTSIDE INTAKE configuration of a top-of-rack switch ensure?',
+    difficulty: 'Exam Level',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'The switch ports face the cold aisle so the switch draws cool air from the front and exhausts hot air to the hot aisle',
+      B: 'The switch ports face the hot aisle for easier maintenance access',
+      C: 'The switch ports point upward so heat naturally rises away from the patch panel',
+      D: 'The switch ports face whichever direction has shorter cable runs — airflow is irrelevant for switches'
+    },
+    answer: 'A',
+    explanation: 'Portside intake (port-side intake / PSI) means the switch draws cool air through the side where its physical ports are — the front of the rack, facing the cold aisle. Hot air exhausts out the rear into the hot aisle. This aligns the switch\'s thermal flow with the data center\'s containment design so cabling and cooling work together. The opposite (port-side exhaust / PSE) is used in legacy or rear-cabling designs but breaks containment if mixed with PSI in the same rack.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A data center technician installs a new switch in a hot-aisle / cold-aisle deployed rack. The switch is rated PSE (port-side exhaust) but the rack is a port-side intake (PSI) design. What is the MOST LIKELY consequence?',
+    difficulty: 'Hard',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'The switch will draw hot exhaust air back into its intake, causing thermal stress and potential thermal shutdown',
+      B: 'The switch will run more efficiently because hot air rises naturally',
+      C: 'The cabling will be shorter because ports face the rear',
+      D: 'There is no consequence — switches generate negligible heat'
+    },
+    answer: 'A',
+    explanation: 'A PSE (port-side exhaust) switch in a PSI rack causes a thermal short-circuit — the switch\'s intake (which faces the rear in PSE) is now in the HOT aisle, drawing already-heated exhaust air. This violates the cold-aisle/hot-aisle separation, raises switch operating temperatures, and can trigger thermal protections or premature hardware failure. The fix is to either swap to a PSI-variant switch (most modern switches offer either airflow option as a SKU choice) or use baffles/blanking panels. B/C/D are wrong — switches generate significant heat in dense racks, and airflow direction matters.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'When ordering switches for a data center using cold-aisle containment with cabling at the FRONT of the rack, which airflow direction should the switches use?',
+    difficulty: 'Exam Level',
+    topic: 'Data Centres',
+    objective: '3.3',
+    options: {
+      A: 'Port-side intake (PSI) — air enters through the port-side (front) and exits the rear',
+      B: 'Port-side exhaust (PSE) — air enters the rear and exits through the port-side',
+      C: 'Either direction works — modern switches auto-detect airflow needs',
+      D: 'No airflow requirement — front-cabled switches are passively cooled'
+    },
+    answer: 'A',
+    explanation: 'When ports face the cold aisle (front), you want PSI so the switch breathes cold air through the front (port side) and exhausts hot air out the rear into the hot aisle. PSE in this scenario would cause the switch to inhale hot exhaust air — a thermal short-circuit. Modern switches do NOT auto-detect airflow direction; the SKU/part number determines fan direction at order time.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 4. MTRJ FIBER CONNECTOR ──
+  {
+    type: 'mcq',
+    question: 'Which fiber-optic connector type uses a single small-form-factor housing to terminate BOTH transmit and receive fibers in one connector?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'MTRJ (Mechanical Transfer Registered Jack)',
+      B: 'LC (Lucent Connector) — single-strand only',
+      C: 'SC (Subscriber Connector) — single-strand only',
+      D: 'ST (Straight Tip) — single-strand only'
+    },
+    answer: 'A',
+    explanation: 'The MTRJ is a duplex fiber connector — two fibers (TX/RX) terminate in a single small-form-factor housing resembling an RJ45. LC, SC, and ST are typically simplex connectors: each terminates a single fiber, and a duplex pair uses two connectors clipped together. (Note: LC duplex clips exist but each LC ferrule still terminates one fiber.) MTRJ\'s key trait is "two fibers, one connector body."',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A network technician is looking at a fiber patch cable with a connector that has a small rectangular plastic housing about the size of an RJ45, with two fiber strands emerging from a single ferrule. Which connector type is this?',
+    difficulty: 'Exam Level',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: { A: 'SC', B: 'ST', C: 'MTRJ', D: 'FC' },
+    answer: 'C',
+    explanation: 'MTRJ has a distinctive small rectangular housing similar in size to an RJ45 jack, with two fiber strands in a single ferrule. SC has a square push-pull body, one fiber per connector. ST has a round bayonet-mount body. FC has a screw-on threaded coupling — used in test equipment.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which statements about the MTRJ fiber connector are correct?',
+    difficulty: 'Hard',
+    topic: 'Cabling & Topology',
+    objective: '1.5',
+    options: {
+      A: 'It is a small-form-factor (SFF) connector designed to save panel space compared to ST or SC',
+      B: 'It terminates two fibers (TX/RX) in a single connector body',
+      C: 'It uses a 2.5mm ferrule like SC and ST',
+      D: 'It is the most common connector on modern SFP/SFP+ transceivers',
+      E: 'It is used exclusively for single-mode fiber'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are correct. MTRJ is a small-form-factor connector (A) and is duplex by design — terminates both TX and RX in one body (B). C is wrong — MTRJ uses a 1.25mm ferrule like LC, not the larger 2.5mm of ST/SC. D is wrong — most modern SFP/SFP+ transceivers use LC duplex, not MTRJ. E is wrong — MTRJ supports both single-mode and multi-mode variants.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 5. DAC CABLE (DIRECT ATTACH COPPER) ──
+  {
+    type: 'mcq',
+    question: 'In a data center, what is a Direct Attach Copper (DAC) cable typically used for?',
+    difficulty: 'Foundational',
+    topic: 'Data Center Architectures',
+    objective: '1.8',
+    options: {
+      A: 'Short-range high-speed (10/25/100 Gbps) connections between switches and servers within the same rack or adjacent racks',
+      B: 'Long-distance (50+ km) carrier links between data centers',
+      C: 'Outdoor underground burial between buildings',
+      D: 'Fiber-to-the-home subscriber drops'
+    },
+    answer: 'A',
+    explanation: 'DAC cables are short, fixed-length copper twinaxial cables with SFP/SFP+/QSFP transceivers permanently attached at each end. They\'re designed for short-range (typically 1m–7m, sometimes up to 10m) high-speed connections between switches and servers (top-of-rack design) or switch-to-switch in adjacent racks. They\'re cheaper and lower-latency than fiber for short runs. B/C are fiber territory. D is service-provider PON / fiber.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which is a key advantage of using a DAC cable over a separate transceiver-and-fiber-patch-cable combination at distances under 5 meters?',
+    difficulty: 'Exam Level',
+    topic: 'Data Center Architectures',
+    objective: '1.8',
+    options: {
+      A: 'Lower cost, lower power consumption, and lower latency than transceivers + fiber',
+      B: 'Longer reach — DAC supports kilometres while transceivers + fiber only support 100m',
+      C: 'Immune to electromagnetic interference (EMI) — DAC is shielded copper twinaxial',
+      D: 'Both A and C — cost, power, latency advantages PLUS EMI immunity'
+    },
+    answer: 'A',
+    explanation: 'DAC\'s main advantages at short range are cost (no separate transceivers), power (passive DAC consumes far less than active optics), and latency (no electrical-to-optical conversion). B is wrong — DAC is SHORTER reach than fiber (typically ≤7m passive, ≤15m active). C is partly true (DAC is shielded twinax) but DAC is still copper and not immune to EMI like fiber is. D combines the partial truth of C, so still wrong.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'What is the practical reach limit of a passive DAC cable in a typical data center deployment?',
+    difficulty: 'Hard',
+    topic: 'Data Center Architectures',
+    objective: '1.8',
+    options: {
+      A: 'About 7 meters — beyond that, signal integrity drops and active DAC or fiber is required',
+      B: 'About 100 meters — same as Cat 6 Ethernet',
+      C: 'About 300 meters — same as multi-mode OM3 fiber',
+      D: 'About 10 kilometres — same as single-mode fiber'
+    },
+    answer: 'A',
+    explanation: 'Passive DAC cables are typically rated up to ~7m (some vendors push to 10m). Beyond that, active DAC (with embedded signal conditioners) extends to ~15m, but at higher cost approaching active optical cable (AOC) or transceiver+fiber pricing. DAC is intentionally a SHORT-range solution — the win is cost/power/latency at top-of-rack and adjacent-rack distances. B/C/D are reaches associated with copper Ethernet, MMF, and SMF respectively.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 6. IMAGING A SWITCH (FIRMWARE / IOS IMAGE) ──
+  {
+    type: 'mcq',
+    question: 'What does it mean to "image" a network switch?',
+    difficulty: 'Foundational',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Install or upgrade the switch\'s operating-system image (firmware/IOS) and optionally apply a baseline configuration',
+      B: 'Take a screenshot of the switch\'s console output for documentation',
+      C: 'Generate a topology diagram showing every port',
+      D: 'Photograph the switch hardware for inventory tracking'
+    },
+    answer: 'A',
+    explanation: 'In networking ops, "imaging a switch" refers to loading or replacing the switch\'s OS image (the firmware that runs the switch — Cisco IOS, NX-OS, Junos, etc.) and applying a known-good baseline configuration. Common reasons: zero-touch provisioning, recovery from a bricked switch, large-scale fleet upgrade. B/C/D are unrelated visual/documentation interpretations.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer needs to upgrade the operating system image on 50 identical access switches across a campus. Which protocol is MOST commonly used to transfer the new image file from a central server to each switch?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: { A: 'TFTP (Trivial File Transfer Protocol)', B: 'HTTP', C: 'SMTP', D: 'POP3' },
+    answer: 'A',
+    explanation: 'TFTP is the long-standing standard for transferring firmware/IOS images to network devices because it\'s simple, lightweight, and built into virtually every switch/router\'s bootloader. SCP and FTP are also used (SCP for security), but TFTP is the most universally supported. HTTP can be used for newer "Smart Install" / ZTP flows but TFTP remains the canonical choice. SMTP/POP3 are for email and have no role in firmware transfer.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A switch is being commissioned via zero-touch provisioning (ZTP). Which sequence describes the typical "imaging" workflow?',
+    difficulty: 'Hard',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Switch boots → DHCP request → DHCP reply provides TFTP server (option 66) and boot file (option 67) → switch downloads IOS image and config from TFTP → switch reboots into new image with config applied',
+      B: 'Switch boots → manual console connection → engineer runs setup wizard → image is uploaded over USB',
+      C: 'Switch boots → connects to cloud controller via Bluetooth → image is pushed wirelessly',
+      D: 'Switch boots → admin SSHs in → image is copied via SCP from a workstation'
+    },
+    answer: 'A',
+    explanation: 'ZTP relies on DHCP options 66 (TFTP server name) and 67 (boot file name) to tell the switch where to fetch its image and config. The switch boots, sends a DHCP request, receives the TFTP target, downloads the new IOS image and config files, then reboots into the imaged state — all without manual intervention. B describes manual provisioning. C is fictional. D is fine for one-off updates but is not "imaging" via ZTP.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 7. DOH (DNS OVER HTTPS) ──
+  {
+    type: 'mcq',
+    question: 'What is the primary purpose of DNS over HTTPS (DoH)?',
+    difficulty: 'Foundational',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'To encrypt DNS queries between client and resolver, preventing eavesdropping and on-path tampering',
+      B: 'To accelerate DNS lookups by caching responses at the HTTPS proxy',
+      C: 'To replace HTTPS web traffic with DNS-based content delivery',
+      D: 'To allow DNS resolution over a TLS VPN tunnel only'
+    },
+    answer: 'A',
+    explanation: 'DoH (RFC 8484) wraps DNS queries in HTTPS so they\'re encrypted in transit and indistinguishable from regular web traffic. Goals: prevent ISPs/intermediaries from snooping or tampering with DNS lookups, prevent on-path injection of fake DNS responses, and resist censorship. B is unrelated to caching. C is fabricated. D conflates DoH with VPN — DoH does not require a VPN.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which port and protocol does DoH (DNS over HTTPS) use, and how does that complicate enterprise DNS filtering?',
+    difficulty: 'Exam Level',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'TCP/443 (HTTPS) — making DoH traffic indistinguishable from regular web traffic, so blocking traditional DNS port 53 no longer blocks all DNS lookups',
+      B: 'UDP/53 — same as plain DNS, just encrypted',
+      C: 'TCP/853 — the dedicated DNS-over-TLS port',
+      D: 'UDP/443 — QUIC-based DNS only'
+    },
+    answer: 'A',
+    explanation: 'DoH uses TCP/443 — the same port as ordinary HTTPS web traffic. Enterprises that traditionally filter DNS by blocking UDP/53 cannot easily block DoH without also breaking the web. This is a real challenge for content filtering, parental controls, and threat detection that relied on inspecting/blocking DNS. B is plain DNS. C (TCP/853) is DoT — DNS over TLS, a related but separate protocol. D is fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which statements correctly compare DoH (DNS over HTTPS) and DoT (DNS over TLS)?',
+    difficulty: 'Hard',
+    topic: 'Network Naming (DNS & DHCP)',
+    objective: '1.6',
+    options: {
+      A: 'DoH uses TCP/443 (shared with HTTPS); DoT uses a dedicated TCP/853',
+      B: 'Both encrypt DNS queries in transit using TLS',
+      C: 'DoH always provides better privacy than DoT under all circumstances',
+      D: 'DoT requires the user to install a VPN; DoH does not',
+      E: 'Both are deprecated by RFC 8915 in favor of plain DNS'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are correct. The PORT is the key differentiator (A) — DoH on TCP/443 (shared with HTTPS, harder for networks to block), DoT on TCP/853 (dedicated, easier to identify and selectively block). Both encrypt queries with TLS (B). C is opinion-based and not always true — DoT is arguably easier for enterprises to monitor since it has a dedicated port. D is false — neither requires a VPN. E is fabricated; both are active standards.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 8. PTP (PRECISION TIME PROTOCOL) ──
+  {
+    type: 'mcq',
+    question: 'What is the primary advantage of PTP (Precision Time Protocol, IEEE 1588) over NTP (Network Time Protocol)?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Sub-microsecond synchronization accuracy, suitable for industrial automation, financial trading, and 5G base-station coordination',
+      B: 'Lower bandwidth — NTP uses 1500 byte frames while PTP uses jumbo frames',
+      C: 'Cross-internet reach — PTP works across the public internet while NTP requires LAN',
+      D: 'Standard built into every modern OS — no special hardware required'
+    },
+    answer: 'A',
+    explanation: 'PTP provides sub-microsecond accuracy via hardware timestamping at network adapters and intermediate switches, suitable for industrial automation, HFT financial trading, telecom synchronization, and 5G coordination. NTP achieves millisecond accuracy at best — fine for general-purpose clock sync but insufficient for these use cases. B is wrong — PTP uses regular Ethernet frames. C is reversed — NTP works fine across the internet; PTP is typically LAN-bounded for accuracy. D is partially wrong — PTP requires hardware timestamping support in NICs and switches for full benefit.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A 5G mobile carrier is deploying base stations that require synchronization to within 1 microsecond of each other for handover coordination. Which time protocol is REQUIRED for this accuracy?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'PTP (Precision Time Protocol, IEEE 1588) — sub-microsecond accuracy via hardware timestamping',
+      B: 'NTP (Network Time Protocol) — millisecond-level accuracy is sufficient',
+      C: 'NTS (Network Time Security) — secure NTP variant, same accuracy as NTP',
+      D: 'GPS — but only if every base station has a clear sky view'
+    },
+    answer: 'A',
+    explanation: 'PTP is the only standard listed that delivers sub-microsecond accuracy (typically tens to hundreds of nanoseconds with proper hardware support). NTP is millisecond-level — orders of magnitude too coarse. NTS (RFC 8915) adds security to NTP but doesn\'t improve accuracy. GPS technically can deliver nanosecond accuracy but requires sky view, antenna, and hardware at every base station — typically used as a PTP grandmaster reference rather than as the per-base-station primary.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which OSI layer does PTP (IEEE 1588v2) primarily operate at, and what does this enable?',
+    difficulty: 'Hard',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Layer 2 (with Layer 3 variant available) — enables hardware timestamping at the NIC, bypassing OS jitter and achieving sub-microsecond accuracy',
+      B: 'Layer 4 only — uses TCP for reliability over the public internet',
+      C: 'Layer 7 only — application-level synchronization without network involvement',
+      D: 'Layer 1 only — physical clock distribution like SONET'
+    },
+    answer: 'A',
+    explanation: 'PTP can run at Layer 2 (multicast) or Layer 3 (UDP), and the Layer 2 variant in particular allows hardware timestamping at the NIC and at PTP-aware switches (transparent clocks / boundary clocks), which is what eliminates OS-scheduling jitter and achieves sub-microsecond accuracy. B is wrong (PTP uses UDP not TCP, and L2 variant uses no IP at all). C/D are incorrect layer associations.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 9. OUT-OF-BAND MANAGEMENT ──
+  {
+    type: 'mcq',
+    question: 'Which best describes Out-of-Band (OOB) management of network equipment?',
+    difficulty: 'Foundational',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Managing devices over a separate dedicated network (or console connection) that is independent of the production data network',
+      B: 'Managing devices remotely from outside the country',
+      C: 'Managing devices using only encrypted protocols like SSH or HTTPS',
+      D: 'Managing devices with low priority QoS marking so user traffic gets preference'
+    },
+    answer: 'A',
+    explanation: 'Out-of-Band management uses a SEPARATE management network — distinct cabling, switches, sometimes a dedicated VLAN — or direct console access, so admins can reach a device even when the production data network is down. The opposite is in-band management, which shares the production network. B is unrelated to the OOB concept. C describes encryption, not OOB. D describes QoS, not OOB.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A network engineer needs to recover a switch that is unreachable due to a broken VLAN trunk that took down the production network. Which OOB option allows them to fix the switch?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Connect to the switch\'s console port via a serial cable from a laptop, or reach a network-attached console server / KVM that has serial connections to all devices',
+      B: 'Wait for the production network to recover, then SSH in',
+      C: 'Reboot the switch by pulling power and hope it boots into a working configuration',
+      D: 'Send a Wake-on-LAN packet from the management subnet'
+    },
+    answer: 'A',
+    explanation: 'Console access via serial cable (or remotely via a console server / KVM) is the canonical OOB recovery path — it works even when the data plane is completely broken, because it doesn\'t depend on the production network. B doesn\'t recover the switch, it just waits. C risks losing unsaved config and doesn\'t guarantee recovery. D requires the management subnet to be reachable, which is the same problem we\'re trying to solve.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which are valid Out-of-Band management mechanisms?',
+    difficulty: 'Hard',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Direct console (RJ45/RS-232 serial) from an admin laptop',
+      B: 'Dedicated management VLAN reachable via a separate management switch and dedicated NIC on each device',
+      C: 'SSH over the production VLAN that user traffic also uses',
+      D: 'Telnet over the user data network',
+      E: 'Web GUI over the same uplink the switch uses for user traffic'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A (console serial) and B (dedicated management VLAN with separate management NIC) are both true out-of-band — they work independently of the production data network. C, D, and E are all in-band — they share the production network and fail when production fails.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 10. OTDR (OPTICAL TIME-DOMAIN REFLECTOMETER) ──
+  {
+    type: 'mcq',
+    question: 'A network technician needs to test a 5km dark-fiber run between two buildings to find the location of a suspected cable break. Which test instrument is purpose-built for this job?',
+    difficulty: 'Exam Level',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'OTDR (Optical Time-Domain Reflectometer)',
+      B: 'TDR (Time-Domain Reflectometer) for copper',
+      C: 'Cable certifier (like Fluke DSX) — tests Cat 6 only',
+      D: 'Multimeter — tests resistance and continuity'
+    },
+    answer: 'A',
+    explanation: 'An OTDR injects light pulses into a fiber and measures the reflected return signal versus time, producing a trace that shows distance to events (splices, connectors, breaks) and loss characteristics. It can pinpoint a fiber break to within meters even on multi-km runs. TDR (B) does the same job for COPPER cables, not fiber. Cable certifiers (C) test Cat 6 channel performance, not fiber breaks. Multimeters (D) test electrical continuity, useless on light-carrying fiber.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'An OTDR trace shows a sharp drop ("event") at 2.3km from the test end, with no light reaching the far end. What is the MOST LIKELY interpretation?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'The fiber is broken or severely crushed at approximately 2.3km from the OTDR test point',
+      B: 'There is a splice with normal loss at 2.3km',
+      C: 'The fiber has dust contamination at 2.3km',
+      D: 'The wavelength is mismatched at 2.3km'
+    },
+    answer: 'A',
+    explanation: 'A sharp drop event with NO continuation past it indicates a severe break, fiber crush, or unmated connector at that distance — the OTDR can\'t see anything beyond. A normal splice (B) shows a small step in the trace, not a sharp drop with no continuation. Dust (C) usually shows as a small loss bump but light typically still passes. Wavelength mismatch (D) is a transceiver issue at the link endpoints, not a mid-fiber event detectable by OTDR.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which OTDR trace event would indicate a CONNECTOR or splice with HIGHER-than-normal loss but NOT a complete break?',
+    difficulty: 'Hard',
+    topic: 'Cable Issues',
+    objective: '5.2',
+    options: {
+      A: 'A small downward step in the trace at the event distance, with the trace continuing afterwards',
+      B: 'A sharp vertical drop with no continuation past the event',
+      C: 'A flat baseline with no events at all',
+      D: 'A spike upward in the reflected signal'
+    },
+    answer: 'A',
+    explanation: 'A connector or splice with elevated loss appears as a small DOWNWARD step in the OTDR trace — light is partially absorbed/reflected at that point, but the trace continues afterwards (showing the fiber is still intact past the event). B is a complete break (no continuation). C means no events were detected (clean fiber). D — an upward spike — indicates a reflection (e.g., an unmated connector with Fresnel reflection), not a high-loss splice.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 11. TONER (TONE GENERATOR + PROBE) ──
+  {
+    type: 'mcq',
+    question: 'A network technician is tracing an unmarked Cat 6 cable through a wall and ceiling to identify which port it terminates at on a 48-port patch panel. Which tool is BEST suited for this job?',
+    difficulty: 'Exam Level',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Tone generator and probe (toner/probe kit)',
+      B: 'Cable certifier',
+      C: 'OTDR',
+      D: 'Loopback plug'
+    },
+    answer: 'A',
+    explanation: 'A toner injects an audible tone signal onto the unknown cable; the probe (a wand-like inductive sensor) is then waved near each candidate cable end until the technician hears the tone, identifying which port the unknown cable terminates at. This is the canonical use case. Cable certifier (B) tests channel performance — overkill for tracing. OTDR (C) is for fiber, not copper. Loopback plug (D) tests NIC ports for transmit-receive integrity.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A toner-and-probe kit is used to trace cables. Which physical principle does the PROBE use to detect the tone signal without making electrical contact with the cable?',
+    difficulty: 'Hard',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'Inductive coupling — the probe senses the magnetic field from the AC tone signal in the cable',
+      B: 'Capacitive coupling — the probe measures voltage potential differences',
+      C: 'Optical detection — the probe shines IR light through the cable jacket',
+      D: 'Sonic resonance — the probe listens for vibration in the cable insulation'
+    },
+    answer: 'A',
+    explanation: 'The probe uses inductive coupling — the AC tone signal in the cable produces a small magnetic field, and the probe\'s inductive sensor picks this up without needing direct electrical contact. This is why you can wave the probe near a bundle of cables and hear the tone strongest near the one carrying the signal. B is wrong — capacitive coupling requires very close proximity and isn\'t how tone probes work. C and D are fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'Which of the following is a known limitation of using a tone generator and probe to trace cables?',
+    difficulty: 'Hard',
+    topic: 'Network Troubleshooting & Tools',
+    objective: '5.5',
+    options: {
+      A: 'The tone can bleed onto adjacent cables in tightly-bundled runs, making it hard to distinguish which one is the target',
+      B: 'It only works on fiber-optic cables, not copper',
+      C: 'It only works when the cable is plugged into a powered switch',
+      D: 'It physically damages the cable jacket and requires recertification afterwards'
+    },
+    answer: 'A',
+    explanation: 'In tightly-bundled cable runs, the tone signal can inductively bleed onto adjacent cables, causing the probe to register a signal on the wrong cable. The mitigation is to listen for the LOUDEST tone (which is on the actual target cable) or to physically separate suspect cables when possible. B is reversed — toners work on copper, not fiber. C is wrong — toners can be used on disconnected cables; the toner provides the signal. D is fabricated.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+
+  // ── 12. LLDP (LINK LAYER DISCOVERY PROTOCOL) ──
+  {
+    type: 'mcq',
+    question: 'What is the primary purpose of LLDP (Link Layer Discovery Protocol, IEEE 802.1AB)?',
+    difficulty: 'Foundational',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'Vendor-neutral Layer 2 protocol that allows network devices to advertise their identity, capabilities, and neighbors to directly-connected devices',
+      B: 'A routing protocol that distributes routes between OSPF areas',
+      C: 'A spanning-tree variant that prevents Layer 2 loops',
+      D: 'An encryption protocol for Layer 2 frames'
+    },
+    answer: 'A',
+    explanation: 'LLDP is a vendor-neutral Layer 2 discovery protocol — devices advertise their identity (system name), port info, capabilities (router, switch, AP, phone, etc.), and neighbor relationships. Network management tools and admins use it to map physical topology and verify cabling. B is OSPF/BGP territory. C is STP/RSTP. D is MACsec.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'How does LLDP differ from Cisco\'s CDP (Cisco Discovery Protocol)?',
+    difficulty: 'Exam Level',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'LLDP is vendor-neutral (IEEE 802.1AB) and works across any compliant equipment; CDP is Cisco-proprietary and works mainly on Cisco gear',
+      B: 'LLDP runs at Layer 3 while CDP runs at Layer 2',
+      C: 'LLDP encrypts neighbor advertisements while CDP sends them in plaintext',
+      D: 'LLDP only works in IPv6 networks while CDP supports IPv4'
+    },
+    answer: 'A',
+    explanation: 'The defining difference is interoperability — LLDP is an open IEEE standard (802.1AB) and works across any vendor that implements it; CDP is Cisco-proprietary. In multi-vendor environments LLDP is essential. Both run at Layer 2 (B is wrong). Neither encrypts (C is wrong). Both are protocol-agnostic with respect to L3 (D is wrong).',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which information is typically advertised by LLDP between directly-connected devices?',
+    difficulty: 'Hard',
+    topic: 'Network Operations',
+    objective: '3.1',
+    options: {
+      A: 'System name and port description of the local device',
+      B: 'System capabilities (e.g., router, switch, WLAN AP, phone)',
+      C: 'A list of every IP route the device knows about',
+      D: 'The full running configuration of the device',
+      E: 'The MAC addresses of every host in the broadcast domain'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A (system name + port description) and B (capabilities) are the bread-and-butter LLDP advertisements. They let neighbors and management tools build accurate physical topology maps and identify what each device is. C/D would be massive privacy/security risks if advertised broadly. E is a separate function (MAC address tables) and not advertised via LLDP.',
+    source: 'curated',
+    addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
   }
 ];
 

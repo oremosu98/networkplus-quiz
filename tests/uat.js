@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.20', js.includes("const APP_VERSION = '4.85.20"));
+test('APP_VERSION is 4.85.21', js.includes("const APP_VERSION = '4.85.21"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.20', sw.includes('netplus-v4.85.20'));
+test('SW cache bumped to v4.85.21', sw.includes('netplus-v4.85.21'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8562,8 +8562,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.85.19 bank: 233 exemplars present (200 from Road-to-200 + 33 from Phase 3 Cycle 1 Jason Dion gaps)',
-      Array.isArray(bank) && bank.length === 233);
+    test('v4.85.21 bank: 269 exemplars present (233 + 36 from Phase 3 Cycle 2 Jason Dion gaps)',
+      Array.isArray(bank) && bank.length === 269);
 
     // Every exemplar has required fields. v4.85.19: relaxed to allow type-specific
     // answer field — 'mcq' uses `answer` (string), 'multi-select' uses `answers` (array).
@@ -8672,24 +8672,24 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     const d3Count = bank.filter(ex => d3Topics.includes(ex.topic)).length;
     const d4Count = bank.filter(ex => d4Topics.includes(ex.topic)).length;
     const d5Count = bank.filter(ex => d5Topics.includes(ex.topic)).length;
-    // v4.85.19: Phase 3 Cycle 1 (Jason Dion gaps) added 33 exemplars across all 5 domains:
-    // D1 +9 (IPv6 Anycast x3, Media Converter goes to D2, DHCP Reservation x3, DHCP Options x3)
-    // D2 +9 (Media Converter x3, Band Steering x3, Jumbo Frames x3 to Data Center)
-    // D3 +6 (SD-WAN x3, Anomaly Detection x3)
-    // D4 +6 (Separation of Duties x3, NAC Non-persistent x3)
-    // D5 +3 (Wavelength Mismatch x3 — Cable Issues domain)
-    test('v4.85.19 bank: Domain 1.0 contains 55 exemplars (+9 Phase 3 Cycle 1)',
-      d1Count === 55);
-    test('v4.85.19 bank: Domain 2.0 contains 49 exemplars (+9 Phase 3 Cycle 1)',
-      d2Count === 49);
-    test('v4.85.19 bank: Domain 3.0 contains 44 exemplars (+6 Phase 3 Cycle 1)',
-      d3Count === 44);
-    test('v4.85.19 bank: Domain 4.0 contains 34 exemplars (+6 Phase 3 Cycle 1)',
+    // v4.85.21: Phase 3 Cycle 2 (Jason Dion gaps #2) added 36 exemplars across all 5 domains:
+    // D1 +6 (RFC 1918 x3, DoH x3)
+    // D2 +9 (MDF x3, MTRJ x3, DAC x3 → Data Center Arch)
+    // D3 +15 (PSI/PSE Data Centres x3, Switch Imaging x3, PTP x3, OOB x3, LLDP x3)
+    // D4 +0
+    // D5 +6 (OTDR x3, Toner x3 → Cable Issues + Network Troubleshooting & Tools)
+    test('v4.85.21 bank: Domain 1.0 contains 61 exemplars (+6 Phase 3 Cycle 2)',
+      d1Count === 61);
+    test('v4.85.21 bank: Domain 2.0 contains 58 exemplars (+9 Phase 3 Cycle 2)',
+      d2Count === 58);
+    test('v4.85.21 bank: Domain 3.0 contains 59 exemplars (+15 Phase 3 Cycle 2)',
+      d3Count === 59);
+    test('v4.85.21 bank: Domain 4.0 contains 34 exemplars (+0 Phase 3 Cycle 2)',
       d4Count === 34);
-    test('v4.85.19 bank: Domain 5.0 contains 51 exemplars (+3 Phase 3 Cycle 1)',
-      d5Count === 51);
-    test('v4.85.19 bank: domain distribution sums to 233 (55+49+44+34+51) — Phase 3 Cycle 1 complete',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 233);
+    test('v4.85.21 bank: Domain 5.0 contains 57 exemplars (+6 Phase 3 Cycle 2)',
+      d5Count === 57);
+    test('v4.85.21 bank: domain distribution sums to 269 (61+58+59+34+57) — Phase 3 Cycle 2 complete',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 269);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));
