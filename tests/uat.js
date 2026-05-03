@@ -290,7 +290,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.85.21', js.includes("const APP_VERSION = '4.85.21"));
+test('APP_VERSION is 4.85.22', js.includes("const APP_VERSION = '4.85.22"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -304,7 +304,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.85.21', sw.includes('netplus-v4.85.21'));
+test('SW cache bumped to v4.85.22', sw.includes('netplus-v4.85.22'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8562,8 +8562,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     vm.createContext(ctx);
     const bank = vm.runInContext(arraySrc, ctx);
 
-    test('v4.85.21 bank: 269 exemplars present (233 + 36 from Phase 3 Cycle 2 Jason Dion gaps)',
-      Array.isArray(bank) && bank.length === 269);
+    test('v4.85.22 bank: 272 exemplars present (269 + 3 from Phase 3 Cycle 2 add-on TCP RST flag)',
+      Array.isArray(bank) && bank.length === 272);
 
     // Every exemplar has required fields. v4.85.19: relaxed to allow type-specific
     // answer field — 'mcq' uses `answer` (string), 'multi-select' uses `answers` (array).
@@ -8632,12 +8632,14 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
       noInterrogative.length === 0);
 
     // v4.58.4: topic whitelist extended to cover Domain 4.0 topics.
+    // v4.85.22: TCP/IP Basics + TCP/IP Applications added (RST flag exemplar uses 'TCP/IP Basics').
     const validTopics = [
       // Domain 1.0 (concepts)
       'Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing',
       'DNS Records & DNSSEC', 'Network Appliances & Device Functions',
       'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6',
       'NAT & IP Services', 'NTP, ICMP & Traffic Types',
+      'TCP/IP Basics', 'TCP/IP Applications', 'Cloud Networking & VPCs',
       // Domain 2.0 (implementation)
       'VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Ethernet Basics',
       'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols',
@@ -8662,7 +8664,7 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
       offDomain.length === 0);
 
     // Domain-split sanity
-    const d1Topics = ['Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing', 'DNS Records & DNSSEC', 'Network Appliances & Device Functions', 'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6', 'NAT & IP Services', 'NTP, ICMP & Traffic Types'];
+    const d1Topics = ['Port Numbers', 'Network Models & OSI', 'Subnetting & IP Addressing', 'DNS Records & DNSSEC', 'Network Appliances & Device Functions', 'Virtualisation & Cloud', 'Network Naming (DNS & DHCP)', 'IPv6', 'NAT & IP Services', 'NTP, ICMP & Traffic Types', 'TCP/IP Basics', 'TCP/IP Applications', 'Cloud Networking & VPCs'];
     const d2Topics = ['VLAN Trunking', 'STP/RSTP', 'OSPF', 'Ethernet Standards', 'Ethernet Basics', 'Switch Features & VLANs', 'Wireless Networking', 'Routing Protocols', 'BGP', 'Data Center Architectures', 'SDN, NFV & Automation', 'Cabling & Topology', 'Integrating Networked Devices'];
     const d3Topics = ['Network Operations', 'Data Centres', 'WAN Connectivity', 'SD-WAN & SASE', 'SMB & Network File Services', 'Business Continuity & Disaster Recovery', 'Network Monitoring & Observability'];
     const d4Topics = ['Securing TCP/IP', 'Protecting Networks', 'AAA & Authentication', 'IPsec & VPN Protocols', 'IPsec VPN', 'SSL/TLS VPN', 'PKI & Certificate Management', 'Firewalls, DMZ & Security Zones', 'WPA3 & EAP Authentication', 'Network Attacks & Threats', 'Physical Security Controls'];
@@ -8678,8 +8680,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
     // D3 +15 (PSI/PSE Data Centres x3, Switch Imaging x3, PTP x3, OOB x3, LLDP x3)
     // D4 +0
     // D5 +6 (OTDR x3, Toner x3 → Cable Issues + Network Troubleshooting & Tools)
-    test('v4.85.21 bank: Domain 1.0 contains 61 exemplars (+6 Phase 3 Cycle 2)',
-      d1Count === 61);
+    test('v4.85.22 bank: Domain 1.0 contains 64 exemplars (+9 Cycle 2 + RST add-on)',
+      d1Count === 64);
     test('v4.85.21 bank: Domain 2.0 contains 58 exemplars (+9 Phase 3 Cycle 2)',
       d2Count === 58);
     test('v4.85.21 bank: Domain 3.0 contains 59 exemplars (+15 Phase 3 Cycle 2)',
@@ -8688,8 +8690,8 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
       d4Count === 34);
     test('v4.85.21 bank: Domain 5.0 contains 57 exemplars (+6 Phase 3 Cycle 2)',
       d5Count === 57);
-    test('v4.85.21 bank: domain distribution sums to 269 (61+58+59+34+57) — Phase 3 Cycle 2 complete',
-      d1Count + d2Count + d3Count + d4Count + d5Count === 269);
+    test('v4.85.22 bank: domain distribution sums to 272 (64+58+59+34+57) — Cycle 2 + RST add-on',
+      d1Count + d2Count + d3Count + d4Count + d5Count === 272);
 
     // Difficulty spread: at least 1 of each difficulty present
     const diffs = new Set(bank.map(ex => ex.difficulty));

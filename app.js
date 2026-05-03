@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.85.21
+// Network+ AI Quiz — app.js  v4.85.22
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.85.21';
+const APP_VERSION = '4.85.22';
 
 // v4.42.0: Animation state flags. finish() / submitExam() set these when
 // they detect a streak increment or weak-spots rerank while #page-setup is
@@ -153,7 +153,8 @@ const RETENTION_GAP_CONCEPTS = [
   { label: 'Out-of-Band Mgmt',   parentTopic: 'Network Operations',                objective: '3.1', keyword: 'OOB management \u2014 separate dedicated network OR direct console/serial; works when production data plane is broken (in-band management does not)' },
   { label: 'OTDR',               parentTopic: 'Cable Issues',                      objective: '5.2', keyword: 'OTDR \u2014 Optical Time-Domain Reflectometer pinpoints fiber breaks/splices/loss by distance; sharp drop with no continuation = break' },
   { label: 'Toner Probe',        parentTopic: 'Network Troubleshooting & Tools',   objective: '5.5', keyword: 'Tone generator + inductive probe \u2014 traces unmarked copper cables by injecting AC tone and detecting magnetic field; tone bleed in tight bundles is a known limitation' },
-  { label: 'LLDP',               parentTopic: 'Network Operations',                objective: '3.1', keyword: 'LLDP (IEEE 802.1AB) \u2014 vendor-neutral L2 discovery protocol (vs Cisco-proprietary CDP); advertises system name, port, capabilities to neighbors' }
+  { label: 'LLDP',               parentTopic: 'Network Operations',                objective: '3.1', keyword: 'LLDP (IEEE 802.1AB) \u2014 vendor-neutral L2 discovery protocol (vs Cisco-proprietary CDP); advertises system name, port, capabilities to neighbors' },
+  { label: 'TCP RST flag',       parentTopic: 'TCP/IP Basics',                     objective: '1.1', keyword: 'TCP RST \u2014 abortive immediate connection termination (distinct from graceful FIN four-way close). Sent on closed-port SYN, active firewall reject, or app-side abort.' }
 ];
 
 function _formatRetentionConceptsForPrompt() {
@@ -5202,6 +5203,62 @@ const QUESTION_EXEMPLARS = [
     explanation: 'A (system name + port description) and B (capabilities) are the bread-and-butter LLDP advertisements. They let neighbors and management tools build accurate physical topology maps and identify what each device is. C/D would be massive privacy/security risks if advertised broadly. E is a separate function (MAC address tables) and not advertised via LLDP.',
     source: 'curated',
     addedVersion: '4.85.21',
+    addedDate: '2026-05-03'
+  },
+  // ── 13. TCP RST FLAG — TERMINATES TCP CONNECTIONS (Cycle 2 add-on, 2026-05-03) ──
+  {
+    type: 'mcq',
+    question: 'What does the TCP RST (reset) flag indicate when received by an endpoint?',
+    difficulty: 'Foundational',
+    topic: 'TCP/IP Basics',
+    objective: '1.1',
+    options: {
+      A: 'The connection should be immediately aborted; no further packets will be exchanged on this connection',
+      B: 'The connection is gracefully closing — both sides should finish current data transfer before terminating',
+      C: 'The connection is being reset to a higher transmission window',
+      D: 'The receiver is requesting retransmission of the last segment'
+    },
+    answer: 'A',
+    explanation: 'TCP RST signals an immediate, abortive close — the receiver tears down the connection state without exchanging further data. Unlike FIN (B), which initiates a graceful four-way close, RST is a hard reset. C confuses RST with TCP window-scaling (a separate option). D describes a duplicate-ACK pattern that triggers fast retransmit, not RST.',
+    source: 'curated',
+    addedVersion: '4.85.22',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'mcq',
+    question: 'A port scanner sends a TCP SYN to port 22 of a target host, but receives a TCP RST in response. What does this indicate about the target?',
+    difficulty: 'Exam Level',
+    topic: 'TCP/IP Basics',
+    objective: '1.1',
+    options: {
+      A: 'Port 22 is closed — no service is listening, so the OS responds with RST',
+      B: 'Port 22 is open — the SSH service accepted the connection',
+      C: 'Port 22 is filtered — a firewall is dropping packets silently',
+      D: 'The scanner sent a malformed packet'
+    },
+    answer: 'A',
+    explanation: 'A RST in response to a SYN means the port is closed but reachable — the target\'s OS received the SYN, found no listener, and responded with RST per the TCP spec. An OPEN port (B) replies with SYN-ACK. A FILTERED port (C) typically gives no response at all (silent drop). RST is unambiguous: the host is up and the port is reachable, but nothing is listening.',
+    source: 'curated',
+    addedVersion: '4.85.22',
+    addedDate: '2026-05-03'
+  },
+  {
+    type: 'multi-select',
+    question: '(Choose TWO) Which scenarios commonly trigger a TCP RST?',
+    difficulty: 'Hard',
+    topic: 'TCP/IP Basics',
+    objective: '1.1',
+    options: {
+      A: 'A SYN arriving for a destination port with no listening service',
+      B: 'A firewall actively rejecting traffic to a closed connection (vs silently dropping)',
+      C: 'Successful completion of a normal data transfer with no application errors',
+      D: 'Receipt of three duplicate ACKs in a row',
+      E: 'Successful completion of the TCP three-way handshake'
+    },
+    answers: ['A', 'B'],
+    explanation: 'A and B are common RST triggers. A — closed-port response: the OS sends RST when no service is listening. B — active firewall reject (vs silent drop) where the firewall returns RST to make the connection fail fast rather than time out. C is wrong — normal completion uses FIN, not RST. D — three duplicate ACKs triggers fast retransmit (not RST). E — successful handshake establishes the connection (no RST involved).',
+    source: 'curated',
+    addedVersion: '4.85.22',
     addedDate: '2026-05-03'
   }
 ];
