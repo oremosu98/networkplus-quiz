@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.87.0', js.includes("const APP_VERSION = '4.87.0"));
+test('APP_VERSION is 4.87.1', js.includes("const APP_VERSION = '4.87.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.87.0', sw.includes('netplus-v4.87.0'));
+test('SW cache bumped to v4.87.1', sw.includes('netplus-v4.87.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1936,7 +1936,7 @@ test('Tier1: #marathon-section starts hidden (is-hidden class)', /id="marathon-s
 test('Tier1: renderMarathonSection() function exists', js.includes('function renderMarathonSection('));
 test('Tier1: renderMarathonSection checks loadHistory().length', js.match(/renderMarathonSection[\s\S]{0,300}loadHistory\(\)\.length/));
 test('Tier1: renderMarathonSection called in goSetup', js.match(/function goSetup\(\)[\s\S]{0,1500}renderMarathonSection\(\)/));
-test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,2000}renderMarathonSection\(\)/));
+test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,3000}renderMarathonSection\(\)/));
 // Marathon preset buttons still present inside the wrapper
 test('Tier1: Marathon 30-question preset still wired', html.includes("applyPreset('bulk30')"));
 test('Tier1: Marathon 45-question preset still wired', html.includes("applyPreset('bulk45')"));
@@ -10247,11 +10247,11 @@ test('v4.81.0 Diagnostic: .diag-conf-tier confidence picker style declared',
 // Fix: hoist the three render calls into the DOMContentLoaded handler so
 // initial paint matches the post-navigation state.
 test('v4.81.1: DOMContentLoaded calls renderNextBestMove on first paint',
-  /DOMContentLoaded[\s\S]{0,2500}renderNextBestMove\b/.test(js));
+  /DOMContentLoaded[\s\S]{0,3500}renderNextBestMove\b/.test(js));
 test('v4.81.1: DOMContentLoaded calls renderSrReviewCard on first paint',
-  /DOMContentLoaded[\s\S]{0,2500}renderSrReviewCard\b/.test(js));
+  /DOMContentLoaded[\s\S]{0,3500}renderSrReviewCard\b/.test(js));
 test('v4.81.1: DOMContentLoaded calls renderDiagnosticSurface on first paint',
-  /DOMContentLoaded[\s\S]{0,2500}renderDiagnosticSurface\b/.test(js));
+  /DOMContentLoaded[\s\S]{0,3500}renderDiagnosticSurface\b/.test(js));
 
 // ──────────────────────────────────────────────────────────
 // v4.81.2: Auto-backup safety net
@@ -10388,9 +10388,9 @@ test('v4.81.3 Safety: _maybeExportReminder function defined',
 
 // DOMContentLoaded wires all three
 test('v4.81.3 Safety: DOMContentLoaded calls _emitProdConsoleBanner',
-  /DOMContentLoaded[\s\S]{0,3000}_emitProdConsoleBanner\b/.test(js));
+  /DOMContentLoaded[\s\S]{0,4000}_emitProdConsoleBanner\b/.test(js));
 test('v4.81.3 Safety: DOMContentLoaded calls _renderEnvBadge',
-  /DOMContentLoaded[\s\S]{0,3000}_renderEnvBadge\b/.test(js));
+  /DOMContentLoaded[\s\S]{0,4000}_renderEnvBadge\b/.test(js));
 test('v4.81.3 Safety: DOMContentLoaded calls _maybeExportReminder',
   // v4.81.23: window widened 3000 → 3500 (v4.81.23 cleanup added a comment block)
   /DOMContentLoaded[\s\S]{0,3500}_maybeExportReminder\b/.test(js));
@@ -11869,8 +11869,10 @@ test('v4.81.17 DomainDrill: _topicsInDomain reverse-lookup helper defined',
   /function _topicsInDomain\(/.test(js));
 test('v4.81.17 DomainDrill: _DOMAIN_TOPICS_CACHE memoisation declared',
   /_DOMAIN_TOPICS_CACHE/.test(js));
-test('v4.81.17 DomainDrill: _DOMAIN_IDX maps all 5 domain keys to indices',
-  /_DOMAIN_IDX\s*=\s*\{[^}]*concepts:\s*1[^}]*implementation:\s*2[^}]*operations:\s*3[^}]*security:\s*4[^}]*troubleshooting:\s*5/.test(js));
+// v4.87.1: _DOMAIN_IDX rebuilt as IIFE that derives from CERT_PACK.domainWeights
+// (cert-aware). The Network+ literal mapping lives in the fallback branch.
+test('v4.81.17 DomainDrill: _DOMAIN_IDX Network+ fallback maps all 5 domain keys',
+  /_DOMAIN_IDX[\s\S]{0,800}idx\.concepts\s*=\s*1[\s\S]{0,200}idx\.implementation\s*=\s*2[\s\S]{0,200}idx\.operations\s*=\s*3[\s\S]{0,200}idx\.security\s*=\s*4[\s\S]{0,200}idx\.troubleshooting\s*=\s*5/.test(js));
 test('v4.81.17 DomainDrill: applyDomainPreset uses Multi: sentinel for topic state',
   /topic\s*=\s*['"]Multi:\s*['"]\s*\+\s*topics\.join/.test(_fnBody(js, 'applyDomainPreset') || ''));
 test('v4.81.17 DomainDrill: applyDomainPreset defaults to 10 Qs Exam Level',
@@ -16008,6 +16010,76 @@ test('v4.87.0 SecplusContent: covers Domain 5.0 Governance Risk Mgmt topic',
   /'Risk Management':\s*'governance'/.test(certSecplus));
 test('v4.87.0 SecplusContent: Messer URLs use SY0-701 query param',
   /search:\s*'professor\+messer\+SY0-701/.test(certSecplus));
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.87.1 — Security+ usability ship: auto-deploy via GitHub Actions for
+// both certs · 77 carry-over exemplars from Network+ retagged for SY0-701
+// · dynamic topic-chip rendering when CURRENT_CERT === 'secplus'.
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Auto-deploy: GitHub Actions has parallel Security+ deploy job ──
+test('v4.87.1 AutoDeploy: ci.yml has Network+ deploy-production job',
+  /deploy-production:[\s\S]{0,200}Deploy to Production \(Network\+\)/.test(require('fs').readFileSync('.github/workflows/ci.yml', 'utf8')));
+test('v4.87.1 AutoDeploy: ci.yml has Security+ deploy-production-secplus job',
+  /deploy-production-secplus:[\s\S]{0,200}Deploy to Production \(Security\+\)/.test(require('fs').readFileSync('.github/workflows/ci.yml', 'utf8')));
+test('v4.87.1 AutoDeploy: Security+ deploy uses correct project ID',
+  require('fs').readFileSync('.github/workflows/ci.yml', 'utf8').includes('prj_CyuAuPobazxHgrHMYWR0em9gKJeU'));
+
+// ── Carry-over exemplars in Security+ pack ──
+test('v4.87.1 CarryOver: Security+ pack has 77 questionExemplars (carried over from Network+)',
+  (() => {
+    // Count "type" field occurrences — each exemplar has exactly one
+    const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
+    return matches.length === 77;
+  })());
+test('v4.87.1 CarryOver: every carry-over has source: curated-netplus-carryover',
+  (() => {
+    const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
+    if (!m) return false;
+    const matches = m[1].match(/"source":"curated-netplus-carryover"/g) || [];
+    return matches.length === 77;
+  })());
+test('v4.87.1 CarryOver: every entry has originalTopic field for traceability',
+  (() => {
+    const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
+    if (!m) return false;
+    const matches = m[1].match(/"originalTopic":/g) || [];
+    return matches.length === 77;
+  })());
+test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
+  (() => {
+    const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
+    if (!m) return false;
+    const tdM = certSecplus.match(/topicDomains:\s*\{([\s\S]*?)\n\s*\},/);
+    if (!tdM) return false;
+    const validTopics = new Set();
+    (tdM[1].match(/'([^']+)':\s*'(?:concepts|threats|architecture|operations|governance)'/g) || [])
+      .forEach(line => { const t = line.match(/'([^']+)':/); if (t) validTopics.add(t[1]); });
+    const exTopics = (m[1].match(/"topic":"([^"]+)"/g) || []).map(s => s.replace(/^"topic":"|"$/g, ''));
+    return exTopics.length === 77 && exTopics.every(t => validTopics.has(t));
+  })());
+
+// ── Dynamic topic-chip rendering ──
+test('v4.87.1 ChipRender: _renderTopicChipsForActiveCert function defined',
+  /function\s+_renderTopicChipsForActiveCert\s*\(\)/.test(js));
+test('v4.87.1 ChipRender: function reads CERT_PACK.topicDomains',
+  /_renderTopicChipsForActiveCert[\s\S]{0,3000}CERT_PACK\.topicDomains/.test(js));
+test('v4.87.1 ChipRender: function is no-op for netplus cert',
+  /_renderTopicChipsForActiveCert[\s\S]{0,800}CURRENT_CERT === ['"]netplus['"]\)\s*return/.test(js));
+test('v4.87.1 ChipRender: function rebuilds 5 topic-domain-group accordions',
+  /_renderTopicChipsForActiveCert[\s\S]{0,3000}details\.topic-domain-group\[data-domain-idx="['"]?\s*['"]?\s*\+\s*idx/.test(js));
+test('v4.87.1 ChipRender: function updates 5 .tdp-pill labels',
+  /_renderTopicChipsForActiveCert[\s\S]{0,3500}\.tdp-pill/.test(js));
+test('v4.87.1 ChipRender: function updates 5 .modes-domain-tile labels',
+  /_renderTopicChipsForActiveCert[\s\S]{0,4000}\.modes-domain-tile/.test(js));
+test('v4.87.1 ChipRender: hooked into DOMContentLoaded',
+  /DOMContentLoaded[\s\S]{0,800}_renderTopicChipsForActiveCert\s*\(\)/.test(js));
+
+// ── _DOMAIN_IDX is now cert-aware ──
+test('v4.87.1 DomainIdx: _DOMAIN_IDX derives from CERT_PACK.domainWeights',
+  /_DOMAIN_IDX\s*=\s*\(\(\)\s*=>\s*\{[\s\S]{0,400}CERT_PACK\.domainWeights/.test(js));
+test('v4.87.1 DomainIdx: Network+ fallback preserved for safety',
+  /_DOMAIN_IDX[\s\S]{0,800}idx\.concepts\s*=\s*1[\s\S]{0,200}idx\.troubleshooting\s*=\s*5/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

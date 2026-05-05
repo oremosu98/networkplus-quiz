@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.87.0
+// Network+ AI Quiz — app.js  v4.87.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.87.0';
+const APP_VERSION = '4.87.1';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -703,6 +703,13 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  // v4.87.1: re-render topic chips for the active cert BEFORE binding click
+  // handlers. In Security+ mode this swaps the static Network+ chips for
+  // the SY0-701 catalog. Network+ mode is no-op (static HTML is correct).
+  if (typeof _renderTopicChipsForActiveCert === 'function') {
+    try { _renderTopicChipsForActiveCert(); } catch (_) {}
+  }
+
   // Apply saved theme
   setTheme(getTheme());
 
@@ -8594,7 +8601,114 @@ function _topicsInDomain(domainKey) {
   return _DOMAIN_TOPICS_CACHE[domainKey] || [];
 }
 
-const _DOMAIN_IDX = { concepts: 1, implementation: 2, operations: 3, security: 4, troubleshooting: 5 };
+// v4.87.1: cert-aware domain index. Network+ has 5 domains:
+//   concepts(1), implementation(2), operations(3), security(4), troubleshooting(5)
+// Security+ has 5 different domains:
+//   concepts(1), threats(2), architecture(3), operations(4), governance(5)
+// The 1-5 numeric index is a UI affordance (matches data-domain-idx CSS color
+// coding); the actual domain key strings differ per cert. Built from
+// CERT_PACK.domainWeights insertion order — JS object key order is preserved
+// so this matches the order topics were declared per-domain.
+const _DOMAIN_IDX = (() => {
+  const idx = {};
+  if (CERT_PACK && CERT_PACK.domainWeights) {
+    Object.keys(CERT_PACK.domainWeights).forEach((k, i) => { idx[k] = i + 1; });
+  } else {
+    // Network+ fallback if CERT_PACK failed to load
+    idx.concepts = 1; idx.implementation = 2; idx.operations = 3; idx.security = 4; idx.troubleshooting = 5;
+  }
+  return idx;
+})();
+
+// v4.87.1: re-render topic chips + domain pills + Mode Ladder tiles for the
+// active cert. Static HTML in index.html is hardcoded for Network+ topics
+// (50 chips across 5 N+ domains). When CURRENT_CERT === 'secplus' this
+// function rebuilds:
+//   1. The 5 <details class="topic-domain-group"> accordions (chip lists)
+//   2. The 5 .tdp-pill domain-prefill buttons (label + onclick handler)
+//   3. The 5 .modes-domain-tile Mode Ladder tiles (label + onclick + title)
+// Network+ mode is no-op — static HTML is correct for it.
+//
+// Why re-render at runtime instead of dynamic HTML from scratch: keeps the
+// Network+ static HTML untouched (zero behavioral risk for the customer-
+// facing deploy) while letting Security+ override at boot. The data-cert
+// attribute on <html> set by the inline <head> script controls visibility
+// of the per-cert banner; this function controls the chip content.
+function _renderTopicChipsForActiveCert() {
+  if (!CERT_PACK || !CERT_PACK.topicDomains || !CERT_PACK.domainLabels) return;
+  if (CURRENT_CERT === 'netplus') return; // static HTML is correct
+  try {
+    const domainKeys = Object.keys(CERT_PACK.domainWeights || {});
+    if (domainKeys.length !== 5) return; // unexpected blueprint shape
+
+    // Build per-domain topic lists from CERT_PACK.topicDomains
+    const topicsByDomain = {};
+    Object.keys(CERT_PACK.topicDomains).forEach(t => {
+      const d = CERT_PACK.topicDomains[t];
+      if (!topicsByDomain[d]) topicsByDomain[d] = [];
+      topicsByDomain[d].push(t);
+    });
+
+    const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // 1. Update the 5 topic-domain-group accordions
+    domainKeys.forEach((dKey, i) => {
+      const idx = i + 1;
+      const accordion = document.querySelector('details.topic-domain-group[data-domain-idx="' + idx + '"]');
+      if (!accordion) return;
+      const summary = accordion.querySelector('summary');
+      const grid = accordion.querySelector('.chip-grid');
+      const label = CERT_PACK.domainLabels[dKey] || dKey;
+      const weight = CERT_PACK.domainWeights[dKey];
+      const weightStr = weight ? Math.round(weight * 100) + '%' : '';
+      if (summary) {
+        summary.innerHTML = '<span class="dom-name">' + idx + '.0 ' + escHtml(label) + '</span><span class="dom-weight">' + weightStr + '</span>';
+      }
+      if (grid) {
+        const topics = topicsByDomain[dKey] || [];
+        grid.innerHTML = topics.map(t => '<button class="chip" data-v="' + escHtml(t) + '">' + escHtml(t) + '</button>').join('');
+      }
+    });
+
+    // 2. Update the 5 .tdp-pill domain-prefill buttons
+    document.querySelectorAll('.tdp-pill').forEach((pill) => {
+      const idx = parseInt(pill.dataset.domainIdx, 10);
+      const dKey = domainKeys[idx - 1];
+      if (!dKey) return;
+      const label = CERT_PACK.domainLabels[dKey] || dKey;
+      const count = (topicsByDomain[dKey] || []).length;
+      pill.textContent = idx + '.0 ' + label;
+      pill.setAttribute('onclick', "prefillDomainTopics('" + dKey + "')");
+      pill.setAttribute('title', 'Select all ' + count + ' ' + label + ' topics');
+    });
+
+    // 3. Update the 5 .modes-domain-tile Mode Ladder tiles
+    document.querySelectorAll('.modes-domain-tile').forEach((tile) => {
+      const idx = parseInt(tile.dataset.domainIdx, 10);
+      const dKey = domainKeys[idx - 1];
+      if (!dKey) return;
+      const label = CERT_PACK.domainLabels[dKey] || dKey;
+      const count = (topicsByDomain[dKey] || []).length;
+      tile.setAttribute('onclick', "applyDomainPreset('" + dKey + "')");
+      tile.setAttribute('title', '10 Qs · Exam Level · all ' + count + ' ' + label + ' topics');
+      // Update inner text to label — find the span structure first
+      const txt = tile.querySelector('.modes-domain-tile-label, .modes-tile-title') || tile;
+      // The Mode Ladder tile inner structure has multiple spans; rather than
+      // brittle-match the structure, update the LAST text node inside (which
+      // is typically the visible label) — defensive fallback to textContent.
+      try {
+        const lastTextSpan = tile.querySelector('span:last-child');
+        if (lastTextSpan && !lastTextSpan.querySelector('*')) {
+          lastTextSpan.textContent = idx + '.0 ' + label;
+        } else {
+          tile.textContent = idx + '.0 ' + label;
+        }
+      } catch (_) { tile.textContent = idx + '.0 ' + label; }
+    });
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('[chips] _renderTopicChipsForActiveCert failed:', e.message);
+  }
+}
 
 function applyDomainPreset(domainKey) {
   const topics = _topicsInDomain(domainKey);

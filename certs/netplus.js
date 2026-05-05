@@ -285,7 +285,7 @@ window.CERT_PACKS.netplus = {
       'duplex mismatch': 'A duplex mismatch causes late collisions and runt frames on the half-duplex side, and FCS/CRC errors on the full-duplex side. Fix by setting both ends to auto-negotiate or both to the same fixed duplex.',
       'PoE standards': 'PoE (802.3af) = 15.4W, PoE+ (802.3at) = 30W, PoE++ / 4PPoE (802.3bt Type 3) = 60W, 802.3bt Type 4 = 100W. All power is sourced at the PSE (switch/injector), measured at the PD minus cable loss.'
     }
-  },,
+  },
 
   // ── CURATED EXEMPLAR BANK (v4.59.0 + Phase 3 cycles, 320 entries) ─────
   // Few-shot style references injected into Haiku's prompt by
