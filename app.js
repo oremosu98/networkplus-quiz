@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.87.1
+// Network+ AI Quiz — app.js  v4.87.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.87.1';
+const APP_VERSION = '4.87.2';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -8682,28 +8682,25 @@ function _renderTopicChipsForActiveCert() {
       pill.setAttribute('title', 'Select all ' + count + ' ' + label + ' topics');
     });
 
-    // 3. Update the 5 .modes-domain-tile Mode Ladder tiles
+    // 3. Update the 5 .modes-domain-tile Mode Ladder tiles. Inner structure:
+    //   <span class="mdt-num">1.0</span>
+    //   <span class="mdt-name">Networking Concepts</span>
+    //   <span class="mdt-meta">23% · 10 Qs</span>
     document.querySelectorAll('.modes-domain-tile').forEach((tile) => {
       const idx = parseInt(tile.dataset.domainIdx, 10);
       const dKey = domainKeys[idx - 1];
       if (!dKey) return;
       const label = CERT_PACK.domainLabels[dKey] || dKey;
+      const weight = CERT_PACK.domainWeights[dKey];
       const count = (topicsByDomain[dKey] || []).length;
       tile.setAttribute('onclick', "applyDomainPreset('" + dKey + "')");
       tile.setAttribute('title', '10 Qs · Exam Level · all ' + count + ' ' + label + ' topics');
-      // Update inner text to label — find the span structure first
-      const txt = tile.querySelector('.modes-domain-tile-label, .modes-tile-title') || tile;
-      // The Mode Ladder tile inner structure has multiple spans; rather than
-      // brittle-match the structure, update the LAST text node inside (which
-      // is typically the visible label) — defensive fallback to textContent.
-      try {
-        const lastTextSpan = tile.querySelector('span:last-child');
-        if (lastTextSpan && !lastTextSpan.querySelector('*')) {
-          lastTextSpan.textContent = idx + '.0 ' + label;
-        } else {
-          tile.textContent = idx + '.0 ' + label;
-        }
-      } catch (_) { tile.textContent = idx + '.0 ' + label; }
+      const numSpan = tile.querySelector('.mdt-num');
+      const nameSpan = tile.querySelector('.mdt-name');
+      const metaSpan = tile.querySelector('.mdt-meta');
+      if (numSpan) numSpan.textContent = idx + '.0';
+      if (nameSpan) nameSpan.textContent = label;
+      if (metaSpan) metaSpan.textContent = (weight ? Math.round(weight * 100) + '%' : '') + ' · 10 Qs';
     });
   } catch (e) {
     if (typeof console !== 'undefined') console.warn('[chips] _renderTopicChipsForActiveCert failed:', e.message);
@@ -35193,11 +35190,15 @@ function renderAppSidebar() {
     }
   } catch (_) { streakHtml = ''; }
 
+  // v4.87.2: cert-aware sidebar brand — N+ / Network+ for netplus,
+  // S+ / Security+ for secplus.
+  const brandMark = (CURRENT_CERT === 'secplus') ? 'S+' : 'N+';
+  const brandName = (CURRENT_CERT === 'secplus') ? 'Security+' : 'Network+';
   el.innerHTML = `
     <div class="sb-brand">
-      <div class="sb-brand-mark" aria-hidden="true">N+</div>
+      <div class="sb-brand-mark" aria-hidden="true">${brandMark}</div>
       <div class="sb-brand-text">
-        <span class="sb-brand-name">Network+</span>
+        <span class="sb-brand-name">${brandName}</span>
         <span class="sb-brand-version">v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '4.53.0'}</span>
       </div>
     </div>

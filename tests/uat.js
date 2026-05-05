@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.87.1', js.includes("const APP_VERSION = '4.87.1"));
+test('APP_VERSION is 4.87.2', js.includes("const APP_VERSION = '4.87.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.87.1', sw.includes('netplus-v4.87.1'));
+test('SW cache bumped to v4.87.2', sw.includes('netplus-v4.87.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16080,6 +16080,41 @@ test('v4.87.1 DomainIdx: _DOMAIN_IDX derives from CERT_PACK.domainWeights',
   /_DOMAIN_IDX\s*=\s*\(\(\)\s*=>\s*\{[\s\S]{0,400}CERT_PACK\.domainWeights/.test(js));
 test('v4.87.1 DomainIdx: Network+ fallback preserved for safety',
   /_DOMAIN_IDX[\s\S]{0,800}idx\.concepts\s*=\s*1[\s\S]{0,200}idx\.troubleshooting\s*=\s*5/.test(js));
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.87.2 — Security+ branding fixes (user dogfood).
+// User screenshot showed: (1) Mode Ladder tile titles still showed Network+
+// names in Security+ mode (my v4.87.1 chip render targeted span:last-child
+// = .mdt-meta instead of .mdt-name); (2) Sidebar still showed N+ / Network+
+// brand even in Security+ mode (renderAppSidebar hardcoded the mark + name).
+// Plus browser-tab title was still "Network+ AI Quiz" in Security+ mode.
+// ═══════════════════════════════════════════════════════════════════════
+
+test('v4.87.2 ChipRender: Mode Ladder tile updates target .mdt-name (not last span)',
+  /\.mdt-name/.test(_fnBody(js, '_renderTopicChipsForActiveCert') || ''));
+test('v4.87.2 ChipRender: Mode Ladder tile updates .mdt-num + .mdt-name + .mdt-meta',
+  (() => {
+    const body = _fnBody(js, '_renderTopicChipsForActiveCert') || '';
+    return /\.mdt-num/.test(body) && /\.mdt-name/.test(body) && /\.mdt-meta/.test(body);
+  })());
+test('v4.87.2 ChipRender: tombstone — span:last-child fallback removed',
+  !/lastTextSpan\s*=\s*tile\.querySelector\(['"]span:last-child['"]\)/.test(js));
+
+test('v4.87.2 SidebarBrand: cert-aware brandMark + brandName declared',
+  /const\s+brandMark\s*=.*CURRENT_CERT === ['"]secplus['"].*S\+.*N\+/.test(js));
+test('v4.87.2 SidebarBrand: brandName covers both Security+ and Network+',
+  /const\s+brandName\s*=.*Security\+.*Network\+/.test(js));
+test('v4.87.2 SidebarBrand: sb-brand-mark uses ${brandMark} interpolation',
+  /sb-brand-mark[^>]*>\$\{brandMark\}/.test(js));
+test('v4.87.2 SidebarBrand: sb-brand-name uses ${brandName} interpolation',
+  /sb-brand-name[^>]*>\$\{brandName\}/.test(js));
+test('v4.87.2 SidebarBrand: hardcoded "N+" literal removed from renderAppSidebar',
+  !/sb-brand-mark[^>]*>N\+</.test(js));
+test('v4.87.2 SidebarBrand: hardcoded "Network+" literal removed from sidebar template',
+  !/sb-brand-name[^>]*>Network\+</.test(js));
+
+test('v4.87.2 PageTitle: inline <head> script swaps document.title to "Security+ AI Quiz"',
+  /document\.title\s*=\s*['"]Security\+ AI Quiz['"]/.test(html));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
