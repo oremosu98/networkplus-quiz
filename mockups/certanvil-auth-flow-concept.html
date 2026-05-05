@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — CertAnvil Auth Flow</title>
+<style>
+  :root[data-theme="light"] {
+    --bg: #fafbff; --bg-elevated: #ffffff; --surface: #ffffff; --surface-2: #f4f5fa; --surface-3: #eaecf3;
+    --border: #e5e7f0; --border-strong: #c7c9d8;
+    --text: #1a1a2e; --text-mid: #4a4a6e; --text-dim: #8a8aac;
+    --accent: #5b4fdb; --accent-hover: #4a3fbe; --accent-light: #7c6ff7;
+    --accent-soft-bg: rgba(91,79,219,.06); --accent-soft-border: rgba(91,79,219,.18);
+    --green: #16a34a; --green-soft-bg: rgba(22,163,74,.08); --green-border: rgba(22,163,74,.3);
+    --orange: #d97706; --orange-soft-bg: rgba(217,119,6,.08);
+    --red: #dc2626; --red-soft-bg: rgba(220,38,38,.06);
+    --shadow-card: 0 1px 2px rgba(20,20,40,.04), 0 4px 12px rgba(20,20,40,.05);
+    --shadow-modal: 0 24px 60px -12px rgba(20,20,40,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; color: var(--text); }
+  .lede { color: var(--text-mid); font-size: 14px; margin-bottom: 36px; max-width: 720px; }
+  code { font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.85em; background: var(--accent-soft-bg); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+
+  .annotation {
+    background: var(--accent-soft-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  .state-divider {
+    margin: 56px 0 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+
+  /* Browser frame */
+  .browser-frame {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-card);
+  }
+  .browser-bar {
+    background: var(--surface-2);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f56; }
+  .browser-dot.y { background: #ffbd2e; }
+  .browser-dot.g { background: #27c93f; }
+  .browser-url {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-left: 8px;
+    text-align: center;
+  }
+  .browser-url-secure { color: var(--green); margin-right: 4px; }
+
+  /* Landing page topbar (from real landing) */
+  .landing-mini { padding: 18px 24px; background: var(--bg); position: relative; }
+
+  .topbar-mini {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mini { display: flex; align-items: center; gap: 10px; }
+  .logo-mark-mini {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .logo-mark-mini svg { width: 100%; height: 100%; display: block; }
+  .logo-name-mini { font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
+
+  .nav-mini { display: flex; align-items: center; gap: 4px; }
+  .nav-link-mini { font-size: 13px; color: var(--text-mid); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  .nav-link-mini:hover { color: var(--text); background: var(--surface-2); }
+
+  /* Sign-in CTA in topbar */
+  .sign-in-btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  .sign-in-btn:hover { background: var(--accent-hover); }
+
+  /* Account avatar/dropdown when signed in */
+  .account-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .account-pill:hover { border-color: var(--accent); }
+  .account-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .account-email { font-size: 12px; font-weight: 600; color: var(--text); }
+  .account-chevron { color: var(--text-dim); font-size: 10px; }
+
+  /* Account dropdown (open state) */
+  .account-dropdown {
+    position: absolute;
+    top: 56px;
+    right: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    width: 240px;
+    box-shadow: var(--shadow-modal);
+    z-index: 10;
+  }
+  .dropdown-header {
+    padding: 12px 12px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .dropdown-email { font-size: 13px; font-weight: 700; color: var(--text); }
+  .dropdown-tier { font-size: 11px; color: var(--green); margin-top: 2px; font-weight: 600; }
+  .dropdown-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    color: var(--text-mid);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .dropdown-link:hover { background: var(--surface-2); color: var(--text); }
+  .dropdown-link-icon { font-size: 14px; }
+  .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .dropdown-link-danger { color: var(--red); }
+
+  /* Hero (snippet) */
+  .hero-mini {
+    text-align: center;
+    padding: 40px 0;
+  }
+  .hero-mini h2 {
+    font-size: 32px; font-weight: 800; letter-spacing: -.02em;
+    margin-bottom: 8px; color: var(--text);
+  }
+  .hero-mini p { color: var(--text-mid); font-size: 14px; }
+
+  /* Modal */
+  .modal-overlay {
+    position: relative;
+    background: rgba(20,20,40,.45);
+    backdrop-filter: blur(8px);
+    padding: 80px 24px;
+    margin: 0;
+    min-height: 480px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .auth-modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow-modal);
+    position: relative;
+  }
+  .auth-modal-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 0;
+  }
+  .auth-modal-close:hover { background: var(--surface-2); color: var(--text); }
+
+  .auth-logo-mark {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 4px;
+    margin-bottom: 18px;
+  }
+  .auth-logo-mark svg { width: 100%; height: 100%; display: block; }
+
+  .auth-title {
+    font-size: 22px; font-weight: 800; letter-spacing: -.01em;
+    color: var(--text); margin-bottom: 8px;
+  }
+  .auth-sub {
+    font-size: 13.5px; color: var(--text-mid); line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  .auth-form { display: flex; flex-direction: column; gap: 12px; }
+  .auth-input-group { display: flex; flex-direction: column; gap: 6px; }
+  .auth-label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .auth-input {
+    padding: 11px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .auth-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft-bg);
+  }
+  .auth-cta {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .auth-cta:hover { background: var(--accent-hover); }
+  .auth-cta:disabled { opacity: .65; cursor: not-allowed; }
+
+  .auth-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 18px 0 14px;
+  }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .auth-divider-text { font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+
+  .auth-oauth-btn {
+    display: flex; align-items: center; gap: 10px;
+    justify-content: center;
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: all .15s;
+  }
+  .auth-oauth-btn:hover { background: var(--surface-2); border-color: var(--accent); }
+  .auth-oauth-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .auth-oauth-btn .coming-soon-pill {
+    margin-left: auto;
+    font-size: 9px; font-weight: 700; letter-spacing: .12em;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 2px 7px; border-radius: 99px;
+    text-transform: uppercase;
+  }
+
+  .auth-foot {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    text-align: center;
+  }
+  .auth-foot a { color: var(--accent); text-decoration: none; font-weight: 500; }
+
+  /* Magic-link-sent confirmation state */
+  .auth-sent {
+    text-align: center;
+    padding: 12px 0 0;
+  }
+  .auth-sent-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--green-soft-bg);
+    border: 2px solid var(--green-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 16px;
+  }
+  .auth-sent-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .auth-sent-sub { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 16px; }
+  .auth-sent-email-pill {
+    display: inline-block;
+    padding: 5px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .auth-sent-resend {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .auth-sent-resend a { color: var(--accent); cursor: pointer; }
+
+  /* Migration banner (anonymous → authed) */
+  .migration-banner {
+    background: linear-gradient(135deg, rgba(217,119,6,.08), rgba(91,79,219,.04));
+    border: 1px solid var(--orange-soft-bg);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .migration-banner-icon { font-size: 16px; flex-shrink: 0; }
+  .migration-banner strong { color: var(--text); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔑 CertAnvil — Auth Flow Concept</h1>
+  <div class="lede">
+    Phase B mockup. Magic-link-first sign-in via Supabase Auth (Resend SMTP for email delivery). Google OAuth visible-but-deferred (separate ticket). Six states stacked below: logged-out topbar / sign-in modal / sign-in modal with anonymous-progress migration / magic-link-sent confirmation / logged-in topbar / account dropdown open.
+  </div>
+
+  <div class="annotation">
+    <strong>Architectural decisions (from chat — confirm or push back)</strong>
+    1. <strong>Magic link only</strong> at launch (Google OAuth deferred — needs Google Cloud Console setup, file as separate ticket).<br>
+    2. <strong>Same flow for sign-up + sign-in</strong> — Supabase auto-creates the account if email doesn't exist. UI says "Continue with email" (intentionally ambiguous); user just enters email.<br>
+    3. <strong>Cross-subdomain session</strong> — cookie set on <code>.certanvil.com</code> so signing in at root inherits to <code>networkplus.certanvil.com</code> + future subdomains.<br>
+    4. <strong>Anonymous → authed migration</strong> — when user signs up after using the app anonymously (localStorage has data), prompt to import. One-click migration.<br>
+    5. <strong>Magic link emails sent via Resend SMTP</strong> in Supabase Auth → reuses your verified <code>certanvil.com</code> domain.<br>
+    6. <strong>Free tier on signup</strong> — every new user gets a <code>cert_entitlements</code> row for Network+ at <code>tier='free'</code> automatically (via Postgres trigger). Foundation for the day-7 paywall later.
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1 — LOGGED-OUT TOPBAR                                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 1 · Logged-out · "Sign in" CTA in topbar</span></div>
+
+  <div class="annotation">
+    Default state for any visitor. <code>localStorage.certanvil_auth_session</code> is empty. Sign-in button sits in the topbar where "Sign in" link currently lives in the live landing page. Clicking it opens the modal in State 2.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="landing-mini">
+      <div class="topbar-mini">
+        <div class="logo-mini">
+          <div class="logo-mark-mini">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="logo-name-mini">CertAnvil</span>
+        </div>
+        <nav class="nav-mini">
+          <a class="nav-link-mini">Why CertAnvil</a>
+          <a class="nav-link-mini">Certs</a>
+          <button class="sign-in-btn">Sign in</button>
+        </nav>
+      </div>
+      <div class="hero-mini">
+        <h2>Forge your way through CompTIA certs.</h2>
+        <p>(Hero copy continues below; cert grid follows...)</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2 — SIGN-IN MODAL (cold, no anonymous progress)                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 2 · Sign-in modal · Default (cold visitor)</span></div>
+
+  <div class="annotation">
+    Click "Sign in" → modal opens. Magic-link email field, optional Google OAuth (currently shown as <em>"Coming soon"</em> for transparency — file as separate ticket), small footer note about why magic links beat passwords. No "create account" / "sign in" toggle — same form handles both (Supabase auto-creates user if email is new).
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="modal-overlay">
+      <div class="auth-modal">
+        <button class="auth-modal-close" aria-label="Close">×</button>
+        <div class="auth-logo-mark">
+          <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+        </div>
+        <h3 class="auth-title">Sign in to CertAnvil</h3>
+        <p class="auth-sub">Drop your email and we'll send a one-click sign-in link. New here? Same form — your account gets created automatically.</p>
+
+        <form class="auth-form">
+          <div class="auth-input-group">
+            <label class="auth-label" for="email">Email</label>
+            <input type="email" class="auth-input" id="email" placeholder="you@email.com" autocomplete="email">
+          </div>
+          <button type="submit" class="auth-cta">Continue with email →</button>
+        </form>
+
+        <div class="auth-divider"><span class="auth-divider-text">or</span></div>
+
+        <button class="auth-oauth-btn" disabled>
+          <svg class="auth-oauth-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          <span>Continue with Google</span>
+          <span class="coming-soon-pill">Soon</span>
+        </button>
+
+        <div class="auth-foot">
+          By continuing you agree to our <a>Terms</a> and <a>Privacy</a>. We use magic links because <em>passwords break, and password resets break more</em>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3 — SIGN-IN MODAL with anonymous-progress migration             -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 3 · Sign-in modal · With anonymous progress detected</span></div>
+
+  <div class="annotation">
+    User has been studying anonymously (localStorage has Network+ progress). When they hit "Sign in", a migration banner appears — informing them their progress will be linked to the new account. <strong>One-click, no scary lose-your-data dialogs.</strong> Implementation: on successful auth, JS reads localStorage <code>nplus_*</code> keys, POSTs them to a Supabase RPC function that mirrors them into <code>quiz_history</code> for the new user.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="modal-overlay">
+      <div class="auth-modal">
+        <button class="auth-modal-close" aria-label="Close">×</button>
+        <div class="auth-logo-mark">
+          <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+        </div>
+        <h3 class="auth-title">Save your progress</h3>
+        <p class="auth-sub">You've been studying anonymously. Sign in to keep your progress across devices and unlock cross-cert features.</p>
+
+        <div class="migration-banner">
+          <span class="migration-banner-icon">📦</span>
+          <div>
+            <strong>Found 47 quiz sessions + 12-day streak + readiness 752</strong> on this browser. Your account will inherit them on first sign-in.
+          </div>
+        </div>
+
+        <form class="auth-form">
+          <div class="auth-input-group">
+            <label class="auth-label">Email</label>
+            <input type="email" class="auth-input" placeholder="you@email.com" autocomplete="email">
+          </div>
+          <button type="submit" class="auth-cta">Continue with email →</button>
+        </form>
+
+        <div class="auth-foot">
+          Your local progress stays on this device until you confirm the import. Cancel anytime.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 4 — MAGIC LINK SENT CONFIRMATION                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 4 · Magic link sent · "Check your inbox"</span></div>
+
+  <div class="annotation">
+    User submits email → Supabase fires magic-link email via Resend SMTP → modal shows confirmation. Email appears as <em>"Sign in to CertAnvil"</em> from <code>auth@certanvil.com</code>, link expires in 1 hour. User clicks the link → returns to certanvil.com with active session → modal auto-closes → topbar updates to State 5 (logged-in).
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="modal-overlay">
+      <div class="auth-modal">
+        <button class="auth-modal-close" aria-label="Close">×</button>
+        <div class="auth-sent">
+          <div class="auth-sent-icon">📬</div>
+          <h3 class="auth-sent-title">Check your inbox</h3>
+          <p class="auth-sent-sub">
+            We just sent a one-click sign-in link to:<br>
+          </p>
+          <span class="auth-sent-email-pill">simi_oremosu@hotmail.com</span>
+          <p class="auth-sent-sub" style="margin-top:14px">
+            Click the link in the email to sign in. It expires in 1 hour. Check spam if you don't see it within 30 seconds.
+          </p>
+          <p class="auth-sent-resend">
+            Didn't get it? <a>Resend</a> · <a>Use different email</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 5 — LOGGED-IN TOPBAR                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 5 · Logged-in · Account pill replaces "Sign in" button</span></div>
+
+  <div class="annotation">
+    After successful sign-in (cookie set on <code>.certanvil.com</code>), topbar replaces the "Sign in" button with an account pill — avatar (auto-generated from email initial + accent gradient) + truncated email + chevron. Click → opens dropdown (State 6). Same pill renders identically on cert subdomains.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="landing-mini">
+      <div class="topbar-mini">
+        <div class="logo-mini">
+          <div class="logo-mark-mini">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="logo-name-mini">CertAnvil</span>
+        </div>
+        <nav class="nav-mini">
+          <a class="nav-link-mini">Why CertAnvil</a>
+          <a class="nav-link-mini">Certs</a>
+          <button class="account-pill">
+            <span class="account-avatar">S</span>
+            <span class="account-email">simi_oremosu@…</span>
+            <span class="account-chevron">▾</span>
+          </button>
+        </nav>
+      </div>
+      <div class="hero-mini">
+        <h2>Welcome back, Simi.</h2>
+        <p>(Cert grid below personalized — "Continue Network+" tile shows last study state, etc.)</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 6 — ACCOUNT DROPDOWN OPEN                                       -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 6 · Account dropdown · Click pill to open</span></div>
+
+  <div class="annotation">
+    Dropdown shows email + tier + 3 actions: <em>Account settings</em> (defer for now — can route to a placeholder page), <em>Manage entitlements</em> (lists which certs you have access to + tier — simple table for now, Stripe integration later), <em>Sign out</em> (clears Supabase session, drops localStorage auth bits, reloads to home). Click outside or press Escape to close.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="landing-mini">
+      <div class="topbar-mini">
+        <div class="logo-mini">
+          <div class="logo-mark-mini">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="logo-name-mini">CertAnvil</span>
+        </div>
+        <nav class="nav-mini">
+          <a class="nav-link-mini">Why CertAnvil</a>
+          <a class="nav-link-mini">Certs</a>
+          <button class="account-pill" style="border-color: var(--accent)">
+            <span class="account-avatar">S</span>
+            <span class="account-email">simi_oremosu@…</span>
+            <span class="account-chevron">▴</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Dropdown menu -->
+      <div class="account-dropdown">
+        <div class="dropdown-header">
+          <div class="dropdown-email">simi_oremosu@hotmail.com</div>
+          <div class="dropdown-tier">● Free tier · Network+ unlocked</div>
+        </div>
+        <a class="dropdown-link"><span class="dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+        <a class="dropdown-link"><span class="dropdown-link-icon">🎓</span><span>My certs</span></a>
+        <a class="dropdown-link"><span class="dropdown-link-icon">📊</span><span>Cross-cert analytics</span></a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-link dropdown-link-danger"><span class="dropdown-link-icon">↩</span><span>Sign out</span></a>
+      </div>
+
+      <div class="hero-mini">
+        <h2>Welcome back, Simi.</h2>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- DESIGN NOTES                                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">Design Decisions · Implementation Plan</span></div>
+
+  <div class="annotation">
+    <strong>Why magic-link first, password later (or never)</strong>
+    Magic links solve the password reset spiral. ~30% of "I can't sign in" support tickets across SaaS are forgot-password related. With magic links, every sign-in IS a password reset — no separate flow. Slightly slower per-session (email round-trip) but the UX dependency tree is minimal. Stripe, Notion, Linear all started magic-link-only and only added passwords years later. We can add passwords if customer demand surfaces; we don't need them at launch.
+  </div>
+
+  <div class="annotation">
+    <strong>Why same flow for sign-up + sign-in</strong>
+    "Don't have an account?" links create branching cognitive load. Magic links remove that — Supabase auto-creates an account if the email is new, sends the magic link either way. The auth-sub copy says "New here? Same form — your account gets created automatically" so users aren't confused.
+  </div>
+
+  <div class="annotation">
+    <strong>Cross-subdomain session via apex cookie</strong>
+    Supabase's auth client sets the session cookie on <code>.certanvil.com</code> (apex with leading dot). All subdomains inherit the cookie. Sign in once at <code>certanvil.com</code> → <code>networkplus.certanvil.com</code> sees the same session → cert app shows logged-in state automatically. No re-authentication, no token-passing dance.
+  </div>
+
+  <div class="annotation">
+    <strong>Anonymous → authed migration</strong>
+    Three trigger points where we offer the migration banner: (a) when an anonymous user clicks "Sign in" with localStorage progress detected, (b) when an authed user signs in on a fresh device that DOES have anonymous localStorage progress (ask "Use this device's local progress?"), (c) post-signup if the user took the diagnostic anonymously first. <strong>Critical UX</strong>: never auto-merge without consent. Always show what's getting imported (47 sessions / streak / readiness) so the user decides knowingly.
+  </div>
+
+  <div class="annotation">
+    <strong>What's NOT in this mockup yet</strong>
+    Account settings page (deferred — placeholder route). Cross-cert analytics dashboard (Phase E or later). Email change flow (rare, ship when needed). Two-factor auth (defer — magic links already require email access, which is most of 2FA's value). Email preferences / unsubscribe (when we add marketing emails). Delete account flow (legally required eventually but not for launch — can be a manual "email us" for now).
+  </div>
+
+  <div class="annotation">
+    <strong>Implementation scope (when you sign off)</strong>
+    Magic-link flow: ~3 hours. Account dropdown: ~1 hour. Cross-subdomain cookie + auth state propagation: ~1 hour. Migration banner + flow: ~2 hours (Phase D territory but tile-aware). Total Phase B: ~6-8 hours of focused work, splittable across 2-3 sessions.
+  </div>
+
+</div>
+</body>
+</html>

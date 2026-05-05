@@ -81,7 +81,42 @@
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       </button>
+
+      <!-- Sign-in CTA (hidden when signed in; toggled by auth.js) -->
+      <button type="button" class="sign-in-btn" id="sign-in-btn">Sign in</button>
+
+      <!-- Account pill (hidden when signed out; toggled by auth.js) -->
+      <button type="button" class="account-pill" id="account-pill" hidden aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown">
+        <span class="account-avatar" id="account-avatar" aria-hidden="true">U</span>
+        <span class="account-email-short" id="account-email-short">you@…</span>
+        <span class="account-chevron" id="account-chevron" aria-hidden="true">▾</span>
+      </button>
     </nav>
+
+    <!-- Account dropdown — positioned absolute relative to .topbar-inner -->
+    <div class="account-dropdown" id="account-dropdown" role="menu" aria-labelledby="account-pill" hidden>
+      <div class="dropdown-header">
+        <div class="dropdown-email" id="dropdown-email">you@email.com</div>
+        <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
+      </div>
+      <a href="#" class="dropdown-link" role="menuitem">
+        <span class="dropdown-link-icon" aria-hidden="true">⚙️</span>
+        <span>Account settings</span>
+      </a>
+      <a href="#" class="dropdown-link" role="menuitem">
+        <span class="dropdown-link-icon" aria-hidden="true">🎓</span>
+        <span>My certs</span>
+      </a>
+      <a href="#" class="dropdown-link" role="menuitem">
+        <span class="dropdown-link-icon" aria-hidden="true">📊</span>
+        <span>Cross-cert analytics</span>
+      </a>
+      <div class="dropdown-divider" role="separator"></div>
+      <a href="#" class="dropdown-link dropdown-link-danger" id="sign-out-link" role="menuitem">
+        <span class="dropdown-link-icon" aria-hidden="true">↩</span>
+        <span>Sign out</span>
+      </a>
+    </div>
   </div>
 </header>
 
@@ -253,6 +288,81 @@
 </footer>
 
 <!-- ══════════════════════════════════════════
+     AUTH MODAL — Supabase magic-link sign-in
+     Same form handles sign-up + sign-in (Supabase auto-creates on
+     first magic-link request for an unknown email). Two states:
+       (A) auth-main — form + optional migration banner + Google OAuth (soon)
+       (B) auth-sent — "check your inbox" confirmation
+     auth.js owns lifecycle + state transitions.
+══════════════════════════════════════════ -->
+<div class="auth-modal-overlay" id="auth-modal" role="dialog" aria-labelledby="auth-modal-title" aria-modal="true" hidden>
+  <div class="auth-modal-card">
+    <button type="button" class="auth-modal-close" id="auth-modal-close" aria-label="Close">×</button>
+
+    <!-- ── State A: form (default) ── -->
+    <div class="auth-state auth-state-main" id="auth-main">
+      <div class="auth-logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </div>
+
+      <h3 class="auth-title" id="auth-modal-title">Sign in to CertAnvil</h3>
+      <p class="auth-sub">Drop your email and we'll send a one-click sign-in link. New here? Same form &mdash; your account gets created automatically.</p>
+
+      <!-- Migration banner (anonymous progress detected) — auth.js shows/hides -->
+      <div class="migration-banner" id="migration-banner" hidden>
+        <span class="migration-banner-icon" aria-hidden="true">📦</span>
+        <div class="migration-banner-body" id="migration-stats"></div>
+      </div>
+
+      <form class="auth-form" id="auth-form" novalidate>
+        <div class="auth-input-group">
+          <label class="auth-label" for="auth-email">Email</label>
+          <input type="email" class="auth-input" id="auth-email" placeholder="you@email.com" autocomplete="email" required>
+        </div>
+        <div class="auth-error" id="auth-error" role="alert" hidden></div>
+        <button type="submit" class="auth-cta" id="auth-submit">Continue with email →</button>
+      </form>
+
+      <div class="auth-divider"><span class="auth-divider-text">or</span></div>
+
+      <button type="button" class="auth-oauth-btn" disabled aria-disabled="true" title="Coming soon — Google OAuth">
+        <svg class="auth-oauth-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        <span>Continue with Google</span>
+        <span class="coming-soon-pill">Soon</span>
+      </button>
+
+      <div class="auth-foot">
+        By continuing you agree to our <a href="#">Terms</a> and <a href="#">Privacy</a>. We use magic links because <em>passwords break, and password resets break more</em>.
+      </div>
+    </div>
+
+    <!-- ── State B: magic link sent confirmation ── -->
+    <div class="auth-state auth-state-sent" id="auth-sent" hidden>
+      <div class="auth-sent-icon" aria-hidden="true">📬</div>
+      <h3 class="auth-sent-title">Check your inbox</h3>
+      <p class="auth-sent-sub">We just sent a one-click sign-in link to:</p>
+      <span class="auth-sent-email-pill" id="auth-sent-email">you@email.com</span>
+      <p class="auth-sent-sub auth-sent-sub-hint">Click the link in the email to sign in. It expires in 1 hour. Check spam if you don't see it within 30 seconds.</p>
+      <p class="auth-sent-resend">
+        Didn't get it? <a href="#" id="auth-resend">Resend</a> · <a href="#" id="auth-different-email">Use different email</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      NOTIFY MODAL (lightweight)
 ══════════════════════════════════════════ -->
 <div class="modal" id="notify-modal" role="dialog" aria-labelledby="notify-modal-title" hidden>
@@ -268,6 +378,15 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     SCRIPTS — order matters
+     Supabase UMD bundle defines window.supabase first, then lib/supabase.js
+     consumes it to set window.certanvilSupabase, then auth.js wires up the
+     UI, then existing script.js handles theme + builder mode + notify modal.
+══════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="lib/supabase.js"></script>
+<script src="auth.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
