@@ -24,7 +24,7 @@
 
 ### What I built
 
-> A static web app — single HTML file, vanilla JS, AI-generated MCQs via Anthropic's API. No build step. No framework. Lives at `networkplus-quiz-sable.vercel.app`. Question quality is what matters; everything else is plumbing.
+> A static web app called **CertAnvil** — single HTML file, vanilla JS, AI-generated MCQs via Anthropic's API. No build step. No framework. Lives at [certanvil.com](https://certanvil.com). Question quality is what matters; everything else is plumbing.
 
 ### The numbers behind the pass
 

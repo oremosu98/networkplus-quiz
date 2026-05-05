@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.87.4
+// Network+ AI Quiz — app.js  v4.88.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.87.4';
+const APP_VERSION = '4.88.0';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -709,6 +709,11 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof _renderTopicChipsForActiveCert === 'function') {
     try { _renderTopicChipsForActiveCert(); } catch (_) {}
   }
+  // v4.88.0: substitute cert-aware copy in user-visible HTML (diagnostic
+  // CTA, pass plan, exam results labels, etc.). Network+ mode is no-op.
+  if (typeof _renderCertAwareCopy === 'function') {
+    try { _renderCertAwareCopy(); } catch (_) {}
+  }
 
   // Apply saved theme
   setTheme(getTheme());
@@ -1290,7 +1295,7 @@ function _progressRowHtml(row) {
   // palette used by Domain Mastery, Custom Quiz accordions, Recent
   // Performance dots \u2014 app-wide visual consistency.
   const domainCls = domainKey ? ' topic-obj-' + domainKey : '';
-  const objBadge = obj ? `<span class="topic-obj-badge${domainCls}" title="N10-009 objective ${obj}">${obj}</span>` : '';
+  const objBadge = obj ? `<span class="topic-obj-badge${domainCls}" title="${CERT_CODE} objective ${obj}">${obj}</span>` : '';
   // v4.42.2: trend arrow (ported from deleted Analytics Topic Mastery card).
   // Only renders when we have 2+ sessions to compare \u2014 matches the old
   // behaviour and avoids showing a meaningless sideways arrow on 1-shot topics.
@@ -8619,6 +8624,89 @@ const _DOMAIN_IDX = (() => {
   }
   return idx;
 })();
+
+// v4.88.0: substitute cert-specific copy in user-visible HTML elements.
+// Static HTML ships with Network+ wording (correct for the customer-facing
+// deploy). When CURRENT_CERT === 'secplus' this function rewrites strings
+// to the active cert's name + code + pass mark. Network+ mode is no-op.
+//
+// Why post-load substitution: the static HTML stays human-readable (no
+// template syntax), Network+ has zero flash, Security+ accepts a tiny
+// flash on initial load — acceptable since secplus is the private builder URL.
+//
+// Targets — the user-visible Network+/N10-009 hardcodes that swap:
+//   - .diagnostic-cta-title       "🧪 Where do you stand on N10-009?"
+//   - #pass-plan-sub              "...all 5 N10-009 domains"
+//   - .results-v2-big-label       "Scaled Score · CompTIA N10-009"
+//   - .exam-results-v2-big-label  same
+//   - .exam-results-v2-threshold  "Pass mark: 720 / 900 · CompTIA N10-009"
+//   - .exam-domain-breakdown-sub  "...each N10-009 domain"
+//   - .ed-pagehead-lede (drills)  "Drills for the rote parts of Network+..."
+//   - .ed-section-meta            "N10-009 exam weighting"
+//   - .hero.is-hidden h1          "Network+ AI Quiz" (legacy hero)
+function _renderCertAwareCopy() {
+  if (!CERT_PACK || !CERT_PACK.meta) return;
+  if (CURRENT_CERT === 'netplus') return; // static HTML correct for Network+
+  try {
+    const code = CERT_PACK.meta.code; // e.g., 'SY0-701'
+    const name = CERT_PACK.meta.name.replace('CompTIA ', ''); // e.g., 'Security+'
+    const passMark = CERT_PACK.meta.examPassScore;
+    const maxScore = CERT_PACK.meta.examMaxScore;
+
+    // 1. Diagnostic CTA title
+    const diagTitle = document.querySelector('.diagnostic-cta-title');
+    if (diagTitle && diagTitle.textContent.indexOf('N10-009') !== -1) {
+      diagTitle.innerHTML = diagTitle.innerHTML.replace(/N10-009/g, code);
+    }
+
+    // 2. Pass plan sub
+    const passPlanSub = document.getElementById('pass-plan-sub');
+    if (passPlanSub && passPlanSub.textContent.indexOf('N10-009') !== -1) {
+      passPlanSub.textContent = passPlanSub.textContent.replace(/N10-009/g, code);
+    }
+
+    // 3 + 4. Scaled Score · CompTIA N10-009 labels (results + exam-results)
+    document.querySelectorAll('.results-v2-big-label, .exam-results-v2-big-label').forEach(function(el) {
+      if (el.innerHTML.indexOf('N10-009') !== -1) {
+        el.innerHTML = el.innerHTML.replace(/N10-009/g, code);
+      }
+    });
+
+    // 5. Pass mark text — also swap the score (Network+ 720 → Security+ 750)
+    const threshold = document.querySelector('.exam-results-v2-threshold');
+    if (threshold) {
+      threshold.innerHTML = 'Pass mark: ' + passMark + ' / ' + maxScore + ' &middot; CompTIA ' + code + ' scaled score';
+    }
+
+    // 6. Domain breakdown sub
+    const domainSub = document.querySelector('.exam-domain-breakdown-sub');
+    if (domainSub && domainSub.textContent.indexOf('N10-009') !== -1) {
+      domainSub.textContent = domainSub.textContent.replace(/N10-009/g, code);
+    }
+
+    // 7. Drills pagehead lede
+    document.querySelectorAll('.ed-pagehead-lede').forEach(function(el) {
+      if (el.textContent.indexOf('Network+') !== -1) {
+        el.innerHTML = el.innerHTML.replace(/Network\+/g, name);
+      }
+    });
+
+    // 8. Section meta "N10-009 exam weighting" (anywhere)
+    document.querySelectorAll('.ed-section-meta').forEach(function(el) {
+      if (el.textContent.indexOf('N10-009') !== -1) {
+        el.textContent = el.textContent.replace(/N10-009/g, code);
+      }
+    });
+
+    // 9. Legacy hero h1 (hidden via .is-hidden, kept for regression-guards)
+    const legacyHeroH1 = document.querySelector('.hero.is-hidden h1');
+    if (legacyHeroH1 && legacyHeroH1.textContent === 'Network+ AI Quiz') {
+      legacyHeroH1.textContent = name + ' AI Quiz';
+    }
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('[cert] _renderCertAwareCopy failed:', e.message);
+  }
+}
 
 // v4.87.1: re-render topic chips + domain pills + Mode Ladder tiles for the
 // active cert. Static HTML in index.html is hardcoded for Network+ topics

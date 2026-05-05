@@ -105,26 +105,69 @@
     });
   });
 
-  // Submit handler for notify form
+  // Submit handler for notify form — POSTs to /api/notify (Vercel edge fn)
+  // with localStorage as a fallback if the API call fails (offline /
+  // RESEND_API_KEY unset / network blip).
   if (notifyForm) {
-    notifyForm.addEventListener('submit', function(e) {
+    notifyForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       const email = notifyEmail ? notifyEmail.value.trim() : '';
       if (!email || !email.includes('@')) return;
       const certLabel = notifyCertName ? notifyCertName.textContent : 'cert';
-      // Persist locally for now — full email integration deferred.
+      const submitBtn = notifyForm.querySelector('.modal-cta');
+
+      // Disable submit during request
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+      }
+
+      let success = false;
+      try {
+        const resp = await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            cert: certLabel,
+            source: 'certanvil-landing',
+            // Honeypot: if a bot fills this in, the API silently no-ops
+            website: '',
+          }),
+        });
+        if (resp.ok) success = true;
+      } catch (err) {
+        // Network failure — fall through to localStorage backup
+      }
+
+      // Always backup to localStorage too — survives API outages + lets you
+      // manually re-process if Resend wasn't configured at submit time.
       try {
         const key = 'certanvil_notify_signups';
         const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        existing.push({ email: email, cert: certLabel, at: new Date().toISOString() });
+        existing.push({
+          email: email,
+          cert: certLabel,
+          at: new Date().toISOString(),
+          delivered: success,
+        });
         localStorage.setItem(key, JSON.stringify(existing));
       } catch (e) {}
-      // Confirmation UX
+
+      // Confirmation UX (works whether or not the API succeeded)
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Notify me';
+      }
       if (notifyFoot) {
-        notifyFoot.textContent = '✓ Got it — saved. We\'ll email you the moment ' + certLabel + ' goes live.';
+        if (success) {
+          notifyFoot.textContent = '✓ Got it — confirmation sent. Check your inbox; we\'ll email you the moment ' + certLabel + ' goes live.';
+        } else {
+          notifyFoot.textContent = '✓ Saved. We\'ll email you the moment ' + certLabel + ' goes live.';
+        }
         notifyFoot.style.color = 'var(--green)';
       }
-      setTimeout(closeNotifyModal, 1800);
+      setTimeout(closeNotifyModal, 2000);
     });
   }
 

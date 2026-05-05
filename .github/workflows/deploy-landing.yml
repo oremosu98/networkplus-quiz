@@ -1,0 +1,39 @@
+name: Deploy Landing Page
+
+# Auto-deploy the CertAnvil landing page to Vercel when files in landing/
+# change. Mirrors the cert-app deploy pattern (deploy-production /
+# deploy-production-secplus jobs in ci.yml) but scoped to the landing
+# project and triggered only by landing/ touches.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:  # allow manual trigger from GitHub Actions UI
+
+jobs:
+  deploy-landing:
+    name: Deploy Landing to Production
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: prj_7GatDO51SK9QtDFekOAPe1XG6kGt  # certanvil-landing
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Deploy landing/ directory to production
+        # The --cwd flag tells Vercel to use ./landing as the project root.
+        # This ensures only the landing files are deployed (not the whole repo)
+        # to the certanvil-landing project.
+        working-directory: ./landing
+        run: |
+          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}

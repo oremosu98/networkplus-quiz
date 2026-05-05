@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.87.4', js.includes("const APP_VERSION = '4.87.4"));
+test('APP_VERSION is 4.88.0', js.includes("const APP_VERSION = '4.88.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.87.4', sw.includes('netplus-v4.87.4'));
+test('SW cache bumped to v4.88.0', sw.includes('netplus-v4.88.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10395,8 +10395,8 @@ test('v4.81.3 Safety: DOMContentLoaded calls _emitProdConsoleBanner',
 test('v4.81.3 Safety: DOMContentLoaded calls _renderEnvBadge',
   /DOMContentLoaded[\s\S]{0,4000}_renderEnvBadge\b/.test(js));
 test('v4.81.3 Safety: DOMContentLoaded calls _maybeExportReminder',
-  // v4.81.23: window widened 3000 → 3500 (v4.81.23 cleanup added a comment block)
-  /DOMContentLoaded[\s\S]{0,3500}_maybeExportReminder\b/.test(js));
+  // v4.88.0: window widened 3500 → 4500 (v4.88.0 added _renderCertAwareCopy hook)
+  /DOMContentLoaded[\s\S]{0,4500}_maybeExportReminder\b/.test(js));
 
 // Banner content sanity
 test('v4.81.3 Safety: prod banner mentions DO NOT write to localStorage',
@@ -16196,6 +16196,39 @@ test('v4.87.4 CSS: .sb-brand-mark has padding for SVG breathing room',
   /\.sb-brand-mark\s*\{[\s\S]{0,400}padding:\s*3px/.test(css));
 test('v4.87.4 CSS: .sb-brand-mark svg fills container',
   /\.sb-brand-mark\s+svg\s*\{[\s\S]{0,200}width:\s*100%[\s\S]{0,100}height:\s*100%/.test(css));
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.88.0 — Cert-aware copy sweep + landing page polish.
+// User dogfood + Security+ readiness: the cert app had ~9 user-visible
+// "Network+" / "N10-009" hardcodes that didn't update when CURRENT_CERT
+// flipped to secplus. New _renderCertAwareCopy() runs at DOMContentLoaded
+// and rewrites those strings in Security+ mode. Plus topic-objective
+// tooltip uses CERT_CODE template instead of literal "N10-009".
+// ═══════════════════════════════════════════════════════════════════════
+
+test('v4.88.0 CertAwareCopy: _renderCertAwareCopy function defined',
+  /function\s+_renderCertAwareCopy\s*\(\)/.test(js));
+test('v4.88.0 CertAwareCopy: function is no-op for netplus (early return)',
+  /_renderCertAwareCopy[\s\S]{0,1500}CURRENT_CERT === ['"]netplus['"]\)\s*return/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes diagnostic-cta-title',
+  /_renderCertAwareCopy[\s\S]{0,3500}\.diagnostic-cta-title/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes pass-plan-sub',
+  /_renderCertAwareCopy[\s\S]{0,3500}getElementById\(['"]pass-plan-sub['"]\)/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes Scaled Score labels',
+  /_renderCertAwareCopy[\s\S]{0,3500}\.results-v2-big-label[\s\S]{0,200}\.exam-results-v2-big-label/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes Pass mark with cert-specific scores',
+  /_renderCertAwareCopy[\s\S]{0,4000}exam-results-v2-threshold[\s\S]{0,200}passMark[\s\S]{0,200}maxScore/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes domain-breakdown sub',
+  /_renderCertAwareCopy[\s\S]{0,4000}\.exam-domain-breakdown-sub/.test(js));
+test('v4.88.0 CertAwareCopy: substitutes ed-pagehead-lede',
+  /_renderCertAwareCopy[\s\S]{0,4500}\.ed-pagehead-lede/.test(js));
+test('v4.88.0 CertAwareCopy: hooked into DOMContentLoaded after chip render',
+  /DOMContentLoaded[\s\S]{0,1500}_renderCertAwareCopy\s*\(\)/.test(js));
+
+test('v4.88.0 ObjBadge: topic-obj-badge title uses CERT_CODE template',
+  /title="\$\{CERT_CODE\} objective \$\{obj\}"/.test(js));
+test('v4.88.0 ObjBadge: tombstone — hardcoded "N10-009 objective" removed from template',
+  !/title="N10-009 objective \$\{obj\}"/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

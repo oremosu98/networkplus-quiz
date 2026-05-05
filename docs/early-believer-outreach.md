@@ -37,7 +37,7 @@ James · in-person · saw on phone 2026-04-22 · just nodded, said "neat"
 ## TEMPLATE 2 — Slack / Discord (work / community contacts)
 
 > Hey — passed Network+ N10-009 today, 767/900 (pass mark 720). Built my own AI-generated practice quiz to study with. **You're getting this because you saw an early version.** Wanted to share before I post anywhere wider.
-> Live at: https://networkplus-quiz-sable.vercel.app
+> Live at: https://certanvil.com
 > Security+ pack is the next cert I'll add — using it as my own study companion through that exam too.
 > Thanks for the early belief.
 
@@ -55,7 +55,7 @@ James · in-person · saw on phone 2026-04-22 · just nodded, said "neat"
 >
 > You're getting this because you saw the app at some point and reacted positively. I wanted to share before I post anywhere wider — your reaction was one of the early signals that kept me building.
 >
-> Live at: https://networkplus-quiz-sable.vercel.app
+> Live at: https://certanvil.com
 >
 > Next cert is Security+ — same tool, same engine. I'll be the first user there too. If anyone in your circle is studying for any CompTIA cert, I'd appreciate the share.
 >
