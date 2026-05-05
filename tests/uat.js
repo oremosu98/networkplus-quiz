@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.86.1', js.includes("const APP_VERSION = '4.86.1"));
+test('APP_VERSION is 4.86.2', js.includes("const APP_VERSION = '4.86.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.86.1', sw.includes('netplus-v4.86.1'));
+test('SW cache bumped to v4.86.2', sw.includes('netplus-v4.86.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8431,8 +8431,12 @@ test('v4.57.5 JS: weighted domainAccuracy still feeds accuracyScore (Readiness 7
 // from Jason Dion, CompTIA CertMaster, or any paid question bank.
 // ══════════════════════════════════════════════════════════════════════
 
-test('v4.58.0 JS: QUESTION_EXEMPLARS constant defined (array declaration)',
-  /const QUESTION_EXEMPLARS\s*=\s*\[/.test(js));  // v4.58.1: loosened from empty-array literal to any array declaration (bank now populated)
+// v4.86.2: QUESTION_EXEMPLARS literal moved to certs/netplus.js as
+// `questionExemplars: [...]`. App reads via CERT_PACK with empty fallback.
+test('v4.58.0 JS: QUESTION_EXEMPLARS reads from CERT_PACK (cert-pack-aware)',
+  /const QUESTION_EXEMPLARS\s*=.*CERT_PACK.*questionExemplars/.test(js));
+test('v4.58.0 cert pack: questionExemplars array literal lives in certs/netplus.js',
+  /questionExemplars:\s*\[/.test(certNetplus));
 test('v4.58.0 JS: _pickExemplarsForTopic helper defined',
   /function _pickExemplarsForTopic\(qTopic,\s*max\)/.test(js));
 test('v4.58.0 JS: _formatExemplarsForPrompt helper defined',
@@ -8566,26 +8570,27 @@ test('v4.58.0 JS: exemplar block inserted into prompt after Difficulty line',
 // original content (no copying from paid question banks).
 // ══════════════════════════════════════════════════════════════════════
 
-// Shape / count assertions — verify the bank grew to 14 and the schema
-// holds for every entry. Use vm to actually run the array definition.
+// Shape / count assertions — verify the bank holds 320 + the schema holds
+// for every entry. Use vm to actually run the array definition.
+// v4.86.2: extracted from certs/netplus.js (where questionExemplars now lives)
+// instead of app.js.
 (function testExemplarBank() {
   try {
     const vm = require('vm');
-    // Extract QUESTION_EXEMPLARS definition. The array spans many lines + nested
-    // objects, so use brace-depth walking to find its end.
-    const start = js.indexOf('const QUESTION_EXEMPLARS = [');
+    // Find `questionExemplars: [` then walk bracket depth to closing `]`
+    const start = certNetplus.indexOf('questionExemplars: [');
     if (start === -1) { test('v4.58.1 bank: QUESTION_EXEMPLARS definition found', false); return; }
     test('v4.58.1 bank: QUESTION_EXEMPLARS definition found', true);
 
-    let i = js.indexOf('[', start);
+    let i = certNetplus.indexOf('[', start);
     let depth = 0;
     let end = -1;
-    for (; i < js.length; i++) {
-      if (js[i] === '[') depth++;
-      else if (js[i] === ']') { depth--; if (depth === 0) { end = i + 1; break; } }
+    for (; i < certNetplus.length; i++) {
+      if (certNetplus[i] === '[') depth++;
+      else if (certNetplus[i] === ']') { depth--; if (depth === 0) { end = i + 1; break; } }
     }
     if (end === -1) { test('v4.58.1 bank: array closure found', false); return; }
-    const arraySrc = js.slice(js.indexOf('[', start), end);
+    const arraySrc = certNetplus.slice(certNetplus.indexOf('[', start), end);
 
     const ctx = {};
     vm.createContext(ctx);

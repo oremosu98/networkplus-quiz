@@ -82,4 +82,15 @@ window.CERT_PACKS.secplus = {
     wifiDeprecated: [],
     ethernet: {}
   },
+
+  // ── EXEMPLAR BANK (Phase 2B will populate) ────────────────────────────
+  // Empty for now. Phase 2B audits the 320 Network+ exemplars and ports
+  // the ~60-100 that genuinely transfer to Security+ (with topics retagged
+  // for SY0-701). Pure-network-only exemplars (subnetting math, OSPF
+  // depth, cabling specs, STP) stay Network+ only.
+  //
+  // Empty array = exemplar injection is a no-op. Haiku falls back to
+  // blueprint + prompt quality alone — same baseline as pre-v4.59.0
+  // Network+. Quality compounds as exemplars land.
+  questionExemplars: []
 };
