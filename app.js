@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.87.3
+// Network+ AI Quiz — app.js  v4.87.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.87.3';
+const APP_VERSION = '4.87.4';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -35190,16 +35190,27 @@ function renderAppSidebar() {
     }
   } catch (_) { streakHtml = ''; }
 
-  // v4.87.3: CertAnvil brand architecture — parent product brand becomes
-  // CertAnvil; the active cert (Network+ / Security+) is shown as a
-  // sub-line below the brand name. Mark stays a single-glyph badge ("CA")
-  // so the existing sb-brand-mark CSS continues to work.
+  // v4.87.3 → v4.87.4: CertAnvil brand architecture — parent product brand
+  // is CertAnvil; the active cert (Network+ / Security+) shows as a sub-line.
+  // v4.87.4: brand mark upgraded from "CA" text to the M14 hammer + anvil +
+  // spark SVG lockup. Tells the full forge story per pixel.
   const certShortLabel = (CERT_PACK && CERT_PACK.meta)
     ? CERT_PACK.meta.name.replace('CompTIA ', '') + ' ' + CERT_PACK.meta.code
     : 'Network+ N10-009';
+  // M14 inline SVG: hammer (rotated -25°, accent purple) + anvil silhouette
+  // (white) + single amber spark. Hardcoded brand colors so the mark renders
+  // identically across themes (sidebar background is always dark).
+  const brandSvg = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    + '<g transform="rotate(-25 35 30)">'
+    + '<rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>'
+    + '<rect x="32" y="32" width="6" height="22" fill="#3d3870"/>'
+    + '</g>'
+    + '<path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>'
+    + '<circle cx="55" cy="50" r="3" fill="#f59e0b"/>'
+    + '</svg>';
   el.innerHTML = `
     <div class="sb-brand">
-      <div class="sb-brand-mark" aria-hidden="true">CA</div>
+      <div class="sb-brand-mark" aria-hidden="true">${brandSvg}</div>
       <div class="sb-brand-text">
         <span class="sb-brand-name">CertAnvil</span>
         <span class="sb-brand-cert">${certShortLabel}</span>

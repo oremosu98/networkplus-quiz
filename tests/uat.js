@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.87.3', js.includes("const APP_VERSION = '4.87.3"));
+test('APP_VERSION is 4.87.4', js.includes("const APP_VERSION = '4.87.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.87.3', sw.includes('netplus-v4.87.3'));
+test('SW cache bumped to v4.87.4', sw.includes('netplus-v4.87.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5514,8 +5514,11 @@ test('v4.53.0 CSS: body.has-sidebar adds 240px left padding',
   /body\.has-sidebar\s*\{[^}]*padding-left:\s*240px/.test(css));
 test('v4.53.0 CSS: .app-sidebar fixed 240px left rail',
   /\.app-sidebar\s*\{[\s\S]{0,400}position:\s*fixed[\s\S]{0,200}width:\s*240px/.test(css));
-test('v4.53.0 CSS: sidebar brand mark has gradient + shadow',
-  /\.sb-brand-mark\s*\{[\s\S]{0,400}linear-gradient\(135deg,\s*var\(--accent\)/.test(css));
+// v4.87.4: brand mark gradient changed from accent-purple to dark forge gradient
+// (M14 SVG inside needs dark backdrop for contrast). Test retargeted to verify
+// gradient still present (any color) so the basic shape stays styled.
+test('v4.53.0 CSS: sidebar brand mark has gradient + shadow (v4.87.4: dark forge gradient)',
+  /\.sb-brand-mark\s*\{[\s\S]{0,400}linear-gradient\(135deg,/.test(css));
 test('v4.53.0 CSS: .sb-item-active has accent-tinted background + left rail',
   /\.sb-item\.sb-item-active\s*\{/.test(css) && /\.sb-item\.sb-item-active::before\s*\{[^}]*background:\s*var\(--accent\)/.test(css));
 test('v4.53.0 CSS: mobile breakpoint collapses sidebar to drawer',
@@ -15870,10 +15873,12 @@ test('v4.86.0 CertPack: cert packs load BEFORE app.js (script-tag ordering)',
   })());
 
 // ── SW precaches cert packs ──
+// v4.87.4: window widened from 400 to 700 chars to accommodate the favicon
+// comment block now sitting between manifest.json and the cert paths.
 test('v4.86.0 CertPack: sw.js SHELL_ASSETS includes certs/netplus.js',
-  /SHELL_ASSETS\s*=\s*\[[\s\S]{0,400}certs\/netplus\.js/.test(sw));
+  /SHELL_ASSETS\s*=\s*\[[\s\S]{0,700}certs\/netplus\.js/.test(sw));
 test('v4.86.0 CertPack: sw.js SHELL_ASSETS includes certs/secplus.js',
-  /SHELL_ASSETS\s*=\s*\[[\s\S]{0,400}certs\/secplus\.js/.test(sw));
+  /SHELL_ASSETS\s*=\s*\[[\s\S]{0,700}certs\/secplus\.js/.test(sw));
 
 // ═══════════════════════════════════════════════════════════════════════
 // v4.85.27 — Pass-proof banner. First-time-visitor trust signal per
@@ -16128,8 +16133,11 @@ test('v4.87.3 Brand: inline <head> script sets CertAnvil-prefixed title for both
 test('v4.87.3 Brand: hardcoded "Network+ AI Quiz" page title removed',
   !/<title>Network\+ AI Quiz<\/title>/.test(html));
 
-test('v4.87.3 Sidebar: brand mark is "CA" (CertAnvil)',
-  /sb-brand-mark[^>]*>CA<\/div>/.test(js));
+// v4.87.3 → v4.87.4: brand mark upgraded from "CA" text to M14 SVG logo.
+// Retired the literal-text check; the M14 SVG presence is verified by
+// v4.87.4 Logo block above.
+test('v4.87.3 → v4.87.4 Sidebar: brand mark renders M14 SVG (was "CA" text)',
+  /sb-brand-mark[^>]*>\$\{brandSvg\}<\/div>/.test(js));
 test('v4.87.3 Sidebar: brand name is "CertAnvil"',
   /sb-brand-name[^>]*>CertAnvil</.test(js));
 test('v4.87.3 Sidebar: cert sub-line uses CERT_PACK.meta name + code',
@@ -16145,6 +16153,49 @@ test('v4.87.3 PassProof: banner credits CertAnvil ("using CertAnvil")',
   /using\s+<em>CertAnvil<\/em>/.test(html));
 test('v4.87.3 PassProof: tombstone — old "using this tool" copy removed',
   !/767\/900[\s\S]{0,200}using this tool/.test(html));
+
+// ═══════════════════════════════════════════════════════════════════════
+// v4.87.4 — M14 logo lockup adopted (hammer + anvil + spark). Replaces
+// the "CA" text placeholder in the sidebar with the inline SVG logo.
+// Same SVG also serves as favicon, apple-touch-icon, and PWA manifest
+// icon — single source for all logo surfaces.
+// ═══════════════════════════════════════════════════════════════════════
+
+test('v4.87.4 Logo: brandSvg const declared in renderAppSidebar',
+  /const\s+brandSvg\s*=\s*['"`]<svg/.test(js));
+test('v4.87.4 Logo: M14 hammer rotated -25° present',
+  /transform="rotate\(-25 35 30\)"/.test(js));
+test('v4.87.4 Logo: M14 anvil silhouette path present',
+  /M30 60 L82 60[\s\S]{0,100}fill="#f0f0f8"/.test(js));
+test('v4.87.4 Logo: M14 amber spark circle present',
+  /circle cx="55" cy="50" r="3" fill="#f59e0b"/.test(js));
+test('v4.87.4 Logo: sidebar mark renders ${brandSvg} not "CA" text',
+  /sb-brand-mark[^>]*>\$\{brandSvg\}<\/div>/.test(js));
+test('v4.87.4 Logo: tombstone — "CA" text content removed from sidebar mark',
+  !/sb-brand-mark[^>]*>CA<\/div>/.test(js));
+
+test('v4.87.4 Favicon: index.html links favicon.svg',
+  /<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="favicon\.svg"/.test(html));
+test('v4.87.4 Favicon: index.html links apple-touch-icon',
+  /<link\s+rel="apple-touch-icon"\s+href="favicon\.svg"/.test(html));
+test('v4.87.4 Favicon: sw.js precaches favicon.svg in SHELL_ASSETS',
+  /SHELL_ASSETS\s*=\s*\[[\s\S]{0,500}favicon\.svg/.test(sw));
+
+test('v4.87.4 Manifest: name updated to CertAnvil',
+  (() => {
+    const m = require('fs').readFileSync(require('path').join(ROOT, 'manifest.json'), 'utf8');
+    return /"name":\s*"CertAnvil"/.test(m) && /"short_name":\s*"CertAnvil"/.test(m);
+  })());
+test('v4.87.4 Manifest: icon points at favicon.svg',
+  (() => {
+    const m = require('fs').readFileSync(require('path').join(ROOT, 'manifest.json'), 'utf8');
+    return /"src":\s*"favicon\.svg"/.test(m);
+  })());
+
+test('v4.87.4 CSS: .sb-brand-mark has padding for SVG breathing room',
+  /\.sb-brand-mark\s*\{[\s\S]{0,400}padding:\s*3px/.test(css));
+test('v4.87.4 CSS: .sb-brand-mark svg fills container',
+  /\.sb-brand-mark\s+svg\s*\{[\s\S]{0,200}width:\s*100%[\s\S]{0,100}height:\s*100%/.test(css));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

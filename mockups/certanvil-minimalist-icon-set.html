@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — CertAnvil Minimalist Icon Set (Round 2)</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --orange: #f59e0b; --green: #22c55e; --cyan: #06b6d4;
+    --radius: 14px; --radius-sm: 10px;
+    --mono: 'SF Mono', 'Monaco', 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 15px; margin-bottom: 36px; max-width: 720px; }
+  h2 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  code { font-family: var(--mono); font-size: 0.85em; background: rgba(124,111,247,.12); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); }
+
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  .variation { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 18px; overflow: hidden; }
+  .variation-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .variation-num { color: var(--accent); font-family: var(--mono); font-size: 12px; letter-spacing: .12em; background: rgba(124,111,247,.1); padding: 4px 10px; border-radius: 99px; flex-shrink: 0; }
+  .variation-vibe { font-size: 11px; color: var(--text-dim); font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .variation-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; align-items: stretch; }
+  @media (max-width: 720px) { .variation-grid { grid-template-columns: 1fr; } }
+
+  .v-hero {
+    background: linear-gradient(135deg, #0d0d18 0%, #1a1a2e 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 140px;
+    gap: 12px;
+  }
+
+  .v-sidebar {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(13,13,24,.95);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 14px 14px; min-height: 80px;
+  }
+  .v-sb-mark { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .v-sb-text { display: flex; flex-direction: column; gap: 1px; min-width:0; }
+  .v-sb-name { font-size: 13px; font-weight: 800; color: var(--text); letter-spacing: -.01em; line-height: 1.1; white-space: nowrap; }
+  .v-sb-cert { font-size: 10px; font-weight: 600; color: var(--accent-light); letter-spacing: .02em; }
+  .v-sb-version { font-size: 9px; font-family: var(--mono); color: var(--text-dim); letter-spacing: .05em; }
+
+  .v-fav { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .v-fav-row { display: flex; gap: 14px; align-items: center; }
+  .v-fav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .v-fav-label { font-size: 9px; color: var(--text-dim); font-family: var(--mono); }
+
+  .wm { font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+
+  .v-notes { margin-top: 14px; font-size: 13px; color: var(--text-mid); line-height: 1.55; }
+  .v-notes strong { color: var(--text); font-weight: 700; }
+
+  .rec { background: linear-gradient(135deg, rgba(34,197,94,.1) 0%, rgba(124,111,247,.05) 100%); border: 1px solid var(--green); border-radius: var(--radius); padding: 24px; margin-top: 32px; }
+  .rec-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(34,197,94,.15); border: 1px solid var(--green); color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .12em; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; margin-bottom: 12px; }
+  .rec h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔨 CertAnvil — Minimalist Icon Set (Round 2)</h1>
+  <div class="lede">
+    Round 2: 10 more minimalist variations, all icon-led — hammer, anvil, tongs, forge flame. Each pairs with the same Inter wordmark for consistency. The point of this round is to find the iconographic direction that feels right; the wordmark stays identical across all 10 so the icon is the variable.
+  </div>
+
+  <div class="annotation">
+    <strong>Round 2 brief</strong>
+    All variations are minimalist: single shape preferred · max 2 colors · no gradients on icons · 16px favicon legibility required · forge / craft theme. Variations span hammer-only, anvil-only, hammer + anvil, tongs, and forge-flame approaches.
+  </div>
+
+  <!-- M11 — HAMMER PROFILE -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M11</span> Hammer Profile</h2><span class="variation-vibe">Side view · Filled silhouette</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Hammer head (rectangular block) -->
+            <rect x="20" y="22" width="40" height="22" rx="3" fill="#f0f0f8"/>
+            <!-- Hammer handle -->
+            <rect x="34" y="44" width="12" height="50" rx="3" fill="#f0f0f8"/>
+            <!-- Spark accent -->
+            <circle cx="76" cy="32" r="4" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="22" height="22" viewBox="0 0 100 100"><rect x="20" y="22" width="40" height="22" rx="3" fill="#f0f0f8"/><rect x="34" y="44" width="12" height="50" rx="3" fill="#f0f0f8"/><circle cx="76" cy="32" r="5" fill="#f59e0b"/></svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="20" y="22" width="40" height="22" rx="3" fill="#f0f0f8"/><rect x="34" y="44" width="12" height="50" rx="3" fill="#f0f0f8"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><rect x="20" y="22" width="40" height="22" rx="3" fill="#f0f0f8"/><rect x="34" y="44" width="12" height="50" rx="3" fill="#f0f0f8"/><circle cx="76" cy="32" r="5" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Universal "tool" recognition. Small spark adds builder energy without complexity. <strong>Cons:</strong> Hammer-alone is generic — many maker / craft brands use it.</div>
+  </div>
+
+  <!-- M12 — HAMMER HEAD ONLY -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M12</span> Hammer Head</h2><span class="variation-vibe">Just the head · No handle</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Stylized hammer head only (rectangular block with claw) -->
+            <path d="M20 35 L75 35 L80 50 L75 65 L20 65 L25 50 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100"><path d="M20 35 L75 35 L80 50 L75 65 L20 65 L25 50 Z" fill="#f59e0b"/></svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M20 35 L75 35 L80 50 L75 65 L20 65 L25 50 Z" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M20 35 L75 35 L80 50 L75 65 L20 65 L25 50 Z" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Single shape. The hammer head is the "business end" — the tool's purposeful part. Reads sharp at every size. <strong>Cons:</strong> Without handle, less obviously a hammer at first glance.</div>
+  </div>
+
+  <!-- M13 — CROSSED HAMMERS -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M13</span> Crossed Hammers</h2><span class="variation-vibe">Heraldic · Tradesman</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Two hammers crossed in X -->
+            <g transform="rotate(-30 50 50)">
+              <rect x="22" y="26" width="56" height="14" rx="2" fill="#f0f0f8"/>
+              <rect x="46" y="40" width="8" height="40" rx="2" fill="#f0f0f8"/>
+            </g>
+            <g transform="rotate(30 50 50)">
+              <rect x="22" y="26" width="56" height="14" rx="2" fill="#7c6ff7"/>
+              <rect x="46" y="40" width="8" height="40" rx="2" fill="#7c6ff7"/>
+            </g>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="26" height="26" viewBox="0 0 100 100">
+            <g transform="rotate(-30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#f0f0f8"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#f0f0f8"/></g>
+            <g transform="rotate(30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#7c6ff7"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#7c6ff7"/></g>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><g transform="rotate(-30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#f0f0f8"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#f0f0f8"/></g><g transform="rotate(30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#7c6ff7"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#7c6ff7"/></g></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><g transform="rotate(-30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#f0f0f8"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#f0f0f8"/></g><g transform="rotate(30 50 50)"><rect x="22" y="26" width="56" height="14" rx="2" fill="#7c6ff7"/><rect x="46" y="40" width="8" height="40" rx="2" fill="#7c6ff7"/></g></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Strong heraldic / guild-mark feel. Two-color (white + accent purple) ties to existing palette. <strong>Cons:</strong> Heraldic vibe could feel slightly old-world for a modern AI SaaS.</div>
+  </div>
+
+  <!-- M14 — HAMMER + ANVIL LOCKUP -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M14</span> Hammer + Anvil Lockup</h2><span class="variation-vibe">Both visible · Balanced</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="56" height="56" viewBox="0 0 100 100">
+            <!-- Hammer top-left, angled -->
+            <g transform="rotate(-25 35 30)">
+              <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+              <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+            </g>
+            <!-- Anvil bottom-right -->
+            <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+            <path d="M30 60 L20 63 L20 65 L30 65 Z" fill="#f0f0f8"/>
+            <!-- Single spark -->
+            <circle cx="55" cy="50" r="2.5" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:linear-gradient(135deg, #1a1a2e, #0a0a12); border:1px solid var(--border)">
+          <svg width="26" height="26" viewBox="0 0 100 100">
+            <g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g>
+            <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+            <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Tells the full forge story in one mark — hammer striking, anvil receiving, spark emerging. Maximum narrative density per pixel. <strong>Cons:</strong> Busiest of the round 2 set — at 16px the hammer's angle becomes ambiguous.</div>
+  </div>
+
+  <!-- M15 — ANVIL + HAMMER ON TOP -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M15</span> Anvil + Hammer Resting</h2><span class="variation-vibe">Quiet · Balanced</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Hammer resting on top of anvil, horizontal -->
+            <rect x="44" y="35" width="32" height="10" rx="2" fill="#7c6ff7"/>
+            <rect x="22" y="38" width="22" height="4" fill="#7c6ff7"/>
+            <!-- Anvil -->
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <rect x="44" y="35" width="32" height="10" rx="2" fill="#7c6ff7"/>
+            <rect x="22" y="38" width="22" height="4" fill="#7c6ff7"/>
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="44" y="35" width="32" height="10" rx="2" fill="#7c6ff7"/><rect x="22" y="38" width="22" height="4" fill="#7c6ff7"/><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><rect x="44" y="35" width="32" height="10" rx="2" fill="#7c6ff7"/><rect x="22" y="38" width="22" height="4" fill="#7c6ff7"/><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Quieter than M14 — hammer at rest, ready, not in motion. Calm-confidence feel. <strong>Cons:</strong> Two stacked elements at small sizes can blur into "blob with bar."</div>
+  </div>
+
+  <!-- M16 — TONGS -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M16</span> Tongs</h2><span class="variation-vibe">Different forge tool · Distinctive</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Blacksmith tongs gripping a piece -->
+            <!-- Left handle -->
+            <path d="M35 80 L42 50 L48 50 L42 80 Z" fill="#f0f0f8"/>
+            <!-- Right handle -->
+            <path d="M65 80 L58 50 L52 50 L58 80 Z" fill="#f0f0f8"/>
+            <!-- Pivot -->
+            <circle cx="50" cy="48" r="3" fill="#f0f0f8"/>
+            <!-- Jaws gripping piece -->
+            <path d="M40 45 L42 38 L48 38 L46 45 Z" fill="#f0f0f8"/>
+            <path d="M60 45 L58 38 L52 38 L54 45 Z" fill="#f0f0f8"/>
+            <!-- Hot piece (the "cert" being forged) -->
+            <rect x="42" y="28" width="16" height="10" rx="2" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <path d="M35 80 L42 50 L48 50 L42 80 Z" fill="#f0f0f8"/>
+            <path d="M65 80 L58 50 L52 50 L58 80 Z" fill="#f0f0f8"/>
+            <circle cx="50" cy="48" r="3" fill="#f0f0f8"/>
+            <path d="M40 45 L42 38 L48 38 L46 45 Z" fill="#f0f0f8"/>
+            <path d="M60 45 L58 38 L52 38 L54 45 Z" fill="#f0f0f8"/>
+            <rect x="42" y="28" width="16" height="10" rx="2" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M35 80 L42 50 L48 50 L42 80 Z" fill="#f0f0f8"/><path d="M65 80 L58 50 L52 50 L58 80 Z" fill="#f0f0f8"/><rect x="42" y="28" width="16" height="10" rx="2" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M35 80 L42 50 L48 50 L42 80 Z" fill="#f0f0f8"/><path d="M65 80 L58 50 L52 50 L58 80 Z" fill="#f0f0f8"/><circle cx="50" cy="48" r="3" fill="#f0f0f8"/><path d="M40 45 L42 38 L48 38 L46 45 Z" fill="#f0f0f8"/><path d="M60 45 L58 38 L52 38 L54 45 Z" fill="#f0f0f8"/><rect x="42" y="28" width="16" height="10" rx="2" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Most narratively rich — the tongs are gripping a hot piece (the cert being forged). Distinctive — nobody else uses tongs. <strong>Cons:</strong> Less universally legible than hammer/anvil. Some viewers may not recognize tongs immediately.</div>
+  </div>
+
+  <!-- M17 — FORGE FLAME -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M17</span> Forge Flame</h2><span class="variation-vibe">The forge itself · Fire</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Stylized flame silhouette -->
+            <path d="M50 15 Q35 30 35 50 Q35 65 50 75 Q65 65 65 50 Q65 35 55 25 Q53 35 50 32 Q47 25 50 15 Z" fill="#f59e0b"/>
+            <!-- Inner flame highlight -->
+            <path d="M50 35 Q44 45 44 55 Q44 65 50 70 Q56 65 56 55 Q56 47 50 35 Z" fill="#ff8f1f"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <path d="M50 15 Q35 30 35 50 Q35 65 50 75 Q65 65 65 50 Q65 35 55 25 Q53 35 50 32 Q47 25 50 15 Z" fill="#f59e0b"/>
+            <path d="M50 35 Q44 45 44 55 Q44 65 50 70 Q56 65 56 55 Q56 47 50 35 Z" fill="#ff8f1f"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M50 15 Q35 30 35 50 Q35 65 50 75 Q65 65 65 50 Q65 35 55 25 Q53 35 50 32 Q47 25 50 15 Z" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M50 15 Q35 30 35 50 Q35 65 50 75 Q65 65 65 50 Q65 35 55 25 Q53 35 50 32 Q47 25 50 15 Z" fill="#f59e0b"/><path d="M50 35 Q44 45 44 55 Q44 65 50 70 Q56 65 56 55 Q56 47 50 35 Z" fill="#ff8f1f"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> The forge fire is the heat source — what makes forging possible. Strong silhouette, single warm color. Energy + transformation symbolism. <strong>Cons:</strong> Generic "fire" symbolism — could read as energy drink, hot sauce, etc. Loses anvil-specific brand DNA.</div>
+  </div>
+
+  <!-- M18 — HAMMER STRIKING DOWN -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M18</span> Hammer Striking Down</h2><span class="variation-vibe">Action · Motion arc</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Motion arc above hammer -->
+            <path d="M20 30 Q40 10 70 25" fill="none" stroke="#7c6ff7" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3" opacity="0.6"/>
+            <!-- Hammer striking down (vertical) -->
+            <rect x="35" y="35" width="30" height="14" rx="2" fill="#f0f0f8"/>
+            <rect x="46" y="49" width="8" height="36" rx="2" fill="#f0f0f8"/>
+            <!-- Impact spark below -->
+            <circle cx="50" cy="92" r="3" fill="#f59e0b"/>
+            <circle cx="42" cy="90" r="1.5" fill="#f59e0b"/>
+            <circle cx="58" cy="90" r="1.5" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <path d="M20 30 Q40 10 70 25" fill="none" stroke="#7c6ff7" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 4" opacity="0.6"/>
+            <rect x="35" y="35" width="30" height="14" rx="2" fill="#f0f0f8"/>
+            <rect x="46" y="49" width="8" height="36" rx="2" fill="#f0f0f8"/>
+            <circle cx="50" cy="92" r="4" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="35" y="35" width="30" height="14" rx="2" fill="#f0f0f8"/><rect x="46" y="49" width="8" height="36" rx="2" fill="#f0f0f8"/><circle cx="50" cy="92" r="6" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M20 30 Q40 10 70 25" fill="none" stroke="#7c6ff7" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 4" opacity="0.6"/><rect x="35" y="35" width="30" height="14" rx="2" fill="#f0f0f8"/><rect x="46" y="49" width="8" height="36" rx="2" fill="#f0f0f8"/><circle cx="50" cy="92" r="3" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Action-feel without being literal. The motion arc is a subtle storytelling cue. <strong>Cons:</strong> Three distinct elements (arc, hammer, spark) — busiest of round 2.</div>
+  </div>
+
+  <!-- M19 — DETAILED ANVIL OUTLINE -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M19</span> Anvil Outlined</h2><span class="variation-vibe">More detail than M04 · Stylized horn</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Detailed anvil outline with prominent horn + step + base -->
+            <path d="M5 50 L20 48 L20 42 L80 42 L78 50 L74 56 L72 62 L80 62 L80 70 L20 70 L20 62 L28 62 L26 56 L20 50 Z" fill="none" stroke="#f0f0f8" stroke-width="3" stroke-linejoin="round"/>
+            <!-- Base block -->
+            <rect x="30" y="70" width="40" height="14" rx="1" fill="none" stroke="#f0f0f8" stroke-width="3"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <path d="M5 50 L20 48 L20 42 L80 42 L78 50 L74 56 L72 62 L80 62 L80 70 L20 70 L20 62 L28 62 L26 56 L20 50 Z" fill="none" stroke="#f0f0f8" stroke-width="6" stroke-linejoin="round"/>
+            <rect x="30" y="70" width="40" height="14" rx="1" fill="none" stroke="#f0f0f8" stroke-width="6"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M5 50 L20 48 L20 42 L80 42 L78 50 L74 56 L72 62 L80 62 L80 70 L20 70 L20 62 L28 62 L26 56 L20 50 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M5 50 L20 48 L20 42 L80 42 L78 50 L74 56 L72 62 L80 62 L80 70 L20 70 L20 62 L28 62 L26 56 L20 50 Z" fill="none" stroke="#f0f0f8" stroke-width="5" stroke-linejoin="round"/><rect x="30" y="70" width="40" height="14" rx="1" fill="none" stroke="#f0f0f8" stroke-width="5"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> More "this is definitely an anvil" than the simpler M04. Includes the horn + step + base — full anatomy. <strong>Cons:</strong> Stroke-only at small sizes loses fidelity — fav has to fall back to filled silhouette.</div>
+  </div>
+
+  <!-- M20 — HAMMER + SPARK -->
+  <div class="variation">
+    <div class="variation-head"><h2><span class="variation-num">M20</span> Hammer + Spark</h2><span class="variation-vibe">Single tool + accent · Restrained</span></div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Vertical hammer, simple -->
+            <rect x="30" y="20" width="40" height="16" rx="3" fill="#f0f0f8"/>
+            <rect x="44" y="36" width="12" height="58" rx="3" fill="#f0f0f8"/>
+            <!-- Single spark, top-right of hammer head -->
+            <path d="M82 18 L84 26 L92 22 L86 28 L94 32 L86 32 L92 40 L84 36 L82 44 L80 36 L72 40 L78 32 L70 32 L78 28 L72 22 L80 26 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <rect x="30" y="20" width="40" height="16" rx="3" fill="#f0f0f8"/>
+            <rect x="44" y="36" width="12" height="58" rx="3" fill="#f0f0f8"/>
+            <path d="M82 18 L84 26 L92 22 L86 28 L94 32 L86 32 L92 40 L84 36 L82 44 L80 36 L72 40 L78 32 L70 32 L78 28 L72 22 L80 26 Z" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text"><span class="v-sb-name">CertAnvil</span><span class="v-sb-cert">Network+ N10-009</span><span class="v-sb-version">v4.87.3</span></div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="30" y="20" width="40" height="16" rx="3" fill="#f0f0f8"/><rect x="44" y="36" width="12" height="58" rx="3" fill="#f0f0f8"/><circle cx="82" cy="32" r="6" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><rect x="30" y="20" width="40" height="16" rx="3" fill="#f0f0f8"/><rect x="44" y="36" width="12" height="58" rx="3" fill="#f0f0f8"/><circle cx="82" cy="32" r="6" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Restrained version of M11 — same structure, single decorative spark instead of full burst. Clean single-tool clarity. <strong>Cons:</strong> Star spark glyph is heavy detail at small sizes — favicon falls back to a simple dot.</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- RECOMMENDATION                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="rec">
+    <span class="rec-badge">My Recommendation</span>
+    <h3>M12 (Hammer Head) primary · M14 (Hammer + Anvil Lockup) for marketing</h3>
+    <div style="font-size:14px; color:var(--text-mid); line-height:1.6">
+      <strong style="color:var(--text)">M12 — Hammer Head</strong> is the strongest minimalist pick of round 2. Single shape, single color (amber spark — your brand accent), reads at every size including 16px favicon. The hammer head is the "business end" of the tool — most purposeful, most essential. Pairs cleanly with the wordmark.
+      <br><br>
+      <strong style="color:var(--text)">M14 — Hammer + Anvil Lockup</strong> for marketing surfaces where you can afford more narrative density (hero images, social shares, video thumbnails). Tells the full forge story; carries the brand DNA.
+      <br><br>
+      <strong style="color:var(--text)">Hybrid system</strong>: M12 silhouette for app icon / favicon / sidebar mark · M14 lockup for marketing / hero / loading splash. Two assets, both minimalist, full coverage.
+      <br><br>
+      <span style="color:var(--text-dim); font-size:13px"><strong>Honorable mentions</strong>: M16 (tongs) is the most distinctive — nobody else uses tongs, and the hot piece in the jaws metaphors "your cert being forged" beautifully. M11 (hammer profile) is the most universal-recognition. M17 (flame) is the most modern but loses anvil-specific meaning.</span>
+    </div>
+  </div>
+
+  <div class="annotation" style="margin-top:32px">
+    <strong>Picking across both rounds</strong>
+    Combined with the previous wordmark-leaning set (M01–M10), you now have <strong>20 minimalist variations</strong> total: 10 wordmark-leaning, 10 icon-led. Possible hybrids: <em>M12 hammer head + M03 wedge wordmark</em> (icon-prominent + wordmark-with-personality), or <em>M16 tongs + M01 pure wordmark</em> (most distinctive icon + cleanest wordmark). Tell me which numbers (across both rounds) speak to you and we'll lock in the system.
+  </div>
+
+</div>
+</body>
+</html>

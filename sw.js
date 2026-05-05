@@ -1,11 +1,14 @@
-// Service Worker v4.87.3 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v4.87.3';
+// Service Worker v4.87.4 — Network+ Quiz App
+const CACHE_NAME = 'netplus-v4.87.4';
 const SHELL_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
+  // v4.87.4: CertAnvil M14 logo. Single SVG = favicon + apple-touch-icon
+  // + PWA manifest icon. Modern browsers handle all sizes from one source.
+  './favicon.svg',
   // v4.86.0: cert packs precached. Both load on every visit (~3KB combined
   // at Phase 1A; will grow as TOPIC_DOMAINS/exemplars migrate). Active cert
   // is resolved at runtime by detectCert() in app.js.

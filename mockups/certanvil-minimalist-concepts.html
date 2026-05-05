@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — CertAnvil Minimalist Logo Variations</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --orange: #f59e0b; --green: #22c55e; --cyan: #06b6d4;
+    --radius: 14px; --radius-sm: 10px;
+    --mono: 'SF Mono', 'Monaco', 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 15px; margin-bottom: 36px; max-width: 720px; }
+  h2 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  code { font-family: var(--mono); font-size: 0.85em; background: rgba(124,111,247,.12); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); }
+
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* Variation card — denser than the previous mockup */
+  .variation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .variation-head {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .variation-num {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .12em;
+    background: rgba(124,111,247,.1);
+    padding: 4px 10px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .variation-vibe {
+    font-size: 11px; color: var(--text-dim); font-family: var(--mono);
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+
+  .variation-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  @media (max-width: 720px) {
+    .variation-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Hero (the main display) */
+  .v-hero {
+    background: linear-gradient(135deg, #0d0d18 0%, #1a1a2e 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 28px 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 140px;
+    gap: 12px;
+  }
+
+  /* Sidebar mockup — matches live app */
+  .v-sidebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(13,13,24,.95);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 14px;
+    min-height: 80px;
+  }
+  .v-sb-mark {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .v-sb-text { display: flex; flex-direction: column; gap: 1px; min-width:0; }
+  .v-sb-name { font-size: 13px; font-weight: 800; color: var(--text); letter-spacing: -.01em; line-height: 1.1; white-space: nowrap; }
+  .v-sb-cert { font-size: 10px; font-weight: 600; color: var(--accent-light); letter-spacing: .02em; }
+  .v-sb-version { font-size: 9px; font-family: var(--mono); color: var(--text-dim); letter-spacing: .05em; }
+
+  /* Favicon comparison */
+  .v-fav {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px;
+  }
+  .v-fav-row { display: flex; gap: 14px; align-items: center; }
+  .v-fav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .v-fav-label { font-size: 9px; color: var(--text-dim); font-family: var(--mono); }
+
+  /* Wordmark text */
+  .wm { font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+  .wm-light { color: #1a1a2e; }
+  .wm-spark { color: var(--orange); }
+  .wm-accent { color: var(--accent-light); }
+
+  /* Notes row below the grid */
+  .v-notes {
+    margin-top: 14px;
+    font-size: 13px; color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .v-notes strong { color: var(--text); font-weight: 700; }
+
+  /* Recommendation card */
+  .rec {
+    background: linear-gradient(135deg, rgba(34,197,94,.1) 0%, rgba(124,111,247,.05) 100%);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 32px;
+  }
+  .rec-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(34,197,94,.15);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-size: 11px; font-weight: 800; letter-spacing: .12em;
+    padding: 4px 10px; border-radius: 99px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .rec h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔨 CertAnvil — Minimalist Logo Set</h1>
+  <div class="lede">
+    Ten minimalist variations. Each leans into <em>less is more</em> — single-color, geometric, no decorative detail. Targets the design language of Linear / Stripe / Vercel / Anthropic. Click through, find the one that lands. All are vector SVG, scalable, ready to drop into the codebase or Figma.
+  </div>
+
+  <div class="annotation">
+    <strong>Minimalist principles applied</strong>
+    Maximum 2 colors per mark · No gradients on icons (only on optional accent backgrounds) · Single-shape preference · Negative-space leverage where possible · Strong silhouette at 16px favicon · Wordmark always Inter 800 · No outline strokes thicker than necessary.
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M01 — PURE WORDMARK                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M01</span> Pure Wordmark</h2>
+      <span class="variation-vibe">Stripe / Notion · No icon</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <span class="wm" style="font-size:42px">CertAnvil</span>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><span style="font-size:14px; font-weight:800">CA</span><span class="v-fav-label">16px favicon</span></div>
+          <div class="v-fav-item"><span style="font-size:24px; font-weight:800">CA</span><span class="v-fav-label">32px tab</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Maximum confidence — typography is the brand. Easiest to maintain (no icon assets to manage). <strong>Cons:</strong> No standalone glyph for app icon / favicon / social avatar — would need a paired letter-mark like "CA" for those surfaces.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M02 — DOT BEFORE                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M02</span> Dot Mark</h2>
+      <span class="variation-vibe">Linear / Cursor · Single dot</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#f59e0b"/></svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="#f59e0b"/></svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Atomic. The "spark" idea reduced to its essence. Works beautifully as a tiny accent. <strong>Cons:</strong> A single dot is generic — many products use this pattern. No specific anvil meaning.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M03 — WEDGE IN WORDMARK                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M03</span> Wedge Wordmark</h2>
+      <span class="variation-vibe">Replace "v" with anvil wedge</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <span class="wm" style="font-size:42px">CertAn<span class="wm-spark">▾</span>il</span>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18; color:var(--orange); font-size:18px; font-weight:800">▾</div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAn<span style="color:var(--orange)">▾</span>il</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><span style="font-size:16px; color:var(--orange); font-weight:800">▾</span><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><span style="font-size:32px; color:var(--orange); font-weight:800">▾</span><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Wordmark <em>and</em> mark in one. Anvil top profile (the wedge) lives in the brand name itself. Clever but legible. <strong>Cons:</strong> Requires custom rendering — auto-replace risk in some text contexts.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M04 — OUTLINED ANVIL                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M04</span> Outline Anvil</h2>
+      <span class="variation-vibe">1.5px stroke · No fill</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z M20 50 L8 53 L8 55 L20 55" fill="none" stroke="#f0f0f8" stroke-width="3" stroke-linejoin="round"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="22" height="22" viewBox="0 0 100 100">
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z M20 50 L8 53 L8 55 L20 55" fill="none" stroke="#f0f0f8" stroke-width="6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z M20 50 L8 53 L8 55 L20 55" fill="none" stroke="#f0f0f8" stroke-width="8" stroke-linejoin="round"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z M20 50 L8 53 L8 55 L20 55" fill="none" stroke="#f0f0f8" stroke-width="6" stroke-linejoin="round"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> The anvil shape, distilled. Outline-only renders cleanly across light + dark themes. <strong>Cons:</strong> Can feel slightly thin / utilitarian at small sizes — stroke needs careful weight tuning per scale.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M05 — SOLID ANVIL                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M05</span> Solid Silhouette</h2>
+      <span class="variation-vibe">Single color · No detail</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="22" height="22" viewBox="0 0 100 100">
+            <path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 56 L72 64 L78 64 L78 72 L22 72 L22 64 L28 64 L26 56 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Strongest silhouette. No spark, no decoration — just the iconic anvil shape. Reads at every size. <strong>Cons:</strong> Less differentiated than the outlined version on light backgrounds.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M06 — CA LIGATURE                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M06</span> CA Ligature</h2>
+      <span class="variation-vibe">Custom letter merge</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="56" height="56" viewBox="0 0 100 100">
+            <!-- Stylized C+A merged: C opens to the right, A's apex aligns with C's right edge -->
+            <path d="M40 28 Q22 28 22 50 Q22 72 40 72 L48 72 L48 64 L40 64 Q32 64 32 50 Q32 36 40 36 L52 36 Z" fill="#f0f0f8"/>
+            <path d="M50 72 L62 28 L72 28 L84 72 L74 72 L72 64 L62 64 L60 72 Z M64 56 L70 56 L67 42 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:linear-gradient(135deg, #1a1a2e, #0a0a12); border:1px solid var(--border)">
+          <svg width="26" height="26" viewBox="0 0 100 100">
+            <path d="M40 28 Q22 28 22 50 Q22 72 40 72 L48 72 L48 64 L40 64 Q32 64 32 50 Q32 36 40 36 L52 36 Z" fill="#f0f0f8"/>
+            <path d="M50 72 L62 28 L72 28 L84 72 L74 72 L72 64 L62 64 L60 72 Z M64 56 L70 56 L67 42 Z" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M40 28 Q22 28 22 50 Q22 72 40 72 L48 72 L48 64 L40 64 Q32 64 32 50 Q32 36 40 36 L52 36 Z" fill="#f0f0f8"/><path d="M50 72 L62 28 L72 28 L84 72 L74 72 L72 64 L62 64 L60 72 Z" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M40 28 Q22 28 22 50 Q22 72 40 72 L48 72 L48 64 L40 64 Q32 64 32 50 Q32 36 40 36 L52 36 Z" fill="#f0f0f8"/><path d="M50 72 L62 28 L72 28 L84 72 L74 72 L72 64 L62 64 L60 72 Z M64 56 L70 56 L67 42 Z" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> The wordmark's first two letters become a custom letter-mark. White C + amber A reads as "CertAnvil" at every glance. <strong>Cons:</strong> A is shaped traditionally — not specifically anvil-evoking.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M07 — TRAPEZOID (anvil top in profile)                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M07</span> Trapezoid Mark</h2>
+      <span class="variation-vibe">Anvil top abstracted · One shape</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Single trapezoid shape (anvil top profile) -->
+            <path d="M20 38 L80 38 L72 62 L28 62 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <path d="M20 38 L80 38 L72 62 L28 62 Z" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><path d="M20 38 L80 38 L72 62 L28 62 Z" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><path d="M20 38 L80 38 L72 62 L28 62 Z" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Single shape. Vercel-triangle-energy. The anvil profile reduced to its abstract essence — a trapezoid wedge. <strong>Cons:</strong> Reads as "shape" rather than "anvil" without the wordmark — relies on context.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M08 — STAMP (rounded square + glyph)                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M08</span> Stamp</h2>
+      <span class="variation-vibe">Rounded square · Inverted wedge inside</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <rect x="0" y="0" width="100" height="100" rx="22" fill="#7c6ff7"/>
+            <!-- Single anvil-top wedge shape, inverted -->
+            <path d="M28 62 L72 62 L66 40 L34 40 Z" fill="#fff"/>
+            <!-- spark -->
+            <circle cx="50" cy="28" r="3" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark">
+          <svg width="36" height="36" viewBox="0 0 100 100">
+            <rect x="0" y="0" width="100" height="100" rx="22" fill="#7c6ff7"/>
+            <path d="M28 62 L72 62 L66 40 L34 40 Z" fill="#fff"/>
+            <circle cx="50" cy="28" r="3" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="22" fill="#7c6ff7"/><path d="M28 62 L72 62 L66 40 L34 40 Z" fill="#fff"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="22" fill="#7c6ff7"/><path d="M28 62 L72 62 L66 40 L34 40 Z" fill="#fff"/><circle cx="50" cy="28" r="3" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> App-icon-ready out of the box. Reads as a "stamp of completion" — passing your cert is the stamp. The accent purple matches the existing app palette. <strong>Cons:</strong> 3 elements (square + wedge + spark) is the busiest of the minimalist set.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M09 — TWO BARS                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M09</span> Two Bars</h2>
+      <span class="variation-vibe">Brutalist · 2 strokes total</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Top: long bar (anvil working surface) -->
+            <rect x="14" y="42" width="72" height="6" rx="2" fill="#f0f0f8"/>
+            <!-- Bottom: short bar (anvil base) -->
+            <rect x="38" y="62" width="24" height="6" rx="2" fill="#f59e0b"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark" style="background:#0d0d18">
+          <svg width="24" height="24" viewBox="0 0 100 100">
+            <rect x="14" y="42" width="72" height="8" rx="3" fill="#f0f0f8"/>
+            <rect x="38" y="62" width="24" height="8" rx="3" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><rect x="14" y="42" width="72" height="14" rx="3" fill="#f0f0f8"/><rect x="38" y="64" width="24" height="14" rx="3" fill="#f59e0b"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><rect x="14" y="42" width="72" height="10" rx="3" fill="#f0f0f8"/><rect x="38" y="62" width="24" height="10" rx="3" fill="#f59e0b"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> The most reductive interpretation. Top bar = working surface, lower bar = base. Reads as anvil profile abstracted to two strokes. Distinctive. <strong>Cons:</strong> Could read as "play/pause" or "equals sign" without the wordmark.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- M10 — NEGATIVE SPACE                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="variation">
+    <div class="variation-head">
+      <h2><span class="variation-num">M10</span> Negative Space</h2>
+      <span class="variation-vibe">Anvil cut from solid block</span>
+    </div>
+    <div class="variation-grid">
+      <div class="v-hero">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <!-- Solid background -->
+            <rect x="0" y="0" width="100" height="100" rx="14" fill="#f59e0b"/>
+            <!-- Anvil cut OUT (using mask) -->
+            <mask id="m10-mask">
+              <rect x="0" y="0" width="100" height="100" fill="white"/>
+              <path d="M22 50 L78 50 L72 56 L70 64 L76 64 L76 72 L24 72 L24 64 L30 64 L28 56 Z" fill="black"/>
+              <path d="M22 50 L12 53 L12 55 L22 55 Z" fill="black"/>
+            </mask>
+            <rect x="0" y="0" width="100" height="100" rx="14" fill="#f59e0b" mask="url(#m10-mask)"/>
+          </svg>
+          <span class="wm" style="font-size:42px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="v-sidebar">
+        <div class="v-sb-mark">
+          <svg width="36" height="36" viewBox="0 0 100 100">
+            <mask id="m10-mask-sb">
+              <rect x="0" y="0" width="100" height="100" fill="white"/>
+              <path d="M22 50 L78 50 L72 56 L70 64 L76 64 L76 72 L24 72 L24 64 L30 64 L28 56 Z" fill="black"/>
+              <path d="M22 50 L12 53 L12 55 L22 55 Z" fill="black"/>
+            </mask>
+            <rect x="0" y="0" width="100" height="100" rx="14" fill="#f59e0b" mask="url(#m10-mask-sb)"/>
+          </svg>
+        </div>
+        <div class="v-sb-text">
+          <span class="v-sb-name">CertAnvil</span>
+          <span class="v-sb-cert">Network+ N10-009</span>
+          <span class="v-sb-version">v4.87.3</span>
+        </div>
+      </div>
+      <div class="v-fav">
+        <div class="v-fav-row">
+          <div class="v-fav-item"><svg width="16" height="16" viewBox="0 0 100 100"><mask id="m10-fav1"><rect width="100" height="100" fill="white"/><path d="M22 50 L78 50 L72 56 L70 64 L76 64 L76 72 L24 72 L24 64 L30 64 L28 56 Z M22 50 L12 53 L12 55 L22 55 Z" fill="black"/></mask><rect width="100" height="100" rx="14" fill="#f59e0b" mask="url(#m10-fav1)"/></svg><span class="v-fav-label">16px</span></div>
+          <div class="v-fav-item"><svg width="32" height="32" viewBox="0 0 100 100"><mask id="m10-fav2"><rect width="100" height="100" fill="white"/><path d="M22 50 L78 50 L72 56 L70 64 L76 64 L76 72 L24 72 L24 64 L30 64 L28 56 Z M22 50 L12 53 L12 55 L22 55 Z" fill="black"/></mask><rect width="100" height="100" rx="14" fill="#f59e0b" mask="url(#m10-fav2)"/></svg><span class="v-fav-label">32px</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-notes"><strong>Pros:</strong> Solid amber square reads strong at every size. The anvil silhouette emerges as cleverness — Apple-bite-style. Memorable. <strong>Cons:</strong> The cutout shape disappears at 16px favicon — works for app icon but breaks at smallest scale.</div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- RECOMMENDATION                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="rec">
+    <span class="rec-badge">My Recommendation</span>
+    <h3>M05 (Solid Silhouette) primary · M03 (Wedge Wordmark) secondary</h3>
+    <div style="font-size:14px; color:var(--text-mid); line-height:1.6">
+      <strong style="color:var(--text)">M05 — Solid Silhouette</strong> wins on minimalist principles AND scaling: strongest silhouette at every size from 16px favicon to marketing hero, reads as "anvil" without any decoration. Pairs cleanly with the Inter wordmark. White on dark / dark on light — themes for free.
+      <br><br>
+      <strong style="color:var(--text)">M03 — Wedge Wordmark</strong> as a secondary identity for places where you've already shown the icon (sidebar, app header) — the wordmark itself becomes the brand. Single-character ▾ swap is subtle and memorable.
+      <br><br>
+      <strong style="color:var(--text)">Hybrid system</strong>: M05 silhouette for app icon / favicon / social avatar / sidebar mark · M03 wedge-wordmark for headers / marketing copy / footer / loading screens. Two assets, full coverage, both stay minimalist.
+      <br><br>
+      <span style="color:var(--text-dim); font-size:13px">Honorable mentions: M07 (trapezoid) is the most distinctive single-shape; M02 (dot) is the most discrete; M09 (two bars) is the most reductive but needs the wordmark to read as "anvil."</span>
+    </div>
+  </div>
+
+  <div class="annotation" style="margin-top:32px">
+    <strong>Next step</strong>
+    Open this file (<code>mockups/certanvil-minimalist-concepts.html</code>), click through the 10 variations, and tell me which number(s) land. We can pick one, or pick two for a hybrid identity. Once locked, I'll wire the chosen SVG into <code>renderAppSidebar()</code> + generate the favicon/PWA icon set.
+  </div>
+
+</div>
+</body>
+</html>

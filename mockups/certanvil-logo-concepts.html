@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — CertAnvil Logo & Wordmark Concepts</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --red: #f87171; --yellow: #fbbf24; --orange: #f59e0b; --orange-bright: #ff8f1f;
+    --cyan: #06b6d4; --gold: #d4af37;
+    --radius: 14px; --radius-sm: 10px;
+    --mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 15px; margin-bottom: 36px; max-width: 720px; }
+  h2 { font-size: 22px; font-weight: 800; margin-bottom: 14px; letter-spacing: -.01em; }
+  h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+  code { font-family: var(--mono); font-size: 0.85em; background: rgba(124,111,247,.12); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); }
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 20px 0;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ── Concept card ── */
+  .concept {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .concept-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 18px; flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .concept-head h2 { font-size: 22px; margin: 0; }
+  .concept-head h2 .num {
+    color: var(--accent);
+    margin-right: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: .1em;
+    background: rgba(124,111,247,.1);
+    padding: 4px 10px;
+    border-radius: 99px;
+    vertical-align: middle;
+  }
+  .concept-pill {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    padding: 4px 10px; border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    text-transform: uppercase;
+  }
+
+  /* Hero showcase — large logo, dark theme */
+  .hero-showcase {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .hero-dark, .hero-light {
+    border-radius: var(--radius-sm);
+    padding: 36px 28px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 220px;
+  }
+  .hero-dark { background: linear-gradient(135deg, #0d0d18 0%, #1a1a2e 100%); border: 1px solid var(--border); }
+  .hero-light { background: linear-gradient(135deg, #f8f9ff 0%, #eef0fa 100%); border: 1px solid #c7c9d8; color: #1a1a2e; }
+  .hero-light .wordmark-text { color: #1a1a2e; }
+  @media (max-width: 720px) {
+    .hero-showcase { grid-template-columns: 1fr; }
+  }
+
+  /* Sizing demo strip */
+  .sizing-strip {
+    display: flex; gap: 24px; align-items: center;
+    background: #0d0d18;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+  }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+  .size-label { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+
+  /* Specs grid */
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .spec-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .spec-card-label { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; }
+  .spec-card-value { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .spec-card-value .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 5px; border: 1px solid rgba(255,255,255,.1); }
+  .spec-card-mono { font-family: var(--mono); font-size: 12px; color: var(--accent-light); }
+
+  /* Sidebar mockup */
+  .sidebar-mockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(13,13,24,.95);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-top: 14px;
+    max-width: 320px;
+  }
+  .sidebar-mockup-mark {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sidebar-mockup-text { display: flex; flex-direction: column; gap: 2px; }
+  .sidebar-mockup-name { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; line-height: 1.1; }
+  .sidebar-mockup-cert { font-size: 11px; font-weight: 600; color: var(--accent-light); letter-spacing: .02em; }
+  .sidebar-mockup-version { font-size: 10px; font-family: var(--mono); color: var(--text-dim); letter-spacing: .05em; }
+
+  /* Wordmark text styling */
+  .wordmark-text { font-weight: 800; letter-spacing: -.02em; }
+  .wordmark-anvil-emphasis { color: var(--orange); }
+  .wordmark-cert-emphasis { color: var(--accent-light); }
+
+  /* Section headers */
+  .section-divider {
+    margin: 56px 0 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-divider-label {
+    font-size: 12px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+
+  /* Color palette */
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .palette-item {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .palette-color {
+    height: 70px; width: 100%;
+  }
+  .palette-info {
+    padding: 10px 12px;
+    background: var(--surface2);
+  }
+  .palette-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .palette-hex { font-size: 11px; font-family: var(--mono); color: var(--text-dim); margin-top: 2px; }
+
+  /* Footer notes */
+  .footer-note {
+    margin-top: 32px;
+    padding: 18px;
+    background: rgba(245,158,11,.05);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 13px;
+    color: var(--text-mid);
+  }
+  .footer-note strong { color: var(--orange); display: block; margin-bottom: 6px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* Recommendation badge */
+  .rec-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(34,197,94,.15);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-size: 11px; font-weight: 800; letter-spacing: .12em;
+    padding: 4px 10px; border-radius: 99px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔨 CertAnvil — Logo & Wordmark Concepts</h1>
+  <div class="lede">
+    Six visual directions for the CertAnvil brand mark + wordmark. Each concept includes a hero presentation (dark + light theme), an in-context sidebar preview matching the live app, and engineering specs (SVG paths, colors, fonts) ready to drop into Figma or directly into the codebase. Click any concept's icon to inspect the SVG. Recommendation flagged at the end.
+  </div>
+
+  <div class="annotation">
+    <strong>Brand brief — what we're solving for</strong>
+    Parent-product brand for an AI cert-prep platform. Currently houses Network+ + Security+; will scale to AZ-900, CCNA, AWS, Azure. Audience is IT cert candidates (mostly individuals, some small training shops). Founder story: tool was built and used to pass Network+ N10-009 with a 767/900 in 8 weeks. Brand DNA: forge / craft / hammer-and-anvil — you forge yourself into a passer using the tool.
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- COLOR PALETTE                                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="section-divider"><span class="section-divider-label">Color Palette · Foundations</span></div>
+
+  <div class="palette">
+    <div class="palette-item">
+      <div class="palette-color" style="background:#0a0a12"></div>
+      <div class="palette-info"><div class="palette-name">Forge Black</div><div class="palette-hex">#0a0a12</div></div>
+    </div>
+    <div class="palette-item">
+      <div class="palette-color" style="background:#1a1a2e"></div>
+      <div class="palette-info"><div class="palette-name">Anvil Charcoal</div><div class="palette-hex">#1a1a2e</div></div>
+    </div>
+    <div class="palette-item">
+      <div class="palette-color" style="background:#7c6ff7"></div>
+      <div class="palette-info"><div class="palette-name">Accent (existing)</div><div class="palette-hex">#7c6ff7</div></div>
+    </div>
+    <div class="palette-item">
+      <div class="palette-color" style="background:#f59e0b"></div>
+      <div class="palette-info"><div class="palette-name">Spark Amber</div><div class="palette-hex">#f59e0b</div></div>
+    </div>
+    <div class="palette-item">
+      <div class="palette-color" style="background:#ff8f1f"></div>
+      <div class="palette-info"><div class="palette-name">Spark Orange (hot)</div><div class="palette-hex">#ff8f1f</div></div>
+    </div>
+    <div class="palette-item">
+      <div class="palette-color" style="background:#d4af37"></div>
+      <div class="palette-info"><div class="palette-name">Cert Gold</div><div class="palette-hex">#d4af37</div></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 1 — THE ANVIL                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">01</span>The Anvil</h2>
+      <span class="concept-pill">Iconic · Heritage · Confident</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      Pure anvil silhouette with a single warm spark above. Plays the metaphor straight — "you forge your pass on this anvil." Reads instantly. Strongest brand recognition value because the icon IS the name.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; align-items:center; gap:18px">
+          <!-- Anvil icon -->
+          <svg width="84" height="84" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Spark -->
+            <path d="M50 8 L52 20 L60 14 L54 22 L66 24 L54 26 L60 34 L52 28 L50 40 L48 28 L40 34 L46 26 L34 24 L46 22 L40 14 L48 20 Z" fill="#f59e0b" opacity="0.9"/>
+            <!-- Anvil body -->
+            <path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#f0f0f8"/>
+            <!-- Anvil horn (left) -->
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/>
+            <!-- Anvil base/feet -->
+            <rect x="30" y="70" width="40" height="6" fill="#a99df9" opacity="0.85"/>
+            <rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.7"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:48px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 8 L52 20 L60 14 L54 22 L66 24 L54 26 L60 34 L52 28 L50 40 L48 28 L40 34 L46 26 L34 24 L46 22 L40 14 L48 20 Z" fill="#f59e0b" opacity="0.9"/>
+            <path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#1a1a2e"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#1a1a2e"/>
+            <rect x="30" y="70" width="40" height="6" fill="#7c6ff7" opacity="0.7"/>
+            <rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.5"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:32px; color:#1a1a2e">CertAnvil</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sizing-strip">
+      <div class="size-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/><rect x="30" y="70" width="40" height="6" fill="#7c6ff7"/><rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.7"/></svg>
+        <span class="size-label">16px favicon</span>
+      </div>
+      <div class="size-item">
+        <svg width="32" height="32" viewBox="0 0 100 100"><path d="M50 8 L52 20 L60 14 L54 22 L66 24 L54 26 L60 34 L52 28 L50 40 L48 28 L40 34 L46 26 L34 24 L46 22 L40 14 L48 20 Z" fill="#f59e0b"/><path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/><rect x="30" y="70" width="40" height="6" fill="#7c6ff7"/><rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.7"/></svg>
+        <span class="size-label">32px sidebar</span>
+      </div>
+      <div class="size-item">
+        <svg width="56" height="56" viewBox="0 0 100 100"><path d="M50 8 L52 20 L60 14 L54 22 L66 24 L54 26 L60 34 L52 28 L50 40 L48 28 L40 34 L46 26 L34 24 L46 22 L40 14 L48 20 Z" fill="#f59e0b"/><path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/><rect x="30" y="70" width="40" height="6" fill="#7c6ff7"/><rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.7"/></svg>
+        <span class="size-label">56px feature</span>
+      </div>
+    </div>
+
+    <div class="sidebar-mockup">
+      <div class="sidebar-mockup-mark" style="background:linear-gradient(135deg, #1a1a2e, #0a0a12); border:1px solid var(--border)">
+        <svg width="22" height="22" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="#f0f0f8"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="#f0f0f8"/><rect x="30" y="70" width="40" height="6" fill="#7c6ff7"/><rect x="34" y="76" width="32" height="10" fill="#7c6ff7" opacity="0.7"/></svg>
+      </div>
+      <div class="sidebar-mockup-text">
+        <span class="sidebar-mockup-name">CertAnvil</span>
+        <span class="sidebar-mockup-cert">Network+ N10-009</span>
+        <span class="sidebar-mockup-version">v4.87.3</span>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Wordmark font</div>
+        <div class="spec-card-value">System sans-serif (Inter / SF Pro / Segoe UI), 800 weight, -0.02em tracking</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Mark colors</div>
+        <div class="spec-card-value">
+          <span class="swatch" style="background:#f0f0f8"></span> body<br>
+          <span class="swatch" style="background:#7c6ff7"></span> base<br>
+          <span class="swatch" style="background:#f59e0b"></span> spark
+        </div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Confident, classical, weighty. Reads as "where mastery is forged."</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">Marketing site hero, social media avatar, app icon</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 2 — HAMMER STRIKE                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">02</span>Hammer Strike</h2>
+      <span class="concept-pill">Active · Energy · Builder</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      Anvil + hammer mid-strike with sparks. Adds motion + builder energy. Slightly busier than Concept 01 but more story per glance: you're not just standing at the anvil, you're <em>working</em> it.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="84" height="84" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Hammer (rotated, striking down) -->
+            <g transform="rotate(-30 60 30)">
+              <rect x="48" y="18" width="28" height="14" rx="2" fill="#a99df9"/>
+              <rect x="56" y="32" width="6" height="22" fill="#7c6ff7"/>
+            </g>
+            <!-- Sparks -->
+            <circle cx="46" cy="50" r="2" fill="#f59e0b"/>
+            <circle cx="54" cy="48" r="1.5" fill="#ff8f1f"/>
+            <circle cx="60" cy="52" r="2.5" fill="#f59e0b"/>
+            <circle cx="40" cy="52" r="1.5" fill="#ff8f1f"/>
+            <!-- Anvil body -->
+            <path d="M20 60 L80 60 L74 65 L72 72 L78 72 L78 80 L22 80 L22 72 L28 72 L26 65 Z" fill="#f0f0f8"/>
+            <!-- Anvil horn -->
+            <path d="M20 60 L8 63 L8 65 L20 65 Z" fill="#f0f0f8"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:48px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(-30 60 30)">
+              <rect x="48" y="18" width="28" height="14" rx="2" fill="#7c6ff7"/>
+              <rect x="56" y="32" width="6" height="22" fill="#3d3870"/>
+            </g>
+            <circle cx="46" cy="50" r="2" fill="#f59e0b"/>
+            <circle cx="54" cy="48" r="1.5" fill="#ff8f1f"/>
+            <circle cx="60" cy="52" r="2.5" fill="#f59e0b"/>
+            <circle cx="40" cy="52" r="1.5" fill="#ff8f1f"/>
+            <path d="M20 60 L80 60 L74 65 L72 72 L78 72 L78 80 L22 80 L22 72 L28 72 L26 65 Z" fill="#1a1a2e"/>
+            <path d="M20 60 L8 63 L8 65 L20 65 Z" fill="#1a1a2e"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:32px; color:#1a1a2e">CertAnvil</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-mockup">
+      <div class="sidebar-mockup-mark" style="background:linear-gradient(135deg, #1a1a2e, #0a0a12); border:1px solid var(--border)">
+        <svg width="22" height="22" viewBox="0 0 100 100"><g transform="rotate(-30 60 30)"><rect x="48" y="18" width="28" height="14" rx="2" fill="#a99df9"/><rect x="56" y="32" width="6" height="22" fill="#7c6ff7"/></g><circle cx="50" cy="50" r="2.5" fill="#f59e0b"/><path d="M20 60 L80 60 L74 65 L72 72 L78 72 L78 80 L22 80 L22 72 L28 72 L26 65 Z" fill="#f0f0f8"/></svg>
+      </div>
+      <div class="sidebar-mockup-text">
+        <span class="sidebar-mockup-name">CertAnvil</span>
+        <span class="sidebar-mockup-cert">Network+ N10-009</span>
+        <span class="sidebar-mockup-version">v4.87.3</span>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Active, builder-energy, work-in-progress</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">Marketing video thumbnails, "in action" demos</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Risk</div>
+        <div class="spec-card-value">Slightly busy at small sizes — sparks may blur into a single dot at 16px</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 3 — CA MONOGRAM                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">03</span>CA Monogram</h2>
+      <span class="concept-pill">Modern · SaaS · Geometric</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      Custom-drawn "CA" letterforms inside a rounded square. Anvil-as-negative-space hidden in the C and A counter-shapes. Reads as a modern SaaS app icon — Vercel / Linear / Anthropic / Stripe lineage. Cleanest at small sizes, pairs naturally with a wordmark.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="84" height="84" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Rounded square base -->
+            <rect x="0" y="0" width="100" height="100" rx="20" fill="url(#grad-3)"/>
+            <defs>
+              <linearGradient id="grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7c6ff7"/>
+                <stop offset="100%" stop-color="#3d3870"/>
+              </linearGradient>
+            </defs>
+            <!-- C -->
+            <path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#f0f0f8"/>
+            <!-- A -->
+            <path d="M58 72 L62 56 L73 56 L77 72 L73 72 L72 68 L63 68 L62 72 Z M64 60 L71 60 L67.5 44 Z M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:48px">CertAnvil</span>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" rx="20" fill="url(#grad-3-light)"/>
+            <defs>
+              <linearGradient id="grad-3-light" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7c6ff7"/>
+                <stop offset="100%" stop-color="#3d3870"/>
+              </linearGradient>
+            </defs>
+            <path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#f0f0f8"/>
+            <path d="M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:32px; color:#1a1a2e">CertAnvil</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sizing-strip">
+      <div class="size-item">
+        <svg width="16" height="16" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="20" fill="#7c6ff7"/><path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#fff"/><path d="M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/></svg>
+        <span class="size-label">16px</span>
+      </div>
+      <div class="size-item">
+        <svg width="32" height="32" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="20" fill="#7c6ff7"/><path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#fff"/><path d="M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/></svg>
+        <span class="size-label">32px</span>
+      </div>
+      <div class="size-item">
+        <svg width="56" height="56" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="20" fill="#7c6ff7"/><path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#fff"/><path d="M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/></svg>
+        <span class="size-label">56px</span>
+      </div>
+    </div>
+
+    <div class="sidebar-mockup">
+      <div class="sidebar-mockup-mark">
+        <svg width="38" height="38" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="20" fill="#7c6ff7"/><path d="M30 28 Q22 28 22 38 L22 62 Q22 72 30 72 L46 72 L46 64 L34 64 Q30 64 30 60 L30 40 Q30 36 34 36 L46 36 L46 28 Z" fill="#fff"/><path d="M50 72 L60 28 L75 28 L85 72 L77 72 L73 60 L62 60 L58 72 Z" fill="#f59e0b"/></svg>
+      </div>
+      <div class="sidebar-mockup-text">
+        <span class="sidebar-mockup-name">CertAnvil</span>
+        <span class="sidebar-mockup-cert">Network+ N10-009</span>
+        <span class="sidebar-mockup-version">v4.87.3</span>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Modern SaaS, app-icon-ready, scales perfectly to favicon</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">App icon, favicon, social avatar, sidebar mark</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Tradeoff</div>
+        <div class="spec-card-value">Less narratively rich than Anvil/Hammer concepts — relies on the wordmark to carry meaning</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 4 — INDUSTRIAL BLUEPRINT                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">04</span>Industrial Blueprint</h2>
+      <span class="concept-pill">Technical · Engineering · Builder-tool</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      Anvil rendered as engineering blueprint — line drawing on a grid background, measurement marks, technical drawing aesthetic. Strong "this is a serious technical product" vibe. Resonates with a developer/engineer audience.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="84" height="84" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Grid background -->
+            <defs>
+              <pattern id="grid-4" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(6,182,212,0.2)" stroke-width="0.5"/>
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="100" height="100" fill="url(#grid-4)" />
+            <!-- Anvil outline only, in cyan blueprint blue -->
+            <path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="none" stroke="#06b6d4" stroke-width="2"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="none" stroke="#06b6d4" stroke-width="2"/>
+            <!-- Measurement tick marks -->
+            <line x1="20" y1="44" x2="20" y2="48" stroke="#06b6d4" stroke-width="1"/>
+            <line x1="80" y1="44" x2="80" y2="48" stroke="#06b6d4" stroke-width="1"/>
+            <line x1="20" y1="46" x2="80" y2="46" stroke="#06b6d4" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="50" y="42" text-anchor="middle" fill="#06b6d4" font-family="monospace" font-size="6">60</text>
+            <!-- Spark callout -->
+            <circle cx="50" cy="36" r="3" fill="#f59e0b"/>
+            <text x="58" y="38" fill="#f59e0b" font-family="monospace" font-size="5">FORGE</text>
+          </svg>
+          <div>
+            <div class="wordmark-text" style="font-size:48px; font-family:'JetBrains Mono', monospace; letter-spacing:-.04em">CertAnvil</div>
+            <div style="font-size:11px; font-family:monospace; color:var(--cyan); margin-top:4px; letter-spacing:0.18em">v.001 · ENG-DRAFT</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="none" stroke="#0a0a12" stroke-width="2.5"/>
+            <path d="M20 50 L8 53 L8 55 L20 55 Z" fill="none" stroke="#0a0a12" stroke-width="2.5"/>
+            <circle cx="50" cy="36" r="3" fill="#f59e0b"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:32px; color:#1a1a2e; font-family:'JetBrains Mono', monospace">CertAnvil</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-mockup">
+      <div class="sidebar-mockup-mark" style="background:linear-gradient(135deg, #0d1f24, #0a0a12); border:1px solid #06b6d4">
+        <svg width="22" height="22" viewBox="0 0 100 100"><path d="M20 50 L80 50 L74 55 L72 62 L78 62 L78 70 L22 70 L22 62 L28 62 L26 55 Z" fill="none" stroke="#06b6d4" stroke-width="3"/><path d="M20 50 L8 53 L8 55 L20 55 Z" fill="none" stroke="#06b6d4" stroke-width="3"/></svg>
+      </div>
+      <div class="sidebar-mockup-text">
+        <span class="sidebar-mockup-name" style="font-family:'JetBrains Mono', monospace">CertAnvil</span>
+        <span class="sidebar-mockup-cert" style="color:var(--cyan)">Network+ N10-009</span>
+        <span class="sidebar-mockup-version">v4.87.3</span>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Wordmark font</div>
+        <div class="spec-card-value">JetBrains Mono / Geist Mono / Berkeley Mono — technical mono</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Engineering, technical, builder-tool, "this was made by a dev"</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">GitHub README header, dev-audience marketing, Hacker News post</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Risk</div>
+        <div class="spec-card-value">Niche aesthetic — alienates non-developer cert candidates</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 5 — MINIMAL WORDMARK                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">05</span>Minimal Wordmark</h2>
+      <span class="concept-pill">Typography-first · Confident · Stripe-coded</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      No icon. Just the wordmark, with the "v" of "Anvil" replaced by a tiny anvil glyph or wedge mark. Stripe / Linear / Notion-style discipline — the typography IS the brand. Cleanest, most modern, but loses the "what is it?" recognition advantage.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center">
+          <span class="wordmark-text" style="font-size:54px; letter-spacing:-.04em">
+            CertAn<span style="color:var(--orange)">▾</span>il
+          </span>
+          <span style="font-size:11px; color:var(--text-dim); font-family:monospace; letter-spacing:.15em">FORGE YOUR PASS</span>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center">
+          <span class="wordmark-text" style="font-size:38px; letter-spacing:-.04em; color:#1a1a2e">
+            CertAn<span style="color:var(--orange)">▾</span>il
+          </span>
+          <span style="font-size:10px; color:#6b6b90; font-family:monospace; letter-spacing:.15em">FORGE YOUR PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-mockup">
+      <div class="sidebar-mockup-mark" style="background:linear-gradient(135deg, #1a1a2e, #0a0a12); border:1px solid var(--border); font-size:18px; color:var(--orange); font-weight:800">▾</div>
+      <div class="sidebar-mockup-text">
+        <span class="sidebar-mockup-name">CertAn<span style="color:var(--orange)">▾</span>il</span>
+        <span class="sidebar-mockup-cert">Network+ N10-009</span>
+        <span class="sidebar-mockup-version">v4.87.3</span>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Minimal, modern, typographic. Reads as confident SaaS.</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">Headers, marketing copy, anywhere wordmark + tagline live together</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Risk</div>
+        <div class="spec-card-value">No standalone icon = harder app icon / favicon / social avatar story. Need a paired mark for those surfaces.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- CONCEPT 6 — STAMP / CERT SEAL                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-head">
+      <h2><span class="num">06</span>Cert Seal Stamp</h2>
+      <span class="concept-pill">Heritage · Achievement · Institutional</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:13px; margin-bottom:14px; max-width:720px">
+      Hammer striking a circular cert medallion/seal. Plays the achievement angle — the badge of certification, the moment of being marked. Heritage feel, slightly more institutional. Could resonate with corporate / training-buyer audiences.
+    </div>
+
+    <div class="hero-showcase">
+      <div class="hero-dark">
+        <div style="display:flex; align-items:center; gap:18px">
+          <svg width="84" height="84" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Outer ring (the medallion) -->
+            <circle cx="50" cy="55" r="32" fill="none" stroke="#d4af37" stroke-width="3"/>
+            <circle cx="50" cy="55" r="26" fill="none" stroke="#d4af37" stroke-width="1" stroke-dasharray="3 2"/>
+            <!-- Star/anvil mark in center -->
+            <path d="M40 50 L60 50 L57 53 L56 58 L60 58 L60 64 L40 64 L40 58 L44 58 L43 53 Z" fill="#d4af37"/>
+            <!-- Hammer striking from upper left -->
+            <g transform="rotate(-25 30 25)">
+              <rect x="18" y="14" width="22" height="11" rx="2" fill="#a99df9"/>
+              <rect x="24" y="25" width="5" height="18" fill="#7c6ff7"/>
+            </g>
+            <!-- Spark on impact -->
+            <circle cx="38" cy="40" r="2" fill="#ff8f1f"/>
+            <circle cx="42" cy="38" r="1" fill="#f59e0b"/>
+          </svg>
+          <span class="wordmark-text" style="font-size:48px; font-family:'Iowan Old Style', 'Georgia', serif; letter-spacing:-.01em">CertAnvil</span>
+        </div>
+      </div>
+      <div class="hero-light">
+        <div style="display:flex; align-items:center; gap:14px">
+          <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="55" r="32" fill="none" stroke="#d4af37" stroke-width="3"/>
+            <circle cx="50" cy="55" r="26" fill="none" stroke="#d4af37" stroke-width="1" stroke-dasharray="3 2"/>
+            <path d="M40 50 L60 50 L57 53 L56 58 L60 58 L60 64 L40 64 L40 58 L44 58 L43 53 Z" fill="#d4af37"/>
+            <g transform="rotate(-25 30 25)">
+              <rect x="18" y="14" width="22" height="11" rx="2" fill="#7c6ff7"/>
+              <rect x="24" y="25" width="5" height="18" fill="#3d3870"/>
+            </g>
+          </svg>
+          <span class="wordmark-text" style="font-size:32px; color:#1a1a2e; font-family:'Iowan Old Style', 'Georgia', serif">CertAnvil</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="specs">
+      <div class="spec-card">
+        <div class="spec-card-label">Wordmark font</div>
+        <div class="spec-card-value">Serif (Iowan Old Style / Charter / Spectral) — heritage tone</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Vibe</div>
+        <div class="spec-card-value">Heritage, institutional, achievement-focused</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Best for</div>
+        <div class="spec-card-value">Corporate training partnerships, certificate-of-completion graphics</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-label">Risk</div>
+        <div class="spec-card-value">Slightly stuffy — could read as "certification body" rather than "fast modern study tool"</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- RECOMMENDATION                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="section-divider"><span class="section-divider-label">My Recommendation</span></div>
+
+  <div class="concept" style="border-color: var(--green); background: linear-gradient(135deg, rgba(34,197,94,.08) 0%, var(--surface) 100%)">
+    <div class="concept-head">
+      <h2><span class="num">★</span>Concept 03 — CA Monogram</h2>
+      <span class="rec-badge">Recommended</span>
+    </div>
+    <div style="color:var(--text-mid); font-size:14px; line-height:1.6; max-width:780px">
+      Strongest "modern SaaS" identity. Scales perfectly from 16px favicon to 56px feature. Pairs cleanly with the existing app's <code>--accent: #7c6ff7</code> palette so no other CSS needs to change. The narrative loss vs. literal anvil concepts is real, but reclaimed via the <em>wordmark</em> ("CertAnvil") — the meaning lives in the name, the mark just badges it.
+      <br><br>
+      <strong style="color:var(--green)">Why I'd pick this:</strong>
+      <ul style="margin-top:8px; padding-left:22px; color:var(--text-mid)">
+        <li>Perfect favicon legibility at 16×16 (literal anvils get muddy)</li>
+        <li>Matches Vercel / Linear / Anthropic / Stripe app-icon discipline</li>
+        <li>Already coordinates with your existing accent palette — drop-in compatible</li>
+        <li>Easiest to refine in Figma — pure geometry, no detailed illustration</li>
+        <li>Works in 2-color (purple + amber spark) AND single-color contexts</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:20px; padding: 16px; background: rgba(34,197,94,.05); border-left: 3px solid var(--green); border-radius: 0 var(--radius-sm) var(--radius-sm) 0">
+      <strong style="color:var(--green); font-size:12px; letter-spacing:.04em; text-transform:uppercase; display:block; margin-bottom:6px">If you want narrative weight</strong>
+      <span style="font-size:13px; color:var(--text-mid)">Concept <strong>01 The Anvil</strong> is the strong runner-up. The literal anvil is more memorable in marketing contexts (social shares, demo videos). Trade-off: harder favicon. <em>You can use both — Concept 03 for the app/favicon, Concept 01 for marketing surfaces. Many tech brands run dual-identity systems (Vercel uses different marks in different contexts).</em></span>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- TYPOGRAPHY                                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="section-divider"><span class="section-divider-label">Wordmark Typography Recommendations</span></div>
+
+  <div class="annotation">
+    <strong>Preferred wordmark font</strong>
+    <strong>Inter</strong> (display weight 800, tracking -0.02em) — free, modern, ships everywhere, looks identical to many premium sans-serif options. Matches your existing app type stack. <code>'Inter', -apple-system, BlinkMacSystemFont, sans-serif</code>
+  </div>
+
+  <div class="palette">
+    <div class="palette-item">
+      <div style="height:70px; background:#1a1a2e; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; letter-spacing:-.02em">CertAnvil</div>
+      <div class="palette-info"><div class="palette-name">Inter 800</div><div class="palette-hex">Free, system-friendly</div></div>
+    </div>
+    <div class="palette-item">
+      <div style="height:70px; background:#1a1a2e; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; font-family:'JetBrains Mono', monospace; letter-spacing:-.04em">CertAnvil</div>
+      <div class="palette-info"><div class="palette-name">JetBrains Mono</div><div class="palette-hex">Technical / blueprint look</div></div>
+    </div>
+    <div class="palette-item">
+      <div style="height:70px; background:#1a1a2e; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; font-family:Georgia, serif">CertAnvil</div>
+      <div class="palette-info"><div class="palette-name">Serif (Georgia)</div><div class="palette-hex">Heritage / institutional</div></div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- FIGMA HANDOFF NOTES                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="section-divider"><span class="section-divider-label">Figma Migration · Engineering Handoff</span></div>
+
+  <div class="annotation">
+    <strong>How to use these concepts in Figma</strong>
+    Right-click any logo above → "Inspect Element" → copy the <code>&lt;svg&gt;</code> markup → paste into Figma (it accepts inline SVG via paste). All paths, fills, gradients translate directly. Resize, recolor, rearrange there.
+  </div>
+
+  <div class="annotation">
+    <strong>How to use these concepts in the app codebase</strong>
+    The SVG markup above can drop directly into <code>renderAppSidebar()</code> in app.js — just replace the <code>&lt;div class="sb-brand-mark"&gt;CA&lt;/div&gt;</code> with the SVG of your chosen concept. Sidebar mark is currently 38×38 px; the concepts are designed for that size. Once you pick a direction we'll refactor to render the chosen concept's SVG at boot.
+  </div>
+
+  <div class="annotation">
+    <strong>Favicon generation</strong>
+    Once you pick a concept, generate <code>favicon.ico</code>, <code>apple-touch-icon.png</code> (180×180), and <code>icon-192.png</code> / <code>icon-512.png</code> (PWA manifest). <a href="https://realfavicongenerator.net" style="color:var(--accent-light)">realfavicongenerator.net</a> takes one PNG and produces the full set. Concept 03 is the best fit for this — the rounded square scales cleanly to all required sizes.
+  </div>
+
+  <div class="footer-note">
+    <strong>Design rationale summary</strong>
+    Six concepts span the design space from <em>literal-craft</em> (Concept 01 Anvil) through <em>active-builder</em> (Concept 02 Hammer Strike) to <em>modern-SaaS</em> (Concept 03 Monogram) to <em>technical-engineering</em> (Concept 04 Blueprint) to <em>typography-only</em> (Concept 05 Wordmark) to <em>institutional-heritage</em> (Concept 06 Seal). My recommendation is Concept 03 because: (a) you're building a SaaS not a guild, (b) the favicon/app-icon story matters more than the marketing-asset story for a solo founder, (c) the wordmark "CertAnvil" carries enough narrative weight that the icon doesn't need to also tell the forge story.
+    <br><br>
+    All concepts are vector SVG, scalable, and ready to refine in Figma or drop directly into the codebase. Pick one — or pick two and run a hybrid identity system. No bad answers.
+  </div>
+
+</div>
+
+</body>
+</html>
