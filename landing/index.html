@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CertAnvil — AI cert practice for IT professionals</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="CertAnvil — AI-powered CompTIA cert practice. Network+, Security+, more coming. Built and used by an exam-passer (767/900 on N10-009).">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+<script>
+// Inline theme bootstrap — runs synchronously before <body> renders so the
+// page paints in the right theme on first frame (no light→dark flash).
+// Default: light. localStorage 'certanvil_theme' overrides.
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     TOPBAR — logo + nav + theme toggle
+══════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+      <span class="builder-pill" id="builder-pill" hidden>🔒 Builder</span>
+    </a>
+
+    <nav class="topbar-nav" aria-label="Primary navigation">
+      <a href="#why" class="nav-link">Why CertAnvil</a>
+      <a href="#certs" class="nav-link">Certs</a>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <span class="eyebrow">🔨 AI cert practice · forged from CompTIA blueprints</span>
+    <h1 class="hero-title">Forge your way<br>through CompTIA certs.</h1>
+    <p class="hero-sub">AI-generated practice questions, hand-curated quality bank, never the same quiz twice. Built and used by an exam-passer, not a textbook publisher.</p>
+
+    <div class="pass-pill">
+      <span class="pass-pill-icon" aria-hidden="true">✓</span>
+      <span><strong>767/900 on Network+ N10-009</strong> on 2026-05-05 — built and passed using this tool</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CERT PICKER
+══════════════════════════════════════════ -->
+<section class="certs" id="certs">
+  <div class="container">
+    <div class="section-head">
+      <h2>Pick your cert</h2>
+      <span class="section-help">Click any LIVE cert to start studying</span>
+    </div>
+
+    <div class="cert-grid">
+      <!-- Network+ — LIVE -->
+      <a class="cert-tile is-live" href="https://networkplus.certanvil.com" data-cert="netplus">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-netplus">N+</div>
+          <span class="cert-status status-live"><span class="status-dot"></span>Live</span>
+        </div>
+        <div class="cert-name">Network+</div>
+        <div class="cert-code">N10-009 · 90 questions · 90 min</div>
+        <div class="cert-desc">Networking fundamentals. 320-exemplar curated bank, topology builder, packet trace simulator, exam-mode batching.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">5 domains · 50 topics</span>
+          <span class="cert-cta">Start studying →</span>
+        </div>
+      </a>
+
+      <!-- Security+ — PRIVATE BUILDER (hidden by default) -->
+      <a class="cert-tile is-private" href="https://secplus-quiz-sable.vercel.app" data-cert="secplus" id="cert-tile-secplus" hidden>
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-secplus">S+</div>
+          <span class="cert-status status-private">🔒 Private</span>
+        </div>
+        <div class="cert-name">Security+</div>
+        <div class="cert-code">SY0-701 · target exam 2026-07-29</div>
+        <div class="cert-desc">Builder's private study tool. 77 carry-over exemplars + growing Phase 2 content. Threat actors, IAM, SIEM, IR, governance.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">5 domains · 37 topics</span>
+          <span class="cert-cta">Continue prep →</span>
+        </div>
+      </a>
+
+      <!-- AZ-900 — COMING SOON -->
+      <div class="cert-tile is-soon" data-cert="az900">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-az900">AZ</div>
+          <span class="cert-status status-soon">Coming soon</span>
+        </div>
+        <div class="cert-name">Azure Fundamentals</div>
+        <div class="cert-code">AZ-900 · cloud entry-point</div>
+        <div class="cert-desc">Microsoft's foundational cloud cert. Adapted CertAnvil engine + Azure-specific blueprint + Microsoft Learn references.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">~6 weeks ETA</span>
+          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+        </div>
+      </div>
+
+      <!-- CCNA — COMING SOON -->
+      <div class="cert-tile is-soon" data-cert="ccna">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-ccna">CC</div>
+          <span class="cert-status status-soon">Coming soon</span>
+        </div>
+        <div class="cert-name">Cisco CCNA</div>
+        <div class="cert-code">200-301 · routing + switching</div>
+        <div class="cert-desc">Cisco's flagship associate cert. Deeper routing protocols, OSPF + BGP labs, full IOS CLI sim.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">~10 weeks ETA</span>
+          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+        </div>
+      </div>
+
+      <!-- AWS SAA — COMING SOON -->
+      <div class="cert-tile is-soon" data-cert="aws-saa">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-aws">AW</div>
+          <span class="cert-status status-soon">Coming soon</span>
+        </div>
+        <div class="cert-name">AWS Solutions Architect</div>
+        <div class="cert-code">SAA-C03 · associate level</div>
+        <div class="cert-desc">AWS's most-requested associate cert. VPC + IAM + service architecture practice with realistic scenarios.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">~12 weeks ETA</span>
+          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+        </div>
+      </div>
+
+      <!-- Azure AZ-104 — COMING SOON -->
+      <div class="cert-tile is-soon" data-cert="az104">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-az104">AZ</div>
+          <span class="cert-status status-soon">Coming soon</span>
+        </div>
+        <div class="cert-name">Azure Administrator</div>
+        <div class="cert-code">AZ-104 · associate level</div>
+        <div class="cert-desc">Azure's most-requested admin cert. Identity + governance + storage + networking + compute.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">~14 weeks ETA</span>
+          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     WHY CERTANVIL
+══════════════════════════════════════════ -->
+<section class="why" id="why">
+  <div class="container">
+    <h2 class="why-title">Why CertAnvil?</h2>
+    <div class="why-grid">
+      <div class="why-item">
+        <div class="why-glyph" aria-hidden="true">🔨</div>
+        <h3>Forged, not bought</h3>
+        <p>Built by an exam-passer using AI-generated questions, hand-validated. 320+ curated exemplars per cert.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-glyph" aria-hidden="true">🎯</div>
+        <h3>Never repeats</h3>
+        <p>AI generates fresh questions every quiz. Never see the same one twice. Real-world coverage.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-glyph" aria-hidden="true">🛡️</div>
+        <h3>7-layer validation</h3>
+        <p>Every question passes through 7 checks: prompt self-verify, AI second-pass, ground-truth, regression audit, more.</p>
+      </div>
+      <div class="why-item">
+        <div class="why-glyph" aria-hidden="true">📊</div>
+        <h3>Pass-prediction analytics</h3>
+        <p>Readiness score. Diagnostic baseline. Pass-probability with confidence intervals. Know when you're ready.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged in code</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="#" class="foot-link">Privacy</a>
+        <a href="#" class="foot-link">Terms</a>
+        <a href="#" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     NOTIFY MODAL (lightweight)
+══════════════════════════════════════════ -->
+<div class="modal" id="notify-modal" role="dialog" aria-labelledby="notify-modal-title" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" id="notify-modal-close" aria-label="Close">×</button>
+    <h3 id="notify-modal-title" class="modal-title">Notify me when <span id="notify-cert-name">this cert</span> launches</h3>
+    <p class="modal-sub">Drop your email and I'll send one short email the moment <span id="notify-cert-name-2">this cert</span> goes live. No spam, no follow-up sequences. You can unsubscribe with one click.</p>
+    <form class="modal-form" id="notify-form">
+      <input type="email" class="modal-input" id="notify-email" placeholder="you@email.com" required autocomplete="email">
+      <button type="submit" class="modal-cta">Notify me</button>
+    </form>
+    <p class="modal-foot" id="notify-foot">Stored locally for now — full email integration ships when the first cert beyond Network+ launches.</p>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

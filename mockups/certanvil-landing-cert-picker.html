@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — CertAnvil Landing & Cert Picker</title>
+<style>
+  :root {
+    --bg: #0a0a12; --surface: rgba(19,19,30,.85); --surface2: rgba(26,26,40,.9); --surface3: #222235;
+    --border: #2e2e48; --accent: #7c6ff7; --accent-light: #a99df9; --accent-dim: #3d3870;
+    --text: #f0f0f8; --text-mid: #b0b0cc; --text-dim: #6b6b90;
+    --green: #22c55e; --red: #f87171; --yellow: #fbbf24; --orange: #f59e0b;
+    --cyan: #06b6d4; --gold: #d4af37;
+    --accent-rgb: 124,111,247;
+    --green-rgb: 34,197,94;
+    --orange-rgb: 245,158,11;
+    --radius: 16px; --radius-sm: 12px;
+    --mono: 'SF Mono', 'Monaco', 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 40px 20px 80px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; }
+  .lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; max-width: 720px; }
+  code { font-family: var(--mono); font-size: 0.85em; background: rgba(124,111,247,.12); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); }
+
+  .annotation {
+    background: rgba(124,111,247,.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+  }
+  .annotation strong { color: var(--accent-light); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  .state-divider {
+    margin: 56px 0 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+
+  /* ── Live mockup container — looks like a real browser ── */
+  .browser-frame {
+    background: #14141f;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .browser-bar {
+    background: #1c1c2a;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f56; }
+  .browser-dot.y { background: #ffbd2e; }
+  .browser-dot.g { background: #27c93f; }
+  .browser-url {
+    flex: 1;
+    background: #0d0d18;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-left: 8px;
+    text-align: center;
+  }
+  .browser-url-secure { color: var(--green); margin-right: 4px; }
+
+  /* ── Landing page (inside browser frame) ── */
+  .landing {
+    background: var(--bg);
+    padding: 48px 36px 56px;
+    min-height: 600px;
+  }
+  @media (max-width: 720px) { .landing { padding: 32px 20px 40px; } }
+
+  /* Logo + brand bar */
+  .land-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 48px;
+  }
+  .land-logo { display: flex; align-items: center; gap: 10px; }
+  .land-logo-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    box-shadow: 0 4px 12px -3px rgba(0,0,0,.45);
+  }
+  .land-logo-name {
+    font-size: 16px; font-weight: 800; letter-spacing: -.01em;
+  }
+  .land-topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .land-link {
+    color: var(--text-mid); font-size: 13px; font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .land-link:hover { color: var(--text); background: var(--surface3); }
+
+  /* Hero */
+  .land-hero { text-align: center; margin-bottom: 36px; }
+  .land-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    color: var(--accent-light); text-transform: uppercase;
+    background: rgba(124,111,247,.08);
+    border: 1px solid rgba(124,111,247,.25);
+    padding: 5px 12px; border-radius: 99px;
+    margin-bottom: 20px;
+  }
+  .land-hero h1 {
+    font-size: 56px; font-weight: 800; letter-spacing: -.025em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    background: linear-gradient(180deg, var(--text) 50%, var(--text-mid));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .land-hero p {
+    font-size: 17px; color: var(--text-mid);
+    max-width: 600px; margin: 0 auto;
+    line-height: 1.6;
+  }
+  @media (max-width: 720px) { .land-hero h1 { font-size: 38px; } .land-hero p { font-size: 15px; } }
+
+  /* Pass-proof inline pill */
+  .pass-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 18px;
+    padding: 7px 14px;
+    background: linear-gradient(135deg, rgba(34,197,94,.10), rgba(124,111,247,.05));
+    border: 1px solid rgba(34,197,94,.32);
+    border-radius: 99px;
+    font-size: 12px; color: var(--text-mid);
+  }
+  .pass-pill-icon {
+    width: 18px; height: 18px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .pass-pill strong { color: var(--text); font-weight: 700; }
+
+  /* Cert grid section */
+  .cert-section { margin-top: 48px; }
+  .cert-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .cert-section-head h2 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; }
+  .cert-section-head .help {
+    font-size: 12px; color: var(--text-dim);
+  }
+
+  .cert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .cert-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 22px 20px;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .cert-tile:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px -8px rgba(var(--accent-rgb), .25);
+  }
+
+  /* Tile state markers */
+  .cert-tile.is-live::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--green);
+  }
+  .cert-tile.is-private::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--orange);
+  }
+  .cert-tile.is-soon {
+    opacity: .68;
+    cursor: default;
+  }
+  .cert-tile.is-soon:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border);
+  }
+
+  .cert-tile-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+  .cert-tile-glyph {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px;
+    letter-spacing: -.02em;
+    flex-shrink: 0;
+  }
+  .cert-tile-glyph.netplus { background: linear-gradient(135deg, #1a1a2e, #0a0a12); border: 1px solid var(--border); color: var(--accent-light); }
+  .cert-tile-glyph.secplus { background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.04)); border: 1px solid rgba(245,158,11,.4); color: var(--orange); }
+  .cert-tile-glyph.az900 { background: linear-gradient(135deg, rgba(6,182,212,.18), rgba(6,182,212,.04)); border: 1px solid rgba(6,182,212,.4); color: var(--cyan); }
+  .cert-tile-glyph.ccna { background: linear-gradient(135deg, rgba(34,197,94,.18), rgba(34,197,94,.04)); border: 1px solid rgba(34,197,94,.4); color: var(--green); }
+  .cert-tile-glyph.aws { background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.04)); border: 1px solid rgba(251,191,36,.4); color: var(--yellow); }
+  .cert-tile-glyph.az104 { background: linear-gradient(135deg, rgba(124,111,247,.18), rgba(124,111,247,.04)); border: 1px solid rgba(124,111,247,.4); color: var(--accent-light); }
+
+  .cert-tile-status {
+    font-size: 9px; font-weight: 800; letter-spacing: .14em;
+    padding: 3px 8px; border-radius: 99px; text-transform: uppercase;
+  }
+  .cert-tile-status.live { background: rgba(34,197,94,.12); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .cert-tile-status.private { background: rgba(245,158,11,.12); color: var(--orange); border: 1px solid rgba(245,158,11,.3); }
+  .cert-tile-status.soon { background: var(--surface3); color: var(--text-dim); border: 1px solid var(--border); }
+  .cert-tile-status.new { background: rgba(124,111,247,.12); color: var(--accent-light); border: 1px solid rgba(124,111,247,.3); }
+
+  .cert-tile-name {
+    font-size: 17px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 2px;
+  }
+  .cert-tile-code {
+    font-size: 12px; font-family: var(--mono); color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .cert-tile-desc {
+    font-size: 13px; color: var(--text-mid); line-height: 1.5;
+    margin-bottom: 16px;
+    flex-grow: 1;
+  }
+
+  .cert-tile-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .cert-tile-progress { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+  .cert-tile-cta {
+    font-size: 13px; font-weight: 700; color: var(--accent-light);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .cert-tile.is-soon .cert-tile-cta { color: var(--text-dim); }
+  .cert-tile.is-private .cert-tile-cta { color: var(--orange); }
+
+  /* Resume card (for returning users) */
+  .resume-card {
+    background: linear-gradient(135deg, rgba(124,111,247,.12) 0%, rgba(124,111,247,.04) 100%);
+    border: 1px solid rgba(124,111,247,.4);
+    border-radius: var(--radius-sm);
+    padding: 22px 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+  .resume-card-info { flex: 1; min-width: 0; }
+  .resume-card-eyebrow {
+    font-size: 10px; font-weight: 800; letter-spacing: .14em;
+    color: var(--accent-light); text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .resume-card-title { font-size: 18px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 4px; }
+  .resume-card-meta { font-size: 13px; color: var(--text-mid); }
+  .resume-card-cta {
+    background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+    color: #fff;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 99px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .resume-card-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(var(--accent-rgb), .35); }
+
+  /* Why CertAnvil section */
+  .why-section {
+    margin-top: 56px;
+    padding: 32px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .why-section h2 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 18px; text-align: center; }
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .why-item {
+    text-align: left;
+  }
+  .why-item-glyph {
+    width: 40px; height: 40px;
+    background: rgba(124,111,247,.1);
+    border: 1px solid rgba(124,111,247,.3);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .why-item h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .why-item p { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+
+  /* Footer */
+  .land-foot {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .land-foot a { color: var(--text-dim); margin-right: 16px; text-decoration: none; }
+  .land-foot a:hover { color: var(--text-mid); }
+
+  /* Logo SVG inside the page */
+  .m14-svg { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔨 CertAnvil — Landing & Cert Picker</h1>
+  <div class="lede">
+    The page that lives at <code>certanvil.com</code> root once DNS migration completes. Three states shown below: Public (what customers see), Builder (what you see), and Returning user (with a continue-where-you-left-off recall card). Single mockup, three browser frames stacked.
+  </div>
+
+  <div class="annotation">
+    <strong>Brand architecture this mockup assumes</strong>
+    CertAnvil = parent product. Customer-facing certs (Network+ live, AZ-900 / CCNA / AWS / Azure "Coming Soon") render as clickable tiles. Security+ stays private to builder mode (only renders when localStorage <code>nplus_builder_mode === 'true'</code>, OR specific URL like <code>certanvil.com?builder=1</code>, OR a dedicated subdomain). Picking a cert routes to that cert's deploy: Network+ → <code>networkplus.certanvil.com</code> (or current <code>networkplus-quiz-sable.vercel.app</code> until subdomain DNS is set up).
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1 — PUBLIC LANDING (what customers see)                         -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 1 · Public Landing · What customers see</span></div>
+
+  <div class="annotation">
+    <strong>Public state</strong>
+    First-time visitor. No localStorage set. No cert active. Sees CertAnvil hero, pass-proof, and the cert picker grid showing Network+ as LIVE, plus 4 "COMING SOON" tiles for AZ-900, CCNA, AWS Solutions Architect Associate, Azure AZ-104. Security+ is hidden completely.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="landing">
+      <div class="land-topbar">
+        <div class="land-logo">
+          <div class="land-logo-mark">
+            <svg class="m14-svg" viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="land-logo-name">CertAnvil</span>
+        </div>
+        <div class="land-topbar-actions">
+          <a class="land-link">Why CertAnvil</a>
+          <a class="land-link">Pricing</a>
+          <a class="land-link">Sign in</a>
+        </div>
+      </div>
+
+      <div class="land-hero">
+        <span class="land-eyebrow">🔨 AI cert practice · forged from CompTIA blueprints</span>
+        <h1>Forge your way<br>through CompTIA certs.</h1>
+        <p>AI-generated practice questions, hand-curated quality bank, never the same quiz twice. Built and used by an exam-passer, not a textbook publisher.</p>
+        <div class="pass-pill">
+          <span class="pass-pill-icon">✓</span>
+          <span><strong>767/900 on Network+ N10-009</strong> on 2026-05-05 — built and passed using this tool</span>
+        </div>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-head">
+          <h2>Pick your cert</h2>
+          <span class="help">Click any LIVE cert to start studying</span>
+        </div>
+        <div class="cert-grid">
+          <!-- Network+ — LIVE -->
+          <div class="cert-tile is-live">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph netplus">N+</div>
+              <span class="cert-tile-status live">● Live</span>
+            </div>
+            <div class="cert-tile-name">Network+</div>
+            <div class="cert-tile-code">N10-009 · 90 questions · 90 min</div>
+            <div class="cert-tile-desc">Networking fundamentals. 320-exemplar curated bank, topology builder, packet trace simulator, exam-mode batching.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">5 domains · 50 topics</span>
+              <span class="cert-tile-cta">Start studying →</span>
+            </div>
+          </div>
+
+          <!-- AZ-900 — COMING SOON -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph az900">AZ</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Azure Fundamentals</div>
+            <div class="cert-tile-code">AZ-900 · cloud entry-point</div>
+            <div class="cert-tile-desc">Microsoft's foundational cloud cert. Adapted CertAnvil engine + Azure-specific blueprint + Microsoft Learn references.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~6 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- CCNA — COMING SOON -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph ccna">CC</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Cisco CCNA</div>
+            <div class="cert-tile-code">200-301 · routing + switching</div>
+            <div class="cert-tile-desc">Cisco's flagship associate cert. Deeper routing protocols, OSPF + BGP labs, full IOS CLI sim.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~10 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- AWS SAA — COMING SOON -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph aws">AW</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">AWS Solutions Architect</div>
+            <div class="cert-tile-code">SAA-C03 · associate level</div>
+            <div class="cert-tile-desc">AWS's most-requested associate cert. VPC + IAM + service architecture practice with realistic scenarios.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~12 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- Azure AZ-104 — COMING SOON -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph az104">AZ</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Azure Administrator</div>
+            <div class="cert-tile-code">AZ-104 · associate level</div>
+            <div class="cert-tile-desc">Azure's most-requested admin cert. Identity + governance + storage + networking + compute.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~14 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="why-section">
+        <h2>Why CertAnvil?</h2>
+        <div class="why-grid">
+          <div class="why-item">
+            <div class="why-item-glyph">🔨</div>
+            <h3>Forged, not bought</h3>
+            <p>Built by an exam-passer using AI-generated questions, hand-validated. 320+ curated exemplars per cert.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">🎯</div>
+            <h3>Never repeats</h3>
+            <p>AI generates fresh questions every quiz. Never see the same one twice. Real-world coverage.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">🛡️</div>
+            <h3>7-layer validation</h3>
+            <p>Every question passes through 7 checks: prompt self-verify, AI second-pass, ground-truth, regression audit, more.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">📊</div>
+            <h3>Pass-prediction analytics</h3>
+            <p>Readiness score. Diagnostic baseline. Pass-probability with confidence intervals. Know when you're ready.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="land-foot">
+        <span>certanvil.com · v4.87.4 · forged in code</span>
+        <div>
+          <a>Privacy</a><a>Terms</a><a>Contact</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2 — BUILDER LANDING (what you see, builder mode)                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 2 · Builder Mode · What you see (Security+ unlocked)</span></div>
+
+  <div class="annotation">
+    <strong>Builder state</strong>
+    Same layout. Security+ tile inserted between Network+ (LIVE) and the COMING SOON tiles, with a <code>PRIVATE</code> orange badge. A small "Builder mode" pill in the top bar indicates the special view. Activated by either: (a) localStorage <code>nplus_builder_mode === 'true'</code>, (b) URL param <code>?builder=1</code>, or (c) a separate subdomain like <code>builder.certanvil.com</code>. Customers never see this state.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com?builder=1</div>
+    </div>
+    <div class="landing">
+      <div class="land-topbar">
+        <div class="land-logo">
+          <div class="land-logo-mark">
+            <svg class="m14-svg" viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="land-logo-name">CertAnvil</span>
+          <span style="font-size:10px; font-weight:800; letter-spacing:.12em; color:var(--orange); background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); padding:3px 8px; border-radius:99px; text-transform:uppercase; margin-left:8px">🔒 Builder</span>
+        </div>
+        <div class="land-topbar-actions">
+          <a class="land-link">Why CertAnvil</a>
+          <a class="land-link">Pricing</a>
+          <a class="land-link">Sign in</a>
+        </div>
+      </div>
+
+      <div class="land-hero">
+        <span class="land-eyebrow">🔨 AI cert practice · forged from CompTIA blueprints</span>
+        <h1>Forge your way<br>through CompTIA certs.</h1>
+        <p>AI-generated practice questions, hand-curated quality bank, never the same quiz twice. Built and used by an exam-passer, not a textbook publisher.</p>
+        <div class="pass-pill">
+          <span class="pass-pill-icon">✓</span>
+          <span><strong>767/900 on Network+ N10-009</strong> on 2026-05-05 — built and passed using this tool</span>
+        </div>
+      </div>
+
+      <div class="cert-section">
+        <div class="cert-section-head">
+          <h2>Pick your cert</h2>
+          <span class="help" style="color:var(--orange)">Builder view · Security+ visible</span>
+        </div>
+        <div class="cert-grid">
+          <!-- Network+ — LIVE -->
+          <div class="cert-tile is-live">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph netplus">N+</div>
+              <span class="cert-tile-status live">● Live</span>
+            </div>
+            <div class="cert-tile-name">Network+</div>
+            <div class="cert-tile-code">N10-009 · 90 questions · 90 min</div>
+            <div class="cert-tile-desc">Networking fundamentals. 320-exemplar curated bank, topology builder, packet trace simulator, exam-mode batching.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">5 domains · 50 topics</span>
+              <span class="cert-tile-cta">Start studying →</span>
+            </div>
+          </div>
+
+          <!-- Security+ — PRIVATE (builder only) -->
+          <div class="cert-tile is-private">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph secplus">S+</div>
+              <span class="cert-tile-status private">🔒 Private</span>
+            </div>
+            <div class="cert-tile-name">Security+</div>
+            <div class="cert-tile-code">SY0-701 · target exam 2026-07-29</div>
+            <div class="cert-tile-desc">Builder's private study tool. 77 carry-over exemplars + growing Phase 2 content. Threat actors, IAM, SIEM, IR, governance.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">5 domains · 37 topics</span>
+              <span class="cert-tile-cta">Continue prep →</span>
+            </div>
+          </div>
+
+          <!-- AZ-900 -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph az900">AZ</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Azure Fundamentals</div>
+            <div class="cert-tile-code">AZ-900 · cloud entry-point</div>
+            <div class="cert-tile-desc">Microsoft's foundational cloud cert. Adapted CertAnvil engine + Azure-specific blueprint + Microsoft Learn references.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~6 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- CCNA -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph ccna">CC</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Cisco CCNA</div>
+            <div class="cert-tile-code">200-301 · routing + switching</div>
+            <div class="cert-tile-desc">Cisco's flagship associate cert. Deeper routing protocols, OSPF + BGP labs, full IOS CLI sim.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~10 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- AWS SAA -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph aws">AW</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">AWS Solutions Architect</div>
+            <div class="cert-tile-code">SAA-C03 · associate level</div>
+            <div class="cert-tile-desc">AWS's most-requested associate cert. VPC + IAM + service architecture practice with realistic scenarios.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~12 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <!-- Azure AZ-104 -->
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph az104">AZ</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Azure Administrator</div>
+            <div class="cert-tile-code">AZ-104 · associate level</div>
+            <div class="cert-tile-desc">Azure's most-requested admin cert. Identity + governance + storage + networking + compute.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~14 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="why-section" style="margin-top:36px">
+        <h2>Why CertAnvil?</h2>
+        <div class="why-grid">
+          <div class="why-item">
+            <div class="why-item-glyph">🔨</div>
+            <h3>Forged, not bought</h3>
+            <p>Built by an exam-passer using AI-generated questions, hand-validated. 320+ curated exemplars per cert.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">🎯</div>
+            <h3>Never repeats</h3>
+            <p>AI generates fresh questions every quiz. Never see the same one twice. Real-world coverage.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">🛡️</div>
+            <h3>7-layer validation</h3>
+            <p>Every question passes through 7 checks: prompt self-verify, AI second-pass, ground-truth, regression audit, more.</p>
+          </div>
+          <div class="why-item">
+            <div class="why-item-glyph">📊</div>
+            <h3>Pass-prediction analytics</h3>
+            <p>Readiness score. Diagnostic baseline. Pass-probability with confidence intervals. Know when you're ready.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="land-foot">
+        <span>certanvil.com · v4.87.4 · forged in code · 🔒 builder mode</span>
+        <div>
+          <a>Privacy</a><a>Terms</a><a>Contact</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3 — RETURNING USER                                              -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 3 · Returning User · "Continue where you left off"</span></div>
+
+  <div class="annotation">
+    <strong>Returning user state</strong>
+    User has localStorage with quiz history. Detected → resume card surfaces above the cert grid. One-click back into their last cert. Below it, the full cert picker still renders (for switching certs). Public version shown — same logic applies in builder mode but with the Security+ tile in the grid.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com</div>
+    </div>
+    <div class="landing">
+      <div class="land-topbar">
+        <div class="land-logo">
+          <div class="land-logo-mark">
+            <svg class="m14-svg" viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <span class="land-logo-name">CertAnvil</span>
+        </div>
+        <div class="land-topbar-actions">
+          <a class="land-link">Settings</a>
+          <a class="land-link">Sign out</a>
+        </div>
+      </div>
+
+      <div class="land-hero" style="margin-bottom:20px">
+        <span class="land-eyebrow">Welcome back, Simi</span>
+        <h1 style="font-size:38px">Pick up where you left off.</h1>
+      </div>
+
+      <!-- Resume card -->
+      <div class="resume-card">
+        <div class="resume-card-info">
+          <div class="resume-card-eyebrow">▣ Continue Network+ N10-009</div>
+          <div class="resume-card-title">Today's plan: 7 questions · ~5 min</div>
+          <div class="resume-card-meta">2 weak topics · 3 stale topics · 320-exemplar bank active · readiness <strong style="color:var(--accent-light)">752/900</strong></div>
+        </div>
+        <button class="resume-card-cta">Continue →</button>
+      </div>
+
+      <div class="cert-section" style="margin-top:32px">
+        <div class="cert-section-head">
+          <h2>Or pick a different cert</h2>
+        </div>
+        <div class="cert-grid">
+          <!-- Network+ tile (slightly de-emphasized since they're already there) -->
+          <div class="cert-tile is-live">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph netplus">N+</div>
+              <span class="cert-tile-status live">● Active</span>
+            </div>
+            <div class="cert-tile-name">Network+</div>
+            <div class="cert-tile-code">N10-009 · readiness 752 / 720 pass</div>
+            <div class="cert-tile-desc">Your active cert. 47 sessions · 567 questions answered · 2 days since last login.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">87% accuracy · streak 12 days 🔥</span>
+              <span class="cert-tile-cta">Open dashboard →</span>
+            </div>
+          </div>
+
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph az900">AZ</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Azure Fundamentals</div>
+            <div class="cert-tile-code">AZ-900</div>
+            <div class="cert-tile-desc">Want a notification the moment AZ-900 lands? One-click subscribe.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~6 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+
+          <div class="cert-tile is-soon">
+            <div class="cert-tile-head">
+              <div class="cert-tile-glyph ccna">CC</div>
+              <span class="cert-tile-status soon">Coming soon</span>
+            </div>
+            <div class="cert-tile-name">Cisco CCNA</div>
+            <div class="cert-tile-code">200-301</div>
+            <div class="cert-tile-desc">Notify me when CCNA lands. Adds OSPF + BGP labs.</div>
+            <div class="cert-tile-foot">
+              <span class="cert-tile-progress">~10 weeks ETA</span>
+              <span class="cert-tile-cta">Notify me ↗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="land-foot">
+        <span>certanvil.com · v4.87.4 · forged in code</span>
+        <div>
+          <a>Privacy</a><a>Terms</a><a>Contact</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- DESIGN NOTES                                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">Design Decisions · Implementation Notes</span></div>
+
+  <div class="annotation">
+    <strong>Why a landing page (vs. straight-to-dashboard)</strong>
+    With multi-cert ahead, customers need a way to <em>discover</em> what's available + opt into the cert they want. Going straight to Network+ would confuse anyone arriving for AZ-900 / CCNA / etc. A landing page also captures "Notify me" leads for upcoming certs (mailing list growth before each cert launches).
+  </div>
+
+  <div class="annotation">
+    <strong>Builder-mode security model</strong>
+    Three options for activation, ranked by my preference:
+    <br>1. <strong>localStorage flag</strong> (<code>nplus_builder_mode</code> = 'true') — simple, persistent, no URL hint. <em>Risk: anyone reading bundled JS sees the flag exists. Not a security boundary, just obscurity.</em>
+    <br>2. <strong>URL parameter</strong> (<code>?builder=1</code>) — bookmarkable, shareable across browsers. <em>Risk: same as above, plus URL leakage in referrer headers.</em>
+    <br>3. <strong>Subdomain</strong> (<code>builder.certanvil.com</code>) — strongest separation, can be password-protected via Vercel. <em>Most setup overhead.</em>
+    <br><br>
+    For the "private to builder" model where Security+ is your study tool not a customer feature, option 1 + the existing <code>secplus-quiz-sable.vercel.app</code> separate-deploy is enough. Customers stay on Network+, you flip the flag in DevTools when you want the full cert picker.
+  </div>
+
+  <div class="annotation">
+    <strong>Cert tile click behavior</strong>
+    Two architectural options:
+    <br>1. <strong>Subdomain hopping</strong> — click Network+ → navigate to <code>networkplus.certanvil.com</code> → URL host detection in app.js loads netplus pack. Simple, reuses existing detectCert logic. Recommended.
+    <br>2. <strong>Single deploy with cert switcher</strong> — click Network+ → set localStorage flag → reload → app loads netplus pack. Adds complexity (mutable CURRENT_CERT) but slicker (no URL hop).
+    <br><br>
+    Option 1 is the path of least resistance — you already have two Vercel deploys, just need DNS subdomain setup. Landing page lives at root (its own minimal Vercel project, or a static page hosted at the existing Vercel project under a separate route).
+  </div>
+
+  <div class="annotation">
+    <strong>Implementation scope (when ready to build)</strong>
+    This is a SEPARATE deploy from the cert apps. New tiny Vercel project just hosting <code>landing.html</code> + a few assets. Routes:
+    <br>• <code>certanvil.com</code> → landing project
+    <br>• <code>networkplus.certanvil.com</code> → existing networkplus-quiz project
+    <br>• <code>securityplus.certanvil.com</code> → existing secplus-quiz-sable project (private — no marketing link)
+    <br>• <code>www.certanvil.com</code> → 301 redirect to root
+    <br><br>
+    Tonight's DNS migration just points <code>certanvil.com</code> at networkplus-quiz (current customer entry). When the landing page ships, repoint root → landing project.
+  </div>
+
+  <div class="annotation">
+    <strong>Pricing positioning (placeholder for now)</strong>
+    The hero copy avoids price commitment. The "Sign in" link in the topbar implies accounts but the current state doesn't require them. When you add paid tiers, the landing page will likely add: pricing card row (free / paid / lifetime), "Founding member" callout, social proof carousel.
+  </div>
+
+  <div class="annotation">
+    <strong>What's NOT in this mockup yet</strong>
+    Animations (subtle pulse on LIVE tile, skeleton loaders for "Coming soon"). Email capture form for "Notify me". Dark/light theme toggle in the topbar (currently dark only). Mobile hamburger nav (currently desktop layout). Account auth flow (sign in / sign up). Pricing/payment integration. All deferrable until the cert-mode SaaS launch trigger fires.
+  </div>
+
+</div>
+</body>
+</html>

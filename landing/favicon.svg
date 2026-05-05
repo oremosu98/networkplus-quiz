@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- v4.87.4 CertAnvil M14 logo — hammer + anvil + spark.
+       Used as the browser-tab favicon for both Network+ + Security+ deploys. -->
+  <rect width="100" height="100" rx="18" fill="#0a0a12"/>
+  <g transform="rotate(-25 35 30)">
+    <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+    <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+  </g>
+  <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+  <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+</svg>
