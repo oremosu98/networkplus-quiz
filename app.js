@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.88.1
+// Network+ AI Quiz — app.js  v4.88.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.88.1';
+const APP_VERSION = '4.88.2';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -1427,7 +1427,12 @@ function _renderProgressGrouped(rows) {
   // the 5-colour left-border accent (purple/green/blue/amber/red) matching
   // Domain Mastery + Custom Quiz chip accordions — single source of
   // visual consistency across every domain-grouped surface in the app.
-  const order = ['concepts','implementation','operations','security','troubleshooting'];
+  // v4.88.2: cert-aware order so Security+ topics group into the correct
+  // 5 domains (threats / architecture / governance) instead of getting
+  // bucketed into nonexistent Network+ keys.
+  const order = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts','implementation','operations','security','troubleshooting'];
   const grouped = {};
   order.forEach(k => { grouped[k] = []; });
   rows.forEach(r => { (grouped[r.domainKey] || (grouped[r.domainKey] = [])).push(r); });
@@ -7363,7 +7368,14 @@ function _sampleTopicsForMixedBatch(dist) {
 
 // Largest-remainder allocation of n questions across the 5 CompTIA domains per official weights
 function computeDomainDistribution(n) {
-  const order = ['concepts','implementation','operations','security','troubleshooting'];
+  // v4.88.2: cert-aware. Network+ used hardcoded keys here; Security+ has
+  // different domain keys (threats / architecture / governance), so reading
+  // DOMAIN_WEIGHTS[k] for Network+ keys returned undefined → NaN → broken
+  // generation. Pull the keys from DOMAIN_WEIGHTS (blueprint order) so the
+  // distribution is always correct for the active cert.
+  const order = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts','implementation','operations','security','troubleshooting'];
   const raw = order.map(k => ({ k, exact: n * DOMAIN_WEIGHTS[k] }));
   const floors = raw.map(r => ({ k: r.k, count: Math.floor(r.exact), rem: r.exact - Math.floor(r.exact) }));
   let assigned = floors.reduce((s, r) => s + r.count, 0);
@@ -7962,8 +7974,13 @@ function renderExamDomainBreakdown(log) {
   const grid = document.getElementById('exam-domain-breakdown-grid');
   if (!host || !grid) return;
   const buckets = _buildExamDomainBreakdown(log);
-  // Show domains in CompTIA blueprint order (concepts → troubleshooting)
-  const order = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  // Show domains in CompTIA blueprint order (concepts → troubleshooting for
+  // Network+, concepts → governance for Security+).
+  // v4.88.2: cert-aware ordering so the post-exam breakdown shows the right
+  // 5 domains for the active cert.
+  const order = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
   const html = order.map(d => {
     const b = buckets[d];
     const pctStr = b.pct === null ? '—' : (b.pct + '%');
@@ -31013,7 +31030,13 @@ function drillDomain(domainName) {
 // { topic, domain, domainIdx, attempts, correct, total, mastery, tier, lastDays }.
 function _computeConstellationData(h) {
   const topicNames = Object.keys(TOPIC_DOMAINS);
-  const domainOrder = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  // v4.88.2: cert-aware domain order. Pull from DOMAIN_WEIGHTS (insertion order
+  // = CompTIA blueprint order) so Security+ topics map correctly to domain
+  // indices instead of returning -1 (Network+ key fallback didn't include
+  // 'threats' / 'architecture' / 'governance').
+  const domainOrder = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
   const now = Date.now();
   return topicNames.map(topic => {
     const domain = TOPIC_DOMAINS[topic];
@@ -31071,16 +31094,37 @@ function _renderAnaConstellation(h) {
 
   // Layout: 5 domain clusters positioned around the viewBox. Coordinates chosen
   // to give each cluster room for up to ~13 nodes without heavy overlap (the
-  // app's 50 topics split roughly evenly across 5 domains). Viewport is 1000x440
-  // to match the prototype proportions.
+  // app's topic catalog splits roughly evenly across 5 domains). Viewport is
+  // 1000x440 to match the prototype proportions.
   const W = 1000, H = 440;
-  const CLUSTERS = {
-    concepts:        { cx: W * 0.18, cy: H * 0.38, label: '1.0 Concepts',        idx: 1 },
-    implementation:  { cx: W * 0.42, cy: H * 0.68, label: '2.0 Implementation',  idx: 2 },
-    operations:      { cx: W * 0.57, cy: H * 0.28, label: '3.0 Operations',      idx: 3 },
-    security:        { cx: W * 0.78, cy: H * 0.62, label: '4.0 Security',        idx: 4 },
-    troubleshooting: { cx: W * 0.92, cy: H * 0.32, label: '5.0 Troubleshooting', idx: 5 }
-  };
+  // v4.88.2: cert-aware cluster construction. Build CLUSTERS from
+  // DOMAIN_WEIGHTS (blueprint-ordered keys) + DOMAIN_LABELS (cert-specific
+  // human names) so Security+ shows "General Security Concepts" / "Threats..."
+  // / etc. instead of the Network+ "Concepts" / "Implementation" / etc.
+  const _DOMAIN_POSITIONS = [
+    { cx: W * 0.18, cy: H * 0.38, idx: 1 }, // top-left
+    { cx: W * 0.42, cy: H * 0.68, idx: 2 }, // bottom-left
+    { cx: W * 0.57, cy: H * 0.28, idx: 3 }, // top-middle
+    { cx: W * 0.78, cy: H * 0.62, idx: 4 }, // bottom-right
+    { cx: W * 0.92, cy: H * 0.32, idx: 5 }  // top-right
+  ];
+  const _domainKeysCC = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
+  const _domainLabelsCC = (typeof DOMAIN_LABELS === 'object' && DOMAIN_LABELS)
+    ? DOMAIN_LABELS
+    : {};
+  const CLUSTERS = {};
+  _domainKeysCC.forEach((key, i) => {
+    const pos = _DOMAIN_POSITIONS[i];
+    if (!pos) return;
+    CLUSTERS[key] = {
+      cx: pos.cx,
+      cy: pos.cy,
+      label: _domainLabelsCC[key] || key,
+      idx: pos.idx
+    };
+  });
   // Group nodes by domain so we can jitter them around their cluster anchor.
   // Deterministic jitter (angle + radius from topic index) so layout is stable
   // between renders \u2014 matches the prototype's golden-angle trick.
@@ -31112,9 +31156,12 @@ function _renderAnaConstellation(h) {
   // Build SVG markup. Legend at bottom-right.
   const esc = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clusterLabels = Object.entries(CLUSTERS).map(([dom, c]) => {
+    // v4.88.2: render full DOMAIN_LABELS text (e.g., "Networking Concepts" or
+    // "General Security Concepts"). Pre-fix this stripped the leading token
+    // assuming a "1.0 Concepts" format, which corrupted cert-pack labels.
     return `<g class="ana-const-cluster" data-domain-idx="${c.idx}">
       <text x="${c.cx}" y="${c.cy - 96}" text-anchor="middle" class="ana-const-cluster-num">DOMAIN ${c.idx}</text>
-      <text x="${c.cx}" y="${c.cy - 80}" text-anchor="middle" class="ana-const-cluster-name">${esc(c.label.split(' ').slice(1).join(' '))}</text>
+      <text x="${c.cx}" y="${c.cy - 80}" text-anchor="middle" class="ana-const-cluster-name">${esc(c.label)}</text>
     </g>`;
   }).join('');
   const tetherLines = nodes.map(n => {

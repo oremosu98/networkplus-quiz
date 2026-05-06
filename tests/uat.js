@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.88.1', js.includes("const APP_VERSION = '4.88.1"));
+test('APP_VERSION is 4.88.2', js.includes("const APP_VERSION = '4.88.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.88.1', sw.includes('netplus-v4.88.1'));
+test('SW cache bumped to v4.88.2', sw.includes('netplus-v4.88.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5790,8 +5790,13 @@ test('v4.54.2 JS: constellation uses TOPIC_DOMAINS for domain lookup',
   /_computeConstellationData[\s\S]{0,800}TOPIC_DOMAINS\[topic\]/.test(js));
 test('v4.54.2 JS: tier thresholds match Domain Mastery (v4.85.11: 55/70/80, lowered from 85)',
   /_computeConstellationData[\s\S]{0,1500}mastery\s*>=\s*80[\s\S]{0,200}mastery\s*>=\s*70[\s\S]{0,200}mastery\s*>=\s*55/.test(js));
-test('v4.54.2 JS: 5 domain cluster anchors defined (concepts/implementation/operations/security/troubleshooting)',
-  /const CLUSTERS\s*=\s*\{[\s\S]{0,600}concepts[\s\S]{0,200}implementation[\s\S]{0,200}operations[\s\S]{0,200}security[\s\S]{0,200}troubleshooting/.test(js));
+// v4.88.2: CLUSTERS is now built dynamically from DOMAIN_WEIGHTS+DOMAIN_LABELS
+// (cert-aware) so the literal-key regex no longer applies. Test retargeted to
+// verify the cert-aware construction pattern is present.
+test('v4.54.2 JS (retargeted v4.88.2): CLUSTERS built cert-aware via DOMAIN_WEIGHTS + position table',
+  /const CLUSTERS\s*=\s*\{\}/.test(js)
+  && /_DOMAIN_POSITIONS\s*=\s*\[/.test(js)
+  && /_domainKeysCC[\s\S]{0,200}DOMAIN_WEIGHTS/.test(js));
 test('v4.54.2 JS: golden-angle jitter for stable deterministic layout',
   /_renderAnaConstellation[\s\S]{0,3500}i\s*\*\s*2\.399/.test(js));
 test('v4.54.2 JS: node radius uses sqrt scale on attempts',
@@ -7274,8 +7279,9 @@ test('v4.57.4 JS: _scoreTopicNeed (Study Plan) uses _filterHistoryByTopic',
   /function _scoreTopicNeed[\s\S]{0,300}_filterHistoryByTopic\(historyEntries,\s*topic\)/.test(js));
 test('v4.57.4 JS: _buildProgressRows (Topic Progress) uses _filterHistoryByTopic',
   /_filterHistoryByTopic\(h,\s*t\)[\s\S]{0,200}domainKey = TOPIC_DOMAINS/.test(js));
+// v4.88.2: cert-aware domainOrder block pushed _filterHistoryByTopic past 400 chars.
 test('v4.57.4 JS: _computeConstellationData (Analytics constellation) uses _filterHistoryByTopic',
-  /_computeConstellationData[\s\S]{0,400}_filterHistoryByTopic\(h,\s*topic\)/.test(js));
+  /_computeConstellationData[\s\S]{0,800}_filterHistoryByTopic\(h,\s*topic\)/.test(js));
 test('v4.57.4 JS: domain drill-down uses _filterHistoryByTopic',
   /topicsInDomain\.forEach[\s\S]{0,200}_filterHistoryByTopic\(h,\s*t\)/.test(js));
 
@@ -16240,6 +16246,23 @@ test('v4.88.1 Security+: renderSetupDomainGrid early-returns for non-netplus',
   /renderSetupDomainGrid[\s\S]{0,1500}CURRENT_CERT[\s\S]{0,200}!==\s*'netplus'/.test(js));
 test('v4.88.1 Security+: renderSetupDomainGrid hides section on cert-aware bail',
   /renderSetupDomainGrid[\s\S]{0,1500}CURRENT_CERT[\s\S]{0,500}section\.classList\.add\(['"]is-hidden['"]\)/.test(js));
+
+// ── v4.88.2: cert-aware domain ordering across 4 surfaces ──
+// Bug class: hardcoded Network+ keys ('concepts','implementation','operations',
+// 'security','troubleshooting') showing wrong labels in Security+ mode AND
+// silently breaking question generation (DOMAIN_WEIGHTS['implementation'] →
+// undefined → NaN distribution). Fix: pull domain order from
+// Object.keys(DOMAIN_WEIGHTS) so every surface honors the active cert pack.
+test('v4.88.2 Security+: _computeConstellationData uses cert-aware domainOrder',
+  /_computeConstellationData[\s\S]{0,1200}DOMAIN_WEIGHTS[\s\S]{0,100}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
+test('v4.88.2 Security+: _renderAnaConstellation builds CLUSTERS via DOMAIN_LABELS',
+  /_renderAnaConstellation[\s\S]{0,3500}_domainLabelsCC\s*=[\s\S]{0,200}DOMAIN_LABELS/.test(js));
+test('v4.88.2 Security+: cluster name renders full DOMAIN_LABELS (no split-and-slice)',
+  /class="ana-const-cluster-name">\$\{esc\(c\.label\)\}</.test(js));
+test('v4.88.2 Security+: computeDomainDistribution uses cert-aware key order',
+  /function computeDomainDistribution[\s\S]{0,800}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
+test('v4.88.2 Security+: exam-domain-breakdown render uses cert-aware order',
+  /buckets = _buildExamDomainBreakdown[\s\S]{0,800}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
