@@ -611,6 +611,23 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   font-size: 12px;
   font-family: 'SF Mono', 'JetBrains Mono', 'Monaco', monospace;
   color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* v4.89.6: visible version pill in the footer so users can confirm the
+   exact build they're seeing (matches the cert app's version-badge
+   pattern). Updated on every version bump via scripts/bump-version.js. */
+.foot-version {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(124, 111, 247, 0.10);
+  border: 1px solid rgba(124, 111, 247, 0.28);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 .foot-nav {
   display: flex;
@@ -2154,4 +2171,177 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   }
   .status-live .status-dot,
   .status-active .status-dot { animation: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v4.89.6: My certs modal + Cross-cert analytics modal
+   Both reuse the .modal / .modal-card / .modal-close / .modal-title /
+   .modal-sub primitives. These styles add the new content patterns.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* My certs modal — wider card to fit cert rows comfortably */
+.my-certs-modal-card { max-width: 540px !important; }
+.my-certs-list {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.my-cert-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface);
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.my-cert-row:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -8px rgba(124, 111, 247, .35);
+}
+.my-cert-glyph {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+}
+.my-cert-info { flex: 1 1 auto; min-width: 0; }
+.my-cert-name-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 2px;
+}
+.my-cert-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.my-cert-status {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.my-cert-status-passed {
+  background: var(--green-soft-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+.my-cert-status-active {
+  background: rgba(124, 111, 247, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(124, 111, 247, 0.32);
+}
+.my-cert-code {
+  font-size: 11px;
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  color: var(--text-dim);
+}
+.my-cert-cta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.my-certs-foot {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  text-align: center;
+}
+.my-certs-foot-link {
+  font-size: 13px;
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+.my-certs-foot-link:hover { color: var(--accent); }
+
+/* Cross-cert analytics modal */
+.cca-modal-card { max-width: 560px !important; text-align: center; }
+.cca-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.85;
+}
+.cca-sub { text-align: left; }
+.cca-roadmap {
+  display: flex; flex-direction: column;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+}
+.cca-roadmap-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
+.cca-roadmap-item strong { color: var(--text); font-weight: 700; }
+.cca-roadmap-dot {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.cca-quick-links {
+  margin-top: 18px;
+  text-align: left;
+}
+.cca-quick-links-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.cca-quick-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+  margin-bottom: 6px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.cca-quick-link:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.cca-quick-link-glyph {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  background: rgba(124, 111, 247, 0.12);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.cca-quick-link-name {
+  flex: 1 1 auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cca-quick-link-arrow {
+  color: var(--accent);
+  font-weight: 700;
+}
+@media (max-width: 540px) {
+  .my-cert-row { padding: 12px; gap: 10px; }
+  .my-cert-glyph { width: 32px; height: 32px; font-size: 11px; }
+  .my-cert-name { font-size: 14px; }
+  .my-cert-cta { font-size: 11px; }
+  .cca-roadmap { padding: 12px; }
+  .cca-roadmap-item { font-size: 12px; }
 }

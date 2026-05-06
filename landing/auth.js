@@ -268,6 +268,89 @@
     }
   }
 
+  // ── My certs modal (Phase C′ post-launch) ──────────────────────────────
+  // Reuses the personalize-tiles data: hardcoded for builder tonight, future
+  // Phase G replaces with cert_entitlements + quiz_history queries.
+  function renderMyCertsList(role) {
+    var listEl = document.getElementById('my-certs-list');
+    if (!listEl) return;
+    var rows = [];
+    rows.push(buildMyCertRow({
+      id: 'netplus',
+      glyph: 'N+',
+      glyphClass: 'cert-glyph-netplus',
+      name: 'Network+',
+      code: 'N10-009',
+      statusLabel: 'Passed',
+      statusClass: 'my-cert-status-passed',
+      meta: '767/900 · 2026-05-05',
+      ctaLabel: 'Keep practicing →',
+      href: 'https://networkplus.certanvil.com/?cert=netplus'
+    }));
+    if (role === 'admin') {
+      rows.push(buildMyCertRow({
+        id: 'secplus',
+        glyph: 'S+',
+        glyphClass: 'cert-glyph-secplus',
+        name: 'Security+',
+        code: 'SY0-701',
+        statusLabel: 'Active',
+        statusClass: 'my-cert-status-active',
+        meta: 'target exam 2026-07-29',
+        ctaLabel: 'Resume →',
+        href: 'https://networkplus.certanvil.com/?cert=secplus'
+      }));
+    }
+    listEl.innerHTML = rows.join('');
+
+    // Show Security+ analytics quick link in the cross-cert modal too
+    var secplusLink = document.getElementById('cca-link-secplus');
+    if (secplusLink && role === 'admin') secplusLink.removeAttribute('hidden');
+  }
+
+  function buildMyCertRow(c) {
+    return ''
+      + '<a class="my-cert-row" href="' + escapeHtml(c.href) + '">'
+      +   '<span class="my-cert-glyph ' + c.glyphClass + '">' + escapeHtml(c.glyph) + '</span>'
+      +   '<div class="my-cert-info">'
+      +     '<div class="my-cert-name-row">'
+      +       '<span class="my-cert-name">' + escapeHtml(c.name) + '</span>'
+      +       '<span class="my-cert-status ' + c.statusClass + '">' + escapeHtml(c.statusLabel) + '</span>'
+      +     '</div>'
+      +     '<div class="my-cert-code">' + escapeHtml(c.code) + ' · ' + escapeHtml(c.meta) + '</div>'
+      +   '</div>'
+      +   '<span class="my-cert-cta">' + escapeHtml(c.ctaLabel) + '</span>'
+      + '</a>';
+  }
+
+  function openMyCertsModal() {
+    var modal = document.getElementById('my-certs-modal');
+    if (!modal) return;
+    modal.removeAttribute('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMyCertsModal() {
+    var modal = document.getElementById('my-certs-modal');
+    if (!modal) return;
+    modal.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  }
+
+  function openCcaModal() {
+    var modal = document.getElementById('cca-modal');
+    if (!modal) return;
+    modal.removeAttribute('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCcaModal() {
+    var modal = document.getElementById('cca-modal');
+    if (!modal) return;
+    modal.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  }
+
   function resetCertTilesForAnonymous() {
     // Defensively undo any personalization if the user signs out without
     // a full reload. Restores the static "Live" + "Start studying" state.
@@ -320,11 +403,13 @@
       dropdownTier.textContent = '● Free tier · Network+ unlocked';
     }
 
-    // Phase C′: personalize cert tiles based on role. Anonymous users see
-    // static markup; signed-in users see passed/active states.
+    // Phase C′: personalize cert tiles + my-certs modal based on role.
+    // Anonymous users see static tile markup; signed-in users see passed/
+    // active states + a populated my-certs list when they open the modal.
     var userId = user && user.id;
     fetchProfileRole(userId).then(function (profile) {
       personalizeCertTilesForSignedIn(profile.role);
+      renderMyCertsList(profile.role);
     });
   }
 
@@ -500,6 +585,52 @@
         });
     });
   }
+
+  // ── Dropdown link wireup (My certs + Cross-cert analytics modals) ──────
+  var myCertsLink = document.getElementById('dropdown-my-certs');
+  if (myCertsLink) {
+    myCertsLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeAccountDropdown();
+      openMyCertsModal();
+    });
+  }
+  var ccaLink = document.getElementById('dropdown-cross-cert-analytics');
+  if (ccaLink) {
+    ccaLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeAccountDropdown();
+      openCcaModal();
+    });
+  }
+  // Modal close buttons + backdrop click + Escape key
+  var myCertsClose = document.getElementById('my-certs-modal-close');
+  if (myCertsClose) myCertsClose.addEventListener('click', closeMyCertsModal);
+  var myCertsModal = document.getElementById('my-certs-modal');
+  if (myCertsModal) {
+    myCertsModal.addEventListener('click', function (e) {
+      if (e.target === myCertsModal) closeMyCertsModal();
+    });
+  }
+  var myCertsBrowseLink = document.getElementById('my-certs-browse-link');
+  if (myCertsBrowseLink) {
+    myCertsBrowseLink.addEventListener('click', function () { closeMyCertsModal(); });
+  }
+  var ccaClose = document.getElementById('cca-modal-close');
+  if (ccaClose) ccaClose.addEventListener('click', closeCcaModal);
+  var ccaModal = document.getElementById('cca-modal');
+  if (ccaModal) {
+    ccaModal.addEventListener('click', function (e) {
+      if (e.target === ccaModal) closeCcaModal();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var mc = document.getElementById('my-certs-modal');
+    var cm = document.getElementById('cca-modal');
+    if (mc && !mc.hasAttribute('hidden')) closeMyCertsModal();
+    if (cm && !cm.hasAttribute('hidden')) closeCcaModal();
+  });
 
   // ── Initial session check + state listener ──────────────────────────────
   function initAuthState() {

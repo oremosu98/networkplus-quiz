@@ -138,15 +138,15 @@
         <div class="dropdown-email" id="dropdown-email">you@email.com</div>
         <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
       </div>
-      <a href="#" class="dropdown-link" role="menuitem">
+      <a href="#" class="dropdown-link" role="menuitem" id="dropdown-account-settings">
         <span class="dropdown-link-icon" aria-hidden="true">⚙️</span>
         <span>Account settings</span>
       </a>
-      <a href="#" class="dropdown-link" role="menuitem">
+      <a href="#" class="dropdown-link" role="menuitem" id="dropdown-my-certs">
         <span class="dropdown-link-icon" aria-hidden="true">🎓</span>
         <span>My certs</span>
       </a>
-      <a href="#" class="dropdown-link" role="menuitem">
+      <a href="#" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics">
         <span class="dropdown-link-icon" aria-hidden="true">📊</span>
         <span>Cross-cert analytics</span>
       </a>
@@ -457,7 +457,7 @@
 <footer class="foot">
   <div class="container">
     <div class="foot-inner">
-      <span class="foot-brand">certanvil.com · forged in code</span>
+      <span class="foot-brand">certanvil.com · forged in code <span class="foot-version" id="foot-version">v4.89.6</span></span>
       <nav class="foot-nav" aria-label="Footer navigation">
         <a href="#" class="foot-link">Privacy</a>
         <a href="#" class="foot-link">Terms</a>
@@ -466,6 +466,69 @@
     </div>
   </div>
 </footer>
+
+<!-- ══════════════════════════════════════════
+     MY CERTS MODAL — opened from account dropdown.
+     Lists the user's enrolled certs with status + actions. Hard-coded
+     for builder tonight; future Phase G renders from cert_entitlements.
+══════════════════════════════════════════ -->
+<div class="modal my-certs-modal" id="my-certs-modal" role="dialog" aria-labelledby="my-certs-modal-title" aria-modal="true" hidden>
+  <div class="modal-card my-certs-modal-card">
+    <button class="modal-close" type="button" id="my-certs-modal-close" aria-label="Close">×</button>
+    <h3 class="modal-title" id="my-certs-modal-title">Your certifications</h3>
+    <p class="modal-sub">Switch between certs, see status, or jump back into a session.</p>
+    <div class="my-certs-list" id="my-certs-list">
+      <!-- Populated by auth.js renderMyCertsModal() based on profile.role.
+           Builder sees Network+ (passed) + Security+ (active). Regular
+           users see only Network+ unlocked + a "Browse all certs" hint. -->
+    </div>
+    <div class="my-certs-foot">
+      <a href="#certs" class="my-certs-foot-link" id="my-certs-browse-link">Browse all certs ↓</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CROSS-CERT ANALYTICS MODAL — opened from account dropdown.
+     Today: placeholder explaining what the feature will do, with quick
+     links to per-cert analytics inside each cert app. Future iteration
+     fetches aggregated data and renders skill-overlap + time-to-pass etc.
+══════════════════════════════════════════ -->
+<div class="modal cca-modal" id="cca-modal" role="dialog" aria-labelledby="cca-modal-title" aria-modal="true" hidden>
+  <div class="modal-card cca-modal-card">
+    <button class="modal-close" type="button" id="cca-modal-close" aria-label="Close">×</button>
+    <div class="cca-icon" aria-hidden="true">📊</div>
+    <h3 class="modal-title" id="cca-modal-title">Cross-cert analytics</h3>
+    <p class="modal-sub cca-sub">Coming soon — track pass-readiness, time-to-pass, skill overlap and study velocity across every cert you're enrolled in. Today's analytics live inside each cert app.</p>
+    <div class="cca-roadmap">
+      <div class="cca-roadmap-item">
+        <span class="cca-roadmap-dot" aria-hidden="true">●</span>
+        <span><strong>Phase G:</strong> per-cert readiness aggregated into a single dashboard</span>
+      </div>
+      <div class="cca-roadmap-item">
+        <span class="cca-roadmap-dot" aria-hidden="true">●</span>
+        <span><strong>Phase H:</strong> skill overlap analysis (e.g., subnetting carries from Network+ → CCNA)</span>
+      </div>
+      <div class="cca-roadmap-item">
+        <span class="cca-roadmap-dot" aria-hidden="true">●</span>
+        <span><strong>Phase I:</strong> AI-recommended study paths based on cross-cert weak spots</span>
+      </div>
+    </div>
+    <div class="cca-quick-links">
+      <div class="cca-quick-links-label">Today: open a cert's analytics directly</div>
+      <a class="cca-quick-link" href="https://networkplus.certanvil.com/?cert=netplus#analytics" id="cca-link-netplus">
+        <span class="cca-quick-link-glyph">N+</span>
+        <span class="cca-quick-link-name">Network+ analytics</span>
+        <span class="cca-quick-link-arrow">→</span>
+      </a>
+      <a class="cca-quick-link" href="https://networkplus.certanvil.com/?cert=secplus#analytics" id="cca-link-secplus" hidden>
+        <span class="cca-quick-link-glyph">S+</span>
+        <span class="cca-quick-link-name">Security+ analytics</span>
+        <span class="cca-quick-link-arrow">→</span>
+      </a>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════
      AUTH MODAL — Supabase magic-link sign-in
