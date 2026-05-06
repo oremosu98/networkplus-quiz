@@ -78,7 +78,17 @@ try {
 
   const shellMatch = swJs.match(/SHELL_ASSETS\s*=\s*\[([\s\S]*?)\]/);
   if (!shellMatch) throw new Error('SHELL_ASSETS array not found in sw.js');
-  SRC_SHELL_ASSETS = [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+  // v4.89.9: strip line + block comments BEFORE matching quoted strings.
+  // Pre-fix the regex was greedily picking apostrophes from inside comments
+  // (e.g. "503'd", "auth.js", "window.supabase") and treating those as
+  // shell-asset URLs — which then failed every fetch attempt and tanked
+  // every deploy-verification run from v4.89.1 onward (issues #291–#299).
+  // Strip `//` line comments + `/* */` block comments first; what remains
+  // is array-entry territory where the apostrophe regex is unambiguous.
+  const shellBodyClean = shellMatch[1]
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+    .replace(/\/\/.*$/gm, '');           // line comments
+  SRC_SHELL_ASSETS = [...shellBodyClean.matchAll(/'([^']+)'/g)].map(m => m[1]);
 
   SRC_SHA = execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim();
 } catch (e) {
