@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Phase C: Cert-app Supabase integration</title>
+<style>
+  :root[data-theme="light"] {
+    --bg: #fafbff; --bg-elevated: #ffffff; --surface: #ffffff; --surface-2: #f4f5fa; --surface-3: #eaecf3;
+    --border: #e5e7f0; --border-strong: #c7c9d8;
+    --text: #1a1a2e; --text-mid: #4a4a6e; --text-dim: #8a8aac;
+    --accent: #5b4fdb; --accent-hover: #4a3fbe; --accent-light: #7c6ff7;
+    --accent-soft-bg: rgba(91,79,219,.06); --accent-soft-border: rgba(91,79,219,.18);
+    --green: #16a34a; --green-soft-bg: rgba(22,163,74,.08); --green-border: rgba(22,163,74,.3);
+    --orange: #d97706; --orange-soft-bg: rgba(217,119,6,.08); --orange-border: rgba(217,119,6,.3);
+    --red: #dc2626; --red-soft-bg: rgba(220,38,38,.06);
+    --shadow-card: 0 1px 2px rgba(20,20,40,.04), 0 4px 12px rgba(20,20,40,.05);
+    --shadow-modal: 0 24px 60px -12px rgba(20,20,40,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1.page-title { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; color: var(--text); }
+  .page-lede { color: var(--text-mid); font-size: 14px; margin-bottom: 36px; max-width: 760px; }
+  code { font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.85em; background: var(--accent-soft-bg); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+
+  .annotation {
+    background: var(--accent-soft-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .annotation p { margin-bottom: 8px; }
+  .annotation p:last-child { margin-bottom: 0; }
+
+  .state-divider { margin: 56px 0 20px; display: flex; align-items: center; gap: 14px; }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--text-dim); text-transform: uppercase; }
+
+  /* Browser frame */
+  .browser-frame { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow-card); }
+  .browser-bar { background: var(--surface-2); padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f56; } .browser-dot.y { background: #ffbd2e; } .browser-dot.g { background: #27c93f; }
+  .browser-url { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 99px; padding: 5px 14px; font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text-mid); margin-left: 8px; text-align: center; }
+  .browser-url-secure { color: var(--green); margin-right: 4px; }
+
+  /* Cert-app shell mock — matches the actual networkplus.certanvil.com structure */
+  .ca {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    background: var(--bg);
+    min-height: 540px;
+  }
+  .ca-sidebar {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex; flex-direction: column;
+  }
+  .ca-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 0 6px; }
+  .ca-brand-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .ca-brand-mark svg { width: 100%; height: 100%; display: block; }
+  .ca-brand-text { display: flex; flex-direction: column; }
+  .ca-brand-name { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .ca-brand-cert { font-size: 11px; color: var(--accent-light); font-weight: 600; }
+  .ca-brand-version { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
+
+  .ca-section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+    padding: 14px 8px 6px;
+  }
+  .ca-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px; color: var(--text-mid);
+    cursor: pointer;
+  }
+  .ca-nav-item.is-active { background: var(--accent-soft-bg); color: var(--accent); font-weight: 700; }
+  .ca-nav-item:hover:not(.is-active) { background: var(--surface-2); color: var(--text); }
+  .ca-nav-icon { font-size: 11px; width: 16px; flex-shrink: 0; }
+
+  .ca-streak-mini {
+    margin-top: auto;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Top bar (cert app) — simplified; matches the date pill / theme toggle / account UI on networkplus.certanvil.com */
+  .ca-main { padding: 0; }
+  .ca-topbar {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px;
+    position: relative;
+  }
+  .ca-hamburger { width: 24px; height: 18px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
+  .ca-hamburger span { display: block; height: 2px; background: var(--text-mid); border-radius: 1px; }
+  .ca-breadcrumb { font-size: 14px; color: var(--text); font-weight: 600; }
+  .ca-topbar-spacer { flex: 1; }
+  .ca-date-pill {
+    font-size: 11px; color: var(--text-dim); background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 99px;
+  }
+  .ca-theme-toggle { width: 28px; height: 28px; border-radius: 6px; background: transparent; color: var(--text-mid); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+
+  /* Anonymous "Sign in" pill (state 1 affordance) */
+  .ca-signin-pill {
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 0;
+    cursor: pointer;
+  }
+
+  /* Account pill (state 2 — same as landing) */
+  .ca-account-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 11px 4px 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    cursor: pointer;
+  }
+  .ca-account-pill:hover, .ca-account-pill.is-open { border-color: var(--accent); }
+  .ca-account-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .ca-account-email-short { font-size: 11px; font-weight: 600; color: var(--text); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ca-account-chevron { font-size: 9px; color: var(--text-dim); }
+
+  /* Dropdown — matches landing */
+  .ca-account-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    width: 230px;
+    box-shadow: var(--shadow-modal);
+    z-index: 10;
+  }
+  .ca-dropdown-header {
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .ca-dropdown-email { font-size: 12px; font-weight: 700; color: var(--text); word-break: break-all; }
+  .ca-dropdown-tier { font-size: 10.5px; color: var(--green); margin-top: 2px; font-weight: 600; }
+  .ca-dropdown-link {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 5px;
+    color: var(--text-mid); font-size: 12px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+  }
+  .ca-dropdown-link:hover { background: var(--surface-2); color: var(--text); }
+  .ca-dropdown-link-icon { font-size: 12px; }
+  .ca-dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .ca-dropdown-link-danger { color: #dc2626; }
+  .ca-dropdown-link-danger:hover { background: rgba(220,38,38,.06); color: #dc2626; }
+
+  /* Page body (just enough to give context) */
+  .ca-content { padding: 28px 32px; }
+  .ca-greeting { font-size: 30px; font-weight: 800; letter-spacing: -.015em; color: var(--text); margin-bottom: 8px; }
+  .ca-greeting em { color: var(--accent); font-style: normal; }
+  .ca-greeting-sub { font-size: 14px; color: var(--text-mid); }
+
+  /* Sync hint banner (anonymous state) */
+  .ca-sync-hint {
+    margin-top: 24px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, var(--accent-soft-bg), rgba(124,111,247,.04));
+    border: 1px solid var(--accent-soft-border);
+    border-radius: 10px;
+    font-size: 13px; color: var(--text-mid);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .ca-sync-hint-icon { font-size: 18px; flex-shrink: 0; }
+  .ca-sync-hint-text { flex: 1; }
+  .ca-sync-hint-text strong { color: var(--text); font-weight: 700; }
+  .ca-sync-hint-cta {
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 0;
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .ca-sync-hint-dismiss { background: transparent; border: 0; color: var(--text-dim); font-size: 12px; padding: 4px 6px; cursor: pointer; }
+
+  /* Synced badge (signed-in state) */
+  .ca-synced-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 10px;
+    padding: 4px 10px;
+    background: var(--green-soft-bg);
+    border: 1px solid var(--green-border);
+    border-radius: 99px;
+    font-size: 11px; color: var(--green);
+    font-weight: 600;
+  }
+
+  /* Sign-out flash banner */
+  .ca-flash {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: var(--green-soft-bg);
+    border: 1px solid var(--green-border);
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--text-mid);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">🔐 Phase C — Cert-app Supabase integration</h1>
+  <p class="page-lede">
+    Bring the Supabase auth client into the cert app (<code>networkplus.certanvil.com</code>) so a user signed in on apex (<code>certanvil.com</code>) is recognised on subdomain via the apex cookie. Pure identity layer — does NOT include progress sync (Phase D), API key proxy (Phase E), migration (F), or paywall (G). Foundation for all of those, but visible-on-its-own as: account pill in topbar, sign-in nudge moments, and shared sign-out across surfaces. <strong>Anonymous experience preserved</strong> — sign-in is optional, never gating the product.
+  </p>
+
+  <div class="annotation">
+    <strong>Architectural decisions (handshake before code)</strong>
+    <p><strong>1. Sign-in UI stays centralised on landing.</strong> The cert app does NOT host the auth modal. Click "Sign in" on cert app → redirects to <code>certanvil.com/?action=signin&amp;return=https://networkplus.certanvil.com</code> → modal opens on landing → after success, browser bounces back to cert app. One source of auth UI = no version drift; landing's modal is already battle-tested.</p>
+    <p><strong>2. Apex cookie is the session-sharing mechanism.</strong> Already configured in <code>landing/lib/supabase.js</code> via <code>cookieOptions: { domain: '.certanvil.com' }</code>. Cert app loads the same lib + Supabase client → sees the same cookie → recognises the same session. No token-passing dance. Sign out on apex → cookie cleared → cert app signed out on next page load.</p>
+    <p><strong>3. Anonymous experience preserved entirely.</strong> Users CAN use the cert app without ever signing in (matches today's behaviour). Sign-in is offered but never required. Localstorage (<code>nplus_*</code>) keeps working. Phase F (anon → authed migration) is what actually moves the data over later — Phase C just adds the identity awareness.</p>
+    <p><strong>4. Sign-in nudge appears at high-value moments only.</strong> Three nudge surfaces: (a) subtle persistent topbar "Sign in" pill, (b) one-time soft banner after first quiz completion ("Your progress is local-only — sign in to sync across devices"), (c) one-time soft banner after diagnostic completion ("Want this Pass Plan saved across devices?"). All dismissible. Never on every page load. Never a hard block.</p>
+    <p><strong>5. Account pill copy + dropdown match landing exactly.</strong> Same component visual language across surfaces. When signed in: avatar (initial in accent gradient) + truncated email + chevron. Click → dropdown with email + tier badge + 3-4 actions + sign-out. The cert app's existing avatar circle in the topbar gets REPLACED by this richer pill when authed, falls back to "Sign in" pill when anonymous.</p>
+    <p><strong>6. Tier display reads from <code>cert_entitlements</code>.</strong> Postgres trigger from Phase A schema auto-grants a free Network+ entitlement on signup. Dropdown shows "Free tier · Network+ unlocked" or similar. Future Pro tier upgrade (post-Phase G) flips this to "Pro · all certs unlocked".</p>
+    <p><strong>7. Sign-out clears everything cleanly.</strong> Click Sign out in dropdown → Supabase <code>signOut()</code> clears the apex cookie + localStorage session entry → cert app re-renders with anonymous topbar → small green "Signed out" toast for confirmation. All other tabs at <code>certanvil.com</code> + <code>*.certanvil.com</code> pick up the change via <code>onAuthStateChange</code> → simultaneous sign-out across the whole product.</p>
+    <p><strong>8. What this DOES NOT do (and why):</strong> No progress sync (Phase D — separate ship; localStorage stays the source of truth until then). No API key proxy (Phase E — users keep BYOK until then). No paywall (Phase G — Pro features still open until Stripe wires up). Phase C is identity ONLY. The cert app knows WHO you are; it doesn't yet do anything different based on that knowledge. That comes in D/E/F/G.</p>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1 — Cert-app topbar · ANONYMOUS                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 1 · Cert app topbar — anonymous (no signed-in state)</span></div>
+
+  <div class="annotation">
+    Default state for any visitor. No Supabase session. Topbar shows the existing breadcrumb + date pill + theme toggle, BUT replaces the existing avatar circle with a primary "Sign in" pill (purple, accent). Sidebar streak / brand mark / nav unchanged. Greeting card uses the user's localStorage <code>display_name</code> if set, else "Welcome back" / "Hi there".
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <!-- Sidebar -->
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <div class="ca-brand-text">
+            <span class="ca-brand-name">CertAnvil</span>
+            <span class="ca-brand-cert">Network+ N10-009</span>
+            <span class="ca-brand-version">v4.88.4</span>
+          </div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🌐</span> Network Builder</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🛡️</span> ACL Builder</div>
+        <div class="ca-section-label">Drills</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Subnet Mastery</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Port Drill</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+
+      <!-- Main -->
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle" aria-label="Toggle theme">☀️</button>
+          <!-- KEY CHANGE: avatar circle replaced with Sign-in pill -->
+          <button class="ca-signin-pill">Sign in</button>
+        </div>
+
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+
+          <!-- Optional sync hint banner (post-first-quiz, dismissible) -->
+          <div class="ca-sync-hint">
+            <span class="ca-sync-hint-icon">📦</span>
+            <div class="ca-sync-hint-text">
+              <strong>Your progress is local to this browser.</strong> Sign in (free) to sync across devices and keep your streak safe if you switch laptops.
+            </div>
+            <a class="ca-sync-hint-cta">Sign in →</a>
+            <button class="ca-sync-hint-dismiss" aria-label="Dismiss">×</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2 — Cert-app topbar · SIGNED IN                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 2 · Cert app topbar — signed in (apex cookie recognised)</span></div>
+
+  <div class="annotation">
+    User signed in on apex earlier (or on this subdomain — same result). Apex cookie exists; cert app's Supabase client picks it up on page load, fires <code>SIGNED_IN</code> via <code>onAuthStateChange</code>, replaces the "Sign in" pill with the account pill. Sync-hint banner is gone (dismissed automatically when signed in). Subtle "Synced" badge appears under greeting as confirmation that progress is now backed up.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <div class="ca-brand-text">
+            <span class="ca-brand-name">CertAnvil</span>
+            <span class="ca-brand-cert">Network+ N10-009</span>
+            <span class="ca-brand-version">v4.88.4</span>
+          </div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🌐</span> Network Builder</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🛡️</span> ACL Builder</div>
+        <div class="ca-section-label">Drills</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Subnet Mastery</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Port Drill</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle" aria-label="Toggle theme">☀️</button>
+          <!-- KEY CHANGE: account pill instead of Sign in -->
+          <button class="ca-account-pill">
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+
+          <!-- Synced confirmation badge (subtle, replaces sync-hint banner) -->
+          <span class="ca-synced-badge">● Synced as <strong style="color:var(--text);font-weight:700;margin-left:2px">simi_oremosu@hotmail.com</strong></span>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3 — Account dropdown OPEN                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 3 · Account dropdown open — email + tier + actions + sign out</span></div>
+
+  <div class="annotation">
+    Click pill → dropdown opens (positioned absolute relative to topbar). Same visual language as landing dropdown (deliberately consistent across surfaces). 3 actions for now: Account settings (placeholder route), My certs (lists user's entitlements), Sign out. Cross-cert analytics not in cert-app dropdown — only on landing's dropdown since it's a multi-cert view. Tier reads from <code>cert_entitlements</code> table — Postgres trigger auto-grants Free / Network+ on signup.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <div class="ca-brand-text">
+            <span class="ca-brand-name">CertAnvil</span>
+            <span class="ca-brand-cert">Network+ N10-009</span>
+            <span class="ca-brand-version">v4.88.4</span>
+          </div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🌐</span> Network Builder</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">🛡️</span> ACL Builder</div>
+        <div class="ca-section-label">Drills</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Subnet Mastery</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">•</span> Port Drill</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle" aria-label="Toggle theme">☀️</button>
+          <button class="ca-account-pill is-open">
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▴</span>
+          </button>
+          <div class="ca-account-dropdown">
+            <div class="ca-dropdown-header">
+              <div class="ca-dropdown-email">simi_oremosu@hotmail.com</div>
+              <div class="ca-dropdown-tier">● Free tier · Network+ unlocked</div>
+            </div>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🎓</span><span>My certs</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🌐</span><span>Visit certanvil.com</span></a>
+            <div class="ca-dropdown-divider"></div>
+            <a class="ca-dropdown-link ca-dropdown-link-danger"><span class="ca-dropdown-link-icon">↩</span><span>Sign out</span></a>
+          </div>
+        </div>
+
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 4 — Sign-in flow + post-sign-out toast                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 4 · Sign-out flash + return-to-anonymous</span></div>
+
+  <div class="annotation">
+    User clicks "Sign out" in dropdown. Supabase <code>signOut()</code> clears apex cookie. Page re-renders: account pill returns to "Sign in" pill. Subtle green flash banner confirms "Signed out" for ~3 seconds. All other open <code>certanvil.com</code> + <code>*.certanvil.com</code> tabs simultaneously sign out via <code>onAuthStateChange('SIGNED_OUT')</code>. Streak / progress / drill mastery preserved in localStorage — anonymous experience continues seamlessly.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark">
+            <svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+          </div>
+          <div class="ca-brand-text">
+            <span class="ca-brand-name">CertAnvil</span>
+            <span class="ca-brand-cert">Network+ N10-009</span>
+            <span class="ca-brand-version">v4.88.4</span>
+          </div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle" aria-label="Toggle theme">☀️</button>
+          <button class="ca-signin-pill">Sign in</button>
+        </div>
+
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+
+          <span class="ca-flash">✓ Signed out — your local progress (streak, history, drill mastery) is preserved here.</span>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- IMPLEMENTATION NOTES                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">Implementation plan · estimates · file map</span></div>
+
+  <div class="annotation">
+    <strong>Files to create / touch (cert app side)</strong>
+    <p><code>app/lib/supabase.js</code> (new, copy of <code>landing/lib/supabase.js</code>) — same Supabase client init, same apex cookie config. Could also be loaded directly from a shared CDN-style URL but a per-app copy is simpler.</p>
+    <p><code>app/auth-state.js</code> (new, ~150 LOC) — slim auth-state wrapper for the cert app. NOT the full modal (that lives on landing). Listens to <code>onAuthStateChange</code>, renders the topbar account-pill / sign-in-pill / dropdown, handles sign-out, dispatches events for greater-app code that needs to react. Anonymous-progress detection logic NOT here (that's Phase F migration territory).</p>
+    <p><code>index.html</code> (cert app) — add <code>&lt;script&gt;</code> tags for Supabase CDN + <code>lib/supabase.js</code> + <code>auth-state.js</code>. Add new container DOM for account pill / dropdown in topbar (hidden by default, populated by auth-state.js).</p>
+    <p><code>app.js</code> (cert app) — replace existing avatar-circle render with the new account-pill / sign-in-pill toggle. Hook into <code>renderAppSidebar</code> or wherever topbar is built today. Add the optional sync-hint banner render (post-first-quiz / post-diagnostic surfaces).</p>
+    <p><code>styles.css</code> (cert app) — copy account-pill + dropdown CSS from <code>landing/styles.css</code>. Add sync-hint banner CSS. Add synced-badge CSS.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Files to touch (landing side)</strong>
+    <p><code>landing/auth.js</code> — handle the new <code>?return=</code> URL param. After successful auth, redirect to <code>return</code> if it's a trusted <code>*.certanvil.com</code> origin (allow-list to prevent open redirect).</p>
+    <p><code>landing/index.html</code> + <code>landing/pricing.html</code> — sign-in modal already auto-detects URL params; just need <code>?action=signin</code> support added (matches existing <code>?action=diagnostic</code> pattern in cert app). Auto-opens modal on page load if param present.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Time estimate</strong>
+    <p>~2-3 hours total:
+    <br>• Cert-app auth-state.js + topbar wireup: ~90 min
+    <br>• Landing return-URL handler + auto-open-modal logic: ~30 min
+    <br>• Sync-hint banner surfaces (post-quiz, post-diagnostic): ~30 min
+    <br>• CSS polish + cross-tab sync verification: ~30 min</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Acceptance criteria (when this ship is "done")</strong>
+    <p>(a) User signed in on apex sees account pill on cert-app subdomain on next page load. (b) Sign-out from cert-app subdomain clears session everywhere within 1 page navigation in any open tab. (c) Anonymous users still get full app functionality — no regressions on the localStorage-based experience. (d) The "Sign in" pill is the only auth affordance in cert-app topbar (no full modal duplicated). (e) Click "Sign in" from cert-app → lands at <code>certanvil.com/?action=signin&amp;return=...</code> → modal opens → after auth, returns to cert-app subdomain with session active. (f) Sync-hint banner surfaces ONCE per dismissal at the documented trigger points; never spammy.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Phases this unblocks</strong>
+    <p><strong>Phase D (progress sync):</strong> Now that the cert app knows the user identity, it can mirror-write quiz_history rows to Supabase per session.
+    <br><strong>Phase E (server-side API key proxy):</strong> Cert app reads tier entitlement from Supabase, gates AI calls, server-side endpoint accepts authenticated requests.
+    <br><strong>Phase F (anon → authed migration):</strong> When sign-in fires, cert app reads localStorage <code>nplus_*</code> keys + offers one-click "Import to your account?" prompt. Schema's already in place.
+    <br><strong>Phase G (Stripe paywall):</strong> Account dropdown gets an "Upgrade to Pro" CTA; paywall logic gates premium features.</p>
+  </div>
+
+</div>
+</body>
+</html>

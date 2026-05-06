@@ -1,5 +1,5 @@
-// Service Worker v4.88.4 — Network+ Quiz App
-const CACHE_NAME = 'netplus-v4.88.4';
+// Service Worker v4.89.0 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v4.89.0';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -13,7 +13,15 @@ const SHELL_ASSETS = [
   // at Phase 1A; will grow as TOPIC_DOMAINS/exemplars migrate). Active cert
   // is resolved at runtime by detectCert() in app.js.
   './certs/netplus.js',
-  './certs/secplus.js'
+  './certs/secplus.js',
+  // v4.89.0 (Phase C′): cloud-first modules. Order in index.html matters
+  // (Supabase UMD → lib/supabase.js → cloud-store.js → auth-state.js →
+  // migration.js → app.js). The Supabase UMD bundle ships from a CDN so
+  // it's NOT in the precache list — first load needs network.
+  './lib/supabase.js',
+  './cloud-store.js',
+  './auth-state.js',
+  './migration.js'
 ];
 // Hard cap on cached entries to prevent unbounded cache growth (#20).
 // The shell counts toward this; everything beyond it (icons, fonts, runtime

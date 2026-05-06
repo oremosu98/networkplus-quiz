@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.88.4', js.includes("const APP_VERSION = '4.88.4"));
+test('APP_VERSION is 4.89.0', js.includes("const APP_VERSION = '4.89.0"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.88.4', sw.includes('netplus-v4.88.4'));
+test('SW cache bumped to v4.89.0', sw.includes('netplus-v4.89.0'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5586,10 +5586,15 @@ console.log('\n\x1b[1m── v4.54.0 HERO v2 + TOP BAR + COLLAPSE ──\x1b[0m'
 // HTML \u2014 topbar
 test('v4.54.0 HTML: #app-topbar exists',
   html.includes('id="app-topbar"') && html.includes('class="app-topbar"'));
-test('v4.54.0 HTML: topbar has sidebar-toggle + breadcrumb + time + gear + theme + avatar',
+// v4.89.0 (Phase C′ cloud-first): the static .topbar-avatar 'S' was retired
+// in favor of a dynamic account pill rendered by auth-state.js into the
+// #topbar-account-mount span. The mount point IS what auth-state replaces with
+// either a Sign-in pill or a full account pill + dropdown. Either presence
+// satisfies the "topbar has an identity surface" structural invariant.
+test('v4.54.0 HTML: topbar has sidebar-toggle + breadcrumb + time + gear + theme + account-mount',
   html.includes('id="topbar-toggle"') && html.includes('id="topbar-crumb"') &&
   html.includes('id="topbar-time"') && html.includes('id="topbar-theme"') &&
-  html.includes('class="topbar-avatar"'));
+  html.includes('id="topbar-account-mount"'));
 test('v4.54.0 HTML: topbar toggle calls toggleSidebarCollapsed',
   /id="topbar-toggle"[\s\S]{0,200}onclick="toggleSidebarCollapsed/.test(html));
 
@@ -5664,9 +5669,17 @@ test('v4.81.20 tombstone: renderSetupFocusBanner no longer emits fb-quote/fb-bod
 // CSS \u2014 topbar
 test('v4.54.0 CSS: .app-topbar sticky + flex',
   /\.app-topbar\s*\{[\s\S]{0,400}position:\s*sticky/.test(css) && /\.app-topbar\s*\{[\s\S]{0,400}display:\s*flex/.test(css));
-test('v4.54.0 CSS: .topbar-avatar circular gradient',
+// v4.89.0 (Phase C′): the static .topbar-avatar styles stay in place as a
+// compat shim, but the canonical signed-in surface is now .topbar-account-pill
+// + .topbar-account-avatar. Assert BOTH rules exist (legacy .topbar-avatar
+// for any DOM that still uses it, plus the new account pill avatar with the
+// same circular gradient treatment).
+test('v4.54.0 CSS: .topbar-avatar legacy circular gradient still defined',
   /\.topbar-avatar\s*\{[\s\S]{0,600}linear-gradient\(135deg,\s*var\(--accent\)/.test(css) &&
   /\.topbar-avatar\s*\{[\s\S]{0,700}border-radius:\s*50%/.test(css));
+test('v4.89.0 CSS: .topbar-account-avatar circular gradient (new account pill)',
+  /\.topbar-account-avatar\s*\{[\s\S]{0,600}linear-gradient\(135deg,\s*var\(--accent\)/.test(css) &&
+  /\.topbar-account-avatar\s*\{[\s\S]{0,400}border-radius:\s*50%/.test(css));
 test('v4.54.0 CSS: .topbar-time monospace + tabular nums',
   /\.topbar-time\s*\{[\s\S]{0,400}font-family:\s*monospace[\s\S]{0,200}tabular-nums/.test(css));
 
@@ -16294,6 +16307,74 @@ test('v4.88.2 Security+: computeDomainDistribution uses cert-aware key order',
   /function computeDomainDistribution[\s\S]{0,800}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
 test('v4.88.2 Security+: exam-domain-breakdown render uses cert-aware order',
   /buckets = _buildExamDomainBreakdown[\s\S]{0,800}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
+
+// ══════════════════════════════════════════════════════════════════════════
+// v4.89.0 (Phase C′ cloud-first) — regression guards for the cloud-store
+// integration. Failure modes we want to catch on every push:
+//   1. Script-tag order rearranged (Supabase UMD must load BEFORE lib/supabase
+//      before cloud-store before auth-state before migration before app.js).
+//   2. _cloudFlush helper deleted or renamed (silent loss of cloud sync).
+//   3. A USER_DATA write site accidentally drops its _cloudFlush hook.
+//   4. SHELL_ASSETS in sw.js missing one of the 4 new modules (broken offline).
+// ══════════════════════════════════════════════════════════════════════════
+
+// 1. Script-tag order — index.html must load Supabase UMD → lib/supabase.js
+//    → cloud-store.js → auth-state.js → migration.js → app.js, in that order.
+//    Use src="..." patterns to avoid matching the same names in surrounding
+//    HTML comments (which appear higher in the file and break a naive ordering
+//    check). Each substring below appears ONLY inside its respective <script>
+//    tag attribute, so the indexOf chain reflects real DOM order.
+test('v4.89.0 Phase C′: index.html loads Supabase UMD before cloud modules',
+  html.indexOf('src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"') < html.indexOf('src="lib/supabase.js"') &&
+  html.indexOf('src="lib/supabase.js"') < html.indexOf('src="cloud-store.js"') &&
+  html.indexOf('src="cloud-store.js"') < html.indexOf('src="auth-state.js"') &&
+  html.indexOf('src="auth-state.js"') < html.indexOf('src="migration.js"') &&
+  html.indexOf('src="migration.js"') < html.indexOf('src="app.js"'));
+
+// 2. Topbar mount point exists (replaces legacy .topbar-avatar 'S')
+test('v4.89.0 Phase C′: index.html has #topbar-account-mount span',
+  html.includes('id="topbar-account-mount"'));
+
+// 3. SW precaches all 4 new modules (Supabase UMD lives on CDN, not in shell)
+test('v4.89.0 Phase C′: sw.js SHELL_ASSETS includes lib/supabase.js',
+  sw.includes("'./lib/supabase.js'"));
+test('v4.89.0 Phase C′: sw.js SHELL_ASSETS includes cloud-store.js',
+  sw.includes("'./cloud-store.js'"));
+test('v4.89.0 Phase C′: sw.js SHELL_ASSETS includes auth-state.js',
+  sw.includes("'./auth-state.js'"));
+test('v4.89.0 Phase C′: sw.js SHELL_ASSETS includes migration.js',
+  sw.includes("'./migration.js'"));
+
+// 4. _cloudFlush helper exists, is defensive, and does NOT touch DEV_ONLY keys
+test('v4.89.0 Phase C′: _cloudFlush helper defined in app.js',
+  /function _cloudFlush\(key\)\s*\{/.test(js));
+test('v4.89.0 Phase C′: _cloudFlush is defensive (try/catch + cloudStore guard)',
+  /function _cloudFlush[\s\S]{0,500}window\.cloudStore[\s\S]{0,200}cloudStore\.flush/.test(js) &&
+  /function _cloudFlush[\s\S]{0,500}catch\s*\(/.test(js));
+
+// 5. Critical USER_DATA writers all carry _cloudFlush. Any future ship that
+//    drops one of these hooks will fail UAT loudly so the regression is caught
+//    at commit time, not after the user notices missing cross-device sync.
+test('v4.89.0 Phase C′: saveToHistory flushes STORAGE.HISTORY',
+  /function saveToHistory[\s\S]{0,400}_cloudFlush\(STORAGE\.HISTORY\)/.test(js));
+test('v4.89.0 Phase C′: saveStreak flushes STORAGE.STREAK',
+  /STORAGE\.STREAK,\s*JSON\.stringify\(s\)\);\s*_cloudFlush\(STORAGE\.STREAK\)/.test(js));
+test('v4.89.0 Phase C′: saveWrongBank flushes STORAGE.WRONG_BANK',
+  /function saveWrongBank[\s\S]{0,300}_cloudFlush\(STORAGE\.WRONG_BANK\)/.test(js));
+test('v4.89.0 Phase C′: saveSrQueue flushes STORAGE.SR_QUEUE',
+  /function saveSrQueue[\s\S]{0,300}_cloudFlush\(STORAGE\.SR_QUEUE\)/.test(js));
+test('v4.89.0 Phase C′: setExamDate flushes STORAGE.EXAM_DATE',
+  /function setExamDate[\s\S]{0,300}_cloudFlush\(STORAGE\.EXAM_DATE\)/.test(js));
+test('v4.89.0 Phase C′: setDailyGoal flushes STORAGE.DAILY_GOAL',
+  /function setDailyGoal[\s\S]{0,300}_cloudFlush\(STORAGE\.DAILY_GOAL\)/.test(js));
+test('v4.89.0 Phase C′: unlockMilestone flushes STORAGE.MILESTONES',
+  /function unlockMilestone[\s\S]{0,400}_cloudFlush\(STORAGE\.MILESTONES\)/.test(js));
+test('v4.89.0 Phase C′: aclSaveState flushes STORAGE.ACL_STATE',
+  /function aclSaveState[\s\S]{0,300}_cloudFlush\(STORAGE\.ACL_STATE\)/.test(js));
+test('v4.89.0 Phase C′: scaffold saveMastery flushes cfg.storageKey (covers AB/OS/CB)',
+  /function saveMastery\(m\)[\s\S]{0,200}_cloudFlush\(cfg\.storageKey\)/.test(js));
+test('v4.89.0 Phase C′: scaffold saveLessonProgress flushes cfg.lessonsKey',
+  /function saveLessonProgress\(p\)[\s\S]{0,200}_cloudFlush\(cfg\.lessonsKey\)/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

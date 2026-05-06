@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Phase C+D+F bundled · Cloud sync end-to-end</title>
+<style>
+  :root[data-theme="light"] {
+    --bg: #fafbff; --bg-elevated: #ffffff; --surface: #ffffff; --surface-2: #f4f5fa; --surface-3: #eaecf3;
+    --border: #e5e7f0; --border-strong: #c7c9d8;
+    --text: #1a1a2e; --text-mid: #4a4a6e; --text-dim: #8a8aac;
+    --accent: #5b4fdb; --accent-hover: #4a3fbe; --accent-light: #7c6ff7;
+    --accent-soft-bg: rgba(91,79,219,.06); --accent-soft-border: rgba(91,79,219,.18);
+    --green: #16a34a; --green-soft-bg: rgba(22,163,74,.08); --green-border: rgba(22,163,74,.3);
+    --orange: #d97706; --orange-soft-bg: rgba(217,119,6,.08); --orange-border: rgba(217,119,6,.3);
+    --red: #dc2626; --red-soft-bg: rgba(220,38,38,.06);
+    --yellow: #ca8a04; --yellow-soft-bg: rgba(202,138,4,.08); --yellow-border: rgba(202,138,4,.3);
+    --shadow-card: 0 1px 2px rgba(20,20,40,.04), 0 4px 12px rgba(20,20,40,.05);
+    --shadow-modal: 0 24px 60px -12px rgba(20,20,40,.35);
+    --shadow-cta: 0 6px 16px rgba(91,79,219,.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1.page-title { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; color: var(--text); }
+  .page-lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; max-width: 760px; }
+  code { font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.85em; background: var(--accent-soft-bg); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+
+  .annotation {
+    background: var(--accent-soft-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .annotation p { margin-bottom: 8px; }
+  .annotation p:last-child { margin-bottom: 0; }
+
+  .state-divider { margin: 56px 0 14px; display: flex; align-items: center; gap: 14px; }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--text-dim); text-transform: uppercase; }
+
+  /* Browser frame */
+  .browser-frame { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow-card); }
+  .browser-bar { background: var(--surface-2); padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f56; } .browser-dot.y { background: #ffbd2e; } .browser-dot.g { background: #27c93f; }
+  .browser-url { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 99px; padding: 5px 14px; font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text-mid); margin-left: 8px; text-align: center; }
+  .browser-url-secure { color: var(--green); margin-right: 4px; }
+
+  /* Cert-app shell mock */
+  .ca {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    background: var(--bg);
+    min-height: 540px;
+  }
+  .ca-sidebar {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex; flex-direction: column;
+  }
+  .ca-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 0 6px; }
+  .ca-brand-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .ca-brand-mark svg { width: 100%; height: 100%; display: block; }
+  .ca-brand-text { display: flex; flex-direction: column; }
+  .ca-brand-name { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .ca-brand-cert { font-size: 11px; color: var(--accent-light); font-weight: 600; }
+  .ca-brand-version { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
+  .ca-section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+    padding: 14px 8px 6px;
+  }
+  .ca-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px;
+    font-size: 12px; color: var(--text-mid);
+    cursor: pointer;
+  }
+  .ca-nav-item.is-active { background: var(--accent-soft-bg); color: var(--accent); font-weight: 700; }
+  .ca-nav-item:hover:not(.is-active) { background: var(--surface-2); color: var(--text); }
+  .ca-nav-icon { font-size: 11px; width: 16px; flex-shrink: 0; }
+  .ca-streak-mini {
+    margin-top: auto;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 11px; font-weight: 800; letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Topbar */
+  .ca-main { padding: 0; }
+  .ca-topbar {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px;
+    position: relative;
+  }
+  .ca-hamburger { width: 24px; height: 18px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
+  .ca-hamburger span { display: block; height: 2px; background: var(--text-mid); border-radius: 1px; }
+  .ca-breadcrumb { font-size: 14px; color: var(--text); font-weight: 600; }
+  .ca-topbar-spacer { flex: 1; }
+  .ca-date-pill { font-size: 11px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 99px; }
+  .ca-theme-toggle { width: 28px; height: 28px; border-radius: 6px; background: transparent; color: var(--text-mid); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+
+  /* Sign-in pill (anonymous) */
+  .ca-signin-pill {
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 6px 14px; border-radius: 8px;
+    border: 0; cursor: pointer;
+  }
+
+  /* Account pill (signed in) */
+  .ca-account-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 11px 4px 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px; cursor: pointer;
+  }
+  .ca-account-pill:hover, .ca-account-pill.is-open { border-color: var(--accent); }
+  .ca-account-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .ca-account-email-short { font-size: 11px; font-weight: 600; color: var(--text); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ca-account-chevron { font-size: 9px; color: var(--text-dim); }
+
+  /* Sync status dot inside account pill */
+  .ca-sync-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    margin-right: -2px;
+    flex-shrink: 0;
+  }
+  .ca-sync-dot.is-synced { background: var(--green); }
+  .ca-sync-dot.is-pending { background: var(--yellow); animation: syncPulse 1.5s infinite; }
+  .ca-sync-dot.is-offline { background: var(--text-dim); }
+  .ca-sync-dot.is-error { background: var(--red); }
+  @keyframes syncPulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+  /* Account dropdown */
+  .ca-account-dropdown {
+    position: absolute;
+    top: calc(100% + 6px); right: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    width: 260px;
+    box-shadow: var(--shadow-modal);
+    z-index: 10;
+  }
+  .ca-dropdown-header {
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .ca-dropdown-email { font-size: 12px; font-weight: 700; color: var(--text); word-break: break-all; }
+  .ca-dropdown-tier { font-size: 10.5px; color: var(--green); margin-top: 2px; font-weight: 600; }
+
+  /* Sync status block in dropdown */
+  .ca-sync-status {
+    margin: 4px 0;
+    padding: 9px 10px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; color: var(--text-mid);
+  }
+  .ca-sync-status .ca-sync-dot { width: 8px; height: 8px; }
+  .ca-sync-status-text { flex: 1; }
+  .ca-sync-status-text strong { color: var(--text); font-weight: 600; }
+  .ca-sync-now-link {
+    font-size: 11px; color: var(--accent); font-weight: 600;
+    cursor: pointer; text-decoration: none;
+  }
+
+  .ca-dropdown-link {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 5px;
+    color: var(--text-mid); font-size: 12px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+  }
+  .ca-dropdown-link:hover { background: var(--surface-2); color: var(--text); }
+  .ca-dropdown-link-icon { font-size: 12px; }
+  .ca-dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .ca-dropdown-link-danger { color: #dc2626; }
+  .ca-dropdown-link-danger:hover { background: rgba(220,38,38,.06); color: #dc2626; }
+
+  /* Page body */
+  .ca-content { padding: 28px 32px; }
+  .ca-greeting { font-size: 30px; font-weight: 800; letter-spacing: -.015em; color: var(--text); margin-bottom: 8px; }
+  .ca-greeting em { color: var(--accent); font-style: normal; }
+  .ca-greeting-sub { font-size: 14px; color: var(--text-mid); }
+
+  /* Sync hint banner (anonymous) */
+  .ca-sync-hint {
+    margin-top: 24px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, var(--accent-soft-bg), rgba(124,111,247,.04));
+    border: 1px solid var(--accent-soft-border);
+    border-radius: 10px;
+    font-size: 13px; color: var(--text-mid);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .ca-sync-hint-icon { font-size: 18px; flex-shrink: 0; }
+  .ca-sync-hint-text { flex: 1; }
+  .ca-sync-hint-text strong { color: var(--text); font-weight: 700; }
+  .ca-sync-hint-cta {
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 7px 14px; border-radius: 7px;
+    border: 0; cursor: pointer; text-decoration: none;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .ca-sync-hint-dismiss { background: transparent; border: 0; color: var(--text-dim); font-size: 12px; padding: 4px 6px; cursor: pointer; }
+
+  /* MIGRATION BANNER */
+  .ca-migration-banner {
+    margin: 24px 0 0;
+    padding: 18px 22px;
+    background: var(--bg-elevated);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    display: flex; gap: 16px;
+    align-items: flex-start;
+  }
+  .ca-migration-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: var(--accent-soft-bg);
+    border: 1px solid var(--accent-soft-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .ca-migration-body { flex: 1; }
+  .ca-migration-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 4px; letter-spacing: -.01em; }
+  .ca-migration-text { font-size: 13.5px; color: var(--text-mid); margin-bottom: 12px; line-height: 1.5; }
+  .ca-migration-text strong { color: var(--text); font-weight: 700; }
+  .ca-migration-stats {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 14px;
+  }
+  .ca-migration-stat {
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft-bg);
+    border: 1px solid var(--accent-soft-border);
+    padding: 3px 9px; border-radius: 99px;
+  }
+  .ca-migration-actions { display: flex; gap: 10px; }
+  .ca-migration-btn-primary {
+    background: var(--accent); color: #fff;
+    font-size: 13px; font-weight: 700;
+    padding: 9px 18px; border-radius: 8px;
+    border: 0; cursor: pointer;
+    box-shadow: var(--shadow-cta);
+  }
+  .ca-migration-btn-secondary {
+    background: var(--surface-2); color: var(--text-mid);
+    font-size: 13px; font-weight: 600;
+    padding: 9px 14px; border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  /* Migration progress UI */
+  .ca-migration-progress-bar {
+    width: 100%; height: 6px;
+    background: var(--accent-soft-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0 4px;
+  }
+  .ca-migration-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    transition: width .3s ease;
+  }
+  .ca-migration-progress-meta {
+    font-size: 11px; color: var(--text-dim);
+    display: flex; justify-content: space-between;
+    font-family: 'SF Mono', monospace;
+  }
+
+  /* Toast banners */
+  .ca-toast {
+    margin: 16px 0 0;
+    padding: 11px 16px;
+    border-radius: 9px;
+    font-size: 13px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .ca-toast.is-success {
+    background: var(--green-soft-bg);
+    border: 1px solid var(--green-border);
+    color: var(--text-mid);
+  }
+  .ca-toast.is-success strong { color: var(--text); font-weight: 700; }
+  .ca-toast.is-info {
+    background: var(--accent-soft-bg);
+    border: 1px solid var(--accent-soft-border);
+    color: var(--text-mid);
+  }
+  .ca-toast.is-warn {
+    background: var(--yellow-soft-bg);
+    border: 1px solid var(--yellow-border);
+    color: var(--text-mid);
+  }
+
+  /* Hydration overlay (new device) */
+  .ca-hydration-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+  }
+  .ca-hydration-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 32px;
+    box-shadow: var(--shadow-modal);
+    text-align: center;
+    min-width: 280px;
+  }
+  .ca-hydration-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--accent-soft-bg);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ca-hydration-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .ca-hydration-sub { font-size: 12px; color: var(--text-mid); }
+
+  /* Synced confirmation badge */
+  .ca-synced-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 10px;
+    padding: 4px 10px;
+    background: var(--green-soft-bg);
+    border: 1px solid var(--green-border);
+    border-radius: 99px;
+    font-size: 11px; color: var(--green);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">☁️ Phase C + D + F bundled — Cloud sync end-to-end</h1>
+  <p class="page-lede">
+    Combined ship: <strong>identity</strong> (Phase C) + <strong>progress sync</strong> (Phase D) + <strong>anon→authed migration</strong> (Phase F). When a user signs in, their progress actually moves to the cloud and syncs across devices — matching the user mental model. Avoids the awkward "Phase C only" middle state where users sign in and notice nothing changed for their data. 7 states stacked top-to-bottom showing the full anonymous → first-signup → daily-use → cross-device → sign-out flow.
+  </p>
+
+  <div class="annotation">
+    <strong>Why bundle these three phases (handshake)</strong>
+    <p><strong>1. Phase C alone is misleading.</strong> If users sign in but their progress stays local-only, the natural mental model breaks ("I have an account — surely my data's saved?"). Shipping the identity layer without the data layer creates a UX bug where the value proposition is implied but not delivered.</p>
+    <p><strong>2. C + D + F share the same auth-state-change pipeline.</strong> All three react to the same <code>SIGNED_IN</code> event from <code>onAuthStateChange</code>. Phase F (one-time migration) fires first; Phase D (ongoing sync) takes over once migration completes. Wiring them separately means doing the same plumbing three times.</p>
+    <p><strong>3. The honest "you're now synced" UX requires all three.</strong> Sync status indicator (Phase D), migration banner (Phase F), account pill + dropdown showing sync state (Phase C) — each is incomplete without the others.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Architectural decisions (locked-in)</strong>
+    <p><strong>4. Local-first, cloud-mirrored.</strong> <code>localStorage</code> stays the read source-of-truth (zero latency, works offline). Writes go to localStorage immediately AND queue for cloud sync. Sync worker batches Supabase writes every ~30s or on <code>pagehide</code>. No write-blocking on slow networks.</p>
+    <p><strong>5. Migration is one-time + opt-in.</strong> First sign-in fires migration check. If localStorage has nplus_* data + Supabase has nothing for this user → show prompt. Never auto-merge per the v4.81 data-safety discipline. <code>profiles.metadata.migration_v1_at</code> records the migration; never re-prompts.</p>
+    <p><strong>6. Sync conflict resolution.</strong> <em>quiz_history</em> = append-only, no conflict possible (each row is a unique event). <em>Settings</em> (exam_date, daily_goal) = last-write-wins by timestamp. <em>Streak</em> = max-value (you can't have a "smaller" streak; if cloud says 13 days and local says 5, cloud wins). <em>First-time hydrate on new device</em> = cloud-wins entirely.</p>
+    <p><strong>7. Sync status UI lives in dropdown, not topbar.</strong> Topbar account pill stays clean (avatar + email + chevron + small status dot). Dropdown reveals the full status: "● Synced 5s ago [Sync now]". Avoids constant "syncing" noise in the user's peripheral vision.</p>
+    <p><strong>8. Sign-out preserves localStorage.</strong> Anonymous mode after sign-out continues to work — all the user's local data is intact. Their cloud data also stays untouched in Supabase (separate storage; sign-out doesn't delete account). Sign back in → reconnects.</p>
+    <p><strong>9. Offline mode keeps working.</strong> Sync queue retries on next online event. Subtle yellow indicator in dropdown if sync is pending: "● 3 changes will sync when online".</p>
+    <p><strong>10. What's NOT in this bundle (intentional):</strong> Server-side API key proxy (Phase E — users still BYOK after this ship). Stripe paywall (Phase G — Pro features still ungated). Both deserve their own dedicated sessions. This bundle is "your data is saved and syncs" — not "you're paying for things."</p>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1 — Anonymous (with persistent sync hint)                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 1 · Anonymous user · sync hint visible</span></div>
+
+  <div class="annotation">
+    Default anonymous state. Localstorage has 47 quiz sessions + 13-day streak (built up over weeks). Sync hint banner sits below the greeting card with explicit value prop: "<strong>your progress is local-only</strong>." Dismissible (×) but reappears once per session if undismissed permanently. "Sign in" pill in topbar is the entry point.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-signin-pill">Sign in</button>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+          <div class="ca-sync-hint">
+            <span class="ca-sync-hint-icon">📦</span>
+            <div class="ca-sync-hint-text">
+              <strong>Your progress is local to this browser.</strong> Sign in (free) to back it up + sync across devices. Don't lose your 13-day streak if you switch laptops.
+            </div>
+            <a class="ca-sync-hint-cta">Sign in →</a>
+            <button class="ca-sync-hint-dismiss" aria-label="Dismiss">×</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2 — Migration prompt (first sign-in with local data detected)  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 2 · First sign-in · migration prompt</span></div>
+
+  <div class="annotation">
+    User clicked Sign in → went to landing → completed magic link / OAuth → returned to cert app. <code>SIGNED_IN</code> event fires. Migration check runs: Supabase says no <code>quiz_history</code> rows for this <code>user_id</code> + localStorage has 47 nplus_history entries → show migration banner. Inline at top of content (above greeting). Stats pills make the value tangible. Two clear actions: import or start fresh. Nothing happens automatically without consent.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-pending"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <div class="ca-migration-banner">
+            <div class="ca-migration-icon">📦</div>
+            <div class="ca-migration-body">
+              <h3 class="ca-migration-title">Welcome back, Simi. We found your local progress.</h3>
+              <p class="ca-migration-text">Looks like you've been studying anonymously on this browser. Want us to <strong>import everything to your account</strong> so it syncs across devices and survives a browser reset?</p>
+              <div class="ca-migration-stats">
+                <span class="ca-migration-stat">📚 47 quiz sessions</span>
+                <span class="ca-migration-stat">🔥 13-day streak</span>
+                <span class="ca-migration-stat">🎯 Pass Plan + 12 weak topics</span>
+                <span class="ca-migration-stat">⚙️ 6 drill mastery records</span>
+                <span class="ca-migration-stat">📅 Exam date · 2026-05-10</span>
+              </div>
+              <div class="ca-migration-actions">
+                <button class="ca-migration-btn-primary">Yes, import everything →</button>
+                <button class="ca-migration-btn-secondary">No, start fresh</button>
+              </div>
+            </div>
+          </div>
+          <h1 class="ca-greeting" style="margin-top:24px">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3 — Migration in progress                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 3 · Migration in progress · 23 of 47 imported</span></div>
+
+  <div class="annotation">
+    User clicked "Yes, import everything →". Migration banner morphs into a progress card. Quiz history batches in 5s; settings + drill mastery import as smaller side-batches. Typical migration: ~3-8 seconds. Banner doesn't block — user can navigate; migration continues in background. Sync dot in topbar pulses yellow during the operation.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-pending"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <div class="ca-migration-banner">
+            <div class="ca-migration-icon">⏳</div>
+            <div class="ca-migration-body">
+              <h3 class="ca-migration-title">Importing your local progress to the cloud…</h3>
+              <p class="ca-migration-text">Don't close the tab — we're moving everything over. You can keep using the app; this runs in the background.</p>
+              <div class="ca-migration-progress-bar">
+                <div class="ca-migration-progress-fill" style="width: 49%"></div>
+              </div>
+              <div class="ca-migration-progress-meta">
+                <span>23 of 47 quiz sessions imported</span>
+                <span>~4s remaining</span>
+              </div>
+            </div>
+          </div>
+          <h1 class="ca-greeting" style="margin-top:24px">Good afternoon, <em>Simi</em>.</h1>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 4 — Migration success + steady-state signed-in                 -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 4 · Migration success · steady-state signed-in</span></div>
+
+  <div class="annotation">
+    Migration completes. Banner morphs into a one-time success toast under the greeting (~5s auto-dismiss). Sync dot in topbar flips to green ✓. From here on, every quiz / drill action writes to localStorage AND queues for cloud sync. The user's experience is identical to anonymous mode — except they're protected against device loss + can sign in from anywhere.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+          <div class="ca-toast is-success">
+            <span style="font-size:15px">✓</span>
+            <span><strong>All 47 sessions + 13-day streak imported.</strong> You're now synced across devices.</span>
+          </div>
+          <span class="ca-synced-badge">● Synced as <strong style="color:var(--text);font-weight:700;margin-left:2px">simi_oremosu@hotmail.com</strong></span>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 5 — Account dropdown · sync details                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 5 · Account dropdown · sync details visible</span></div>
+
+  <div class="annotation">
+    User clicks pill → dropdown opens. NEW row at top: sync status block with green dot + "Synced 5 seconds ago" + "Sync now" link for manual trigger. Clean affordance — daily users see "Synced 5s ago" reassurance; if anything's off they see it instantly. "My certs" link still routes to landing's My Certs page (multi-cert overview). "Visit certanvil.com" returns to apex landing. Sign out at bottom.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill is-open">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▴</span>
+          </button>
+          <div class="ca-account-dropdown">
+            <div class="ca-dropdown-header">
+              <div class="ca-dropdown-email">simi_oremosu@hotmail.com</div>
+              <div class="ca-dropdown-tier">● Free tier · Network+ unlocked</div>
+            </div>
+            <div class="ca-sync-status">
+              <span class="ca-sync-dot is-synced"></span>
+              <div class="ca-sync-status-text"><strong>Synced</strong> 5 seconds ago</div>
+              <a class="ca-sync-now-link">Sync now</a>
+            </div>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🎓</span><span>My certs</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🌐</span><span>Visit certanvil.com</span></a>
+            <div class="ca-dropdown-divider"></div>
+            <a class="ca-dropdown-link ca-dropdown-link-danger"><span class="ca-dropdown-link-icon">↩</span><span>Sign out</span></a>
+          </div>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 6 — Cross-device sign-in · cloud hydration                    -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 6 · Cross-device sign-in · loading cloud progress</span></div>
+
+  <div class="annotation">
+    User opens cert app on a NEW device (e.g., work laptop). Browser has no localStorage <code>nplus_*</code> data → app starts in anonymous shell. User signs in (apex cookie or fresh OAuth). <code>SIGNED_IN</code> fires → migration check finds NO local data + Supabase HAS user's data → skip migration prompt → go straight to hydration: pull cloud quiz_history + streak + settings + drill mastery → write to localStorage → render with full context. ~1-3 seconds. Hydration overlay shows during the fetch. After hydration: identical to State 4 — fully synced + ready to study.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca" style="position:relative">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Wed · 9:14am</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-pending"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Welcome back, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub" style="opacity:.5">Loading your progress…</p>
+        </div>
+      </main>
+      <div class="ca-hydration-overlay">
+        <div class="ca-hydration-card">
+          <div class="ca-hydration-spinner"></div>
+          <div class="ca-hydration-title">Restoring your progress…</div>
+          <div class="ca-hydration-sub">Pulling 47 sessions + streak + drill mastery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 7 — Offline mode + sign-out flash                              -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 7 · Offline · sync queued · then sign-out flash</span></div>
+
+  <div class="annotation">
+    User loses connection mid-study. Sync dot flips yellow → "Offline" status in dropdown shows pending change count. App keeps working off localStorage. Once connection returns, sync queue flushes automatically. Below: sign-out flash banner (after they signed out from State 5's dropdown). Anonymous mode resumes seamlessly — all local data intact.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill is-open">
+            <span class="ca-sync-dot is-offline"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▴</span>
+          </button>
+          <div class="ca-account-dropdown">
+            <div class="ca-dropdown-header">
+              <div class="ca-dropdown-email">simi_oremosu@hotmail.com</div>
+              <div class="ca-dropdown-tier">● Free tier · Network+ unlocked</div>
+            </div>
+            <div class="ca-sync-status" style="background:var(--yellow-soft-bg);border:1px solid var(--yellow-border)">
+              <span class="ca-sync-dot is-offline"></span>
+              <div class="ca-sync-status-text"><strong>Offline</strong> — 3 changes will sync when online</div>
+            </div>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🌐</span><span>Visit certanvil.com</span></a>
+            <div class="ca-dropdown-divider"></div>
+            <a class="ca-dropdown-link ca-dropdown-link-danger"><span class="ca-dropdown-link-icon">↩</span><span>Sign out</span></a>
+          </div>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>.</p>
+          <div class="ca-toast is-warn" style="margin-top:14px">
+            <span style="font-size:14px">⚠</span>
+            <span><strong>You're offline.</strong> Your progress is being saved locally; we'll sync to the cloud when you reconnect.</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- IMPLEMENTATION PLAN                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">Implementation plan · file map · time</span></div>
+
+  <div class="annotation">
+    <strong>Phase C — Identity layer (~2 hr)</strong>
+    <p><code>app/lib/supabase.js</code> (new) — Supabase client init copy from landing.<br>
+    <code>app/auth-state.js</code> (new) — slim auth state listener, account-pill render, dropdown render, sign-out handler.<br>
+    <code>index.html</code> — script tags + topbar account-pill container.<br>
+    <code>app.js</code> — replace existing avatar circle with account-pill / sign-in-pill toggle. Sync-hint banner render.<br>
+    <code>styles.css</code> — port the account-pill + dropdown CSS from landing (already proven in landing's auth.js).</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Phase D — Sync layer (~3 hr)</strong>
+    <p><code>app/sync.js</code> (new, ~300 LOC) — sync worker with queue, batch, retry. Hooks into <code>saveToHistory()</code>, <code>saveStreak()</code>, drill mastery setters, etc. Handles conflict resolution per the locked-in policy. Queues offline events for retry.<br>
+    Hydration logic — on <code>SIGNED_IN</code> if no local data + cloud has data → fetch + merge.<br>
+    <code>supabase/schema.sql</code> — add tables/columns for streak (jsonb on profiles), drill mastery (per-cert jsonb).<br>
+    Sync status events emitted via window event bus → consumed by sync-dot + dropdown UI.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Phase F — Migration layer (~1 hr)</strong>
+    <p><code>app/migration.js</code> (new, ~150 LOC) — first-sign-in detector (checks <code>profiles.metadata.migration_v1_at</code> + Supabase data presence + localStorage data presence). Migration banner render. Batch-import logic (uses Phase D's sync queue). Marks completion. Handles "No, start fresh" path (records decline timestamp; never re-prompts).<br>
+    Uses Phase D's write paths — no duplicated upload logic.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Total time estimate: 5-7 hours</strong>
+    <p>Combined session beats three separate sessions because the auth state-change pipeline is shared. Single dedicated evening or split across two: (a) Phase C + D scaffolding (Day 1, ~4 hr), (b) Phase F + polish + cross-device testing (Day 2, ~2 hr).</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Acceptance criteria (when this bundle is "done")</strong>
+    <p>(a) Anonymous user with 47 local sessions signs in for first time → sees migration prompt with accurate counts → "Yes, import" → all 47 sessions in cloud within 8s.<br>
+    (b) Same user signs in on a NEW device → no migration prompt (already migrated) → sees hydration overlay → 47 sessions visible after ~3s.<br>
+    (c) User completes a quiz while signed in → quiz appears in cloud within 30s (next sync flush) or instantly on <code>pagehide</code>.<br>
+    (d) User goes offline mid-study → sync dot flips yellow → app continues working → reconnect → queued changes flush.<br>
+    (e) User signs out → local data preserved → can continue anonymously.<br>
+    (f) User clicks "No, start fresh" once → never re-prompted.<br>
+    (g) Existing v4.81.2 daily auto-backup mechanism still works (additive, not replacing).<br>
+    (h) Zero regressions on existing localStorage-driven UX (read latency unchanged).</p>
+  </div>
+
+  <div class="annotation">
+    <strong>What's still NOT in this bundle (Phase E + G)</strong>
+    <p>Phase E (server-side API key proxy) — users still BYOK their Anthropic key after this ship. The proxy is a separate concern: it gates HOW MANY requests, not WHO can request.<br>
+    Phase G (Stripe paywall) — Pro tier features still ungated after this ship. This bundle gives every signed-in user a "free + synced" experience; Pro upgrade is the next layer up.<br>
+    Both deserve their own dedicated sessions per their issue scopes.</p>
+  </div>
+
+</div>
+</body>
+</html>

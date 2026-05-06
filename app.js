@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.88.4
+// Network+ AI Quiz — app.js  v4.89.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.88.4';
+const APP_VERSION = '4.89.0';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -302,6 +302,22 @@ const AUTOBACKUP_KEEP_DAYS = 7;
 const EXPORT_REMINDER_DAYS = 14;
 // v4.81.4: debounce delay for API-key auto-save while the user is typing
 const API_KEY_AUTOSAVE_DEBOUNCE_MS = 600;
+
+// ── Phase C′ (cloud-first) — flush helper ──
+// Fire-and-forget bridge from the legacy localStorage write sites to the
+// cloud-store debounced flush queue. No-ops gracefully when:
+//   - cloud-store hasn't loaded yet (script-tag order race)
+//   - user is anonymous (cloud-store internally checks isSignedIn())
+//   - the key isn't in USER_DATA_KEYS (cloud-store filters it out)
+// The key passed must be the full STORAGE.X value (e.g. 'nplus_history'),
+// matching cloud-store's USER_DATA_KEYS Set.
+function _cloudFlush(key) {
+  try {
+    if (typeof window !== 'undefined' && window.cloudStore && typeof window.cloudStore.flush === 'function') {
+      window.cloudStore.flush(key);
+    }
+  } catch (e) { /* swallow — never let cloud sync break a local write */ }
+}
 
 // ── STATE ──
 let questions  = [];
@@ -785,7 +801,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // at startExam time, so toggling the checkbox between exams just updates the
 // stored preference.
 function setHardcoreMode(on) {
-  try { localStorage.setItem(STORAGE.HARDCORE_EXAM, on ? '1' : '0'); } catch {}
+  try { localStorage.setItem(STORAGE.HARDCORE_EXAM, on ? '1' : '0'); _cloudFlush(STORAGE.HARDCORE_EXAM); } catch {}
 }
 
 function initChips(groupId, cb) {
@@ -1003,6 +1019,7 @@ function saveToHistory(entry) {
     h.unshift(entry);
     if (h.length > HISTORY_CAP) h.length = HISTORY_CAP;
     localStorage.setItem(STORAGE.HISTORY, JSON.stringify(h));
+    _cloudFlush(STORAGE.HISTORY);
   } catch { showToast('Storage full — history not saved', 'error'); }
 }
 
@@ -1089,6 +1106,7 @@ function setDailyGoal(n) {
   const v = parseInt(n, 10);
   if (Number.isFinite(v) && v > 0 && v <= 500) {
     localStorage.setItem(STORAGE.DAILY_GOAL, String(v));
+    _cloudFlush(STORAGE.DAILY_GOAL);
   }
 }
 function editDailyGoal() {
@@ -1531,6 +1549,7 @@ function updateStreak() {
   s.best = Math.max(s.best || 0, s.current);
   s.last = today;
   localStorage.setItem(STORAGE.STREAK, JSON.stringify(s));
+  _cloudFlush(STORAGE.STREAK);
   return s;
 }
 function renderStreakBadge() {
@@ -1750,7 +1769,7 @@ function loadWrongBank() {
   try { return JSON.parse(localStorage.getItem(STORAGE.WRONG_BANK) || '[]'); } catch { return []; }
 }
 function saveWrongBank(bank) {
-  try { localStorage.setItem(STORAGE.WRONG_BANK, JSON.stringify(bank)); } catch { showToast('Storage full — wrong bank not saved', 'error'); }
+  try { localStorage.setItem(STORAGE.WRONG_BANK, JSON.stringify(bank)); _cloudFlush(STORAGE.WRONG_BANK); } catch { showToast('Storage full — wrong bank not saved', 'error'); }
 }
 
 function addToWrongBank(q, chosen) {
@@ -1820,7 +1839,7 @@ function loadSrQueue() {
   catch { return []; }
 }
 function saveSrQueue(queue) {
-  try { localStorage.setItem(STORAGE.SR_QUEUE, JSON.stringify(queue)); }
+  try { localStorage.setItem(STORAGE.SR_QUEUE, JSON.stringify(queue)); _cloudFlush(STORAGE.SR_QUEUE); }
   catch { showToast('Storage full — SR queue not saved', 'error'); }
 }
 
@@ -2541,7 +2560,7 @@ function loadDiagnostic() {
   catch { return null; }
 }
 function saveDiagnostic(d) {
-  try { localStorage.setItem(STORAGE.DIAGNOSTIC, JSON.stringify(d)); }
+  try { localStorage.setItem(STORAGE.DIAGNOSTIC, JSON.stringify(d)); _cloudFlush(STORAGE.DIAGNOSTIC); }
   catch { showToast('Storage full — diagnostic not saved', 'error'); }
 }
 
@@ -3021,6 +3040,7 @@ function completeDiagnostic() {
   };
   saveDiagnostic(record);
   localStorage.setItem(STORAGE.LAST_DIAGNOSTIC_AT, String(passPlan.completedAt));
+  _cloudFlush(STORAGE.LAST_DIAGNOSTIC_AT);
 
   // Clear session BEFORE rendering — keeps memory tidy + signals "done".
   _diagnosticSession = null;
@@ -7647,8 +7667,9 @@ function getExamDate() {
   return raw || null;
 }
 function setExamDate(isoDate) {
-  if (!isoDate) { localStorage.removeItem(STORAGE.EXAM_DATE); return; }
+  if (!isoDate) { localStorage.removeItem(STORAGE.EXAM_DATE); _cloudFlush(STORAGE.EXAM_DATE); return; }
   localStorage.setItem(STORAGE.EXAM_DATE, isoDate);
+  _cloudFlush(STORAGE.EXAM_DATE);
 }
 function getDaysToExam() {
   const raw = getExamDate();
@@ -7709,6 +7730,7 @@ function updateTypeStat(type, wasCorrect) {
     stats[type].seen++;
     if (wasCorrect) stats[type].correct++;
     localStorage.setItem(STORAGE.TYPE_STATS, JSON.stringify(stats));
+    _cloudFlush(STORAGE.TYPE_STATS);
   } catch {}
 }
 
@@ -7720,7 +7742,7 @@ function unlockMilestone(key) {
   const m = getMilestones();
   if (m[key]) return false;
   m[key] = new Date().toISOString();
-  try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(m)); } catch {}
+  try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(m)); _cloudFlush(STORAGE.MILESTONES); } catch {}
   return true;
 }
 
@@ -8156,7 +8178,7 @@ function getDailyChallenge() {
   } catch { return { lastCompletedDate: null, currentStreak: 0, bestStreak: 0, totalDone: 0 }; }
 }
 function saveDailyChallenge(data) {
-  try { localStorage.setItem(STORAGE.DAILY_CHALLENGE, JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(STORAGE.DAILY_CHALLENGE, JSON.stringify(data)); _cloudFlush(STORAGE.DAILY_CHALLENGE); } catch {}
 }
 function isDailyChallengeDoneToday() {
   const today = new Date().toISOString().slice(0, 10);
@@ -11083,14 +11105,14 @@ function _naInitMastery() {
   return m;
 }
 function naSaveMastery(m) {
-  try { localStorage.setItem(STORAGE.NA_MASTERY, JSON.stringify(m)); } catch {}
+  try { localStorage.setItem(STORAGE.NA_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.NA_MASTERY); } catch {}
 }
 function naGetLessonProgress() {
   try { return JSON.parse(localStorage.getItem(STORAGE.NA_LESSONS) || '{}') || {}; }
   catch { return {}; }
 }
 function naSaveLessonProgress(p) {
-  try { localStorage.setItem(STORAGE.NA_LESSONS, JSON.stringify(p)); } catch {}
+  try { localStorage.setItem(STORAGE.NA_LESSONS, JSON.stringify(p)); _cloudFlush(STORAGE.NA_LESSONS); } catch {}
 }
 
 // Entry point — called when user clicks the drill tile.
@@ -12993,6 +13015,7 @@ async function explainFurther() {
   try {
     const prev = parseInt(localStorage.getItem(STORAGE.DEEP_DIVE_USES) || '0');
     localStorage.setItem(STORAGE.DEEP_DIVE_USES, String(prev + 1));
+    _cloudFlush(STORAGE.DEEP_DIVE_USES);
   } catch {}
 
   const btn = document.querySelector('.explain-btn');
@@ -14492,7 +14515,7 @@ function tbLoadDraft() {
   } catch (_) { return null; }
 }
 function tbSaveDraft() {
-  try { localStorage.setItem(STORAGE.TOPOLOGY_DRAFT, JSON.stringify(tbState)); } catch (_) {}
+  try { localStorage.setItem(STORAGE.TOPOLOGY_DRAFT, JSON.stringify(tbState)); _cloudFlush(STORAGE.TOPOLOGY_DRAFT); } catch (_) {}
   // Live lab step validation — re-evaluate the current step every time state changes
   if (tbActiveLab) tbRenderLabStep();
   // Ambient packets: refresh cable health on every state change
@@ -14522,7 +14545,7 @@ function tbLoadAllSaves() {
   } catch (_) { return []; }
 }
 function tbPersistAllSaves(list) {
-  try { localStorage.setItem(STORAGE.TOPOLOGIES, JSON.stringify(list)); } catch (_) {}
+  try { localStorage.setItem(STORAGE.TOPOLOGIES, JSON.stringify(list)); _cloudFlush(STORAGE.TOPOLOGIES); } catch (_) {}
 }
 
 function tbSaveTopology() {
@@ -26437,6 +26460,7 @@ function tbEndLab() {
       completions[tbActiveLab.labId].count = (completions[tbActiveLab.labId].count || 0) + 1;
       completions[tbActiveLab.labId].lastCompleted = new Date().toISOString();
       localStorage.setItem(STORAGE.LAB_COMPLETIONS, JSON.stringify(completions));
+      _cloudFlush(STORAGE.LAB_COMPLETIONS);
     } catch (_) {}
     // Evaluate lab milestones
     evaluateMilestones();
@@ -27448,6 +27472,7 @@ function tbEndFixChallenge() {
       lastCompleted: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE.FIX_CHALLENGES, JSON.stringify(saved));
+    _cloudFlush(STORAGE.FIX_CHALLENGES);
   } catch (_) {}
 
   // Milestones
@@ -27773,7 +27798,7 @@ function getSubnetMastery() {
   ST_CAT_IDS.forEach(c => { m.categories[c] = { box: 1, seen: 0, correct: 0, lastSeen: null, streak: 0 }; });
   return m;
 }
-function saveSubnetMastery(m) { try { localStorage.setItem(STORAGE.SUBNET_MASTERY, JSON.stringify(m)); } catch {} }
+function saveSubnetMastery(m) { try { localStorage.setItem(STORAGE.SUBNET_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.SUBNET_MASTERY); } catch {} }
 
 function updateSubnetMastery(category, type, wasCorrect) {
   const m = getSubnetMastery();
@@ -28097,7 +28122,7 @@ const SUBNET_LESSONS = [
 function getLessonProgress() {
   try { return JSON.parse(localStorage.getItem(STORAGE.SUBNET_LESSONS) || '{}'); } catch { return {}; }
 }
-function saveLessonProgress(p) { try { localStorage.setItem(STORAGE.SUBNET_LESSONS, JSON.stringify(p)); } catch {} }
+function saveLessonProgress(p) { try { localStorage.setItem(STORAGE.SUBNET_LESSONS, JSON.stringify(p)); _cloudFlush(STORAGE.SUBNET_LESSONS); } catch {} }
 function isLessonComplete(id) { const p = getLessonProgress(); return p[id] && p[id].passed; }
 function isLessonUnlocked(lesson) {
   if (!lesson.prereq) return true;
@@ -28812,7 +28837,7 @@ function getPortMastery() {
   PT_CATEGORIES.forEach(c => { m.perCategory[c.id] = { seen: 0, correct: 0, box: 1, streak: 0 }; });
   return m;
 }
-function savePortMastery(m) { try { localStorage.setItem(STORAGE.PORT_MASTERY, JSON.stringify(m)); } catch {} }
+function savePortMastery(m) { try { localStorage.setItem(STORAGE.PORT_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.PORT_MASTERY); } catch {} }
 
 function updatePortMastery(proto, wasCorrect) {
   const m = getPortMastery();
@@ -29651,7 +29676,7 @@ async function ptAskCoach() {
 function ptGetLessonProgress() {
   try { return JSON.parse(localStorage.getItem(STORAGE.PORT_LESSONS) || '{}'); } catch { return {}; }
 }
-function ptSaveLessonProgress(p) { try { localStorage.setItem(STORAGE.PORT_LESSONS, JSON.stringify(p)); } catch {} }
+function ptSaveLessonProgress(p) { try { localStorage.setItem(STORAGE.PORT_LESSONS, JSON.stringify(p)); _cloudFlush(STORAGE.PORT_LESSONS); } catch {} }
 function ptIsLessonComplete(id) { const p = ptGetLessonProgress(); return p[id] && p[id].passed; }
 
 function ptRenderLessonSidebar() {
@@ -31681,7 +31706,7 @@ function createDrillScaffold(cfg) {
     return cfg.initMastery();
   }
 
-  function saveMastery(m) { try { localStorage.setItem(cfg.storageKey, JSON.stringify(m)); } catch {} }
+  function saveMastery(m) { try { localStorage.setItem(cfg.storageKey, JSON.stringify(m)); _cloudFlush(cfg.storageKey); } catch {} }
 
   function computeLevel(m) {
     const acc = m.totalAnswered > 0 ? m.totalCorrect / m.totalAnswered : 0;
@@ -31701,7 +31726,7 @@ function createDrillScaffold(cfg) {
   }
 
   function getLessonProgress() { try { return JSON.parse(localStorage.getItem(cfg.lessonsKey) || '{}'); } catch { return {}; } }
-  function saveLessonProgress(p) { try { localStorage.setItem(cfg.lessonsKey, JSON.stringify(p)); } catch {} }
+  function saveLessonProgress(p) { try { localStorage.setItem(cfg.lessonsKey, JSON.stringify(p)); _cloudFlush(cfg.lessonsKey); } catch {} }
   function isLessonUnlocked(lesson) { if (!lesson.prereq) return true; const p = getLessonProgress(); return p[lesson.prereq] && p[lesson.prereq].passed; }
 
   function renderLessonSidebar() {
@@ -34226,7 +34251,7 @@ function aclLoadState() {
   return aclState;
 }
 function aclSaveState() {
-  try { localStorage.setItem(STORAGE.ACL_STATE, JSON.stringify(aclState)); } catch (_) {}
+  try { localStorage.setItem(STORAGE.ACL_STATE, JSON.stringify(aclState)); _cloudFlush(STORAGE.ACL_STATE); } catch (_) {}
 }
 
 function aclActiveScenario() {

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.88.4
+   Network+ AI Quiz — styles.css  v4.89.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16094,4 +16094,203 @@ html { zoom: 1.10; }
   .exam-domain-breakdown { padding: 16px; }
   .exam-domain-row { padding: 10px 12px; }
   .exam-domain-row-pct { font-size: 18px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Phase C′ (cloud-first) — topbar account pill + dropdown
+   Rendered by auth-state.js into #topbar-account-mount. Mirrors landing
+   styles but adapted to cert-app theme tokens (--surface2 instead of
+   --bg-elevated, --text-mid instead of landing's separate var).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Sign-in pill (anonymous state) */
+.topbar-signin-pill {
+  display: inline-flex; align-items: center;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: #fff;
+  font-size: 13px; font-weight: 600;
+  border-radius: 99px;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: filter .15s ease, transform .1s ease;
+  font-family: inherit;
+}
+.topbar-signin-pill:hover { filter: brightness(1.08); }
+.topbar-signin-pill:active { transform: scale(0.97); }
+.topbar-signin-pill:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
+/* Account pill (signed-in state) */
+.topbar-account-pill {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  margin-left: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.topbar-account-pill:hover,
+.topbar-account-pill.is-open {
+  border-color: var(--accent);
+}
+.topbar-account-pill:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.topbar-account-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+}
+.topbar-account-email {
+  font-size: 12px; font-weight: 600;
+  color: var(--text);
+  max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-account-chevron {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform .15s ease;
+}
+.topbar-account-pill.is-open .topbar-account-chevron { transform: rotate(180deg); }
+
+/* Top-bar sync dot — color-coded by latest cloud-store status */
+.topbar-sync-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+  transition: background-color .2s ease;
+}
+.topbar-sync-dot.is-synced  { background: var(--green); }
+.topbar-sync-dot.is-syncing { background: var(--yellow, #fbbf24); animation: tsync-pulse 1s ease-in-out infinite; }
+.topbar-sync-dot.is-pending { background: var(--yellow, #fbbf24); }
+.topbar-sync-dot.is-error   { background: #ef4444; }
+.topbar-sync-dot.is-offline { background: var(--text-dim); }
+@keyframes tsync-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  .topbar-sync-dot.is-syncing { animation: none; }
+}
+
+@media (max-width: 540px) {
+  .topbar-account-email { max-width: 80px; }
+  .topbar-account-pill { padding: 3px 10px 3px 4px; }
+  .topbar-account-avatar { width: 22px; height: 22px; font-size: 10px; }
+}
+
+/* Account dropdown */
+.topbar-account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  width: 264px;
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,.45);
+  z-index: 1100;
+  font-family: inherit;
+}
+.topbar-account-dropdown[hidden] { display: none; }
+@media (max-width: 720px) {
+  .topbar-account-dropdown {
+    right: 12px;
+    width: calc(100vw - 32px);
+    max-width: 300px;
+  }
+}
+.tad-header {
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.tad-email {
+  font-size: 13px; font-weight: 700;
+  color: var(--text);
+  word-break: break-all;
+}
+.tad-tier {
+  font-size: 11px;
+  color: var(--green);
+  margin-top: 2px;
+  font-weight: 600;
+}
+.tad-sync-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.tad-sync-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.tad-sync-dot.is-synced  { background: var(--green); }
+.tad-sync-dot.is-syncing { background: var(--yellow, #fbbf24); animation: tsync-pulse 1s ease-in-out infinite; }
+.tad-sync-dot.is-pending { background: var(--yellow, #fbbf24); }
+.tad-sync-dot.is-error   { background: #ef4444; }
+.tad-sync-dot.is-offline { background: var(--text-dim); }
+.tad-sync-text { flex: 1 1 auto; }
+.tad-sync-now {
+  font-size: 11px;
+  color: var(--accent-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+.tad-sync-now:hover { text-decoration: underline; }
+.tad-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: var(--text-mid);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.tad-link:hover {
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--text);
+}
+.tad-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tad-icon { font-size: 14px; flex-shrink: 0; }
+.tad-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.tad-link.is-admin { color: var(--accent-light); }
+.tad-link.is-admin:hover {
+  background: rgba(var(--accent-rgb), .12);
+  color: var(--accent-light);
+}
+.tad-link.is-danger { color: #f87171; }
+.tad-link.is-danger:hover {
+  background: rgba(248,113,113,.08);
+  color: #f87171;
+}
+[data-theme="light"] .tad-link.is-danger { color: #dc2626; }
+[data-theme="light"] .tad-link.is-danger:hover {
+  background: rgba(220,38,38,.06);
+  color: #dc2626;
 }

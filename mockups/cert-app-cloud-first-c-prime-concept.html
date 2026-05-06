@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Mockup — Phase C′ · Cloud-first cert app (no localStorage for end users)</title>
+<style>
+  :root[data-theme="light"] {
+    --bg: #fafbff; --bg-elevated: #ffffff; --surface: #ffffff; --surface-2: #f4f5fa; --surface-3: #eaecf3;
+    --border: #e5e7f0; --border-strong: #c7c9d8;
+    --text: #1a1a2e; --text-mid: #4a4a6e; --text-dim: #8a8aac;
+    --accent: #5b4fdb; --accent-hover: #4a3fbe; --accent-light: #7c6ff7;
+    --accent-soft-bg: rgba(91,79,219,.06); --accent-soft-border: rgba(91,79,219,.18);
+    --green: #16a34a; --green-soft-bg: rgba(22,163,74,.08); --green-border: rgba(22,163,74,.3);
+    --orange: #d97706; --orange-soft-bg: rgba(217,119,6,.08); --orange-border: rgba(217,119,6,.3);
+    --red: #dc2626; --red-soft-bg: rgba(220,38,38,.06);
+    --yellow: #ca8a04;
+    --shadow-card: 0 1px 2px rgba(20,20,40,.04), 0 4px 12px rgba(20,20,40,.05);
+    --shadow-modal: 0 24px 60px -12px rgba(20,20,40,.35);
+    --shadow-cta: 0 6px 16px rgba(91,79,219,.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: 48px 24px 100px; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1.page-title { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 8px; color: var(--text); }
+  .page-lede { color: var(--text-mid); font-size: 14px; margin-bottom: 32px; max-width: 760px; }
+  code { font-family: 'SF Mono', 'Monaco', monospace; font-size: 0.85em; background: var(--accent-soft-bg); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+
+  .annotation {
+    background: var(--accent-soft-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px; margin: 14px 0 28px;
+    font-size: 13px; color: var(--text-mid); line-height: 1.55;
+  }
+  .annotation strong { color: var(--accent); display: block; margin-bottom: 4px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .annotation p { margin-bottom: 8px; }
+  .annotation p:last-child { margin-bottom: 0; }
+
+  .state-divider { margin: 56px 0 14px; display: flex; align-items: center; gap: 14px; }
+  .state-divider::before, .state-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .state-label { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--text-dim); text-transform: uppercase; }
+
+  .browser-frame { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow-card); }
+  .browser-bar { background: var(--surface-2); padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .browser-dots { display: flex; gap: 6px; }
+  .browser-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-dot.r { background: #ff5f56; } .browser-dot.y { background: #ffbd2e; } .browser-dot.g { background: #27c93f; }
+  .browser-url { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 99px; padding: 5px 14px; font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text-mid); margin-left: 8px; text-align: center; }
+  .browser-url-secure { color: var(--green); margin-right: 4px; }
+
+  /* Cert-app shell */
+  .ca {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    background: var(--bg);
+    min-height: 540px;
+    position: relative;
+  }
+  .ca-sidebar {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex; flex-direction: column;
+  }
+  .ca-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 0 6px; }
+  .ca-brand-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .ca-brand-mark svg { width: 100%; height: 100%; display: block; }
+  .ca-brand-text { display: flex; flex-direction: column; }
+  .ca-brand-name { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .ca-brand-cert { font-size: 11px; color: var(--accent-light); font-weight: 600; }
+  .ca-brand-version { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; }
+  .ca-section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+    padding: 14px 8px 6px;
+  }
+  .ca-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px;
+    font-size: 12px; color: var(--text-mid);
+    cursor: pointer;
+  }
+  .ca-nav-item.is-active { background: var(--accent-soft-bg); color: var(--accent); font-weight: 700; }
+  .ca-nav-item:hover:not(.is-active) { background: var(--surface-2); color: var(--text); }
+  .ca-nav-icon { font-size: 11px; width: 16px; flex-shrink: 0; }
+  .ca-streak-mini {
+    margin-top: auto;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 11px; font-weight: 800; letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Topbar */
+  .ca-main { padding: 0; }
+  .ca-topbar {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 12px;
+    position: relative;
+  }
+  .ca-hamburger { width: 24px; height: 18px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
+  .ca-hamburger span { display: block; height: 2px; background: var(--text-mid); border-radius: 1px; }
+  .ca-breadcrumb { font-size: 14px; color: var(--text); font-weight: 600; }
+  .ca-topbar-spacer { flex: 1; }
+  .ca-date-pill { font-size: 11px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 99px; }
+  .ca-theme-toggle { width: 28px; height: 28px; border-radius: 6px; background: transparent; color: var(--text-mid); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+
+  /* NEW — Cert switcher pill in topbar */
+  .ca-cert-switcher {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .ca-cert-switcher:hover, .ca-cert-switcher.is-open { border-color: var(--accent); background: var(--accent-soft-bg); }
+  .ca-cert-switcher-glyph {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    color: var(--accent-light);
+    font-size: 9px; font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .ca-cert-switcher-text { display: flex; flex-direction: column; line-height: 1.1; }
+  .ca-cert-switcher-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .ca-cert-switcher-code { font-size: 9.5px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .ca-cert-switcher-chevron { font-size: 9px; color: var(--text-dim); margin-left: 2px; }
+
+  /* Cert switcher dropdown */
+  .ca-cert-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 90px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    width: 260px;
+    box-shadow: var(--shadow-modal);
+    z-index: 11;
+  }
+  .ca-cert-dropdown-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .14em;
+    color: var(--text-dim); text-transform: uppercase;
+    padding: 8px 10px 6px;
+  }
+  .ca-cert-dropdown-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    cursor: pointer; text-decoration: none;
+    color: var(--text-mid);
+  }
+  .ca-cert-dropdown-item:hover { background: var(--surface-2); color: var(--text); }
+  .ca-cert-dropdown-item.is-active { background: var(--accent-soft-bg); color: var(--accent); font-weight: 600; }
+  .ca-cert-glyph-mini {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1a1a2e, #0a0a12);
+    color: var(--accent-light);
+    font-size: 11px; font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ca-cert-glyph-mini.is-secplus { background: linear-gradient(135deg, var(--orange-soft-bg), rgba(245,158,11,.02)); color: var(--orange); border: 1px solid var(--orange-border); }
+  .ca-cert-dropdown-text { display: flex; flex-direction: column; flex: 1; }
+  .ca-cert-dropdown-name { font-size: 12.5px; font-weight: 700; color: var(--text); }
+  .ca-cert-dropdown-meta { font-size: 10px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .ca-cert-dropdown-check { font-size: 12px; color: var(--accent); }
+  .ca-cert-dropdown-divider { height: 1px; background: var(--border); margin: 6px 0; }
+  .ca-cert-dropdown-add {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 6px;
+    color: var(--text-mid); font-size: 12px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+  }
+  .ca-cert-dropdown-add:hover { background: var(--surface-2); color: var(--accent); }
+
+  /* Sign-in pill (anonymous) */
+  .ca-signin-pill {
+    background: var(--accent); color: #fff;
+    font-size: 12px; font-weight: 700;
+    padding: 6px 14px; border-radius: 8px;
+    border: 0; cursor: pointer;
+  }
+
+  /* Account pill (signed in) */
+  .ca-account-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 11px 4px 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px; cursor: pointer;
+  }
+  .ca-account-pill:hover, .ca-account-pill.is-open { border-color: var(--accent); }
+  .ca-account-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .ca-account-email-short { font-size: 11px; font-weight: 600; color: var(--text); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ca-account-chevron { font-size: 9px; color: var(--text-dim); }
+
+  /* Sync dot */
+  .ca-sync-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    margin-right: -2px;
+  }
+  .ca-sync-dot.is-synced { background: var(--green); }
+
+  /* Account dropdown */
+  .ca-account-dropdown {
+    position: absolute;
+    top: calc(100% + 6px); right: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+    width: 260px;
+    box-shadow: var(--shadow-modal);
+    z-index: 11;
+  }
+  .ca-dropdown-header {
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .ca-dropdown-email { font-size: 12px; font-weight: 700; color: var(--text); word-break: break-all; }
+  .ca-dropdown-tier { font-size: 10.5px; color: var(--green); margin-top: 2px; font-weight: 600; }
+  .ca-dropdown-link {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 5px;
+    color: var(--text-mid); font-size: 12px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+  }
+  .ca-dropdown-link:hover { background: var(--surface-2); color: var(--text); }
+  .ca-dropdown-link.is-admin {
+    color: var(--accent);
+    background: var(--accent-soft-bg);
+    margin: 4px 0;
+    border: 1px dashed var(--accent-soft-border);
+  }
+  .ca-dropdown-link.is-admin:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ca-dropdown-link-icon { font-size: 12px; }
+  .ca-dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+  .ca-dropdown-link-danger { color: #dc2626; }
+  .ca-dropdown-link-danger:hover { background: rgba(220,38,38,.06); color: #dc2626; }
+
+  /* Page body */
+  .ca-content { padding: 28px 32px; }
+  .ca-greeting { font-size: 30px; font-weight: 800; letter-spacing: -.015em; color: var(--text); margin-bottom: 8px; }
+  .ca-greeting em { color: var(--accent); font-style: normal; }
+  .ca-greeting-sub { font-size: 14px; color: var(--text-mid); }
+
+  /* PASS PLAN — anonymous trial result */
+  .pp-anon-banner {
+    margin-bottom: 16px;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff;
+    border-radius: 12px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .pp-anon-banner-icon {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .pp-anon-banner-body { flex: 1; }
+  .pp-anon-banner-title { font-size: 15px; font-weight: 800; margin-bottom: 3px; }
+  .pp-anon-banner-text { font-size: 13px; opacity: .92; line-height: 1.5; }
+  .pp-anon-banner-cta {
+    background: #fff;
+    color: var(--accent);
+    font-size: 13px; font-weight: 800;
+    padding: 10px 18px;
+    border-radius: 9px;
+    border: 0;
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12);
+  }
+  .pp-anon-banner-cta-meta { font-size: 10px; font-weight: 600; opacity: .65; }
+
+  .pp-result-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 30px;
+    box-shadow: var(--shadow-card);
+  }
+  .pp-result-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .pp-result-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 18px; letter-spacing: -.01em; }
+  .pp-result-grid { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: center; }
+  .pp-ring {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) 0% 56%, var(--surface-2) 56% 100%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .pp-ring::after {
+    content: '';
+    position: absolute;
+    inset: 16px;
+    background: var(--bg-elevated);
+    border-radius: 50%;
+  }
+  .pp-ring-text {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+  .pp-ring-pct { font-size: 32px; font-weight: 800; color: var(--accent); letter-spacing: -.02em; }
+  .pp-ring-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; }
+  .pp-result-stats { display: flex; flex-direction: column; gap: 14px; }
+  .pp-stat-row { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .pp-stat-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .pp-stat-label { font-size: 12px; color: var(--text-mid); font-weight: 600; }
+  .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .pp-anon-foot { margin-top: 16px; font-size: 12px; color: var(--text-dim); text-align: center; }
+  .pp-anon-foot a { color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+  /* Soft signup gate modal */
+  .signup-gate-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20,20,40,.42);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 20;
+    padding: 24px;
+  }
+  .signup-gate-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    box-shadow: var(--shadow-modal);
+    max-width: 420px;
+    text-align: center;
+  }
+  .signup-gate-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: var(--accent-soft-bg);
+    border: 1px solid var(--accent-soft-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .signup-gate-title { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 8px; letter-spacing: -.01em; }
+  .signup-gate-text { font-size: 14px; color: var(--text-mid); margin-bottom: 22px; line-height: 1.55; }
+  .signup-gate-text strong { color: var(--text); font-weight: 700; }
+  .signup-gate-actions { display: flex; flex-direction: column; gap: 10px; }
+  .signup-gate-primary {
+    background: var(--accent); color: #fff;
+    font-size: 14px; font-weight: 700;
+    padding: 12px 18px; border-radius: 10px; border: 0;
+    cursor: pointer;
+    box-shadow: var(--shadow-cta);
+    text-decoration: none;
+  }
+  .signup-gate-primary-meta { font-size: 11px; font-weight: 600; opacity: .82; margin-left: 6px; background: rgba(255,255,255,.16); padding: 2px 7px; border-radius: 99px; }
+  .signup-gate-secondary {
+    background: transparent;
+    color: var(--text-mid);
+    font-size: 13px;
+    border: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--text-dim);
+  }
+  .signup-gate-secondary:hover { color: var(--text); }
+
+  /* ─── ADMIN DASHBOARD ─── */
+  .admin-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    background: var(--bg);
+    min-height: 540px;
+  }
+  .admin-sidebar {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+  }
+  .admin-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 6px 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .admin-brand-text {
+    display: flex; flex-direction: column;
+  }
+  .admin-brand-name { font-size: 14px; font-weight: 800; color: var(--text); }
+  .admin-brand-cert { font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .admin-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 7px;
+    font-size: 13px; color: var(--text-mid);
+    cursor: pointer;
+  }
+  .admin-nav-item.is-active { background: var(--accent-soft-bg); color: var(--accent); font-weight: 700; }
+  .admin-nav-icon { font-size: 13px; width: 16px; }
+
+  .admin-main { padding: 24px 32px; }
+  .admin-pagehead { margin-bottom: 22px; }
+  .admin-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--text-dim); text-transform: uppercase; }
+  .admin-h1 { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -.015em; margin-top: 4px; }
+
+  .admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .admin-stat-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .admin-stat-label { font-size: 10px; font-weight: 800; letter-spacing: .12em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+  .admin-stat-value { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .admin-stat-delta { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .admin-stat-delta.is-up { color: var(--green); }
+  .admin-stat-delta.is-flat { color: var(--text-dim); }
+
+  .admin-section-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .admin-section-head {
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-section-title { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .admin-section-action { font-size: 12px; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
+
+  .admin-table { width: 100%; border-collapse: collapse; }
+  .admin-table th, .admin-table td { padding: 11px 18px; text-align: left; font-size: 12.5px; }
+  .admin-table th { background: var(--surface-2); color: var(--text-dim); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 10px; }
+  .admin-table tr { border-bottom: 1px solid var(--border); }
+  .admin-table tr:last-child { border-bottom: 0; }
+  .admin-table td { color: var(--text-mid); }
+  .admin-table td.is-email { color: var(--text); font-weight: 600; }
+  .admin-tier-pill { font-size: 10px; font-weight: 800; letter-spacing: .08em; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
+  .admin-tier-pill.is-free { background: var(--surface-3); color: var(--text-mid); }
+  .admin-tier-pill.is-pro { background: var(--accent-soft-bg); color: var(--accent); border: 1px solid var(--accent-soft-border); }
+  .admin-row-action { font-size: 11px; color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">☁️ Phase C′ — Cloud-first cert app (revised post-pivot)</h1>
+  <p class="page-lede">
+    Replaces the bundled C+D+F design with a strictly cloud-first model. <strong>No localStorage in production for end users.</strong> Anonymous trial preserved via session-memory only (lost on tab close). Cert switcher in topbar for multi-cert users. Admin role unlocks <code>/admin</code> dashboard. Phase D and Phase F dissolve into this single ship — no progress sync needed (cloud IS the source), no anon-to-authed migration needed (anonymous users have no persistent local data to migrate).
+  </p>
+
+  <div class="annotation">
+    <strong>Five locked-in pivots driving this design</strong>
+    <p><strong>1. No localStorage in production for end users.</strong> Cloud-first via Supabase. Eliminates entire class of v4.81-style corruption bugs. Read latency mitigated via in-memory cache (per-session only).</p>
+    <p><strong>2. Session-memory anonymous trial.</strong> Visitor lands → tries sample question → takes diagnostic → sees Pass Plan. State held in JS variables. <em>"Sign up to save this →"</em> CTA at result moment converts the engagement peak. If they don't sign up + close the tab, state is gone — clean.</p>
+    <p><strong>3. Topbar cert switcher dropdown.</strong> Stripe-style account-switcher pattern. Lives between hamburger and date pill. Click → enrolled certs listed → switch navigates to that cert's subdomain (apex cookie keeps session alive across the navigation).</p>
+    <p><strong>4. Admin role flag + <code>/admin</code> route.</strong> Single column on <code>profiles.role TEXT DEFAULT 'user'</code>. Owner's account = <code>'admin'</code>. Account dropdown shows extra "🔧 Admin Dashboard" link (purple, dashed border to denote admin-only). Routes to <code>certanvil.com/admin</code> with auth gate.</p>
+    <p><strong>5. Phase F dies, Phase D folds in.</strong> No anon-to-authed migration (no anon data to migrate). No separate sync layer (Supabase IS the storage). Net result: simpler architecture overall. Roadmap goes from 4 phases (C, D, E, F, G with D+F bundled) → 3 phases (C′ unified, E, G).</p>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 1 — Anonymous trial · Pass Plan with signup CTA                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 1 · Anonymous diagnostic complete · Pass Plan with signup CTA</span></div>
+
+  <div class="annotation">
+    Visitor took the diagnostic anonymously. State held in JS variables only — no localStorage write. Pass Plan rendered as it currently does. <strong>NEW: full-width purple banner above the result</strong> with the value prop ("Save this Pass Plan + track your prep") and a primary "Sign up free" CTA showing the time investment ("30 sec via Google/Microsoft"). Below the result: footer link "Continue without saving · result will be lost on tab close" — honest about the trade-off, low-friction exit if they don't want to commit.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Trial</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🩺</span> Pass Plan</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Diagnostic Result</div>
+          <div class="ca-topbar-spacer"></div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-signin-pill">Sign in</button>
+        </div>
+        <div class="ca-content">
+          <div class="pp-anon-banner">
+            <div class="pp-anon-banner-icon">⭐</div>
+            <div class="pp-anon-banner-body">
+              <div class="pp-anon-banner-title">You're trending toward 740 — pass-line in reach.</div>
+              <div class="pp-anon-banner-text">Sign up free to save this Pass Plan, track your prep over time, and unlock 20 questions/day across all your devices.</div>
+            </div>
+            <a class="pp-anon-banner-cta">
+              Sign up free
+              <span class="pp-anon-banner-cta-meta">30 SEC</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <div class="pp-result-card">
+            <div class="pp-result-eyebrow">📊 Your Pass Plan · Network+ N10-009</div>
+            <h2 class="pp-result-title">Predicted score: 740 / 870</h2>
+            <div class="pp-result-grid">
+              <div class="pp-ring">
+                <div class="pp-ring-text">
+                  <div class="pp-ring-pct">56%</div>
+                  <div class="pp-ring-label">Pass probability</div>
+                </div>
+              </div>
+              <div class="pp-result-stats">
+                <div class="pp-stat-row">
+                  <span class="pp-stat-label">Confidence band</span>
+                  <span class="pp-stat-value">±55 points</span>
+                </div>
+                <div class="pp-stat-row">
+                  <span class="pp-stat-label">Top weak domains</span>
+                  <span class="pp-stat-value">Wireless · WAN</span>
+                </div>
+                <div class="pp-stat-row">
+                  <span class="pp-stat-label">Cards seeded for review</span>
+                  <span class="pp-stat-value">12</span>
+                </div>
+                <div class="pp-stat-row">
+                  <span class="pp-stat-label">Time invested</span>
+                  <span class="pp-stat-value">4 min 32 sec</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="pp-anon-foot">Don't want an account? <a>Continue without saving</a> · result will be lost on tab close</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 2 — Anonymous user hits gated feature · soft signup prompt    -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 2 · Anonymous user clicks "Start a quiz" · soft signup gate</span></div>
+
+  <div class="annotation">
+    Anonymous user finished diagnostic, didn't sign up, then tries to start a regular quiz. Soft modal appears (centered, dismissible). Two clear options: <strong>(a) Sign up free</strong> — recommended path, full functionality + saved progress; <strong>(b) Take a one-off quiz without saving</strong> — escape hatch for users who want zero commitment. Phrasing is honest, not adversarial. Same gate appears for: drills, exam simulator, ACL builder, network builder, etc. — anything stateful.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Trial</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🩺</span> Pass Plan</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Quiz</div>
+          <div class="ca-topbar-spacer"></div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-signin-pill">Sign in</button>
+        </div>
+        <div class="ca-content"></div>
+        <div class="signup-gate-overlay">
+          <div class="signup-gate-card">
+            <div class="signup-gate-icon">🎯</div>
+            <h3 class="signup-gate-title">Save your progress as you go</h3>
+            <p class="signup-gate-text">Quizzes contribute to your <strong>readiness score, weak-spot tracking, and daily streak</strong> — sign up free to track them. Free tier gives you 20 questions/day across all your devices.</p>
+            <div class="signup-gate-actions">
+              <a class="signup-gate-primary">
+                Sign up free <span class="signup-gate-primary-meta">30 SEC</span>
+              </a>
+              <button class="signup-gate-secondary">No thanks — give me a one-off quiz without saving</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 3 — Signed-in cert app · cert switcher in topbar              -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 3 · Signed-in steady state · cert switcher visible in topbar</span></div>
+
+  <div class="annotation">
+    User signed up and is studying Network+. Topbar now shows: hamburger + breadcrumb + <strong>NEW cert switcher pill</strong> (between breadcrumb and date pill) + date + theme toggle + account pill. Cert switcher displays current cert ("Network+ · N10-009") with chevron. Click → dropdown opens (State 4). Account pill shows green sync dot — implicit "your data is in the cloud" reassurance, no further sync UI needed since there's no sync queue anymore.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📊</span> Progress</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">📈</span> Analytics</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <button class="ca-cert-switcher">
+            <span class="ca-cert-switcher-glyph">N+</span>
+            <div class="ca-cert-switcher-text">
+              <span class="ca-cert-switcher-name">Network+</span>
+              <span class="ca-cert-switcher-code">N10-009</span>
+            </div>
+            <span class="ca-cert-switcher-chevron">▾</span>
+          </button>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+          <p class="ca-greeting-sub">Your weakest area right now is <strong>OSI Model</strong>. Fifteen focused minutes now would lift your readiness to the pass line.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 4 — Cert switcher dropdown open                                -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 4 · Cert switcher dropdown · Network+ active, Security+ available</span></div>
+
+  <div class="annotation">
+    Click cert switcher → dropdown opens. Section label "ENROLLED" + list of certs the user has entitlements for. Active cert (Network+) gets accent-bg + check icon. Other enrolled certs (Security+) clickable → navigates to that cert's subdomain (<code>secplus.certanvil.com</code>). Apex cookie keeps session alive across the navigation. Bottom: divider + <strong>"+ Add a cert →"</strong> link routing to <code>/pricing#certs</code> for cross-sell.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <button class="ca-cert-switcher is-open">
+            <span class="ca-cert-switcher-glyph">N+</span>
+            <div class="ca-cert-switcher-text">
+              <span class="ca-cert-switcher-name">Network+</span>
+              <span class="ca-cert-switcher-code">N10-009</span>
+            </div>
+            <span class="ca-cert-switcher-chevron">▴</span>
+          </button>
+          <div class="ca-cert-dropdown">
+            <div class="ca-cert-dropdown-label">Enrolled certs</div>
+            <a class="ca-cert-dropdown-item is-active">
+              <span class="ca-cert-glyph-mini">N+</span>
+              <div class="ca-cert-dropdown-text">
+                <span class="ca-cert-dropdown-name">Network+</span>
+                <span class="ca-cert-dropdown-meta">N10-009 · 47 sessions · streak 13d</span>
+              </div>
+              <span class="ca-cert-dropdown-check">✓</span>
+            </a>
+            <a class="ca-cert-dropdown-item">
+              <span class="ca-cert-glyph-mini is-secplus">S+</span>
+              <div class="ca-cert-dropdown-text">
+                <span class="ca-cert-dropdown-name">Security+</span>
+                <span class="ca-cert-dropdown-meta">SY0-701 · 8 sessions · target 2026-07-29</span>
+              </div>
+            </a>
+            <div class="ca-cert-dropdown-divider"></div>
+            <a class="ca-cert-dropdown-add"><span style="font-size:14px">+</span> Add a cert →</a>
+          </div>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▾</span>
+          </button>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 5 — Account dropdown · regular user                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 5 · Account dropdown · regular Free-tier user</span></div>
+
+  <div class="annotation">
+    Standard signed-in user (no admin role). Email + tier + 4 standard links + sign out. No "Admin" link visible — gated by role flag. Same component as the previously-shipped landing dropdown for visual consistency.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <button class="ca-cert-switcher">
+            <span class="ca-cert-switcher-glyph">N+</span>
+            <div class="ca-cert-switcher-text">
+              <span class="ca-cert-switcher-name">Network+</span>
+              <span class="ca-cert-switcher-code">N10-009</span>
+            </div>
+            <span class="ca-cert-switcher-chevron">▾</span>
+          </button>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill is-open">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▴</span>
+          </button>
+          <div class="ca-account-dropdown">
+            <div class="ca-dropdown-header">
+              <div class="ca-dropdown-email">simi_oremosu@hotmail.com</div>
+              <div class="ca-dropdown-tier">● Free tier · Network+ + Security+ unlocked</div>
+            </div>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🎓</span><span>My certs &amp; entitlements</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⬆️</span><span>Upgrade to Pro</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🌐</span><span>Visit certanvil.com</span></a>
+            <div class="ca-dropdown-divider"></div>
+            <a class="ca-dropdown-link ca-dropdown-link-danger"><span class="ca-dropdown-link-icon">↩</span><span>Sign out</span></a>
+          </div>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 6 — Account dropdown · ADMIN user                              -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 6 · Account dropdown · admin user (your account)</span></div>
+
+  <div class="annotation">
+    Same dropdown layout as State 5, but the user's <code>profiles.role = 'admin'</code> so an extra link appears between the standard links and the divider: "🔧 Admin Dashboard". Distinct visual treatment (purple text + dashed accent border) clearly marks it as admin-only — never confusable with normal user actions. Click → routes to <code>certanvil.com/admin</code>. The route is auth-gated server-side too (RLS policy + edge-function check).
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>networkplus.certanvil.com</div>
+    </div>
+    <div class="ca">
+      <aside class="ca-sidebar">
+        <div class="ca-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="ca-brand-text"><span class="ca-brand-name">CertAnvil</span><span class="ca-brand-cert">Network+ N10-009</span><span class="ca-brand-version">v4.88.4</span></div>
+        </div>
+        <div class="ca-section-label">Practice</div>
+        <div class="ca-nav-item is-active"><span class="ca-nav-icon">🏠</span> Home</div>
+        <div class="ca-section-label">Account</div>
+        <div class="ca-nav-item"><span class="ca-nav-icon">⚙️</span> Settings</div>
+        <div class="ca-streak-mini"><span style="font-size:14px">🔥</span> 13 DAY STREAK</div>
+      </aside>
+      <main class="ca-main">
+        <div class="ca-topbar">
+          <div class="ca-hamburger"><span></span><span></span><span></span></div>
+          <div class="ca-breadcrumb">Home</div>
+          <button class="ca-cert-switcher">
+            <span class="ca-cert-switcher-glyph">N+</span>
+            <div class="ca-cert-switcher-text">
+              <span class="ca-cert-switcher-name">Network+</span>
+              <span class="ca-cert-switcher-code">N10-009</span>
+            </div>
+            <span class="ca-cert-switcher-chevron">▾</span>
+          </button>
+          <div class="ca-topbar-spacer"></div>
+          <div class="ca-date-pill">Tue · 4:02pm</div>
+          <button class="ca-theme-toggle">☀️</button>
+          <button class="ca-account-pill is-open">
+            <span class="ca-sync-dot is-synced"></span>
+            <span class="ca-account-avatar">S</span>
+            <span class="ca-account-email-short">simi_oremosu@…</span>
+            <span class="ca-account-chevron">▴</span>
+          </button>
+          <div class="ca-account-dropdown">
+            <div class="ca-dropdown-header">
+              <div class="ca-dropdown-email">simi_oremosu@hotmail.com</div>
+              <div class="ca-dropdown-tier">● Free tier · Network+ + Security+ unlocked</div>
+            </div>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⚙️</span><span>Account settings</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🎓</span><span>My certs &amp; entitlements</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">⬆️</span><span>Upgrade to Pro</span></a>
+            <a class="ca-dropdown-link"><span class="ca-dropdown-link-icon">🌐</span><span>Visit certanvil.com</span></a>
+            <a class="ca-dropdown-link is-admin"><span class="ca-dropdown-link-icon">🔧</span><span>Admin Dashboard</span></a>
+            <div class="ca-dropdown-divider"></div>
+            <a class="ca-dropdown-link ca-dropdown-link-danger"><span class="ca-dropdown-link-icon">↩</span><span>Sign out</span></a>
+          </div>
+        </div>
+        <div class="ca-content">
+          <h1 class="ca-greeting">Good afternoon, <em>Simi</em>.</h1>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- STATE 7 — Admin dashboard at /admin                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">State 7 · Admin Dashboard at certanvil.com/admin</span></div>
+
+  <div class="annotation">
+    Lives on apex (<code>certanvil.com/admin</code>) so it's cross-cert. Auth-gated: any non-admin hitting <code>/admin</code> gets a 404 (don't even hint at the existence). Sidebar with admin-specific sections. Top: 4 stats cards (total users, active this week, Pro subs, MRR placeholder). Below: user table with search + per-row action ("Manage" → drawer for that user with entitlement adjustments, pass-guarantee extension, manual SQL escape hatch, etc.). v1 scaffold: just shows the data + manual actions; cohort analytics + automated tools come later.
+  </div>
+
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot r"></span><span class="browser-dot y"></span><span class="browser-dot g"></span></div>
+      <div class="browser-url"><span class="browser-url-secure">🔒</span>certanvil.com/admin</div>
+    </div>
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <div class="admin-brand">
+          <div class="ca-brand-mark"><svg viewBox="0 0 100 100"><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg></div>
+          <div class="admin-brand-text">
+            <span class="admin-brand-name">CertAnvil</span>
+            <span class="admin-brand-cert">🔧 Admin</span>
+          </div>
+        </div>
+        <div class="admin-nav-item is-active"><span class="admin-nav-icon">📊</span> Overview</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">👥</span> Users</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">🎓</span> Certs &amp; entitlements</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">💰</span> Pro subscriptions</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">🛡</span> Pass guarantee claims</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">📈</span> Usage &amp; cost</div>
+        <div class="admin-nav-item"><span class="admin-nav-icon">⚙️</span> Settings</div>
+      </aside>
+      <main class="admin-main">
+        <div class="admin-pagehead">
+          <div class="admin-eyebrow">Admin · Overview</div>
+          <h1 class="admin-h1">CertAnvil control room</h1>
+        </div>
+
+        <div class="admin-stats-grid">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Total users</div>
+            <div class="admin-stat-value">147</div>
+            <div class="admin-stat-delta is-up">+12 this week</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Active 7d</div>
+            <div class="admin-stat-value">89</div>
+            <div class="admin-stat-delta is-up">+8 vs last 7d</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Pro subscribers</div>
+            <div class="admin-stat-value">23</div>
+            <div class="admin-stat-delta is-up">+3 this week</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">MRR · est.</div>
+            <div class="admin-stat-value">$307</div>
+            <div class="admin-stat-delta is-flat">Placeholder · Stripe wires Phase G</div>
+          </div>
+        </div>
+
+        <div class="admin-section-card">
+          <div class="admin-section-head">
+            <div class="admin-section-title">Recent users (last 14 days)</div>
+            <a class="admin-section-action">View all →</a>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Signup</th>
+                <th>Tier</th>
+                <th>Certs</th>
+                <th>Last active</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="is-email">alex.k@gmail.com</td>
+                <td>Today</td>
+                <td><span class="admin-tier-pill is-pro">Pro</span></td>
+                <td>Network+, Security+</td>
+                <td>2 min ago</td>
+                <td><a class="admin-row-action">Manage →</a></td>
+              </tr>
+              <tr>
+                <td class="is-email">priya.r@outlook.com</td>
+                <td>Yesterday</td>
+                <td><span class="admin-tier-pill is-free">Free</span></td>
+                <td>Network+</td>
+                <td>15 min ago</td>
+                <td><a class="admin-row-action">Manage →</a></td>
+              </tr>
+              <tr>
+                <td class="is-email">m.chen@company.com</td>
+                <td>2 days ago</td>
+                <td><span class="admin-tier-pill is-pro">Pro</span></td>
+                <td>Security+</td>
+                <td>1 hr ago</td>
+                <td><a class="admin-row-action">Manage →</a></td>
+              </tr>
+              <tr>
+                <td class="is-email">danielle.w@gmail.com</td>
+                <td>3 days ago</td>
+                <td><span class="admin-tier-pill is-free">Free</span></td>
+                <td>Network+</td>
+                <td>3 hr ago</td>
+                <td><a class="admin-row-action">Manage →</a></td>
+              </tr>
+              <tr>
+                <td class="is-email">jay.patel@hotmail.com</td>
+                <td>5 days ago</td>
+                <td><span class="admin-tier-pill is-pro">Pro</span></td>
+                <td>Network+, Security+, AZ-900</td>
+                <td>Yesterday</td>
+                <td><a class="admin-row-action">Manage →</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admin-section-card">
+          <div class="admin-section-head">
+            <div class="admin-section-title">Open pass-guarantee claims</div>
+            <a class="admin-section-action">View claims →</a>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Cert</th>
+                <th>Score reported</th>
+                <th>Pass mark</th>
+                <th>Submitted</th>
+                <th>Decision</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="is-email">jay.patel@hotmail.com</td>
+                <td>Security+ (SY0-701)</td>
+                <td>720 / 900</td>
+                <td>750</td>
+                <td>2 days ago</td>
+                <td><a class="admin-row-action">Review →</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!-- IMPLEMENTATION PLAN                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div class="state-divider"><span class="state-label">Implementation plan · file map · time</span></div>
+
+  <div class="annotation">
+    <strong>Phase C′ — Cloud-first cert app (single ship, ~9-10 hours)</strong>
+    <p>Combines what was previously C + D + F into one coherent ship now that the local-first complexity is gone.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Files to create / touch (cert app)</strong>
+    <p><code>app/lib/supabase.js</code> (new) — Supabase client init, copied from <code>landing/lib/supabase.js</code>.<br>
+    <code>app/auth-state.js</code> (new, ~200 LOC) — auth listener, account-pill render, dropdown render (with admin link if role=admin), sign-out, anonymous-mode detection.<br>
+    <code>app/cert-switcher.js</code> (new, ~120 LOC) — fetches user's <code>cert_entitlements</code> rows, renders the cert switcher pill + dropdown, handles cross-subdomain navigation.<br>
+    <code>app/cloud-store.js</code> (new, ~400 LOC) — replaces all <code>localStorage</code> reads/writes with Supabase queries. Implements in-memory caching (per-tab, lost on refresh) for read latency. Provides the same API surface as the existing STORAGE namespace so app.js callers don't need to change.<br>
+    <code>app/anon-trial.js</code> (new, ~150 LOC) — session-memory state for anonymous users (sample question state, diagnostic state, Pass Plan result). Surfaces signup-gate modal when anonymous user tries to access stateful features.<br>
+    <code>app.js</code> — replace all <code>localStorage.*</code> calls with <code>cloudStore.*</code>. Guard stateful actions with anonymous check.<br>
+    <code>index.html</code> — script tags for new modules + topbar markup for cert switcher pill.<br>
+    <code>styles.css</code> — port account-pill + dropdown CSS, add cert switcher CSS, add signup-gate modal CSS.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Files to create / touch (admin)</strong>
+    <p><code>landing/admin/index.html</code> (new) — admin dashboard markup. Lives on apex (<code>certanvil.com/admin</code>) so it's cross-cert.<br>
+    <code>landing/admin/admin.js</code> (new, ~300 LOC) — fetches all-user data, renders stats cards + user table, handles "Manage" action drawer.<br>
+    <code>landing/admin/admin.css</code> (new, ~250 LOC) — admin-specific styles.<br>
+    <code>landing/api/admin/users.js</code> (new) — server endpoint that validates admin role then returns user list. RLS policy on <code>profiles</code> already restricts non-admin reads.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Schema additions</strong>
+    <p><code>profiles.role TEXT DEFAULT 'user'</code> — single column. Owner's account manually set to <code>'admin'</code> via Supabase dashboard (one-time SQL <code>UPDATE</code>).<br>
+    RLS policy on <code>profiles</code>: SELECT-all if <code>auth.jwt() -&gt; 'role' = 'admin'</code>; otherwise SELECT-own only.<br>
+    Same RLS pattern on <code>quiz_history</code>, <code>cert_entitlements</code>, future <code>usage_log</code>.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Acceptance criteria</strong>
+    <p>(a) Anonymous visitor takes diagnostic → sees Pass Plan with prominent signup CTA → if they don't sign up + close tab, state is gone (no localStorage).<br>
+    (b) Anonymous user clicks any stateful feature (quiz, drill, etc.) → soft signup gate modal with two clear options.<br>
+    (c) Signed-in user has all features unlocked + data persists in Supabase across devices.<br>
+    (d) Cert switcher in topbar shows enrolled certs; clicking a non-active cert navigates to that subdomain with session intact.<br>
+    (e) Admin user (role='admin') sees extra "Admin Dashboard" link in account dropdown.<br>
+    (f) Non-admin hitting <code>certanvil.com/admin</code> directly → 404 (don't reveal existence).<br>
+    (g) Admin sees user list, can drill into any user's profile, can manually adjust entitlements / extend pass-guarantee.<br>
+    (h) NO localStorage writes from production user code (UAT regression-guard via grep).<br>
+    (i) Existing landing-side localStorage (theme toggle, builder mode, notify-me cache) keeps working — those are landing-page UI prefs, not user data.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>What's NOT in this ship (still parked on Board #3)</strong>
+    <p><strong>Phase E (#285)</strong> — server-side API key proxy. Users still BYOK after this ship. Separate concern.<br>
+    <strong>Phase G (#287)</strong> — Stripe + paywall logic. Pro features still ungated after this ship; gating becomes possible in this architecture but the actual Stripe wiring is a separate shipment.</p>
+  </div>
+
+  <div class="annotation">
+    <strong>Issues to update on Board #3 after signoff</strong>
+    <p><strong>Close:</strong><br>
+    • <strong>#284 (Phase D)</strong> — folded into C′. Closing comment: "Architecture pivoted cloud-first; no separate sync layer needed."<br>
+    • <strong>#286 (Phase F)</strong> — folded into C′. Closing comment: "Architecture pivoted cloud-first; no anonymous-to-authed migration needed."<br>
+    • <strong>#288 (C+D+F bundle)</strong> — superseded by C′ design.<br>
+    <strong>File new:</strong><br>
+    • <strong>Phase C′ — Cloud-first cert app + admin role + cert switcher</strong> umbrella issue with this mockup linked.</p>
+  </div>
+
+</div>
+</body>
+</html>
