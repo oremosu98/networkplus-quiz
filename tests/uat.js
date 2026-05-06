@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.88.2', js.includes("const APP_VERSION = '4.88.2"));
+test('APP_VERSION is 4.88.3', js.includes("const APP_VERSION = '4.88.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.88.2', sw.includes('netplus-v4.88.2'));
+test('SW cache bumped to v4.88.3', sw.includes('netplus-v4.88.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -15862,8 +15862,11 @@ test('v4.86.0 secplus meta: code is SY0-701',
   /code:\s*['"]SY0-701['"]/.test(certSecplus));
 test('v4.86.0 secplus meta: examPassScore 750 (Security+ pass mark)',
   /examPassScore:\s*750/.test(certSecplus));
-test('v4.86.0 secplus retention array starts EMPTY (Phase 2 populates carry-overs)',
-  /retentionGapConcepts:\s*\[\s*\]/.test(certSecplus));
+// v4.88.3: retention array populated by Phase 3 Cycle 1 (5 concepts from
+// Messer gap study). Was empty as of v4.86.0; the empty assertion is
+// retired and replaced with a populated-shape assertion.
+test('v4.86.0 secplus retention array (retargeted v4.88.3): populated by Phase 3 Cycle 1',
+  /retentionGapConcepts:\s*\[\s*\{[\s\S]{50,}label:[\s\S]{0,200}parentTopic:/.test(certSecplus));
 
 // ── HTML loads cert packs BEFORE app.js ──
 test('v4.86.0 CertPack: index.html loads certs/netplus.js',
@@ -16038,11 +16041,22 @@ test('v4.87.1 AutoDeploy: Security+ deploy uses correct project ID',
   require('fs').readFileSync('.github/workflows/ci.yml', 'utf8').includes('prj_CyuAuPobazxHgrHMYWR0em9gKJeU'));
 
 // ── Carry-over exemplars in Security+ pack ──
-test('v4.87.1 CarryOver: Security+ pack has 77 questionExemplars (carried over from Network+)',
+// v4.88.3: total exemplar count grows with each Phase 3 Cycle. Pin the
+// CARRY-OVER subset (always 77) by source-tag instead.
+test('v4.87.1 CarryOver: Security+ pack has 77 carry-over exemplars (from Network+)',
   (() => {
-    // Count "type" field occurrences — each exemplar has exactly one
-    const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
+    const matches = certSecplus.match(/"source":"curated-netplus-carryover"/g) || [];
     return matches.length === 77;
+  })());
+test('v4.88.3 Phase 3 Cycle 1: 15 new Security+ exemplars added from Messer gaps',
+  (() => {
+    const matches = certSecplus.match(/"source":"curated-secplus-phase3"/g) || [];
+    return matches.length === 15;
+  })());
+test('v4.88.3 Phase 3 Cycle 1: total Security+ bank size is 92 (77 carry-over + 15 phase 3)',
+  (() => {
+    const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
+    return matches.length === 92;
   })());
 test('v4.87.1 CarryOver: every carry-over has source: curated-netplus-carryover',
   (() => {
@@ -16058,6 +16072,7 @@ test('v4.87.1 CarryOver: every entry has originalTopic field for traceability',
     const matches = m[1].match(/"originalTopic":/g) || [];
     return matches.length === 77;
   })());
+// v4.88.3: now covers all 92 exemplars (77 carry-over + 15 Phase 3 Cycle 1)
 test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16068,7 +16083,7 @@ test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
     (tdM[1].match(/'([^']+)':\s*'(?:concepts|threats|architecture|operations|governance)'/g) || [])
       .forEach(line => { const t = line.match(/'([^']+)':/); if (t) validTopics.add(t[1]); });
     const exTopics = (m[1].match(/"topic":"([^"]+)"/g) || []).map(s => s.replace(/^"topic":"|"$/g, ''));
-    return exTopics.length === 77 && exTopics.every(t => validTopics.has(t));
+    return exTopics.length === 92 && exTopics.every(t => validTopics.has(t));
   })());
 
 // ── Dynamic topic-chip rendering ──
