@@ -72,6 +72,7 @@
     <nav class="topbar-nav" aria-label="Primary navigation">
       <a href="#why" class="nav-link">Why CertAnvil</a>
       <a href="#certs" class="nav-link">Certs</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme" title="Toggle theme">
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"/>
@@ -319,6 +320,89 @@
         <h3>Pass-prediction analytics</h3>
         <p>Readiness score. Diagnostic baseline. Pass-probability with confidence intervals. Know when you're ready.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     FAQ SECTION (Ship 2 from pricing+FAQ mockup)
+     Native <details>/<summary> accordion — zero JS, accessible.
+══════════════════════════════════════════ -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="faq-section-head">
+      <span class="faq-eyebrow">💬 Common questions</span>
+      <h2 class="faq-h2">Got questions? Here's the honest answers.</h2>
+      <p class="faq-sub">No fluff. If something's not here, reach out — we'll add it.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary class="faq-q">How does this differ from other cert prep tools? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">
+          <p>Different model entirely. Most cert-prep tools sell access to a <strong>static practice-question bank</strong> — you buy once or subscribe, then work through a fixed set of pre-written questions linearly. CertAnvil generates fresh, AI-validated questions every session — you literally never see the same question twice unless you mark it for review.</p>
+          <div class="compare-table">
+            <div class="compare-row is-header">
+              <div class="compare-cell">&nbsp;</div>
+              <div class="compare-cell">Static prep tools</div>
+              <div class="compare-cell is-us">CertAnvil</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-cell is-feature">Question source</div>
+              <div class="compare-cell is-them">Fixed bank, hand-authored, ~500-1000 Qs total</div>
+              <div class="compare-cell is-us">AI-generated unlimited, fresh each session</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-cell is-feature">PBQs (CLI / topology / ACL)</div>
+              <div class="compare-cell is-them">Usually limited drag-drop only</div>
+              <div class="compare-cell is-us">CLI sim + topology builder + ACL builder</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-cell is-feature">Pricing model</div>
+              <div class="compare-cell is-them">Per-cert one-time or short-term access</div>
+              <div class="compare-cell is-us">$89/yr unlimited certs</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-cell is-feature">Pass guarantee</div>
+              <div class="compare-cell is-them">Rare</div>
+              <div class="compare-cell is-us">Yes — extension on Pro</div>
+            </div>
+            <div class="compare-row">
+              <div class="compare-cell is-feature">Question refresh cadence</div>
+              <div class="compare-cell is-them">Manually rewritten, infrequent updates</div>
+              <div class="compare-cell is-us">7-layer validation, refreshes continuously</div>
+            </div>
+          </div>
+          <p class="faq-a-foot">Static question banks are a great fit if you want fixed prep material to work through linearly — and many students combine both, using a static bank for breadth coverage alongside CertAnvil for adaptive depth. Pick the model that matches how you actually study.</p>
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Can I really study for free? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">Yes — Free tier is unlimited days, 50 questions per day, full diagnostic + Pass Plan + streak tracking. Most users get pass-ready within Free if they're disciplined.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">What's a Performance-Based Question (PBQ)? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">CompTIA's hands-on exam format — drag/drop, command-line simulation, network topology configuration. Way more weight on the real exam than MCQs (worth ~40% of your score). Most prep tools skip them; CertAnvil includes a CLI sim, topology builder, and ACL builder right in Pro.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">How does the pass guarantee work? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">Pro users who put in the work — 30+ days active platform use, completed mock exam, maintained streak — and don't pass on first attempt get their Pro access extended free of charge until they do. Submit your Pearson VUE booking confirmation + score report; manual case review within 7 days.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Do I need my own AI / API key? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a"><strong>No.</strong> Pro subscription includes the AI cost. Free tier likewise. We pay Claude API; you pay one subscription. Zero "bring your own key" complexity.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">What if my exam isn't listed yet? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">Click "Notify me" on any "Coming soon" cert tile and we'll email you the moment it goes live. Current pipeline: Network+ (live), Security+ (Q3 2026), Azure AZ-900, Cisco CCNA, AWS SAA, Azure AZ-104.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">Can I cancel anytime? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">Yes — Pro is month-to-month or annual, cancel from your account dashboard. Annual cancellations stop the renewal but keep your Pro access through the period you've already paid for.</div>
+      </details>
+      <details class="faq-item">
+        <summary class="faq-q">How do you avoid recycled textbook content? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
+        <div class="faq-a">Every question is AI-generated fresh, then run through a 7-layer validation pipeline (prompt self-check, exemplar bank reference, AI second-pass, ground-truth tables, programmatic validators, regression audit, escalation tier). The bank reference is 320+ <strong>hand-curated original exemplars</strong> per cert — zero ingestion of paid textbook publishers. Legal-clean, blueprint-anchored.</div>
+      </details>
     </div>
   </div>
 </section>
