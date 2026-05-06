@@ -715,14 +715,26 @@ function copyGhToken() {
 // Triple-tap version badge to open monitor.
 // v4.54.0: legacy #version-badge is inside the hidden .hero; also listen on
 // the sidebar .sb-brand-version which IS visible. Attach to whichever exists.
+// v4.89.7: also listen on the topbar version pill (#topbar-version-pill) so
+// the gesture works from either surface (sidebar or topbar). Each tap calls
+// preventDefault + stopPropagation so taps on .sb-brand-version don't
+// bubble up to the new <a class="sb-brand-link"> wrapper and trigger the
+// back-to-home navigation. Without that suppression, every triple-tap test
+// would navigate away mid-gesture and the monitor would never open.
 let monitorTaps = 0, monitorTapTimer = null;
 function initMonitorGesture() {
   const targets = [
     document.getElementById('version-badge'),
-    document.querySelector('.sb-brand-version')
+    document.querySelector('.sb-brand-version'),
+    document.getElementById('topbar-version-pill')
   ].filter(Boolean);
   if (!targets.length) return;
-  const onTap = () => {
+  const onTap = (e) => {
+    // Suppress the wrapper anchor's click navigation. Always safe — the
+    // listener targets ARE the version badges; click semantics on those
+    // are entirely owned by this gesture.
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     monitorTaps++;
     if (monitorTapTimer) clearTimeout(monitorTapTimer);
     monitorTapTimer = setTimeout(() => { monitorTaps = 0; }, 600);
@@ -733,8 +745,6 @@ function initMonitorGesture() {
     }
   };
   targets.forEach(t => t.addEventListener('click', onTap));
-  // Back-compat shim for the first listener (below continues at `badge.addEventListener(...)` historically).
-  const badge = targets[0];
 }
 
 // ══════════════════════════════════════════

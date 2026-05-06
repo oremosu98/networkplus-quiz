@@ -7406,6 +7406,7 @@ body.has-sidebar { padding-left: 240px; transition: padding-left .25s cubic-bezi
   letter-spacing: .04em;
   font-family: monospace;
   user-select: none;
+  cursor: pointer;  /* triple-tap opens prod monitor (initMonitorGesture) */
 }
 @media (max-width: 720px) {
   .topbar-version-pill { display: none; }
