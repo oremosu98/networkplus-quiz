@@ -4,6 +4,8 @@
   "installCommand": null,
   "outputDirectory": null,
   "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
