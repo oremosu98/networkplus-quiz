@@ -460,6 +460,32 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   color: var(--text-dim);
   border: 1px solid var(--border);
 }
+/* v4.89.5: signed-in-user cert states.
+   .status-passed — green check badge for completed certs (Network+).
+   .status-active — accent-purple "studying now" badge for in-progress
+   certs (Security+). Both reuse the .status-dot animation contract. */
+.status-passed {
+  background: var(--green-soft-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+.status-passed .status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  /* No pulse — passed is a stable state, not a live signal. */
+}
+.status-active {
+  background: rgba(124, 111, 247, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(124, 111, 247, 0.32);
+}
+.status-active .status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: livePulse 2s ease-in-out infinite;
+}
 @keyframes livePulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .4; }
@@ -2126,5 +2152,6 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
     animation-duration: .01ms !important;
     transition-duration: .01ms !important;
   }
-  .status-live .status-dot { animation: none !important; }
+  .status-live .status-dot,
+  .status-active .status-dot { animation: none !important; }
 }

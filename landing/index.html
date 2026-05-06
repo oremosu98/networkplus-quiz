@@ -208,33 +208,39 @@
     </div>
 
     <div class="cert-grid">
-      <!-- Network+ — LIVE -->
-      <a class="cert-tile is-live" href="https://networkplus.certanvil.com" data-cert="netplus">
+      <!-- Network+ — LIVE. Status + CTA personalize for signed-in users
+           who have passed (script.js swaps to "✓ Passed" badge + "keep
+           practicing" CTA). IDs target the swap. -->
+      <a class="cert-tile is-live" href="https://networkplus.certanvil.com/?cert=netplus" data-cert="netplus" id="cert-tile-netplus">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-netplus">N+</div>
-          <span class="cert-status status-live"><span class="status-dot"></span>Live</span>
+          <span class="cert-status status-live" id="cert-tile-netplus-status"><span class="status-dot"></span>Live</span>
         </div>
         <div class="cert-name">Network+</div>
         <div class="cert-code">N10-009 · 90 questions · 90 min</div>
         <div class="cert-desc">Networking fundamentals. 320-exemplar curated bank, topology builder, packet trace simulator, exam-mode batching.</div>
         <div class="cert-foot">
           <span class="cert-progress">5 domains · 50 topics</span>
-          <span class="cert-cta">Start studying →</span>
+          <span class="cert-cta" id="cert-tile-netplus-cta">Start studying →</span>
         </div>
       </a>
 
-      <!-- Security+ — PRIVATE BUILDER (hidden by default) -->
-      <a class="cert-tile is-private" href="https://secplus-quiz-sable.vercel.app" data-cert="secplus" id="cert-tile-secplus" hidden>
+      <!-- Security+ — PRIVATE BUILDER (hidden by default; un-hidden by
+           script.js for signed-in admin users). Link sends ?cert=secplus
+           so the cert app at networkplus.certanvil.com switches to
+           Security+ mode in one click (instead of needing the in-app
+           cert switcher dropdown). -->
+      <a class="cert-tile is-private" href="https://networkplus.certanvil.com/?cert=secplus" data-cert="secplus" id="cert-tile-secplus" hidden>
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-secplus">S+</div>
-          <span class="cert-status status-private">🔒 Private</span>
+          <span class="cert-status status-private" id="cert-tile-secplus-status">🔒 Private</span>
         </div>
         <div class="cert-name">Security+</div>
         <div class="cert-code">SY0-701 · target exam 2026-07-29</div>
         <div class="cert-desc">Builder's private study tool. 77 carry-over exemplars + growing Phase 2 content. Threat actors, IAM, SIEM, IR, governance.</div>
         <div class="cert-foot">
           <span class="cert-progress">5 domains · 37 topics</span>
-          <span class="cert-cta">Continue prep →</span>
+          <span class="cert-cta" id="cert-tile-secplus-cta">Continue prep →</span>
         </div>
       </a>
 

@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.89.4', js.includes("const APP_VERSION = '4.89.4"));
+test('APP_VERSION is 4.89.5', js.includes("const APP_VERSION = '4.89.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.89.4', sw.includes('netplus-v4.89.4'));
+test('SW cache bumped to v4.89.5', sw.includes('netplus-v4.89.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -15836,10 +15836,13 @@ test('v4.86.0 CertPack: detectCert function defined',
   /function\s+detectCert\s*\(\s*\)/.test(js));
 test('v4.86.0 CertPack: detectCert handles localStorage dev override',
   /detectCert[\s\S]{0,800}localStorage[\s\S]{0,400}nplus_dev_cert/.test(js));
+// v4.89.5: detectCert added a `?cert=` URL param branch at the top, which
+// pushed the location.host check + final netplus return further down.
+// Window sizes widened to accommodate.
 test('v4.86.0 CertPack: detectCert handles URL host detection (secplus- prefix)',
-  /detectCert[\s\S]{0,800}location\.host[\s\S]{0,400}secplus-/.test(js));
+  /detectCert[\s\S]{0,1500}location\.host[\s\S]{0,400}secplus-/.test(js));
 test('v4.86.0 CertPack: detectCert defaults to netplus',
-  /function\s+detectCert[\s\S]{0,1200}return\s+['"]netplus['"]/.test(js));
+  /function\s+detectCert[\s\S]{0,2000}return\s+['"]netplus['"]/.test(js));
 test('v4.86.0 CertPack: CURRENT_CERT and CERT_PACK constants declared',
   /const\s+CURRENT_CERT\s*=\s*detectCert\(\)/.test(js) &&
   /const\s+CERT_PACK\s*=.*window\.CERT_PACKS\[CURRENT_CERT\]/.test(js));

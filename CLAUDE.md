@@ -444,6 +444,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v4.89.5 | Personalize landing cert tiles for signed-in users + ?cert= URL param |
 | v4.89.4 | Cert switcher in account dropdown — flip between Network+ and Security+ in-place (admin gets both) |
 | v4.89.3 | Phase C′ hotfix #3 — landing SW kill switch + cert app SW bypasses Supabase |
 | v4.89.2 | Phase C′ hotfix #2 — auto-reload on SW update (no more manual cache-clear after deploys) |

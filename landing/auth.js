@@ -235,10 +235,68 @@
   }
 
   // ── Topbar render: signed-in vs signed-out ──────────────────────────────
+  // ── Cert-tile personalization (signed-in users) ─────────────────────────
+  // For now: hardcoded to the builder's actual state (Network+ passed
+  // 2026-05-05 with 767/900, Security+ in active prep). Future Phase G
+  // replaces these constants with a query against cert_entitlements +
+  // quiz_history. Show ONLY for signed-in users — anonymous visitors keep
+  // seeing the static "Start studying" / "Notify me" CTAs.
+  function personalizeCertTilesForSignedIn(role) {
+    // Network+ — show passed state for everyone signed in (builder is the
+    // only signed-in user right now; Phase G adds per-user data lookups).
+    var nStatus = document.getElementById('cert-tile-netplus-status');
+    var nCta = document.getElementById('cert-tile-netplus-cta');
+    if (nStatus) {
+      nStatus.className = 'cert-status status-passed';
+      nStatus.innerHTML = '<span class="status-dot"></span>Passed';
+    }
+    if (nCta) nCta.textContent = '✓ 767/900 · keep practicing →';
+
+    // Security+ — un-hide for admin, swap status to "Active" + CTA to
+    // "Resume studying →". Regular users keep seeing it hidden (private
+    // builder cert, not yet customer-facing).
+    if (role === 'admin') {
+      var secTile = document.getElementById('cert-tile-secplus');
+      var secStatus = document.getElementById('cert-tile-secplus-status');
+      var secCta = document.getElementById('cert-tile-secplus-cta');
+      if (secTile) secTile.removeAttribute('hidden');
+      if (secStatus) {
+        secStatus.className = 'cert-status status-active';
+        secStatus.innerHTML = '<span class="status-dot"></span>Active';
+      }
+      if (secCta) secCta.textContent = 'Resume studying →';
+    }
+  }
+
+  function resetCertTilesForAnonymous() {
+    // Defensively undo any personalization if the user signs out without
+    // a full reload. Restores the static "Live" + "Start studying" state.
+    var nStatus = document.getElementById('cert-tile-netplus-status');
+    var nCta = document.getElementById('cert-tile-netplus-cta');
+    if (nStatus) {
+      nStatus.className = 'cert-status status-live';
+      nStatus.innerHTML = '<span class="status-dot"></span>Live';
+    }
+    if (nCta) nCta.textContent = 'Start studying →';
+    var secTile = document.getElementById('cert-tile-secplus');
+    if (secTile) secTile.setAttribute('hidden', '');
+  }
+
+  // Lightweight profile fetch — only need role for personalization. Fails
+  // open (returns {role:'user'}) so a missing profiles row doesn't break
+  // the landing render.
+  function fetchProfileRole(userId) {
+    if (!userId) return Promise.resolve({ role: 'user' });
+    return supabase.from('profiles').select('role').eq('id', userId).single()
+      .then(function (r) { return (r.error || !r.data) ? { role: 'user' } : { role: r.data.role || 'user' }; })
+      .catch(function () { return { role: 'user' }; });
+  }
+
   function renderSignedOut() {
     if (signInBtn) signInBtn.removeAttribute('hidden');
     if (accountPill) accountPill.setAttribute('hidden', '');
     if (accountDropdown) accountDropdown.setAttribute('hidden', '');
+    resetCertTilesForAnonymous();
   }
 
   function renderSignedIn(user) {
@@ -261,6 +319,13 @@
       // Phase D will query cert_entitlements for accurate per-cert tier display.
       dropdownTier.textContent = '● Free tier · Network+ unlocked';
     }
+
+    // Phase C′: personalize cert tiles based on role. Anonymous users see
+    // static markup; signed-in users see passed/active states.
+    var userId = user && user.id;
+    fetchProfileRole(userId).then(function (profile) {
+      personalizeCertTilesForSignedIn(profile.role);
+    });
   }
 
   // ── Account dropdown open/close ─────────────────────────────────────────

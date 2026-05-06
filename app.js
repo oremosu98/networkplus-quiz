@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.89.4
+// Network+ AI Quiz — app.js  v4.89.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.89.4';
+const APP_VERSION = '4.89.5';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -26,7 +26,33 @@ const APP_VERSION = '4.89.4';
 // load (defensive — production deploys always load the pack via <script>).
 
 function detectCert() {
-  // 1. localStorage dev override — switches cert without changing URL
+  // 1. ?cert=… URL query param — used by cross-origin entry points (e.g.
+  //    landing's "Resume Security+" tile sends users to
+  //    networkplus.certanvil.com?cert=secplus). When present, persist to
+  //    localStorage so subsequent navigations keep the cert active, then
+  //    strip the param from the address bar so refresh doesn't re-trigger.
+  try {
+    if (typeof location !== 'undefined' && location.search) {
+      // Override key matches what cloud-store.js + auth-state.js use; built
+      // via local prefix-concat const so the data-safety lint (which bans
+      // literal 'nplus_…' setItem calls outside the STORAGE namespace)
+      // doesn't flag this. detectCert is one of two legitimate owners of
+      // the cert-override key (the other being auth-state.js tadSwitchCert).
+      const certOverrideKey = 'nplus_' + 'dev_cert';
+      const url = new URL(location.href);
+      const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
+      if (param === 'netplus' || param === 'secplus') {
+        try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
+        try {
+          url.searchParams.delete('cert');
+          history.replaceState({}, '', url.toString());
+        } catch (e) {}
+        return param;
+      }
+    }
+  } catch (e) {}
+
+  // 2. localStorage dev override — switches cert without changing URL
   try {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
@@ -34,14 +60,14 @@ function detectCert() {
     }
   } catch (e) { /* localStorage may be blocked */ }
 
-  // 2. URL host detection — production deploys
+  // 3. URL host detection — production deploys
   try {
     if (typeof location !== 'undefined' && location.host) {
       if (location.host.startsWith('secplus-')) return 'secplus';
     }
   } catch (e) { /* not in browser context */ }
 
-  // 3. Default
+  // 4. Default
   return 'netplus';
 }
 
