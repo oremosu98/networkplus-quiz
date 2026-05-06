@@ -1,5 +1,5 @@
-// Service Worker v4.89.1 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v4.89.1';
+// Service Worker v4.89.2 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v4.89.2';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -39,14 +39,23 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: clean up old caches + broadcast update notice to all open tabs.
+// v4.89.2: the page-side controllerchange listener handles auto-reload,
+// but we also broadcast a postMessage as a redundant signal — controllerchange
+// can occasionally not fire if the new SW activates before the page registers
+// its listener. Either signal triggers the page reload.
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim()).then(() => {
+      return self.clients.matchAll({ type: 'window' }).then(clients => {
+        clients.forEach(client => {
+          try { client.postMessage({ type: 'sw-updated', cache: CACHE_NAME }); } catch (_) {}
+        });
+      });
+    })
   );
-  self.clients.claim();
 });
 
 // Trim a cache to at most `maxEntries` items, evicting oldest first.

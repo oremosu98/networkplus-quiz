@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.89.1
+// Network+ AI Quiz — app.js  v4.89.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.89.1';
+const APP_VERSION = '4.89.2';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -715,7 +715,40 @@ function initMonitorGesture() {
 // BOOT
 // ══════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // v4.89.2: SW auto-update — when a new sw.js deploys, the browser loads it
+  // in the background, calls skipWaiting (in sw.js install handler), and the
+  // new SW takes over via clients.claim(). At that point this page is still
+  // running the OLD JS in memory; we only see the NEW code after a reload.
+  // Pre-fix that meant users had to manually hard-refresh / clear cache to
+  // get bug fixes. Now we detect the controller change and auto-reload once.
+  // The `_swReloadFired` guard prevents a reload loop if controllerchange
+  // fires multiple times in rapid succession (rare but seen on flaky networks).
+  let _swReloadFired = false;
+  function _swTriggerReload(reason) {
+    if (_swReloadFired) return;
+    _swReloadFired = true;
+    try { console.info('[sw] new version detected (' + reason + ') — reloading'); } catch (_) {}
+    // Tiny delay so any in-flight cache writes complete first.
+    setTimeout(() => { try { window.location.reload(); } catch (_) {} }, 100);
+  }
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    _swTriggerReload('controllerchange');
+  });
+  // Belt-and-suspenders: sw.js posts a message to all clients on activate.
+  // Either signal (this OR controllerchange above) triggers the same
+  // single reload via the _swReloadFired guard.
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e && e.data && e.data.type === 'sw-updated') {
+      _swTriggerReload('postMessage');
+    }
+  });
+  // Also poll for an updated registration every 60s while the tab is open —
+  // catches the case where the user keeps a tab open across a deploy without
+  // navigating. Without this, the SW only checks for updates on navigation.
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    if (!reg) return;
+    setInterval(() => { try { reg.update(); } catch (_) {} }, 60000);
+  }).catch(() => {});
 }
 
 window.addEventListener('DOMContentLoaded', () => {

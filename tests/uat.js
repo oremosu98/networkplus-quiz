@@ -298,7 +298,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.89.1', js.includes("const APP_VERSION = '4.89.1"));
+test('APP_VERSION is 4.89.2', js.includes("const APP_VERSION = '4.89.2"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -312,7 +312,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.89.1', sw.includes('netplus-v4.89.1'));
+test('SW cache bumped to v4.89.2', sw.includes('netplus-v4.89.2'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16339,6 +16339,20 @@ test('v4.89.1 Phase C′: sw.js precaches the vendored Supabase UMD bundle',
   sw.includes("'./lib/supabase-umd.min.js'"));
 test('v4.89.1 Phase C′: lib/supabase-umd.min.js exists on disk',
   require('fs').existsSync(require('path').join(__dirname, '..', 'lib', 'supabase-umd.min.js')));
+
+// v4.89.2: SW auto-update — every future deploy reloads the page automatically
+// when the new SW takes control. Regression guards on the 4 wired pieces.
+test('v4.89.2 SW: app.js wires controllerchange listener for auto-reload',
+  /navigator\.serviceWorker\.addEventListener\(\s*['"]controllerchange['"]/.test(js));
+test('v4.89.2 SW: app.js wires postMessage listener (belt-and-suspenders)',
+  /navigator\.serviceWorker\.addEventListener\(\s*['"]message['"]/.test(js) &&
+  /sw-updated/.test(js));
+test('v4.89.2 SW: app.js dedupes via _swReloadFired guard (no reload loop)',
+  /_swReloadFired/.test(js));
+test('v4.89.2 SW: app.js polls for SW updates every 60s (open-tab catch-up)',
+  /reg\.update\(\)/.test(js) && /setInterval[\s\S]{0,200}60000/.test(js));
+test('v4.89.2 SW: sw.js broadcasts postMessage to clients on activate',
+  /clients\.matchAll[\s\S]{0,300}postMessage[\s\S]{0,100}sw-updated/.test(sw));
 
 // 2. Topbar mount point exists (replaces legacy .topbar-avatar 'S')
 test('v4.89.0 Phase C′: index.html has #topbar-account-mount span',
