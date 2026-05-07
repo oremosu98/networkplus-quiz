@@ -183,4 +183,82 @@
     });
   });
 
+  // ── "What you'll actually use" panel — tab swap + auto-rotate (v4.92.0) ──
+  // Tabs cycle through certs every 6s on idle. Manual click pauses rotation
+  // for the rest of the session. Reduced-motion users get static (no rotate).
+  // Soft-fail if markup is absent (the panel only lives on landing/index.html).
+  (function initProofOfProductPanel() {
+    var tabs = document.querySelectorAll('.pp-tab[data-pp-tab]');
+    var contents = document.querySelectorAll('.pp-content[data-pp-content]');
+    if (!tabs.length || !contents.length) return;
+
+    var rotateInterval = null;
+    var paused = false;
+
+    function showCert(certId) {
+      tabs.forEach(function(t) {
+        var match = t.getAttribute('data-pp-tab') === certId;
+        t.classList.toggle('is-active', match);
+        t.setAttribute('aria-selected', match ? 'true' : 'false');
+      });
+      contents.forEach(function(c) {
+        var match = c.getAttribute('data-pp-content') === certId;
+        c.classList.toggle('is-active', match);
+        if (match) c.removeAttribute('hidden'); else c.setAttribute('hidden', '');
+      });
+    }
+
+    function getActiveCert() {
+      var active = document.querySelector('.pp-tab.is-active[data-pp-tab]');
+      return active ? active.getAttribute('data-pp-tab') : 'netplus';
+    }
+
+    function getNextCert() {
+      var ids = Array.from(tabs).map(function(t) { return t.getAttribute('data-pp-tab'); });
+      var current = getActiveCert();
+      var idx = ids.indexOf(current);
+      return ids[(idx + 1) % ids.length];
+    }
+
+    function startRotate() {
+      if (rotateInterval || paused) return;
+      var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) return;
+      rotateInterval = setInterval(function() {
+        if (!paused) showCert(getNextCert());
+      }, 6000);
+    }
+
+    function pauseRotate() {
+      paused = true;
+      if (rotateInterval) {
+        clearInterval(rotateInterval);
+        rotateInterval = null;
+      }
+    }
+
+    tabs.forEach(function(tab) {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        var cert = tab.getAttribute('data-pp-tab');
+        showCert(cert);
+        pauseRotate();
+      });
+    });
+
+    // Hook the existing "Notify me" buttons in the locked panels into the
+    // existing notify modal flow (script.js already wires .cert-cta-notify;
+    // we use [data-cert-notify] here so the panel button surfaces too).
+    document.querySelectorAll('[data-cert-notify]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var cert = btn.getAttribute('data-cert-notify');
+        var tile = document.querySelector('[data-cert="' + cert + '"] .cert-cta-notify');
+        if (tile) tile.click();
+      });
+    });
+
+    startRotate();
+  })();
+
 })();

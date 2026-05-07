@@ -3030,3 +3030,374 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   color: var(--text-dim);
   padding: 20px 0;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PROOF OF PRODUCT — "What you'll actually use" panel (v4.92.0)
+   New section between #certs and #pass-guarantee. Per-cert tabbed mosaic
+   with auto-rotate (paused on click). SVG art is inline so there's no
+   extra image asset to host/cache. Uses currentColor + CSS vars so the
+   illustrations follow light/dark theme automatically.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.proof-of-product {
+  padding: 64px 0;
+  background: linear-gradient(180deg, transparent 0%, var(--surface-2) 100%);
+}
+[data-theme="dark"] .proof-of-product {
+  background: linear-gradient(180deg, transparent 0%, rgba(124,111,247,.04) 100%);
+}
+
+.preview-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow-card);
+}
+[data-theme="dark"] .preview-panel {
+  box-shadow: 0 12px 40px -8px rgba(0,0,0,.6);
+}
+
+.pp-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  margin-bottom: 24px;
+}
+.pp-head-text { flex: 1; min-width: 280px; }
+.pp-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 4px;
+}
+[data-theme="dark"] .pp-eyebrow { color: var(--accent-light); }
+.pp-title {
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em;
+  color: var(--text); margin-bottom: 6px;
+}
+.pp-sub { font-size: 14px; color: var(--text-mid); max-width: 540px; line-height: 1.55; }
+
+.pp-tabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .pp-tabs { background: var(--surface-3); }
+.pp-tab {
+  padding: 7px 14px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-mid);
+  border-radius: 99px;
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+  transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pp-tab:hover { color: var(--text); }
+.pp-tab.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(20,20,40,.08);
+}
+[data-theme="dark"] .pp-tab.is-active {
+  background: rgba(124,111,247,.18);
+  color: var(--text);
+  box-shadow: none;
+}
+.pp-tab.is-soon { opacity: .55; }
+.pp-tab.is-soon:hover { opacity: .85; }
+.pp-tab-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pp-tab-dot.live { background: var(--green); }
+.pp-tab-dot.active { background: var(--orange); }
+.pp-tab-dot.soon { background: var(--text-dim); }
+
+/* Content swap — fixed min-height prevents content jump */
+.pp-content { display: none; min-height: 380px; }
+.pp-content.is-active { display: block; }
+
+.pp-mosaic {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 880px) { .pp-mosaic { grid-template-columns: 1fr; } }
+
+.pp-tile {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex; flex-direction: column;
+}
+[data-theme="dark"] .pp-tile { background: var(--bg-elevated); }
+.pp-tile-art {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  height: 200px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  position: relative;
+}
+[data-theme="dark"] .pp-tile-art { background: var(--bg); }
+.pp-tile-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 4px;
+}
+[data-theme="dark"] .pp-tile-label { color: var(--accent-light); }
+.pp-tile-label-live { color: var(--green); }
+.pp-tile-label-soon { color: var(--text-dim); }
+.pp-tile-name {
+  font-size: 14px; font-weight: 700;
+  color: var(--text); margin-bottom: 4px;
+}
+.pp-tile-desc {
+  font-size: 12.5px; color: var(--text-mid); line-height: 1.5;
+}
+
+/* Pill overlay on art */
+.pp-art-pill {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(91,79,219,.1);
+  color: var(--accent);
+  padding: 3px 8px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; letter-spacing: .05em;
+  border: 1px solid rgba(91,79,219,.3);
+}
+[data-theme="dark"] .pp-art-pill {
+  background: rgba(124,111,247,.14);
+  color: var(--accent-light);
+  border-color: rgba(124,111,247,.32);
+}
+.pp-art-pill-amber {
+  background: rgba(217,119,6,.12); color: var(--orange);
+  border-color: rgba(217,119,6,.3);
+}
+[data-theme="dark"] .pp-art-pill-amber {
+  background: rgba(245,158,11,.12); color: var(--orange);
+  border-color: rgba(245,158,11,.32);
+}
+.pp-art-pill-soon {
+  background: rgba(107,107,144,.1); color: var(--text-dim);
+  border-color: rgba(107,107,144,.3);
+}
+
+/* TB 2D background — grid pattern */
+.tb-2d-bg {
+  background:
+    linear-gradient(rgba(91,79,219,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,79,219,.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-color: var(--bg-elevated);
+  color: var(--surface-2);
+}
+[data-theme="dark"] .tb-2d-bg {
+  background:
+    linear-gradient(rgba(124,111,247,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,111,247,.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-color: var(--bg);
+  color: var(--bg-elevated);
+}
+.tb-3d-bg {
+  background: radial-gradient(ellipse at center top, var(--surface-2) 0%, var(--surface-3) 100%);
+  color: var(--surface-2);
+}
+[data-theme="dark"] .tb-3d-bg {
+  background: radial-gradient(ellipse at center top, var(--bg-elevated) 0%, var(--bg) 100%);
+  color: var(--bg-elevated);
+}
+.pp-trace-bg {
+  background: linear-gradient(180deg, rgba(254,243,199,.6) 0%, var(--surface) 100%);
+  color: var(--surface-2);
+}
+[data-theme="dark"] .pp-trace-bg {
+  background: linear-gradient(180deg, rgba(245,158,11,.08) 0%, var(--bg) 100%);
+  color: var(--bg-elevated);
+}
+
+/* SVG inline labels — text colour follows theme */
+.tb-label { fill: var(--text); }
+.tb-subnet { fill: var(--accent); }
+
+/* Acronym Blitz drill art */
+.ab-art {
+  padding: 16px; height: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(180deg, rgba(245,158,11,.05) 0%, var(--surface) 100%);
+}
+[data-theme="dark"] .ab-art {
+  background: linear-gradient(180deg, rgba(245,158,11,.10) 0%, var(--bg) 100%);
+}
+.ab-stem {
+  background: rgba(245,158,11,.1);
+  border: 1px solid rgba(245,158,11,.3);
+  color: var(--orange);
+  padding: 6px 10px; border-radius: 6px;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 13px; font-weight: 700;
+  text-align: center;
+}
+.ab-q { font-size: 11.5px; color: var(--text); font-weight: 600; text-align: center; }
+.ab-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: auto; }
+.ab-opt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 10.5px; color: var(--text-mid); text-align: center;
+}
+[data-theme="dark"] .ab-opt { background: var(--bg-elevated); }
+.ab-opt.is-correct {
+  background: rgba(22,163,74,.1);
+  border-color: rgba(22,163,74,.4);
+  color: var(--green);
+}
+.ab-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; color: var(--text-dim); margin-top: 4px;
+}
+
+/* Attack→Mitigation drill art (preview only) */
+.atm-art {
+  background: linear-gradient(180deg, rgba(220,38,38,.05) 0%, var(--surface) 100%);
+  padding: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+[data-theme="dark"] .atm-art { background: linear-gradient(180deg, rgba(248,113,113,.08) 0%, var(--bg) 100%); }
+.atm-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: #dc2626;
+}
+[data-theme="dark"] .atm-eyebrow { color: var(--red); }
+.atm-attack {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(220,38,38,.08);
+  border: 1px solid rgba(220,38,38,.3);
+  padding: 8px 10px; border-radius: 6px;
+}
+.atm-attack-icon { font-size: 18px; }
+.atm-attack-name { font-size: 11px; font-weight: 700; color: var(--text); }
+.atm-attack-sub { font-size: 10px; color: var(--text-dim); }
+.atm-arrow { text-align: center; color: var(--text-dim); font-size: 14px; }
+.atm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.atm-opt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px; border-radius: 5px;
+  font-size: 9.5px; color: var(--text-mid); text-align: center;
+}
+[data-theme="dark"] .atm-opt { background: var(--bg-elevated); }
+.atm-opt.is-correct {
+  border-color: rgba(22,163,74,.4);
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* IR Phase Sorter drill art (preview only) */
+.ir-art {
+  background: linear-gradient(180deg, rgba(91,79,219,.06) 0%, var(--surface) 100%);
+  padding: 12px; display: flex; flex-direction: column; gap: 5px;
+}
+[data-theme="dark"] .ir-art { background: linear-gradient(180deg, rgba(124,111,247,.10) 0%, var(--bg) 100%); }
+.ir-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent);
+}
+[data-theme="dark"] .ir-eyebrow { color: var(--accent-light); }
+.ir-list { display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: var(--text); margin-top: 4px; }
+.ir-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+[data-theme="dark"] .ir-item { background: var(--bg-elevated); }
+.ir-item-active { border-color: rgba(91,79,219,.4); }
+[data-theme="dark"] .ir-item-active { border-color: rgba(124,111,247,.4); }
+.ir-item-correct {
+  background: rgba(34,197,94,.08);
+  border-color: rgba(34,197,94,.4);
+  color: var(--green);
+  font-weight: 600;
+}
+.ir-item-pending { opacity: .7; }
+.ir-num {
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 6px; border-radius: 3px;
+  font-size: 9px; font-weight: 700;
+}
+.ir-num-mid { background: var(--text-dim); }
+.ir-num-ok { background: var(--green); }
+
+/* Locked / coming-soon panel */
+.pp-locked {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  min-height: 220px;
+}
+[data-theme="dark"] .pp-locked { background: var(--bg-elevated); }
+.pp-locked-icon { font-size: 36px; margin-bottom: 12px; opacity: .7; }
+.pp-locked-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text); margin-bottom: 6px;
+}
+.pp-locked-sub {
+  font-size: 13px; color: var(--text-mid);
+  max-width: 460px; line-height: 1.55;
+  margin-bottom: 14px;
+}
+.pp-locked-eta {
+  background: var(--accent-soft-bg);
+  border: 1px solid var(--accent-soft-border);
+  color: var(--accent);
+  padding: 4px 12px; border-radius: 99px;
+  font-size: 11px; font-weight: 600;
+}
+[data-theme="dark"] .pp-locked-eta { color: var(--accent-light); }
+
+/* Foot CTA */
+.pp-foot {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.pp-foot-prose {
+  font-size: 12.5px; color: var(--text-mid);
+  flex: 1; min-width: 220px;
+}
+.pp-cta-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 700;
+  box-shadow: var(--shadow-cta);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.pp-cta-btn:hover { transform: translateY(-1px); }
+.pp-cta-btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+[data-theme="dark"] .pp-cta-btn-ghost { color: var(--accent-light); border-color: var(--accent-light); }
+
+/* Reduced-motion gate */
+@media (prefers-reduced-motion: reduce) {
+  .pp-tile-art svg animate { display: none; }
+  .pp-cta-btn:hover { transform: none; }
+  .pp-tab { transition: none; }
+}

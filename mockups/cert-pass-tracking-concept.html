@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Cert pass tracking concept</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #131320;
+    --surface-2: #1a1a2e;
+    --surface-3: #222235;
+    --border: #2e2e48;
+    --border-strong: #3a3a55;
+    --accent: #7c6ff7;
+    --accent-light: #a99df9;
+    --accent-dim: #3d3870;
+    --text: #f0f0f8;
+    --text-mid: #b0b0cc;
+    --text-dim: #6b6b90;
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,.12);
+    --green-border: rgba(34,197,94,.32);
+    --red: #f87171;
+    --red-soft: rgba(248,113,113,.10);
+    --red-border: rgba(248,113,113,.32);
+    --orange: #f59e0b;
+    --orange-soft: rgba(245,158,11,.12);
+    --orange-border: rgba(245,158,11,.32);
+    --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050510;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 32px 16px 80px;
+  }
+  .mockup-doc { max-width: 1100px; margin: 0 auto; }
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px dashed var(--border); }
+  .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .doc-sub { color: var(--text-mid); font-size: 14px; margin-bottom: 16px; max-width: 760px; margin-left: auto; margin-right: auto; }
+  .doc-meta { display: inline-block; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .state-section { margin-bottom: 64px; }
+  .state-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .state-title { font-size: 18px; font-weight: 700; color: var(--accent-light); }
+  .state-tag { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-dim); }
+  .state-note { color: var(--text-mid); font-size: 13px; margin-bottom: 20px; max-width: 800px; }
+  .state-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 12px; }
+
+  /* ── Light-theme app surface ── */
+  .app-mock {
+    background: #fafbff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 28px;
+    color: #1a1a2e;
+  }
+
+  /* /account page mock */
+  .account-page {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .account-h1 {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px;
+    color: #1a1a2e;
+  }
+  .account-sub {
+    font-size: 13px; color: #6b6b90; margin-bottom: 28px;
+  }
+
+  /* Section card — matches /account aesthetic */
+  .acct-section {
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(20,20,40,.04);
+  }
+  .acct-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .acct-section-title-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .acct-section-title {
+    font-size: 16px; font-weight: 700; color: #1a1a2e;
+  }
+  .acct-section-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: grid; place-items: center;
+    background: rgba(91,79,219,.08);
+    color: #5b4fdb;
+    font-size: 14px;
+  }
+  .acct-section-icon.green { background: rgba(22,163,74,.1); color: #16a34a; }
+  .acct-section-help {
+    font-size: 12px; color: #6b6b90;
+  }
+
+  /* Cert exam result row */
+  .er-list {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .er-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f4f5fa;
+    border: 1px solid #e5e7f0;
+    border-radius: 8px;
+  }
+  .er-row.is-passed {
+    background: rgba(22,163,74,.04);
+    border-color: rgba(22,163,74,.3);
+  }
+  .er-row.is-attempted {
+    background: rgba(245,158,11,.04);
+    border-color: rgba(245,158,11,.3);
+  }
+  .er-glyph {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 12px;
+    background: #1a1a2e; color: #f472b6;
+  }
+  .er-glyph.secplus { background: #2d1810; color: #f59e0b; }
+  .er-info { line-height: 1.4; }
+  .er-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .er-detail { font-size: 12px; color: #6b6b90; }
+  .er-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: 5px 10px; border-radius: 99px;
+  }
+  .er-status.is-passed { background: rgba(22,163,74,.1); color: #16a34a; border: 1px solid rgba(22,163,74,.4); }
+  .er-status.is-attempted { background: rgba(245,158,11,.1); color: #d97706; border: 1px solid rgba(245,158,11,.4); }
+  .er-status.is-not-taken { background: #fff; color: #6b6b90; border: 1px dashed #c7c9d8; }
+  .er-action {
+    background: transparent;
+    color: #5b4fdb;
+    font-size: 12px; font-weight: 600;
+    padding: 0;
+  }
+  .er-action:hover { text-decoration: underline; }
+  .er-help-row {
+    margin-top: 14px;
+    font-size: 12px; color: #6b6b90;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .er-help-row strong { color: #1a1a2e; }
+
+  /* "Mark exam result" form panel (inline-expand variant) */
+  .er-form {
+    background: #fff;
+    border: 1px solid #c7c9d8;
+    border-radius: 8px;
+    padding: 18px;
+    margin-top: 12px;
+  }
+  .er-form-head {
+    font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 14px;
+  }
+  .er-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .er-form-row.full { grid-template-columns: 1fr; }
+  .er-field { display: flex; flex-direction: column; gap: 4px; }
+  .er-field-label {
+    font-size: 11px; font-weight: 600; color: #4a4a6e;
+  }
+  .er-field-input {
+    background: #fafbff;
+    border: 1px solid #c7c9d8;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #1a1a2e;
+    font-family: inherit;
+  }
+  .er-field-input:focus { outline: 2px solid rgba(91,79,219,.25); border-color: #5b4fdb; }
+  .er-field-help {
+    font-size: 11px; color: #8a8aac;
+  }
+  .er-checkbox {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(22,163,74,.05);
+    border: 1px solid rgba(22,163,74,.3);
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .er-checkbox input { accent-color: #16a34a; width: 16px; height: 16px; }
+  .er-checkbox-label { font-size: 13px; font-weight: 600; color: #16a34a; }
+  .er-form-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 8px;
+  }
+  .er-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .er-btn-primary { background: #5b4fdb; color: #fff; box-shadow: 0 4px 10px rgba(91,79,219,.32); }
+  .er-btn-secondary { background: transparent; color: #4a4a6e; border: 1px solid #c7c9d8; }
+  .er-form-pass-toggle {
+    display: flex; gap: 8px;
+    background: #f4f5fa;
+    padding: 4px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .er-form-pass-toggle button {
+    flex: 1;
+    padding: 8px;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12.5px; font-weight: 600;
+    color: #6b6b90;
+  }
+  .er-form-pass-toggle button.is-active.passed {
+    background: rgba(22,163,74,.12); color: #16a34a; box-shadow: 0 1px 2px rgba(22,163,74,.2);
+  }
+  .er-form-pass-toggle button.is-active.failed {
+    background: rgba(245,158,11,.12); color: #d97706; box-shadow: 0 1px 2px rgba(245,158,11,.2);
+  }
+
+  /* ── Confetti modal mock ── */
+  .modal-backdrop {
+    background: rgba(10,10,18,.72);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 60px 24px;
+    display: grid; place-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .confetti-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 36px 32px 28px;
+    width: min(440px, 100%);
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+  .confetti-burst {
+    font-size: 56px;
+    margin-bottom: 12px;
+  }
+  .confetti-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: #16a34a;
+    margin-bottom: 6px;
+  }
+  .confetti-title {
+    font-size: 24px; font-weight: 800; letter-spacing: -0.02em;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+  }
+  .confetti-prose {
+    font-size: 13.5px; color: #4a4a6e; line-height: 1.55;
+    margin-bottom: 22px;
+  }
+  .confetti-cert-card {
+    background: linear-gradient(180deg, rgba(22,163,74,.06), rgba(22,163,74,.02));
+    border: 1px solid rgba(22,163,74,.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 22px;
+  }
+  .confetti-cert-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .confetti-cert-glyph {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 13px;
+    background: #1a1a2e; color: #f472b6;
+  }
+  .confetti-cert-name {
+    font-size: 14px; font-weight: 700; color: #1a1a2e; text-align: left;
+  }
+  .confetti-score-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(22,163,74,.12);
+    color: #16a34a;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 13px; font-weight: 700;
+    border: 1px solid rgba(22,163,74,.3);
+  }
+  .confetti-meta {
+    font-size: 11.5px; color: #6b6b90;
+    margin-top: 6px;
+    text-align: left;
+  }
+  .confetti-actions {
+    display: flex; gap: 10px; justify-content: center;
+  }
+  .confetti-btn {
+    padding: 9px 16px;
+    border-radius: 7px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .confetti-btn-primary { background: #5b4fdb; color: #fff; box-shadow: 0 6px 14px rgba(91,79,219,.34); }
+  .confetti-btn-secondary { background: #f4f5fa; color: #4a4a6e; }
+
+  /* Confetti sprinkles */
+  .confetti-sprinkle {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* "Failed but attempted" modal variant */
+  .att-modal { background: #fff; }
+  .att-eyebrow { color: #d97706; }
+  .att-cert-card {
+    background: linear-gradient(180deg, rgba(245,158,11,.06), rgba(245,158,11,.02));
+    border-color: rgba(245,158,11,.3);
+  }
+  .att-cert-card .confetti-score-pill {
+    background: rgba(245,158,11,.12);
+    color: #d97706;
+    border-color: rgba(245,158,11,.3);
+  }
+  .att-encourage {
+    font-size: 12px; color: #4a4a6e; line-height: 1.5;
+    background: #f4f5fa;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+
+  /* ── Cert-tile renders for the 3 states ── */
+  .cert-tile-mock {
+    background: #fff;
+    border: 1px solid #e5e7f0;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(20,20,40,.04), 0 4px 12px rgba(20,20,40,.05);
+    width: 280px;
+  }
+  .ct-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .ct-glyph {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: #1a1a2e; color: #f472b6;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 14px;
+  }
+  .ct-status {
+    font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 99px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ct-status.is-passed { background: rgba(22,163,74,.1); color: #16a34a; border: 1px solid rgba(22,163,74,.32); }
+  .ct-status.is-attempted { background: rgba(245,158,11,.1); color: #d97706; border: 1px solid rgba(245,158,11,.32); }
+  .ct-status.is-active { background: rgba(91,79,219,.08); color: #5b4fdb; border: 1px solid rgba(91,79,219,.3); }
+  .ct-status .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .ct-name { font-size: 18px; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+  .ct-code { font-size: 11px; color: #8a8aac; margin-bottom: 10px; }
+  .ct-desc { font-size: 12px; color: #4a4a6e; line-height: 1.5; min-height: 60px; }
+  .ct-foot {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7f0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ct-progress { font-size: 11px; color: #6b6b90; }
+  .ct-cta { font-size: 12px; color: #5b4fdb; font-weight: 700; }
+  .ct-cta.is-passed { color: #16a34a; }
+  .ct-cta.is-attempted { color: #d97706; }
+
+  .tile-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: start;
+    justify-items: center;
+  }
+  .tile-label {
+    text-align: center;
+    font-size: 11px; color: var(--text-dim);
+    margin-top: 8px;
+    font-family: 'SF Mono', monospace;
+  }
+
+  /* Implementation notes */
+  .impl-notes {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .impl-notes h3 { color: var(--accent-light); font-size: 15px; margin-bottom: 12px; }
+  .impl-notes ul { padding-left: 22px; margin-bottom: 12px; }
+  .impl-notes li { margin-bottom: 6px; color: var(--text-mid); font-size: 13px; }
+  .impl-notes li code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 11.5px; }
+  .impl-notes h4 { color: var(--text); font-size: 13px; margin: 16px 0 6px; font-weight: 700; }
+  .file-touch-list { display: grid; gap: 6px; margin-top: 8px; }
+  .file-touch {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'SF Mono', monospace;
+    font-size: 11.5px;
+  }
+  .file-touch-action {
+    flex-shrink: 0;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .file-touch-action.add { background: var(--green-soft); color: var(--green); border: 1px solid var(--green-border); }
+  .file-touch-action.edit { background: var(--orange-soft); color: var(--orange); border: 1px solid var(--orange-border); }
+  .file-touch-action.schema { background: rgba(124,111,247,.1); color: var(--accent-light); border: 1px solid rgba(124,111,247,.3); }
+  .file-touch-path { color: var(--text-mid); }
+  .file-touch-desc { color: var(--text-dim); margin-left: auto; font-family: -apple-system, sans-serif; font-size: 12px; }
+
+  .schema-block {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: var(--text-mid);
+    overflow-x: auto;
+  }
+  .schema-block .key { color: #f472b6; }
+  .schema-block .val { color: var(--accent-light); }
+  .schema-block .com { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="mockup-doc">
+
+<header class="doc-header">
+  <h1 class="doc-title">Cert pass tracking — concept</h1>
+  <p class="doc-sub">Let signed-in users mark "I passed" or "I attempted" on each cert with a score, get a confetti moment, and see their result reflected back on the cert tiles + My certs modal. Replaces the current hardcoded 767/900 swap with real data-driven entitlements.</p>
+  <span class="doc-meta">target: /account · landing/auth.js · profiles.metadata.cert_results.&lt;cert&gt;</span>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATE 1 — /account page · default Exam Results section
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">State 1 — /account · "Exam Results" section (default)</span>
+    <span class="state-tag">new section between Subscription and Notifications</span>
+  </div>
+  <p class="state-note">A new card on the existing /account page (post-v4.90.0). Lists every cert the user has access to or has marked attempted. Three row states: <em>passed</em> (green), <em>attempted</em> (orange), <em>not taken yet</em> (dashed-border ghost). Click any row to expand the inline form.</p>
+
+  <div class="app-mock">
+    <div class="account-page">
+      <h1 class="account-h1">Account settings</h1>
+      <p class="account-sub">simi_oremosu@hotmail.com · Member since 2026-04-22</p>
+
+      <!-- Existing Subscription section reduced for context -->
+      <div class="acct-section">
+        <div class="acct-section-head">
+          <div class="acct-section-title-row">
+            <div class="acct-section-icon">📦</div>
+            <div class="acct-section-title">Subscription</div>
+          </div>
+          <span class="acct-section-help">Free tier · Pro coming with Phase G</span>
+        </div>
+        <p style="font-size:13px;color:#4a4a6e">Network+ access · Security+ access (admin)</p>
+      </div>
+
+      <!-- ⭐ THE NEW SECTION ⭐ -->
+      <div class="acct-section">
+        <div class="acct-section-head">
+          <div class="acct-section-title-row">
+            <div class="acct-section-icon green">🎓</div>
+            <div class="acct-section-title">Exam results</div>
+          </div>
+          <span class="acct-section-help">Track real-world exam attempts</span>
+        </div>
+
+        <div class="er-list">
+          <!-- Network+ — Passed -->
+          <div class="er-row is-passed">
+            <div class="er-glyph">N+</div>
+            <div class="er-info">
+              <div class="er-name">Network+ · N10-009</div>
+              <div class="er-detail">767 / 900 · Passed 2026-05-05 · Pearson VUE</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span class="er-status is-passed">✓ Passed</span>
+              <button class="er-action">Edit</button>
+            </div>
+          </div>
+
+          <!-- Security+ — Not taken yet -->
+          <div class="er-row">
+            <div class="er-glyph secplus">S+</div>
+            <div class="er-info">
+              <div class="er-name">Security+ · SY0-701</div>
+              <div class="er-detail">Target exam date 2026-07-29 · 83 days away</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span class="er-status is-not-taken">Not taken yet</span>
+              <button class="er-action">Mark result →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="er-help-row">
+          ℹ <strong>Why we ask:</strong> &nbsp;Marking your real-exam result unlocks the Passed badge on your cert tile + powers Pass-Guarantee eligibility. Always editable.
+        </div>
+      </div>
+
+      <!-- Notification toggles section (existing, reduced) -->
+      <div class="acct-section">
+        <div class="acct-section-head">
+          <div class="acct-section-title-row">
+            <div class="acct-section-icon">🔔</div>
+            <div class="acct-section-title">Notifications</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#4a4a6e">4 toggles · existing v4.90.0 section</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATE 2 — Form expanded for "Mark result"
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">State 2 — Inline form (Security+ row clicked)</span>
+    <span class="state-tag">in-place expand · no modal</span>
+  </div>
+  <p class="state-note">Clicking <em>Mark result</em> on a row expands the form inline (no modal). Pass / Fail toggle at top — different field rules per branch (pass shows Score; fail shows Score + a soft "you can try again" note). Backdate-friendly date input. Save fires the confetti modal (State 3 / 4).</p>
+
+  <div class="app-mock">
+    <div class="account-page">
+      <div class="acct-section">
+        <div class="acct-section-head">
+          <div class="acct-section-title-row">
+            <div class="acct-section-icon green">🎓</div>
+            <div class="acct-section-title">Exam results</div>
+          </div>
+          <span class="acct-section-help">Track real-world exam attempts</span>
+        </div>
+
+        <div class="er-list">
+          <!-- N+ collapsed (already passed) -->
+          <div class="er-row is-passed">
+            <div class="er-glyph">N+</div>
+            <div class="er-info">
+              <div class="er-name">Network+ · N10-009</div>
+              <div class="er-detail">767 / 900 · Passed 2026-05-05</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span class="er-status is-passed">✓ Passed</span>
+              <button class="er-action">Edit</button>
+            </div>
+          </div>
+
+          <!-- S+ row expanded -->
+          <div class="er-row" style="grid-template-columns:1fr">
+            <div style="display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center">
+              <div class="er-glyph secplus">S+</div>
+              <div class="er-info">
+                <div class="er-name">Security+ · SY0-701</div>
+                <div class="er-detail">Target exam date 2026-07-29</div>
+              </div>
+              <button class="er-action">Cancel</button>
+            </div>
+
+            <div class="er-form">
+              <div class="er-form-pass-toggle" role="tablist">
+                <button class="is-active passed" type="button">✓ I passed</button>
+                <button type="button">I attempted</button>
+              </div>
+
+              <label class="er-checkbox">
+                <input type="checkbox" checked aria-label="I passed the real exam">
+                <span class="er-checkbox-label">Confirm: I passed the real Security+ SY0-701 exam (not the simulator).</span>
+              </label>
+
+              <div class="er-form-row">
+                <div class="er-field">
+                  <label class="er-field-label">Your score</label>
+                  <input class="er-field-input" type="number" placeholder="e.g. 800" value="">
+                  <span class="er-field-help">CompTIA scored / 900</span>
+                </div>
+                <div class="er-field">
+                  <label class="er-field-label">Date of exam</label>
+                  <input class="er-field-input" type="date" value="2026-07-29">
+                  <span class="er-field-help">Backdate fine — we believe you</span>
+                </div>
+              </div>
+
+              <div class="er-form-row full">
+                <div class="er-field">
+                  <label class="er-field-label">Test centre <em style="color:#8a8aac;font-style:normal">(optional)</em></label>
+                  <input class="er-field-input" type="text" placeholder="Pearson VUE / online proctor / centre name">
+                </div>
+              </div>
+
+              <div class="er-form-actions">
+                <button class="er-btn er-btn-secondary">Cancel</button>
+                <button class="er-btn er-btn-primary">Save result</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATE 3 — Confetti modal (Passed)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">State 3 — Confetti modal (Passed branch)</span>
+    <span class="state-tag">fires on Save · matches existing milestone celebration style</span>
+  </div>
+  <p class="state-note">After Save, the modal fires with full confetti burst (reusing existing <code>launchConfetti()</code> 150-particle / 8-color helper from app.js). Score-pill animates count-up via <code>animateCount()</code>. Close → cert tile updates instantly + 5s toast at bottom. Email to user fires async via Resend (existing <code>landing/api/notify.js</code>) — non-blocking.</p>
+
+  <div class="app-mock" style="background:#0a0a12">
+    <div class="modal-backdrop">
+      <!-- Confetti sprinkles -->
+      <div class="confetti-sprinkle" style="top:10%;left:8%;width:12px;height:12px;background:#22c55e;border-radius:2px;transform:rotate(20deg)"></div>
+      <div class="confetti-sprinkle" style="top:20%;left:88%;width:10px;height:10px;background:#f472b6;border-radius:50%"></div>
+      <div class="confetti-sprinkle" style="top:35%;left:14%;width:8px;height:14px;background:#fbbf24;transform:rotate(45deg)"></div>
+      <div class="confetti-sprinkle" style="top:55%;left:90%;width:14px;height:8px;background:#5b4fdb;transform:rotate(15deg)"></div>
+      <div class="confetti-sprinkle" style="top:70%;left:6%;width:10px;height:10px;background:#06b6d4"></div>
+      <div class="confetti-sprinkle" style="top:80%;left:80%;width:12px;height:12px;background:#22c55e;border-radius:50%"></div>
+      <div class="confetti-sprinkle" style="top:14%;left:50%;width:8px;height:8px;background:#f59e0b;border-radius:2px"></div>
+      <div class="confetti-sprinkle" style="top:88%;left:48%;width:10px;height:10px;background:#a99df9;border-radius:50%"></div>
+
+      <div class="confetti-modal">
+        <div class="confetti-burst">🎉</div>
+        <div class="confetti-eyebrow">CERT PASSED</div>
+        <h2 class="confetti-title">You crushed it.</h2>
+        <p class="confetti-prose">Network+ in the bag. Years of late-night study, that's CompTIA-certified now. Your tile on the home page just earned a Passed badge.</p>
+
+        <div class="confetti-cert-card">
+          <div class="confetti-cert-row">
+            <div class="confetti-cert-glyph">N+</div>
+            <div style="flex:1">
+              <div class="confetti-cert-name">Network+ · N10-009</div>
+              <div style="font-size:11px;color:#6b6b90;margin-top:2px">CompTIA scaled score</div>
+            </div>
+            <span class="confetti-score-pill">✓ 767 / 900</span>
+          </div>
+          <div class="confetti-meta">Passed 2026-05-05 · Pearson VUE · 47 points above the 720 cutoff</div>
+        </div>
+
+        <div class="confetti-actions">
+          <button class="confetti-btn confetti-btn-primary">View on home page →</button>
+          <button class="confetti-btn confetti-btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATE 4 — Modal (Failed/Attempted)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">State 4 — Modal variant (Attempted branch)</span>
+    <span class="state-tag">fail → encouragement, not celebration</span>
+  </div>
+  <p class="state-note">If the user marked "I attempted" instead of "I passed," the modal swaps copy to encouragement (no confetti, but still a moment of acknowledgement). Score still shown. Encouragement copy specifically references the gap-to-pass + retake window. Cert tile shows "ATTEMPTED · 680/900 · keep going →" instead of Passed.</p>
+
+  <div class="app-mock" style="background:#0a0a12">
+    <div class="modal-backdrop">
+      <div class="confetti-modal att-modal">
+        <div class="confetti-burst" style="font-size:48px">🎯</div>
+        <div class="confetti-eyebrow att-eyebrow">ATTEMPT LOGGED</div>
+        <h2 class="confetti-title">Close — and we mean it.</h2>
+        <p class="confetti-prose">First-attempt fails are normal. Your study data is intact, your weak spots are mapped, and you have plenty of retake window left.</p>
+
+        <div class="confetti-cert-card att-cert-card">
+          <div class="confetti-cert-row">
+            <div class="confetti-cert-glyph secplus" style="background:#2d1810;color:#f59e0b">S+</div>
+            <div style="flex:1">
+              <div class="confetti-cert-name">Security+ · SY0-701</div>
+              <div style="font-size:11px;color:#6b6b90;margin-top:2px">CompTIA scaled score</div>
+            </div>
+            <span class="confetti-score-pill">680 / 900</span>
+          </div>
+          <div class="confetti-meta">Attempted 2026-07-29 · 70 points below the 750 cutoff</div>
+        </div>
+
+        <div class="att-encourage">
+          🛡 You're eligible for the <strong>Pass Guarantee</strong>. Submit your booking confirmation + score report on the page below — we'll review your case within 7 days and extend your access until you pass.
+        </div>
+
+        <div class="confetti-actions">
+          <button class="confetti-btn confetti-btn-primary" style="background:#5b4fdb">Apply for Pass Guarantee →</button>
+          <button class="confetti-btn confetti-btn-secondary">Keep practicing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     STATE 5 — Cert tile reflections (3 states)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">State 5 — Cert tile reflections back on landing page</span>
+    <span class="state-tag">3 tile states drive the swap</span>
+  </div>
+  <p class="state-note">After the user marks a result, the cert tile on the landing page reflects it next visit (or via local update if user stays on the same tab). Three states: <strong>Passed</strong> (green, showing score + "keep practicing"), <strong>Attempted</strong> (orange, showing score + "keep going"), <strong>Active/in-prep</strong> (existing default for any cert without a result yet).</p>
+
+  <div class="app-mock">
+    <div class="tile-row">
+      <div>
+        <div class="cert-tile-mock" style="border-top:3px solid #22c55e">
+          <div class="ct-top">
+            <div class="ct-glyph">N+</div>
+            <span class="ct-status is-passed"><span class="dot"></span>Passed</span>
+          </div>
+          <div class="ct-name">Network+</div>
+          <div class="ct-code">N10-009 · 90 questions · 90 min</div>
+          <div class="ct-desc">Master the fundamentals of networking with hand-curated questions and an interactive topology builder.</div>
+          <div class="ct-foot">
+            <span class="ct-progress">5 domains · 50 topics</span>
+            <span class="ct-cta is-passed">✓ 767/900 · keep practicing →</span>
+          </div>
+        </div>
+        <div class="tile-label">PASSED state · score visible</div>
+      </div>
+
+      <div>
+        <div class="cert-tile-mock" style="border-top:3px solid #f59e0b">
+          <div class="ct-top">
+            <div class="ct-glyph" style="background:#2d1810;color:#f59e0b">S+</div>
+            <span class="ct-status is-attempted"><span class="dot"></span>Attempted</span>
+          </div>
+          <div class="ct-name">Security+</div>
+          <div class="ct-code">SY0-701 · attempted 2026-07-29</div>
+          <div class="ct-desc">Get exam-ready for SY0-701. Threat actors, identity, SIEM, IR, governance — focused workspace.</div>
+          <div class="ct-foot">
+            <span class="ct-progress">5 domains · 37 topics</span>
+            <span class="ct-cta is-attempted">680/900 · keep going →</span>
+          </div>
+        </div>
+        <div class="tile-label">ATTEMPTED state · gap-to-pass surfaces</div>
+      </div>
+
+      <div>
+        <div class="cert-tile-mock" style="border-top:3px solid #5b4fdb">
+          <div class="ct-top">
+            <div class="ct-glyph" style="background:#2d1810;color:#f59e0b">S+</div>
+            <span class="ct-status is-active"><span class="dot"></span>Active</span>
+          </div>
+          <div class="ct-name">Security+</div>
+          <div class="ct-code">SY0-701 · target exam 2026-07-29</div>
+          <div class="ct-desc">Get exam-ready for SY0-701. Threat actors, identity, SIEM, IR, governance — focused workspace.</div>
+          <div class="ct-foot">
+            <span class="ct-progress">5 domains · 37 topics</span>
+            <span class="ct-cta">Resume studying →</span>
+          </div>
+        </div>
+        <div class="tile-label">ACTIVE state · no result marked yet</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     IMPLEMENTATION NOTES
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="state-section">
+  <div class="state-header">
+    <span class="state-title">Implementation notes</span>
+    <span class="state-tag">scope · schema · files · risks</span>
+  </div>
+
+  <div class="impl-notes">
+    <h3>Schema (Supabase)</h3>
+    <p style="color:var(--text-mid);font-size:13px;margin-bottom:8px">Stored as a JSON map on the existing <code>profiles.metadata</code> jsonb column — no new table, no migration friction. Keys are cert IDs matching the cert pack (<code>netplus</code>, <code>secplus</code>, future).</p>
+    <div class="schema-block">
+<span class="com">// profiles.metadata.cert_results — keyed by cert ID</span>
+{
+  <span class="key">"netplus"</span>: {
+    <span class="key">"status"</span>: <span class="val">"passed"</span>,        <span class="com">// "passed" | "attempted"</span>
+    <span class="key">"score"</span>: <span class="val">767</span>,
+    <span class="key">"max_score"</span>: <span class="val">900</span>,
+    <span class="key">"pass_score"</span>: <span class="val">720</span>,        <span class="com">// per-cert constant, helps "X above/below cutoff" copy</span>
+    <span class="key">"date"</span>: <span class="val">"2026-05-05"</span>,
+    <span class="key">"centre"</span>: <span class="val">"Pearson VUE"</span>,    <span class="com">// optional</span>
+    <span class="key">"created_at"</span>: <span class="val">"2026-05-08T14:32:00Z"</span>,
+    <span class="key">"updated_at"</span>: <span class="val">"2026-05-08T14:32:00Z"</span>
+  },
+  <span class="key">"secplus"</span>: { ... }
+}</div>
+
+    <h3>Per-cert score config (cert pack)</h3>
+    <p style="color:var(--text-mid);font-size:13px;margin-bottom:8px">Each cert pack (<code>certs/netplus.js</code>, <code>certs/secplus.js</code>, etc.) declares its score format so the form + tile copy are cert-aware. <strong>Single score / max-score / pass-score triple</strong> per your default-G choice — works for CompTIA, AWS, Cisco %.</p>
+    <div class="schema-block">
+<span class="com">// certs/netplus.js (existing pack adds these 3 fields)</span>
+window.CERT_PACKS.netplus.exam = {
+  <span class="key">format</span>: <span class="val">"scaled"</span>,        <span class="com">// "scaled" | "percent"</span>
+  <span class="key">maxScore</span>: <span class="val">900</span>,
+  <span class="key">passScore</span>: <span class="val">720</span>
+};
+
+<span class="com">// certs/secplus.js</span>
+window.CERT_PACKS.secplus.exam = { format: <span class="val">"scaled"</span>, maxScore: <span class="val">900</span>, passScore: <span class="val">750</span> };
+<span class="com">// CCNA when shipped:</span>      { format: <span class="val">"percent"</span>, maxScore: <span class="val">100</span>, passScore: <span class="val">82.5</span> }</div>
+
+    <h3>Confetti reuse</h3>
+    <ul>
+      <li>Confetti modal reuses existing <code>launchConfetti()</code> from <code>app.js</code> (the v4.42.0 milestone celebration helper — 150 particles, 8 colors).</li>
+      <li>Score pill animates via existing <code>animateCount(id, 0, score, 1200)</code>. Sub-second perceived latency.</li>
+      <li>Failed branch skips <code>launchConfetti()</code> entirely — different emotional tone.</li>
+    </ul>
+
+    <h3>Email (Pass branch only, async)</h3>
+    <ul>
+      <li>POST to <code>landing/api/notify.js</code> on Save success (existing Resend integration). Subject: "🎉 You passed Network+ · 767/900". Body: 2-paragraph encouragement + CTA back to platform.</li>
+      <li>Non-blocking. Modal fires immediately; email is fire-and-forget. 500-error from Resend just logs — doesn't break the user flow.</li>
+      <li>Failed branch: no email (avoids "you failed" inbox notifications that nobody wants).</li>
+    </ul>
+
+    <h3>Replaces hardcoded swap</h3>
+    <ul>
+      <li>Removes the v4.89.5 hardcoded "767/900" string in <code>landing/auth.js:262</code>. Cert-tile personalization becomes data-driven via <code>profile.metadata.cert_results.netplus</code>.</li>
+      <li>The "My certs" modal (v4.89.6) similarly becomes data-driven — currently hardcoded too.</li>
+      <li>Backwards-compat: anonymous visitors still see the pre-existing static cert-tile copy. Personalization only fires for signed-in users with a result row.</li>
+    </ul>
+
+    <h3>Pass Guarantee tie-in</h3>
+    <ul>
+      <li>The "Apply for Pass Guarantee →" CTA on the failed-branch modal links to a future Pass-Guarantee form. Until that ships, link to <code>landing/pricing.html#pass-guarantee</code> + a <code>?attempt=secplus&amp;score=680</code> param so any future form can pre-fill.</li>
+      <li>Eligibility logic stays out of the cert-tracking ship — this is just data + UX. Pass Guarantee enforcement is a separate ticket.</li>
+    </ul>
+
+    <h4>Files touched</h4>
+    <div class="file-touch-list">
+      <div class="file-touch">
+        <span class="file-touch-action add">add</span>
+        <span class="file-touch-path">landing/lib/account.js</span>
+        <span class="file-touch-desc">renderExamResultsSection() · saveCertResult() · openExamResultModal() (~180 LOC)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action edit">edit</span>
+        <span class="file-touch-path">landing/account.html</span>
+        <span class="file-touch-desc">Add &lt;section id="exam-results"&gt; markup between Subscription and Notifications (~40 LOC)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action edit">edit</span>
+        <span class="file-touch-path">landing/styles.css</span>
+        <span class="file-touch-desc">.acct-section additions for er-list / er-row / er-form / confetti-modal (~250 LOC)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action edit">edit</span>
+        <span class="file-touch-path">landing/auth.js</span>
+        <span class="file-touch-desc">personalizeCertTilesForSignedIn() — replace hardcoded 767/900 with metadata.cert_results lookup; renderMyCertsList() — same swap (~60 LOC)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action schema">schema</span>
+        <span class="file-touch-path">certs/netplus.js · certs/secplus.js</span>
+        <span class="file-touch-desc">Add cert.exam = { format, maxScore, passScore } block per cert (~6 LOC each)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action edit">edit</span>
+        <span class="file-touch-path">landing/api/notify.js</span>
+        <span class="file-touch-desc">Add cert-passed email template + handler (~50 LOC)</span>
+      </div>
+      <div class="file-touch">
+        <span class="file-touch-action edit">edit</span>
+        <span class="file-touch-path">tests/uat.js</span>
+        <span class="file-touch-desc">Regression guards — schema shape, hardcoded-767 removed, cert pack exam config (~12 assertions)</span>
+      </div>
+    </div>
+
+    <h3>Out of scope (this ship)</h3>
+    <ul>
+      <li>Pass Guarantee enforcement logic (eligibility check, file uploads, manual review queue).</li>
+      <li>Score-history / multiple attempts (current schema is single-attempt per cert; extending to <code>attempts: []</code> is a follow-up).</li>
+      <li>Cert badge image generation / shareable badges (LinkedIn-ready PNG export). Worth a Board #2 issue.</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
