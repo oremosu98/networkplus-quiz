@@ -245,68 +245,114 @@
 
   // ── Topbar render: signed-in vs signed-out ──────────────────────────────
   // ── Cert-tile personalization (signed-in users) ─────────────────────────
-  // For now: hardcoded to the builder's actual state (Network+ passed
-  // 2026-05-05 with 767/900, Security+ in active prep). Future Phase G
-  // replaces these constants with a query against cert_entitlements +
-  // quiz_history. Show ONLY for signed-in users — anonymous visitors keep
-  // seeing the static "Start studying" / "Notify me" CTAs.
-  function personalizeCertTilesForSignedIn(role) {
-    // Network+ — show passed state for everyone signed in (builder is the
-    // only signed-in user right now; Phase G adds per-user data lookups).
-    var nStatus = document.getElementById('cert-tile-netplus-status');
-    var nCta = document.getElementById('cert-tile-netplus-cta');
-    if (nStatus) {
-      nStatus.className = 'cert-status status-passed';
-      nStatus.innerHTML = '<span class="status-dot"></span>Passed';
-    }
-    if (nCta) nCta.textContent = '✓ 767/900 · keep practicing →';
+  // v4.93.0: data-driven from profiles.metadata.cert_results. Users mark
+  // their real-exam result via /account "Exam results" section; that swaps
+  // the cert tile pill from "Active" → "Passed" (or "Attempted") with score.
+  // Anonymous visitors keep seeing the static "Start studying" / "Notify me"
+  // CTAs. The hardcoded 767/900 string is gone.
+  function personalizeCertTilesForSignedIn(profile) {
+    var role = profile && profile.role || 'user';
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
 
-    // Security+ — un-hide for admin, swap status to "Active" + CTA to
-    // "Resume studying →". Regular users keep seeing it hidden (private
-    // builder cert, not yet customer-facing).
+    // Apply per-cert state to a tile + CTA. Default ("active") is what every
+    // signed-in user sees with no exam result on file.
+    function applyTileState(certId, defaultStatus, defaultCta) {
+      var statusEl = document.getElementById('cert-tile-' + certId + '-status');
+      var ctaEl = document.getElementById('cert-tile-' + certId + '-cta');
+      var result = results[certId];
+      if (result && result.status === 'passed') {
+        if (statusEl) {
+          statusEl.className = 'cert-status status-passed';
+          statusEl.innerHTML = '<span class="status-dot"></span>Passed';
+        }
+        if (ctaEl) ctaEl.textContent = '✓ ' + result.score + '/' + result.max_score + ' · keep practicing →';
+      } else if (result && result.status === 'attempted') {
+        if (statusEl) {
+          statusEl.className = 'cert-status status-attempted';
+          statusEl.innerHTML = '<span class="status-dot"></span>Attempted';
+        }
+        if (ctaEl) ctaEl.textContent = result.score + '/' + result.max_score + ' · keep going →';
+      } else {
+        // Default: Active (signed-in but no result marked)
+        if (statusEl) {
+          statusEl.className = 'cert-status status-' + defaultStatus;
+          statusEl.innerHTML = '<span class="status-dot"></span>' + (defaultStatus === 'active' ? 'Active' : 'Live');
+        }
+        if (ctaEl) ctaEl.textContent = defaultCta;
+      }
+    }
+
+    // Network+ — every signed-in user sees it (everyone's entitled to N+ free)
+    applyTileState('netplus', 'active', 'Resume studying →');
+
+    // Security+ — un-hide for admin only (private builder cert)
     if (role === 'admin') {
       var secTile = document.getElementById('cert-tile-secplus');
-      var secStatus = document.getElementById('cert-tile-secplus-status');
-      var secCta = document.getElementById('cert-tile-secplus-cta');
       if (secTile) secTile.removeAttribute('hidden');
-      if (secStatus) {
-        secStatus.className = 'cert-status status-active';
-        secStatus.innerHTML = '<span class="status-dot"></span>Active';
-      }
-      if (secCta) secCta.textContent = 'Resume studying →';
+      applyTileState('secplus', 'active', 'Resume studying →');
     }
   }
 
-  // ── My certs modal (Phase C′ post-launch) ──────────────────────────────
-  // Reuses the personalize-tiles data: hardcoded for builder tonight, future
-  // Phase G replaces with cert_entitlements + quiz_history queries.
-  function renderMyCertsList(role) {
+  // ── My certs modal (v4.93.0 — data-driven) ─────────────────────────────
+  // Reads profile.metadata.cert_results so passed/attempted state surfaces
+  // here too. Falls back to "Active · target exam <date>" when no result.
+  function renderMyCertsList(profile) {
+    var role = profile && profile.role || 'user';
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
     var listEl = document.getElementById('my-certs-list');
     if (!listEl) return;
+
+    function rowForCert(spec) {
+      var result = results[spec.id];
+      var statusLabel, statusClass, meta, ctaLabel;
+      if (result && result.status === 'passed') {
+        statusLabel = 'Passed';
+        statusClass = 'my-cert-status-passed';
+        meta = result.score + '/' + result.max_score + ' · ' + result.date;
+        ctaLabel = 'Keep practicing →';
+      } else if (result && result.status === 'attempted') {
+        statusLabel = 'Attempted';
+        statusClass = 'my-cert-status-attempted';
+        meta = result.score + '/' + result.max_score + ' · ' + result.date;
+        ctaLabel = 'Keep going →';
+      } else {
+        statusLabel = 'Active';
+        statusClass = 'my-cert-status-active';
+        meta = spec.activeMeta;
+        ctaLabel = 'Resume →';
+      }
+      return buildMyCertRow({
+        id: spec.id,
+        glyph: spec.glyph,
+        glyphClass: spec.glyphClass,
+        name: spec.name,
+        code: spec.code,
+        statusLabel: statusLabel,
+        statusClass: statusClass,
+        meta: meta,
+        ctaLabel: ctaLabel,
+        href: spec.href
+      });
+    }
+
     var rows = [];
-    rows.push(buildMyCertRow({
+    rows.push(rowForCert({
       id: 'netplus',
       glyph: 'N+',
       glyphClass: 'cert-glyph-netplus',
       name: 'Network+',
       code: 'N10-009',
-      statusLabel: 'Passed',
-      statusClass: 'my-cert-status-passed',
-      meta: '767/900 · 2026-05-05',
-      ctaLabel: 'Keep practicing →',
+      activeMeta: 'studying — no exam booked',
       href: 'https://networkplus.certanvil.com/?cert=netplus'
     }));
     if (role === 'admin') {
-      rows.push(buildMyCertRow({
+      rows.push(rowForCert({
         id: 'secplus',
         glyph: 'S+',
         glyphClass: 'cert-glyph-secplus',
         name: 'Security+',
         code: 'SY0-701',
-        statusLabel: 'Active',
-        statusClass: 'my-cert-status-active',
-        meta: 'target exam 2026-07-29',
-        ctaLabel: 'Resume →',
+        activeMeta: 'target exam 2026-07-29',
         href: 'https://networkplus.certanvil.com/?cert=secplus'
       }));
     }
@@ -378,10 +424,15 @@
   // open (returns {role:'user'}) so a missing profiles row doesn't break
   // the landing render.
   function fetchProfileRole(userId) {
-    if (!userId) return Promise.resolve({ role: 'user' });
-    return supabase.from('profiles').select('role').eq('id', userId).single()
-      .then(function (r) { return (r.error || !r.data) ? { role: 'user' } : { role: r.data.role || 'user' }; })
-      .catch(function () { return { role: 'user' }; });
+    if (!userId) return Promise.resolve({ role: 'user', metadata: {} });
+    // v4.93.0: also fetch metadata so cert_results can drive cert-tile state
+    // (Pass tracking — see landing/lib/account.js for save flow).
+    return supabase.from('profiles').select('role, metadata').eq('id', userId).single()
+      .then(function (r) {
+        if (r.error || !r.data) return { role: 'user', metadata: {} };
+        return { role: r.data.role || 'user', metadata: r.data.metadata || {} };
+      })
+      .catch(function () { return { role: 'user', metadata: {} }; });
   }
 
   function renderSignedOut() {
@@ -412,13 +463,13 @@
       dropdownTier.textContent = '● Free tier · Network+ unlocked';
     }
 
-    // Phase C′: personalize cert tiles + my-certs modal based on role.
+    // Phase C′: personalize cert tiles + my-certs modal based on profile.
     // Anonymous users see static tile markup; signed-in users see passed/
-    // active states + a populated my-certs list when they open the modal.
+    // attempted/active states (driven by metadata.cert_results — v4.93.0).
     var userId = user && user.id;
     fetchProfileRole(userId).then(function (profile) {
-      personalizeCertTilesForSignedIn(profile.role);
-      renderMyCertsList(profile.role);
+      personalizeCertTilesForSignedIn(profile);
+      renderMyCertsList(profile);
     });
   }
 

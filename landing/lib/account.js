@@ -60,6 +60,7 @@
   var elSubTierLabel = document.getElementById('sub-tier-label');
   var elBtnUpgrade = document.getElementById('btn-upgrade');
   var elEntList = document.getElementById('ent-list');
+  var elErList = document.getElementById('er-list');  // v4.93.0 exam results list
 
   var elSecurityEmailMono = document.getElementById('security-email-mono');
   var elSessionList = document.getElementById('session-list');
@@ -181,8 +182,11 @@
     // Subscription tier
     if (elSubTierLabel) elSubTierLabel.textContent = 'Free tier' + (role === 'admin' ? ' · all certs' : '');
 
-    // Cert entitlements
-    if (elEntList) elEntList.innerHTML = renderEntitlements(role);
+    // Cert entitlements (status now reflects metadata.cert_results when present)
+    if (elEntList) elEntList.innerHTML = renderEntitlements(role, profile);
+
+    // Exam results section (v4.93.0)
+    if (elErList) elErList.innerHTML = renderExamResultsList(role, profile);
 
     // Security email
     if (elSecurityEmailMono) elSecurityEmailMono.textContent = email;
@@ -207,15 +211,30 @@
     }
   }
 
-  function renderEntitlements(role) {
+  function renderEntitlements(role, profile) {
     var certs = getCertEntitlements(role);
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
     return certs.map(function (c) {
+      // v4.93.0: if user has marked a real-exam result, override the entitlement
+      // status + meta line so "Passed 767/900" shows here instead of "active".
+      var result = results[c.id];
+      var displayStatus = c.status;
+      var displayMeta = c.meta;
+      if (result && result.status === 'passed') {
+        displayStatus = 'passed';
+        displayMeta = '✓ ' + result.score + '/' + result.max_score + ' · Passed ' + result.date;
+      } else if (result && result.status === 'attempted') {
+        displayStatus = 'attempted';
+        displayMeta = '○ ' + result.score + '/' + result.max_score + ' · Attempted ' + result.date;
+      }
       var statusPill = '';
-      if (c.status === 'passed') {
+      if (displayStatus === 'passed') {
         statusPill = '<span class="ent-status-pill is-passed">✓ Passed</span>';
-      } else if (c.status === 'active') {
+      } else if (displayStatus === 'attempted') {
+        statusPill = '<span class="ent-status-pill is-attempted">○ Attempted</span>';
+      } else if (displayStatus === 'active') {
         statusPill = '<span class="ent-status-pill is-active"><span aria-hidden="true">●</span> Active</span>';
-      } else if (c.status === 'locked') {
+      } else if (displayStatus === 'locked') {
         statusPill = '<span class="ent-status-pill is-locked">🔒 Locked</span>';
       }
       var ctaAttrs = c.cta.disabled
@@ -230,11 +249,315 @@
         +       '<span class="ent-name">' + escapeHtml(c.name) + '</span>'
         +       statusPill
         +     '</div>'
-        +     '<div class="ent-meta">' + escapeHtml(c.code) + ' · ' + escapeHtml(c.meta) + '</div>'
+        +     '<div class="ent-meta">' + escapeHtml(c.code) + ' · ' + escapeHtml(displayMeta) + '</div>'
         +   '</div>'
         +   '<button class="' + btnClass + ' ent-cta-btn" ' + ctaAttrs + '>' + escapeHtml(c.cta.label) + '</button>'
         + '</div>';
     }).join('');
+  }
+
+  // ── Exam results (v4.93.0) ──────────────────────────────────────────────
+  // Per-cert "I passed" / "I attempted" tracker. Stores result on
+  // profiles.metadata.cert_results.<cert>. Anonymous visitors don't see this
+  // section at all (auth gate at top of file blocks /account from rendering).
+
+  // Exam-format defaults per cert. CompTIA uses 100-900 scaled with cert-
+  // specific cutoffs. Future certs (CCNA, AWS) override here when added.
+  var EXAM_FORMATS = {
+    netplus:  { format: 'scaled', maxScore: 900, passScore: 720, examName: 'Network+ N10-009' },
+    secplus:  { format: 'scaled', maxScore: 900, passScore: 750, examName: 'Security+ SY0-701' },
+    az900:    { format: 'percent', maxScore: 1000, passScore: 700, examName: 'Azure Fundamentals AZ-900' },
+    ccna:     { format: 'percent', maxScore: 1000, passScore: 825, examName: 'Cisco CCNA 200-301' },
+    'aws-saa':{ format: 'scaled', maxScore: 1000, passScore: 720, examName: 'AWS SAA-C03' },
+    az104:    { format: 'percent', maxScore: 1000, passScore: 700, examName: 'Azure Administrator AZ-104' }
+  };
+
+  function renderExamResultsList(role, profile) {
+    var certs = getCertEntitlements(role).filter(function (c) { return c.status !== 'locked'; });
+    if (!certs.length) {
+      return '<p class="er-empty">No certs unlocked yet — pick a cert and start studying first.</p>';
+    }
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
+    return certs.map(function (c) { return renderExamResultRow(c, results[c.id]); }).join('');
+  }
+
+  function renderExamResultRow(cert, result) {
+    var fmt = EXAM_FORMATS[cert.id] || { maxScore: 900, passScore: 720, examName: cert.name };
+    if (result && result.status === 'passed') {
+      return ''
+        + '<div class="er-row is-passed" data-cert="' + cert.id + '">'
+        +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +   '<div class="er-info">'
+        +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
+        +     '<div class="er-detail">'
+        +       escapeHtml(String(result.score)) + ' / ' + escapeHtml(String(result.max_score))
+        +       ' · Passed ' + escapeHtml(result.date)
+        +       (result.centre ? ' · ' + escapeHtml(result.centre) : '')
+        +     '</div>'
+        +   '</div>'
+        +   '<div class="er-action-cluster">'
+        +     '<span class="er-status is-passed">✓ Passed</span>'
+        +     '<button class="er-action" data-er-edit="' + cert.id + '">Edit</button>'
+        +   '</div>'
+        + '</div>';
+    }
+    if (result && result.status === 'attempted') {
+      return ''
+        + '<div class="er-row is-attempted" data-cert="' + cert.id + '">'
+        +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +   '<div class="er-info">'
+        +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
+        +     '<div class="er-detail">'
+        +       escapeHtml(String(result.score)) + ' / ' + escapeHtml(String(result.max_score))
+        +       ' · Attempted ' + escapeHtml(result.date)
+        +     '</div>'
+        +   '</div>'
+        +   '<div class="er-action-cluster">'
+        +     '<span class="er-status is-attempted">○ Attempted</span>'
+        +     '<button class="er-action" data-er-edit="' + cert.id + '">Edit</button>'
+        +   '</div>'
+        + '</div>';
+    }
+    return ''
+      + '<div class="er-row" data-cert="' + cert.id + '">'
+      +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+      +   '<div class="er-info">'
+      +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
+      +     '<div class="er-detail">' + escapeHtml(fmt.examName) + ' · pass ≥ ' + fmt.passScore + '/' + fmt.maxScore + '</div>'
+      +   '</div>'
+      +   '<div class="er-action-cluster">'
+      +     '<span class="er-status is-not-taken">Not taken yet</span>'
+      +     '<button class="er-action" data-er-edit="' + cert.id + '">Mark result →</button>'
+      +   '</div>'
+      + '</div>';
+  }
+
+  function expandExamForm(certId) {
+    var row = document.querySelector('.er-row[data-cert="' + certId + '"]');
+    if (!row) return;
+    var fmt = EXAM_FORMATS[certId] || { maxScore: 900, passScore: 720, examName: certId };
+    var result = (currentProfile && currentProfile.metadata && currentProfile.metadata.cert_results && currentProfile.metadata.cert_results[certId]) || null;
+    var initialStatus = (result && result.status) || 'passed';
+    var initialScore = (result && result.score != null) ? result.score : '';
+    var initialDate = (result && result.date) || new Date().toISOString().slice(0, 10);
+    var initialCentre = (result && result.centre) || '';
+
+    var formHtml = ''
+      + '<div class="er-form" data-cert-form="' + certId + '">'
+      +   '<div class="er-form-pass-toggle" role="tablist">'
+      +     '<button class="' + (initialStatus === 'passed' ? 'is-active passed' : '') + '" type="button" data-er-toggle="passed">✓ I passed</button>'
+      +     '<button class="' + (initialStatus === 'attempted' ? 'is-active failed' : '') + '" type="button" data-er-toggle="attempted">I attempted</button>'
+      +   '</div>'
+      +   '<div class="er-form-row">'
+      +     '<div class="er-field">'
+      +       '<label class="er-field-label">Your score</label>'
+      +       '<input class="er-field-input" type="number" min="0" max="' + fmt.maxScore + '" placeholder="e.g. ' + fmt.passScore + '" value="' + escapeHtml(String(initialScore)) + '" data-er-field="score">'
+      +       '<span class="er-field-help">Out of ' + fmt.maxScore + ' · pass ≥ ' + fmt.passScore + '</span>'
+      +     '</div>'
+      +     '<div class="er-field">'
+      +       '<label class="er-field-label">Date of exam</label>'
+      +       '<input class="er-field-input" type="date" value="' + escapeHtml(initialDate) + '" data-er-field="date">'
+      +       '<span class="er-field-help">Backdate fine — we believe you</span>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="er-form-row full">'
+      +     '<div class="er-field">'
+      +       '<label class="er-field-label">Test centre <em class="er-optional">(optional)</em></label>'
+      +       '<input class="er-field-input" type="text" placeholder="Pearson VUE / online proctor / centre name" value="' + escapeHtml(initialCentre) + '" data-er-field="centre">'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="er-form-actions">'
+      +     '<button class="er-btn er-btn-secondary" type="button" data-er-cancel>Cancel</button>'
+      +     '<button class="er-btn er-btn-primary" type="button" data-er-save="' + certId + '">Save result</button>'
+      +   '</div>'
+      + '</div>';
+    row.classList.add('is-expanded');
+    var existing = row.querySelector('.er-form');
+    if (existing) existing.remove();
+    row.insertAdjacentHTML('beforeend', formHtml);
+
+    // Wire pass/fail toggle in the new form
+    var formEl = row.querySelector('.er-form');
+    formEl.querySelectorAll('[data-er-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var kind = btn.getAttribute('data-er-toggle');
+        formEl.querySelectorAll('[data-er-toggle]').forEach(function (b) { b.classList.remove('is-active', 'passed', 'failed'); });
+        btn.classList.add('is-active', kind === 'passed' ? 'passed' : 'failed');
+      });
+    });
+    formEl.querySelector('[data-er-cancel]').addEventListener('click', function () { collapseExamForm(certId); });
+    formEl.querySelector('[data-er-save]').addEventListener('click', function () { handleSaveExamResult(certId); });
+  }
+
+  function collapseExamForm(certId) {
+    var row = document.querySelector('.er-row[data-cert="' + certId + '"]');
+    if (!row) return;
+    var form = row.querySelector('.er-form');
+    if (form) form.remove();
+    row.classList.remove('is-expanded');
+  }
+
+  function handleSaveExamResult(certId) {
+    var row = document.querySelector('.er-row[data-cert="' + certId + '"]');
+    if (!row || !currentUser) return;
+    var form = row.querySelector('.er-form');
+    if (!form) return;
+    var fmt = EXAM_FORMATS[certId] || { maxScore: 900, passScore: 720 };
+    var activeToggle = form.querySelector('[data-er-toggle].is-active');
+    var status = activeToggle ? activeToggle.getAttribute('data-er-toggle') : 'passed';
+    var score = parseInt(form.querySelector('[data-er-field="score"]').value, 10);
+    var date = form.querySelector('[data-er-field="date"]').value;
+    var centre = form.querySelector('[data-er-field="centre"]').value.trim();
+
+    if (!Number.isFinite(score) || score < 0 || score > fmt.maxScore) {
+      toast('Please enter a valid score between 0 and ' + fmt.maxScore + '.', 'error');
+      return;
+    }
+    if (!date) {
+      toast('Please enter the exam date.', 'error');
+      return;
+    }
+    // Sanity check: status=passed but score < passScore → confirm
+    if (status === 'passed' && score < fmt.passScore) {
+      if (!confirm('Score ' + score + '/' + fmt.maxScore + ' is below the pass cutoff (' + fmt.passScore + '). Mark as Attempted instead?')) return;
+      status = 'attempted';
+    }
+
+    var nowIso = new Date().toISOString();
+    var meta = (currentProfile && currentProfile.metadata) || {};
+    var certResults = meta.cert_results || {};
+    var prev = certResults[certId] || {};
+    certResults[certId] = {
+      status: status,
+      score: score,
+      max_score: fmt.maxScore,
+      pass_score: fmt.passScore,
+      date: date,
+      centre: centre || null,
+      created_at: prev.created_at || nowIso,
+      updated_at: nowIso
+    };
+    var nextMeta = Object.assign({}, meta, { cert_results: certResults });
+
+    supabase.from('profiles').update({ metadata: nextMeta }).eq('id', currentUser.id).then(function (r) {
+      if (r.error) {
+        console.error('[certanvil-account] cert result save failed', r.error);
+        toast('Couldn\'t save result. Try again.', 'error');
+        return;
+      }
+      currentProfile.metadata = nextMeta;
+      collapseExamForm(certId);
+      // Re-render the list to show the new state
+      if (elErList) elErList.innerHTML = renderExamResultsList((currentProfile && currentProfile.role) || 'user', currentProfile);
+      // Also refresh the entitlements list since its status reflects cert_results
+      if (elEntList) elEntList.innerHTML = renderEntitlements((currentProfile && currentProfile.role) || 'user', currentProfile);
+      // Wire the new edit buttons
+      wireExamResultButtons();
+      // Fire celebration modal — passed = confetti, attempted = encouragement
+      openExamResultModal(certId, certResults[certId]);
+    }).catch(function (err) {
+      console.error('[certanvil-account] cert result save threw', err);
+      toast('Couldn\'t save. Try again.', 'error');
+    });
+  }
+
+  function openExamResultModal(certId, result) {
+    var fmt = EXAM_FORMATS[certId] || { maxScore: 900, passScore: 720, examName: certId };
+    var cert = getCertEntitlements((currentProfile && currentProfile.role) || 'user').find(function (c) { return c.id === certId; }) || { name: certId, glyph: '?', glyphClass: '' };
+    var passed = result.status === 'passed';
+    var deltaText = '';
+    if (passed) {
+      var above = result.score - fmt.passScore;
+      deltaText = above + ' point' + (above === 1 ? '' : 's') + ' above the ' + fmt.passScore + ' cutoff';
+    } else {
+      var below = fmt.passScore - result.score;
+      deltaText = below + ' point' + (below === 1 ? '' : 's') + ' below the ' + fmt.passScore + ' cutoff';
+    }
+
+    // Build modal HTML — all inline so we don't need a static dialog element
+    var sprinkles = passed
+      ? '<div class="confetti-sprinkle" style="top:10%;left:8%;width:12px;height:12px;background:#22c55e;border-radius:2px;transform:rotate(20deg)"></div>'
+        + '<div class="confetti-sprinkle" style="top:20%;left:88%;width:10px;height:10px;background:#f472b6;border-radius:50%"></div>'
+        + '<div class="confetti-sprinkle" style="top:35%;left:14%;width:8px;height:14px;background:#fbbf24;transform:rotate(45deg)"></div>'
+        + '<div class="confetti-sprinkle" style="top:55%;left:90%;width:14px;height:8px;background:#7c6ff7;transform:rotate(15deg)"></div>'
+        + '<div class="confetti-sprinkle" style="top:70%;left:6%;width:10px;height:10px;background:#06b6d4"></div>'
+        + '<div class="confetti-sprinkle" style="top:80%;left:80%;width:12px;height:12px;background:#22c55e;border-radius:50%"></div>'
+        + '<div class="confetti-sprinkle" style="top:14%;left:50%;width:8px;height:8px;background:#f59e0b;border-radius:2px"></div>'
+        + '<div class="confetti-sprinkle" style="top:88%;left:48%;width:10px;height:10px;background:#a99df9;border-radius:50%"></div>'
+      : '';
+    var bodyHtml = passed
+      ? '<div class="confetti-burst">🎉</div>'
+        + '<div class="confetti-eyebrow">CERT PASSED</div>'
+        + '<h2 class="confetti-title">You crushed it.</h2>'
+        + '<p class="confetti-prose">' + escapeHtml(cert.name) + ' in the bag. Your tile on the home page just earned a Passed badge.</p>'
+        + '<div class="confetti-cert-card">'
+        +   '<div class="confetti-cert-row">'
+        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +     '<div style="flex:1">'
+        +       '<div class="confetti-cert-name">' + escapeHtml(fmt.examName) + '</div>'
+        +       '<div class="confetti-cert-sub">CompTIA scaled score</div>'
+        +     '</div>'
+        +     '<span class="confetti-score-pill">✓ ' + result.score + ' / ' + result.max_score + '</span>'
+        +   '</div>'
+        +   '<div class="confetti-meta">Passed ' + escapeHtml(result.date) + (result.centre ? ' · ' + escapeHtml(result.centre) : '') + ' · ' + deltaText + '</div>'
+        + '</div>'
+        + '<div class="confetti-actions">'
+        +   '<a class="confetti-btn confetti-btn-primary" href="/">View on home page →</a>'
+        +   '<button class="confetti-btn confetti-btn-secondary" data-erm-close>Close</button>'
+        + '</div>'
+      : '<div class="confetti-burst" style="font-size:48px">🎯</div>'
+        + '<div class="confetti-eyebrow att-eyebrow">ATTEMPT LOGGED</div>'
+        + '<h2 class="confetti-title">Close — and we mean it.</h2>'
+        + '<p class="confetti-prose">First-attempt fails are normal. Your study data is intact, your weak spots are mapped, and you have plenty of retake window left.</p>'
+        + '<div class="confetti-cert-card att-cert-card">'
+        +   '<div class="confetti-cert-row">'
+        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +     '<div style="flex:1">'
+        +       '<div class="confetti-cert-name">' + escapeHtml(fmt.examName) + '</div>'
+        +       '<div class="confetti-cert-sub">CompTIA scaled score</div>'
+        +     '</div>'
+        +     '<span class="confetti-score-pill">' + result.score + ' / ' + result.max_score + '</span>'
+        +   '</div>'
+        +   '<div class="confetti-meta">Attempted ' + escapeHtml(result.date) + ' · ' + deltaText + '</div>'
+        + '</div>'
+        + '<div class="att-encourage">🛡 You\'re eligible for the <strong>Pass Guarantee</strong>. Submit your booking confirmation + score report on the page below — we\'ll review your case within 7 days and extend your access until you pass.</div>'
+        + '<div class="confetti-actions">'
+        +   '<a class="confetti-btn confetti-btn-primary" href="/pricing.html#pass-guarantee?attempt=' + encodeURIComponent(certId) + '&score=' + result.score + '">Apply for Pass Guarantee →</a>'
+        +   '<button class="confetti-btn confetti-btn-secondary" data-erm-close>Keep practicing</button>'
+        + '</div>';
+    var modalHtml = ''
+      + '<div class="erm-backdrop" id="exam-result-modal-backdrop">'
+      +   sprinkles
+      +   '<div class="erm-modal' + (passed ? '' : ' is-attempted') + '" role="dialog" aria-modal="true" aria-labelledby="erm-title">'
+      +     bodyHtml
+      +   '</div>'
+      + '</div>';
+    var host = document.createElement('div');
+    host.innerHTML = modalHtml;
+    document.body.appendChild(host.firstChild);
+    document.body.style.overflow = 'hidden';
+
+    var backdrop = document.getElementById('exam-result-modal-backdrop');
+    function close() {
+      if (backdrop) backdrop.remove();
+      document.body.style.overflow = '';
+    }
+    backdrop.querySelectorAll('[data-erm-close]').forEach(function (b) { b.addEventListener('click', close); });
+    backdrop.addEventListener('click', function (e) {
+      if (e.target === backdrop) close();
+    });
+    document.addEventListener('keydown', function escClose(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escClose); }
+    });
+  }
+
+  function wireExamResultButtons() {
+    document.querySelectorAll('[data-er-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var certId = btn.getAttribute('data-er-edit');
+        expandExamForm(certId);
+      });
+    });
   }
 
   function renderCurrentSession() {
@@ -452,12 +775,14 @@
         if (elLoading) elLoading.setAttribute('hidden', '');
         if (elContent) elContent.removeAttribute('hidden');
         renderEverything(currentUser, currentProfile);
+        wireExamResultButtons();  // v4.93.0: wire after first render
       }).catch(function (err) {
         console.error('[certanvil-account] profile fetch failed', err);
         currentProfile = { role: 'user', display_name: null, metadata: {} };
         if (elLoading) elLoading.setAttribute('hidden', '');
         if (elContent) elContent.removeAttribute('hidden');
         renderEverything(currentUser, currentProfile);
+        wireExamResultButtons();
       });
     }).catch(function (err) {
       console.error('[certanvil-account] getSession failed', err);
