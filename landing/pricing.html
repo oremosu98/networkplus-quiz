@@ -93,9 +93,9 @@
         <div class="dropdown-email" id="dropdown-email">you@email.com</div>
         <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
       </div>
-      <a href="#" class="dropdown-link" role="menuitem"><span class="dropdown-link-icon" aria-hidden="true">⚙️</span><span>Account settings</span></a>
-      <a href="#" class="dropdown-link" role="menuitem"><span class="dropdown-link-icon" aria-hidden="true">🎓</span><span>My certs</span></a>
-      <a href="#" class="dropdown-link" role="menuitem"><span class="dropdown-link-icon" aria-hidden="true">📊</span><span>Cross-cert analytics</span></a>
+      <a href="/account" class="dropdown-link" role="menuitem" id="dropdown-account-settings"><span class="dropdown-link-icon" aria-hidden="true">⚙️</span><span>Account settings</span></a>
+      <a href="/?modal=my-certs" class="dropdown-link" role="menuitem" id="dropdown-my-certs"><span class="dropdown-link-icon" aria-hidden="true">🎓</span><span>My certs</span></a>
+      <a href="/?modal=analytics" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics"><span class="dropdown-link-icon" aria-hidden="true">📊</span><span>Cross-cert analytics</span></a>
       <div class="dropdown-divider" role="separator"></div>
       <a href="#" class="dropdown-link dropdown-link-danger" id="sign-out-link" role="menuitem"><span class="dropdown-link-icon" aria-hidden="true">↩</span><span>Sign out</span></a>
     </div>
@@ -313,7 +313,10 @@
 </div>
 
 <!-- Scripts (same order as index.html) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- v4.89.1: vendored locally instead of cdn.jsdelivr.net (CDN 503'd
+     intermittently — broke auth flow on landing). Local copy is identical
+     to v2.105.3 UMD bundle. -->
+<script src="lib/supabase-umd.min.js"></script>
 <script src="lib/supabase.js"></script>
 <script src="auth.js"></script>
 <script src="script.js"></script>
