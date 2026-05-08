@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.98.0
+   Network+ AI Quiz — styles.css  v4.98.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18740,9 +18740,123 @@ html { zoom: 1.10; }
 }
 .pht-dash-stub strong { color: #f59e0b; }
 
+/* ── v4.98.1: Smishing UI (phone frame) ── */
+.pht-sms-layout {
+  display: grid; grid-template-columns: 360px 1fr; gap: 18px;
+  margin-bottom: 14px;
+}
+@media (max-width: 920px) { .pht-sms-layout { grid-template-columns: 1fr; } }
+.pht-phone-frame {
+  background: #1a1a2e; border-radius: 32px;
+  padding: 14px 14px 28px 14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  max-width: 360px;
+  margin: 0 auto;
+}
+.pht-phone-screen {
+  background: #fff; border-radius: 22px;
+  overflow: hidden;
+  min-height: 520px;
+  display: flex; flex-direction: column;
+}
+.pht-phone-statusbar {
+  background: #f4f5fa; padding: 6px 16px; font-size: 10px;
+  color: #6b6b90; font-family: 'SF Mono', monospace;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pht-phone-app-h {
+  padding: 16px 16px 14px; border-bottom: 1px solid #e5e7f0;
+  text-align: center;
+}
+.pht-phone-app-h-name {
+  font-size: 14px; font-weight: 700; color: #1a1a2e;
+  margin-bottom: 4px;
+}
+.pht-phone-app-h-sub {
+  font-size: 10px; color: #6b6b90;
+  font-family: 'SF Mono', monospace;
+}
+.pht-phone-msg-list { flex: 1; padding: 16px; }
+.pht-phone-msg-bubble {
+  background: #f4f5fa; padding: 12px 14px;
+  border-radius: 18px 18px 18px 4px;
+  font-size: 13px; color: #1a1a2e; line-height: 1.6;
+  margin-bottom: 8px;
+  cursor: text;
+}
+.pht-phone-msg-bubble strong { color: #1a1a2e; font-weight: 700; }
+.pht-phone-msg-bubble .flag {
+  background: rgba(245,158,11,.20);
+  border-bottom: 2px dashed #f59e0b;
+  cursor: pointer;
+  padding: 1px 3px; border-radius: 3px;
+  transition: background .15s ease;
+}
+.pht-phone-msg-bubble .flag:hover { background: rgba(245,158,11,.32); }
+.pht-phone-msg-bubble .flag.is-tagged {
+  background: rgba(34,197,94,.28);
+  border-bottom-color: #22c55e;
+}
+.pht-phone-msg-bubble .flag.is-revealed-missed {
+  background: rgba(239,68,68,.22);
+  border-bottom-color: #ef4444;
+  border-bottom-style: solid;
+}
+.pht-phone-app-h-name .flag {
+  background: rgba(245,158,11,.20);
+  border-bottom: 2px dashed #f59e0b;
+  cursor: pointer;
+  padding: 1px 5px; border-radius: 3px;
+}
+.pht-phone-app-h-name .flag.is-tagged {
+  background: rgba(34,197,94,.28); border-bottom-color: #22c55e;
+}
+.pht-phone-app-h-name .flag.is-revealed-missed {
+  background: rgba(239,68,68,.22); border-bottom-color: #ef4444; border-bottom-style: solid;
+}
+.pht-phone-msg-time {
+  font-size: 10px; color: #6b6b90;
+  font-family: 'SF Mono', monospace;
+  margin-bottom: 12px; text-align: center;
+}
+
+/* SMS side panel */
+.pht-sms-side { display: flex; flex-direction: column; gap: 14px; }
+.pht-sms-decision-card {
+  background: var(--surface, #131320); border: 1px solid var(--border, #2e2e48);
+  border-radius: 12px; padding: 16px;
+}
+.pht-sms-decision-h {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-dim, #6b6b90); margin-bottom: 10px;
+}
+.pht-sms-decision-card .pht-decision-btn {
+  display: block; width: 100%; margin-bottom: 6px;
+}
+.pht-sms-tips {
+  background: rgba(22,163,74,.06); border: 1px solid rgba(22,163,74,.32);
+  border-radius: 10px; padding: 14px;
+}
+.pht-sms-tips-h {
+  font-size: 12px; font-weight: 800; color: #16a34a; margin-bottom: 8px;
+}
+.pht-sms-tips ul { list-style: none; padding: 0; margin: 0; }
+.pht-sms-tips ul li {
+  padding: 4px 0; padding-left: 16px;
+  font-size: 12px; color: var(--text-mid, #b0b0cc); line-height: 1.55;
+  position: relative;
+}
+.pht-sms-tips ul li::before {
+  content: '▸'; position: absolute; left: 4px; color: var(--text-dim, #6b6b90);
+}
+.pht-sms-tips ul li strong { color: #ef4444; }
+
 /* PHT reduced-motion gate */
 @media (prefers-reduced-motion: reduce) {
   .pht-scen-card, .pht-decision-btn, .pht-reveal-cta {
     transition: none !important; transform: none !important;
+  }
+  .pht-phone-msg-bubble .flag, .pht-phone-app-h-name .flag {
+    transition: none !important;
   }
 }

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.98.0
+// Network+ AI Quiz — app.js  v4.98.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.98.0';
+const APP_VERSION = '4.98.1';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -35187,12 +35187,13 @@ function phtRenderHome() {
   html += `<span class="pht-stat"><span class="pht-stat-num">${completedCount}</span><span class="pht-stat-label">Completed</span></span>`;
   html += `<span class="pht-stat"><span class="pht-stat-num">${PHT_DATA.length}</span><span class="pht-stat-label">Phish in bank</span></span>`;
   html += '</div>';
-  html += '<div class="pht-mode-notice">🎯 <strong>Practice mode</strong> · Click the red flags · Pick the right action · Reveal-on-submit. Smishing + vishing + quishing variants land in v4.98.1+. AI generator in v4.98.3.</div>';
+  html += '<div class="pht-mode-notice">🎯 <strong>Practice mode</strong> · Click the red flags · Pick the right action · Reveal-on-submit. Email + Smishing live; Vishing + Quishing land in v4.98.2. AI generator in v4.98.3.</div>';
 
-  // Vector filter (only email is live in v4.98.0)
+  // Vector filter — email + sms live in v4.98.1; voice/qr in v4.98.2
   html += '<div class="pht-variant-row">';
+  const liveVectors = ['email', 'sms'];
   Object.entries(PHT_VECTORS).forEach(([id, v]) => {
-    const isLive = id === 'email';  // v4.98.0: email-only
+    const isLive = liveVectors.includes(id);
     const count = PHT_DATA.filter(s => s.vector === id).length;
     if (isLive) {
       html += `<span class="pht-variant-pill is-active" style="--v-color:${v.color};">${v.icon} ${escHtml(v.name)} (${count})</span>`;
@@ -35253,7 +35254,12 @@ function phtStartScenario(scenarioId) {
   _phtWrongTags = [];
   _phtRevealed = false;
   _phtPickedDecision = null;
-  phtRenderEmailClient();
+  // v4.98.1: route to vector-specific renderer
+  if (scen.vector === 'sms') {
+    phtRenderSmsClient();
+  } else {
+    phtRenderEmailClient();
+  }
 }
 function phtRenderEmailClient() {
   const host = document.getElementById('pht-stage-host');
@@ -35329,6 +35335,98 @@ function phtRenderEmailClient() {
   host.innerHTML = html;
   if (host.scrollIntoView) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }
 }
+function phtRenderSmsClient() {
+  // v4.98.1: smishing UI — phone-frame mock with SMS bubble + decision panel.
+  const host = document.getElementById('pht-stage-host');
+  if (!host || !_phtActiveScenario) return;
+  const scen = _phtActiveScenario;
+  const totalFlags = scen.flags.length;
+  const tagged = _phtTaggedFlagIds.length;
+  const counterColor = _phtRevealed ? '#22c55e' : (tagged > 0 ? '#22c55e' : '#ef4444');
+
+  let html = '';
+  // Triage bar
+  html += '<div class="pht-triage-bar">';
+  html += '<div class="pht-tb-l">';
+  html += `<div class="pht-tb-counter" style="color:${counterColor};">${tagged}/${totalFlags}</div>`;
+  html += '<div>';
+  html += `<div class="pht-tb-label">Red flags tagged · 💬 Smishing · ${escHtml(scen.title)}</div>`;
+  html += `<div class="pht-tb-mode">Practice mode${_phtWrongTags.length > 0 && !_phtRevealed ? ` · ${_phtWrongTags.length} wrong tag${_phtWrongTags.length === 1 ? '' : 's'}` : ''}</div>`;
+  html += '</div></div>';
+  html += '</div>';
+
+  // Phone-frame layout (phone left + decision panel right on wide screens)
+  html += '<div class="pht-sms-layout">';
+
+  // Phone frame
+  html += '<div class="pht-phone-frame">';
+  html += '<div class="pht-phone-screen">';
+  // Status bar
+  html += '<div class="pht-phone-statusbar">';
+  html += '<span>9:14 AM</span>';
+  html += '<span>5G ◢◢◢ 87%</span>';
+  html += '</div>';
+  // App header (sender ID = first flag)
+  html += '<div class="pht-phone-app-h">';
+  // The senderId itself is potentially a flag — render with class="flag" data-fid="sender-id"
+  html += `<div class="pht-phone-app-h-name"><span class="flag" data-fid="sender-id" onclick="phtToggleFlag(event, 'sender-id')">${escHtml(scen.senderId || '+0 (000) 000-0000')}</span></div>`;
+  html += '<div class="pht-phone-app-h-sub">SMS / Text Message</div>';
+  html += '</div>';
+  // Message body
+  html += '<div class="pht-phone-msg-list">';
+  html += `<div class="pht-phone-msg-time">${escHtml(scen.time || 'Today')}</div>`;
+  // Process bodyHtml flag wiring
+  let processedBody = scen.bodyHtml || '';
+  processedBody = processedBody.replace(/<span class="flag" data-fid="([^"]+)"/g, (m, fid) => {
+    let cls = 'flag';
+    if (_phtTaggedFlagIds.includes(fid)) cls += ' is-tagged';
+    if (_phtRevealed && !_phtTaggedFlagIds.includes(fid)) cls += ' is-revealed-missed';
+    const onClickAttr = _phtRevealed ? '' : ` onclick="phtToggleFlag(event, '${fid}')"`;
+    return `<span class="${cls}" data-fid="${fid}"${onClickAttr}`;
+  });
+  html += `<div class="pht-phone-msg-bubble" onclick="phtBodyClick(event)">${processedBody}</div>`;
+  html += '</div>';
+  html += '</div></div>';
+
+  // Decision + smishing-flags-to-watch panel
+  html += '<div class="pht-sms-side">';
+  if (!_phtRevealed) {
+    html += '<div class="pht-sms-decision-card">';
+    html += '<div class="pht-sms-decision-h">📋 Decision</div>';
+    [
+      ['report', '🚨 Report + forward to 7726'],
+      ['delete', '🗑 Delete'],
+      ['reply', '↩ Reply'],
+      ['click', '🔗 Tap the link'],
+      ['spam', '📵 Block sender']
+    ].forEach(([act, label]) => {
+      html += `<button class="pht-decision-btn" style="text-align:left;" onclick="phtSubmitDecision('${act}')">${label}</button>`;
+    });
+    html += '</div>';
+  }
+  // Smishing flags-to-watch reference
+  html += '<div class="pht-sms-tips">';
+  html += '<div class="pht-sms-tips-h">💬 Smishing-specific flags</div>';
+  html += '<ul>';
+  html += '<li>Custom sender ID for unsolicited contact</li>';
+  html += '<li>Shortened URLs (bit.ly, tinyurl)</li>';
+  html += '<li>Tight time windows (30 min – 12h)</li>';
+  html += '<li>Reply-keyword fishing (YES / NO)</li>';
+  html += '<li>Callback number not on physical card</li>';
+  html += '<li><strong>NEVER share 2FA codes</strong></li>';
+  html += '</ul>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';  // close pht-sms-layout
+
+  // Reveal panel after decision
+  if (_phtRevealed) {
+    html += phtRenderReveal();
+  }
+  host.innerHTML = html;
+  if (host.scrollIntoView) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }
+}
+
 function phtBodyClick(ev) {
   // Capture body clicks NOT on a flag — count as wrong tags (over-tag penalty).
   if (_phtRevealed) return;

@@ -3922,6 +3922,360 @@ window.CERT_PACKS.secplus = {
       },
       patternName: 'Gift-card BEC (CEO impersonation)',
       patternBlurb: 'SY0-701 Domain 2.2. Gift-card BEC is the #1 most-attempted BEC variant globally. Defense: organisational policy that no exec ever requests gift cards via email + any unusual money movement requires out-of-band verification.'
+    },
+    // ──────────────────────────────────────────────────────────────────
+    // 7) DocuSign contract — brand impersonation + malicious attachment (v4.98.1)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'docusign-contract',
+      title: '"DocuSign" contract requires signature',
+      vector: 'email',
+      difficulty: 2,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Fake DocuSign envelope with "View Document" button leading to credential-harvest. Brand impersonation classic.',
+      sender: { name: 'DocuSign', email: 'no-reply@docusign-electronic-services.net', avatar: 'DS', avatarColor: '#FFCC22' },
+      subject: 'You have a document waiting for signature: Q4 Master Service Agreement',
+      to: 'recipient@corp.com',
+      time: '11:42',
+      bodyHtml: '<div style="background:#FFCC22;color:#000;padding:8px 14px;font-weight:bold;">DocuSign</div>' +
+        '<p><span class="flag" data-fid="f1">Hello,</span></p>' +
+        '<p>You have received a document that requires your signature:</p>' +
+        '<p style="background:#f7f8fc;padding:12px;border-radius:6px;font-family:monospace;">📄 Q4_Master_Service_Agreement_FINAL.docx<br>From: <span class="flag" data-fid="f2">Legal Team</span><br>Sent: today</p>' +
+        '<p><a href="#" style="background:#0079D6;color:#fff;padding:10px 22px;text-decoration:none;border-radius:4px;display:inline-block;font-weight:bold;"><span class="flag" data-fid="f3">VIEW DOCUMENT</span></a></p>' +
+        '<p style="font-size:11px;color:#888;"><span class="flag" data-fid="f4">This document expires in 24 hours.</span></p>' +
+        '<p style="font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;margin-top:14px;">DocuSign is the global leader in eSignature. <span class="flag" data-fid="f5">© 2023 DocuSign Inc.</span></p>',
+      attachments: [{ name: 'Q4_Master_Service_Agreement.htm', protected: false }],
+      flags: [
+        { id: 'f1', category: 'greeting', label: 'Generic greeting "Hello"', why: 'Real DocuSign emails address you by name + the specific document title from the sender. Generic "Hello" = template footprint.' },
+        { id: 'f2', category: 'sender-vague', label: 'Vague sender "Legal Team"', why: 'Real DocuSign envelopes show the actual sender\'s name + email. "Legal Team" is generic + unverifiable.' },
+        { id: 'f3', category: 'lookalike-url', label: 'Hover URL ≠ DocuSign', why: 'The "VIEW DOCUMENT" button hover reveals the real destination — a typosquat or credential-harvest URL. Real DocuSign links go to docusign.com / docusign.net.' },
+        { id: 'f4', category: 'urgency', label: '"Expires in 24 hours" urgency', why: 'Real DocuSign envelopes expire weeks out, not 24 hours. Tight deadlines = panic engineering.' },
+        { id: 'f5', category: 'branding', label: 'Outdated copyright year', why: 'Real DocuSign emails show the current year. Stale year = template was reused.' },
+        { id: 'f6', category: 'sender-mismatch', label: 'Lookalike domain (docusign-electronic-services.net)', why: 'Real DocuSign uses docusign.com / docusign.net. "Electronic-services" is a typosquat.' },
+        { id: 'f7', category: 'attachment-format', label: 'HTM attachment (not PDF)', why: 'DocuSign delivers via secure portal, not attachments. An HTM file is suspicious — likely a credential-harvest landing page that opens locally to evade scanners.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report to security', why: 'Correct call. DocuSign-themed phish is high-yield because employees expect contract emails. Security alerts org-wide + may detect a campaign.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t alert security. Same template likely hits other employees expecting contracts.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Replies to phish lookalike domains often route to attacker for follow-on social engineering.' },
+        click: { isCorrect: false, label: 'View the document', why: 'The "VIEW DOCUMENT" button opens a credential-harvest page mimicking the real DocuSign login. Always verify by logging in to docusign.com directly.' },
+        spam: { isCorrect: false, label: 'Mark as spam', why: 'Filters this but doesn\'t alert security or warn colleagues. Report instead.' }
+      },
+      patternName: 'Brand-impersonation phish (DocuSign)',
+      patternBlurb: 'SY0-701 Domain 2.2. Brand-impersonation phish exploits trust in known services. Defense: bookmark the real service URL + always log in via the bookmark to view documents — never via email links.'
+    },
+    // ──────────────────────────────────────────────────────────────────
+    // 8) GitHub security alert — dev-targeted (v4.98.1)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'github-security-alert',
+      title: '"GitHub" security alert · suspicious sign-in',
+      vector: 'email',
+      difficulty: 2,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Dev-targeted GitHub impersonation. "Sign-in attempt from new device" with link to fake login page.',
+      sender: { name: 'GitHub Security', email: 'security-alerts@github-noreply.com', avatar: 'GH', avatarColor: '#24292f' },
+      subject: '⚠ A sign-in to your account was attempted from a new device',
+      to: 'developer@corp.com',
+      time: '02:14',
+      bodyHtml: '<p style="font-family:Arial,sans-serif;background:#24292f;color:#fff;padding:8px 14px;font-weight:bold;">GitHub</p>' +
+        '<p><span class="flag" data-fid="f1">Hi developer,</span></p>' +
+        '<p>We noticed a new sign-in to your GitHub account from an unrecognized device:</p>' +
+        '<p style="background:#f7f8fc;padding:12px;border-radius:6px;font-family:monospace;">Device: <span class="flag" data-fid="f2">Linux · Chrome 89</span><br>Location: <span class="flag" data-fid="f3">Saint Petersburg, RU</span><br>IP: 5.61.32.108<br>Time: 02:08 UTC</p>' +
+        '<p>If this was you, no action is required. If this <strong>was NOT you</strong>:</p>' +
+        '<p><a href="#" style="background:#2da44e;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px;"><span class="flag" data-fid="f4">Secure my account →</span></a></p>' +
+        '<p style="font-size:11px;color:#888;">If you ignore this message, <span class="flag" data-fid="f5">your account access may be revoked within 12 hours</span> as a security measure.</p>' +
+        '<p style="font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;margin-top:14px;">GitHub Inc. · 88 Colin P Kelly Jr St, San Francisco, CA</p>',
+      attachments: [],
+      flags: [
+        { id: 'f1', category: 'greeting', label: 'Generic greeting "Hi developer"', why: 'Real GitHub emails use your username (e.g. "Hi @yourusername"). Generic "Hi developer" = template not pulling from actual account data.' },
+        { id: 'f2', category: 'detail-vague', label: 'Generic device fingerprint', why: 'Real GitHub shows specific device fingerprints — Chrome 89 is intentionally outdated to look plausible without being precise.' },
+        { id: 'f3', category: 'fear-appeal', label: 'Foreign location for fear', why: '"Saint Petersburg, RU" is engineered to trigger fear + click. Real GitHub shows the location but doesn\'t engineer it for emotional response.' },
+        { id: 'f4', category: 'lookalike-url', label: '"Secure my account" link', why: 'Hover reveals destination is NOT github.com. Real GitHub security links go to github.com/settings/security.' },
+        { id: 'f5', category: 'urgency', label: 'Threat: account access revoked in 12h', why: 'Real GitHub never threatens account revocation in this timeframe. Threats = social engineering.' },
+        { id: 'f6', category: 'sender-mismatch', label: 'Lookalike domain (github-noreply.com)', why: 'Real GitHub emails come from noreply@github.com or @github.com subdomains. "Github-noreply.com" is a separate domain.' },
+        { id: 'f7', category: 'header-anomaly', label: 'No DKIM/SPF alignment with github.com', why: 'Real GitHub email passes DMARC/DKIM. This message would fail those checks (visible in raw headers).' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report to security', why: 'Correct. Dev-targeted phish often spreads laterally — security alerts the dev team + may correlate with other activity.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t alert security. Could miss a campaign hitting multiple devs.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Confirms your address is live + monitored.' },
+        click: { isCorrect: false, label: 'Click "Secure my account"', why: 'Routes you to the credential-harvest page mimicking github.com/login. Always verify by logging in to github.com directly via your bookmark.' },
+        spam: { isCorrect: false, label: 'Mark as spam', why: 'Filters this but doesn\'t alert security. Report so dev team can be warned.' }
+      },
+      patternName: 'GitHub credential-harvest (dev-targeted)',
+      patternBlurb: 'SY0-701 Domain 2.2. Developers are high-value targets — GitHub creds unlock source repos + secrets. Defense: hardware MFA on all dev accounts + always navigate to github.com directly.'
+    },
+    // ──────────────────────────────────────────────────────────────────
+    // 9) AWS account suspended — cloud account takeover (v4.98.1)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'aws-account-suspended',
+      title: '"AWS" account suspension warning',
+      vector: 'email',
+      difficulty: 2,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: '"Your AWS account will be suspended" with link to fake AWS console. Targets cloud admins.',
+      sender: { name: 'AWS Notifications', email: 'no-reply@aws-notifications-billing.com', avatar: 'AW', avatarColor: '#FF9900' },
+      subject: '🚨 URGENT: Your AWS account will be suspended in 24 hours',
+      to: 'cloud-admin@corp.com',
+      time: '06:18',
+      bodyHtml: '<div style="background:#232F3E;color:#FF9900;padding:8px 14px;font-weight:bold;">aws</div>' +
+        '<p><span class="flag" data-fid="f1">Dear AWS Customer,</span></p>' +
+        '<p>We were unable to process your most recent payment for AWS services. Due to <span class="flag" data-fid="f2">multiple failed payment attempts</span>, your account is scheduled for <strong>suspension in 24 hours</strong>.</p>' +
+        '<p>Affected services include:</p>' +
+        '<ul style="font-family:monospace;font-size:12px;"><li>EC2 instances</li><li>RDS databases</li><li>S3 buckets</li><li>Route 53 DNS</li></ul>' +
+        '<p>To prevent service interruption, please update your billing details immediately:</p>' +
+        '<p><a href="#" style="background:#FF9900;color:#000;padding:10px 20px;text-decoration:none;border-radius:4px;font-weight:bold;"><span class="flag" data-fid="f3">Update Payment Details →</span></a></p>' +
+        '<p style="color:#dc2626;"><span class="flag" data-fid="f4">Failure to act will result in permanent data loss.</span></p>',
+      attachments: [],
+      flags: [
+        { id: 'f1', category: 'greeting', label: 'Generic greeting "Dear AWS Customer"', why: 'Real AWS billing emails address you by AWS account name + ID. Generic "Customer" = mass phish template.' },
+        { id: 'f2', category: 'fear-appeal', label: '"Multiple failed payment attempts"', why: 'Engineered to create panic. Real AWS billing failures send specific reason codes + the affected payment method, not vague "multiple attempts".' },
+        { id: 'f3', category: 'lookalike-url', label: '"Update Payment Details" link', why: 'Hover reveals destination is NOT aws.amazon.com. Real AWS billing links go to console.aws.amazon.com/billing.' },
+        { id: 'f4', category: 'fear-appeal', label: 'Threat: "permanent data loss"', why: 'Real AWS gives extensive notice before any suspension + data is preserved during dispute periods. "Permanent data loss" within 24h = social engineering.' },
+        { id: 'f5', category: 'sender-mismatch', label: 'Lookalike domain (aws-notifications-billing.com)', why: 'Real AWS uses @amazon.com or @aws.amazon.com. "Aws-notifications-billing.com" is registered as a phish domain.' },
+        { id: 'f6', category: 'urgency', label: '24-hour suspension threat', why: 'Real AWS suspensions involve longer timelines + multiple notification channels (console banner, email, billing dashboard).' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report to security', why: 'Correct. AWS-themed phish is high-impact because cloud admin creds unlock entire infrastructure. Security alerts cloud team + verifies billing via the actual console.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t alert security. Cloud team may want to confirm there\'s no actual billing issue via the real AWS console.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Confirms your address is monitored + may trigger more cloud-targeted phish.' },
+        click: { isCorrect: false, label: 'Update payment details', why: 'Routes you to a fake AWS console that captures your AWS root or admin credentials. Always log in to console.aws.amazon.com directly to check billing.' },
+        spam: { isCorrect: false, label: 'Mark as spam', why: 'Filters this but doesn\'t protect colleagues with cloud admin access.' }
+      },
+      patternName: 'AWS credential-harvest (cloud admin targeting)',
+      patternBlurb: 'SY0-701 Domain 2.2. Cloud admins are tier-zero targets. Defense: never act on cloud-billing emails — log in to the actual provider console via your bookmark.'
+    },
+    // ──────────────────────────────────────────────────────────────────
+    // 10) HR benefits enrolment — credential harvest (v4.98.1, foundational)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'hr-benefits-enrolment',
+      title: '"HR" benefits enrolment closing reminder',
+      vector: 'email',
+      difficulty: 1,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Fake HR portal link to capture employee SSO credentials. Foundational phish — easy to spot if you check.',
+      sender: { name: 'HR Benefits Team', email: 'benefits@corp-hr-portal.net', avatar: 'HR', avatarColor: '#22c55e' },
+      subject: 'REMINDER: Benefits enrolment closes Friday — action required',
+      to: 'employee@corp.com',
+      time: '13:08',
+      bodyHtml: '<p><span class="flag" data-fid="f1">Hi Team Member,</span></p>' +
+        '<p>This is a friendly reminder that benefits enrolment for the upcoming year closes <strong>this Friday</strong>. Please log in to the HR portal to confirm your selections:</p>' +
+        '<p><a href="#" style="background:#22c55e;color:#fff;padding:9px 18px;text-decoration:none;border-radius:6px;font-weight:bold;"><span class="flag" data-fid="f2">Open Benefits Portal →</span></a></p>' +
+        '<p>If you don\'t complete enrolment by the deadline, your selections from last year will be carried over and <span class="flag" data-fid="f3">cannot be changed for 12 months</span>.</p>' +
+        '<p>For questions, please <span class="flag" data-fid="f4">reply to this email</span> and our team will assist.</p>' +
+        '<p>Best regards,<br>HR Benefits Team</p>',
+      attachments: [],
+      flags: [
+        { id: 'f1', category: 'greeting', label: 'Generic greeting "Hi Team Member"', why: 'Real corp HR uses your full name + employee ID. "Team Member" = template not pulling from HR data.' },
+        { id: 'f2', category: 'lookalike-url', label: 'Hover URL ≠ HR portal', why: 'The "Open Benefits Portal" button hover reveals a typosquat URL, not your real corp HR portal at hr.corp.com or similar.' },
+        { id: 'f3', category: 'fear-appeal', label: 'Lock-in threat: 12 months', why: 'Real HR processes have grace periods + manager override. "Cannot be changed for 12 months" is engineered fear.' },
+        { id: 'f4', category: 'reply-trap', label: '"Reply to this email" reply-loop', why: 'Routes responses to attacker who continues social engineering. Real HR has a portal ticket system + known phone number.' },
+        { id: 'f5', category: 'sender-mismatch', label: 'External sender (corp-hr-portal.net)', why: 'Real corp HR emails come from corp.com domain. "Corp-hr-portal.net" is external + likely typosquat.' },
+        { id: 'f6', category: 'urgency', label: 'Friday deadline pressure', why: 'Tight deadline + emotional benefits-loss = panic-click. Verify enrolment status via your real HR portal.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report to security', why: 'Correct. HR-themed phish is widespread because everyone gets HR emails. Security alerts org-wide + correlates with any other HR activity.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t alert security. Colleagues may also be targeted with the same template.' },
+        reply: { isCorrect: false, label: 'Reply for help', why: 'Routes to the attacker who will continue social engineering.' },
+        click: { isCorrect: false, label: 'Open the portal', why: 'Routes to credential-harvest page mimicking your real HR portal. Always navigate to your real HR portal via the company directory or bookmark.' },
+        spam: { isCorrect: false, label: 'Mark as spam', why: 'Partial — doesn\'t alert HR or security to the campaign.' }
+      },
+      patternName: 'HR-themed credential phish',
+      patternBlurb: 'SY0-701 Domain 2.2. HR phish is mass-deployed because every employee gets HR emails. Defense: bookmark + always navigate to corp HR portal directly — never via email links.'
+    },
+    // ──────────────────────────────────────────────────────────────────
+    // ════════════════════════ SMISHING (v4.98.1) ════════════════════
+    // 6 SMS phish · vector: 'sms' · phone-frame UI in app.js
+    // ──────────────────────────────────────────────────────────────────
+    // 11) Bank fraud SMS — the canonical (mockup state 5)
+    {
+      id: 'bank-fraud-smish',
+      title: 'Bank "fraud alert" smish',
+      vector: 'sms',
+      difficulty: 2,
+      unlockAfter: [],
+      category: 'callback-scam',
+      summary: 'SMS impersonating bank with fake fraud alert + reply-keyword + short link.',
+      senderId: 'BANK-ALERT',
+      time: 'Today · 9:13 AM',
+      bodyHtml: '<span class="flag" data-fid="f1">🚨 ALERT</span>: We detected a suspicious charge of <strong>$487.00</strong> on your debit card ending 4271. <span class="flag" data-fid="f2">Reply YES if authorized, NO if fraud.</span><br><br>Or visit: <span class="flag" data-fid="f3">bit.ly/cap-fraud-7K2x</span><br><br><span class="flag" data-fid="f4">Failure to respond within 30 min</span> will result in card lock. <span class="flag" data-fid="f5">Call back: 1-800-FAKE-BANK</span>',
+      flags: [
+        { id: 'f1', category: 'urgency', label: 'Visual alarm "🚨 ALERT"', why: 'Real bank fraud alerts come via the bank app, not SMS. Visual alarm + emoji is engineered for emotional response.' },
+        { id: 'f2', category: 'reply-trap', label: 'Reply-keyword fishing', why: 'Replying YES/NO confirms your number is monitored + signals to scammer that you\'re reachable. Real banks never ask you to reply YES/NO via SMS for fraud.' },
+        { id: 'f3', category: 'shortened-url', label: 'Shortened URL (bit.ly)', why: 'Hides the real destination. Banks never use third-party URL shorteners for fraud alerts.' },
+        { id: 'f4', category: 'urgency', label: '30-minute deadline', why: 'Real banks freeze cards automatically + give days/weeks to dispute. 30 min = engineered panic.' },
+        { id: 'f5', category: 'callback-scam', label: 'Callback number not on physical card', why: 'Real bank fraud-alerts direct you to the number on your physical card. The number in the SMS routes to the scam call center.' },
+        { id: 'f6', category: 'sender-id-mismatch', label: 'Custom sender ID "BANK-ALERT"', why: 'Real banks send via your registered short code or actual bank phone number, not custom-branded sender IDs.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + forward as phish', why: 'Correct. Forward to 7726 (SPAM) + your security team. Verify any actual card activity via your bank\'s official app.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t alert security or carrier. Forward to 7726 instead.' },
+        reply: { isCorrect: false, label: 'Reply YES', why: 'Confirms your number is live + reachable. Scammer escalates with follow-on calls/SMS.' },
+        click: { isCorrect: false, label: 'Tap the link', why: 'Routes to credential-harvest page mimicking your bank login. Always log in via the bank\'s official app.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Step in the right direction but doesn\'t alert security or carrier. Forward to 7726 first, then block.' }
+      },
+      patternName: 'Smishing (callback scam)',
+      patternBlurb: 'SY0-701 Domain 2.2. SMS-based phish bypass email defenses entirely. Defense: never act on SMS for financial/account changes — verify via the official app + the number on your physical card.'
+    },
+    // 12) Package delivery SMS
+    {
+      id: 'package-delivery-smish',
+      title: 'USPS package delivery failure smish',
+      vector: 'sms',
+      difficulty: 1,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Fake package delivery failure with link to "reschedule" → credential capture.',
+      senderId: '+1 (959) 555-0142',
+      time: 'Today · 11:32 AM',
+      bodyHtml: '<span class="flag" data-fid="f1">USPS</span>: Your package <strong>USPS9X3K-471</strong> could not be delivered due to <span class="flag" data-fid="f2">incomplete address</span>. To reschedule delivery, please update your details: <span class="flag" data-fid="f3">tinyurl.com/usps-resched-1471</span><br><br><span class="flag" data-fid="f4">Action required within 24 hours</span> to avoid return-to-sender.',
+      flags: [
+        { id: 'f1', category: 'sender-id-mismatch', label: 'Branded "USPS" from random number', why: 'Real USPS sends from registered shortcodes, not random 10-digit numbers. The brand-name in the message body is a sender-trust hack.' },
+        { id: 'f2', category: 'detail-vague', label: 'Vague "incomplete address" reason', why: 'Real USPS gives specific reasons (apartment number missing, etc.). Vague reasons = generic phish template.' },
+        { id: 'f3', category: 'shortened-url', label: 'Shortened URL (tinyurl)', why: 'Hides destination. Real USPS uses usps.com/redelivery — never URL shorteners.' },
+        { id: 'f4', category: 'urgency', label: '24-hour return threat', why: 'Real USPS gives 5-15 business days. Tight deadline = panic engineering.' },
+        { id: 'f5', category: 'unsolicited', label: 'You weren\'t expecting a package', why: 'If you didn\'t order anything, the SMS is for someone else (or it\'s phish). Mass-send = phish.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + forward to 7726', why: 'Correct. USPS-themed smishing is one of the most common SMS phish in the US. Forwarding to 7726 helps carriers block the campaign.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Forward to 7726 first so carrier can act.' },
+        reply: { isCorrect: false, label: 'Reply for help', why: 'Confirms your number is monitored.' },
+        click: { isCorrect: false, label: 'Reschedule via the link', why: 'Routes to credential-harvest page or installs malware on your phone.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Number rotates. Forward to 7726 first.' }
+      },
+      patternName: 'Smishing (package delivery scam)',
+      patternBlurb: 'SY0-701 Domain 2.2. Package smishing exploits everyone\'s ambiguity ("did I order something?"). Defense: track packages via the carrier\'s official app, never via SMS links.'
+    },
+    // 13) IRS tax refund SMS
+    {
+      id: 'irs-refund-smish',
+      title: '"IRS" tax refund SMS scam',
+      vector: 'sms',
+      difficulty: 1,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Fake IRS tax refund notice. Government impersonation always = scam.',
+      senderId: '+1 (202) 555-0418',
+      time: 'Today · 2:14 PM',
+      bodyHtml: '<span class="flag" data-fid="f1">IRS</span>: You are eligible for a <strong>$1,247 tax refund</strong>. <span class="flag" data-fid="f2">Click below to claim:</span><br><br><span class="flag" data-fid="f3">irs-refund-claim.gov-services.com</span><br><br><span class="flag" data-fid="f4">Reference: REF-2024-X371</span>',
+      flags: [
+        { id: 'f1', category: 'sender-id-mismatch', label: 'Branded "IRS" from regular number', why: 'The IRS does NOT contact taxpayers via SMS — ever. Any "IRS" SMS is 100% phish.' },
+        { id: 'f2', category: 'click-pressure', label: '"Click below to claim" pressure', why: 'Real refunds arrive via direct deposit or check, never via "click to claim" links.' },
+        { id: 'f3', category: 'lookalike-url', label: 'Lookalike domain (gov-services.com)', why: 'Real IRS uses irs.gov ONLY. "Gov-services.com" is a typosquat designed to look official.' },
+        { id: 'f4', category: 'fake-reference', label: 'Fake reference number', why: 'Specific-looking reference designed to feel official. Real IRS notices reference your specific tax year + filing.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + forward to 7726 + IRS', why: 'Correct. The IRS has a phishing report email (phishing@irs.gov). Forward AND alert security.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t help others. Report to 7726 + irs.gov phishing.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Confirms your number is reachable.' },
+        click: { isCorrect: false, label: 'Click to claim', why: 'Routes to credential-harvest. Real IRS uses postal mail; never SMS or email for refunds.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Number rotates daily. Report first.' }
+      },
+      patternName: 'Government-impersonation smishing',
+      patternBlurb: 'SY0-701 Domain 2.2. Critical fact: <strong>The IRS NEVER contacts taxpayers via SMS or email about refunds.</strong> Any SMS claiming to be IRS = 100% phish.'
+    },
+    // 14) Microsoft 2FA code SMS
+    {
+      id: 'ms-2fa-smish',
+      title: '"Microsoft" 2FA code request smish',
+      vector: 'sms',
+      difficulty: 2,
+      unlockAfter: ['bank-fraud-smish'],
+      category: 'mfa-fatigue',
+      summary: 'Fake Microsoft 2FA notice asking you to forward your code. Critical: never share 2FA codes.',
+      senderId: 'Microsoft',
+      time: 'Today · 10:18 AM',
+      bodyHtml: '<span class="flag" data-fid="f1">Microsoft</span>: Your verification code is <strong>738291</strong>. <span class="flag" data-fid="f2">If you did not request this, please reply with your code</span> so we can verify and block the request.<br><br>For your security, do not share this code with anyone.',
+      flags: [
+        { id: 'f1', category: 'sender-id-mismatch', label: 'Branded sender ID "Microsoft"', why: 'Real Microsoft 2FA codes come via the Authenticator app or registered short code. Sender ID can be spoofed.' },
+        { id: 'f2', category: 'mfa-fatigue', label: 'Asking you to "reply with your code"', why: 'CRITICAL: Microsoft NEVER asks you to share 2FA codes — even with their support. The whole purpose of 2FA is that the code stays with you.' },
+        { id: 'f3', category: 'self-contradiction', label: 'Self-contradicting message', why: '"Reply with your code" + "do not share with anyone" is internal contradiction designed to confuse + bypass critical thinking.' },
+        { id: 'f4', category: 'social-engineering', label: '"Block the request" framing', why: 'Frames sharing the code as the secure action, when it\'s the opposite. Cognitive judo.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + change Microsoft password', why: 'Correct. The fact that you got a real Microsoft 2FA code means an attacker has your password. Report + change immediately + check sign-in history.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t address the underlying issue: an attacker has your password. Investigate first.' },
+        reply: { isCorrect: false, label: 'Reply with the code', why: 'Hands the attacker your account. NEVER share 2FA codes. Microsoft never asks.' },
+        click: { isCorrect: false, label: 'Click any link', why: 'No link in this one — but the trap is replying. The entire point is the reply-with-code social engineering.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Doesn\'t fix the underlying password compromise. Report + change password.' }
+      },
+      patternName: 'MFA-fatigue smishing (code-share scam)',
+      patternBlurb: 'SY0-701 Domain 2.2. CRITICAL RULE: NEVER share 2FA codes with anyone — including support, IT, or the company itself. The purpose of 2FA is the code stays with you.'
+    },
+    // 15) Apple ID locked SMS
+    {
+      id: 'apple-id-locked-smish',
+      title: '"Apple" ID locked smish',
+      vector: 'sms',
+      difficulty: 1,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: '"Your Apple ID was locked" with link to fake Apple sign-in page.',
+      senderId: '+1 (888) 555-0237',
+      time: 'Today · 8:42 AM',
+      bodyHtml: '<span class="flag" data-fid="f1">Apple</span>: Your Apple ID has been <span class="flag" data-fid="f2">locked due to suspicious activity</span>. To unlock, verify your identity at <span class="flag" data-fid="f3">apple-id-verify.com</span> within <span class="flag" data-fid="f4">12 hours</span> or your account will be permanently disabled.',
+      flags: [
+        { id: 'f1', category: 'sender-id-mismatch', label: 'Branded "Apple" from regular number', why: 'Real Apple sends ID-related notifications via push to your devices, not SMS from random numbers.' },
+        { id: 'f2', category: 'fear-appeal', label: '"Suspicious activity" panic', why: 'Engineered fear. Real Apple security uses neutral language + provides specific device fingerprints.' },
+        { id: 'f3', category: 'lookalike-url', label: 'Lookalike domain (apple-id-verify.com)', why: 'Real Apple uses apple.com / appleid.apple.com. "Apple-id-verify.com" is a typosquat.' },
+        { id: 'f4', category: 'urgency', label: '12-hour permanent-disable threat', why: 'Real Apple gives 30+ days + multiple notification channels. Real ID locks are reversible via Apple Support.' },
+        { id: 'f5', category: 'unsolicited', label: 'No corresponding alert in Apple ID page', why: 'If your Apple ID is actually locked, you\'ll see an alert in your Apple ID settings on your device. No alert = no real lock.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + forward to 7726', why: 'Correct. Apple-themed phish is widespread + Apple has a phish report (reportphishing@apple.com).' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t help carrier-level phish blocking. Forward to 7726 first.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Confirms your number is reachable.' },
+        click: { isCorrect: false, label: 'Verify identity', why: 'Routes to credential-harvest mimicking the real Apple ID sign-in page.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Number rotates. Report first.' }
+      },
+      patternName: 'Apple ID smishing (credential harvest)',
+      patternBlurb: 'SY0-701 Domain 2.2. Apple ID smishing is high-yield because Apple IDs unlock email + iCloud + Find My + payment. Defense: check Apple ID status only via your device\'s Settings → Apple ID.'
+    },
+    // 16) Verizon billing dispute SMS
+    {
+      id: 'verizon-billing-smish',
+      title: '"Verizon" billing dispute smish',
+      vector: 'sms',
+      difficulty: 2,
+      unlockAfter: [],
+      category: 'credential-harvest',
+      summary: 'Fake Verizon overcharge dispute with link to "verify account". Telco impersonation classic.',
+      senderId: 'Verizon',
+      time: 'Today · 4:18 PM',
+      bodyHtml: '<span class="flag" data-fid="f1">Verizon</span>: Your account has been <span class="flag" data-fid="f2">overcharged $147.53</span> on your latest billing cycle. To dispute and request a refund, please verify your account at <span class="flag" data-fid="f3">myverizon-billing-refund.com</span><br><br><span class="flag" data-fid="f4">Refund request expires in 48 hours.</span>',
+      flags: [
+        { id: 'f1', category: 'sender-id-mismatch', label: 'Branded sender "Verizon"', why: 'Real Verizon sends from VZW or VRZN registered short codes, not free-text sender IDs.' },
+        { id: 'f2', category: 'specific-amount', label: 'Specific overcharge amount', why: 'Crafted to feel real ($147.53 sounds plausible). Real Verizon billing disputes happen via the My Verizon app, not SMS.' },
+        { id: 'f3', category: 'lookalike-url', label: 'Lookalike domain (myverizon-billing-refund)', why: 'Real Verizon uses verizon.com / verizonwireless.com. "Myverizon-billing-refund.com" is a typosquat.' },
+        { id: 'f4', category: 'urgency', label: '48-hour refund expiry', why: 'Real Verizon refunds don\'t expire that fast. Manufactured urgency.' },
+        { id: 'f5', category: 'unsolicited', label: 'No corresponding alert in My Verizon app', why: 'Real billing issues show up in the carrier app first. No app alert = no real issue.' }
+      ],
+      correctAction: 'report',
+      decisionReveal: {
+        report: { isCorrect: true, label: 'Report + forward to 7726', why: 'Correct. Telco-themed smishing affects every customer. Forwarding to 7726 helps the carrier block the campaign.' },
+        delete: { isCorrect: false, label: 'Delete', why: 'Doesn\'t help carrier-level blocking. Forward to 7726.' },
+        reply: { isCorrect: false, label: 'Reply', why: 'Confirms your number is reachable + signals attacker that you engage with SMS.' },
+        click: { isCorrect: false, label: 'Verify account', why: 'Routes to credential-harvest mimicking your carrier\'s sign-in page. Always log in via the official My Verizon app.' },
+        spam: { isCorrect: false, label: 'Block sender', why: 'Number rotates. Report first.' }
+      },
+      patternName: 'Telco-impersonation smishing',
+      patternBlurb: 'SY0-701 Domain 2.2. Telco smishing exploits everyone-has-a-phone. Defense: check billing only via the carrier\'s official app — never via SMS links.'
     }
   ],
   phishingLessons: [
@@ -3976,6 +4330,21 @@ window.CERT_PACKS.secplus = {
         { name: 'Authoritative impersonation', detail: 'Bank, Microsoft, IRS, Apple — institutions you instinctively trust + answer for.' },
         { name: '"Don\'t click any links" misdirection', detail: 'Sounds responsible but is the hook — drives you to phone the scammer instead.' },
         { name: 'Defense: verify via official channel only', detail: 'Bank: call the number on your card. SaaS: log in to the official app. IRS: never calls you. Trust nothing in the email\'s phone number.' }
+      ]
+    },
+    {
+      id: 'smishing-redflags',
+      title: 'Smishing — vector-specific tells (SMS)',
+      summary: 'SMS phish ("smishing") uses vector-unique tactics that don\'t apply to email. Specific defenses required.',
+      flags: [
+        { name: 'Custom sender ID for unsolicited contact', detail: 'Real banks/brands send from their registered short codes (e.g. 692-26 for Bank of America). Custom-branded sender names ("BANK-ALERT", "Apple") for unsolicited fraud-alerts = phish.' },
+        { name: 'Shortened URLs (bit.ly, tinyurl, t.co)', detail: 'Hide the real destination. Legitimate orgs never use third-party URL shorteners for security-critical SMS.' },
+        { name: 'Reply-keyword fishing (YES/NO)', detail: 'Replying confirms your number is monitored + reachable. Real banks never ask YES/NO replies for fraud.' },
+        { name: 'Tight deadlines', detail: '"30 min", "12 hours", "24 hours" — much tighter than email phish (which uses days). Designed to force panic-action.' },
+        { name: 'Callback number not on physical card', detail: 'Real bank fraud alerts direct you to the number on the back of your card. Numbers in SMS = scam call center.' },
+        { name: '"IRS / government" via SMS = always phish', detail: 'CRITICAL: The IRS NEVER contacts taxpayers via SMS. Any "IRS" text = 100% phish. Same for SSA, Medicare, etc.' },
+        { name: 'NEVER share 2FA codes via SMS', detail: 'CRITICAL: No legitimate company will ever ask you to share or forward a 2FA code — even Microsoft, Apple, your bank. The code stays with you.' },
+        { name: 'Defense: forward to 7726 (SPAM) + use official app', detail: 'In the US, forward to 7726. Verify any account/financial issue via the official app — never via SMS links.' }
       ]
     }
   ]

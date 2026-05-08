@@ -301,7 +301,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.98.0', js.includes("const APP_VERSION = '4.98.0"));
+test('APP_VERSION is 4.98.1', js.includes("const APP_VERSION = '4.98.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +315,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.98.0', sw.includes('netplus-v4.98.0'));
+test('SW cache bumped to v4.98.1', sw.includes('netplus-v4.98.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17149,14 +17149,12 @@ test('v4.98.0 PHT: secplus.js declares phishingVectors (4 vectors)',
   certSecplus.includes('phishingVectors:') &&
   /'email'/.test(certSecplus) && /'sms'/.test(certSecplus) &&
   /'voice'/.test(certSecplus) && /'qr'/.test(certSecplus));
-test('v4.98.0 PHT: 6 email phish at v1',
+test('v4.98.1 PHT: 16 phish total (10 email + 6 SMS) at v4.98.1',
   (() => {
-    // phishingScenarios is followed by phishingLessons in the secplus pack;
-    // match the scenarios block specifically.
     const m = certSecplus.match(/phishingScenarios:\s*\[([\s\S]+?)phishingLessons:/);
     if (!m) return false;
     const ids = m[1].match(/^      id: '[a-z][a-z0-9-]+',/gm) || [];
-    return ids.length === 6;
+    return ids.length === 16;
   })());
 test('v4.98.0 PHT: 6 phish IDs (cfo-bec / ms-password / vendor-invoice / it-mfa / bank-fraud / ceo-gift-card)',
   /id:\s*'cfo-bec-wire-fraud'/.test(certSecplus) &&
@@ -17233,6 +17231,83 @@ test('v4.98.0 PHT: cfo-bec-wire-fraud has all 5 decisionReveal options',
   /id:\s*'cfo-bec-wire-fraud'[\s\S]{0,15000}decisionReveal:\s*\{[\s\S]{0,3000}report:[\s\S]{0,500}delete:[\s\S]{0,500}reply:[\s\S]{0,500}click:[\s\S]{0,500}spam:/.test(certSecplus));
 test('v4.98.0 PHT: PHT reduced-motion gate present',
   /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]{0,2000}\.pht-/.test(css));
+
+// ============================================================================
+// v4.98.1 — PHT Batch 2/4: +4 email + smishing variant (SMS UI + 6 SMS phish)
+// ============================================================================
+test('v4.98.1 PHT: 4 new email phish (docusign, github, aws-suspended, hr-benefits)',
+  /id:\s*'docusign-contract'/.test(certSecplus) &&
+  /id:\s*'github-security-alert'/.test(certSecplus) &&
+  /id:\s*'aws-account-suspended'/.test(certSecplus) &&
+  /id:\s*'hr-benefits-enrolment'/.test(certSecplus));
+test('v4.98.1 PHT: 6 new SMS phish (bank-fraud, package, irs, ms-2fa, apple-id, verizon)',
+  /id:\s*'bank-fraud-smish'/.test(certSecplus) &&
+  /id:\s*'package-delivery-smish'/.test(certSecplus) &&
+  /id:\s*'irs-refund-smish'/.test(certSecplus) &&
+  /id:\s*'ms-2fa-smish'/.test(certSecplus) &&
+  /id:\s*'apple-id-locked-smish'/.test(certSecplus) &&
+  /id:\s*'verizon-billing-smish'/.test(certSecplus));
+test('v4.98.1 PHT: SMS phish use vector "sms"',
+  (() => {
+    // Match top-level scenario `vector: 'sms',` lines (6-space indent, comma-terminated)
+    const m = certSecplus.match(/phishingScenarios:\s*\[([\s\S]+?)phishingLessons:/);
+    if (!m) return false;
+    const smsCount = (m[1].match(/^      vector:\s*'sms',/gm) || []).length;
+    return smsCount === 6;
+  })());
+test('v4.98.1 PHT: smishing lesson card added',
+  /id:\s*'smishing-redflags'/.test(certSecplus));
+test('v4.98.1 PHT: 5 lesson cards now (was 4)',
+  (() => {
+    const m = certSecplus.match(/phishingLessons:\s*\[([\s\S]+)$/);
+    if (!m) return false;
+    const ids = m[1].match(/^    \{\s*\n?\s*id:\s*'[a-z-]+'/gm) || [];
+    // Fallback simpler: count lesson 'id:' entries with 4-space indent
+    if (ids.length === 0) {
+      const ids2 = m[1].match(/^      id:\s*'[a-z-]+'/gm) || [];
+      return ids2.length === 5;
+    }
+    return ids.length === 5;
+  })());
+test('v4.98.1 PHT: phtRenderSmsClient function exists',
+  /function phtRenderSmsClient\(/.test(js));
+test('v4.98.1 PHT: phtStartScenario routes to SMS renderer when vector === sms',
+  /function phtStartScenario[\s\S]{0,1000}vector === 'sms'[\s\S]{0,200}phtRenderSmsClient/.test(js));
+test('v4.98.1 PHT: SMS renderer uses phone-frame UI',
+  /function phtRenderSmsClient[\s\S]{0,3000}pht-phone-frame[\s\S]{0,500}pht-phone-screen/.test(js));
+test('v4.98.1 PHT: home screen marks email + sms as live (not soon)',
+  /const liveVectors\s*=\s*\['email',\s*'sms'\]/.test(js));
+test('v4.98.1 PHT: ms-2fa-smish has 2FA-share critical warning in patternBlurb',
+  /id:\s*'ms-2fa-smish'[\s\S]{0,4000}NEVER share 2FA codes/.test(certSecplus));
+test('v4.98.1 PHT: irs-refund-smish notes IRS never SMSes',
+  /id:\s*'irs-refund-smish'[\s\S]{0,4000}IRS NEVER contacts/.test(certSecplus));
+test('v4.98.1 PHT: SMS phish use senderId field (not sender object)',
+  (() => {
+    const m = certSecplus.match(/id:\s*'bank-fraud-smish'[\s\S]{0,4000}/);
+    if (!m) return false;
+    return /senderId:\s*'BANK-ALERT'/.test(m[0]);
+  })());
+test('v4.98.1 PHT: .pht-phone-frame CSS (phone shell)',
+  /\.pht-phone-frame\s*\{/.test(css));
+test('v4.98.1 PHT: .pht-phone-screen CSS (white interior)',
+  /\.pht-phone-screen\s*\{/.test(css));
+test('v4.98.1 PHT: .pht-phone-msg-bubble CSS (SMS bubble)',
+  /\.pht-phone-msg-bubble\s*\{/.test(css));
+test('v4.98.1 PHT: .pht-phone-msg-bubble flag click-to-tag CSS',
+  /\.pht-phone-msg-bubble \.flag/.test(css));
+test('v4.98.1 PHT: .pht-sms-tips smishing-flags reference panel',
+  /\.pht-sms-tips\s*\{/.test(css));
+test('v4.98.1 PHT: phone-frame reduced-motion gate',
+  /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]{0,3000}\.pht-phone-msg-bubble/.test(css));
+test('v4.98.1 PHT: ms-2fa-smish locked behind bank-fraud-smish',
+  /id:\s*'ms-2fa-smish'[\s\S]{0,500}unlockAfter:\s*\['bank-fraud-smish'\]/.test(certSecplus));
+test('v4.98.1 PHT: total flags ≥ 80 across 16 phish',
+  (() => {
+    const m = certSecplus.match(/phishingScenarios:\s*\[([\s\S]+?)phishingLessons:/);
+    if (!m) return false;
+    const flags = m[1].match(/\{ id:\s*'f\d+'/g) || [];
+    return flags.length >= 80;
+  })());
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
