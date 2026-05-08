@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.98.4
+   Network+ AI Quiz — styles.css  v4.98.5
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17817,13 +17817,37 @@ html { zoom: 1.10; }
   transition: transform .2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .2s ease, box-shadow .2s ease;
 }
 .irw-scen-card:hover { transform: translateY(-2px); border-color: rgba(239,68,68,.32); box-shadow: 0 8px 28px rgba(239,68,68,.12); }
-.irw-scen-card.is-locked { opacity: .55; cursor: not-allowed; }
+.irw-scen-card.is-locked { opacity: .75; cursor: not-allowed; }
 .irw-scen-card.is-locked:hover { transform: none; box-shadow: none; }
-.irw-scen-lock {
-  position: absolute; top: 12px; right: 12px;
-  padding: 3px 10px; font-size: 10px; font-family: 'SF Mono', monospace;
-  background: rgba(107,107,144,.16); border-radius: 99px; color: var(--text-dim, #6b6b90);
+/* v4.98.5: reserve space for the corner badge so long titles don't wrap underneath it */
+.irw-scen-card.is-locked .irw-scen-titlewrap { padding-right: 84px; }
+/* v4.98.5: clean two-part lock UI — corner badge + bottom banner.
+   Replaced the prior single absolute-positioned .irw-scen-lock div whose
+   long prereq text overflowed the card title (visible on real-world scenarios). */
+.irw-scen-lock-badge {
+  position: absolute; top: 10px; right: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  background: rgba(245,158,11,.16);
+  border: 1px solid rgba(245,158,11,.42);
+  border-radius: 99px;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: .08em;
+  color: #fbbf24;
+  font-family: -apple-system, system-ui, sans-serif;
 }
+.irw-scen-lock-banner {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(245,158,11,.06);
+  border: 1px dashed rgba(245,158,11,.32);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #fbbf24;
+  text-align: center;
+  line-height: 1.5;
+}
+.irw-scen-lock-banner strong { color: #fff; }
 .irw-scen-row1 { display: flex; gap: 12px; margin-bottom: 8px; align-items: flex-start; }
 .irw-scen-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
 .irw-scen-titlewrap { flex: 1; }
@@ -18533,8 +18557,35 @@ html { zoom: 1.10; }
   transition: transform .2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .2s ease, box-shadow .2s ease;
 }
 .pht-scen-card:hover { transform: translateY(-2px); border-color: rgba(239,68,68,.32); box-shadow: 0 8px 28px rgba(239,68,68,.12); }
-.pht-scen-card.is-locked { opacity: .55; cursor: not-allowed; }
+.pht-scen-card.is-locked { opacity: .75; cursor: not-allowed; }
 .pht-scen-card.is-locked:hover { transform: none; box-shadow: none; }
+.pht-scen-card.is-locked .pht-scen-titlewrap { padding-right: 84px; }
+/* v4.98.5: corner badge + bottom banner — same pattern as IRW */
+.pht-scen-lock-badge {
+  position: absolute; top: 10px; right: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  background: rgba(245,158,11,.16);
+  border: 1px solid rgba(245,158,11,.42);
+  border-radius: 99px;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: .08em;
+  color: #fbbf24;
+  font-family: -apple-system, system-ui, sans-serif;
+}
+.pht-scen-lock-banner {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(245,158,11,.06);
+  border: 1px dashed rgba(245,158,11,.32);
+  border-radius: 6px;
+  font-size: 11px;
+  color: #fbbf24;
+  text-align: center;
+  line-height: 1.5;
+}
+.pht-scen-lock-banner strong { color: #fff; }
+/* legacy v4.98.4 .pht-scen-lock kept for any cached HTML — same visual fallback */
 .pht-scen-lock {
   position: absolute; top: 12px; right: 12px;
   padding: 3px 10px; font-size: 10px; font-family: 'SF Mono', monospace;

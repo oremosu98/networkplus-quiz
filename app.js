@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.98.4
+// Network+ AI Quiz — app.js  v4.98.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.98.4';
+const APP_VERSION = '4.98.5';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -34177,11 +34177,9 @@ function irwRenderHome() {
     const diffLabel = ['', 'Foundational', 'Exam', 'Real-world'][scen.difficulty] || 'Unknown';
     const correctCount = scen.phases.reduce((a, p) => a + p.actions.filter(x => x.isCorrect).length, 0);
     html += `<div class="irw-scen-card ${unlocked ? '' : 'is-locked'}"${unlocked ? ` onclick="irwStartScenario('${escAttr(scen.id)}')"` : ''}>`;
+    // v4.98.5: simple corner padlock badge (was overflowing prereq text over title)
     if (!unlocked) {
-      const reqId = scen.unlockAfter[0];
-      const reqScen = IRW_DATA.find(s => s.id === reqId);
-      const reqTitle = reqScen ? reqScen.title : reqId;
-      html += `<div class="irw-scen-lock">🔒 Master "${escHtml(reqTitle)}" first</div>`;
+      html += '<span class="irw-scen-lock-badge">🔒 LOCKED</span>';
     }
     html += `<div class="irw-scen-row1">`;
     html += `<div class="irw-scen-icon">${escHtml(scen.icon)}</div>`;
@@ -34200,7 +34198,15 @@ function irwRenderHome() {
     if (mEntry.completed > 0) {
       html += `<span class="irw-scen-completed">${mEntry.completed} run${mEntry.completed === 1 ? '' : 's'} · best ${Math.round(mEntry.bestAccuracy * 100)}%</span>`;
     }
-    html += '</div></div>';
+    html += '</div>';
+    // v4.98.5: prereq banner moved out of the absolute-positioned lock div + into a normal-flow row
+    if (!unlocked) {
+      const reqId = scen.unlockAfter[0];
+      const reqScen = IRW_DATA.find(s => s.id === reqId);
+      const reqTitle = reqScen ? reqScen.title : reqId;
+      html += `<div class="irw-scen-lock-banner">🔓 Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
+    }
+    html += '</div>';
   });
   html += '</div>';
   // v4.97.2: AI generator is now LIVE. Replace stub with active CTA.
@@ -35212,11 +35218,9 @@ function phtRenderHome() {
     const diffStars = '★'.repeat(scen.difficulty) + '☆'.repeat(3 - scen.difficulty);
     const diffLabel = ['', 'Foundational', 'Exam', 'Hard'][scen.difficulty] || '';
     html += `<div class="pht-scen-card ${unlocked ? '' : 'is-locked'}"${unlocked ? ` onclick="phtStartScenario('${escAttr(scen.id)}')"` : ''}>`;
+    // v4.98.5: simple corner padlock badge
     if (!unlocked) {
-      const reqId = scen.unlockAfter[0];
-      const reqScen = PHT_DATA.find(s => s.id === reqId);
-      const reqTitle = reqScen ? reqScen.title : reqId;
-      html += `<div class="pht-scen-lock">🔒 Master "${escHtml(reqTitle)}" first</div>`;
+      html += '<span class="pht-scen-lock-badge">🔒 LOCKED</span>';
     }
     html += '<div class="pht-scen-row1">';
     html += `<div class="pht-scen-icon">${vector.icon}</div>`;
@@ -35233,7 +35237,15 @@ function phtRenderHome() {
     if (mEntry.completed > 0) {
       html += `<span class="pht-scen-completed">${mEntry.completed} run${mEntry.completed === 1 ? '' : 's'} · best ${Math.round(mEntry.bestFlagPct * 100)}% flags</span>`;
     }
-    html += '</div></div>';
+    html += '</div>';
+    // v4.98.5: prereq banner in normal flow (was overlapping title in abs-positioned lock div)
+    if (!unlocked) {
+      const reqId = scen.unlockAfter[0];
+      const reqScen = PHT_DATA.find(s => s.id === reqId);
+      const reqTitle = reqScen ? reqScen.title : reqId;
+      html += `<div class="pht-scen-lock-banner">🔓 Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
+    }
+    html += '</div>';
   });
   html += '</div>';
 

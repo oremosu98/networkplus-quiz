@@ -301,7 +301,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.98.4', js.includes("const APP_VERSION = '4.98.4"));
+test('APP_VERSION is 4.98.5', js.includes("const APP_VERSION = '4.98.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +315,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.98.4', sw.includes('netplus-v4.98.4'));
+test('SW cache bumped to v4.98.5', sw.includes('netplus-v4.98.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17468,6 +17468,36 @@ test('v4.98.4 hotfix: every escAttr call site has a matching definition',
     const callSites = (js.match(/\bescAttr\(/g) || []).length;
     const defs = (js.match(/^function escAttr\(/gm) || []).length;
     return defs === 1 && callSites > 1;  // at least 1 def, at least 2 call sites (definition + use)
+  })());
+
+// ============================================================================
+// v4.98.5 — Locked-card UI fix: corner padlock badge + bottom prereq banner
+// (Was: absolute-positioned single div whose long prereq text overflowed the
+// scenario title — caught in user feedback after v4.98.4.)
+// ============================================================================
+test('v4.98.5 lock UI: IRW + PHT use the new lock-badge corner + lock-banner pattern',
+  /class="irw-scen-lock-badge"/.test(js) &&
+  /class="pht-scen-lock-badge"/.test(js) &&
+  /class="irw-scen-lock-banner"/.test(js) &&
+  /class="pht-scen-lock-banner"/.test(js));
+test('v4.98.5 lock UI: lock badge CSS — small corner badge with amber accent',
+  /\.irw-scen-lock-badge\s*\{[\s\S]{0,400}position:\s*absolute[\s\S]{0,200}top:[\s\S]{0,200}right:/.test(css) &&
+  /\.pht-scen-lock-badge\s*\{[\s\S]{0,400}position:\s*absolute/.test(css));
+test('v4.98.5 lock UI: lock banner CSS — full-width prereq message in normal flow',
+  /\.irw-scen-lock-banner\s*\{[\s\S]{0,400}margin-top:[\s\S]{0,200}text-align:\s*center/.test(css) &&
+  /\.pht-scen-lock-banner\s*\{[\s\S]{0,400}margin-top:[\s\S]{0,200}text-align:\s*center/.test(css));
+test('v4.98.5 lock UI: opacity for locked cards .75 (less faded so content is legible)',
+  /\.irw-scen-card\.is-locked\s*\{[\s\S]{0,200}opacity:\s*\.75/.test(css) &&
+  /\.pht-scen-card\.is-locked\s*\{[\s\S]{0,200}opacity:\s*\.75/.test(css));
+test('v4.98.5 lock UI: prereq banner uses normal-flow position (not absolute)',
+  // The new banner shouldn't have position:absolute — it lives in normal flow.
+  // This catches accidental "fix" regressions back to the overflowing pattern.
+  (() => {
+    const irwBanner = css.match(/\.irw-scen-lock-banner\s*\{[^}]+\}/);
+    const phtBanner = css.match(/\.pht-scen-lock-banner\s*\{[^}]+\}/);
+    return irwBanner && phtBanner &&
+           !/position:\s*absolute/.test(irwBanner[0]) &&
+           !/position:\s*absolute/.test(phtBanner[0]);
   })());
 
 // ── Summary ──
