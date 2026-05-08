@@ -301,7 +301,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.95.0', js.includes("const APP_VERSION = '4.95.0"));
+test('APP_VERSION is 4.95.1', js.includes("const APP_VERSION = '4.95.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +315,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.95.0', sw.includes('netplus-v4.95.0'));
+test('SW cache bumped to v4.95.1', sw.includes('netplus-v4.95.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16070,16 +16070,25 @@ test('v4.87.1 CarryOver: Security+ pack has 77 carry-over exemplars (from Networ
     const matches = certSecplus.match(/"source":"curated-netplus-carryover"/g) || [];
     return matches.length === 77;
   })());
-test('v4.88.3 Phase 3 Cycle 1: 15 new Security+ exemplars added from Messer gaps',
+// v4.95.1: Phase 3 Cycle 2 added 3 Gap Analysis exemplars; cumulative Phase 3
+// total is now 18 (Cycle 1's 15 from Messer gaps + Cycle 2's 3 Gap Analysis).
+test('v4.95.1 Phase 3 (Cycles 1+2): 18 Security+ Phase 3 exemplars in bank',
   (() => {
     const matches = certSecplus.match(/"source":"curated-secplus-phase3"/g) || [];
-    return matches.length === 15;
+    return matches.length === 18;
   })());
-test('v4.88.3 Phase 3 Cycle 1: total Security+ bank size is 92 (77 carry-over + 15 phase 3)',
+test('v4.95.1 Phase 3: total Security+ bank size is 95 (77 carry-over + 18 phase 3)',
   (() => {
     const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
-    return matches.length === 92;
+    return matches.length === 95;
   })());
+test('v4.95.1 Phase 3 Cycle 2: 3 new Gap Analysis exemplars (v4.95.1)',
+  (() => {
+    const matches = certSecplus.match(/"addedVersion":"4\.95\.1"/g) || [];
+    return matches.length === 3;
+  })());
+test('v4.95.1 Phase 3 Cycle 2: Gap Analysis retention concept added',
+  /label:\s*'Gap Analysis'[\s\S]{0,200}parentTopic:\s*'Security Governance'/.test(certSecplus));
 test('v4.87.1 CarryOver: every carry-over has source: curated-netplus-carryover',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16094,7 +16103,7 @@ test('v4.87.1 CarryOver: every entry has originalTopic field for traceability',
     const matches = m[1].match(/"originalTopic":/g) || [];
     return matches.length === 77;
   })());
-// v4.88.3: now covers all 92 exemplars (77 carry-over + 15 Phase 3 Cycle 1)
+// v4.95.1: now covers all 95 exemplars (77 carry-over + 18 Phase 3 Cycles 1+2)
 test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16105,7 +16114,7 @@ test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
     (tdM[1].match(/'([^']+)':\s*'(?:concepts|threats|architecture|operations|governance)'/g) || [])
       .forEach(line => { const t = line.match(/'([^']+)':/); if (t) validTopics.add(t[1]); });
     const exTopics = (m[1].match(/"topic":"([^"]+)"/g) || []).map(s => s.replace(/^"topic":"|"$/g, ''));
-    return exTopics.length === 92 && exTopics.every(t => validTopics.has(t));
+    return exTopics.length === 95 && exTopics.every(t => validTopics.has(t));
   })());
 
 // ── Dynamic topic-chip rendering ──
