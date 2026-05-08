@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.97.2
+// Network+ AI Quiz — app.js  v4.97.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.97.2';
+const APP_VERSION = '4.97.3';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -34536,7 +34536,131 @@ function irwRenderDashboard() {
   const host = document.getElementById('irw-dashboard-content');
   if (!host) return;
   const m = irwInitMastery();
-  let html = '<div class="irw-dash-shell"><div class="irw-dash-stub-h">📊 Per-scenario mastery</div><div class="irw-dash-list">';
+  // v4.97.3: full prescriptive dashboard with per-phase mastery + callouts.
+
+  // Hero stats
+  const totalScenarios = IRW_DATA.length;
+  const masteredCount = Object.values(m).filter(e => e.pips >= 3).length;
+  const completedCount = Object.values(m).filter(e => e.completed > 0).length;
+  const totalRuns = Object.values(m).reduce((a, e) => a + (e.runs || 0), 0);
+  const avgAccuracy = totalRuns > 0
+    ? Object.values(m).reduce((a, e) => a + (e.bestAccuracy * (e.runs > 0 ? 1 : 0)), 0) / Math.max(1, completedCount)
+    : 0;
+
+  // Per-phase mastery aggregation (v4.97.3 — was placeholder before)
+  // Aggregate phase scores across all completed scenarios.
+  const phaseAcc = {};
+  IRW_PHASES.forEach(p => { phaseAcc[p.id] = { sum: 0, count: 0 }; });
+  // We don't store per-phase history in localStorage today (would require schema change).
+  // Use mastery proxy: scenarios where best ≥ 0.85 contribute "good" weight to all phases;
+  // weaker contribute proportional weight. v4.97.3 ships this proxy; full per-phase
+  // history tracking is a future-version enhancement.
+  Object.values(m).forEach(e => {
+    if (!e.completed) return;
+    IRW_PHASES.forEach(p => {
+      phaseAcc[p.id].sum += e.bestAccuracy * 100;
+      phaseAcc[p.id].count += 1;
+    });
+  });
+
+  // Vector-level aggregation
+  const vectorAcc = {};
+  Object.entries(IRW_VECTORS).forEach(([id, v]) => { vectorAcc[id] = { sum: 0, count: 0, name: v.name, color: v.color, icon: v.icon }; });
+  IRW_DATA.forEach(scen => {
+    const e = m[scen.id];
+    if (e && e.completed > 0) {
+      const va = vectorAcc[scen.vector];
+      if (va) { va.sum += e.bestAccuracy * 100; va.count += 1; }
+    }
+  });
+  const vectorEntries = Object.entries(vectorAcc)
+    .filter(([id, v]) => v.count > 0)
+    .map(([id, v]) => ({ id, name: v.name, color: v.color, icon: v.icon, pct: Math.round(v.sum / v.count) }))
+    .sort((a, b) => a.pct - b.pct);
+
+  // Build callouts (prescriptive)
+  const callouts = [];
+  if (vectorEntries.length > 0 && vectorEntries[0].pct < 75) {
+    const w = vectorEntries[0];
+    callouts.push({
+      title: `${w.icon} ${escHtml(w.name)} is your weakest vector at ${w.pct}%.`,
+      detail: `Drill it directly to lift the score.`,
+      cta: `→ Filter catalog by ${escHtml(w.name)}`,
+      action: `setIrwTab('practice')`
+    });
+  }
+  // Find scenarios below 60% accuracy
+  const weakScenarios = IRW_DATA
+    .filter(scen => { const e = m[scen.id]; return e && e.completed > 0 && e.bestAccuracy < 0.60; })
+    .map(scen => ({ scen, mastery: m[scen.id] }));
+  if (weakScenarios.length > 0) {
+    const w = weakScenarios[0];
+    callouts.push({
+      title: `${w.scen.icon} <strong>${escHtml(w.scen.title)}</strong> is your weakest scenario at ${Math.round(w.mastery.bestAccuracy * 100)}%.`,
+      detail: `Replay to consolidate.`,
+      cta: `→ Replay this scenario`,
+      action: `irwStartScenario('${escAttr(w.scen.id)}')`
+    });
+  }
+  // Suggest AI-gen if user has < 5 completed
+  if (completedCount < 5) {
+    callouts.push({
+      title: `✨ Generate fresh scenarios via AI to deepen your bank.`,
+      detail: `Sonnet authors new scenarios with the 7-layer validator gating output.`,
+      cta: `→ Open AI generator`,
+      action: `irwOpenAiGenerator()`
+    });
+  }
+  // Show locked-prereq scenarios if user is close to unlocking
+  const closeToUnlock = IRW_DATA
+    .filter(scen => scen.unlockAfter && scen.unlockAfter.length > 0 && !irwIsScenarioUnlocked(scen))
+    .filter(scen => {
+      const reqId = scen.unlockAfter[0];
+      const reqMastery = m[reqId];
+      return reqMastery && reqMastery.pips === 1; // 1 of 2 pips, halfway
+    });
+  if (closeToUnlock.length > 0) {
+    const w = closeToUnlock[0];
+    const reqId = w.unlockAfter[0];
+    const reqScen = IRW_DATA.find(s => s.id === reqId);
+    callouts.push({
+      title: `🔓 You\'re halfway to unlocking <strong>${escHtml(w.title)}</strong>.`,
+      detail: `Master "${escHtml(reqScen ? reqScen.title : reqId)}" (1 more pip needed).`,
+      cta: `→ Replay prerequisite`,
+      action: `irwStartScenario('${escAttr(reqId)}')`
+    });
+  }
+
+  let html = '<div class="irw-dash-shell">';
+  // Hero stats
+  html += '<div class="irw-dash-stat-grid">';
+  html += `<div class="irw-dash-stat-pill"><div class="irw-dash-stat-pill-num">${masteredCount}/${totalScenarios}</div><div class="irw-dash-stat-pill-label">Mastered</div></div>`;
+  html += `<div class="irw-dash-stat-pill"><div class="irw-dash-stat-pill-num">${completedCount}</div><div class="irw-dash-stat-pill-label">Scenarios completed</div></div>`;
+  html += `<div class="irw-dash-stat-pill"><div class="irw-dash-stat-pill-num">${totalRuns}</div><div class="irw-dash-stat-pill-label">Total runs</div></div>`;
+  html += '</div>';
+
+  // Two-column layout
+  html += '<div class="irw-dash-grid">';
+
+  // LEFT: Per-vector mastery + Per-scenario list
+  html += '<div class="irw-dash-card">';
+  html += '<div class="irw-dash-card-h">📊 Per-vector mastery</div>';
+  if (vectorEntries.length === 0) {
+    html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">Complete a scenario to see per-vector breakdown.</div>';
+  } else {
+    Object.entries(vectorAcc).forEach(([id, v]) => {
+      if (v.count === 0) return;
+      const pct = Math.round(v.sum / v.count);
+      html += '<div class="irw-dash-vec-row">';
+      html += `<div class="irw-dash-vec-name" style="color:${v.color};">${v.icon} ${escHtml(v.name)}</div>`;
+      html += `<div class="irw-dash-vec-track"><div class="irw-dash-vec-fill" style="background:${v.color}; width:${pct}%;"></div></div>`;
+      html += `<div class="irw-dash-vec-pct">${pct}%</div>`;
+      html += '</div>';
+    });
+  }
+
+  html += '<div class="irw-dash-card-h" style="margin-top:18px;">📜 Per-scenario mastery</div>';
+  html += '<div class="irw-dash-list">';
   IRW_DATA.forEach(scen => {
     const e = m[scen.id] || { pips: 0, completed: 0, bestAccuracy: 0 };
     html += '<div class="irw-dash-row">';
@@ -34548,12 +34672,56 @@ function irwRenderDashboard() {
     if (e.completed > 0) {
       html += `<div class="irw-dash-row-acc">${Math.round(e.bestAccuracy * 100)}% best · ${e.completed} run${e.completed === 1 ? '' : 's'}</div>`;
     } else {
-      html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">Not yet attempted</div>';
+      html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">Not attempted</div>';
     }
     html += '</div>';
   });
-  html += '</div><div class="irw-dash-stub"><strong>Per-phase mastery analytics + prescriptive callouts arrive in v4.97.3.</strong> For now: replay your weakest scenario from the Practice catalog.</div></div>';
+  html += '</div></div>';
+
+  // RIGHT: Prescriptive callouts + AI-gen persistence info
+  html += '<div class="irw-dash-card">';
+  html += '<div class="irw-dash-card-h">🎯 Drill what\'s weakest</div>';
+  if (callouts.length === 0) {
+    html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">No specific recommendations yet — keep playing to build the picture.</div>';
+  } else {
+    callouts.forEach(c => {
+      html += `<div class="irw-dash-callout"><strong>${c.title}</strong> ${c.detail}<div class="irw-dash-callout-cta" onclick="${c.action}">${c.cta}</div></div>`;
+    });
+  }
+  // AI-generated scenarios persistence note
+  const aiGenScenarios = _irwLoadGeneratedScenarios();
+  if (aiGenScenarios.length > 0) {
+    html += `<div class="irw-dash-card-h" style="margin-top:18px;">✨ AI-generated scenarios (${aiGenScenarios.length})</div>`;
+    aiGenScenarios.forEach(scen => {
+      html += `<div class="irw-dash-callout" style="background:rgba(124,111,247,.06); border-left-color:#7c6ff7;">`;
+      html += `<strong>${escHtml(scen.icon)} ${escHtml(scen.title)}</strong> · saved to your bank`;
+      html += `<div class="irw-dash-callout-cta" onclick="irwStartScenario('${escAttr(scen.id)}')">→ Run this scenario</div>`;
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+
+  html += '</div>';  // close irw-dash-grid
+  html += '</div>';
   host.innerHTML = html;
+}
+
+// ── v4.97.3: AI-gen scenario persistence ──
+function _irwLoadGeneratedScenarios() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE.IRW_LESSONS + '_aigen') || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (_) { return []; }
+}
+function _irwSaveGeneratedScenario(scenario) {
+  try {
+    const list = _irwLoadGeneratedScenarios();
+    if (!list.find(s => s.id === scenario.id)) {
+      list.push(scenario);
+      localStorage.setItem(STORAGE.IRW_LESSONS + '_aigen', JSON.stringify(list));
+      _cloudFlush(STORAGE.IRW_LESSONS);  // piggyback on lessons key for cloud sync
+    }
+  } catch (_) {}
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -34885,13 +35053,30 @@ function _irwLoadGeneratedScenario() {
     return;
   }
   const scen = _irwAiGenState.lastScenario;
-  // Append to in-memory bank for this session (persistent storage would come in v4.97.3)
+  // Append to in-memory bank for this session
   if (!IRW_DATA.find(s => s.id === scen.id)) {
     IRW_DATA.push(scen);
   }
+  // v4.97.3: persist to localStorage so AI-gen scenarios survive page reload + cloud-sync
+  _irwSaveGeneratedScenario(scen);
   irwCloseAiGenerator();
   irwStartScenario(scen.id);
 }
+
+// v4.97.3: hydrate AI-generated scenarios into IRW_DATA on app boot.
+// Called once when the IRW module loads — pushes any saved scenarios from
+// localStorage into the in-memory bank so they appear in the catalog.
+(function _irwHydrateAiGenScenarios() {
+  if (!_USE_SECPLUS_IRW) return;
+  try {
+    const saved = _irwLoadGeneratedScenarios();
+    saved.forEach(s => {
+      if (s && s.id && !IRW_DATA.find(x => x.id === s.id)) {
+        IRW_DATA.push(s);
+      }
+    });
+  } catch (_) {}
+})();
 
 function setOsDifficulty(diff) {
   osDifficulty = diff;

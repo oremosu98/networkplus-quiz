@@ -301,7 +301,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.97.2', js.includes("const APP_VERSION = '4.97.2"));
+test('APP_VERSION is 4.97.3', js.includes("const APP_VERSION = '4.97.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +315,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.97.2', sw.includes('netplus-v4.97.2'));
+test('SW cache bumped to v4.97.3', sw.includes('netplus-v4.97.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16868,12 +16868,12 @@ test('v4.97.0 IRW: secplus.js declares incidentResponsePhases (PICERL)',
   certSecplus.includes('incidentResponsePhases:'));
 test('v4.97.0 IRW: secplus.js declares incidentResponseVectors',
   certSecplus.includes('incidentResponseVectors:'));
-test('v4.97.2 IRW: secplus.js has 15 scenarios (v4.97.2 added 5: mfa-bombing/dns-hijack/stolen-laptop/saas-breach/golden-ticket)',
+test('v4.97.3 IRW: secplus.js has 20 scenarios (v4.97.3 added 5 final: vishing/0-day/azure/cfo-embezzle/apt)',
   (() => {
     const m = certSecplus.match(/incidentResponseScenarios:\s*\[([\s\S]+?)INCIDENT RESPONSE LESSONS/);
     if (!m) return false;
     const scenarioIds = m[1].match(/^      id: '[a-z][a-z0-9-]+',/gm) || [];
-    return scenarioIds.length === 15;
+    return scenarioIds.length === 20;
   })());
 test('v4.97.0 IRW: 6 PICERL phases canonical order',
   /incidentResponsePhases:\s*\[[\s\S]{0,800}preparation[\s\S]{0,400}identification[\s\S]{0,400}containment[\s\S]{0,400}eradication[\s\S]{0,400}recovery[\s\S]{0,400}lessons/.test(certSecplus));
@@ -17093,6 +17093,49 @@ test('v4.97.2 IRW: .irw-aigen-check-icon states (pass/warn/fail)',
 test('v4.97.2 IRW: .irw-aigen-output success card CSS',
   /\.irw-aigen-output\s*\{/.test(css) &&
   /\.irw-aigen-load-btn\s*\{/.test(css));
+
+// ============================================================================
+// v4.97.3 — IR War Room Batch 4/4 (FINAL): 5 scenarios + dashboard + AI persist
+// Issue #312 (Sec+ flagship #1) closes here.
+// ============================================================================
+test('v4.97.3 IRW: 5 final scenarios shipped (vishing-exfil, zero-day-rce, azure-tenant-compromise, cfo-embezzlement, apt-nation-state)',
+  /id:\s*'vishing-exfil'/.test(certSecplus) &&
+  /id:\s*'zero-day-rce'/.test(certSecplus) &&
+  /id:\s*'azure-tenant-compromise'/.test(certSecplus) &&
+  /id:\s*'cfo-embezzlement'/.test(certSecplus) &&
+  /id:\s*'apt-nation-state'/.test(certSecplus));
+test('v4.97.3 IRW: total actions ≥ 550 across 20 scenarios',
+  (() => {
+    const m = certSecplus.match(/incidentResponseScenarios:\s*\[([\s\S]+?)INCIDENT RESPONSE LESSONS/);
+    if (!m) return false;
+    const actions = m[1].match(/\{ id: 'p\d+a\d+'/g) || [];
+    return actions.length >= 550;
+  })());
+test('v4.97.3 IRW: apt-nation-state has trapCallout for "obvious containment" pattern',
+  /id:\s*'apt-nation-state'[\s\S]{0,15000}trapCallout:\s*\{/.test(certSecplus));
+test('v4.97.3 IRW: zero-day-rce locked behind k8s-container-escape',
+  /id:\s*'zero-day-rce'[\s\S]{0,500}unlockAfter:\s*\['k8s-container-escape'\]/.test(certSecplus));
+test('v4.97.3 IRW: apt-nation-state locked behind golden-ticket (apex scenario)',
+  /id:\s*'apt-nation-state'[\s\S]{0,500}unlockAfter:\s*\['golden-ticket'\]/.test(certSecplus));
+test('v4.97.3 IRW: irwRenderDashboard rewritten with prescriptive callouts',
+  /function irwRenderDashboard[\s\S]{0,9000}irw-dash-callout/.test(js));
+test('v4.97.3 IRW: dashboard includes per-vector mastery aggregation',
+  /function irwRenderDashboard[\s\S]{0,9000}vectorAcc/.test(js));
+test('v4.97.3 IRW: dashboard hero stats (mastered/completed/runs)',
+  /function irwRenderDashboard[\s\S]{0,9000}irw-dash-stat-pill/.test(js));
+test('v4.97.3 IRW: AI-gen scenario persistence helpers exist',
+  /function _irwLoadGeneratedScenarios\(/.test(js) &&
+  /function _irwSaveGeneratedScenario\(/.test(js));
+test('v4.97.3 IRW: _irwLoadGeneratedScenario calls _irwSaveGeneratedScenario',
+  /function _irwLoadGeneratedScenario[\s\S]{0,800}_irwSaveGeneratedScenario\(scen\)/.test(js));
+test('v4.97.3 IRW: hydration IIFE pushes saved scenarios into IRW_DATA on boot',
+  /_irwHydrateAiGenScenarios[\s\S]{0,500}_irwLoadGeneratedScenarios\(\)[\s\S]{0,500}IRW_DATA\.push/.test(js));
+test('v4.97.3 IRW: .irw-dash-grid 2-column layout CSS',
+  /\.irw-dash-grid\s*\{[\s\S]{0,200}grid-template-columns:\s*1fr 1fr/.test(css));
+test('v4.97.3 IRW: .irw-dash-vec-fill bar transition CSS',
+  /\.irw-dash-vec-fill\s*\{[\s\S]{0,200}transition:\s*width/.test(css));
+test('v4.97.3 IRW: .irw-dash-callout prescriptive UI CSS',
+  /\.irw-dash-callout\s*\{/.test(css) && /\.irw-dash-callout-cta/.test(css));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

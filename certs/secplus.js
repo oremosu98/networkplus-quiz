@@ -3070,6 +3070,482 @@ window.CERT_PACKS.secplus = {
           ]
         }
       ]
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // 16) Vishing → data exfil (v4.97.3 Batch 4)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'vishing-exfil',
+      title: 'Vishing call impersonating IT → helpdesk credential theft',
+      icon: '📞',
+      vector: 'phish-derived',
+      difficulty: 2,
+      unlockAfter: [],
+      summary: 'Helpdesk agent gave creds + reset MFA over the phone for a "remote engineer locked out". Attacker drained sales pipeline.',
+      context: 'At 16:14, helpdesk agent Nicole received a call from "remote engineer Tom" claiming he was locked out. Caller knew internal jargon, the org\'s ticketing system, and Tom\'s manager\'s name. Nicole reset Tom\'s SSO password + bypassed MFA via the documented "stuck-at-airport" exception. Within 12 minutes, the attacker logged in to Salesforce as Tom + downloaded the entire customer pipeline (~$340M ARR data) before logging off. Real Tom called 90 minutes later.',
+      vertical: 'B2B SaaS',
+      severity: 'SEV-2',
+      iocs: [
+        { type: 'method', value: 'Voice phish + helpdesk pretexting', label: 'Initial vector' },
+        { type: 'caller-id', value: 'Spoofed corp internal number', label: 'Caller-ID deception' },
+        { type: 'creds', value: 'Tom\'s SSO password reset + MFA bypass', label: 'Credentials issued to attacker' },
+        { type: 'data', value: 'Salesforce pipeline dump (~$340M ARR)', label: 'Exfil scope' }
+      ],
+      phases: [
+        {
+          stage: 'preparation', expectedCount: 3,
+          promptTitle: 'What helpdesk readiness mattered?',
+          promptStem: 'Vishing succeeds when helpdesk procedures rely on verbal verification. Pick the prep that should have prevented this.',
+          actions: [
+            { id: 'p1a1', label: 'Helpdesk training on social engineering + caller-ID spoofing', isCorrect: true, meta: 'Preparation · training', why: 'Trained helpdesk agents recognise the script + decline the bypass. Untrained agents help the attacker.' },
+            { id: 'p1a2', label: 'Mandatory call-back via known number for password resets (not just verbal verification)', isCorrect: true, meta: 'Preparation · process', why: 'Call-back via the registered employee number defeats voice phishing. SY0-701 standard.' },
+            { id: 'p1a3', label: 'Documented MFA-bypass procedure with manager-approval requirement', isCorrect: true, meta: 'Preparation · workflow', why: 'Manager approval = second human in the loop. Attacker would need to spoof two people, not one.' },
+            { id: 'p1a4', label: 'Train helpdesk to never reset passwords', isCorrect: false, meta: 'Preparation · over-restriction', why: 'Helpdesk needs to handle legitimate lockouts. Process + verification, not blanket-block.' }
+          ]
+        },
+        {
+          stage: 'identification', expectedCount: 4,
+          promptTitle: 'Confirm scope when real Tom calls in 90 min later.',
+          promptStem: 'Tom calls — "I just got an alert about my password change but I didn\'t do it." Trace what happened.',
+          actions: [
+            { id: 'p2a1', label: 'Pull SSO + Salesforce session logs for Tom\'s account in the last 2 hours', isCorrect: true, meta: 'Identification · timeline', why: 'Establishes the full attack timeline. Foundation for scope.' },
+            { id: 'p2a2', label: 'Pull helpdesk call recording (if recorded) + agent\'s ticket notes', isCorrect: true, meta: 'Identification · root cause', why: 'Voice-evidence + agent\'s side of the story show how the social engineer got past procedure.' },
+            { id: 'p2a3', label: 'Quantify what data the attacker accessed in Salesforce (pipeline export logs)', isCorrect: true, meta: 'Identification · scope', why: 'Salesforce logs every export. Quantifies the breach for regulatory purposes.' },
+            { id: 'p2a4', label: 'Open SEV-2 + activate breach counsel + customer-success leadership', isCorrect: true, meta: 'Identification · escalate', why: '$340M pipeline data + customer-list exposure = SEV-2. Customer-success needs to know for downstream comms.' },
+            { id: 'p2a5', label: 'Wait until Monday morning to investigate', isCorrect: false, meta: 'Identification · negligence', why: 'Active session compromise. Every minute is more risk + more exfil. Now, not later.' }
+          ]
+        },
+        {
+          stage: 'containment', expectedCount: 4,
+          promptTitle: 'Cut the attacker off + audit Tom\'s account.',
+          promptStem: 'Stop active access + revoke session.',
+          actions: [
+            { id: 'p3a1', label: 'Force logout Tom from SSO + revoke all active session tokens', isCorrect: true, meta: 'Containment · session', why: 'Stops the attacker if they\'re still active. Most important first action.' },
+            { id: 'p3a2', label: 'Reset Tom\'s password again + re-enrol MFA via verified channel', isCorrect: true, meta: 'Containment · identity', why: 'Re-establishes Tom\'s legitimate access while invalidating the attacker\'s.' },
+            { id: 'p3a3', label: 'Audit + lock helpdesk agent Nicole\'s account pending review', isCorrect: true, meta: 'Containment · helpdesk', why: 'Not a punishment — protects against the helpdesk agent themselves being the attack vector + preserves evidence.' },
+            { id: 'p3a4', label: 'Block attacker source IP at perimeter + add to threat-intel watchlist', isCorrect: true, meta: 'Containment · network', why: 'Stops re-attempts from same IP + flags similar TTPs.' },
+            { id: 'p3a5', label: 'Disable Salesforce entirely', isCorrect: false, meta: 'Containment · over-reach', why: 'Sales team can\'t work. Targeted account containment + data audit, not platform shutdown.' }
+          ]
+        },
+        {
+          stage: 'eradication', expectedCount: 3,
+          promptTitle: 'Close the helpdesk-bypass window.',
+          promptStem: 'Architectural fix to prevent voice-vector account takeover.',
+          actions: [
+            { id: 'p4a1', label: 'Revise helpdesk procedure: mandatory call-back to registered number for resets', isCorrect: true, meta: 'Eradication · process', why: 'Call-back defeats voice phishing. Documented + auditable.' },
+            { id: 'p4a2', label: 'Eliminate the "stuck-at-airport" MFA bypass exception', isCorrect: true, meta: 'Eradication · exception removal', why: 'Documented exceptions become attack vectors. Stuck-at-airport users use temporary SMS codes via verified channel.' },
+            { id: 'p4a3', label: 'Roll out vishing simulation in next quarterly security training', isCorrect: true, meta: 'Eradication · training', why: 'Helpdesk-targeted simulation builds the muscle memory.' },
+            { id: 'p4a4', label: 'Replace all helpdesk staff', isCorrect: false, meta: 'Eradication · blame', why: 'Process failed, not the agent. Fix the process.' }
+          ]
+        },
+        {
+          stage: 'recovery', expectedCount: 3,
+          promptTitle: 'Customer + regulatory comms + restore.',
+          promptStem: 'Pipeline data exposure has customer + regulatory implications.',
+          actions: [
+            { id: 'p5a1', label: 'Notify affected customers per regulatory deadline (GDPR / state laws)', isCorrect: true, meta: 'Recovery · regulatory', why: 'Customer-list exposure triggers breach notification laws. Counsel-led, customer-success-coordinated.' },
+            { id: 'p5a2', label: 'Restore Tom\'s normal Salesforce access with monitoring', isCorrect: true, meta: 'Recovery · ops', why: 'Tom needs to work. Heightened monitoring catches any residual attacker activity.' },
+            { id: 'p5a3', label: 'Public statement + customer-success outreach to high-value affected customers', isCorrect: true, meta: 'Recovery · transparency', why: 'High-value customers expect direct outreach. Restores trust through proactive comms.' },
+            { id: 'p5a4', label: 'Hide the breach from affected customers', isCorrect: false, meta: 'Recovery · regulatory failure', why: 'Required disclosure. Hiding = much worse legal outcome.' }
+          ]
+        },
+        {
+          stage: 'lessons', expectedCount: 3,
+          promptTitle: 'Helpdesk security maturity.',
+          promptStem: 'Helpdesk = attack surface. Treat accordingly.',
+          actions: [
+            { id: 'p6a1', label: 'Add helpdesk-targeted vishing to quarterly social-eng simulation', isCorrect: true, meta: 'Lessons · training', why: 'Helpdesk-specific simulations build the right muscle memory.' },
+            { id: 'p6a2', label: 'Document this incident as the case for call-back-mandate', isCorrect: true, meta: 'Lessons · advocacy', why: 'Real incident drives process change.' },
+            { id: 'p6a3', label: 'Review all helpdesk exceptions + documented bypasses', isCorrect: true, meta: 'Lessons · process audit', why: 'Documented exceptions are attack vectors. Audit + minimise.' },
+            { id: 'p6a4', label: 'Stop offering helpdesk service entirely', isCorrect: false, meta: 'Lessons · over-reach', why: 'Helpdesk is essential. Hardening, not removal.' }
+          ]
+        }
+      ]
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // 17) 0-day RCE on customer-facing web app (v4.97.3)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'zero-day-rce',
+      title: '0-day RCE on customer-facing web app · live exploitation',
+      icon: '💥',
+      vector: 'cloud',
+      difficulty: 3,
+      unlockAfter: ['k8s-container-escape'],
+      summary: 'Public-facing API exploited via 0-day in dependency. WAF logs show shell-spawn attempts. Patch not yet available.',
+      context: 'At 03:42, EDR on app-server-prod-04 fired on suspicious child processes. Investigation: a 0-day RCE in a JSON parsing library (CVE-pending) is being exploited via crafted POST requests to /api/v1/orders. Attacker has spawned shells on 3 production app servers. No patch available yet from upstream. The vulnerability is being actively scanned across the internet — competitors + peers may be hit too. WAF custom rule needed within hours.',
+      vertical: 'B2C SaaS',
+      severity: 'SEV-1',
+      iocs: [
+        { type: 'cve', value: 'CVE-pending (vendor advisory in 6h)', label: '0-day vulnerability' },
+        { type: 'vector', value: 'POST /api/v1/orders w/ crafted JSON payload', label: 'Exploit pattern' },
+        { type: 'host', value: '3 production app servers (-04, -07, -09)', label: 'Compromised hosts' },
+        { type: 'global', value: 'Active mass-scan across internet', label: 'Threat landscape' }
+      ],
+      phases: [
+        {
+          stage: 'preparation', expectedCount: 3,
+          promptTitle: 'What 0-day-readiness mattered?',
+          promptStem: '0-days are unpredictable. Defense is mostly architectural.',
+          actions: [
+            { id: 'p1a1', label: 'WAF in front of all public APIs with custom-rule deployment capability', isCorrect: true, meta: 'Preparation · WAF', why: 'WAF is your only defense before the patch ships. Without it, you\'re completely exposed during the 0-day window.' },
+            { id: 'p1a2', label: 'EDR on every production host with behavioural detection (shell-spawn anomaly)', isCorrect: true, meta: 'Preparation · EDR', why: 'EDR caught the shell-spawn here. Without it, the dwell would be open-ended.' },
+            { id: 'p1a3', label: 'Defence-in-depth: app-tier separated from data-tier with strict network policies', isCorrect: true, meta: 'Preparation · segmentation', why: 'Even with RCE, segmentation limits attacker pivot to data tier. Architectural blast-radius cap.' },
+            { id: 'p1a4', label: 'Patch all 0-days before they\'re published', isCorrect: false, meta: 'Preparation · impossible', why: '0-day = no patch exists yet. Definitionally impossible.' }
+          ]
+        },
+        {
+          stage: 'identification', expectedCount: 4,
+          promptTitle: 'Confirm + scope + classify.',
+          promptStem: '3 hosts hit, library is widely used. Identify the exploit + estimate scope.',
+          actions: [
+            { id: 'p2a1', label: 'Capture exploit payload from WAF logs + reverse-engineer indicator', isCorrect: true, meta: 'Identification · payload', why: 'Captured payload = signature for WAF rule + threat-intel sharing.' },
+            { id: 'p2a2', label: 'Forensic image one of the compromised hosts before any cleanup', isCorrect: true, meta: 'Identification · forensic', why: 'Live forensic image preserves attacker state for analysis + threat-intel + legal.' },
+            { id: 'p2a3', label: 'Check threat-intel feeds for similar TTPs + early CVE identifier', isCorrect: true, meta: 'Identification · TI', why: 'Other orgs may be reporting. Coordinated TI accelerates everyone\'s response.' },
+            { id: 'p2a4', label: 'Open SEV-1 + IR firm + breach counsel + cyber insurance + upstream library maintainer', isCorrect: true, meta: 'Identification · escalate', why: 'Active 0-day exploitation = SEV-1. Library maintainer needs to know to ship the patch fast.' },
+            { id: 'p2a5', label: 'Take the entire app offline immediately', isCorrect: false, meta: 'Containment-flavoured · drastic', why: 'Customer-facing app offline = self-DDoS. WAF blocking is more surgical.' }
+          ]
+        },
+        {
+          stage: 'containment', expectedCount: 5,
+          promptTitle: 'Block the exploit at WAF + isolate compromised hosts.',
+          promptStem: 'Patch isn\'t available. Block the pattern, contain the damage.',
+          actions: [
+            { id: 'p3a1', label: 'Deploy custom WAF rule blocking the captured exploit payload pattern', isCorrect: true, meta: 'Containment · WAF', why: 'Stops the active exploitation immediately. Buy time for patch.' },
+            { id: 'p3a2', label: 'Network-isolate the 3 compromised app servers (route around them in load balancer)', isCorrect: true, meta: 'Containment · isolation', why: 'Compromised hosts get drained from the LB pool. Customer traffic shifts to clean hosts.' },
+            { id: 'p3a3', label: 'Rotate any service-account credentials accessible from compromised hosts', isCorrect: true, meta: 'Containment · credential', why: 'Compromised host = compromised creds on it. Rotate to invalidate any attacker exfil.' },
+            { id: 'p3a4', label: 'Monitor for exploit-pattern attempts that bypass the WAF rule (variants)', isCorrect: true, meta: 'Containment · vigilance', why: 'Sophisticated attackers craft variants. Active monitoring catches the iteration.' },
+            { id: 'p3a5', label: 'Coordinate with library maintainer + share the captured payload', isCorrect: true, meta: 'Containment · upstream', why: 'Maintainer ships patch faster with concrete payload. Helps everyone.' },
+            { id: 'p3a6', label: 'Reboot the compromised hosts to "clear the attack"', isCorrect: false, meta: 'Containment · destroys evidence', why: 'Reboot kills RAM + running processes + evidence. Same trap as ryuk-finance.' }
+          ]
+        },
+        {
+          stage: 'eradication', expectedCount: 4,
+          promptTitle: 'Patch + clean + harden.',
+          promptStem: 'When patch ships, eradicate. In meantime, harden.',
+          actions: [
+            { id: 'p4a1', label: 'Apply upstream patch as soon as released to all hosts', isCorrect: true, meta: 'Eradication · patch', why: 'The actual fix. Critical-CVE patches deploy via emergency-change process within hours.' },
+            { id: 'p4a2', label: 'Wipe + rebuild all 3 compromised hosts (cannot trust)', isCorrect: true, meta: 'Eradication · trust', why: 'RCE compromise = rebuild required. Can\'t trust in-place cleanup.' },
+            { id: 'p4a3', label: 'Audit similar libraries for related vulnerabilities', isCorrect: true, meta: 'Eradication · proactive', why: 'JSON parsing libraries often share architectural patterns. Audit related libs preemptively.' },
+            { id: 'p4a4', label: 'Implement runtime protection (eBPF / RASP) on app servers', isCorrect: true, meta: 'Eradication · runtime', why: 'Runtime protection catches future RCE attempts at the syscall level — defense even when WAF + patch are bypassed.' },
+            { id: 'p4a5', label: 'Roll back to the previous library version', isCorrect: false, meta: 'Eradication · trap', why: 'Previous version may have its own vulnerabilities. Patch + verify, not regress.' }
+          ]
+        },
+        {
+          stage: 'recovery', expectedCount: 3,
+          promptTitle: 'Resume normal traffic + monitor.',
+          promptStem: 'Patched + cleaned. Restore at scale + watch for variants.',
+          actions: [
+            { id: 'p5a1', label: 'Gradually reintroduce rebuilt hosts to LB pool with monitoring', isCorrect: true, meta: 'Recovery · staged', why: 'Gradual reintroduction validates each host before full traffic. Catches any persisting issues.' },
+            { id: 'p5a2', label: 'Maintain elevated WAF + EDR monitoring for 30+ days', isCorrect: true, meta: 'Recovery · vigilance', why: 'Variants + post-disclosure exploitation increases. Sustained monitoring matters.' },
+            { id: 'p5a3', label: 'Coordinate disclosure with library maintainer + threat intel community', isCorrect: true, meta: 'Recovery · ecosystem', why: 'Coordinated disclosure helps the whole ecosystem patch + harden.' },
+            { id: 'p5a4', label: 'Take credit for finding the 0-day on social media', isCorrect: false, meta: 'Recovery · OPSEC fail', why: 'Public credit-claim invites attacker retaliation + complicates legal coordination.' }
+          ]
+        },
+        {
+          stage: 'lessons', expectedCount: 3,
+          promptTitle: '0-day-resilience lessons.',
+          promptStem: 'Next 0-day will land. Build the muscle.',
+          actions: [
+            { id: 'p6a1', label: 'Add 0-day response to quarterly tabletop scenarios', isCorrect: true, meta: 'Lessons · practice', why: '0-day response is unique (no patch yet). Practice the WAF-buy-time pattern.' },
+            { id: 'p6a2', label: 'Adopt SBOM + CVE-rapid-response pipeline for all libraries', isCorrect: true, meta: 'Lessons · SBOM', why: 'SBOM means you know which libraries you depend on. Fast CVE matching = fast patch deployment.' },
+            { id: 'p6a3', label: 'Subscribe to CVE-Trends + library-specific advisory feeds', isCorrect: true, meta: 'Lessons · awareness', why: 'Early warning matters. Hours of head-start can be the difference.' },
+            { id: 'p6a4', label: 'Stop using third-party libraries entirely', isCorrect: false, meta: 'Lessons · misaligned', why: 'Modern dev requires libraries. SBOM + rapid patch is the answer.' }
+          ]
+        }
+      ]
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // 18) Azure tenant compromise (v4.97.3, locked behind aws-key-leak)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'azure-tenant-compromise',
+      title: 'Azure tenant compromise via Global Admin token theft',
+      icon: '☁️',
+      vector: 'cloud',
+      difficulty: 3,
+      unlockAfter: ['aws-key-leak'],
+      summary: 'GuardDuty fired on unusual Microsoft Graph API calls. Attacker has Global Admin via stolen refresh token + has dumped 200 mailboxes.',
+      context: 'At 12:08, Azure threat-detection flagged anomalous Microsoft Graph API enumeration. Investigation: attacker stole a Global Admin refresh token from a legacy admin laptop (employee\'s personal device, not corp-MDM-managed) 6 days ago. Token has been silently used since to enumerate users + groups + mailboxes. In the last 12 hours, attacker began bulk-downloading mailboxes — 200 of 4,800 done. GA token bypasses MFA on token refresh.',
+      vertical: 'Mid-size enterprise',
+      severity: 'SEV-1',
+      iocs: [
+        { type: 'token', value: 'Stolen Global Admin refresh token (6d old)', label: 'Auth artifact' },
+        { type: 'source', value: 'Personal laptop · not MDM-managed', label: 'Initial vector' },
+        { type: 'api', value: 'Microsoft Graph API · bulk mailbox enumeration', label: 'Attack pattern' },
+        { type: 'data', value: '200 mailboxes downloaded · 4,600 remaining', label: 'Active exfil' }
+      ],
+      phases: [
+        {
+          stage: 'preparation', expectedCount: 3,
+          promptTitle: 'What Azure tenant readiness mattered?',
+          promptStem: 'Cloud-tenant compromise has unique vectors. Pick the prep.',
+          actions: [
+            { id: 'p1a1', label: 'Conditional Access blocking GA logins from non-MDM-compliant devices', isCorrect: true, meta: 'Preparation · CA', why: 'CA + MDM-compliance check would have blocked the personal-laptop login. Single most effective control.' },
+            { id: 'p1a2', label: 'Privileged Identity Management (PIM) — JIT elevation, no permanent GA', isCorrect: true, meta: 'Preparation · PIM', why: 'PIM means no one has standing GA. Token theft has shorter half-life because token expires faster.' },
+            { id: 'p1a3', label: 'Microsoft Graph API audit logs streamed to SIEM', isCorrect: true, meta: 'Preparation · audit', why: 'GuardDuty caught the abuse via Graph API audit. Without streaming + alerting, the dwell is open-ended.' },
+            { id: 'p1a4', label: 'Disable Microsoft Graph API for all admins', isCorrect: false, meta: 'Preparation · over-restriction', why: 'Graph is the management API. Disabling breaks all admin work.' }
+          ]
+        },
+        {
+          stage: 'identification', expectedCount: 4,
+          promptTitle: 'Confirm scope of Graph API abuse.',
+          promptStem: 'GA token = total tenant compromise. Identify what\'s been touched.',
+          actions: [
+            { id: 'p2a1', label: 'Pull Microsoft Graph API audit logs for the affected refresh token in last 7 days', isCorrect: true, meta: 'Identification · audit', why: 'Establishes full attack timeline + every Graph call made.' },
+            { id: 'p2a2', label: 'Identify all mailboxes downloaded + groups enumerated + accounts modified', isCorrect: true, meta: 'Identification · scope', why: 'Mailbox content = data-breach scope. Tells you what to disclose to whom.' },
+            { id: 'p2a3', label: 'Audit for any new GA / privileged accounts created in the dwell window', isCorrect: true, meta: 'Identification · persistence', why: 'Attacker likely created persistence backup accounts before exfil.' },
+            { id: 'p2a4', label: 'Activate IR firm + breach counsel + Microsoft cloud-IR specialist', isCorrect: true, meta: 'Identification · escalate', why: 'Tenant-level compromise needs Microsoft cloud expertise. SEV-1.' },
+            { id: 'p2a5', label: 'Just rotate the user\'s password and call it done', isCorrect: false, meta: 'Identification · trap', why: 'Refresh tokens persist past password change. Password rotation alone insufficient.' }
+          ]
+        },
+        {
+          stage: 'containment', expectedCount: 5,
+          promptTitle: 'Revoke + isolate at the tenant level.',
+          promptStem: 'Multi-axis containment for cloud-tenant compromise.',
+          actions: [
+            { id: 'p3a1', label: 'Revoke ALL refresh tokens for the compromised admin (and similar)', isCorrect: true, meta: 'Containment · token', why: 'Refresh tokens are the persistent artifact. Revocation invalidates them. Critical first step.' },
+            { id: 'p3a2', label: 'Disable the user\'s account + force password reset + re-enrol MFA', isCorrect: true, meta: 'Containment · identity', why: 'Stops new auth + invalidates the cred chain.' },
+            { id: 'p3a3', label: 'Remove + audit all attacker-created accounts / role assignments', isCorrect: true, meta: 'Containment · persistence', why: 'Strip out backdoor accounts before they\'re used.' },
+            { id: 'p3a4', label: 'Block bulk Graph API enumeration patterns at tenant policy level', isCorrect: true, meta: 'Containment · API', why: 'Stops similar attacks from succeeding even if other tokens leak.' },
+            { id: 'p3a5', label: 'Enable forensic logging for all admin actions for next 90 days', isCorrect: true, meta: 'Containment · audit', why: 'Heightened logging catches any residual attacker presence.' },
+            { id: 'p3a6', label: 'Delete the entire tenant', isCorrect: false, meta: 'Containment · over-destructive', why: 'Tenant deletion = company-wide outage. Targeted revocation, not nuke.' }
+          ]
+        },
+        {
+          stage: 'eradication', expectedCount: 4,
+          promptTitle: 'Tenant hardening + persistence cleanup.',
+          promptStem: 'Architectural fix to prevent recurrence.',
+          actions: [
+            { id: 'p4a1', label: 'Implement Conditional Access requiring MDM-compliance for all admin logins', isCorrect: true, meta: 'Eradication · CA', why: 'Closes the personal-laptop attack vector permanently.' },
+            { id: 'p4a2', label: 'Move all Global Admin work to PIM with JIT elevation (no standing GA)', isCorrect: true, meta: 'Eradication · PIM', why: 'JIT GA means tokens expire fast. Stolen tokens have short half-life.' },
+            { id: 'p4a3', label: 'Audit + remove unnecessary GA permissions from current admins', isCorrect: true, meta: 'Eradication · least-privilege', why: 'Many admins have standing GA they don\'t need. Reduce exposure.' },
+            { id: 'p4a4', label: 'Implement Microsoft Defender for Identity for token-theft detection', isCorrect: true, meta: 'Eradication · detection', why: 'Token-anomaly detection catches similar attacks in real time.' },
+            { id: 'p4a5', label: 'Migrate off Azure entirely', isCorrect: false, meta: 'Eradication · over-reach', why: 'Cloud is foundation. Hardening, not migration.' }
+          ]
+        },
+        {
+          stage: 'recovery', expectedCount: 4,
+          promptTitle: 'Customer + employee comms + restore admin operations.',
+          promptStem: 'Mailbox content includes employee + customer correspondence.',
+          actions: [
+            { id: 'p5a1', label: 'Notify employees whose mailboxes were downloaded + offer support', isCorrect: true, meta: 'Recovery · employee', why: 'Personal correspondence in employee mailboxes. Required + ethically necessary.' },
+            { id: 'p5a2', label: 'Notify external parties whose communications were exposed in employee mailboxes', isCorrect: true, meta: 'Recovery · downstream', why: 'Mailbox content includes customer + partner communication. Notify based on regulatory requirements.' },
+            { id: 'p5a3', label: 'Restore normal admin operations with new PIM workflows', isCorrect: true, meta: 'Recovery · ops', why: 'Admins need to work. New PIM workflows = new normal.' },
+            { id: 'p5a4', label: 'Maintain heightened tenant monitoring 90+ days', isCorrect: true, meta: 'Recovery · vigilance', why: 'Sophisticated attackers retry. Sustained monitoring catches comeback.' },
+            { id: 'p5a5', label: 'Hide the breach from affected parties', isCorrect: false, meta: 'Recovery · regulatory failure', why: 'Required disclosure under multiple regulations.' }
+          ]
+        },
+        {
+          stage: 'lessons', expectedCount: 3,
+          promptTitle: 'Cloud tenant security maturity.',
+          promptStem: 'Cloud-tenant compromise is its own discipline.',
+          actions: [
+            { id: 'p6a1', label: 'Adopt zero-standing-privilege model org-wide', isCorrect: true, meta: 'Lessons · architecture', why: 'JIT + zero-standing-privilege caps blast radius for all future incidents.' },
+            { id: 'p6a2', label: 'Quarterly cloud-tenant tabletop exercises', isCorrect: true, meta: 'Lessons · practice', why: 'Cloud IR differs from on-prem. Practice specifically.' },
+            { id: 'p6a3', label: 'Mandate corp-managed devices for all admin work', isCorrect: true, meta: 'Lessons · policy', why: 'Closes the personal-device attack vector at policy level.' },
+            { id: 'p6a4', label: 'Stop using cloud admin accounts', isCorrect: false, meta: 'Lessons · impossible', why: 'Cloud requires admin accounts. Hardening, not avoidance.' }
+          ]
+        }
+      ]
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // 19) CFO embezzlement insider (v4.97.3, locked behind insider-exfil)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'cfo-embezzlement',
+      title: 'CFO embezzlement — financial insider with legitimate access',
+      icon: '👤',
+      vector: 'insider',
+      difficulty: 3,
+      unlockAfter: ['insider-exfil'],
+      summary: 'Anonymous tip: CFO Sarah may have wired $1.2M to a shell company over 6 months. All transactions used legitimate authority.',
+      context: 'At 16:14, an anonymous internal tip arrived at the audit committee: "CFO Sarah Chen has been wiring funds to ASCII-Holdings LLC, a shell company tied to her brother. Last 6 months, ~$1.2M total via 8 wires labeled as M&A advisory fees." All wires were legitimately authorised by CFO under existing SOPs. The transactions are real, the question is intent. This intersects fraud + insider threat + legal + HR + regulatory.',
+      vertical: 'Mid-size enterprise',
+      severity: 'SEV-3',
+      iocs: [
+        { type: 'allegation', value: 'CFO routing funds to shell company', label: 'Insider allegation' },
+        { type: 'volume', value: '~$1.2M / 8 wires / 6 months', label: 'Suspect transactions' },
+        { type: 'authority', value: 'All wires within CFO authority limits', label: 'Legitimate authorisation' },
+        { type: 'connection', value: 'Shell company tied to CFO\'s brother', label: 'Relationship' }
+      ],
+      phases: [
+        {
+          stage: 'preparation', expectedCount: 3,
+          promptTitle: 'What financial-insider readiness mattered?',
+          promptStem: 'Embezzlement by senior finance is hardest IR. Procedural prep matters most.',
+          actions: [
+            { id: 'p1a1', label: 'Anonymous-tip channel + audit committee escalation path', isCorrect: true, meta: 'Preparation · whistleblower', why: 'Whistleblowers need a safe channel. Without one, reports go to wrong people or don\'t happen.' },
+            { id: 'p1a2', label: 'Two-person rule for any wire over $50K (regardless of authoriser)', isCorrect: true, meta: 'Preparation · process', why: 'Two-person rule prevents single-actor fraud regardless of seniority. Codified, not exception-able.' },
+            { id: 'p1a3', label: 'Vendor / counterparty due diligence + ownership disclosure', isCorrect: true, meta: 'Preparation · vendor risk', why: 'Required disclosure of beneficial ownership would have surfaced the brother connection.' },
+            { id: 'p1a4', label: 'Trust the CFO completely', isCorrect: false, meta: 'Preparation · misaligned', why: 'Trust + verify is the security model. Trust without verification creates these incidents.' }
+          ]
+        },
+        {
+          stage: 'identification', expectedCount: 4,
+          promptTitle: 'Verify allegation discreetly + preserve evidence.',
+          promptStem: 'Insider IR with senior leadership requires extreme discretion. Premature exposure = legal nightmare.',
+          actions: [
+            { id: 'p2a1', label: 'Audit committee + general counsel + outside forensic accountants engaged immediately', isCorrect: true, meta: 'Identification · governance', why: 'CFO investigation requires independent governance. Internal IT alone is insufficient + has conflict-of-interest risk.' },
+            { id: 'p2a2', label: 'Preserve ERP + email + financial records under legal hold (no one notified)', isCorrect: true, meta: 'Identification · forensic', why: 'Legal hold preserves evidence. Notifying the subject = evidence destruction risk.' },
+            { id: 'p2a3', label: 'Investigate ASCII-Holdings ownership via public records + subpoena prep', isCorrect: true, meta: 'Identification · forensic', why: 'Establishes whether the shell company link exists + builds the legal case.' },
+            { id: 'p2a4', label: 'Document the audit-committee + counsel chain of decisions', isCorrect: true, meta: 'Identification · governance', why: 'Detailed governance log matters for any subsequent legal action + regulatory inquiry.' },
+            { id: 'p2a5', label: 'Confront CFO directly to ask if it\'s true', isCorrect: false, meta: 'Identification · OPSEC fail', why: 'Premature confrontation alerts the subject + risks evidence destruction. Discretion is mandatory.' }
+          ]
+        },
+        {
+          stage: 'containment', expectedCount: 4,
+          promptTitle: 'Limit further potential damage without tipping off.',
+          promptStem: 'Containment must be discreet until investigation is complete.',
+          actions: [
+            { id: 'p3a1', label: 'Quietly disable CFO\'s ability to authorise wires above a threshold (with cover story)', isCorrect: true, meta: 'Containment · authority', why: 'Stops further potential fraud while investigation proceeds. Cover story prevents tip-off.' },
+            { id: 'p3a2', label: 'Implement two-person rule on all wires immediately org-wide', isCorrect: true, meta: 'Containment · policy', why: 'Org-wide rule looks like routine policy improvement (no specific suspect signal). Stops fraud universally.' },
+            { id: 'p3a3', label: 'Audit + verify any other vendors with shareholder ties to executives', isCorrect: true, meta: 'Containment · scope', why: 'Other potentially-compromised vendor relationships need investigation. Same pattern may exist.' },
+            { id: 'p3a4', label: 'Restrict CFO\'s access to sensitive financial systems (with legal-counsel approval)', isCorrect: true, meta: 'Containment · access', why: 'Reducing CFO access to financial systems requires counsel approval but is necessary to prevent further harm.' },
+            { id: 'p3a5', label: 'Fire the CFO immediately', isCorrect: false, meta: 'Containment · trap', why: 'Premature termination without investigation = wrongful-termination lawsuit + evidence loss. Investigate, then act.' }
+          ]
+        },
+        {
+          stage: 'eradication', expectedCount: 3,
+          promptTitle: 'Resolution + recovery via legal + governance process.',
+          promptStem: 'IT side is largely complete. Legal + governance side takes over.',
+          actions: [
+            { id: 'p4a1', label: 'Outside forensic accountants complete investigation + report to audit committee', isCorrect: true, meta: 'Eradication · forensic', why: 'Independent forensic report is the foundation for any subsequent legal action.' },
+            { id: 'p4a2', label: 'Audit committee + counsel decide on disciplinary + legal action', isCorrect: true, meta: 'Eradication · governance', why: 'Disciplinary + criminal referral decisions belong to governance + counsel, not IT.' },
+            { id: 'p4a3', label: 'Implement permanent two-person rule + ownership disclosure controls', isCorrect: true, meta: 'Eradication · policy', why: 'Codified controls prevent the pattern from recurring with different actors.' },
+            { id: 'p4a4', label: 'Bury the report to avoid bad press', isCorrect: false, meta: 'Eradication · regulatory failure', why: 'Cover-up is illegal + makes outcome much worse. Material financial fraud may require regulatory disclosure.' }
+          ]
+        },
+        {
+          stage: 'recovery', expectedCount: 3,
+          promptTitle: 'Financial recovery + public disclosure + executive transition.',
+          promptStem: 'Restore trust + meet regulatory obligations.',
+          actions: [
+            { id: 'p5a1', label: 'Pursue restitution via legal channels (civil + criminal as appropriate)', isCorrect: true, meta: 'Recovery · restitution', why: 'Recover the $1.2M via legal process. Sets precedent + deters future actors.' },
+            { id: 'p5a2', label: 'Disclose to regulators + investors per material-event requirements', isCorrect: true, meta: 'Recovery · regulatory', why: 'Public companies have material-event disclosure obligations. Counsel-led disclosure.' },
+            { id: 'p5a3', label: 'Communicate appropriately to employees + manage executive transition', isCorrect: true, meta: 'Recovery · org', why: 'Internal communication requires balance — transparency without violating ongoing legal action.' },
+            { id: 'p5a4', label: 'Take credit on social media for catching the fraud', isCorrect: false, meta: 'Recovery · OPSEC fail', why: 'Public credit-claim violates ongoing-legal-process discretion + invites litigation.' }
+          ]
+        },
+        {
+          stage: 'lessons', expectedCount: 3,
+          promptTitle: 'Insider-fraud lessons.',
+          promptStem: 'Senior fraud is preventable with right controls.',
+          actions: [
+            { id: 'p6a1', label: 'Adopt segregation-of-duties + multi-party-approval as governance principles', isCorrect: true, meta: 'Lessons · governance', why: 'No single person should authorise + execute material financial actions. Codify in policy.' },
+            { id: 'p6a2', label: 'Annual whistleblower-channel awareness campaign', isCorrect: true, meta: 'Lessons · culture', why: 'Active whistleblower culture catches fraud early. Awareness keeps it usable.' },
+            { id: 'p6a3', label: 'External audit + forensic accounting cycle for senior-leadership-authorised transactions', isCorrect: true, meta: 'Lessons · audit', why: 'Senior transactions get independent review. Catches future patterns proactively.' },
+            { id: 'p6a4', label: 'Stop having a CFO', isCorrect: false, meta: 'Lessons · misaligned', why: 'CFO role is essential. Controls + audit, not abolition.' }
+          ]
+        }
+      ]
+    },
+
+    // ──────────────────────────────────────────────────────────────────
+    // 20) APT-style nation-state intrusion (v4.97.3, apex, locked)
+    // ──────────────────────────────────────────────────────────────────
+    {
+      id: 'apt-nation-state',
+      title: 'APT-style nation-state intrusion · government-affiliated threat actor',
+      icon: '🌍',
+      vector: 'insider',
+      difficulty: 3,
+      unlockAfter: ['golden-ticket'],
+      summary: 'CISA tipped you off: government-affiliated threat actor has been in your network for 90+ days. Cleared sophistication. Hunt mode.',
+      context: 'At 09:14, CISA contacted your CISO confidentially: "We have intelligence that your network has been compromised by a government-affiliated APT group for 90+ days. We can\'t share specific TTPs but can confirm presence. Threat actor has stealth + patience. Recommend you engage your IR firm + threat-hunt actively." Your environment: 2,400 employees, multi-cloud, plus on-prem + AD + critical IP including defence-industry trade secrets. This is not a typical incident.',
+      vertical: 'Defence-adjacent enterprise',
+      severity: 'SEV-1',
+      iocs: [
+        { type: 'attribution', value: 'Government-affiliated APT (CISA confirmed)', label: 'Threat actor profile' },
+        { type: 'dwell', value: '90+ days estimated', label: 'Estimated presence' },
+        { type: 'capability', value: 'High sophistication · stealth · patient', label: 'Adversary capability' },
+        { type: 'target', value: 'Defence-industry IP + AD + cloud + on-prem', label: 'Likely targets' }
+      ],
+      phases: [
+        {
+          stage: 'preparation', expectedCount: 4,
+          promptTitle: 'What APT-readiness should be in place?',
+          promptStem: 'APTs are different from commodity attackers. Pick the readiness that matters most.',
+          actions: [
+            { id: 'p1a1', label: 'Threat-hunting program with hypothesis-driven detection', isCorrect: true, meta: 'Preparation · threat hunting', why: 'APTs evade signature-based detection. Hypothesis-driven hunting is the only effective approach.' },
+            { id: 'p1a2', label: 'Network segmentation aligned to data sensitivity (defence IP isolated)', isCorrect: true, meta: 'Preparation · segmentation', why: 'Limits APT lateral movement to highest-value targets. Architectural blast-radius control.' },
+            { id: 'p1a3', label: 'CISA + sector-ISAC + IR firm relationships pre-established', isCorrect: true, meta: 'Preparation · partnerships', why: 'APTs require coordinated response. Pre-existing relationships = faster mobilisation.' },
+            { id: 'p1a4', label: 'Cleared employees + tier-zero admin separation', isCorrect: true, meta: 'Preparation · personnel', why: 'Defence-industry context. Cleared personnel + tier-zero separation prevent some classes of compromise.' },
+            { id: 'p1a5', label: 'Public bug-bounty program', isCorrect: false, meta: 'Preparation · misaligned', why: 'Bug bounties find scope-defined vulns. APTs don\'t care about your bounty rules.' }
+          ]
+        },
+        {
+          stage: 'identification', expectedCount: 5,
+          promptTitle: 'Active threat-hunt mode. Find the adversary.',
+          promptStem: 'CISA confirmed presence but won\'t share TTPs. You hunt blind.',
+          actions: [
+            { id: 'p2a1', label: 'Activate IR firm with APT specialisation + breach counsel + cyber insurance', isCorrect: true, meta: 'Identification · partner', why: 'APT IR requires specialists. Speed matters; partnership is force multiplier.' },
+            { id: 'p2a2', label: 'Begin threat-hunt with focus on tier-0 (DCs, defence-IP servers)', isCorrect: true, meta: 'Identification · hunt', why: 'APTs target highest-value assets. Hunt where they\'d be.' },
+            { id: 'p2a3', label: 'Audit AD for unusual delegation, GPO changes, krbtgt, service accounts in last 120 days', isCorrect: true, meta: 'Identification · AD', why: 'AD is the favoured APT persistence target. 120 days exceeds the 90-day dwell estimate.' },
+            { id: 'p2a4', label: 'Audit cloud tenant for similar persistence patterns + Conditional Access bypasses', isCorrect: true, meta: 'Identification · cloud', why: 'Cloud is increasingly an APT target. Same hunt, cloud-specific TTPs.' },
+            { id: 'p2a5', label: 'Establish out-of-band comms (assume corp email + Slack are owned)', isCorrect: true, meta: 'Identification · OPSEC', why: 'APT may be reading corp comms. Use Signal / phone / out-of-band.' },
+            { id: 'p2a6', label: 'Announce the breach publicly to alert customers', isCorrect: false, meta: 'Identification · OPSEC fail', why: 'Premature public disclosure tips off the APT + ruins your hunt. CISA-coordinated disclosure later.' }
+          ]
+        },
+        {
+          stage: 'containment', expectedCount: 6,
+          promptTitle: 'Maximum-care containment without tipping off the adversary.',
+          promptStem: 'APTs detect and adapt to containment efforts. Move quietly + comprehensively.',
+          trapCallout: {
+            title: 'The "obvious containment" trap',
+            body: 'Standard incident-response containment (visible isolation, mass password resets, public WAF rule changes) tips off APT adversaries. They\'ll burn their current infrastructure, move to backup persistence, and you lose visibility. APT containment requires discretion: closed-circle decision-making, out-of-band coordination, simultaneous multi-axis action (not sequential — sequential gives them time to react). When you contain, you contain everywhere at once. This is documented in MITRE D3FEND + CISA\'s APT response guidance.'
+          },
+          actions: [
+            { id: 'p3a1', label: 'Closed-circle decision-making — only need-to-know personnel involved', isCorrect: true, meta: 'Containment · OPSEC', why: 'APT may have visibility into broad org comms. Tight circle prevents inadvertent tip-off.' },
+            { id: 'p3a2', label: 'Coordinated multi-axis containment in single window (not sequential)', isCorrect: true, meta: 'Containment · simultaneous', why: 'Sequential containment lets adversary move to next persistence. Simultaneous closes all doors at once.' },
+            { id: 'p3a3', label: 'krbtgt password rotated TWICE 10 hours apart per Microsoft guidance', isCorrect: true, meta: 'Containment · AD', why: 'Required for AD compromise. Same as golden-ticket scenario.' },
+            { id: 'p3a4', label: 'Cloud tenant: rotate ALL refresh tokens + Conditional Access tightened', isCorrect: true, meta: 'Containment · cloud', why: 'Cloud persistence cleanup, parallel to AD.' },
+            { id: 'p3a5', label: 'Network: block known C2 patterns + inspect all egress in real time', isCorrect: true, meta: 'Containment · network', why: 'Egress inspection catches exfiltration in progress.' },
+            { id: 'p3a6', label: 'Engage US-CISA + sector ISAC for coordinated response', isCorrect: true, meta: 'Containment · external coord', why: 'CISA tipped you off; partner with them on coordinated response. Sector ISAC may have parallel intel.' },
+            { id: 'p3a7', label: 'Visibly increase security tools on monitors visible to staff', isCorrect: false, meta: 'Containment · OPSEC fail', why: 'Visible escalation tips off APT. Discreet monitoring only.' }
+          ]
+        },
+        {
+          stage: 'eradication', expectedCount: 4,
+          promptTitle: 'Eradication-grade APT removal.',
+          promptStem: 'APTs require complete trust restoration. Half-measures fail.',
+          actions: [
+            { id: 'p4a1', label: 'Wipe + reimage every host where APT presence is confirmed (forensic image first)', isCorrect: true, meta: 'Eradication · trust', why: 'APT-touched hosts cannot be cleaned in place. Forensic image, then complete rebuild.' },
+            { id: 'p4a2', label: 'Force credential rotation org-wide + force MFA re-enrolment for all admins', isCorrect: true, meta: 'Eradication · credential', why: '90+ day dwell = assume universal credential exposure. Org-wide reset is the safe baseline.' },
+            { id: 'p4a3', label: 'Engage independent IR firm to validate clean state via documented procedures', isCorrect: true, meta: 'Eradication · validation', why: 'APT-clean validation requires expertise. Independent verification is mandatory.' },
+            { id: 'p4a4', label: 'Adopt zero-trust architecture for sensitive assets going forward', isCorrect: true, meta: 'Eradication · architecture', why: 'ZT architecture caps blast radius for any future intrusion. Can\'t prevent APTs entirely; can limit damage.' },
+            { id: 'p4a5', label: 'Just rotate the krbtgt password and call it eradicated', isCorrect: false, meta: 'Eradication · half-measure', why: 'APTs have multi-axis persistence. Single-tactic eradication fails.' }
+          ]
+        },
+        {
+          stage: 'recovery', expectedCount: 4,
+          promptTitle: 'Coordinated disclosure + ongoing threat intel + sustained vigilance.',
+          promptStem: 'APT recovery extends 12+ months. Plan for the long horizon.',
+          actions: [
+            { id: 'p5a1', label: 'Coordinate disclosure with CISA + counsel + customers + regulators', isCorrect: true, meta: 'Recovery · disclosure', why: 'Disclosure is sequenced + coordinated. CISA may have specific guidance on timing for ongoing investigation.' },
+            { id: 'p5a2', label: 'Maintain elevated monitoring + threat-hunt cadence for 12+ months', isCorrect: true, meta: 'Recovery · sustained', why: 'APTs commonly retry. Year-long heightened posture is standard.' },
+            { id: 'p5a3', label: 'Share TTPs + IOCs with CISA + sector ISAC for ecosystem benefit', isCorrect: true, meta: 'Recovery · sharing', why: 'Same crew likely targeting peer orgs. Sharing helps ecosystem defend.' },
+            { id: 'p5a4', label: 'Brief board + executive team on the threat + ongoing posture', isCorrect: true, meta: 'Recovery · governance', why: 'Board needs to understand APT-tier risk + agree to sustained-investment posture.' },
+            { id: 'p5a5', label: 'Skip the year of monitoring to save cost', isCorrect: false, meta: 'Recovery · negligence', why: 'APT comeback is highly likely. Year of monitoring is cost-of-doing-business.' }
+          ]
+        },
+        {
+          stage: 'lessons', expectedCount: 4,
+          promptTitle: 'How does the org survive APT-tier threats long-term?',
+          promptStem: 'APTs are the apex. Lessons here are foundational.',
+          actions: [
+            { id: 'p6a1', label: 'Adopt MITRE ATT&CK as the defensive framework + map detection coverage', isCorrect: true, meta: 'Lessons · framework', why: 'ATT&CK is the standard model for APT TTPs. Coverage map identifies gaps to close.' },
+            { id: 'p6a2', label: 'Build a continuous threat-hunting team (not just reactive IR)', isCorrect: true, meta: 'Lessons · team', why: 'Reactive IR catches 50% at best. Continuous hunting catches stealthy APTs that evade detection.' },
+            { id: 'p6a3', label: 'Establish ongoing relationship with CISA + sector ISAC + IR firm retainer', isCorrect: true, meta: 'Lessons · partnership', why: 'APT-tier threat requires coordinated ecosystem response. Pre-positioned relationships matter.' },
+            { id: 'p6a4', label: 'Brief the board annually on APT-tier risk + ensure ongoing investment', isCorrect: true, meta: 'Lessons · governance', why: 'APT defence is expensive + ongoing. Board buy-in keeps the budget alive.' },
+            { id: 'p6a5', label: 'Stop being a defence-industry-adjacent business', isCorrect: false, meta: 'Lessons · misaligned', why: 'Mission matters. Hardening, not retreat.' }
+          ]
+        }
+      ]
     }
   ],
 
