@@ -397,36 +397,24 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   letter-spacing: -.02em;
   flex-shrink: 0;
 }
-.cert-glyph-netplus {
+/* All cert glyphs share the same dark forged-mark base so the tile row
+   reads as a single cert family. Only the accent color shifts per cert
+   so each one still owns its identity. */
+.cert-glyph-netplus,
+.cert-glyph-secplus,
+.cert-glyph-az900,
+.cert-glyph-ccna,
+.cert-glyph-aws,
+.cert-glyph-az104 {
   background: var(--logo-mark-bg);
   border: 1px solid var(--border);
-  color: var(--accent-light);
 }
-.cert-glyph-secplus {
-  background: linear-gradient(135deg, var(--orange-soft-bg), rgba(245,158,11,.02));
-  border: 1px solid var(--orange-border);
-  color: var(--orange);
-}
-.cert-glyph-az900 {
-  background: linear-gradient(135deg, rgba(8,145,178,.10), rgba(8,145,178,.02));
-  border: 1px solid rgba(8,145,178,.28);
-  color: var(--cyan);
-}
-.cert-glyph-ccna {
-  background: linear-gradient(135deg, var(--green-soft-bg), rgba(22,163,74,.02));
-  border: 1px solid var(--green-border);
-  color: var(--green);
-}
-.cert-glyph-aws {
-  background: linear-gradient(135deg, rgba(202,138,4,.10), rgba(202,138,4,.02));
-  border: 1px solid rgba(202,138,4,.28);
-  color: var(--yellow);
-}
-.cert-glyph-az104 {
-  background: linear-gradient(135deg, var(--accent-soft-bg), rgba(91,79,219,.02));
-  border: 1px solid var(--accent-soft-border);
-  color: var(--accent);
-}
+.cert-glyph-netplus { color: var(--accent-light); }
+.cert-glyph-secplus { color: #fbbf24; }
+.cert-glyph-az900   { color: #38bdf8; }
+.cert-glyph-ccna    { color: #34d399; }
+.cert-glyph-aws     { color: #fcd34d; }
+.cert-glyph-az104   { color: #a99df9; }
 
 .cert-status {
   font-size: 9px;
@@ -2337,6 +2325,48 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   color: var(--accent);
   font-weight: 700;
 }
+/* "What you'll see" preview cards inside the CCA modal — 3-up grid that
+   teases the pass-readiness / skill-overlap / next-up surfaces. */
+.cca-preview {
+  margin: 18px 0 6px;
+  text-align: left;
+}
+.cca-preview-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.cca-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.cca-preview-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: left;
+}
+.cca-preview-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+.cca-preview-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+.cca-preview-body {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
 @media (max-width: 540px) {
   .my-cert-row { padding: 12px; gap: 10px; }
   .my-cert-glyph { width: 32px; height: 32px; font-size: 11px; }
@@ -2344,6 +2374,8 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   .my-cert-cta { font-size: 11px; }
   .cca-roadmap { padding: 12px; }
   .cca-roadmap-item { font-size: 12px; }
+  .cca-preview-grid { grid-template-columns: 1fr; }
+  .cca-preview-card { padding: 12px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

@@ -168,7 +168,7 @@
       +     '<span class="tad-icon">⚙️</span><span>Account settings</span>'
       +   '</a>'
       +   '<a class="tad-link" href="#" onclick="return showPage(\'settings\'),false">'
-      +     '<span class="tad-icon">🛠</span><span>App preferences</span>'
+      +     '<span class="tad-icon">🛠</span><span>Cert preferences</span>'
       +   '</a>'
       +   '<a class="tad-link" href="https://certanvil.com/?modal=my-certs">'
       +     '<span class="tad-icon">🎓</span><span>My certs</span>'
