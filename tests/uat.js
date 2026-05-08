@@ -301,7 +301,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.96.3', js.includes("const APP_VERSION = '4.96.3"));
+test('APP_VERSION is 4.96.4', js.includes("const APP_VERSION = '4.96.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +315,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.96.3', sw.includes('netplus-v4.96.3'));
+test('SW cache bumped to v4.96.4', sw.includes('netplus-v4.96.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16818,13 +16818,13 @@ test('v4.96.0 PT: netplus.js declares packetTraceScenarios',
   certNetplus.includes('packetTraceScenarios:'));
 test('v4.96.0 PT: netplus.js declares packetTraceLessons',
   certNetplus.includes('packetTraceLessons:'));
-test('v4.96.3 PT: netplus.js has 10 scenarios (Batch B added HSRP + OSPF inter-area)',
+test('v4.96.4 PT: netplus.js has 15 scenarios (Batch C added TCP/TLS/IPsec/WPA2/Traceroute)',
   (() => {
     // Count `unlockAfter:` — appears once per scenario at top level, never nested
     const m = certNetplus.match(/packetTraceScenarios:\s*\[([\s\S]+?)\n\s*\],\s*\n\s*packetTraceLessons:/);
     if (!m) return false;
     const unlocks = m[1].match(/\bunlockAfter:\s*\[/g) || [];
-    return unlocks.length === 10;
+    return unlocks.length === 15;
   })());
 test('v4.96.0 PT: netplus.js has 5 lessons at v1',
   (() => {

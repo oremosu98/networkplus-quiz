@@ -7278,6 +7278,519 @@ window.CERT_PACKS.netplus = {
           }
         }
       ]
+    },
+    {
+      id: 'tcp-handshake',
+      title: 'TCP three-way handshake',
+      icon: '🤝',
+      obj: '1.5',
+      diff: 2,
+      unlockAfter: ['cross-subnet-routing'],
+      summary: 'Client → Server · SYN, SYN-ACK, ACK · sequence numbers + state transitions',
+      network: {
+        devices: [
+          { id: 'client', type: 'pc',     label: 'Client', ip: '10.0.1.5',  x: 80,  y: 200 },
+          { id: 'rtr',    type: 'router', label: 'RTR',                       x: 290, y: 200 },
+          { id: 'server', type: 'server', label: 'Server', ip: '203.0.113.10', x: 500, y: 200 }
+        ],
+        cables: [
+          { from: 'client', to: 'rtr',    type: 'copper' },
+          { from: 'rtr',    to: 'server', type: 'remote' }
+        ],
+        subnets: [
+          { cidr: 'TCP three-way handshake', label: 'before any data flows', color: 'amber', boxX: 20, boxY: 40, boxW: 540, boxH: 28 }
+        ]
+      },
+      steps: [
+        {
+          at: 'client',
+          caption: { title: 'Step 1 · SYN', action: 'Client sends initial SYN', detail: 'Flags: SYN. seq=X (client picks random Initial Sequence Number). Window size advertised. State: SYN_SENT.' },
+          question: {
+            stem: 'Why does the client pick a RANDOM Initial Sequence Number (ISN) instead of starting at 0?',
+            options: [
+              'To save bytes in the header',
+              'Randomised ISNs prevent off-path attackers from guessing valid sequence numbers and injecting fake data into a session (TCP sequence prediction attacks)',
+              'TCP requires ISN to be odd',
+              'It speeds up connection establishment'
+            ],
+            correctIdx: 1,
+            why: 'Pre-1996 BSD systems used predictable ISNs (incremented by a constant). This let off-path attackers blindly inject TCP segments into existing sessions (Mitnick-style attacks). RFC 6528 mandates randomised ISNs. Modern stacks use cryptographic hash of (src_ip, dst_ip, src_port, dst_port, secret_key) — unguessable from off-path. This is why TCP without TLS is "secure against off-path injection" but still vulnerable to on-path MITM.'
+          }
+        },
+        {
+          at: 'server',
+          caption: { title: 'Step 2 · SYN-ACK', action: 'Server replies with SYN+ACK in a single segment', detail: 'Flags: SYN, ACK. ack=X+1 (acknowledges client SYN), seq=Y (server picks its own ISN). State: SYN_RECEIVED.' },
+          question: {
+            stem: 'Why does the server combine SYN and ACK in a single segment instead of sending them separately?',
+            options: [
+              'TCP can only send 2 segments per second',
+              'Efficiency — saves a full round-trip. The server\'s SYN (initiating its half of the bidirectional connection) and ACK (acknowledging client\'s SYN) ride in one segment',
+              'It\'s a security requirement',
+              'The server has no choice — TCP stack auto-combines them'
+            ],
+            correctIdx: 1,
+            why: 'TCP is BIDIRECTIONAL: each side has its own sequence number space + must SYN-establish its direction. The server could send SYN then ACK separately (3 round-trips total), but combining them saves a round-trip — total handshake = 1.5 RTTs. Modern TFO (TCP Fast Open) goes even further by piggybacking data in the SYN, but classic TCP is 3-way for safety.'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 3 · ACK', action: 'Client acknowledges server\'s SYN', detail: 'Flags: ACK. seq=X+1, ack=Y+1. State: ESTABLISHED. Connection is now bidirectional + ready for data.' },
+          question: {
+            stem: 'After the third segment (ACK from client), what state is the connection in?',
+            options: [
+              'Half-open — client can send but server can\'t',
+              'ESTABLISHED on both ends — full bidirectional data flow now possible',
+              'CLOSING — handshake about to be torn down',
+              'TIME_WAIT — last 60 seconds before reuse'
+            ],
+            correctIdx: 1,
+            why: 'After the ACK, both endpoints transition to ESTABLISHED. From here, application data flows in either direction (the server doesn\'t wait for client to send first — the connection is fully bidirectional). The 3 segments are: SYN (1), SYN+ACK (2), ACK (3) = "three-way handshake". Half-open means one side\'s SYN got an ACK but the other never finished — used in SYN-flood attacks where attackers send SYNs but never the final ACK.'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 4 · Data flows', action: 'Application data segments now flow', detail: 'Each segment carries seq + ack numbers + data + window-size updates for flow control.' },
+          question: {
+            stem: 'What\'s the purpose of the WINDOW SIZE field exchanged during data flow?',
+            options: [
+              'It tells the receiver how big each individual segment must be',
+              'It implements flow control — receiver advertises how many bytes it has buffer for; sender pauses if window=0 (avoids overrunning slow receivers)',
+              'It encrypts the data',
+              'It\'s only used during the handshake'
+            ],
+            correctIdx: 1,
+            why: 'Window size is RECEIVER-SIDE FLOW CONTROL. Receiver constantly advertises "I have N bytes of buffer free." Sender stops sending if window hits 0 (pause until receiver drains buffer + advertises >0 again). Distinct from CONGESTION control (which adjusts to network conditions, not receiver state). Window scaling (RFC 1323) extends the 16-bit field to support modern high-bandwidth links.'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 5 · Connection teardown (FIN)', action: 'Client sends FIN to close its side', detail: 'TCP teardown is also bidirectional: each side sends its own FIN. Total = 4 segments (FIN, ACK, FIN, ACK).' },
+          question: {
+            stem: 'Why does TCP teardown require 4 segments instead of 3 (mirror of handshake)?',
+            options: [
+              'TCP teardown is buggy and inefficient',
+              'Each direction closes INDEPENDENTLY — server can keep sending data after client closes its half. So FIN+ACK can\'t always combine into a single segment',
+              'TCP requires extra acknowledgements for security',
+              'It\'s actually 3 segments — the user is confused'
+            ],
+            correctIdx: 1,
+            why: 'TCP supports HALF-CLOSE: client sends FIN, but server can keep sending data (e.g., finishing a download). Client ACKs server\'s remaining data + server\'s eventual FIN. The 4-segment teardown (FIN, ACK, FIN, ACK) reflects this independence. After teardown: TIME_WAIT state (~60 seconds) prevents stale segments from a closed connection appearing in a new connection with the same 4-tuple.'
+          }
+        }
+      ]
+    },
+    {
+      id: 'tls-handshake',
+      title: 'TLS 1.3 handshake (HTTPS)',
+      icon: '🔐',
+      obj: '4.4',
+      diff: 3,
+      unlockAfter: ['tcp-handshake'],
+      summary: 'Client → Server · ClientHello → ServerHello + cert + key share → Finished · 1-RTT to encrypted',
+      network: {
+        devices: [
+          { id: 'client', type: 'pc',     label: 'Client', ip: '10.0.1.5',  x: 80,  y: 200 },
+          { id: 'rtr',    type: 'router', label: 'RTR',                       x: 290, y: 200 },
+          { id: 'server', type: 'server', label: 'Server', ip: 'example.com', x: 500, y: 200 }
+        ],
+        cables: [
+          { from: 'client', to: 'rtr',    type: 'copper' },
+          { from: 'rtr',    to: 'server', type: 'remote' }
+        ],
+        subnets: [
+          { cidr: 'TLS 1.3 handshake', label: 'over an established TCP connection', color: 'purple', boxX: 20, boxY: 40, boxW: 540, boxH: 28 }
+        ]
+      },
+      steps: [
+        {
+          at: 'client',
+          caption: { title: 'Step 1 · ClientHello', action: 'TCP already established · Client sends TLS ClientHello', detail: 'Includes: supported cipher suites, supported TLS versions, SNI (server name), random nonce, key_share (client\'s ephemeral public key for ECDH).' },
+          question: {
+            stem: 'Why does TLS 1.3 ClientHello include the client\'s ephemeral public key (key_share) UPFRONT?',
+            options: [
+              'To make the handshake fail-safe against hardware errors',
+              'To enable 1-RTT handshake — the server can immediately compute the shared secret and start encrypting on its first response. Saves a full round-trip vs TLS 1.2',
+              'TLS 1.3 requires it for FIPS compliance',
+              'It\'s only included when SNI is enabled'
+            ],
+            correctIdx: 1,
+            why: 'TLS 1.3 collapsed the handshake from 2-RTT (TLS 1.2) to 1-RTT by sending the client\'s key_share IN the ClientHello (assuming a guess at which curve). Server uses it to compute the shared ECDH secret + can immediately encrypt its response. If guess is wrong, server requests retry (HelloRetryRequest) — costs an extra RTT but rare in practice. TLS 1.3 also supports 0-RTT with PSK for repeat connections, but 0-RTT has replay-attack concerns.'
+          }
+        },
+        {
+          at: 'server',
+          caption: { title: 'Step 2 · ServerHello + cert + key_share + Finished', action: 'Server picks cipher + sends back its key_share + cert + Finished', detail: 'Critical: from this point, all server messages are ENCRYPTED with the derived handshake key.' },
+          question: {
+            stem: 'In TLS 1.3, the server\'s certificate is sent ENCRYPTED. Why?',
+            options: [
+              'For performance — encrypted bytes compress better',
+              'Privacy — TLS 1.2 sent the cert in cleartext, exposing the server\'s identity to passive observers (and network firewalls/IDS using it for blocking). TLS 1.3 hides this metadata',
+              'Encryption is automatic for everything',
+              'Required by FIPS 140-3'
+            ],
+            correctIdx: 1,
+            why: 'TLS 1.2 sent the server certificate in cleartext, allowing passive observers (governments, ISPs, adversaries) to see what hostname the user was connecting to (especially with SNI also unencrypted). TLS 1.3 encrypts the cert + most extensions. SNI is still cleartext by default — fixed by Encrypted Client Hello (ECH, RFC 9460), which is rolling out gradually.'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 3 · Cert validation', action: 'Client validates server cert: chain → trust anchor + name + expiry + revocation', detail: 'If validation fails, browser shows a security warning. If passes, key derivation continues.' },
+          question: {
+            stem: 'When validating the server\'s certificate, the client checks ALL of these EXCEPT:',
+            options: [
+              'Cert is signed by a CA in the client\'s trust store (anchor of trust)',
+              'Server hostname matches the cert\'s Subject Alternative Name (SAN) field',
+              'Cert is within its validity window (not yet expired)',
+              'Cert\'s public key matches the client\'s TLS version'
+            ],
+            correctIdx: 3,
+            why: 'Certificate-public-key matching to TLS version is fictional — TLS version negotiation is independent of cert validation. The actual checks are: (1) signature chain back to a trusted root CA, (2) hostname match (SAN preferred over deprecated CN), (3) validity window (notBefore/notAfter), (4) revocation status (OCSP or CRL — though browsers vary in enforcement; OCSP stapling speeds this up by attaching the OCSP response to the cert during the TLS handshake).'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 4 · Client Finished', action: 'Client computes ECDH shared secret + sends encrypted Finished', detail: 'Both sides now have the same key. Application data can flow encrypted.' },
+          question: {
+            stem: 'How do client + server arrive at the SAME shared secret without ever sending it over the wire?',
+            options: [
+              'They both query a central key server',
+              'Diffie-Hellman key exchange — each side has a private key + public key (key_share). Combining own private + other side\'s public yields the same shared secret on both sides, despite the secret never being transmitted',
+              'The CA gives them both the secret',
+              'They use the cert\'s public key directly'
+            ],
+            correctIdx: 1,
+            why: 'ECDH (Elliptic Curve Diffie-Hellman) magic: each side picks a private random + computes a public key. They exchange public keys. Each side then combines (own private + other\'s public) → same result. The shared secret never traverses the network. Eavesdropping the public keys doesn\'t help — deriving the private from the public requires solving the discrete log problem (computationally infeasible for ECDH curves like X25519 or P-256).'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 5 · Encrypted application data', action: 'GET /index.html flows over the encrypted tunnel', detail: 'AES-GCM (or ChaCha20-Poly1305) provides confidentiality + integrity. Only client + server can decrypt.' },
+          question: {
+            stem: 'What does AEAD (Authenticated Encryption with Associated Data, e.g., AES-GCM) provide that simple encryption doesn\'t?',
+            options: [
+              'Faster encryption',
+              'Confidentiality + INTEGRITY in a single primitive — guarantees the ciphertext wasn\'t tampered with in transit; tampering causes decryption to fail loudly',
+              'Cheaper key management',
+              'It\'s always backwards-compatible with DES'
+            ],
+            correctIdx: 1,
+            why: 'Pre-AEAD ciphers (e.g., CBC-mode AES) encrypted but didn\'t detect tampering — attackers could flip bits in ciphertext, decryption would silently produce garbled plaintext, and only the application might notice (sometimes). AEAD ciphers (AES-GCM, ChaCha20-Poly1305) compute a MAC during encryption + verify on decryption. Bit-flip = decryption error = abort connection. This is the foundation of modern TLS security.'
+          }
+        }
+      ]
+    },
+    {
+      id: 'ipsec-vpn',
+      title: 'IPsec site-to-site VPN tunnel',
+      icon: '🔒',
+      obj: '4.4',
+      diff: 3,
+      unlockAfter: ['tls-handshake'],
+      summary: 'Two sites · IKE Phase 1 establishes secure channel · Phase 2 negotiates ESP SA · ESP encapsulates traffic',
+      network: {
+        devices: [
+          { id: 'pc-a',  type: 'pc',     label: 'PC-A',  ip: '10.0.1.5',   x: 60,  y: 200 },
+          { id: 'fw-a',  type: 'router', label: 'FW-A\nVPN GW', ip: '198.51.100.1', x: 200, y: 200 },
+          { id: 'inet',  type: 'router', label: 'Internet',                     x: 350, y: 200 },
+          { id: 'fw-b',  type: 'router', label: 'FW-B\nVPN GW', ip: '203.0.113.1',  x: 480, y: 200 },
+          { id: 'pc-b',  type: 'pc',     label: 'PC-B',  ip: '10.1.1.5',   x: 580, y: 270 }
+        ],
+        cables: [
+          { from: 'pc-a', to: 'fw-a', type: 'copper' },
+          { from: 'fw-a', to: 'inet', type: 'remote' },
+          { from: 'inet', to: 'fw-b', type: 'remote' },
+          { from: 'fw-b', to: 'pc-b', type: 'copper' }
+        ],
+        subnets: [
+          { cidr: 'Site A LAN = 10.0.0.0/16', label: 'private', color: 'amber',  boxX: 20,  boxY: 30, boxW: 240, boxH: 28 },
+          { cidr: 'IPsec tunnel · ESP-encrypted across public internet', label: '', color: 'purple', boxX: 280, boxY: 30, boxW: 200, boxH: 28 },
+          { cidr: 'Site B LAN = 10.1.0.0/16', label: 'private', color: 'amber',  boxX: 500, boxY: 30, boxW: 80, boxH: 28 }
+        ]
+      },
+      steps: [
+        {
+          at: 'fw-a',
+          caption: { title: 'Step 1 · IKE Phase 1 (ISAKMP SA)', action: 'FW-A initiates IKE Phase 1 to FW-B', detail: 'Negotiates: encryption algorithm (AES-256), hash (SHA-256), DH group (14+), authentication (PSK or certs). Output: bidirectional ISAKMP/IKE SA.' },
+          question: {
+            stem: 'What\'s the purpose of IKE Phase 1?',
+            options: [
+              'To encrypt the user data',
+              'To establish a SECURE CONTROL CHANNEL between the two VPN endpoints — used to safely negotiate Phase 2 (which sets up the actual data encryption)',
+              'To authenticate hosts on the LAN',
+              'To assign IP addresses to remote users'
+            ],
+            correctIdx: 1,
+            why: 'IPsec is a 2-phase protocol: Phase 1 builds a secure CONTROL channel (the ISAKMP SA) using IKE. Phase 2 uses that secure channel to negotiate IPsec SAs (Security Associations) for actual data traffic. Why split? Phase 1 is heavyweight (DH + auth + cert validation) — done once per peer relationship. Phase 2 is lightweight + rekeyed frequently for forward secrecy. Modern IKEv2 simplifies the wire format but keeps the 2-phase concept.'
+          }
+        },
+        {
+          at: 'fw-a',
+          caption: { title: 'Step 2 · IKE Phase 2 (IPsec SA)', action: 'Inside the Phase 1 secure channel, FW-A and FW-B negotiate IPsec SAs', detail: 'Output: TWO unidirectional ESP SAs (one A→B, one B→A) — each with its own SPI + key.' },
+          question: {
+            stem: 'Why are IPsec SAs UNIDIRECTIONAL (one for each direction) instead of one bidirectional SA?',
+            options: [
+              'To save memory',
+              'Each direction can have INDEPENDENT cryptographic parameters (different SPI, different keys) — enables fine-grained security policy + simpler key rotation per direction',
+              'IPsec is broken and uses 2 by accident',
+              'It\'s required by NAT'
+            ],
+            correctIdx: 1,
+            why: 'Unidirectional SAs allow asymmetric configuration (rare but possible) and independent rekeying. Each SA is identified by (SPI, dest-IP, protocol). When FW-A receives an inbound packet with SPI=0x12345 to its IP, it looks up the matching inbound SA + uses its key to decrypt/verify. Forward secrecy: PFS rekeys each SA independently with fresh DH exchanges, so compromising one period\'s keys doesn\'t compromise others.'
+          }
+        },
+        {
+          at: 'pc-a',
+          caption: { title: 'Step 3 · Original packet from PC-A', action: 'PC-A sends to PC-B (10.1.1.5)', detail: 'L3 dst IP = 10.1.1.5 (Site B private). Without VPN, this packet would die at the first internet router (private IP). With VPN, FW-A intercepts.' },
+          question: {
+            stem: 'PC-A\'s packet has destination IP 10.1.1.5 (a PRIVATE IP). How does it get across the public internet to Site B?',
+            options: [
+              'NAT translates 10.1.1.5 to a public IP',
+              'IPsec ESP ENCAPSULATES the entire original packet inside a new IP header (FW-A\'s public IP → FW-B\'s public IP) — the inner packet stays unchanged, the outer is routable',
+              'Public ISP routers special-case private IPs for VPN traffic',
+              'PC-A switches to IPv6'
+            ],
+            correctIdx: 1,
+            why: 'IPsec ESP in TUNNEL MODE wraps the entire original IP packet (header + payload) inside ESP encryption + a NEW outer IP header. Outer src/dst = the two VPN gateways\' public IPs (FW-A → FW-B). Internet routes the outer packet normally. FW-B decrypts, strips the outer header, routes the original inner packet (10.1.1.5) on Site B\'s LAN. ESP TRANSPORT mode (less common) encrypts only the payload, used for host-to-host within a trusted network.'
+          }
+        },
+        {
+          at: 'fw-a',
+          caption: { title: 'Step 4 · ESP encapsulation', action: 'FW-A encrypts the original packet + adds ESP header + new outer IP header', detail: 'Outer header: src 198.51.100.1 → dst 203.0.113.1, protocol = 50 (ESP). Encrypted payload: original packet.' },
+          question: {
+            stem: 'On the public internet, ESP packets show protocol number 50 (vs 6 for TCP, 17 for UDP). What problem does this cause for some networks?',
+            options: [
+              'Protocol 50 is illegal',
+              'NAT devices and basic firewalls often block or fail to NAT non-TCP/UDP protocols — many home/SMB routers can\'t pass ESP through their NAT. Solution: NAT-T (RFC 3947) wraps ESP in UDP/4500 to look like normal UDP traffic',
+              'Slower than TCP',
+              'Triggers anti-virus alerts'
+            ],
+            correctIdx: 1,
+            why: 'Many NAT implementations are TCP/UDP-aware but break for other IP protocols. ESP (proto 50) often fails to traverse home/SMB NAT routers. NAT-Traversal (NAT-T) detects NAT in the path during IKE negotiation and switches to UDP-encapsulated ESP (UDP port 4500). The UDP wrapper makes ESP look like normal UDP traffic to NAT, which can then map ports normally. Same result, NAT-friendly. Almost all modern IPsec deployments enable NAT-T by default.'
+          }
+        },
+        {
+          at: 'fw-b',
+          caption: { title: 'Step 5 · ESP decapsulation at Site B', action: 'FW-B receives ESP packet, decrypts using inbound SA key, extracts original packet', detail: 'Inner packet (PC-A → PC-B) routed normally on Site B LAN. PC-B sees PC-A\'s real source IP — VPN provides END-TO-END illusion.' },
+          question: {
+            stem: 'PC-B receives the inner packet. What does PC-B see as the source IP?',
+            options: [
+              'FW-A\'s public IP (198.51.100.1)',
+              'PC-A\'s private IP (10.0.1.5) — IPsec preserves the inner packet end-to-end',
+              'FW-B\'s LAN IP',
+              '0.0.0.0'
+            ],
+            correctIdx: 1,
+            why: 'IPsec creates a virtual point-to-point link between PC-A and PC-B at the network layer. The inner packet is preserved end-to-end (source IP, dest IP, payload). Both LANs effectively merge into a single routable network from the hosts\' perspective. Compare: TLS provides per-connection encryption at the application layer (each app needs explicit TLS); IPsec works at L3 (every packet between sites is automatically protected, regardless of application).'
+          }
+        }
+      ]
+    },
+    {
+      id: 'wpa2-eapol',
+      title: 'WPA2 4-way EAPOL handshake',
+      icon: '📡',
+      obj: '2.4',
+      diff: 3,
+      unlockAfter: ['same-subnet-arp'],
+      summary: 'Wireless client + AP derive PTK from PMK · 4 EAPOL messages · group key sent · client gets internet access',
+      network: {
+        devices: [
+          { id: 'sta',  type: 'pc',     label: 'STA\n(client)', ip: 'pre-IP',  x: 80,  y: 200 },
+          { id: 'ap',   type: 'switch', label: 'AP',                            x: 240, y: 200 },
+          { id: 'auth', type: 'server', label: 'Authenticator\n(AP itself in WPA2-PSK)', x: 410, y: 200 },
+          { id: 'wlan', type: 'router', label: 'WLAN', ip: '10.0.1.1', x: 540, y: 200 }
+        ],
+        cables: [
+          { from: 'sta',  to: 'ap',   type: 'copper' },  // wireless represented as copper for simplicity
+          { from: 'ap',   to: 'auth', type: 'copper' },
+          { from: 'auth', to: 'wlan', type: 'copper' }
+        ],
+        subnets: [
+          { cidr: 'Wi-Fi association (open)', label: 'before encryption', color: 'amber',  boxX: 20,  boxY: 30, boxW: 240, boxH: 28 },
+          { cidr: '4-way EAPOL handshake', label: 'derive + verify PTK', color: 'purple', boxX: 280, boxY: 30, boxW: 300, boxH: 28 }
+        ]
+      },
+      steps: [
+        {
+          at: 'sta',
+          caption: { title: 'Step 1 · Pre-handshake state', action: 'STA already associated with AP (open authentication completed)', detail: 'Both sides KNOW the PSK (pre-shared key). Both have computed PMK (Pairwise Master Key) = PBKDF2(PSK, SSID).' },
+          question: {
+            stem: 'Why doesn\'t WPA2-PSK use the PSK directly to encrypt traffic — why derive a separate PMK?',
+            options: [
+              'PSK is too short',
+              'PMK derivation via PBKDF2 with SSID-as-salt SLOWS DOWN brute-force attempts and binds the key to the specific SSID. Without it, attackers could pre-compute rainbow tables for common PSKs',
+              'It\'s a legal requirement',
+              'PMK enables multiple SSIDs'
+            ],
+            correctIdx: 1,
+            why: 'PMK = PBKDF2(PSK, SSID, 4096 iterations, 256 bits). PBKDF2 is a key-stretching function: deliberately slow + memory-hard. This makes brute-force attacks 4096x slower per guess. SSID-as-salt prevents pre-computed rainbow tables (attacker would need separate table per SSID). PMK is the FOUNDATION — every per-session key (PTK) is derived from it via the 4-way handshake.'
+          }
+        },
+        {
+          at: 'ap',
+          caption: { title: 'Step 2 · Message 1 — AP sends ANonce', action: 'AP picks random nonce (ANonce) + sends to STA', detail: 'No encryption yet — sent in cleartext. STA needs ANonce to derive the PTK.' },
+          question: {
+            stem: 'Why send the ANonce in CLEARTEXT?',
+            options: [
+              'WPA2 doesn\'t support encryption at this stage',
+              'Bootstrapping problem — encryption requires the PTK, but the PTK depends on the ANonce. Cleartext is fine because nonces are public values; their freshness (uniqueness per session) is what matters, not secrecy',
+              'It\'s an oversight that lets attackers intercept the PTK',
+              'Only the SNonce is secret'
+            ],
+            correctIdx: 1,
+            why: 'Both nonces (ANonce + SNonce) are PUBLIC values transmitted in the clear. The security comes from the PMK (which both sides already know via PBKDF2 from PSK + SSID) — attackers without the PSK can\'t derive the PTK regardless of seeing the nonces. KRACK (2017) attack abused nonce REUSE during reinstallation, breaking the integrity of the keystream — fixed by patches that prevent nonce reset.'
+          }
+        },
+        {
+          at: 'sta',
+          caption: { title: 'Step 3 · Message 2 — STA sends SNonce + MIC', action: 'STA picks SNonce + computes PTK = PRF(PMK, ANonce, SNonce, AP-MAC, STA-MAC)', detail: 'STA includes a MIC (Message Integrity Code) computed using the PTK — proves STA derived the same PTK.' },
+          question: {
+            stem: 'How does the AP verify STA\'s MIC without ever exchanging the PTK?',
+            options: [
+              'STA sends the PTK encrypted with PMK',
+              'AP independently computes the SAME PTK using the PMK + nonces + MAC addresses, then verifies STA\'s MIC against its own. If they match, both sides have the SAME PTK without ever transmitting it',
+              'AP queries the authentication server',
+              'PTK is sent in Message 4'
+            ],
+            correctIdx: 1,
+            why: 'The PTK is NEVER transmitted. Both sides have all inputs (PMK, ANonce, SNonce, both MACs) and run the SAME pseudorandom function (PRF) → produce identical PTKs locally. The MIC in Message 2 PROVES STA computed the same key (only someone who knew PMK could produce a valid MIC). Same as Diffie-Hellman conceptually: shared secret derived independently. If MIC verification fails, AP knows the STA used wrong PSK + drops the connection.'
+          }
+        },
+        {
+          at: 'ap',
+          caption: { title: 'Step 4 · Message 3 — AP sends GTK', action: 'AP encrypts GTK (Group Temporal Key) using the freshly-derived PTK + sends to STA', detail: 'GTK = group key shared by ALL clients on this AP, used for broadcast/multicast traffic.' },
+          question: {
+            stem: 'Why does Wi-Fi need a SEPARATE Group Temporal Key (GTK) in addition to per-client PTKs?',
+            options: [
+              'For backward compatibility with WEP',
+              'Broadcast/multicast packets must reach ALL clients — encrypting per-client (with each client\'s unique PTK) would require N copies of every broadcast. GTK lets the AP encrypt once + every client decrypts',
+              'GTK is faster than PTK',
+              'It enables roaming'
+            ],
+            correctIdx: 1,
+            why: 'PTK is per-client (unique pairwise key for unicast). For broadcast (e.g., ARP requests, DHCP discovers, mDNS), the AP would have to send N separate copies — wasteful. GTK is shared across all associated clients in the same SSID. AP encrypts a broadcast once with GTK, every client decrypts with the same GTK. Trade-off: GTK rotation requires re-keying every client when a single client leaves (otherwise departed clients could still decrypt broadcasts) — handled by AP transitioning all stations to a fresh GTK.'
+          }
+        },
+        {
+          at: 'sta',
+          caption: { title: 'Step 5 · Message 4 — STA acks GTK + handshake complete', action: 'STA confirms receipt of GTK', detail: 'Both sides install the PTK + GTK in the wireless driver. Encrypted data flow begins (CCMP/AES).' },
+          question: {
+            stem: 'After the 4-way handshake, what algorithm encrypts the actual Wi-Fi data frames in WPA2?',
+            options: [
+              'TKIP (legacy WPA/WEP fallback)',
+              'CCMP (AES-128 in CCM mode) — provides confidentiality + integrity. Standard for WPA2',
+              'TLS over IP',
+              'SHA-256 hashing'
+            ],
+            correctIdx: 1,
+            why: 'WPA2 mandates CCMP (Counter Mode CBC-MAC Protocol) using AES-128. CCMP combines counter-mode encryption (confidentiality) + CBC-MAC (integrity) — like AES-GCM but with separate steps. WPA3 upgrades to GCMP (AES-256-GCM, faster). TKIP existed in WPA1 for WEP-hardware backward compat but is broken; modern AP+STA should disable TKIP entirely. Mixed-mode (TKIP+CCMP) downgrade attacks make pure-CCMP (or pure-WPA3) the safe config.'
+          }
+        }
+      ]
+    },
+    {
+      id: 'traceroute-ttl',
+      title: 'Traceroute (TTL expiration)',
+      icon: '🔍',
+      obj: '5.4',
+      diff: 2,
+      unlockAfter: ['cross-subnet-routing'],
+      summary: 'Client sends UDP/ICMP probes with TTL=1, 2, 3... · each router replies "TTL exceeded" → builds path map',
+      network: {
+        devices: [
+          { id: 'client', type: 'pc',     label: 'Client',  ip: '10.0.1.5',   x: 50,  y: 200 },
+          { id: 'r1',     type: 'router', label: 'R1\nhop 1', ip: '10.0.1.1', x: 175, y: 200 },
+          { id: 'r2',     type: 'router', label: 'R2\nhop 2', ip: '198.51.100.1', x: 305, y: 200 },
+          { id: 'r3',     type: 'router', label: 'R3\nhop 3', ip: '203.0.113.1', x: 435, y: 200 },
+          { id: 'target', type: 'server', label: 'Target', ip: '8.8.8.8', x: 555, y: 200 }
+        ],
+        cables: [
+          { from: 'client', to: 'r1',     type: 'copper' },
+          { from: 'r1',     to: 'r2',     type: 'remote' },
+          { from: 'r2',     to: 'r3',     type: 'remote' },
+          { from: 'r3',     to: 'target', type: 'remote' }
+        ],
+        subnets: [
+          { cidr: 'Each hop replies with ICMP Time Exceeded when TTL expires', label: 'traceroute discovers the path', color: 'amber', boxX: 20, boxY: 40, boxW: 540, boxH: 28 }
+        ]
+      },
+      steps: [
+        {
+          at: 'client',
+          caption: { title: 'Step 1 · First probe with TTL=1', action: 'Client sends a UDP probe (or ICMP Echo) with TTL=1 toward target', detail: 'TTL = "Time To Live", a hop counter. Decremented at every router. When it reaches 0, packet is dropped + ICMP Time Exceeded sent back.' },
+          question: {
+            stem: 'What\'s the original purpose of the TTL field in the IP header?',
+            options: [
+              'Time of day stamp',
+              'A hop-count limit to prevent packets from circulating forever in routing loops — when TTL=0, drop the packet',
+              'Bandwidth allocation',
+              'Required for QoS'
+            ],
+            correctIdx: 1,
+            why: 'TTL is a routing-loop safety net. Misconfigured routing can create loops where packets bounce between routers indefinitely. TTL caps the maximum hops a packet survives — typically default 64 (Linux), 128 (Windows). Each router decrements TTL by 1; if TTL=0 after decrement, the router DROPS the packet and sends ICMP Time Exceeded (Type 11) back to the source. Traceroute exploits this safety net intentionally — by sending probes with low TTL, it forces each router to identify itself.'
+          }
+        },
+        {
+          at: 'r1',
+          caption: { title: 'Step 2 · R1 decrements TTL → 0', action: 'R1 receives packet (TTL=1), decrements to 0, drops + sends ICMP Time Exceeded back', detail: 'Source IP of the ICMP reply = R1\'s ingress interface IP (10.0.1.1). Client now knows hop 1 = R1.' },
+          question: {
+            stem: 'In R1\'s ICMP Time Exceeded reply, the source IP is R1\'s. What\'s the destination IP?',
+            options: [
+              'The original target (8.8.8.8)',
+              'The original sender (client) — ICMP errors always go back to the sender of the offending packet',
+              'A central log server',
+              '255.255.255.255 (broadcast)'
+            ],
+            correctIdx: 1,
+            why: 'ICMP error messages (Time Exceeded, Destination Unreachable, Fragmentation Needed) are sent back to the SOURCE of the original packet. The reply\'s src = router\'s IP; dst = original packet\'s src. This is what makes traceroute work: each router along the path identifies itself via its Time Exceeded reply. Some networks rate-limit ICMP errors or drop them entirely (causing traceroute "*" entries) — traceroute can\'t see those hops.'
+          }
+        },
+        {
+          at: 'client',
+          caption: { title: 'Step 3 · TTL=2 probe', action: 'Client increments TTL → 2 + sends second probe', detail: 'R1 decrements to 1 + forwards. R2 decrements to 0 + drops + sends ICMP Time Exceeded back to client.' },
+          question: {
+            stem: 'Why does traceroute increment the TTL one at a time instead of just sending one probe with TTL=64?',
+            options: [
+              'TTL=64 isn\'t supported on most networks',
+              'A high TTL would let the packet REACH the target — providing no info about intermediate hops. Incrementing TTL forces EACH router in turn to identify itself via Time Exceeded',
+              'It\'s more secure',
+              'TCP requires it'
+            ],
+            correctIdx: 1,
+            why: 'Traceroute deliberately CRAFTS PROBES that DIE at each hop in turn. TTL=1 dies at hop 1 → identifies R1. TTL=2 dies at hop 2 → identifies R2. Continue until TTL is high enough to reach target (which replies differently — typically ICMP Echo Reply for ping-style, or ICMP Port Unreachable for UDP-style traceroute since the target probably doesn\'t have the chosen high port open). The output is an in-order list of every hop\'s identifying IP.'
+          }
+        },
+        {
+          at: 'r3',
+          caption: { title: 'Step 4 · Each hop replies, building path', action: 'Probes with TTL=3 elicit reply from R3', detail: 'Client sends 3 probes per TTL by default — that\'s why traceroute output shows 3 RTT measurements per row (e.g., "3ms 4ms 4ms").' },
+          question: {
+            stem: 'Why does traceroute send THREE probes per TTL by default (showing 3 RTTs in the output)?',
+            options: [
+              'For redundancy in case probes are lost',
+              'For asymmetric/load-balanced paths — different probes can take different routes if ECMP is in play. Three samples reveal path inconsistencies + provide RTT statistics',
+              'TCP requires triplicate handshakes',
+              'It triples the chance of finding the destination'
+            ],
+            correctIdx: 1,
+            why: 'Multiple reasons: (1) some paths use Equal-Cost Multi-Path (ECMP) load balancing — different probes can take different routes, revealing the splay; (2) RTT statistics — single RTT doesn\'t convey jitter; 3 measurements give min/avg/max sense; (3) probe loss tolerance — if 1 of 3 is lost, you still see 2 results. The "*" in traceroute output means a probe got no reply within the timeout (router rate-limiting ICMP, firewall dropping, or genuine packet loss).'
+          }
+        },
+        {
+          at: 'target',
+          caption: { title: 'Step 5 · TTL high enough — target reached', action: 'Probe with TTL=4 reaches target. Target sends ICMP Echo Reply (or ICMP Port Unreachable for UDP)', detail: 'Different reply type from intermediate hops → traceroute knows it\'s the destination + stops.' },
+          question: {
+            stem: 'How does traceroute know when it\'s reached the actual TARGET (and should stop) versus just another intermediate hop?',
+            options: [
+              'It runs until TTL=64',
+              'The target replies with a DIFFERENT ICMP type than intermediate hops — Echo Reply (Type 0) for ICMP traceroute or Port Unreachable (Type 3) for UDP traceroute. Intermediate hops always reply with Time Exceeded (Type 11)',
+              'The user must press Ctrl-C',
+              'Traceroute counts hops + stops at the configured limit'
+            ],
+            correctIdx: 1,
+            why: 'Stop condition: the reply ICMP type changes. Intermediate hops always reply Type 11 (Time Exceeded). The target replies Type 0 (Echo Reply) for ICMP-based traceroute (Windows tracert default) or Type 3 (Destination Unreachable, code 3 = port unreachable) for UDP-based traceroute (Linux/macOS default — sends to high random ports the target probably has closed). Either reply type signals "we\'ve arrived" + traceroute stops. Max-hop limit (default 30) is the safety net for unreachable destinations.'
+          }
+        }
+      ]
     }
   ],
   packetTraceLessons: [
