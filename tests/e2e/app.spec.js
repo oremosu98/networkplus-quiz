@@ -1802,8 +1802,9 @@ test.describe('Network Analysis Drill — Phase 1 MVP', () => {
     // Navigate to drills page via sidebar link
     await page.evaluate(() => window.showPage('drills'));
     await expect(page.locator('#page-drills')).toHaveClass(/active/);
-    // 5th tile is Network Analysis
-    const tile = page.locator('.drills-tile-new');
+    // Scope to the specific Network Analysis tile — multiple drills can carry
+    // the NEW badge over time (v4.96.0 added Packet Trace as a second one).
+    const tile = page.locator('.drills-tile-new', { hasText: 'Network Analysis' });
     await expect(tile).toBeVisible();
     await expect(tile).toContainText('Network Analysis');
     await expect(tile.locator('.drills-tile-new-badge')).toContainText('NEW');
