@@ -318,8 +318,18 @@
   function handleSignedIn(session) {
     if (!session || !session.user) return;
     var userId = session.user.id;
+    // v4.98.7: render IMMEDIATELY with default user profile so the account
+    // pill is visible on page load (was waiting for the Supabase profile
+    // round-trip — added 500ms–7s of "no pill" depending on network).
+    // The default profile already covers 99% of users (only admins differ).
+    renderSignedIn(session.user, { role: 'user' });
+    // Then progressively enhance: fetch profile + re-render only if role differs
+    // (e.g. admin) to surface the admin link. Cloud-store hydrate runs the same
+    // way as before — independent of the synchronous pill render.
     fetchProfile(userId).then(function (profile) {
-      renderSignedIn(session.user, profile || { role: 'user' });
+      if (profile && profile.role && profile.role !== 'user') {
+        renderSignedIn(session.user, profile);  // re-render with admin extras
+      }
       var cs = getCloudStore();
       if (cs) {
         cs.hydrate().then(function () {

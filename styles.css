@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.98.6
+   Network+ AI Quiz — styles.css  v4.98.7
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16319,7 +16319,12 @@ html { zoom: 1.10; }
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
+  /* v4.98.7: opaque-blend bg + backdrop-filter for proper glass effect.
+     Was: var(--surface2) only — translucent, so cards behind it bled through
+     (visible against the dark exam-readiness card per user feedback). */
   background: var(--surface2);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 8px;
@@ -16327,6 +16332,12 @@ html { zoom: 1.10; }
   box-shadow: 0 24px 60px -12px rgba(0,0,0,.45);
   z-index: 1100;
   font-family: inherit;
+}
+/* Fallback for browsers without backdrop-filter — use a fully opaque bg so
+   the dropdown is always readable. Modern Chrome/Safari/Firefox support
+   backdrop-filter; this guards older browsers + Linux Firefox quirks. */
+@supports not (backdrop-filter: blur(1px)) {
+  .topbar-account-dropdown { background: var(--surface3); }
 }
 .topbar-account-dropdown[hidden] { display: none; }
 @media (max-width: 720px) {

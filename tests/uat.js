@@ -44,7 +44,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-let html, js, css, sw, certNetplus, certSecplus, cloudStoreJs;
+let html, js, css, sw, certNetplus, certSecplus, cloudStoreJs, authStateJs;
 try {
   html = read('index.html');
   js   = read('app.js');
@@ -59,6 +59,8 @@ try {
   // v4.89.0 Phase C′: cloud-store source so we can assert USER_DATA_KEYS coverage
   // for new namespaced storage keys (e.g. v4.91.0 SAB_*).
   cloudStoreJs = read('cloud-store.js');
+  // v4.98.7: auth-state.js source so we can assert pill renders synchronously
+  authStateJs = read('auth-state.js');
 } catch(e) {
   console.error('ERROR: Could not read project files. Run from project root.');
   console.error(e.message);
@@ -301,7 +303,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.98.6', js.includes("const APP_VERSION = '4.98.6"));
+test('APP_VERSION is 4.98.7', js.includes("const APP_VERSION = '4.98.7"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -315,7 +317,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.98.6', sw.includes('netplus-v4.98.6'));
+test('SW cache bumped to v4.98.7', sw.includes('netplus-v4.98.7'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17537,6 +17539,21 @@ test('v4.98.6 Sec+ practice: APP_SIDEBAR_DRILLS_SECPLUS still has the 3 supporti
     if (!m) return false;
     return /'acronyms'/.test(m[1]) && /'amm'/.test(m[1]) && /'cts'/.test(m[1]);
   })());
+
+// ============================================================================
+// v4.98.7 — Account dropdown polish: opacity fix + pill renders instantly
+// ============================================================================
+test('v4.98.7 dropdown: backdrop-filter blur applied so dropdown is opaque-glass',
+  /\.topbar-account-dropdown\s*\{[\s\S]{0,500}backdrop-filter:\s*blur/.test(css));
+test('v4.98.7 dropdown: webkit prefix for Safari',
+  /\.topbar-account-dropdown\s*\{[\s\S]{0,500}-webkit-backdrop-filter:\s*blur/.test(css));
+test('v4.98.7 dropdown: @supports fallback uses opaque surface3 if no backdrop-filter',
+  /@supports not \(backdrop-filter[\s\S]{0,300}\.topbar-account-dropdown\s*\{\s*background:\s*var\(--surface3\)/.test(css));
+test('v4.98.7 auth-state: handleSignedIn calls renderSignedIn BEFORE fetchProfile',
+  // Render-immediately pattern — pill appears instantly, profile fetch happens after.
+  /function handleSignedIn[\s\S]{0,800}renderSignedIn\(session\.user,\s*\{\s*role:\s*'user'\s*\}\)[\s\S]{0,300}fetchProfile\(userId\)/.test(authStateJs));
+test('v4.98.7 auth-state: re-render only happens when role differs from default',
+  /fetchProfile\(userId\)\.then[\s\S]{0,500}profile\.role !== 'user'[\s\S]{0,200}renderSignedIn\(session\.user,\s*profile\)/.test(authStateJs));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
