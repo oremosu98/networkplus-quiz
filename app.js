@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.17
+// Network+ AI Quiz — app.js  v4.99.18
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.17';
+const APP_VERSION = '4.99.18';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -40142,11 +40142,34 @@ function renderHeroV2() {
   }
 
   // ── Display heading: greeting + name ──
+  // v4.99.18 — display name now per-user (set via /account "Display name" field).
+  // Resolution chain: window._certanvilDisplayName (set by auth-state.js after
+  // profile fetch) → localStorage cache (set by previous session for fast first-paint)
+  // → email-prefix (signed-in but profile not fetched yet) → "there" (anonymous fallback).
+  // Listens for 'certanvil:display-name-resolved' event so name updates if it
+  // lands after first paint.
   const disp = document.getElementById('hero-v2-display');
   if (disp) {
-    const hour = new Date().getHours();
-    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Working late';
-    disp.innerHTML = `${greeting}, <span class="name">Simi.</span>`;
+    const renderGreeting = () => {
+      const hour = new Date().getHours();
+      const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Working late';
+      let name = 'there';
+      try {
+        if (window._certanvilDisplayName) {
+          name = String(window._certanvilDisplayName).slice(0, 60);
+        } else {
+          const cached = localStorage.getItem('certanvil_display_name_cache');
+          if (cached) name = String(cached).slice(0, 60);
+        }
+      } catch (_) {}
+      // Escape name to prevent XSS via the user-controlled display_name field
+      const safeName = (typeof escHtml === 'function') ? escHtml(name) : name;
+      disp.innerHTML = `${greeting}, <span class="name">${safeName}.</span>`;
+    };
+    renderGreeting();
+    // Re-render once auth-state.js resolves the profile (in case first paint
+    // showed the cached / email-prefix name and the actual display_name differs)
+    window.addEventListener('certanvil:display-name-resolved', renderGreeting);
   }
 
   // ── Lede paragraph: data-driven (weakest topics) or friendly fallback ──

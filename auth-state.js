@@ -310,7 +310,30 @@
     var sb = getSupabase();
     if (!sb || !userId) return Promise.resolve(null);
     return sb.from('profiles').select('role, display_name, email').eq('id', userId).single().then(function (r) {
-      return r.error ? null : r.data;
+      var profile = r.error ? null : r.data;
+      // v4.99.18 — pipe display_name to the cert app so its greeting render
+      // can show the correct user name. Cert app polls window._certanvilDisplayName
+      // on each greeting render + listens for 'certanvil:display-name-resolved'
+      // to re-render if the name lands after first paint.
+      try {
+        if (profile && profile.display_name) {
+          window._certanvilDisplayName = profile.display_name;
+          // Cache to localStorage so the NEXT page load can use it on first
+          // paint (before the profile round-trip completes).
+          try { localStorage.setItem('certanvil_display_name_cache', profile.display_name); } catch (_) {}
+        } else if (profile && profile.email) {
+          // No display_name set yet — fall back to email-prefix as the
+          // cert-app's Settings → Display name field encourages users to
+          // set their actual name.
+          window._certanvilDisplayName = profile.email.split('@')[0];
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('certanvil:display-name-resolved', {
+            detail: { displayName: window._certanvilDisplayName || null }
+          }));
+        } catch (_) {}
+      } catch (_) {}
+      return profile;
     }).catch(function () { return null; });
   }
 

@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.17', js.includes("const APP_VERSION = '4.99.17"));
+test('APP_VERSION is 4.99.18', js.includes("const APP_VERSION = '4.99.18"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.17', sw.includes('netplus-v4.99.17'));
+test('SW cache bumped to v4.99.18', sw.includes('netplus-v4.99.18'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -18028,6 +18028,30 @@ test('v4.99.17 Css: reduced-motion gate present for welcome toast',
 
 test('v4.99.17 Mockup: playtest-auth-concept.html exists in mockups/',
   fs.existsSync(path.join(ROOT, 'mockups/playtest-auth-concept.html')));
+
+// ── v4.99.18 — Per-user display name in cert-app greeting ──
+console.log('\n\x1b[1m── v4.99.18 — DISPLAY NAME GREETING ──\x1b[0m');
+const authStateJsContent = fs.readFileSync(path.join(ROOT, 'auth-state.js'), 'utf8');
+test('v4.99.18 AuthState: fetchProfile sets window._certanvilDisplayName from profile.display_name',
+  /fetchProfile[\s\S]{0,800}window\._certanvilDisplayName\s*=\s*profile\.display_name/.test(authStateJsContent));
+test('v4.99.18 AuthState: caches display_name to localStorage for fast first-paint',
+  /localStorage\.setItem\(['"]certanvil_display_name_cache['"]/.test(authStateJsContent));
+test('v4.99.18 AuthState: dispatches certanvil:display-name-resolved CustomEvent',
+  /dispatchEvent\(new CustomEvent\(['"]certanvil:display-name-resolved['"]/.test(authStateJsContent));
+test('v4.99.18 AuthState: email-prefix fallback when display_name not set',
+  /profile\.email\.split\(['"]@['"]\)\[0\]/.test(authStateJsContent));
+test('v4.99.18 CertApp: hardcoded "Simi" greeting REMOVED',
+  !/innerHTML = `\$\{greeting\}, <span class="name">Simi\./.test(js));
+test('v4.99.18 CertApp: greeting reads window._certanvilDisplayName',
+  /renderGreeting[\s\S]{0,800}window\._certanvilDisplayName/.test(js));
+test('v4.99.18 CertApp: greeting falls back to localStorage cache',
+  /renderGreeting[\s\S]{0,800}certanvil_display_name_cache/.test(js));
+test('v4.99.18 CertApp: greeting falls back to "there" for anonymous users',
+  /let name = 'there'/.test(js));
+test('v4.99.18 CertApp: greeting listens for display-name-resolved event (re-render after profile fetch)',
+  /addEventListener\(['"]certanvil:display-name-resolved['"]/.test(js));
+test('v4.99.18 CertApp: display name escaped via escHtml (XSS protection on user-controlled field)',
+  /renderGreeting[\s\S]{0,800}escHtml\(name\)/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
