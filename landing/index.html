@@ -146,7 +146,7 @@
         <span class="dropdown-link-icon" aria-hidden="true">🎓</span>
         <span>My certs</span>
       </a>
-      <a href="#" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics">
+      <a href="/analytics" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics">
         <span class="dropdown-link-icon" aria-hidden="true">📊</span>
         <span>Cross-cert analytics</span>
       </a>
@@ -730,61 +730,9 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     CROSS-CERT ANALYTICS MODAL — opened from account dropdown.
-     Today: placeholder explaining what the feature will do, with quick
-     links to per-cert analytics inside each cert app. Future iteration
-     fetches aggregated data and renders skill-overlap + time-to-pass etc.
-══════════════════════════════════════════ -->
-<div class="modal cca-modal" id="cca-modal" role="dialog" aria-labelledby="cca-modal-title" aria-modal="true" hidden>
-  <div class="modal-card cca-modal-card">
-    <button class="modal-close" type="button" id="cca-modal-close" aria-label="Close">×</button>
-    <div class="cca-icon" aria-hidden="true">📊</div>
-    <h3 class="modal-title" id="cca-modal-title">Cross-cert analytics</h3>
-    <p class="modal-sub cca-sub">One dashboard for every cert you're studying. See where you're closest to passing, where the same skills carry from one cert to the next, and where the gaps are.</p>
-
-    <!-- What you'll see when fully wired -->
-    <div class="cca-preview">
-      <div class="cca-preview-h">What you'll see</div>
-      <div class="cca-preview-grid">
-        <div class="cca-preview-card">
-          <div class="cca-preview-icon" aria-hidden="true">🎯</div>
-          <div class="cca-preview-title">Pass-readiness, side-by-side</div>
-          <div class="cca-preview-body">Every active cert with its current readiness score, days to your booked exam, and the gap to pass.</div>
-        </div>
-        <div class="cca-preview-card">
-          <div class="cca-preview-icon" aria-hidden="true">🔗</div>
-          <div class="cca-preview-title">Skill overlap</div>
-          <div class="cca-preview-body">Subnetting from Network+ carries straight into CCNA. We map the overlap so you don't re-study what you already know.</div>
-        </div>
-        <div class="cca-preview-card">
-          <div class="cca-preview-icon" aria-hidden="true">📈</div>
-          <div class="cca-preview-title">What to study next</div>
-          <div class="cca-preview-body">A recommended order across all your certs based on weak spots, exam dates, and where the prep effort pays off most.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Primary CTA: open the full /analytics dashboard (Cross-cert Phase A) -->
-    <a href="/analytics" class="cca-primary-cta">
-      Open full cross-cert dashboard →
-    </a>
-
-    <div class="cca-quick-links">
-      <div class="cca-quick-links-label">Or jump straight into a cert's per-cert analytics</div>
-      <a class="cca-quick-link" href="https://networkplus.certanvil.com/?cert=netplus#analytics" id="cca-link-netplus">
-        <span class="cca-quick-link-glyph">N+</span>
-        <span class="cca-quick-link-name">Network+ analytics</span>
-        <span class="cca-quick-link-arrow">→</span>
-      </a>
-      <a class="cca-quick-link" href="https://networkplus.certanvil.com/?cert=secplus#analytics" id="cca-link-secplus" hidden>
-        <span class="cca-quick-link-glyph">S+</span>
-        <span class="cca-quick-link-name">Security+ analytics</span>
-        <span class="cca-quick-link-arrow">→</span>
-      </a>
-    </div>
-  </div>
-</div>
+<!-- Cross-cert analytics modal removed in Phase D — dropdown link now
+     routes directly to /analytics (the dedicated page that ships Panel 1
+     pass-readiness, Panel 2 skill overlap, and Panel 3 next-up ranker). -->
 
 <!-- ══════════════════════════════════════════
      AUTH MODAL — Supabase magic-link sign-in

@@ -2250,152 +2250,16 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
 }
 .my-certs-foot-link:hover { color: var(--accent); }
 
-/* Cross-cert analytics modal */
-.cca-modal-card { max-width: 560px !important; text-align: center; }
-.cca-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
-  opacity: 0.85;
-}
-.cca-sub { text-align: left; }
-.cca-roadmap {
-  display: flex; flex-direction: column;
-  gap: 8px;
-  margin: 18px 0;
-  padding: 14px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  text-align: left;
-}
-.cca-roadmap-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  font-size: 13px;
-  color: var(--text-mid);
-  line-height: 1.5;
-}
-.cca-roadmap-item strong { color: var(--text); font-weight: 700; }
-.cca-roadmap-dot {
-  color: var(--accent);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-/* Primary CTA inside the cross-cert analytics modal — routes to /analytics */
-.cca-primary-cta {
-  display: block;
-  margin: 18px auto 8px;
-  padding: 12px 20px;
-  background: var(--accent);
-  color: #fff !important;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: background 0.15s ease, transform 0.15s ease;
-  max-width: 320px;
-}
-.cca-primary-cta:hover {
-  background: var(--accent-hover, #6e60e8);
-  transform: translateY(-1px);
-}
-
-.cca-quick-links {
-  margin-top: 18px;
-  text-align: left;
-}
-.cca-quick-links-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
-.cca-quick-link {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  text-decoration: none;
-  color: var(--text);
-  margin-bottom: 6px;
-  transition: border-color .15s ease, background-color .15s ease;
-}
-.cca-quick-link:hover {
-  border-color: var(--accent);
-  background: var(--surface-2);
-}
-.cca-quick-link-glyph {
-  width: 28px; height: 28px;
-  border-radius: 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800;
-  background: rgba(124, 111, 247, 0.12);
-  color: var(--accent);
-  flex-shrink: 0;
-}
-.cca-quick-link-name {
-  flex: 1 1 auto;
-  font-size: 13px;
-  font-weight: 600;
-}
-.cca-quick-link-arrow {
-  color: var(--accent);
-  font-weight: 700;
-}
-/* "What you'll see" preview cards inside the CCA modal — 3-up grid that
-   teases the pass-readiness / skill-overlap / next-up surfaces. */
-.cca-preview {
-  margin: 18px 0 6px;
-  text-align: left;
-}
-.cca-preview-h {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-}
-.cca-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.cca-preview-card {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 14px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  text-align: left;
-}
-.cca-preview-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-.cca-preview-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-}
-.cca-preview-body {
-  font-size: 12px;
-  color: var(--text-mid);
-  line-height: 1.5;
-}
+/* Cross-cert analytics modal removed in Phase D — modal-only styles
+   (.cca-modal-card / .cca-icon / .cca-sub / .cca-roadmap* / .cca-preview* /
+   .cca-quick-link* / .cca-primary-cta) deleted. The dedicated /analytics
+   page uses .cca-panel + .cca-pr-* + .cca-so-* + .cca-wn-* defined later
+   in this file. */
 @media (max-width: 540px) {
   .my-cert-row { padding: 12px; gap: 10px; }
   .my-cert-glyph { width: 32px; height: 32px; font-size: 11px; }
   .my-cert-name { font-size: 14px; }
   .my-cert-cta { font-size: 11px; }
-  .cca-roadmap { padding: 12px; }
-  .cca-roadmap-item { font-size: 12px; }
-  .cca-preview-grid { grid-template-columns: 1fr; }
-  .cca-preview-card { padding: 12px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

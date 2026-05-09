@@ -392,19 +392,9 @@
     document.body.style.overflow = '';
   }
 
-  function openCcaModal() {
-    var modal = document.getElementById('cca-modal');
-    if (!modal) return;
-    modal.removeAttribute('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeCcaModal() {
-    var modal = document.getElementById('cca-modal');
-    if (!modal) return;
-    modal.setAttribute('hidden', '');
-    document.body.style.overflow = '';
-  }
+  // openCcaModal / closeCcaModal removed in Phase D — Cross-cert analytics
+  // is now a dedicated page at /analytics, not a modal. Dropdown link
+  // routes directly via the <a href> with no JS handler.
 
   function resetCertTilesForAnonymous() {
     // Defensively undo any personalization if the user signs out without
@@ -669,15 +659,18 @@
       openMyCertsModal();
     });
   }
+  // Phase D: Cross-cert analytics dropdown link is now a plain <a href>
+  // routing to /analytics — no JS click handler needed. Just close the
+  // account dropdown when clicked so it doesn't stay open during nav.
   var ccaLink = document.getElementById('dropdown-cross-cert-analytics');
   if (ccaLink) {
-    ccaLink.addEventListener('click', function (e) {
-      e.preventDefault();
+    ccaLink.addEventListener('click', function () {
       closeAccountDropdown();
-      openCcaModal();
+      // No preventDefault — let the browser navigate to /analytics
     });
   }
-  // Modal close buttons + backdrop click + Escape key
+  // Modal close buttons + backdrop click + Escape key (My certs modal only;
+  // cross-cert analytics modal removed in Phase D)
   var myCertsClose = document.getElementById('my-certs-modal-close');
   if (myCertsClose) myCertsClose.addEventListener('click', closeMyCertsModal);
   var myCertsModal = document.getElementById('my-certs-modal');
@@ -690,20 +683,10 @@
   if (myCertsBrowseLink) {
     myCertsBrowseLink.addEventListener('click', function () { closeMyCertsModal(); });
   }
-  var ccaClose = document.getElementById('cca-modal-close');
-  if (ccaClose) ccaClose.addEventListener('click', closeCcaModal);
-  var ccaModal = document.getElementById('cca-modal');
-  if (ccaModal) {
-    ccaModal.addEventListener('click', function (e) {
-      if (e.target === ccaModal) closeCcaModal();
-    });
-  }
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     var mc = document.getElementById('my-certs-modal');
-    var cm = document.getElementById('cca-modal');
     if (mc && !mc.hasAttribute('hidden')) closeMyCertsModal();
-    if (cm && !cm.hasAttribute('hidden')) closeCcaModal();
   });
 
   // ── Initial session check + state listener ──────────────────────────────
@@ -787,16 +770,26 @@
   // ── ?modal= URL param handler (Phase C′ post-launch) ───────────────────
   // The cert app's account dropdown has links like
   //   https://certanvil.com/?modal=my-certs
-  //   https://certanvil.com/?modal=analytics
-  // so clicking those items navigates to the landing AND auto-opens the
-  // matching modal. We strip the param after opening so refresh doesn't
-  // replay it. Defer until after initAuthState() resolves so the My certs
-  // list is populated (renderMyCertsList runs inside renderSignedIn).
+  // that navigate to the landing AND auto-open the My certs modal. Phase D
+  // removed the analytics modal — ?modal=analytics now redirects to the
+  // dedicated /analytics page rather than triggering a modal that no
+  // longer exists. Old bookmarks / cached cert-app builds keep working.
   function handleModalUrlParam() {
     try {
       var params = new URLSearchParams(window.location.search);
       var which = (params.get('modal') || '').toLowerCase().trim();
-      if (which !== 'my-certs' && which !== 'analytics') return;
+      if (which === 'analytics') {
+        // Phase D: redirect legacy ?modal=analytics URLs to the real page
+        try {
+          var qs = (function () {
+            params.delete('modal');
+            return params.toString();
+          })();
+          window.location.replace('/analytics' + (qs ? '?' + qs : '') + (window.location.hash || ''));
+        } catch (e) { window.location.replace('/analytics'); }
+        return;
+      }
+      if (which !== 'my-certs') return;
       // Strip the param immediately so refresh doesn't re-fire.
       try {
         params.delete('modal');
@@ -805,8 +798,7 @@
       } catch (e) {}
       // Defer so the modal markup is in DOM + auth state has resolved.
       setTimeout(function () {
-        if (which === 'my-certs') openMyCertsModal();
-        else if (which === 'analytics') openCcaModal();
+        openMyCertsModal();
       }, 250);
     } catch (e) {}
   }
