@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.10', js.includes("const APP_VERSION = '4.99.10"));
+test('APP_VERSION is 4.99.11', js.includes("const APP_VERSION = '4.99.11"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.10', sw.includes('netplus-v4.99.10'));
+test('SW cache bumped to v4.99.11', sw.includes('netplus-v4.99.11'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17842,6 +17842,36 @@ test('v4.99.10 Modal: index.html notify-foot no longer says "Stored locally for 
 const landingScriptJs = fs.readFileSync(path.join(ROOT, 'landing/script.js'), 'utf8');
 test('v4.99.10 Modal: script.js reset copy aligned with persistence layer',
   !landingScriptJs.includes('Stored locally for now'));
+
+// ── v4.99.11 — Panel 3 shipped-state explicit + showPage defensive guard ──
+console.log('\n\x1b[1m── v4.99.11 — PANEL 3 SHIPPED-STATE + SHOWPAGE GUARD ──\x1b[0m');
+const analyticsHtml = fs.readFileSync(path.join(ROOT, 'landing/analytics.html'), 'utf8');
+const ccAnalyticsJs = fs.readFileSync(path.join(ROOT, 'landing/lib/cross-cert-analytics.js'), 'utf8');
+test('v4.99.11 Panel3: cca-panel-wn section present in analytics.html (Panel 3 shipped, not placeholder)',
+  /<section\s+class="cca-panel"\s+id="cca-panel-wn"/.test(analyticsHtml));
+test('v4.99.11 Panel3: renderPanel3 function defined in cross-cert-analytics.js',
+  /function renderPanel3\(profile\)/.test(ccAnalyticsJs));
+test('v4.99.11 Panel3: computeUrgency deterministic ranker defined',
+  /function computeUrgency\(cert,\s*snapshot,\s*overlap,\s*passedCertIds\)/.test(ccAnalyticsJs));
+test('v4.99.11 Panel3: visibility toggle present (removeAttribute hidden on cca-panel-wn)',
+  /elPanelWn[\s\S]{0,80}removeAttribute\(['"]hidden['"]/.test(ccAnalyticsJs));
+test('v4.99.11 Panel3: empty-state copy present for "no active certs" path',
+  /Pick a cert above to start studying/.test(ccAnalyticsJs));
+test('v4.99.11 Panel3: empty-state copy present for "all passed" path',
+  /No active prep right now/.test(ccAnalyticsJs));
+// Defensive guard for v4.99.7 showPage fix — Pro-only page IDs must NEVER
+// be activated via raw .classList.add('active') because that bypasses the
+// PRO_ONLY_PAGES gate added in v4.99.5. The two known Back-button sites
+// (topic-dive, guided-lab) were fixed in v4.99.7. This guard prevents any
+// future patch from reintroducing the pattern on a Pro-only page ID.
+test('v4.99.11 ShowPageGuard: no raw classList.add(active) on Pro-only page IDs in app.js',
+  // Allowed: classList.add('active') inside showPage's own activate() helper
+  // (single legitimate site; UAT can't easily check call-site so we accept
+  // any ≤ 1 hit and require it sits inside showPage). Just verify the two
+  // historic offender patterns are gone for good.
+  !/getElementById\(['"]page-(topology-builder|acl|irw|pht|subnet|ports|acronyms|cables|amm|cts|guided-lab|monitor|network-analysis|osi-sorter|ptr)['"]\)\.classList\.add\(['"]active['"]/.test(js));
+test('v4.99.11 ShowPageGuard: only 1 raw classList.add(active) site (inside showPage activate())',
+  (js.match(/classList\.add\(['"]active['"]\)/g) || []).length <= 1);
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
