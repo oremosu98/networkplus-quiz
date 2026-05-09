@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.3
+// Network+ AI Quiz — app.js  v4.99.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.3';
+const APP_VERSION = '4.99.4';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -462,12 +462,14 @@ function _showQuotaExceededUI(detail) {
   });
 }
 
-// v4.99.3 Phase E.4 — global activity gate.
-// Called at every quiz/drill entry point. If a Free user is at 20/20 today,
-// blocks the action and shows the quota-exceeded modal. Pro users + admins
-// always pass through (is_pro() in Postgres returns true for both, so
-// _quotaState.daily_limit comes back as -1 and tier='pro' — chip + paywall
-// both fall through to "unlimited" automatically).
+// v4.99.3 Phase E.4 — global quota gate (used by quiz entry points).
+// v4.99.4 Phase E.4.1 — drills moved to Pro-only via _gateProOnly() below.
+//
+// Called at quiz entry points (startQuiz, startExam). If a Free user is at
+// 20/20 today, blocks the action and shows the quota-exceeded modal.
+// Pro users + admins always pass through (is_pro() in Postgres returns true
+// for both, so _quotaState.daily_limit comes back as -1 and tier='pro' —
+// chip + paywall both fall through to "unlimited" automatically).
 //
 // Returns true if the activity should proceed, false if blocked. Callers
 // pattern: `if (!_gateActivityForQuota('practising')) return;`
@@ -503,6 +505,62 @@ function _gateActivityForQuota(activityLabel) {
     });
   }
   return false;
+}
+
+// v4.99.4 Phase E.4.1 — Pro-only feature gate (drills, flagship labs).
+// Different from _gateActivityForQuota: that one fires AT the 20/20 line.
+// This one fires at zero — Free users can never start a drill, regardless
+// of remaining quota. Drills are a Pro perk to differentiate the tiers.
+//
+// Returns true if the user is Pro/admin (proceed), false if Free (blocked +
+// modal shown). Pattern: `if (!_gateProOnly('Acronym Blitz')) return;`
+function _gateProOnly(featureLabel) {
+  // Unknown quota state → assume not Pro for safety, block + show modal.
+  // This is conservative: if we can't confirm Pro status, deny access.
+  if (!_quotaState) {
+    if (typeof _showProOnlyUI === 'function') {
+      _showProOnlyUI({ feature: featureLabel || 'this feature' });
+    }
+    return false;
+  }
+  // Pro / admin → daily_limit < 0 (unlimited) or tier === 'pro'
+  if (_quotaState.tier === 'pro') return true;
+  if (typeof _quotaState.daily_limit === 'number' && _quotaState.daily_limit < 0) return true;
+  // Otherwise — Free user. Block.
+  if (typeof _showProOnlyUI === 'function') {
+    _showProOnlyUI({ feature: featureLabel || 'this feature' });
+  }
+  return false;
+}
+
+// v4.99.4 Phase E.4.1 — Pro-only modal. Distinct from quota-exceeded because
+// the value prop is different: "this is locked behind Pro" vs "you've used
+// your daily allowance." Shares the layout but has its own copy.
+function _showProOnlyUI(detail) {
+  detail = detail || {};
+  var feature = detail.feature || 'This feature';
+
+  var prev = document.getElementById('pro-only-modal');
+  if (prev) prev.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'pro-only-modal';
+  modal.className = 'quota-exceeded-modal';  // reuse layout class
+  modal.innerHTML =
+    '<div class="quota-exceeded-card pro-only-card">' +
+      '<div class="quota-exceeded-icon pro-only-icon">&#9889;</div>' +
+      '<div class="quota-exceeded-title">' + feature + ' is a Pro feature</div>' +
+      '<div class="quota-exceeded-sub">Drills, the topology builder, ACL labs, and the Sec+ flagships are all part of Pro. Free users get unlimited days at 20 AI-generated questions a day. Upgrade to unlock everything.</div>' +
+      '<div class="quota-exceeded-actions">' +
+        '<a class="quota-exceeded-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Upgrade to Pro &middot; $9.99/mo &rarr;</a>' +
+        '<button type="button" class="quota-exceeded-dismiss" id="pro-only-dismiss">Maybe later</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+
+  var dismissBtn = document.getElementById('pro-only-dismiss');
+  if (dismissBtn) dismissBtn.addEventListener('click', function () { modal.remove(); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
 }
 
 // Self-contained auth listener — keeps the quota chip in sync with auth state
@@ -28646,7 +28704,7 @@ function isLessonUnlocked(lesson) {
 
 // ── Tab / Mode switching ──
 function startSubnetTrainer() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Subnet Trainer')) return;
   setSubnetTab('learn');
   stRenderLevelBadge();
   // v4.81.10: render Drill Mission Card on entry (was previously
@@ -29880,7 +29938,7 @@ function filterPortReference() {
 }
 
 function startPortDrill() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Port Drill')) return;
   setPortTab('learn');
   ptRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -32852,7 +32910,7 @@ function abPickItem(focusCat) {
 }
 
 function startAcronymBlitz() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Acronym Blitz')) return;
   setAbTab('learn');
   abRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -33179,7 +33237,7 @@ function updateOsMastery(itemName, wasCorrect) {
 }
 
 function startOsiSorter() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('OSI Sorter')) return;
   setOsTab('learn');
   osRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -33905,7 +33963,7 @@ function setCtsTab(tabId) {
 }
 
 function startControlTypeSorter() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Control Type Sorter')) return;
   if (!_USE_SECPLUS_CTS) {
     if (typeof showToast === 'function') showToast('Control Type Sorter is Security+ only.', 'info');
     return;
@@ -34237,7 +34295,7 @@ function ptrEndScenario() {
 }
 
 function ptrStartScenario(scenarioId) {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Packet Trace')) return;
   const s = PT_DATA.find(x => x.id === scenarioId);
   if (!s) {
     if (typeof showToast === 'function') showToast('Scenario not found.', 'error');
@@ -34586,7 +34644,7 @@ function irwRenderHome() {
   host.innerHTML = html;
 }
 function irwStartScenario(scenarioId) {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('IR War Room')) return;
   const scen = IRW_DATA.find(s => s.id === scenarioId);
   if (!scen) { console.warn('IRW: scenario not found:', scenarioId); return; }
   if (!irwIsScenarioUnlocked(scen)) {
@@ -35626,7 +35684,7 @@ function phtRenderHome() {
   host.innerHTML = html;
 }
 function phtStartScenario(scenarioId) {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Phishing Triage Lab')) return;
   const scen = PHT_DATA.find(s => s.id === scenarioId);
   if (!scen) { console.warn('PHT: scenario not found:', scenarioId); return; }
   if (!phtIsScenarioUnlocked(scen)) {
@@ -37020,7 +37078,7 @@ function updateCbMastery(itemName, catId, wasCorrect) {
 }
 
 function startCableId() {
-  if (!_gateActivityForQuota('drills')) return;
+  if (!_gateProOnly('Cable & Connector ID')) return;
   setCbTab('learn');
   cbRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)

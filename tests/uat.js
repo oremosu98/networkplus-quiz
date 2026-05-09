@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.3', js.includes("const APP_VERSION = '4.99.3"));
+test('APP_VERSION is 4.99.4', js.includes("const APP_VERSION = '4.99.4"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.3', sw.includes('netplus-v4.99.3'));
+test('SW cache bumped to v4.99.4', sw.includes('netplus-v4.99.4'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17639,24 +17639,34 @@ test('v4.99.3 gate: startQuiz protected',
   /async function startQuiz[\s\S]{0,200}_gateActivityForQuota/.test(js));
 test('v4.99.3 gate: startExam protected',
   /async function startExam[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startPortDrill protected',
-  /function startPortDrill[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startAcronymBlitz protected',
-  /function startAcronymBlitz[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startOsiSorter protected',
-  /function startOsiSorter[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startCableId protected',
-  /function startCableId[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startSubnetTrainer protected',
-  /function startSubnetTrainer[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: startControlTypeSorter protected',
-  /function startControlTypeSorter[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: ptrStartScenario protected',
-  /function ptrStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: irwStartScenario protected',
-  /function irwStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
-test('v4.99.3 gate: phtStartScenario protected',
-  /function phtStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
+// v4.99.4: drill entry points now use _gateProOnly (drills are Pro-only).
+// Quizzes (startQuiz/startExam) still use _gateActivityForQuota (20/day quota).
+test('v4.99.4 ProOnly: startPortDrill blocked for Free users',
+  /function startPortDrill[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: startAcronymBlitz blocked for Free users',
+  /function startAcronymBlitz[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: startOsiSorter blocked for Free users',
+  /function startOsiSorter[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: startCableId blocked for Free users',
+  /function startCableId[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: startSubnetTrainer blocked for Free users',
+  /function startSubnetTrainer[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: startControlTypeSorter blocked for Free users',
+  /function startControlTypeSorter[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: ptrStartScenario blocked for Free users',
+  /function ptrStartScenario[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: irwStartScenario blocked for Free users',
+  /function irwStartScenario[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: phtStartScenario blocked for Free users',
+  /function phtStartScenario[\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.4 ProOnly: _gateProOnly helper defined',
+  /function _gateProOnly\(featureLabel\)/.test(js));
+test('v4.99.4 ProOnly: _showProOnlyUI modal helper defined',
+  /function _showProOnlyUI\(/.test(js));
+test('v4.99.4 ProOnly: helper denies access when quotaState is null (safe default)',
+  /_gateProOnly[\s\S]{0,400}!_quotaState[\s\S]{0,200}return false/.test(js));
+test('v4.99.4 ProOnly: modal links to upgrade page',
+  /pro-only-modal[\s\S]{0,1000}certanvil\.com\/pricing/.test(js));
 test('v4.99.3 BYOK retire: § 02 AI Coach group hidden in Settings',
   /data-group="ai-coach"[^>]*hidden/.test(html));
 test('v4.99.3 BYOK retire: api-key input still exists as hidden (legacy bind safety)',
