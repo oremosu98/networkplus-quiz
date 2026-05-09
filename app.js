@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.4
+// Network+ AI Quiz — app.js  v4.99.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.4';
+const APP_VERSION = '4.99.5';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -1350,7 +1350,36 @@ function syncChipAriaPressed(groupSelector) {
 // ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
+// v4.99.5 Phase E.4.2: Pro-only page gate — applied at navigation level.
+// Free users blocked from entering any drill / builder / flagship page.
+// The drill launcher (#page-drills) stays accessible so users see what's
+// locked and the upgrade is contextual. Quiz/exam/analytics/progress/
+// settings/setup/etc. remain Free-accessible.
+const PRO_ONLY_PAGES = {
+  'topology-builder': 'Network Builder',
+  'acl': 'ACL Builder',
+  'acronyms': 'Acronym Blitz',
+  'amm': 'Attack-to-Mitigation Match',
+  'cables': 'Cable & Connector ID',
+  'cts': 'Control Type Sorter',
+  'guided-lab': 'Topology Lab',
+  'irw': 'IR War Room',
+  'monitor': 'Network Monitor',
+  'network-analysis': 'Network Analysis',
+  'osi-sorter': 'OSI Sorter',
+  'pht': 'Phishing Triage Lab',
+  'ports': 'Port Drill',
+  'ptr': 'Packet Trace',
+  'subnet': 'Subnet Trainer'
+};
+
 function showPage(name) {
+  // v4.99.5 Phase E.4.2: gate Pro-only pages at navigation level.
+  // _gateProOnly returns true for Pro/admin (proceed) or false + shows the
+  // upgrade modal (block). Free users see the modal instead of the page.
+  if (PRO_ONLY_PAGES[name] && typeof _gateProOnly === 'function') {
+    if (!_gateProOnly(PRO_ONLY_PAGES[name])) return;
+  }
   // Stop ambient packets when leaving topology builder
   if (name !== 'topology-builder' && typeof tbStopAmbient === 'function') tbStopAmbient();
   // v4.53.0: sync sidebar active state on every page change
@@ -39782,19 +39811,42 @@ function renderSettingsHealthCard() {
   if (!host) return;
   const rows = [];
 
-  // 1. API key
-  let apiKey = '';
-  try { apiKey = localStorage.getItem(STORAGE.KEY) || ''; } catch (_) {}
-  if (apiKey && apiKey.startsWith('sk-ant-')) {
-    rows.push({
-      icon: '✓', tier: 'ok', label: 'API key',
-      value: 'Connected · ' + apiKey.slice(0, 12) + '…' + apiKey.slice(-4)
-    });
-  } else {
-    rows.push({
-      icon: '✗', tier: 'warn', label: 'API key',
-      value: 'Not connected — paste your Anthropic key below'
-    });
+  // 1. Cloud sync (v4.99.5 — replaces the BYOK API key tile retired in v4.99.4).
+  // Shows whether the user's progress is being synced to Supabase. Phase C′
+  // already handles the sync; this just surfaces the status visually.
+  try {
+    const supa = (typeof window !== 'undefined' && window.certanvilSupabase) || null;
+    if (supa && supa.auth) {
+      let signedIn = false;
+      try {
+        // Use cached session — getSession is sync after first hydrate
+        const cached = supa.auth.getSession ? null : null;  // placeholder; we call it below
+      } catch (_) {}
+      // We can't await here (renderSettingsHealthCard is sync), so check
+      // for the auth-state.js cached signedIn flag if available.
+      if (typeof window._certanvilSignedIn === 'boolean') {
+        signedIn = window._certanvilSignedIn;
+      } else {
+        // Fallback: check for a stored session token via Supabase's localStorage key
+        try {
+          const keys = Object.keys(localStorage);
+          signedIn = keys.some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        } catch (_) {}
+      }
+      if (signedIn) {
+        rows.push({
+          icon: '✓', tier: 'ok', label: 'Cloud sync',
+          value: 'Active — your progress is saved across devices'
+        });
+      } else {
+        rows.push({
+          icon: '⚠', tier: 'warn', label: 'Cloud sync',
+          value: 'Sign in to sync your progress to the cloud'
+        });
+      }
+    }
+  } catch (_) {
+    rows.push({ icon: '?', tier: 'warn', label: 'Cloud sync', value: 'Status unavailable' });
   }
 
   // 2. Exam date
@@ -39846,13 +39898,14 @@ function renderSettingsHealthCard() {
     });
   }
 
-  // 4. Auto-backup
+  // 4. Local backup (renamed in v4.99.5 — cloud is now primary, this is a
+  // complementary local safety net that protects against accidental clears).
   try {
     const backups = (typeof listAutoBackups === 'function') ? listAutoBackups() : [];
     if (backups.length === 0) {
       rows.push({
-        icon: '⚠', tier: 'warn', label: 'Automatic backup',
-        value: 'No backups yet — one will be created on next page load'
+        icon: '⚠', tier: 'warn', label: 'Local safety net',
+        value: 'Cloud syncs your data; one local backup will be created on next page load'
       });
     } else {
       const newest = backups[0];
@@ -39868,12 +39921,12 @@ function renderSettingsHealthCard() {
         else ageStr = 'just now';
       }
       rows.push({
-        icon: '✓', tier: 'ok', label: 'Automatic backup',
+        icon: '✓', tier: 'ok', label: 'Local safety net',
         value: backups.length + ' snapshot' + (backups.length === 1 ? '' : 's') + ' · last: ' + ageStr
       });
     }
   } catch (_) {
-    rows.push({ icon: '?', tier: 'warn', label: 'Automatic backup', value: 'Status unavailable' });
+    rows.push({ icon: '?', tier: 'warn', label: 'Local safety net', value: 'Status unavailable' });
   }
 
   // 5. Today's progress

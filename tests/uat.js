@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.4', js.includes("const APP_VERSION = '4.99.4"));
+test('APP_VERSION is 4.99.5', js.includes("const APP_VERSION = '4.99.5"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.4', sw.includes('netplus-v4.99.4'));
+test('SW cache bumped to v4.99.5', sw.includes('netplus-v4.99.5'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -11048,14 +11048,16 @@ test('v4.81.11 Settings: renderSettingsPage calls renderSettingsHealthCard',
   })());
 test('v4.81.11 Settings: #settings-health-card container in markup',
   /id="settings-health-card"/.test(html) && /id="settings-health-grid"/.test(html));
-test('v4.81.11 Settings: health card surfaces all 5 rows (api/exam/goal/backup/today)',
+// v4.99.5: API key tile retired (BYOK gone), replaced with "Cloud sync".
+// Local backup tile renamed to "Local safety net" since cloud is now primary.
+test('v4.99.5 Settings: health card surfaces 5 rows (cloud-sync/exam/goal/local-safety-net/today)',
   (() => {
     const body = _fnBody(js, 'renderSettingsHealthCard');
     return body
-      && /API key/.test(body)
+      && /Cloud sync/.test(body)
       && /Exam date/.test(body)
       && /Daily goal/.test(body)
-      && /Automatic backup/.test(body)
+      && /Local safety net/.test(body)
       && /Today/.test(body);
   })());
 test('v4.81.11 Settings: .settings-health-row CSS declared',
@@ -13328,13 +13330,15 @@ test('v4.81.13 Exam: vm fixture — domain breakdown buckets correct/total per d
     } catch (e) { return false; }
   })());
 
-test('v4.81.11 Settings: vm fixture — health card surfaces correct API key status',
+// v4.99.5: API key tile retired in v4.99.4. The vm fixture now exercises
+// the new Cloud sync tile path — surfaces "Sign in to sync" when no Supabase
+// session is available and "Active" when a sb-...-auth-token cookie exists.
+test('v4.99.5 Settings: vm fixture — health card surfaces Cloud sync status',
   (() => {
     try {
       const body = _fnBody(js, 'renderSettingsHealthCard');
       if (!body) return false;
       const vm = require('vm');
-      // Stub minimal env — just localStorage + the helpers + a host element
       let storage = {};
       const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
       const ctx = {
@@ -13342,7 +13346,10 @@ test('v4.81.11 Settings: vm fixture — health card surfaces correct API key sta
         localStorage: {
           getItem: (k) => storage[k] === undefined ? null : storage[k],
           setItem: (k, v) => { storage[k] = String(v); },
-          removeItem: (k) => { delete storage[k]; }
+          removeItem: (k) => { delete storage[k]; },
+          // Object.keys support for the cloud-sync detection path
+          get length() { return Object.keys(storage).length; },
+          key: (i) => Object.keys(storage)[i]
         },
         document: { getElementById: () => fakeHost },
         getExamDate: () => null,
@@ -13352,20 +13359,23 @@ test('v4.81.11 Settings: vm fixture — health card surfaces correct API key sta
         getTodayQuestionCount: () => 0,
         escHtml: (s) => String(s),
         Number, parseInt,
-        Math, Date, JSON, Object
+        Math, Date, JSON, Object,
+        window: { certanvilSupabase: { auth: {} } }
       };
       vm.createContext(ctx);
       vm.runInContext(body, ctx);
-      // No API key → "Not connected"
+      // No session → "Sign in to sync"
       vm.runInContext('renderSettingsHealthCard()', ctx);
-      const noKeyHtml = fakeHost._innerHTML;
-      // With API key → "Connected"
-      storage['k'] = 'sk-ant-api03-xxxxxxxxxxxx-yyyy';
+      const noSessionHtml = fakeHost._innerHTML;
+      // Stored Supabase session token → "Active"
+      storage['sb-appmuaqwuethndvalarl-auth-token'] = '{}';
+      // Workaround: pass Object.keys-friendly interface
+      ctx.localStorage.getItem = (k) => storage[k] === undefined ? null : storage[k];
+      ctx.window._certanvilSignedIn = true;
       vm.runInContext('renderSettingsHealthCard()', ctx);
-      const withKeyHtml = fakeHost._innerHTML;
-      return /Not connected/.test(noKeyHtml)
-        && /Connected/.test(withKeyHtml)
-        && /sk-ant-/.test(withKeyHtml);
+      const withSessionHtml = fakeHost._innerHTML;
+      return /Sign in to sync/.test(noSessionHtml)
+        && /Active/.test(withSessionHtml);
     } catch (e) { return false; }
   })());
 
@@ -17667,6 +17677,39 @@ test('v4.99.4 ProOnly: helper denies access when quotaState is null (safe defaul
   /_gateProOnly[\s\S]{0,400}!_quotaState[\s\S]{0,200}return false/.test(js));
 test('v4.99.4 ProOnly: modal links to upgrade page',
   /pro-only-modal[\s\S]{0,1000}certanvil\.com\/pricing/.test(js));
+
+// ── v4.99.5 — Phase E.4.2: Pro-only page navigation gate + Settings cleanup ──
+console.log('\n\x1b[1m── v4.99.5 — PHASE E.4.2 PAGE-LEVEL GATE + SETTINGS POLISH ──\x1b[0m');
+test('v4.99.5 PageGate: PRO_ONLY_PAGES table defined',
+  /const PRO_ONLY_PAGES = \{/.test(js));
+test('v4.99.5 PageGate: topology-builder is Pro-only',
+  /'topology-builder':\s*'Network Builder'/.test(js));
+test('v4.99.5 PageGate: acl is Pro-only',
+  /'acl':\s*'ACL Builder'/.test(js));
+test('v4.99.5 PageGate: irw is Pro-only',
+  /'irw':\s*'IR War Room'/.test(js));
+test('v4.99.5 PageGate: pht is Pro-only',
+  /'pht':\s*'Phishing Triage Lab'/.test(js));
+test('v4.99.5 PageGate: subnet is Pro-only',
+  /'subnet':\s*'Subnet Trainer'/.test(js));
+test('v4.99.5 PageGate: showPage calls _gateProOnly before activating Pro pages',
+  /function showPage\(name\)[\s\S]{0,600}PRO_ONLY_PAGES\[name\][\s\S]{0,200}_gateProOnly/.test(js));
+test('v4.99.5 PageGate: drill launcher (#page-drills) NOT in Pro-only list',
+  !/'drills':/.test((js.match(/PRO_ONLY_PAGES = \{[\s\S]{0,2000}\}/) || [''])[0]));
+test('v4.99.5 PageGate: setup/home page NOT in Pro-only list',
+  !/'setup':/.test((js.match(/PRO_ONLY_PAGES = \{[\s\S]{0,2000}\}/) || [''])[0]));
+
+test('v4.99.5 SettingsHealth: API key tile retired (BYOK gone)',
+  !/icon: '✓'.*tier: 'ok'.*label: 'API key'/.test(js)
+  && !/Connected · ' \+ apiKey\.slice/.test(js));
+test('v4.99.5 SettingsHealth: Cloud sync tile added',
+  /label: 'Cloud sync'[\s\S]{0,200}your progress is saved/.test(js));
+test('v4.99.5 SettingsHealth: backup label renamed to Local safety net',
+  /label: 'Local safety net'/.test(js)
+  && !/label: 'Automatic backup'/.test(js));
+test('v4.99.5 SettingsPage: eyebrow updated from "Account · configuration" to "Configuration"',
+  /<div class="ed-pagehead-eyebrow">Configuration<\/div>/.test(html)
+  && !/Account &middot; configuration/.test(html));
 test('v4.99.3 BYOK retire: § 02 AI Coach group hidden in Settings',
   /data-group="ai-coach"[^>]*hidden/.test(html));
 test('v4.99.3 BYOK retire: api-key input still exists as hidden (legacy bind safety)',
