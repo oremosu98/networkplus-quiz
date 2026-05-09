@@ -175,18 +175,21 @@
         </div>
       </section>
 
-      <!-- Phase B + C placeholders so the page communicates what's coming -->
-      <section class="cca-panel cca-panel-coming">
+      <!-- Panel 2: Skill overlap (Phase B) -->
+      <section class="cca-panel" id="cca-panel-so" hidden>
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
             <span class="cca-panel-icon" aria-hidden="true">🔗</span>
             <h2 class="cca-panel-title">Skill overlap</h2>
           </div>
-          <span class="cca-coming-pill">Coming next ship</span>
+          <span class="cca-panel-help">Click any pair to see specific topics</span>
         </header>
-        <p class="cca-coming-body">Subnetting from Network+ carries straight into CCNA. We'll map the overlap so you don't re-study what you already know.</p>
+        <div class="cca-so-list" id="cca-so-list">
+          <!-- Pair rows populated by renderPanel2() -->
+        </div>
       </section>
 
+      <!-- Phase C placeholder -->
       <section class="cca-panel cca-panel-coming">
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
@@ -211,6 +214,7 @@
 <script src="lib/supabase-umd.min.js"></script>
 <script src="lib/supabase.js"></script>
 <script src="auth.js"></script>
+<script src="lib/cross-cert-overlap.js"></script>
 <script src="lib/cross-cert-analytics.js"></script>
 </body>
 </html>

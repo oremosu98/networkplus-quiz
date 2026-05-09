@@ -1,18 +1,21 @@
 // ══════════════════════════════════════════════════════════════════════════
 // CertAnvil — Cross-cert analytics page logic (/analytics)
 // ══════════════════════════════════════════════════════════════════════════
-// Loaded after lib/supabase-umd.min.js + lib/supabase.js + auth.js.
+// Loaded after lib/supabase-umd.min.js + lib/supabase.js + auth.js +
+// lib/cross-cert-overlap.js (provides window.CROSS_CERT_OVERLAP).
 //
-// Phase A (this ship): skeleton page + Panel 1 (pass-readiness side-by-side,
-// status-grouped). Reads profile.metadata.cert_results to drive the passed-
-// cert visual treatment + uses local cert catalog for active/coming-soon
-// rows. Readiness number for active certs is "Continue studying" placeholder
-// until Phase A.5 ships the readiness-snapshot pipeline (cert app writes
-// metadata.readiness_snapshots.<cert> after each quiz; landing reads it).
+// Phase A (shipped): skeleton page + Panel 1 (pass-readiness side-by-side,
+// status-grouped). Reads profile.metadata.cert_results for passed certs.
+//
+// Phase A.5 (shipped v4.99.0): live readiness gauges for active certs from
+// profile.metadata.nplus_readiness_snapshots (cert app writes after each
+// quiz/exam; Phase C′ debounced cloud-flush carries it to Supabase).
+//
+// Phase B (this ship): Panel 2 skill overlap. Reads window.CROSS_CERT_OVERLAP
+// (hand-authored data table). Filters cert pairs to ones where at least one
+// cert is passed/active for the user. Click-to-expand for topic-level detail.
 //
 // Phases NOT in this ship:
-//   - Phase A.5: live readiness gauges for active certs (snapshot pipeline)
-//   - Phase B: Panel 2 skill overlap + CROSS_CERT_OVERLAP table
 //   - Phase C: Panel 3 deterministic next-up ranker
 //   - Phase D: replace the launcher modal on dashboard with a route to here
 //
@@ -38,6 +41,9 @@
   var elEmptyState = document.getElementById('cca-empty-state');
   var elPanelPr = document.getElementById('cca-panel-pr');
   var elPrList = document.getElementById('cca-pr-list');
+  // Phase B
+  var elPanelSo = document.getElementById('cca-panel-so');
+  var elSoList = document.getElementById('cca-so-list');
 
   // ── Cert catalog ────────────────────────────────────────────────────────
   // Local source of truth for the analytics page. Six certs in the pipeline.
@@ -471,6 +477,191 @@
     }
   }
 
+  // ── Panel 2: Skill overlap (Phase B) ────────────────────────────────────
+  // Reads window.CROSS_CERT_OVERLAP authored data + user's cert state.
+  // Filters pairs to ones where at least one cert is passed/active.
+  // Sorts by relevance: passed-source pairs first (knowledge already locked
+  // in), then high-overlap pairs. Top pair expanded by default.
+
+  function getCertStateMap(catalog, results) {
+    var map = {};
+    catalog.forEach(function (cert) {
+      var r = results[cert.id];
+      if (r && r.status === 'passed') map[cert.id] = 'passed';
+      else if (cert.status === 'active') map[cert.id] = 'active';
+      else if (cert.status === 'locked') map[cert.id] = 'locked';
+      else map[cert.id] = 'soon';
+    });
+    return map;
+  }
+
+  function getCertById(catalog, id) {
+    for (var i = 0; i < catalog.length; i++) {
+      if (catalog[i].id === id) return catalog[i];
+    }
+    return null;
+  }
+
+  function renderSoPair(pair, fromCert, toCert, fromState, isExpanded) {
+    // Compact summary row + optional expanded detail panel.
+    // Source-passed pairs get a special headline framing ("you know X — here's
+    // what carries"); source-active pairs frame as forward-looking ("once you
+    // finish X, this is what unlocks").
+    var srcKnown = fromState === 'passed';
+
+    var summaryHtml = ''
+      + '<button type="button" class="cca-so-summary" data-pair="' + escapeHtml(pair.from + '__' + pair.to) + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">'
+      +   '<div class="cca-so-pair">'
+      +     '<div class="cca-so-pair-glyph cca-pr-glyph-' + fromCert.glyphClass + '">' + escapeHtml(fromCert.glyph) + '</div>'
+      +     '<span class="cca-so-pair-arrow" aria-hidden="true">→</span>'
+      +     '<div class="cca-so-pair-glyph cca-pr-glyph-' + toCert.glyphClass + '">' + escapeHtml(toCert.glyph) + '</div>'
+      +   '</div>'
+      +   '<div class="cca-so-bar-wrap">'
+      +     '<div class="cca-so-bar-track"><div class="cca-so-bar-fill" style="width: ' + pair.pct + '%;"></div></div>'
+      +     '<span class="cca-so-bar-pct">' + pair.pct + '%</span>'
+      +   '</div>'
+      +   '<div class="cca-so-meta">'
+      +     '<div class="cca-so-meta-headline">' + escapeHtml(pair.headline) + '</div>'
+      +     '<div class="cca-so-meta-sub">' + pair.sharedCount + ' of ' + pair.totalTargetCount + ' topics shared</div>'
+      +   '</div>'
+      +   '<span class="cca-so-chevron" aria-hidden="true">▾</span>'
+      + '</button>';
+
+    // Expanded detail
+    var sharedColH, sharedColIcon, sharedColIconClass;
+    if (srcKnown) {
+      sharedColH = 'Already mastered (skip the re-study)';
+      sharedColIcon = '✓';
+      sharedColIconClass = 'mastered';
+    } else {
+      sharedColH = 'Shared with ' + escapeHtml(fromCert.name) + ' — once mastered, transfers';
+      sharedColIcon = '⊙';
+      sharedColIconClass = 'shared';
+    }
+
+    var sharedListHtml = pair.sharedTopics.map(function (t) {
+      return '<div class="cca-so-topic"><span class="cca-so-topic-pill ' + sharedColIconClass + '">' + sharedColIcon + '</span>' + escapeHtml(t) + '</div>';
+    }).join('');
+
+    var refresherHtml = '';
+    if (pair.refresherTopics && pair.refresherTopics.length) {
+      refresherHtml = pair.refresherTopics.map(function (t) {
+        return '<div class="cca-so-topic"><span class="cca-so-topic-pill refresher">⏵</span>' + escapeHtml(t) + '</div>';
+      }).join('');
+    }
+
+    var newListHtml = pair.newTopics.map(function (t) {
+      return '<div class="cca-so-topic"><span class="cca-so-topic-pill new">+</span>' + escapeHtml(t) + '</div>';
+    }).join('');
+
+    var rightColH = srcKnown
+      ? toCert.name + '-specific (your real focus)'
+      : 'New territory in ' + toCert.name;
+
+    var detailHtml = ''
+      + '<div class="cca-so-detail">'
+      +   '<div class="cca-so-detail-grid">'
+      +     '<div class="cca-so-detail-col">'
+      +       '<div class="cca-so-detail-col-h">'
+      +         '<span class="cca-so-topic-pill ' + sharedColIconClass + '">' + sharedColIcon + '</span>'
+      +         escapeHtml(sharedColH)
+      +       '</div>'
+      +       '<div class="cca-so-detail-col-list">' + sharedListHtml + '</div>'
+      +       (refresherHtml ? '<div class="cca-so-detail-col-h" style="margin-top:14px;"><span class="cca-so-topic-pill refresher">⏵</span>Refresher needed</div><div class="cca-so-detail-col-list">' + refresherHtml + '</div>' : '')
+      +     '</div>'
+      +     '<div class="cca-so-detail-col">'
+      +       '<div class="cca-so-detail-col-h">'
+      +         '<span class="cca-so-topic-pill new">+</span>'
+      +         escapeHtml(rightColH)
+      +       '</div>'
+      +       '<div class="cca-so-detail-col-list">' + newListHtml + '</div>'
+      +     '</div>'
+      +   '</div>'
+      +   '<div class="cca-so-callout">'
+      +     escapeHtml(pair.callout)
+      +     ' <span class="cca-so-saving-pill">≈ ' + pair.daysSaved + ' day' + (pair.daysSaved === 1 ? '' : 's') + ' of prep saved</span>'
+      +   '</div>'
+      + '</div>';
+
+    return ''
+      + '<div class="cca-so-row' + (isExpanded ? ' is-open' : '') + '" data-pair="' + escapeHtml(pair.from + '__' + pair.to) + '">'
+      +   summaryHtml
+      +   detailHtml
+      + '</div>';
+  }
+
+  function renderPanel2(profile) {
+    if (!elSoList) return;
+
+    var role = (profile && profile.role) || 'user';
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
+    var catalog = getCertCatalog(role);
+    var stateMap = getCertStateMap(catalog, results);
+
+    var overlap = (typeof window !== 'undefined' && window.CROSS_CERT_OVERLAP) || [];
+    if (!overlap.length) {
+      // No data table loaded — skip rendering the panel
+      if (elPanelSo) elPanelSo.setAttribute('hidden', '');
+      return;
+    }
+
+    // Filter: pairs where AT LEAST ONE side is passed/active. We hide pairs
+    // where both sides are "soon" since they're not actionable yet.
+    var relevant = overlap.filter(function (p) {
+      var fromState = stateMap[p.from];
+      var toState = stateMap[p.to];
+      var fromActive = fromState === 'passed' || fromState === 'active';
+      var toActive = toState === 'passed' || toState === 'active';
+      return fromActive || toActive;
+    });
+
+    if (!relevant.length) {
+      if (elPanelSo) elPanelSo.setAttribute('hidden', '');
+      return;
+    }
+
+    // Sort: source-passed pairs first (your knowledge is locked in, what
+    // carries forward), then by overlap percentage descending.
+    relevant.sort(function (a, b) {
+      var aSrcPassed = stateMap[a.from] === 'passed';
+      var bSrcPassed = stateMap[b.from] === 'passed';
+      if (aSrcPassed && !bSrcPassed) return -1;
+      if (!aSrcPassed && bSrcPassed) return 1;
+      var aSrcActive = stateMap[a.from] === 'active';
+      var bSrcActive = stateMap[b.from] === 'active';
+      if (aSrcActive && !bSrcActive) return -1;
+      if (!aSrcActive && bSrcActive) return 1;
+      return b.pct - a.pct;
+    });
+
+    // Cap at 8 pairs to avoid wall-of-pairs UX
+    relevant = relevant.slice(0, 8);
+
+    var html = relevant.map(function (pair, idx) {
+      var fromCert = getCertById(catalog, pair.from);
+      var toCert = getCertById(catalog, pair.to);
+      if (!fromCert || !toCert) return '';
+      var fromState = stateMap[pair.from];
+      // Top pair (most relevant) expanded by default; rest collapsed.
+      var isExpanded = idx === 0;
+      return renderSoPair(pair, fromCert, toCert, fromState, isExpanded);
+    }).join('');
+
+    elSoList.innerHTML = html;
+    if (elPanelSo) elPanelSo.removeAttribute('hidden');
+
+    // Wire click handlers on the summary buttons to toggle the row
+    var summaries = elSoList.querySelectorAll('.cca-so-summary');
+    Array.prototype.forEach.call(summaries, function (btn) {
+      btn.addEventListener('click', function () {
+        var row = btn.closest('.cca-so-row');
+        if (!row) return;
+        var nowOpen = row.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+      });
+    });
+  }
+
   // ── Boot ────────────────────────────────────────────────────────────────
   function boot() {
     showLoading();
@@ -485,12 +676,14 @@
       // Profile fetch only changes the passed-cert section.
       var emptyProfile = { role: 'user', metadata: {} };
       renderPanel1(emptyProfile);
+      renderPanel2(emptyProfile);
       showContent();
 
       // Async: fetch real profile, re-render once we have cert_results
       fetchProfile(session.user.id).then(function (profile) {
         if (profile) {
           renderPanel1(profile);
+          renderPanel2(profile);
         }
       });
     }).catch(function () {
