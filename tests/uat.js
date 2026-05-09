@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.8', js.includes("const APP_VERSION = '4.99.8"));
+test('APP_VERSION is 4.99.9', js.includes("const APP_VERSION = '4.99.9"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.8', sw.includes('netplus-v4.99.8'));
+test('SW cache bumped to v4.99.9', sw.includes('netplus-v4.99.9'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17803,6 +17803,13 @@ test('v4.99.8 SidebarLock CSS: .sb-item-lock display:none default',
   /\.sb-item-lock\s*\{[\s\S]{0,300}display:\s*none/.test(css));
 test('v4.99.8 SidebarLock CSS: locked items reveal only when state-resolved + not Pro',
   /body\.is-state-resolved:not\(\.is-pro-tier\)\s+\.sb-item\.is-pro-only\s+\.sb-item-lock/.test(css));
+
+// ── v4.99.9 — Dead function tombstone ──
+console.log('\n\x1b[1m── v4.99.9 — DEAD FUNCTION TOMBSTONE ──\x1b[0m');
+test('v4.99.9 Tombstone: phtGetScenarioMastery removed (dead since v4.98.0, zero callers)',
+  !/function phtGetScenarioMastery\(/.test(js));
+test('v4.99.9 Tombstone: phtUpdateScenarioMastery (companion fn, in use) preserved',
+  /function phtUpdateScenarioMastery\(/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

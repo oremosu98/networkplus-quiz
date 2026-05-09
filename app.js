@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.8
+// Network+ AI Quiz — app.js  v4.99.9
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.8';
+const APP_VERSION = '4.99.9';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -35713,10 +35713,11 @@ function phtInitMastery() {
 function phtSaveMastery(m) {
   try { localStorage.setItem(STORAGE.PHT_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.PHT_MASTERY); } catch (_) {}
 }
-function phtGetScenarioMastery(scenarioId) {
-  const m = phtInitMastery();
-  return m[scenarioId] || { pips: 0, lastRun: null, bestFlagPct: 0, runs: 0, completed: 0, decisionCorrect: false };
-}
+// v4.99.9 — phtGetScenarioMastery removed. The function was authored alongside
+// phtUpdateScenarioMastery in the v4.98.0 PHT batch but never wired in;
+// every consumer (phtRenderDashboard, phtFinishScenario, etc.) reaches into
+// phtInitMastery() directly + reads the scenario key inline. UAT regression
+// guard prevents accidental resurrection. Companion update fn stays — it IS used.
 function phtUpdateScenarioMastery(scenarioId, flagPct, decisionCorrect) {
   const m = phtInitMastery();
   if (!m[scenarioId]) m[scenarioId] = { pips: 0, lastRun: null, bestFlagPct: 0, runs: 0, completed: 0, decisionCorrect: false };
