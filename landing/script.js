@@ -71,7 +71,9 @@
     document.body.style.overflow = '';
     if (notifyForm) notifyForm.reset();
     if (notifyFoot) {
-      notifyFoot.textContent = 'Stored locally for now — full email integration ships when the first cert beyond Network+ launches.';
+      // v4.99.10 — copy aligned with new persistence layer (Supabase notify_signups
+      // + localStorage backup). No more "stored locally for now" hedge.
+      notifyFoot.textContent = "You'll get one email the moment this cert launches. No spam, no follow-up sequences.";
       notifyFoot.style.color = '';
     }
   }

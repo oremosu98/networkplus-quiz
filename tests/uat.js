@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.9', js.includes("const APP_VERSION = '4.99.9"));
+test('APP_VERSION is 4.99.10', js.includes("const APP_VERSION = '4.99.10"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.9', sw.includes('netplus-v4.99.9'));
+test('SW cache bumped to v4.99.10', sw.includes('netplus-v4.99.10'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17810,6 +17810,38 @@ test('v4.99.9 Tombstone: phtGetScenarioMastery removed (dead since v4.98.0, zero
   !/function phtGetScenarioMastery\(/.test(js));
 test('v4.99.9 Tombstone: phtUpdateScenarioMastery (companion fn, in use) preserved',
   /function phtUpdateScenarioMastery\(/.test(js));
+
+// ── v4.99.10 — Notify-me Supabase fallback ──
+console.log('\n\x1b[1m── v4.99.10 — NOTIFY-ME SUPABASE FALLBACK ──\x1b[0m');
+const notifyJsPath = path.join(ROOT, 'landing/api/notify.js');
+const notifyJs = fs.readFileSync(notifyJsPath, 'utf8');
+const notifyMigrationPath = path.join(ROOT, 'supabase/migrations/20260509_notify_signups.sql');
+test('v4.99.10 Migration: notify_signups SQL file exists',
+  fs.existsSync(notifyMigrationPath));
+const notifyMigration = fs.readFileSync(notifyMigrationPath, 'utf8');
+test('v4.99.10 Migration: creates notify_signups table',
+  /create table if not exists public\.notify_signups/.test(notifyMigration));
+test('v4.99.10 Migration: unique constraint on (email, cert) for UPSERT',
+  /unique\s*\(\s*email\s*,\s*cert\s*\)/.test(notifyMigration));
+test('v4.99.10 Migration: enables row level security',
+  /enable row level security/.test(notifyMigration));
+test('v4.99.10 Migration: anon insert policy with email format guard',
+  /create policy[\s\S]{0,300}for insert[\s\S]{0,200}to anon[\s\S]{0,500}email\s*~/.test(notifyMigration));
+test('v4.99.10 Notify: writes to Supabase notify_signups via PostgREST',
+  /\/rest\/v1\/notify_signups\?on_conflict=email,cert/.test(notifyJs));
+test('v4.99.10 Notify: uses Prefer header for UPSERT (merge-duplicates)',
+  /Prefer[\s\S]{0,80}resolution=merge-duplicates/.test(notifyJs));
+test('v4.99.10 Notify: soft-fails on Supabase errors (try/catch wrapping)',
+  /try\s*\{[\s\S]{0,2000}\/rest\/v1\/notify_signups[\s\S]{0,2000}\}\s*catch\s*\(/.test(notifyJs));
+test('v4.99.10 Notify: response includes persisted_to_supabase flag',
+  /persisted_to_supabase:\s*persistedToSupabase/.test(notifyJs));
+test('v4.99.10 Notify: SUPABASE_URL env var override supported',
+  /process\.env\.SUPABASE_URL\s*\|\|/.test(notifyJs));
+test('v4.99.10 Modal: index.html notify-foot no longer says "Stored locally for now"',
+  !landingIndexHtml.includes('Stored locally for now'));
+const landingScriptJs = fs.readFileSync(path.join(ROOT, 'landing/script.js'), 'utf8');
+test('v4.99.10 Modal: script.js reset copy aligned with persistence layer',
+  !landingScriptJs.includes('Stored locally for now'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

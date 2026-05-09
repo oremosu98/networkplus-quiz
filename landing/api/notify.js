@@ -4,25 +4,35 @@
 // POSTs from the landing page (script.js) hit this endpoint when a user
 // signs up to be notified when a "Coming soon" cert launches.
 //
-// Storage strategy (incremental):
-//   1. Always: persist signup to Vercel KV / a webhook / a CSV — so signups
-//      survive even if Resend isn't configured yet
-//   2. Optional: fire a confirmation email via Resend so the user gets
-//      a "we got you" receipt
+// Storage strategy (3 layers of redundancy as of v4.99.10):
+//   1. ALWAYS — write to Supabase notify_signups table (queryable persistence,
+//      survives device changes + log rotation). UPSERT on (email, cert) so
+//      double-clicks don't error. Soft-fail if Supabase unreachable so signup
+//      continues through the other paths.
+//   2. ALWAYS — log to Vercel logs (debugging trail; useful when Supabase
+//      reports a write that doesn't show up in the dashboard).
+//   3. OPTIONAL — fire confirmation email via Resend if RESEND_API_KEY is
+//      present. Without the key, the signup is still SAVED — just no email.
+//   4. CLIENT FALLBACK — landing/script.js keeps a localStorage backup
+//      ('certanvil_notify_signups') in case the API is unreachable entirely.
 //
 // Required env vars (set in Vercel dashboard → certanvil-landing → Settings → Environment Variables):
-//   - RESEND_API_KEY       — Resend account API key (re_...)
-//   - NOTIFY_FROM_EMAIL    — verified sender (e.g., notify@certanvil.com)
-//                            requires DNS verification at Resend dashboard
-//   - NOTIFY_ADMIN_EMAIL   — (optional) where to forward signup notifications
-//                            for the builder to see
+//   - RESEND_API_KEY              — Resend account API key (re_...)
+//   - NOTIFY_FROM_EMAIL           — verified sender (e.g., notify@certanvil.com)
+//                                   requires DNS verification at Resend dashboard
+//   - NOTIFY_ADMIN_EMAIL          — (optional) where to forward signup notifications
+//                                   for the builder to see
+//   - SUPABASE_URL                — (optional) override; defaults to certanvil project
+//   - SUPABASE_PUBLISHABLE_KEY    — (optional) override; defaults to certanvil pub key
 //
-// If RESEND_API_KEY is missing the endpoint still ACCEPTS the signup and
-// returns 200 (graceful degrade) — the signup is logged to Vercel logs so
-// nothing is lost. Re-process from logs once Resend is configured.
+// Migration to apply BEFORE this code is useful:
+//   supabase/migrations/20260509_notify_signups.sql
+//   (creates the table + RLS policy that lets anon insert)
 //
-// Local-only signups (when this endpoint is unreachable, e.g., during
-// landing dev) are kept in localStorage by script.js as a fallback.
+// Reading the signups (admin-only):
+//   Open Supabase SQL editor → run:
+//     select email, cert, created_at from notify_signups
+//     where cert = 'Security+' order by created_at desc;
 
 export const config = { runtime: 'edge' };
 
@@ -77,6 +87,43 @@ export default async function handler(req) {
     ua: req.headers.get('user-agent') || '',
   }));
 
+  // ── Persist to Supabase (waitlist table) — v4.99.10 ────────────────────
+  // Soft-fail: if the table doesn't exist yet, or RLS rejects, or Supabase
+  // is unreachable, we still continue through the rest of the flow. Vercel
+  // logs + localStorage backup keep the signup alive in those cases.
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://appmuaqwuethndvalarl.supabase.co';
+  const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY
+    || 'sb_publishable_ZjmrS-j7ci6oSlsqu5gRJg_GDm4f4u0';
+  let persistedToSupabase = false;
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const sbResp = await fetch(supabaseUrl + '/rest/v1/notify_signups?on_conflict=email,cert', {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': 'Bearer ' + supabaseKey,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          email: email,
+          cert: cert,
+          source: source,
+          user_agent: req.headers.get('user-agent') || null,
+        }),
+      });
+      if (sbResp.ok) {
+        persistedToSupabase = true;
+      } else {
+        const errText = await sbResp.text();
+        console.error('[certanvil-notify] Supabase insert failed:', sbResp.status, errText);
+      }
+    } catch (e) {
+      console.error('[certanvil-notify] Supabase call threw:', e.message || String(e));
+    }
+  }
+  console.log('[certanvil-notify] persisted_to_supabase:', persistedToSupabase);
+
   // ── Send via Resend if configured ──────────────────────────────────────
   const resendKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.NOTIFY_FROM_EMAIL || 'notify@certanvil.com';
@@ -128,7 +175,14 @@ export default async function handler(req) {
     }
   }
 
-  return json({ ok: true, message: 'Signed up successfully' }, 200);
+  return json({
+    ok: true,
+    message: 'Signed up successfully',
+    // v4.99.10 — surface persistence outcome for client-side UX (script.js can
+    // tweak the modal copy when persisted_to_supabase: true vs false). Default
+    // copy still works for both.
+    persisted_to_supabase: persistedToSupabase,
+  }, 200);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
