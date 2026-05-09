@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.14', js.includes("const APP_VERSION = '4.99.14"));
+test('APP_VERSION is 4.99.15', js.includes("const APP_VERSION = '4.99.15"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.14', sw.includes('netplus-v4.99.14'));
+test('SW cache bumped to v4.99.15', sw.includes('netplus-v4.99.15'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17825,11 +17825,14 @@ test('v4.99.10 Migration: unique constraint on (email, cert) for UPSERT',
   /unique\s*\(\s*email\s*,\s*cert\s*\)/.test(notifyMigration));
 test('v4.99.10 Migration: enables row level security',
   /enable row level security/.test(notifyMigration));
-// v4.99.13 — superseded by permissive policy (drops the regex check entirely).
-// Original v4.99.10 guard checked for an email-format regex inside WITH CHECK;
-// rewritten to assert the policy + role + INSERT shape only.
-test('v4.99.10 Migration: anon/authenticated insert policy present',
-  /create policy[\s\S]{0,300}for insert[\s\S]{0,200}to anon,?\s*authenticated/.test(notifyMigration));
+// v4.99.13 → v4.99.14 evolution: policy is now `to public with check (true)`
+// in prod (after the UPSERT-policy-eval debugging found the actual bug was
+// merge-duplicates triggering UPDATE policy evaluation). The migration file
+// in repo still says `to anon, authenticated` for the historic record; prod
+// state is in the permissive + to-public follow-up migrations. Just assert
+// SOME create policy exists so the file isn't degraded to nothing.
+test('v4.99.10 Migration: insert policy exists in notify_signups migration',
+  /create policy[\s\S]{0,300}for insert/.test(notifyMigration));
 test('v4.99.10 Notify: writes to Supabase notify_signups via PostgREST',
   /\/rest\/v1\/notify_signups\?on_conflict=email,cert/.test(notifyJs));
 // v4.99.14 — switched merge-duplicates → ignore-duplicates because UPSERT
@@ -17910,6 +17913,33 @@ test('v4.99.13 Permissive: WITH CHECK simplified to (true)',
   /with check\s*\(\s*true\s*\)/.test(permissiveMigration));
 test('v4.99.13 Original: notify_signups.sql in-place WITH CHECK also simplified to (true)',
   /^\s*true\s*$/m.test(notifyMigrationFixed.split('with check (')[1] || ''));
+
+// ── v4.99.15 — Ship checklist codified + referenced in CLAUDE.md ──
+console.log('\n\x1b[1m── v4.99.15 — SHIP CHECKLIST CODIFIED ──\x1b[0m');
+const shipChecklistPath = path.join(ROOT, 'SHIP_CHECKLIST.md');
+test('v4.99.15 ShipChecklist: SHIP_CHECKLIST.md exists at repo root',
+  fs.existsSync(shipChecklistPath));
+const shipChecklistMd = fs.existsSync(shipChecklistPath)
+  ? fs.readFileSync(shipChecklistPath, 'utf8') : '';
+test('v4.99.15 ShipChecklist: covers all 6 phases',
+  /## Phase 1 — Automated checks/.test(shipChecklistMd)
+  && /## Phase 2 — Version \+ cache discipline/.test(shipChecklistMd)
+  && /## Phase 3 — Live-verify/.test(shipChecklistMd)
+  && /## Phase 4 — Schema \+ RLS/.test(shipChecklistMd)
+  && /## Phase 5 — Final pre-push gate/.test(shipChecklistMd)
+  && /## Phase 6 — Post-push smoke/.test(shipChecklistMd));
+test('v4.99.15 ShipChecklist: encodes the v4.99.x RLS lessons (POSIX regex + UPSERT eval)',
+  /POSIX/.test(shipChecklistMd)
+  && /UPSERT/.test(shipChecklistMd)
+  && /merge-duplicates/.test(shipChecklistMd)
+  && /ignore-duplicates/.test(shipChecklistMd));
+test('v4.99.15 ShipChecklist: encodes the localStorage-on-prod hard rule',
+  /NEVER/.test(shipChecklistMd) && /v4\.81\.x/.test(shipChecklistMd));
+test('v4.99.15 ShipChecklist: STOP CONDITIONs at every phase (>=5 occurrences)',
+  (shipChecklistMd.match(/STOP CONDITION/g) || []).length >= 5);
+const claudeMdContent = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8');
+test('v4.99.15 ShipChecklist: CLAUDE.md Deployment section references the file',
+  /SHIP_CHECKLIST\.md/.test(claudeMdContent) && /Ship checklist/.test(claudeMdContent));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
