@@ -2280,6 +2280,26 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   flex-shrink: 0;
   margin-top: 2px;
 }
+/* Primary CTA inside the cross-cert analytics modal — routes to /analytics */
+.cca-primary-cta {
+  display: block;
+  margin: 18px auto 8px;
+  padding: 12px 20px;
+  background: var(--accent);
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  max-width: 320px;
+}
+.cca-primary-cta:hover {
+  background: var(--accent-hover, #6e60e8);
+  transform: translateY(-1px);
+}
+
 .cca-quick-links {
   margin-top: 18px;
   text-align: left;
@@ -3828,4 +3848,359 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   .erm-backdrop { animation: none !important; }
   .er-btn:hover,
   .confetti-btn:hover { transform: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Cross-cert analytics page (/analytics) — Phase A
+   Panel 1: pass-readiness side-by-side, status-grouped (Passed / Active / Soon)
+   Visual contract: mockups/cross-cert-analytics-concept.html
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cca-eyebrow-icon {
+  display: inline-block;
+  margin-right: 4px;
+  filter: grayscale(0.1);
+}
+
+.cca-content { display: block; }
+
+.cca-empty-state {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 36px 24px;
+  text-align: center;
+  margin-top: 16px;
+}
+.cca-empty-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
+  border: 1px solid #2e2e48;
+  color: #a99df9;
+  display: grid; place-items: center;
+  font-size: 24px;
+}
+.cca-empty-state h2 {
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 6px;
+}
+.cca-empty-state p {
+  font-size: 13px; color: var(--text-mid);
+  margin-bottom: 18px; max-width: 460px;
+  margin-left: auto; margin-right: auto;
+}
+
+/* Section panel */
+.cca-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(20,20,40,0.04);
+}
+.cca-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cca-panel-title-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.cca-panel-title {
+  font-size: 15px; font-weight: 700;
+  margin: 0;
+}
+.cca-panel-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--accent-soft-bg);
+  color: var(--accent);
+  font-size: 14px;
+}
+.cca-panel-help {
+  font-size: 12px; color: var(--text-mid);
+}
+
+.cca-panel-coming {
+  background: var(--surface);
+  opacity: 0.85;
+}
+.cca-coming-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px; border-radius: 99px;
+  background: var(--accent-soft-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-soft-border);
+}
+.cca-coming-body {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+
+/* Pass-readiness list (Panel 1) */
+.cca-pr-list {
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+
+/* Status group header */
+.cca-pr-group-h {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+  margin-bottom: 4px;
+  font-size: 11px; font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.cca-pr-group-h:first-child { margin-top: 0; }
+.cca-pr-group-h-passed { color: var(--green); }
+.cca-pr-group-h-active { color: var(--accent); }
+.cca-pr-group-h-icon {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  display: grid; place-items: center;
+  background: var(--accent-soft-bg);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+}
+.cca-pr-group-h-passed .cca-pr-group-h-icon {
+  background: var(--green-soft-bg);
+  color: var(--green);
+}
+.cca-pr-group-h-soon .cca-pr-group-h-icon {
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+.cca-pr-group-h-rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Pass-readiness row */
+.cca-pr-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 200px 130px;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  position: relative;
+}
+.cca-pr-row:hover {
+  border-color: var(--accent-soft-border);
+}
+
+.cca-pr-row-active {
+  border-color: var(--accent-soft-border);
+}
+.cca-pr-row-active:hover {
+  border-color: var(--accent);
+}
+
+.cca-pr-row-soon {
+  background: var(--surface-2);
+  opacity: 0.85;
+}
+
+/* PASSED row — three layered visual treatments */
+.cca-pr-row-passed {
+  background: linear-gradient(135deg, var(--green-soft-bg), rgba(22,163,74,0.01));
+  border-color: var(--green-border);
+  border-left: 4px solid var(--green);
+  padding-left: 15px;
+}
+.cca-pr-row-passed::after {
+  content: '🏆 PASSED';
+  position: absolute;
+  top: -1px; right: -1px;
+  background: var(--green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 0 9px 0 9px;
+  z-index: 1;
+}
+
+.cca-pr-glyph {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 13px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
+  border: 1px solid #2e2e48;
+}
+.cca-pr-glyph-netplus { color: #a99df9; }
+.cca-pr-glyph-secplus { color: #fbbf24; }
+.cca-pr-glyph-az900 { color: #38bdf8; }
+.cca-pr-glyph-ccna { color: #34d399; }
+.cca-pr-glyph-aws { color: #fcd34d; }
+.cca-pr-glyph-az104 { color: #a99df9; }
+.cca-pr-glyph-locked { color: var(--text-dim); }
+
+.cca-pr-info { line-height: 1.4; }
+.cca-pr-name {
+  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.cca-pr-status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px; border-radius: 99px;
+}
+.cca-pr-status-passed {
+  background: var(--green-soft-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+.cca-pr-status-active {
+  background: var(--accent-soft-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-soft-border);
+}
+.cca-pr-status-soon {
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+}
+
+.cca-pr-coach {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-top: 4px;
+}
+
+/* Readiness gauge */
+.cca-pr-readiness {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cca-pr-readiness-pending,
+.cca-pr-readiness-empty {
+  opacity: 0.6;
+}
+.cca-pr-readiness-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-mid);
+}
+.cca-pr-readiness-score {
+  font-size: 13px; font-weight: 800;
+}
+.cca-pr-score-green { color: var(--green); }
+.cca-pr-score-pending { color: var(--text-dim); }
+
+.cca-pr-readiness-bar {
+  position: relative;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cca-pr-readiness-fill {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: 3px;
+}
+.cca-pr-fill-green {
+  background: linear-gradient(90deg, var(--green), #4ade80);
+}
+.cca-pr-readiness-cutoff {
+  position: absolute; top: -2px; bottom: -2px;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+  border-radius: 1px;
+}
+
+.cca-pr-readiness-meta {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--text-dim);
+}
+
+/* Action button */
+.cca-pr-action {
+  text-align: right;
+}
+.cca-pr-action-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.cca-pr-action-btn:hover {
+  background: var(--accent-hover, #6e60e8);
+  color: #fff;
+}
+.cca-pr-action-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+.cca-pr-action-ghost:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+  color: var(--accent);
+}
+.cca-pr-action-disabled {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+  cursor: not-allowed;
+}
+.cca-pr-action-disabled:hover {
+  background: transparent;
+}
+
+/* Cutoff legend below the list */
+.cca-pr-cutoff-legend {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text-mid);
+  display: flex; align-items: center; gap: 6px;
+}
+.cca-pr-cutoff-tick {
+  display: inline-block;
+  width: 2px; height: 12px;
+  background: var(--accent);
+  opacity: 0.6;
+  border-radius: 1px;
+}
+
+/* Mobile breakpoint — readiness bar stacks under cert info */
+@media (max-width: 720px) {
+  .cca-pr-row {
+    grid-template-columns: 50px 1fr 100px;
+    grid-template-rows: auto auto;
+    row-gap: 12px;
+  }
+  .cca-pr-readiness {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .cca-pr-row-passed::after {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
 }
