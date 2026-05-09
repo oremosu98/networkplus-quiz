@@ -9,7 +9,7 @@
     "serve": "npx serve . -l 3131 -s",
     "bump": "node scripts/bump-version.js",
     "stage": "node scripts/stage.js",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
