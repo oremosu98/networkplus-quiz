@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.13', js.includes("const APP_VERSION = '4.99.13"));
+test('APP_VERSION is 4.99.14', js.includes("const APP_VERSION = '4.99.14"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.13', sw.includes('netplus-v4.99.13'));
+test('SW cache bumped to v4.99.14', sw.includes('netplus-v4.99.14'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17832,8 +17832,11 @@ test('v4.99.10 Migration: anon/authenticated insert policy present',
   /create policy[\s\S]{0,300}for insert[\s\S]{0,200}to anon,?\s*authenticated/.test(notifyMigration));
 test('v4.99.10 Notify: writes to Supabase notify_signups via PostgREST',
   /\/rest\/v1\/notify_signups\?on_conflict=email,cert/.test(notifyJs));
-test('v4.99.10 Notify: uses Prefer header for UPSERT (merge-duplicates)',
-  /Prefer[\s\S]{0,80}resolution=merge-duplicates/.test(notifyJs));
+// v4.99.14 — switched merge-duplicates → ignore-duplicates because UPSERT
+// triggers UPDATE policy evaluation in Postgres, and we only have INSERT policy.
+test('v4.99.14 Notify: uses Prefer header for ignore-duplicates (NOT merge-duplicates)',
+  /Prefer[\s\S]{0,80}resolution=ignore-duplicates/.test(notifyJs)
+  && !/Prefer[\s\S]{0,80}resolution=merge-duplicates/.test(notifyJs));
 test('v4.99.10 Notify: soft-fails on Supabase errors (try/catch wrapping)',
   /try\s*\{[\s\S]{0,2000}\/rest\/v1\/notify_signups[\s\S]{0,2000}\}\s*catch\s*\(/.test(notifyJs));
 test('v4.99.10 Notify: response includes persisted_to_supabase flag',

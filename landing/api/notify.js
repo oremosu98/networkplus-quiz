@@ -97,13 +97,21 @@ export default async function handler(req) {
   let persistedToSupabase = false;
   if (supabaseUrl && supabaseKey) {
     try {
+      // v4.99.14: switched from merge-duplicates → ignore-duplicates. The
+      // merge-duplicates mode triggers Postgres' INSERT...ON CONFLICT DO UPDATE
+      // path which evaluates BOTH the INSERT and UPDATE RLS policies upfront,
+      // regardless of whether a conflict actually occurs. Our policy only
+      // covers INSERT, so even brand-new rows were rejected with 42501.
+      // ignore-duplicates → INSERT...ON CONFLICT DO NOTHING — no UPDATE path,
+      // no UPDATE policy needed. Same UX from the user's perspective: clicking
+      // Notify twice on the same cert silently no-ops (existing row stays).
       const sbResp = await fetch(supabaseUrl + '/rest/v1/notify_signups?on_conflict=email,cert', {
         method: 'POST',
         headers: {
           'apikey': supabaseKey,
           'Authorization': 'Bearer ' + supabaseKey,
           'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates,return=minimal',
+          'Prefer': 'resolution=ignore-duplicates,return=minimal',
         },
         body: JSON.stringify({
           email: email,
