@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.2
+// Network+ AI Quiz — app.js  v4.99.3
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.2';
+const APP_VERSION = '4.99.3';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -460,6 +460,49 @@ function _showQuotaExceededUI(detail) {
   modal.addEventListener('click', function (e) {
     if (e.target === modal) modal.remove();
   });
+}
+
+// v4.99.3 Phase E.4 — global activity gate.
+// Called at every quiz/drill entry point. If a Free user is at 20/20 today,
+// blocks the action and shows the quota-exceeded modal. Pro users + admins
+// always pass through (is_pro() in Postgres returns true for both, so
+// _quotaState.daily_limit comes back as -1 and tier='pro' — chip + paywall
+// both fall through to "unlimited" automatically).
+//
+// Returns true if the activity should proceed, false if blocked. Callers
+// pattern: `if (!_gateActivityForQuota('practising')) return;`
+function _gateActivityForQuota(activityLabel) {
+  // Unknown quota state (chip not yet refreshed, or signed-out user) — let
+  // the action try. The proxy's 429 will catch any over-quota AI call;
+  // static drills just work normally for anonymous/unknown users.
+  if (!_quotaState) return true;
+
+  // Pro / admin → unlimited (daily_limit = -1 from is_pro())
+  if (_quotaState.tier === 'pro') return true;
+  if (typeof _quotaState.daily_limit !== 'number') return true;
+  if (_quotaState.daily_limit < 0) return true;
+
+  var used = _quotaState.used_today || 0;
+  if (used < _quotaState.daily_limit) return true;
+
+  // At quota — block + show modal. Synthesise a 429-shaped payload so the
+  // modal can render with reset countdown + upgrade CTA.
+  var nextMidnightUtc;
+  try {
+    var now = new Date();
+    nextMidnightUtc = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0
+    )).toISOString();
+  } catch (_) {}
+  if (typeof _showQuotaExceededUI === 'function') {
+    _showQuotaExceededUI({
+      error: 'quota_exceeded',
+      message: 'You’ve used your ' + _quotaState.daily_limit + ' free questions today. Upgrade to Pro for unlimited ' + (activityLabel || 'study') + '.',
+      reset_at: nextMidnightUtc,
+      daily_limit: _quotaState.daily_limit
+    });
+  }
+  return false;
 }
 
 // Self-contained auth listener — keeps the quota chip in sync with auth state
@@ -4937,6 +4980,7 @@ function showSetupError() {
 // START REGULAR QUIZ
 // ══════════════════════════════════════════
 async function startQuiz() {
+  if (!_gateActivityForQuota('practice quizzes')) return;
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
@@ -5328,6 +5372,7 @@ function _formatElapsed(ms) {
 // START EXAM SIMULATION
 // ══════════════════════════════════════════
 async function startExam() {
+  if (!_gateActivityForQuota('exam simulator')) return;
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
@@ -28601,6 +28646,7 @@ function isLessonUnlocked(lesson) {
 
 // ── Tab / Mode switching ──
 function startSubnetTrainer() {
+  if (!_gateActivityForQuota('drills')) return;
   setSubnetTab('learn');
   stRenderLevelBadge();
   // v4.81.10: render Drill Mission Card on entry (was previously
@@ -29834,6 +29880,7 @@ function filterPortReference() {
 }
 
 function startPortDrill() {
+  if (!_gateActivityForQuota('drills')) return;
   setPortTab('learn');
   ptRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -32805,6 +32852,7 @@ function abPickItem(focusCat) {
 }
 
 function startAcronymBlitz() {
+  if (!_gateActivityForQuota('drills')) return;
   setAbTab('learn');
   abRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -33131,6 +33179,7 @@ function updateOsMastery(itemName, wasCorrect) {
 }
 
 function startOsiSorter() {
+  if (!_gateActivityForQuota('drills')) return;
   setOsTab('learn');
   osRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
@@ -33856,6 +33905,7 @@ function setCtsTab(tabId) {
 }
 
 function startControlTypeSorter() {
+  if (!_gateActivityForQuota('drills')) return;
   if (!_USE_SECPLUS_CTS) {
     if (typeof showToast === 'function') showToast('Control Type Sorter is Security+ only.', 'info');
     return;
@@ -34187,6 +34237,7 @@ function ptrEndScenario() {
 }
 
 function ptrStartScenario(scenarioId) {
+  if (!_gateActivityForQuota('drills')) return;
   const s = PT_DATA.find(x => x.id === scenarioId);
   if (!s) {
     if (typeof showToast === 'function') showToast('Scenario not found.', 'error');
@@ -34535,6 +34586,7 @@ function irwRenderHome() {
   host.innerHTML = html;
 }
 function irwStartScenario(scenarioId) {
+  if (!_gateActivityForQuota('drills')) return;
   const scen = IRW_DATA.find(s => s.id === scenarioId);
   if (!scen) { console.warn('IRW: scenario not found:', scenarioId); return; }
   if (!irwIsScenarioUnlocked(scen)) {
@@ -35574,6 +35626,7 @@ function phtRenderHome() {
   host.innerHTML = html;
 }
 function phtStartScenario(scenarioId) {
+  if (!_gateActivityForQuota('drills')) return;
   const scen = PHT_DATA.find(s => s.id === scenarioId);
   if (!scen) { console.warn('PHT: scenario not found:', scenarioId); return; }
   if (!phtIsScenarioUnlocked(scen)) {
@@ -36967,6 +37020,7 @@ function updateCbMastery(itemName, catId, wasCorrect) {
 }
 
 function startCableId() {
+  if (!_gateActivityForQuota('drills')) return;
   setCbTab('learn');
   cbRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)

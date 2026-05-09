@@ -290,7 +290,9 @@ test('E key for multi-select', js.includes("'A','B','C','D','E'"));
 test('Shared scoring helper', js.includes('function _scoreTopicNeed('));
 test('Meta description in HTML', html.includes('meta name="description"'));
 test('ARIA on theme toggle', html.includes('aria-label="Toggle'));
-test('ARIA on API key input', html.includes('aria-label="Anthropic'));
+// v4.99.3: ARIA label retired with BYOK Settings UI (input now hidden, no user-facing label needed).
+test('ARIA: API key input is now hidden (BYOK retired in v4.99.3)',
+  /input[^>]*type="hidden"[^>]*id="api-key"/.test(html));
 test('ARIA on exam modal', html.includes('role="dialog"'));
 test('Version badge matches APP_VERSION', (() => { const m = js.match(/const APP_VERSION = '([^']+)'/); return m && html.includes('v' + m[1]); })());
 test('SW cache name matches APP_VERSION', (() => { const m = js.match(/const APP_VERSION = '([^']+)'/); return m && sw.includes('netplus-v'); })());
@@ -303,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.2', js.includes("const APP_VERSION = '4.99.2"));
+test('APP_VERSION is 4.99.3', js.includes("const APP_VERSION = '4.99.3"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -317,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.2', sw.includes('netplus-v4.99.2'));
+test('SW cache bumped to v4.99.3', sw.includes('netplus-v4.99.3'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -10502,10 +10504,13 @@ test('v4.81.4 ApiKey: _apiKeyDebouncedSave function defined',
   /function\s+_apiKeyDebouncedSave\b/.test(js));
 test('v4.81.4 ApiKey: _renderApiKeyStatusOnLoad function defined',
   /function\s+_renderApiKeyStatusOnLoad\b/.test(js));
-test('v4.81.4 ApiKey: input has onblur=autoSaveApiKey wiring',
-  /id="api-key"[^>]*onblur="autoSaveApiKey\(\)"/.test(html));
-test('v4.81.4 ApiKey: input has oninput=_apiKeyDebouncedSave wiring',
-  /id="api-key"[^>]*oninput="_apiKeyDebouncedSave\(\)"/.test(html));
+// v4.99.3: BYOK input retired — wiring no longer present (Settings field removed).
+// autoSaveApiKey + _apiKeyDebouncedSave functions still exist in app.js for legacy
+// callsites but the input element they bind to is now a hidden no-op.
+test('v4.81.4 ApiKey: autoSaveApiKey function still defined (legacy callers safe)',
+  /function\s+autoSaveApiKey\b/.test(js));
+test('v4.81.4 ApiKey: _apiKeyDebouncedSave function still defined',
+  /function\s+_apiKeyDebouncedSave\b/.test(js));
 test('v4.81.4 ApiKey: #api-key-status status pill present',
   /id="api-key-status"/.test(html));
 test('v4.81.4 ApiKey: autoSaveApiKey validates sk-ant- prefix',
@@ -11074,11 +11079,11 @@ test('v4.81.12 Settings: 4 settings-group containers present',
   && /data-group="ai-coach"/.test(html)
   && /data-group="data-backups"/.test(html)
   && /data-group="danger-zone"/.test(html));
-test('v4.81.12 Settings: each group has a settings-group-head with §-numbered eyebrow',
+// v4.99.3: § 02 AI Coach group retired (BYOK gone), remaining groups renumbered to §01/§02/§03.
+test('v4.81.12 Settings: 3 visible §-numbered eyebrows after BYOK retirement (§01/§02/§03)',
   /class="settings-group-num">&sect; 01/.test(html)
   && /class="settings-group-num">&sect; 02/.test(html)
-  && /class="settings-group-num">&sect; 03/.test(html)
-  && /class="settings-group-num">&sect; 04/.test(html));
+  && /class="settings-group-num">&sect; 03/.test(html));
 test('v4.81.12 Settings: Danger Zone has settings-group-danger class',
   /class="settings-group settings-group-danger"/.test(html));
 test('v4.81.12 Settings: Wrong Answers Bank section has settings-section-danger class',
@@ -17621,6 +17626,46 @@ test('v4.99.2 css: .quota-exceeded-modal full-viewport overlay',
   /\.quota-exceeded-modal\s*\{[\s\S]{0,200}position:\s*fixed/.test(css));
 test('v4.99.2 css: reduced-motion gate kills modal animation',
   /prefers-reduced-motion[\s\S]{0,200}\.quota-exceeded-modal[\s\S]{0,80}animation:\s*none/.test(css));
+
+// ── v4.99.3 — Phase E.4: BYOK retirement + admin bypass + activity gate ──
+console.log('\n\x1b[1m── v4.99.3 — PHASE E.4 BYOK RETIREMENT + ACTIVITY GATE ──\x1b[0m');
+test('v4.99.3 gate: _gateActivityForQuota helper defined',
+  /function _gateActivityForQuota\(activityLabel\)/.test(js));
+test('v4.99.3 gate: Pro/admin (daily_limit < 0) bypass the gate',
+  /_gateActivityForQuota[\s\S]{0,1500}_quotaState\.daily_limit < 0[\s\S]{0,200}return true/.test(js));
+test('v4.99.3 gate: shows quota-exceeded modal when blocked',
+  /_gateActivityForQuota[\s\S]{0,1500}_showQuotaExceededUI/.test(js));
+test('v4.99.3 gate: startQuiz protected',
+  /async function startQuiz[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startExam protected',
+  /async function startExam[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startPortDrill protected',
+  /function startPortDrill[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startAcronymBlitz protected',
+  /function startAcronymBlitz[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startOsiSorter protected',
+  /function startOsiSorter[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startCableId protected',
+  /function startCableId[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startSubnetTrainer protected',
+  /function startSubnetTrainer[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: startControlTypeSorter protected',
+  /function startControlTypeSorter[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: ptrStartScenario protected',
+  /function ptrStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: irwStartScenario protected',
+  /function irwStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 gate: phtStartScenario protected',
+  /function phtStartScenario[\s\S]{0,200}_gateActivityForQuota/.test(js));
+test('v4.99.3 BYOK retire: § 02 AI Coach group hidden in Settings',
+  /data-group="ai-coach"[^>]*hidden/.test(html));
+test('v4.99.3 BYOK retire: api-key input still exists as hidden (legacy bind safety)',
+  /input[^>]*type="hidden"[^>]*id="api-key"/.test(html));
+test('v4.99.3 admin bypass: SQL migration file exists',
+  fs.existsSync(path.join(__dirname, '../supabase/migrations/20260509_phase_e_admin_bypass.sql')));
+test('v4.99.3 admin bypass: SQL extends is_pro to admin role',
+  fs.readFileSync(path.join(__dirname, '../supabase/migrations/20260509_phase_e_admin_bypass.sql'), 'utf8')
+    .includes("role = 'admin'"));
 test('v4.99.2 refactor: only BYOK fallback (+ doc comment) remain referencing fetch(CLAUDE_API_URL,)',
   // Expected: 2 occurrences total — (1) the BYOK fallback inside _claudeFetch,
   // (2) the doc comment "// rename: fetch(CLAUDE_API_URL, → _claudeFetch(.".
