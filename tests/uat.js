@@ -303,7 +303,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.0', js.includes("const APP_VERSION = '4.99.0"));
+test('APP_VERSION is 4.99.1', js.includes("const APP_VERSION = '4.99.1"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -317,7 +317,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.0', sw.includes('netplus-v4.99.0'));
+test('SW cache bumped to v4.99.1', sw.includes('netplus-v4.99.1'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17562,11 +17562,22 @@ test('v4.99.0 STORAGE: READINESS_SNAPSHOTS key declared',
 test('v4.99.0 helper: _writeReadinessSnapshot function defined',
   /function _writeReadinessSnapshot\(\)/.test(js));
 test('v4.99.0 helper: snapshot uses CURRENT_CERT as the per-cert key',
-  /_writeReadinessSnapshot[\s\S]{0,400}snapshots\[CURRENT_CERT\]\s*=/.test(js));
+  /function _writeReadinessSnapshot\(\)[\s\S]{0,1200}snapshots\[CURRENT_CERT\]\s*=/.test(js));
 test('v4.99.0 helper: snapshot includes score + computed_at',
   /score:\s*readiness\.predicted[\s\S]{0,100}computed_at:\s*new Date\(\)\.toISOString\(\)/.test(js));
+// v4.99.1: enriched snapshot with ranker signals for Panel 3
+test('v4.99.1 helper: snapshot includes weak_topic for ranker',
+  /weak_topic:\s*readiness\.worstTopic/.test(js));
+test('v4.99.1 helper: snapshot includes weak_pct for ranker',
+  /weak_pct:\s*typeof readiness\.worstPct === 'number'/.test(js));
+test('v4.99.1 helper: snapshot resolves weak_domain via TOPIC_DOMAINS',
+  /weakDomain[\s\S]{0,200}TOPIC_DOMAINS\[readiness\.worstTopic\]/.test(js));
+test('v4.99.1 helper: snapshot includes days_to_exam for runway math',
+  /days_to_exam:\s*typeof readiness\.daysToExam === 'number'/.test(js));
+test('v4.99.1 helper: snapshot includes total_qs for confidence weighting',
+  /total_qs:\s*typeof readiness\.totalQs === 'number'/.test(js));
 test('v4.99.0 helper: snapshot triggers _cloudFlush for cross-device sync',
-  /function _writeReadinessSnapshot\(\)[\s\S]{0,800}_cloudFlush\(STORAGE\.READINESS_SNAPSHOTS\)/.test(js));
+  /function _writeReadinessSnapshot\(\)[\s\S]{0,1500}_cloudFlush\(STORAGE\.READINESS_SNAPSHOTS\)/.test(js));
 test('v4.99.0 hook: finish() calls _writeReadinessSnapshot',
   /function finish\(\)[\s\S]{0,40000}_writeReadinessSnapshot\(\)/.test(js));
 test('v4.99.0 hook: submitExam() calls _writeReadinessSnapshot',

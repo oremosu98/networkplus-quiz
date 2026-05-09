@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.0
+// Network+ AI Quiz — app.js  v4.99.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.0';
+const APP_VERSION = '4.99.1';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -7824,16 +7824,20 @@ function getReadinessScore() {
 }
 
 // v4.99.0 — readiness snapshot writer (cross-cert analytics Phase A.5).
+// v4.99.1 — enriched with weak_topic + weak_pct + weak_domain + days_to_exam
+//           + total_qs so landing's Panel 3 ranker (Phase C) can produce
+//           specific recommendations rather than generic "continue studying."
 //
 // Computes the user's current readiness for the active cert and writes a
 // per-cert snapshot under a single STORAGE.READINESS_SNAPSHOTS key shaped
-// like { netplus: {score, computed_at}, secplus: {score, computed_at} }.
+// like { netplus: {score, computed_at, weak_topic, ...}, secplus: {...} }.
 // Triggered from finish() (quiz complete) and submitExam() (exam complete)
 // — natural moments where readiness changes meaningfully.
 //
 // Cloud-flushed via existing Phase C′ pattern so landing's /analytics page
 // reads it from profile.metadata.nplus_readiness_snapshots and renders
-// live readiness gauges per cert across the user's whole portfolio.
+// live readiness gauges + actionable next-up recommendations across the
+// user's whole portfolio.
 //
 // Defensive: silently no-ops on any failure so a snapshot write never
 // blocks a quiz/exam from finishing. The score will get rewritten on the
@@ -7847,9 +7851,21 @@ function _writeReadinessSnapshot() {
     if (raw) {
       try { snapshots = JSON.parse(raw) || {}; } catch (_) { snapshots = {}; }
     }
+    // Resolve the weak topic's domain via the existing TOPIC_DOMAINS map
+    // (cert-app source of truth for topic → domain). null if unmapped.
+    var weakDomain = null;
+    if (readiness.worstTopic && typeof TOPIC_DOMAINS !== 'undefined') {
+      weakDomain = TOPIC_DOMAINS[readiness.worstTopic] || null;
+    }
     snapshots[CURRENT_CERT] = {
       score: readiness.predicted,
-      computed_at: new Date().toISOString()
+      computed_at: new Date().toISOString(),
+      // v4.99.1: ranker signals for Panel 3
+      weak_topic: readiness.worstTopic || null,
+      weak_pct: typeof readiness.worstPct === 'number' ? readiness.worstPct : null,
+      weak_domain: weakDomain,
+      days_to_exam: typeof readiness.daysToExam === 'number' ? readiness.daysToExam : null,
+      total_qs: typeof readiness.totalQs === 'number' ? readiness.totalQs : null
     };
     localStorage.setItem(STORAGE.READINESS_SNAPSHOTS, JSON.stringify(snapshots));
     if (typeof _cloudFlush === 'function') _cloudFlush(STORAGE.READINESS_SNAPSHOTS);

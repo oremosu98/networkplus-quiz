@@ -189,16 +189,18 @@
         </div>
       </section>
 
-      <!-- Phase C placeholder -->
-      <section class="cca-panel cca-panel-coming">
+      <!-- Panel 3: What to study next (Phase C — deterministic ranker) -->
+      <section class="cca-panel" id="cca-panel-wn" hidden>
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
             <span class="cca-panel-icon" aria-hidden="true">📈</span>
             <h2 class="cca-panel-title">What to study next</h2>
           </div>
-          <span class="cca-coming-pill">Coming next ship</span>
+          <span class="cca-panel-help">Recomputed after every quiz</span>
         </header>
-        <p class="cca-coming-body">A recommended order across all your certs based on weak spots, exam dates, and where the prep effort pays off most.</p>
+        <div class="cca-wn-body" id="cca-wn-body">
+          <!-- Hero recommendation + ranked secondary list populated by renderPanel3() -->
+        </div>
       </section>
 
     </div>

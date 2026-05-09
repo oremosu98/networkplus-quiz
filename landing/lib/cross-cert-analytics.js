@@ -44,6 +44,30 @@
   // Phase B
   var elPanelSo = document.getElementById('cca-panel-so');
   var elSoList = document.getElementById('cca-so-list');
+  // Phase C
+  var elPanelWn = document.getElementById('cca-panel-wn');
+  var elWnBody = document.getElementById('cca-wn-body');
+
+  // ── Per-cert exam-domain weight tables (Phase C ranker uses these to
+  // reason about "X% of exam weight" in hero card). Source: published
+  // CompTIA / Microsoft / Cisco / AWS exam objectives.
+  var DOMAIN_WEIGHTS_BY_CERT = {
+    netplus: {
+      'Networking Concepts': 23,
+      'Network Implementation': 20,
+      'Network Operations': 19,
+      'Network Security': 14,
+      'Network Troubleshooting': 24
+    },
+    secplus: {
+      'General Security Concepts': 12,
+      'Threats, Vulnerabilities, and Mitigations': 22,
+      'Security Architecture': 18,
+      'Security Operations': 28,
+      'Security Program Management and Oversight': 20
+    }
+    // AZ-900 / CCNA / AWS / AZ-104 added when those certs ship
+  };
 
   // ── Cert catalog ────────────────────────────────────────────────────────
   // Local source of truth for the analytics page. Six certs in the pipeline.
@@ -662,6 +686,285 @@
     });
   }
 
+  // ── Panel 3: What to study next (Phase C — deterministic ranker) ────────
+  //
+  // Reads the v4.99.1+ enriched readiness snapshots + cert results + skill
+  // overlap to produce a ranked recommendation list. NOT LLM-generated —
+  // pure deterministic math anchored to user data + published exam weights.
+  //
+  // Algorithm (urgency score per active cert):
+  //   gap = max(0, passScore - readiness.score)             // points to close
+  //   pacing = gap / max(daysToExam, 1)                     // pts/day pace
+  //   urgency = pacing × (1 + 0.5*staleness_factor)         // stale snapshots punished
+  //   leverage = boost if a passed cert has high overlap into this one
+  //
+  // Hero recommendation = top-urgency cert. Reasons combine: weak topic,
+  // exam-weight, overlap context, runway math. Secondary list = next
+  // 3 prioritized actions (other active certs, mock-exam suggestion,
+  // passed-cert maintenance).
+
+  function getOverlapBonusFor(targetCertId, passedCertIds, overlap) {
+    if (!overlap || !passedCertIds || !passedCertIds.length) return null;
+    // Find the highest-overlap pair where source is a passed cert + target matches
+    var best = null;
+    for (var i = 0; i < overlap.length; i++) {
+      var p = overlap[i];
+      if (p.to === targetCertId && passedCertIds.indexOf(p.from) !== -1) {
+        if (!best || p.pct > best.pct) best = p;
+      }
+    }
+    return best;
+  }
+
+  function computeUrgency(cert, snapshot, overlap, passedCertIds) {
+    var gap = Math.max(0, cert.passScore - (snapshot ? snapshot.score : cert.passScore - 100));
+    var daysToExam = (snapshot && typeof snapshot.days_to_exam === 'number') ? snapshot.days_to_exam : 365;
+    daysToExam = Math.max(daysToExam, 1);
+    var pacing = gap / daysToExam;
+    // Staleness penalty — old snapshots underestimate urgency
+    var staleDays = 0;
+    if (snapshot && snapshot.computed_at) {
+      try { staleDays = (Date.now() - new Date(snapshot.computed_at).getTime()) / 86400000; }
+      catch (_) {}
+    }
+    var staleFactor = Math.min(1, staleDays / 14);  // capped at 14 days
+    var urgency = pacing * (1 + 0.5 * staleFactor);
+    // No-snapshot fallback — encourage user to take a quiz to seed signal
+    if (!snapshot) urgency = 0.5;  // medium-low; prefer snapshot-backed certs
+    return { urgency: urgency, gap: gap, daysToExam: daysToExam, staleDays: staleDays };
+  }
+
+  function buildHeroReasons(cert, snapshot, urgencyData, overlapBonus) {
+    var reasons = [];
+
+    // Reason 1: weakest domain (if known)
+    if (snapshot && snapshot.weak_domain && snapshot.weak_topic) {
+      var domWeights = DOMAIN_WEIGHTS_BY_CERT[cert.id] || {};
+      var weight = domWeights[snapshot.weak_domain];
+      var pctText = (snapshot.weak_pct != null) ? (snapshot.weak_pct + '% accuracy') : 'lowest accuracy';
+      reasons.push({
+        icon: '▸',
+        text: '<strong>Weakest domain</strong> on ' + escapeHtml(cert.name) + ' — ' + escapeHtml(snapshot.weak_topic) + ' currently at ' + escapeHtml(pctText)
+      });
+      if (weight) {
+        reasons.push({
+          icon: '▸',
+          text: '<strong>' + weight + '% of ' + escapeHtml(cert.examName || cert.name) + '</strong> exam weight goes to ' + escapeHtml(snapshot.weak_domain) + ' — biggest single chunk of unguarded score'
+        });
+      }
+    } else if (snapshot && snapshot.weak_topic) {
+      reasons.push({
+        icon: '▸',
+        text: '<strong>Weakest topic</strong> on ' + escapeHtml(cert.name) + ' — ' + escapeHtml(snapshot.weak_topic)
+      });
+    }
+
+    // Reason: overlap context
+    if (overlapBonus && overlapBonus.pct >= 50) {
+      var srcName = overlapBonus.from === 'netplus' ? 'Network+' :
+                    overlapBonus.from === 'secplus' ? 'Security+' :
+                    overlapBonus.from === 'ccna' ? 'CCNA' :
+                    overlapBonus.from === 'aws-saa' ? 'AWS SAA' :
+                    overlapBonus.from === 'az900' ? 'Azure AZ-900' :
+                    overlapBonus.from === 'az104' ? 'Azure AZ-104' : 'previous cert';
+      reasons.push({
+        icon: '▸',
+        text: '<strong>' + escapeHtml(srcName) + ' overlap</strong> — ~' + overlapBonus.hoursSaved + ' hours of re-study skipped, focus on the new ' + (100 - overlapBonus.pct) + '%'
+      });
+    } else if (overlapBonus && overlapBonus.pct < 50) {
+      reasons.push({
+        icon: '▸',
+        text: '<strong>Limited overlap</strong> with what you\'ve already learned — most of this is new territory'
+      });
+    }
+
+    // Reason: runway math
+    if (urgencyData.daysToExam < 365 && urgencyData.gap > 0) {
+      var minPerDay = Math.max(15, Math.ceil((urgencyData.gap / urgencyData.daysToExam) * 5));
+      reasons.push({
+        icon: '▸',
+        text: '<strong>' + urgencyData.daysToExam + ' days to exam</strong> · ~' + minPerDay + ' min/day closes the gap if started today'
+      });
+    } else if (urgencyData.gap === 0) {
+      reasons.push({
+        icon: '▸',
+        text: '<strong>Above pass cutoff already</strong> — additional study locks in your margin'
+      });
+    } else if (urgencyData.daysToExam >= 365) {
+      reasons.push({
+        icon: '▸',
+        text: '<strong>No exam booked yet</strong> — set a date in the cert app to get pace targets'
+      });
+    }
+
+    // Staleness reason
+    if (urgencyData.staleDays > 7) {
+      reasons.push({
+        icon: '▸',
+        text: '<strong>' + Math.round(urgencyData.staleDays) + ' days since last quiz</strong> — readiness data is stale, freshen it with a 10-Q drill'
+      });
+    }
+
+    return reasons.slice(0, 4);  // cap at 4 reasons
+  }
+
+  function buildHeroAction(cert, snapshot) {
+    if (!snapshot || !snapshot.weak_topic) {
+      return {
+        label: 'Continue ' + cert.name + ' →',
+        href: cert.cta && cert.cta.href ? cert.cta.href : '#',
+        title: ''
+      };
+    }
+    return {
+      label: 'Drill ' + (snapshot.weak_topic.length > 26 ? snapshot.weak_topic.slice(0, 26) + '…' : snapshot.weak_topic) + ' →',
+      href: cert.cta && cert.cta.href ? cert.cta.href : '#',
+      title: 'Open ' + cert.name + ' and drill ' + snapshot.weak_topic
+    };
+  }
+
+  function renderHero(cert, snapshot, urgencyData, overlapBonus) {
+    var reasons = buildHeroReasons(cert, snapshot, urgencyData, overlapBonus);
+    var action = buildHeroAction(cert, snapshot);
+
+    // Hero title — single-cert vs multi-cert framing
+    var title;
+    if (snapshot && snapshot.weak_topic) {
+      var minBlock = urgencyData.gap > 100 ? '90' : urgencyData.gap > 50 ? '60' : '45';
+      title = 'Drill ' + escapeHtml(snapshot.weak_topic) + ' on ' + escapeHtml(cert.name) + ' for ~' + minBlock + ' min today';
+    } else if (snapshot) {
+      title = 'Block 60 min for ' + escapeHtml(cert.name) + ' — focus on the weakest topic';
+    } else {
+      title = 'Take a 20-Q quiz on ' + escapeHtml(cert.name) + ' to seed your readiness';
+    }
+
+    var reasonsHtml = reasons.map(function (r) {
+      return '<div class="cca-wn-reason"><span class="cca-wn-reason-icon">' + r.icon + '</span><span>' + r.text + '</span></div>';
+    }).join('');
+
+    return ''
+      + '<div class="cca-wn-hero">'
+      +   '<div class="cca-wn-hero-eyebrow">🎯 Top recommendation</div>'
+      +   '<div class="cca-wn-hero-title">' + title + '</div>'
+      +   '<div class="cca-wn-hero-reasons">' + reasonsHtml + '</div>'
+      +   '<a class="cca-wn-hero-cta" href="' + escapeHtml(action.href) + '"' + (action.title ? ' title="' + escapeHtml(action.title) + '"' : '') + '>' + escapeHtml(action.label) + '</a>'
+      + '</div>';
+  }
+
+  function renderSecondaryList(rankedActiveCerts, passedCerts, snapshots) {
+    // Skip the top cert (rendered as hero); show next 3-4 options
+    var rest = rankedActiveCerts.slice(1, 4);
+    var rows = [];
+    var rank = 2;
+
+    rest.forEach(function (entry) {
+      var cert = entry.cert;
+      var snap = snapshots[cert.id];
+      var label = snap && snap.weak_topic ? 'Practice ' + snap.weak_topic : 'Continue ' + cert.name;
+      var meta = snap
+        ? 'Readiness ' + snap.score + ' · gap ' + Math.max(0, cert.passScore - snap.score) + ' to pass'
+        : 'No readiness data yet · take a quiz to seed';
+      rows.push({
+        rank: rank++,
+        textHtml: '<strong>' + escapeHtml(label) + '</strong> (' + escapeHtml(cert.name) + ')',
+        metaText: meta,
+        href: cert.cta && cert.cta.href ? cert.cta.href : '#'
+      });
+    });
+
+    // Add a passed-cert maintenance option if we have one and slots remain
+    if (rank <= 4 && passedCerts.length) {
+      var pc = passedCerts[0];  // most recently passed (or just first)
+      rows.push({
+        rank: rank++,
+        textHtml: '<strong>' + escapeHtml(pc.name) + ' refresher quiz</strong>',
+        metaText: 'Maintain streak · 5 min · keeps your passed cert sharp',
+        href: pc.cta && pc.cta.href ? pc.cta.href : '#'
+      });
+    }
+
+    if (!rows.length) return '';
+
+    var rowsHtml = rows.map(function (r) {
+      return ''
+        + '<a class="cca-wn-secondary-row" href="' + escapeHtml(r.href) + '">'
+        +   '<div class="cca-wn-rank">' + r.rank + '</div>'
+        +   '<div>'
+        +     '<div class="cca-wn-text">' + r.textHtml + '</div>'
+        +     '<div class="cca-wn-text-meta">' + escapeHtml(r.metaText) + '</div>'
+        +   '</div>'
+        +   '<span class="cca-wn-row-action">Start →</span>'
+        + '</a>';
+    }).join('');
+
+    return ''
+      + '<div class="cca-wn-secondary-h">Other high-impact options</div>'
+      + '<div class="cca-wn-secondary-list">' + rowsHtml + '</div>';
+  }
+
+  function renderPanel3(profile) {
+    if (!elWnBody) return;
+
+    var role = (profile && profile.role) || 'user';
+    var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
+    var snapshots = (profile && profile.metadata && profile.metadata.nplus_readiness_snapshots) || {};
+    var catalog = getCertCatalog(role);
+    var stateMap = getCertStateMap(catalog, results);
+    var overlap = (typeof window !== 'undefined' && window.CROSS_CERT_OVERLAP) || [];
+
+    // Build sets
+    var activeCerts = catalog.filter(function (c) { return stateMap[c.id] === 'active'; });
+    var passedCerts = catalog.filter(function (c) { return stateMap[c.id] === 'passed'; });
+    var passedCertIds = passedCerts.map(function (c) { return c.id; });
+
+    if (!activeCerts.length) {
+      // No active certs to recommend on — soft empty state
+      if (passedCerts.length) {
+        elWnBody.innerHTML = ''
+          + '<div class="cca-wn-empty">'
+          +   '<div class="cca-wn-empty-icon">🎉</div>'
+          +   '<h3>No active prep right now</h3>'
+          +   '<p>You\'ve passed ' + passedCerts.length + ' cert' + (passedCerts.length === 1 ? '' : 's') + ' and aren\'t studying any new ones. Pick a coming-soon cert above to get the next one in the pipeline.</p>'
+          + '</div>';
+      } else {
+        elWnBody.innerHTML = ''
+          + '<div class="cca-wn-empty">'
+          +   '<div class="cca-wn-empty-icon">📊</div>'
+          +   '<h3>Nothing to recommend yet</h3>'
+          +   '<p>Pick a cert above to start studying — recommendations show up after your first quiz.</p>'
+          + '</div>';
+      }
+      if (elPanelWn) elPanelWn.removeAttribute('hidden');
+      return;
+    }
+
+    // Score every active cert
+    var ranked = activeCerts.map(function (cert) {
+      var snap = snapshots[cert.id];
+      var urgencyData = computeUrgency(cert, snap, overlap, passedCertIds);
+      var bonus = getOverlapBonusFor(cert.id, passedCertIds, overlap);
+      return {
+        cert: cert,
+        snapshot: snap,
+        urgencyData: urgencyData,
+        overlapBonus: bonus
+      };
+    });
+
+    // Sort by urgency descending
+    ranked.sort(function (a, b) { return b.urgencyData.urgency - a.urgencyData.urgency; });
+
+    // Render hero (top entry)
+    var top = ranked[0];
+    var heroHtml = renderHero(top.cert, top.snapshot, top.urgencyData, top.overlapBonus);
+
+    // Secondary list (next 3 + maintenance suggestion)
+    var secondaryHtml = renderSecondaryList(ranked, passedCerts, snapshots);
+
+    elWnBody.innerHTML = heroHtml + secondaryHtml;
+    if (elPanelWn) elPanelWn.removeAttribute('hidden');
+  }
+
   // ── Boot ────────────────────────────────────────────────────────────────
   function boot() {
     showLoading();
@@ -677,6 +980,7 @@
       var emptyProfile = { role: 'user', metadata: {} };
       renderPanel1(emptyProfile);
       renderPanel2(emptyProfile);
+      renderPanel3(emptyProfile);
       showContent();
 
       // Async: fetch real profile, re-render once we have cert_results
@@ -684,6 +988,7 @@
         if (profile) {
           renderPanel1(profile);
           renderPanel2(profile);
+          renderPanel3(profile);
         }
       });
     }).catch(function () {

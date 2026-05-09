@@ -4419,3 +4419,190 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
     grid-template-columns: 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Cross-cert analytics — Panel 3 (what to study next, Phase C)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cca-wn-body {
+  display: block;
+}
+
+/* Hero recommendation card — purple gradient, prominent CTA */
+.cca-wn-hero {
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: #fff;
+  border-radius: 12px;
+  padding: 26px 28px;
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.cca-wn-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -10%;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+  pointer-events: none;
+}
+.cca-wn-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.78);
+  margin-bottom: 8px;
+  position: relative;
+}
+.cca-wn-hero-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 18px;
+  position: relative;
+}
+.cca-wn-hero-reasons {
+  display: flex; flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.cca-wn-reason {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.94);
+  line-height: 1.5;
+}
+.cca-wn-reason strong {
+  font-weight: 700;
+  color: #fff;
+}
+.cca-wn-reason-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+}
+.cca-wn-hero-cta {
+  display: inline-block;
+  background: #fff;
+  color: var(--accent) !important;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 20px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.cca-wn-hero-cta:hover {
+  background: #f4f5fa;
+  transform: translateY(-1px);
+}
+
+/* Secondary ranked list */
+.cca-wn-secondary-h {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin-bottom: 10px;
+  margin-top: 4px;
+}
+.cca-wn-secondary-list {
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.cca-wn-secondary-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cca-wn-secondary-row:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.cca-wn-rank {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--border);
+  color: var(--text-mid);
+}
+.cca-wn-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.cca-wn-text strong {
+  font-weight: 700;
+}
+.cca-wn-text-meta {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-top: 2px;
+}
+.cca-wn-row-action {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Empty state for no-active-certs case */
+.cca-wn-empty {
+  text-align: center;
+  padding: 32px 16px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.cca-wn-empty-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+.cca-wn-empty h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.cca-wn-empty p {
+  font-size: 13px;
+  color: var(--text-mid);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.55;
+}
+
+/* Mobile breakpoint */
+@media (max-width: 720px) {
+  .cca-wn-hero { padding: 22px 20px; }
+  .cca-wn-hero-title { font-size: 19px; }
+  .cca-wn-secondary-row {
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: auto auto;
+    row-gap: 6px;
+  }
+  .cca-wn-row-action {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+}
