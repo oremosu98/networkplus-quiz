@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.19', js.includes("const APP_VERSION = '4.99.19"));
+test('APP_VERSION is 4.99.20', js.includes("const APP_VERSION = '4.99.20"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.19', sw.includes('netplus-v4.99.19'));
+test('SW cache bumped to v4.99.20', sw.includes('netplus-v4.99.20'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -18033,7 +18033,7 @@ test('v4.99.17 Mockup: playtest-auth-concept.html exists in mockups/',
 console.log('\n\x1b[1m── v4.99.18 — DISPLAY NAME GREETING ──\x1b[0m');
 const authStateJsContent = fs.readFileSync(path.join(ROOT, 'auth-state.js'), 'utf8');
 test('v4.99.18 AuthState: fetchProfile sets window._certanvilDisplayName from profile.display_name',
-  /fetchProfile[\s\S]{0,800}window\._certanvilDisplayName\s*=\s*profile\.display_name/.test(authStateJsContent));
+  /fetchProfile[\s\S]{0,1500}window\._certanvilDisplayName\s*=\s*profile\.display_name/.test(authStateJsContent));
 test('v4.99.18 AuthState: caches display_name to localStorage for fast first-paint',
   /localStorage\.setItem\(['"]certanvil_display_name_cache['"]/.test(authStateJsContent));
 test('v4.99.18 AuthState: dispatches certanvil:display-name-resolved CustomEvent',
@@ -18070,6 +18070,16 @@ test('v4.99.19 LandingScript: builder mode hides the coming-soon variant (mutual
   /isBuilder[\s\S]{0,500}cert-tile-secplus-soon[\s\S]{0,200}setAttribute\(['"]hidden['"]/.test(landingScriptJsV99_19));
 test('v4.99.19 LandingScript: builder mode still un-hides the private builder tile',
   /isBuilder[\s\S]{0,200}cert-tile-secplus['"]\)[\s\S]{0,100}removeAttribute\(['"]hidden['"]/.test(landingScriptJsV99_19));
+
+// ── v4.99.20 — Playtest accounts get fixed "tester" greeting ──
+console.log('\n\x1b[1m── v4.99.20 — TESTER GREETING OVERRIDE ──\x1b[0m');
+const authStateJsV99_20 = fs.readFileSync(path.join(ROOT, 'auth-state.js'), 'utf8');
+test('v4.99.20 AuthState: profile SELECT now includes is_playtest column',
+  /select\(['"]role,\s*display_name,\s*email,\s*is_playtest['"]\)/.test(authStateJsV99_20));
+test('v4.99.20 AuthState: is_playtest=true overrides display name to "tester"',
+  /profile\.is_playtest === true[\s\S]{0,300}window\._certanvilDisplayName\s*=\s*['"]tester['"]/.test(authStateJsV99_20));
+test('v4.99.20 AuthState: tester override branch caches "tester" to localStorage too',
+  /is_playtest === true[\s\S]{0,400}localStorage\.setItem\(['"]certanvil_display_name_cache['"],\s*['"]tester['"]/.test(authStateJsV99_20));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
