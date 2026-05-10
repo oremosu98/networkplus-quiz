@@ -467,6 +467,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v4.99.34 | PROD followup hotfix — wire up window._certanvilSignedIn flag (v4.99.33's validateApiKey check + pre-existing _gateProOnly checks were reading a flag that was never assigned anywhere). auth-state.js handleSignedIn / handleSignedOut / renderAnonymous now set the flag. |
 | v4.99.33 | PROD bug fix — signed-in users were blocked from Generate Quiz with 'Please enter your Anthropic API key' (BYOK gate firing despite v4.99.2 server-proxy routing). validateApiKey now early-returns null for signed-in users; anonymous BYOK contract preserved. |
 | v4.99.32 | Playwright triage — 37 → 0 failures via auth-state stub beforeEach (Pro-gate bypass for anonymous test users) + 5 small test fixes (greeting form / hidden api-key / localStorage-only persistence) |
 | v4.99.31 | iOS Plan Phase 5 PWA polish — Add-to-Home-Screen banner (Android beforeinstallprompt + iOS share-sheet hint, 7-day cooldown), standalone-mode body class + display-mode media query, web push SW handlers (subscribe deferred until VAPID + server backend) |

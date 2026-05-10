@@ -53,6 +53,12 @@
 
   // ── Render — anonymous ──────────────────────────────────────────────────
   function renderAnonymous() {
+    // v4.99.34 — also set _certanvilSignedIn=false on every anonymous render
+    // so the flag is never `undefined` after auth-state.js init() resolves.
+    // This is the path init() takes when getSession returns no session, and
+    // the path handleSignedOut() calls. Setting it explicitly here makes the
+    // flag a reliable sync signal for sync gates elsewhere in app.js.
+    try { window._certanvilSignedIn = false; } catch (_) {}
     var mount = ensureMountPoint();
     if (!mount) return;
     var url = buildSignInUrl();
@@ -348,10 +354,16 @@
   function handleSignedIn(session) {
     if (!session || !session.user) return;
     var userId = session.user.id;
-    // v4.98.7: render IMMEDIATELY with default user profile so the account
-    // pill is visible on page load (was waiting for the Supabase profile
-    // round-trip — added 500ms–7s of "no pill" depending on network).
-    // The default profile already covers 99% of users (only admins differ).
+    // v4.99.34 — wire up window._certanvilSignedIn flag. Half-built abstraction
+    // shipped pre-v4.99.7 (referenced in app.js _gateProOnly + v4.99.33's
+    // validateApiKey check) but was NEVER ASSIGNED anywhere. Result: callers
+    // checking `window._certanvilSignedIn === true` always saw `undefined` →
+    // every signed-in user was treated as anonymous → BYOK gate fired despite
+    // server-proxy routing being correct in _claudeFetch. Fixing here in the
+    // auth state machine so the flag becomes the single source-of-truth for
+    // sync "is the user signed in?" checks elsewhere in the app (async access
+    // to Supabase session is too slow + clunky for UI gates).
+    try { window._certanvilSignedIn = true; } catch (_) {}
     renderSignedIn(session.user, { role: 'user' });
     // Then progressively enhance: fetch profile + re-render only if role differs
     // (e.g. admin) to surface the admin link. Cloud-store hydrate runs the same
@@ -381,6 +393,8 @@
   }
 
   function handleSignedOut() {
+    // v4.99.34 — clear the signed-in flag (paired with handleSignedIn above).
+    try { window._certanvilSignedIn = false; } catch (_) {}
     var cs = getCloudStore();
     if (cs) cs.clearLocalCache();
     renderAnonymous();

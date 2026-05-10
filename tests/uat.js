@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.33', js.includes("const APP_VERSION = '4.99.33"));
+test('APP_VERSION is 4.99.34', js.includes("const APP_VERSION = '4.99.34"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.33', sw.includes('netplus-v4.99.33'));
+test('SW cache bumped to v4.99.34', sw.includes('netplus-v4.99.34'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17697,7 +17697,9 @@ test('v4.98.7 dropdown: @supports fallback uses opaque surface3 if no backdrop-f
   /@supports not \(backdrop-filter[\s\S]{0,300}\.topbar-account-dropdown\s*\{\s*background:\s*var\(--surface3\)/.test(css));
 test('v4.98.7 auth-state: handleSignedIn calls renderSignedIn BEFORE fetchProfile',
   // Render-immediately pattern — pill appears instantly, profile fetch happens after.
-  /function handleSignedIn[\s\S]{0,800}renderSignedIn\(session\.user,\s*\{\s*role:\s*'user'\s*\}\)[\s\S]{0,300}fetchProfile\(userId\)/.test(authStateJs));
+  // Window bumped from 800 → 1500 in v4.99.34 after the _certanvilSignedIn
+  // wire-up added a 10-line explanatory comment block before the renderSignedIn call.
+  /function handleSignedIn[\s\S]{0,1500}renderSignedIn\(session\.user,\s*\{\s*role:\s*'user'\s*\}\)[\s\S]{0,300}fetchProfile\(userId\)/.test(authStateJs));
 test('v4.98.7 auth-state: re-render only happens when role differs from default',
   /fetchProfile\(userId\)\.then[\s\S]{0,500}profile\.role !== 'user'[\s\S]{0,200}renderSignedIn\(session\.user,\s*profile\)/.test(authStateJs));
 
@@ -18446,6 +18448,36 @@ test('v4.99.33 BYOKBypass behavioral: anonymous + no key still returns error (pr
     vm.runInContext(m[0], ctx);
     const r = vm.runInContext("validateApiKey('')", ctx);
     return typeof r === 'string' && r.indexOf('Anthropic API key') !== -1;
+  })());
+
+// ── v4.99.34 — Wire up window._certanvilSignedIn flag (PROD followup hotfix) ──
+console.log('\n\x1b[1m── v4.99.34 — _certanvilSignedIn WIRE-UP ──\x1b[0m');
+test('v4.99.34 SignedInFlag: handleSignedIn sets window._certanvilSignedIn = true',
+  /function\s+handleSignedIn\([\s\S]{0,800}window\._certanvilSignedIn\s*=\s*true/.test(authStateJs));
+test('v4.99.34 SignedInFlag: handleSignedOut sets window._certanvilSignedIn = false',
+  /function\s+handleSignedOut\([\s\S]{0,400}window\._certanvilSignedIn\s*=\s*false/.test(authStateJs));
+test('v4.99.34 SignedInFlag: renderAnonymous also sets the flag to false (init no-session path)',
+  /function\s+renderAnonymous\([\s\S]{0,400}window\._certanvilSignedIn\s*=\s*false/.test(authStateJs));
+test('v4.99.34 SignedInFlag: assignments wrapped in try/catch (defensive — window write may throw in some embeds)',
+  /try\s*\{\s*window\._certanvilSignedIn\s*=\s*true;\s*\}\s*catch/.test(authStateJs)
+  && /try\s*\{\s*window\._certanvilSignedIn\s*=\s*false;\s*\}\s*catch/.test(authStateJs));
+
+// Behavioral check — load auth-state.js into a sandbox + verify flag transitions
+test('v4.99.34 SignedInFlag behavioral: handleSignedOut() flips the flag from true to false',
+  (() => {
+    // Extract handleSignedOut body (smaller, easier to sandbox than init)
+    const m = authStateJs.match(/function\s+handleSignedOut\(\)\s*\{[\s\S]*?\n\s\s\}/);
+    if (!m) return false;
+    const win = { _certanvilSignedIn: true };
+    // Stub the dependencies handleSignedOut calls into
+    const ctx = {
+      window: win,
+      getCloudStore: () => null,
+      renderAnonymous: () => {}
+    };
+    require('vm').createContext(ctx);
+    require('vm').runInContext(m[0] + '; handleSignedOut();', ctx);
+    return win._certanvilSignedIn === false;
   })());
 
 // ── Summary ──
