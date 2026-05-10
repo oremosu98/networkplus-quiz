@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.30
+// Network+ AI Quiz — app.js  v4.99.31
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.30';
+const APP_VERSION = '4.99.31';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -826,6 +826,16 @@ const STORAGE = {
   // v4.81.3: tracks last "back up your data" reminder toast timestamp
   // (throttled to once per EXPORT_REMINDER_DAYS).
   LAST_EXPORT_REMINDER_AT: 'nplus_last_export_reminder_at',
+  // v4.99.31 (iOS Plan Phase 5 — PWA polish): "Add to Home Screen" banner
+  // dismissed-state (boolean string '1'). Once dismissed, banner never re-shows
+  // — there's a permanent install entry inside Settings if the user changes
+  // their mind. Prevents the "annoying nag" anti-pattern Chrome's heuristic
+  // already correctly avoids.
+  A2HS_DISMISSED: 'nplus_a2hs_dismissed',
+  // v4.99.31: tracks last time user saw the A2HS banner. Even before dismissal,
+  // we cap the show frequency at "once per 7 days" so a returning user who
+  // hasn't installed yet but also hasn't actively dismissed gets a calm cadence.
+  A2HS_LAST_SHOWN_AT: 'nplus_a2hs_last_shown_at',
 };
 // v4.81.2: how many daily snapshots to keep before pruning oldest
 const AUTOBACKUP_KEEP_DAYS = 7;
@@ -1330,6 +1340,182 @@ if ('serviceWorker' in navigator) {
     setInterval(() => { try { reg.update(); } catch (_) {} }, 60000);
   }).catch(() => {});
 }
+
+// ════════════════════════════════════════════════════════════════════
+// v4.99.31 (iOS Plan Phase 5 — PWA polish)
+//
+// Three pieces, all defensively wrapped (PWA APIs vary across browsers
+// + iOS versions; the app must NEVER break because A2HS detection failed):
+//   1. Standalone-mode detection — sets body.is-standalone class so CSS
+//      can adjust safe-area / hide browser-only affordances. Watches for
+//      display-mode change (rare but happens when user installs the PWA
+//      mid-session in some Android flows).
+//   2. A2HS banner — Android via beforeinstallprompt event + iOS Safari
+//      via UA detection + "tap Share → Add to Home Screen" hint. Capped
+//      at once-per-7-days, permanently dismissible.
+//   3. Push notification scaffolding — sets window._pushSupported flag.
+//      SW-side handlers (push, notificationclick) live in sw.js. Actual
+//      subscribe + permission UI deferred until VAPID + server backend.
+//
+// Why not auto-prompt for permission? Best practice — earned trust, not
+// drive-by demands. Add a Settings entry once feature ships.
+// ════════════════════════════════════════════════════════════════════
+(function _initPwaPolish() {
+  if (typeof window === 'undefined') return;
+
+  // ── 1. Standalone-mode detection ──
+  function _detectStandalone() {
+    let isStandalone = false;
+    try {
+      // Modern: display-mode media query (Chrome/Edge/Firefox PWA + iOS 16.4+)
+      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+        isStandalone = true;
+      }
+      // iOS Safari legacy: navigator.standalone (still the only signal pre-16.4)
+      if (window.navigator && window.navigator.standalone === true) {
+        isStandalone = true;
+      }
+    } catch (_) {}
+    try { document.body && document.body.classList.toggle('is-standalone', isStandalone); } catch (_) {}
+    return isStandalone;
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _detectStandalone, { once: true });
+  } else {
+    _detectStandalone();
+  }
+  // Watch for display-mode changes (e.g. user just installed mid-session)
+  try {
+    if (window.matchMedia) {
+      const mql = window.matchMedia('(display-mode: standalone)');
+      if (mql.addEventListener) mql.addEventListener('change', _detectStandalone);
+      else if (mql.addListener) mql.addListener(_detectStandalone);
+    }
+  } catch (_) {}
+
+  // ── 2. A2HS banner ──
+  // Cadence: never if already standalone, never if dismissed, max once per
+  // A2HS_COOLDOWN_DAYS even before dismissal. Banner appears 5-8s after
+  // page load so it never competes with first-paint LCP metrics.
+  const A2HS_COOLDOWN_DAYS = 7;
+  let _deferredInstallPrompt = null;
+
+  function _isIOS() {
+    try {
+      const ua = navigator.userAgent || '';
+      return /iphone|ipad|ipod/i.test(ua) && !/macintosh/i.test(ua);
+    } catch (_) { return false; }
+  }
+
+  function _shouldShowA2HS() {
+    try {
+      // Already installed → no banner
+      if (document.body && document.body.classList.contains('is-standalone')) return false;
+      // Permanently dismissed
+      if (localStorage.getItem(STORAGE.A2HS_DISMISSED) === '1') return false;
+      // Cooldown — show at most once every A2HS_COOLDOWN_DAYS days
+      const lastShown = parseInt(localStorage.getItem(STORAGE.A2HS_LAST_SHOWN_AT) || '0', 10);
+      if (lastShown && Date.now() - lastShown < A2HS_COOLDOWN_DAYS * 86400000) return false;
+      return true;
+    } catch (_) { return false; }
+  }
+
+  function _showA2HSBanner(mode) {
+    // mode: 'android' (CTA button fires deferred prompt) | 'ios' (hint only)
+    try {
+      if (document.querySelector('.a2hs-banner')) return; // already shown this session
+      const banner = document.createElement('div');
+      banner.className = 'a2hs-banner a2hs-banner-' + mode;
+      banner.setAttribute('role', 'dialog');
+      banner.setAttribute('aria-label', 'Install CertAnvil');
+      const subCopy = (mode === 'ios')
+        ? '<span class="a2hs-banner-sub">Tap <span class="a2hs-share-icon" aria-hidden="true">⎙</span> Share, then <strong>Add to Home Screen</strong></span>'
+        : '<span class="a2hs-banner-sub">Faster launches, full-screen feel.</span>';
+      const ctaHTML = (mode === 'ios')
+        ? '<button type="button" class="a2hs-banner-dismiss" aria-label="Dismiss">×</button>'
+        : '<button type="button" class="a2hs-banner-cta">Install</button>'
+          + '<button type="button" class="a2hs-banner-dismiss" aria-label="Dismiss">×</button>';
+      banner.innerHTML =
+        '<span class="a2hs-banner-icon" aria-hidden="true">📲</span>' +
+        '<span class="a2hs-banner-body">' +
+          '<strong class="a2hs-banner-title">Install CertAnvil</strong>' +
+          subCopy +
+        '</span>' +
+        ctaHTML;
+      document.body.appendChild(banner);
+      // CTA wiring (Android only — iOS users follow the share-sheet hint)
+      const cta = banner.querySelector('.a2hs-banner-cta');
+      if (cta) {
+        cta.addEventListener('click', async () => {
+          if (_deferredInstallPrompt && typeof _deferredInstallPrompt.prompt === 'function') {
+            try { _deferredInstallPrompt.prompt(); } catch (_) {}
+            try {
+              const result = await _deferredInstallPrompt.userChoice;
+              if (result && result.outcome === 'accepted') {
+                try { localStorage.setItem(STORAGE.A2HS_DISMISSED, '1'); } catch (_) {}
+              }
+            } catch (_) {}
+            _deferredInstallPrompt = null;
+            try { banner.remove(); } catch (_) {}
+          }
+        });
+      }
+      const dismissBtn = banner.querySelector('.a2hs-banner-dismiss');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+          try { localStorage.setItem(STORAGE.A2HS_DISMISSED, '1'); } catch (_) {}
+          try { banner.remove(); } catch (_) {}
+        });
+      }
+      try { localStorage.setItem(STORAGE.A2HS_LAST_SHOWN_AT, String(Date.now())); } catch (_) {}
+    } catch (_) {}
+  }
+
+  // Android Chrome path
+  window.addEventListener('beforeinstallprompt', (e) => {
+    try { e.preventDefault(); } catch (_) {}
+    _deferredInstallPrompt = e;
+    if (_shouldShowA2HS()) {
+      setTimeout(() => _showA2HSBanner('android'), 5000);
+    }
+  });
+
+  // iOS Safari path — no event, just UA + cadence check
+  function _maybeShowIOSA2HS() {
+    if (!_isIOS()) return;
+    if (!_shouldShowA2HS()) return;
+    setTimeout(() => _showA2HSBanner('ios'), 8000);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _maybeShowIOSA2HS, { once: true });
+  } else {
+    _maybeShowIOSA2HS();
+  }
+
+  // App-installed event — fires on Android when the user installs (either
+  // via our banner or Chrome's own infobar). Mark dismissed so we never
+  // re-show after install.
+  window.addEventListener('appinstalled', () => {
+    try { localStorage.setItem(STORAGE.A2HS_DISMISSED, '1'); } catch (_) {}
+    _deferredInstallPrompt = null;
+    try {
+      const banner = document.querySelector('.a2hs-banner');
+      if (banner) banner.remove();
+    } catch (_) {}
+  });
+
+  // ── 3. Push notification scaffolding ──
+  // Foundation only. SW handlers (sw.js) are live; client subscribe is
+  // gated on VAPID + server backend (deferred). Surface the capability
+  // signal so future Settings UI can read it without re-feature-detecting.
+  window._pushSupported = (function() {
+    try {
+      return 'serviceWorker' in navigator
+        && 'PushManager' in window
+        && 'Notification' in window;
+    } catch (_) { return false; }
+  })();
+})();
 
 window.addEventListener('DOMContentLoaded', () => {
   // v4.87.1: re-render topic chips for the active cert BEFORE binding click

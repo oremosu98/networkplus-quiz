@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.99.30
+   Network+ AI Quiz — styles.css  v4.99.31
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19615,4 +19615,101 @@ html { zoom: 1.10; }
 @media (prefers-reduced-motion: reduce) {
   .sw-update-banner { animation: none; }
   .sw-banner-cta:hover { transform: none; }
+}
+
+/* ══════════════════════════════════════════
+   v4.99.31 (iOS Plan Phase 5 — PWA polish)
+
+   Three pieces:
+   1. .a2hs-banner — Add to Home Screen prompt (Android: install button;
+      iOS: hint-only with share-sheet copy)
+   2. body.is-standalone — JS-set when running in standalone display mode
+   3. @media (display-mode: standalone) — CSS-only fallback if JS hasn't
+      yet set body.is-standalone (rare, defensive)
+
+   Banner sits at bottom + safe-area-inset-bottom so it never overlaps the
+   iOS home-bar gesture area or the Android nav bar. Once-per-7-days
+   cadence + permanent-dismiss controlled by app.js.
+   ══════════════════════════════════════════ */
+.a2hs-banner {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  right: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
+  border: 1px solid var(--accent-dim);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  z-index: 9998;
+  animation: a2hsSlideUp .4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.a2hs-banner-icon { font-size: 28px; flex-shrink: 0; }
+.a2hs-banner-body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.a2hs-banner-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.a2hs-banner-sub { font-size: 12px; color: var(--text-mid); line-height: 1.4; }
+.a2hs-banner-cta {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+  min-height: 44px;  /* Apple HIG touch target */
+}
+.a2hs-banner-cta:hover { background: var(--accent-light); }
+.a2hs-banner-cta:active { transform: scale(.96); }
+.a2hs-banner-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 8px 12px;
+  line-height: 1;
+  transition: color .15s;
+  min-width: 44px; min-height: 44px;  /* Apple HIG touch target */
+}
+.a2hs-banner-dismiss:hover { color: var(--text); }
+.a2hs-share-icon { display: inline-block; padding: 0 2px; font-size: 14px; vertical-align: middle; }
+@keyframes a2hsSlideUp {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (max-width: 480px) {
+  .a2hs-banner { padding: 12px 14px; gap: 10px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px; }
+  .a2hs-banner-icon { font-size: 24px; }
+  .a2hs-banner-title { font-size: 13px; }
+  .a2hs-banner-sub { font-size: 11px; }
+}
+[data-theme="light"] .a2hs-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8fc 100%);
+  border-color: var(--accent-dim);
+  box-shadow: 0 12px 40px rgba(0,0,0,.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .a2hs-banner { animation: none; }
+  .a2hs-banner-cta:active { transform: none; }
+}
+
+/* Standalone mode polish — body.is-standalone is set by app.js when
+   running as an installed PWA. We add safe-area padding to the body's
+   top (status bar / Dynamic Island clearance) on iOS, and bottom for
+   the home indicator. The @media (display-mode: standalone) fallback
+   covers the rare race where CSS evaluates before JS sets the class.
+   Both selectors apply the same rules — duplicated rather than combined
+   because CSS doesn't support mixing media queries inside a selector list. */
+body.is-standalone {
+  padding-top: max(env(safe-area-inset-top, 0px), 4px);
+}
+@media (display-mode: standalone) {
+  body { padding-top: max(env(safe-area-inset-top, 0px), 4px); }
 }

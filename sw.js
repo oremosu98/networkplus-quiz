@@ -1,5 +1,5 @@
-// Service Worker v4.99.30 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v4.99.30';
+// Service Worker v4.99.31 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v4.99.31';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -159,4 +159,61 @@ self.addEventListener('fetch', event => {
       return cached || fetchPromise;
     })
   );
+});
+
+// ════════════════════════════════════════════════════════════════════
+// v4.99.31 (iOS Plan Phase 5 — PWA push scaffolding)
+//
+// SW-side handlers for web push. Today: client-side subscribe is
+// deferred (no VAPID keys + server backend yet — that's a feature-day
+// decision once founder + paying users want daily-nudge nudges). When
+// the day comes, app.js gets a `_requestPushPermission()` flow that
+// calls `reg.pushManager.subscribe({ applicationServerKey, ... })` and
+// POSTs the subscription to a server endpoint. THESE handlers, however,
+// already fire correctly the moment any push payload reaches the SW.
+//
+// iOS 16.4+ supports web push but ONLY for apps installed via Add to
+// Home Screen (display-mode: standalone). Android Chrome supports it
+// from any context. Hence the A2HS banner work earlier in this Phase 5
+// is a precondition for iOS push delivery.
+//
+// Payload contract (server-side, when wired):
+//   { title, body, url?, tag? }
+// Title + body fall back to safe defaults if the server sends a malformed
+// payload (defensive — push payloads cross trust boundaries).
+// ════════════════════════════════════════════════════════════════════
+
+self.addEventListener('push', (event) => {
+  if (!event || !event.data) return;
+  let payload;
+  try { payload = event.data.json(); }
+  catch (_) {
+    payload = { title: 'CertAnvil', body: event.data.text() || 'Time to study!' };
+  }
+  const title = (payload && payload.title) || 'CertAnvil';
+  const options = {
+    body: (payload && payload.body) || '',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    data: { url: (payload && payload.url) || '/' },
+    tag: (payload && payload.tag) || 'certanvil-default',
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click — focus an existing tab if open, else spawn a new one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil((async () => {
+    try {
+      const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of allClients) {
+        if (client.url && client.url.indexOf(targetUrl) !== -1 && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    } catch (_) { /* fall through silently */ }
+  })());
 });

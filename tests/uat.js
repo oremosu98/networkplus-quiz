@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.30', js.includes("const APP_VERSION = '4.99.30"));
+test('APP_VERSION is 4.99.31', js.includes("const APP_VERSION = '4.99.31"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.30', sw.includes('netplus-v4.99.30'));
+test('SW cache bumped to v4.99.31', sw.includes('netplus-v4.99.31'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -18291,6 +18291,91 @@ test('v4.99.30 Phase4 (4a): inline detection script comments document the lazy-l
   /v4\.99\.30[\s\S]{0,300}Phase 4a[\s\S]{0,200}cert pack/i.test(html));
 test('v4.99.30 Phase4 (4a): document.write site is wrapped in try/catch (graceful degradation)',
   /try\s*\{\s*document\.write\(\s*['"]<scr['"][\s\S]{0,200}\}\s*catch/.test(html));
+
+// ── v4.99.31 — iOS Plan Phase 5 PWA polish (A2HS + standalone + push scaffolding) ──
+console.log('\n\x1b[1m── v4.99.31 — iOS PLAN PHASE 5 PWA POLISH ──\x1b[0m');
+
+// 1. A2HS storage keys
+test('v4.99.31 A2HS: STORAGE.A2HS_DISMISSED key declared',
+  /A2HS_DISMISSED:\s*['"]nplus_a2hs_dismissed['"]/.test(js));
+test('v4.99.31 A2HS: STORAGE.A2HS_LAST_SHOWN_AT key declared',
+  /A2HS_LAST_SHOWN_AT:\s*['"]nplus_a2hs_last_shown_at['"]/.test(js));
+
+// 2. Standalone-mode detection
+test('v4.99.31 Standalone: _detectStandalone function defined',
+  /function\s+_detectStandalone\s*\(\s*\)/.test(js));
+test('v4.99.31 Standalone: detects display-mode media query',
+  /matchMedia\(\s*['"]\(display-mode:\s*standalone\)['"]\s*\)/.test(js));
+test('v4.99.31 Standalone: detects navigator.standalone (iOS legacy)',
+  /window\.navigator\.standalone\s*===\s*true/.test(js));
+test('v4.99.31 Standalone: sets body.is-standalone class',
+  /classList\.toggle\(['"]is-standalone['"]/.test(js));
+test('v4.99.31 Standalone: watches mql change event for mid-session install',
+  /window\.matchMedia[\s\S]{0,500}_detectStandalone/.test(js));
+
+// 3. A2HS banner
+test('v4.99.31 A2HS: _isIOS UA detection function defined',
+  /function\s+_isIOS\s*\(\s*\)/.test(js));
+test('v4.99.31 A2HS: _isIOS excludes macintosh (avoids false-positive on iPad-on-Mac)',
+  /\/iphone\|ipad\|ipod\/i\.test[\s\S]{0,200}!\/macintosh\/i\.test/.test(js));
+test('v4.99.31 A2HS: _shouldShowA2HS gating function defined',
+  /function\s+_shouldShowA2HS\s*\(\s*\)/.test(js));
+test('v4.99.31 A2HS: 7-day cooldown constant',
+  /A2HS_COOLDOWN_DAYS\s*=\s*7/.test(js));
+test('v4.99.31 A2HS: beforeinstallprompt event listener (Android Chrome path)',
+  /addEventListener\(['"]beforeinstallprompt['"]/.test(js));
+test('v4.99.31 A2HS: deferred prompt pattern (preventDefault + stash for later)',
+  /beforeinstallprompt[\s\S]{0,300}preventDefault[\s\S]{0,200}_deferredInstallPrompt\s*=\s*e/.test(js));
+test('v4.99.31 A2HS: appinstalled event clears banner + marks dismissed',
+  /addEventListener\(['"]appinstalled['"][\s\S]{0,500}A2HS_DISMISSED/.test(js));
+test('v4.99.31 A2HS: iOS path defers banner show by 8s (post-LCP)',
+  /setTimeout\([\s\S]{0,100}_showA2HSBanner\(['"]ios['"]\)\s*,\s*8000/.test(js));
+test('v4.99.31 A2HS: Android path defers banner show by 5s (post-LCP)',
+  /setTimeout\([\s\S]{0,100}_showA2HSBanner\(['"]android['"]\)\s*,\s*5000/.test(js));
+test('v4.99.31 A2HS: banner DOM uses role="dialog" for a11y',
+  /banner\.className\s*=\s*['"]a2hs-banner[\s\S]{0,400}setAttribute\(['"]role['"]\s*,\s*['"]dialog['"]/.test(js));
+
+// 4. CSS for A2HS banner
+test('v4.99.31 A2HS CSS: .a2hs-banner rule defined',
+  /\.a2hs-banner\s*\{[\s\S]{0,200}position:\s*fixed/.test(css));
+test('v4.99.31 A2HS CSS: respects safe-area-inset-bottom (iOS home bar clearance)',
+  /\.a2hs-banner\s*\{[\s\S]{0,400}env\(safe-area-inset-bottom/.test(css));
+test('v4.99.31 A2HS CSS: CTA button meets Apple HIG 44px touch target',
+  /\.a2hs-banner-cta\s*\{[\s\S]{0,500}min-height:\s*44px/.test(css));
+test('v4.99.31 A2HS CSS: dismiss button meets 44×44 touch target',
+  /\.a2hs-banner-dismiss\s*\{[\s\S]{0,500}min-(?:width|height):\s*44px/.test(css));
+test('v4.99.31 A2HS CSS: light theme variant defined',
+  /\[data-theme="light"\]\s*\.a2hs-banner\s*\{/.test(css));
+test('v4.99.31 A2HS CSS: prefers-reduced-motion gate kills slide-up animation',
+  /prefers-reduced-motion:\s*reduce[\s\S]{0,400}\.a2hs-banner\s*\{\s*animation:\s*none/.test(css));
+test('v4.99.31 A2HS CSS: mobile breakpoint rule under 480px',
+  /@media\s*\(max-width:\s*480px\)[\s\S]{0,300}\.a2hs-banner\s*\{/.test(css));
+
+// 5. Standalone-mode CSS
+test('v4.99.31 Standalone CSS: body.is-standalone rule with safe-area-inset-top',
+  /body\.is-standalone\s*\{[\s\S]{0,200}env\(safe-area-inset-top/.test(css));
+test('v4.99.31 Standalone CSS: @media (display-mode: standalone) fallback',
+  /@media\s*\(display-mode:\s*standalone\)\s*\{\s*body\s*\{[\s\S]{0,200}safe-area-inset-top/.test(css));
+
+// 6. Push notification scaffolding (SW side)
+test('v4.99.31 Push SW: push event listener',
+  /self\.addEventListener\(['"]push['"]/.test(sw));
+test('v4.99.31 Push SW: notificationclick event listener',
+  /self\.addEventListener\(['"]notificationclick['"]/.test(sw));
+test('v4.99.31 Push SW: showNotification call with title + options',
+  /self\.registration\.showNotification\(title,\s*options\)/.test(sw));
+test('v4.99.31 Push SW: notificationclick focuses existing tab if open',
+  /matchAll\(\s*\{[\s\S]{0,200}includeUncontrolled[\s\S]{0,200}client\.focus/.test(sw));
+test('v4.99.31 Push SW: notificationclick falls back to openWindow',
+  /clients\.openWindow\(targetUrl\)/.test(sw));
+test('v4.99.31 Push SW: payload defensive parse (try .json, fallback to text)',
+  /try\s*\{\s*payload\s*=\s*event\.data\.json\(\)[\s\S]{0,300}event\.data\.text\(\)/.test(sw));
+
+// 7. Push scaffolding (app.js side)
+test('v4.99.31 Push App: window._pushSupported feature-detection flag',
+  /window\._pushSupported\s*=/.test(js));
+test('v4.99.31 Push App: feature detection checks all 3 APIs',
+  /_pushSupported[\s\S]{0,500}serviceWorker[\s\S]{0,200}PushManager[\s\S]{0,200}Notification/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
