@@ -61,6 +61,35 @@ try {
   cloudStoreJs = read('cloud-store.js');
   // v4.98.7: auth-state.js source so we can assert pill renders synchronously
   authStateJs = read('auth-state.js');
+  // v4.99.36 Phase 11b: lazy-loaded feature modules. Concat into `js` so all
+  // pre-existing structural assertions continue to find their patterns
+  // regardless of which file the code lives in. Adding a feature module:
+  //   1. Drop the file in features/<name>.js
+  //   2. Append `+ '\n' + read('features/<name>.js')` here
+  //   3. UAT continues to scan for patterns across the unified text
+  // The shell + module split is for runtime perf, not test surface.
+  const featuresDir = path.join(ROOT, 'features');
+  let featuresJs = '';
+  try {
+    if (fs.existsSync(featuresDir)) {
+      fs.readdirSync(featuresDir)
+        .filter(f => f.endsWith('.js'))
+        .forEach(f => {
+          // De-indent the IIFE wrap so structural regexes that expect column-0
+          // patterns (e.g. /\n\];/, /^function naX/m) match the same way they
+          // did when the code lived in app.js. Each feature module wraps every
+          // line with 2-space IIFE indent — strip exactly 2 leading spaces from
+          // each line. Lines with < 2 leading spaces (e.g. the IIFE wrapper
+          // itself) pass through unchanged.
+          const raw = read('features/' + f);
+          const dedented = raw.split('\n').map(line =>
+            line.startsWith('  ') ? line.slice(2) : line
+          ).join('\n');
+          featuresJs += '\n// === FEATURE: ' + f + ' ===\n' + dedented;
+        });
+    }
+  } catch (_) { /* no features yet — fine */ }
+  js += featuresJs;
 } catch(e) {
   console.error('ERROR: Could not read project files. Run from project root.');
   console.error(e.message);
@@ -305,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.35', js.includes("const APP_VERSION = '4.99.35"));
+test('APP_VERSION is 4.99.36', js.includes("const APP_VERSION = '4.99.36"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.35', sw.includes('netplus-v4.99.35'));
+test('SW cache bumped to v4.99.36', sw.includes('netplus-v4.99.36'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -12350,20 +12379,27 @@ test('v4.85.5 NA mastery backfill: vm fixture — old mastery without filter cat
       return filterOk && existingOk;
     } catch (e) { return false; }
   })());
-test('v4.85.5 NA mastery backfill: vm fixture — startNetworkAnalysisDrill survives old mastery',
+test('v4.85.5 NA mastery backfill: vm fixture — old mastery without filter still routes to dashboard',
   (() => {
+    // v4.99.36: post Phase 11b extraction, startNetworkAnalysisDrill is now a
+    // shell stub that lazy-loads features/network-analysis.js. The original
+    // routing logic (totalAttempts > 0 ? 'dashboard' : 'practice') moved to
+    // the registered enter() function in the feature module. Update the
+    // fixture to extract enter()'s body via regex + drive it through vm.
     try {
-      const startBody = _fnBody(js, 'startNetworkAnalysisDrill');
+      const enterMatch = js.match(/_certanvilFeatures\["network-analysis"\]\s*=\s*\{\s*enter:\s*function\s*\(\)\s*\{([\s\S]*?)\n\s*\},/);
+      if (!enterMatch) return false;
+      const enterBody = enterMatch[1];
       const getMasteryBody = _fnBody(js, 'naGetMastery');
       const initBody = _fnBody(js, '_naInitMastery');
-      if (!startBody || !getMasteryBody || !initBody) return false;
+      if (!getMasteryBody || !initBody) return false;
       const vm = require('vm');
       const oldMastery = {
         'tcpdump': { right: 1, total: 2 },
         'wireshark': { right: 0, total: 0 },
         'nmap': { right: 0, total: 0 },
         'output-reading': { right: 0, total: 0 }
-        // 'filter' MISSING
+        // 'filter' MISSING — v4.85.5 backfill must add it
       };
       let tabSet = null;
       const ctx = {
@@ -12377,9 +12413,10 @@ test('v4.85.5 NA mastery backfill: vm fixture — startNetworkAnalysisDrill surv
       vm.createContext(ctx);
       vm.runInContext(initBody, ctx);
       vm.runInContext(getMasteryBody, ctx);
-      vm.runInContext(startBody, ctx);
-      // Should NOT throw, and should set tab to 'dashboard' (totalAttempts = 2)
-      vm.runInContext('startNetworkAnalysisDrill()', ctx);
+      // Wrap enter body in a callable so we can drive it
+      vm.runInContext('function _enterTest() {' + enterBody + '}', ctx);
+      vm.runInContext('_enterTest()', ctx);
+      // Should set tab to 'dashboard' (totalAttempts = 2)
       return tabSet === 'dashboard';
     } catch (e) { return false; }
   })());
@@ -13346,6 +13383,12 @@ test('v4.99.6 Settings: vm fixture — health card surfaces Cloud sync status vi
       let storage = {};
       const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
       const ctx = {
+        // v4.99.36: _fnBody's brace-walker overshoots into features/*.js post
+        // Phase 11b extraction (concat'd into js for structural tests). The
+        // features modules reference `window`, so the vm context needs a stub
+        // to avoid ReferenceError. The actual logic under test
+        // (renderSettingsHealthCard) doesn't use window.
+        window: {},
         STORAGE: { KEY: 'k', DAILY_GOAL: 'dg' },
         localStorage: {
           getItem: (k) => storage[k] === undefined ? null : storage[k],
@@ -13393,6 +13436,9 @@ test('v4.81.26 Settings: vm fixture — health card reads daily goal correctly w
       let storage = {};
       const fakeHost = { _innerHTML: '', set innerHTML(v) { this._innerHTML = v; }, get innerHTML() { return this._innerHTML; } };
       const ctx = {
+        // v4.99.36: window stub for the same reason as v4.99.6 above —
+        // _fnBody overshoots into features/*.js after Phase 11b extraction.
+        window: {},
         STORAGE: { KEY: 'k', DAILY_GOAL: 'dg' },
         localStorage: {
           getItem: (k) => storage[k] === undefined ? null : storage[k],
@@ -18385,8 +18431,11 @@ const e2eSpec = fs.readFileSync(path.join(ROOT, 'tests/e2e/app.spec.js'), 'utf8'
 
 // 1. The auth-state stub MUST stay in beforeEach for the suite to be green.
 //    Without it, _gateProOnly() blocks 30+ drill/lab/topology/monitor tests.
-test('v4.99.32 PlaywrightTriage: beforeEach stubs window._certanvilSignedIn = true (Pro-gate bypass)',
-  /test\.beforeEach[\s\S]{0,600}window\._certanvilSignedIn\s*=\s*true/.test(e2eSpec));
+test('v4.99.32+v4.99.36 PlaywrightTriage: beforeEach stubs window._certanvilSignedIn = true via defineProperty (Pro-gate bypass)',
+  // v4.99.36 hardened the stub to use Object.defineProperty with writable:false
+  // so auth-state's renderAnonymous fallback can't clobber it. Guard now matches
+  // either the original `= true` form (pre-v4.99.36) OR the defineProperty form.
+  /test\.beforeEach[\s\S]{0,1500}(?:window\._certanvilSignedIn\s*=\s*true|defineProperty\(\s*window\s*,\s*['"]_certanvilSignedIn['"][\s\S]{0,200}value:\s*true)/.test(e2eSpec));
 test('v4.99.32 PlaywrightTriage: beforeEach stubs _quotaState with tier: pro',
   /window\._quotaState\s*=\s*\{\s*tier:\s*['"]pro['"]/.test(e2eSpec));
 test('v4.99.32 PlaywrightTriage: beforeEach adds is-pro-tier + is-state-resolved body classes',
@@ -18507,6 +18556,66 @@ test('v4.99.35 Phase11a: cert pack document.write site PRESERVED (loads sync, NO
   // Cert pack must remain synchronous because it document-writes during HTML parse
   // for the inline detection contract (v4.99.30). Defer would break that.
   && !/<script\s+defer\s+src=["']certs\//.test(html));
+
+// ── v4.99.36 — Phase 11b: Network Analysis Drill extracted to features/network-analysis.js ──
+console.log('\n\x1b[1m── v4.99.36 — PHASE 11b NA EXTRACTION ──\x1b[0m');
+
+// Reading the raw app.js (without features concat) to assert NA code is GONE from shell.
+const _appJsRaw = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+
+// 1. Shell stub — startNetworkAnalysisDrill is async + lazy-loads
+test('v4.99.36 Phase11b: startNetworkAnalysisDrill is now an async shell stub',
+  /async\s+function\s+startNetworkAnalysisDrill\s*\(\s*\)\s*\{[\s\S]{0,200}_loadFeature\s*\(\s*["']network-analysis["']\s*\)/.test(_appJsRaw));
+test('v4.99.36 Phase11b: shell stub gates via _gateActivityForQuota before lazy-load',
+  /async\s+function\s+startNetworkAnalysisDrill[\s\S]{0,400}_gateActivityForQuota\([\s\S]{0,200}_loadFeature/.test(_appJsRaw));
+test('v4.99.36 Phase11b: shell stub has try/catch around mod.enter() (defensive)',
+  /async\s+function\s+startNetworkAnalysisDrill[\s\S]{0,500}try\s*\{[\s\S]{0,300}mod\.enter\(\)[\s\S]{0,200}catch/.test(_appJsRaw));
+
+// 2. _loadFeature helper exists in shell + uses correct contract
+test('v4.99.36 Phase11b: _loadFeature helper defined in shell',
+  /async\s+function\s+_loadFeature\s*\(\s*name\s*\)/.test(_appJsRaw));
+test('v4.99.36 Phase11b: _loadFeature injects <script> tag with async=false (preserves order)',
+  /_loadFeature[\s\S]{0,800}createElement\(['"]script['"]\)[\s\S]{0,400}\.async\s*=\s*false/.test(_appJsRaw));
+test('v4.99.36 Phase11b: _loadFeature reads from window._certanvilFeatures registry',
+  /_loadFeature[\s\S]{0,1200}window\._certanvilFeatures\s*&&\s*window\._certanvilFeatures\[name\]/.test(_appJsRaw));
+test('v4.99.36 Phase11b: _loadFeature caches modules (no re-fetch)',
+  /_featureModules\s*=\s*\{\}/.test(_appJsRaw)
+  && /if\s*\(\s*_featureModules\[name\]\s*\)\s*return\s+_featureModules\[name\]/.test(_appJsRaw));
+
+// 3. NA functions REMOVED from app.js shell (regression tombstones)
+test('v4.99.36 Phase11b: regression tombstone — `function naSetTab` NOT in app.js shell',
+  !/^function\s+naSetTab\s*\(/m.test(_appJsRaw));
+test('v4.99.36 Phase11b: regression tombstone — `function naSubmitAnswer` NOT in app.js shell',
+  !/^function\s+naSubmitAnswer\s*\(/m.test(_appJsRaw));
+test('v4.99.36 Phase11b: regression tombstone — `const NETWORK_ANALYSIS_BANK` NOT in app.js shell',
+  !/^const\s+NETWORK_ANALYSIS_BANK\s*=/m.test(_appJsRaw));
+test('v4.99.36 Phase11b: regression tombstone — `const NA_CATEGORIES` NOT in app.js shell',
+  !/^const\s+NA_CATEGORIES\s*=/m.test(_appJsRaw));
+
+// 4. features/network-analysis.js exists + has the right shape
+const _featureNaRaw = fs.readFileSync(path.join(ROOT, 'features/network-analysis.js'), 'utf8');
+test('v4.99.36 Phase11b: features/network-analysis.js exists',
+  _featureNaRaw.length > 1000);
+test('v4.99.36 Phase11b: feature module wrapped in IIFE',
+  /^\(function\(\)\s*\{/m.test(_featureNaRaw)
+  && /\}\)\(\);?\s*$/.test(_featureNaRaw.trim()));
+test('v4.99.36 Phase11b: feature module uses strict mode',
+  /"use strict"/.test(_featureNaRaw));
+test('v4.99.36 Phase11b: feature exposes naSetTab on window for onclick handlers',
+  /window\.naSetTab\s*=\s*naSetTab/.test(_featureNaRaw));
+test('v4.99.36 Phase11b: feature exposes naSubmitAnswer on window',
+  /window\.naSubmitAnswer\s*=\s*naSubmitAnswer/.test(_featureNaRaw));
+test('v4.99.36 Phase11b: feature registers on window._certanvilFeatures["network-analysis"]',
+  /window\._certanvilFeatures\["network-analysis"\]\s*=\s*\{\s*enter:/.test(_featureNaRaw));
+test('v4.99.36 Phase11b: feature has leave() cleanup hook (resets module state)',
+  /leave:\s*function\s*\(\s*\)\s*\{[\s\S]{0,300}_naCurrentQuestion\s*=\s*null/.test(_featureNaRaw));
+test('v4.99.36 Phase11b: enter() has the original first-time-vs-returning routing logic',
+  /enter:[\s\S]{0,500}totalAttempts\s*>\s*0\s*\?\s*["']dashboard["']\s*:\s*["']practice["']/.test(_featureNaRaw));
+
+// 5. UAT itself — features dir auto-concat into js
+test('v4.99.36 Phase11b: tests/uat.js concats features/*.js into js for backward compat',
+  // Window bumped to span the multi-line forEach body that processes feature files.
+  /featuresDir[\s\S]{0,2000}readdirSync[\s\S]{0,2000}js\s*\+=\s*featuresJs/.test(fs.readFileSync(path.join(ROOT, 'tests/uat.js'), 'utf8')));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

@@ -467,6 +467,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v4.99.36 | MOBILE_OPTIMIZATION_PLAN Phase 11b session 1 — extracted Network Analysis Drill (1,053 LOC + ~50 KB) to features/network-analysis.js. Lazy-loaded on first navigation via _loadFeature() helper. SW serves features/* via existing stale-while-revalidate path. Lock _certanvilSignedIn stub in Playwright via Object.defineProperty (was clobbered by v4.99.34 renderAnonymous fallback). Retarget 4 BYOK error tests to assert v4.99.33 signed-in skip contract. |
 | v4.99.35 | MOBILE_OPTIMIZATION_PLAN Phase 11a — defer all 6 scripts (Supabase UMD + lib + cloud-store + auth-state + migration + app.js) + preload hint for app.js. Lighthouse mobile baseline showed app.js alone caused 3,150ms render-blocking; defer cuts that to near-zero on the FCP path. Cert pack preserved as sync via document.write. |
 | v4.99.34 | PROD followup hotfix — wire up window._certanvilSignedIn flag (v4.99.33's validateApiKey check + pre-existing _gateProOnly checks were reading a flag that was never assigned anywhere). auth-state.js handleSignedIn / handleSignedOut / renderAnonymous now set the flag. |
 | v4.99.33 | PROD bug fix — signed-in users were blocked from Generate Quiz with 'Please enter your Anthropic API key' (BYOK gate firing despite v4.99.2 server-proxy routing). validateApiKey now early-returns null for signed-in users; anonymous BYOK contract preserved. |

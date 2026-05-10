@@ -30,7 +30,19 @@ const { test, expect } = require('@playwright/test');
 // it the same way a real Pro user would.
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window._certanvilSignedIn = true;
+    // v4.99.36: lock _certanvilSignedIn as non-writable. The v4.99.34
+    // wire-up makes auth-state.js renderAnonymous() set this flag to false
+    // when getSession() returns no session — which IS the case in Playwright
+    // (no real Supabase auth). Without the lock, the stub gets clobbered ~50ms
+    // after page load + every showPage() to a Pro-only feature blocks again.
+    // defineProperty with writable:false silently rejects later assignments
+    // (auth-state's writes are wrapped in try/catch per the v4.99.34 fix, so
+    // they no-op silently). Bullet-proof stub.
+    Object.defineProperty(window, '_certanvilSignedIn', {
+      value: true,
+      writable: false,
+      configurable: false
+    });
     window._quotaState = { tier: 'pro', daily_limit: -1 };
     window.addEventListener('DOMContentLoaded', () => {
       // Stub Pro-tier body classes BEFORE _gateProOnly() runs
@@ -333,32 +345,34 @@ test.describe('Chip Selectors', () => {
 });
 
 test.describe('API Key Validation', () => {
-  test('shows error for empty API key', async ({ page }) => {
+  // v4.99.36: these 2 tests originally asserted that the BYOK error fires for
+  // empty / bad-format keys. v4.99.33 retargeted validateApiKey to skip the
+  // check entirely for signed-in users (server proxy handles auth). Since the
+  // beforeEach stubs `_certanvilSignedIn = true` for ALL tests in this file
+  // (Pro-gate bypass), the BYOK error path isn't reachable here. Tests
+  // updated to assert the v4.99.33 contract: signed-in users never see the
+  // BYOK error, regardless of what the (now hidden) #api-key input contains.
+  test('signed-in user with empty API key does NOT see BYOK error (v4.99.33 contract)', async ({ page }) => {
     await page.goto('/');
-
-    // v4.54.1: set localStorage key empty (input is on Settings page now; quiz reads from storage)
     await page.evaluate(() => localStorage.setItem('nplus_key', ''));
     await page.locator('#page-setup button:has-text("Generate Quiz")').click();
-
+    // v4.99.33: error is suppressed for signed-in users (validateApiKey returns null).
+    // Quiz generation will fail downstream because there's no real session, but
+    // the BYOK gate doesn't fire — that's the contract under test.
     const err = page.locator('#setup-err');
-    await expect(err).toBeVisible();
-    await expect(err).toContainText('API key');
+    // Use a short timeout — error should NOT appear at all
+    await expect(err).not.toBeVisible({ timeout: 1500 });
   });
 
-  test('shows error for invalid API key format', async ({ page }) => {
+  test('signed-in user with bad-format API key does NOT see BYOK error', async ({ page }) => {
     await page.goto('/');
-
-    // v4.54.1: api-key input lives on Settings page; set its value directly so
-    // startQuiz() reads the invalid value and fires the format-validation error
     await page.evaluate(() => {
       const el = document.getElementById('api-key');
       if (el) el.value = 'invalid-key-123';
     });
     await page.locator('#page-setup button:has-text("Generate Quiz")').click();
-
     const err = page.locator('#setup-err');
-    await expect(err).toBeVisible();
-    await expect(err).toContainText('Invalid');
+    await expect(err).not.toBeVisible({ timeout: 1500 });
   });
 });
 
@@ -501,33 +515,27 @@ test.describe('Theme Persistence', () => {
 });
 
 test.describe('Exam Button Validation', () => {
-  test('shows error for empty API key on exam start', async ({ page }) => {
+  // v4.99.36: same retargeting as the API Key Validation block above.
+  // v4.99.33 made startExam() (and 4 other launchers) skip BYOK validation
+  // for signed-in users. The Playwright stub makes ALL tests "signed-in",
+  // so these tests now assert that the error does NOT appear.
+  test('signed-in user with empty API key — exam start does NOT show BYOK error', async ({ page }) => {
     await page.goto('/');
-    // v4.54.1: API key is on Settings page; use localStorage for this flow-test
     await page.evaluate(() => localStorage.setItem('nplus_key', ''));
-    // v4.79.0: standalone "Simulate Full Exam" button retired; the
-    // Mode Ladder Exam tier is now the entry point (text "Full Exam Simulator").
     await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
-
     const err = page.locator('#setup-err');
-    await expect(err).toBeVisible();
-    await expect(err).toContainText('API key');
+    await expect(err).not.toBeVisible({ timeout: 1500 });
   });
 
-  test('shows error for invalid API key on exam start', async ({ page }) => {
+  test('signed-in user with bad-format API key — exam start does NOT show BYOK error', async ({ page }) => {
     await page.goto('/');
-    // v4.54.1: set input value directly (api-key is on Settings page now)
     await page.evaluate(() => {
       const el = document.getElementById('api-key');
       if (el) el.value = 'bad-key';
     });
-    // v4.79.0: standalone "Simulate Full Exam" button retired; the
-    // Mode Ladder Exam tier is now the entry point (text "Full Exam Simulator").
     await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
-
     const err = page.locator('#setup-err');
-    await expect(err).toBeVisible();
-    await expect(err).toContainText('Invalid');
+    await expect(err).not.toBeVisible({ timeout: 1500 });
   });
 });
 
