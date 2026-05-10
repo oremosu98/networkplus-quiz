@@ -111,14 +111,27 @@ Net: same end-of-June App Store target, but **mobile feels great by week 2 inste
 
 Re-run Lighthouse after every Phase 7+ ship and update this doc. Target trajectory:
 
-| Date | Phase shipped | Performance | LCP | DOM size |
-|---|---|---:|---:|---:|
-| 2026-05-10 | baseline | 64 | 5.9s | 1,968 |
-| _TBD_ | Phase 11 | _target 85+_ | _target < 2.5s_ | _smaller via lazy-load_ |
-| _TBD_ | Phase 7+8 | _target 88+_ | _target < 2.0s_ | _target < 1,500_ |
-| _TBD_ | Phase 10 | _target 90+_ | _stable_ | _stable_ |
+| Date | Version | Phase | Perf | FCP | LCP | SI | TBT | Render-block |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| 2026-05-10 13:15 | v4.99.34 | baseline | **64** | 5.6s | 5.9s | 6.1s | 20ms | 3,450ms |
+| 2026-05-10 13:35 | v4.99.35 | **11a (defer)** | **65** | 5.5s | 5.9s | **5.5s** | 60ms | **0ms ✓** |
+| _TBD_ | _v4.99.36-37_ | 11b (feature extract) | _target 85+_ | _target < 2s_ | _target < 2.5s_ | — | — | 0 |
+| _TBD_ | — | Phase 7+8 | _target 88+_ | _target < 1.8s_ | _target < 2.0s_ | — | — | 0 |
+| _TBD_ | — | Phase 10 | _target 90+_ | _stable_ | _stable_ | — | — | 0 |
 
-App Store submission gate: **Performance ≥ 85** AND **LCP < 2.5 s** on this measurement.
+### Phase 11a honest assessment (2026-05-10)
+
+**Structural win**: render-blocking resources count went 2 → 0 (the Lighthouse opportunity #1 — "Eliminate render-blocking resources" — is now satisfied). Speed Index dropped 608ms (6.1s → 5.5s).
+
+**Score barely moved**: Performance 64 → 65 (+1). Lighthouse synthetic run variance is ±3-5 points, so this is essentially flat.
+
+**Why**: Phase 11a deferred *when* app.js runs but didn't reduce *how much* JS the browser has to parse + execute. LCP is gated on app.js executing all 614 KB before content paints. Defer just changed the timing curve, not the fundamental cost.
+
+**TBT went up** (20ms → 60ms): defer concentrates JS execution into a single post-parse window, briefly saturating the main thread. Still well under the 200ms "good" threshold; noticeable only on slow phones.
+
+**The real win is Phase 11b** — actual extraction of Pro-only features (Topology Builder, ACL Builder, IRW, PHT, Network Analysis Drill, Packet Trace) into separate lazy-loaded files. That cuts the 614 KB shell to ~250-300 KB, which IS what makes LCP drop below 2.5s. Phase 11a was the prerequisite refactor; Phase 11b is where the user feels it.
+
+App Store submission gate: **Performance ≥ 85** AND **LCP < 2.5 s** on this measurement. Phase 11b gets us there.
 
 ---
 
