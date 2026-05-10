@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.24', js.includes("const APP_VERSION = '4.99.24"));
+test('APP_VERSION is 4.99.25', js.includes("const APP_VERSION = '4.99.25"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.24', sw.includes('netplus-v4.99.24'));
+test('SW cache bumped to v4.99.25', sw.includes('netplus-v4.99.25'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16082,17 +16082,18 @@ test('v4.87.1 CarryOver: Security+ pack has 77 carry-over exemplars (from Networ
     const matches = certSecplus.match(/"source":"curated-netplus-carryover"/g) || [];
     return matches.length === 77;
   })());
-// v4.95.1: Phase 3 Cycle 2 added 3 Gap Analysis exemplars; cumulative Phase 3
-// total is now 18 (Cycle 1's 15 from Messer gaps + Cycle 2's 3 Gap Analysis).
-test('v4.95.1 Phase 3 (Cycles 1+2): 18 Security+ Phase 3 exemplars in bank',
+// v4.95.1 → v4.99.25: cumulative Phase 3 total grows with each cycle.
+// Cycle 1 (v4.88.3) = 15 (Messer gaps), Cycle 2 (v4.95.1) = 3 (Gap Analysis),
+// Cycle 3 (v4.99.25) = 8 (Zero Trust). Total: 26.
+test('v4.99.25 Phase 3 (Cycles 1+2+3): 26 Security+ Phase 3 exemplars in bank',
   (() => {
     const matches = certSecplus.match(/"source":"curated-secplus-phase3"/g) || [];
-    return matches.length === 18;
+    return matches.length === 26;
   })());
-test('v4.95.1 Phase 3: total Security+ bank size is 95 (77 carry-over + 18 phase 3)',
+test('v4.99.25 Phase 3: total Security+ bank size is 103 (77 carry-over + 26 phase 3)',
   (() => {
     const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
-    return matches.length === 95;
+    return matches.length === 103;
   })());
 test('v4.95.1 Phase 3 Cycle 2: 3 new Gap Analysis exemplars (v4.95.1)',
   (() => {
@@ -16101,6 +16102,25 @@ test('v4.95.1 Phase 3 Cycle 2: 3 new Gap Analysis exemplars (v4.95.1)',
   })());
 test('v4.95.1 Phase 3 Cycle 2: Gap Analysis retention concept added',
   /label:\s*'Gap Analysis'[\s\S]{0,200}parentTopic:\s*'Security Governance'/.test(certSecplus));
+// v4.99.25 Phase 3 Cycle 3 — Zero Trust gap from Messer studying
+test('v4.99.25 Phase 3 Cycle 3: 8 new Zero Trust exemplars (v4.99.25)',
+  (() => {
+    const matches = certSecplus.match(/"addedVersion":"4\.99\.25"/g) || [];
+    return matches.length === 8;
+  })());
+test('v4.99.25 Phase 3 Cycle 3: all 8 new exemplars target the Zero Trust & SDN topic',
+  (() => {
+    const matches = certSecplus.match(/"topic":"Zero Trust & SDN"[\s\S]{0,5000}?"addedVersion":"4\.99\.25"/g) || [];
+    return matches.length === 8;
+  })());
+test('v4.99.25 Phase 3 Cycle 3: Control Plane vs Data Plane retention concept added',
+  /label:\s*'Zero Trust Control Plane vs Data Plane'/.test(certSecplus));
+test('v4.99.25 Phase 3 Cycle 3: Policy Components (PE/PA/PDP/PEP) retention concept added',
+  /label:\s*'Zero Trust Policy Components'/.test(certSecplus));
+test('v4.99.25 Phase 3 Cycle 3: Adaptive Identity & Threat Scope retention concept added',
+  /label:\s*'Adaptive Identity & Threat Scope'/.test(certSecplus));
+test('v4.99.25 Phase 3 Cycle 3: distinguishes PE (decides) from PA (configures) from PEP (enforces)',
+  /PE decides, PA configures, PEP enforces/.test(certSecplus));
 test('v4.87.1 CarryOver: every carry-over has source: curated-netplus-carryover',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16115,7 +16135,7 @@ test('v4.87.1 CarryOver: every entry has originalTopic field for traceability',
     const matches = m[1].match(/"originalTopic":/g) || [];
     return matches.length === 77;
   })());
-// v4.95.1: now covers all 95 exemplars (77 carry-over + 18 Phase 3 Cycles 1+2)
+// v4.99.25: now covers all 103 exemplars (77 carry-over + 26 Phase 3 Cycles 1+2+3)
 test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16126,7 +16146,7 @@ test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
     (tdM[1].match(/'([^']+)':\s*'(?:concepts|threats|architecture|operations|governance)'/g) || [])
       .forEach(line => { const t = line.match(/'([^']+)':/); if (t) validTopics.add(t[1]); });
     const exTopics = (m[1].match(/"topic":"([^"]+)"/g) || []).map(s => s.replace(/^"topic":"|"$/g, ''));
-    return exTopics.length === 95 && exTopics.every(t => validTopics.has(t));
+    return exTopics.length === 103 && exTopics.every(t => validTopics.has(t));
   })());
 
 // ── Dynamic topic-chip rendering ──
