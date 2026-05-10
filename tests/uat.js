@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.36', js.includes("const APP_VERSION = '4.99.36"));
+test('APP_VERSION is 4.99.37', js.includes("const APP_VERSION = '4.99.37"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.36', sw.includes('netplus-v4.99.36'));
+test('SW cache bumped to v4.99.37', sw.includes('netplus-v4.99.37'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -17368,8 +17368,13 @@ test('v4.98.0 PHT: STORAGE.PHT_MASTERY + PHT_LESSONS keys defined',
 test('v4.98.0 PHT: cloud-store registers PHT keys',
   cloudStoreJs.includes("'nplus_pht_mastery'") &&
   cloudStoreJs.includes("'nplus_pht_lessons'"));
-test('v4.98.0 PHT: startPhishingTriageLab function exists + cert-gated',
-  /function startPhishingTriageLab\(\)\s*\{[\s\S]{0,500}_USE_SECPLUS_PHT/.test(js));
+test('v4.98.0 PHT: startPhishingTriageLab function exists + cert-gated (post-v4.99.37)',
+  // v4.99.37: shell stub is async function startPhishingTriageLab; cert gate
+  // (_USE_SECPLUS_PHT) moved into the registered enter() body in
+  // features/phishing-triage.js. Both halves of the contract still exist —
+  // assert each in its new home.
+  /async\s+function\s+startPhishingTriageLab\s*\(/.test(js)
+  && /_certanvilFeatures\["phishing-triage"\]\s*=\s*\{[\s\S]{0,400}enter:\s*function[\s\S]{0,400}_USE_SECPLUS_PHT/.test(js));
 test('v4.98.0 PHT: setPhtTab tab switcher (3 panes)',
   /function setPhtTab\(/.test(js) &&
   /'practice', 'lessons', 'dashboard'/.test(js));
@@ -18616,6 +18621,63 @@ test('v4.99.36 Phase11b: enter() has the original first-time-vs-returning routin
 test('v4.99.36 Phase11b: tests/uat.js concats features/*.js into js for backward compat',
   // Window bumped to span the multi-line forEach body that processes feature files.
   /featuresDir[\s\S]{0,2000}readdirSync[\s\S]{0,2000}js\s*\+=\s*featuresJs/.test(fs.readFileSync(path.join(ROOT, 'tests/uat.js'), 'utf8')));
+
+// ── v4.99.37 — Phase 11b session 2: Phishing Triage Lab extracted ──
+console.log('\n\x1b[1m── v4.99.37 — PHASE 11b PHT EXTRACTION ──\x1b[0m');
+
+// Read raw shell to verify PHT code is GONE from app.js
+const _appJsRawV37 = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+
+// 1. Shell stub correctly wraps the lazy-load
+test('v4.99.37 Phase11b: startPhishingTriageLab is async shell stub that lazy-loads',
+  /async\s+function\s+startPhishingTriageLab\s*\(\s*\)\s*\{[\s\S]{0,400}_loadFeature\s*\(\s*["']phishing-triage["']\s*\)/.test(_appJsRawV37));
+test('v4.99.37 Phase11b: shell stub gates via _gateActivityForQuota before lazy-load',
+  /async\s+function\s+startPhishingTriageLab[\s\S]{0,400}_gateActivityForQuota\([\s\S]{0,200}_loadFeature/.test(_appJsRawV37));
+
+// 2. PHT code REMOVED from app.js shell (regression tombstones)
+test('v4.99.37 Phase11b: regression tombstone — `function phtRenderHome` NOT in app.js shell',
+  !/^function\s+phtRenderHome\s*\(/m.test(_appJsRawV37));
+test('v4.99.37 Phase11b: regression tombstone — `function setPhtTab` NOT in app.js shell',
+  !/^function\s+setPhtTab\s*\(/m.test(_appJsRawV37));
+test('v4.99.37 Phase11b: regression tombstone — `const PHT_DATA` NOT in app.js shell',
+  !/^const\s+PHT_DATA\s*=/m.test(_appJsRawV37));
+test('v4.99.37 Phase11b: regression tombstone — `const _USE_SECPLUS_PHT` NOT in app.js shell',
+  !/^const\s+_USE_SECPLUS_PHT\s*=/m.test(_appJsRawV37));
+test('v4.99.37 Phase11b: regression tombstone — `let _phtAiGenState` NOT in app.js shell',
+  !/^let\s+_phtAiGenState\s*=/m.test(_appJsRawV37));
+
+// 3. features/phishing-triage.js exists + has the right shape
+const _featurePhtRaw = fs.readFileSync(path.join(ROOT, 'features/phishing-triage.js'), 'utf8');
+test('v4.99.37 Phase11b: features/phishing-triage.js exists',
+  _featurePhtRaw.length > 1000);
+test('v4.99.37 Phase11b: PHT module wrapped in IIFE',
+  /^\(function\(\)\s*\{/m.test(_featurePhtRaw)
+  && /\}\)\(\);?\s*$/.test(_featurePhtRaw.trim()));
+test('v4.99.37 Phase11b: PHT module uses strict mode',
+  /"use strict"/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT module preserves cert-aware constants',
+  /const\s+_SECPLUS_HAS_PHT\s*=/.test(_featurePhtRaw)
+  && /const\s+_USE_SECPLUS_PHT\s*=/.test(_featurePhtRaw)
+  && /const\s+PHT_DATA\s*=/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT module preserves all 6 module-state lets',
+  /let\s+_phtActiveScenarioId\s*=/.test(_featurePhtRaw)
+  && /let\s+_phtActiveScenario\s*=/.test(_featurePhtRaw)
+  && /let\s+_phtTaggedFlagIds\s*=/.test(_featurePhtRaw)
+  && /let\s+_phtWrongTags\s*=/.test(_featurePhtRaw)
+  && /let\s+_phtRevealed\s*=/.test(_featurePhtRaw)
+  && /let\s+_phtPickedDecision\s*=/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT exposes setPhtTab + phtToggleFlag + phtSubmitDecision on window',
+  /window\.setPhtTab\s*=\s*setPhtTab/.test(_featurePhtRaw)
+  && /window\.phtToggleFlag\s*=\s*phtToggleFlag/.test(_featurePhtRaw)
+  && /window\.phtSubmitDecision\s*=\s*phtSubmitDecision/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT registers under "phishing-triage" key (matches filename)',
+  /window\._certanvilFeatures\["phishing-triage"\]\s*=\s*\{\s*enter:/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT enter() preserves Sec+ cert gate',
+  /enter:\s*function[\s\S]{0,500}_USE_SECPLUS_PHT[\s\S]{0,200}return/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT enter() defaults to practice tab',
+  /enter:\s*function[\s\S]{0,800}setPhtTab\(\s*["']practice["']\s*\)/.test(_featurePhtRaw));
+test('v4.99.37 Phase11b: PHT leave() resets all 6 module-state vars',
+  /leave:\s*function[\s\S]{0,800}_phtActiveScenarioId\s*=\s*null[\s\S]{0,400}_phtRevealed\s*=\s*false/.test(_featurePhtRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
