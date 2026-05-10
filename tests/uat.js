@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.38', js.includes("const APP_VERSION = '4.99.38"));
+test('APP_VERSION is 4.99.39', js.includes("const APP_VERSION = '4.99.39"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.38', sw.includes('netplus-v4.99.38'));
+test('SW cache bumped to v4.99.39', sw.includes('netplus-v4.99.39'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -1973,7 +1973,11 @@ test('Tier1: #marathon-section wrapper exists', html.includes('id="marathon-sect
 test('Tier1: #marathon-section starts hidden (is-hidden class)', /id="marathon-section"[^>]*class="[^"]*is-hidden/.test(html));
 test('Tier1: renderMarathonSection() function exists', js.includes('function renderMarathonSection('));
 test('Tier1: renderMarathonSection checks loadHistory().length', js.match(/renderMarathonSection[\s\S]{0,300}loadHistory\(\)\.length/));
-test('Tier1: renderMarathonSection called in goSetup', js.match(/function goSetup\(\)[\s\S]{0,1500}renderMarathonSection\(\)/));
+test('Tier1: renderMarathonSection called in goSetup',
+  // v4.99.39: window 1500 → 2500. goSetup has accumulated 3 teardown hooks
+  // (_portDrillTeardown, _irwTeardown) pushing renderMarathonSection further
+  // down the function body.
+  js.match(/function goSetup\(\)[\s\S]{0,2500}renderMarathonSection\(\)/));
 test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,3000}renderMarathonSection\(\)/));
 // Marathon preset buttons still present inside the wrapper
 test('Tier1: Marathon 30-question preset still wired', html.includes("applyPreset('bulk30')"));
@@ -5556,7 +5560,8 @@ test('v4.53.0 JS: domain grid click wires drillDomain',
 // in v4.81.20 as a shim; element removed entirely in v4.81.23). goSetup
 // still calls renderSetupDomainGrid + renderTodayPlan.
 test('v4.53.0 JS (retargeted): goSetup calls renderSetupDomainGrid + renderTodayPlan',
-  /function goSetup\([\s\S]{0,1500}renderSetupDomainGrid[\s\S]{0,200}renderTodayPlan|function goSetup\([\s\S]{0,1500}renderTodayPlan[\s\S]{0,200}renderSetupDomainGrid/.test(js));
+  // v4.99.39: windows 1500 → 2500 (same reason as Tier1: teardown-hook accumulation)
+  /function goSetup\([\s\S]{0,2500}renderSetupDomainGrid[\s\S]{0,200}renderTodayPlan|function goSetup\([\s\S]{0,2500}renderTodayPlan[\s\S]{0,200}renderSetupDomainGrid/.test(js));
 
 // CSS \u2014 sidebar
 test('v4.53.0 CSS: body.has-sidebar adds 240px left padding',
@@ -17093,8 +17098,13 @@ test('v4.97.0 IRW: STORAGE.IRW_MASTERY + IRW_LESSONS keys defined',
 test('v4.97.0 IRW: cloud-store registers IRW keys',
   cloudStoreJs.includes("'nplus_irw_mastery'") &&
   cloudStoreJs.includes("'nplus_irw_lessons'"));
-test('v4.97.0 IRW: startIncidentResponseWarRoom function exists + cert-gated',
-  /function startIncidentResponseWarRoom\(\)\s*\{[\s\S]{0,500}_USE_SECPLUS_IRW/.test(js));
+test('v4.97.0 IRW: startIncidentResponseWarRoom function exists + cert-gated (post-v4.99.39)',
+  // v4.99.39: shell stub is async function startIncidentResponseWarRoom; cert
+  // gate (_USE_SECPLUS_IRW) moved into the registered enter() body in
+  // features/incident-response.js. Both halves of the contract still exist —
+  // assert each in its new home (mirrors v4.99.37 PHT retargeting).
+  /async\s+function\s+startIncidentResponseWarRoom\s*\(/.test(js)
+  && /_certanvilFeatures\["incident-response"\]\s*=\s*\{[\s\S]{0,400}enter:\s*function[\s\S]{0,400}_USE_SECPLUS_IRW/.test(js));
 test('v4.97.0 IRW: setIrwTab tab switcher + 3 panes (practice/lessons/dashboard)',
   /function setIrwTab\(/.test(js) &&
   /'practice', 'lessons', 'dashboard'/.test(js));
@@ -18736,6 +18746,61 @@ test('v4.99.38 Phase11b: Port Drill enter() calls renderPortMission (drill-missi
   /enter:\s*function[\s\S]{0,800}renderPortMission/.test(_featurePortRaw));
 test('v4.99.38 Phase11b: Port Drill leave() clears timer (CRITICAL: ptTimerInterval cleanup)',
   /leave:\s*function[\s\S]{0,300}ptStopTimer\s*\(\s*\)/.test(_featurePortRaw));
+
+// ── v4.99.39 — Phase 11b session 4: Incident Response War Room extracted ──
+console.log('\n\x1b[1m── v4.99.39 — PHASE 11b IRW EXTRACTION ──\x1b[0m');
+
+const _appJsRawV39 = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+
+test('v4.99.39 Phase11b: startIncidentResponseWarRoom is async shell stub',
+  /async\s+function\s+startIncidentResponseWarRoom\s*\(\s*\)\s*\{[\s\S]{0,400}_loadFeature\s*\(\s*["']incident-response["']\s*\)/.test(_appJsRawV39));
+test('v4.99.39 Phase11b: shell stub gates via _gateActivityForQuota',
+  /async\s+function\s+startIncidentResponseWarRoom[\s\S]{0,400}_gateActivityForQuota\(\s*["']Incident Response War Room["']\s*\)/.test(_appJsRawV39));
+test('v4.99.39 Phase11b: goSetup calls _irwTeardown for pressure-timer cleanup',
+  /function\s+goSetup[\s\S]{0,1000}window\._irwTeardown[\s\S]{0,100}\)/.test(_appJsRawV39));
+test('v4.99.39 Phase11b: regression tombstone — `function irwRenderHome` NOT in app.js shell',
+  !/^function\s+irwRenderHome\s*\(/m.test(_appJsRawV39));
+test('v4.99.39 Phase11b: regression tombstone — `function setIrwTab` NOT in app.js shell',
+  !/^function\s+setIrwTab\s*\(/m.test(_appJsRawV39));
+test('v4.99.39 Phase11b: regression tombstone — `const IRW_DATA` NOT in app.js shell',
+  !/^const\s+IRW_DATA\s*=/m.test(_appJsRawV39));
+test('v4.99.39 Phase11b: regression tombstone — `let _irwActiveScenarioId` NOT in app.js shell',
+  !/^let\s+_irwActiveScenarioId\s*=/m.test(_appJsRawV39));
+
+const _featureIrwRaw = fs.readFileSync(path.join(ROOT, 'features/incident-response.js'), 'utf8');
+test('v4.99.39 Phase11b: features/incident-response.js exists',
+  _featureIrwRaw.length > 1000);
+test('v4.99.39 Phase11b: IRW module wrapped in IIFE',
+  /^\(function\(\)\s*\{/m.test(_featureIrwRaw)
+  && /\}\)\(\);?\s*$/.test(_featureIrwRaw.trim()));
+test('v4.99.39 Phase11b: IRW preserves cert-aware constants',
+  /const\s+_SECPLUS_HAS_IRW\s*=/.test(_featureIrwRaw)
+  && /const\s+_USE_SECPLUS_IRW\s*=/.test(_featureIrwRaw)
+  && /const\s+IRW_DATA\s*=/.test(_featureIrwRaw)
+  && /const\s+IRW_PRESSURE_BUDGETS\s*=/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW preserves all 11 module-state lets',
+  /let\s+_irwActiveScenarioId\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwActivePhaseIdx\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwPickedActionIds\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwPhaseRevealed\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwSelectedMode\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwPressureActive\s*=/.test(_featureIrwRaw)
+  && /let\s+_irwPressureTimerId\s*=/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW exposes setIrwTab + irwToggleAction + irwSubmitDecisions on window',
+  /window\.setIrwTab\s*=\s*setIrwTab/.test(_featureIrwRaw)
+  && /window\.irwToggleAction\s*=\s*irwToggleAction/.test(_featureIrwRaw)
+  && /window\.irwSubmitDecisions\s*=\s*irwSubmitDecisions/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW registers under "incident-response" key',
+  /window\._certanvilFeatures\["incident-response"\]\s*=\s*\{\s*enter:/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW enter() preserves Sec+ cert gate',
+  /enter:\s*function[\s\S]{0,500}_USE_SECPLUS_IRW[\s\S]{0,200}return/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW enter() defaults to practice tab',
+  /enter:\s*function[\s\S]{0,800}setIrwTab\(\s*["']practice["']\s*\)/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW exposes _irwTeardown for shell-side cleanup (CRITICAL: pressure timer)',
+  /window\._irwTeardown\s*=\s*function/.test(_featureIrwRaw)
+  && /clearInterval\(_irwPressureTimerId\)/.test(_featureIrwRaw));
+test('v4.99.39 Phase11b: IRW leave() calls _irwTeardown + resets all 7 module-state vars',
+  /leave:\s*function[\s\S]{0,800}_irwTeardown\(\)[\s\S]{0,800}_irwActiveScenarioId\s*=\s*null[\s\S]{0,400}_irwPressureExpired\s*=\s*false/.test(_featureIrwRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

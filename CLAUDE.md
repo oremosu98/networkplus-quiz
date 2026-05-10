@@ -467,6 +467,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v4.99.39 | MOBILE_OPTIMIZATION_PLAN Phase 11b session 4 — Incident Response War Room (Sec+ flagship #1) extracted to features/incident-response.js (~1,060 LOC). _irwTeardown shell-callable hook for pressure-timer cleanup (mirrors Port Drill pattern from v4.99.38). |
 | v4.99.38 | MOBILE_OPTIMIZATION_PLAN Phase 11b session 3 — Port Drill extracted to features/port-drill.js (~1,267 LOC). Guided Terminal Lab data (175 LOC) relocated back to shell — was historically colocated in PORT MASTERY section but actually used by openGuidedLab from Topic Deep Dive (cross-feature, doesn't belong in Port Drill module). _portDrillTeardown shell-callable hook for goSetup() to clear timer post-extraction. |
 | v4.99.37 | MOBILE_OPTIMIZATION_PLAN Phase 11b session 2 — extracted Phishing Triage Lab (~1,094 LOC: constants block 32230-32243 + state+functions block 34992-36071) to features/phishing-triage.js. Saves ~50 KB transfer from shell. Sec+ cert gate preserved in enter(). |
 | v4.99.36 | MOBILE_OPTIMIZATION_PLAN Phase 11b session 1 — extracted Network Analysis Drill (1,053 LOC + ~50 KB) to features/network-analysis.js. Lazy-loaded on first navigation via _loadFeature() helper. SW serves features/* via existing stale-while-revalidate path. Lock _certanvilSignedIn stub in Playwright via Object.defineProperty (was clobbered by v4.99.34 renderAnonymous fallback). Retarget 4 BYOK error tests to assert v4.99.33 signed-in skip contract. |
