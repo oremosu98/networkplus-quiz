@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.32
+// Network+ AI Quiz — app.js  v4.99.33
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.32';
+const APP_VERSION = '4.99.33';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -5403,7 +5403,28 @@ function getWeakTopic() {
 // ══════════════════════════════════════════
 // API KEY VALIDATION
 // ══════════════════════════════════════════
+// v4.99.33 — signed-in users skip the BYOK check entirely.
+//
+// Background: v4.99.2 Phase E.3 introduced _claudeFetch (line 270) which
+// auto-routes signed-in users to /api/ai/generate (server-held key, JWT-
+// authed) and anonymous users with a stored key through the legacy direct-
+// to-Anthropic BYOK path. validateApiKey was written for the BYOK path
+// only, but startQuiz() / startExam() / startWrongDrill() / etc. were never
+// updated to skip the check when signed-in. The hidden #api-key input
+// (v4.99.3 Phase E.4) means signed-in users got empty-string here, which
+// failed validation, which blocked Generate Quiz with "Please enter your
+// Anthropic API key" — even though they don't need one. Fixing at the
+// validateApiKey layer means all 5 callers (startQuiz, startExam, three
+// drill-launchers) unblock simultaneously without needing per-callsite
+// edits. The actual API call still routes correctly through _claudeFetch.
+//
+// Reported by founder on iPhone Safari running PROD as a tester1@ playtest
+// account, 2026-05-10 12:19 — toast fired on Generate Quiz click despite
+// being signed-in Pro.
 function validateApiKey(key) {
+  // Signed-in users → server proxy, no client key needed. _claudeFetch
+  // (line 270) handles the actual routing based on session presence.
+  if (typeof window !== 'undefined' && window._certanvilSignedIn === true) return null;
   if (!key) return 'Please enter your Anthropic API key.';
   if (!key.startsWith('sk-ant-')) return 'Invalid API key format. Anthropic keys start with "sk-ant-".';
   if (key.length < 20) return 'API key looks too short. Please check and try again.';

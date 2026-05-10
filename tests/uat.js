@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.32', js.includes("const APP_VERSION = '4.99.32"));
+test('APP_VERSION is 4.99.33', js.includes("const APP_VERSION = '4.99.33"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.32', sw.includes('netplus-v4.99.32'));
+test('SW cache bumped to v4.99.33', sw.includes('netplus-v4.99.33'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -18412,6 +18412,41 @@ test('v4.99.32 PlaywrightTriage: restores-API-key test reads localStorage instea
   /test\(['"]restores API key from localStorage on reload['"][\s\S]{0,800}localStorage\.getItem\(['"]nplus_key['"]/.test(e2eSpec)
   // Tighten: match the actual await/value-read pattern, not the comment
   && !/test\(['"]restores API key from localStorage on reload['"][\s\S]{0,500}await[^.]*\.inputValue\(\)/.test(e2eSpec));
+
+// ── v4.99.33 — Signed-in users bypass BYOK check (PROD bug fix from iPhone tester) ──
+console.log('\n\x1b[1m── v4.99.33 — SIGNED-IN BYOK BYPASS ──\x1b[0m');
+
+test('v4.99.33 BYOKBypass: validateApiKey early-returns null for signed-in users',
+  /function\s+validateApiKey\([^)]*\)\s*\{\s*\/\/[\s\S]{0,200}window\._certanvilSignedIn\s*===\s*true\s*\)\s*return\s+null/.test(js));
+test('v4.99.33 BYOKBypass: validateApiKey still rejects empty key for anonymous users',
+  /function\s+validateApiKey\([^)]*\)\s*\{[\s\S]{0,400}if\s*\(\s*!key\s*\)\s*return\s+['"]Please enter your Anthropic API key/.test(js));
+test('v4.99.33 BYOKBypass: validateApiKey still rejects bad-format key for anonymous users',
+  /function\s+validateApiKey\([^)]*\)\s*\{[\s\S]{0,800}startsWith\(['"]sk-ant-['"]\)/.test(js));
+test('v4.99.33 BYOKBypass: signed-in check guards against undefined window (defensive)',
+  /typeof\s+window\s*!==\s*['"]undefined['"][\s\S]{0,80}window\._certanvilSignedIn\s*===\s*true/.test(js));
+
+// Behavioral test — vm-sandbox the function, drive all 5 cases
+test('v4.99.33 BYOKBypass behavioral: signed-in + no key returns null (the founder-reported bug)',
+  (() => {
+    const vm = require('vm');
+    const m = js.match(/function\s+validateApiKey\([\s\S]*?\n\}/);
+    if (!m) return false;
+    const ctx = { window: { _certanvilSignedIn: true } };
+    vm.createContext(ctx);
+    vm.runInContext(m[0], ctx);
+    return vm.runInContext("validateApiKey('')", ctx) === null;
+  })());
+test('v4.99.33 BYOKBypass behavioral: anonymous + no key still returns error (preserves BYOK contract)',
+  (() => {
+    const vm = require('vm');
+    const m = js.match(/function\s+validateApiKey\([\s\S]*?\n\}/);
+    if (!m) return false;
+    const ctx = { window: { _certanvilSignedIn: false } };
+    vm.createContext(ctx);
+    vm.runInContext(m[0], ctx);
+    const r = vm.runInContext("validateApiKey('')", ctx);
+    return typeof r === 'string' && r.indexOf('Anthropic API key') !== -1;
+  })());
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
