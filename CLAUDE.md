@@ -467,6 +467,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v4.99.27 | iOS Plan Phase 1 — SW network-first for HTML+JS + visible 'New version available' banner replaces silent auto-reload (mobile Safari deploy-propagation fix) |
 | v4.99.26 | Today's Plan cert-aware filter (Network+ topics no longer leak into Sec+) + GT_ZERO_TRUST validator (rejects Haiku-invented off-vocab Zero Trust principles like 'device posture assessment') |
 | v4.99.25 | Phase 3 Cycle 3 — 8 Zero Trust exemplars + 3 retention concepts (Control Plane vs Data Plane / PE-PA-PDP-PEP / adaptive identity + threat scope reduction) from morning Messer studying |
 | v4.99.24 | Default-quiet unhandledrejection handler — mobile tester saw 'unexpected error' toast on slow cellular; toast now opt-in via err.userFacing, all rejections still logged to monitor |

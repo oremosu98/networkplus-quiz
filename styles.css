@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.99.26
+   Network+ AI Quiz — styles.css  v4.99.27
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19520,4 +19520,76 @@ html { zoom: 1.10; }
 @media (prefers-reduced-motion: reduce) {
   .playtest-welcome-toast { animation: none; }
   .playtest-welcome-toast.pwt-leaving { animation: none; opacity: 0; }
+}
+
+/* v4.99.27 — Service worker update banner. Replaces the silent auto-reload
+   from v4.89.2 with a visible "New version available — Refresh" prompt.
+   Critical for iOS Safari where the auto-reload trigger (controllerchange
+   event) fires inconsistently. Now: any time a new SW activates mid-session,
+   this banner appears and the user keeps control of when to refresh. */
+.sw-update-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 16px;
+  right: 16px;
+  max-width: 520px;
+  margin: 0 auto;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  animation: swBannerSlideIn 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sw-banner-icon { font-size: 22px; flex-shrink: 0; }
+.sw-banner-body {
+  display: flex; flex-direction: column; gap: 2px;
+  flex: 1; min-width: 0;
+}
+.sw-banner-title {
+  color: white; font-weight: 700; font-size: 14px; letter-spacing: -0.005em;
+}
+.sw-banner-sub {
+  color: rgba(255, 255, 255, 0.85); font-size: 12px;
+}
+.sw-banner-cta {
+  background: white; color: var(--accent2, #5b4fdb);
+  border: none; padding: 8px 16px; border-radius: 8px;
+  font-weight: 700; font-size: 13px;
+  cursor: pointer; flex-shrink: 0;
+  transition: transform 0.1s ease;
+  font-family: inherit;
+}
+.sw-banner-cta:hover { transform: translateY(-1px); }
+.sw-banner-dismiss {
+  background: transparent; border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer; padding: 0;
+  width: 28px; height: 28px;
+  font-size: 18px; line-height: 1;
+  border-radius: 6px; flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.sw-banner-dismiss:hover {
+  color: white; background: rgba(255, 255, 255, 0.12);
+}
+@keyframes swBannerSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 480px) {
+  .sw-update-banner {
+    bottom: 16px; left: 12px; right: 12px; padding: 12px 14px;
+  }
+  .sw-banner-cta { padding: 7px 12px; font-size: 12px; }
+  .sw-banner-sub { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw-update-banner { animation: none; }
+  .sw-banner-cta:hover { transform: none; }
 }

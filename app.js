@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.26
+// Network+ AI Quiz — app.js  v4.99.27
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.26';
+const APP_VERSION = '4.99.27';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
@@ -1268,31 +1268,58 @@ function initMonitorGesture() {
 // BOOT
 // ══════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  // v4.89.2: SW auto-update — when a new sw.js deploys, the browser loads it
-  // in the background, calls skipWaiting (in sw.js install handler), and the
-  // new SW takes over via clients.claim(). At that point this page is still
-  // running the OLD JS in memory; we only see the NEW code after a reload.
-  // Pre-fix that meant users had to manually hard-refresh / clear cache to
-  // get bug fixes. Now we detect the controller change and auto-reload once.
-  // The `_swReloadFired` guard prevents a reload loop if controllerchange
-  // fires multiple times in rapid succession (rare but seen on flaky networks).
-  let _swReloadFired = false;
-  function _swTriggerReload(reason) {
-    if (_swReloadFired) return;
-    _swReloadFired = true;
-    try { console.info('[sw] new version detected (' + reason + ') — reloading'); } catch (_) {}
-    // Tiny delay so any in-flight cache writes complete first.
-    setTimeout(() => { try { window.location.reload(); } catch (_) {} }, 100);
+  // v4.89.2 → v4.99.27: SW auto-update. When a new sw.js deploys, the browser
+  // loads it in the background, calls skipWaiting (in sw.js install handler),
+  // and the new SW takes over via clients.claim(). At that point this page is
+  // still running the OLD JS in memory; we only see the NEW code after a reload.
+  //
+  // v4.89.2 chose silent auto-reload. That worked but had two problems on
+  // mobile: (a) auto-reload mid-task could lose form state, (b) on iOS the
+  // controllerchange event fires inconsistently so users sometimes never
+  // got the prompt. v4.99.27 swaps to a visible banner with a manual Refresh
+  // button — user keeps control + the prompt is impossible to miss + works
+  // even when the auto-reload-trigger doesn't fire.
+  //
+  // The `_swBannerShown` guard prevents the banner from rendering multiple
+  // times if controllerchange fires repeatedly (rare but seen on flaky networks).
+  let _swBannerShown = false;
+  function _showSwUpdateBanner(reason) {
+    if (_swBannerShown) return;
+    _swBannerShown = true;
+    try { console.info('[sw] new version detected (' + reason + ') — showing update banner'); } catch (_) {}
+    try {
+      const banner = document.createElement('div');
+      banner.className = 'sw-update-banner';
+      banner.setAttribute('role', 'status');
+      banner.setAttribute('aria-live', 'polite');
+      banner.innerHTML =
+        '<span class="sw-banner-icon" aria-hidden="true">📦</span>' +
+        '<span class="sw-banner-body">' +
+          '<strong class="sw-banner-title">New version available</strong>' +
+          '<span class="sw-banner-sub">Refresh to load the latest CertAnvil</span>' +
+        '</span>' +
+        '<button type="button" class="sw-banner-cta">Refresh</button>' +
+        '<button type="button" class="sw-banner-dismiss" aria-label="Dismiss">×</button>';
+      document.body.appendChild(banner);
+      const refreshBtn = banner.querySelector('.sw-banner-cta');
+      const dismissBtn = banner.querySelector('.sw-banner-dismiss');
+      if (refreshBtn) refreshBtn.addEventListener('click', () => {
+        try { window.location.reload(); } catch (_) {}
+      });
+      if (dismissBtn) dismissBtn.addEventListener('click', () => {
+        try { banner.remove(); } catch (_) {}
+      });
+    } catch (_) {}
   }
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    _swTriggerReload('controllerchange');
+    _showSwUpdateBanner('controllerchange');
   });
   // Belt-and-suspenders: sw.js posts a message to all clients on activate.
   // Either signal (this OR controllerchange above) triggers the same
-  // single reload via the _swReloadFired guard.
+  // single banner via the _swBannerShown guard.
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e && e.data && e.data.type === 'sw-updated') {
-      _swTriggerReload('postMessage');
+      _showSwUpdateBanner('postMessage');
     }
   });
   // Also poll for an updated registration every 60s while the tab is open —

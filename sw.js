@@ -1,5 +1,5 @@
-// Service Worker v4.99.26 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v4.99.26';
+// Service Worker v4.99.27 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v4.99.27';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -69,7 +69,13 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-// Fetch: network-first for API calls, stale-while-revalidate for app shell.
+// Fetch: NETWORK-FIRST for HTML + JS (v4.99.27 iOS-fix), stale-while-revalidate
+// for static assets. Pre-v4.99.27 the entire shell used stale-while-revalidate
+// which served cached JS first + fetched fresh in the background — fine on
+// desktop where SW updates land within seconds, but iOS Safari's flaky SW
+// lifecycle meant deploys took multiple visits + sometimes a force-quit to
+// land on iPhone. Network-first for HTML + JS guarantees deploys propagate
+// to the next visit immediately on every browser including iOS Safari.
 // 5xx responses (#20) are treated as failures: we never cache them, and we
 // fall back to whatever is already cached so the user keeps a working app
 // during a Vercel/origin outage.
@@ -96,6 +102,44 @@ self.addEventListener('fetch', event => {
     return; // let the network handle it
   }
 
+  // v4.99.27 — network-first for HTML + JS. iOS Safari's stale-while-revalidate
+  // path was serving 2-5-version-old code on first visit after a deploy, with
+  // background updates not landing until force-quit. Now: try network first,
+  // fall back to cache only if network fails (offline support preserved).
+  // ~50ms slowdown per file on fast wifi is the trade-off for predictable
+  // updates. Static assets (CSS, fonts, images, manifest, cert packs) keep
+  // stale-while-revalidate below — version-mismatch with HTML+JS is harmless
+  // for those (they don't reference each other).
+  const isHtmlOrJs = (
+    url.pathname === '/' ||
+    url.pathname === '/index.html' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js')
+  );
+
+  if (isHtmlOrJs) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        // 5xx soft-fail — prefer cached copy if we have one
+        if (response.status >= 500) {
+          return caches.match(event.request).then(cached => cached || response);
+        }
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, clone);
+            trimCache(CACHE_NAME, CACHE_MAX_ENTRIES);
+          });
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for everything else (CSS, fonts, images, manifest,
+  // cert packs) — fast load + offline support, version mismatch with HTML+JS
+  // doesn't matter for these.
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request).then(response => {

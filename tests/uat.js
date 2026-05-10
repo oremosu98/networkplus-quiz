@@ -305,7 +305,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.26', js.includes("const APP_VERSION = '4.99.26"));
+test('APP_VERSION is 4.99.27', js.includes("const APP_VERSION = '4.99.27"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -319,7 +319,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.26', sw.includes('netplus-v4.99.26'));
+test('SW cache bumped to v4.99.27', sw.includes('netplus-v4.99.27'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16146,6 +16146,34 @@ test('v4.99.26 _buildGtHint: injects Zero Trust principle block when topic menti
 test('v4.99.26 _groundTruthOk: rejects answers naming off-vocab Zero Trust principles',
   /_groundTruthOk[\s\S]{0,15000}Zero Trust principle vocabulary check[\s\S]{0,1500}GT_ZERO_TRUST\.offVocabulary\.some/.test(js));
 
+// ── v4.99.27 — iOS Plan Phase 1: SW network-first + visible update banner ──
+test('v4.99.27 SW: HTML + JS use network-first strategy (predictable iOS deploys)',
+  /isHtmlOrJs[\s\S]{0,400}fetch\(event\.request\)\.then/.test(sw));
+test('v4.99.27 SW: stale-while-revalidate retained for static assets (CSS/fonts/images)',
+  /[Ss]tale-while-revalidate for everything else[\s\S]{0,1200}cached \|\| fetchPromise/.test(sw));
+test('v4.99.27 SW: network-first detects HTML + .html + .js paths',
+  /url\.pathname === '\/'[\s\S]{0,200}url\.pathname === '\/index\.html'[\s\S]{0,200}url\.pathname\.endsWith\('\.html'\)[\s\S]{0,200}url\.pathname\.endsWith\('\.js'\)/.test(sw));
+test('v4.99.27 SW: network failure falls back to cache (offline support preserved)',
+  /isHtmlOrJs[\s\S]{0,1000}\.catch\(\(\) => caches\.match\(event\.request\)\)/.test(sw));
+test('v4.99.27 AppJs: silent auto-reload REPLACED with _showSwUpdateBanner',
+  /function _showSwUpdateBanner\(reason\)/.test(js));
+test('v4.99.27 AppJs: stale _swTriggerReload silent-reload removed',
+  !/function _swTriggerReload/.test(js));
+test('v4.99.27 AppJs: banner has "New version available" title + Refresh CTA',
+  /sw-banner-title[\s\S]{0,200}New version available[\s\S]{0,500}sw-banner-cta[\s\S]{0,80}Refresh/.test(js));
+test('v4.99.27 AppJs: banner Refresh button reloads page',
+  /refreshBtn[\s\S]{0,300}window\.location\.reload\(\)/.test(js));
+test('v4.99.27 AppJs: banner has dismiss button (manual close)',
+  /sw-banner-dismiss[\s\S]{0,300}banner\.remove\(\)/.test(js));
+test('v4.99.27 AppJs: _swBannerShown guard prevents duplicate banner',
+  /_swBannerShown[\s\S]{0,200}_swBannerShown = true/.test(js));
+test('v4.99.27 Css: .sw-update-banner rule defined',
+  /\.sw-update-banner\s*\{/.test(css));
+test('v4.99.27 Css: mobile breakpoint hides sub-text to save vertical space',
+  /@media \(max-width:\s*480px\)[\s\S]{0,500}\.sw-banner-sub\s*\{\s*display:\s*none/.test(css));
+test('v4.99.27 Css: reduced-motion gate present for banner',
+  /prefers-reduced-motion[\s\S]{0,300}\.sw-update-banner\s*\{\s*animation:\s*none/.test(css));
+
 test('v4.87.1 CarryOver: every carry-over has source: curated-netplus-carryover',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16422,8 +16450,10 @@ test('v4.89.2 SW: app.js wires controllerchange listener for auto-reload',
 test('v4.89.2 SW: app.js wires postMessage listener (belt-and-suspenders)',
   /navigator\.serviceWorker\.addEventListener\(\s*['"]message['"]/.test(js) &&
   /sw-updated/.test(js));
-test('v4.89.2 SW: app.js dedupes via _swReloadFired guard (no reload loop)',
-  /_swReloadFired/.test(js));
+// v4.99.27 — superseded silent auto-reload with visible banner; guard is
+// now _swBannerShown (prevents duplicate banner instead of reload loop).
+test('v4.89.2/4.99.27 SW: app.js dedupes SW-update events (banner shown once)',
+  /_swBannerShown/.test(js));
 test('v4.89.2 SW: app.js polls for SW updates every 60s (open-tab catch-up)',
   /reg\.update\(\)/.test(js) && /setInterval[\s\S]{0,200}60000/.test(js));
 test('v4.89.2 SW: sw.js broadcasts postMessage to clients on activate',
