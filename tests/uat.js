@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.49', js.includes("const APP_VERSION = '4.99.49"));
+test('APP_VERSION is 4.99.50', js.includes("const APP_VERSION = '4.99.50"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.49', sw.includes('netplus-v4.99.49'));
+test('SW cache bumped to v4.99.50', sw.includes('netplus-v4.99.50'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19202,10 +19202,13 @@ test('v4.99.45 Phase6b: collector strips auth tokens from page_path (anti-PII)',
 test('v4.99.45 Phase6b: index.html loads collector after Supabase but before app.js',
   (() => {
     // Verify the script tag order: supabase modules → web-vitals-collector → app.js
-    const wvIdx = html.indexOf('lib/web-vitals-collector.js');
+    // v4.99.50: anchor on `<script ... src="lib/web-vitals-collector.js">` not just the
+    // literal string, since the v4.99.50 admin-dashboard description mentions the
+    // path in body copy too.
+    const wvIdx = html.indexOf('<script defer src="lib/web-vitals-collector.js"');
     const appIdx = html.indexOf('src="app.js"');
-    const supaIdx = html.indexOf('lib/supabase.js');
-    return wvIdx > supaIdx && wvIdx < appIdx;
+    const supaIdx = html.indexOf('<script defer src="lib/supabase.js"');
+    return wvIdx > 0 && wvIdx > supaIdx && wvIdx < appIdx;
   })());
 test('v4.99.45 Phase6b: app.js exposes APP_VERSION on window for collector consumption',
   /window\.APP_VERSION\s*=\s*APP_VERSION/.test(js));
@@ -19377,6 +19380,47 @@ test('v4.99.49 Phase10: subnet-trainer answer input has inputmode="decimal" (IP-
   /id="st-answer-input"[\s\S]{0,300}inputmode="decimal"/.test(_featStRaw));
 test('v4.99.49 Phase10: subnet-trainer gate-quiz input has inputmode="decimal"',
   /id="st-gate-input"[\s\S]{0,300}inputmode="decimal"/.test(_featStRaw));
+
+// ── v4.99.50 — Phase 6c: Web Vitals admin dashboard ──
+// Reads the web_vitals table (Phase 6b collector). Admin-only. Renders
+// p75 summary cards + per-cert + per-version + per-platform + recent 20.
+// Reachable via /?action=web-vitals URL param.
+console.log('\n\x1b[1m── v4.99.50 — PHASE 6c WEB VITALS DASHBOARD ──\x1b[0m');
+
+test('v4.99.50 Phase6c: #page-web-vitals exists in index.html',
+  /<div\s+id="page-web-vitals"\s+class="page">/.test(html));
+test('v4.99.50 Phase6c: page has the 5 expected render mount points',
+  /id="wv-summary"/.test(html)
+  && /id="wv-bycert"/.test(html)
+  && /id="wv-byversion"/.test(html)
+  && /id="wv-byplatform"/.test(html)
+  && /id="wv-recent"/.test(html));
+test('v4.99.50 Phase6c: openWebVitalsAdmin function defined',
+  /async\s+function\s+openWebVitalsAdmin\s*\(/.test(js));
+test('v4.99.50 Phase6c: openWebVitalsAdmin gates via is_admin RPC',
+  /openWebVitalsAdmin[\s\S]{0,500}\.rpc\(\s*['"]is_admin['"]/.test(js));
+test('v4.99.50 Phase6c: renderWebVitals function defined',
+  /async\s+function\s+renderWebVitals\s*\(/.test(js));
+test('v4.99.50 Phase6c: dashboard fetches from web_vitals table',
+  /\.from\(['"]web_vitals['"]\)[\s\S]{0,200}\.select/.test(js));
+test('v4.99.50 Phase6c: dashboard filters last 7 days',
+  /7\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000[\s\S]{0,200}gte\(['"]captured_at['"]/.test(js));
+test('v4.99.50 Phase6c: URL action ?action=web-vitals opens dashboard',
+  /action\s*===\s*['"]web-vitals['"][\s\S]{0,200}openWebVitalsAdmin/.test(js));
+test('v4.99.50 Phase6c: p75 helper used for percentile calculation',
+  /\.slice\(\)\.sort[\s\S]{0,100}sorted\[Math\.floor\(sorted\.length\s*\*\s*0\.75\)\]/.test(js));
+test('v4.99.50 Phase6c: LCP/FCP/CLS/TTFB all surfaced in summary',
+  /LCP[\s\S]{0,300}FCP[\s\S]{0,300}CLS[\s\S]{0,300}TTFB/.test(js));
+test('v4.99.50 Phase6c: by-platform slice (iOS / Android / Other)',
+  /platLcps\s*=\s*\{\s*iOS:[\s\S]{0,80}Android:[\s\S]{0,80}Other:/.test(js));
+test('v4.99.50 Phase6c: dashboard CSS exists (.wv-summary-grid + .wv-card)',
+  /\.wv-summary-grid\s*\{/.test(css) && /\.wv-card\s*\{/.test(css));
+test('v4.99.50 Phase6c: dashboard CSS has good/mid/bad verdict color tiers',
+  /\.wv-card\.wv-good\s*\{/.test(css)
+  && /\.wv-card\.wv-mid\s*\{/.test(css)
+  && /\.wv-card\.wv-bad\s*\{/.test(css));
+test('v4.99.50 Phase6c: dashboard is responsive (2-col grid at mobile)',
+  /@media\s*\(max-width:\s*600px\)[\s\S]{0,300}\.wv-summary-grid\s*\{\s*grid-template-columns:\s*repeat\(2,/.test(css));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

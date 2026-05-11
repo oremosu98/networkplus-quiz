@@ -264,7 +264,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.49</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.50</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -2862,6 +2862,23 @@
     <button class="btn btn-danger" onclick="clearErrorLog()" style="font-size:13px">&#128465; Clear All</button>
   </div>
   <div id="monitor-log" class="monitor-log"></div>
+</div>
+
+<!-- v4.99.50 Phase 6c: Web Vitals admin dashboard. Reads the web_vitals
+     table (Phase 6b · v4.99.45) via Supabase. Admin-only — is_admin()
+     RPC gate. Reachable via /?action=web-vitals or admin sidebar link. -->
+<div id="page-web-vitals" class="page">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <h2 style="margin:0">&#128202; Web Vitals · admin</h2>
+  </div>
+  <p style="color:var(--text-mid);font-size:13px;margin:0 0 16px">Real-user performance telemetry collected by lib/web-vitals-collector.js on every signed-in prod session. Admin-only.</p>
+
+  <div id="wv-summary" class="wv-summary"></div>
+  <div id="wv-bycert" class="wv-section"></div>
+  <div id="wv-byversion" class="wv-section"></div>
+  <div id="wv-byplatform" class="wv-section"></div>
+  <div id="wv-recent" class="wv-section"></div>
 </div>
 
 <!-- v4.63.0: import map for the 3D View mode (issue #199). Resolves bare

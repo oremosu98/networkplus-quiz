@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.49
+// Network+ AI Quiz — app.js  v4.99.50
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.49';
+const APP_VERSION = '4.99.50';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1310,6 +1310,195 @@ function clearErrorLog() {
   if (!confirm('Clear all logged errors? This cannot be undone.')) return;
   localStorage.removeItem(STORAGE.ERROR_LOG);
   renderMonitor();
+}
+
+// ══════════════════════════════════════════
+// v4.99.50 (Phase 6c) — Web Vitals admin dashboard
+// ══════════════════════════════════════════
+// Reads the web_vitals table populated by lib/web-vitals-collector.js
+// (shipped in Phase 6b v4.99.45). Admin-only — gates via the existing
+// is_admin() RPC. Computes p75 / median for LCP, FCP, CLS, TTFB across
+// last 7 days. Slices by app version + cert + iOS/Android platform.
+//
+// Entry points:
+//   • /?action=web-vitals URL param
+//   • openWebVitalsAdmin() called from sidebar/settings (when admin)
+
+async function openWebVitalsAdmin() {
+  // Gate via is_admin RPC — non-admins see a clear redirect.
+  try {
+    if (!window.certanvilSupabase) {
+      showErrorToast('Sign in required to view admin telemetry');
+      return;
+    }
+    const { data: adminCheck, error: adminErr } = await window.certanvilSupabase.rpc('is_admin');
+    if (adminErr || !adminCheck) {
+      showErrorToast('Admin access required');
+      goSetup();
+      return;
+    }
+  } catch (_) {
+    showErrorToast('Could not verify admin access');
+    return;
+  }
+
+  showPage('web-vitals');
+  await renderWebVitals();
+}
+
+async function renderWebVitals() {
+  const summary = document.getElementById('wv-summary');
+  const byCert = document.getElementById('wv-bycert');
+  const byVer = document.getElementById('wv-byversion');
+  const byPlat = document.getElementById('wv-byplatform');
+  const recent = document.getElementById('wv-recent');
+  if (!summary) return;
+
+  summary.innerHTML = '<div class="wv-loading">Loading telemetry…</div>';
+
+  // Fetch last 7 days of rows (admin RLS allows full read)
+  let rows = [];
+  try {
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await window.certanvilSupabase
+      .from('web_vitals')
+      .select('*')
+      .gte('captured_at', cutoff)
+      .order('captured_at', { ascending: false });
+    if (error) throw error;
+    rows = data || [];
+  } catch (err) {
+    summary.innerHTML = '<div class="wv-error">Failed to load: ' + escHtml(String(err.message || err)) + '</div>';
+    return;
+  }
+
+  if (rows.length === 0) {
+    summary.innerHTML = '<div class="wv-empty">No telemetry in the last 7 days. Once signed-in users hit prod (networkplus.certanvil.com / secplus-*) and switch tabs, rows will appear here.</div>';
+    byCert.innerHTML = ''; byVer.innerHTML = ''; byPlat.innerHTML = ''; recent.innerHTML = '';
+    return;
+  }
+
+  // ── Summary (p75 across all rows) ──
+  const p75 = (vals) => {
+    if (!vals.length) return null;
+    const sorted = vals.slice().sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length * 0.75)];
+  };
+  const lcps = rows.map(r => r.lcp_ms).filter(v => v != null);
+  const fcps = rows.map(r => r.fcp_ms).filter(v => v != null);
+  const clss = rows.map(r => Number(r.cls)).filter(v => v != null && !isNaN(v));
+  const ttfbs = rows.map(r => r.ttfb_ms).filter(v => v != null);
+
+  const verdictMs = (val, good, poor) => {
+    if (val == null) return 'na';
+    if (val <= good) return 'good';
+    if (val <= poor) return 'mid';
+    return 'bad';
+  };
+  const verdictCls = (val) => {
+    if (val == null) return 'na';
+    if (val <= 0.1) return 'good';
+    if (val <= 0.25) return 'mid';
+    return 'bad';
+  };
+
+  summary.innerHTML = `<div class="wv-summary-grid">
+    <div class="wv-card wv-${verdictMs(p75(lcps), 2500, 4000)}">
+      <div class="wv-card-label">LCP · p75</div>
+      <div class="wv-card-value">${p75(lcps) != null ? Math.round(p75(lcps)) + ' ms' : '—'}</div>
+      <div class="wv-card-sub">Good &lt;2500 · Poor &gt;4000</div>
+    </div>
+    <div class="wv-card wv-${verdictMs(p75(fcps), 1800, 3000)}">
+      <div class="wv-card-label">FCP · p75</div>
+      <div class="wv-card-value">${p75(fcps) != null ? Math.round(p75(fcps)) + ' ms' : '—'}</div>
+      <div class="wv-card-sub">Good &lt;1800 · Poor &gt;3000</div>
+    </div>
+    <div class="wv-card wv-${verdictCls(p75(clss))}">
+      <div class="wv-card-label">CLS · p75</div>
+      <div class="wv-card-value">${p75(clss) != null ? (Math.round(p75(clss) * 1000) / 1000) : '—'}</div>
+      <div class="wv-card-sub">Good &lt;0.1 · Poor &gt;0.25</div>
+    </div>
+    <div class="wv-card wv-${verdictMs(p75(ttfbs), 800, 1800)}">
+      <div class="wv-card-label">TTFB · p75</div>
+      <div class="wv-card-value">${p75(ttfbs) != null ? Math.round(p75(ttfbs)) + ' ms' : '—'}</div>
+      <div class="wv-card-sub">Good &lt;800 · Poor &gt;1800</div>
+    </div>
+  </div>
+  <div class="wv-meta">${rows.length} session${rows.length === 1 ? '' : 's'} captured in last 7 days · oldest ${new Date(rows[rows.length - 1].captured_at).toLocaleString()}</div>`;
+
+  // ── By cert (LCP p75 per cert) ──
+  const byCertGroups = {};
+  rows.forEach(r => {
+    const key = r.cert || 'unknown';
+    (byCertGroups[key] = byCertGroups[key] || []).push(r);
+  });
+  byCert.innerHTML = '<h3 class="wv-section-title">By cert</h3>' + Object.keys(byCertGroups).sort().map(cert => {
+    const certLcps = byCertGroups[cert].map(r => r.lcp_ms).filter(v => v != null);
+    const p = p75(certLcps);
+    return `<div class="wv-row">
+      <div class="wv-row-label">${escHtml(cert)}</div>
+      <div class="wv-row-meta">${byCertGroups[cert].length} sessions</div>
+      <div class="wv-row-val wv-${verdictMs(p, 2500, 4000)}">${p != null ? Math.round(p) + ' ms LCP p75' : '—'}</div>
+    </div>`;
+  }).join('');
+
+  // ── By app version (latest 5) ──
+  const byVerGroups = {};
+  rows.forEach(r => {
+    const key = r.app_version || 'unknown';
+    (byVerGroups[key] = byVerGroups[key] || []).push(r);
+  });
+  const versionsSorted = Object.keys(byVerGroups).sort().reverse().slice(0, 6);
+  byVer.innerHTML = '<h3 class="wv-section-title">By app version · latest 6</h3>' + versionsSorted.map(v => {
+    const verLcps = byVerGroups[v].map(r => r.lcp_ms).filter(x => x != null);
+    const p = p75(verLcps);
+    return `<div class="wv-row">
+      <div class="wv-row-label">v${escHtml(v)}</div>
+      <div class="wv-row-meta">${byVerGroups[v].length} sessions</div>
+      <div class="wv-row-val wv-${verdictMs(p, 2500, 4000)}">${p != null ? Math.round(p) + ' ms LCP p75' : '—'}</div>
+    </div>`;
+  }).join('');
+
+  // ── By platform (iOS / Android / Other) ──
+  const platLcps = { iOS: [], Android: [], Other: [] };
+  rows.forEach(r => {
+    const ua = (r.user_agent_short || '').toLowerCase();
+    let key = 'Other';
+    if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) key = 'iOS';
+    else if (ua.includes('android')) key = 'Android';
+    if (r.lcp_ms != null) platLcps[key].push(r.lcp_ms);
+  });
+  byPlat.innerHTML = '<h3 class="wv-section-title">By platform</h3>' + ['iOS', 'Android', 'Other'].map(plat => {
+    const p = p75(platLcps[plat]);
+    return `<div class="wv-row">
+      <div class="wv-row-label">${plat}</div>
+      <div class="wv-row-meta">${platLcps[plat].length} sessions</div>
+      <div class="wv-row-val wv-${verdictMs(p, 2500, 4000)}">${p != null ? Math.round(p) + ' ms LCP p75' : '—'}</div>
+    </div>`;
+  }).join('');
+
+  // ── Recent 20 sessions ──
+  recent.innerHTML = '<h3 class="wv-section-title">Recent sessions · latest 20</h3>' +
+    '<div class="wv-table-wrap"><table class="wv-table"><thead><tr>' +
+    '<th>Captured</th><th>Version</th><th>Cert</th><th>LCP</th><th>FCP</th><th>CLS</th><th>TTFB</th><th>Viewport</th><th>Conn</th>' +
+    '</tr></thead><tbody>' +
+    rows.slice(0, 20).map(r => {
+      const t = new Date(r.captured_at);
+      const tStr = t.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const cls = r.cls != null ? (Math.round(Number(r.cls) * 1000) / 1000) : '—';
+      return `<tr>
+        <td>${escHtml(tStr)}</td>
+        <td>v${escHtml(r.app_version || '?')}</td>
+        <td>${escHtml(r.cert || '—')}</td>
+        <td>${r.lcp_ms != null ? r.lcp_ms + ' ms' : '—'}</td>
+        <td>${r.fcp_ms != null ? r.fcp_ms + ' ms' : '—'}</td>
+        <td>${cls}</td>
+        <td>${r.ttfb_ms != null ? r.ttfb_ms + ' ms' : '—'}</td>
+        <td>${r.viewport_w || '?'}×${r.viewport_h || '?'}</td>
+        <td>${escHtml(r.connection_type || '—')}</td>
+      </tr>`;
+    }).join('') +
+    '</tbody></table></div>';
 }
 
 function saveGhToken() {
@@ -19877,6 +20066,14 @@ function _processUrlAction() {
           try { startDiagnostic(); } catch (e) { console.warn('[url-action] startDiagnostic threw', e); }
         }
       }, 100);
+    }
+    if (action === 'web-vitals') {
+      // v4.99.50 Phase 6c: open admin dashboard. Function gates via is_admin RPC.
+      setTimeout(function () {
+        if (typeof openWebVitalsAdmin === 'function') {
+          try { openWebVitalsAdmin(); } catch (e) { console.warn('[url-action] openWebVitalsAdmin threw', e); }
+        }
+      }, 500);  // small extra delay so Supabase session settles
     }
     // Future: action=newest|streak|wrongbank|etc.
     if (from) console.info('[url-action]', { action: action, from: from });
