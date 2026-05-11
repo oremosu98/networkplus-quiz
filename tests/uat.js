@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.40', js.includes("const APP_VERSION = '4.99.40"));
+test('APP_VERSION is 4.99.41', js.includes("const APP_VERSION = '4.99.41"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.40', sw.includes('netplus-v4.99.40'));
+test('SW cache bumped to v4.99.41', sw.includes('netplus-v4.99.41'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -16167,17 +16167,17 @@ test('v4.87.1 CarryOver: Security+ pack has 77 carry-over exemplars (from Networ
 // v4.95.1 → v4.99.25: cumulative Phase 3 total grows with each cycle.
 // Cycle 1 (v4.88.3) = 15 (Messer gaps), Cycle 2 (v4.95.1) = 3 (Gap Analysis),
 // Cycle 3 (v4.99.25) = 8 (Zero Trust). Total: 26.
-test('v4.99.40 Phase 3 (Cycles 1+2+3+4): 36 Security+ Phase 3 exemplars in bank',
-  // v4.99.40 Cycle 4 (Physical Security) added 10 exemplars (was 26 after Cycle 3 → now 36).
+test('v4.99.41 Phase 3 (Cycles 1+2+3+4+5): 44 Security+ Phase 3 exemplars in bank',
+  // v4.99.41 Cycle 5 (Deception & Disruption) added 8 exemplars (was 36 → now 44).
   (() => {
     const matches = certSecplus.match(/"source":"curated-secplus-phase3"/g) || [];
-    return matches.length === 36;
+    return matches.length === 44;
   })());
-test('v4.99.40 Phase 3: total Security+ bank size is 113 (77 carry-over + 36 phase 3)',
-  // v4.99.40: was 103 after Cycle 3 → now 113.
+test('v4.99.41 Phase 3: total Security+ bank size is 121 (77 carry-over + 44 phase 3)',
+  // v4.99.41: was 113 after Cycle 4 → now 121.
   (() => {
     const matches = certSecplus.match(/"type":"(?:mcq|multi-select)"/g) || [];
-    return matches.length === 113;
+    return matches.length === 121;
   })());
 test('v4.95.1 Phase 3 Cycle 2: 3 new Gap Analysis exemplars (v4.95.1)',
   (() => {
@@ -16245,6 +16245,42 @@ test('v4.99.40 Phase 3 Cycle 4: Air Gap vs DMZ vs VLAN Isolation retention conce
   /label:\s*'Air Gap vs DMZ vs VLAN Isolation'/.test(certSecplus));
 test('v4.99.40 Phase 3 Cycle 4: retention concepts spell out the deterrent/preventive/detective distinction',
   /DETERRENT[\s\S]{0,200}psychological barrier[\s\S]{0,200}PREVENTIVE[\s\S]{0,200}physical barrier[\s\S]{0,200}DETECTIVE/i.test(certSecplus));
+
+// v4.99.41 Phase 3 Cycle 5 — Deception & Disruption gap from morning Messer studying
+test('v4.99.41 Phase 3 Cycle 5: 8 new Deception/Disruption exemplars (v4.99.41)',
+  (() => {
+    const matches = certSecplus.match(/"addedVersion":"4\.99\.41"/g) || [];
+    return matches.length === 8;
+  })());
+test('v4.99.41 Phase 3 Cycle 5: all 8 new exemplars target Security Controls / Domain 1.2',
+  (() => {
+    const matches = certSecplus.match(/"topic":"Security Controls","objective":"1\.2"[\s\S]{0,5000}?"addedVersion":"4\.99\.41"/g) || [];
+    return matches.length === 8;
+  })());
+test('v4.99.41 Phase 3 Cycle 5: Cluster A — honeypot primary-purpose exemplar (Foundational)',
+  /intentionally vulnerable web server[\s\S]{0,2000}classic honeypot/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster A — honeynet (lateral movement chain) exemplar',
+  /lateral-movement chain[\s\S]{0,2000}honeynet — a network of multiple interconnected honeypots/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster A — honeyfile (passwords_2026.txt) exemplar',
+  /passwords_2026\.txt[\s\S]{0,2000}honeyfile/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster A — honeytoken (seeded DB records, broadest umbrella) exemplar',
+  /honeytoken[\s\S]{0,2000}umbrella concept[\s\S]{0,1000}fake API keys/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster B — DNS sinkhole (C2 redirect + log infected hosts) exemplar',
+  /DNS sinkhole[\s\S]{0,2000}recursive DNS resolver[\s\S]{0,1000}requesting client/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster B — DNS sinkhole vs sandbox multi-select exemplar',
+  /distinguish a DNS sinkhole from a sandbox[\s\S]{0,3000}NAME RESOLUTION/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster C — fake telemetry (mislead recon) exemplar',
+  /fake telemetry[\s\S]{0,2500}deliberately misleading/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Cluster C — Deception vs Disruption umbrella exemplar',
+  /distinguishes DECEPTION technologies from DISRUPTION/i.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Honey-X Scope Ladder retention concept added',
+  /label:\s*'Honey-X Scope Ladder'/.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: DNS Sinkhole retention concept added',
+  /label:\s*'DNS Sinkhole'/.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Deception vs Disruption retention concept added',
+  /label:\s*'Deception vs Disruption'/.test(certSecplus));
+test('v4.99.41 Phase 3 Cycle 5: Honey-X retention concept spells out the scope ladder (system→network→file→token)',
+  /HONEYPOT = a whole DECOY SYSTEM[\s\S]{0,500}HONEYNET[\s\S]{0,300}HONEYFILE[\s\S]{0,300}HONEYTOKEN/i.test(certSecplus));
 
 // ── v4.99.26 — Cert-aware Today's Plan filter + GT_ZERO_TRUST validator ──
 test('v4.99.26 CertFilter: _isCurrentCertTopic helper defined',
@@ -16355,7 +16391,7 @@ test('v4.87.1 CarryOver: every entry has originalTopic field for traceability',
     const matches = m[1].match(/"originalTopic":/g) || [];
     return matches.length === 77;
   })());
-// v4.99.40: now covers all 113 exemplars (77 carry-over + 36 Phase 3 Cycles 1+2+3+4)
+// v4.99.41: now covers all 121 exemplars (77 carry-over + 44 Phase 3 Cycles 1+2+3+4+5)
 test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
   (() => {
     const m = certSecplus.match(/questionExemplars:\s*\[([\s\S]*?)\n\s*\]\s*\n?\s*\}/);
@@ -16366,7 +16402,7 @@ test('v4.87.1 CarryOver: target topics are all valid SY0-701 topics',
     (tdM[1].match(/'([^']+)':\s*'(?:concepts|threats|architecture|operations|governance)'/g) || [])
       .forEach(line => { const t = line.match(/'([^']+)':/); if (t) validTopics.add(t[1]); });
     const exTopics = (m[1].match(/"topic":"([^"]+)"/g) || []).map(s => s.replace(/^"topic":"|"$/g, ''));
-    return exTopics.length === 113 && exTopics.every(t => validTopics.has(t));
+    return exTopics.length === 121 && exTopics.every(t => validTopics.has(t));
   })());
 
 // ── Dynamic topic-chip rendering ──
