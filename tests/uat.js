@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.54', js.includes("const APP_VERSION = '4.99.54"));
+test('APP_VERSION is 4.99.55', js.includes("const APP_VERSION = '4.99.55"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.54', sw.includes('netplus-v4.99.54'));
+test('SW cache bumped to v4.99.55', sw.includes('netplus-v4.99.55'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19727,7 +19727,10 @@ test('v4.99.53 D.2: options use ARIA radiogroup semantics',
 
 // — Results page —
 test('v4.99.53 D.2: results page reads certanvilDiagnosticResults from sessionStorage',
-  /sessionStorage\.getItem\(\s*['"]certanvilDiagnosticResults['"]/.test(_dxResultsD2Raw));
+  // v4.99.55: results.html refactored to read via constant RESULTS_KEY. Accept either shape.
+  /sessionStorage\.getItem\(\s*['"]certanvilDiagnosticResults['"]/.test(_dxResultsD2Raw) ||
+  (/RESULTS_KEY\s*=\s*['"]certanvilDiagnosticResults['"]/.test(_dxResultsD2Raw) &&
+   /sessionStorage\.getItem\(\s*RESULTS_KEY/.test(_dxResultsD2Raw)));
 test('v4.99.53 D.2: results page handles "no results yet" empty state gracefully',
   /No results yet|haven't taken/.test(_dxResultsD2Raw));
 test('v4.99.53 D.2: results page renders scaled score (100-900) with pass-threshold marker',
@@ -19847,6 +19850,108 @@ test('v4.99.54 D.3: quiz.html tickTimer guards against null session (avoids load
   /function\s+tickTimer[\s\S]{0,100}if\s*\(\s*!session/.test(_quizD3Raw));
 test('v4.99.54 D.3: quiz.html forwards intake state to /api/diagnostic/generate',
   /intake:\s*getIntake\(\)/.test(_quizD3Raw));
+
+// ══════════════════════════════════════════════════════════════════════════
+// v4.99.55 — D.4 Landing Diagnostic · rich results page
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── v4.99.55 — D.4 LANDING DIAGNOSTIC RICH RESULTS ──\x1b[0m');
+
+const _resultsD4Path = path.join(__dirname, '..', 'landing', 'diagnostic', 'network-plus', 'results.html');
+let _resultsD4Raw = '';
+try { _resultsD4Raw = fs.readFileSync(_resultsD4Path, 'utf8'); } catch (_) {}
+
+test('v4.99.55 D.4: landing/diagnostic/network-plus/results.html exists', _resultsD4Raw.length > 0);
+
+// Tombstone: the D.2 placeholder banner must not reappear
+test('v4.99.55 D.4: D.2 placeholder banner removed (dr-d4-banner tombstone)',
+  !_resultsD4Raw.includes('dr-d4-banner'));
+test('v4.99.55 D.4: placeholder "D.4 next ship" banner copy removed',
+  !_resultsD4Raw.includes('📅 D.4 next ship'));
+
+// Score ring structure
+test('v4.99.55 D.4: score ring SVG present (viewBox 200x200)',
+  _resultsD4Raw.includes('viewBox="0 0 200 200"') && _resultsD4Raw.includes('dr-ring-svg'));
+test('v4.99.55 D.4: score ring has bg + fg circles with same radius (RING_RADIUS)',
+  /class="dr-ring-bg"[^>]+r="['"]?\s*\+\s*RING_RADIUS/.test(_resultsD4Raw) &&
+  /class="dr-ring-fg[^"]*"[^>]+r="['"]?\s*\+\s*RING_RADIUS/.test(_resultsD4Raw) &&
+  /var\s+RING_RADIUS\s*=\s*80/.test(_resultsD4Raw));
+test('v4.99.55 D.4: score ring fg uses stroke-dashoffset animation',
+  _resultsD4Raw.includes('stroke-dashoffset') && /transition:\s*stroke-dashoffset/.test(_resultsD4Raw));
+test('v4.99.55 D.4: score ring has pass-threshold tick element',
+  _resultsD4Raw.includes('dr-ring-tick'));
+test('v4.99.55 D.4: pass tick rotates to passFraction × 360°',
+  /passFraction\s*\*\s*360/.test(_resultsD4Raw));
+
+// Score band classification: foundation / near-pass / on-pace / ready
+test('v4.99.55 D.4: classifyBand function defined with 4 band thresholds',
+  /function\s+classifyBand[\s\S]{0,200}>=\s*800[\s\S]{0,80}>=\s*720[\s\S]{0,80}>=\s*600/.test(_resultsD4Raw));
+test('v4.99.55 D.4: ring colour classes for each band (foundation/near-pass/on-pace/ready)',
+  _resultsD4Raw.includes('is-foundation') && _resultsD4Raw.includes('is-near-pass') &&
+  _resultsD4Raw.includes('is-on-pace') && _resultsD4Raw.includes('is-ready'));
+
+// Pass Plan
+test('v4.99.55 D.4: Pass Plan section with band pill + headline + 3 steps',
+  _resultsD4Raw.includes('dr-passplan-band') && _resultsD4Raw.includes('dr-passplan-steps'));
+test('v4.99.55 D.4: bandCopy function returns label/headline/tone per band',
+  /function\s+bandCopy[\s\S]{0,2000}Exam-ready[\s\S]{0,1000}On pace[\s\S]{0,1000}Near pass[\s\S]{0,1000}Foundation/.test(_resultsD4Raw));
+test('v4.99.55 D.4: Pass Plan keyed to weak domains (uses top3WeakDomains)',
+  _resultsD4Raw.includes('top3WeakDomains'));
+test('v4.99.55 D.4: Pass Plan keyed to intake.examDate (daysUntil helper)',
+  /function\s+daysUntil/.test(_resultsD4Raw) && _resultsD4Raw.includes('examDays'));
+test('v4.99.55 D.4: Pass Plan keyed to intake.intensity (casual/balanced/intense)',
+  _resultsD4Raw.includes("intensity === 'intense'") && _resultsD4Raw.includes("intensity === 'casual'"));
+test('v4.99.55 D.4: DOMAIN_DRILLS map covers all 5 N10-009 domains',
+  /DOMAIN_DRILLS\s*=[\s\S]{0,1200}Networking Concepts[\s\S]{0,1200}Network Implementation[\s\S]{0,1200}Network Operations[\s\S]{0,1200}Network Security[\s\S]{0,1200}Network Troubleshooting/.test(_resultsD4Raw));
+
+// 5-path CTAs (in priority order)
+test('v4.99.55 D.4: CTA 1 · Subscribe (primary, Path A)',
+  /id="dr-cta-subscribe"[\s\S]{0,300}Subscribe to CertAnvil Pro/.test(_resultsD4Raw));
+test('v4.99.55 D.4: CTA 2 · Continue with free account (Path B · magic-link)',
+  /id="dr-cta-continue"[\s\S]{0,300}Continue with a free account/.test(_resultsD4Raw));
+test('v4.99.55 D.4: CTA 3 · Download / email score report (Path C)',
+  /id="dr-cta-download"[\s\S]{0,300}Download or email score report/.test(_resultsD4Raw));
+test('v4.99.55 D.4: CTA 4 · Retake (Path D · clears session + results)',
+  _resultsD4Raw.includes('id="dr-cta-retake"') && /Retake[\s\S]{0,500}removeItem\(SESSION_KEY\)[\s\S]{0,500}removeItem\(RESULTS_KEY\)/.test(_resultsD4Raw));
+test('v4.99.55 D.4: CTA 5 · Back to landing (Path E)',
+  /<a\s+href="\/"[^>]*id="dr-cta-back"/.test(_resultsD4Raw));
+test('v4.99.55 D.4: Retake button confirms before clearing results',
+  /window\.confirm\([^)]*[Rr]etake/.test(_resultsD4Raw));
+
+// Stub panels (pre-Stripe / pre-D.5 / pre-D.6 placeholders)
+test('v4.99.55 D.4: Subscribe stub panel mentions D.6.5 next ship',
+  _resultsD4Raw.includes('dr-stub-subscribe') && _resultsD4Raw.includes('D.6.5 next ship'));
+test('v4.99.55 D.4: Continue stub panel mentions D.5 next ship',
+  _resultsD4Raw.includes('dr-stub-continue') && _resultsD4Raw.includes('D.5 next ship'));
+test('v4.99.55 D.4: Download stub panel mentions D.6 next ship',
+  _resultsD4Raw.includes('dr-stub-download') && _resultsD4Raw.includes('D.6 next ship'));
+test('v4.99.55 D.4: stub panels open/close via openStub/closeStub helpers',
+  /function\s+openStub[\s\S]{0,800}function\s+closeStub/.test(_resultsD4Raw));
+
+// Domain breakdown + answer review
+test('v4.99.55 D.4: domain breakdown sorted weakest-first (uses results.domainBreakdown directly)',
+  /results\.domainBreakdown[\s\S]{0,200}\.map/.test(_resultsD4Raw));
+test('v4.99.55 D.4: domain rows include progress bar + drill targets',
+  _resultsD4Raw.includes('dr-domain-bar-fill') && _resultsD4Raw.includes('DOMAIN_DRILLS[d.domain]'));
+test('v4.99.55 D.4: answer review section is collapsible (toggle button + aria-expanded)',
+  _resultsD4Raw.includes('dr-review-toggle') && _resultsD4Raw.includes('aria-expanded'));
+test('v4.99.55 D.4: answer review surfaces confidence (locked-in/pretty-sure/guessing)',
+  _resultsD4Raw.includes("a.confidence === 'locked-in'") && _resultsD4Raw.includes("a.confidence === 'guessing'"));
+
+// Source banner (carries through from D.3 quiz.html)
+test('v4.99.55 D.4: source eyebrow handles ai / fallback / inline cases',
+  /results\.source\s*===\s*['"]fallback['"]/.test(_resultsD4Raw) && /results\.source\s*===\s*['"]ai['"]/.test(_resultsD4Raw));
+
+// Empty state
+test('v4.99.55 D.4: empty state shown when sessionStorage results missing',
+  /!results\s*\|\|\s*!results\.totalQuestions[\s\S]{0,800}Take the diagnostic to see results/.test(_resultsD4Raw));
+test('v4.99.55 D.4: empty state CTA points to /diagnostic/network-plus/intake',
+  /Take the diagnostic to see results[\s\S]{0,800}\/diagnostic\/network-plus\/intake/.test(_resultsD4Raw));
+
+// Accessibility + reduced motion
+test('v4.99.55 D.4: prefers-reduced-motion neutralises ring + bar transitions',
+  /prefers-reduced-motion[\s\S]{0,200}dr-ring-fg[\s\S]{0,80}transition:\s*none/.test(_resultsD4Raw));
+test('v4.99.55 D.4: review toggle has aria-controls for screen readers',
+  _resultsD4Raw.includes('aria-controls="dr-review-list"'));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

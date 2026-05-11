@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Network+ Diagnostic Results — CertAnvil</title>
 <meta name="theme-color" content="#fafbff">
-<meta name="description" content="Your Network+ baseline diagnostic results — readiness score + weak-domain map.">
+<meta name="description" content="Your Network+ baseline diagnostic results — readiness score + Pass Plan + weak-domain map.">
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="stylesheet" href="../../styles.css">
 <link rel="canonical" href="https://certanvil.com/diagnostic/network-plus/results">
@@ -22,11 +22,22 @@
 })();
 </script>
 <style>
-  /* Results placeholder · D.4 will replace with the rich 5-path UI from the
-     mockup (score ring · weak-domain breakdown · subscribe / continue /
-     download / retake / back fan-out). This v1 placeholder just confirms the
-     state migration works end-to-end. */
-  .dr-shell { max-width: 640px; margin: 0 auto; padding: 48px 18px 60px; text-align: center; }
+  /* ══════════════════════════════════════════════════════════════════════
+     D.4 · Rich results page · v4.99.55
+     ──────────────────────────────────────────────────────────────────────
+     5-path CTA fan-out (Subscribe · Continue · Download · Retake · Back)
+     + animated score ring + Pass Plan keyed to weak-domains + intake +
+     collapsible answer review. Pre-Stripe: Subscribe / Continue / Download
+     route to inline "next ship" panels — D.5 / D.6 / D.6.5 / D.7 wire
+     them to real endpoints.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  .dr-shell { max-width: 720px; margin: 0 auto; padding: 32px 18px 60px; }
+  .dr-empty { text-align: center; padding: 40px 24px; color: var(--text-mid, #6c6d80); }
+  .dr-loading { text-align: center; padding: 60px 24px; color: var(--text-mid, #6c6d80); font-size: 15px; }
+
+  /* ─── Hero ─── */
+  .dr-hero { text-align: center; margin-bottom: 28px; }
   .dr-eyebrow {
     display: inline-block;
     background: rgba(34,197,94,.15);
@@ -37,139 +48,486 @@
     letter-spacing: .12em;
     padding: 5px 12px;
     border-radius: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+  }
+  .dr-eyebrow.is-source-fallback {
+    background: rgba(245,158,11,.15);
+    color: #b45309;
   }
   .dr-h1 {
-    font-size: clamp(28px, 4.5vw, 38px);
+    font-size: clamp(28px, 4.8vw, 40px);
     font-weight: 800;
     letter-spacing: -.02em;
     margin: 0 0 10px;
     line-height: 1.1;
   }
-  .dr-sub { color: var(--text-mid, #6c6d80); font-size: 15px; margin: 0 0 24px; line-height: 1.55; }
+  .dr-sub {
+    color: var(--text-mid, #6c6d80);
+    font-size: 15px;
+    margin: 0 0 4px;
+    line-height: 1.55;
+  }
 
-  .dr-score-card {
+  /* ─── Score ring card ─── */
+  .dr-score-block {
     background: var(--surface, #fff);
     border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 16px;
-    padding: 30px 24px;
-    margin: 0 auto 24px;
-    max-width: 380px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+    border-radius: 20px;
+    padding: 28px 22px 22px;
+    margin: 0 auto 22px;
+    max-width: 560px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.06);
+    text-align: center;
+  }
+  .dr-ring-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 14px;
+  }
+  .dr-ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .dr-ring-bg {
+    fill: none;
+    stroke: var(--border, rgba(0,0,0,.08));
+    stroke-width: 14;
+  }
+  .dr-ring-fg {
+    fill: none;
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke: var(--accent, #7c6ff7);
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1.4s cubic-bezier(.22,.85,.25,1);
+  }
+  .dr-ring-fg.is-foundation { stroke: #b91c1c; }
+  .dr-ring-fg.is-near-pass { stroke: #b45309; }
+  .dr-ring-fg.is-on-pace { stroke: #15803d; }
+  .dr-ring-fg.is-ready { stroke: #047857; }
+
+  .dr-ring-tick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 16px;
+    background: var(--text-mid, #6c6d80);
+    transform-origin: center bottom;
+    /* Pass-threshold tick at 720 → (720-100)/(900-100) = 77.5% of arc.
+       Rotated so its bottom sits at the ring's centre. Translated upward
+       by (ringRadius + half tick height) so the tick floats just outside
+       the foreground stroke. Computed inline by JS. */
+  }
+
+  .dr-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
   }
   .dr-score-num {
     font-size: 56px;
     font-weight: 800;
     line-height: 1;
-    color: var(--accent, #7c6ff7);
-    margin-bottom: 4px;
     letter-spacing: -.02em;
+    color: var(--text, #1a1a26);
   }
-  .dr-score-num.is-passing { color: #15803d; }
-  .dr-score-label {
-    font-size: 11px;
+  .dr-score-out-of {
+    font-size: 12px;
+    color: var(--text-dim, #8a8b9c);
     text-transform: uppercase;
     letter-spacing: .1em;
-    color: var(--text-dim, #8a8b9c);
     font-weight: 700;
+    margin-top: 4px;
   }
-  .dr-score-meta {
-    font-size: 13px;
-    color: var(--text-mid, #4a4b5e);
-    margin-top: 12px;
-    line-height: 1.5;
-  }
-  .dr-score-meta strong { color: var(--text, #1a1a26); }
+
   .dr-pass-marker {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--surface2, #f5f6f9);
     color: var(--text-mid, #4a4b5e);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 8px;
-    margin-top: 10px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    margin-top: 4px;
   }
   .dr-pass-marker.is-passing { background: rgba(34,197,94,.15); color: #15803d; }
+  .dr-pass-marker.is-near { background: rgba(245,158,11,.15); color: #b45309; }
+  .dr-pass-marker.is-far { background: rgba(185,28,28,.10); color: #b91c1c; }
 
-  .dr-domain-list {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin: 0 auto 24px;
-    max-width: 380px;
-    text-align: left;
-  }
-  .dr-domain-list h3 {
-    font-size: 11px;
+  .dr-meta-row {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-dim, #8a8b9c);
     text-transform: uppercase;
     letter-spacing: .08em;
+  }
+  .dr-meta-row span strong { color: var(--text, #1a1a26); font-size: 13px; font-weight: 700; }
+
+  /* ─── Pass Plan ─── */
+  .dr-passplan {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 22px 22px 18px;
+    margin: 0 auto 22px;
+    max-width: 560px;
+  }
+  .dr-section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
     color: var(--text-dim, #8a8b9c);
-    margin: 0 0 10px;
+    margin: 0 0 6px;
     font-weight: 700;
+  }
+  .dr-passplan-head {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text, #1a1a26);
+    margin: 0 0 10px;
+    letter-spacing: -.01em;
+  }
+  .dr-passplan-band {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    padding: 3px 9px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+  .dr-passplan-band.is-foundation { background: rgba(185,28,28,.12); color: #b91c1c; }
+  .dr-passplan-band.is-near-pass { background: rgba(245,158,11,.15); color: #b45309; }
+  .dr-passplan-band.is-on-pace { background: rgba(34,197,94,.15); color: #15803d; }
+  .dr-passplan-band.is-ready { background: rgba(4,120,87,.15); color: #047857; }
+
+  .dr-passplan-summary {
+    font-size: 14px;
+    color: var(--text-mid, #4a4b5e);
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+  .dr-passplan-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dr-passplan-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text, #1a1a26);
+  }
+  .dr-passplan-step-num {
+    flex: 0 0 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--accent, #7c6ff7);
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .dr-passplan-step strong { color: var(--text, #1a1a26); }
+  .dr-passplan-step span.muted { color: var(--text-mid, #6c6d80); }
+
+  /* ─── By-domain breakdown ─── */
+  .dr-domain-block {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin: 0 auto 22px;
+    max-width: 560px;
+  }
+  .dr-domain-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   .dr-domain-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    font-size: 13px;
-    padding: 5px 0;
-    color: var(--text-mid, #4a4b5e);
+    gap: 12px;
+    font-size: 13.5px;
   }
-  .dr-domain-row strong { color: var(--text, #1a1a26); font-weight: 600; }
+  .dr-domain-row-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dr-domain-name {
+    font-weight: 600;
+    color: var(--text, #1a1a26);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dr-domain-count {
+    color: var(--text-dim, #8a8b9c);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .dr-domain-bar {
+    height: 5px;
+    background: var(--surface2, #f5f6f9);
+    border-radius: 99px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .dr-domain-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .9s cubic-bezier(.22,.85,.25,1);
+  }
+  .dr-domain-bar-fill.is-weak { background: #b91c1c; }
+  .dr-domain-bar-fill.is-mid { background: #b45309; }
+  .dr-domain-bar-fill.is-strong { background: #15803d; }
   .dr-domain-pct {
     font-weight: 700;
-    font-size: 12px;
+    font-size: 14px;
+    min-width: 42px;
+    text-align: right;
   }
   .dr-domain-pct.is-weak { color: #b91c1c; }
   .dr-domain-pct.is-mid { color: #b45309; }
   .dr-domain-pct.is-strong { color: #15803d; }
 
-  .dr-d4-banner {
-    background: linear-gradient(135deg, rgba(56,189,248,.06), transparent);
-    border: 1px dashed rgba(56,189,248,.35);
-    border-radius: 10px;
-    padding: 14px 18px;
-    font-size: 12px;
-    color: var(--blue, #38bdf8);
-    margin: 0 auto 24px;
-    max-width: 380px;
-    text-align: left;
+  /* ─── 5-path CTA panel ─── */
+  .dr-cta-block {
+    background: linear-gradient(135deg, rgba(124,111,247,.06), transparent 60%);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 22px 22px;
+    margin: 0 auto 22px;
+    max-width: 560px;
   }
-  .dr-d4-banner strong { color: var(--blue, #38bdf8); display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
-
-  .dr-actions { display: flex; flex-direction: column; gap: 10px; max-width: 380px; margin: 0 auto; }
-  .dr-btn {
+  .dr-cta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dr-cta {
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
-    padding: 12px 18px;
-    border-radius: 10px;
+    padding: 14px 18px;
+    border-radius: 12px;
     border: 1px solid transparent;
     cursor: pointer;
     transition: background .15s, border-color .15s, transform .15s;
-    text-align: center;
+    text-align: left;
     text-decoration: none;
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    background: var(--surface, #fff);
+    width: 100%;
+  }
+  .dr-cta-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface2, #f5f6f9);
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    font-size: 18px;
   }
-  .dr-btn-primary { background: var(--accent, #7c6ff7); color: white; border-color: var(--accent, #7c6ff7); }
-  .dr-btn-primary:hover { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
-  .dr-btn-ghost { background: transparent; color: var(--text-mid, #4a4b5e); border-color: var(--border, rgba(0,0,0,.12)); }
-  .dr-btn-ghost:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
+  .dr-cta-body { display: flex; flex-direction: column; gap: 3px; }
+  .dr-cta-title { font-weight: 700; font-size: 14px; color: var(--text, #1a1a26); }
+  .dr-cta-sub { font-weight: 500; font-size: 12px; color: var(--text-mid, #6c6d80); line-height: 1.4; }
+  .dr-cta-chev { color: var(--text-dim, #8a8b9c); font-size: 18px; }
 
-  .dr-empty {
+  .dr-cta:hover { transform: translateY(-1px); border-color: var(--border, rgba(0,0,0,.16)); }
+  .dr-cta-primary {
+    background: linear-gradient(135deg, #7c6ff7 0%, #6457e3 100%);
+    border-color: #6457e3;
+    color: white;
+  }
+  .dr-cta-primary .dr-cta-icon { background: rgba(255,255,255,.18); }
+  .dr-cta-primary .dr-cta-title { color: white; }
+  .dr-cta-primary .dr-cta-sub { color: rgba(255,255,255,.85); }
+  .dr-cta-primary .dr-cta-chev { color: rgba(255,255,255,.85); }
+  .dr-cta-primary:hover {
+    background: linear-gradient(135deg, #8a7df8 0%, #7065ea 100%);
+    border-color: #7065ea;
+  }
+  .dr-cta-secondary {
+    background: var(--surface, #fff);
+    border-color: var(--accent, #7c6ff7);
+  }
+  .dr-cta-secondary .dr-cta-icon { background: rgba(124,111,247,.12); color: var(--accent, #7c6ff7); }
+  .dr-cta-tertiary {
+    background: var(--surface, #fff);
+    border-color: var(--border, rgba(0,0,0,.08));
+  }
+  .dr-cta-ghost {
+    background: transparent;
+    border: 1px dashed var(--border, rgba(0,0,0,.18));
     color: var(--text-mid, #6c6d80);
-    font-size: 15px;
-    padding: 24px;
+    font-weight: 600;
+    grid-template-columns: 1fr auto;
+    padding: 12px 16px;
+  }
+  .dr-cta-ghost .dr-cta-title { color: var(--text-mid, #6c6d80); font-weight: 600; }
+  .dr-cta-ghost:hover { border-color: var(--text-dim, #8a8b9c); }
+
+  /* ─── Stub panels (Subscribe / Continue / Download placeholders) ─── */
+  .dr-stub {
+    background: var(--surface, #fff);
+    border: 1px solid var(--accent, #7c6ff7);
+    border-radius: 16px;
+    padding: 22px 22px;
+    margin: 0 auto 22px;
+    max-width: 560px;
+    display: none;
+  }
+  .dr-stub.is-open { display: block; }
+  .dr-stub-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .dr-stub-title { font-size: 16px; font-weight: 700; color: var(--text, #1a1a26); margin: 0; }
+  .dr-stub-close {
+    background: transparent;
+    border: 0;
+    padding: 6px 10px;
+    font-size: 18px;
+    color: var(--text-dim, #8a8b9c);
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .dr-stub-close:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
+  .dr-stub-body {
+    font-size: 14px;
+    color: var(--text-mid, #4a4b5e);
+    line-height: 1.6;
+  }
+  .dr-stub-body p { margin: 0 0 10px; }
+  .dr-stub-body p:last-child { margin-bottom: 0; }
+  .dr-stub-pill {
+    display: inline-block;
+    background: rgba(124,111,247,.12);
+    color: var(--accent, #7c6ff7);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 3px 9px;
+    border-radius: 8px;
+    margin-bottom: 8px;
   }
 
+  /* ─── Answer review (collapsible) ─── */
+  .dr-review-block {
+    margin: 0 auto;
+    max-width: 560px;
+  }
+  .dr-review-toggle {
+    background: transparent;
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    color: var(--text-mid, #4a4b5e);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: background .15s;
+  }
+  .dr-review-toggle:hover { background: var(--surface2, #f5f6f9); }
+  .dr-review-list {
+    display: none;
+    margin-top: 14px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .dr-review-list.is-open { display: block; }
+  .dr-review-row {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.06));
+    align-items: center;
+    font-size: 12.5px;
+  }
+  .dr-review-row:last-child { border-bottom: 0; }
+  .dr-review-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .dr-review-mark.is-correct { background: rgba(34,197,94,.18); color: #15803d; }
+  .dr-review-mark.is-wrong { background: rgba(185,28,28,.12); color: #b91c1c; }
+  .dr-review-mark.is-skipped { background: var(--surface2, #f5f6f9); color: var(--text-dim, #8a8b9c); }
+  .dr-review-mid { display: flex; flex-direction: column; gap: 2px; }
+  .dr-review-domain { font-weight: 600; color: var(--text, #1a1a26); font-size: 13px; }
+  .dr-review-topic { color: var(--text-mid, #6c6d80); font-size: 11.5px; }
+  .dr-review-confidence {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-dim, #8a8b9c);
+  }
+  .dr-review-confidence.is-locked-in { color: #047857; }
+  .dr-review-confidence.is-guessing { color: #b91c1c; }
+
+  /* ─── Layout breakpoints ─── */
   @media (max-width: 600px) {
-    .dr-score-num { font-size: 44px; }
-    .dr-score-card { padding: 22px 18px; }
+    .dr-shell { padding: 24px 14px 60px; }
+    .dr-score-num { font-size: 46px; }
+    .dr-score-block { padding: 22px 16px 18px; }
+    .dr-ring-wrap { width: 170px; height: 170px; }
+    .dr-passplan, .dr-domain-block, .dr-cta-block, .dr-stub { padding: 18px 16px; }
+    .dr-cta { padding: 12px 14px; }
+    .dr-cta-icon { width: 32px; height: 32px; font-size: 16px; }
+  }
+
+  /* ─── Reduced motion ─── */
+  @media (prefers-reduced-motion: reduce) {
+    .dr-ring-fg, .dr-domain-bar-fill { transition: none !important; }
   }
 </style>
 </head>
@@ -195,7 +553,7 @@
 
 <main>
 <div class="dr-shell" id="dr-shell">
-  <div class="dr-empty" id="dr-empty">Loading results…</div>
+  <div class="dr-loading" id="dr-loading">Loading results…</div>
 </div>
 </main>
 
@@ -214,92 +572,466 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════════════════
-// D.2-shim · /results page · v4.99.53
+// D.4 · Rich results page · v4.99.55
 // ══════════════════════════════════════════════════════════════════════════
-// v1 placeholder that proves the state migration from quiz → results works.
-// D.4 will replace this with the rich 5-path UI (score ring · weak-domain
-// breakdown with drill buttons · subscribe / continue / download / retake
-// / back fan-out).
-//
 // Reads sessionStorage.certanvilDiagnosticResults (written by quiz.html on
-// completion). If no results found (user navigated here without taking the
-// quiz), shows a friendly "take the diagnostic first" CTA.
+// completion). Renders:
+//   · Hero block with score ring + pass marker + duration
+//   · Pass Plan (band + summary + 3 next-step actions) keyed to weak
+//     domains + intake (examDate, intensity)
+//   · By-domain breakdown (weakest-first) with progress bars
+//   · 5-path CTA fan-out:
+//       1. Subscribe to Pro (Path A · primary) — D.6.5 waitlist · D.7 Stripe
+//       2. Continue with account (Path B · secondary) — D.5 magic-link
+//       3. Download/email score report (Path C) — D.6
+//       4. Retake the diagnostic (Path D · ghost) — wired today
+//       5. Back to landing (Path E · ghost) — wired today
+//   · Collapsible answer review (Q-by-Q with confidence breakdown)
+//
+// Pre-Stripe: Subscribe / Continue / Download show inline "next ship"
+// stub panels instead of erroring or going nowhere. D.5 / D.6 / D.6.5
+// / D.7 will replace those one stub at a time.
 // ══════════════════════════════════════════════════════════════════════════
 
 (function() {
   'use strict';
 
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+
   var shell = document.getElementById('dr-shell');
   var results = null;
   try {
-    var raw = sessionStorage.getItem('certanvilDiagnosticResults');
+    var raw = sessionStorage.getItem(RESULTS_KEY);
     if (raw) results = JSON.parse(raw);
   } catch (_) {}
 
+  // ── Empty state · no results yet ─────────────────────────────────
   if (!results || !results.totalQuestions) {
     shell.innerHTML =
-      '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
-      '<h1 class="dr-h1">Take the diagnostic to see results</h1>' +
-      '<p class="dr-sub">It looks like you haven\'t taken the Network+ baseline diagnostic in this browser session. Start the 20-minute flow to get your score + weak-domain map.</p>' +
-      '<div class="dr-actions">' +
-        '<a href="/diagnostic/network-plus/intake" class="dr-btn dr-btn-primary">Start the diagnostic →</a>' +
-        '<a href="/" class="dr-btn dr-btn-ghost">Back to CertAnvil</a>' +
+      '<div class="dr-hero">' +
+        '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
+        '<h1 class="dr-h1">Take the diagnostic to see results</h1>' +
+        '<p class="dr-sub">It looks like you haven\'t taken the Network+ baseline diagnostic in this browser session. Start the 20-minute flow to get your score, weak-domain map, and Pass Plan.</p>' +
+      '</div>' +
+      '<div class="dr-cta-block">' +
+        '<div class="dr-cta-list">' +
+          '<a href="/diagnostic/network-plus/intake" class="dr-cta dr-cta-primary">' +
+            '<span class="dr-cta-icon">▶</span>' +
+            '<span class="dr-cta-body">' +
+              '<span class="dr-cta-title">Start the Network+ diagnostic</span>' +
+              '<span class="dr-cta-sub">20 questions · ~15 min · honest baseline</span>' +
+            '</span>' +
+            '<span class="dr-cta-chev">→</span>' +
+          '</a>' +
+          '<a href="/" class="dr-cta dr-cta-ghost">' +
+            '<span class="dr-cta-title">Back to CertAnvil</span>' +
+            '<span class="dr-cta-chev">←</span>' +
+          '</a>' +
+        '</div>' +
       '</div>';
     return;
   }
 
-  // Render the score + domain breakdown
-  var passingClass = results.isPassing ? 'is-passing' : '';
-  var diffFromPass = results.scaledScore - results.passThreshold;
-  var passMarkerHtml = results.isPassing
-    ? '<span class="dr-pass-marker is-passing">✓ Above pass threshold (' + results.passThreshold + ')</span>'
-    : '<span class="dr-pass-marker">' + Math.abs(diffFromPass) + ' points below pass (' + results.passThreshold + ')</span>';
-
-  var durationMin = Math.round(results.durationMs / 60000);
-
-  // Domain rows (weakest first, already sorted by quiz.html)
-  var domainRowsHtml = (results.domainBreakdown || []).map(function(d) {
-    var pctClass = d.accuracy < 0.5 ? 'is-weak' : (d.accuracy < 0.8 ? 'is-mid' : 'is-strong');
-    return '<div class="dr-domain-row">' +
-      '<span><strong>' + esc(d.domain) + '</strong> <span style="color:var(--text-dim);font-size:11px">(' + d.correct + '/' + d.total + ')</span></span>' +
-      '<span class="dr-domain-pct ' + pctClass + '">' + Math.round(d.accuracy * 100) + '%</span>' +
-    '</div>';
-  }).join('');
-
-  shell.innerHTML =
-    '<span class="dr-eyebrow">✓ Diagnostic complete · ' + durationMin + ' min</span>' +
-    '<h1 class="dr-h1">' + (results.isPassing ? 'Solid baseline.' : 'Honest baseline.') + '</h1>' +
-    '<p class="dr-sub">' + esc(results.correctCount) + ' / ' + esc(results.totalQuestions) + ' correct across all 5 Network+ N10-009 domains.</p>' +
-
-    '<div class="dr-score-card">' +
-      '<div class="dr-score-num ' + passingClass + '">' + results.scaledScore + '</div>' +
-      '<div class="dr-score-label">readiness · scaled 100-900</div>' +
-      '<div class="dr-score-meta">' +
-        passMarkerHtml +
-      '</div>' +
-    '</div>' +
-
-    '<div class="dr-domain-list">' +
-      '<h3>By domain · weakest first</h3>' +
-      domainRowsHtml +
-    '</div>' +
-
-    '<div class="dr-d4-banner">' +
-      '<strong>📅 D.4 next ship</strong>' +
-      'Full Pass Plan + 5-path CTAs (Subscribe Pro · Continue with account · Download/email · Retake · Back to landing) land in the next ship. The score + domain data are saved.' +
-    '</div>' +
-
-    '<div class="dr-actions">' +
-      '<a href="https://networkplus.certanvil.com/?action=diagnostic" class="dr-btn dr-btn-primary">Continue studying in the cert app →</a>' +
-      '<a href="/diagnostic/network-plus/intake" class="dr-btn dr-btn-ghost">Retake (clears these results)</a>' +
-      '<a href="/" class="dr-btn dr-btn-ghost">Back to CertAnvil</a>' +
-    '</div>';
-
+  // ── Helpers ──────────────────────────────────────────────────────
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+
+  function classifyBand(scaledScore) {
+    if (scaledScore >= 800) return 'ready';
+    if (scaledScore >= 720) return 'on-pace';
+    if (scaledScore >= 600) return 'near-pass';
+    return 'foundation';
+  }
+
+  function bandCopy(band) {
+    if (band === 'ready')      return { label: 'Exam-ready', headline: 'Strong baseline — book the exam.', tone: 'You\'re already above pass on this 20-question slice. Tighten the weak corners and lock in the date.' };
+    if (band === 'on-pace')    return { label: 'On pace',    headline: 'You\'d pass today.',                  tone: 'You crossed pass on this baseline. Lift the bottom 1-2 domains and add an 90-question exam sim for full-load confidence.' };
+    if (band === 'near-pass')  return { label: 'Near pass',  headline: 'Closer than you think.',              tone: 'You\'re 1-2 weak domains away from pass. Drill those topics deliberately — most students close this gap in 2-4 weeks.' };
+    return                     { label: 'Foundation',         headline: 'Honest baseline.',                    tone: 'Plenty of headroom. Anchor on Network+ N10-009 objectives and rebuild from the weakest domain up — most students start here and reach pass in 6-8 weeks of focused study.' };
+  }
+
+  // Concrete drill targets per domain (used in Pass Plan + weak-domain UI)
+  var DOMAIN_DRILLS = {
+    'Networking Concepts':     'Subnetting · IPv6 · ports & protocols · OSI/TCP-IP layers',
+    'Network Implementation':  'VLANs · routing · switching · wireless standards',
+    'Network Operations':      'SNMP · change management · backups · documentation',
+    'Network Security':        'Firewalls · VPNs · 802.1X / AAA · zero trust',
+    'Network Troubleshooting': 'CompTIA methodology · DNS issues · cabling tools · performance baselines'
+  };
+
+  function daysUntil(dateStr) {
+    if (!dateStr) return null;
+    var t = new Date(dateStr).getTime();
+    if (isNaN(t)) return null;
+    return Math.max(0, Math.round((t - Date.now()) / 86400000));
+  }
+
+  // ── Compute derived view-model ──────────────────────────────────
+  var band = classifyBand(results.scaledScore);
+  var bandInfo = bandCopy(band);
+  var weakDomains = (results.domainBreakdown || []).slice(0, 3);
+  var top3WeakDomains = weakDomains.filter(function(d) { return d.accuracy < 0.8; });
+  var examDays = daysUntil(results.intake && results.intake.examDate);
+  var intensity = (results.intake && results.intake.intensity) || null;
+
+  var diffFromPass = results.scaledScore - results.passThreshold;
+  var passMarkerClass = '';
+  var passMarkerText = '';
+  if (results.isPassing) {
+    passMarkerClass = 'is-passing';
+    passMarkerText = '✓ ' + diffFromPass + ' points above pass';
+  } else if (Math.abs(diffFromPass) <= 60) {
+    passMarkerClass = 'is-near';
+    passMarkerText = Math.abs(diffFromPass) + ' points below pass (' + results.passThreshold + ')';
+  } else {
+    passMarkerClass = 'is-far';
+    passMarkerText = Math.abs(diffFromPass) + ' points below pass (' + results.passThreshold + ')';
+  }
+
+  var durationMin = Math.max(1, Math.round(results.durationMs / 60000));
+  var sourceLabel = results.source === 'ai' ? 'AI-generated · 20 Q'
+                  : results.source === 'fallback' ? 'Local set · 20 Q'
+                  : '20 Q';
+
+  // Ring geometry
+  var RING_RADIUS = 80;  // SVG units; viewBox is 200x200
+  var RING_CIRC = 2 * Math.PI * RING_RADIUS;
+  // Normalise score onto 0-1 across the (100-900) range
+  var scoreFraction = Math.max(0, Math.min(1, (results.scaledScore - 100) / 800));
+  var ringFillLength = scoreFraction * RING_CIRC;
+  var passFraction = (results.passThreshold - 100) / 800;  // 720 → 0.775
+
+  // ── Build Pass Plan steps ───────────────────────────────────────
+  function buildPassPlanSteps() {
+    var steps = [];
+
+    // Step 1: addresses weakest domain (or "drill weak topics" for ready band)
+    if (top3WeakDomains.length > 0) {
+      var weakest = top3WeakDomains[0];
+      var drillTargets = DOMAIN_DRILLS[weakest.domain] || 'core topics in this domain';
+      steps.push(
+        '<strong>Start with ' + esc(weakest.domain) + '</strong> ' +
+        '<span class="muted">(' + Math.round(weakest.accuracy * 100) + '% on this baseline). ' +
+        'Drill ' + esc(drillTargets) + '. Aim for ≥85% across 30 questions before moving on.</span>'
+      );
+    } else {
+      steps.push(
+        '<strong>Drill the bottom two domains</strong> ' +
+        '<span class="muted">to push them past 90%. Even strong baselines have asymmetry — your real exam will too.</span>'
+      );
+    }
+
+    // Step 2: cadence based on intake.intensity + examDate
+    var cadenceCopy;
+    if (examDays !== null && examDays < 14) {
+      cadenceCopy = 'Daily 30-Q quizzes (high urgency · ' + examDays + ' days to exam). Two 90-Q exam sims this week, one next week.';
+    } else if (examDays !== null && examDays < 30) {
+      cadenceCopy = 'Three or four 20-Q sessions per week. Schedule one 90-Q exam sim ~10 days before your test date.';
+    } else if (examDays !== null) {
+      cadenceCopy = 'Two 20-Q sessions per week. Add a 90-Q exam sim at month-end to measure climb.';
+    } else if (intensity === 'intense') {
+      cadenceCopy = 'Daily 20-30 Q sessions. Add a 90-Q exam sim every 7-10 days to measure climb.';
+    } else if (intensity === 'casual') {
+      cadenceCopy = 'Two 20-Q sessions per week. Add a 90-Q exam sim at month-end to measure climb.';
+    } else {
+      cadenceCopy = 'Three 20-Q sessions per week. Add a 90-Q exam sim every 2 weeks to measure climb.';
+    }
+    steps.push('<strong>Lock a study cadence.</strong> <span class="muted">' + esc(cadenceCopy) + '</span>');
+
+    // Step 3: practice modes / exam simulation
+    if (band === 'foundation' || band === 'near-pass') {
+      steps.push(
+        '<strong>Use Topic Deep Dive + Subnet Trainer first.</strong> ' +
+        '<span class="muted">Don\'t rush into 90-Q exam mode while the foundation is still settling — it just rehearses the wrong answers.</span>'
+      );
+    } else if (band === 'on-pace') {
+      steps.push(
+        '<strong>Mix custom quizzes with 90-Q exam sims.</strong> ' +
+        '<span class="muted">You\'re at the right band to start pressure-testing with full-length simulations. Aim for 2-3 sims at ≥760 before booking the exam.</span>'
+      );
+    } else { /* ready */
+      steps.push(
+        '<strong>Book the exam window in the next 2-3 weeks.</strong> ' +
+        '<span class="muted">Don\'t let cold-start decay erode the lead. Run a 90-Q exam sim 5-7 days before the real test as the dress rehearsal.</span>'
+      );
+    }
+
+    return steps;
+  }
+
+  var passPlanSteps = buildPassPlanSteps();
+
+  // ── Build domain breakdown rows ─────────────────────────────────
+  function domainRowsHtml() {
+    return (results.domainBreakdown || []).map(function(d) {
+      var pct = Math.round(d.accuracy * 100);
+      var cls = d.accuracy < 0.5 ? 'is-weak' : (d.accuracy < 0.8 ? 'is-mid' : 'is-strong');
+      var drills = DOMAIN_DRILLS[d.domain] || '';
+      return '<li class="dr-domain-row">' +
+        '<div class="dr-domain-row-left">' +
+          '<span class="dr-domain-name">' + esc(d.domain) +
+            ' <span class="dr-domain-count">' + d.correct + '/' + d.total + '</span>' +
+          '</span>' +
+          '<span class="dr-domain-bar"><span class="dr-domain-bar-fill ' + cls + '" style="width:0%" data-target="' + pct + '"></span></span>' +
+          (drills ? '<span class="dr-review-topic">' + esc(drills) + '</span>' : '') +
+        '</div>' +
+        '<span class="dr-domain-pct ' + cls + '">' + pct + '%</span>' +
+      '</li>';
+    }).join('');
+  }
+
+  // ── Build answer-review rows ────────────────────────────────────
+  function reviewRowsHtml() {
+    return (results.questions || []).map(function(a, idx) {
+      if (!a) {
+        return '<div class="dr-review-row">' +
+          '<span class="dr-review-mark is-skipped">–</span>' +
+          '<div class="dr-review-mid"><span class="dr-review-domain">Q' + (idx + 1) + ' · skipped</span></div>' +
+          '<span class="dr-review-confidence">—</span>' +
+        '</div>';
+      }
+      var markCls = a.isCorrect ? 'is-correct' : 'is-wrong';
+      var markSym = a.isCorrect ? '✓' : '✕';
+      var confCls = a.confidence === 'locked-in' ? 'is-locked-in'
+                  : a.confidence === 'guessing' ? 'is-guessing' : '';
+      var confLabel = a.confidence === 'locked-in' ? 'Locked in'
+                    : a.confidence === 'pretty-sure' ? 'Pretty sure'
+                    : a.confidence === 'guessing' ? 'Guessing' : '—';
+      return '<div class="dr-review-row">' +
+        '<span class="dr-review-mark ' + markCls + '">' + markSym + '</span>' +
+        '<div class="dr-review-mid">' +
+          '<span class="dr-review-domain">Q' + (idx + 1) + ' · ' + esc(a.domain || 'Unknown') + '</span>' +
+          '<span class="dr-review-topic">picked ' + esc(a.picked || '–') + ' · correct ' + esc(a.correct || '–') + ' · ' + (a.difficulty || '') + '</span>' +
+        '</div>' +
+        '<span class="dr-review-confidence ' + confCls + '">' + confLabel + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── Source eyebrow chip ─────────────────────────────────────────
+  var eyebrowHtml;
+  if (results.source === 'fallback') {
+    eyebrowHtml = '<span class="dr-eyebrow is-source-fallback">⚠ Local question set · ' + durationMin + ' min</span>';
+  } else if (results.source === 'ai') {
+    eyebrowHtml = '<span class="dr-eyebrow">✨ AI-generated · ' + durationMin + ' min</span>';
+  } else {
+    eyebrowHtml = '<span class="dr-eyebrow">✓ Diagnostic complete · ' + durationMin + ' min</span>';
+  }
+
+  // ── Render the full page ────────────────────────────────────────
+  shell.innerHTML =
+    // ── Hero ───
+    '<div class="dr-hero">' +
+      eyebrowHtml +
+      '<h1 class="dr-h1">' + esc(bandInfo.headline) + '</h1>' +
+      '<p class="dr-sub">' + results.correctCount + ' / ' + results.totalQuestions + ' correct across all 5 Network+ N10-009 domains · ' + sourceLabel + '</p>' +
+    '</div>' +
+
+    // ── Score ring ───
+    '<div class="dr-score-block">' +
+      '<div class="dr-ring-wrap" id="dr-ring-wrap">' +
+        '<svg class="dr-ring-svg" viewBox="0 0 200 200" aria-hidden="true">' +
+          '<circle class="dr-ring-bg" cx="100" cy="100" r="' + RING_RADIUS + '"></circle>' +
+          '<circle class="dr-ring-fg is-' + band + '" cx="100" cy="100" r="' + RING_RADIUS + '" id="dr-ring-fg" ' +
+                  'stroke-dasharray="' + RING_CIRC.toFixed(2) + '" ' +
+                  'stroke-dashoffset="' + RING_CIRC.toFixed(2) + '"></circle>' +
+        '</svg>' +
+        '<div class="dr-ring-tick" id="dr-ring-tick" aria-hidden="true"></div>' +
+        '<div class="dr-ring-center">' +
+          '<span class="dr-score-num" aria-live="polite">' + results.scaledScore + '</span>' +
+          '<span class="dr-score-out-of">/ 900 · pass 720</span>' +
+        '</div>' +
+      '</div>' +
+      '<span class="dr-pass-marker ' + passMarkerClass + '">' + esc(passMarkerText) + '</span>' +
+      '<div class="dr-meta-row">' +
+        '<span>Accuracy <strong>' + Math.round(results.accuracy * 100) + '%</strong></span>' +
+        '<span>Time <strong>' + durationMin + ' min</strong></span>' +
+        '<span>Cert <strong>Network+</strong></span>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Pass Plan ───
+    '<div class="dr-passplan">' +
+      '<p class="dr-section-title">Your Pass Plan</p>' +
+      '<span class="dr-passplan-band is-' + band + '">' + esc(bandInfo.label) + '</span>' +
+      '<h2 class="dr-passplan-head">' + esc(bandInfo.headline) + '</h2>' +
+      '<p class="dr-passplan-summary">' + esc(bandInfo.tone) + '</p>' +
+      '<ul class="dr-passplan-steps">' +
+        passPlanSteps.map(function(s, i) {
+          return '<li class="dr-passplan-step"><span class="dr-passplan-step-num">' + (i + 1) + '</span><div>' + s + '</div></li>';
+        }).join('') +
+      '</ul>' +
+    '</div>' +
+
+    // ── Domain breakdown ───
+    '<div class="dr-domain-block">' +
+      '<p class="dr-section-title">By domain · weakest first</p>' +
+      '<ul class="dr-domain-list">' + domainRowsHtml() + '</ul>' +
+    '</div>' +
+
+    // ── 5-path CTAs ───
+    '<div class="dr-cta-block">' +
+      '<p class="dr-section-title">What next?</p>' +
+      '<div class="dr-cta-list">' +
+        // 1 · Subscribe (Path A · primary)
+        '<button type="button" class="dr-cta dr-cta-primary" id="dr-cta-subscribe" data-path="subscribe">' +
+          '<span class="dr-cta-icon">⚡</span>' +
+          '<span class="dr-cta-body">' +
+            '<span class="dr-cta-title">Subscribe to CertAnvil Pro</span>' +
+            '<span class="dr-cta-sub">Unlimited AI · all certs · pass guarantee · $9.99/mo or $89/yr</span>' +
+          '</span>' +
+          '<span class="dr-cta-chev">→</span>' +
+        '</button>' +
+
+        // 2 · Continue with account (Path B · secondary)
+        '<button type="button" class="dr-cta dr-cta-secondary" id="dr-cta-continue" data-path="continue">' +
+          '<span class="dr-cta-icon">↗</span>' +
+          '<span class="dr-cta-body">' +
+            '<span class="dr-cta-title">Continue with a free account</span>' +
+            '<span class="dr-cta-sub">Save these results · pick up in the cert app · magic-link signup</span>' +
+          '</span>' +
+          '<span class="dr-cta-chev">→</span>' +
+        '</button>' +
+
+        // 3 · Download / email (Path C · tertiary)
+        '<button type="button" class="dr-cta dr-cta-tertiary" id="dr-cta-download" data-path="download">' +
+          '<span class="dr-cta-icon">⬇</span>' +
+          '<span class="dr-cta-body">' +
+            '<span class="dr-cta-title">Download or email score report</span>' +
+            '<span class="dr-cta-sub">PDF with Pass Plan + weak domains · share link · keep a copy</span>' +
+          '</span>' +
+          '<span class="dr-cta-chev">→</span>' +
+        '</button>' +
+
+        // 4 · Retake (Path D · ghost)
+        '<button type="button" class="dr-cta dr-cta-ghost" id="dr-cta-retake" data-path="retake">' +
+          '<span class="dr-cta-title">Retake the diagnostic</span>' +
+          '<span class="dr-cta-chev">↺</span>' +
+        '</button>' +
+
+        // 5 · Back to landing (Path E · ghost)
+        '<a href="/" class="dr-cta dr-cta-ghost" id="dr-cta-back">' +
+          '<span class="dr-cta-title">Back to CertAnvil</span>' +
+          '<span class="dr-cta-chev">←</span>' +
+        '</a>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Stub panels (filled by JS on CTA click) ───
+    '<div class="dr-stub" id="dr-stub-subscribe">' +
+      '<div class="dr-stub-head">' +
+        '<h2 class="dr-stub-title">⚡ CertAnvil Pro · join the launch waitlist</h2>' +
+        '<button type="button" class="dr-stub-close" data-close="subscribe" aria-label="Close">×</button>' +
+      '</div>' +
+      '<div class="dr-stub-body">' +
+        '<span class="dr-stub-pill">D.6.5 next ship</span>' +
+        '<p><strong>Pro launches in the next 2-3 weeks</strong> with unlimited AI question generation, all 4 launch certs (Network+ / Security+ / CCNA / AWS SAA), a pass guarantee, and access to the full Topology Builder, Subnet Trainer, and 90-Q exam simulator.</p>' +
+        '<p>For now, your results are saved locally in this browser session. The waitlist capture form lands here in the next ship — enter your email and you\'ll be first in when subscriptions open.</p>' +
+        '<p style="margin-top:14px"><a href="/pricing" class="dr-cta dr-cta-secondary" style="text-decoration:none;display:inline-grid;grid-template-columns:auto 1fr auto;padding:10px 16px"><span class="dr-cta-icon">💎</span><span class="dr-cta-body"><span class="dr-cta-title">See full pricing</span></span><span class="dr-cta-chev">→</span></a></p>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="dr-stub" id="dr-stub-continue">' +
+      '<div class="dr-stub-head">' +
+        '<h2 class="dr-stub-title">↗ Continue with a free account</h2>' +
+        '<button type="button" class="dr-stub-close" data-close="continue" aria-label="Close">×</button>' +
+      '</div>' +
+      '<div class="dr-stub-body">' +
+        '<span class="dr-stub-pill">D.5 next ship</span>' +
+        '<p><strong>Free-tier signup lands in the next ship.</strong> When you create an account, these diagnostic results merge into your profile so they\'re waiting for you the moment you sign in to the cert app.</p>' +
+        '<p>Until then, your results are saved in this browser tab. If you head straight to the cert app now, you\'ll start fresh — but you keep BYOK (bring-your-own-Anthropic-key) access to the full feature set on the free tier.</p>' +
+        '<p style="margin-top:14px"><a href="https://networkplus.certanvil.com/?action=diagnostic" class="dr-cta dr-cta-secondary" style="text-decoration:none;display:inline-grid;grid-template-columns:auto 1fr auto;padding:10px 16px"><span class="dr-cta-icon">🚀</span><span class="dr-cta-body"><span class="dr-cta-title">Open the cert app (BYOK)</span></span><span class="dr-cta-chev">→</span></a></p>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="dr-stub" id="dr-stub-download">' +
+      '<div class="dr-stub-head">' +
+        '<h2 class="dr-stub-title">⬇ Download / email score report</h2>' +
+        '<button type="button" class="dr-stub-close" data-close="download" aria-label="Close">×</button>' +
+      '</div>' +
+      '<div class="dr-stub-body">' +
+        '<span class="dr-stub-pill">D.6 next ship</span>' +
+        '<p><strong>PDF + email download lands in the next ship.</strong> You\'ll get a clean printable report with your score ring, Pass Plan, per-domain breakdown, and a shareable <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">/r/{token}</code> link.</p>' +
+        '<p>For now, you can screenshot this page (the score ring + Pass Plan + domain breakdown print cleanly) — that\'s the cheapest fallback until the PDF endpoint goes live.</p>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Answer review ───
+    '<div class="dr-review-block">' +
+      '<button type="button" class="dr-review-toggle" id="dr-review-toggle" aria-expanded="false" aria-controls="dr-review-list">Show question-by-question review ▾</button>' +
+      '<div class="dr-review-list" id="dr-review-list" aria-live="polite">' +
+        reviewRowsHtml() +
+      '</div>' +
+    '</div>';
+
+  // ── Animate the ring fill (after layout settles) ────────────────
+  setTimeout(function() {
+    var fg = document.getElementById('dr-ring-fg');
+    if (fg) fg.setAttribute('stroke-dashoffset', String(RING_CIRC - ringFillLength));
+
+    // Pass-threshold tick: rotate around the ring centre by passFraction × 360°
+    var tick = document.getElementById('dr-ring-tick');
+    if (tick) {
+      // The .dr-ring-tick is anchored at (50%, 50%) via inset; we set transform
+      // so that the tick's BOTTOM lands at the ring (radius = 80 of 100 in
+      // viewBox, but the wrap is 200px so radius ≈ 80px). Rotate to passFraction.
+      var deg = passFraction * 360;
+      tick.style.transform = 'rotate(' + deg + 'deg) translateY(-90px)';
+    }
+
+    // Domain bars
+    document.querySelectorAll('.dr-domain-bar-fill').forEach(function(bar) {
+      var t = parseFloat(bar.getAttribute('data-target')) || 0;
+      bar.style.width = t + '%';
+    });
+  }, 80);
+
+  // ── Wire CTAs ───────────────────────────────────────────────────
+  function openStub(name) {
+    // Close any open stub first
+    ['subscribe', 'continue', 'download'].forEach(function(n) {
+      var el = document.getElementById('dr-stub-' + n);
+      if (el) el.classList.toggle('is-open', n === name);
+    });
+    // Scroll the stub into view
+    var target = document.getElementById('dr-stub-' + name);
+    if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function closeStub(name) {
+    var el = document.getElementById('dr-stub-' + name);
+    if (el) el.classList.remove('is-open');
+  }
+
+  ['subscribe', 'continue', 'download'].forEach(function(name) {
+    var btn = document.getElementById('dr-cta-' + name);
+    if (btn) btn.addEventListener('click', function() { openStub(name); });
+    var closeBtn = document.querySelector('[data-close="' + name + '"]');
+    if (closeBtn) closeBtn.addEventListener('click', function() { closeStub(name); });
+  });
+
+  // Retake: clear session + results + go back to intake
+  var retakeBtn = document.getElementById('dr-cta-retake');
+  if (retakeBtn) retakeBtn.addEventListener('click', function() {
+    if (!window.confirm('Retake the diagnostic? This clears your current results.')) return;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    try { sessionStorage.removeItem(RESULTS_KEY); } catch (_) {}
+    window.location.href = '/diagnostic/network-plus/intake';
+  });
+
+  // Answer review toggle
+  var toggle = document.getElementById('dr-review-toggle');
+  var list = document.getElementById('dr-review-list');
+  if (toggle && list) toggle.addEventListener('click', function() {
+    var open = list.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.textContent = open ? 'Hide question-by-question review ▴' : 'Show question-by-question review ▾';
+  });
+
 })();
 </script>
 
