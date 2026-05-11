@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.48
+// Network+ AI Quiz — app.js  v4.99.49
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.48';
+const APP_VERSION = '4.99.49';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -7626,13 +7626,67 @@ async function retryQuiz() {
 // ══════════════════════════════════════════
 // EXAM TIMER
 // ══════════════════════════════════════════
+// v4.99.49 Phase 10: Wake Lock keeps the phone screen on during the 90-min
+// exam (default lock-screen is 30s on iOS, 60-120s on Android). Acquired
+// when startExamTimer fires, released on submitExam/timeout. Auto-releases
+// when the tab loses visibility (browser behaviour); _examOnVisibilityChange
+// re-acquires when the tab regains visibility. Browser support ~85%
+// (Chrome, Edge, Safari 16.4+, Firefox 126+); gracefully no-ops elsewhere.
+let _examWakeLock = null;
+
+async function _acquireExamWakeLock() {
+  try {
+    if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+      _examWakeLock = await navigator.wakeLock.request('screen');
+      // Auto-released by browser on tab hide — re-acquire on visible
+      _examWakeLock.addEventListener('release', () => { _examWakeLock = null; });
+    }
+  } catch (_) {
+    // Permission denied, battery saver, unsupported — silent no-op
+    _examWakeLock = null;
+  }
+}
+
+async function _releaseExamWakeLock() {
+  try {
+    if (_examWakeLock) {
+      await _examWakeLock.release();
+      _examWakeLock = null;
+    }
+  } catch (_) { _examWakeLock = null; }
+}
+
+// v4.99.49 Phase 10: pause exam timer when tab loses visibility, resume on
+// regain. Tracks "time hidden" so examEndTime is extended by the same
+// amount — student doesn't lose seconds to a notification interrupt.
+let _examHiddenAt = null;
+
+function _examOnVisibilityChange() {
+  if (!examMode || !examTimer) return;  // only act during an exam
+  if (document.visibilityState === 'hidden') {
+    _examHiddenAt = Date.now();
+  } else if (document.visibilityState === 'visible' && _examHiddenAt) {
+    const hiddenMs = Date.now() - _examHiddenAt;
+    _examHiddenAt = null;
+    if (hiddenMs > 250) {  // ignore quick focus/blur glitches
+      examEndTime += hiddenMs;  // extend deadline by hidden duration
+    }
+    // Wake Lock auto-released on hide — re-acquire
+    _acquireExamWakeLock();
+  }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', _examOnVisibilityChange);
+}
+
 function startExamTimer() {
   if (examTimer) clearInterval(examTimer);
   examEndTime = Date.now() + examTimeLeft * 1000;
+  _acquireExamWakeLock();  // Phase 10: keep phone screen on for 90 min
   examTimer = setInterval(() => {
     examTimeLeft = Math.max(0, Math.round((examEndTime - Date.now()) / 1000));
     updateTimerDisplay();
-    if (examTimeLeft <= 0) { clearInterval(examTimer); examTimer = null; submitExam(); }
+    if (examTimeLeft <= 0) { clearInterval(examTimer); examTimer = null; _releaseExamWakeLock(); submitExam(); }
   }, 1000);
   updateTimerDisplay();
 }
@@ -7819,6 +7873,7 @@ function submitExam() {
   // goSetup() on increment.
   const _prevStreakBefore = (function(){ try { return getStreak().current || 0; } catch (_) { return 0; } })();
   if (examTimer) { clearInterval(examTimer); examTimer = null; }
+  _releaseExamWakeLock();  // Phase 10: phone can sleep now
   hideExamModal();
 
   const total = examQuestions.length;
@@ -18889,6 +18944,57 @@ function _syncSidebarA11y() {
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => { try { _syncSidebarA11y(); } catch (_) {} });
   window.addEventListener('resize', () => { try { _syncSidebarA11y(); } catch (_) {} });
+}
+
+// ══════════════════════════════════════════
+// v4.99.49 (Phase 10) — Online/offline banner
+// ══════════════════════════════════════════
+// Shows a sticky banner at the top of the viewport when the device goes
+// offline. The cert app has a full service-worker stale-while-revalidate
+// cache so most flows degrade gracefully — but AI calls (Generate Quiz,
+// Diagnostic, Topic Deep Dive, Explain Further) require the network. The
+// banner is a gentle "heads-up, AI features won't work" rather than a
+// blocker. Briefly flashes a "you're back online" success when reconnected.
+function _renderConnectivityBanner(state) {
+  // state = 'offline' | 'online' | 'hidden'
+  let el = document.getElementById('connectivity-banner');
+  if (state === 'hidden') {
+    if (el) { el.classList.remove('is-shown'); setTimeout(() => el.remove(), 300); }
+    return;
+  }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'connectivity-banner';
+    el.className = 'connectivity-banner';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  if (state === 'offline') {
+    el.className = 'connectivity-banner offline';
+    el.textContent = '⚡ You\'re offline — AI features (Generate Quiz, Diagnostic, Coach) won\'t work until you reconnect.';
+    requestAnimationFrame(() => el.classList.add('is-shown'));
+  } else if (state === 'online') {
+    el.className = 'connectivity-banner online';
+    el.textContent = '✓ Back online — AI features ready again.';
+    requestAnimationFrame(() => el.classList.add('is-shown'));
+    // Auto-hide after 3 seconds
+    setTimeout(() => _renderConnectivityBanner('hidden'), 3000);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('offline', () => { _renderConnectivityBanner('offline'); });
+  window.addEventListener('online', () => { _renderConnectivityBanner('online'); });
+  // Initial check — if we load while already offline (e.g., PWA cold start
+  // with no network), show the banner right away.
+  window.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        _renderConnectivityBanner('offline');
+      }
+    } catch (_) {}
+  });
 }
 
 // ── Focus banner pullquote (setup page) ──

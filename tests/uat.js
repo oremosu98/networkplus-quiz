@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.48', js.includes("const APP_VERSION = '4.99.48"));
+test('APP_VERSION is 4.99.49', js.includes("const APP_VERSION = '4.99.49"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.48', sw.includes('netplus-v4.99.48'));
+test('SW cache bumped to v4.99.49', sw.includes('netplus-v4.99.49'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19323,6 +19323,60 @@ test('v4.99.48 Phase8: nudge respects prefers-reduced-motion',
 test('v4.99.48 Phase8: regression tombstone — TB no longer uses showErrorToast for desktop-only',
   // The old "Topology Builder works best on desktop. Open on a wider screen" toast must be gone
   !/showErrorToast\("Topology Builder works best on desktop\. Open on a wider screen\."/.test(js));
+
+// ── v4.99.49 — Phase 10: day-to-day mobile usability ──
+// Wake Lock during exam · Visibility API for pause-on-blur · online/offline
+// banner · inputmode hints on numeric/decimal inputs. Each piece is small
+// but cumulatively closes the "feels like a real mobile app" gap.
+console.log('\n\x1b[1m── v4.99.49 — PHASE 10 DAY-TO-DAY MOBILE POLISH ──\x1b[0m');
+
+// Wake Lock
+test('v4.99.49 Phase10: _acquireExamWakeLock helper defined (Screen Wake Lock API)',
+  /async\s+function\s+_acquireExamWakeLock\s*\(/.test(js)
+  && /navigator\.wakeLock\.request\(['"]screen['"]\)/.test(js));
+test('v4.99.49 Phase10: _releaseExamWakeLock helper defined',
+  /async\s+function\s+_releaseExamWakeLock\s*\(/.test(js));
+test('v4.99.49 Phase10: startExamTimer acquires Wake Lock when exam timer starts',
+  /function\s+startExamTimer[\s\S]{0,400}_acquireExamWakeLock\s*\(\s*\)/.test(js));
+test('v4.99.49 Phase10: submitExam releases Wake Lock',
+  /function\s+submitExam[\s\S]{0,400}_releaseExamWakeLock\s*\(\s*\)/.test(js));
+test('v4.99.49 Phase10: exam timer auto-release on timeout also releases Wake Lock',
+  // Inside the setInterval callback: examTimeLeft <= 0 → clear + release + submit
+  /examTimeLeft\s*<=\s*0[\s\S]{0,150}_releaseExamWakeLock\s*\(\s*\)/.test(js));
+
+// Visibility API
+test('v4.99.49 Phase10: _examOnVisibilityChange handler defined',
+  /function\s+_examOnVisibilityChange\s*\(/.test(js));
+test('v4.99.49 Phase10: visibility handler is registered as event listener',
+  /document\.addEventListener\(\s*['"]visibilitychange['"]\s*,\s*_examOnVisibilityChange/.test(js));
+test('v4.99.49 Phase10: visibility handler extends examEndTime by hidden duration (no lost seconds)',
+  /_examOnVisibilityChange[\s\S]{0,500}examEndTime\s*\+=\s*hiddenMs/.test(js));
+
+// Online/offline banner
+test('v4.99.49 Phase10: _renderConnectivityBanner helper defined',
+  /function\s+_renderConnectivityBanner\s*\(\s*state\s*\)/.test(js));
+test('v4.99.49 Phase10: online + offline event listeners registered',
+  /window\.addEventListener\(\s*['"]offline['"]\s*,/.test(js)
+  && /window\.addEventListener\(\s*['"]online['"]\s*,/.test(js));
+test('v4.99.49 Phase10: initial cold-start offline check on DOMContentLoaded',
+  /navigator\.onLine\s*===\s*false[\s\S]{0,200}_renderConnectivityBanner\(\s*['"]offline['"]\s*\)/.test(js));
+test('v4.99.49 Phase10: connectivity-banner CSS exists (sticky top, slide-in animation)',
+  /\.connectivity-banner\s*\{/.test(css)
+  && /\.connectivity-banner\.offline\s*\{/.test(css)
+  && /\.connectivity-banner\.online\s*\{/.test(css));
+test('v4.99.49 Phase10: connectivity banner respects prefers-reduced-motion',
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,300}\.connectivity-banner/.test(css));
+
+// inputmode hints
+test('v4.99.49 Phase10: settings daily-goal input has inputmode="numeric"',
+  /id="settings-daily-input"[^>]*inputmode="numeric"|inputmode="numeric"[^>]*id="settings-daily-input"/.test(html));
+
+// Read subnet-trainer.js source for inputmode check on its inputs
+const _featStRaw = fs.readFileSync(path.join(ROOT, 'features/subnet-trainer.js'), 'utf8');
+test('v4.99.49 Phase10: subnet-trainer answer input has inputmode="decimal" (IP-friendly)',
+  /id="st-answer-input"[\s\S]{0,300}inputmode="decimal"/.test(_featStRaw));
+test('v4.99.49 Phase10: subnet-trainer gate-quiz input has inputmode="decimal"',
+  /id="st-gate-input"[\s\S]{0,300}inputmode="decimal"/.test(_featStRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

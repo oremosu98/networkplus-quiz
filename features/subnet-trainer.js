@@ -497,7 +497,7 @@
       if (stQ.inputType === 'mcq' && stQ.options) {
         ansArea.innerHTML = `<div class="st-mcq-grid">${stQ.options.map(o => `<button class="st-mcq-btn" onclick="stPickMcq(this,'${escHtml(o)}')">${escHtml(o)}</button>`).join('')}</div>`;
       } else {
-        ansArea.innerHTML = `<div class="subnet-input-row"><input type="text" id="st-answer-input" class="subnet-input" placeholder="Type your answer\u2026" autocomplete="off" aria-label="Answer" /><button class="btn btn-primary" onclick="stCheckAnswer()" id="st-submit-btn">Check</button></div>`;
+        ansArea.innerHTML = `<div class="subnet-input-row"><input type="text" id="st-answer-input" class="subnet-input" placeholder="Type your answer\u2026" autocomplete="off" inputmode="decimal" aria-label="Answer" /><button class="btn btn-primary" onclick="stCheckAnswer()" id="st-submit-btn">Check</button></div>`;
         const inp = document.getElementById('st-answer-input');
         if (inp) { inp.disabled = false; inp.focus(); }
       }
@@ -734,7 +734,7 @@
       return;
     }
     const q = gs.questions[gs.current];
-    area.innerHTML = `<div class="st-gate-q"><div class="st-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">${escHtml(q.q)}</div><div class="subnet-input-row"><input type="text" id="st-gate-input" class="subnet-input" placeholder="Your answer\u2026" autocomplete="off" /><button class="btn btn-primary" onclick="stCheckGate()">Check</button></div><div id="st-gate-fb" class="st-feedback"></div></div>`;
+    area.innerHTML = `<div class="st-gate-q"><div class="st-gate-progress">${gs.current + 1} / 5</div><div class="subnet-question" style="font-size:15px;margin-bottom:14px">${escHtml(q.q)}</div><div class="subnet-input-row"><input type="text" id="st-gate-input" class="subnet-input" placeholder="Your answer\u2026" autocomplete="off" inputmode="decimal" /><button class="btn btn-primary" onclick="stCheckGate()">Check</button></div><div id="st-gate-fb" class="st-feedback"></div></div>`;
     document.getElementById('st-gate-input')?.focus();
   }
   
