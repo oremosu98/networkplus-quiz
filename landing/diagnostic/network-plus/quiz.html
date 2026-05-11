@@ -22,6 +22,11 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
+
+<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
+     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
+     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style>
   /* ──────────────────────────────────────────
      Quiz shell · self-contained styling
@@ -315,10 +320,26 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
+  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
+       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
+       a real invisible-mode key from dash.cloudflare.com → Turnstile.
+       Note: data-size is NOT set — invisible mode is determined by the key
+       itself; setting data-size="invisible" throws a TurnstileError. -->
+  <div id="dq-turnstile"
+       class="cf-turnstile"
+       data-sitekey="3x00000000000000000000FF"
+       data-callback="dqTurnstileCallback"
+       data-error-callback="dqTurnstileErrorCallback"
+       data-timeout-callback="dqTurnstileErrorCallback"></div>
+
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
-    <p>Preparing your diagnostic…</p>
+    <p id="dq-loading-text">Preparing your diagnostic…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">Generating 20 fresh questions across the 5 Network+ domains.</p>
   </div>
+
+  <!-- Source banner — surfaces when we fall back to the inline pool -->
+  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -559,40 +580,60 @@
 
   var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
   var CERT = 'network-plus';
+  var TARGET_QUESTION_COUNT = 20;
+  var GENERATE_ENDPOINT = '/api/diagnostic/generate';
+  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
+  var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
-  // Restore prior session if revisiting · otherwise create fresh
+  // v4.99.54 D.3: session envelope now carries the full questions array
+  // (instead of just IDs into the inline pool) because AI-generated questions
+  // have new IDs that won't match the static QUESTION_POOL. Both AI and
+  // inline-pool paths produce the same envelope shape · downstream rendering
+  // is source-agnostic.
+  //
+  // session = {
+  //   cert, startedAt, questions: [<20 normalised Q objects>],
+  //   source: 'ai' | 'fallback' | 'inline',
+  //   currentIdx, answers, pickedLetter, pickedConfidence
+  // }
   var session = null;
   try {
     var rawSession = sessionStorage.getItem(SESSION_KEY);
     if (rawSession) {
       var parsed = JSON.parse(rawSession);
-      if (parsed && parsed.cert === CERT && Array.isArray(parsed.answers) && parsed.answers.length === QUESTION_POOL.length) {
+      if (parsed && parsed.cert === CERT
+          && Array.isArray(parsed.questions) && parsed.questions.length === TARGET_QUESTION_COUNT
+          && Array.isArray(parsed.answers) && parsed.answers.length === TARGET_QUESTION_COUNT) {
         session = parsed;
       }
     }
   } catch (_) {}
 
-  if (!session) {
-    // Shuffle question order so retakes get a different sequence
-    var orderedIds = QUESTION_POOL.map(function(q) { return q.id; });
-    for (var i = orderedIds.length - 1; i > 0; i--) {
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  function shuffleInlinePool() {
+    // Fisher-Yates over the inline pool — used as the fallback question source
+    var copy = QUESTION_POOL.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
-      var tmp = orderedIds[i]; orderedIds[i] = orderedIds[j]; orderedIds[j] = tmp;
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
     }
-    session = {
+    return copy;
+  }
+
+  function createFreshSession(questions, source) {
+    return {
       cert: CERT,
       startedAt: Date.now(),
-      questionOrder: orderedIds,
+      source: source,                          // 'ai' · 'fallback' · 'inline'
+      questions: questions,                    // full Q objects, ordered
       currentIdx: 0,
-      answers: new Array(QUESTION_POOL.length).fill(null),  // { picked, confidence, isCorrect, timeMs }
+      answers: new Array(TARGET_QUESTION_COUNT).fill(null),
       pickedLetter: null,
       pickedConfidence: null
     };
-    persistSession();
-  }
-
-  function persistSession() {
-    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
   }
 
   // ── 3. DOM refs ──
@@ -611,8 +652,8 @@
 
   // ── 4. Render current question ──
   function getCurrentQ() {
-    var qId = session.questionOrder[session.currentIdx];
-    return QUESTION_POOL.find(function(q) { return q.id === qId; });
+    if (!session || !session.questions) return null;
+    return session.questions[session.currentIdx];
   }
 
   function render() {
@@ -620,7 +661,7 @@
     if (!q) return;
 
     // Header
-    var n = QUESTION_POOL.length;
+    var n = session.questions.length;
     progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
     var pct = Math.round(((session.currentIdx + 1) / n) * 100);
     progressFill.style.width = pct + '%';
@@ -689,7 +730,7 @@
     var ready = session.pickedLetter && session.pickedConfidence;
     nextBtn.disabled = !ready;
     if (ready) {
-      hintEl.textContent = (session.currentIdx === QUESTION_POOL.length - 1)
+      hintEl.textContent = (session.currentIdx === session.questions.length - 1)
         ? 'Last one. Click Finish to see your score.'
         : 'Ready. Click Next to continue.';
     } else if (session.pickedLetter && !session.pickedConfidence) {
@@ -718,7 +759,7 @@
     };
     persistSession();
 
-    if (session.currentIdx + 1 >= QUESTION_POOL.length) {
+    if (session.currentIdx + 1 >= session.questions.length) {
       finishDiagnostic();
       return;
     }
@@ -732,7 +773,7 @@
 
   // ── 6. Finish · compute score + navigate to /results ──
   function finishDiagnostic() {
-    var n = QUESTION_POOL.length;
+    var n = session.questions.length;
     var correctCount = 0;
     var domainStats = {};
     var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
@@ -808,11 +849,16 @@
   }
 
   // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  // v4.99.54 D.3: timer no longer auto-starts at module load — session is
+  // null until either the resume path restores it or the fresh-start path
+  // (AI fetch or inline-pool fallback) creates it. Timer is now started
+  // inside startTimer() which is called from showLive().
   var timerInterval = null;
   var hiddenAt = null;
   var totalHiddenMs = 0;
 
   function tickTimer() {
+    if (!session || !session.startedAt) return;  // not yet started
     var elapsed = Date.now() - session.startedAt - totalHiddenMs;
     var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
     if (remaining < 0) {
@@ -827,8 +873,12 @@
       timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
     }
   }
-  tickTimer();
-  timerInterval = setInterval(tickTimer, 1000);
+
+  function startTimer() {
+    if (timerInterval) return;  // already running
+    tickTimer();
+    timerInterval = setInterval(tickTimer, 1000);
+  }
 
   // ── 8. Visibility API · pause timer when tab backgrounded ──
   document.addEventListener('visibilitychange', function() {
@@ -883,10 +933,177 @@
     });
   }
 
-  // ── 12. Boot ──
-  loadingEl.style.display = 'none';
-  liveEl.style.display = 'block';
-  render();
+  // ══════════════════════════════════════════════════════════════════════
+  // ── 12. Boot · AI-first with inline-pool fallback ──
+  // ══════════════════════════════════════════════════════════════════════
+  // Flow:
+  //   A. Session restored from sessionStorage (resume case)
+  //      → start the live quiz immediately at saved currentIdx
+  //
+  //   B. No session in storage (fresh start)
+  //      → wait for Turnstile token (10s timeout, then fallback)
+  //      → POST /api/diagnostic/generate
+  //      → on 2xx success: session.source='ai', use those questions
+  //      → on any failure (429, 5xx, timeout, parse error): session.source='fallback',
+  //        use the inline pool (shuffled). Show a small banner explaining
+  //        we're using the local pool.
+  //
+  // The 25-question hard cap is enforced server-side; we just request 20.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var sourceBanner = document.getElementById('dq-source-banner');
+  var loadingText = document.getElementById('dq-loading-text');
+  var loadingSub = document.getElementById('dq-loading-sub');
+
+  function showSourceBanner(source) {
+    if (!sourceBanner) return;
+    if (source === 'fallback') {
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> — high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Same quality, same scoring.';
+      sourceBanner.style.display = 'block';
+    } else if (source === 'inline') {
+      // Dev/preview mode — endpoint unconfigured. Silent (don't worry the user).
+      sourceBanner.style.display = 'none';
+    } else {
+      sourceBanner.style.display = 'none';
+    }
+  }
+
+  function showLive() {
+    loadingEl.style.display = 'none';
+    liveEl.style.display = 'block';
+    render();
+    startTimer();           // begin 30:00 countdown (session is now guaranteed populated)
+    acquireWakeLock();
+    questionStartTime = Date.now();  // reset per-Q timer for the first question
+  }
+
+  // ── Path A · Resume in-progress session ──
+  if (session) {
+    showSourceBanner(session.source);
+    showLive();
+    return;  // exit the IIFE early — no AI fetch needed
+  }
+
+  // ── Path B · Fresh start · AI-first with fallback ──
+  loadingText.textContent = 'Preparing your diagnostic…';
+  loadingSub.textContent = 'Generating 20 fresh questions across the 5 Network+ domains.';
+
+  // Turnstile callback — set on window so the cf-turnstile widget can call it
+  var turnstileSettled = false;
+  var turnstileTimeoutHandle = null;
+
+  window.dqTurnstileCallback = function(token) {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    fetchAIQuestions(token);
+  };
+
+  window.dqTurnstileErrorCallback = function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    console.warn('[dq] Turnstile errored · using inline pool fallback');
+    bootWithFallback('fallback');
+  };
+
+  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
+  // This handles cases where the script is blocked by an extension / CSP /
+  // ad-blocker — common enough that we can't assume Turnstile will load.
+  turnstileTimeoutHandle = setTimeout(function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    console.warn('[dq] Turnstile timed out · using inline pool fallback');
+    bootWithFallback('fallback');
+  }, TURNSTILE_TIMEOUT_MS);
+
+  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
+  // case `window.turnstile` is undefined after a tick. We don't wait — the
+  // timeout above catches it. But we DO check for the existence after a
+  // short delay so we can fail fast with a clearer log.
+  setTimeout(function() {
+    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
+      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
+    }
+  }, 2000);
+
+  function bootWithFallback(reason) {
+    var freshQuestions = shuffleInlinePool();
+    session = createFreshSession(freshQuestions, reason);
+    persistSession();
+    showSourceBanner(reason);
+    showLive();
+  }
+
+  async function fetchAIQuestions(turnstileToken) {
+    loadingText.textContent = 'Generating your questions…';
+    loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
+
+    var controller = new AbortController();
+    var fetchTimer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    try {
+      var resp = await fetch(GENERATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cert: CERT,
+          count: TARGET_QUESTION_COUNT,
+          turnstileToken: turnstileToken,
+          intake: getIntake()
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(fetchTimer);
+
+      if (!resp.ok) {
+        var errBody;
+        try { errBody = await resp.json(); } catch (_) { errBody = {}; }
+        if (resp.status === 429) {
+          console.warn('[dq] Rate limit exceeded · using inline pool fallback', errBody);
+          // Show a quota-specific banner via the fallback path
+          bootWithFallback('fallback');
+          if (sourceBanner) {
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> — IPs are limited to 25 AI calls per 24h. We\'re using our local pool so you can still take the diagnostic. Sign up for unlimited retakes after.';
+          }
+          return;
+        }
+        if (resp.status === 503) {
+          console.warn('[dq] Endpoint unavailable · using inline pool fallback', errBody);
+          bootWithFallback(errBody && errBody.error === 'service-unavailable' ? 'inline' : 'fallback');
+          return;
+        }
+        console.warn('[dq] AI generate failed · using inline pool fallback', resp.status, errBody);
+        bootWithFallback('fallback');
+        return;
+      }
+
+      var data = await resp.json();
+      if (!data || !Array.isArray(data.questions) || data.questions.length < TARGET_QUESTION_COUNT) {
+        console.warn('[dq] AI response malformed · using inline pool fallback');
+        bootWithFallback('fallback');
+        return;
+      }
+
+      // Success — use AI questions
+      session = createFreshSession(data.questions.slice(0, TARGET_QUESTION_COUNT), 'ai');
+      persistSession();
+      showSourceBanner('ai');
+      showLive();
+    } catch (e) {
+      clearTimeout(fetchTimer);
+      console.warn('[dq] AI fetch threw · using inline pool fallback:', e && e.message);
+      bootWithFallback('fallback');
+    }
+  }
+
+  function getIntake() {
+    try {
+      var raw = sessionStorage.getItem(INTAKE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
 })();
 </script>
 

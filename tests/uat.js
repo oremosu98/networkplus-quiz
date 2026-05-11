@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.53', js.includes("const APP_VERSION = '4.99.53"));
+test('APP_VERSION is 4.99.54', js.includes("const APP_VERSION = '4.99.54"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.53', sw.includes('netplus-v4.99.53'));
+test('SW cache bumped to v4.99.54', sw.includes('netplus-v4.99.54'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19709,8 +19709,14 @@ test('v4.99.53 D.2: quiz session cleared from sessionStorage after finish (so re
 
 // — Quiz page · resume + a11y —
 test('v4.99.53 D.2: resumes in-progress session if returning to page (sessionStorage gate)',
+  // v4.99.54 D.3 changed the envelope to require a full questions array
+  // (so AI-generated sessions resume correctly). Validates against either
+  // the D.2 shape (parsed.answers.length === QUESTION_POOL.length) or the
+  // D.3 shape (parsed.questions + parsed.answers === TARGET_QUESTION_COUNT).
   /sessionStorage\.getItem\(\s*SESSION_KEY/.test(_dxQuizD2Raw)
-  && /parsed\.cert\s*===\s*CERT[\s\S]{0,200}parsed\.answers\.length\s*===\s*QUESTION_POOL\.length/.test(_dxQuizD2Raw));
+  && /parsed\.cert\s*===\s*CERT/.test(_dxQuizD2Raw)
+  && (/parsed\.answers\.length\s*===\s*QUESTION_POOL\.length/.test(_dxQuizD2Raw)
+      || /parsed\.questions[\s\S]{0,100}length\s*===\s*TARGET_QUESTION_COUNT/.test(_dxQuizD2Raw)));
 test('v4.99.53 D.2: no-JS fallback message present (graceful degradation)',
   /class="dq-no-js"|JavaScript required/i.test(_dxQuizD2Raw));
 test('v4.99.53 D.2: reduced-motion gate for transitions',
@@ -19733,6 +19739,114 @@ test('v4.99.53 D.2: results page domain rows use weak/mid/strong color tiers',
   /is-weak[\s\S]{0,200}is-mid[\s\S]{0,200}is-strong|d\.accuracy\s*<\s*0\.5[\s\S]{0,200}d\.accuracy\s*<\s*0\.8/.test(_dxResultsD2Raw));
 test('v4.99.53 D.2: results page notes D.4 next ship in banner',
   /D\.4/.test(_dxResultsD2Raw));
+
+// ── v4.99.54 — D.3: AI generation endpoint + Turnstile + rate limit ──
+// New /api/diagnostic/generate Vercel edge function. Turnstile invisible
+// challenge gates calls. Per-IP-hash quota (25 calls / 24h) enforced via
+// Supabase RPC. Anthropic Haiku produces 20 diagnostic Qs per request.
+// Quiz UI now AI-first with graceful inline-pool fallback when any
+// dependency is missing or fails.
+console.log('\n\x1b[1m── v4.99.54 — D.3 AI ENDPOINT + TURNSTILE + RATE LIMIT ──\x1b[0m');
+
+const _migrationRLRaw = fs.existsSync(path.join(ROOT, 'supabase/migrations/20260511_diagnostic_rate_limit.sql'))
+  ? fs.readFileSync(path.join(ROOT, 'supabase/migrations/20260511_diagnostic_rate_limit.sql'), 'utf8') : '';
+const _genEndpointRaw = fs.existsSync(path.join(ROOT, 'landing/api/diagnostic/generate.js'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/api/diagnostic/generate.js'), 'utf8') : '';
+const _quizD3Raw = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/quiz.html'), 'utf8');
+
+// — SQL migration —
+test('v4.99.54 D.3: SQL migration file exists',
+  _migrationRLRaw.length > 2000);
+test('v4.99.54 D.3: migration creates diagnostic_rate_limit table',
+  /create\s+table\s+if\s+not\s+exists\s+diagnostic_rate_limit/i.test(_migrationRLRaw));
+test('v4.99.54 D.3: table has ip_hash primary key + call_count + first_at + last_at',
+  /ip_hash\s+text\s+primary key/i.test(_migrationRLRaw)
+  && /call_count\s+int/i.test(_migrationRLRaw)
+  && /first_at\s+timestamptz/i.test(_migrationRLRaw)
+  && /last_at\s+timestamptz/i.test(_migrationRLRaw));
+test('v4.99.54 D.3: migration creates diag_rl_check_and_increment RPC',
+  /create\s+or\s+replace\s+function\s+diag_rl_check_and_increment/i.test(_migrationRLRaw));
+test('v4.99.54 D.3: RPC is SECURITY DEFINER (service-role bypass for atomic RL check)',
+  /diag_rl_check_and_increment[\s\S]{0,600}security\s+definer/i.test(_migrationRLRaw));
+test('v4.99.54 D.3: RPC enforces 25-call / 24h window',
+  /v_limit\s+constant\s+int\s*:=\s*25/.test(_migrationRLRaw)
+  && /interval\s+'24 hours'/.test(_migrationRLRaw));
+test('v4.99.54 D.3: RLS admin-only select on rate-limit table (clients have no read)',
+  /alter\s+table\s+diagnostic_rate_limit\s+enable\s+row\s+level\s+security/i.test(_migrationRLRaw)
+  && /diag_rl_admin_select[\s\S]{0,200}is_admin\(\)/i.test(_migrationRLRaw));
+test('v4.99.54 D.3: migration includes purge helper (diag_rl_purge_old)',
+  /create\s+or\s+replace\s+function\s+diag_rl_purge_old/i.test(_migrationRLRaw));
+
+// — Serverless endpoint —
+test('v4.99.54 D.3: /api/diagnostic/generate endpoint exists',
+  _genEndpointRaw.length > 4000);
+test('v4.99.54 D.3: endpoint runs on Vercel edge runtime',
+  /export\s+const\s+config\s*=\s*\{\s*runtime:\s*['"]edge['"]/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint requires POST + handles OPTIONS preflight',
+  /req\.method\s*===\s*['"]OPTIONS['"]/.test(_genEndpointRaw)
+  && /req\.method\s*!==\s*['"]POST['"]/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint validates Turnstile token via Cloudflare siteverify',
+  /challenges\.cloudflare\.com\/turnstile\/v0\/siteverify/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint hashes client IP (SHA-256, raw IP never stored)',
+  /crypto\.subtle\.digest\(\s*['"]SHA-256['"]/.test(_genEndpointRaw)
+  && /salt-v1|certanvil-diagnostic-salt/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint calls Supabase RPC for atomic rate-limit check',
+  /\/rest\/v1\/rpc\/diag_rl_check_and_increment/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint hard-caps requested question count',
+  /HARD_QUESTION_CAP\s*=\s*25/.test(_genEndpointRaw)
+  && /requestedCount\s*[<>]=?\s*\d+/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint calls Anthropic Claude Haiku for generation',
+  /claude-haiku-4-5/.test(_genEndpointRaw)
+  && /api\.anthropic\.com\/v1\/messages/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint normalizes Q shape + filters malformed responses',
+  /function\s+normalizeQuestion/.test(_genEndpointRaw)
+  && /'ABCD'\.includes/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint accepts both network-plus and security-plus',
+  /cert\s*!==\s*['"]network-plus['"][\s\S]{0,80}cert\s*!==\s*['"]security-plus['"]/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint gracefully 503s when env vars missing (allows pre-config deploy)',
+  /TURNSTILE_SECRET_KEY[\s\S]{0,200}service-unavailable/.test(_genEndpointRaw)
+  && /ANTHROPIC_API_KEY[\s\S]{0,200}service-unavailable/.test(_genEndpointRaw));
+test('v4.99.54 D.3: endpoint returns 429 when quota exceeded (with reset timestamp)',
+  /status:\s*429|quota-exceeded[\s\S]{0,200}resetsAt/.test(_genEndpointRaw));
+test('v4.99.54 D.3: prompt requires CompTIA blueprint domain coverage',
+  /blueprint\s+weights/i.test(_genEndpointRaw));
+test('v4.99.54 D.3: prompt requires original content (no copy from prep banks)',
+  /ORIGINAL[\s\S]{0,200}Jason Dion|Professor Messer|CertMaster/i.test(_genEndpointRaw));
+
+// — Quiz UI integration —
+test('v4.99.54 D.3: quiz.html loads Cloudflare Turnstile script',
+  /<script[^>]+turnstile\/v0\/api\.js/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html has invisible Turnstile widget',
+  /class="cf-turnstile"[\s\S]{0,400}data-sitekey/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html session envelope now includes full questions array + source field',
+  /questions:\s*questions/.test(_quizD3Raw)
+  && /source:\s*source/.test(_quizD3Raw)
+  && /createFreshSession/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html has AI-first fetch to /api/diagnostic/generate',
+  /GENERATE_ENDPOINT\s*=\s*['"]\/api\/diagnostic\/generate['"]/.test(_quizD3Raw)
+  && /fetch\(GENERATE_ENDPOINT/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html falls back to inline pool on any error path',
+  /bootWithFallback\(\s*['"]fallback['"]\s*\)/.test(_quizD3Raw)
+  && /shuffleInlinePool/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html has 10s Turnstile timeout (TURNSTILE_TIMEOUT_MS)',
+  /TURNSTILE_TIMEOUT_MS\s*=\s*10000/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html has 25s fetch timeout via AbortController',
+  /FETCH_TIMEOUT_MS\s*=\s*25000/.test(_quizD3Raw)
+  && /AbortController/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html handles 429 (quota exceeded) with explicit banner',
+  /resp\.status\s*===\s*429/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html handles 503 (service unavailable) gracefully',
+  /resp\.status\s*===\s*503/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html shows source banner only when fallback (not when ai or empty)',
+  /showSourceBanner\(\s*['"]fallback['"]\)|showSourceBanner\(\s*session\.source/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html resume path skips AI fetch if session restored from sessionStorage',
+  /if\s*\(\s*session\s*\)\s*\{[\s\S]{0,200}showLive\(\)[\s\S]{0,80}return/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html timer no longer auto-starts at module load (moved into showLive)',
+  /function\s+startTimer\s*\(\s*\)[\s\S]{0,200}setInterval\(tickTimer/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html tickTimer guards against null session (avoids load-time crash)',
+  /function\s+tickTimer[\s\S]{0,100}if\s*\(\s*!session/.test(_quizD3Raw));
+test('v4.99.54 D.3: quiz.html forwards intake state to /api/diagnostic/generate',
+  /intake:\s*getIntake\(\)/.test(_quizD3Raw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
