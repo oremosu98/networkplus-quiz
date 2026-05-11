@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.51', js.includes("const APP_VERSION = '4.99.51"));
+test('APP_VERSION is 4.99.52', js.includes("const APP_VERSION = '4.99.52"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.51', sw.includes('netplus-v4.99.51'));
+test('SW cache bumped to v4.99.52', sw.includes('netplus-v4.99.52'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19517,6 +19517,107 @@ test('v4.99.51 wiring: landing/pricing.html signup screen also links to /terms +
 test('v4.99.51 wiring: regression tombstone — no `href="#"` Terms/Privacy links remain',
   !/<a href="#"[^>]*>(Privacy|Terms)<\/a>/.test(_landingIndexRaw)
   && !/<a href="#"[^>]*>(Privacy|Terms)<\/a>/.test(_landingPricingRaw));
+
+// ── v4.99.52 — D.1: Landing Baseline Diagnostic · cert picker + intake ──
+// New PLG diagnostic flow at certanvil.com/diagnostic. Anonymous-friendly
+// cert picker → optional 30-second intake → state persists via sessionStorage
+// → handoff to /quiz placeholder (D.2 will replace this). Admin sees Security+
+// tile (otherwise hidden). 24h cooldown + Turnstile land in D.3.
+console.log('\n\x1b[1m── v4.99.52 — D.1 LANDING BASELINE DIAGNOSTIC · PICKER + INTAKE ──\x1b[0m');
+
+const _dxPickerRaw = fs.existsSync(path.join(ROOT, 'landing/diagnostic/index.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/diagnostic/index.html'), 'utf8') : '';
+const _dxIntakeNetRaw = fs.existsSync(path.join(ROOT, 'landing/diagnostic/network-plus/intake.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/intake.html'), 'utf8') : '';
+const _dxIntakeSecRaw = fs.existsSync(path.join(ROOT, 'landing/diagnostic/security-plus/intake.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/diagnostic/security-plus/intake.html'), 'utf8') : '';
+const _dxQuizNetRaw = fs.existsSync(path.join(ROOT, 'landing/diagnostic/network-plus/quiz.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/quiz.html'), 'utf8') : '';
+const _dxQuizSecRaw = fs.existsSync(path.join(ROOT, 'landing/diagnostic/security-plus/quiz.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/diagnostic/security-plus/quiz.html'), 'utf8') : '';
+const _landingIndexD1 = fs.readFileSync(path.join(ROOT, 'landing/index.html'), 'utf8');
+const _landingPricingD1 = fs.readFileSync(path.join(ROOT, 'landing/pricing.html'), 'utf8');
+
+// — Cert picker page —
+test('v4.99.52 D.1: landing/diagnostic/index.html exists',
+  _dxPickerRaw.length > 5000);
+test('v4.99.52 D.1: cert picker has Step 1 of 4 progress indicator',
+  /Step 1 of 4/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker has Network+ tile (always visible)',
+  /data-cert="network-plus"[\s\S]{0,300}Network\+/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker has admin-only Security+ tile',
+  /dx-admin-tile[\s\S]{0,200}data-cert="security-plus"|data-cert="security-plus"[\s\S]{0,200}dx-admin-tile/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker has "more coming" disabled tile',
+  /More certs coming/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker stores choice in sessionStorage',
+  /certanvilDiagnosticCert/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker fires is_admin RPC silently',
+  /\.rpc\(\s*['"]is_admin['"]/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker only adds is-admin class on confirmed admin',
+  /result\.data\s*===\s*true[\s\S]{0,200}classList\.add\(\s*['"]is-admin['"]/.test(_dxPickerRaw));
+test('v4.99.52 D.1: cert picker Continue button navigates to /diagnostic/<cert>/intake',
+  /window\.location\.href\s*=\s*['"]\/diagnostic\/['"]?\s*\+\s*selectedCert/.test(_dxPickerRaw));
+
+// — Network+ intake page —
+test('v4.99.52 D.1: Network+ intake page exists',
+  _dxIntakeNetRaw.length > 5000);
+test('v4.99.52 D.1: N+ intake has Step 2 of 4 progress indicator',
+  /Step 2 of 4/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake captures exam date + intensity',
+  /id="dx-exam-date"/.test(_dxIntakeNetRaw)
+  && /data-intensity="light"/.test(_dxIntakeNetRaw)
+  && /data-intensity="standard"/.test(_dxIntakeNetRaw)
+  && /data-intensity="intense"/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake defaults to standard intensity',
+  /is-selected"\s+data-intensity="standard"|data-intensity="standard"\s+aria-pressed="true"/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake exam-date input is type=date',
+  /id="dx-exam-date"[^>]*type="date"|type="date"[^>]*id="dx-exam-date"/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake persists state to sessionStorage on Start click',
+  /certanvilDiagnosticIntake/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake has Skip link to /quiz (sensible defaults path)',
+  /Skip[\s\S]{0,80}\/diagnostic\/network-plus\/quiz|\/diagnostic\/network-plus\/quiz[\s\S]{0,80}Skip/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake has Back link to cert picker',
+  /href="\/diagnostic"[\s\S]{0,100}Back to cert picker/.test(_dxIntakeNetRaw));
+test('v4.99.52 D.1: N+ intake is noindex (private route)',
+  /<meta\s+name="robots"\s+content="noindex/.test(_dxIntakeNetRaw));
+
+// — Security+ intake page —
+test('v4.99.52 D.1: Security+ intake page exists (admin preview)',
+  _dxIntakeSecRaw.length > 5000);
+test('v4.99.52 D.1: S+ intake is cert-aware (CERT = security-plus)',
+  /var\s+CERT\s*=\s*['"]security-plus['"]/.test(_dxIntakeSecRaw));
+test('v4.99.52 D.1: S+ intake mentions admin preview status',
+  /admin preview/i.test(_dxIntakeSecRaw));
+test('v4.99.52 D.1: S+ intake does NOT contain "Network+" leftovers (sed-rewrite cleanliness)',
+  !/Network\+/.test(_dxIntakeSecRaw)
+  && !/network-plus/.test(_dxIntakeSecRaw));
+
+// — Quiz placeholders —
+test('v4.99.52 D.1: N+ /quiz placeholder exists (D.2 lands here next)',
+  _dxQuizNetRaw.length > 1000);
+test('v4.99.52 D.1: N+ /quiz placeholder reads intake recap from sessionStorage',
+  /sessionStorage\.getItem\(\s*['"]certanvilDiagnosticIntake['"]/.test(_dxQuizNetRaw));
+test('v4.99.52 D.1: N+ /quiz placeholder mentions D.2',
+  /D\.2/.test(_dxQuizNetRaw));
+test('v4.99.52 D.1: S+ /quiz placeholder exists',
+  _dxQuizSecRaw.length > 1000);
+
+// — Landing CTAs rewired —
+test('v4.99.52 D.1: landing/index.html hero CTA points to /diagnostic (not direct cert-app URL)',
+  /class="cta-primary"\s+href="\/diagnostic"/.test(_landingIndexD1));
+test('v4.99.52 D.1: regression tombstone — landing/index.html no longer hard-redirects to cert-app diagnostic',
+  !/networkplus\.certanvil\.com\/\?action=diagnostic[^"]*from=landing-hero/.test(_landingIndexD1));
+test('v4.99.52 D.1: landing/pricing.html free-tier CTA points to /diagnostic',
+  /class="tier-cta"\s+href="\/diagnostic"/.test(_landingPricingD1));
+
+// — Cross-page state envelope consistency —
+test('v4.99.52 D.1: same sessionStorage key (certanvilDiagnosticIntake) used across all 4 page-types',
+  /certanvilDiagnosticIntake/.test(_dxIntakeNetRaw)
+  && /certanvilDiagnosticIntake/.test(_dxIntakeSecRaw)
+  && /certanvilDiagnosticIntake/.test(_dxQuizNetRaw)
+  && /certanvilDiagnosticIntake/.test(_dxQuizSecRaw));
+test('v4.99.52 D.1: intake state envelope includes cert + examDate + intensity + capturedAt',
+  /cert:\s*CERT[\s\S]{0,200}examDate[\s\S]{0,200}intensity[\s\S]{0,200}capturedAt/.test(_dxIntakeNetRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

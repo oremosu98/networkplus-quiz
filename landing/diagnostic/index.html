@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Baseline Diagnostic — CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="Take a free 30-minute baseline diagnostic to map your CompTIA cert weak spots. No account, no card. Get your Pass Plan in 30 min.">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="apple-touch-icon" href="../favicon.svg">
+<link rel="stylesheet" href="../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CertAnvil">
+<meta property="og:title" content="CertAnvil Baseline Diagnostic — pick your cert">
+<meta property="og:description" content="Free 30-minute diagnostic. Pick your CompTIA cert, get a real readiness score + Pass Plan. No account required.">
+<meta property="og:url" content="https://certanvil.com/diagnostic">
+<meta property="og:image" content="https://certanvil.com/og-image.svg">
+<meta property="og:image:type" content="image/svg+xml">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<script>
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<style>
+  /* ──────────────────────────────────────────
+     Diagnostic-flow shared shell (used by /diagnostic, /diagnostic/<cert>/intake,
+     /diagnostic/<cert>/quiz, /diagnostic/<cert>/results). Self-contained;
+     references landing styles.css only for topbar + container + theme vars.
+     ──────────────────────────────────────────── */
+  .dx-hero { padding: 64px 0 24px; text-align: center; }
+  .dx-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-dim, rgba(124,111,247,.15));
+    color: var(--accent, #7c6ff7);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 5px 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .dx-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #7c6ff7); }
+  .dx-h1 {
+    font-size: clamp(30px, 4.5vw, 42px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 12px;
+    line-height: 1.08;
+  }
+  .dx-sub {
+    color: var(--text-mid, #6c6d80);
+    font-size: 16px;
+    max-width: 540px;
+    margin: 0 auto 28px;
+    line-height: 1.5;
+  }
+
+  .dx-step-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+    font-size: 11px;
+    color: var(--text-dim, #8a8b9c);
+  }
+  .dx-step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border, rgba(0,0,0,.12));
+    transition: background .2s;
+  }
+  .dx-step-dot.active { background: var(--accent, #7c6ff7); }
+  .dx-step-dot.done { background: var(--green, #22c55e); }
+
+  .dx-card-stack {
+    max-width: 480px;
+    margin: 0 auto 48px;
+    padding: 0 12px;
+  }
+
+  .dx-cert-tile {
+    background: var(--surface, #fff);
+    border: 2px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s, box-shadow .15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: inherit;
+    text-align: left;
+    color: inherit;
+    width: 100%;
+  }
+  .dx-cert-tile:hover {
+    border-color: var(--accent, #7c6ff7);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(124, 111, 247, .12);
+  }
+  .dx-cert-tile.is-selected {
+    border-color: var(--accent, #7c6ff7);
+    background: linear-gradient(135deg, rgba(124,111,247,.08), var(--surface, #fff));
+  }
+  .dx-cert-tile.is-disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+  .dx-cert-tile.is-disabled:hover {
+    border-color: var(--border, rgba(0,0,0,.1));
+    transform: none;
+    box-shadow: none;
+  }
+  .dx-cert-tile-icon {
+    width: 48px; height: 48px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent, #7c6ff7), var(--accent-light, #9b8df9));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .dx-cert-tile.is-disabled .dx-cert-tile-icon {
+    background: var(--surface2, #f5f6f9);
+    color: var(--text-dim, #8a8b9c);
+  }
+  .dx-cert-tile.is-admin-only .dx-cert-tile-icon {
+    background: linear-gradient(135deg, var(--orange, #fb923c), #f59e0b);
+  }
+  .dx-cert-tile-content { flex: 1; min-width: 0; }
+  .dx-cert-tile-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text, #1a1a26);
+    margin: 0;
+    line-height: 1.3;
+  }
+  .dx-cert-tile-title .dx-cert-code {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim, #8a8b9c);
+    margin-left: 4px;
+  }
+  .dx-cert-tile-sub {
+    font-size: 11.5px;
+    color: var(--text-dim, #8a8b9c);
+    margin: 4px 0 0;
+    line-height: 1.45;
+  }
+  .dx-cert-tile-badge {
+    background: var(--accent-dim, rgba(124,111,247,.15));
+    color: var(--accent, #7c6ff7);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    flex-shrink: 0;
+  }
+  .dx-cert-tile.is-disabled .dx-cert-tile-badge {
+    background: var(--surface2, #f5f6f9);
+    color: var(--text-dim, #8a8b9c);
+  }
+  .dx-cert-tile.is-admin-only .dx-cert-tile-badge {
+    background: rgba(251, 146, 60, .15);
+    color: var(--orange, #fb923c);
+  }
+
+  .dx-actions {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dx-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 13px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform .15s, background .15s, border-color .15s, color .15s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .dx-btn-primary {
+    background: var(--accent, #7c6ff7);
+    color: white;
+    border-color: var(--accent, #7c6ff7);
+  }
+  .dx-btn-primary:hover { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
+  .dx-btn-primary:active { transform: scale(.98); }
+  .dx-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .dx-btn-ghost {
+    background: transparent;
+    color: var(--text-mid, #4a4b5e);
+    border-color: var(--border, rgba(0,0,0,.12));
+  }
+  .dx-btn-ghost:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
+
+  .dx-back-link {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--accent, #7c6ff7);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .dx-back-link:hover { text-decoration: underline; }
+
+  .dx-admin-notice {
+    background: linear-gradient(135deg, rgba(251,146,60,.06), transparent);
+    border: 1px dashed rgba(251,146,60,.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 11px;
+    color: var(--orange, #fb923c);
+    display: none;
+    text-align: center;
+  }
+  body.is-admin .dx-admin-notice { display: block; }
+
+  .dx-admin-tile { display: none; }
+  body.is-admin .dx-admin-tile { display: flex; }
+
+  .dx-trust-row {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 26px;
+    padding: 12px 18px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 30px;
+    font-size: 11px;
+    color: var(--text-dim, #8a8b9c);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .dx-trust-row span:nth-child(even) { color: var(--border-strong, rgba(0,0,0,.2)); }
+
+  @media (max-width: 600px) {
+    .dx-hero { padding: 40px 0 18px; }
+    .dx-cert-tile { padding: 14px 16px; }
+    .dx-cert-tile-icon { width: 40px; height: 40px; font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR (consistent with index.html / pricing.html / privacy.html) -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+    <nav class="topbar-nav" aria-label="Primary navigation">
+      <a href="/#why" class="nav-link">Why CertAnvil</a>
+      <a href="/#certs" class="nav-link">Certs</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+<section class="dx-hero">
+  <span class="dx-eyebrow"><span class="dx-eyebrow-dot"></span> Baseline Diagnostic · 30-min flow</span>
+  <div class="dx-step-progress" aria-label="Step 1 of 4">
+    <span class="dx-step-dot active" aria-hidden="true"></span>
+    <span class="dx-step-dot" aria-hidden="true"></span>
+    <span class="dx-step-dot" aria-hidden="true"></span>
+    <span class="dx-step-dot" aria-hidden="true"></span>
+    <span style="margin-left:8px">Step 1 of 4 · Pick your cert</span>
+  </div>
+  <h1 class="dx-h1">Which cert are you preparing for?</h1>
+  <p class="dx-sub">20 calibrated questions across all 5 domains of your CompTIA exam. We'll map your weak spots and build a Pass Plan. No account required.</p>
+</section>
+
+<section class="dx-card-stack">
+  <p class="dx-admin-notice">⚠ Admin view · you can see Security+ which isn't yet visible to end users</p>
+
+  <!-- Network+ tile (always visible) -->
+  <button type="button" class="dx-cert-tile is-selected" data-cert="network-plus" id="dx-cert-network-plus" aria-pressed="true">
+    <span class="dx-cert-tile-icon">N+</span>
+    <span class="dx-cert-tile-content">
+      <span class="dx-cert-tile-title">Network+ <span class="dx-cert-code">· N10-009</span></span>
+      <span class="dx-cert-tile-sub">90-Q exam · 90 min · 5 domains · pass = 720/900 · 23% Net Concepts → 24% Troubleshooting</span>
+    </span>
+    <span class="dx-cert-tile-badge">Available</span>
+  </button>
+
+  <!-- Security+ tile (admin only) -->
+  <button type="button" class="dx-cert-tile is-admin-only dx-admin-tile" data-cert="security-plus" id="dx-cert-security-plus" aria-pressed="false">
+    <span class="dx-cert-tile-icon">S+</span>
+    <span class="dx-cert-tile-content">
+      <span class="dx-cert-tile-title">Security+ <span class="dx-cert-code">· SY0-701</span></span>
+      <span class="dx-cert-tile-sub">Admin-only preview · not yet visible to end users · founder-gated until v1.0 GA</span>
+    </span>
+    <span class="dx-cert-tile-badge">Admin preview</span>
+  </button>
+
+  <!-- "More coming" tile -->
+  <div class="dx-cert-tile is-disabled" aria-disabled="true">
+    <span class="dx-cert-tile-icon">+</span>
+    <span class="dx-cert-tile-content">
+      <span class="dx-cert-tile-title">More certs coming</span>
+      <span class="dx-cert-tile-sub">AZ-900 · CCNA · A+ · CISSP · on the roadmap</span>
+    </span>
+    <span class="dx-cert-tile-badge">Soon</span>
+  </div>
+
+  <div class="dx-actions">
+    <button type="button" class="dx-btn dx-btn-primary" id="dx-continue-btn" disabled>
+      Continue with Network+ →
+    </button>
+    <a href="/" class="dx-back-link">← Back to CertAnvil</a>
+  </div>
+</section>
+
+<div class="dx-trust-row">
+  <span>✓ ~30 min</span>
+  <span>·</span>
+  <span>✓ No account</span>
+  <span>·</span>
+  <span>✓ No card</span>
+  <span>·</span>
+  <span>✓ Pass guarantee</span>
+</div>
+
+</div>
+</main>
+
+<!-- Footer (matches privacy.html / terms.html) -->
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged for the exam</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="/privacy" class="foot-link">Privacy</a>
+        <a href="/terms" class="foot-link">Terms</a>
+        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<!-- Supabase client (for is_admin() RPC check only — no full auth UI on this page) -->
+<script src="../lib/supabase-umd.min.js"></script>
+<script src="../lib/supabase.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+// D.1 · Cert picker · v4.99.52
+// ══════════════════════════════════════════
+// Pure client-side · sessionStorage state · 24h cooldown enforced client-
+// side + server-side at /api/diagnostic/generate (when D.3 ships).
+//
+// Admin gate: silent is_admin() RPC fires on load. If admin (and signed in)
+// the body gets a `.is-admin` class, which CSS uses to reveal:
+//   • the orange "Admin view" notice strip
+//   • the Security+ tile
+// Anonymous + non-admin users see only Network+ + "More coming".
+
+(function() {
+  'use strict';
+
+  var SELECTED_CERT_KEY = 'certanvilDiagnosticCert';
+  var continueBtn = document.getElementById('dx-continue-btn');
+  var tiles = document.querySelectorAll('.dx-cert-tile[data-cert]');
+  var selectedCert = 'network-plus';  // default
+
+  // ── 1. Restore last-picked cert if revisiting ──
+  try {
+    var stored = sessionStorage.getItem(SELECTED_CERT_KEY);
+    if (stored === 'network-plus' || stored === 'security-plus') {
+      selectedCert = stored;
+    }
+  } catch (_) {}
+
+  // ── 2. Selection state ──
+  function selectCert(cert) {
+    selectedCert = cert;
+    try { sessionStorage.setItem(SELECTED_CERT_KEY, cert); } catch (_) {}
+    tiles.forEach(function(tile) {
+      var isMatch = tile.getAttribute('data-cert') === cert;
+      tile.classList.toggle('is-selected', isMatch);
+      tile.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+    });
+    // Update CTA label
+    var certName = (cert === 'security-plus') ? 'Security+' : 'Network+';
+    continueBtn.textContent = 'Continue with ' + certName + ' →';
+    continueBtn.disabled = false;
+  }
+
+  // Tile click handlers (only for enabled, non-disabled tiles)
+  tiles.forEach(function(tile) {
+    tile.addEventListener('click', function() {
+      var cert = tile.getAttribute('data-cert');
+      if (cert) selectCert(cert);
+    });
+    // Keyboard a11y — Enter/Space toggles selection
+    tile.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        var cert = tile.getAttribute('data-cert');
+        if (cert) selectCert(cert);
+      }
+    });
+  });
+
+  // Initial selection (defaults to network-plus or restored value)
+  selectCert(selectedCert);
+
+  // ── 3. Continue button → intake page ──
+  continueBtn.addEventListener('click', function() {
+    if (!selectedCert) return;
+    // Persist any prior intake data tied to this cert — handled per-page
+    window.location.href = '/diagnostic/' + selectedCert + '/intake';
+  });
+
+  // ── 4. Admin gate · silent is_admin() RPC ──
+  // Fires async after the page renders. If the user happens to be the founder
+  // (signed-in admin) we unhide the Security+ tile. Anonymous users see nothing
+  // unusual.
+  (async function checkAdmin() {
+    try {
+      if (!window.certanvilSupabase) return;
+      var session = await window.certanvilSupabase.auth.getSession();
+      if (!session || !session.data || !session.data.session) return;  // not signed in
+      var result = await window.certanvilSupabase.rpc('is_admin');
+      if (result && result.data === true) {
+        document.body.classList.add('is-admin');
+      }
+    } catch (_) {
+      // Silent — anonymous users or RLS failures don't affect the page
+    }
+  })();
+})();
+</script>
+
+</body>
+</html>

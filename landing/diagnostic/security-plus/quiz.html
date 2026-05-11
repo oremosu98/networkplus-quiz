@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Security+ Diagnostic · admin preview · coming soon — CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="description" content="The Network+ baseline diagnostic quiz UI ships in D.2.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<style>
+  .dx-placeholder-hero { padding: 80px 0 32px; text-align: center; max-width: 480px; margin: 0 auto; }
+  .dx-placeholder-emoji { font-size: 56px; margin-bottom: 14px; }
+  .dx-placeholder-h1 { font-size: 28px; font-weight: 800; margin: 0 0 10px; letter-spacing: -.01em; }
+  .dx-placeholder-sub { color: var(--text-mid, #6c6d80); font-size: 15px; line-height: 1.55; margin: 0 0 8px; }
+  .dx-placeholder-intake-recap {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: left;
+    margin: 24px auto;
+    font-size: 13px;
+    color: var(--text-mid, #4a4b5e);
+    max-width: 380px;
+    display: none;
+  }
+  .dx-placeholder-intake-recap.has-data { display: block; }
+  .dx-placeholder-intake-recap h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-dim, #8a8b9c);
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .dx-placeholder-intake-recap-row { display: flex; justify-content: space-between; padding: 4px 0; }
+  .dx-placeholder-intake-recap-row strong { color: var(--text, #1a1a26); }
+  .dx-placeholder-btn {
+    display: inline-block;
+    background: var(--accent, #7c6ff7);
+    color: white;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .dx-placeholder-btn:hover { background: var(--accent-light, #9b8df9); }
+  .dx-placeholder-back {
+    display: block;
+    color: var(--accent, #7c6ff7);
+    text-decoration: none;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dx-placeholder-back:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+<section class="dx-placeholder-hero">
+  <div class="dx-placeholder-emoji">🚧</div>
+  <h1 class="dx-placeholder-h1">Quiz UI ships next — D.2</h1>
+  <p class="dx-placeholder-sub">D.1 (cert picker + intake) is the foundation. The 20-question diagnostic itself is the very next ship.</p>
+  <p class="dx-placeholder-sub" style="font-size:13px;color:var(--text-dim, #8a8b9c)">Your intake setup is saved · we'll pick up exactly where you left off.</p>
+
+  <div class="dx-placeholder-intake-recap" id="dx-intake-recap">
+    <h3>✓ Your intake (saved · ready for D.2)</h3>
+    <div class="dx-placeholder-intake-recap-row"><span>Cert</span><strong id="dx-recap-cert">Security+ SY0-701</strong></div>
+    <div class="dx-placeholder-intake-recap-row"><span>Exam date</span><strong id="dx-recap-date">—</strong></div>
+    <div class="dx-placeholder-intake-recap-row"><span>Intensity</span><strong id="dx-recap-intensity">Standard</strong></div>
+  </div>
+
+  <a href="https://secplus-quiz-sable.vercel.app/?action=diagnostic" class="dx-placeholder-btn">Use the in-cert diagnostic for now →</a>
+  <a href="/diagnostic" class="dx-placeholder-back">← Back to cert picker</a>
+</section>
+
+</div>
+</main>
+
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged for the exam</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="/privacy" class="foot-link">Privacy</a>
+        <a href="/terms" class="foot-link">Terms</a>
+        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Render intake recap so we can verify state was persisted across screens
+(function() {
+  try {
+    var saved = sessionStorage.getItem('certanvilDiagnosticIntake');
+    if (!saved) return;
+    var data = JSON.parse(saved);
+    if (!data) return;
+    document.getElementById('dx-recap-date').textContent = data.examDate || 'Not booked';
+    document.getElementById('dx-recap-intensity').textContent =
+      data.intensity ? data.intensity.charAt(0).toUpperCase() + data.intensity.slice(1) : 'Standard';
+    document.getElementById('dx-intake-recap').classList.add('has-data');
+  } catch (_) {}
+})();
+</script>
+
+</body>
+</html>
