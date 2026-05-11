@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.56', js.includes("const APP_VERSION = '4.99.56"));
+test('APP_VERSION is 4.99.57', js.includes("const APP_VERSION = '4.99.57"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.56', sw.includes('netplus-v4.99.56'));
+test('SW cache bumped to v4.99.57', sw.includes('netplus-v4.99.57'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19924,8 +19924,10 @@ test('v4.99.55 D.4: Continue stub panel exists (v4.99.56: stub copy replaced by 
   _resultsD4Raw.includes('dr-stub-continue') &&
   // v4.99.56 D.5: stub no longer has "D.5 next ship" placeholder copy — it has a working form
   (_resultsD4Raw.includes('D.5 next ship') || _resultsD4Raw.includes('id="dr-continue-form"')));
-test('v4.99.55 D.4: Download stub panel mentions D.6 next ship',
-  _resultsD4Raw.includes('dr-stub-download') && _resultsD4Raw.includes('D.6 next ship'));
+test('v4.99.55 D.4: Download stub panel exists (v4.99.57: stub copy replaced by D.6 dialog)',
+  _resultsD4Raw.includes('dr-stub-download') &&
+  // v4.99.57 D.6: placeholder copy replaced with working 3-action dialog
+  (_resultsD4Raw.includes('D.6 next ship') || _resultsD4Raw.includes('id="dr-action-print"')));
 test('v4.99.55 D.4: stub panels open/close via openStub/closeStub helpers',
   /function\s+openStub[\s\S]{0,800}function\s+closeStub/.test(_resultsD4Raw));
 
@@ -19945,7 +19947,9 @@ test('v4.99.55 D.4: source eyebrow handles ai / fallback / inline cases',
 
 // Empty state
 test('v4.99.55 D.4: empty state shown when sessionStorage results missing',
-  /!results\s*\|\|\s*!results\.totalQuestions[\s\S]{0,800}Take the diagnostic to see results/.test(_resultsD4Raw));
+  // v4.99.57: empty-state predicate + renderer can live in separate functions now.
+  /!results\s*\|\|\s*!results\.totalQuestions/.test(_resultsD4Raw) &&
+  _resultsD4Raw.includes('Take the diagnostic to see results'));
 test('v4.99.55 D.4: empty state CTA points to /diagnostic/network-plus/intake',
   /Take the diagnostic to see results[\s\S]{0,800}\/diagnostic\/network-plus\/intake/.test(_resultsD4Raw));
 
@@ -20065,6 +20069,147 @@ test('v4.99.56 D.5: index.html loads diagnostic-claim.js after auth-state.js',
   /<script defer src="auth-state\.js"[\s\S]{0,500}<script defer src="diagnostic-claim\.js"/.test(html));
 test('v4.99.56 D.5: sw.js precaches diagnostic-claim.js in SHELL_ASSETS',
   /SHELL_ASSETS[\s\S]{0,2000}'\.\/diagnostic-claim\.js'/.test(sw));
+
+// ══════════════════════════════════════════════════════════════════════════
+// v4.99.57 — D.6 Landing Diagnostic · download + email + /r/{token} shareable
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── v4.99.57 — D.6 LANDING DIAGNOSTIC DOWNLOAD / EMAIL / SHARE ──\x1b[0m');
+
+// ── Migration SQL ──
+const _migD6Path = path.join(__dirname, '..', 'supabase', 'migrations', '20260511_diagnostic_share.sql');
+let _migD6Raw = '';
+try { _migD6Raw = fs.readFileSync(_migD6Path, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: migration file exists at supabase/migrations/20260511_diagnostic_share.sql', _migD6Raw.length > 0);
+test('v4.99.57 D.6: migration creates diagnostic_share table (token PK · jsonb results · 90d expiry)',
+  /create\s+table\s+if\s+not\s+exists\s+diagnostic_share[\s\S]{0,400}token\s+text\s+primary\s+key[\s\S]{0,400}results\s+jsonb\s+not\s+null[\s\S]{0,400}expires_at[\s\S]{0,200}interval\s*'90\s+days'/i.test(_migD6Raw));
+test('v4.99.57 D.6: migration creates diagnostic_share view_count column for telemetry',
+  /view_count\s+int\s+not\s+null\s+default\s+0/i.test(_migD6Raw));
+test('v4.99.57 D.6: migration creates diagnostic_email_rate_limit table (10/1h shared counter)',
+  /create\s+table\s+if\s+not\s+exists\s+diagnostic_email_rate_limit/i.test(_migD6Raw) &&
+  /v_limit\s+constant\s+int\s*:=\s*10/.test(_migD6Raw));
+test('v4.99.57 D.6: migration grants public SELECT on diagnostic_share (token = access gate)',
+  /create\s+policy\s+"diag_share_public_select"[\s\S]{0,200}for\s+select\s+using\s*\(true\)/i.test(_migD6Raw));
+test('v4.99.57 D.6: migration creates increment_share_view(token) RPC granted to anon',
+  /create\s+or\s+replace\s+function\s+increment_share_view/i.test(_migD6Raw) &&
+  /grant\s+execute\s+on\s+function\s+increment_share_view[\s\S]{0,80}anon/i.test(_migD6Raw));
+test('v4.99.57 D.6: increment_share_view bumps view_count + last_viewed_at on valid token',
+  /view_count\s*=\s*view_count\s*\+\s*1[\s\S]{0,200}last_viewed_at\s*=\s*now\(\)/i.test(_migD6Raw));
+test('v4.99.57 D.6: increment_share_view silent no-op on expired tokens',
+  /increment_share_view[\s\S]{0,800}expires_at\s*>\s*now\(\)/i.test(_migD6Raw));
+test('v4.99.57 D.6: migration creates diag_email_check_and_increment(ip_hash) RPC (SECURITY DEFINER)',
+  /create\s+or\s+replace\s+function\s+diag_email_check_and_increment[\s\S]{0,400}security\s+definer/i.test(_migD6Raw));
+test('v4.99.57 D.6: cleanup helper diag_share_purge_old() defined',
+  /create\s+or\s+replace\s+function\s+diag_share_purge_old/i.test(_migD6Raw));
+
+// ── Endpoint · share.js ──
+const _epSharePath = path.join(__dirname, '..', 'landing', 'api', 'diagnostic', 'share.js');
+let _epShareRaw = '';
+try { _epShareRaw = fs.readFileSync(_epSharePath, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: share.js endpoint exists', _epShareRaw.length > 0);
+test('v4.99.57 D.6: share.js uses Vercel edge runtime',
+  /export\s+const\s+config\s*=\s*\{\s*runtime:\s*['"]edge['"]/.test(_epShareRaw));
+test('v4.99.57 D.6: share.js generates crypto-random token (no Math.random)',
+  /crypto\.getRandomValues/.test(_epShareRaw));
+test('v4.99.57 D.6: share.js rate-limits via diag_email_check_and_increment',
+  /diag_email_check_and_increment/.test(_epShareRaw));
+test('v4.99.57 D.6: share.js writes via service-role to diagnostic_share',
+  /SUPABASE_SERVICE_ROLE_KEY/.test(_epShareRaw) && /diagnostic_share/.test(_epShareRaw));
+test('v4.99.57 D.6: share.js returns shareUrl built from PUBLIC_BASE_URL + /r/{token}',
+  /PUBLIC_BASE_URL[\s\S]{0,200}\/r\//.test(_epShareRaw));
+test('v4.99.57 D.6: share.js gracefully 503s when env vars missing',
+  /service_unconfigured/.test(_epShareRaw));
+
+// ── Endpoint · share-fetch.js ──
+const _epShareFetchPath = path.join(__dirname, '..', 'landing', 'api', 'diagnostic', 'share-fetch.js');
+let _epShareFetchRaw = '';
+try { _epShareFetchRaw = fs.readFileSync(_epShareFetchPath, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: share-fetch.js endpoint exists', _epShareFetchRaw.length > 0);
+test('v4.99.57 D.6: share-fetch.js is GET-only',
+  /req\.method\s*!==\s*['"]GET['"]/.test(_epShareFetchRaw));
+test('v4.99.57 D.6: share-fetch.js uses anon publishable key (open RLS SELECT)',
+  /SUPABASE_PUBLISHABLE_KEY|SUPABASE_ANON_KEY/.test(_epShareFetchRaw));
+test('v4.99.57 D.6: share-fetch.js validates token charset (hex 16-64)',
+  /\^\[a-f0-9\]\{16,64\}\$/i.test(_epShareFetchRaw));
+test('v4.99.57 D.6: share-fetch.js returns 404 for expired/not-found tokens',
+  /not_found/.test(_epShareFetchRaw) && /expired/.test(_epShareFetchRaw));
+test('v4.99.57 D.6: share-fetch.js fires increment_share_view fire-and-forget',
+  /increment_share_view/.test(_epShareFetchRaw) && /\.catch\(/.test(_epShareFetchRaw));
+
+// ── Endpoint · share-redirect.js (/r/:token target) ──
+const _epShareRedirPath = path.join(__dirname, '..', 'landing', 'api', 'diagnostic', 'share-redirect.js');
+let _epShareRedirRaw = '';
+try { _epShareRedirRaw = fs.readFileSync(_epShareRedirPath, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: share-redirect.js endpoint exists', _epShareRedirRaw.length > 0);
+test('v4.99.57 D.6: share-redirect.js 302s to /diagnostic/{cert}/results?token=…',
+  /\/diagnostic\/['"]\s*\+\s*certPath\s*\+\s*['"]\/results\?token=/.test(_epShareRedirRaw) ||
+  /\/diagnostic\/[\s\S]{0,100}\/results\?token=/.test(_epShareRedirRaw));
+test('v4.99.57 D.6: share-redirect.js whitelists cert before composing redirect',
+  /cert\s*===\s*['"]network-plus['"]\s*\|\|\s*cert\s*===\s*['"]security-plus['"]/.test(_epShareRedirRaw));
+test('v4.99.57 D.6: share-redirect.js handles invalid/expired/missing tokens with soft-error redirect',
+  /share-not-found/.test(_epShareRedirRaw) && /share-expired/.test(_epShareRedirRaw) && /share-invalid-token/.test(_epShareRedirRaw));
+
+// ── Endpoint · email-report.js ──
+const _epEmailPath = path.join(__dirname, '..', 'landing', 'api', 'diagnostic', 'email-report.js');
+let _epEmailRaw = '';
+try { _epEmailRaw = fs.readFileSync(_epEmailPath, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: email-report.js endpoint exists', _epEmailRaw.length > 0);
+test('v4.99.57 D.6: email-report.js sends via Resend (api.resend.com/emails)',
+  /api\.resend\.com\/emails/.test(_epEmailRaw) && /RESEND_API_KEY/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js validates email + cert + results shape',
+  /isValidEmail/.test(_epEmailRaw) && /invalid_cert/.test(_epEmailRaw) && /incomplete_results/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js ensures shareToken (reuses if provided, creates if not)',
+  /ensureShareToken/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js HTML template includes score + pass verdict + weak domain + share URL',
+  /scaledScore/.test(_epEmailRaw) && /passThreshold|passVerdict/.test(_epEmailRaw) && /domainBreakdown/.test(_epEmailRaw) && /shareUrl/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js uses NOTIFY_FROM_EMAIL env var (mirrors notify.js)',
+  /NOTIFY_FROM_EMAIL/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js 503s on missing RESEND_API_KEY / SUPABASE keys',
+  /service_unconfigured/.test(_epEmailRaw) && /RESEND_API_KEY/.test(_epEmailRaw));
+test('v4.99.57 D.6: email-report.js plain-text fallback alongside HTML',
+  /return\s*\{\s*subject\s*,\s*html\s*,\s*text\s*\}/.test(_epEmailRaw));
+
+// ── Vercel rewrite · /r/:token → share-redirect ──
+const _landingVercelPath = path.join(__dirname, '..', 'landing', 'vercel.json');
+let _landingVercelRaw = '';
+try { _landingVercelRaw = fs.readFileSync(_landingVercelPath, 'utf8'); } catch (_) {}
+
+test('v4.99.57 D.6: landing/vercel.json has /r/:token → share-redirect rewrite',
+  /\/r\/:token/.test(_landingVercelRaw) && /share-redirect\?token=:token/.test(_landingVercelRaw));
+
+// ── results.html · Download dialog wiring + ?token= hydrate + print CSS ──
+test('v4.99.57 D.6: results.html Download stub replaced with working 3-action dialog (Print/Email/Share)',
+  !_resultsD4Raw.includes('D.6 next ship') &&
+  _resultsD4Raw.includes('id="dr-action-print"') &&
+  _resultsD4Raw.includes('id="dr-action-email"') &&
+  _resultsD4Raw.includes('id="dr-action-share"'));
+test('v4.99.57 D.6: results.html Print action calls window.print()',
+  /printBtn[\s\S]{0,400}window\.print\(\)/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html Email form posts to /api/diagnostic/email-report',
+  /fetch\(['"]\/api\/diagnostic\/email-report['"]/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html Share action posts to /api/diagnostic/share',
+  /fetch\(['"]\/api\/diagnostic\/share['"]/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html cachedShareToken reused across Email + Share clicks',
+  /cachedShareToken/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html Copy-to-clipboard wiring on share reveal',
+  /navigator\.clipboard\.writeText/.test(_resultsD4Raw) && /dr-share-copy/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html supports ?token=<hex> URL hydrate via share-fetch',
+  /fetch\(['"]\/api\/diagnostic\/share-fetch\?token=/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html token query param validated against hex regex (16-64)',
+  /\[a-f0-9\]\{16,64\}/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html renderShareError for expired/not_found/network paths',
+  /renderShareError[\s\S]{0,800}expired[\s\S]{0,200}not_found/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html @media print hides interactive chrome + unrolls answer review',
+  /@media\s+print[\s\S]{0,1500}\.dr-cta-block[\s\S]{0,100}display:\s*none/.test(_resultsD4Raw) &&
+  /@media\s+print[\s\S]{0,1500}\.dr-review-list[\s\S]{0,100}display:\s*block/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html print footer shows /r/{token} or canonical URL',
+  /dr-print-footer/.test(_resultsD4Raw));
+test('v4.99.57 D.6: results.html reduced-motion gate still applies',
+  /@media\s+\(prefers-reduced-motion/.test(_resultsD4Raw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

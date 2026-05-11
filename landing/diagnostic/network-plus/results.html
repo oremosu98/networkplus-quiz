@@ -587,6 +587,156 @@
   @media (prefers-reduced-motion: reduce) {
     .dr-ring-fg, .dr-domain-bar-fill { transition: none !important; }
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     v4.99.57 · D.6 · Download dialog (3 actions: Print · Email · Copy link)
+     ═══════════════════════════════════════════════════════════════════════ */
+  .dr-download-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .dr-download-action {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.10));
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font: inherit;
+    width: 100%;
+    text-align: left;
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .dr-download-action:hover {
+    background: var(--surface2, #f5f6f9);
+    border-color: var(--accent, #7c6ff7);
+  }
+  .dr-download-action-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(124,111,247,.12);
+    color: var(--accent, #7c6ff7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .dr-download-action-body { display: flex; flex-direction: column; gap: 2px; }
+  .dr-download-action-title { font-weight: 700; font-size: 14px; color: var(--text, #1a1a26); }
+  .dr-download-action-sub { font-size: 12px; color: var(--text-mid, #6c6d80); line-height: 1.4; }
+  .dr-download-action-chev { color: var(--text-dim, #8a8b9c); font-size: 16px; }
+
+  /* Email subform inside the dialog */
+  .dr-download-email-wrap { display: none; margin-top: 10px; }
+  .dr-download-email-wrap.is-open { display: block; }
+  .dr-download-email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dr-download-email-form input[type="email"] {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border, rgba(0,0,0,.16));
+    background: var(--surface, #fff);
+    color: var(--text, #1a1a26);
+    width: 100%;
+  }
+  .dr-download-email-form input[type="email"]:focus {
+    outline: 2px solid var(--accent, #7c6ff7);
+    outline-offset: -1px;
+    border-color: var(--accent, #7c6ff7);
+  }
+  .dr-download-status {
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .dr-download-status.is-error { color: #b91c1c; background: rgba(185,28,28,.08); padding: 10px 12px; border-radius: 8px; }
+  .dr-download-status.is-success { color: #15803d; background: rgba(34,197,94,.10); padding: 12px 14px; border-radius: 10px; font-weight: 600; }
+
+  /* Shareable link reveal */
+  .dr-share-link-reveal {
+    display: none;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(34,197,94,.08);
+    border: 1px solid rgba(34,197,94,.25);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .dr-share-link-reveal.is-open { display: block; }
+  .dr-share-link-url {
+    display: block;
+    word-break: break-all;
+    background: var(--surface, #fff);
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin: 8px 0 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: var(--text, #1a1a26);
+    border: 1px solid var(--border, rgba(0,0,0,.10));
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     v4.99.57 · D.6 · Print stylesheet
+     ─────────────────────────────────────────────────────────────────────
+     Hides interactive chrome (CTAs, stubs, header/footer, answer review),
+     unrolls collapsible content (open the review automatically), tightens
+     spacing for paper. Designed for browser Print → Save as PDF flow —
+     no third-party PDF library.
+     ═══════════════════════════════════════════════════════════════════════ */
+  @media print {
+    @page { margin: 14mm 12mm; }
+    body { background: white; color: black; }
+    .topbar, .foot,
+    .dr-cta-block,
+    .dr-stub,
+    .dr-review-toggle {
+      display: none !important;
+    }
+    /* Force the answer review open and styled for print */
+    .dr-review-list { display: block !important; border: 1px solid #999; }
+    .dr-review-row { border-bottom: 1px solid #ddd !important; }
+    /* Trim shadows + colours for ink */
+    .dr-score-block, .dr-passplan, .dr-domain-block, .dr-review-list {
+      box-shadow: none !important;
+      page-break-inside: avoid;
+    }
+    .dr-score-block, .dr-passplan, .dr-domain-block, .dr-review-list {
+      border: 1px solid #999 !important;
+    }
+    .dr-shell { padding: 0 !important; max-width: 100% !important; }
+    /* Page break between major sections */
+    .dr-score-block { page-break-after: avoid; }
+    .dr-passplan { page-break-after: avoid; }
+    .dr-domain-block { page-break-inside: avoid; }
+    /* Always show the score number — animations would print a partial fill */
+    .dr-ring-fg { stroke-dashoffset: 0 !important; transition: none !important; }
+    /* Hide the source eyebrow chip + dr-empty (this is the rich-result view) */
+    .dr-eyebrow.is-source-fallback { background: white !important; color: black !important; border: 1px solid #999; }
+    /* Show a print footer URL */
+    .dr-print-footer { display: block !important; }
+  }
+  .dr-print-footer {
+    display: none;
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px solid #999;
+    font-size: 11px;
+    color: #444;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -664,8 +814,82 @@
     if (raw) results = JSON.parse(raw);
   } catch (_) {}
 
-  // ── Empty state · no results yet ─────────────────────────────────
-  if (!results || !results.totalQuestions) {
+  // v4.99.57 D.6: if URL has ?token=<32-hex>, hydrate from /api/diagnostic/share-fetch.
+  // Used by the /r/{token} share-redirect.js handoff path. The token query param
+  // takes precedence over sessionStorage — the user followed a share link, so
+  // they want to see that share, not whatever happens to be in their session.
+  var urlToken = null;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var t = (params.get('token') || '').trim();
+    if (/^[a-f0-9]{16,64}$/i.test(t)) urlToken = t;
+  } catch (_) {}
+
+  if (urlToken) {
+    // Show loading state then async-hydrate from share-fetch endpoint
+    var loadingEl = document.getElementById('dr-loading');
+    if (loadingEl) loadingEl.textContent = 'Loading shared diagnostic…';
+
+    fetch('/api/diagnostic/share-fetch?token=' + encodeURIComponent(urlToken))
+      .then(function(res) {
+        return res.json().then(function(body) { return { status: res.status, body: body }; });
+      })
+      .then(function(r) {
+        if (r.body && r.body.ok && r.body.results) {
+          results = r.body.results;
+          // Tag the source so the UI can show "Shared link · X views"
+          results._sharedFromToken = urlToken;
+          results._sharedViewCount = r.body.viewCount || 1;
+          renderPage();
+        } else {
+          var msg = (r.body && r.body.error) || 'share_not_found';
+          renderShareError(msg);
+        }
+      })
+      .catch(function(err) {
+        renderShareError('network_error: ' + (err && err.message ? err.message : 'fetch failed'));
+      });
+    return;  // wait for async render
+  }
+
+  // Synchronous path: sessionStorage already has results → render now
+  renderPage();
+  return;
+
+  // ── Helper: shareable-link error ─────────────────────────────────
+  function renderShareError(reason) {
+    var hint;
+    if (reason === 'expired') hint = 'This shared diagnostic has expired (90-day limit). Ask the sender to share a fresh link, or take your own diagnostic to see your baseline.';
+    else if (reason === 'not_found') hint = 'That share link is invalid or no longer available. Take the diagnostic yourself to see what an honest baseline looks like.';
+    else hint = 'Couldn\'t load the shared diagnostic · ' + reason + '. Take the diagnostic yourself to see your baseline.';
+
+    // hint is static copy controlled by us (not user input) so safe to inline.
+    shell.innerHTML =
+      '<div class="dr-hero">' +
+        '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">Share link unavailable</span>' +
+        '<h1 class="dr-h1">This shared diagnostic isn\'t available</h1>' +
+        '<p class="dr-sub">' + hint + '</p>' +
+      '</div>' +
+      '<div class="dr-cta-block">' +
+        '<div class="dr-cta-list">' +
+          '<a href="/diagnostic/network-plus/intake" class="dr-cta dr-cta-primary">' +
+            '<span class="dr-cta-icon">▶</span>' +
+            '<span class="dr-cta-body">' +
+              '<span class="dr-cta-title">Take the Network+ diagnostic</span>' +
+              '<span class="dr-cta-sub">20 questions · ~15 min · honest baseline</span>' +
+            '</span>' +
+            '<span class="dr-cta-chev">→</span>' +
+          '</a>' +
+          '<a href="/" class="dr-cta dr-cta-ghost">' +
+            '<span class="dr-cta-title">Back to CertAnvil</span>' +
+            '<span class="dr-cta-chev">←</span>' +
+          '</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // ── Empty state · no results yet (no sessionStorage AND no token) ─
+  function renderEmptyState() {
     shell.innerHTML =
       '<div class="dr-hero">' +
         '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
@@ -688,8 +912,19 @@
           '</a>' +
         '</div>' +
       '</div>';
-    return;
   }
+
+  // ── Main render function — extracted to D.6 so both sync (sessionStorage)
+  //    and async (URL token → share-fetch) paths can call it.
+  function renderPage() {
+    if (!results || !results.totalQuestions) {
+      renderEmptyState();
+      return;
+    }
+    renderResultsContent();
+  }
+
+  function renderResultsContent() {
 
   // ── Helpers ──────────────────────────────────────────────────────
   function esc(s) {
@@ -1016,13 +1251,63 @@
 
     '<div class="dr-stub" id="dr-stub-download">' +
       '<div class="dr-stub-head">' +
-        '<h2 class="dr-stub-title">⬇ Download / email score report</h2>' +
+        '<h2 class="dr-stub-title">⬇ Save or share your report</h2>' +
         '<button type="button" class="dr-stub-close" data-close="download" aria-label="Close">×</button>' +
       '</div>' +
       '<div class="dr-stub-body">' +
-        '<span class="dr-stub-pill">D.6 next ship</span>' +
-        '<p><strong>PDF + email download lands in the next ship.</strong> You\'ll get a clean printable report with your score ring, Pass Plan, per-domain breakdown, and a shareable <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">/r/{token}</code> link.</p>' +
-        '<p>For now, you can screenshot this page (the score ring + Pass Plan + domain breakdown print cleanly) — that\'s the cheapest fallback until the PDF endpoint goes live.</p>' +
+        '<p>Three options · keep a copy, email it to yourself, or share a public link.</p>' +
+        '<div class="dr-download-actions">' +
+          // Action 1 · Print / Save as PDF
+          '<button type="button" class="dr-download-action" id="dr-action-print">' +
+            '<span class="dr-download-action-icon">🖨</span>' +
+            '<span class="dr-download-action-body">' +
+              '<span class="dr-download-action-title">Print or save as PDF</span>' +
+              '<span class="dr-download-action-sub">Opens your browser\'s print dialog · choose "Save as PDF" for a clean copy</span>' +
+            '</span>' +
+            '<span class="dr-download-action-chev">→</span>' +
+          '</button>' +
+          // Action 2 · Email me
+          '<button type="button" class="dr-download-action" id="dr-action-email">' +
+            '<span class="dr-download-action-icon">✉</span>' +
+            '<span class="dr-download-action-body">' +
+              '<span class="dr-download-action-title">Email me the report</span>' +
+              '<span class="dr-download-action-sub">Score + Pass Plan + shareable link, in your inbox</span>' +
+            '</span>' +
+            '<span class="dr-download-action-chev">→</span>' +
+          '</button>' +
+          // Action 3 · Copy share link
+          '<button type="button" class="dr-download-action" id="dr-action-share">' +
+            '<span class="dr-download-action-icon">🔗</span>' +
+            '<span class="dr-download-action-body">' +
+              '<span class="dr-download-action-title">Copy a shareable link</span>' +
+              '<span class="dr-download-action-sub">Public URL · 90-day expiry · no email required</span>' +
+            '</span>' +
+            '<span class="dr-download-action-chev">→</span>' +
+          '</button>' +
+        '</div>' +
+        // Inline email form (revealed when Action 2 clicked)
+        '<div class="dr-download-email-wrap" id="dr-email-wrap">' +
+          '<form id="dr-email-form" class="dr-download-email-form" novalidate>' +
+            '<input type="email" id="dr-email-input" name="email" required ' +
+                   'placeholder="you@example.com" autocomplete="email" ' +
+                   'aria-label="Your email address" />' +
+            '<button type="submit" id="dr-email-submit" class="dr-cta dr-cta-secondary" style="width:100%">' +
+              '<span class="dr-cta-icon">✉</span>' +
+              '<span class="dr-cta-body"><span class="dr-cta-title">Send report</span></span>' +
+              '<span class="dr-cta-chev">→</span>' +
+            '</button>' +
+          '</form>' +
+        '</div>' +
+        // Share-link reveal (filled when Action 3 succeeds)
+        '<div class="dr-share-link-reveal" id="dr-share-reveal">' +
+          '<strong>✓ Your shareable link:</strong>' +
+          '<code class="dr-share-link-url" id="dr-share-url"></code>' +
+          '<button type="button" id="dr-share-copy" class="dr-cta dr-cta-tertiary" style="width:auto;padding:8px 14px">' +
+            '<span class="dr-cta-title">Copy to clipboard</span>' +
+          '</button>' +
+          '<span style="display:block;margin-top:8px;font-size:12px;color:var(--text-mid)">Valid 90 days · works for anyone (no sign-in needed) · doesn\'t include your email.</span>' +
+        '</div>' +
+        '<div id="dr-download-status" class="dr-download-status" role="status" aria-live="polite"></div>' +
       '</div>' +
     '</div>' +
 
@@ -1032,6 +1317,12 @@
       '<div class="dr-review-list" id="dr-review-list" aria-live="polite">' +
         reviewRowsHtml() +
       '</div>' +
+    '</div>' +
+
+    // ── Print-only footer ───
+    '<div class="dr-print-footer">' +
+      'CertAnvil · ' + new Date().toLocaleDateString() + ' · ' +
+      (results._sharedFromToken ? 'certanvil.com/r/' + results._sharedFromToken : 'certanvil.com/diagnostic/network-plus') +
     '</div>';
 
   // ── Animate the ring fill (after layout settles) ────────────────
@@ -1202,6 +1493,154 @@
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     toggle.textContent = open ? 'Hide question-by-question review ▴' : 'Show question-by-question review ▾';
   });
+
+  // ── v4.99.57 D.6 · Download dialog wiring ────────────────────────
+  // 3 actions inside the Download stub: Print · Email · Copy-share-link.
+  // Server endpoints: /api/diagnostic/share (POST) + /api/diagnostic/email-report (POST).
+  // Print uses the browser's native window.print() against the @media print CSS.
+  var downloadStatus = document.getElementById('dr-download-status');
+  var emailWrap = document.getElementById('dr-email-wrap');
+  var shareReveal = document.getElementById('dr-share-reveal');
+  var shareUrlEl = document.getElementById('dr-share-url');
+  var cachedShareToken = null;  // remember if we already created one this session
+
+  function setDownloadStatus(text, tone) {
+    if (!downloadStatus) return;
+    downloadStatus.textContent = text || '';
+    downloadStatus.classList.remove('is-error', 'is-success');
+    if (tone === 'error') downloadStatus.classList.add('is-error');
+    else if (tone === 'success') downloadStatus.classList.add('is-success');
+  }
+
+  // Action 1 · Print / Save as PDF
+  var printBtn = document.getElementById('dr-action-print');
+  if (printBtn) printBtn.addEventListener('click', function() {
+    setDownloadStatus('Opening print dialog…', null);
+    // Use a microtask delay so the status text paints before print blocks
+    setTimeout(function() {
+      try { window.print(); setDownloadStatus('', null); }
+      catch (_) { setDownloadStatus('Browser blocked the print dialog · try the keyboard shortcut Cmd/Ctrl + P.', 'error'); }
+    }, 50);
+  });
+
+  // Action 2 · Email me · reveal subform
+  var emailBtn = document.getElementById('dr-action-email');
+  if (emailBtn) emailBtn.addEventListener('click', function() {
+    if (emailWrap) emailWrap.classList.toggle('is-open');
+    setDownloadStatus('', null);
+    var input = document.getElementById('dr-email-input');
+    if (input && emailWrap && emailWrap.classList.contains('is-open')) {
+      try { input.focus(); } catch (_) {}
+    }
+  });
+
+  // Email subform submit
+  var emailForm = document.getElementById('dr-email-form');
+  if (emailForm) emailForm.addEventListener('submit', function(ev) {
+    ev.preventDefault();
+    var input = document.getElementById('dr-email-input');
+    var submitBtn = document.getElementById('dr-email-submit');
+    if (!input || !input.value) return;
+    var addr = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) {
+      setDownloadStatus('Please enter a valid email address.', 'error');
+      return;
+    }
+    if (submitBtn) submitBtn.disabled = true;
+    input.disabled = true;
+    setDownloadStatus('Sending report to ' + addr + '…', null);
+
+    fetch('/api/diagnostic/email-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: addr,
+        cert: results.cert || 'network-plus',
+        diagnosticResults: results,
+        shareToken: cachedShareToken || undefined,
+      }),
+    }).then(function(res) {
+      return res.json().then(function(b) { return { status: res.status, body: b }; });
+    }).then(function(r) {
+      if (r.status === 503) {
+        setDownloadStatus('Email service is being configured — try again in a moment, or use Print or Copy link instead.', 'error');
+      } else if (r.status === 429) {
+        setDownloadStatus('Too many requests from this IP · please wait an hour before trying again.', 'error');
+      } else if (r.body && r.body.ok) {
+        cachedShareToken = r.body.token || cachedShareToken;
+        setDownloadStatus('✓ Sent to ' + addr + ' · check your inbox in a minute (and your spam folder, just in case).', 'success');
+      } else {
+        var msg = (r.body && r.body.error) || 'unknown_error';
+        setDownloadStatus('Couldn\'t send email · ' + msg + ' · please try again.', 'error');
+      }
+    }).catch(function(err) {
+      setDownloadStatus('Network error · ' + (err && err.message ? err.message : 'fetch failed') + ' · please try again.', 'error');
+    }).then(function() {
+      if (submitBtn) submitBtn.disabled = false;
+      input.disabled = false;
+    });
+  });
+
+  // Action 3 · Copy shareable link
+  var shareBtn = document.getElementById('dr-action-share');
+  if (shareBtn) shareBtn.addEventListener('click', function() {
+    // If we already have a token this session, just re-reveal it
+    if (cachedShareToken && shareUrlEl && shareReveal) {
+      shareReveal.classList.add('is-open');
+      return;
+    }
+    setDownloadStatus('Creating shareable link…', null);
+    fetch('/api/diagnostic/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cert: results.cert || 'network-plus',
+        diagnosticResults: results,
+      }),
+    }).then(function(res) {
+      return res.json().then(function(b) { return { status: res.status, body: b }; });
+    }).then(function(r) {
+      if (r.status === 503) {
+        setDownloadStatus('Share service is being configured — try Print or Email instead.', 'error');
+      } else if (r.status === 429) {
+        setDownloadStatus('Too many share requests from this IP · please wait an hour.', 'error');
+      } else if (r.body && r.body.ok && r.body.shareUrl) {
+        cachedShareToken = r.body.token;
+        if (shareUrlEl) shareUrlEl.textContent = r.body.shareUrl;
+        if (shareReveal) shareReveal.classList.add('is-open');
+        setDownloadStatus('', null);
+      } else {
+        var msg = (r.body && r.body.error) || 'unknown_error';
+        setDownloadStatus('Couldn\'t create share link · ' + msg + '. Please try again.', 'error');
+      }
+    }).catch(function(err) {
+      setDownloadStatus('Network error · ' + (err && err.message ? err.message : 'fetch failed'), 'error');
+    });
+  });
+
+  // Copy-to-clipboard inside the share reveal
+  var copyBtn = document.getElementById('dr-share-copy');
+  if (copyBtn) copyBtn.addEventListener('click', function() {
+    var url = (shareUrlEl && shareUrlEl.textContent) || '';
+    if (!url) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        copyBtn.querySelector('.dr-cta-title').textContent = 'Copied ✓';
+        setTimeout(function() {
+          if (copyBtn && copyBtn.querySelector('.dr-cta-title')) {
+            copyBtn.querySelector('.dr-cta-title').textContent = 'Copy to clipboard';
+          }
+        }, 1800);
+      }).catch(function() {
+        setDownloadStatus('Couldn\'t auto-copy · please select the link above and copy manually.', 'error');
+      });
+    } else {
+      setDownloadStatus('Clipboard API unavailable · please select the link above and copy manually.', 'error');
+    }
+  });
+
+  // ── Closing brace of renderResultsContent() ──
+  }  // end renderResultsContent
 
 })();
 </script>
