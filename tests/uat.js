@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.41', js.includes("const APP_VERSION = '4.99.41"));
+test('APP_VERSION is 4.99.42', js.includes("const APP_VERSION = '4.99.42"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.41', sw.includes('netplus-v4.99.41'));
+test('SW cache bumped to v4.99.42', sw.includes('netplus-v4.99.42'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5713,7 +5713,8 @@ test('v4.54.0 JS: renderHeroV2MiniCards pulls from getDailyGoal + getStreak',
 test('v4.54.0 JS: goSetup calls renderHeroV2',
   // v4.99.38: window bumped from 1500 → 2000 after _portDrillTeardown
   // shell-callable hook added in goSetup body.
-  /function goSetup\([\s\S]{0,2000}renderHeroV2/.test(js));
+  // v4.99.42: window bumped 2000 → 2500 after 3rd teardown hook (_subnetTrainerTeardown).
+  /function goSetup\([\s\S]{0,2500}renderHeroV2/.test(js));
 // v4.81.20: tombstone — focus-banner v2 structure was retired (the function
 // is now a compat shim that delegates to renderTodayPlan). The CSS for
 // .focus-banner-v2 + .fb-* classes is retained for the (now hidden)
@@ -18879,6 +18880,53 @@ test('v4.99.39 Phase11b: IRW exposes _irwTeardown for shell-side cleanup (CRITIC
   && /clearInterval\(_irwPressureTimerId\)/.test(_featureIrwRaw));
 test('v4.99.39 Phase11b: IRW leave() calls _irwTeardown + resets all 7 module-state vars',
   /leave:\s*function[\s\S]{0,800}_irwTeardown\(\)[\s\S]{0,800}_irwActiveScenarioId\s*=\s*null[\s\S]{0,400}_irwPressureExpired\s*=\s*false/.test(_featureIrwRaw));
+
+// ── v4.99.42 — Phase 11b session 5: Subnet Trainer extracted ──
+console.log('\n\x1b[1m── v4.99.42 — PHASE 11b SUBNET TRAINER EXTRACTION ──\x1b[0m');
+
+const _appJsRawV42 = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+
+test('v4.99.42 Phase11b: startSubnetTrainer is async shell stub that lazy-loads',
+  /async\s+function\s+startSubnetTrainer\s*\(\s*\)\s*\{[\s\S]{0,400}_loadFeature\s*\(\s*["']subnet-trainer["']\s*\)/.test(_appJsRawV42));
+test('v4.99.42 Phase11b: shell stub gates via _gateProOnly (Subnet Trainer is Pro)',
+  /async\s+function\s+startSubnetTrainer[\s\S]{0,400}_gateProOnly\(\s*["']Subnet Trainer["']\s*\)/.test(_appJsRawV42));
+test('v4.99.42 Phase11b: goSetup calls _subnetTrainerTeardown for timer cleanup',
+  /function\s+goSetup[\s\S]{0,1500}window\._subnetTrainerTeardown[\s\S]{0,100}\)/.test(_appJsRawV42));
+test('v4.99.42 Phase11b: regression tombstone — `function setSubnetTab` NOT in app.js shell',
+  !/^function\s+setSubnetTab\s*\(/m.test(_appJsRawV42));
+test('v4.99.42 Phase11b: regression tombstone — `function stOpenLesson` NOT in app.js shell',
+  !/^function\s+stOpenLesson\s*\(/m.test(_appJsRawV42));
+test('v4.99.42 Phase11b: regression tombstone — `const ST_CATEGORIES` NOT in app.js shell',
+  !/^const\s+ST_CATEGORIES\s*=/m.test(_appJsRawV42));
+test('v4.99.42 Phase11b: regression tombstone — `let stTimerInterval` NOT in app.js shell',
+  !/^let\s+stTimerInterval/m.test(_appJsRawV42));
+test('v4.99.42 Phase11b: regression tombstone — `function genSubnetQuestion` NOT in app.js shell',
+  !/^function\s+genSubnetQuestion\s*\(/m.test(_appJsRawV42));
+
+const _featureStRaw = fs.readFileSync(path.join(ROOT, 'features/subnet-trainer.js'), 'utf8');
+test('v4.99.42 Phase11b: features/subnet-trainer.js exists',
+  _featureStRaw.length > 1000);
+test('v4.99.42 Phase11b: Subnet Trainer wrapped in IIFE',
+  /^\(function\(\)\s*\{/m.test(_featureStRaw)
+  && /\}\)\(\);?\s*$/.test(_featureStRaw.trim()));
+test('v4.99.42 Phase11b: Subnet Trainer preserves ST_CATEGORIES + SUBNET_LESSONS',
+  /const\s+ST_CATEGORIES\s*=/.test(_featureStRaw)
+  && /const\s+SUBNET_LESSONS\s*=/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer exposes setSubnetTab on window (CRITICAL: index.html static onclicks)',
+  /window\.setSubnetTab\s*=\s*setSubnetTab/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer exposes stOpenLesson + stAskCoach + stCheckAnswer on window',
+  /window\.stOpenLesson\s*=\s*stOpenLesson/.test(_featureStRaw)
+  && /window\.stAskCoach\s*=\s*stAskCoach/.test(_featureStRaw)
+  && /window\.stCheckAnswer\s*=\s*stCheckAnswer/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer registers under "subnet-trainer" key',
+  /window\._certanvilFeatures\["subnet-trainer"\]\s*=\s*\{\s*enter:/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer enter() preserves original behavior (setSubnetTab learn + level badge + recommendation)',
+  /enter:\s*function[\s\S]{0,500}setSubnetTab\("learn"\)[\s\S]{0,300}stRenderLevelBadge[\s\S]{0,300}renderSubnetRecommendation/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer exposes _subnetTrainerTeardown for shell-side cleanup',
+  /window\._subnetTrainerTeardown\s*=\s*function/.test(_featureStRaw)
+  && /clearInterval\(stTimerInterval\)/.test(_featureStRaw));
+test('v4.99.42 Phase11b: Subnet Trainer leave() calls _subnetTrainerTeardown + resets module state',
+  /leave:\s*function[\s\S]{0,500}_subnetTrainerTeardown\(\)[\s\S]{0,300}stCorrect\s*=\s*0/.test(_featureStRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
