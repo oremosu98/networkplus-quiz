@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.43', js.includes("const APP_VERSION = '4.99.43"));
+test('APP_VERSION is 4.99.44', js.includes("const APP_VERSION = '4.99.44"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.43', sw.includes('netplus-v4.99.43'));
+test('SW cache bumped to v4.99.44', sw.includes('netplus-v4.99.44'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -8937,7 +8937,9 @@ const EXPECTED_DEVICE_TYPES = [
 
 // --- Click-to-inspect wires into existing v4.60.0 inspector ---
 test('v4.63.0 app.js: tbOpen3DView dynamic-imports tb3d.js',
-  js.includes("import('./tb3d.js')"));
+  // v4.99.44: post-extraction the import path is now /tb3d.js (absolute) so
+  // it resolves the same regardless of caller location. Accept either spec.
+  js.includes("import('./tb3d.js')") || js.includes("import('/tb3d.js')"));
 test('v4.63.0 app.js: tbOpen3DView passes onDeviceClick callback wired to tbSelectDeviceForInspector',
   /onDeviceClick[\s\S]{0,120}tbSelectDeviceForInspector\(deviceId\)/.test(js));
 test('v4.63.0 app.js: tbOpen3DView defined',
@@ -10031,7 +10033,14 @@ test('v4.78.0 wiring: renderProgressPage calls renderProgressRecommendation',
 test('v4.78.0 wiring: stRenderDashboard calls renderSubnetRecommendation',
   (() => { const body = _fnBody(js, 'stRenderDashboard'); return body && /renderSubnetRecommendation/.test(body); })());
 test('v4.78.0 wiring: openTopologyBuilder calls renderTopologyRecommendation',
-  (() => { const body = _fnBody(js, 'openTopologyBuilder'); return body && /renderTopologyRecommendation/.test(body); })());
+  // v4.99.44 Phase 11c: openTopologyBuilder now exists in two places — the
+  // shell stub (lazy-load entry) + the IIFE-internal version (in features/
+  // topology-builder.js, called from enter()). Wiring lives in the IIFE one.
+  // Scan the feature module's raw source for the wiring.
+  (() => {
+    const featureTb = fs.readFileSync(path.join(ROOT, 'features/topology-builder.js'), 'utf8');
+    return /function\s+openTopologyBuilder\s*\([\s\S]{0,4000}renderTopologyRecommendation/.test(featureTb);
+  })());
 
 // HTML host elements
 test('v4.78.0 HTML: #drills-rec-host exists', html.includes('id="drills-rec-host"'));
@@ -18977,6 +18986,123 @@ test('v4.99.43 Phase11b: ACL Builder enter() preserves original behavior (aclLoa
   /enter:\s*function[\s\S]{0,400}aclLoadState\(\)[\s\S]{0,200}renderAclPage\(\)/.test(_featureAclRaw));
 test('v4.99.43 Phase11b: ACL Builder leave() closes all 3 modals (coach + scenario picker + add-rule)',
   /leave:\s*function[\s\S]{0,800}acl-coach-modal[\s\S]{0,400}acl-scenario-picker[\s\S]{0,400}acl-add-rule-modal/.test(_featureAclRaw));
+
+// ── v4.99.44 — Phase 11c: Topology Builder extracted (THE score-jumper) ──
+// This is the largest extraction of Phase 11 by far — ~14,330 LOC out of the
+// shell. Combined with the Phase 8 desktop-only viewport check in the stub,
+// mobile users save the full ~350-400 KB transfer they would never have used.
+console.log('\n\x1b[1m── v4.99.44 — PHASE 11c TOPOLOGY BUILDER EXTRACTION ──\x1b[0m');
+
+const _appJsRawV44 = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+
+test('v4.99.44 Phase11c: openTopologyBuilder is async shell stub that lazy-loads',
+  /async\s+function\s+openTopologyBuilder\s*\(\s*\)\s*\{[\s\S]{0,800}_loadFeature\s*\(\s*["']topology-builder["']\s*\)/.test(_appJsRawV44));
+test('v4.99.44 Phase11c: shell stub gates via _gateProOnly (Topology Builder is Pro)',
+  /async\s+function\s+openTopologyBuilder[\s\S]{0,300}_gateProOnly\(\s*["']Topology Builder["']\s*\)/.test(_appJsRawV44));
+test('v4.99.44 Phase11c: shell stub performs Phase 8 desktop-only viewport check BEFORE _loadFeature',
+  /async\s+function\s+openTopologyBuilder[\s\S]{0,600}window\.innerWidth\s*<\s*900[\s\S]{0,200}return[\s\S]{0,400}_loadFeature/.test(_appJsRawV44));
+test('v4.99.44 Phase11c: shell stub shows error toast on lazy-load failure',
+  /async\s+function\s+openTopologyBuilder[\s\S]{0,1200}catch[\s\S]{0,200}showErrorToast[\s\S]{0,200}Topology Builder failed to load/.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `function tbGenerateAiTopology` NOT in app.js shell',
+  !/^function\s+tbGenerateAiTopology\s*\(/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `function tbAutoLayout` NOT in app.js shell',
+  !/^function\s+tbAutoLayout\s*\(/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `function tbProcessCliCommand` NOT in app.js shell',
+  !/^function\s+tbProcessCliCommand\s*\(/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `const TB_LAB_CATEGORIES` NOT in app.js shell',
+  !/^const\s+TB_LAB_CATEGORIES\s*=/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `const TB_SCENARIOS` NOT in app.js shell',
+  !/^const\s+TB_SCENARIOS\s*=/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `let tbState` NOT in app.js shell',
+  !/^let\s+tbState\s*=/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: regression tombstone — `const _TB_CLI_COMMANDS` NOT in app.js shell',
+  !/^const\s+_TB_CLI_COMMANDS\s*=/m.test(_appJsRawV44));
+test('v4.99.44 Phase11c: app.js shell line count dropped substantially (target <22k lines)',
+  _appJsRawV44.split('\n').length < 22000);
+
+const _featureTbRaw = fs.readFileSync(path.join(ROOT, 'features/topology-builder.js'), 'utf8');
+test('v4.99.44 Phase11c: features/topology-builder.js exists (largest feature module to date)',
+  _featureTbRaw.length > 100000);
+test('v4.99.44 Phase11c: Topology Builder wrapped in IIFE',
+  /^\(function\(\)\s*\{/m.test(_featureTbRaw)
+  && /\}\)\(\);?\s*$/.test(_featureTbRaw.trim()));
+test('v4.99.44 Phase11c: TB preserves TB_LAB_CATEGORIES + TB_SCENARIOS + TB_DEVICE_TYPES',
+  /const\s+TB_LAB_CATEGORIES\s*=/.test(_featureTbRaw)
+  && /const\s+TB_SCENARIOS\s*=/.test(_featureTbRaw)
+  && /const\s+TB_DEVICE_TYPES\s*=/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB preserves canvas size constants (CANVAS_W 1800 / CANVAS_H 1100)',
+  /TB_CANVAS_W\s*=\s*1800/.test(_featureTbRaw)
+  && /TB_CANVAS_H\s*=\s*1100/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB preserves CLI dispatch table refactor (v4.62.4 _TB_CLI_COMMANDS)',
+  /const\s+_TB_CLI_COMMANDS\s*=/.test(_featureTbRaw)
+  && /function\s+_tbCliMatches\s*\(/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB defines _exposeTb helper that registers window exposures via fn.name',
+  /function\s+_exposeTb\s*\([\s\S]{0,200}window\[fn\.name\]\s*=\s*fn/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB _exposeTb call lists all critical onclick targets',
+  /_exposeTb\s*\([\s\S]{0,5000}tbAddBgpNeighbor[\s\S]{0,5000}tbCloseConfigPanel[\s\S]{0,5000}tbForceOpen[\s\S]{0,5000}tbGenerateAiTopology[\s\S]{0,5000}tbLoadScenarioWithBuild/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB _exposeTb call includes tbStopAmbient (CRITICAL: shell showPage cleanup at app.js:~1787)',
+  /_exposeTb\s*\([\s\S]{0,5000}tbStopAmbient/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB _exposeTb call includes tbOpenLabPicker + tbOpenScenarioPicker (modal openers)',
+  /_exposeTb\s*\([\s\S]{0,5000}tbOpenLabPicker[\s\S]{0,5000}tbOpenScenarioPicker/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB _exposeTb list count = 113 names (94 generic + 19 3D-related tb3d* + tbOpen3DView + tbClose3DView)',
+  // One of the 113 names (tbConfigPanelDeviceId) is a `let` variable, not a
+  // function — the helper's `typeof fn === "function"` guard silently skips
+  // it at runtime, so 112 actual window function exposures land. Counting
+  // the SOURCE list at 113 keeps the test stable across future audits.
+  // The /tb[A-Z]/ auto-extract regex missed the `tb3d*` family (lowercase
+  // letter + digit doesn't match /[A-Z]/), so they're explicitly listed at
+  // the top of the _exposeTb call.
+  (() => {
+    const m = _featureTbRaw.match(/_exposeTb\s*\(([\s\S]*?)\)\s*;/);
+    if (!m) return false;
+    // Strip `//` line comments first so words inside comments (e.g. "tb3d.js")
+    // don't inflate the count.
+    const stripped = m[1].replace(/\/\/[^\n]*/g, '');
+    const names = stripped.match(/\btb\w+/g);
+    return names && names.length === 113;
+  })());
+test('v4.99.44 Phase11c: TB exposes 3D View entry/exit + controls (tbOpen3DView, tbClose3DView, tb3dEnterOsiView)',
+  /_exposeTb\s*\([\s\S]{0,5000}tbOpen3DView/.test(_featureTbRaw)
+  && /_exposeTb\s*\([\s\S]{0,5000}tbClose3DView/.test(_featureTbRaw)
+  && /_exposeTb\s*\([\s\S]{0,5000}tb3dEnterOsiView/.test(_featureTbRaw)
+  && /_exposeTb\s*\([\s\S]{0,5000}tb3dPlayTour/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB exposes tbStartTrace + tbSelectDeviceForInspector (Playwright programmatic calls)',
+  /_exposeTb\s*\([\s\S]{0,8000}tbStartTrace/.test(_featureTbRaw)
+  && /_exposeTb\s*\([\s\S]{0,8000}tbSelectDeviceForInspector/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB _exposeTb list does NOT contain the 3 known false-positive substring matches',
+  (() => {
+    const m = _featureTbRaw.match(/_exposeTb\s*\(([\s\S]*?)\)\s*;/);
+    if (!m) return false;
+    const list = m[1];
+    // Must not have the bare names (which would throw ReferenceError at call site)
+    return !/\btbClose\s*,/.test(list)
+      && !/\btbOpen\s*,/.test(list)
+      && !/\btbV\s*,/.test(list);
+  })());
+test('v4.99.44 Phase11c: TB registers under "topology-builder" key',
+  /window\._certanvilFeatures\["topology-builder"\]\s*=\s*\{\s*enter:\s*function/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB enter() delegates to IIFE-internal openTopologyBuilder',
+  /enter:\s*function\s*\(\s*\)\s*\{[\s\S]{0,600}openTopologyBuilder\s*\(\s*\)/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB leave() stops ambient animation (mirrors shell showPage cleanup)',
+  /leave:\s*function[\s\S]{0,400}tbStopAmbient\s*\(\s*\)/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB leave() tears down coach modal',
+  /leave:\s*function[\s\S]{0,600}tb-coach-modal[\s\S]{0,200}is-hidden/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB 3D View dynamic-import contract still respected (tb3d.js NOT folded into the feature module)',
+  !/^const\s+THREE\s*=\s*require/m.test(_featureTbRaw)
+  && !/import\s+['"]\.\.\/tb3d\.js['"]/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB dynamic-imports tb3d.js via absolute path (must NOT be `./tb3d.js` — that resolves to /features/tb3d.js post-extraction)',
+  // Critical post-extraction bug found via Playwright. The pre-extraction
+  // import was `./tb3d.js` which resolved to /tb3d.js when the code lived
+  // in app.js (project root). After extraction the same relative spec
+  // would resolve to /features/tb3d.js which is a 404. Use absolute /tb3d.js.
+  /await\s+import\s*\(\s*['"]\/tb3d\.js['"]\s*\)/.test(_featureTbRaw)
+  && !/await\s+import\s*\(\s*['"]\.\/tb3d\.js['"]\s*\)/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB preserves _tbUiState consolidated state object (v4.62.4 tech-debt sweep)',
+  /let\s+_tbUiState\s*=/.test(_featureTbRaw)
+  || /const\s+_tbUiState\s*=/.test(_featureTbRaw));
+test('v4.99.44 Phase11c: TB preserves _tbOverlayRegistry pattern (v4.62.4 tech-debt sweep)',
+  /_tbOverlayRegistry/.test(_featureTbRaw)
+  && /tbRegisterOverlay/.test(_featureTbRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

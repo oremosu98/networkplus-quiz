@@ -1193,9 +1193,12 @@ test.describe('Network Builder 3D View', () => {
 
     // showPage activates the page; openTopologyBuilder restores tbState
     // from the seeded draft. Fire both.
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
     await expect(page.locator('#page-topology-builder')).toHaveClass(/active/);
 
@@ -1263,9 +1266,12 @@ test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
 
   test('trace pill + playback controls + HUD + hop strip all exist in 3D DOM', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
 
     // Open 3D view
@@ -1286,9 +1292,12 @@ test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
 
   test('firing a trace reveals the HUD, hop-strip, and playback controls', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
 
     // Open 3D view
@@ -1324,9 +1333,12 @@ test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
 
   test('trace state persists across 3D → 2D → 3D toggle', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
 
     // Enter 3D and fire a trace
@@ -1351,9 +1363,12 @@ test.describe('Network Builder 3D View — Phase 2 Packet Trace', () => {
 
   test('2D trace panel is hidden while 3D is active (no overlap)', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
 
     // Fire trace in 2D first — 2D trace panel should be visible
@@ -1407,9 +1422,12 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
 
   test('OSI button is always clickable + auto-picks a device if none selected (v4.65.1)', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
     await page.locator('[data-tb-pill="3d"]').click();
     await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
@@ -1428,9 +1446,12 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
 
   test('entering OSI mode lifts device into 7 layer planes with labels', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
     await page.locator('[data-tb-pill="3d"]').click();
     await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
@@ -1461,9 +1482,12 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
 
   test('Exit OSI returns to regular 3D view + tears down layer planes', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
     await page.locator('[data-tb-pill="3d"]').click();
     await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
@@ -1488,9 +1512,12 @@ test.describe('Network Builder 3D View — Phase 3 OSI Layer Stack', () => {
 
   test('Back-to-2D while in OSI mode properly cleans up', async ({ page }) => {
     await page.goto('/');
-    await page.evaluate(() => {
+    // v4.99.44: openTopologyBuilder now lazy-loads features/topology-builder.js.
+    // Await the async function inside evaluate so the module finishes registering
+    // before subsequent pill clicks fire their inline onclick handlers.
+    await page.evaluate(async () => {
       window.showPage('topology-builder');
-      window.openTopologyBuilder();
+      await window.openTopologyBuilder();
     });
     await page.locator('[data-tb-pill="3d"]').click();
     await expect(page.locator('#tb-3d-canvas canvas')).toBeVisible({ timeout: 5000 });
