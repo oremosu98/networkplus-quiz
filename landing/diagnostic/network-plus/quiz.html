@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Network+ Diagnostic · coming soon — CertAnvil</title>
+<title>Network+ Baseline · 20-Q diagnostic — CertAnvil</title>
 <meta name="theme-color" content="#fafbff">
-<meta name="description" content="The Network+ baseline diagnostic quiz UI ships in D.2.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="20-question Network+ N10-009 diagnostic. ~30 minutes. Score + weak-domain map at the end.">
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/network-plus/quiz">
 <meta name="robots" content="noindex, nofollow">
 <script>
 (function() {
@@ -20,58 +23,270 @@
 })();
 </script>
 <style>
-  .dx-placeholder-hero { padding: 80px 0 32px; text-align: center; max-width: 480px; margin: 0 auto; }
-  .dx-placeholder-emoji { font-size: 56px; margin-bottom: 14px; }
-  .dx-placeholder-h1 { font-size: 28px; font-weight: 800; margin: 0 0 10px; letter-spacing: -.01em; }
-  .dx-placeholder-sub { color: var(--text-mid, #6c6d80); font-size: 15px; line-height: 1.55; margin: 0 0 8px; }
-  .dx-placeholder-intake-recap {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.1));
-    border-radius: 12px;
-    padding: 16px 20px;
-    text-align: left;
-    margin: 24px auto;
+  /* ──────────────────────────────────────────
+     Quiz shell · self-contained styling
+     ──────────────────────────────────────────── */
+  body { padding-bottom: 40px; }
+
+  .dq-shell { max-width: 720px; margin: 0 auto; padding: 24px 18px 60px; }
+
+  /* Header bar · progress + timer + quit */
+  .dq-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .dq-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
     font-size: 13px;
     color: var(--text-mid, #4a4b5e);
-    max-width: 380px;
+    font-weight: 600;
+  }
+  .dq-header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .dq-timer {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent, #7c6ff7);
+    background: var(--surface, #fff);
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    min-width: 76px;
+    text-align: center;
+  }
+  .dq-timer.is-overtime { color: var(--orange, #fb923c); border-color: rgba(251,146,60,.4); }
+  .dq-timer.is-paused { color: var(--text-dim, #8a8b9c); background: var(--surface2, #f5f6f9); }
+  .dq-quit-link {
+    color: var(--text-dim, #8a8b9c);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-family: inherit;
+  }
+  .dq-quit-link:hover { color: var(--red, #ef4444); text-decoration: underline; }
+
+  /* Progress bar */
+  .dq-progress {
+    height: 6px;
+    background: var(--surface2, #f5f6f9);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .dq-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent, #7c6ff7), var(--accent-light, #9b8df9));
+    border-radius: 3px;
+    transition: width .4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Pause banner */
+  .dq-pause-banner {
+    background: linear-gradient(135deg, rgba(56,189,248,.08), transparent);
+    border: 1px solid rgba(56,189,248,.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: var(--blue, #38bdf8);
+    text-align: center;
     display: none;
   }
-  .dx-placeholder-intake-recap.has-data { display: block; }
-  .dx-placeholder-intake-recap h3 {
+  body.dq-paused .dq-pause-banner { display: block; }
+
+  /* Question card */
+  .dq-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 14px;
+    padding: 28px 26px;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.04);
+  }
+  .dq-card-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .dq-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .dq-pill-domain { background: var(--accent-dim, rgba(124,111,247,.15)); color: var(--accent, #7c6ff7); }
+  .dq-pill-difficulty { background: rgba(251,191,36,.15); color: #b45309; }
+  .dq-pill-difficulty.is-easy { background: rgba(34,197,94,.15); color: #15803d; }
+  .dq-pill-difficulty.is-hard { background: rgba(239,68,68,.15); color: #b91c1c; }
+  .dq-pill-meta { background: var(--surface2, #f5f6f9); color: var(--text-mid, #4a4b5e); }
+
+  .dq-stem {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text, #1a1a26);
+    margin: 0 0 22px;
+    font-weight: 500;
+  }
+
+  .dq-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+  .dq-option {
+    background: var(--surface, #fff);
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text, #1a1a26);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    font-family: inherit;
+    transition: border-color .15s, background .15s, transform .1s;
+    line-height: 1.45;
+  }
+  .dq-option:hover { border-color: var(--accent, #7c6ff7); background: rgba(124,111,247,.02); }
+  .dq-option:active { transform: scale(.998); }
+  .dq-option.is-selected {
+    border-color: var(--accent, #7c6ff7);
+    background: linear-gradient(135deg, rgba(124,111,247,.08), var(--surface, #fff));
+  }
+  .dq-option-letter {
+    background: var(--surface2, #f5f6f9);
+    color: var(--text-mid, #4a4b5e);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .dq-option.is-selected .dq-option-letter { background: var(--accent, #7c6ff7); color: white; }
+  .dq-option-text { flex: 1; min-width: 0; }
+
+  /* Confidence section */
+  .dq-confidence {
+    margin-bottom: 22px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--border, rgba(0,0,0,.1));
+  }
+  .dq-confidence-label {
     font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .08em;
     color: var(--text-dim, #8a8b9c);
     margin: 0 0 10px;
-    font-weight: 700;
   }
-  .dx-placeholder-intake-recap-row { display: flex; justify-content: space-between; padding: 4px 0; }
-  .dx-placeholder-intake-recap-row strong { color: var(--text, #1a1a26); }
-  .dx-placeholder-btn {
-    display: inline-block;
-    background: var(--accent, #7c6ff7);
-    color: white;
+  .dq-confidence-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .dq-confidence-btn {
+    background: var(--surface, #fff);
+    border: 1.5px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 8px;
+    padding: 10px 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-mid, #4a4b5e);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color .15s, background .15s;
+    line-height: 1.3;
+  }
+  .dq-confidence-btn:hover { border-color: var(--accent, #7c6ff7); }
+  .dq-confidence-btn.is-selected {
+    background: linear-gradient(135deg, rgba(124,111,247,.1), var(--surface, #fff));
+    border-color: var(--accent, #7c6ff7);
+    color: var(--accent, #7c6ff7);
+  }
+  .dq-confidence-btn-emoji { font-size: 18px; display: block; margin-bottom: 2px; }
+
+  /* Footer actions */
+  .dq-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .dq-hint {
+    font-size: 11px;
+    color: var(--text-dim, #8a8b9c);
+    flex: 1;
+  }
+  .dq-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
     padding: 12px 22px;
     border-radius: 10px;
-    font-weight: 700;
-    text-decoration: none;
-    font-size: 14px;
-    margin-top: 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .15s;
   }
-  .dx-placeholder-btn:hover { background: var(--accent-light, #9b8df9); }
-  .dx-placeholder-back {
-    display: block;
-    color: var(--accent, #7c6ff7);
-    text-decoration: none;
-    margin-top: 12px;
-    font-size: 13px;
-    font-weight: 600;
+  .dq-btn-primary { background: var(--accent, #7c6ff7); color: white; border-color: var(--accent, #7c6ff7); }
+  .dq-btn-primary:hover:not(:disabled) { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
+  .dq-btn-primary:active:not(:disabled) { transform: scale(.98); }
+  .dq-btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* No-JS / loading states */
+  .dq-loading, .dq-no-js {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-mid, #4a4b5e);
   }
-  .dx-placeholder-back:hover { text-decoration: underline; }
+  .dq-no-js { display: none; }
+  .no-js .dq-no-js { display: block; }
+  .no-js .dq-shell { display: none; }
+  .dq-loading-spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border, rgba(0,0,0,.12));
+    border-top-color: var(--accent, #7c6ff7);
+    border-radius: 50%;
+    animation: dq-spin .8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes dq-spin { to { transform: rotate(360deg); } }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .dq-progress-fill { transition: none; }
+    .dq-loading-spinner { animation: none; }
+  }
+
+  @media (max-width: 600px) {
+    .dq-card { padding: 22px 18px; }
+    .dq-stem { font-size: 15px; }
+    .dq-option { padding: 12px 14px; font-size: 13px; }
+    .dq-confidence-row { gap: 4px; }
+    .dq-confidence-btn { font-size: 10px; padding: 8px 4px; }
+    .dq-confidence-btn-emoji { font-size: 16px; }
+    .dq-actions { flex-direction: column; align-items: stretch; }
+    .dq-hint { text-align: center; }
+    .dq-btn { width: 100%; }
+  }
 </style>
 </head>
-<body>
+<body class="no-js">
 
+<!-- TOPBAR (slim for quiz focus) -->
 <header class="topbar">
   <div class="topbar-inner">
     <a class="logo" href="/" aria-label="CertAnvil home">
@@ -91,54 +306,587 @@
 </header>
 
 <main>
-<div class="container">
 
-<section class="dx-placeholder-hero">
-  <div class="dx-placeholder-emoji">🚧</div>
-  <h1 class="dx-placeholder-h1">Quiz UI ships next — D.2</h1>
-  <p class="dx-placeholder-sub">D.1 (cert picker + intake) is the foundation. The 20-question diagnostic itself is the very next ship.</p>
-  <p class="dx-placeholder-sub" style="font-size:13px;color:var(--text-dim, #8a8b9c)">Your intake setup is saved · we'll pick up exactly where you left off.</p>
+<!-- No-JS fallback -->
+<div class="dq-no-js">
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 10px">JavaScript required</h2>
+  <p style="font-size:14px;color:var(--text-mid, #4a4b5e);max-width:420px;margin:0 auto">The Network+ diagnostic needs JavaScript to track your answers and time. Enable it in your browser, then refresh this page.</p>
+</div>
 
-  <div class="dx-placeholder-intake-recap" id="dx-intake-recap">
-    <h3>✓ Your intake (saved · ready for D.2)</h3>
-    <div class="dx-placeholder-intake-recap-row"><span>Cert</span><strong id="dx-recap-cert">Network+ N10-009</strong></div>
-    <div class="dx-placeholder-intake-recap-row"><span>Exam date</span><strong id="dx-recap-date">—</strong></div>
-    <div class="dx-placeholder-intake-recap-row"><span>Intensity</span><strong id="dx-recap-intensity">Standard</strong></div>
+<!-- Loading state (replaced once JS hydrates) -->
+<div class="dq-shell" id="dq-shell">
+  <div class="dq-loading" id="dq-loading">
+    <div class="dq-loading-spinner" aria-hidden="true"></div>
+    <p>Preparing your diagnostic…</p>
   </div>
 
-  <a href="https://networkplus.certanvil.com/?action=diagnostic" class="dx-placeholder-btn">Use the in-cert diagnostic for now →</a>
-  <a href="/diagnostic" class="dx-placeholder-back">← Back to cert picker</a>
-</section>
+  <!-- Live UI (built by JS) -->
+  <div id="dq-live" style="display:none">
+    <div class="dq-header">
+      <div class="dq-header-left">
+        <span id="dq-progress-label">Question 1 of 20</span>
+      </div>
+      <div class="dq-header-right">
+        <span class="dq-timer" id="dq-timer">30:00</span>
+        <button type="button" class="dq-quit-link" id="dq-quit-btn">Quit</button>
+      </div>
+    </div>
 
+    <div class="dq-progress" aria-hidden="true">
+      <div class="dq-progress-fill" id="dq-progress-fill" style="width:5%"></div>
+    </div>
+
+    <div class="dq-pause-banner" role="status" aria-live="polite">
+      ⏸ Paused — your timer froze when you switched tabs. Click here or come back to resume.
+    </div>
+
+    <div class="dq-card">
+      <div class="dq-card-pills" id="dq-card-pills"></div>
+      <p class="dq-stem" id="dq-stem"></p>
+      <div class="dq-options" id="dq-options" role="radiogroup" aria-label="Answer choices"></div>
+
+      <div class="dq-confidence" role="group" aria-labelledby="dq-confidence-label">
+        <p class="dq-confidence-label" id="dq-confidence-label">How confident are you?</p>
+        <div class="dq-confidence-row">
+          <button type="button" class="dq-confidence-btn" data-confidence="guessing" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">😬</span>Guessing
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="pretty-sure" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">🤔</span>Pretty sure
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="locked-in" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">💪</span>Locked in
+          </button>
+        </div>
+      </div>
+
+      <div class="dq-actions">
+        <span class="dq-hint" id="dq-hint">Pick an answer + confidence, then continue.</span>
+        <button type="button" class="dq-btn dq-btn-primary" id="dq-next-btn" disabled>Next →</button>
+      </div>
+    </div>
+
+  </div>
 </div>
+
 </main>
 
-<footer class="foot">
-  <div class="container">
-    <div class="foot-inner">
-      <span class="foot-brand">certanvil.com · forged for the exam</span>
-      <nav class="foot-nav" aria-label="Footer navigation">
-        <a href="/privacy" class="foot-link">Privacy</a>
-        <a href="/terms" class="foot-link">Terms</a>
-        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
-      </nav>
-    </div>
-  </div>
-</footer>
-
 <script>
-// Render intake recap so we can verify state was persisted across screens
+// ══════════════════════════════════════════════════════════════════════════
+// D.2 · Landing Baseline Diagnostic · Network+ quiz UI · v4.99.53
+// ══════════════════════════════════════════════════════════════════════════
+// Self-contained 20-Q flow. Inline question pool covers all 5 N10-009 domains
+// weighted to CompTIA blueprint (Networking Concepts 23% → 5Q · Implementation
+// 20% → 4Q · Operations 19% → 4Q · Security 14% → 3Q · Troubleshooting 24% →
+// 4Q). D.3 will replace this inline pool with live AI generation via
+// /api/diagnostic/generate; the rendering / state logic below stays unchanged.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to /diagnostic/network-plus/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the Phase 10 v4.99.49
+// exam-mode pattern: phone screen stays awake for 30 min; timer pauses
+// when user backgrounds the tab and resumes (with deadline extension) on
+// return.
+// ══════════════════════════════════════════════════════════════════════════
+
 (function() {
+  'use strict';
+  document.body.classList.remove('no-js');
+
+  // ── 1. Question pool · 20 N+ Q across 5 domains ──
+  // Each Q: { id, domain, topic, objective, difficulty, question, options:{A,B,C,D}, answer, explanation }
+  // Authored from public CompTIA N10-009 blueprint. Same shape as the cert-app
+  // QUESTION_EXEMPLARS so D.3's AI generation can produce drop-in replacements.
+  var QUESTION_POOL = [
+    // ── Domain 1.0 Networking Concepts (5 · 23%) ──
+    {
+      id: 1, domain: 'Networking Concepts', topic: 'OSI Model', objective: '1.1', difficulty: 'Easy',
+      question: 'At which layer of the OSI model does a router make forwarding decisions based on destination IP address?',
+      options: { A: 'Layer 2 (Data Link)', B: 'Layer 3 (Network)', C: 'Layer 4 (Transport)', D: 'Layer 7 (Application)' },
+      answer: 'B',
+      explanation: 'Routers operate at Layer 3 and use destination IP addresses to forward packets. Switches typically operate at Layer 2 (MAC addresses).'
+    },
+    {
+      id: 2, domain: 'Networking Concepts', topic: 'TCP vs UDP', objective: '1.4', difficulty: 'Medium',
+      question: 'A streaming protocol prioritises low latency and tolerates occasional packet loss without retransmission. Which transport-layer protocol is the best fit?',
+      options: { A: 'TCP (Transmission Control Protocol)', B: 'UDP (User Datagram Protocol)', C: 'ICMP (Internet Control Message Protocol)', D: 'SCTP (Stream Control Transmission Protocol)' },
+      answer: 'B',
+      explanation: 'UDP is connectionless, has no retransmission, and minimal overhead — ideal for real-time streaming, VoIP, and DNS queries where speed matters more than guaranteed delivery.'
+    },
+    {
+      id: 3, domain: 'Networking Concepts', topic: 'Ports', objective: '1.4', difficulty: 'Easy',
+      question: 'Which port number does SSH use by default for secure remote shell access?',
+      options: { A: '21', B: '22', C: '23', D: '80' },
+      answer: 'B',
+      explanation: 'SSH uses TCP port 22. Port 21 is FTP control, 23 is Telnet (insecure), 80 is HTTP.'
+    },
+    {
+      id: 4, domain: 'Networking Concepts', topic: 'IPv6', objective: '1.6', difficulty: 'Medium',
+      question: 'A network administrator wants to enable IPv6 with minimal configuration overhead. The network has IPv6-aware devices and supports Router Advertisements. Which address-assignment method is best?',
+      options: { A: 'DHCPv6 stateful', B: 'SLAAC (Stateless Address Autoconfiguration)', C: 'Static IPv6 on every host', D: 'IPv4-only with NAT64' },
+      answer: 'B',
+      explanation: 'SLAAC uses Router Advertisements + EUI-64 to let hosts self-configure their IPv6 addresses without a DHCP server — minimum config for IPv6-aware networks.'
+    },
+    {
+      id: 5, domain: 'Networking Concepts', topic: 'Subnetting', objective: '1.4', difficulty: 'Hard',
+      question: 'A subnet 192.168.10.64/27 has how many usable host addresses?',
+      options: { A: '14', B: '30', C: '32', D: '62' },
+      answer: 'B',
+      explanation: '/27 = 32 addresses total, minus network address + broadcast = 30 usable hosts. (2^(32-27)) − 2 = 32 − 2 = 30.'
+    },
+
+    // ── Domain 2.0 Network Implementation (4 · 20%) ──
+    {
+      id: 6, domain: 'Network Implementation', topic: 'Routing Protocols', objective: '2.2', difficulty: 'Medium',
+      question: 'Which routing protocol uses link-state advertisements and converges quickly by maintaining a full topology database of the area?',
+      options: { A: 'RIP v2', B: 'OSPF', C: 'EIGRP', D: 'Static routing' },
+      answer: 'B',
+      explanation: 'OSPF (Open Shortest Path First) is a link-state protocol — routers share LSAs to build a complete topology map and run Dijkstra to find shortest paths. RIP is distance-vector; EIGRP is hybrid.'
+    },
+    {
+      id: 7, domain: 'Network Implementation', topic: 'VLANs', objective: '2.3', difficulty: 'Medium',
+      question: 'A switch port needs to carry traffic for VLAN 10 (data) and VLAN 20 (voice) to an IP phone with a PC connected through it. What configuration is appropriate?',
+      options: { A: 'Access port on VLAN 10 only', B: 'Trunk port with all VLANs allowed', C: 'Access port on VLAN 10 with voice VLAN 20', D: 'Two separate access ports' },
+      answer: 'C',
+      explanation: 'An access port with a voice VLAN tag is the standard configuration: untagged data traffic on VLAN 10 (PC) and tagged voice traffic on VLAN 20 (IP phone). A trunk would expose all VLANs unnecessarily.'
+    },
+    {
+      id: 8, domain: 'Network Implementation', topic: 'Wireless', objective: '2.4', difficulty: 'Medium',
+      question: 'Wi-Fi 6 (802.11ax) introduces which technology to allow multiple clients to communicate simultaneously by dividing a channel into smaller resource units?',
+      options: { A: 'MIMO (Multiple Input Multiple Output)', B: 'OFDMA (Orthogonal Frequency Division Multiple Access)', C: 'DFS (Dynamic Frequency Selection)', D: 'Channel bonding' },
+      answer: 'B',
+      explanation: 'OFDMA splits a Wi-Fi channel into multiple resource units that can serve different clients simultaneously — a major efficiency boost over the time-sliced single-client model in earlier 802.11 standards.'
+    },
+    {
+      id: 9, domain: 'Network Implementation', topic: 'Switching', objective: '2.3', difficulty: 'Hard',
+      question: 'STP (Spanning Tree Protocol) prevents loops by blocking redundant paths. Which port state actively forwards user traffic?',
+      options: { A: 'Blocking', B: 'Listening', C: 'Learning', D: 'Forwarding' },
+      answer: 'D',
+      explanation: 'Only the Forwarding state passes user traffic. Blocking, Listening, and Learning are transitional states a port goes through before reaching Forwarding (or stays in Blocking on the redundant link).'
+    },
+
+    // ── Domain 3.0 Network Operations (4 · 19%) ──
+    {
+      id: 10, domain: 'Network Operations', topic: 'SNMP', objective: '3.1', difficulty: 'Medium',
+      question: 'Which SNMP version adds encryption and authentication to protect management traffic?',
+      options: { A: 'SNMPv1', B: 'SNMPv2c', C: 'SNMPv3', D: 'SNMPv4' },
+      answer: 'C',
+      explanation: 'SNMPv3 adds user-based security model (USM) with encryption (DES/AES) and authentication (MD5/SHA). v1 and v2c use cleartext community strings; v4 doesn\'t exist as a current standard.'
+    },
+    {
+      id: 11, domain: 'Network Operations', topic: 'Documentation', objective: '3.2', difficulty: 'Easy',
+      question: 'Which document records the physical layout of network cabling, patch panels, switches, and end devices in a building?',
+      options: { A: 'Logical network diagram', B: 'Physical network diagram', C: 'Rack diagram', D: 'IDF/MDF schematic' },
+      answer: 'B',
+      explanation: 'A physical network diagram shows real-world placement of devices, cable runs, and port assignments. A logical diagram shows traffic flow regardless of physical location.'
+    },
+    {
+      id: 12, domain: 'Network Operations', topic: 'Backup Strategies', objective: '3.3', difficulty: 'Medium',
+      question: 'A network admin wants to keep daily backups for 30 days but only retain weekly and monthly snapshots beyond that. Which strategy describes this?',
+      options: { A: 'Continuous Data Protection', B: 'Grandfather-Father-Son (GFS) rotation', C: 'Single full nightly backup', D: 'Differential-only backup' },
+      answer: 'B',
+      explanation: 'GFS rotates daily (Son), weekly (Father), and monthly (Grandfather) backups — daily backups age into weekly slots, which age into monthly. Industry-standard rotation for tape and cloud backups.'
+    },
+    {
+      id: 13, domain: 'Network Operations', topic: 'Change Management', objective: '3.2', difficulty: 'Easy',
+      question: 'Before deploying a major configuration change to a production network, which step provides the safest rollback path?',
+      options: { A: 'Roll out to all devices at once', B: 'Create a backup of current configs + define a rollback plan', C: 'Skip testing in lab — deploy directly', D: 'Notify only the admin team after deployment' },
+      answer: 'B',
+      explanation: 'Always back up configs and document the rollback steps before any major change. Combined with lab testing and staged rollout, this is the standard change-management hygiene.'
+    },
+
+    // ── Domain 4.0 Network Security (3 · 14%) ──
+    {
+      id: 14, domain: 'Network Security', topic: 'Firewalls', objective: '4.3', difficulty: 'Medium',
+      question: 'A stateful firewall makes filtering decisions based on which characteristic that a stateless ACL cannot?',
+      options: { A: 'Source IP address', B: 'Destination port', C: 'Whether the packet is part of an established connection', D: 'Protocol number' },
+      answer: 'C',
+      explanation: 'Stateful firewalls track connection state (TCP three-way handshake, SYN/ACK flags, session tables). They allow return traffic for sessions the inside initiated. Stateless ACLs treat every packet independently.'
+    },
+    {
+      id: 15, domain: 'Network Security', topic: 'VPN', objective: '4.5', difficulty: 'Medium',
+      question: 'A company wants to connect two branch offices over the internet with persistent encrypted connectivity between their entire LANs. Which VPN type is appropriate?',
+      options: { A: 'Remote-access VPN (SSL or IPsec client)', B: 'Site-to-site IPsec VPN', C: 'GRE tunnel (no encryption)', D: 'Reverse-proxy SSL termination' },
+      answer: 'B',
+      explanation: 'A site-to-site IPsec VPN connects two networks via encrypted tunnels between border devices (firewalls/routers). All traffic between the LANs is encrypted in transit. Remote-access is for individual users.'
+    },
+    {
+      id: 16, domain: 'Network Security', topic: 'AAA / 802.1X', objective: '4.6', difficulty: 'Hard',
+      question: '802.1X port-based authentication uses which three roles to control network access?',
+      options: { A: 'Supplicant, Authenticator, Authentication Server', B: 'Client, Switch, Firewall', C: 'User, Domain Controller, RADIUS Server', D: 'Endpoint, NAC Server, ISE Server' },
+      answer: 'A',
+      explanation: 'The 802.1X standard defines three roles: Supplicant (the endpoint requesting access), Authenticator (the switch or AP enforcing the policy), and Authentication Server (typically RADIUS).'
+    },
+
+    // ── Domain 5.0 Network Troubleshooting (4 · 24%) ──
+    {
+      id: 17, domain: 'Network Troubleshooting', topic: 'CompTIA Methodology', objective: '5.1', difficulty: 'Easy',
+      question: 'According to the CompTIA troubleshooting methodology, what is the first step you should take when investigating a reported network issue?',
+      options: { A: 'Implement the solution', B: 'Identify the problem', C: 'Establish a theory of probable cause', D: 'Document findings' },
+      answer: 'B',
+      explanation: 'Step 1 of the 7-step CompTIA methodology is to identify the problem (gather info, question users, identify symptoms, determine scope). Theory comes in step 2; implementation is step 4.'
+    },
+    {
+      id: 18, domain: 'Network Troubleshooting', topic: 'Cabling Tools', objective: '5.2', difficulty: 'Medium',
+      question: 'A user reports intermittent connectivity on a specific Ethernet cable. Which tool is most appropriate to verify cable continuity and identify miswired pairs?',
+      options: { A: 'Loopback adapter', B: 'Cable tester (continuity + wiremap)', C: 'Toner probe', D: 'TDR (Time-Domain Reflectometer)' },
+      answer: 'B',
+      explanation: 'A basic cable tester verifies continuity on each pair and detects miswires (split pairs, shorts, opens). A TDR finds the distance to a fault on a long run; a toner probe locates which cable is which.'
+    },
+    {
+      id: 19, domain: 'Network Troubleshooting', topic: 'DNS Issues', objective: '5.5', difficulty: 'Medium',
+      question: 'A user can reach 8.8.8.8 via ping but cannot resolve google.com. Which is the most likely cause?',
+      options: { A: 'Default gateway is misconfigured', B: 'DNS server is unreachable or misconfigured', C: 'Subnet mask is incorrect', D: 'Cable is unplugged' },
+      answer: 'B',
+      explanation: 'IP connectivity works (8.8.8.8 ping succeeds) but name resolution fails — that is the textbook DNS problem. Check /etc/resolv.conf or the DNS server setting on the host.'
+    },
+    {
+      id: 20, domain: 'Network Troubleshooting', topic: 'Performance', objective: '5.5', difficulty: 'Hard',
+      question: 'Network throughput on a particular WAN link drops significantly during business hours but recovers overnight. Which is the most likely root cause to investigate FIRST?',
+      options: { A: 'Misconfigured QoS marking', B: 'Bandwidth congestion / saturation during peak use', C: 'Damaged fibre optic cable', D: 'Failed network card on the user\'s workstation' },
+      answer: 'B',
+      explanation: 'The diurnal pattern (slow during work, fine at night) is the signature of capacity exhaustion. Check link utilisation via SNMP / NetFlow before suspecting hardware faults that would cause constant problems.'
+    }
+  ];
+
+  // ── 2. State + sessionStorage ──
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+
+  var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
+  var CERT = 'network-plus';
+
+  // Restore prior session if revisiting · otherwise create fresh
+  var session = null;
   try {
-    var saved = sessionStorage.getItem('certanvilDiagnosticIntake');
-    if (!saved) return;
-    var data = JSON.parse(saved);
-    if (!data) return;
-    document.getElementById('dx-recap-date').textContent = data.examDate || 'Not booked';
-    document.getElementById('dx-recap-intensity').textContent =
-      data.intensity ? data.intensity.charAt(0).toUpperCase() + data.intensity.slice(1) : 'Standard';
-    document.getElementById('dx-intake-recap').classList.add('has-data');
+    var rawSession = sessionStorage.getItem(SESSION_KEY);
+    if (rawSession) {
+      var parsed = JSON.parse(rawSession);
+      if (parsed && parsed.cert === CERT && Array.isArray(parsed.answers) && parsed.answers.length === QUESTION_POOL.length) {
+        session = parsed;
+      }
+    }
   } catch (_) {}
+
+  if (!session) {
+    // Shuffle question order so retakes get a different sequence
+    var orderedIds = QUESTION_POOL.map(function(q) { return q.id; });
+    for (var i = orderedIds.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = orderedIds[i]; orderedIds[i] = orderedIds[j]; orderedIds[j] = tmp;
+    }
+    session = {
+      cert: CERT,
+      startedAt: Date.now(),
+      questionOrder: orderedIds,
+      currentIdx: 0,
+      answers: new Array(QUESTION_POOL.length).fill(null),  // { picked, confidence, isCorrect, timeMs }
+      pickedLetter: null,
+      pickedConfidence: null
+    };
+    persistSession();
+  }
+
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  // ── 3. DOM refs ──
+  var loadingEl = document.getElementById('dq-loading');
+  var liveEl = document.getElementById('dq-live');
+  var pillsEl = document.getElementById('dq-card-pills');
+  var stemEl = document.getElementById('dq-stem');
+  var optionsEl = document.getElementById('dq-options');
+  var confidenceBtns = document.querySelectorAll('.dq-confidence-btn[data-confidence]');
+  var nextBtn = document.getElementById('dq-next-btn');
+  var hintEl = document.getElementById('dq-hint');
+  var progressLabel = document.getElementById('dq-progress-label');
+  var progressFill = document.getElementById('dq-progress-fill');
+  var timerEl = document.getElementById('dq-timer');
+  var quitBtn = document.getElementById('dq-quit-btn');
+
+  // ── 4. Render current question ──
+  function getCurrentQ() {
+    var qId = session.questionOrder[session.currentIdx];
+    return QUESTION_POOL.find(function(q) { return q.id === qId; });
+  }
+
+  function render() {
+    var q = getCurrentQ();
+    if (!q) return;
+
+    // Header
+    var n = QUESTION_POOL.length;
+    progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
+    var pct = Math.round(((session.currentIdx + 1) / n) * 100);
+    progressFill.style.width = pct + '%';
+
+    // Pills
+    var diffClass = q.difficulty === 'Easy' ? 'is-easy' : (q.difficulty === 'Hard' ? 'is-hard' : '');
+    pillsEl.innerHTML =
+      '<span class="dq-pill dq-pill-domain">' + escHtml(q.domain) + '</span>' +
+      '<span class="dq-pill dq-pill-difficulty ' + diffClass + '">' + escHtml(q.difficulty) + '</span>' +
+      '<span class="dq-pill dq-pill-meta">Q' + (session.currentIdx + 1) + ' · obj. ' + escHtml(q.objective) + '</span>';
+
+    // Stem
+    stemEl.textContent = q.question;
+
+    // Options
+    optionsEl.innerHTML = '';
+    ['A', 'B', 'C', 'D'].forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dq-option';
+      btn.setAttribute('data-letter', letter);
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.innerHTML = '<span class="dq-option-letter">' + letter + '</span><span class="dq-option-text">' + escHtml(q.options[letter]) + '</span>';
+      btn.addEventListener('click', function() { pickOption(letter); });
+      optionsEl.appendChild(btn);
+    });
+
+    // Confidence reset
+    session.pickedLetter = null;
+    session.pickedConfidence = null;
+    confidenceBtns.forEach(function(b) {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    // Hint + next btn
+    hintEl.textContent = 'Pick an answer + confidence, then continue.';
+    nextBtn.disabled = true;
+    nextBtn.textContent = (session.currentIdx === n - 1) ? 'Finish diagnostic →' : 'Next →';
+  }
+
+  function pickOption(letter) {
+    session.pickedLetter = letter;
+    optionsEl.querySelectorAll('.dq-option').forEach(function(btn) {
+      var match = btn.getAttribute('data-letter') === letter;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+    refreshNextBtn();
+  }
+
+  confidenceBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      session.pickedConfidence = btn.getAttribute('data-confidence');
+      confidenceBtns.forEach(function(b) {
+        var match = (b === btn);
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      refreshNextBtn();
+    });
+  });
+
+  function refreshNextBtn() {
+    var ready = session.pickedLetter && session.pickedConfidence;
+    nextBtn.disabled = !ready;
+    if (ready) {
+      hintEl.textContent = (session.currentIdx === QUESTION_POOL.length - 1)
+        ? 'Last one. Click Finish to see your score.'
+        : 'Ready. Click Next to continue.';
+    } else if (session.pickedLetter && !session.pickedConfidence) {
+      hintEl.textContent = 'Now pick your confidence level.';
+    } else if (!session.pickedLetter && session.pickedConfidence) {
+      hintEl.textContent = 'Now pick an answer.';
+    }
+  }
+
+  // ── 5. Submit current Q + advance ──
+  var questionStartTime = Date.now();
+
+  nextBtn.addEventListener('click', function() {
+    if (nextBtn.disabled) return;
+    var q = getCurrentQ();
+    var elapsed = Date.now() - questionStartTime;
+    session.answers[session.currentIdx] = {
+      qId: q.id,
+      picked: session.pickedLetter,
+      correct: q.answer,
+      isCorrect: session.pickedLetter === q.answer,
+      confidence: session.pickedConfidence,
+      timeMs: elapsed,
+      domain: q.domain,
+      difficulty: q.difficulty
+    };
+    persistSession();
+
+    if (session.currentIdx + 1 >= QUESTION_POOL.length) {
+      finishDiagnostic();
+      return;
+    }
+
+    session.currentIdx++;
+    persistSession();
+    questionStartTime = Date.now();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── 6. Finish · compute score + navigate to /results ──
+  function finishDiagnostic() {
+    var n = QUESTION_POOL.length;
+    var correctCount = 0;
+    var domainStats = {};
+    var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
+
+    session.answers.forEach(function(a) {
+      if (!a) return;
+      if (a.isCorrect) correctCount++;
+      if (!domainStats[a.domain]) domainStats[a.domain] = { correct: 0, total: 0 };
+      domainStats[a.domain].total++;
+      if (a.isCorrect) domainStats[a.domain].correct++;
+      if (confidenceStats[a.confidence]) {
+        confidenceStats[a.confidence].picked++;
+        if (a.isCorrect) confidenceStats[a.confidence].correct++;
+      }
+    });
+
+    // Scaled score: linear 100-900 (CompTIA Network+ scale, pass = 720).
+    // 0 correct → 100 · 20 correct → 900. A more sophisticated IRT-style
+    // scoring lands in D.4 when we have user data to calibrate against.
+    var scaledScore = Math.round(100 + (correctCount / n) * 800);
+
+    // Domain breakdown sorted weakest-first
+    var domainBreakdown = Object.keys(domainStats).map(function(d) {
+      return {
+        domain: d,
+        correct: domainStats[d].correct,
+        total: domainStats[d].total,
+        accuracy: domainStats[d].total ? (domainStats[d].correct / domainStats[d].total) : 0
+      };
+    }).sort(function(a, b) { return a.accuracy - b.accuracy; });
+
+    // Load intake for downstream personalisation (Pass Plan in D.4)
+    var intake = null;
+    try { intake = JSON.parse(sessionStorage.getItem(INTAKE_KEY) || 'null'); } catch (_) {}
+
+    var results = {
+      cert: CERT,
+      diagnosticId: 'diag_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt,
+      completedAt: Date.now(),
+      durationMs: Date.now() - session.startedAt,
+      totalQuestions: n,
+      correctCount: correctCount,
+      accuracy: correctCount / n,
+      scaledScore: scaledScore,
+      passThreshold: 720,
+      isPassing: scaledScore >= 720,
+      domainBreakdown: domainBreakdown,
+      confidenceStats: confidenceStats,
+      questions: session.answers,
+      intake: intake
+    };
+
+    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify(results)); } catch (_) {}
+
+    // Score-only snapshot for landing-page resume CTA (persists across tab close)
+    try {
+      localStorage.setItem('certanvilLastDiagnostic', JSON.stringify({
+        cert: CERT,
+        scaledScore: scaledScore,
+        correctCount: correctCount,
+        totalQuestions: n,
+        completedAt: Date.now(),
+        weakestDomain: domainBreakdown[0] ? domainBreakdown[0].domain : null
+      }));
+    } catch (_) {}
+
+    // Clear in-progress session
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+
+    releaseWakeLock();
+    window.location.href = '/diagnostic/' + CERT + '/results';
+  }
+
+  // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  var timerInterval = null;
+  var hiddenAt = null;
+  var totalHiddenMs = 0;
+
+  function tickTimer() {
+    var elapsed = Date.now() - session.startedAt - totalHiddenMs;
+    var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
+    if (remaining < 0) {
+      timerEl.classList.add('is-overtime');
+      var over = Math.abs(remaining);
+      var oM = Math.floor(over / 60000);
+      var oS = Math.floor((over % 60000) / 1000);
+      timerEl.textContent = '+' + (oM < 10 ? '0' + oM : oM) + ':' + (oS < 10 ? '0' + oS : oS);
+    } else {
+      var m = Math.floor(remaining / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+  }
+  tickTimer();
+  timerInterval = setInterval(tickTimer, 1000);
+
+  // ── 8. Visibility API · pause timer when tab backgrounded ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      document.body.classList.add('dq-paused');
+      timerEl.classList.add('is-paused');
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && hiddenAt) {
+      var pauseDuration = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (pauseDuration > 250) totalHiddenMs += pauseDuration;
+      document.body.classList.remove('dq-paused');
+      timerEl.classList.remove('is-paused');
+      acquireWakeLock();
+      tickTimer();
+    }
+  });
+
+  // ── 9. Wake Lock · keep phone screen on for the 30-min flow ──
+  // Mirrors the Phase 10 v4.99.49 exam-mode pattern.
+  var wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function() { wakeLock = null; });
+      }
+    } catch (_) { wakeLock = null; }
+  }
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (_) { wakeLock = null; }
+  }
+  acquireWakeLock();
+
+  // ── 10. Quit button · confirm + clear session ──
+  quitBtn.addEventListener('click', function() {
+    if (confirm('Quit the diagnostic? Your progress will be lost.')) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (timerInterval) clearInterval(timerInterval);
+      releaseWakeLock();
+      window.location.href = '/diagnostic';
+    }
+  });
+
+  // ── 11. Helpers ──
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ── 12. Boot ──
+  loadingEl.style.display = 'none';
+  liveEl.style.display = 'block';
+  render();
 })();
 </script>
 

@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.52', js.includes("const APP_VERSION = '4.99.52"));
+test('APP_VERSION is 4.99.53', js.includes("const APP_VERSION = '4.99.53"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.52', sw.includes('netplus-v4.99.52'));
+test('SW cache bumped to v4.99.53', sw.includes('netplus-v4.99.53'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19595,10 +19595,9 @@ test('v4.99.52 D.1: S+ intake does NOT contain "Network+" leftovers (sed-rewrite
 // — Quiz placeholders —
 test('v4.99.52 D.1: N+ /quiz placeholder exists (D.2 lands here next)',
   _dxQuizNetRaw.length > 1000);
-test('v4.99.52 D.1: N+ /quiz placeholder reads intake recap from sessionStorage',
-  /sessionStorage\.getItem\(\s*['"]certanvilDiagnosticIntake['"]/.test(_dxQuizNetRaw));
-test('v4.99.52 D.1: N+ /quiz placeholder mentions D.2',
-  /D\.2/.test(_dxQuizNetRaw));
+// v4.99.53 retired: the D.1 placeholder content was replaced by the real
+// D.2 quiz UI. Intake-recap was a placeholder-only feature. The N+ quiz
+// page is now exercised by the v4.99.53 D.2 guards below.
 test('v4.99.52 D.1: S+ /quiz placeholder exists',
   _dxQuizSecRaw.length > 1000);
 
@@ -19618,6 +19617,122 @@ test('v4.99.52 D.1: same sessionStorage key (certanvilDiagnosticIntake) used acr
   && /certanvilDiagnosticIntake/.test(_dxQuizSecRaw));
 test('v4.99.52 D.1: intake state envelope includes cert + examDate + intensity + capturedAt',
   /cert:\s*CERT[\s\S]{0,200}examDate[\s\S]{0,200}intensity[\s\S]{0,200}capturedAt/.test(_dxIntakeNetRaw));
+
+// ── v4.99.53 — D.2: 20-question quiz UI + results page ──
+// Self-contained quiz with inline question pool (D.3 will swap for AI-gen).
+// Wake Lock + Visibility-API pause-on-blur mirror Phase 10 v4.99.49 exam pattern.
+// Score calc: scaled 100-900 with 720 pass threshold. Results page reads
+// sessionStorage envelope written by quiz on finish.
+console.log('\n\x1b[1m── v4.99.53 — D.2 QUIZ UI + RESULTS PLACEHOLDER ──\x1b[0m');
+
+const _dxQuizD2Raw = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/quiz.html'), 'utf8');
+const _dxResultsD2Raw = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/results.html'), 'utf8');
+
+// — Quiz page · structural —
+test('v4.99.53 D.2: quiz page has live UI (not just D.1 placeholder)',
+  /id="dq-live"/.test(_dxQuizD2Raw) && /id="dq-options"/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: regression tombstone — placeholder text gone',
+  !/Quiz UI ships next/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz has 20-question inline pool',
+  // Count `id: N,` patterns where N is 1..20
+  (() => {
+    var m = _dxQuizD2Raw.match(/\bid:\s*\d+,/g);
+    return m && m.length === 20;
+  })());
+test('v4.99.53 D.2: quiz pool covers all 5 N10-009 domains',
+  /Networking Concepts/.test(_dxQuizD2Raw)
+  && /Network Implementation/.test(_dxQuizD2Raw)
+  && /Network Operations/.test(_dxQuizD2Raw)
+  && /Network Security/.test(_dxQuizD2Raw)
+  && /Network Troubleshooting/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz pool weights match CompTIA blueprint (5/4/4/3/4 across the 5 domains)',
+  (() => {
+    var counts = {
+      'Networking Concepts': (_dxQuizD2Raw.match(/domain: 'Networking Concepts'/g) || []).length,
+      'Network Implementation': (_dxQuizD2Raw.match(/domain: 'Network Implementation'/g) || []).length,
+      'Network Operations': (_dxQuizD2Raw.match(/domain: 'Network Operations'/g) || []).length,
+      'Network Security': (_dxQuizD2Raw.match(/domain: 'Network Security'/g) || []).length,
+      'Network Troubleshooting': (_dxQuizD2Raw.match(/domain: 'Network Troubleshooting'/g) || []).length,
+    };
+    return counts['Networking Concepts'] === 5
+      && counts['Network Implementation'] === 4
+      && counts['Network Operations'] === 4
+      && counts['Network Security'] === 3
+      && counts['Network Troubleshooting'] === 4;
+  })());
+test('v4.99.53 D.2: quiz pool covers Easy + Medium + Hard difficulty',
+  /difficulty: 'Easy'/.test(_dxQuizD2Raw)
+  && /difficulty: 'Medium'/.test(_dxQuizD2Raw)
+  && /difficulty: 'Hard'/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz uses 3-tier confidence picker (Guessing / Pretty sure / Locked in)',
+  /data-confidence="guessing"/.test(_dxQuizD2Raw)
+  && /data-confidence="pretty-sure"/.test(_dxQuizD2Raw)
+  && /data-confidence="locked-in"/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz Next button is disabled until both answer + confidence picked',
+  /pickedLetter\s*&&\s*session\.pickedConfidence|session\.pickedLetter\s*&&\s*session\.pickedConfidence/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz shuffles question order on fresh start (Fisher-Yates)',
+  /Math\.floor\(Math\.random\(\)\s*\*\s*\(i\s*\+\s*1\)\)/.test(_dxQuizD2Raw));
+
+// — Quiz page · timer & lifecycle —
+test('v4.99.53 D.2: timer counts down from 30 min (DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000)',
+  /DIAGNOSTIC_DURATION_MS\s*=\s*30\s*\*\s*60\s*\*\s*1000/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: timer is informational — no hard cutoff (no submitExam on remaining<=0 inside tickTimer)',
+  // The tickTimer fn should render overtime (+MM:SS) not auto-submit
+  /timerEl\.classList\.add\(\s*['"]is-overtime['"]\)/.test(_dxQuizD2Raw)
+  && !/finishDiagnostic\(\)[\s\S]{0,200}remaining\s*<\s*0/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: Wake Lock acquired on quiz load (mirrors Phase 10 v4.99.49 pattern)',
+  /async\s+function\s+acquireWakeLock[\s\S]{0,200}navigator\.wakeLock\.request\(['"]screen['"]\)/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: Wake Lock released on finish + quit',
+  /releaseWakeLock\(\)/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: Visibility API pauses timer on tab hide + resumes on visible',
+  /document\.visibilityState\s*===\s*['"]hidden['"][\s\S]{0,400}hiddenAt\s*=\s*Date\.now\(\)/.test(_dxQuizD2Raw)
+  && /document\.visibilityState\s*===\s*['"]visible['"][\s\S]{0,400}totalHiddenMs\s*\+=\s*pauseDuration/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: Quit button confirms before discarding progress',
+  /quitBtn\.addEventListener[\s\S]{0,300}confirm\(/.test(_dxQuizD2Raw));
+
+// — Quiz page · scoring + handoff —
+test('v4.99.53 D.2: score scaled to CompTIA range (100-900) using linear formula',
+  /scaledScore\s*=\s*Math\.round\(\s*100\s*\+\s*\(\s*correctCount\s*\/\s*n\s*\)\s*\*\s*800\s*\)/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: pass threshold = 720 (CompTIA Network+ official)',
+  /passThreshold:\s*720/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: domain breakdown sorted weakest-first',
+  /domainBreakdown[\s\S]{0,400}\.sort\(\s*function\s*\([\s\S]{0,80}a\.accuracy\s*-\s*b\.accuracy/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: writes certanvilDiagnosticResults to sessionStorage on finish',
+  /sessionStorage\.setItem\(\s*RESULTS_KEY/.test(_dxQuizD2Raw)
+  && /RESULTS_KEY\s*=\s*['"]certanvilDiagnosticResults['"]/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: writes localStorage snapshot (certanvilLastDiagnostic) for landing resume CTA',
+  /localStorage\.setItem\(\s*['"]certanvilLastDiagnostic['"]/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: finish navigates to /diagnostic/<cert>/results',
+  /window\.location\.href\s*=\s*['"]\/diagnostic\/['"]?\s*\+\s*CERT\s*\+\s*['"]\/results['"]/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: quiz session cleared from sessionStorage after finish (so retake is fresh)',
+  /sessionStorage\.removeItem\(\s*SESSION_KEY/.test(_dxQuizD2Raw));
+
+// — Quiz page · resume + a11y —
+test('v4.99.53 D.2: resumes in-progress session if returning to page (sessionStorage gate)',
+  /sessionStorage\.getItem\(\s*SESSION_KEY/.test(_dxQuizD2Raw)
+  && /parsed\.cert\s*===\s*CERT[\s\S]{0,200}parsed\.answers\.length\s*===\s*QUESTION_POOL\.length/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: no-JS fallback message present (graceful degradation)',
+  /class="dq-no-js"|JavaScript required/i.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: reduced-motion gate for transitions',
+  /@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(_dxQuizD2Raw));
+test('v4.99.53 D.2: options use ARIA radiogroup semantics',
+  /role="radiogroup"/.test(_dxQuizD2Raw)
+  && /setAttribute\(\s*['"]aria-checked['"]/.test(_dxQuizD2Raw));
+
+// — Results page —
+test('v4.99.53 D.2: results page reads certanvilDiagnosticResults from sessionStorage',
+  /sessionStorage\.getItem\(\s*['"]certanvilDiagnosticResults['"]/.test(_dxResultsD2Raw));
+test('v4.99.53 D.2: results page handles "no results yet" empty state gracefully',
+  /No results yet|haven't taken/.test(_dxResultsD2Raw));
+test('v4.99.53 D.2: results page renders scaled score (100-900) with pass-threshold marker',
+  /results\.scaledScore/.test(_dxResultsD2Raw)
+  && /results\.passThreshold/.test(_dxResultsD2Raw));
+test('v4.99.53 D.2: results page renders domain breakdown with weakest-first ordering',
+  /results\.domainBreakdown[\s\S]{0,400}\.map/.test(_dxResultsD2Raw));
+test('v4.99.53 D.2: results page domain rows use weak/mid/strong color tiers',
+  /is-weak[\s\S]{0,200}is-mid[\s\S]{0,200}is-strong|d\.accuracy\s*<\s*0\.5[\s\S]{0,200}d\.accuracy\s*<\s*0\.8/.test(_dxResultsD2Raw));
+test('v4.99.53 D.2: results page notes D.4 next ship in banner',
+  /D\.4/.test(_dxResultsD2Raw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

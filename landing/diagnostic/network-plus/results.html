@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Network+ Diagnostic Results — CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="description" content="Your Network+ baseline diagnostic results — readiness score + weak-domain map.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/network-plus/results">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvilDiagnosticTheme');
+    if (!saved) saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<style>
+  /* Results placeholder · D.4 will replace with the rich 5-path UI from the
+     mockup (score ring · weak-domain breakdown · subscribe / continue /
+     download / retake / back fan-out). This v1 placeholder just confirms the
+     state migration works end-to-end. */
+  .dr-shell { max-width: 640px; margin: 0 auto; padding: 48px 18px 60px; text-align: center; }
+  .dr-eyebrow {
+    display: inline-block;
+    background: rgba(34,197,94,.15);
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 5px 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .dr-h1 {
+    font-size: clamp(28px, 4.5vw, 38px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 10px;
+    line-height: 1.1;
+  }
+  .dr-sub { color: var(--text-mid, #6c6d80); font-size: 15px; margin: 0 0 24px; line-height: 1.55; }
+
+  .dr-score-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 16px;
+    padding: 30px 24px;
+    margin: 0 auto 24px;
+    max-width: 380px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+  }
+  .dr-score-num {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent, #7c6ff7);
+    margin-bottom: 4px;
+    letter-spacing: -.02em;
+  }
+  .dr-score-num.is-passing { color: #15803d; }
+  .dr-score-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-dim, #8a8b9c);
+    font-weight: 700;
+  }
+  .dr-score-meta {
+    font-size: 13px;
+    color: var(--text-mid, #4a4b5e);
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .dr-score-meta strong { color: var(--text, #1a1a26); }
+  .dr-pass-marker {
+    display: inline-block;
+    background: var(--surface2, #f5f6f9);
+    color: var(--text-mid, #4a4b5e);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+  .dr-pass-marker.is-passing { background: rgba(34,197,94,.15); color: #15803d; }
+
+  .dr-domain-list {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 auto 24px;
+    max-width: 380px;
+    text-align: left;
+  }
+  .dr-domain-list h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-dim, #8a8b9c);
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .dr-domain-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 5px 0;
+    color: var(--text-mid, #4a4b5e);
+  }
+  .dr-domain-row strong { color: var(--text, #1a1a26); font-weight: 600; }
+  .dr-domain-pct {
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .dr-domain-pct.is-weak { color: #b91c1c; }
+  .dr-domain-pct.is-mid { color: #b45309; }
+  .dr-domain-pct.is-strong { color: #15803d; }
+
+  .dr-d4-banner {
+    background: linear-gradient(135deg, rgba(56,189,248,.06), transparent);
+    border: 1px dashed rgba(56,189,248,.35);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: var(--blue, #38bdf8);
+    margin: 0 auto 24px;
+    max-width: 380px;
+    text-align: left;
+  }
+  .dr-d4-banner strong { color: var(--blue, #38bdf8); display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+
+  .dr-actions { display: flex; flex-direction: column; gap: 10px; max-width: 380px; margin: 0 auto; }
+  .dr-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .15s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .dr-btn-primary { background: var(--accent, #7c6ff7); color: white; border-color: var(--accent, #7c6ff7); }
+  .dr-btn-primary:hover { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
+  .dr-btn-ghost { background: transparent; color: var(--text-mid, #4a4b5e); border-color: var(--border, rgba(0,0,0,.12)); }
+  .dr-btn-ghost:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
+
+  .dr-empty {
+    color: var(--text-mid, #6c6d80);
+    font-size: 15px;
+    padding: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .dr-score-num { font-size: 44px; }
+    .dr-score-card { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+<div class="dr-shell" id="dr-shell">
+  <div class="dr-empty" id="dr-empty">Loading results…</div>
+</div>
+</main>
+
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged for the exam</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="/privacy" class="foot-link">Privacy</a>
+        <a href="/terms" class="foot-link">Terms</a>
+        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// D.2-shim · /results page · v4.99.53
+// ══════════════════════════════════════════════════════════════════════════
+// v1 placeholder that proves the state migration from quiz → results works.
+// D.4 will replace this with the rich 5-path UI (score ring · weak-domain
+// breakdown with drill buttons · subscribe / continue / download / retake
+// / back fan-out).
+//
+// Reads sessionStorage.certanvilDiagnosticResults (written by quiz.html on
+// completion). If no results found (user navigated here without taking the
+// quiz), shows a friendly "take the diagnostic first" CTA.
+// ══════════════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+
+  var shell = document.getElementById('dr-shell');
+  var results = null;
+  try {
+    var raw = sessionStorage.getItem('certanvilDiagnosticResults');
+    if (raw) results = JSON.parse(raw);
+  } catch (_) {}
+
+  if (!results || !results.totalQuestions) {
+    shell.innerHTML =
+      '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
+      '<h1 class="dr-h1">Take the diagnostic to see results</h1>' +
+      '<p class="dr-sub">It looks like you haven\'t taken the Network+ baseline diagnostic in this browser session. Start the 20-minute flow to get your score + weak-domain map.</p>' +
+      '<div class="dr-actions">' +
+        '<a href="/diagnostic/network-plus/intake" class="dr-btn dr-btn-primary">Start the diagnostic →</a>' +
+        '<a href="/" class="dr-btn dr-btn-ghost">Back to CertAnvil</a>' +
+      '</div>';
+    return;
+  }
+
+  // Render the score + domain breakdown
+  var passingClass = results.isPassing ? 'is-passing' : '';
+  var diffFromPass = results.scaledScore - results.passThreshold;
+  var passMarkerHtml = results.isPassing
+    ? '<span class="dr-pass-marker is-passing">✓ Above pass threshold (' + results.passThreshold + ')</span>'
+    : '<span class="dr-pass-marker">' + Math.abs(diffFromPass) + ' points below pass (' + results.passThreshold + ')</span>';
+
+  var durationMin = Math.round(results.durationMs / 60000);
+
+  // Domain rows (weakest first, already sorted by quiz.html)
+  var domainRowsHtml = (results.domainBreakdown || []).map(function(d) {
+    var pctClass = d.accuracy < 0.5 ? 'is-weak' : (d.accuracy < 0.8 ? 'is-mid' : 'is-strong');
+    return '<div class="dr-domain-row">' +
+      '<span><strong>' + esc(d.domain) + '</strong> <span style="color:var(--text-dim);font-size:11px">(' + d.correct + '/' + d.total + ')</span></span>' +
+      '<span class="dr-domain-pct ' + pctClass + '">' + Math.round(d.accuracy * 100) + '%</span>' +
+    '</div>';
+  }).join('');
+
+  shell.innerHTML =
+    '<span class="dr-eyebrow">✓ Diagnostic complete · ' + durationMin + ' min</span>' +
+    '<h1 class="dr-h1">' + (results.isPassing ? 'Solid baseline.' : 'Honest baseline.') + '</h1>' +
+    '<p class="dr-sub">' + esc(results.correctCount) + ' / ' + esc(results.totalQuestions) + ' correct across all 5 Network+ N10-009 domains.</p>' +
+
+    '<div class="dr-score-card">' +
+      '<div class="dr-score-num ' + passingClass + '">' + results.scaledScore + '</div>' +
+      '<div class="dr-score-label">readiness · scaled 100-900</div>' +
+      '<div class="dr-score-meta">' +
+        passMarkerHtml +
+      '</div>' +
+    '</div>' +
+
+    '<div class="dr-domain-list">' +
+      '<h3>By domain · weakest first</h3>' +
+      domainRowsHtml +
+    '</div>' +
+
+    '<div class="dr-d4-banner">' +
+      '<strong>📅 D.4 next ship</strong>' +
+      'Full Pass Plan + 5-path CTAs (Subscribe Pro · Continue with account · Download/email · Retake · Back to landing) land in the next ship. The score + domain data are saved.' +
+    '</div>' +
+
+    '<div class="dr-actions">' +
+      '<a href="https://networkplus.certanvil.com/?action=diagnostic" class="dr-btn dr-btn-primary">Continue studying in the cert app →</a>' +
+      '<a href="/diagnostic/network-plus/intake" class="dr-btn dr-btn-ghost">Retake (clears these results)</a>' +
+      '<a href="/" class="dr-btn dr-btn-ghost">Back to CertAnvil</a>' +
+    '</div>';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
