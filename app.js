@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.39
+// Network+ AI Quiz — app.js  v4.99.40
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.39';
+const APP_VERSION = '4.99.40';
 
 // ══════════════════════════════════════════════════════════════════════════
 // CERT PACK ARCHITECTURE (v4.86.0 Phase 1A engine refactor)
