@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.46
+// Network+ AI Quiz — app.js  v4.99.47
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.46';
+const APP_VERSION = '4.99.47';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -18720,8 +18720,10 @@ function toggleSidebarMobile() {
       sb.setAttribute('aria-hidden', 'false');
     } else {
       // On wide viewports the sidebar is always visible — only set inert
-      // when we're actually in the mobile drawer regime (<900px).
-      if (window.innerWidth < 900) {
+      // when we're actually in the mobile drawer regime (<768px).
+      // v4.99.47 Phase 7: lowered from 900→768 to align with the CSS
+      // breakpoint that pins the sidebar starting at iPad portrait.
+      if (window.innerWidth < 768) {
         sb.setAttribute('inert', '');
         sb.setAttribute('aria-hidden', 'true');
       }
@@ -18735,10 +18737,12 @@ function toggleSidebarMobile() {
 // v4.79.0: initial a11y state for the mobile sidebar — mark it inert on
 // load if we're in the mobile-drawer regime. Re-evaluates on resize so
 // switching from mobile to desktop properly removes inert.
+// v4.99.47 Phase 7: breakpoint lowered to <768 so iPad portrait keeps
+// sidebar visible + interactive (no inert/aria-hidden treatment).
 function _syncSidebarA11y() {
   const sb = document.getElementById('app-sidebar');
   if (!sb) return;
-  const isMobile = window.innerWidth < 900;
+  const isMobile = window.innerWidth < 768;
   const isOpen = document.body.classList.contains('sidebar-open');
   if (isMobile && !isOpen) {
     sb.setAttribute('inert', '');

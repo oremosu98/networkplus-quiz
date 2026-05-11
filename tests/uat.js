@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.46', js.includes("const APP_VERSION = '4.99.46"));
+test('APP_VERSION is 4.99.47', js.includes("const APP_VERSION = '4.99.47"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.46', sw.includes('netplus-v4.99.46'));
+test('SW cache bumped to v4.99.47', sw.includes('netplus-v4.99.47'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -5576,7 +5576,9 @@ test('v4.53.0 CSS: sidebar brand mark has gradient + shadow (v4.87.4: dark forge
 test('v4.53.0 CSS: .sb-item-active has accent-tinted background + left rail',
   /\.sb-item\.sb-item-active\s*\{/.test(css) && /\.sb-item\.sb-item-active::before\s*\{[^}]*background:\s*var\(--accent\)/.test(css));
 test('v4.53.0 CSS: mobile breakpoint collapses sidebar to drawer',
-  /@media \(max-width:\s*900px\)[\s\S]{0,800}\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
+  // v4.99.47 Phase 7: breakpoint lowered from 900px → 767px so iPad portrait
+  // (768+) keeps the pinned sidebar. Below 768 = phone = hamburger drawer.
+  /@media \(max-width:\s*767px\)[\s\S]{0,800}\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
 
 // v4.81.23 tombstones: legacy v4.53.0 focus banner CSS retired (element
 // removed in v4.81.23 cleanup; was retired in v4.81.20 as a shim).
@@ -10125,7 +10127,9 @@ test('v4.79.0 CSS: .st-lesson-placeholder-v2 shared style',
 
 // 5. A11y polish
 test('v4.79.0 a11y: toggleSidebarMobile sets inert on closed mobile sidebar',
-  /toggleSidebarMobile[\s\S]{0,800}setAttribute\(['"]inert['"]/.test(js));
+  // v4.99.47 Phase 7: window bumped 800→1500 because the comment block
+  // explaining the 768 breakpoint pushed setAttribute past the prior limit.
+  /toggleSidebarMobile[\s\S]{0,1500}setAttribute\(['"]inert['"]/.test(js));
 test('v4.79.0 a11y: _syncSidebarA11y defined for resize-driven inert sync',
   /function\s+_syncSidebarA11y\s*\(/.test(js));
 test('v4.79.0 a11y: mobile toggle button has aria-expanded',
@@ -19251,6 +19255,32 @@ test('v4.99.46 hotfix: drill-this-concept uses validateApiKey',
 test('v4.99.46 hotfix: topic-deep-dive (showTopicDeepDive or buildTopicDive*) uses validateApiKey',
   // Find by searching for the unique 'No API key found' error message + validateApiKey nearby.
   /No API key found[\s\S]{0,1000}validateApiKey\(|validateApiKey\([\s\S]{0,1000}No API key found/.test(js));
+
+// ── v4.99.47 — Phase 7: tablet layout (iPad portrait pinned sidebar + grid pinning) ──
+// CSS-only ship. Lowers sidebar-drawer breakpoint from 900→767 so iPad portrait
+// (768+) gets a pinned sidebar matching the desktop pattern. Adds a tablet
+// portrait media block at the end of styles.css with explicit grid overrides
+// for drills-launcher, modes-domain-tiles, ana-milestones, and quiz-presets
+// because auto-fit minmax doesn't pick the right column count when content
+// area shrinks to ~548px after sidebar pins.
+console.log('\n\x1b[1m── v4.99.47 — PHASE 7 TABLET LAYOUT ──\x1b[0m');
+
+test('v4.99.47 Phase7: sidebar mobile-drawer breakpoint lowered to 767px',
+  /@media \(max-width:\s*767px\)[\s\S]{0,800}\.app-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/.test(css));
+test('v4.99.47 Phase7: tablet portrait media block exists at end of styles.css (768-1023)',
+  /TABLET PORTRAIT[\s\S]{0,1200}@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)/i.test(css));
+test('v4.99.47 Phase7: tablet block pins sidebar at narrower 200px width',
+  /@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)[\s\S]{0,2000}\.app-sidebar\s*\{[^}]*width:\s*200px/.test(css));
+test('v4.99.47 Phase7: tablet block pins drills-grid to 2-col (auto-fit picks 1-col at this width)',
+  /@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)[\s\S]{0,2000}\.drills-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*1fr\)/.test(css));
+test('v4.99.47 Phase7: tablet block pins modes-domain-tiles to 3-col (was cramped 5-col)',
+  /@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)[\s\S]{0,2000}\.modes-domain-tiles\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(css));
+test('v4.99.47 Phase7: tablet block pins domain-grid to 3-col (analytics page)',
+  /@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)[\s\S]{0,2000}\.domain-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(css));
+test('v4.99.47 Phase7: tablet block pins ana-milestones to 3-col (was 4-col on desktop)',
+  /@media \(min-width:\s*768px\) and \(max-width:\s*1023px\)[\s\S]{0,2000}\.ana-milestones\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(css));
+test('v4.99.47 Phase7: JS sidebar a11y breakpoint lowered to <768 (matches CSS)',
+  /isMobile\s*=\s*window\.innerWidth\s*<\s*768/.test(js));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

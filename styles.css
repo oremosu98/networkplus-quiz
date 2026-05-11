@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v4.99.46
+   Network+ AI Quiz — styles.css  v4.99.47
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -7189,7 +7189,10 @@ body.is-state-resolved:not(.is-pro-tier) .sb-item.is-pro-only .sb-item-lock { di
 }
 .sb-mobile-toggle:hover { background: rgba(var(--accent-rgb), .08); }
 
-@media (max-width: 900px) {
+/* v4.99.47 Phase 7: lower the mobile-drawer breakpoint from 900 → 767 so
+   iPad portrait (768px+) gets the pinned sidebar. Below 768 = phone =
+   hamburger drawer. JS counterparts (app.js:18724 + 18741) match. */
+@media (max-width: 767px) {
   body.has-sidebar { padding-left: 0; }
   .sb-mobile-toggle { display: flex; }
   .app-sidebar { transform: translateX(-100%); box-shadow: 0 12px 40px -8px rgba(0, 0, 0, .4); }
@@ -7204,6 +7207,11 @@ body.is-state-resolved:not(.is-pro-tier) .sb-item.is-pro-only .sb-item-lock { di
     -webkit-backdrop-filter: blur(2px);
   }
 }
+
+/* v4.99.47 Phase 7: tablet portrait block moved to end of file. See
+   "TABLET PORTRAIT — Phase 7" section at the bottom of this stylesheet.
+   Moved out of this position so it overrides later-in-file rules like
+   the second .drills-grid declaration at line ~12318. */
 
 /* v4.81.23: legacy v4.53.0 .focus-banner CSS retired — the element was
    replaced by .focus-banner-v2 in v4.54.0, retired in v4.81.20, removed
@@ -19712,4 +19720,48 @@ body.is-standalone {
 }
 @media (display-mode: standalone) {
   body { padding-top: max(env(safe-area-inset-top, 0px), 4px); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TABLET PORTRAIT — Phase 7 (v4.99.47, 2026-05-11)
+   ══════════════════════════════════════════════════════════════════════
+   iPad Mini / Air / regular in portrait (768-1023px). Sidebar pins (was
+   hamburger drawer until v4.99.46 at this width — see the lowered breakpoint
+   at line ~7195). Most grid layouts default to mobile-style stacking at
+   this width because content area is constrained to ~548px (768 viewport
+   minus 200px pinned sidebar minus minor padding). Overrides below pin
+   important grids back to 2-3 columns explicitly.
+
+   Placed at END of styles.css so it wins the cascade against later rules
+   like the second .drills-grid declaration at line ~12318.
+
+   iPad landscape (1024+) is NOT affected — falls back to the desktop
+   layout naturally. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Sidebar: 200 vs default 240 → content gets 548px instead of 528. */
+  .app-sidebar { width: 200px; }
+  body.has-sidebar { padding-left: 200px; }
+
+  /* Page cap bumped — desktop is 800, tablet portrait gets 900 (room for
+     when sidebar isn't present, e.g. a page that opts out of has-sidebar). */
+  .page { max-width: 900px; }
+
+  /* Vertical-bar domain grid (Analytics page): 5-col is cramped → 3-col */
+  .domain-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .domain-cell { min-height: 190px; padding: 14px 12px; }
+
+  /* Setup-page "Drill by domain" tile row: 5-col default is unreadable
+     at this width. Drop to 3-col so the domain names stay legible. */
+  .modes-domain-tiles { grid-template-columns: repeat(3, 1fr); }
+  .modes-domain-tile .mdt-name { font-size: 12.5px; }
+
+  /* Drills launcher tiles: 2-col explicit. The auto-fit minmax(240px,1fr)
+     base rule mis-picks 1-col at ~500px container width. Force 2 here. */
+  .drills-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Setup-page editorial preset rows + question-count chips: 2-col. */
+  .quiz-presets { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Analytics milestones: desktop 4-col → 3-col on tablet portrait. */
+  .ana-milestones { grid-template-columns: repeat(3, 1fr); }
 }
