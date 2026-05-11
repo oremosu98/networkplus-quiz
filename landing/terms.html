@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Terms of Service — CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="CertAnvil Terms of Service. Eligibility, account, subscriptions, pass guarantee, refunds, acceptable use, AI-generated content, governing law.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+<link rel="canonical" href="https://certanvil.com/terms">
+<meta name="robots" content="index, follow">
+<script>
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<style>
+  /* Same legal-page styling as privacy.html — duplicated here so both files
+     are self-contained. Could be extracted to a shared landing/legal.css
+     in a future cleanup if more legal pages are added. */
+  .legal-hero { padding: 80px 0 32px; text-align: center; }
+  .legal-eyebrow {
+    display: inline-block;
+    background: var(--accent-dim, rgba(124,111,247,.15));
+    color: var(--accent, #7c6ff7);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 5px 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .legal-h1 {
+    font-size: clamp(34px, 5vw, 48px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 14px;
+    line-height: 1.05;
+  }
+  .legal-sub {
+    color: var(--text-mid, #6c6d80);
+    font-size: 16px;
+    max-width: 640px;
+    margin: 0 auto 8px;
+  }
+  .legal-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-dim, #8a8b9c);
+    margin-top: 8px;
+  }
+  .legal-meta-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #7c6ff7); }
+  .legal-toc {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin: 32px auto 48px;
+    max-width: 720px;
+  }
+  .legal-toc-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-dim, #8a8b9c);
+    margin: 0 0 12px;
+  }
+  .legal-toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 2;
+    column-gap: 28px;
+    font-size: 14px;
+  }
+  .legal-toc li { padding: 3px 0; break-inside: avoid; }
+  .legal-toc a {
+    color: var(--text, #1a1a26);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .legal-toc a:hover { color: var(--accent, #7c6ff7); }
+  @media (max-width: 600px) { .legal-toc ol { columns: 1; } }
+
+  .legal-body { max-width: 720px; margin: 0 auto; padding-bottom: 80px; }
+  .legal-body h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 56px 0 8px;
+    letter-spacing: -.01em;
+    scroll-margin-top: 80px;
+  }
+  .legal-body h2:first-child { margin-top: 0; }
+  .legal-body h2 .legal-h2-num {
+    color: var(--accent, #7c6ff7);
+    font-size: 13px;
+    font-weight: 700;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    margin-bottom: 2px;
+  }
+  .legal-body h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 28px 0 8px;
+    color: var(--text, #1a1a26);
+  }
+  .legal-body p, .legal-body li {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-mid, #4a4b5e);
+  }
+  .legal-body p strong, .legal-body li strong { color: var(--text, #1a1a26); }
+  .legal-body ul { padding-left: 22px; margin: 10px 0 14px; }
+  .legal-body li { margin-bottom: 5px; }
+  .legal-tldr {
+    background: linear-gradient(135deg, rgba(124,111,247,.06), transparent);
+    border-left: 3px solid var(--accent, #7c6ff7);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0 22px;
+    font-size: 14px;
+    color: var(--text-mid, #4a4b5e);
+    line-height: 1.55;
+  }
+  .legal-tldr strong { color: var(--accent, #7c6ff7); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 4px; }
+  .legal-callout {
+    background: linear-gradient(135deg, rgba(34,197,94,.06), transparent);
+    border-left: 3px solid #22c55e;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0 22px;
+    font-size: 14px;
+    color: var(--text-mid, #4a4b5e);
+    line-height: 1.55;
+  }
+  .legal-callout strong { color: #16a34a; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 4px; }
+  .legal-warn {
+    background: linear-gradient(135deg, rgba(251,146,60,.06), transparent);
+    border-left: 3px solid #fb923c;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0 22px;
+    font-size: 14px;
+    color: var(--text-mid, #4a4b5e);
+    line-height: 1.55;
+  }
+  .legal-warn strong { color: #ea580c; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 4px; }
+  .legal-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 13px;
+    background: var(--surface, #fff);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+  }
+  .legal-table th, .legal-table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.08));
+    vertical-align: top;
+  }
+  .legal-table th {
+    background: var(--surface2, #f5f6f9);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-mid, #4a4b5e);
+  }
+  .legal-table tr:last-child td { border-bottom: none; }
+  .legal-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent, #7c6ff7);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .legal-back:hover { text-decoration: underline; }
+  .legal-contact-card {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin: 18px 0;
+  }
+  .legal-contact-card h4 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+  .legal-contact-card a { color: var(--accent, #7c6ff7); }
+  code.legal-inline {
+    background: var(--surface2, #f5f6f9);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 13px;
+    font-family: 'SF Mono', Monaco, monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+    <nav class="topbar-nav" aria-label="Primary navigation">
+      <a href="/#why" class="nav-link">Why CertAnvil</a>
+      <a href="/#certs" class="nav-link">Certs</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+<section class="legal-hero">
+  <span class="legal-eyebrow">Legal · Terms of Service</span>
+  <h1 class="legal-h1">Fair terms. No surprises.</h1>
+  <p class="legal-sub">Plain-English contract between you and CertAnvil. What you can do with the product, what we promise, what happens if you cancel, refund + pass-guarantee details, and the boring-but-real legal bits at the bottom.</p>
+  <p class="legal-meta">
+    <span class="legal-meta-dot"></span>
+    Last updated · <strong>11 May 2026</strong> · v1.0 (initial)
+  </p>
+</section>
+
+<nav class="legal-toc" aria-label="Table of contents">
+  <p class="legal-toc-title">Contents</p>
+  <ol>
+    <li><a href="#agreement">1. Agreement</a></li>
+    <li><a href="#eligibility">2. Eligibility</a></li>
+    <li><a href="#account">3. Your account</a></li>
+    <li><a href="#subscriptions">4. Subscriptions + pricing</a></li>
+    <li><a href="#pass-guarantee">5. Pass guarantee</a></li>
+    <li><a href="#refunds">6. Refunds</a></li>
+    <li><a href="#cancellation">7. Cancellation</a></li>
+    <li><a href="#acceptable-use">8. Acceptable use</a></li>
+    <li><a href="#ip">9. Intellectual property</a></li>
+    <li><a href="#ai-content">10. AI-generated content</a></li>
+    <li><a href="#service">11. Service availability</a></li>
+    <li><a href="#liability">12. Limitation of liability</a></li>
+    <li><a href="#termination">13. Termination by us</a></li>
+    <li><a href="#disputes">14. Disputes + governing law</a></li>
+    <li><a href="#changes">15. Changes to these terms</a></li>
+    <li><a href="#contact">16. Contact</a></li>
+  </ol>
+</nav>
+
+<article class="legal-body">
+
+<h2 id="agreement"><span class="legal-h2-num">§ 01</span>Agreement</h2>
+<p>These Terms of Service ("Terms") are a contract between you and Oluwasimisola Oremosu (sole trader, United Kingdom), trading as <strong>CertAnvil</strong>. By creating an account, subscribing to a paid plan, or using any part of the CertAnvil website or apps, you agree to these Terms and to our <a href="/privacy">Privacy Policy</a>.</p>
+<p>If you don't agree, please don't use CertAnvil. You can stop using it at any time and (if you have an account) delete it from Settings — see <a href="#cancellation">§ 07</a>.</p>
+
+<h2 id="eligibility"><span class="legal-h2-num">§ 02</span>Eligibility</h2>
+<p>To use CertAnvil you must be at least <strong>13 years old</strong>. In jurisdictions where the minimum age for digital consent is higher (e.g. 16 in parts of the EU), you must meet that local minimum or have a parent/guardian's permission.</p>
+<p>If you're using CertAnvil on behalf of an employer or training provider, you confirm you have authority to bind that organisation to these Terms.</p>
+<p>You may not use CertAnvil if you're subject to economic sanctions imposed by the UK, the EU, the United States, or the United Nations that would prevent us from providing services to you.</p>
+
+<h2 id="account"><span class="legal-h2-num">§ 03</span>Your account</h2>
+<div class="legal-tldr">
+  <strong>TL;DR</strong>
+  You're responsible for the email you sign up with and what happens on your account. We authenticate by magic-link only — no passwords means treat your inbox like the key.
+</div>
+<p>You sign in by requesting a single-use link sent to your email address. Anyone with access to that inbox can sign in as you. Keep your email account secure — enable two-factor authentication with your email provider.</p>
+<p>You're responsible for the activity that happens under your account. If you suspect someone else has accessed your account, sign out from Settings (which invalidates active sessions) and contact <a href="mailto:support@certanvil.com">support@certanvil.com</a> immediately.</p>
+<p>One person, one account. Don't share accounts or sell access. Team licences for bootcamps and training providers will be available separately — until they ship, contact us if you need bulk access.</p>
+
+<h2 id="subscriptions"><span class="legal-h2-num">§ 04</span>Subscriptions + pricing</h2>
+<div class="legal-tldr">
+  <strong>TL;DR</strong>
+  Free tier = $0 forever with a 20-question-per-day cap. Pro = $9.99/month or $89/year, auto-renews until you cancel.
+</div>
+
+<h3>4.1 · Free tier</h3>
+<p>The Free tier is available without a credit card, indefinitely. It includes the Baseline Diagnostic, Pass Plan, all basic drills (Subnet Trainer · Port Drill · Acronym Blitz · OSI Sorter · Cable ID), and up to <strong>20 AI-generated questions per day</strong>. The daily limit resets at midnight UTC. Pro-only features (Topology Builder, ACL Builder, Incident Response War Room, Phishing Triage Lab, Packet Trace, Exam Simulator) are not included.</p>
+
+<h3>4.2 · Pro tier</h3>
+<p>Pro unlocks unlimited AI question generation across all certs, the Exam Simulator (90-Q timed), every Pro-only drill, advanced analytics (Knowledge Constellation, weak-spots, readiness trends, retention coaching), and the Pass Guarantee described in <a href="#pass-guarantee">§ 05</a>. Two billing periods are available at checkout:</p>
+<table class="legal-table">
+  <thead><tr><th>Plan</th><th>Price (USD)</th><th>Renews</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Pro Monthly</strong></td><td>$9.99 / month</td><td>Every 30 days</td></tr>
+    <tr><td><strong>Pro Annual</strong></td><td>$89.00 / year</td><td>Every 365 days · saves ~26% vs Monthly</td></tr>
+  </tbody>
+</table>
+
+<h3>4.3 · Billing + auto-renewal</h3>
+<p>Subscriptions are processed by <strong>Stripe</strong>. By subscribing you authorise Stripe to charge your payment method on the renewal date until you cancel. Stripe handles all card data — we never see it. Stripe will email you a receipt for each charge.</p>
+<p>If a renewal payment fails, Stripe will automatically retry up to 4 times over approximately 7 days. During that grace period your subscription status is <code class="legal-inline">past_due</code> and you keep Pro access, but you'll see a banner asking you to update your card. If all retries fail, your subscription is moved to <code class="legal-inline">canceled</code> and your access reverts to Free.</p>
+
+<h3>4.4 · Price changes</h3>
+<p>We may change subscription prices at any time. <strong>If we change the price of your specific plan, we'll email you at least 30 days before the change applies to your account.</strong> You can cancel before the new price takes effect if you don't want to continue at the new price. Existing annual subscribers are price-locked for the remainder of their current paid year.</p>
+
+<h3>4.5 · Currency + tax</h3>
+<p>Prices are listed in US dollars and processed by Stripe. Stripe applies VAT/sales tax automatically based on your billing country where required. The amount charged to your card may differ slightly from the listed dollar amount because of currency conversion done by your card issuer.</p>
+
+<h2 id="pass-guarantee"><span class="legal-h2-num">§ 05</span>Pass guarantee</h2>
+<div class="legal-callout">
+  <strong>What it is</strong>
+  If you study with Pro, follow the Pass Plan, and fail your first attempt at the relevant CompTIA exam, we extend your Pro subscription so you can prepare for the retake without paying more.
+</div>
+
+<h3>5.1 · Who qualifies</h3>
+<ul>
+  <li>You held an <strong>active Pro subscription</strong> for at least 30 consecutive days before your exam date.</li>
+  <li>You completed the <strong>Baseline Diagnostic</strong> at least once.</li>
+  <li>You followed the Pass Plan with a documented study pattern — at least 60% of recommended sessions completed (visible on your readiness dashboard).</li>
+  <li>You scored below the official CompTIA passing threshold (e.g. 720/900 for Network+ N10-009) on your <strong>first attempt</strong> of the relevant exam.</li>
+</ul>
+
+<h3>5.2 · What you get</h3>
+<p>Your Pro subscription is extended by <strong>at least 60 days</strong> at no additional charge so you can prepare for the retake. The exact extension is set during manual review depending on how far you were from passing and how much active study time you had.</p>
+
+<h3>5.3 · How to claim</h3>
+<p>Email <a href="mailto:support@certanvil.com">support@certanvil.com</a> within <strong>30 days</strong> of your unsuccessful attempt with:</p>
+<ul>
+  <li>The email address on your CertAnvil account.</li>
+  <li>A copy of your CompTIA score report (PDF or photo) showing your exam date, attempt number, and final score.</li>
+  <li>The exam name and version (e.g. "Network+ N10-009").</li>
+</ul>
+<p>We review claims manually within 7 days of receipt. We don't penalise you for low effort — the eligibility bar is "you tried and it didn't work", not "you nailed every drill".</p>
+
+<h3>5.4 · What's not covered</h3>
+<ul>
+  <li>Subsequent attempts (the guarantee covers the first attempt only — though we may extend again in genuine special circumstances at our discretion).</li>
+  <li>Exams you didn't actually take. The official CompTIA score report is required.</li>
+  <li>Fraudulent claims (fake score reports, multiple accounts). We reserve the right to refuse and terminate the account.</li>
+  <li>Beta exams or exam codes other than the ones the Pass Plan was authored for. Currently supported: <strong>N10-009</strong> (Network+), <strong>SY0-701</strong> (Security+). More to come.</li>
+</ul>
+
+<h2 id="refunds"><span class="legal-h2-num">§ 06</span>Refunds</h2>
+
+<h3>6.1 · 14-day refund window for first-time subscribers</h3>
+<p>If you're a <strong>first-time Pro subscriber</strong> and you cancel within 14 days of your initial payment, we'll refund that payment in full. This applies to your first paid subscription only — subsequent resubscriptions don't reset the window.</p>
+<p>To request a refund in the 14-day window, cancel your subscription from your Stripe Customer Portal and email <a href="mailto:billing@certanvil.com">billing@certanvil.com</a> with the email on your account. We'll process the refund within 7 days.</p>
+
+<h3>6.2 · Beyond 14 days</h3>
+<p>After the initial 14-day window, refunds are issued only in genuine special circumstances (e.g. service unavailable for an extended period, billed for a plan you didn't request). Cancel anytime to stop future charges — see <a href="#cancellation">§ 07</a>.</p>
+
+<h3>6.3 · UK + EU consumer rights</h3>
+<p>If you're a consumer in the UK or EU, you have statutory rights to refunds and cancellation under your local consumer-protection law (UK Consumer Rights Act, EU Consumer Rights Directive). These statutory rights apply alongside § 06.1 and are not affected by it. Note that by starting to use a digital subscription within the 14-day cooling-off window, you typically waive the right to cancel under the EU CRD; § 06.1 above is more generous than that minimum and applies anyway.</p>
+
+<h2 id="cancellation"><span class="legal-h2-num">§ 07</span>Cancellation</h2>
+
+<h3>7.1 · Cancel subscription (keep account)</h3>
+<p>Open your <strong>Stripe Customer Portal</strong> from your CertAnvil Account page and click "Cancel subscription". Cancellation takes effect at the end of your current billing period — you keep Pro access until then. After it expires, you're back on Free with no charges.</p>
+
+<h3>7.2 · Delete account (everything goes)</h3>
+<p>From the cert app → Settings → "Delete my account". This will:</p>
+<ul>
+  <li>Cancel any active Stripe subscription <strong>immediately</strong> (not at period end — you lose Pro access right away).</li>
+  <li>Permanently delete your account email, profile, quiz history, drill mastery, milestones, topology saves, and performance telemetry rows.</li>
+  <li>Sign you out and clear local browser cache.</li>
+</ul>
+<p>The deletion cascade is irreversible. Stripe's billing history is retained on their side per their retention policy (typically 7 years for tax + chargeback compliance) — we can't delete that.</p>
+
+<h2 id="acceptable-use"><span class="legal-h2-num">§ 08</span>Acceptable use</h2>
+<div class="legal-warn">
+  <strong>Don't</strong>
+  Use CertAnvil to study for the exam — yes. Use the AI proxy to generate non-cert content, scrape questions for resale, or run automated load tests — no.
+</div>
+<p>You may:</p>
+<ul>
+  <li>Use CertAnvil to prepare for the certifications it supports.</li>
+  <li>Share screenshots, your readiness number, and your honest opinion of the product on social media.</li>
+  <li>Cite specific question explanations in a study group, as long as you don't republish wholesale chunks of the question bank.</li>
+</ul>
+<p>You may not:</p>
+<ul>
+  <li>Use the AI question-generation pipeline to produce non-cert content (creative writing, code generation, general-purpose chat).</li>
+  <li>Automate access to the AI proxy beyond normal human use — no headless browsers, no scripts, no API scraping.</li>
+  <li>Bypass the daily-question quota by creating multiple Free accounts.</li>
+  <li>Reverse-engineer, decompile, or attempt to extract our prompts, system instructions, or proprietary content.</li>
+  <li>Republish or resell the question bank, exemplar bank, or any other CertAnvil content as your own product.</li>
+  <li>Use CertAnvil for any unlawful purpose, including reselling access in jurisdictions where we are blocked or sanctioned.</li>
+  <li>Submit fraudulent pass-guarantee claims.</li>
+</ul>
+<p>If we believe you're violating these rules, we may suspend or terminate your account — see <a href="#termination">§ 13</a>.</p>
+
+<h2 id="ip"><span class="legal-h2-num">§ 09</span>Intellectual property</h2>
+<p>CertAnvil's question exemplar bank, retention-concept library, scenario explanations, drill content, and underlying code are owned by us. You get a personal, non-transferable, non-exclusive licence to use them via the product for the duration of your account. You don't get the right to redistribute, resell, or build derivative products from them.</p>
+<p><strong>Your data is yours</strong>. We do not claim ownership of your quiz history, your saved topologies, or anything else you input. You can export it at any time (Settings → Export Data) and we delete it on request.</p>
+<p>The CompTIA exam names (Network+, Security+, N10-009, SY0-701, etc.) are trademarks of CompTIA. CertAnvil is not affiliated with or endorsed by CompTIA. We prepare you for their exams using publicly-documented objectives.</p>
+
+<h2 id="ai-content"><span class="legal-h2-num">§ 10</span>AI-generated content</h2>
+<div class="legal-warn">
+  <strong>Important</strong>
+  Questions and explanations are generated by an AI model (Anthropic's Claude). We validate them through a 7-layer pipeline, but AI output can still be wrong. Use CertAnvil as a study aid, not as a single source of truth.
+</div>
+<p>The questions, explanations, deep dives, and AI coach responses in CertAnvil are produced by Anthropic's Claude model with a 7-layer validation stack (prompt self-check · curated exemplar bank · semantic second-pass · interrogative-stem gate · programmatic validator · regression gate · Sonnet escalation). We work hard to minimise hallucinations and factual errors. We can't guarantee every output is perfect.</p>
+<p><strong>Always cross-check</strong> answers against the official CompTIA objectives and reputable resources (Professor Messer, Jason Dion's books, the CompTIA Exam Objectives PDF). If you spot an error, please report it via the "Report this question" button in the app — your reports directly improve the validation pipeline.</p>
+<p>We are not responsible for exam outcomes that depend on relying solely on AI-generated content as your only source of preparation.</p>
+
+<h2 id="service"><span class="legal-h2-num">§ 11</span>Service availability</h2>
+<p>We aim for 99.5% uptime on a rolling 30-day basis. Realistically you should expect occasional downtime for maintenance, dependency outages (Supabase, Stripe, Vercel, Anthropic), or genuine bugs.</p>
+<p>CertAnvil is provided "as is" and "as available". We don't guarantee that the service will be uninterrupted, error-free, or that any specific feature will be available at any specific time. We may add, modify, or remove features at our discretion — though we'll try to give notice for material changes affecting Pro subscribers.</p>
+
+<h2 id="liability"><span class="legal-h2-num">§ 12</span>Limitation of liability</h2>
+<p>To the maximum extent permitted by applicable law:</p>
+<ul>
+  <li>CertAnvil's total liability to you for any claim arising out of or related to these Terms or the service is limited to <strong>the amount you paid us in the 12 months before the claim arose</strong>. For Free users, that maximum is £0.</li>
+  <li>We are not liable for indirect, incidental, consequential, special, or punitive damages — including lost profits, lost study time, exam fees you had to re-pay, or career outcomes affected by an exam result.</li>
+  <li>We are not liable for the actions of third-party sub-processors (Stripe, Anthropic, Supabase, etc.), though we'll cooperate with you to resolve issues caused by them.</li>
+</ul>
+<p>Nothing in these Terms limits liability for death or personal injury caused by our negligence, fraud, or any other liability that cannot be limited under applicable law (notably your statutory rights as a consumer under UK or EU law).</p>
+
+<h2 id="termination"><span class="legal-h2-num">§ 13</span>Termination by us</h2>
+<p>We may suspend or terminate your account if you:</p>
+<ul>
+  <li>Violate the Acceptable Use rules in <a href="#acceptable-use">§ 08</a>.</li>
+  <li>Submit fraudulent pass-guarantee claims, chargebacks for legitimate charges, or fake billing disputes.</li>
+  <li>Have an unpaid balance for more than 30 days after grace-period retries have exhausted.</li>
+  <li>Use the service in a way that creates legal liability for us (e.g. operating from a sanctioned jurisdiction).</li>
+</ul>
+<p>If we terminate your account for a violation of these Terms, you forfeit any unused portion of your subscription and we are not obligated to refund. If we terminate your account for any other reason (e.g. we wind down the service entirely), we'll refund the unused portion of your most recent payment on a pro-rata basis.</p>
+
+<h2 id="disputes"><span class="legal-h2-num">§ 14</span>Disputes + governing law</h2>
+
+<h3>14.1 · Try to resolve directly first</h3>
+<p>If you have a complaint, please email <a href="mailto:support@certanvil.com">support@certanvil.com</a> with the details. We respond to most complaints within 7 days and try to resolve them quickly and fairly.</p>
+
+<h3>14.2 · Governing law</h3>
+<p>These Terms are governed by the laws of <strong>England and Wales</strong>. Any legal dispute will be brought in the courts of England and Wales — except that if you're a consumer in the UK, EU, or another jurisdiction with mandatory local consumer-protection law, you may also bring claims in your local courts under your local law where required by that law.</p>
+
+<h3>14.3 · No class actions</h3>
+<p>To the maximum extent permitted by applicable law, you agree to resolve disputes individually rather than as part of a class action or representative proceeding. (This clause does not apply if it would conflict with mandatory consumer law in your jurisdiction.)</p>
+
+<h2 id="changes"><span class="legal-h2-num">§ 15</span>Changes to these terms</h2>
+<p>We may update these Terms from time to time. For material changes (pricing, refund policy, acceptable use rules, governing law) we'll notify subscribers by email at least 14 days before they take effect. For minor edits (typos, link fixes, clarifications that don't change substance) we may publish the updated version without notice. The "Last updated" date at the top of this page reflects the most recent material change.</p>
+<p>This is <strong>v1.0</strong>, the initial publication of the Terms. Future versions will be listed below as they ship.</p>
+
+<h2 id="contact"><span class="legal-h2-num">§ 16</span>Contact</h2>
+<div class="legal-contact-card">
+  <h4>Reach a human</h4>
+  <p style="margin:0 0 4px"><strong>Support + complaints</strong> · <a href="mailto:support@certanvil.com">support@certanvil.com</a></p>
+  <p style="margin:0 0 4px"><strong>Billing</strong> · <a href="mailto:billing@certanvil.com">billing@certanvil.com</a></p>
+  <p style="margin:0 0 4px"><strong>Privacy + data requests</strong> · <a href="mailto:privacy@certanvil.com">privacy@certanvil.com</a></p>
+  <p style="margin:0 0 4px"><strong>General</strong> · <a href="mailto:hello@certanvil.com">hello@certanvil.com</a></p>
+  <p style="margin:0"><strong>Response time</strong> · within 7 days for most enquiries</p>
+</div>
+<p style="margin-top:24px"><a href="/" class="legal-back">← Back to CertAnvil</a></p>
+
+</article>
+</div>
+</main>
+
+<!-- Footer -->
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged for the exam</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="/privacy" class="foot-link">Privacy</a>
+        <a href="/terms" class="foot-link">Terms</a>
+        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

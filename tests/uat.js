@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.50', js.includes("const APP_VERSION = '4.99.50"));
+test('APP_VERSION is 4.99.51', js.includes("const APP_VERSION = '4.99.51"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.50', sw.includes('netplus-v4.99.50'));
+test('SW cache bumped to v4.99.51', sw.includes('netplus-v4.99.51'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19421,6 +19421,102 @@ test('v4.99.50 Phase6c: dashboard CSS has good/mid/bad verdict color tiers',
   && /\.wv-card\.wv-bad\s*\{/.test(css));
 test('v4.99.50 Phase6c: dashboard is responsive (2-col grid at mobile)',
   /@media\s*\(max-width:\s*600px\)[\s\S]{0,300}\.wv-summary-grid\s*\{\s*grid-template-columns:\s*repeat\(2,/.test(css));
+
+// ── v4.99.51 — Pre-launch: ToS + Privacy Policy ──
+// Founder-stated bar: "really good and legit" — not boilerplate. Customised
+// to CertAnvil's actual data flows (Supabase auth, Stripe billing, web_vitals
+// telemetry, Anthropic AI proxy, magic-link auth, account deletion cascade,
+// pass guarantee terms). GDPR + CCPA baseline. UK governing law.
+console.log('\n\x1b[1m── v4.99.51 — TOS + PRIVACY POLICY DRAFTS ──\x1b[0m');
+
+const _privacyRaw = fs.existsSync(path.join(ROOT, 'landing/privacy.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/privacy.html'), 'utf8') : '';
+const _termsRaw = fs.existsSync(path.join(ROOT, 'landing/terms.html'))
+  ? fs.readFileSync(path.join(ROOT, 'landing/terms.html'), 'utf8') : '';
+const _landingIndexRaw = fs.readFileSync(path.join(ROOT, 'landing/index.html'), 'utf8');
+const _landingPricingRaw = fs.readFileSync(path.join(ROOT, 'landing/pricing.html'), 'utf8');
+
+// Privacy Policy structural guards
+test('v4.99.51 Privacy: landing/privacy.html exists',
+  _privacyRaw.length > 10000);
+test('v4.99.51 Privacy: page has the 13 required sections (h2 ids)',
+  ['who-we-are', 'what-we-collect', 'why-we-collect', 'who-we-share',
+   'where-stored', 'how-long', 'cookies', 'your-rights', 'international',
+   'security', 'children', 'changes', 'contact'].every(id =>
+    _privacyRaw.includes('id="' + id + '"')));
+test('v4.99.51 Privacy: lists all named sub-processors (Supabase, Stripe, Anthropic, Resend, Vercel, Hostinger)',
+  /Supabase/.test(_privacyRaw)
+  && /Stripe/.test(_privacyRaw)
+  && /Anthropic/.test(_privacyRaw)
+  && /Resend/.test(_privacyRaw)
+  && /Vercel/.test(_privacyRaw)
+  && /Hostinger/.test(_privacyRaw));
+test('v4.99.51 Privacy: covers all 5 actual data categories (account · quiz · billing · telemetry · operational)',
+  /Account data/i.test(_privacyRaw)
+  && /Quiz.*data/i.test(_privacyRaw)
+  && /Billing data/i.test(_privacyRaw)
+  && /telemetry|Performance/i.test(_privacyRaw)
+  && /AI usage|Operational/i.test(_privacyRaw));
+test('v4.99.51 Privacy: GDPR + CCPA rights listed',
+  /GDPR/.test(_privacyRaw) && /CCPA/.test(_privacyRaw)
+  && /right to be forgotten|Erasure/i.test(_privacyRaw)
+  && /portability/i.test(_privacyRaw));
+test('v4.99.51 Privacy: ICO complaint route mentioned (UK)',
+  /Information Commissioner.s Office|ICO/.test(_privacyRaw));
+test('v4.99.51 Privacy: children\'s policy (13+ minimum age) present',
+  /\b13\b[\s\S]{0,300}years|under 13/i.test(_privacyRaw));
+test('v4.99.51 Privacy: dedicated privacy email exists',
+  /privacy@certanvil\.com/.test(_privacyRaw));
+test('v4.99.51 Privacy: 7-day self-delete cascade documented',
+  /7 days|self-delete|cascade/i.test(_privacyRaw));
+test('v4.99.51 Privacy: footer links to /terms',
+  /href="\/terms"/.test(_privacyRaw));
+
+// Terms of Service structural guards
+test('v4.99.51 Terms: landing/terms.html exists',
+  _termsRaw.length > 10000);
+test('v4.99.51 Terms: page has the 16 required sections',
+  ['agreement', 'eligibility', 'account', 'subscriptions', 'pass-guarantee',
+   'refunds', 'cancellation', 'acceptable-use', 'ip', 'ai-content',
+   'service', 'liability', 'termination', 'disputes', 'changes', 'contact'].every(id =>
+    _termsRaw.includes('id="' + id + '"')));
+test('v4.99.51 Terms: documents actual pricing ($9.99/mo + $89/yr)',
+  /\$9\.99[\s\S]{0,80}month/.test(_termsRaw)
+  && /\$89[\s\S]{0,80}year/.test(_termsRaw));
+test('v4.99.51 Terms: 14-day refund window for first-time subscribers',
+  /14[\s\S]{0,80}day[\s\S]{0,500}refund/i.test(_termsRaw));
+test('v4.99.51 Terms: pass guarantee criteria specified (30-day Pro + diagnostic + score report)',
+  /30 consecutive days|30 days/i.test(_termsRaw)
+  && /Baseline Diagnostic/.test(_termsRaw)
+  && /score report/i.test(_termsRaw));
+test('v4.99.51 Terms: AI-generated content disclaimer present',
+  /AI-generated|Anthropic|Claude/.test(_termsRaw)
+  && /validation|cross-check|hallucinat/i.test(_termsRaw));
+test('v4.99.51 Terms: liability cap = amount paid in last 12 months',
+  /amount you paid us in the 12 months|amount paid.*12 months/i.test(_termsRaw));
+test('v4.99.51 Terms: governing law = England and Wales',
+  /England and Wales/i.test(_termsRaw));
+test('v4.99.51 Terms: UK + EU consumer rights preserved',
+  /Consumer Rights Act|Consumer Rights Directive|consumer-protection/i.test(_termsRaw));
+test('v4.99.51 Terms: dedicated billing + support emails listed',
+  /support@certanvil\.com/.test(_termsRaw)
+  && /billing@certanvil\.com/.test(_termsRaw));
+test('v4.99.51 Terms: acceptable-use section lists both allowed + prohibited',
+  /You may:[\s\S]{0,800}You may not:/.test(_termsRaw));
+test('v4.99.51 Terms: prohibits AI proxy abuse + non-cert content generation',
+  /non-cert content|automate|scrape/i.test(_termsRaw));
+
+// Cross-page wiring
+test('v4.99.51 wiring: landing/index.html footer links to /privacy + /terms',
+  /<a href="\/privacy"[^>]*class="foot-link">Privacy/.test(_landingIndexRaw)
+  && /<a href="\/terms"[^>]*class="foot-link">Terms/.test(_landingIndexRaw));
+test('v4.99.51 wiring: landing/index.html signup screen links to /terms + /privacy',
+  /agree to our <a href="\/terms">Terms<\/a> and <a href="\/privacy">Privacy/.test(_landingIndexRaw));
+test('v4.99.51 wiring: landing/pricing.html signup screen also links to /terms + /privacy',
+  /agree to our <a href="\/terms">Terms<\/a> and <a href="\/privacy">Privacy/.test(_landingPricingRaw));
+test('v4.99.51 wiring: regression tombstone — no `href="#"` Terms/Privacy links remain',
+  !/<a href="#"[^>]*>(Privacy|Terms)<\/a>/.test(_landingIndexRaw)
+  && !/<a href="#"[^>]*>(Privacy|Terms)<\/a>/.test(_landingPricingRaw));
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
