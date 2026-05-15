@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Network+ Diagnostic Results — CertAnvil</title>
+<title>Network+ Diagnostic Results · CertAnvil</title>
 <meta name="theme-color" content="#fafbff">
-<meta name="description" content="Your Network+ baseline diagnostic results — readiness score + Pass Plan + weak-domain map.">
+<meta name="description" content="Your Network+ baseline diagnostic results · readiness score + Pass Plan + weak-domain map.">
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="stylesheet" href="../../styles.css">
 <link rel="canonical" href="https://certanvil.com/diagnostic/network-plus/results">
 <meta name="robots" content="noindex, nofollow">
 <!-- v4.99.56 D.5: Supabase client for magic-link signup from Continue stub.
      Loaded ahead of body so window.certanvilSupabase is available by the
-     time the Continue CTA wires up. Defer-ok — only used after click. -->
+     time the Continue CTA wires up. Defer-ok · only used after click. -->
 <script src="../../lib/supabase-umd.min.js" defer></script>
 <script src="../../lib/supabase.js" defer></script>
 <script>
 (function() {
-  var theme = 'light';
+  var theme = 'dark';
   try {
     var saved = localStorage.getItem('certanvilDiagnosticTheme');
     if (!saved) saved = localStorage.getItem('certanvil_theme');
@@ -26,718 +26,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<style>
-  /* ══════════════════════════════════════════════════════════════════════
-     D.4 · Rich results page · v4.99.55
-     ──────────────────────────────────────────────────────────────────────
-     5-path CTA fan-out (Subscribe · Continue · Download · Retake · Back)
-     + animated score ring + Pass Plan keyed to weak-domains + intake +
-     collapsible answer review. Pre-Stripe: Subscribe / Continue / Download
-     route to inline "next ship" panels — D.5 / D.6 / D.6.5 / D.7 wire
-     them to real endpoints.
-     ══════════════════════════════════════════════════════════════════════ */
-
-  .dr-shell { max-width: 720px; margin: 0 auto; padding: 32px 18px 60px; }
-  .dr-empty { text-align: center; padding: 40px 24px; color: var(--text-mid, #6c6d80); }
-  .dr-loading { text-align: center; padding: 60px 24px; color: var(--text-mid, #6c6d80); font-size: 15px; }
-
-  /* ─── Hero ─── */
-  .dr-hero { text-align: center; margin-bottom: 28px; }
-  .dr-eyebrow {
-    display: inline-block;
-    background: rgba(34,197,94,.15);
-    color: #15803d;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    padding: 5px 12px;
-    border-radius: 12px;
-    margin-bottom: 12px;
-  }
-  .dr-eyebrow.is-source-fallback {
-    background: rgba(245,158,11,.15);
-    color: #b45309;
-  }
-  .dr-h1 {
-    font-size: clamp(28px, 4.8vw, 40px);
-    font-weight: 800;
-    letter-spacing: -.02em;
-    margin: 0 0 10px;
-    line-height: 1.1;
-  }
-  .dr-sub {
-    color: var(--text-mid, #6c6d80);
-    font-size: 15px;
-    margin: 0 0 4px;
-    line-height: 1.55;
-  }
-
-  /* ─── Score ring card ─── */
-  .dr-score-block {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 20px;
-    padding: 28px 22px 22px;
-    margin: 0 auto 22px;
-    max-width: 560px;
-    box-shadow: 0 8px 28px rgba(0,0,0,.06);
-    text-align: center;
-  }
-  .dr-ring-wrap {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    margin: 0 auto 14px;
-  }
-  .dr-ring-svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-  }
-  .dr-ring-bg {
-    fill: none;
-    stroke: var(--border, rgba(0,0,0,.08));
-    stroke-width: 14;
-  }
-  .dr-ring-fg {
-    fill: none;
-    stroke-width: 14;
-    stroke-linecap: round;
-    stroke: var(--accent, #7c6ff7);
-    stroke-dashoffset: 100;
-    transition: stroke-dashoffset 1.4s cubic-bezier(.22,.85,.25,1);
-  }
-  .dr-ring-fg.is-foundation { stroke: #b91c1c; }
-  .dr-ring-fg.is-near-pass { stroke: #b45309; }
-  .dr-ring-fg.is-on-pace { stroke: #15803d; }
-  .dr-ring-fg.is-ready { stroke: #047857; }
-
-  .dr-ring-tick {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 2px;
-    height: 16px;
-    background: var(--text-mid, #6c6d80);
-    transform-origin: center bottom;
-    /* Pass-threshold tick at 720 → (720-100)/(900-100) = 77.5% of arc.
-       Rotated so its bottom sits at the ring's centre. Translated upward
-       by (ringRadius + half tick height) so the tick floats just outside
-       the foreground stroke. Computed inline by JS. */
-  }
-
-  .dr-ring-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-  }
-  .dr-score-num {
-    font-size: 56px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: -.02em;
-    color: var(--text, #1a1a26);
-  }
-  .dr-score-out-of {
-    font-size: 12px;
-    color: var(--text-dim, #8a8b9c);
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    font-weight: 700;
-    margin-top: 4px;
-  }
-
-  .dr-pass-marker {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface2, #f5f6f9);
-    color: var(--text-mid, #4a4b5e);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 10px;
-    margin-top: 4px;
-  }
-  .dr-pass-marker.is-passing { background: rgba(34,197,94,.15); color: #15803d; }
-  .dr-pass-marker.is-near { background: rgba(245,158,11,.15); color: #b45309; }
-  .dr-pass-marker.is-far { background: rgba(185,28,28,.10); color: #b91c1c; }
-
-  .dr-meta-row {
-    display: flex;
-    justify-content: center;
-    gap: 18px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-    font-size: 12px;
-    color: var(--text-dim, #8a8b9c);
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-  .dr-meta-row span strong { color: var(--text, #1a1a26); font-size: 13px; font-weight: 700; }
-
-  /* ─── Pass Plan ─── */
-  .dr-passplan {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 16px;
-    padding: 22px 22px 18px;
-    margin: 0 auto 22px;
-    max-width: 560px;
-  }
-  .dr-section-title {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    color: var(--text-dim, #8a8b9c);
-    margin: 0 0 6px;
-    font-weight: 700;
-  }
-  .dr-passplan-head {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text, #1a1a26);
-    margin: 0 0 10px;
-    letter-spacing: -.01em;
-  }
-  .dr-passplan-band {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    padding: 3px 9px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-  }
-  .dr-passplan-band.is-foundation { background: rgba(185,28,28,.12); color: #b91c1c; }
-  .dr-passplan-band.is-near-pass { background: rgba(245,158,11,.15); color: #b45309; }
-  .dr-passplan-band.is-on-pace { background: rgba(34,197,94,.15); color: #15803d; }
-  .dr-passplan-band.is-ready { background: rgba(4,120,87,.15); color: #047857; }
-
-  .dr-passplan-summary {
-    font-size: 14px;
-    color: var(--text-mid, #4a4b5e);
-    line-height: 1.6;
-    margin: 0 0 14px;
-  }
-  .dr-passplan-steps {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .dr-passplan-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: var(--text, #1a1a26);
-  }
-  .dr-passplan-step-num {
-    flex: 0 0 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: var(--accent, #7c6ff7);
-    color: white;
-    font-size: 11px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1px;
-  }
-  .dr-passplan-step strong { color: var(--text, #1a1a26); }
-  .dr-passplan-step span.muted { color: var(--text-mid, #6c6d80); }
-
-  /* ─── By-domain breakdown ─── */
-  .dr-domain-block {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 16px;
-    padding: 18px 22px;
-    margin: 0 auto 22px;
-    max-width: 560px;
-  }
-  .dr-domain-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .dr-domain-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 12px;
-    font-size: 13.5px;
-  }
-  .dr-domain-row-left {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .dr-domain-name {
-    font-weight: 600;
-    color: var(--text, #1a1a26);
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .dr-domain-count {
-    color: var(--text-dim, #8a8b9c);
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .dr-domain-bar {
-    height: 5px;
-    background: var(--surface2, #f5f6f9);
-    border-radius: 99px;
-    overflow: hidden;
-    width: 100%;
-  }
-  .dr-domain-bar-fill {
-    height: 100%;
-    border-radius: 99px;
-    transition: width .9s cubic-bezier(.22,.85,.25,1);
-  }
-  .dr-domain-bar-fill.is-weak { background: #b91c1c; }
-  .dr-domain-bar-fill.is-mid { background: #b45309; }
-  .dr-domain-bar-fill.is-strong { background: #15803d; }
-  .dr-domain-pct {
-    font-weight: 700;
-    font-size: 14px;
-    min-width: 42px;
-    text-align: right;
-  }
-  .dr-domain-pct.is-weak { color: #b91c1c; }
-  .dr-domain-pct.is-mid { color: #b45309; }
-  .dr-domain-pct.is-strong { color: #15803d; }
-
-  /* ─── 5-path CTA panel ─── */
-  .dr-cta-block {
-    background: linear-gradient(135deg, rgba(124,111,247,.06), transparent 60%);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 16px;
-    padding: 22px 22px;
-    margin: 0 auto 22px;
-    max-width: 560px;
-  }
-  .dr-cta-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .dr-cta {
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    padding: 14px 18px;
-    border-radius: 12px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: background .15s, border-color .15s, transform .15s;
-    text-align: left;
-    text-decoration: none;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 12px;
-    color: inherit;
-    background: var(--surface, #fff);
-    width: 100%;
-  }
-  .dr-cta-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: var(--surface2, #f5f6f9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-  }
-  .dr-cta-body { display: flex; flex-direction: column; gap: 3px; }
-  .dr-cta-title { font-weight: 700; font-size: 14px; color: var(--text, #1a1a26); }
-  .dr-cta-sub { font-weight: 500; font-size: 12px; color: var(--text-mid, #6c6d80); line-height: 1.4; }
-  .dr-cta-chev { color: var(--text-dim, #8a8b9c); font-size: 18px; }
-
-  .dr-cta:hover { transform: translateY(-1px); border-color: var(--border, rgba(0,0,0,.16)); }
-  .dr-cta-primary {
-    background: linear-gradient(135deg, #7c6ff7 0%, #6457e3 100%);
-    border-color: #6457e3;
-    color: white;
-  }
-  .dr-cta-primary .dr-cta-icon { background: rgba(255,255,255,.18); }
-  .dr-cta-primary .dr-cta-title { color: white; }
-  .dr-cta-primary .dr-cta-sub { color: rgba(255,255,255,.85); }
-  .dr-cta-primary .dr-cta-chev { color: rgba(255,255,255,.85); }
-  .dr-cta-primary:hover {
-    background: linear-gradient(135deg, #8a7df8 0%, #7065ea 100%);
-    border-color: #7065ea;
-  }
-  .dr-cta-secondary {
-    background: var(--surface, #fff);
-    border-color: var(--accent, #7c6ff7);
-  }
-  .dr-cta-secondary .dr-cta-icon { background: rgba(124,111,247,.12); color: var(--accent, #7c6ff7); }
-  .dr-cta-tertiary {
-    background: var(--surface, #fff);
-    border-color: var(--border, rgba(0,0,0,.08));
-  }
-  .dr-cta-ghost {
-    background: transparent;
-    border: 1px dashed var(--border, rgba(0,0,0,.18));
-    color: var(--text-mid, #6c6d80);
-    font-weight: 600;
-    grid-template-columns: 1fr auto;
-    padding: 12px 16px;
-  }
-  .dr-cta-ghost .dr-cta-title { color: var(--text-mid, #6c6d80); font-weight: 600; }
-  .dr-cta-ghost:hover { border-color: var(--text-dim, #8a8b9c); }
-
-  /* ─── Stub panels (Subscribe / Continue / Download placeholders) ─── */
-  .dr-stub {
-    background: var(--surface, #fff);
-    border: 1px solid var(--accent, #7c6ff7);
-    border-radius: 16px;
-    padding: 22px 22px;
-    margin: 0 auto 22px;
-    max-width: 560px;
-    display: none;
-  }
-  .dr-stub.is-open { display: block; }
-  .dr-stub-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-  .dr-stub-title { font-size: 16px; font-weight: 700; color: var(--text, #1a1a26); margin: 0; }
-  .dr-stub-close {
-    background: transparent;
-    border: 0;
-    padding: 6px 10px;
-    font-size: 18px;
-    color: var(--text-dim, #8a8b9c);
-    cursor: pointer;
-    border-radius: 8px;
-  }
-  .dr-stub-close:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
-  .dr-stub-body {
-    font-size: 14px;
-    color: var(--text-mid, #4a4b5e);
-    line-height: 1.6;
-  }
-  .dr-stub-body p { margin: 0 0 10px; }
-  .dr-stub-body p:last-child { margin-bottom: 0; }
-  .dr-stub-pill {
-    display: inline-block;
-    background: rgba(124,111,247,.12);
-    color: var(--accent, #7c6ff7);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    padding: 3px 9px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-  }
-
-  /* D.5 · Magic-link form inside Continue stub */
-  .dr-continue-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  .dr-continue-form input[type="email"] {
-    font-family: inherit;
-    font-size: 14px;
-    padding: 11px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border, rgba(0,0,0,.16));
-    background: var(--surface, #fff);
-    color: var(--text, #1a1a26);
-    width: 100%;
-  }
-  .dr-continue-form input[type="email"]:focus {
-    outline: 2px solid var(--accent, #7c6ff7);
-    outline-offset: -1px;
-    border-color: var(--accent, #7c6ff7);
-  }
-  .dr-continue-form input[type="email"][disabled] {
-    background: var(--surface2, #f5f6f9);
-    color: var(--text-dim, #8a8b9c);
-  }
-  .dr-continue-submit {
-    align-self: stretch;
-  }
-  .dr-continue-submit[disabled] {
-    opacity: .55;
-    cursor: not-allowed;
-    transform: none !important;
-  }
-  .dr-continue-status {
-    font-size: 13px;
-    line-height: 1.5;
-    margin-top: 6px;
-  }
-  .dr-continue-status.is-error {
-    color: #b91c1c;
-    background: rgba(185,28,28,.08);
-    padding: 10px 12px;
-    border-radius: 8px;
-  }
-  .dr-continue-status.is-success {
-    color: #15803d;
-    background: rgba(34,197,94,.10);
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
-
-  /* ─── Answer review (collapsible) ─── */
-  .dr-review-block {
-    margin: 0 auto;
-    max-width: 560px;
-  }
-  .dr-review-toggle {
-    background: transparent;
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    color: var(--text-mid, #4a4b5e);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    width: 100%;
-    text-align: center;
-    transition: background .15s;
-  }
-  .dr-review-toggle:hover { background: var(--surface2, #f5f6f9); }
-  .dr-review-list {
-    display: none;
-    margin-top: 14px;
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.08));
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .dr-review-list.is-open { display: block; }
-  .dr-review-row {
-    display: grid;
-    grid-template-columns: 36px 1fr auto;
-    gap: 10px;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border, rgba(0,0,0,.06));
-    align-items: center;
-    font-size: 12.5px;
-  }
-  .dr-review-row:last-child { border-bottom: 0; }
-  .dr-review-mark {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 13px;
-  }
-  .dr-review-mark.is-correct { background: rgba(34,197,94,.18); color: #15803d; }
-  .dr-review-mark.is-wrong { background: rgba(185,28,28,.12); color: #b91c1c; }
-  .dr-review-mark.is-skipped { background: var(--surface2, #f5f6f9); color: var(--text-dim, #8a8b9c); }
-  .dr-review-mid { display: flex; flex-direction: column; gap: 2px; }
-  .dr-review-domain { font-weight: 600; color: var(--text, #1a1a26); font-size: 13px; }
-  .dr-review-topic { color: var(--text-mid, #6c6d80); font-size: 11.5px; }
-  .dr-review-confidence {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--text-dim, #8a8b9c);
-  }
-  .dr-review-confidence.is-locked-in { color: #047857; }
-  .dr-review-confidence.is-guessing { color: #b91c1c; }
-
-  /* ─── Layout breakpoints ─── */
-  @media (max-width: 600px) {
-    .dr-shell { padding: 24px 14px 60px; }
-    .dr-score-num { font-size: 46px; }
-    .dr-score-block { padding: 22px 16px 18px; }
-    .dr-ring-wrap { width: 170px; height: 170px; }
-    .dr-passplan, .dr-domain-block, .dr-cta-block, .dr-stub { padding: 18px 16px; }
-    .dr-cta { padding: 12px 14px; }
-    .dr-cta-icon { width: 32px; height: 32px; font-size: 16px; }
-  }
-
-  /* ─── Reduced motion ─── */
-  @media (prefers-reduced-motion: reduce) {
-    .dr-ring-fg, .dr-domain-bar-fill { transition: none !important; }
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     v4.99.57 · D.6 · Download dialog (3 actions: Print · Email · Copy link)
-     ═══════════════════════════════════════════════════════════════════════ */
-  .dr-download-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 8px;
-  }
-  .dr-download-action {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.10));
-    border-radius: 12px;
-    padding: 14px 16px;
-    cursor: pointer;
-    font: inherit;
-    width: 100%;
-    text-align: left;
-    transition: background .15s, border-color .15s, transform .15s;
-  }
-  .dr-download-action:hover {
-    background: var(--surface2, #f5f6f9);
-    border-color: var(--accent, #7c6ff7);
-  }
-  .dr-download-action-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: rgba(124,111,247,.12);
-    color: var(--accent, #7c6ff7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-  }
-  .dr-download-action-body { display: flex; flex-direction: column; gap: 2px; }
-  .dr-download-action-title { font-weight: 700; font-size: 14px; color: var(--text, #1a1a26); }
-  .dr-download-action-sub { font-size: 12px; color: var(--text-mid, #6c6d80); line-height: 1.4; }
-  .dr-download-action-chev { color: var(--text-dim, #8a8b9c); font-size: 16px; }
-
-  /* Email subform inside the dialog */
-  .dr-download-email-wrap { display: none; margin-top: 10px; }
-  .dr-download-email-wrap.is-open { display: block; }
-  .dr-download-email-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .dr-download-email-form input[type="email"] {
-    font-family: inherit;
-    font-size: 14px;
-    padding: 11px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border, rgba(0,0,0,.16));
-    background: var(--surface, #fff);
-    color: var(--text, #1a1a26);
-    width: 100%;
-  }
-  .dr-download-email-form input[type="email"]:focus {
-    outline: 2px solid var(--accent, #7c6ff7);
-    outline-offset: -1px;
-    border-color: var(--accent, #7c6ff7);
-  }
-  .dr-download-status {
-    font-size: 13px;
-    line-height: 1.5;
-    margin-top: 4px;
-  }
-  .dr-download-status.is-error { color: #b91c1c; background: rgba(185,28,28,.08); padding: 10px 12px; border-radius: 8px; }
-  .dr-download-status.is-success { color: #15803d; background: rgba(34,197,94,.10); padding: 12px 14px; border-radius: 10px; font-weight: 600; }
-
-  /* Shareable link reveal */
-  .dr-share-link-reveal {
-    display: none;
-    margin-top: 10px;
-    padding: 12px 14px;
-    background: rgba(34,197,94,.08);
-    border: 1px solid rgba(34,197,94,.25);
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .dr-share-link-reveal.is-open { display: block; }
-  .dr-share-link-url {
-    display: block;
-    word-break: break-all;
-    background: var(--surface, #fff);
-    padding: 8px 10px;
-    border-radius: 8px;
-    margin: 8px 0 6px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 12px;
-    color: var(--text, #1a1a26);
-    border: 1px solid var(--border, rgba(0,0,0,.10));
-  }
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     v4.99.57 · D.6 · Print stylesheet
-     ─────────────────────────────────────────────────────────────────────
-     Hides interactive chrome (CTAs, stubs, header/footer, answer review),
-     unrolls collapsible content (open the review automatically), tightens
-     spacing for paper. Designed for browser Print → Save as PDF flow —
-     no third-party PDF library.
-     ═══════════════════════════════════════════════════════════════════════ */
-  @media print {
-    @page { margin: 14mm 12mm; }
-    body { background: white; color: black; }
-    .topbar, .foot,
-    .dr-cta-block,
-    .dr-stub,
-    .dr-review-toggle {
-      display: none !important;
-    }
-    /* Force the answer review open and styled for print */
-    .dr-review-list { display: block !important; border: 1px solid #999; }
-    .dr-review-row { border-bottom: 1px solid #ddd !important; }
-    /* Trim shadows + colours for ink */
-    .dr-score-block, .dr-passplan, .dr-domain-block, .dr-review-list {
-      box-shadow: none !important;
-      page-break-inside: avoid;
-    }
-    .dr-score-block, .dr-passplan, .dr-domain-block, .dr-review-list {
-      border: 1px solid #999 !important;
-    }
-    .dr-shell { padding: 0 !important; max-width: 100% !important; }
-    /* Page break between major sections */
-    .dr-score-block { page-break-after: avoid; }
-    .dr-passplan { page-break-after: avoid; }
-    .dr-domain-block { page-break-inside: avoid; }
-    /* Always show the score number — animations would print a partial fill */
-    .dr-ring-fg { stroke-dashoffset: 0 !important; transition: none !important; }
-    /* Hide the source eyebrow chip + dr-empty (this is the rich-result view) */
-    .dr-eyebrow.is-source-fallback { background: white !important; color: black !important; border: 1px solid #999; }
-    /* Show a print footer URL */
-    .dr-print-footer { display: block !important; }
-  }
-  .dr-print-footer {
-    display: none;
-    margin-top: 24px;
-    padding-top: 14px;
-    border-top: 1px solid #999;
-    font-size: 11px;
-    color: #444;
-    text-align: center;
-  }
-</style>
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.60">
 </head>
 <body>
 
@@ -789,11 +78,11 @@
 //     domains + intake (examDate, intensity)
 //   · By-domain breakdown (weakest-first) with progress bars
 //   · 5-path CTA fan-out:
-//       1. Subscribe to Pro (Path A · primary) — D.6.5 waitlist · D.7 Stripe
-//       2. Continue with account (Path B · secondary) — D.5 magic-link
-//       3. Download/email score report (Path C) — D.6
-//       4. Retake the diagnostic (Path D · ghost) — wired today
-//       5. Back to landing (Path E · ghost) — wired today
+//       1. Subscribe to Pro (Path A · primary) · D.6.5 waitlist · D.7 Stripe
+//       2. Continue with account (Path B · secondary) · D.5 magic-link
+//       3. Download/email score report (Path C) · D.6
+//       4. Retake the diagnostic (Path D · ghost) · wired today
+//       5. Back to landing (Path E · ghost) · wired today
 //   · Collapsible answer review (Q-by-Q with confidence breakdown)
 //
 // Pre-Stripe: Subscribe / Continue / Download show inline "next ship"
@@ -816,7 +105,7 @@
 
   // v4.99.57 D.6: if URL has ?token=<32-hex>, hydrate from /api/diagnostic/share-fetch.
   // Used by the /r/{token} share-redirect.js handoff path. The token query param
-  // takes precedence over sessionStorage — the user followed a share link, so
+  // takes precedence over sessionStorage · the user followed a share link, so
   // they want to see that share, not whatever happens to be in their session.
   var urlToken = null;
   try {
@@ -914,7 +203,7 @@
       '</div>';
   }
 
-  // ── Main render function — extracted to D.6 so both sync (sessionStorage)
+  // ── Main render function · extracted to D.6 so both sync (sessionStorage)
   //    and async (URL token → share-fetch) paths can call it.
   function renderPage() {
     if (!results || !results.totalQuestions) {
@@ -941,10 +230,10 @@
   }
 
   function bandCopy(band) {
-    if (band === 'ready')      return { label: 'Exam-ready', headline: 'Strong baseline — book the exam.', tone: 'You\'re already above pass on this 20-question slice. Tighten the weak corners and lock in the date.' };
+    if (band === 'ready')      return { label: 'Exam-ready', headline: 'Strong baseline · book the exam.', tone: 'You\'re already above pass on this 20-question slice. Tighten the weak corners and lock in the date.' };
     if (band === 'on-pace')    return { label: 'On pace',    headline: 'You\'d pass today.',                  tone: 'You crossed pass on this baseline. Lift the bottom 1-2 domains and add an 90-question exam sim for full-load confidence.' };
-    if (band === 'near-pass')  return { label: 'Near pass',  headline: 'Closer than you think.',              tone: 'You\'re 1-2 weak domains away from pass. Drill those topics deliberately — most students close this gap in 2-4 weeks.' };
-    return                     { label: 'Foundation',         headline: 'Honest baseline.',                    tone: 'Plenty of headroom. Anchor on Network+ N10-009 objectives and rebuild from the weakest domain up — most students start here and reach pass in 6-8 weeks of focused study.' };
+    if (band === 'near-pass')  return { label: 'Near pass',  headline: 'Closer than you think.',              tone: 'You\'re 1-2 weak domains away from pass. Drill those topics deliberately · most students close this gap in 2-4 weeks.' };
+    return                     { label: 'Foundation',         headline: 'Honest baseline.',                    tone: 'Plenty of headroom. Anchor on Network+ N10-009 objectives and rebuild from the weakest domain up · most students start here and reach pass in 6-8 weeks of focused study.' };
   }
 
   // Concrete drill targets per domain (used in Pass Plan + weak-domain UI)
@@ -1014,7 +303,7 @@
     } else {
       steps.push(
         '<strong>Drill the bottom two domains</strong> ' +
-        '<span class="muted">to push them past 90%. Even strong baselines have asymmetry — your real exam will too.</span>'
+        '<span class="muted">to push them past 90%. Even strong baselines have asymmetry · your real exam will too.</span>'
       );
     }
 
@@ -1039,7 +328,7 @@
     if (band === 'foundation' || band === 'near-pass') {
       steps.push(
         '<strong>Use Topic Deep Dive + Subnet Trainer first.</strong> ' +
-        '<span class="muted">Don\'t rush into 90-Q exam mode while the foundation is still settling — it just rehearses the wrong answers.</span>'
+        '<span class="muted">Don\'t rush into 90-Q exam mode while the foundation is still settling · it just rehearses the wrong answers.</span>'
       );
     } else if (band === 'on-pace') {
       steps.push(
@@ -1084,7 +373,7 @@
         return '<div class="dr-review-row">' +
           '<span class="dr-review-mark is-skipped">–</span>' +
           '<div class="dr-review-mid"><span class="dr-review-domain">Q' + (idx + 1) + ' · skipped</span></div>' +
-          '<span class="dr-review-confidence">—</span>' +
+          '<span class="dr-review-confidence">·</span>' +
         '</div>';
       }
       var markCls = a.isCorrect ? 'is-correct' : 'is-wrong';
@@ -1093,7 +382,7 @@
                   : a.confidence === 'guessing' ? 'is-guessing' : '';
       var confLabel = a.confidence === 'locked-in' ? 'Locked in'
                     : a.confidence === 'pretty-sure' ? 'Pretty sure'
-                    : a.confidence === 'guessing' ? 'Guessing' : '—';
+                    : a.confidence === 'guessing' ? 'Guessing' : '·';
       return '<div class="dr-review-row">' +
         '<span class="dr-review-mark ' + markCls + '">' + markSym + '</span>' +
         '<div class="dr-review-mid">' +
@@ -1223,7 +512,7 @@
       '<div class="dr-stub-body">' +
         '<span class="dr-stub-pill">D.6.5 next ship</span>' +
         '<p><strong>Pro launches in the next 2-3 weeks</strong> with unlimited AI question generation, all 4 launch certs (Network+ / Security+ / CCNA / AWS SAA), a pass guarantee, and access to the full Topology Builder, Subnet Trainer, and 90-Q exam simulator.</p>' +
-        '<p>For now, your results are saved locally in this browser session. The waitlist capture form lands here in the next ship — enter your email and you\'ll be first in when subscriptions open.</p>' +
+        '<p>For now, your results are saved locally in this browser session. The waitlist capture form lands here in the next ship · enter your email and you\'ll be first in when subscriptions open.</p>' +
         '<p style="margin-top:14px"><a href="/pricing" class="dr-cta dr-cta-secondary" style="text-decoration:none;display:inline-grid;grid-template-columns:auto 1fr auto;padding:10px 16px"><span class="dr-cta-icon">💎</span><span class="dr-cta-body"><span class="dr-cta-title">See full pricing</span></span><span class="dr-cta-chev">→</span></a></p>' +
       '</div>' +
     '</div>' +
@@ -1234,7 +523,7 @@
         '<button type="button" class="dr-stub-close" data-close="continue" aria-label="Close">×</button>' +
       '</div>' +
       '<div class="dr-stub-body">' +
-        '<p>Drop your email — we\'ll send a magic link that creates your free CertAnvil account and saves these diagnostic results to your profile. No password to remember.</p>' +
+        '<p>Drop your email · we\'ll send a magic link that creates your free CertAnvil account and saves these diagnostic results to your profile. No password to remember.</p>' +
         '<form id="dr-continue-form" class="dr-continue-form" novalidate>' +
           '<input type="email" id="dr-continue-email" name="email" required ' +
                  'placeholder="you@example.com" autocomplete="email" ' +
@@ -1374,10 +663,10 @@
   // ── D.5 · Continue stub form: magic-link signup + result claim handoff ─
   // Two-step server-then-client flow:
   //   1. POST /api/diagnostic/signup-magic-link with { email, cert,
-  //      diagnosticResults } — server validates + rate-limits + writes a
+  //      diagnosticResults } · server validates + rate-limits + writes a
   //      diagnostic_pending row, returns { token, redirectTo }
   //   2. Client calls window.certanvilSupabase.auth.signInWithOtp({ email,
-  //      options: { emailRedirectTo: redirectTo } }) — Supabase auto-sends
+  //      options: { emailRedirectTo: redirectTo } }) · Supabase auto-sends
   //      the magic link from its configured email provider
   // After email click → cert app's #action=claim-diagnostic&token=... hook
   // calls claim_diagnostic_results(token) post-SIGNED_IN to merge results
@@ -1425,13 +714,13 @@
       return res.json().then(function(body) { return { status: res.status, body: body }; });
     }).then(function(r) {
       if (r.status === 503) {
-        // Pre-config deploy — graceful degrade
-        setContinueStatus('Magic-link signup is being configured — try again in a moment, or use the BYOK cert app below.', 'error');
+        // Pre-config deploy · graceful degrade
+        setContinueStatus('Magic-link signup is being configured · try again in a moment, or use the BYOK cert app below.', 'error');
         setContinueBusy(false);
         return;
       }
       if (r.status === 429) {
-        setContinueStatus('Too many sign-up attempts from this IP — please wait an hour before trying again.', 'error');
+        setContinueStatus('Too many sign-up attempts from this IP · please wait an hour before trying again.', 'error');
         setContinueBusy(false);
         return;
       }
@@ -1445,7 +734,7 @@
       // Step 2 · ask Supabase to send the magic link with our emailRedirectTo
       var sb = window.certanvilSupabase;
       if (!sb || !sb.auth || typeof sb.auth.signInWithOtp !== 'function') {
-        setContinueStatus('Supabase client missing — please refresh and try again.', 'error');
+        setContinueStatus('Supabase client missing · please refresh and try again.', 'error');
         setContinueBusy(false);
         return;
       }
@@ -1461,9 +750,9 @@
           setContinueBusy(false);
           return;
         }
-        // Success: show "check your inbox" — keep form disabled so they don't double-send
+        // Success: show "check your inbox" · keep form disabled so they don't double-send
         setContinueStatus(
-          '✓ Magic link sent to ' + emailRaw + '. Click the link in your inbox to finish signing up — your diagnostic results will land in your profile automatically.',
+          '✓ Magic link sent to ' + emailRaw + '. Click the link in your inbox to finish signing up · your diagnostic results will land in your profile automatically.',
           'success'
         );
       }).catch(function(err) {
@@ -1563,7 +852,7 @@
       return res.json().then(function(b) { return { status: res.status, body: b }; });
     }).then(function(r) {
       if (r.status === 503) {
-        setDownloadStatus('Email service is being configured — try again in a moment, or use Print or Copy link instead.', 'error');
+        setDownloadStatus('Email service is being configured · try again in a moment, or use Print or Copy link instead.', 'error');
       } else if (r.status === 429) {
         setDownloadStatus('Too many requests from this IP · please wait an hour before trying again.', 'error');
       } else if (r.body && r.body.ok) {
@@ -1601,7 +890,7 @@
       return res.json().then(function(b) { return { status: res.status, body: b }; });
     }).then(function(r) {
       if (r.status === 503) {
-        setDownloadStatus('Share service is being configured — try Print or Email instead.', 'error');
+        setDownloadStatus('Share service is being configured · try Print or Email instead.', 'error');
       } else if (r.status === 429) {
         setDownloadStatus('Too many share requests from this IP · please wait an hour.', 'error');
       } else if (r.body && r.body.ok && r.body.shareUrl) {

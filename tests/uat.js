@@ -334,7 +334,7 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.59', js.includes("const APP_VERSION = '4.99.59"));
+test('APP_VERSION is 4.99.60', js.includes("const APP_VERSION = '4.99.60"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +348,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.59', sw.includes('netplus-v4.99.59'));
+test('SW cache bumped to v4.99.60', sw.includes('netplus-v4.99.60'));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -19859,6 +19859,14 @@ console.log('\n\x1b[1m── v4.99.55 — D.4 LANDING DIAGNOSTIC RICH RESULTS �
 const _resultsD4Path = path.join(__dirname, '..', 'landing', 'diagnostic', 'network-plus', 'results.html');
 let _resultsD4Raw = '';
 try { _resultsD4Raw = fs.readFileSync(_resultsD4Path, 'utf8'); } catch (_) {}
+// v4.99.60 redesign: results.html's inline <style> was extracted into the
+// shared diagnostic-system.css (one source of truth for the whole flow).
+// Moved-rule guards now assert against the shared system; behaviour/JS
+// guards still assert against results.html (the .dr-* render contract is
+// unchanged). _dgSys = the shared design system stylesheet.
+const _dgSysPath = path.join(__dirname, '..', 'landing', 'diagnostic', 'diagnostic-system.css');
+let _dgSys = '';
+try { _dgSys = fs.readFileSync(_dgSysPath, 'utf8'); } catch (_) {}
 
 test('v4.99.55 D.4: landing/diagnostic/network-plus/results.html exists', _resultsD4Raw.length > 0);
 
@@ -19875,8 +19883,9 @@ test('v4.99.55 D.4: score ring has bg + fg circles with same radius (RING_RADIUS
   /class="dr-ring-bg"[^>]+r="['"]?\s*\+\s*RING_RADIUS/.test(_resultsD4Raw) &&
   /class="dr-ring-fg[^"]*"[^>]+r="['"]?\s*\+\s*RING_RADIUS/.test(_resultsD4Raw) &&
   /var\s+RING_RADIUS\s*=\s*80/.test(_resultsD4Raw));
-test('v4.99.55 D.4: score ring fg uses stroke-dashoffset animation',
-  _resultsD4Raw.includes('stroke-dashoffset') && /transition:\s*stroke-dashoffset/.test(_resultsD4Raw));
+test('v4.99.60 redesign: SVG ring retired, score is a typographic verdict (ring hidden in shared system)',
+  /\.dr-ring-(wrap|svg)[^{]*\{[^}]*display:\s*none/.test(_dgSys) &&
+  /\.dr-score-num[^{]*\{[^}]*clamp\([^)]*--dg-t-score/.test(_dgSys));
 test('v4.99.55 D.4: score ring has pass-threshold tick element',
   _resultsD4Raw.includes('dr-ring-tick'));
 test('v4.99.55 D.4: pass tick rotates to passFraction × 360°',
@@ -19885,9 +19894,9 @@ test('v4.99.55 D.4: pass tick rotates to passFraction × 360°',
 // Score band classification: foundation / near-pass / on-pace / ready
 test('v4.99.55 D.4: classifyBand function defined with 4 band thresholds',
   /function\s+classifyBand[\s\S]{0,200}>=\s*800[\s\S]{0,80}>=\s*720[\s\S]{0,80}>=\s*600/.test(_resultsD4Raw));
-test('v4.99.55 D.4: ring colour classes for each band (foundation/near-pass/on-pace/ready)',
-  _resultsD4Raw.includes('is-foundation') && _resultsD4Raw.includes('is-near-pass') &&
-  _resultsD4Raw.includes('is-on-pace') && _resultsD4Raw.includes('is-ready'));
+test('v4.99.60 redesign: score/band state-colour classes live in shared system',
+  /\.dr-score-num\.is-passing/.test(_dgSys) && /\.dr-score-num\.is-foundation/.test(_dgSys) &&
+  /\.dr-passplan-band\.is-near-pass/.test(_dgSys) && _dgSys.includes('is-on-pace') && _dgSys.includes('is-ready'));
 
 // Pass Plan
 test('v4.99.55 D.4: Pass Plan section with band pill + headline + 3 steps',
@@ -19954,8 +19963,8 @@ test('v4.99.55 D.4: empty state CTA points to /diagnostic/network-plus/intake',
   /Take the diagnostic to see results[\s\S]{0,800}\/diagnostic\/network-plus\/intake/.test(_resultsD4Raw));
 
 // Accessibility + reduced motion
-test('v4.99.55 D.4: prefers-reduced-motion neutralises ring + bar transitions',
-  /prefers-reduced-motion[\s\S]{0,200}dr-ring-fg[\s\S]{0,80}transition:\s*none/.test(_resultsD4Raw));
+test('v4.99.60 redesign: prefers-reduced-motion gate in shared system (neutralises transitions)',
+  /@media\s*\(prefers-reduced-motion[\s\S]{0,400}transition:\s*none/.test(_dgSys));
 test('v4.99.55 D.4: review toggle has aria-controls for screen readers',
   _resultsD4Raw.includes('aria-controls="dr-review-list"'));
 
@@ -20203,13 +20212,30 @@ test('v4.99.57 D.6: results.html token query param validated against hex regex (
   /\[a-f0-9\]\{16,64\}/.test(_resultsD4Raw));
 test('v4.99.57 D.6: results.html renderShareError for expired/not_found/network paths',
   /renderShareError[\s\S]{0,800}expired[\s\S]{0,200}not_found/.test(_resultsD4Raw));
-test('v4.99.57 D.6: results.html @media print hides interactive chrome + unrolls answer review',
-  /@media\s+print[\s\S]{0,1500}\.dr-cta-block[\s\S]{0,100}display:\s*none/.test(_resultsD4Raw) &&
-  /@media\s+print[\s\S]{0,1500}\.dr-review-list[\s\S]{0,100}display:\s*block/.test(_resultsD4Raw));
+test('v4.99.60 redesign: @media print hides chrome + unrolls review (in shared system)',
+  /@media\s+print[\s\S]{0,2200}\.dr-cta-block[\s\S]{0,200}display:\s*none/.test(_dgSys) &&
+  /@media\s+print[\s\S]{0,2200}\.dr-review-list[\s\S]{0,200}display:\s*block/.test(_dgSys));
 test('v4.99.57 D.6: results.html print footer shows /r/{token} or canonical URL',
   /dr-print-footer/.test(_resultsD4Raw));
-test('v4.99.57 D.6: results.html reduced-motion gate still applies',
-  /@media\s+\(prefers-reduced-motion/.test(_resultsD4Raw));
+test('v4.99.60 redesign: reduced-motion gate present (shared system)',
+  /@media\s+\(prefers-reduced-motion/.test(_dgSys));
+
+// ── v4.99.60 redesign tombstones — lock the impeccable wins, prevent regress ──
+test('v4.99.60 tombstone: results.html has ZERO em-dashes (was 32)',
+  !_resultsD4Raw.includes('—'));
+test('v4.99.60 tombstone: results.html no longer has an inline <style> block (uses shared system)',
+  !/<style>/.test(_resultsD4Raw));
+test('v4.99.60 tombstone: results.html links the shared diagnostic-system.css',
+  /<link[^>]+diagnostic-system\.css/.test(_resultsD4Raw));
+test('v4.99.60 tombstone: shared system is OKLCH + namespaced (--dg-*); zero pure #fff/#000 in SCREEN styles (print may use paper b/w)',
+  /oklch\(/.test(_dgSys) && /--dg-bg:/.test(_dgSys) &&
+  // strip the @media print block (paper black/white there is correct, not the ban)
+  !/#fff\b|#ffffff\b|#000\b|#000000\b/.test(_dgSys.replace(/@media\s+print\s*\{[\s\S]*?\n\}/g, '')));
+test('v4.99.60 tombstone: de-carded — score/passplan/cta/domain blocks have no card chrome',
+  /\.dr-score-block[\s\S]{0,200}background:\s*none\s*!important/.test(_dgSys) &&
+  /\.dr-passplan,[\s\S]{0,260}background:\s*none\s*!important/.test(_dgSys));
+test('v4.99.60 tombstone: token war won via html:root higher specificity',
+  /html:root\s*\{/.test(_dgSys));
 
 // ══════════════════════════════════════════════════════════════════════════
 // v4.99.59 — Environment Strategy · migration rollback-block convention

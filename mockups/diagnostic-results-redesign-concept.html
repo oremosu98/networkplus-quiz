@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Diagnostic Results · Redesign Concept (impeccable)</title>
+<!--
+  CONCEPT MOCKUP · not production. Standalone, open directly in a browser.
+  Establishes the new design SYSTEM for the diagnostic flow. Once approved,
+  picker / intake / quiz inherit these tokens + laws mechanically.
+
+  Impeccable framework applied:
+   · Register: BRAND (this screen persuades a cold visitor to convert)
+   · Scene:    9pm sofa, phone, 15 min in, deciding if this is THE app ·
+               result must feel serious + earned, not a gamified toy
+   · Theme:    DARK editorial (scene-forced; also breaks the generic
+               light-edtech slop reflex at first glance)
+   · Colour:   RESTRAINED on the commitment axis. OKLCH. Tinted neutrals
+               (chroma ≤0.012). ONE warm "forged" accent <10%. The SCORE
+               state is the only other chroma. No blanket purple.
+   · Layout:   De-carded. One editorial column. The score is a TYPOGRAPHIC
+               VERDICT, not a ring-in-a-box hero-metric. Hairlines, not
+               cards. Whitespace + type carry structure.
+   · Type:     Modular ~1.32 · 13/17/22/30/44/64/92. Real hierarchy.
+   · Bans:     no em-dash, no side-stripe, no glass, no nested cards,
+               no hero-metric widget, no gradient text, no identical
+               card grid.
+-->
+<style>
+  :root {
+    /* ── OKLCH token system ─────────────────────────────────────────── */
+    --bg:        oklch(0.17 0.008 275);   /* canvas, faint cool tint   */
+    --bg-2:      oklch(0.205 0.009 275);  /* the ONE raised surface    */
+    --rule:      oklch(0.32 0.011 275);   /* hairline                  */
+    --rule-soft: oklch(0.26 0.010 275);
+    --text:      oklch(0.96 0.006 275);   /* near-white, tinted (not pure white)*/
+    --text-2:    oklch(0.78 0.012 275);   /* secondary, AA on --bg     */
+    --text-dim:  oklch(0.635 0.013 275);  /* labels, AA on --bg        */
+    --accent:    oklch(0.80 0.125 78);    /* forged brass · <10% use   */
+    --accent-ink:oklch(0.20 0.03 78);     /* text on accent            */
+    --pass:      oklch(0.74 0.15 152);
+    --near:      oklch(0.80 0.125 78);    /* warm = "close, hopeful"   */
+    --found:     oklch(0.66 0.15 32);     /* clay, not alarm-red       */
+
+    --maxw: 600px;
+    --step-1: 13px; --step0: 17px; --step1: 22px;
+    --step2: 30px;  --step3: 44px; --step4: 64px; --score: 92px;
+
+    --ease: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out-expo-ish */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, sans-serif;
+    font-size: var(--step0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ── Top line: brand + quiet eyebrow ──────────────────────────────── */
+  .top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 28px 0 0;
+  }
+  .brand { font-size: var(--step-1); font-weight: 700; letter-spacing: 0.14em;
+           text-transform: uppercase; color: var(--text-2); }
+  .brand b { color: var(--accent); font-weight: 700; }
+  .eyebrow { font-size: var(--step-1); letter-spacing: 0.16em;
+             text-transform: uppercase; color: var(--text-dim); }
+
+  /* ── The verdict ──────────────────────────────────────────────────── */
+  .verdict { margin: 72px 0 0; }
+  .verdict-kicker {
+    font-size: var(--step-1); letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 18px;
+  }
+  .verdict h1 {
+    font-size: clamp(34px, 7vw, var(--step3));
+    font-weight: 800; letter-spacing: -0.02em; line-height: 1.05;
+    max-width: 14ch;
+  }
+  .verdict p {
+    margin-top: 16px; font-size: var(--step0); color: var(--text-2);
+    max-width: 56ch;
+  }
+
+  /* ── Score as a typographic moment (NOT a metric box) ─────────────── */
+  .score-moment { margin: 56px 0 0; }
+  .score-num {
+    font-size: clamp(64px, 17vw, var(--score));
+    font-weight: 800; letter-spacing: -0.04em; line-height: 0.9;
+    font-variant-numeric: tabular-nums;
+    color: var(--near);                 /* state-coloured: this run = near */
+  }
+  .score-line {
+    margin-top: 14px; font-size: var(--step1); font-weight: 500;
+    color: var(--text); letter-spacing: -0.01em;
+  }
+  .score-line .delta { color: var(--near); font-weight: 700; }
+  .score-sub { margin-top: 6px; font-size: var(--step0); color: var(--text-dim); }
+
+  /* the pass track · a single hairline with two ticks, no box */
+  .track { position: relative; height: 2px; background: var(--rule-soft);
+           margin: 34px 0 8px; border-radius: 2px; }
+  .track-fill { position: absolute; left: 0; top: 0; height: 2px;
+                background: var(--near); border-radius: 2px;
+                width: 0; transition: width 1.1s var(--ease); }
+  .track-tick { position: absolute; top: -5px; width: 2px; height: 12px;
+                background: var(--text-dim); }
+  .track-tick.you  { background: var(--near); height: 14px; top: -6px; }
+  .track-labels { display: flex; justify-content: space-between;
+                  font-size: var(--step-1); color: var(--text-dim);
+                  letter-spacing: 0.04em; }
+
+  /* ── Section primitive: a label + a full-width rule, no card ──────── */
+  .section { margin: 68px 0 0; }
+  .section-label {
+    font-size: var(--step-1); letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-dim); padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* ── Pass Plan as coaching prose, numbered ────────────────────────── */
+  .plan { list-style: none; margin-top: 26px;
+          display: flex; flex-direction: column; gap: 30px; }
+  .plan li { display: grid; grid-template-columns: 30px 1fr; gap: 18px; }
+  .plan .n { font-size: var(--step1); font-weight: 800; color: var(--accent);
+             font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .plan h3 { font-size: var(--step1); font-weight: 700; letter-spacing: -0.01em;
+             margin-bottom: 6px; }
+  .plan p { font-size: var(--step0); color: var(--text-2); max-width: 54ch; }
+  .plan em { color: var(--accent); font-style: normal; font-weight: 600; }
+
+  /* ── Domains: a hairline data list, NOT cards ─────────────────────── */
+  .domains { margin-top: 18px; }
+  .domain-row {
+    display: grid;
+    grid-template-columns: 1fr 96px 52px;
+    align-items: center; gap: 18px;
+    padding: 18px 0; border-bottom: 1px solid var(--rule-soft);
+  }
+  .domain-row:last-child { border-bottom: 0; }
+  .domain-name { font-size: var(--step0); font-weight: 600; }
+  .domain-name span { display: block; font-size: var(--step-1);
+                      color: var(--text-dim); font-weight: 500;
+                      margin-top: 3px; letter-spacing: 0.01em; }
+  .domain-bar { height: 3px; background: var(--rule-soft); border-radius: 3px;
+                position: relative; overflow: hidden; }
+  .domain-bar i { position: absolute; left: 0; top: 0; height: 3px;
+                  border-radius: 3px; width: 0;
+                  transition: width 0.9s var(--ease); }
+  .domain-pct { text-align: right; font-size: var(--step1); font-weight: 700;
+                font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .w-weak  { color: var(--found); } .w-weak  i { background: var(--found); }
+  .w-mid   { color: var(--near);  } .w-mid   i { background: var(--near);  }
+  .w-ok    { color: var(--pass);  } .w-ok    i { background: var(--pass);  }
+
+  /* ── Action ladder: ONE dominant action, rest recede ──────────────── */
+  .actions { margin-top: 28px; }
+  .cta {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; gap: 16px;
+    background: var(--accent); color: var(--accent-ink);
+    font: 700 var(--step0)/1 Inter, sans-serif;
+    border: 0; border-radius: 12px; padding: 20px 24px;
+    cursor: pointer; letter-spacing: -0.01em;
+    transition: transform 0.15s var(--ease), filter 0.15s var(--ease);
+  }
+  .cta:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .cta .arrow { font-size: var(--step1); }
+  .cta-note { margin-top: 10px; font-size: var(--step-1); color: var(--text-dim);
+              text-align: center; }
+
+  .ladder { margin-top: 26px; display: flex; flex-direction: column; }
+  .rung {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 17px 2px; border-top: 1px solid var(--rule-soft);
+    color: var(--text); text-decoration: none; font-size: var(--step0);
+    transition: color 0.15s, padding-left 0.15s var(--ease);
+  }
+  .rung:hover { color: var(--accent); padding-left: 6px; }
+  .rung small { color: var(--text-dim); font-size: var(--step-1);
+                font-weight: 500; }
+  .rung .chev { color: var(--text-dim); }
+  .rung:hover .chev { color: var(--accent); }
+
+  /* ── Quiet review toggle, not a card ──────────────────────────────── */
+  .review { margin: 60px 0 0; }
+  .review button {
+    background: none; border: 0; color: var(--text-dim);
+    font: 600 var(--step-1)/1 Inter, sans-serif; letter-spacing: 0.06em;
+    text-transform: uppercase; cursor: pointer; padding: 14px 0;
+  }
+  .review button:hover { color: var(--text-2); }
+
+  footer {
+    margin-top: 96px; padding: 28px 0 56px;
+    border-top: 1px solid var(--rule-soft);
+    display: flex; justify-content: space-between;
+    font-size: var(--step-1); color: var(--text-dim); flex-wrap: wrap; gap: 12px;
+  }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  footer a:hover { color: var(--text-2); }
+  footer nav { display: flex; gap: 22px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+  @media (max-width: 560px) {
+    .domain-row { grid-template-columns: 1fr 60px 46px; gap: 12px; }
+    .verdict { margin-top: 52px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <span class="brand">Cert<b>Anvil</b></span>
+    <span class="eyebrow">Baseline · Network+ N10-009</span>
+  </div>
+
+  <!-- The verdict (band-driven headline) -->
+  <section class="verdict">
+    <div class="verdict-kicker">Diagnostic complete · 18 min · 20 questions</div>
+    <h1>Closer than you think.</h1>
+    <p>You are one or two weak domains away from a pass. Most people who reach this band close the gap in two to four weeks of focused work.</p>
+  </section>
+
+  <!-- Score as typographic verdict, not a metric widget -->
+  <section class="score-moment">
+    <div class="score-num" id="score">620</div>
+    <div class="score-line">
+      <span class="delta" id="delta">100 points below pass.</span>
+      Booked exam in 18 days.
+    </div>
+    <div class="score-sub">Scaled 100 to 900. CompTIA pass line is 720.</div>
+
+    <div class="track">
+      <div class="track-fill" id="trackfill"></div>
+      <div class="track-tick you" id="tickyou"></div>
+      <div class="track-tick pass" id="tickpass"></div>
+    </div>
+    <div class="track-labels">
+      <span>100</span><span>620 · you</span><span>720 · pass</span><span>900</span>
+    </div>
+  </section>
+
+  <!-- Pass Plan as coaching prose -->
+  <section class="section">
+    <div class="section-label">Your Pass Plan</div>
+    <ol class="plan">
+      <li>
+        <span class="n">1</span>
+        <div>
+          <h3>Start with Network Security.</h3>
+          <p>Your weakest domain at 33 percent. Drill firewalls, VPNs, 802.1X and AAA. Aim for 85 percent across 30 questions before moving on.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">2</span>
+        <div>
+          <h3>Lock a study cadence.</h3>
+          <p>18 days to your exam, so three or four 20-question sessions a week. Schedule one full 90-question exam sim about 10 days out as a checkpoint.</p>
+        </div>
+      </li>
+      <li>
+        <span class="n">3</span>
+        <div>
+          <h3>Use Topic Deep Dive first, exam sims later.</h3>
+          <p>You are in the band where rushing into 90-question mode just rehearses the wrong answers. Build the foundation, <em>then</em> pressure-test it.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Domains: hairline data list -->
+  <section class="section">
+    <div class="section-label">Where you stand · weakest first</div>
+    <div class="domains">
+      <div class="domain-row w-weak">
+        <div class="domain-name">Network Security <span>1 of 3 correct</span></div>
+        <div class="domain-bar"><i style="width:33%"></i></div>
+        <div class="domain-pct">33</div>
+      </div>
+      <div class="domain-row w-mid">
+        <div class="domain-name">Network Troubleshooting <span>2 of 4 correct</span></div>
+        <div class="domain-bar"><i style="width:50%"></i></div>
+        <div class="domain-pct">50</div>
+      </div>
+      <div class="domain-row w-mid">
+        <div class="domain-name">Network Implementation <span>3 of 4 correct</span></div>
+        <div class="domain-bar"><i style="width:75%"></i></div>
+        <div class="domain-pct">75</div>
+      </div>
+      <div class="domain-row w-mid">
+        <div class="domain-name">Network Operations <span>3 of 4 correct</span></div>
+        <div class="domain-bar"><i style="width:75%"></i></div>
+        <div class="domain-pct">75</div>
+      </div>
+      <div class="domain-row w-ok">
+        <div class="domain-name">Networking Concepts <span>4 of 5 correct</span></div>
+        <div class="domain-bar"><i style="width:80%"></i></div>
+        <div class="domain-pct">80</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Action ladder: one dominant action, the rest recede -->
+  <section class="section">
+    <div class="section-label">What next</div>
+    <div class="actions">
+      <button class="cta">
+        <span>Save these results to a free account</span>
+        <span class="arrow">&rarr;</span>
+      </button>
+      <div class="cta-note">Magic link. No password. Your Pass Plan waits in the app.</div>
+
+      <div class="ladder">
+        <a class="rung" href="#">
+          <span>Go Pro <small>· unlimited AI, all certs, pass guarantee</small></span>
+          <span class="chev">&rarr;</span>
+        </a>
+        <a class="rung" href="#">
+          <span>Email or share this report <small>· PDF + a public link</small></span>
+          <span class="chev">&rarr;</span>
+        </a>
+        <a class="rung" href="#">
+          <span>Retake the diagnostic</span>
+          <span class="chev">&#8635;</span>
+        </a>
+        <a class="rung" href="#">
+          <span>Back to CertAnvil</span>
+          <span class="chev">&larr;</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="review">
+    <button>Review all 20 questions</button>
+  </div>
+
+  <footer>
+    <span>certanvil.com · forged for the exam</span>
+    <nav><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></nav>
+  </footer>
+
+</div>
+
+<script>
+  // Minimal, purposeful motion only. Score counts up; track + bars fill.
+  (function () {
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var scoreEl = document.getElementById('score');
+    var target = 620, min = 100, max = 900, pass = 720;
+    function pct(v){ return ((v - min) / (max - min)) * 100; }
+
+    document.getElementById('tickyou').style.left  = pct(target) + '%';
+    document.getElementById('tickpass').style.left = pct(pass) + '%';
+
+    if (reduce) {
+      document.getElementById('trackfill').style.width = pct(target) + '%';
+      document.querySelectorAll('.domain-bar i').forEach(function(i){
+        i.style.transition = 'none'; i.style.width = i.style.width;
+      });
+      return;
+    }
+
+    requestAnimationFrame(function(){
+      document.getElementById('trackfill').style.width = pct(target) + '%';
+      // bars already have inline width; force a reflowed transition
+      document.querySelectorAll('.domain-bar i').forEach(function(i){
+        var w = i.style.width; i.style.width = '0';
+        requestAnimationFrame(function(){ i.style.width = w; });
+      });
+    });
+
+    var t0 = null, dur = 1100;
+    function step(ts){
+      if (!t0) t0 = ts;
+      var p = Math.min((ts - t0) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 4);
+      scoreEl.textContent = Math.round(min + (target - min) * eased);
+      if (p < 1) requestAnimationFrame(step);
+      else scoreEl.textContent = target;
+    }
+    requestAnimationFrame(step);
+  })();
+</script>
+
+</body>
+</html>
