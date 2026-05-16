@@ -335,6 +335,22 @@ html[data-theme] body .faq-a{color:var(--dg-text-2);font-size:var(--dg-t-1);line
 html[data-theme] body .faq-a strong{color:var(--dg-text);}
 html[data-theme] body .faq-a-foot{color:var(--dg-text-dim);font-size:11px;margin-top:10px;}
 
+/* de-brand inline SVG art · CSS overrides SVG presentation attrs (incl
+   the hardcoded #7c6ff7 brand purple) at any specificity → coherent
+   monochrome dg line-art, theme-aware, zero markup change */
+html[data-theme] body .pp-tile-art svg{color:var(--dg-text-2);}
+html[data-theme] body .pp-tile-art svg rect{stroke:var(--dg-rule);fill:var(--dg-bg-2);}
+html[data-theme] body .pp-tile-art svg circle{stroke:var(--dg-rule);fill:var(--dg-text-dim);}
+html[data-theme] body .pp-tile-art svg line{stroke:var(--dg-rule-soft);}
+html[data-theme] body .pp-tile-art svg polygon,html[data-theme] body .pp-tile-art svg path{stroke:var(--dg-rule);fill:var(--dg-bg-2);}
+html[data-theme] body .pp-tile-art svg .tb-device-fill{fill:var(--dg-bg-2);stroke:var(--dg-accent);}
+html[data-theme] body .pp-tile-art svg text,html[data-theme] body .pp-tile-art svg .tb-label,html[data-theme] body .pp-tile-art svg .tb-subnet{fill:var(--dg-text-dim);stroke:none;}
+html[data-theme] body .pp-tile-art svg [opacity]{opacity:1;}
+/* topbar logo mark · de-purple the inline anvil (favicon/OG/PWA icon
+   FILES are the separate logo-asset-propagation item) */
+html[data-theme] body .logo-mark svg rect,html[data-theme] body .logo-mark svg path{fill:var(--dg-text);}
+html[data-theme] body .logo-mark svg circle{fill:var(--dg-accent);}
+
 /* ── responsive ── */
 @media (max-width:880px){
   html[data-theme] body .tier-grid{grid-template-columns:1fr;}
