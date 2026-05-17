@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dg-system.css?v=4.99.91">
 <script>
 // Inline theme bootstrap — runs synchronously before <body> renders so the
 // page paints in the right theme on first frame (no light→dark flash).
@@ -124,7 +125,7 @@
 
     <header class="account-pagehead">
       <div class="account-eyebrow">
-        <span class="cca-eyebrow-icon" aria-hidden="true">📊</span>
+        <span class="cca-eyebrow-icon" aria-hidden="true"></span>
         Analytics
       </div>
       <h1 class="account-title">Cross-cert analytics</h1>
@@ -139,7 +140,7 @@
 
     <!-- Anonymous gate — shown if user isn't signed in -->
     <div class="account-anon-gate" id="cca-anon-gate" hidden>
-      <div class="anon-gate-icon" aria-hidden="true">🔒</div>
+      <div class="anon-gate-icon" aria-hidden="true"></div>
       <h2>Sign in to view your analytics</h2>
       <p>Cross-cert analytics is private to your account. Sign in with a magic link to see your dashboard.</p>
       <a href="/?action=signin&return=https%3A%2F%2Fcertanvil.com%2Fanalytics" class="btn-primary-cta">Sign in →</a>
@@ -151,7 +152,7 @@
 
       <!-- Empty state — no certs unlocked / studied yet -->
       <div class="cca-empty-state" id="cca-empty-state" hidden>
-        <div class="cca-empty-icon" aria-hidden="true">📊</div>
+        <div class="cca-empty-icon" aria-hidden="true"></div>
         <h2>Pick your first cert to unlock this dashboard</h2>
         <p>Cross-cert analytics shows how skills carry between certs and where to focus next — once you've started studying. Pick a cert and we'll start tracking from your first quiz.</p>
         <a href="/#certs" class="btn-primary-cta">Browse certs →</a>
@@ -161,7 +162,7 @@
       <section class="cca-panel" id="cca-panel-pr" hidden>
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
-            <span class="cca-panel-icon" aria-hidden="true">🎯</span>
+            <span class="cca-panel-icon" aria-hidden="true"></span>
             <h2 class="cca-panel-title">Pass-readiness, side-by-side</h2>
           </div>
           <span class="cca-panel-help">Grouped by status</span>
@@ -179,7 +180,7 @@
       <section class="cca-panel" id="cca-panel-so" hidden>
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
-            <span class="cca-panel-icon" aria-hidden="true">🔗</span>
+            <span class="cca-panel-icon" aria-hidden="true"></span>
             <h2 class="cca-panel-title">Skill overlap</h2>
           </div>
           <span class="cca-panel-help">Click any pair to see specific topics</span>
@@ -193,7 +194,7 @@
       <section class="cca-panel" id="cca-panel-wn" hidden>
         <header class="cca-panel-head">
           <div class="cca-panel-title-row">
-            <span class="cca-panel-icon" aria-hidden="true">📈</span>
+            <span class="cca-panel-icon" aria-hidden="true"></span>
             <h2 class="cca-panel-title">What to study next</h2>
           </div>
           <span class="cca-panel-help">Recomputed after every quiz</span>

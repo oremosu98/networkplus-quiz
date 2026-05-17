@@ -209,7 +209,7 @@
   }
 
   function renderGroupHeader(label, count, kind) {
-    var icon = kind === 'passed' ? '✓' : kind === 'active' ? '📚' : '⏳';
+    var icon = kind === 'passed' ? '✓' : kind === 'active' ? '' : '';
     return ''
       + '<div class="cca-pr-group-h cca-pr-group-h-' + kind + '">'
       +   '<span class="cca-pr-group-h-icon">' + icon + '</span>'
@@ -319,7 +319,7 @@
       +   '<div class="cca-pr-info">'
       +     '<div class="cca-pr-name">'
       +       escapeHtml(cert.name)
-      +       ' <span class="cca-pr-status-pill cca-pr-status-active">📚 Active</span>'
+      +       ' <span class="cca-pr-status-pill cca-pr-status-active">Active</span>'
       +     '</div>'
       +     '<div class="cca-pr-coach">' + escapeHtml(cert.coachActive || 'In progress') + '</div>'
       +   '</div>'
@@ -389,7 +389,7 @@
       +   '<div class="cca-pr-info">'
       +     '<div class="cca-pr-name">'
       +       escapeHtml(cert.name)
-      +       ' <span class="cca-pr-status-pill cca-pr-status-soon">🔒 Pro only</span>'
+      +       ' <span class="cca-pr-status-pill cca-pr-status-soon">Pro only</span>'
       +     '</div>'
       +     '<div class="cca-pr-coach">Upgrade to Pro to unlock — 65% transfers from Network+</div>'
       +   '</div>'
@@ -844,7 +844,7 @@
 
     return ''
       + '<div class="cca-wn-hero">'
-      +   '<div class="cca-wn-hero-eyebrow">🎯 Top recommendation</div>'
+      +   '<div class="cca-wn-hero-eyebrow">Top recommendation</div>'
       +   '<div class="cca-wn-hero-title">' + title + '</div>'
       +   '<div class="cca-wn-hero-reasons">' + reasonsHtml + '</div>'
       +   '<a class="cca-wn-hero-cta" href="' + escapeHtml(action.href) + '"' + (action.title ? ' title="' + escapeHtml(action.title) + '"' : '') + '>' + escapeHtml(action.label) + '</a>'
@@ -922,14 +922,14 @@
       if (passedCerts.length) {
         elWnBody.innerHTML = ''
           + '<div class="cca-wn-empty">'
-          +   '<div class="cca-wn-empty-icon">🎉</div>'
+          +   '<div class="cca-wn-empty-icon"></div>'
           +   '<h3>No active prep right now</h3>'
           +   '<p>You\'ve passed ' + passedCerts.length + ' cert' + (passedCerts.length === 1 ? '' : 's') + ' and aren\'t studying any new ones. Pick a coming-soon cert above to get the next one in the pipeline.</p>'
           + '</div>';
       } else {
         elWnBody.innerHTML = ''
           + '<div class="cca-wn-empty">'
-          +   '<div class="cca-wn-empty-icon">📊</div>'
+          +   '<div class="cca-wn-empty-icon"></div>'
           +   '<h3>Nothing to recommend yet</h3>'
           +   '<p>Pick a cert above to start studying — recommendations show up after your first quiz.</p>'
           + '</div>';

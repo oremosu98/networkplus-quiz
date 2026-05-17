@@ -558,6 +558,136 @@ html[data-theme] body .my-certs-foot{border-top:1px solid var(--dg-rule-soft);}
 html[data-theme] body .my-certs-foot-link{color:var(--dg-text-dim);font-weight:600;text-decoration:none;}
 html[data-theme] body .my-certs-foot-link:hover{color:var(--dg-accent);}
 
+/* ══════════════════════════════════════════════════════════════════════════
+   BATCH 4 — CROSS-CERT ANALYTICS (/analytics)
+   Mockup: mockups/cross-cert-analytics-concept.html
+   Pattern: editorial de-card + hairline layout + accent (bronze) + semantic
+   green/red. 0 emoji (CSS-hidden icon spans), 0 purple.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* page-level */
+html[data-theme] body .cca-eyebrow-icon{display:none;}
+html[data-theme] body .cca-panel-icon{display:none;}
+html[data-theme] body .cca-empty-icon{display:none;}
+html[data-theme] body .anon-gate-icon{display:none;}
+
+/* panels — de-card */
+html[data-theme] body .cca-panel{background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin-bottom:48px;}
+html[data-theme] body .cca-panel-head{border-bottom:1px solid var(--dg-rule-soft);padding-bottom:14px;margin-bottom:20px;}
+html[data-theme] body .cca-panel-title{font-size:18px;font-weight:800;color:var(--dg-text);letter-spacing:-0.01em;}
+html[data-theme] body .cca-panel-help{font-size:11px;font-weight:500;color:var(--dg-text-dim);text-transform:uppercase;letter-spacing:0.04em;}
+html[data-theme] body .cca-panel-coming{background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);border-radius:8px;}
+html[data-theme] body .cca-coming-pill{background:color-mix(in oklab,var(--dg-accent) 12%,transparent);color:var(--dg-accent);border:0;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;}
+
+/* pass-readiness group headers */
+html[data-theme] body .cca-pr-group-h{border-bottom:1px solid var(--dg-rule-soft);padding-bottom:6px;margin-top:28px;margin-bottom:12px;}
+html[data-theme] body .cca-pr-group-h:first-child{margin-top:0;}
+html[data-theme] body .cca-pr-group-h-icon{display:none;}
+html[data-theme] body .cca-pr-group-h-passed{color:var(--dg-green);}
+html[data-theme] body .cca-pr-group-h-active{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-group-h-soon{color:var(--dg-text-dim);}
+html[data-theme] body .cca-pr-group-h-rule{display:none;}
+
+/* pass-readiness rows — de-card to hairline */
+html[data-theme] body .cca-pr-row{background:none;border:0;border-radius:0;box-shadow:none;border-bottom:1px solid var(--dg-rule-soft);padding:16px 0;transition:background 0.15s ease;}
+html[data-theme] body .cca-pr-row:last-child{border-bottom:0;}
+html[data-theme] body .cca-pr-row:hover{background:color-mix(in oklab,var(--dg-text) 3%,transparent);border-radius:6px;padding-left:8px;padding-right:8px;}
+html[data-theme] body .cca-pr-row-active{border-left:0;}
+html[data-theme] body .cca-pr-row-soon{opacity:0.7;}
+html[data-theme] body .cca-pr-row-passed::after{display:none;}
+
+/* cert glyph boxes — de-purple to accent-tinted monogram */
+html[data-theme] body .cca-pr-glyph{background:color-mix(in oklab,var(--dg-accent) 14%,transparent);border:1px solid color-mix(in oklab,var(--dg-accent) 30%,transparent);color:var(--dg-accent);border-radius:6px;}
+html[data-theme] body .cca-pr-glyph-netplus{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-glyph-secplus{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-glyph-az900{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-glyph-ccna{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-glyph-aws{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-glyph-az104{color:var(--dg-accent);}
+
+/* status pills — editorial quiet tags */
+html[data-theme] body .cca-pr-status-pill{background:none;border:1px solid var(--dg-rule-soft);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;}
+html[data-theme] body .cca-pr-status-passed{color:var(--dg-green);border-color:color-mix(in oklab,var(--dg-green) 40%,transparent);}
+html[data-theme] body .cca-pr-status-active{color:var(--dg-accent);border-color:color-mix(in oklab,var(--dg-accent) 40%,transparent);}
+html[data-theme] body .cca-pr-status-soon{color:var(--dg-text-dim);border-color:var(--dg-rule-soft);}
+
+/* readiness bars — thin 4px editorial */
+html[data-theme] body .cca-pr-readiness-bar{height:4px;border-radius:2px;background:var(--dg-rule-soft);}
+html[data-theme] body .cca-pr-readiness-fill{height:4px;border-radius:2px;background:var(--dg-accent);}
+html[data-theme] body .cca-pr-fill-green{background:var(--dg-green);}
+html[data-theme] body .cca-pr-readiness-cutoff{border-color:var(--dg-text-dim);}
+html[data-theme] body .cca-pr-readiness-score{font-family:'SF Mono',ui-monospace,monospace;font-size:13px;font-weight:700;}
+html[data-theme] body .cca-pr-score-green{color:var(--dg-green);}
+html[data-theme] body .cca-pr-readiness-meta{font-size:10px;color:var(--dg-text-dim);}
+
+/* action buttons — editorial text CTAs */
+html[data-theme] body .cca-pr-action-btn{background:none;border:1px solid var(--dg-rule);color:var(--dg-text);border-radius:6px;font-size:12px;font-weight:600;padding:6px 14px;transition:color 0.15s,border-color 0.15s;}
+html[data-theme] body .cca-pr-action-btn:hover{color:var(--dg-accent);border-color:var(--dg-accent);}
+html[data-theme] body .cca-pr-action-ghost{border:0;color:var(--dg-text-dim);padding:6px 0;}
+html[data-theme] body .cca-pr-action-ghost:hover{color:var(--dg-accent);}
+html[data-theme] body .cca-pr-action-disabled{opacity:0.5;cursor:not-allowed;}
+html[data-theme] body .cca-pr-action-disabled:hover{color:var(--dg-text-dim);border-color:var(--dg-rule);}
+
+/* cutoff legend */
+html[data-theme] body .cca-pr-cutoff-legend{font-size:10px;color:var(--dg-text-dim);border-top:1px solid var(--dg-rule-soft);padding-top:10px;margin-top:16px;}
+html[data-theme] body .cca-pr-cutoff-tick{background:var(--dg-text-dim);}
+
+/* ── Skill overlap (Panel 2) ── */
+html[data-theme] body .cca-so-row{background:none;border:0;border-radius:0;box-shadow:none;border-bottom:1px solid var(--dg-rule-soft);}
+html[data-theme] body .cca-so-row:last-child{border-bottom:0;}
+html[data-theme] body .cca-so-row.is-open{background:var(--dg-bg-2);border-radius:8px;border:1px solid var(--dg-rule-soft);margin-bottom:8px;}
+html[data-theme] body .cca-so-summary{padding:14px 16px;}
+html[data-theme] body .cca-so-summary:hover{background:color-mix(in oklab,var(--dg-text) 3%,transparent);}
+html[data-theme] body .cca-so-pair-glyph{background:color-mix(in oklab,var(--dg-accent) 14%,transparent);border:1px solid color-mix(in oklab,var(--dg-accent) 30%,transparent);color:var(--dg-accent);}
+html[data-theme] body .cca-so-bar-track{background:var(--dg-rule-soft);height:4px;border-radius:2px;}
+html[data-theme] body .cca-so-bar-fill{background:var(--dg-accent);height:4px;border-radius:2px;}
+html[data-theme] body .cca-so-bar-pct{color:var(--dg-accent);font-size:13px;font-weight:800;}
+html[data-theme] body .cca-so-chevron{color:var(--dg-text-dim);}
+html[data-theme] body .cca-so-row.is-open .cca-so-chevron{color:var(--dg-accent);}
+
+/* overlap detail — de-card columns */
+html[data-theme] body .cca-so-detail{background:none;border-top:1px solid var(--dg-rule-soft);padding:16px;}
+html[data-theme] body .cca-so-detail-col{background:none;border:0;border-radius:0;padding:0;}
+html[data-theme] body .cca-so-detail-col-h{font-size:11px;font-weight:700;color:var(--dg-text-dim);text-transform:uppercase;letter-spacing:0.04em;}
+html[data-theme] body .cca-so-topic{font-size:12px;color:var(--dg-text-mid);}
+html[data-theme] body .cca-so-topic-pill{border-radius:3px;font-size:9px;}
+html[data-theme] body .cca-so-topic-pill.mastered{background:color-mix(in oklab,var(--dg-green) 14%,transparent);color:var(--dg-green);}
+html[data-theme] body .cca-so-topic-pill.shared{background:color-mix(in oklab,var(--dg-accent) 14%,transparent);color:var(--dg-accent);}
+html[data-theme] body .cca-so-topic-pill.refresher{background:color-mix(in oklab,var(--dg-accent) 10%,transparent);color:var(--dg-accent);}
+html[data-theme] body .cca-so-topic-pill.new{background:var(--dg-bg-2);color:var(--dg-text-dim);}
+html[data-theme] body .cca-so-callout{background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--dg-text-mid);line-height:1.5;}
+html[data-theme] body .cca-so-saving-pill{background:color-mix(in oklab,var(--dg-accent) 12%,transparent);color:var(--dg-accent);border:0;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;}
+
+/* ── What to study next (Panel 3) ── */
+html[data-theme] body .cca-wn-hero{background:none;border:1px solid var(--dg-rule);border-radius:10px;padding:24px;box-shadow:none;}
+html[data-theme] body .cca-wn-hero::before{display:none;}
+html[data-theme] body .cca-wn-hero-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--dg-accent);background:none;-webkit-text-fill-color:unset;}
+html[data-theme] body .cca-wn-hero-title{font-size:18px;font-weight:800;color:var(--dg-text);letter-spacing:-0.01em;}
+html[data-theme] body .cca-wn-reason{font-size:12px;color:var(--dg-text-mid);line-height:1.5;}
+html[data-theme] body .cca-wn-reason strong{color:var(--dg-text);font-weight:700;}
+html[data-theme] body .cca-wn-reason-icon{color:var(--dg-accent);font-weight:700;}
+html[data-theme] body .cca-wn-hero-cta{background:var(--dg-accent);color:var(--dg-bg);border:0;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none;display:inline-block;transition:opacity 0.15s;}
+html[data-theme] body .cca-wn-hero-cta:hover{opacity:0.88;}
+
+/* secondary list — hairline rows */
+html[data-theme] body .cca-wn-secondary-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--dg-text-dim);margin-top:28px;margin-bottom:12px;}
+html[data-theme] body .cca-wn-secondary-row{background:none;border:0;border-radius:0;box-shadow:none;border-bottom:1px solid var(--dg-rule-soft);padding:14px 0;text-decoration:none;transition:background 0.15s;}
+html[data-theme] body .cca-wn-secondary-row:last-child{border-bottom:0;}
+html[data-theme] body .cca-wn-secondary-row:hover{background:color-mix(in oklab,var(--dg-text) 3%,transparent);border-radius:6px;padding-left:8px;padding-right:8px;}
+html[data-theme] body .cca-wn-rank{background:color-mix(in oklab,var(--dg-accent) 12%,transparent);color:var(--dg-accent);border:0;border-radius:5px;font-weight:800;font-size:11px;}
+html[data-theme] body .cca-wn-text{font-size:13px;color:var(--dg-text);}
+html[data-theme] body .cca-wn-text strong{font-weight:700;}
+html[data-theme] body .cca-wn-text-meta{font-size:11px;color:var(--dg-text-dim);}
+html[data-theme] body .cca-wn-row-action{color:var(--dg-accent);font-size:12px;font-weight:600;}
+
+/* empty state */
+html[data-theme] body .cca-empty-state{background:none;border:1px dashed var(--dg-rule-soft);border-radius:10px;padding:48px 24px;text-align:center;}
+html[data-theme] body .cca-empty-state h2{font-size:18px;font-weight:800;color:var(--dg-text);}
+html[data-theme] body .cca-empty-state p{font-size:13px;color:var(--dg-text-dim);line-height:1.6;}
+html[data-theme] body .cca-wn-empty{background:none;border:1px dashed var(--dg-rule-soft);border-radius:8px;padding:32px 20px;text-align:center;}
+html[data-theme] body .cca-wn-empty-icon{display:none;}
+html[data-theme] body .cca-wn-empty h3{font-size:16px;font-weight:700;color:var(--dg-text);}
+
 /* toast stack */
 html[data-theme] body .toast-stack .toast{background:var(--dg-bg-2);border:1px solid var(--dg-rule);color:var(--dg-text);border-radius:10px;box-shadow:0 12px 40px -12px color-mix(in oklab,oklch(0 0 0) 50%,transparent);}
 
@@ -580,6 +710,12 @@ html[data-theme] body .toast-stack .toast{background:var(--dg-bg-2);border:1px s
   html[data-theme] body .account-pill,
   html[data-theme] body .account-chevron,
   html[data-theme] body .account-dropdown,
-  html[data-theme] body .dropdown-link{transition:none!important;}
+  html[data-theme] body .dropdown-link,
+  html[data-theme] body .cca-pr-row,
+  html[data-theme] body .cca-pr-action-btn,
+  html[data-theme] body .cca-so-summary,
+  html[data-theme] body .cca-so-chevron,
+  html[data-theme] body .cca-wn-secondary-row,
+  html[data-theme] body .cca-wn-hero-cta{transition:none!important;}
   html[data-theme] body .account-dropdown[hidden]{transform:none;}
 }
