@@ -1154,3 +1154,243 @@ html[data-theme] body #page-acl .acl-picker-diff,html[data-theme] body #page-acl
 html[data-theme] body #page-acl .acl-picker-diff-beginner{color:var(--green)!important;}
 html[data-theme] body #page-acl .acl-picker-tests,html[data-theme] body #page-acl .acl-picker-obj{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-size:11px!important;font-weight:600!important;letter-spacing:0;text-transform:none!important;color:var(--text-dim)!important;font-variant-numeric:tabular-nums;}
 @media (prefers-reduced-motion: reduce){#page-acl .acl-picker-card{transition:none!important;}}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PER-SURFACE STRUCTURAL REBUILD · Batch 4j · NETWORK BUILDER
+   (#page-topology-builder — faithful to mockups/netplus-network-builder-
+   concept.html; the flagship Topology Builder, ~14K-LOC engine)
+   ════════════════════════════════════════════════════════════════════════
+   The mockup is a GENUINE structural redesign (not a recolor — the founder
+   rejected the recolor attempt). The page is restructured to the mockup's
+   workspace posture: a thin quiet .tb-strip header (markup-swapped from the
+   big .ed-pagehead), a ONE-LINE dismissible "Suggested" strip (the 200px
+   purple-gradient billboard = the shared _pageRecCard → the proven Home
+   .dgh-band transform, NOT a recolor), a FULL-BLEED dominant 3-col
+   workspace (212/1fr/236, fills the viewport — the canvas IS the product),
+   the two stacked accordions DEMOTED to thin quiet rows, the device palette
+   as a hairline categorised LIST (not soft cards), the scenarios as a
+   hairline grouped list, the floating modebar/zoom/status editorial, every
+   modal/panel de-carded + de-purpled. Every engine id + UAT-required class
+   (#tb-canvas, layers, #tb-canvas-pills, .tb-palette-v3, .tb-pane-head/-sub,
+   #tb-v3-right, #tb-v3-scenarios-list, #tb-v3-inspector, the hidden
+   .tb-v2-header stub) preserved; ZERO render-logic change. styles.css
+   untouched so its TB CSS guards stay green; this scoped layer (later
+   source order + html[data-theme] body specificity) wins the posture.
+   0 emoji · 0 hex. */
+#page-topology-builder{--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--tb-grid-stroke:color-mix(in oklab,var(--text) 7%,transparent);}
+html[data-theme] body #page-topology-builder{background:var(--bg)!important;color:var(--text);}
+#page-topology-builder.page{max-width:none!important;padding:0!important;margin:0!important;}
+#page-topology-builder [hidden],#page-topology-builder .is-hidden{display:none!important;}
+
+/* family baseline — de-glow / calm / hide decorative emoji icon spans */
+html[data-theme] body #page-topology-builder [class*="tb-"]{box-shadow:none!important;text-shadow:none!important;}
+#page-topology-builder .tb-toolbar-summary-ico,#page-topology-builder .tb-howto-step-icon,#page-topology-builder .tb-howto-step-num,#page-topology-builder .tb-mobile-nudge-icon,#page-topology-builder .tb-3d-mobile-icon,#page-topology-builder .tb-wire-overlay-icon,#page-topology-builder .page-rec-icon{display:none!important;}
+
+/* thin quiet strip header (mockup .strip) */
+#page-topology-builder .tb-strip{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 26px;border-bottom:1px solid var(--dg-rule-soft);}
+#page-topology-builder .tb-strip-l{display:flex;align-items:center;gap:18px;min-width:0;}
+html[data-theme] body #page-topology-builder .tb-strip-menu{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-dim)!important;font:600 var(--t-1)/1 Inter,sans-serif!important;padding:8px 12px!important;}
+html[data-theme] body #page-topology-builder .tb-strip-menu:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+#page-topology-builder .tb-strip-titles{display:flex;flex-direction:column;gap:3px;min-width:0;}
+html[data-theme] body #page-topology-builder .tb-strip-eyebrow{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-strip-title{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-strip-title em{font-style:normal;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-count-pill{background:none!important;border:1px solid var(--border)!important;border-radius:999px!important;color:var(--text-dim)!important;font-size:var(--t-1)!important;font-variant-numeric:tabular-nums;padding:5px 11px!important;}
+html[data-theme] body #page-topology-builder .tb-count-pill b{color:var(--text)!important;font-weight:800;}
+
+/* the billboard → ONE-LINE "Suggested" strip (proven _pageRecCard transform,
+   same as Home's .dgh-band — NOT a recolor) */
+html[data-theme] body #page-topology-builder #topology-rec-host{display:block;background:none!important;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host .page-rec-card{display:flex!important;align-items:center;gap:14px;flex-wrap:wrap;background:color-mix(in oklab,var(--accent) 6%,transparent)!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:10px 26px!important;margin:0!important;}
+#page-topology-builder #topology-rec-host .page-rec-card::before{content:none!important;display:none!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host .page-rec-eyebrow{margin:0!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host .page-rec-eyebrow-text{font-size:10px!important;font-weight:800!important;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host [class*="page-rec-title"],html[data-theme] body #page-topology-builder #topology-rec-host [class*="page-rec-body"],html[data-theme] body #page-topology-builder #topology-rec-host [class*="page-rec-sub"]{display:inline;font-size:var(--t-1)!important;font-weight:400!important;color:var(--text-mid)!important;margin:0!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host [class*="page-rec-title"]{color:var(--text)!important;font-weight:700!important;}
+html[data-theme] body #page-topology-builder #topology-rec-host [class*="page-rec-cta"],html[data-theme] body #page-topology-builder #topology-rec-host a.btn,html[data-theme] body #page-topology-builder #topology-rec-host button.btn{margin-left:auto;background:none!important;border:0!important;color:var(--accent)!important;font:700 var(--t-1)/1 Inter,sans-serif!important;padding:0!important;box-shadow:none!important;white-space:nowrap;}
+
+/* full-bleed dominant 3-col workspace (mockup .work) */
+html[data-theme] body #page-topology-builder .tb-main{display:flex!important;flex-direction:column!important;gap:0!important;}
+html[data-theme] body #page-topology-builder .tb-workspace.tb-workspace-v3{display:grid!important;grid-template-columns:212px minmax(0,1fr) 236px!important;gap:0!important;min-height:calc(100vh - 150px)!important;align-items:stretch;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3,html[data-theme] body #page-topology-builder .tb-v3-right{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0 0 24px!important;max-height:calc(100vh - 150px)!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3{border-right:1px solid var(--dg-rule-soft)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-right{border-left:1px solid var(--dg-rule-soft)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-head{padding:18px 16px 4px!important;background:none!important;border:0!important;font-size:var(--t0)!important;font-weight:800!important;letter-spacing:-0.01em;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-head em{font-style:normal;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-sub,html[data-theme] body #page-topology-builder .tb-pane-sub-tight{padding:0 16px 12px!important;border-bottom:1px solid var(--dg-rule-soft)!important;font-size:11px!important;color:var(--text-dim)!important;line-height:1.5;}
+html[data-theme] body #page-topology-builder .tb-pane-rail-label{color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-collapse-btn,html[data-theme] body #page-topology-builder .tb-palette-collapse-btn{background:none!important;border:1px solid var(--border)!important;border-radius:7px!important;color:var(--text-dim)!important;}
+
+/* device palette → hairline categorised list (mockup .cat / .dev) */
+html[data-theme] body #page-topology-builder .tb-palette-head,html[data-theme] body #page-topology-builder .tb-palette-head-cables,html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-group-head{padding:14px 16px 7px!important;background:none!important;border:0!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item,html[data-theme] body #page-topology-builder .tb-palette-cables>*{display:flex;align-items:center;gap:10px;background:none!important;border:0!important;border-radius:7px!important;box-shadow:none!important;padding:8px 14px!important;color:var(--text-mid)!important;font:600 var(--t-1)/1 Inter,sans-serif!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item:hover,html[data-theme] body #page-topology-builder .tb-palette-cables>*:hover{background:var(--surface)!important;color:var(--text)!important;transform:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette-icon-svg,html[data-theme] body #page-topology-builder .tb-palette-item svg{color:var(--text-dim)!important;filter:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette-item:hover .tb-palette-icon-svg,html[data-theme] body #page-topology-builder .tb-palette-item:hover svg{color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-palette-label{color:inherit!important;}
+
+/* canvas = protagonist; grid → dg token; floating chrome editorial */
+html[data-theme] body #page-topology-builder .tb-canvas-wrap{background:var(--bg)!important;border:0!important;}
+html[data-theme] body #page-topology-builder .tb-canvas{background:var(--bg)!important;}
+html[data-theme] body #page-topology-builder .tb-canvas-pills{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;padding:4px!important;}
+html[data-theme] body #page-topology-builder .tb-canvas-pills-sep{background:var(--dg-rule-soft)!important;}
+html[data-theme] body #page-topology-builder .tb-pill{background:none!important;border:0!important;border-radius:7px!important;color:var(--text-dim)!important;font:700 var(--t-1)/1 Inter,sans-serif!important;padding:9px 12px!important;}
+html[data-theme] body #page-topology-builder .tb-pill:hover{background:var(--surface)!important;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-pill-active,html[data-theme] body #page-topology-builder .tb-pill.tb-pill-active{background:color-mix(in oklab,var(--accent) 12%,transparent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-zoom-ctrls{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:9px!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-zoom-btn,html[data-theme] body #page-topology-builder .tb-zoom-fit{background:none!important;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-zoom-btn:hover,html[data-theme] body #page-topology-builder .tb-zoom-fit:hover{background:var(--surface)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-v2-stats{background:var(--bg)!important;border:1px solid var(--dg-rule-soft)!important;border-radius:8px!important;color:var(--text-dim)!important;font-size:11px!important;font-variant-numeric:tabular-nums;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-v2-stats b{color:var(--text-mid)!important;}
+html[data-theme] body #page-topology-builder .tb-empty-hint,html[data-theme] body #page-topology-builder .tb-empty-hint-v2{background:none!important;border:0!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-empty-hint em,html[data-theme] body #page-topology-builder .tb-empty-hint-v2 em{font-style:normal;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-wire-overlay{background:var(--bg)!important;border:1px solid var(--accent)!important;border-radius:10px!important;color:var(--text-mid)!important;}
+
+/* right rail scenarios → hairline grouped list (mockup .scn) */
+html[data-theme] body #page-topology-builder .tb-v3-scenarios-list{background:none!important;padding:8px 0!important;}
+#page-topology-builder .tb-v3-scn-cat-ico{display:none!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-head{padding:12px 16px 7px!important;background:none!important;border:0!important;color:var(--text-dim)!important;text-transform:uppercase;letter-spacing:0.14em;font-size:10px;font-weight:700;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-name{color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-count{background:none!important;border:0!important;color:var(--text-dim)!important;font-weight:600;font-variant-numeric:tabular-nums;}
+html[data-theme] body #page-topology-builder .tb-v3-scn{display:flex;align-items:center;justify-content:space-between;gap:10px;background:none!important;border:0!important;border-radius:7px!important;box-shadow:none!important;padding:9px 16px!important;color:var(--text-mid)!important;font:600 var(--t-1)/1.35 Inter,sans-serif!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn:hover{background:var(--surface)!important;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-active,html[data-theme] body #page-topology-builder .tb-v3-scn.tb-v3-scn-active{background:color-mix(in oklab,var(--accent) 10%,transparent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-title{color:inherit!important;font-weight:600;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-tag{background:none!important;border:1px solid var(--dg-rule-soft)!important;border-radius:5px!important;color:var(--text-dim)!important;font-size:10px;text-transform:none;font-variant-numeric:tabular-nums;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-active .tb-v3-scn-tag{border-color:color-mix(in oklab,var(--accent) 40%,transparent)!important;color:var(--accent)!important;}
+
+/* the two stacked accordions → thin quiet de-purpled rows */
+html[data-theme] body #page-topology-builder .tb-toolbar-details,html[data-theme] body #page-topology-builder .tb-howto-details,html[data-theme] body #page-topology-builder .tb-intro-details{background:none!important;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;border-radius:0!important;box-shadow:none!important;margin:0!important;}
+html[data-theme] body #page-topology-builder .tb-toolbar-summary,html[data-theme] body #page-topology-builder .tb-howto-summary{color:var(--text-dim)!important;font-weight:700;padding:10px 26px!important;}
+#page-topology-builder .tb-howto-summary::before,#page-topology-builder .tb-toolbar-details>summary::before,#page-topology-builder .tb-howto-details>summary::before{color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-toolbar-summary-hint{color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-toolbar,html[data-theme] body #page-topology-builder .tb-toolbar-v2{background:none!important;border:0!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-tool-group{background:none!important;border:0!important;border-right:1px solid var(--dg-rule-soft)!important;border-radius:0!important;}
+html[data-theme] body #page-topology-builder .tb-tool-group-label{color:var(--text-dim)!important;text-transform:uppercase;letter-spacing:0.12em;font-size:10px;font-weight:700;}
+html[data-theme] body #page-topology-builder .tb-tool-btn,html[data-theme] body #page-topology-builder .tb-load-select{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-mid)!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-tool-btn:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-tool-btn-primary,html[data-theme] body #page-topology-builder .tb-tool-btn-coach,html[data-theme] body #page-topology-builder .tb-tool-btn-ai{background:var(--accent)!important;border-color:var(--accent)!important;color:var(--bg)!important;}
+html[data-theme] body #page-topology-builder .tb-tool-btn-fix{border-color:color-mix(in oklab,var(--accent) 40%,transparent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-status{background:none!important;border:0!important;color:var(--text-dim)!important;font-size:var(--t-1)!important;}
+html[data-theme] body #page-topology-builder .tb-howto-strip{background:none!important;}
+html[data-theme] body #page-topology-builder .tb-howto-step{background:none!important;border:0!important;border-top:1px solid var(--dg-rule-soft)!important;border-radius:0!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-howto-step-title{color:var(--text)!important;font-weight:700;}
+html[data-theme] body #page-topology-builder .tb-howto-step-desc{color:var(--text-mid)!important;}
+html[data-theme] body #page-topology-builder .tb-scenario-panel{background:color-mix(in oklab,var(--accent) 5%,transparent)!important;border:0!important;border-left:2px solid var(--accent)!important;border-radius:0!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-mobile-nudge,html[data-theme] body #page-topology-builder .tb-3d-mobile-nudge{background:none!important;border:1px solid var(--border)!important;border-radius:14px!important;}
+
+/* every modal / panel → de-carded de-purpled editorial (inline gradient
+   heads on scenario/fix/explain/fix-complete pickers overridden via !important) */
+html[data-theme] body #page-topology-builder .tb-grade-modal,html[data-theme] body #page-topology-builder .tb-coach-modal{background:none!important;}
+html[data-theme] body #page-topology-builder .tb-grade-backdrop{background:color-mix(in oklab,var(--bg) 72%,#000)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+html[data-theme] body #page-topology-builder .tb-grade-card{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:14px!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-grade-card-head{background:none!important;border-bottom:1px solid var(--dg-rule-soft)!important;}
+html[data-theme] body #page-topology-builder .tb-grade-card-head h3{color:var(--text)!important;font-weight:800!important;}
+html[data-theme] body #page-topology-builder .tb-grade-close,html[data-theme] body #page-topology-builder .tb-config-close,html[data-theme] body #page-topology-builder .tb-inspector-pop-close{background:none!important;border:0!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-grade-close:hover,html[data-theme] body #page-topology-builder .tb-config-close:hover{color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-config-panel,html[data-theme] body #page-topology-builder .tb-inspector-pop,html[data-theme] body #page-topology-builder .tb-trace-panel,html[data-theme] body #page-topology-builder .tb-lab-panel,html[data-theme] body #page-topology-builder .tb-fix-panel,html[data-theme] body #page-topology-builder .tb-sim-log,html[data-theme] body #page-topology-builder .tb-packet-inspect,html[data-theme] body #page-topology-builder .tb-3d-host{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-config-head,html[data-theme] body #page-topology-builder .tb-inspector-pop-head,html[data-theme] body #page-topology-builder .tb-fix-panel-head,html[data-theme] body #page-topology-builder .tb-lab-panel-head,html[data-theme] body #page-topology-builder .tb-sim-log-head,html[data-theme] body #page-topology-builder .tb-3d-chrome{background:none!important;border-bottom:1px solid var(--dg-rule-soft)!important;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-config-tab,html[data-theme] body #page-topology-builder .tb-fix-tab{background:none!important;border:0!important;border-bottom:2px solid transparent!important;color:var(--text-dim)!important;border-radius:0!important;}
+html[data-theme] body #page-topology-builder .tb-config-tab-active,html[data-theme] body #page-topology-builder .tb-config-tab.tb-config-tab-active{color:var(--accent)!important;border-bottom-color:var(--accent)!important;background:none!important;}
+html[data-theme] body #page-topology-builder .tb-3d-chrome-eyebrow{color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-3d-loading{background:color-mix(in oklab,var(--bg) 88%,transparent)!important;color:var(--text-mid)!important;}
+html[data-theme] body #page-topology-builder .tb-lab-progress,html[data-theme] body #page-topology-builder .tb-fix-timer{color:var(--text-dim)!important;font-variant-numeric:tabular-nums;}
+
+@media (prefers-reduced-motion: reduce){#page-topology-builder [class*="tb-"]{transition:none!important;}}
+
+/* ── Batch 4j · round-2 refinement (visual caught what programmatic missed) ──
+   (1) device palette was a 2-col icon-tile grid w/ column-flex items; the
+   mockup .dev is a 1-col list of icon+label ROWS. (2) the Free-Build canvas
+   empty-hint still had a 🔧 hero glyph + 🎓/🤖/🔧/🎯 CTA-icon spans + soft
+   cards — it's the immediately-visible canvas state, in scope. */
+#page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items{display:block!important;grid-template-columns:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item{flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;text-align:left!important;width:100%!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-label{text-align:left!important;}
+#page-topology-builder .tb-empty-icon,#page-topology-builder .tb-empty-cta-icon{display:none!important;}
+html[data-theme] body #page-topology-builder .tb-empty-title{font-size:var(--t2)!important;font-weight:800!important;letter-spacing:-0.02em;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-empty-sub{color:var(--text-mid)!important;font-size:var(--t-1)!important;}
+html[data-theme] body #page-topology-builder .tb-empty-ctas{gap:0!important;border-top:1px solid var(--dg-rule-soft)!important;margin-top:18px!important;}
+html[data-theme] body #page-topology-builder .tb-empty-cta,html[data-theme] body #page-topology-builder .tb-empty-cta-primary{background:none!important;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;border-radius:0!important;box-shadow:none!important;text-align:left;}
+html[data-theme] body #page-topology-builder .tb-empty-cta:hover,html[data-theme] body #page-topology-builder .tb-empty-cta-primary:hover{background:var(--surface)!important;transform:none!important;}
+html[data-theme] body #page-topology-builder .tb-empty-cta-title{color:var(--text)!important;font-weight:700!important;}
+html[data-theme] body #page-topology-builder .tb-empty-cta-primary .tb-empty-cta-title{color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-empty-cta-sub{color:var(--text-dim)!important;}
+
+/* ── Batch 4j · round-3 — EXACT mockup spec (founder: build EVERYTHING in
+   the mockup, exactly the same). Value-for-value from netplus-network-
+   builder-concept.html. Later source order + !important wins over the
+   approximate Batch-4j rules. Zero render change; .tb-palette-icon-svg is
+   palette-only (canvas engine untouched). ── */
+#page-topology-builder #tb-toolbar-details,#page-topology-builder #tb-howto-details{display:none!important;}
+html[data-theme] body #page-topology-builder .tb-canvas-pills{left:50%!important;right:auto!important;transform:translateX(-50%)!important;top:16px!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+html[data-theme] body #page-topology-builder .tb-help{position:absolute;top:16px;right:16px;z-index:5;width:30px;height:30px;border-radius:8px;border:1px solid var(--border)!important;background:var(--bg)!important;color:var(--text-dim)!important;display:grid;place-items:center;cursor:pointer;font:700 14px/1 Inter,sans-serif;}
+html[data-theme] body #page-topology-builder .tb-help:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+
+/* rail headers — mockup .rail-h / h2 / p */
+html[data-theme] body #page-topology-builder .tb-pane-head{padding:18px 16px 0!important;border:0!important;background:none!important;font-size:14px!important;font-weight:800!important;letter-spacing:-0.01em!important;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-head em{font-style:normal!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-pane-sub,html[data-theme] body #page-topology-builder .tb-pane-sub-tight{padding:6px 16px 14px!important;margin:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;font-size:11px!important;font-weight:400!important;color:var(--text-dim)!important;line-height:1.5!important;}
+
+/* device palette — mockup .cat-h / .dev / .dev svg (clean uniform list) */
+#page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items{display:block!important;grid-template-columns:none!important;padding:0!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-group-head,html[data-theme] body #page-topology-builder .tb-palette-head,html[data-theme] body #page-topology-builder .tb-palette-head-cables{display:block!important;padding:14px 16px 7px!important;margin:0!important;background:none!important;border:0!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.14em!important;text-transform:uppercase!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;background:none!important;border:0!important;border-radius:7px!important;text-align:left!important;padding:8px 16px!important;margin:0!important;cursor:grab;color:var(--text-mid)!important;font:600 12px/1 Inter,sans-serif!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette.tb-palette-v3 #tb-palette-items .tb-palette-item:hover{background:var(--surface)!important;color:var(--text)!important;transform:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette-icon-svg{width:18px!important;height:18px!important;flex:none!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-palette-item:hover .tb-palette-icon-svg{color:var(--accent)!important;}
+#page-topology-builder .tb-palette-icon-svg [stroke]{stroke:currentColor!important;}
+#page-topology-builder .tb-palette-icon-svg [fill]:not([fill="none"]){fill:currentColor!important;fill-opacity:1!important;}
+#page-topology-builder .tb-palette-icon-svg [fill="none"]{fill:none!important;}
+html[data-theme] body #page-topology-builder .tb-palette-label{font:600 12px/1 Inter,sans-serif!important;color:inherit!important;text-align:left!important;}
+
+/* scenario rail — mockup .scn/.scn-g/.scn-h/.n/.scn-i/.dv/.on (the attachment) */
+html[data-theme] body #page-topology-builder #tb-v3-scenarios-list{padding:14px 8px 18px!important;background:none!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat{padding:12px 8px 4px!important;margin:0!important;background:none!important;border:0!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-head{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:6px!important;padding:0 8px 7px!important;margin:0!important;background:none!important;border:0!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.14em!important;text-transform:uppercase!important;color:var(--text-dim)!important;}
+#page-topology-builder .tb-v3-scn-cat-ico{display:none!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-name{flex:1!important;min-width:0!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-cat-count{font-weight:600!important;letter-spacing:0!important;color:var(--text-dim)!important;background:none!important;border:0!important;padding:0!important;font-variant-numeric:tabular-nums;}
+#page-topology-builder .tb-v3-scn-cat-body{display:block!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;width:100%!important;background:none!important;border:0!important;text-align:left!important;padding:9px 10px!important;margin:0!important;border-radius:7px!important;cursor:pointer;color:var(--text-mid)!important;font:600 12px/1.35 Inter,sans-serif!important;box-shadow:none!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn:hover{background:var(--surface)!important;color:var(--text)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-title{flex:1!important;min-width:0!important;color:inherit!important;font:inherit!important;text-align:left!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-tag{flex:none!important;font-size:10px!important;font-weight:600!important;color:var(--text-dim)!important;font-variant-numeric:tabular-nums;border:1px solid var(--dg-rule-soft)!important;border-radius:5px!important;padding:3px 6px!important;white-space:nowrap!important;background:none!important;text-transform:none!important;letter-spacing:0!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-active,html[data-theme] body #page-topology-builder .tb-v3-scn.tb-v3-scn-active{color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 10%,transparent)!important;}
+html[data-theme] body #page-topology-builder .tb-v3-scn-active .tb-v3-scn-tag{color:var(--accent)!important;border-color:color-mix(in oklab,var(--accent) 40%,transparent)!important;}
+/* .help reveals the folded how-to as a centered editorial popover */
+#page-topology-builder #tb-howto-details.tb-howto-show{display:block!important;position:fixed!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;max-width:560px!important;width:90%!important;max-height:80vh!important;overflow:auto!important;z-index:1300!important;background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:14px!important;padding:18px 22px!important;}
+
+/* ── Batch 4j · round-4 — FULL-VIEWPORT TAKEOVER (founder: must look like
+   the mockup; the mockup is a standalone edge-to-edge workspace with NO
+   app sidebar / topbar). Scoped via :has() to ONLY when TB is the active
+   page — every other page keeps the global chrome. Zero JS/render change,
+   fully reversible (pure conditional CSS). ── */
+html:has(#page-topology-builder.page.active) #app-sidebar,
+html:has(#page-topology-builder.page.active) #app-topbar,
+html:has(#page-topology-builder.page.active) #sb-mobile-toggle,
+html:has(#page-topology-builder.page.active) #skip-link{display:none!important;}
+html:has(#page-topology-builder.page.active),
+html:has(#page-topology-builder.page.active) body{overflow:hidden!important;}
+html:has(#page-topology-builder.page.active) #page-topology-builder.page.active{position:fixed!important;inset:0!important;margin:0!important;padding:0!important;max-width:none!important;width:100vw!important;height:100vh!important;z-index:60!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;background:var(--bg)!important;}
+html:has(#page-topology-builder.page.active) #page-topology-builder #tb-main{flex:1!important;min-height:0!important;display:flex!important;flex-direction:column!important;}
+html:has(#page-topology-builder.page.active) #page-topology-builder .tb-workspace.tb-workspace-v3{flex:1!important;min-height:0!important;max-height:none!important;}
+html:has(#page-topology-builder.page.active) #page-topology-builder .tb-palette.tb-palette-v3,
+html:has(#page-topology-builder.page.active) #page-topology-builder .tb-v3-right{max-height:none!important;height:100%!important;}
+html:has(#page-topology-builder.page.active) #page-topology-builder .tb-canvas-wrap{height:auto!important;min-height:0!important;}
+
+/* header strip — full-width edge-to-edge + right cluster (theme + account)
+   matching the mockup .strip */
+#page-topology-builder .tb-strip-r{display:flex;align-items:center;gap:12px;flex:none;}
+html[data-theme] body #page-topology-builder .tb-strip-theme{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-dim)!important;font:600 12px/1 Inter,sans-serif!important;padding:7px 11px!important;cursor:pointer;}
+html[data-theme] body #page-topology-builder .tb-strip-theme:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-topology-builder .tb-strip-acct{display:flex;align-items:center;gap:9px;background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:999px!important;padding:5px 11px 5px 5px!important;color:var(--text-mid)!important;font:600 12px/1 Inter,sans-serif!important;max-width:160px;}
+#page-topology-builder .tb-strip-acct .tb-strip-av{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--accent);background:color-mix(in oklab,var(--accent) 18%,var(--bg));}
+#page-topology-builder .tb-strip-acct .tb-strip-em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* modebar pill icons — mockup .mode (flex + 7px gap, 14px line icon).
+   :not([hidden]) so engine-hidden pills (3D OSI/Exit/Trace + tour/playback
+   controls toggle the `hidden` attr) stay display:none — else this
+   higher-specificity rule overrides [hidden] and they leak visible
+   (Playwright OSI toBeHidden regression, caught + fixed pre-ship). */
+html[data-theme] body #page-topology-builder .tb-pill:not([hidden]){display:inline-flex!important;align-items:center!important;gap:7px!important;}
+html[data-theme] body #page-topology-builder .tb-pill .tb-pill-ico{width:14px!important;height:14px!important;flex:none!important;color:currentColor!important;}
+html[data-theme] body #page-topology-builder .tb-pill[hidden]{display:none!important;}

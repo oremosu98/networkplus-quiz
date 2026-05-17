@@ -4867,8 +4867,8 @@ test('v4.49.1: step titles — Drag / Wire / Configure / Move & Delete / Simulat
   html.includes('>Simulate<'));
 test('v4.49.1: Step 4 <kbd>Del</kbd> properly styled (not inline in mangled prose)',
   /tb-howto-step-desc[^<]*<[^<]*<kbd>Del<\/kbd>/.test(html) || html.includes('<kbd>Del</kbd>'));
-test('v4.49.1: summary emoji updated to 📚 How to build',
-  html.includes('&#128218; How to build'));
+test('v4.99.74: TB how-to summary is editorial no-emoji "How to build" (mockup rebuild — 📚 stripped)',
+  html.includes('class="tb-howto-summary">How to build') && !html.includes('&#128218; How to build'));
 // CSS
 test('v4.49.1 CSS: .tb-howto-step premium styling defined',
   css.includes('.tb-howto-step {') && /\.tb-howto-step\s*\{[^}]*radial-gradient/.test(css));
@@ -6517,8 +6517,8 @@ test('v4.54.12 HTML: Cable ID page uses .ed-pagehead with "Cable ID."',
   /id="page-cables"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Cable\s*<em>ID\.<\/em>/.test(html));
 test('v4.54.12 HTML: Analytics page uses .ed-pagehead with "Performance analytics."',
   /id="page-analytics"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Performance\s*<em>analytics\.<\/em>/.test(html));
-test('v4.54.13 HTML: Topology Builder page uses .ed-pagehead with "Network builder."',
-  /id="page-topology-builder"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}Network\s*<em>builder\.<\/em>/.test(html));
+test('v4.99.74 HTML: Topology Builder page uses the thin .tb-strip header with "Network builder." (mockup rebuild — replaced .ed-pagehead)',
+  /id="page-topology-builder"[\s\S]{0,500}class="tb-strip"[\s\S]{0,800}Network\s*<em>builder\.<\/em>/.test(html));
 test('v4.54.13 HTML: ACL Builder page uses .ed-pagehead with "ACL builder."',
   /id="page-acl"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,800}ACL\s*<em>builder\.<\/em>/.test(html));
 test('v4.54.14 CSS: .ed-cardhead reusable card-level header defined',
