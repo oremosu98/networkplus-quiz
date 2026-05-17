@@ -145,7 +145,9 @@ html[data-cert="secplus"] body #page-setup .pass-proof-banner{display:none;}
 html[data-cert="secplus"] body #page-setup .secplus-private-banner{display:flex;}
 /* dg = 0 emoji: the ✓ / 🔒 dingbats are decorative (aria-hidden); the
    banner sentence carries the meaning. Mockup band used an SVG, not a glyph. */
-#page-setup .pass-proof-icon,#page-setup .secplus-private-icon{display:none!important;}
+#page-setup .pass-proof-icon,#page-setup .secplus-private-icon{display:inline-flex!important;align-items:center;flex:none;}
+#page-setup .pass-proof-icon svg{color:var(--green);width:16px;height:16px;}
+#page-setup .secplus-private-icon svg{color:var(--text-dim);width:16px;height:16px;}
 html[data-theme] body #page-setup .pass-proof-text strong{color:var(--text-mid);font-weight:700;}
 html[data-theme] body #page-setup .pass-proof-text em{font-style:normal;color:var(--accent);}
 
@@ -291,6 +293,37 @@ html[data-theme] body #page-setup #streak-defender .sd-btn:hover{filter:brightne
 #page-setup .dgh-dom-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--border);margin-top:18px;}
 html[data-theme] body #page-setup #setup-domain-grid .domain-cell{padding:20px 18px;border:0;border-right:1px solid var(--dg-rule-soft);border-radius:0;background:none;box-shadow:none;text-align:left;}
 #page-setup #setup-domain-grid .domain-cell:last-child{border-right:0;}
+/* domain-cell interior — editorial (mockup .dc anatomy):
+   .dck (Domain N + weight%) → h3 (name) → .tl (topic text) → .dcm (mastery).
+   Production anatomy: .dg-weight → .dg-bar-col(HIDE) → .dg-body(.dg-num+.dg-name+ul.dg-topic-list) → .dg-pct-wrap → .dg-status.
+   Reshape via CSS to match mockup: column layout, no bar, simple topic text, semantic mastery colour. */
+#page-setup #setup-domain-grid .domain-cell{display:flex;flex-direction:column;gap:0;}
+/* kill the rainbow per-domain top border from styles.css */
+html[data-theme] body #page-setup #setup-domain-grid .domain-cell[data-domain-idx]{border-top:0!important;}
+/* hide the visual bar — mockup has no bar */
+#page-setup #setup-domain-grid .dg-bar-col{display:none!important;}
+/* weight badge — mockup .w: small dim tabular */
+html[data-theme] body #page-setup #setup-domain-grid .dg-weight{display:inline;background:none!important;border:0!important;border-radius:0;padding:0;font-size:10px;font-weight:700;color:var(--text-dim);letter-spacing:0.04em;font-variant-numeric:tabular-nums;}
+/* domain number — mockup .n */
+#page-setup #setup-domain-grid .dg-num{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:2px;}
+/* domain name — mockup h3 */
+html[data-theme] body #page-setup #setup-domain-grid .dg-name{font-size:var(--t0);font-weight:800;letter-spacing:-0.01em;color:var(--text);margin-bottom:10px;}
+/* topic list — mockup .tl: plain text with <br>, weak = accent .on */
+#page-setup #setup-domain-grid .dg-topic-list{list-style:none;padding:0;margin:0 0 12px;display:block;}
+#page-setup #setup-domain-grid .dg-topic{display:block;font-size:var(--t-1);line-height:1.7;color:var(--text-dim);}
+#page-setup #setup-domain-grid .dg-topic-dot{display:none!important;}
+#page-setup #setup-domain-grid .dg-topic-weak{color:var(--accent);font-weight:600;}
+#page-setup #setup-domain-grid .dg-topic-studied{color:var(--text-mid);}
+#page-setup #setup-domain-grid .dg-topic-untouched{color:var(--text-dim);font-style:normal;}
+/* mastery — mockup .dcm: border-top separator + semantic colour */
+#page-setup #setup-domain-grid .dg-pct-wrap{margin-top:auto;padding-top:10px;border-top:1px solid var(--dg-rule-soft);}
+html[data-theme] body #page-setup #setup-domain-grid .dg-pct{font-size:var(--t1);font-weight:800;letter-spacing:-0.01em;color:var(--text);}
+#page-setup #setup-domain-grid .dg-pct-sub{font-size:var(--t-1);color:var(--text-dim);font-weight:700;}
+/* semantic mastery colours via data-tier on the cell (set by render fn) */
+#page-setup #setup-domain-grid .domain-cell[data-tier="mastered"] .dg-pct{color:var(--green);}
+#page-setup #setup-domain-grid .domain-cell[data-tier="proficient"] .dg-pct{color:var(--yellow);}
+#page-setup #setup-domain-grid .domain-cell[data-tier="developing"] .dg-pct,#page-setup #setup-domain-grid .domain-cell[data-tier="novice"] .dg-pct{color:var(--text-dim);}
+html[data-theme] body #page-setup #setup-domain-grid .dg-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-top:3px;}
 #page-setup .dgh-customq{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px;padding:18px 0;border-top:1px solid var(--border);font-size:var(--t-1);color:var(--text-dim);}
 #page-setup .dgh-customq b{color:var(--text);font-weight:700;}
 #page-setup .dgh-customq .go{color:var(--accent);font-weight:700;cursor:pointer;background:none;border:0;font-size:var(--t-1);}

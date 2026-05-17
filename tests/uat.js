@@ -5559,8 +5559,9 @@ test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
   /renderSetupDomainGrid[\s\S]{0,2500}TOPIC_DOMAINS\[e\.topic\]/.test(js));
 // v4.54.10: renderSetupDomainGrid body grew \u2014 widen the regex window.
 // v4.88.1: cert-aware bail at top of fn pushes drillDomain further down.
+// v4.99.80: window widened 7000→10000 (cert-aware canonical topic maps added)
 test('v4.53.0 JS: domain grid click wires drillDomain',
-  /renderSetupDomainGrid[\s\S]{0,7000}drillDomain\(/.test(js));
+  /renderSetupDomainGrid[\s\S]{0,10000}drillDomain\(/.test(js));
 // v4.81.23: renderSetupFocusBanner stopped being called from goSetup (retired
 // in v4.81.20 as a shim; element removed entirely in v4.81.23). goSetup
 // still calls renderSetupDomainGrid + renderTodayPlan.
@@ -6282,9 +6283,11 @@ test('v4.54.8 JS: updateCqSummaryBar defined + called from initChips click handl
   /initChips[\s\S]{0,1500}updateCqSummaryBar\(\)/.test(js));
 // v4.54.10: wrap-chip pattern replaced by vertical .dg-topic-list with canonical topics.
 // Legacy dg-weak-chips class retired + hidden via CSS !important.
+// v4.99.80: CANONICAL_DOMAIN_TOPICS split into _CANONICAL_NETPLUS + _CANONICAL_SECPLUS
+// (cert-aware domain grid). Retargeted to assert the new structure.
 test('v4.54.8 (v4.54.10 update) JS: renderSetupDomainGrid emits .dg-topic-list with canonical topics',
-  /renderSetupDomainGrid[\s\S]{0,6000}dg-topic-list/.test(js) &&
-  /renderSetupDomainGrid[\s\S]{0,6000}CANONICAL_DOMAIN_TOPICS/.test(js));
+  /renderSetupDomainGrid[\s\S]{0,9000}dg-topic-list/.test(js) &&
+  /renderSetupDomainGrid[\s\S]{0,9000}_CANONICAL_NETPLUS/.test(js));
 test('v4.54.8 CSS: Quick Start preset tiles color-cycle (4 nth-child ::after backgrounds)',
   /\.quiz-presets\s+\.preset-tile:nth-child\(1\)::after\s*\{[^}]*background:\s*var\(--accent\)/.test(css) &&
   /\.quiz-presets\s+\.preset-tile:nth-child\(2\)::after\s*\{[^}]*background:\s*var\(--green\)/.test(css) &&
@@ -6442,10 +6445,13 @@ test('v4.54.10 CSS: .sb-streak-label is monospace small-caps',
   /\.sb-streak-label\s*\{[\s\S]{0,600}text-transform:\s*uppercase[\s\S]{0,400}font-family:\s*monospace/.test(css));
 
 // Domain grid canonical topics
-test('v4.54.10 JS: CANONICAL_DOMAIN_TOPICS covers 5 topics per domain',
-  /CANONICAL_DOMAIN_TOPICS\s*=\s*\{[\s\S]{0,3000}OSI Model[\s\S]{0,2000}Firewalls[\s\S]{0,1000}7-Step Method/.test(js));
+// v4.99.80: cert-aware — Net+ canonical has OSI→Firewalls→7-Step; Sec+ has Security Controls→Audits
+test('v4.54.10 JS: _CANONICAL_NETPLUS covers 5 topics per domain',
+  /_CANONICAL_NETPLUS\s*=\s*\{[\s\S]{0,3000}OSI Model[\s\S]{0,2000}Firewalls[\s\S]{0,1000}7-Step Method/.test(js));
+test('v4.54.10 JS: _CANONICAL_SECPLUS covers 5 SY0-701 domains',
+  /_CANONICAL_SECPLUS\s*=\s*\{[\s\S]{0,3000}Security Controls[\s\S]{0,2000}Incident Response[\s\S]{0,1000}Audits/.test(js));
 test('v4.54.10 JS: weakSet cross-reference builds via computeWeakSpotScores',
-  /renderSetupDomainGrid[\s\S]{0,6000}weakSet[\s\S]{0,400}computeWeakSpotScores/.test(js));
+  /renderSetupDomainGrid[\s\S]{0,9000}weakSet[\s\S]{0,400}computeWeakSpotScores/.test(js));
 test('v4.54.10 CSS: .dg-topic-list vertical list with accent-dot bullets',
   /\.dg-topic-list\s*\{[\s\S]{0,400}flex-direction:\s*column/.test(css) &&
   /\.dg-topic-dot\s*\{[\s\S]{0,400}border-radius:\s*50%/.test(css));
@@ -16109,8 +16115,9 @@ test('v4.87.0 InlineCertDetect: <head> script defaults to netplus',
 // ── Security+ private-mode banner ──
 test('v4.87.0 SecplusBanner: secplus-private-banner element exists',
   /class="secplus-private-banner"/.test(html));
+// v4.99.80: "Private · Builder use" → "Private builder" (mockup wording)
 test('v4.87.0 SecplusBanner: banner mentions SY0-701 + private + builder',
-  /SY0-701/.test(html) && /Private/.test(html) && /Builder use/.test(html));
+  /SY0-701/.test(html) && /Private builder/.test(html));
 test('v4.87.0 SecplusBanner: banner cites target exam date 2026-07-29',
   html.includes('2026-07-29'));
 test('v4.87.0 SecplusBanner: banner aria-label for accessibility',
@@ -16595,10 +16602,12 @@ test('v4.88.0 ObjBadge: tombstone — hardcoded "N10-009 objective" removed from
 // CURRENT_CERT === 'secplus' (DOMAIN_LABELS['implementation'] is undefined →
 // .replace(...) on undefined → window.onerror fires → red toast).
 // Fix: cert-aware early-return so the section is hidden cleanly for non-netplus.
-test('v4.88.1 Security+: renderSetupDomainGrid early-returns for non-netplus',
-  /renderSetupDomainGrid[\s\S]{0,1500}CURRENT_CERT[\s\S]{0,200}!==\s*'netplus'/.test(js));
-test('v4.88.1 Security+: renderSetupDomainGrid hides section on cert-aware bail',
-  /renderSetupDomainGrid[\s\S]{0,1500}CURRENT_CERT[\s\S]{0,500}section\.classList\.add\(['"]is-hidden['"]\)/.test(js));
+// v4.99.80: domain grid is now cert-aware (no bail). Assert the cert-aware
+// domain-order derivation from DOMAIN_WEIGHTS and Sec+ canonical topics.
+test('v4.88.1 → v4.99.80 Security+: renderSetupDomainGrid reads domainOrder from DOMAIN_WEIGHTS',
+  /renderSetupDomainGrid[\s\S]{0,2000}DOMAIN_WEIGHTS[\s\S]{0,200}Object\.keys\(DOMAIN_WEIGHTS\)/.test(js));
+test('v4.88.1 → v4.99.80 Security+: renderSetupDomainGrid uses _CANONICAL_SECPLUS for Sec+ topics',
+  js.includes('_CANONICAL_SECPLUS'));
 
 // ── v4.88.4: URL action handler ──
 // External surfaces (landing CTA, share links) can route to specific app

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.79
+// Network+ AI Quiz — app.js  v4.99.80
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.79';
+const APP_VERSION = '4.99.80';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -19750,12 +19750,12 @@ function renderReadinessCardV2() {
         if (r.daysToExam !== null && r.daysToExam !== undefined) {
           if (r.targetGap > 0) {
             const cls = r.targetGap > 60 ? 'warn' : (r.targetGap > 20 ? 'mid' : 'good');
-            trajEl.innerHTML = '\u23f0 <strong>' + r.daysToExam + ' days</strong> to exam &middot; '
+            trajEl.innerHTML = '<strong>' + r.daysToExam + ' days</strong> to exam &middot; '
               + 'need <strong>+' + r.targetGap + ' pts</strong> for confident pass';
             trajEl.className = 'rc-v2-trajectory ' + cls;
             trajEl.hidden = false;
           } else {
-            trajEl.innerHTML = '\u2705 <strong>' + r.daysToExam + ' days</strong> to exam &middot; '
+            trajEl.innerHTML = '<strong>' + r.daysToExam + ' days</strong> to exam &middot; '
               + 'already confidently above pass.';
             trajEl.className = 'rc-v2-trajectory good';
             trajEl.hidden = false;
@@ -19851,16 +19851,6 @@ function renderSetupDomainGrid() {
   const el = document.getElementById('setup-domain-grid');
   const section = document.getElementById('domain-grid-section');
   if (!el || !section) return;
-  // v4.88.1: cert-aware bail. The hardcoded domainOrder + canonical topics
-  // below are Network+-only. Security+ has different domain keys (threats,
-  // architecture, governance) and different canonical topics. Until we
-  // make this whole function cert-aware, hide the section cleanly for any
-  // non-netplus cert so we don't crash on `DOMAIN_LABELS[dk].replace(...)`
-  // when dk is undefined.
-  if (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT !== 'netplus') {
-    section.classList.add('is-hidden');
-    return;
-  }
   const history = (typeof loadHistory === 'function') ? loadHistory() : [];
   // Hide the entire section if there's no data — don't show an empty grid
   if (history.length === 0) {
@@ -19868,14 +19858,12 @@ function renderSetupDomainGrid() {
     return;
   }
   section.classList.remove('is-hidden');
-  const domainOrder = ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
-  const domainDisplay = {
-    concepts: '1.0 Concepts',
-    implementation: '2.0 Implementation',
-    operations: '3.0 Operations',
-    security: '4.0 Security',
-    troubleshooting: '5.0 Troubleshooting'
-  };
+  // v4.99.80: cert-aware domain grid. Reads domain keys from DOMAIN_WEIGHTS
+  // (already populated from the active cert pack) so Network+ and Security+
+  // each render their own 5-domain grid with correct labels + weights.
+  const domainOrder = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS)
+    ? Object.keys(DOMAIN_WEIGHTS)
+    : ['concepts', 'implementation', 'operations', 'security', 'troubleshooting'];
   // Aggregate score per domain via TOPIC_DOMAINS
   const stats = {};
   domainOrder.forEach(d => { stats[d] = { score: 0, total: 0 }; });
@@ -19885,9 +19873,9 @@ function renderSetupDomainGrid() {
     stats[dk].score += e.score || 0;
     stats[dk].total += e.total || 0;
   });
-  const weightPct = {
-    concepts: 23, implementation: 20, operations: 19, security: 14, troubleshooting: 24
-  };
+  // Compute weight percentages from DOMAIN_WEIGHTS (cert-aware)
+  const weightPct = {};
+  domainOrder.forEach(dk => { weightPct[dk] = Math.round((DOMAIN_WEIGHTS[dk] || 0) * 100); });
   // v4.54.10: replaced wrap-chips with vertical list of 5 canonical topics
   // per domain (matches prototype). Each topic marked as weak if it shows up
   // in computeWeakSpotScores() for the session. Weak = accent text + dot; rest
@@ -19897,7 +19885,12 @@ function renderSetupDomainGrid() {
   // `label` is what renders to screen; `key` is the exact TOPIC_DOMAINS key used
   // for weak-spot matching. If the weak-spot key isn't in this canonical list,
   // it's still counted (the weakness scores used by other surfaces are unchanged).
-  const CANONICAL_DOMAIN_TOPICS = {
+  // v4.99.80: cert-aware canonical topic maps. Network+ uses N10-009 domains;
+  // Security+ uses SY0-701 domains. Each array of 5 canonical topics per
+  // domain matches the locked home mockup (netplus-home-concept.html /
+  // secplus-home-concept.html). The key must be an exact TOPIC_DOMAINS key
+  // so weak-spot matching works.
+  const _CANONICAL_NETPLUS = {
     concepts: [
       { label: 'OSI Model',       key: 'Network Models & OSI' },
       { label: 'TCP/IP Basics',   key: 'TCP/IP Basics' },
@@ -19934,6 +19927,45 @@ function renderSetupDomainGrid() {
       { label: 'Connection Issues', key: 'Connection Issues' },
     ],
   };
+  const _CANONICAL_SECPLUS = {
+    concepts: [
+      { label: 'Security Controls', key: 'Security Controls' },
+      { label: 'CIA Triad & AAA',   key: 'CIA Triad & AAA' },
+      { label: 'Change Mgmt',       key: 'Change Management' },
+      { label: 'Cryptography',      key: 'Cryptography Fundamentals' },
+      { label: 'PKI',               key: 'PKI & Certificate Management' },
+    ],
+    threats: [
+      { label: 'Threat Actors',     key: 'Threat Actors & Motivations' },
+      { label: 'Attack Vectors',    key: 'Attack Vectors & Surfaces' },
+      { label: 'Social Engineering', key: 'Social Engineering' },
+      { label: 'Malware Types',     key: 'Malware Types' },
+      { label: 'Mitigation',        key: 'Mitigation Techniques' },
+    ],
+    architecture: [
+      { label: 'Architecture Models', key: 'Architecture Models' },
+      { label: 'Zero Trust & SDN',   key: 'Zero Trust & SDN' },
+      { label: 'Cloud Security',     key: 'Cloud Security & Shared Responsibility' },
+      { label: 'Data Protection',    key: 'Data Protection' },
+      { label: 'Resilience',         key: 'Resilience & Recovery' },
+    ],
+    operations: [
+      { label: 'Hardening',         key: 'Endpoint & Server Hardening' },
+      { label: 'Vuln Mgmt',         key: 'Vulnerability Management' },
+      { label: 'Monitoring & SIEM', key: 'Security Monitoring & SIEM' },
+      { label: 'IAM',               key: 'Identity & Access Management' },
+      { label: 'Incident Response', key: 'Incident Response' },
+    ],
+    governance: [
+      { label: 'Governance',        key: 'Security Governance' },
+      { label: 'Risk Mgmt',         key: 'Risk Management' },
+      { label: 'Third-Party Risk',  key: 'Third-Party Risk Management' },
+      { label: 'Compliance',        key: 'Compliance Frameworks' },
+      { label: 'Audits',            key: 'Audits & Assessments' },
+    ],
+  };
+  const CANONICAL_DOMAIN_TOPICS = (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus')
+    ? _CANONICAL_SECPLUS : _CANONICAL_NETPLUS;
   // Build a set of weak topic keys for quick lookup
   const weakSet = new Set();
   try {
@@ -19974,14 +20006,18 @@ function renderSetupDomainGrid() {
       const ariaLabel = isWeak ? ' (weak \u2014 needs work)' : (isStudied ? ' (practised)' : ' (not yet studied)');
       return `<li class="dg-topic${stateClass}" aria-label="${escHtml(t.label)}${ariaLabel}"><span class="dg-topic-dot" aria-hidden="true"></span><span class="dg-topic-label">${escHtml(t.label)}</span></li>`;
     }).join('')}</ul>`;
-    return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" onclick="drillDomain('${DOMAIN_LABELS[dk].replace(/'/g, "\\'")}')">
+    // v4.99.80: data-tier attribute for CSS semantic mastery colouring
+    const tier = pct === null ? 'none' : pct >= 80 ? 'mastered' : pct >= 70 ? 'proficient' : pct >= 55 ? 'developing' : 'novice';
+    // v4.99.80: cert-aware display name via DOMAIN_LABELS (was hardcoded domainDisplay)
+    const displayName = (typeof DOMAIN_LABELS === 'object' && DOMAIN_LABELS[dk]) ? DOMAIN_LABELS[dk] : dk;
+    return `<button type="button" class="domain-cell" data-domain-idx="${idx + 1}" data-domain-key="${dk}" data-tier="${tier}" onclick="drillDomain('${displayName.replace(/'/g, "\\'")}')">
       <span class="dg-weight">${weightPct[dk]}% exam</span>
       <div class="dg-bar-col">
         <div class="dg-bar" style="height:${barH}%"></div>
       </div>
       <div class="dg-body">
         <div class="dg-num">Domain ${idx + 1}</div>
-        <div class="dg-name">${escHtml(domainDisplay[dk].split(' ').slice(1).join(' '))}</div>
+        <div class="dg-name">${escHtml(displayName)}</div>
         ${topicsHtml}
       </div>
       <div class="dg-pct-wrap">
