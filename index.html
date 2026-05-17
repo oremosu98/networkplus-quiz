@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=4.99.75">
+<link rel="stylesheet" href="dg-system.css?v=4.99.76">
 <script>
 // v4.87.0: Inline cert detection — runs synchronously before <body>
 // renders so the right banner shows on first paint (no Network+ → Security+
@@ -252,7 +252,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.75</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.76</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1944,9 +1944,9 @@
       <section class="card settings-section">
         <h3 class="settings-section-title">Manual export &amp; import</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">&#128229; Export Data</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">Export Data</button>
           <!-- v4.81.11: Import is a real <button> (Codex r9 #2). -->
-          <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="document.getElementById('import-file-input').click()" aria-label="Import data from JSON file">&#128228; Import Data</button>
+          <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="document.getElementById('import-file-input').click()" aria-label="Import data from JSON file">Import Data</button>
           <input type="file" id="import-file-input" accept=".json" class="is-hidden" onchange="importData(event)" tabindex="-1" aria-hidden="true" />
         </div>
         <p class="settings-section-hint">Exports all quiz history, streaks, drill stats, topology saves, and ACL state to a JSON file. Import merges into your current local data.</p>
@@ -1959,8 +1959,8 @@
           <div class="ab-empty">No automatic backups yet &mdash; one will be created on your next page load.</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="downloadAutoBackup()">&#128229; Download latest snapshot</button>
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="if(typeof _takeAutoBackup===&#39;function&#39;){_takeAutoBackup();renderAutoBackupList();}">&#128190; Snapshot now</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="downloadAutoBackup()">Download latest snapshot</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="if(typeof _takeAutoBackup===&#39;function&#39;){_takeAutoBackup();renderAutoBackupList();}">Snapshot now</button>
         </div>
       </section>
     </div>
@@ -1976,7 +1976,7 @@
       </div>
       <section class="card settings-section settings-section-danger">
         <h3 class="settings-section-title">Wrong Answers Bank</h3>
-        <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">&#128465; Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
+        <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
         <p class="settings-section-hint">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
       </section>
     </div>

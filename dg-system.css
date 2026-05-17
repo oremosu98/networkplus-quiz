@@ -1486,3 +1486,113 @@ html[data-theme] body #tb-lab-picker .tb-lab-category:not([open]) > .tb-lab-cate
 #tb-lab-picker .tb-lab-category:not([open]) > .tb-lab-category-head .tb-lab-category-count{display:none!important;}
 #tb-lab-picker .tb-lab-category:not([open]) > .tb-lab-category-head::after{content:'';flex:none;width:7px;height:7px;border-right:2px solid currentColor;border-top:2px solid currentColor;transform:rotate(45deg);color:var(--text-dim);}
 #tb-lab-picker .tb-lab-category-head{align-items:center;}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PER-SURFACE STRUCTURAL RESKIN · Batch 4l · SETTINGS  (#page-settings)
+   ════════════════════════════════════════════════════════════════════════
+   Applies the account-page-concept.html editorial SYSTEM (founder choice:
+   reskin the REAL settings surface, not build the net-new account product)
+   onto the existing #page-settings content — Study setup health / Exam date
+   / Daily goal / Data & backups / Danger zone. De-cards the .card sections
+   into hairline editorial sections + left-aligned label/value rows (mockup
+   .s-head/.s-no/.defrow/.subhead/.btn/.lnk language), keeps the existing
+   numbered §-group structure (it already matched the mockup's numbered
+   sections), maps the danger zone onto ONE scoped --dg-danger token used
+   ONLY for the destructive zone (the mockup's impeccable discipline). Pure
+   scoped CSS over the existing DOM + emitted render markup; every id/onclick
+   preserved; styles.css untouched (its #page-settings/.settings-* CSS guards
+   stay green) → no UAT migration. Theme-safe tokens (no var(--surface) for
+   subtle elevation — the v4.99.75 dark near-white lesson). 0 emoji · 0 hex
+   in colour values. */
+#page-settings{--t-1:12px;--t0:14px;--t1:18px;--t2:24px;--t3:34px;--dg-danger:oklch(0.66 0.17 25);}
+html[data-theme="light"] #page-settings{--dg-danger:oklch(0.52 0.19 25);}
+
+/* editorial page header — eyebrow + display + ghost back (mockup .eyebrow/h1).
+   Kill the legacy purple + decorative ::before glyph (the ACL-Builder catch). */
+html[data-theme] body #page-settings .ed-pagehead{background:none!important;border:0!important;box-shadow:none!important;padding:38px 0 0!important;}
+html[data-theme] body #page-settings .ed-pagehead-eyebrow{color:var(--accent)!important;font-size:var(--t-1)!important;font-weight:700!important;letter-spacing:0.18em!important;text-transform:uppercase!important;}
+#page-settings .ed-pagehead-eyebrow::before{content:none!important;display:none!important;}
+#page-settings .ed-pagehead::after,#page-settings .ed-pagehead::before{content:none!important;display:none!important;background:none!important;}
+html[data-theme] body #page-settings .ed-pagehead-display{font-size:var(--t3)!important;font-weight:800!important;letter-spacing:-0.025em!important;color:var(--text)!important;margin-top:10px!important;outline:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;background:none!important;}
+html[data-theme] body #page-settings .ed-pagehead-display em{color:var(--accent)!important;font-style:normal!important;background:none!important;-webkit-text-fill-color:var(--accent)!important;}
+html[data-theme] body #page-settings .ed-pagehead-back{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-dim)!important;font:600 var(--t-1)/1 Inter,sans-serif!important;padding:8px 12px!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .ed-pagehead-back:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+
+/* layout measure + section rhythm (mockup .wrap / section) */
+#page-settings .settings-layout{max-width:760px;margin:0 auto;padding:0 4px 96px;}
+#page-settings .settings-group{margin-top:52px;}
+#page-settings .settings-group[data-group]:first-of-type{margin-top:40px;}
+
+/* group head → mockup .s-head (baseline flex + hairline rule) */
+html[data-theme] body #page-settings .settings-group-head{display:flex!important;align-items:baseline!important;gap:14px!important;padding:0 0 14px!important;border-bottom:1px solid var(--dg-rule-soft)!important;background:none!important;margin:0!important;}
+html[data-theme] body #page-settings .settings-group-num{font-size:var(--t-1)!important;font-weight:700!important;letter-spacing:0.12em!important;text-transform:uppercase!important;color:var(--text-dim)!important;flex:none;}
+#page-settings .settings-group-titles{display:flex;flex-direction:column;gap:8px;min-width:0;}
+html[data-theme] body #page-settings .settings-group-h{font-size:var(--t2)!important;font-weight:800!important;letter-spacing:-0.02em!important;color:var(--text)!important;margin:0!important;}
+html[data-theme] body #page-settings .settings-group-h em{color:var(--accent)!important;font-style:normal!important;background:none!important;-webkit-text-fill-color:var(--accent)!important;}
+html[data-theme] body #page-settings .settings-group-sub{font-size:var(--t-1)!important;color:var(--text-dim)!important;margin:0!important;max-width:70ch;line-height:1.55;}
+
+/* de-card every .settings-section (mockup has NO inner cards) */
+html[data-theme] body #page-settings .settings-section,html[data-theme] body #page-settings .card.settings-section{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:18px 0 0!important;margin:0!important;}
+html[data-theme] body #page-settings .settings-section-title{font-size:10px!important;font-weight:700!important;letter-spacing:0.14em!important;text-transform:uppercase!important;color:var(--text-dim)!important;margin:6px 0 4px!important;}
+html[data-theme] body #page-settings .settings-health-eyebrow{color:var(--text-dim)!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important;}
+html[data-theme] body #page-settings .settings-section-hint{font-size:var(--t-1)!important;color:var(--text-dim)!important;max-width:70ch;line-height:1.55;}
+html[data-theme] body #page-settings .settings-section-hint strong{color:var(--text-mid)!important;font-weight:700;}
+
+/* §01 health card → de-carded hairline label/value rows (mockup .defrow);
+   icon glyph span hidden, tier conveyed by semantic value colour */
+#page-settings .settings-health-grid{display:block!important;}
+html[data-theme] body #page-settings .settings-health-row{display:flex!important;align-items:center!important;gap:16px!important;padding:14px 2px!important;border-bottom:1px solid var(--dg-rule-soft)!important;background:none!important;border-radius:0!important;}
+#page-settings .settings-health-grid .settings-health-row:last-child{border-bottom:0!important;}
+#page-settings .settings-health-icon{display:none!important;}
+html[data-theme] body #page-settings .settings-health-text{display:flex!important;align-items:baseline!important;gap:18px!important;flex-wrap:wrap!important;min-width:0;}
+html[data-theme] body #page-settings .settings-health-label{font-size:var(--t-1)!important;font-weight:700!important;letter-spacing:0.04em!important;text-transform:uppercase!important;color:var(--text-dim)!important;min-width:120px;}
+html[data-theme] body #page-settings .settings-health-value{font-size:var(--t0)!important;color:var(--text)!important;}
+html[data-theme] body #page-settings .settings-health-ok .settings-health-value{color:var(--green)!important;}
+html[data-theme] body #page-settings .settings-health-mid .settings-health-value{color:var(--accent)!important;}
+html[data-theme] body #page-settings .settings-health-warn .settings-health-value{color:var(--text-dim)!important;}
+
+/* exam-date row + daily-goal editor (shared exam chip already editorial via
+   the Batch-4 foundation — only tune the local container + the goal input) */
+#page-settings .settings-exam-row{margin:14px 0 0;}
+/* shared exam-date chip — hide the decorative 🎯 icon span + editorialise
+   (mirrors the Analytics v4.99.67 scoped treatment; scoped so Home/Analytics
+   keep their own; the icon is a <span> → CSS-hide = zero render change) */
+#page-settings .ana-ready-datechip-icon{display:none!important;}
+html[data-theme] body #page-settings .ana-ready-datechip,html[data-theme] body #page-settings .ana-exam-date-btn{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;box-shadow:none!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-settings .ana-ready-datechip:hover,html[data-theme] body #page-settings .ana-exam-date-btn:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+#page-settings .ana-ready-datechip-days,#page-settings .ana-ready-datechip-date{color:var(--text-mid)!important;}
+html[data-theme] body #page-settings .settings-daily-row{display:flex!important;align-items:center!important;gap:12px!important;flex-wrap:wrap!important;margin:14px 0 0!important;}
+html[data-theme] body #page-settings .settings-daily-input{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text)!important;font:600 var(--t0)/1 Inter,sans-serif!important;padding:11px 12px!important;width:96px!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .settings-daily-input:focus{border-color:var(--accent)!important;outline:none!important;}
+html[data-theme] body #page-settings .settings-daily-unit{font-size:var(--t-1)!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-settings .settings-daily-save{background:var(--accent)!important;color:var(--bg)!important;border:0!important;border-radius:9px!important;font:700 var(--t-1)/1 Inter,sans-serif!important;padding:12px 18px!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .settings-daily-save:hover{filter:brightness(1.06)!important;}
+#page-settings .settings-daily-presets{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0;}
+html[data-theme] body #page-settings .settings-daily-chip{background:none!important;border:1px solid var(--dg-rule-soft)!important;border-radius:7px!important;color:var(--text-dim)!important;font:600 var(--t-1)/1 Inter,sans-serif!important;padding:8px 13px!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .settings-daily-chip:hover{border-color:var(--border)!important;color:var(--text)!important;}
+html[data-theme] body #page-settings .settings-daily-chip.is-active{background:color-mix(in oklab,var(--accent) 14%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+
+/* §02 data & backups — editorial ghost buttons + de-carded backup rows */
+html[data-theme] body #page-settings .settings-section .btn.btn-ghost{background:none!important;border:1px solid var(--border)!important;border-radius:9px!important;color:var(--text-mid)!important;font-weight:600!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .settings-section .btn.btn-ghost:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+#page-settings .autobackup-list{margin:14px 0 0;}
+html[data-theme] body #page-settings .ab-empty{font-size:var(--t-1)!important;color:var(--text-dim)!important;padding:14px 2px!important;background:none!important;border:0!important;}
+html[data-theme] body #page-settings .ab-row{display:flex!important;align-items:center!important;gap:16px!important;padding:16px 2px!important;border-bottom:1px solid var(--dg-rule-soft)!important;background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .ab-row:last-child{border-bottom:0!important;}
+#page-settings .ab-row-info{flex:1;min-width:0;}
+html[data-theme] body #page-settings .ab-row-date{font-size:var(--t0)!important;font-weight:700!important;color:var(--text)!important;}
+html[data-theme] body #page-settings .ab-row-meta{margin-top:4px!important;font-size:11px!important;color:var(--text-dim)!important;font-family:var(--mono,ui-monospace,"SF Mono",Menlo,Consolas,monospace);}
+#page-settings .ab-row-actions{display:flex;gap:8px;flex:none;}
+html[data-theme] body #page-settings .ab-row-actions .btn{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-mid)!important;font:600 11px/1 Inter,sans-serif!important;padding:9px 13px!important;box-shadow:none!important;}
+html[data-theme] body #page-settings .ab-row-actions .btn:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+
+/* §03 danger zone → mockup .danger-zone (the ONLY --dg-danger surface) */
+html[data-theme] body #page-settings .settings-group-danger{margin-top:52px!important;border:1px solid color-mix(in oklab,var(--dg-danger) 40%,transparent)!important;border-radius:12px!important;padding:22px 24px!important;background:none!important;}
+html[data-theme] body #page-settings .settings-group-head-danger{border-bottom:0!important;padding-bottom:0!important;}
+html[data-theme] body #page-settings .settings-group-danger .settings-group-num{color:var(--dg-danger)!important;}
+html[data-theme] body #page-settings .settings-group-danger .settings-group-h{font-size:var(--t1)!important;color:var(--dg-danger)!important;}
+html[data-theme] body #page-settings .settings-group-danger .settings-group-h em{color:var(--dg-danger)!important;-webkit-text-fill-color:var(--dg-danger)!important;}
+html[data-theme] body #page-settings .settings-section-danger{padding-top:14px!important;}
+html[data-theme] body #page-settings #wrong-bank-clear{background:none!important;border:1px solid var(--dg-danger)!important;border-radius:10px!important;color:var(--dg-danger)!important;font-weight:700!important;box-shadow:none!important;}
+html[data-theme] body #page-settings #wrong-bank-clear:hover{background:color-mix(in oklab,var(--dg-danger) 12%,transparent)!important;border-color:var(--dg-danger)!important;color:var(--dg-danger)!important;}
+html[data-theme] body #page-settings .wrong-count-badge{background:color-mix(in oklab,var(--dg-danger) 16%,transparent)!important;color:var(--dg-danger)!important;border:0!important;font-weight:700;}

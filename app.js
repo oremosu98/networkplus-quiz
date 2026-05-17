@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.75
+// Network+ AI Quiz — app.js  v4.99.76
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.75';
+const APP_VERSION = '4.99.76';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -11208,8 +11208,8 @@ function renderAutoBackupList() {
       '<div class="ab-row-meta">' + b.keyCount + ' keys · ' + sizeKb + ' KB · ' + escHtml(b.version) + ' · captured ' + escHtml(captured) + '</div>' +
       '</div>' +
       '<div class="ab-row-actions">' +
-      '<button class="btn btn-sm btn-ghost" onclick="downloadAutoBackup(\'' + b.key + '\')" aria-label="Download this snapshot">📥 Download</button>' +
-      '<button class="btn btn-sm" onclick="restoreFromAutoBackup(\'' + b.key + '\')" aria-label="Restore from this snapshot">↩ Restore</button>' +
+      '<button class="btn btn-sm btn-ghost" onclick="downloadAutoBackup(\'' + b.key + '\')" aria-label="Download this snapshot">Download</button>' +
+      '<button class="btn btn-sm" onclick="restoreFromAutoBackup(\'' + b.key + '\')" aria-label="Restore from this snapshot">Restore</button>' +
       '</div>' +
       '</div>';
   }).join('');
