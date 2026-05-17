@@ -2,1375 +2,449 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CertAnvil — Cross-cert analytics concept</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Cross-cert analytics concept (dashboards · product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. v2: supersedes the pre-rebrand v1
+  (2026-05-09, old generic-purple accent + emoji + multi-state design doc)
+  by porting the page into the dg-system. That visual language is what this
+  rebrand replaces; its PRODUCT decisions are preserved below so the
+  thinking is not lost for the (gated) production port.
+
+  PRESERVED v1 DECISIONS (still hold):
+   A. This is a PAGE, not a modal. The dashboard chip routes here. Real
+      analytics needs scroll + side-by-side + drill-in; a modal fights all
+      three. (impeccable agrees: modal-as-first-thought is the anti-pattern.)
+   B. Lives on the cert-agnostic landing surface, not a per-cert subdomain.
+   C. Skill overlap is HAND-AUTHORED (a CROSS_CERT_OVERLAP table), not
+      string-similarity computed. The 65% / 85% values are the app's real
+      authored numbers, so they are shown; granular per-topic lists and
+      "hours saved" from v1 were speculative filler and are NOT reproduced
+      (honesty: no invented specifics).
+   D. "Readiness" reuses the cert-app 420-870 getReadinessScore() via RPC,
+      single source of truth. When the app has not computed it, this page
+      says so honestly, it does NOT invent a number (v1 showed fake "645"/
+      "820" readinesses; removed).
+   E. Recommendations = deterministic ranker, not LLM. Until real inputs
+      exist this page shows the honest "open the cert app to compute" state
+      instead of fabricated drills (v1's "Cryptography 60% acc" was filler).
+   F. Passed certs are unmissable: own group, pass-tinted score, top of list.
+   Deferred (v2+): predicted pass-date, study-time heatmap (descriptive,
+   not prescriptive, the CLAUDE.md trap), cross-cert exemplar compare,
+   team/org view (saas-gated).
+
+  Register : PRODUCT / dashboards. Every row stays prescriptive (Open /
+  Resume / Notify me). De-carded: status groups + hairline cert rows + a
+  thin readiness bar (v1 nested cards removed). One accent. 0 emoji. 0
+  em-dash. Same section scroll-reveal as the rest (emil cohesion). Exact
+  4-block dg-* cascade + flash-free bootstrap + toggle. auth-state/app.js
+  untouched, the port is gated-lane.
+-->
 <style>
-  :root {
-    --bg: #0a0a12;
-    --surface: #131320;
-    --surface-2: #1a1a2e;
-    --border: #2e2e48;
-    --accent: #7c6ff7;
-    --accent-light: #a99df9;
-    --text: #f0f0f8;
-    --text-mid: #b0b0cc;
-    --text-dim: #6b6b90;
+  html:root {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+    --maxw: 900px; --t-1: 12.5px; --t0: 15px; --t1: 19px; --t2: 24px; --t3: 36px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: light) {
+    html:root {
+      --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+      --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+      --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+      --dg-text-dim: oklch(0.50 0.013 280);
+      --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+      --dg-pass: oklch(0.50 0.15 150);
+    }
+  }
+  html[data-theme="dark"] {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+  }
+  html[data-theme="light"] {
+    --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+    --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+    --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+    --dg-text-dim: oklch(0.50 0.013 280);
+    --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+    --dg-pass: oklch(0.50 0.15 150);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #050510;
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 14px;
-    line-height: 1.55;
-    padding: 32px 16px 80px;
+    background: var(--dg-bg); color: var(--dg-text);
+    font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, sans-serif;
+    font-size: var(--t0); line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
-  .mockup-doc { max-width: 1180px; margin: 0 auto; }
-  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px dashed var(--border); }
-  .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
-  .doc-sub { color: var(--text-mid); font-size: 14px; margin-bottom: 16px; max-width: 800px; margin-left: auto; margin-right: auto; }
-  .doc-meta { display: inline-block; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 26px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px; border-bottom: 1px solid var(--dg-rule-soft); max-width: var(--maxw); margin: 0 auto; }
+  .brand { font-size: var(--t-1); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-text-2); }
+  .brand b { color: var(--dg-accent); }
+  .theme-toggle { background: none; border: 1px solid var(--dg-rule); border-radius: 8px; color: var(--dg-text-dim); font: 600 var(--t-1)/1 Inter, sans-serif; padding: 7px 11px; cursor: pointer; letter-spacing: 0.04em; transition: border-color 0.15s, color 0.15s; }
+  .theme-toggle:hover { border-color: var(--dg-accent); color: var(--dg-accent); }
 
-  .state-section { margin-bottom: 64px; }
-  .state-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-  .state-title { font-size: 18px; font-weight: 700; color: var(--accent-light); }
-  .state-tag { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-dim); }
-  .state-note { color: var(--text-mid); font-size: 13px; margin-bottom: 20px; max-width: 800px; }
-  .state-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 12px; }
+  main { padding: 38px 0 90px; }
+  .crumb { font-size: var(--t-1); color: var(--dg-text-dim); }
+  .crumb a { color: var(--dg-text-dim); text-decoration: none; }
+  .crumb a:hover { color: var(--dg-accent); }
+  .eyebrow { margin-top: 20px; font-size: var(--t-1); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dg-accent); display: flex; align-items: center; gap: 8px; }
+  .eyebrow svg { width: 14px; height: 14px; }
+  h1 { margin-top: 10px; font-size: var(--t3); font-weight: 800; letter-spacing: -0.025em; }
+  .sub { margin-top: 12px; font-size: var(--t1); color: var(--dg-text-2); max-width: 62ch; }
 
-  /* Light app surface — matches landing page aesthetic */
-  .app-mock {
-    background: #fafbff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px 28px;
-    color: #1a1a2e;
-  }
+  section { margin-top: 44px; }
+  .s-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--dg-rule); }
+  .s-head h2 { font-size: var(--t2); font-weight: 800; letter-spacing: -0.02em; }
+  .s-head .note { font-size: var(--t-1); color: var(--dg-text-dim); }
 
-  /* Page header */
-  .ana-page-head {
-    margin-bottom: 28px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #e5e7f0;
-  }
-  .ana-breadcrumb {
-    font-size: 12px;
-    color: #6b6b90;
-    margin-bottom: 6px;
-  }
-  .ana-breadcrumb a {
-    color: #5b4fdb;
-    text-decoration: none;
-  }
-  .ana-h1 {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: #1a1a2e;
-    margin-bottom: 6px;
-  }
-  .ana-h1-icon {
-    width: 36px; height: 36px;
-    border-radius: 9px;
-    display: grid; place-items: center;
-    background: linear-gradient(135deg, rgba(124,111,247,0.16), rgba(124,111,247,0.05));
-    border: 1px solid rgba(124,111,247,0.32);
-    font-size: 18px;
-  }
-  .ana-sub {
-    font-size: 13px;
-    color: #6b6b90;
-    max-width: 700px;
-  }
+  .grp { margin-top: 26px; }
+  .grp-h { display: flex; align-items: center; gap: 9px; font-size: var(--t-1); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dg-text-dim); }
+  .grp-h svg { width: 14px; height: 14px; flex: none; }
+  .grp-h.pass { color: var(--dg-pass); }
+  .grp-h.study { color: var(--dg-accent); }
+  .grp-h .cnt { color: var(--dg-text-dim); font-weight: 600; }
 
-  /* Section panel */
-  .ana-panel {
-    background: #fff;
-    border: 1px solid #e5e7f0;
-    border-radius: 12px;
-    padding: 22px;
-    margin-bottom: 18px;
-    box-shadow: 0 1px 2px rgba(20,20,40,.04);
-  }
-  .ana-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #eef0f7;
-  }
-  .ana-panel-title-row {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .ana-panel-title {
-    font-size: 15px; font-weight: 700; color: #1a1a2e;
-  }
-  .ana-panel-icon {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    display: grid; place-items: center;
-    background: rgba(124,111,247,0.08);
-    color: #5b4fdb;
-    font-size: 14px;
-  }
-  .ana-panel-help {
-    font-size: 12px; color: #6b6b90;
-  }
+  .cert { display: grid; grid-template-columns: 44px 1fr 230px auto; gap: 18px; align-items: center; padding: 18px 4px; border-bottom: 1px solid var(--dg-rule-soft); }
+  .cert:last-child { border-bottom: 0; }
+  .cmk { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font: 800 12px var(--mono); color: var(--dg-text-2); background: var(--dg-bg-2); border: 1px solid var(--dg-rule-soft); }
+  .c-main { min-width: 0; }
+  .c-name { font-size: var(--t0); font-weight: 700; color: var(--dg-text); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .c-desc { margin-top: 4px; font-size: var(--t-1); color: var(--dg-text-dim); max-width: 44ch; }
+  .tag { font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; }
+  .tag.pass { color: var(--dg-pass); background: color-mix(in oklab, var(--dg-pass) 16%, transparent); }
+  .tag.active { color: var(--dg-accent); background: color-mix(in oklab, var(--dg-accent) 16%, transparent); }
+  .tag.soon { color: var(--dg-text-dim); border: 1px solid var(--dg-rule); }
 
-  /* ── PANEL 1: Pass-readiness side-by-side ── */
-  .pr-list {
-    display: flex; flex-direction: column;
-    gap: 10px;
-  }
-  /* Status group header — visually separates passed from active from coming-soon */
-  .pr-group-h {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 18px;
-    margin-bottom: 4px;
-    font-size: 11px; font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #6b6b90;
-  }
-  .pr-group-h:first-child { margin-top: 0; }
-  .pr-group-h.passed { color: #16a34a; }
-  .pr-group-h.active { color: #5b4fdb; }
-  .pr-group-h-icon {
-    width: 18px; height: 18px;
-    border-radius: 5px;
-    display: grid; place-items: center;
-    background: rgba(124,111,247,0.12);
-    color: #5b4fdb;
-    font-size: 10px;
-    font-weight: 800;
-  }
-  .pr-group-h.passed .pr-group-h-icon { background: rgba(22,163,74,0.15); color: #16a34a; }
-  .pr-group-h.soon .pr-group-h-icon { background: #f4f5fa; color: #6b6b90; }
-  .pr-group-h-rule {
-    flex: 1 1 auto;
-    height: 1px;
-    background: #e5e7f0;
-  }
-  .pr-row {
-    display: grid;
-    grid-template-columns: 50px 1fr 200px 120px;
-    gap: 16px;
-    align-items: center;
-    padding: 16px 18px;
-    background: #f4f5fa;
-    border: 1px solid #e5e7f0;
-    border-radius: 10px;
-    transition: border-color .15s ease, background .15s ease;
-    position: relative;
-  }
-  .pr-row:hover { border-color: #5b4fdb; background: #fff; }
-  .pr-row.is-passed {
-    background: linear-gradient(135deg, rgba(22,163,74,0.06), rgba(22,163,74,0.01));
-    border-color: rgba(22,163,74,0.4);
-    border-left: 4px solid #16a34a;
-    padding-left: 15px;
-  }
-  /* Trophy/ribbon badge anchored top-right of passed rows */
-  .pr-row.is-passed::after {
-    content: '🏆 PASSED';
-    position: absolute;
-    top: -1px; right: -1px;
-    background: #16a34a;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    padding: 4px 10px;
-    border-radius: 0 9px 0 9px;
-  }
-  .pr-row.is-active {
-    background: #fff;
-    border-color: rgba(124,111,247,0.32);
-  }
-  .pr-row.is-active.is-warn {
-    border-color: rgba(245,158,11,0.4);
-  }
-  .pr-row.is-soon {
-    background: #f9fafd;
-    opacity: 0.85;
-  }
-  .pr-glyph {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    display: grid; place-items: center;
-    font-weight: 800; font-size: 13px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
-    border: 1px solid #2e2e48;
-  }
-  .pr-glyph-netplus { color: #a99df9; }
-  .pr-glyph-secplus { color: #fbbf24; }
-  .pr-glyph-az900 { color: #38bdf8; }
-  .pr-glyph-ccna { color: #34d399; }
-  .pr-glyph-aws { color: #fcd34d; }
-  .pr-glyph-az104 { color: #a99df9; }
-  .pr-info { line-height: 1.4; }
-  .pr-name {
-    font-size: 14px; font-weight: 700; color: #1a1a2e;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .pr-status-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 99px;
-  }
-  .pr-status-pill.passed { background: rgba(22,163,74,0.12); color: #16a34a; border: 1px solid rgba(22,163,74,0.32); }
-  .pr-status-pill.active { background: rgba(124,111,247,0.12); color: #5b4fdb; border: 1px solid rgba(124,111,247,0.32); }
-  .pr-status-pill.warn { background: rgba(245,158,11,0.12); color: #d97706; border: 1px solid rgba(245,158,11,0.4); }
-  .pr-status-pill.behind { background: rgba(239,68,68,0.12); color: #dc2626; border: 1px solid rgba(239,68,68,0.32); }
-  .pr-status-pill.soon { background: #f4f5fa; color: #6b6b90; border: 1px dashed #c7c9d8; }
-  .pr-coach {
-    font-size: 12px; color: #6b6b90;
-    margin-top: 4px;
-  }
-  .pr-readiness {
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .pr-readiness-label {
-    display: flex; justify-content: space-between;
-    font-size: 11px; color: #6b6b90;
-  }
-  .pr-readiness-score {
-    font-size: 13px; font-weight: 800; color: #1a1a2e;
-  }
-  .pr-readiness-score.green { color: #16a34a; }
-  .pr-readiness-score.warn { color: #d97706; }
-  .pr-readiness-bar {
-    position: relative;
-    height: 6px;
-    background: #e5e7f0;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .pr-readiness-fill {
-    position: absolute; top: 0; bottom: 0; left: 0;
-    background: linear-gradient(90deg, #5b4fdb, #7c6ff7);
-    border-radius: 3px;
-  }
-  .pr-readiness-fill.green {
-    background: linear-gradient(90deg, #16a34a, #22c55e);
-  }
-  .pr-readiness-fill.warn {
-    background: linear-gradient(90deg, #d97706, #f59e0b);
-  }
-  .pr-readiness-cutoff {
-    position: absolute; top: -2px; bottom: -2px;
-    width: 2px;
-    background: rgba(124,111,247,0.6);
-    border-radius: 1px;
-  }
-  .pr-readiness-meta {
-    display: flex; justify-content: space-between;
-    font-size: 10px; color: #8a8aac;
-  }
-  .pr-action {
-    text-align: right;
-  }
-  .pr-action-btn {
-    background: #5b4fdb;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: background .15s ease;
-  }
-  .pr-action-btn:hover { background: #4a3fc4; }
-  .pr-action-btn.ghost {
-    background: transparent;
-    color: #5b4fdb;
-    border: 1px solid #d6d8e6;
-  }
-  .pr-action-btn.ghost:hover { border-color: #5b4fdb; background: #f4f5fa; }
-  .pr-action-btn.disabled {
-    background: transparent;
-    color: #9b9bb6;
-    border: 1px dashed #d6d8e6;
-    cursor: not-allowed;
-  }
-  .pr-cutoff-legend {
-    margin-top: 12px;
-    font-size: 11px;
-    color: #6b6b90;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .pr-cutoff-legend-tick {
-    display: inline-block;
-    width: 2px; height: 12px;
-    background: rgba(124,111,247,0.6);
-    border-radius: 1px;
-  }
+  .read { min-width: 0; }
+  .read-top { display: flex; align-items: baseline; justify-content: space-between; font-size: var(--t-1); }
+  .read-top .lab { color: var(--dg-text-dim); letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+  .read-top .val { font-weight: 800; color: var(--dg-text); font-variant-numeric: tabular-nums; }
+  .read-top .val.pass { color: var(--dg-pass); }
+  .read-top .val.dim { color: var(--dg-text-dim); font-weight: 600; }
+  .rbar { margin-top: 7px; height: 4px; border-radius: 2px; background: var(--dg-rule-soft); overflow: hidden; }
+  .rfill { height: 100%; border-radius: 2px; }
+  .rfill.pass { background: var(--dg-pass); }
+  .rfill.acc { background: var(--dg-accent); }
+  .read-sub { margin-top: 6px; font-size: 11px; color: var(--dg-text-dim); font-variant-numeric: tabular-nums; }
+  .read-empty { font-size: 11.5px; color: var(--dg-text-dim); }
 
-  /* ── PANEL 2: Skill overlap ── */
-  .so-list {
-    display: flex; flex-direction: column;
-    gap: 12px;
-  }
-  .so-row {
-    background: #f4f5fa;
-    border: 1px solid #e5e7f0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .so-row-summary {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 14px;
-    align-items: center;
-    padding: 14px 18px;
-    cursor: pointer;
-    transition: background .15s ease;
-  }
-  .so-row-summary:hover { background: #fff; }
-  .so-pair {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .so-pair-glyph {
-    width: 30px; height: 30px;
-    border-radius: 7px;
-    display: grid; place-items: center;
-    font-weight: 800; font-size: 11px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
-    border: 1px solid #2e2e48;
-  }
-  .so-pair-arrow {
-    color: #6b6b90;
-    font-size: 14px;
-  }
-  .so-bar-wrap {
-    display: flex; align-items: center; gap: 12px;
-  }
-  .so-bar-track {
-    flex: 1 1 auto;
-    height: 8px;
-    background: #e5e7f0;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
-  .so-bar-fill {
-    position: absolute; top: 0; bottom: 0; left: 0;
-    background: linear-gradient(90deg, #5b4fdb, #7c6ff7);
-    border-radius: 4px;
-  }
-  .so-bar-pct {
-    font-size: 13px;
-    font-weight: 800;
-    color: #5b4fdb;
-    min-width: 50px;
-    text-align: right;
-  }
-  .so-meta {
-    font-size: 11px;
-    color: #6b6b90;
-    text-align: right;
-  }
-  .so-row-detail {
-    padding: 18px 18px;
-    background: #fff;
-    border-top: 1px solid #e5e7f0;
-    display: none;
-  }
-  .so-row.is-open .so-row-detail { display: block; }
-  .so-detail-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .so-detail-col {
-    background: #f4f5fa;
-    border: 1px solid #e5e7f0;
-    border-radius: 8px;
-    padding: 14px;
-  }
-  .so-detail-col-h {
-    font-size: 12px;
-    font-weight: 700;
-    color: #1a1a2e;
-    margin-bottom: 8px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .so-detail-col-list {
-    display: flex; flex-direction: column;
-    gap: 6px;
-  }
-  .so-topic {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px;
-    color: #4a4a6e;
-  }
-  .so-topic-pill {
-    width: 18px; height: 18px;
-    border-radius: 4px;
-    display: grid; place-items: center;
-    font-size: 9px; font-weight: 800;
-    flex-shrink: 0;
-  }
-  .so-topic-pill.mastered { background: rgba(22,163,74,0.15); color: #16a34a; }
-  .so-topic-pill.refresher { background: rgba(245,158,11,0.18); color: #d97706; }
-  .so-topic-pill.new { background: rgba(124,111,247,0.18); color: #5b4fdb; }
-  .so-callout {
-    background: rgba(124,111,247,0.08);
-    border-left: 3px solid #5b4fdb;
-    border-radius: 6px;
-    padding: 12px 14px;
-    font-size: 13px;
-    color: #4a4a6e;
-  }
-  .so-callout strong { color: #1a1a2e; }
-  .so-saving-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    margin-left: 8px;
-    font-size: 11px; font-weight: 700;
-    color: #16a34a;
-    background: rgba(22,163,74,0.1);
-    padding: 2px 8px;
-    border-radius: 99px;
-  }
+  .c-act { background: none; border: 0; cursor: pointer; font: 700 var(--t-1)/1 Inter, sans-serif; color: var(--dg-accent); white-space: nowrap; padding: 9px 2px; justify-self: end; }
+  .c-act:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .c-act.mute { color: var(--dg-text-dim); }
+  .c-act.mute:hover { color: var(--dg-accent); }
 
-  /* ── PANEL 3: What to study next ── */
-  .wn-hero {
-    background: linear-gradient(135deg, #5b4fdb, #7c6ff7);
-    color: #fff;
-    border-radius: 12px;
-    padding: 24px 26px;
-    margin-bottom: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-  .wn-hero::before {
-    content: '';
-    position: absolute; top: -50%; right: -10%;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%);
-    pointer-events: none;
-  }
-  .wn-hero-eyebrow {
-    font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 6px;
-  }
-  .wn-hero-title {
-    font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
-    margin-bottom: 16px;
-    position: relative;
-  }
-  .wn-hero-reasons {
-    display: flex; flex-direction: column;
-    gap: 8px;
-    margin-bottom: 18px;
-    position: relative;
-  }
-  .wn-reason {
-    display: flex; align-items: flex-start; gap: 10px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.92);
-  }
-  .wn-reason-icon {
-    flex-shrink: 0; margin-top: 2px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.75);
-  }
-  .wn-hero-cta {
-    background: #fff;
-    color: #5b4fdb;
-    font-size: 14px;
-    font-weight: 700;
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: background .15s ease;
-    position: relative;
-  }
-  .wn-hero-cta:hover { background: #f4f5fa; }
-  .wn-secondary-h {
-    font-size: 12px; font-weight: 700;
-    color: #6b6b90;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 10px;
-    margin-top: 18px;
-  }
-  .wn-secondary-list {
-    display: flex; flex-direction: column;
-    gap: 8px;
-  }
-  .wn-secondary-row {
-    display: grid;
-    grid-template-columns: 24px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 14px;
-    background: #f4f5fa;
-    border: 1px solid #e5e7f0;
-    border-radius: 8px;
-    transition: border-color .15s ease;
-  }
-  .wn-secondary-row:hover { border-color: #5b4fdb; background: #fff; }
-  .wn-rank {
-    width: 24px; height: 24px;
-    border-radius: 6px;
-    display: grid; place-items: center;
-    font-size: 11px; font-weight: 800;
-    background: #e5e7f0;
-    color: #6b6b90;
-  }
-  .wn-text { font-size: 13px; color: #1a1a2e; line-height: 1.4; }
-  .wn-text strong { font-weight: 700; }
-  .wn-text-meta { font-size: 11px; color: #6b6b90; margin-top: 2px; }
-  .wn-row-action {
-    color: #5b4fdb;
-    font-size: 12px; font-weight: 600;
-    text-decoration: none;
-  }
-  .wn-row-action:hover { text-decoration: underline; }
+  /* skill overlap · hairline rows, app-authored values only */
+  .ov { display: flex; align-items: center; gap: 16px; padding: 16px 4px; border-bottom: 1px solid var(--dg-rule-soft); }
+  .ov:last-child { border-bottom: 0; }
+  .ov-pair { display: flex; align-items: center; gap: 8px; font: 800 12px var(--mono); color: var(--dg-text-2); width: 96px; flex: none; }
+  .ov-pair .ar { color: var(--dg-text-dim); }
+  .ov-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--dg-rule-soft); overflow: hidden; }
+  .ov-fill { height: 100%; background: var(--dg-accent); border-radius: 2px; }
+  .ov-pct { font: 800 var(--t0)/1 Inter, sans-serif; color: var(--dg-text); font-variant-numeric: tabular-nums; width: 46px; text-align: right; flex: none; }
+  .ov-note { font-size: var(--t-1); color: var(--dg-text-dim); width: 200px; flex: none; }
 
-  /* Empty state */
-  .empty-state-card {
-    background: #fff;
-    border: 1px dashed #d6d8e6;
-    border-radius: 12px;
-    padding: 36px 24px;
-    text-align: center;
-  }
-  .empty-state-icon {
-    width: 56px; height: 56px;
-    margin: 0 auto 12px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
-    border: 1px solid #2e2e48;
-    color: #a99df9;
-    display: grid; place-items: center;
-    font-size: 24px;
-  }
-  .empty-state-title {
-    font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px;
-  }
-  .empty-state-body {
-    font-size: 13px; color: #6b6b90; margin-bottom: 18px; max-width: 460px; margin-left: auto; margin-right: auto;
-  }
-  .empty-state-cta {
-    display: inline-block;
-    background: #5b4fdb;
-    color: #fff;
-    font-size: 13px; font-weight: 600;
-    padding: 9px 18px;
-    border-radius: 8px;
-    text-decoration: none;
-  }
+  .nextline { margin-top: 24px; padding: 18px 18px; border: 1px solid var(--dg-rule); border-radius: 12px; background: var(--dg-bg-2); display: flex; align-items: center; gap: 14px; }
+  .nextline svg { width: 18px; height: 18px; color: var(--dg-accent); flex: none; }
+  .nextline .nl-t { font-size: var(--t0); font-weight: 700; color: var(--dg-text); }
+  .nextline .nl-d { font-size: var(--t-1); color: var(--dg-text-dim); margin-top: 2px; }
+  .nextline .nl-a { margin-left: auto; font: 700 var(--t-1)/1 Inter, sans-serif; color: var(--dg-accent); white-space: nowrap; }
 
-  /* Design notes section */
-  .design-notes {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-top: 32px;
+  html.reveal-on .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); }
+  html.reveal-on .reveal.is-in { opacity: 1; transform: none; }
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--dg-accent);color:var(--dg-accent-ink);font:700 var(--t-1)/1 Inter,sans-serif;border:0;border-radius:9px;padding:12px 18px;cursor:pointer;transition:filter 0.15s var(--ease),transform 0.12s var(--ease);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(0.97);}
+  .ovx{border-bottom:1px solid var(--dg-rule-soft);}
+  .ovx summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:92px 1fr 44px 1.1fr 16px;gap:16px;align-items:center;padding:16px 4px;}
+  .ovx summary::-webkit-details-marker{display:none;}
+  .ovx .ov-pair,.ovr .ov-pair{font:800 12px var(--mono);color:var(--dg-text-2);display:flex;align-items:center;gap:8px;}
+  .ovx .ar,.ovr .ar{color:var(--dg-text-dim);}
+  .ovx .ov-bar,.ovr .ov-bar{height:4px;border-radius:2px;background:var(--dg-rule-soft);overflow:hidden;}
+  .ovx .ov-fill,.ovr .ov-fill{display:block;height:100%;background:var(--dg-accent);border-radius:2px;}
+  .ovx .ov-pct,.ovr .ov-pct{font:800 var(--t0)/1 Inter,sans-serif;color:var(--dg-text);text-align:right;font-variant-numeric:tabular-nums;}
+  .ovx .ov-note,.ovr .ov-note{font-size:var(--t-1);color:var(--dg-text-dim);}
+  .ovx-chev{color:var(--dg-text-dim);transition:transform 0.18s var(--ease);justify-self:end;}
+  .ovx[open] .ovx-chev{transform:rotate(90deg);color:var(--dg-accent);}
+  .ovx-body{padding:4px 4px 22px;}
+  .ov2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .ovcol{border:1px solid var(--dg-rule-soft);border-radius:10px;padding:16px;}
+  .ovcol-h{font-size:var(--t-1);font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .ovcol-h svg{width:14px;height:14px;flex:none;}
+  .ovcol-h.m{color:var(--dg-pass);}
+  .ovcol-h.s{color:var(--dg-accent);}
+  .ovi{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--dg-text-2);padding:5px 0;}
+  .ovi svg{width:12px;height:12px;flex:none;margin-top:2px;}
+  .ovi.m svg{color:var(--dg-pass);}
+  .ovi.s svg{color:var(--dg-accent);}
+  .ovi.r svg{color:var(--dg-text-dim);}
+  .refr{margin-top:14px;}
+  .refr .ovcol-h{color:var(--dg-text-dim);}
+  .ovcall{margin-top:16px;padding:14px 16px;border:1px solid color-mix(in oklab,var(--dg-accent) 38%,transparent);border-radius:10px;font-size:var(--t-1);color:var(--dg-text-2);display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .ovsave{font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 40%,transparent);border-radius:999px;padding:4px 10px;white-space:nowrap;}
+  .ovr{display:grid;grid-template-columns:92px 1fr 44px 1.1fr;gap:16px;align-items:center;padding:16px 4px;border-bottom:1px solid var(--dg-rule-soft);}
+  .ovr:last-child{border-bottom:0;}
+  .topr{margin-top:18px;border:1px solid color-mix(in oklab,var(--dg-accent) 45%,transparent);border-radius:14px;padding:22px 24px;}
+  .topr-k{font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-accent);}
+  .topr-t{margin-top:9px;font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;}
+  .topr-b{margin-top:14px;display:flex;flex-direction:column;gap:9px;}
+  .topr-b div{font-size:var(--t-1);color:var(--dg-text-2);display:flex;gap:9px;}
+  .topr-b b{color:var(--dg-text);font-weight:700;}
+  .topr-b svg{width:14px;height:14px;flex:none;color:var(--dg-accent);margin-top:2px;}
+  .topr-a{margin-top:18px;}
+  .ohi{margin-top:24px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .ohi-r{margin-top:10px;display:flex;align-items:center;gap:14px;padding:16px 4px;border-top:1px solid var(--dg-rule-soft);}
+  .ohi-rank{width:24px;height:24px;border-radius:7px;flex:none;display:grid;place-items:center;font:800 11px Inter,sans-serif;color:var(--dg-text-dim);background:var(--dg-bg-2);}
+  .ohi-x{flex:1;min-width:0;}
+  .ohi-t{font-size:var(--t-1);font-weight:700;color:var(--dg-text);}
+  .ohi-d{font-size:11px;color:var(--dg-text-dim);margin-top:2px;}
+  @media (max-width:740px){.ovx summary{grid-template-columns:92px 1fr 16px;}.ovx summary .ov-bar,.ovx summary .ov-note{display:none;}.ovr{grid-template-columns:92px 1fr 44px;}.ovr .ov-note{display:none;}.ov2{grid-template-columns:1fr;}}
+  @media (prefers-reduced-motion: reduce){.ovx-chev{transition:none;}}
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; }
+    .theme-toggle, .c-act { transition: none; }
+    .cert, .ov { grid-template-columns: 44px 1fr; }
+    .read, .c-act, .ov-note { grid-column: 2; justify-self: start; }
   }
-  .design-notes h3 {
-    color: var(--accent-light);
-    font-size: 16px;
-    margin-bottom: 14px;
+  @media (max-width: 740px) {
+    .cert { grid-template-columns: 44px 1fr; }
+    .read { grid-column: 2; margin-top: 10px; }
+    .c-act { grid-column: 2; justify-self: start; }
+    .ov-note { display: none; }
   }
-  .design-notes h4 {
-    color: var(--text);
-    font-size: 13px;
-    margin-top: 16px;
-    margin-bottom: 6px;
-  }
-  .design-notes p, .design-notes li {
-    color: var(--text-mid);
-    font-size: 13px;
-    margin-bottom: 6px;
-  }
-  .design-notes code {
-    background: var(--surface-2);
-    padding: 1px 6px;
-    border-radius: 4px;
-    color: var(--accent-light);
-    font-family: 'SF Mono', monospace;
-    font-size: 12px;
-  }
-  .design-notes ul {
-    padding-left: 18px;
-    margin-bottom: 8px;
-  }
-  .decision-callout {
-    background: rgba(245,158,11,0.08);
-    border-left: 3px solid #f59e0b;
-    padding: 10px 14px;
-    border-radius: 6px;
-    margin: 12px 0;
-    color: var(--text-mid);
-    font-size: 13px;
-  }
-  .decision-callout strong { color: #fbbf24; }
 </style>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('certanvilTheme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          && 'IntersectionObserver' in window) {
+        document.documentElement.classList.add('reveal-on');
+      }
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
-<div class="mockup-doc">
-  <div class="doc-header">
-    <div class="doc-title">📊 Cross-cert analytics — concept mockup</div>
-    <p class="doc-sub">A real analytics dashboard, not a launcher. 5 states below show the page in different content scenarios so you can see how it scales from "just started" to "studying 4 certs at once."</p>
-    <span class="doc-meta">v1 · 2026-05-09 · pre-implementation · awaiting sign-off</span>
+
+<header class="bar">
+  <span class="brand">Cert<b>Anvil</b></span>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumb"><a href="#">Home</a> · <a href="#">Account</a> · Cross-cert analytics</nav>
+    <div class="eyebrow reveal">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 21V10M12 21V4M19 21v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Analytics
+    </div>
+    <h1 class="reveal">Cross-cert analytics</h1>
+    <p class="sub reveal">One dashboard for every cert you are studying. See where you have passed, where you are closest to passing, and where the same skills carry from one cert to the next.</p>
+
+    <section class="reveal">
+      <div class="s-head"><h2>Pass-readiness, side by side</h2><span class="note">Grouped by status</span></div>
+
+      <div class="grp">
+        <div class="grp-h pass">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Passed <span class="cnt">(1)</span>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">N+</span>
+          <span class="c-main">
+            <span class="c-name">Network+ <span class="tag pass">Passed</span></span>
+            <span class="c-desc">Maintenance practice. Keep your knowledge sharp for related certs.</span>
+          </span>
+          <span class="read">
+            <span class="read-top"><span class="lab">Score</span><span class="val pass">767 / 900</span></span>
+            <span class="rbar"><span class="rfill pass" style="width:100%"></span></span>
+            <span class="read-sub">Passed 2026-05-05 · cutoff 720</span>
+          </span>
+          <button class="c-act" type="button">Open &rarr;</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-h study">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Currently studying <span class="cnt">(1)</span>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">S+</span>
+          <span class="c-main">
+            <span class="c-name">Security+ <span class="tag active">Active</span></span>
+            <span class="c-desc">Builds on Network+. 65% knowledge transfer from Network+.</span>
+          </span>
+          <span class="read">
+            <span class="read-top"><span class="lab">Readiness</span><span class="val dim">not computed yet</span></span>
+            <span class="rbar"><span class="rfill acc" style="width:0%"></span></span>
+            <span class="read-sub">Open the cert app to compute · cutoff 750</span>
+          </span>
+          <button class="c-act" type="button">Resume &rarr;</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-h">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Coming soon <span class="cnt">(4)</span>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">AZ</span>
+          <span class="c-main">
+            <span class="c-name">Azure Fundamentals <span class="tag soon">Soon</span></span>
+            <span class="c-desc">Around 6 weeks ETA.</span>
+          </span>
+          <span class="read"><span class="read-empty">Readiness available once the pack ships · not started</span></span>
+          <button class="c-act mute" type="button">Notify me</button>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">CC</span>
+          <span class="c-main">
+            <span class="c-name">Cisco CCNA <span class="tag soon">Soon</span></span>
+            <span class="c-desc">Around 10 weeks ETA · 85% Network+ overlap.</span>
+          </span>
+          <span class="read"><span class="read-empty">Readiness available once the pack ships · not started</span></span>
+          <button class="c-act mute" type="button">Notify me</button>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">AW</span>
+          <span class="c-main">
+            <span class="c-name">AWS Solutions Architect <span class="tag soon">Soon</span></span>
+            <span class="c-desc">Cloud architecture track.</span>
+          </span>
+          <span class="read"><span class="read-empty">Readiness available once the pack ships · not started</span></span>
+          <button class="c-act mute" type="button">Notify me</button>
+        </div>
+        <div class="cert">
+          <span class="cmk" aria-hidden="true">AZ</span>
+          <span class="c-main">
+            <span class="c-name">Azure Administrator <span class="tag soon">Soon</span></span>
+            <span class="c-desc">AZ-104 administration track.</span>
+          </span>
+          <span class="read"><span class="read-empty">Readiness available once the pack ships · not started</span></span>
+          <button class="c-act mute" type="button">Notify me</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><h2>Skill overlap</h2><span class="note">Click any pair to see the specific topics</span></div>
+
+      <details class="ovx" open>
+        <summary>
+          <span class="ov-pair">N+ <span class="ar">&rarr;</span> CC</span>
+          <span class="ov-bar"><span class="ov-fill" style="width:85%"></span></span>
+          <span class="ov-pct">85%</span>
+          <span class="ov-note">CCNA fast-track candidate · 17 of 20 topics shared</span>
+          <svg class="ovx-chev" viewBox="0 0 24 24" fill="none" aria-hidden="true" width="14" height="14"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="ovx-body">
+          <div class="ov2">
+            <div class="ovcol">
+              <div class="ovcol-h m"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Already mastered, skip the re-study</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>OSI model and TCP/IP stack</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Subnetting and VLSM</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Switch operation and MAC tables</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>VLAN basics and 802.1Q tagging</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Static routing fundamentals</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>NAT and PAT</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>DHCP and DNS</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Common cabling and connectors</div>
+              <div class="ovi m"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>IPv4 and IPv6 addressing</div>
+            </div>
+            <div class="ovcol">
+              <div class="ovcol-h s"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Cisco CCNA-specific, your real focus</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>OSPF inter-area routing</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>BGP path selection</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>EtherChannel and Spanning Tree variants (RSTP, MST)</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Cisco IOS CLI mastery</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>SD-WAN architecture concepts</div>
+              <div class="ovi s"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Network programmability (REST APIs, JSON)</div>
+            </div>
+          </div>
+          <div class="refr">
+            <div class="ovcol-h"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Refresher needed</div>
+            <div class="ovi r"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>Wireless 802.11 standards expand to Cisco-specific extensions</div>
+            <div class="ovi r"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>QoS gets significantly deeper than the N+ surface-level coverage</div>
+          </div>
+          <div class="ovcall">
+            <span>Skip about 30 hours of N+ overlap. Real CCNA prep is OSPF and BGP depth plus IOS CLI fluency, that is where the new study time should go.</span>
+            <span class="ovsave">about 7 days of prep saved</span>
+          </div>
+        </div>
+      </details>
+
+      <div class="ovr"><span class="ov-pair">N+ <span class="ar">&rarr;</span> S+</span><span class="ov-bar"><span class="ov-fill" style="width:65%"></span></span><span class="ov-pct">65%</span><span class="ov-note">Strong feed into Sec+ · 8 of 12 topics shared</span></div>
+      <div class="ovr"><span class="ov-pair">N+ <span class="ar">&rarr;</span> AW</span><span class="ov-bar"><span class="ov-fill" style="width:40%"></span></span><span class="ov-pct">40%</span><span class="ov-note">Networking foundation transfers · 6 of 15 topics shared</span></div>
+      <div class="ovr"><span class="ov-pair">N+ <span class="ar">&rarr;</span> AZ</span><span class="ov-bar"><span class="ov-fill" style="width:35%"></span></span><span class="ov-pct">35%</span><span class="ov-note">Networking transfers to Azure · 5 of 14 topics shared</span></div>
+      <div class="ovr"><span class="ov-pair">S+ <span class="ar">&rarr;</span> AW</span><span class="ov-bar"><span class="ov-fill" style="width:35%"></span></span><span class="ov-pct">35%</span><span class="ov-note">Security concepts carry into cloud · 5 of 14 topics shared</span></div>
+      <div class="ovr"><span class="ov-pair">S+ <span class="ar">&rarr;</span> AZ</span><span class="ov-bar"><span class="ov-fill" style="width:30%"></span></span><span class="ov-pct">30%</span><span class="ov-note">Security and identity transfers · 4 of 13 topics shared</span></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><h2>What to study next</h2><span class="note">Recomputed after every quiz</span></div>
+      <div class="topr">
+        <div class="topr-k">Top recommendation</div>
+        <div class="topr-t">Take a 20-question quiz on Security+ to seed your readiness</div>
+        <div class="topr-b">
+          <div><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Network+ overlap</b> · about 28 hours of re-study skipped, focus on the new 35%</span></div>
+          <div><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>No exam booked yet</b> · set a date in the cert app to get pace targets</span></div>
+        </div>
+        <div class="topr-a"><button class="btn" type="button">Continue Security+ &rarr;</button></div>
+      </div>
+      <div class="ohi">Other high-impact options</div>
+      <div class="ohi-r">
+        <span class="ohi-rank">2</span>
+        <span class="ohi-x"><div class="ohi-t">Network+ refresher quiz</div><div class="ohi-d">Maintain streak · 5 min · keeps your passed cert sharp</div></span>
+        <button class="lnk" type="button">Start &rarr;</button>
+      </div>
+    </section>
   </div>
+</main>
 
-  <!-- ─────────────────────────────────────────
-       STATE 1: Current user reality
-       N+ passed, S+ active, others coming soon
-       ───────────────────────────────────────── -->
-  <div class="state-section">
-    <div class="state-header">
-      <div class="state-title">1 — Current user reality</div>
-      <div class="state-tag">state: 1-passed + 1-active</div>
-    </div>
-    <p class="state-note">What you see today: Network+ passed (767/900 on 2026-05-05), Security+ active with exam booked for 2026-07-29. Other certs coming soon. The dashboard adapts gracefully even at this 2-cert scale — already provides cross-cert value because Sec+ knowledge transfers from N+.</p>
+<script>
+  (function () {
+    if (!document.documentElement.classList.contains('reveal-on')) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.04 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  })();
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var mq = window.matchMedia('(prefers-color-scheme: light)');
+    function effective() {
+      var a = document.documentElement.getAttribute('data-theme');
+      if (a === 'light' || a === 'dark') return a;
+      return mq.matches ? 'light' : 'dark';
+    }
+    function label() { btn.textContent = effective() === 'light' ? 'Dark' : 'Light'; }
+    label();
+    btn.addEventListener('click', function () {
+      var next = effective() === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('certanvilTheme', next); } catch (e) {}
+      label();
+    });
+    mq.addEventListener('change', function () {
+      if (!document.documentElement.getAttribute('data-theme')) label();
+    });
+  })();
+</script>
 
-    <div class="app-mock">
-      <!-- Page header -->
-      <div class="ana-page-head">
-        <div class="ana-breadcrumb">
-          <a href="#">Dashboard</a> · <span>Cross-cert analytics</span>
-        </div>
-        <div class="ana-h1">
-          <div class="ana-h1-icon">📊</div>
-          Cross-cert analytics
-        </div>
-        <p class="ana-sub">One dashboard for every cert you're studying. See where you're closest to passing, which skills carry between certs, and what to focus on next.</p>
-      </div>
-
-      <!-- Panel 1: Pass-readiness side-by-side -->
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🎯</div>
-            <div class="ana-panel-title">Pass-readiness, side-by-side</div>
-          </div>
-          <span class="ana-panel-help">Real-time per cert</span>
-        </div>
-
-        <div class="pr-list">
-          <!-- Status group: PASSED -->
-          <div class="pr-group-h passed">
-            <span class="pr-group-h-icon">✓</span>
-            <span>Passed (1)</span>
-            <span class="pr-group-h-rule"></span>
-          </div>
-
-          <!-- Network+ : passed -->
-          <div class="pr-row is-passed">
-            <div class="pr-glyph pr-glyph-netplus">N+</div>
-            <div class="pr-info">
-              <div class="pr-name">
-                Network+
-                <span class="pr-status-pill passed">✓ Passed</span>
-              </div>
-              <div class="pr-coach">Maintenance practice — sharp, last quiz 2 days ago</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label">
-                <span>Score</span>
-                <span class="pr-readiness-score green">767/900</span>
-              </div>
-              <div class="pr-readiness-bar">
-                <div class="pr-readiness-fill green" style="width: 85%;"></div>
-                <div class="pr-readiness-cutoff" style="left: 80%;"></div>
-              </div>
-              <div class="pr-readiness-meta">
-                <span>Passed 4 days ago</span>
-                <span>Cutoff 720</span>
-              </div>
-            </div>
-            <div class="pr-action">
-              <button class="pr-action-btn ghost">Open →</button>
-            </div>
-          </div>
-
-          <!-- Status group: CURRENTLY STUDYING -->
-          <div class="pr-group-h active">
-            <span class="pr-group-h-icon">📚</span>
-            <span>Currently studying (1)</span>
-            <span class="pr-group-h-rule"></span>
-          </div>
-
-          <!-- Security+ : active, on track -->
-          <div class="pr-row is-active">
-            <div class="pr-glyph pr-glyph-secplus">S+</div>
-            <div class="pr-info">
-              <div class="pr-name">
-                Security+
-                <span class="pr-status-pill active">📚 Active</span>
-              </div>
-              <div class="pr-coach">On track. Weak: Cryptography (60% acc). Strong: Identity (88%).</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label">
-                <span>Readiness</span>
-                <span class="pr-readiness-score">645</span>
-              </div>
-              <div class="pr-readiness-bar">
-                <div class="pr-readiness-fill" style="width: 71%;"></div>
-                <div class="pr-readiness-cutoff" style="left: 80%;"></div>
-              </div>
-              <div class="pr-readiness-meta">
-                <span>📅 80 days to exam</span>
-                <span>Gap: 75 to pass</span>
-              </div>
-            </div>
-            <div class="pr-action">
-              <button class="pr-action-btn">Continue →</button>
-            </div>
-          </div>
-
-          <!-- Status group: COMING SOON -->
-          <div class="pr-group-h soon">
-            <span class="pr-group-h-icon">⏳</span>
-            <span>Coming soon (4)</span>
-            <span class="pr-group-h-rule"></span>
-          </div>
-
-          <!-- Coming soon : AZ-900 -->
-          <div class="pr-row is-soon">
-            <div class="pr-glyph pr-glyph-az900">AZ</div>
-            <div class="pr-info">
-              <div class="pr-name">
-                Azure Fundamentals
-                <span class="pr-status-pill soon">Coming soon</span>
-              </div>
-              <div class="pr-coach">~6 weeks until live · 90% overlap with AZ-104 if you do both</div>
-            </div>
-            <div class="pr-readiness" style="opacity: 0.4;">
-              <div class="pr-readiness-label">
-                <span>Readiness</span>
-                <span class="pr-readiness-score" style="color: #b0b0cc;">—</span>
-              </div>
-              <div class="pr-readiness-bar"></div>
-              <div class="pr-readiness-meta"><span>Not started</span></div>
-            </div>
-            <div class="pr-action">
-              <button class="pr-action-btn disabled">Notify me</button>
-            </div>
-          </div>
-
-          <!-- Coming soon : CCNA -->
-          <div class="pr-row is-soon">
-            <div class="pr-glyph pr-glyph-ccna">CC</div>
-            <div class="pr-info">
-              <div class="pr-name">
-                Cisco CCNA
-                <span class="pr-status-pill soon">Coming soon</span>
-              </div>
-              <div class="pr-coach">85% overlap with your passed Network+ — fast-track candidate</div>
-            </div>
-            <div class="pr-readiness" style="opacity: 0.4;">
-              <div class="pr-readiness-label">
-                <span>Readiness</span>
-                <span class="pr-readiness-score" style="color: #b0b0cc;">—</span>
-              </div>
-              <div class="pr-readiness-bar"></div>
-              <div class="pr-readiness-meta"><span>Not started</span></div>
-            </div>
-            <div class="pr-action">
-              <button class="pr-action-btn disabled">Notify me</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="pr-cutoff-legend">
-          <span class="pr-cutoff-legend-tick"></span>
-          <span>Vertical mark on each bar = exam pass cutoff for that cert</span>
-        </div>
-      </div>
-
-      <!-- Panel 2: Skill overlap -->
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🔗</div>
-            <div class="ana-panel-title">Skill overlap</div>
-          </div>
-          <span class="ana-panel-help">Click any pair to see specific topics</span>
-        </div>
-
-        <div class="so-list">
-          <!-- Network+ → Security+ — expanded by default in this state -->
-          <div class="so-row is-open">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-secplus">S+</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 65%;"></div></div>
-                <span class="so-bar-pct">65%</span>
-              </div>
-              <div class="so-meta">8 of 12 topics<br>shared</div>
-            </div>
-            <div class="so-row-detail">
-              <div class="so-detail-grid">
-                <div class="so-detail-col">
-                  <div class="so-detail-col-h">
-                    <span class="so-topic-pill mastered">✓</span>
-                    Already mastered (skip the re-study)
-                  </div>
-                  <div class="so-detail-col-list">
-                    <div class="so-topic"><span class="so-topic-pill mastered">✓</span>TCP/IP fundamentals (97% acc on N+)</div>
-                    <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Subnetting & IP addressing (89%)</div>
-                    <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Network security basics (84%)</div>
-                    <div class="so-topic"><span class="so-topic-pill mastered">✓</span>OSI model (91%)</div>
-                  </div>
-                </div>
-                <div class="so-detail-col">
-                  <div class="so-detail-col-h">
-                    <span class="so-topic-pill refresher">⏵</span>
-                    Refresher needed
-                  </div>
-                  <div class="so-detail-col-list">
-                    <div class="so-topic"><span class="so-topic-pill refresher">⏵</span>Wireless security (68% on N+ — Sec+ goes deeper)</div>
-                    <div class="so-topic"><span class="so-topic-pill refresher">⏵</span>VPN protocols (last touched 21 days ago)</div>
-                    <div class="so-topic"><span class="so-topic-pill new">+</span>Cloud networking (new in Sec+)</div>
-                    <div class="so-topic"><span class="so-topic-pill new">+</span>Risk management (new domain)</div>
-                  </div>
-                </div>
-              </div>
-              <div class="so-callout">
-                <strong>Estimated savings:</strong> ~28 hours of re-study skipped on Sec+ thanks to N+ knowledge.
-                <span class="so-saving-pill">≈ 6 days of prep saved</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Network+ → CCNA -->
-          <div class="so-row">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-ccna">CC</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 85%;"></div></div>
-                <span class="so-bar-pct">85%</span>
-              </div>
-              <div class="so-meta">CCNA fast-track<br>candidate</div>
-            </div>
-          </div>
-
-          <!-- Security+ → AWS SAA — speculative (Sec+ not passed yet) -->
-          <div class="so-row">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-secplus">S+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-aws">AW</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 35%;"></div></div>
-                <span class="so-bar-pct">35%</span>
-              </div>
-              <div class="so-meta">Security & IAM<br>carries forward</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel 3: What to study next -->
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">📈</div>
-            <div class="ana-panel-title">What to study next</div>
-          </div>
-          <span class="ana-panel-help">Recomputed after every quiz</span>
-        </div>
-
-        <div class="wn-hero">
-          <div class="wn-hero-eyebrow">🎯 Top recommendation</div>
-          <div class="wn-hero-title">Drill Cryptography for 45 minutes today</div>
-          <div class="wn-hero-reasons">
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>Weakest domain</strong> on Security+ — currently 60% accuracy vs 75% target</span>
-            </div>
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>22% of SY0-701</strong> exam weight — biggest single chunk of unguarded score</span>
-            </div>
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>No N+ overlap</strong> — pure new territory, can't lean on what you already know</span>
-            </div>
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>80 days to exam</strong> · ~45 min/day closes the gap if started today</span>
-            </div>
-          </div>
-          <button class="wn-hero-cta">Start Cryptography drill →</button>
-        </div>
-
-        <div class="wn-secondary-h">Other high-impact options</div>
-        <div class="wn-secondary-list">
-          <div class="wn-secondary-row">
-            <div class="wn-rank">2</div>
-            <div>
-              <div class="wn-text"><strong>Practice IAM</strong> (Sec+ Domain 4)</div>
-              <div class="wn-text-meta">Boost readiness +15 · 30 min · second-weakest domain</div>
-            </div>
-            <a href="#" class="wn-row-action">Start →</a>
-          </div>
-          <div class="wn-secondary-row">
-            <div class="wn-rank">3</div>
-            <div>
-              <div class="wn-text"><strong>Sec+ mock exam</strong></div>
-              <div class="wn-text-meta">Diagnostic before deep practice · 90 min · last full mock 14 days ago</div>
-            </div>
-            <a href="#" class="wn-row-action">Start →</a>
-          </div>
-          <div class="wn-secondary-row">
-            <div class="wn-rank">4</div>
-            <div>
-              <div class="wn-text"><strong>Network+ refresher quiz</strong> (10 Q)</div>
-              <div class="wn-text-meta">Maintain streak · 5 min · keeps your passed cert sharp</div>
-            </div>
-            <a href="#" class="wn-row-action">Start →</a>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ─────────────────────────────────────────
-       STATE 2: Power user vision
-       Multiple active certs simultaneously
-       ───────────────────────────────────────── -->
-  <div class="state-section">
-    <div class="state-header">
-      <div class="state-title">2 — Power user vision (4 active certs)</div>
-      <div class="state-tag">state: multi-active</div>
-    </div>
-    <p class="state-note">What the dashboard looks like 6+ months from now when you're juggling multiple certs simultaneously. The side-by-side becomes essential because there's real choice in where to spend the next hour.</p>
-
-    <div class="app-mock">
-      <div class="ana-page-head">
-        <div class="ana-breadcrumb">
-          <a href="#">Dashboard</a> · <span>Cross-cert analytics</span>
-        </div>
-        <div class="ana-h1">
-          <div class="ana-h1-icon">📊</div>
-          Cross-cert analytics
-        </div>
-        <p class="ana-sub">4 active certs · 1 passed · making real decisions about where the next hour goes.</p>
-      </div>
-
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🎯</div>
-            <div class="ana-panel-title">Pass-readiness, side-by-side</div>
-          </div>
-          <span class="ana-panel-help">Grouped by status, sorted by exam date</span>
-        </div>
-
-        <div class="pr-list">
-          <!-- Status group: PASSED — comes first so it's never visually buried -->
-          <div class="pr-group-h passed">
-            <span class="pr-group-h-icon">✓</span>
-            <span>Passed (1)</span>
-            <span class="pr-group-h-rule"></span>
-          </div>
-
-          <div class="pr-row is-passed">
-            <div class="pr-glyph pr-glyph-netplus">N+</div>
-            <div class="pr-info">
-              <div class="pr-name">Network+ <span class="pr-status-pill passed">✓ Passed</span></div>
-              <div class="pr-coach">Maintenance — quiz weekly to keep CCNA prep sharp</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Score</span><span class="pr-readiness-score green">767/900</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill green" style="width: 85%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>Passed 6 mo ago</span><span>Cutoff 720</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn ghost">Open →</button></div>
-          </div>
-
-          <!-- Status group: CURRENTLY STUDYING -->
-          <div class="pr-group-h active">
-            <span class="pr-group-h-icon">📚</span>
-            <span>Currently studying (4) · sorted by soonest exam</span>
-            <span class="pr-group-h-rule"></span>
-          </div>
-
-          <div class="pr-row is-active">
-            <div class="pr-glyph pr-glyph-secplus">S+</div>
-            <div class="pr-info">
-              <div class="pr-name">Security+ <span class="pr-status-pill active">📚 Exam ready</span></div>
-              <div class="pr-coach">Could sit it tomorrow. Weak: nothing under 80%.</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Readiness</span><span class="pr-readiness-score green">820</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill green" style="width: 91%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>📅 14 days to exam</span><span>+100 above cutoff</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn">Continue →</button></div>
-          </div>
-
-          <div class="pr-row is-active is-warn">
-            <div class="pr-glyph pr-glyph-ccna">CC</div>
-            <div class="pr-info">
-              <div class="pr-name">CCNA <span class="pr-status-pill warn">⚠ Behind schedule</span></div>
-              <div class="pr-coach">Need 50 min/day to make exam date. Weak: BGP, OSPF inter-area.</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Readiness</span><span class="pr-readiness-score warn">540</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill warn" style="width: 60%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>📅 60 days to exam</span><span>Gap: 180 to pass</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn">Continue →</button></div>
-          </div>
-
-          <div class="pr-row is-active">
-            <div class="pr-glyph pr-glyph-aws">AW</div>
-            <div class="pr-info">
-              <div class="pr-name">AWS Solutions Architect <span class="pr-status-pill active">📚 Active</span></div>
-              <div class="pr-coach">On track. Heavy lift: VPC architecture, IAM permission boundaries.</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Readiness</span><span class="pr-readiness-score">410</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill" style="width: 46%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>📅 90 days to exam</span><span>Gap: 310 to pass</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn ghost">Continue →</button></div>
-          </div>
-
-          <div class="pr-row is-active">
-            <div class="pr-glyph pr-glyph-az900">AZ</div>
-            <div class="pr-info">
-              <div class="pr-name">Azure AZ-900 <span class="pr-status-pill active">📚 Active</span></div>
-              <div class="pr-coach">Easiest of the four. AZ-104 unlocks 90% from this.</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Readiness</span><span class="pr-readiness-score">680</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill" style="width: 76%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>📅 No exam booked</span><span>Gap: 40 to pass</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn ghost">Continue →</button></div>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">📈</div>
-            <div class="ana-panel-title">What to study next</div>
-          </div>
-          <span class="ana-panel-help">Optimised across all 4 active certs</span>
-        </div>
-
-        <div class="wn-hero">
-          <div class="wn-hero-eyebrow">🎯 Top recommendation</div>
-          <div class="wn-hero-title">Block 90 minutes for CCNA — it's the bottleneck</div>
-          <div class="wn-hero-reasons">
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>Furthest from pass</strong> with shortest runway — 60 days, 180-pt gap</span>
-            </div>
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>Sec+ is exam-ready</strong> — additional study has diminishing returns</span>
-            </div>
-            <div class="wn-reason">
-              <span class="wn-reason-icon">▸</span>
-              <span><strong>AWS + AZ-900 have longer runways</strong> — can afford to wait until after CCNA</span>
-            </div>
-          </div>
-          <button class="wn-hero-cta">Open CCNA — drill weakest topic →</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─────────────────────────────────────────
-       STATE 3: Skill overlap deep dive
-       ───────────────────────────────────────── -->
-  <div class="state-section">
-    <div class="state-header">
-      <div class="state-title">3 — Skill overlap deep dive (single pair detail)</div>
-      <div class="state-tag">state: pair-expanded</div>
-    </div>
-    <p class="state-note">Clicking a cert pair on Panel 2 opens an inline detail showing exactly which topics overlap, what mastery transfers, what needs refreshing. Time-saving estimate at the bottom is the actionable hook.</p>
-
-    <div class="app-mock">
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🔗</div>
-            <div class="ana-panel-title">Network+ → CCNA — 85% overlap</div>
-          </div>
-          <a href="#" class="wn-row-action">← Back to all pairs</a>
-        </div>
-
-        <div class="so-row is-open" style="background: #fff; border-color: rgba(124,111,247,0.32);">
-          <div class="so-row-summary" style="background: rgba(124,111,247,0.04);">
-            <div class="so-pair">
-              <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-              <span class="so-pair-arrow">→</span>
-              <div class="so-pair-glyph pr-glyph-ccna">CC</div>
-            </div>
-            <div class="so-bar-wrap">
-              <div class="so-bar-track"><div class="so-bar-fill" style="width: 85%;"></div></div>
-              <span class="so-bar-pct">85%</span>
-            </div>
-            <div class="so-meta">17 of 20 topics<br>shared</div>
-          </div>
-
-          <div class="so-row-detail">
-            <div class="so-detail-grid">
-              <div class="so-detail-col">
-                <div class="so-detail-col-h">
-                  <span class="so-topic-pill mastered">✓</span>
-                  Mastered (skip ~30 hrs of re-study)
-                </div>
-                <div class="so-detail-col-list">
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>OSI model & TCP/IP stack</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Subnetting & VLSM</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Switch operation, MAC tables</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>VLAN basics, 802.1Q tagging</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Static routing fundamentals</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>NAT/PAT</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>DHCP, DNS</div>
-                  <div class="so-topic"><span class="so-topic-pill mastered">✓</span>Common cabling, connectors</div>
-                </div>
-              </div>
-              <div class="so-detail-col">
-                <div class="so-detail-col-h">
-                  <span class="so-topic-pill new">+</span>
-                  CCNA-specific (your real focus)
-                </div>
-                <div class="so-detail-col-list">
-                  <div class="so-topic"><span class="so-topic-pill new">+</span>OSPF inter-area routing</div>
-                  <div class="so-topic"><span class="so-topic-pill new">+</span>BGP path selection</div>
-                  <div class="so-topic"><span class="so-topic-pill new">+</span>EtherChannel & STP variants</div>
-                  <div class="so-topic"><span class="so-topic-pill new">+</span>Cisco IOS CLI mastery</div>
-                  <div class="so-topic"><span class="so-topic-pill new">+</span>SD-WAN concepts</div>
-                  <div class="so-topic"><span class="so-topic-pill refresher">⏵</span>QoS (touched in N+, deeper in CCNA)</div>
-                  <div class="so-topic"><span class="so-topic-pill refresher">⏵</span>Wireless 802.11 standards (Cisco-specific extensions)</div>
-                </div>
-              </div>
-            </div>
-            <div class="so-callout">
-              <strong>Estimated savings vs starting CCNA from scratch:</strong> ~30 hours of re-study skipped.
-              <span class="so-saving-pill">≈ 1 week of prep saved</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─────────────────────────────────────────
-       STATE 4: Empty state
-       ───────────────────────────────────────── -->
-  <div class="state-section">
-    <div class="state-header">
-      <div class="state-title">4 — Empty state (just signed up, no data)</div>
-      <div class="state-tag">state: zero-data</div>
-    </div>
-    <p class="state-note">Brand-new user with no cert progress yet. Cross-cert analytics is degenerate at this stage — gracefully degrades to a "start your first cert" CTA rather than a useless empty dashboard.</p>
-
-    <div class="app-mock">
-      <div class="ana-page-head">
-        <div class="ana-breadcrumb">
-          <a href="#">Dashboard</a> · <span>Cross-cert analytics</span>
-        </div>
-        <div class="ana-h1">
-          <div class="ana-h1-icon">📊</div>
-          Cross-cert analytics
-        </div>
-        <p class="ana-sub">One dashboard for every cert you're studying.</p>
-      </div>
-
-      <div class="empty-state-card">
-        <div class="empty-state-icon">📊</div>
-        <div class="empty-state-title">Pick your first cert to unlock this dashboard</div>
-        <div class="empty-state-body">Cross-cert analytics shows how skills carry between certs and where to focus next — once you've started studying. Pick a cert below and we'll start tracking from your first quiz.</div>
-        <a href="#" class="empty-state-cta">Browse certs →</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─────────────────────────────────────────
-       STATE 5: Single active cert (intermediate)
-       ───────────────────────────────────────── -->
-  <div class="state-section">
-    <div class="state-header">
-      <div class="state-title">5 — Single active cert (sparse but useful)</div>
-      <div class="state-tag">state: 1-active-only</div>
-    </div>
-    <p class="state-note">User is mid-study on one cert, hasn't passed anything yet. The page still has value — readiness gauge + per-domain weak spots + recommended drill — even without the cross-cert comparison angle. Skill overlap shows what would carry FORWARD if they pick a 2nd cert.</p>
-
-    <div class="app-mock">
-      <div class="ana-page-head">
-        <div class="ana-breadcrumb">
-          <a href="#">Dashboard</a> · <span>Cross-cert analytics</span>
-        </div>
-        <div class="ana-h1">
-          <div class="ana-h1-icon">📊</div>
-          Cross-cert analytics
-        </div>
-        <p class="ana-sub">Studying Network+ — your hub cert that opens up CCNA, AWS networking, and beyond.</p>
-      </div>
-
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🎯</div>
-            <div class="ana-panel-title">Pass-readiness</div>
-          </div>
-        </div>
-        <div class="pr-list">
-          <div class="pr-row is-active">
-            <div class="pr-glyph pr-glyph-netplus">N+</div>
-            <div class="pr-info">
-              <div class="pr-name">Network+ <span class="pr-status-pill active">📚 Active</span></div>
-              <div class="pr-coach">Steady pace · weak: Wireless, Cloud networking</div>
-            </div>
-            <div class="pr-readiness">
-              <div class="pr-readiness-label"><span>Readiness</span><span class="pr-readiness-score">580</span></div>
-              <div class="pr-readiness-bar"><div class="pr-readiness-fill" style="width: 64%;"></div><div class="pr-readiness-cutoff" style="left: 80%;"></div></div>
-              <div class="pr-readiness-meta"><span>📅 No exam booked</span><span>Gap: 140 to pass</span></div>
-            </div>
-            <div class="pr-action"><button class="pr-action-btn">Continue →</button></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="ana-panel">
-        <div class="ana-panel-head">
-          <div class="ana-panel-title-row">
-            <div class="ana-panel-icon">🔗</div>
-            <div class="ana-panel-title">Where Network+ knowledge will carry forward</div>
-          </div>
-          <span class="ana-panel-help">Bonus value — what your study unlocks</span>
-        </div>
-        <div class="so-list">
-          <div class="so-row">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-ccna">CC</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 85%;"></div></div>
-                <span class="so-bar-pct">85%</span>
-              </div>
-              <div class="so-meta">85% of CCNA<br>builds on N+</div>
-            </div>
-          </div>
-          <div class="so-row">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-secplus">S+</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 65%;"></div></div>
-                <span class="so-bar-pct">65%</span>
-              </div>
-              <div class="so-meta">Strong feed<br>into Sec+</div>
-            </div>
-          </div>
-          <div class="so-row">
-            <div class="so-row-summary">
-              <div class="so-pair">
-                <div class="so-pair-glyph pr-glyph-netplus">N+</div>
-                <span class="so-pair-arrow">→</span>
-                <div class="so-pair-glyph pr-glyph-aws">AW</div>
-              </div>
-              <div class="so-bar-wrap">
-                <div class="so-bar-track"><div class="so-bar-fill" style="width: 40%;"></div></div>
-                <span class="so-bar-pct">40%</span>
-              </div>
-              <div class="so-meta">VPC + IAM<br>networking only</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─────────────────────────────────────────
-       Design notes / decisions to validate
-       ───────────────────────────────────────── -->
-  <div class="design-notes">
-    <h3>🧱 Design decisions to sign off (or push back)</h3>
-
-    <div class="decision-callout">
-      <strong>Decision A — Page, not modal.</strong> Move from the current launcher modal to a real page at <code>certanvil.com/analytics/cross-cert</code>. Modal stays as the entry chip on the dashboard but routes here. Rationale: real analytics needs scrolling, comparison side-by-side, and hover/click into details. Modals fight all three.
-    </div>
-
-    <div class="decision-callout">
-      <strong>Decision B — Lives on landing (certanvil.com), not cert app subdomain.</strong> Cross-cert is umbrella-by-definition; landing is the cert-agnostic surface. Cert app is per-cert. Going to <code>networkplus.certanvil.com</code> for cross-cert analytics doesn't make sense.
-    </div>
-
-    <div class="decision-callout">
-      <strong>Decision C — Skill overlap is hand-authored, not computed.</strong> A <code>CROSS_CERT_OVERLAP</code> table lives in <code>landing/lib/</code>. ~15 cert-pair entries (C(6,2)=15 pairs across 6 certs). 1 Saturday's work to populate, gives high signal. Computed similarity from topic-name strings gets it wrong — "Wireless" vs "Wireless security" vs "802.11" are the same concept but different strings.
-    </div>
-
-    <div class="decision-callout">
-      <strong>Decision D — "Readiness" reuses cert-app's existing 420–870 scaled score</strong> (<code>getReadinessScore()</code> at app.js:3066). Pulled from each cert's quiz_history via Supabase RPC. Single source of truth across cert app + landing.
-    </div>
-
-    <div class="decision-callout">
-      <strong>Decision E — Recommendations are a deterministic ranker, not LLM-generated.</strong> Inputs: per-cert readiness, days to exam, weakest domain, exam-weight × accuracy gap, last-practiced staleness. Output: ranked list of next actions. Same prescriptive philosophy as Subnet Trainer dashboard. LLM gets it wrong on math; deterministic doesn't.
-    </div>
-
-    <div class="decision-callout">
-      <strong>Decision F — Passed certs are visually unmissable.</strong> Three layered treatments so there's zero ambiguity: (1) <code>Passed</code> rows are in their own group at the top of the side-by-side panel with a green divider header (<code>✓ Passed (N)</code>); (2) each passed row gets a left-border accent + green-tinted background + a corner badge (<code>🏆 PASSED</code>) anchored top-right; (3) the readiness "score" reads as final scaled score (e.g. <code>767/900</code> in green) rather than the in-progress readiness number. Pulled from <code>profile.metadata.cert_results.&lt;cert&gt;.status === 'passed'</code> — single source of truth across cert tiles, /account exam-results, and this dashboard.
-    </div>
-
-    <h4>What's NOT in v1 (defer to v2 if there's appetite)</h4>
-    <ul>
-      <li><strong>Predicted pass date</strong> — "if you keep this pace, you'll be exam-ready on May 28." Needs more historical pace data than current users have.</li>
-      <li><strong>Heatmap of study time per cert per day</strong> — interesting but not action-driving; classic "descriptive without action" trap (per Analytics Prescriptive principle in CLAUDE.md).</li>
-      <li><strong>Cross-cert exemplar comparison</strong> — "you got SQL injection wrong on Sec+; here's the related pattern in AWS SAA." High value but requires per-question analysis pipeline; v3+ work.</li>
-      <li><strong>Team/org view</strong> — collaborative cross-cert dashboards. Saas-gated to post-launch when there are real teams.</li>
-    </ul>
-
-    <h4>Implementation phases (post-mockup signoff)</h4>
-    <ul>
-      <li><strong>Phase A</strong> — Skeleton page + Panel 1 (pass-readiness side-by-side). Reuses existing readiness score. ~1 day mockup-to-shipped.</li>
-      <li><strong>Phase B</strong> — Panel 2 skill overlap. Author the <code>CROSS_CERT_OVERLAP</code> table (Saturday work). ~1.5 days.</li>
-      <li><strong>Phase C</strong> — Panel 3 next-up recommender. Deterministic ranker w/ test fixtures. ~1.5 days.</li>
-      <li><strong>Phase D</strong> — Replace existing modal: launcher chip on dashboard now routes to the new page; modal becomes a light teaser preview. ~half day.</li>
-    </ul>
-    <p>Total: ~4-5 feature-days across 2 sprint weeks. Slots into Mon/Wed/Fri feature lanes.</p>
-
-    <h4>Open questions for sign-off</h4>
-    <ul>
-      <li>Is "Cross-cert analytics" the right name, or does <em>Cert overview</em> / <em>Study dashboard</em> / something else feel cleaner?</li>
-      <li>Does the "hours saved" estimate on skill overlap feel real, or does it need to be backed by something concrete (vs gut-feel)?</li>
-      <li>For empty state — should the user be auto-enrolled in N+ (most-popular cert) or pick from the cert grid?</li>
-      <li>Power-user state shows 4+ active certs sorted by exam date. Acceptable, or should we group by status (active / soon / passed) with sub-sort by date?</li>
-    </ul>
-  </div>
-</div>
 </body>
 </html>

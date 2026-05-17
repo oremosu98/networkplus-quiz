@@ -5944,8 +5944,14 @@ test('v4.54.3 JS: finish() writes scaled score via animateCount to #r-v2-score',
   /function finish\([\s\S]{0,4000}animateCount\('r-v2-score'/.test(js));
 test('v4.54.3 JS: scaled-score formula 100 + (pct/100) * 800',
   /const scaled\s*=\s*Math\.max\(100,\s*Math\.min\(900,\s*Math\.round\(100 \+ \(pct \/ 100\) \* 800\)\)\)/.test(js));
-test('v4.54.3 JS: passed = scaled >= 720',
-  /const passed\s*=\s*scaled\s*>=\s*720/.test(js));
+test('v4.54.3 JS: passed = scaled >= EXAM_PASS_SCORE (cert-aware, was hardcoded 720 pre-v4.99.82)',
+  /const passed\s*=\s*scaled\s*>=\s*EXAM_PASS_SCORE/.test(js));
+test('v4.99.82 tombstone: finish() must NOT hardcode 720 in verdict/gap (use EXAM_PASS_SCORE)',
+  !/Pass mark cleared.*\b720\b/.test(js) && !/const gap = 720/.test(js));
+test('v4.99.82 tombstone: submitExam result msg must NOT hardcode 720 (use EXAM_PASS_SCORE)',
+  !/above the 720 pass mark/.test(js));
+test('v4.99.82 tombstone: milestone descs must NOT hardcode 720 (use EXAM_PASS_SCORE)',
+  !/desc:\s*'Score 720/.test(js) && !/desc:\s*'Reach a readiness score of 720/.test(js));
 test('v4.54.3 JS: verdict adds pass/fail class + text',
   /function finish\([\s\S]{0,5500}results-v2-verdict-pass[\s\S]{0,300}results-v2-verdict-fail/.test(js));
 test('v4.54.3 JS: headlines use HTML italic em (not plain text)',

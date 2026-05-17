@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Attack to Mitigation drill concept (cert-app · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Cert-app drill "Attack -> mitigation"
+  active-question UI, restyled faithfully from the founder's capture.
+  Register : PRODUCT. De-carded: heavy option boxes -> hairline functional
+  choice tiles (a quiz needs distinct targets; impeccable bans decorative
+  card grids, not selectable answers). emoji/stars -> line icons + pips.
+  MOTION : emil frequency rule. A drill question is answered then replaced
+  many times per session, so NO per-question reveal (that is the AI-tell).
+  Calm: option hover tint + active scale press + selected state only.
+  HONESTY : exact question mirrored (Shoulder surfing, the 4 defenses,
+  SY0-701 Domain 2.2, score 0/0, Q 1/10). Em-dash recomposed, arrow kept.
+  0 emoji · 0 hex · 0 em-dash · index/app/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--t-1:12px;--t0:14.5px;--t1:18px;--t2:23px;--t3:32px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;}
+  .side{border-right:1px solid var(--dg-rule-soft);display:flex;flex-direction:column;padding:20px 0;}
+  .side-brand{padding:0 20px 18px;border-bottom:1px solid var(--dg-rule-soft);}
+  .sb-name{font-size:var(--t-1);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-2);}
+  .sb-name b{color:var(--dg-accent);}
+  .sb-cert{margin-top:6px;font-size:11px;color:var(--dg-text-dim);font-family:var(--mono);}
+  .nav-grp{padding:18px 12px 4px;}
+  .nav-grp-h{padding:0 8px 8px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .nav-i{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;text-decoration:none;color:var(--dg-text-2);font-size:var(--t-1);font-weight:600;transition:background 0.12s ease,color 0.12s ease;}
+  .nav-i svg{width:16px;height:16px;color:var(--dg-text-dim);flex:none;transition:color 0.12s ease;}
+  .nav-i:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .nav-i.on{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 12%,transparent);}
+  .nav-i.on svg{color:var(--dg-accent);}
+  .side-foot{margin-top:auto;padding:16px 20px 0;}
+  .streak{display:flex;align-items:center;gap:9px;}
+  .streak svg{width:16px;height:16px;color:var(--dg-accent);flex:none;}
+  .streak b{font-size:var(--t0);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .streak span{font-size:11px;color:var(--dg-text-dim);}
+  .envchip{margin-top:14px;display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--dg-accent);border:1px solid color-mix(in oklab,var(--dg-accent) 50%,transparent);border-radius:5px;padding:3px 7px;}
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid var(--dg-rule-soft);}
+  .top-l{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;color:var(--dg-text-dim);}
+  .top-r{display:flex;align-items:center;gap:13px;}
+  .chip-pro{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:3px 7px;}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .pill{display:flex;align-items:center;gap:9px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:5px 11px 5px 5px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:170px;}
+  .avatar{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .content{padding:32px 32px 90px;max-width:760px;margin:0 auto;width:100%;}
+  .head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .eyebrow{font-size:var(--t-1);font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{margin-top:10px;font-size:var(--t3);font-weight:800;letter-spacing:-0.025em;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+  .hstreak{display:flex;align-items:center;gap:6px;font:800 var(--t-1)/1 Inter,sans-serif;color:var(--dg-accent);border:1px solid color-mix(in oklab,var(--dg-accent) 45%,transparent);border-radius:999px;padding:6px 11px;}
+  .hstreak svg{width:13px;height:13px;}
+  .rule{margin-top:14px;height:1px;background:var(--dg-rule);}
+  .tabs{margin-top:18px;display:flex;gap:6px;}
+  .tab{background:none;border:1px solid transparent;border-radius:8px;color:var(--dg-text-dim);font:700 var(--t-1)/1 Inter,sans-serif;padding:10px 14px;cursor:pointer;letter-spacing:0.02em;}
+  .tab.on{color:var(--dg-accent);border-color:var(--dg-rule);background:var(--dg-bg-2);}
+  .tab:hover{color:var(--dg-text);}
+  .scorebar{margin-top:20px;display:flex;gap:30px;align-items:center;padding:14px 18px;border:1px solid var(--dg-rule-soft);border-radius:10px;font-size:var(--t-1);}
+  .scorebar .lab{color:var(--dg-text-dim);letter-spacing:0.1em;text-transform:uppercase;font-size:10px;margin-right:9px;}
+  .scorebar b{color:var(--dg-text);font-weight:800;font-variant-numeric:tabular-nums;}
+  .scorebar .fl{color:var(--dg-accent);}
+  .qwrap{margin-top:26px;border:1px solid var(--dg-rule);border-radius:16px;padding:26px;}
+  .q-eyebrow{text-align:center;font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-accent);}
+  .prompt{margin-top:18px;display:flex;align-items:center;gap:16px;padding:20px 22px;border:1px solid color-mix(in oklab,var(--dg-accent) 38%,transparent);border-radius:12px;background:color-mix(in oklab,var(--dg-accent) 7%,transparent);}
+  .prompt svg{width:30px;height:30px;color:var(--dg-accent);flex:none;}
+  .p-t{font-size:var(--t1);font-weight:800;letter-spacing:-0.01em;}
+  .p-k{margin-top:4px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .p-m{margin-top:7px;font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:9px;}
+  .pips{display:inline-flex;gap:4px;}
+  .pips i{width:7px;height:7px;border-radius:50%;background:var(--dg-rule);}
+  .pips i.on{background:var(--dg-accent);}
+  .cue{margin-top:22px;text-align:center;font-size:var(--t-1);color:var(--dg-text-dim);display:flex;align-items:center;justify-content:center;gap:7px;}
+  .cue svg{width:13px;height:13px;}
+  .opts{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .opt{text-align:left;background:none;border:1px solid var(--dg-rule);border-radius:11px;padding:16px 18px;cursor:pointer;transition:border-color 0.12s ease,background 0.12s ease,transform 0.1s var(--ease);}
+  .opt:hover{border-color:var(--dg-accent);background:var(--dg-bg-2);}
+  .opt:active{transform:scale(0.985);}
+  .opt.sel{border-color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 10%,transparent);}
+  .opt-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .opt-d{margin-top:4px;font-size:11px;color:var(--dg-text-dim);}
+  .qfoot{margin-top:22px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dg-text-dim);}
+  .qfoot .d{display:flex;align-items:center;gap:8px;}
+  @media (prefers-reduced-motion: reduce){.theme-toggle,.nav-i,.tab,.opt{transition:none;}}
+  @media (max-width:760px){.app{grid-template-columns:1fr;}.side{display:none;}.opts{grid-template-columns:1fr;}.scorebar{gap:18px;flex-wrap:wrap;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="side-brand"><div class="sb-name">Cert<b>Anvil</b></div><div class="sb-cert">Security+ · SY0-701</div></div>
+    <nav class="nav-grp"><div class="nav-grp-h">Practice</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Home</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Progress</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Analytics</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>IR War Room</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Phishing Triage</a>
+    </nav>
+    <nav class="nav-grp"><div class="nav-grp-h">Drills</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h9l5 5v11H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Acronym Blitz</a>
+      <a class="nav-i on" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Attack-to-Mitigation</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h7v7H4zM13 11h7v7h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Control Type Sorter</a>
+    </nav>
+    <nav class="nav-grp"><div class="nav-grp-h">Account</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 .1-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="streak"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c1 3-1 5-1 7a3 3 0 0 0 6 0c0-1 0-2-1-3 3 2 5 5 5 8a9 9 0 1 1-18 0c0-4 3-7 5-9 1 2 2 3 4 3 0-2 0-4 1-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><b>4</b><span>day streak · longest 4</span></div>
+      <span class="envchip">PROD</span>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top"><span class="top-l">Attack to Mitigation</span><span class="top-r"><span class="chip-pro">Pro</span><button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button><span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span></span></header>
+    <div class="content">
+      <div class="head-row">
+        <div><div class="eyebrow">Drill · Security+</div><h1>Attack &rarr; <i>mitigation.</i></h1></div>
+        <span class="hstreak"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c1 3-1 5-1 7a3 3 0 0 0 6 0c0-1 0-2-1-3 3 2 5 5 5 8a9 9 0 1 1-18 0c0-4 3-7 5-9 1 2 2 3 4 3 0-2 0-4 1-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>0</span>
+      </div>
+      <div class="rule"></div>
+      <div class="tabs"><button class="tab on" type="button">Practice</button><button class="tab" type="button">Lessons</button><button class="tab" type="button">Dashboard</button></div>
+      <div class="scorebar"><span><span class="lab">Score</span><b>0 / 0</b></span><span><span class="lab">Streak</span><b class="fl">0</b></span><span><span class="lab">Question</span><b>1 / 10</b></span></div>
+
+      <div class="qwrap">
+        <div class="q-eyebrow">Attack &rarr; mitigation</div>
+        <div class="prompt">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span><div class="p-t">Shoulder surfing</div><div class="p-k">Social engineering</div><div class="p-m">SY0-701 · Domain 2.2 · <span class="pips"><i class="on"></i><i></i><i></i></span> low</div></span>
+        </div>
+        <div class="cue"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Pick the right defense</div>
+        <div class="opts">
+          <button class="opt" type="button"><div class="opt-t">Stronger Wi-Fi</div><div class="opt-d">Wireless security</div></button>
+          <button class="opt" type="button"><div class="opt-t">Email filtering</div><div class="opt-d">Inbox protection</div></button>
+          <button class="opt sel" type="button"><div class="opt-t">Privacy screen filters and clean-desk policy</div><div class="opt-d">Visual disclosure control</div></button>
+          <button class="opt" type="button"><div class="opt-t">Disk encryption</div><div class="opt-d">Data at rest</div></button>
+        </div>
+        <div class="qfoot"><span class="d">Difficulty: <span class="pips"><i class="on"></i><i></i><i></i></span></span><span>Q 1 / 10</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>(function(){var b=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+(function(){document.querySelectorAll('.opt').forEach(function(o){o.addEventListener('click',function(){document.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');});o.classList.add('sel');});});})();</script>
+</body>
+</html>

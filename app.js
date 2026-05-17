@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.81
+// Network+ AI Quiz — app.js  v4.99.84
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.81';
+const APP_VERSION = '4.99.84';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -5997,7 +5997,7 @@ function _recomputeQuizCounters() {
   const scoreEl = document.getElementById('live-score');
   const streakEl = document.getElementById('live-streak');
   if (scoreEl) scoreEl.textContent = `${score} / ${answered}`;
-  if (streakEl) streakEl.textContent = `\u{1F525} ${streak}`;
+  if (streakEl) streakEl.textContent = `Streak ${streak}`;
 }
 
 // v4.82.0: enable/disable prev/next arrows based on current position.
@@ -6366,7 +6366,7 @@ function showExamShortfallBanner(actualCount) {
   banner.setAttribute('role', 'status');
   banner.innerHTML = `
     <span class="exam-shortfall-icon" aria-hidden="true">\u2139\uFE0F</span>
-    <span class="exam-shortfall-text">This exam has <strong>${actualCount} of ${EXAM_QUESTION_COUNT}</strong> questions \u2014 ${filtered} were filtered out by the quality validator. Your score scales against the actual count, so the 720 pass mark stays accurate.</span>
+    <span class="exam-shortfall-text">This exam has <strong>${actualCount} of ${EXAM_QUESTION_COUNT}</strong> questions \u2014 ${filtered} were filtered out by the quality validator. Your score scales against the actual count, so the ${EXAM_PASS_SCORE} pass mark stays accurate.</span>
     <button class="exam-shortfall-dismiss" onclick="document.getElementById('exam-shortfall-banner')?.remove()" aria-label="Dismiss">\u00D7</button>
   `;
   examPage.insertBefore(banner, examPage.firstChild);
@@ -7172,7 +7172,7 @@ function submitMultiSelect(q) {
     else if (wrongDrillMode) graduateFromBank(q.question);
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
-    streakEl.textContent = `\u{1F525} ${streak}`;
+    streakEl.textContent = `Streak ${streak}`;
   }
 
   // Highlight options. v4.82.0: don't disable — re-picks via toggle remain possible.
@@ -7335,7 +7335,7 @@ function submitOrder(q) {
     else if (wrongDrillMode) graduateFromBank(q.question);
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
-    streakEl.textContent = `\u{1F525} ${streak}`;
+    streakEl.textContent = `Streak ${streak}`;
   }
 
   // v4.82.0: keep items + submit button clickable so user can re-arrange + re-submit.
@@ -7410,7 +7410,7 @@ function pick(chosen, q) {
     else if (wrongDrillMode) graduateFromBank(q.question);
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
-    streakEl.textContent = `\u{1F525} ${streak}`;
+    streakEl.textContent = `Streak ${streak}`;
     streakEl.classList.remove('streak-pop');
     void streakEl.offsetWidth;
     if (isRight && streak > 1) streakEl.classList.add('streak-pop');
@@ -7602,7 +7602,7 @@ function finish() {
   // Scaled-score formula matches CompTIA N10-009 convention from the exam-
   // results screen: 100 + (raw / 100) * 800, rounded.
   const scaled = Math.max(100, Math.min(900, Math.round(100 + (pct / 100) * 800)));
-  const passed = scaled >= 720;
+  const passed = scaled >= EXAM_PASS_SCORE;
   const scoreEl = document.getElementById('r-v2-score');
   const verdictEl = document.getElementById('r-v2-verdict');
   const rawPctEl = document.getElementById('r-v2-pct');
@@ -7617,11 +7617,11 @@ function finish() {
   }
   if (verdictEl) {
     if (passed) {
-      verdictEl.innerHTML = '\u2191 Pass mark cleared \u00b7 720';
+      verdictEl.innerHTML = '\u2191 Pass mark cleared \u00b7 ' + EXAM_PASS_SCORE;
       verdictEl.classList.remove('results-v2-verdict-fail');
       verdictEl.classList.add('results-v2-verdict-pass');
     } else {
-      const gap = 720 - scaled;
+      const gap = EXAM_PASS_SCORE - scaled;
       verdictEl.innerHTML = `\u2193 ${gap} below pass \u00b7 keep going`;
       verdictEl.classList.remove('results-v2-verdict-pass');
       verdictEl.classList.add('results-v2-verdict-fail');
@@ -8202,7 +8202,7 @@ function submitExam() {
   if (hcBadge) hcBadge.classList.toggle('is-hidden', !examHardcore);
 
   document.getElementById('exam-result-msg').textContent = passed
-    ? `Score ${scaledScore}/900 \u2014 above the 720 pass mark. Exam-ready!`
+    ? `Score ${scaledScore}/900 \u2014 above the ${EXAM_PASS_SCORE} pass mark. Exam-ready!`
     : `Score ${scaledScore}/900 \u2014 need ${EXAM_PASS_SCORE - scaledScore} more points. Keep drilling!`;
 
   animateCount('exam-r-correct', 0, correct, 800);
@@ -8604,7 +8604,7 @@ function _buildReviewItemHtml(entry, i, total) {
   const typeLabels = { 'multi-select': 'Multi-Select', 'order': 'Ordering', 'cli-sim': 'CLI Sim', 'topology': 'Topology' };
   const typeBadge = qType !== 'mcq' ? `<span class="pbq-badge" style="margin-left:6px">${typeLabels[qType] || qType}</span>` : '';
 
-  const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">\uD83D\uDCDA Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
+  const resLink = reviewRes ? `<div class="resource-link" style="margin-top:8px"><button class="resource-dive-btn" onclick="showTopicDeepDive('${escHtml(reviewTopic).replace(/'/g, "\\'")}')">Study: ${escHtml(reviewRes.title)} (Obj ${reviewRes.obj})</button></div>` : '';
 
   return `<div class="${cls}">
     <div class="review-q-meta-row">
@@ -9148,13 +9148,13 @@ const MILESTONE_DEFS = [
   { id: 'five_hundred_qs',  label: 'Grinder',             desc: 'Answer 500 questions',                   icon: '🔥' },
   { id: 'thousand_qs',      label: 'Iron will',           desc: 'Answer 1,000 questions',                 icon: '⚡' },
   { id: 'first_exam',       label: 'Exam rehearsal',      desc: 'Complete your first exam simulation',    icon: '📝' },
-  { id: 'exam_pass',        label: 'Passing grade',       desc: 'Score 720+ on any exam simulation',      icon: '🎓' },
+  { id: 'exam_pass',        label: 'Passing grade',       desc: `Score ${EXAM_PASS_SCORE}+ on any exam simulation`,      icon: '🎓' },
   { id: 'all_domains',      label: 'Full coverage',       desc: 'Study at least one topic in all 5 domains', icon: '🗺️' },
   { id: 'all_topics',       label: 'Completionist',       desc: 'Attempt every topic at least once',      icon: '🏆' },
   { id: 'streak_7',         label: 'Week warrior',        desc: '7-day study streak',                     icon: '🔥' },
   { id: 'streak_30',        label: 'Month master',        desc: '30-day study streak',                    icon: '🌟' },
   { id: 'ready_650',        label: 'Getting close',       desc: 'Reach a readiness score of 650',         icon: '📈' },
-  { id: 'ready_720',        label: 'Exam ready',          desc: 'Reach a readiness score of 720 (pass)',  icon: '🚀' },
+  { id: 'ready_720',        label: 'Exam ready',          desc: `Reach a readiness score of ${EXAM_PASS_SCORE} (pass)`,  icon: '🚀' },
   { id: 'perfect_port',     label: 'Port master',         desc: 'Perfect round on Port Drill (40 correct)', icon: '🔌' },
   { id: 'streak_port_25',   label: 'Streak keeper',       desc: 'Reach a 25+ streak in Port Drill Endless mode', icon: '⛓️' },
   // ── v4.10 expansion ──
@@ -9174,7 +9174,7 @@ const MILESTONE_DEFS = [
   { id: 'daily_challenge_7',label: 'Daily disciple',      desc: '7-day Daily Challenge streak',           icon: '📅' },
   { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' },
   // ── v4.13: Hardcore exam (#48) ──
-  { id: 'hardcore_pass',    label: 'Hardcore pass',       desc: 'Score 720+ on a Hardcore exam simulation', icon: '🔥' },
+  { id: 'hardcore_pass',    label: 'Hardcore pass',       desc: `Score ${EXAM_PASS_SCORE}+ on a Hardcore exam simulation`, icon: '🔥' },
   // ── v4.30.2: Lab milestones ──
   { id: 'first_lab',        label: 'Lab rat',             desc: 'Complete your first topology lab',         icon: '🧪' },
   { id: 'labs_5',            label: 'Lab regular',         desc: 'Complete 5 different labs',                icon: '🔬' },
@@ -10499,7 +10499,7 @@ function renderReadinessCard() {
         const cls = data.targetGap > 60 ? 'warn' : (data.targetGap > 20 ? 'mid' : 'good');
         trajEl.innerHTML = '⏰ <strong>' + data.daysToExam + ' days</strong> to exam &middot; '
           + 'need <strong>+' + data.targetGap + ' pts</strong> for confident pass '
-          + '<span class="hint">(lower bound → 720)</span>';
+          + '<span class="hint">(lower bound → ' + EXAM_PASS_SCORE + ')</span>';
         trajEl.className = 'readiness-trajectory ' + cls;
         trajEl.hidden = false;
       } else {
@@ -13384,7 +13384,7 @@ async function followUpOnMistake() {
     const keyErr = validateApiKey(key);
     if (keyErr) {
       if (typeof showErrorToast === 'function') showErrorToast(keyErr);
-      if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Drill this concept'; }
       return;
     }
     const targetTopic = q.topic || activeQuizTopic || 'Network+ topic';
@@ -13395,7 +13395,7 @@ async function followUpOnMistake() {
     const extras = await fetchQuestions(key, targetTopic, targetDiff, 2);
     if (!extras || extras.length === 0) {
       if (typeof showErrorToast === 'function') showErrorToast('Couldn\'t generate follow-ups \u2014 try again.');
-      if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Drill this concept'; }
       return;
     }
     // Mark each as a follow-up (useful for history filtering / debugging)
@@ -13412,7 +13412,7 @@ async function followUpOnMistake() {
   } catch (e) {
     console.warn('[followUpOnMistake]', e && e.message);
     if (typeof showErrorToast === 'function') showErrorToast('Follow-up failed: ' + (e.message || 'unknown error'));
-    if (btn) { btn.disabled = false; btn.innerHTML = '\u{1F3AF} Drill this concept'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Drill this concept'; }
   }
 }
 
@@ -16968,16 +16968,16 @@ function ammRenderQuestion() {
   if (!card || !ammQ) return;
   const pair = ammQ.pair;
   const cat = AMM_CATEGORIES[pair.cat];
-  const diffStars = '★'.repeat(pair.diff || 1) + '☆'.repeat(3 - (pair.diff || 1));
+  const diffPips = Array.from({length: 3}, (_, i) => `<i class="amm-pip${i < (pair.diff || 1) ? ' on' : ''}"></i>`).join('');
   card.classList.remove('amm-q-revealed');
   card.innerHTML = `
     <div class="amm-q-eyebrow">Attack &rarr; Mitigation</div>
     <div class="amm-q-attack-card">
-      <span class="amm-q-attack-icon">${pair.icon || '⚔️'}</span>
+      <span class="amm-q-attack-icon"></span>
       <div>
         <div class="amm-q-attack-name">${escHtml(pair.attack)}</div>
         <div class="amm-q-attack-sub">${escHtml(cat ? cat.label : pair.cat)}</div>
-        <div class="amm-q-attack-meta">SY0-701 &middot; Domain ${escHtml(pair.obj || '?')} &middot; ${diffStars}</div>
+        <div class="amm-q-attack-meta">SY0-701 &middot; Domain ${escHtml(pair.obj || '?')} &middot; <span class="amm-pips">${diffPips}</span></div>
       </div>
     </div>
     <div class="amm-q-arrow">&darr; pick the right defense</div>
@@ -16991,7 +16991,7 @@ function ammRenderQuestion() {
     </div>
     <div id="amm-reveal" class="is-hidden"></div>
     <div class="amm-q-foot">
-      <span>Difficulty: ${diffStars}</span>
+      <span class="amm-q-foot-diff">Difficulty: <span class="amm-pips">${diffPips}</span></span>
       <span class="amm-q-progress">Q ${ammIdx} / ${ammSessionLength}</span>
     </div>
   `;
@@ -17001,9 +17001,9 @@ function ammRenderQuestion() {
   const progEl = document.getElementById('amm-q-progress');
   const badgeEl = document.getElementById('amm-streak-badge');
   if (scoreEl) scoreEl.textContent = ammCorrect + ' / ' + ammTotal;
-  if (streakEl) streakEl.textContent = '🔥 ' + ammStreak;
+  if (streakEl) streakEl.textContent = ammStreak;
   if (progEl) progEl.textContent = 'Q ' + ammIdx + ' / ' + ammSessionLength;
-  if (badgeEl) badgeEl.textContent = '🔥 ' + ammStreak;
+  if (badgeEl) badgeEl.textContent = ammStreak;
 }
 
 function ammPickAnswer(optIdx) {
@@ -17029,7 +17029,7 @@ function ammPickAnswer(optIdx) {
     reveal.classList.remove('is-hidden');
     reveal.innerHTML = `
       <div class="amm-reveal">
-        <div class="amm-reveal-head">${isCorrect ? '✅ Correct' : '❌ Why ' + escHtml(correctOpt.name) + ' beats the trap'}</div>
+        <div class="amm-reveal-head">${isCorrect ? 'Correct' : 'Why ' + escHtml(correctOpt.name) + ' beats the trap'}</div>
         <p class="amm-reveal-prose">${escHtml(pair.why)}</p>
         <div class="amm-reveal-actions">
           <button class="btn btn-primary amm-reveal-btn" onclick="ammNextQuestion()">${ammIdx >= ammSessionLength ? 'See results &rarr;' : 'Next question &rarr;'}</button>
@@ -17042,8 +17042,8 @@ function ammPickAnswer(optIdx) {
   const streakEl = document.getElementById('amm-streak');
   const badgeEl = document.getElementById('amm-streak-badge');
   if (scoreEl) scoreEl.textContent = ammCorrect + ' / ' + ammTotal;
-  if (streakEl) streakEl.textContent = '🔥 ' + ammStreak;
-  if (badgeEl) badgeEl.textContent = '🔥 ' + ammStreak;
+  if (streakEl) streakEl.textContent = ammStreak;
+  if (badgeEl) badgeEl.textContent = ammStreak;
   if (typeof evaluateMilestones === 'function') evaluateMilestones();
 }
 
@@ -17064,19 +17064,19 @@ function ammEndSession() {
       if (acc < weakestAcc) { weakestAcc = acc; weakest = c; }
     }
   });
-  const weakestLabel = weakest ? (AMM_CATEGORIES[weakest].icon + ' ' + AMM_CATEGORIES[weakest].label) : '—';
+  const weakestLabel = weakest ? AMM_CATEGORIES[weakest].label : '—';
   const acc = ammTotal > 0 ? Math.round((ammCorrect / ammTotal) * 100) : 0;
   endCard.innerHTML = `
     <div class="amm-eos-card">
-      <div class="amm-eos-burst">⚔️</div>
+      <div class="amm-eos-burst"></div>
       <h2 class="amm-eos-title">Drill complete.</h2>
-      <p class="amm-eos-sub">${ammCorrect}/${ammTotal} right &middot; ${ammStreak >= 5 ? '🔥 ' + ammStreak + '-question streak!' : 'Keep stacking those reps.'}</p>
+      <p class="amm-eos-sub">${ammCorrect}/${ammTotal} right &middot; ${ammStreak >= 5 ? ammStreak + '-question streak!' : 'Keep stacking those reps.'}</p>
       <div class="amm-eos-score-row">
         <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${acc}%</div><div class="amm-eos-score-lbl">accuracy</div></div>
         <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${ammCorrect}</div><div class="amm-eos-score-lbl">correct</div></div>
         <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${m.totalAnswered}</div><div class="amm-eos-score-lbl">total seen</div></div>
       </div>
-      ${weakest ? `<div class="amm-eos-weak">💡 <strong>Next focus:</strong> ${weakestLabel} (${Math.round(weakestAcc * 100)}% mastered) — drill weighted there next.</div>` : ''}
+      ${weakest ? `<div class="amm-eos-weak"><strong>Next focus:</strong> ${escHtml(weakestLabel)} (${Math.round(weakestAcc * 100)}% mastered) — drill weighted there next.</div>` : ''}
       <div class="amm-eos-actions">
         <button class="btn btn-primary" onclick="startAttackMitigation()">Practice again →</button>
         <button class="btn btn-ghost" onclick="setAmmTab('dashboard')">Back to dashboard</button>
@@ -17093,11 +17093,11 @@ function ammRenderLessons() {
     return;
   }
   host.innerHTML = AMM_LESSONS.map(l => {
-    const cat = AMM_CATEGORIES[l.cat] || { label: l.cat, icon: '📚', color: 'var(--accent)' };
+    const cat = AMM_CATEGORIES[l.cat] || { label: l.cat, icon: '', color: 'var(--accent)' };
     return `
       <div class="amm-lesson-card">
         <div class="amm-lesson-head">
-          <div class="amm-lesson-icon" style="background:${cat.color}22;color:${cat.color}">${cat.icon}</div>
+          <div class="amm-lesson-icon"></div>
           <div>
             <div class="amm-lesson-title">${escHtml(l.title)}</div>
             <div class="amm-lesson-sub">${escHtml(l.summary)}</div>
@@ -17142,10 +17142,10 @@ function ammRenderDashboard() {
         <div class="amm-dash-cat-list">
           ${catRows.map(r => `
             <div class="amm-dash-cat-row">
-              <span class="amm-dash-cat-icon">${r.cat.icon}</span>
+              <span class="amm-dash-cat-icon"></span>
               <div>
                 <div class="amm-dash-cat-name">${escHtml(r.cat.label)}</div>
-                <div class="amm-dash-cat-bar"><div class="amm-dash-cat-bar-fill" style="width:${r.pct}%;background:${r.cat.color}"></div></div>
+                <div class="amm-dash-cat-bar"><div class="amm-dash-cat-bar-fill" style="width:${r.pct}%"></div></div>
               </div>
               <span class="amm-dash-cat-pct">${r.mastered}/${r.total}</span>
               <span class="amm-dash-cat-count">${r.pct}%</span>
@@ -17155,18 +17155,18 @@ function ammRenderDashboard() {
       </div>
       <div class="amm-dash-side">
         <div class="amm-dash-streak">
-          <div class="amm-dash-streak-flame">🔥</div>
+          <div class="amm-dash-streak-flame"></div>
           <div class="amm-dash-streak-num">${ammStreak}</div>
           <div class="amm-dash-streak-lbl">current streak</div>
         </div>
         ${weakestCat ? `
           <div class="amm-dash-card amm-dash-weakest">
             <div class="amm-dash-card-head">Weakest category</div>
-            <div class="amm-dash-weak-name">${weakestCat.cat.icon} ${escHtml(weakestCat.cat.label)}</div>
+            <div class="amm-dash-weak-name">${escHtml(weakestCat.cat.label)}</div>
             <div class="amm-dash-weak-sub">${weakestCat.total - weakestCat.mastered} pairs not mastered yet. Drill weighted there.</div>
           </div>
         ` : ''}
-        <button class="amm-dash-cta" onclick="startAttackMitigation()">⚔️ Start ${ammSessionLength}-question drill →</button>
+        <button class="amm-dash-cta" onclick="startAttackMitigation()">Start ${ammSessionLength}-question drill →</button>
         <div class="amm-dash-overall">
           <div><span class="amm-dash-overall-num">${totalMastered}</span><span class="amm-dash-overall-lbl">mastered</span></div>
           <div><span class="amm-dash-overall-num">${totalSeen}</span><span class="amm-dash-overall-lbl">seen</span></div>

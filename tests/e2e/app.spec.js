@@ -1811,7 +1811,7 @@ test.describe('Quiz Revisit — editable navigation', () => {
 
     // Pick correct answer C on Q1 — streak goes to 1.
     await page.locator('#options .option').nth(2).click();
-    await expect(page.locator('#live-streak')).toContainText('🔥 1');
+    await expect(page.locator('#live-streak')).toContainText('Streak 1');
 
     // Advance to Q2 via next-arrow.
     await page.locator('#quiz-next-arrow-btn').click();
@@ -1822,7 +1822,7 @@ test.describe('Quiz Revisit — editable navigation', () => {
     // Re-pick A (wrong) — score should drop, but streak should stay at 1.
     await page.locator('#options .option').nth(0).click();
     await expect(page.locator('#live-score')).toContainText('0 / 1');
-    await expect(page.locator('#live-streak')).toContainText('🔥 1');
+    await expect(page.locator('#live-streak')).toContainText('Streak 1');
   });
 
   test('keyboard ←/→ navigate prev/next', async ({ page }) => {
