@@ -1687,6 +1687,20 @@ html[data-theme] body #page-cts .cts-q-foot{margin-top:24px!important;display:fl
 html[data-theme] body #page-cts .cts-submit-btn{background:var(--accent)!important;color:var(--bg)!important;border:0!important;border-radius:8px!important;font:700 var(--t-1)/1 Inter,sans-serif!important;padding:11px 18px!important;box-shadow:none!important;}
 html[data-theme] body #page-cts .cts-submit-btn:hover{filter:brightness(1.06)!important;}
 html[data-theme] body #page-cts .cts-submit-btn[disabled]{background:var(--dg-bg-2)!important;color:var(--text-dim)!important;cursor:default;}
+/* correct/wrong reveal state on type buttons + cat pills */
+html[data-theme] body #page-cts .cts-q-opt.cts-show-correct{border-color:var(--green)!important;background:color-mix(in oklab,var(--green) 10%,transparent)!important;color:var(--green)!important;}
+html[data-theme] body #page-cts .cts-q-opt.cts-show-correct .cts-q-opt-icon{color:var(--green)!important;}
+html[data-theme] body #page-cts .cts-q-opt.cts-show-wrong{border-color:var(--red)!important;background:color-mix(in oklab,var(--red) 10%,transparent)!important;color:var(--red)!important;}
+html[data-theme] body #page-cts .cts-q-opt.cts-show-wrong .cts-q-opt-icon{color:var(--red)!important;}
+html[data-theme] body #page-cts .cts-q-cat-pill.cts-show-correct{border-color:var(--green)!important;background:color-mix(in oklab,var(--green) 10%,transparent)!important;color:var(--green)!important;}
+html[data-theme] body #page-cts .cts-q-cat-pill.cts-show-wrong{border-color:var(--red)!important;background:color-mix(in oklab,var(--red) 10%,transparent)!important;color:var(--red)!important;}
+/* reveal panel inner structure */
+#page-cts .cts-reveal{display:flex;flex-direction:column;gap:10px;}
+html[data-theme] body #page-cts .cts-reveal-head{font-size:var(--t0)!important;font-weight:700!important;color:var(--text)!important;}
+html[data-theme] body #page-cts .cts-reveal-prose{font-size:var(--t-1)!important;color:var(--text-mid)!important;line-height:1.5;}
+#page-cts .cts-reveal-actions{margin-top:6px;}
+html[data-theme] body #page-cts .cts-reveal-btn{background:var(--accent)!important;color:var(--bg)!important;border:0!important;border-radius:8px!important;font:700 var(--t-1)/1 Inter,sans-serif!important;padding:11px 18px!important;box-shadow:none!important;}
+html[data-theme] body #page-cts .cts-reveal-btn:hover{filter:brightness(1.06)!important;}
 
 /* end-of-session card — de-carded editorial, burst glyph hidden */
 html[data-theme] body #page-cts .cts-end-card,html[data-theme] body #page-cts .cts-eos-card{background:none!important;border:0!important;box-shadow:none!important;padding:32px 0 0!important;margin:0!important;max-width:none!important;width:auto!important;text-align:left!important;}

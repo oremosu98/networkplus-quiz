@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.78
+// Network+ AI Quiz — app.js  v4.99.79
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.78';
+const APP_VERSION = '4.99.79';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -17424,7 +17424,7 @@ function ctsSubmitAnswer() {
     const correctType = CTS_TYPES[ctrl.type];
     const correctCat = CTS_CATEGORIES[ctrl.cat];
     const headLine = isCorrect
-      ? `✅ ${escHtml(correctType.label)} ✓ + ${escHtml(correctCat.label)} ✓`
+      ? `${escHtml(correctType.label)} ✓ + ${escHtml(correctCat.label)} ✓`
       : `${typeCorrect ? '✓' : '✗'} ${escHtml(correctType.label)} type · ${catCorrect ? '✓' : '✗'} ${escHtml(correctCat.label)} category`;
     reveal.classList.remove('is-hidden');
     reveal.innerHTML = `
@@ -17472,7 +17472,7 @@ function ctsEndSession() {
       if (acc < weakestAcc) { weakestAcc = acc; weakest = t; }
     }
   });
-  const weakestLabel = weakest ? (CTS_TYPES[weakest].icon + ' ' + CTS_TYPES[weakest].label) : '—';
+  const weakestLabel = weakest ? CTS_TYPES[weakest].label : '—';
   const acc = ctsTotal > 0 ? Math.round((ctsCorrect / ctsTotal) * 100) : 0;
   endCard.innerHTML = `
     <div class="cts-eos-card">
