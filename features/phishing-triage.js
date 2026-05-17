@@ -125,7 +125,7 @@
     html += `<span class="pht-stat"><span class="pht-stat-num">${completedCount}</span><span class="pht-stat-label">Completed</span></span>`;
     html += `<span class="pht-stat"><span class="pht-stat-num">${PHT_DATA.length}</span><span class="pht-stat-label">Phish in bank</span></span>`;
     html += '</div>';
-    html += '<div class="pht-mode-notice">🎯 <strong>Practice mode</strong> · Click the red flags · Pick the right action · Reveal-on-submit. All 4 vectors live: email · smishing · vishing · quishing. AI generator + dashboard in v4.98.3.</div>';
+    html += '<div class="pht-mode-notice"><strong>Practice mode</strong> · Click the red flags · Pick the right action · Reveal-on-submit. All 4 vectors live: email · smishing · vishing · quishing. AI generator + dashboard in v4.98.3.</div>';
   
     // Vector filter — all 4 vectors live in v4.98.2
     html += '<div class="pht-variant-row">';
@@ -134,9 +134,9 @@
       const isLive = liveVectors.includes(id);
       const count = PHT_DATA.filter(s => s.vector === id).length;
       if (isLive) {
-        html += `<span class="pht-variant-pill is-active" style="--v-color:${v.color};">${v.icon} ${escHtml(v.name)} (${count})</span>`;
+        html += `<span class="pht-variant-pill is-active">${escHtml(v.name)} (${count})</span>`;
       } else {
-        html += `<span class="pht-variant-pill is-disabled">${v.icon} ${escHtml(v.name)} <span class="pht-variant-pill-soon">soon</span></span>`;
+        html += `<span class="pht-variant-pill is-disabled">${escHtml(v.name)} <span class="pht-variant-pill-soon">soon</span></span>`;
       }
     });
     html += '</div>';
@@ -146,21 +146,20 @@
     PHT_DATA.forEach(scen => {
       const mEntry = m[scen.id] || { pips: 0, completed: 0, bestFlagPct: 0 };
       const unlocked = phtIsScenarioUnlocked(scen);
-      const vector = PHT_VECTORS[scen.vector] || { name: 'Unknown', icon: '⚠️', color: '#6b6b90' };
-      const diffStars = '★'.repeat(scen.difficulty) + '☆'.repeat(3 - scen.difficulty);
+      const vector = PHT_VECTORS[scen.vector] || { name: 'Unknown', icon: '', color: '#6b6b90' };
       const diffLabel = ['', 'Foundational', 'Exam', 'Hard'][scen.difficulty] || '';
       html += `<div class="pht-scen-card ${unlocked ? '' : 'is-locked'}"${unlocked ? ` onclick="phtStartScenario('${escAttr(scen.id)}')"` : ''}>`;
       // v4.98.5: simple corner padlock badge
       if (!unlocked) {
-        html += '<span class="pht-scen-lock-badge">🔒 LOCKED</span>';
+        html += '<span class="pht-scen-lock-badge">LOCKED</span>';
       }
       html += '<div class="pht-scen-row1">';
-      html += `<div class="pht-scen-icon">${vector.icon}</div>`;
+      html += '<div class="pht-scen-icon"></div>';
       html += '<div class="pht-scen-titlewrap">';
       html += `<div class="pht-scen-title">${escHtml(scen.title)}</div>`;
       html += '<div class="pht-scen-meta">';
-      html += `<span class="pht-scen-tag" style="color:${vector.color};">${escHtml(vector.name)}</span>`;
-      html += `<span class="pht-scen-tag pht-scen-diff-${scen.difficulty}">${diffStars} ${diffLabel}</span>`;
+      html += `<span class="pht-scen-tag">${escHtml(vector.name)}</span>`;
+      html += `<span class="pht-scen-tag pht-scen-diff-${scen.difficulty}">${diffLabel}</span>`;
       html += `<span class="pht-scen-tag pht-scen-tag-muted">${scen.flags.length} red flags</span>`;
       html += '</div></div></div>';
       html += `<div class="pht-scen-summary">${escHtml(scen.summary)}</div>`;
@@ -175,14 +174,14 @@
         const reqId = scen.unlockAfter[0];
         const reqScen = PHT_DATA.find(s => s.id === reqId);
         const reqTitle = reqScen ? reqScen.title : reqId;
-        html += `<div class="pht-scen-lock-banner">🔓 Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
+        html += `<div class="pht-scen-lock-banner">Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
       }
       html += '</div>';
     });
     html += '</div>';
   
     html += '<div class="pht-aigen-stub is-live" onclick="phtOpenAiGenerator()">';
-    html += '<div class="pht-aigen-stub-icon">✨</div>';
+    html += '<div class="pht-aigen-stub-icon"></div>';
     html += '<div><strong>AI phish generator</strong> — Sonnet 4.6 authors fresh phish across all 4 vectors. 7-layer validator gates every output (vector validity · action realism · no real PII · ≥4 flags · SY0-701 citation · 5 decision actions · vector-format match). Click to open.</div>';
     html += '<div class="pht-aigen-stub-cta">Open generator →</div>';
     html += '</div>';
@@ -220,13 +219,12 @@
     const scen = _phtActiveScenario;
     const totalFlags = scen.flags.length;
     const tagged = _phtTaggedFlagIds.length;
-    const counterColor = _phtRevealed ? '#22c55e' : (tagged > 0 ? '#22c55e' : '#ef4444');
-  
+
     let html = '';
     // Triage bar (top)
     html += '<div class="pht-triage-bar">';
     html += '<div class="pht-tb-l">';
-    html += `<div class="pht-tb-counter" style="color:${counterColor};">${tagged}/${totalFlags}</div>`;
+    html += `<div class="pht-tb-counter">${tagged}/${totalFlags}</div>`;
     html += '<div>';
     html += `<div class="pht-tb-label">Red flags tagged · ${escHtml(scen.title)}</div>`;
     html += `<div class="pht-tb-mode">Practice mode${_phtWrongTags.length > 0 && !_phtRevealed ? ` · ${_phtWrongTags.length} wrong tag${_phtWrongTags.length === 1 ? '' : 's'}` : ''}</div>`;
@@ -234,7 +232,7 @@
     if (!_phtRevealed) {
       html += '<div class="pht-tb-r">';
       ['report', 'delete', 'reply', 'click', 'spam'].forEach(act => {
-        const labels = { report: '🚨 Report', delete: '🗑 Delete', reply: '↩ Reply', click: '🔗 Click', spam: '📥 Spam' };
+        const labels = { report: 'Report', delete: 'Delete', reply: 'Reply', click: 'Click', spam: 'Spam' };
         html += `<button class="pht-decision-btn" onclick="phtSubmitDecision('${act}')">${labels[act]}</button>`;
       });
       html += '</div>';
@@ -273,7 +271,7 @@
     html += `<div class="pht-rd-body" onclick="phtBodyClick(event)">${processedBody}</div>`;
     if (scen.attachments && scen.attachments.length > 0) {
       html += '<div class="pht-rd-attachments">';
-      html += '<div class="pht-rd-attachments-h">📎 Attachments</div>';
+      html += '<div class="pht-rd-attachments-h">Attachments</div>';
       scen.attachments.forEach(att => {
         html += `<div class="pht-rd-attachment">${escHtml(att.name)}${att.protected ? ' <span class="pht-rd-attachment-tag">password protected</span>' : ''}</div>`;
       });
@@ -295,15 +293,14 @@
     const scen = _phtActiveScenario;
     const totalFlags = scen.flags.length;
     const tagged = _phtTaggedFlagIds.length;
-    const counterColor = _phtRevealed ? '#22c55e' : (tagged > 0 ? '#22c55e' : '#ef4444');
-  
+
     let html = '';
     // Triage bar
     html += '<div class="pht-triage-bar">';
     html += '<div class="pht-tb-l">';
-    html += `<div class="pht-tb-counter" style="color:${counterColor};">${tagged}/${totalFlags}</div>`;
+    html += `<div class="pht-tb-counter">${tagged}/${totalFlags}</div>`;
     html += '<div>';
-    html += `<div class="pht-tb-label">Red flags tagged · 💬 Smishing · ${escHtml(scen.title)}</div>`;
+    html += `<div class="pht-tb-label">Red flags tagged · Smishing · ${escHtml(scen.title)}</div>`;
     html += `<div class="pht-tb-mode">Practice mode${_phtWrongTags.length > 0 && !_phtRevealed ? ` · ${_phtWrongTags.length} wrong tag${_phtWrongTags.length === 1 ? '' : 's'}` : ''}</div>`;
     html += '</div></div>';
     html += '</div>';
@@ -345,13 +342,13 @@
     html += '<div class="pht-sms-side">';
     if (!_phtRevealed) {
       html += '<div class="pht-sms-decision-card">';
-      html += '<div class="pht-sms-decision-h">📋 Decision</div>';
+      html += '<div class="pht-sms-decision-h">Decision</div>';
       [
-        ['report', '🚨 Report + forward to 7726'],
-        ['delete', '🗑 Delete'],
-        ['reply', '↩ Reply'],
-        ['click', '🔗 Tap the link'],
-        ['spam', '📵 Block sender']
+        ['report', 'Report + forward to 7726'],
+        ['delete', 'Delete'],
+        ['reply', 'Reply'],
+        ['click', 'Tap the link'],
+        ['spam', 'Block sender']
       ].forEach(([act, label]) => {
         html += `<button class="pht-decision-btn" style="text-align:left;" onclick="phtSubmitDecision('${act}')">${label}</button>`;
       });
@@ -359,7 +356,7 @@
     }
     // Smishing flags-to-watch reference
     html += '<div class="pht-sms-tips">';
-    html += '<div class="pht-sms-tips-h">💬 Smishing-specific flags</div>';
+    html += '<div class="pht-sms-tips-h">Smishing-specific flags</div>';
     html += '<ul>';
     html += '<li>Custom sender ID for unsolicited contact</li>';
     html += '<li>Shortened URLs (bit.ly, tinyurl)</li>';
@@ -387,14 +384,13 @@
     const scen = _phtActiveScenario;
     const totalFlags = scen.flags.length;
     const tagged = _phtTaggedFlagIds.length;
-    const counterColor = _phtRevealed ? '#22c55e' : (tagged > 0 ? '#22c55e' : '#ef4444');
-  
+
     let html = '';
     html += '<div class="pht-triage-bar">';
     html += '<div class="pht-tb-l">';
-    html += `<div class="pht-tb-counter" style="color:${counterColor};">${tagged}/${totalFlags}</div>`;
+    html += `<div class="pht-tb-counter">${tagged}/${totalFlags}</div>`;
     html += '<div>';
-    html += `<div class="pht-tb-label">Red flags tagged · 📞 Vishing · ${escHtml(scen.title)}</div>`;
+    html += `<div class="pht-tb-label">Red flags tagged · Vishing · ${escHtml(scen.title)}</div>`;
     html += `<div class="pht-tb-mode">Practice mode${_phtWrongTags.length > 0 && !_phtRevealed ? ` · ${_phtWrongTags.length} wrong tag${_phtWrongTags.length === 1 ? '' : 's'}` : ''}</div>`;
     html += '</div></div></div>';
   
@@ -403,7 +399,7 @@
     // Voicemail card
     html += '<div class="pht-voicemail-card">';
     html += '<div class="pht-voicemail-head">';
-    html += '<div class="pht-voicemail-icon">📞</div>';
+    html += '<div class="pht-voicemail-icon"></div>';
     html += '<div>';
     html += `<div class="pht-voicemail-title"><span class="flag" data-fid="caller-id" onclick="phtToggleFlag(event, 'caller-id')">${escHtml(scen.callerId || '+0 (000) 000-0000')}</span></div>`;
     html += `<div class="pht-voicemail-meta">${escHtml(scen.time || 'Today')} · ${escHtml(scen.voicemailLength || '0:30')} voicemail</div>`;
@@ -415,7 +411,7 @@
     html += `<div class="pht-voicemail-time">${escHtml(scen.voicemailLength || '0:30')}</div>`;
     html += '</div>';
     // Transcript
-    html += '<div class="pht-voicemail-transcript-h">📝 Auto-transcript</div>';
+    html += '<div class="pht-voicemail-transcript-h">Auto-transcript</div>';
     let processedTranscript = scen.transcript || '';
     processedTranscript = processedTranscript.replace(/<span class="flag" data-fid="([^"]+)"/g, (m, fid) => {
       let cls = 'flag';
@@ -431,20 +427,20 @@
     html += '<div class="pht-voice-side">';
     if (!_phtRevealed) {
       html += '<div class="pht-sms-decision-card">';
-      html += '<div class="pht-sms-decision-h">📋 Decision</div>';
+      html += '<div class="pht-sms-decision-h">Decision</div>';
       [
-        ['report', '🚨 Report + delete voicemail'],
-        ['delete', '🗑 Just delete'],
-        ['reply', '📞 Call back to verify'],
-        ['click', '🌐 Visit URL mentioned'],
-        ['spam', '📵 Block the number']
+        ['report', 'Report + delete voicemail'],
+        ['delete', 'Just delete'],
+        ['reply', 'Call back to verify'],
+        ['click', 'Visit URL mentioned'],
+        ['spam', 'Block the number']
       ].forEach(([act, label]) => {
         html += `<button class="pht-decision-btn" style="text-align:left;" onclick="phtSubmitDecision('${act}')">${label}</button>`;
       });
       html += '</div>';
     }
     html += '<div class="pht-voice-tips">';
-    html += '<div class="pht-voice-tips-h">📞 Vishing-specific flags</div>';
+    html += '<div class="pht-voice-tips-h">Vishing-specific flags</div>';
     html += '<ul>';
     html += '<li>Caller-ID can be spoofed — never trust alone</li>';
     html += '<li>Microsoft / Apple / IRS / SSA NEVER call you</li>';
@@ -470,14 +466,13 @@
     const scen = _phtActiveScenario;
     const totalFlags = scen.flags.length;
     const tagged = _phtTaggedFlagIds.length;
-    const counterColor = _phtRevealed ? '#22c55e' : (tagged > 0 ? '#22c55e' : '#ef4444');
-  
+
     let html = '';
     html += '<div class="pht-triage-bar">';
     html += '<div class="pht-tb-l">';
-    html += `<div class="pht-tb-counter" style="color:${counterColor};">${tagged}/${totalFlags}</div>`;
+    html += `<div class="pht-tb-counter">${tagged}/${totalFlags}</div>`;
     html += '<div>';
-    html += `<div class="pht-tb-label">Red flags tagged · 📱 Quishing · ${escHtml(scen.title)}</div>`;
+    html += `<div class="pht-tb-label">Red flags tagged · Quishing · ${escHtml(scen.title)}</div>`;
     html += `<div class="pht-tb-mode">Practice mode${_phtWrongTags.length > 0 && !_phtRevealed ? ` · ${_phtWrongTags.length} wrong tag${_phtWrongTags.length === 1 ? '' : 's'}` : ''}</div>`;
     html += '</div></div></div>';
   
@@ -490,18 +485,18 @@
     html += `<div class="pht-qr-context">${escHtml(scen.context || '')}</div>`;
     // Decoded URL preview (this is THE thing the user inspects + tags)
     html += '<div class="pht-qr-mobile-preview">';
-    html += '<div class="pht-qr-mobile-preview-h">📱 What your phone shows after scan</div>';
+    html += '<div class="pht-qr-mobile-preview-h">What your phone shows after scan</div>';
     // The decoded URL itself is a flag — wrap in flag span
     html += `<div class="pht-qr-mobile-url"><span class="flag" data-fid="decoded-url" onclick="phtToggleFlag(event, 'decoded-url')">${escHtml(scen.decodedUrl || '')}</span></div>`;
     if (scen.realUrl) {
-      html += `<div class="pht-qr-real-url">⚠️ Real ${escHtml(scen.title.split(' ')[0]).toLowerCase()} domain: <code>${escHtml(scen.realUrl)}</code>`;
+      html += `<div class="pht-qr-real-url">Real ${escHtml(scen.title.split(' ')[0]).toLowerCase()} domain: <code>${escHtml(scen.realUrl)}</code>`;
       if (scen.domainAge) html += ` · this domain registered <span class="flag" data-fid="domain-age" onclick="phtToggleFlag(event, 'domain-age')">${escHtml(scen.domainAge)}</span>`;
       html += '</div>';
     }
     html += '</div>';
     // List view of flags as clickable items (since there's no body text to click)
     html += '<div class="pht-qr-flag-list">';
-    html += '<div class="pht-qr-flag-list-h">🚩 Tag the red flags about this QR</div>';
+    html += '<div class="pht-qr-flag-list-h">Tag the red flags about this QR</div>';
     scen.flags.forEach(f => {
       if (f.id === 'decoded-url' || f.id === 'domain-age') return;  // already rendered inline
       let cls = 'pht-qr-flag-tag';
@@ -517,20 +512,20 @@
     html += '<div class="pht-qr-side">';
     if (!_phtRevealed) {
       html += '<div class="pht-sms-decision-card">';
-      html += '<div class="pht-sms-decision-h">📋 Decision</div>';
+      html += '<div class="pht-sms-decision-h">Decision</div>';
       [
-        ['report', '🚨 Report + use official channel'],
-        ['delete', '🗑 Walk away / ignore'],
-        ['reply', '🔗 Use the QR anyway'],
-        ['click', '🌐 Verify domain first then click'],
-        ['spam', '📵 Block the domain']
+        ['report', 'Report + use official channel'],
+        ['delete', 'Walk away / ignore'],
+        ['reply', 'Use the QR anyway'],
+        ['click', 'Verify domain first then click'],
+        ['spam', 'Block the domain']
       ].forEach(([act, label]) => {
         html += `<button class="pht-decision-btn" style="text-align:left;" onclick="phtSubmitDecision('${act}')">${label}</button>`;
       });
       html += '</div>';
     }
     html += '<div class="pht-qr-tips">';
-    html += '<div class="pht-qr-tips-h">📱 Quishing-specific flags</div>';
+    html += '<div class="pht-qr-tips-h">Quishing-specific flags</div>';
     html += '<ul>';
     html += '<li>Sticker-over-original physical attack pattern</li>';
     html += '<li>Lookalike domain / unusual TLD (.app vs .gov)</li>';
@@ -611,7 +606,7 @@
     html += '</div>';
   
     // Decision why
-    html += `<div class="pht-reveal-section-h">📋 Decision: ${escHtml(decisionMeta.label)}</div>`;
+    html += `<div class="pht-reveal-section-h">Decision: ${escHtml(decisionMeta.label)}</div>`;
     html += `<div class="pht-reveal-flag-row ${decisionCorrect ? 'is-good' : ''}"><strong>${decisionCorrect ? '✓ ' : '✗ '}${escHtml(decisionMeta.label)}.</strong> ${escHtml(decisionMeta.why)}</div>`;
   
     // Caught flags
@@ -625,14 +620,14 @@
     // Missed flags
     const missedFlags = scen.flags.filter(f => !_phtTaggedFlagIds.includes(f.id));
     if (missedFlags.length > 0) {
-      html += `<div class="pht-reveal-section-h">⚠ Flags you missed (${missedFlags.length})</div>`;
+      html += `<div class="pht-reveal-section-h">Flags you missed (${missedFlags.length})</div>`;
       missedFlags.forEach(f => {
         html += `<div class="pht-reveal-flag-row"><strong>${escHtml(f.label)}.</strong> ${escHtml(f.why)}</div>`;
       });
     }
     // Anatomy / pattern
-    html += '<div class="pht-reveal-section-h">🧬 Anatomy of this phish</div>';
-    html += `<div class="pht-reveal-flag-row" style="border-left-color:#7c6ff7; background:rgba(124,111,247,.04);"><strong>Pattern: ${escHtml(scen.patternName)}.</strong> ${scen.patternBlurb}</div>`;
+    html += '<div class="pht-reveal-section-h">Anatomy of this phish</div>';
+    html += `<div class="pht-reveal-flag-row"><strong>Pattern: ${escHtml(scen.patternName)}.</strong> ${scen.patternBlurb}</div>`;
     // CTAs
     html += '<div class="pht-reveal-cta-row">';
     // Find next phish in the list
@@ -641,8 +636,8 @@
     if (next && phtIsScenarioUnlocked(next)) {
       html += `<button class="pht-reveal-cta is-primary" onclick="phtStartScenario('${escAttr(next.id)}')">▶ Next phish (${escHtml(next.title)})</button>`;
     }
-    html += `<button class="pht-reveal-cta" onclick="phtStartScenario('${escAttr(scen.id)}')">🔁 Replay this phish</button>`;
-    html += `<button class="pht-reveal-cta" onclick="setPhtTab('practice')">📋 Back to catalog</button>`;
+    html += `<button class="pht-reveal-cta" onclick="phtStartScenario('${escAttr(scen.id)}')">Replay this phish</button>`;
+    html += `<button class="pht-reveal-cta" onclick="setPhtTab('practice')">Back to catalog</button>`;
     html += '</div>';
     html += '</div>';
     return html;
@@ -651,7 +646,7 @@
     const host = document.getElementById('pht-lessons-content');
     if (!host) return;
     let html = '<div class="pht-lessons-intro">';
-    html += '📚 <strong>Phishing red flag cheatsheets.</strong> Universal red flags + vector-specific tells. Smishing/vishing/quishing-specific cards land in v4.98.1+.';
+    html += '<strong>Phishing red flag cheatsheets.</strong> Universal red flags + vector-specific tells. Smishing/vishing/quishing-specific cards land in v4.98.1+.';
     html += '</div>';
     html += '<div class="pht-lessons-grid">';
     PHT_LESSONS.forEach(lesson => {
@@ -696,7 +691,7 @@
     if (vectorEntries.length > 0 && vectorEntries[0].pct < 75) {
       const w = vectorEntries[0];
       callouts.push({
-        title: `${w.icon} ${escHtml(w.name)} is your weakest vector at ${w.pct}%.`,
+        title: `${escHtml(w.name)} is your weakest vector at ${w.pct}%.`,
         detail: `Drill it directly to lift the score.`,
         cta: `→ Filter catalog by ${escHtml(w.name)}`,
         action: `setPhtTab('practice')`
@@ -707,9 +702,8 @@
       .map(scen => ({ scen, mastery: m[scen.id] }));
     if (weakPhish.length > 0) {
       const w = weakPhish[0];
-      const v = PHT_VECTORS[w.scen.vector] || { icon: '⚠️' };
       callouts.push({
-        title: `${v.icon} <strong>${escHtml(w.scen.title)}</strong> at ${Math.round(w.mastery.bestFlagPct * 100)}% flag-catch.`,
+        title: `<strong>${escHtml(w.scen.title)}</strong> at ${Math.round(w.mastery.bestFlagPct * 100)}% flag-catch.`,
         detail: `Replay to consolidate.`,
         cta: `→ Replay this phish`,
         action: `phtStartScenario('${escAttr(w.scen.id)}')`
@@ -717,7 +711,7 @@
     }
     if (completedCount < 5) {
       callouts.push({
-        title: `✨ Generate fresh phish via AI to deepen your bank.`,
+        title: `Generate fresh phish via AI to deepen your bank.`,
         detail: `Sonnet authors new phish across all 4 vectors with the 7-layer validator gating output.`,
         cta: `→ Open AI generator`,
         action: `phtOpenAiGenerator()`
@@ -735,7 +729,7 @@
       const reqId = w.unlockAfter[0];
       const reqScen = PHT_DATA.find(s => s.id === reqId);
       callouts.push({
-        title: `🔓 You're halfway to unlocking <strong>${escHtml(w.title)}</strong>.`,
+        title: `You're halfway to unlocking <strong>${escHtml(w.title)}</strong>.`,
         detail: `Master "${escHtml(reqScen ? reqScen.title : reqId)}" (1 more pip needed).`,
         cta: `→ Replay prerequisite`,
         action: `phtStartScenario('${escAttr(reqId)}')`
@@ -751,7 +745,7 @@
     html += '<div class="pht-dash-grid">';
     // LEFT: per-vector + per-phish list
     html += '<div class="pht-dash-card">';
-    html += '<div class="pht-dash-card-h">📊 Per-vector mastery</div>';
+    html += '<div class="pht-dash-card-h">Per-vector mastery</div>';
     if (vectorEntries.length === 0) {
       html += '<div class="pht-dash-row-acc pht-dash-row-acc-muted">Complete a phish to see per-vector breakdown.</div>';
     } else {
@@ -759,19 +753,19 @@
         if (v.count === 0) return;
         const pct = Math.round(v.sum / v.count);
         html += '<div class="pht-dash-vec-row">';
-        html += `<div class="pht-dash-vec-name" style="color:${v.color};">${v.icon} ${escHtml(v.name)}</div>`;
-        html += `<div class="pht-dash-vec-track"><div class="pht-dash-vec-fill" style="background:${v.color}; width:${pct}%;"></div></div>`;
+        html += `<div class="pht-dash-vec-name">${escHtml(v.name)}</div>`;
+        html += `<div class="pht-dash-vec-track"><div class="pht-dash-vec-fill" style="width:${pct}%;"></div></div>`;
         html += `<div class="pht-dash-vec-pct">${pct}%</div>`;
         html += '</div>';
       });
     }
-    html += '<div class="pht-dash-card-h" style="margin-top:18px;">📜 Per-phish mastery</div>';
+    html += '<div class="pht-dash-card-h" style="margin-top:18px;">Per-phish mastery</div>';
     html += '<div class="pht-dash-list">';
     PHT_DATA.forEach(scen => {
       const e = m[scen.id] || { pips: 0, completed: 0, bestFlagPct: 0 };
-      const v = PHT_VECTORS[scen.vector] || { icon: '⚠️', color: '#6b6b90' };
+      const v = PHT_VECTORS[scen.vector] || { icon: '', color: '#6b6b90' };
       html += '<div class="pht-dash-row">';
-      html += `<span class="pht-dash-row-icon">${v.icon}</span>`;
+      html += '<span class="pht-dash-row-icon"></span>';
       html += `<div class="pht-dash-row-name">${escHtml(scen.title)}</div>`;
       html += '<div class="pht-dash-row-pips">';
       for (let i = 0; i < 3; i++) html += `<div class="pht-dash-pip ${i < e.pips ? 'is-on' : ''}"></div>`;
@@ -786,7 +780,7 @@
     html += '</div></div>';
     // RIGHT: prescriptive callouts + AI-gen list
     html += '<div class="pht-dash-card">';
-    html += '<div class="pht-dash-card-h">🎯 Drill what\'s weakest</div>';
+    html += '<div class="pht-dash-card-h">Drill what\'s weakest</div>';
     if (callouts.length === 0) {
       html += '<div class="pht-dash-row-acc pht-dash-row-acc-muted">No specific recommendations yet — keep playing to build the picture.</div>';
     } else {
@@ -796,11 +790,10 @@
     }
     const aiGenPhish = _phtLoadGeneratedScenarios();
     if (aiGenPhish.length > 0) {
-      html += `<div class="pht-dash-card-h" style="margin-top:18px;">✨ AI-generated phish (${aiGenPhish.length})</div>`;
+      html += `<div class="pht-dash-card-h" style="margin-top:18px;">AI-generated phish (${aiGenPhish.length})</div>`;
       aiGenPhish.forEach(scen => {
-        const v = PHT_VECTORS[scen.vector] || { icon: '⚠️' };
-        html += `<div class="pht-dash-callout" style="background:rgba(124,111,247,.06); border-left-color:#7c6ff7;">`;
-        html += `<strong>${v.icon} ${escHtml(scen.title)}</strong> · saved to your bank`;
+        html += '<div class="pht-dash-callout pht-dash-callout-aigen">';
+        html += `<strong>${escHtml(scen.title)}</strong> · saved to your bank`;
         html += `<div class="pht-dash-callout-cta" onclick="phtStartScenario('${escAttr(scen.id)}')">→ Run this phish</div>`;
         html += '</div>';
       });
@@ -844,7 +837,7 @@
     }
     const s = _phtAiGenState;
     const vectorPills = Object.entries(PHT_VECTORS).map(([id, v]) =>
-      `<button type="button" class="pht-aigen-pill ${s.vector === id ? 'is-active' : ''}" onclick="phtSetAiGenVector('${escAttr(id)}')">${v.icon} ${escHtml(v.name)}</button>`
+      `<button type="button" class="pht-aigen-pill ${s.vector === id ? 'is-active' : ''}" onclick="phtSetAiGenVector('${escAttr(id)}')">${escHtml(v.name)}</button>`
     ).join('');
     const cats = ['bec', 'credential-harvest', 'callback-scam', 'gift-card-scam', 'tech-support-scam', 'government-impersonation'];
     const catPills = cats.map(c =>
@@ -854,34 +847,34 @@
     let html = '<div class="pht-aigen-backdrop" onclick="phtCloseAiGenerator()"></div>';
     html += '<div class="pht-aigen-card" role="dialog" aria-label="AI Phish Generator">';
     html += '<div class="pht-aigen-h">';
-    html += '<div class="pht-aigen-h-icon">✨</div>';
+    html += '<div class="pht-aigen-h-icon"></div>';
     html += '<div><div class="pht-aigen-h-title">AI Phish Generator</div>';
     html += '<div class="pht-aigen-h-sub">Sonnet 4.6 · Tier C · 7-layer validator-gated</div></div>';
     html += `<button type="button" class="pht-aigen-close" onclick="phtCloseAiGenerator()" aria-label="Close">×</button>`;
     html += '</div>';
     html += '<div class="pht-aigen-body">';
     html += '<div class="pht-aigen-controls">';
-    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">🎯 Vector</div>';
+    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">Vector</div>';
     html += `<div class="pht-aigen-pills">${vectorPills}</div></div>`;
-    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">⭐ Difficulty</div>';
+    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">Difficulty</div>';
     html += '<div class="pht-aigen-pills">';
     html += `<button type="button" class="pht-aigen-pill ${s.difficulty === 1 ? 'is-active' : ''}" onclick="phtSetAiGenDifficulty(1)">★ Foundational</button>`;
     html += `<button type="button" class="pht-aigen-pill ${s.difficulty === 2 ? 'is-active' : ''}" onclick="phtSetAiGenDifficulty(2)">★★ Exam</button>`;
     html += `<button type="button" class="pht-aigen-pill ${s.difficulty === 3 ? 'is-active' : ''}" onclick="phtSetAiGenDifficulty(3)">★★★ Hard</button>`;
     html += '</div></div>';
-    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">🎬 Category (optional)</div>';
+    html += '<div class="pht-aigen-row"><div class="pht-aigen-row-label">Category (optional)</div>';
     html += `<div class="pht-aigen-pills">${catPills}</div></div>`;
-    html += `<button type="button" class="pht-aigen-btn" onclick="phtGenerateScenario()" ${s.isGenerating ? 'disabled' : ''}>${s.isGenerating ? '⏳ Generating + validating...' : '✨ Generate phish'}</button>`;
+    html += `<button type="button" class="pht-aigen-btn" onclick="phtGenerateScenario()" ${s.isGenerating ? 'disabled' : ''}>${s.isGenerating ? 'Generating + validating...' : 'Generate phish'}</button>`;
     html += '</div>';
   
     html += '<div class="pht-aigen-validator-shell">';
     if (!s.lastScenario && !s.isGenerating && !s.lastError) {
-      html += '<div class="pht-aigen-validator-empty">📋 Pick options on the left + click Generate. The 7-layer validator output will appear here.</div>';
+      html += '<div class="pht-aigen-validator-empty">Pick options on the left + click Generate. The 7-layer validator output will appear here.</div>';
     }
-    if (s.lastError) html += `<div class="pht-aigen-validator-fail">⚠ ${escHtml(s.lastError)}</div>`;
+    if (s.lastError) html += `<div class="pht-aigen-validator-fail">${escHtml(s.lastError)}</div>`;
     if (s.lastValidatorResults) {
       const passed = s.lastValidatorResults.filter(r => r.status === 'pass').length;
-      html += `<div class="pht-aigen-validator-h">🛡 7-layer validator · <span style="color:${passed === 7 ? '#22c55e' : '#f59e0b'}; font-family:'SF Mono',monospace;">${passed}/7 ✓</span></div>`;
+      html += `<div class="pht-aigen-validator-h">7-layer validator · <span class="pht-aigen-validator-count">${passed}/7 ✓</span></div>`;
       s.lastValidatorResults.forEach((r, idx) => {
         const iconCls = r.status === 'pass' ? '' : (r.status === 'warn' ? 'is-warn' : 'is-fail');
         const icon = r.status === 'pass' ? '✓' : (r.status === 'warn' ? '!' : '✗');
