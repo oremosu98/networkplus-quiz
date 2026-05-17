@@ -1109,3 +1109,48 @@ html[data-theme] body .quota-exceeded-cta:hover{filter:brightness(1.05);transfor
 html[data-theme] body .quota-exceeded-dismiss{background:none!important;color:var(--text-dim)!important;border:1px solid var(--border)!important;padding:13px 20px!important;font-size:13px;font-weight:600;border-radius:9px!important;cursor:pointer;font-family:inherit;transition:border-color .15s ease,color .15s ease;}
 html[data-theme] body .quota-exceeded-dismiss:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
 @media (prefers-reduced-motion: reduce){html[data-theme] body .quota-exceeded-cta,html[data-theme] body .quota-exceeded-dismiss{transition:none!important;}}
+
+/* ────────────────────────────────────────────────────────────────────────
+   PER-SURFACE STRUCTURAL RESKIN · Batch 4i · ACL SCENARIO PICKER
+   (#acl-scenario-picker — refines the Batch 4g picker baseline)
+   ────────────────────────────────────────────────────────────────────────
+   Faithful build of mockups/netplus-acl-scenario-picker-concept.html.
+   `aclOpenScenarioPicker()` paints #acl-scenario-picker-body =
+   .acl-picker-cat > .acl-picker-cat-title + .acl-picker-grid >
+   .acl-picker-card(.-{difficulty}/.-active) > .acl-picker-ico /
+   .acl-picker-title(+.acl-picker-current) / .acl-picker-desc /
+   .acl-picker-meta > .acl-picker-diff / .acl-picker-tests /
+   .acl-picker-obj. The locked mockup de-slops the legacy soft-shadow
+   2-col card GRID + difficulty-coloured borders + rainbow diff PILLS +
+   the "Current" PILL into a hairline grouped LIST (Concept-Labs
+   vocabulary): group header, then rows = name + text difficulty tag
+   (beginner=pass, else accent) + one-line brief + quiet meta; the
+   CURRENT scenario gets an accent left-bar + faint tint, not a pill.
+   Batch 4g already de-carded the picker generically (hairline boxes);
+   this Batch (later source order, equal specificity) refines that into
+   the dedicated grouped-list structure. The .acl-picker-ico emoji span
+   stays Batch-4g-CSS-hidden (the mockup uses SVG line icons we cannot
+   inject under the zero-markup rule — the list reads name-led, like the
+   prior surfaces). Modal motion stays CALM (no keyframe — consistent
+   with the 7 shipped surfaces; the mockup's optional center-origin
+   scale is a flourish, not slop-critical). The 🧪 in .acl-picker-tests
+   ("🧪 N tests") is a text node CSS can't hide → stripped separately,
+   display-only. 0 emoji · 0 hex. */
+#page-acl #acl-scenario-picker-body{padding:8px 6px 10px;}
+html[data-theme] body #page-acl .acl-picker-cat{margin-bottom:22px;}
+html[data-theme] body #page-acl .acl-picker-cat:last-child{margin-bottom:0;}
+html[data-theme] body #page-acl .acl-picker-cat-title{padding:16px 16px 8px!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim)!important;}
+#page-acl .acl-picker-grid{display:block!important;grid-template-columns:none!important;gap:0!important;}
+html[data-theme] body #page-acl .acl-picker-card,html[data-theme] body #page-acl .acl-picker-card-beginner,html[data-theme] body #page-acl .acl-picker-card-intermediate,html[data-theme] body #page-acl .acl-picker-card-advanced{position:relative;display:block;width:100%;text-align:left;background:none!important;border:0!important;border-top:1px solid var(--dg-rule-soft)!important;border-radius:0!important;padding:14px 16px!important;cursor:pointer;transition:background .12s ease;}
+#page-acl .acl-picker-grid .acl-picker-card:first-child{border-top:0!important;}
+html[data-theme] body #page-acl .acl-picker-card:hover{background:var(--surface)!important;border-color:var(--dg-rule-soft)!important;transform:none!important;}
+html[data-theme] body #page-acl .acl-picker-card-active{background:color-mix(in oklab,var(--accent) 7%,transparent)!important;border-color:var(--dg-rule-soft)!important;}
+#page-acl .acl-picker-card-active::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;background:var(--accent);}
+html[data-theme] body #page-acl .acl-picker-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:var(--t0)!important;font-weight:700!important;color:var(--text)!important;letter-spacing:-0.01em;}
+html[data-theme] body #page-acl .acl-picker-current{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent)!important;}
+html[data-theme] body #page-acl .acl-picker-desc{margin-top:6px;font-size:var(--t-1)!important;color:var(--text-mid)!important;line-height:1.55;}
+html[data-theme] body #page-acl .acl-picker-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:7px;}
+html[data-theme] body #page-acl .acl-picker-diff,html[data-theme] body #page-acl .acl-picker-diff-beginner,html[data-theme] body #page-acl .acl-picker-diff-intermediate,html[data-theme] body #page-acl .acl-picker-diff-advanced{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent)!important;}
+html[data-theme] body #page-acl .acl-picker-diff-beginner{color:var(--green)!important;}
+html[data-theme] body #page-acl .acl-picker-tests,html[data-theme] body #page-acl .acl-picker-obj{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-size:11px!important;font-weight:600!important;letter-spacing:0;text-transform:none!important;color:var(--text-dim)!important;font-variant-numeric:tabular-nums;}
+@media (prefers-reduced-motion: reduce){#page-acl .acl-picker-card{transition:none!important;}}

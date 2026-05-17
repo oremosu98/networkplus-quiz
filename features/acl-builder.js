@@ -941,14 +941,14 @@
   
   // Quick lookup + categorisation for picker UI
   const ACL_CATEGORIES = [
-    { key: 'Sandbox',      label: '\ud83e\uddea Sandbox' },
-    { key: 'Fundamentals', label: '\ud83d\udcda Fundamentals' },
-    { key: 'Real-world',   label: '\ud83c\udfe2 Real-world' },
-    { key: 'PBQ Trap',     label: '\u26a0\ufe0f PBQ Traps' },
+    { key: 'Sandbox',      label: 'Sandbox' },
+    { key: 'Fundamentals', label: 'Fundamentals' },
+    { key: 'Real-world',   label: 'Real-world' },
+    { key: 'PBQ Trap',     label: 'PBQ Traps' },
     // v4.55.0: Fix-This-ACL category \u2014 scenarios seed a BROKEN rule list
     // via `initialRules` and the student diagnoses + fixes it. Matches the
     // real-exam pedagogy of "this ACL isn't working \u2014 why?".
-    { key: 'Fix It',       label: '\ud83d\udd27 Fix It' }
+    { key: 'Fix It',       label: 'Fix It' }
   ];
   
   // ── ACL Builder state ──
@@ -1554,7 +1554,7 @@
                 <div class="acl-picker-desc">${escHtml(s.description)}</div>
                 <div class="acl-picker-meta">
                   <span class="acl-picker-diff acl-picker-diff-${s.difficulty}">${s.difficulty}</span>
-                  ${(s.testPackets && s.testPackets.length) ? `<span class="acl-picker-tests">\ud83e\uddea ${s.testPackets.length} tests</span>` : ''}
+                  ${(s.testPackets && s.testPackets.length) ? `<span class="acl-picker-tests">${s.testPackets.length} tests</span>` : ''}
                   ${(s.objectives || []).length ? `<span class="acl-picker-obj">obj ${s.objectives.join(', ')}</span>` : ''}
                 </div>
               </button>`;
