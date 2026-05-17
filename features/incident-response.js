@@ -132,9 +132,9 @@
     html += '</div>';
     html += '<div class="irw-mode-notice">';
     if (_irwSelectedMode === 'pressure') {
-      html += '⏱️ <strong>Pressure mode active</strong> · Live timer counts down per scenario. Going over budget penalises accuracy. AI generator + 7-layer validator land in v4.97.2.';
+      html += '<strong>Pressure mode active</strong> · Live timer counts down per scenario. Going over budget penalises accuracy. AI generator + 7-layer validator land in v4.97.2.';
     } else {
-      html += '🎯 <strong>Practice mode</strong> · No timer · Reveal-on-mistake. Switch to Pressure when you\'re ready for the SOC analyst feel.';
+      html += '<strong>Practice mode</strong> · No timer · Reveal-on-mistake. Switch to Pressure when you\'re ready for the SOC analyst feel.';
     }
     html += '</div>';
     html += '<div class="irw-scenario-grid">';
@@ -142,21 +142,20 @@
       const mEntry = m[scen.id] || { pips: 0, completed: 0, bestAccuracy: 0 };
       const unlocked = irwIsScenarioUnlocked(scen);
       const vector = IRW_VECTORS[scen.vector] || { name: 'Unknown', icon: '⚠️', color: '#6b6b90' };
-      const diffStars = '★'.repeat(scen.difficulty) + '☆'.repeat(3 - scen.difficulty);
       const diffLabel = ['', 'Foundational', 'Exam', 'Real-world'][scen.difficulty] || 'Unknown';
       const correctCount = scen.phases.reduce((a, p) => a + p.actions.filter(x => x.isCorrect).length, 0);
       html += `<div class="irw-scen-card ${unlocked ? '' : 'is-locked'}"${unlocked ? ` onclick="irwStartScenario('${escAttr(scen.id)}')"` : ''}>`;
       // v4.98.5: simple corner padlock badge (was overflowing prereq text over title)
       if (!unlocked) {
-        html += '<span class="irw-scen-lock-badge">🔒 LOCKED</span>';
+        html += '<span class="irw-scen-lock-badge">LOCKED</span>';
       }
       html += `<div class="irw-scen-row1">`;
       html += `<div class="irw-scen-icon">${escHtml(scen.icon)}</div>`;
       html += `<div class="irw-scen-titlewrap">`;
       html += `<div class="irw-scen-title">${escHtml(scen.title)}</div>`;
       html += `<div class="irw-scen-meta">`;
-      html += `<span class="irw-scen-tag" style="color:${vector.color};">${vector.icon} ${escHtml(vector.name)}</span>`;
-      html += `<span class="irw-scen-tag irw-scen-diff-${scen.difficulty}">${diffStars} ${diffLabel}</span>`;
+      html += `<span class="irw-scen-tag" style="color:${vector.color};">${escHtml(vector.name)}</span>`;
+      html += `<span class="irw-scen-tag irw-scen-diff-${scen.difficulty}">${diffLabel}</span>`;
       html += `<span class="irw-scen-tag irw-scen-tag-muted">${scen.phases.length} phases · ${correctCount} correct actions</span>`;
       html += `</div></div></div>`;
       html += `<div class="irw-scen-summary">${escHtml(scen.summary)}</div>`;
@@ -173,7 +172,7 @@
         const reqId = scen.unlockAfter[0];
         const reqScen = IRW_DATA.find(s => s.id === reqId);
         const reqTitle = reqScen ? reqScen.title : reqId;
-        html += `<div class="irw-scen-lock-banner">🔓 Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
+        html += `<div class="irw-scen-lock-banner">Master <strong>"${escHtml(reqTitle)}"</strong> to unlock</div>`;
       }
       html += '</div>';
     });
@@ -219,7 +218,7 @@
       html += '<div id="irw-pressure-bar" class="irw-pressure-bar">';
       html += '<div class="irw-pb-l">';
       html += '<div class="irw-pb-pulse"></div>';
-      html += `<div><div class="irw-pb-label">⚡ PRESSURE MODE</div><div class="irw-pb-mode">${escHtml(scen.title)}</div></div>`;
+      html += `<div><div class="irw-pb-label">PRESSURE MODE</div><div class="irw-pb-mode">${escHtml(scen.title)}</div></div>`;
       html += '</div>';
       html += '<div class="irw-pb-r">';
       html += '<div class="irw-pb-time">--:--</div>';
@@ -230,17 +229,17 @@
     html += '<div class="irw-warroom">';
     // LEFT: scenario context
     html += '<div class="irw-wr-col">';
-    html += '<div class="irw-wr-col-h">📋 Incident</div>';
+    html += '<div class="irw-wr-col-h">Incident</div>';
     html += `<div class="irw-ctx-tag">${escHtml(scen.severity)} · ACTIVE</div>`;
     html += `<div class="irw-ctx-title">${escHtml(scen.title)}</div>`;
     html += `<div class="irw-ctx-summary">${escHtml(scen.context)}</div>`;
     html += '<div class="irw-ctx-meta-row">';
-    const v = IRW_VECTORS[scen.vector] || { icon: '⚠️', name: scen.vector };
-    html += `<span class="irw-ctx-meta-pill">Vector: ${v.icon} ${escHtml(v.name)}</span>`;
+    const v = IRW_VECTORS[scen.vector] || { name: scen.vector };
+    html += `<span class="irw-ctx-meta-pill">Vector: ${escHtml(v.name)}</span>`;
     html += `<span class="irw-ctx-meta-pill">Vertical: ${escHtml(scen.vertical)}</span>`;
     html += `<span class="irw-ctx-meta-pill">${escHtml(scen.severity)}</span>`;
     html += '</div>';
-    html += '<div class="irw-ctx-iocs"><div class="irw-ctx-iocs-h">🔍 IOCs</div>';
+    html += '<div class="irw-ctx-iocs"><div class="irw-ctx-iocs-h">IOCs</div>';
     scen.iocs.forEach(ioc => {
       html += `<div class="irw-ctx-ioc-row"><strong>${escHtml(ioc.label)}:</strong> ${escHtml(ioc.value)}</div>`;
     });
@@ -248,14 +247,14 @@
   
     // CENTER: timeline + phase + actions
     html += '<div class="irw-wr-col irw-wr-col-center">';
-    html += '<div class="irw-wr-col-h">⏱ PICERL Timeline</div>';
+    html += '<div class="irw-wr-col-h">PICERL Timeline</div>';
     html += irwRenderTimeline();
     html += irwRenderPhasePrompt();
     html += '</div>';
   
     // RIGHT: evidence feed
     html += '<div class="irw-wr-col">';
-    html += '<div class="irw-wr-col-h">📡 Evidence feed <span class="irw-wr-col-pulse"></span></div>';
+    html += '<div class="irw-wr-col-h">Evidence feed <span class="irw-wr-col-pulse"></span></div>';
     html += irwRenderEvidenceFeed();
     html += '</div>';
     html += '</div>';
@@ -332,7 +331,7 @@
     html += '<div class="irw-submit-row">';
     if (_irwPhaseRevealed) {
       const isLast = _irwActivePhaseIdx === IRW_PHASES.length - 1;
-      html += `<button class="irw-submit-btn is-confirm" onclick="irwAdvancePhase()">${isLast ? '🏁 Finish scenario →' : 'Advance to ' + escHtml(IRW_PHASES[_irwActivePhaseIdx + 1].name) + ' →'}</button>`;
+      html += `<button class="irw-submit-btn is-confirm" onclick="irwAdvancePhase()">${isLast ? 'Finish scenario →' : 'Advance to ' + escHtml(IRW_PHASES[_irwActivePhaseIdx + 1].name) + ' →'}</button>`;
     } else {
       const picked = _irwPickedActionIds.length;
       html += `<div class="irw-submit-counter">${picked} of ${expectedCount} expected · ${picked} selected</div>`;
@@ -412,14 +411,14 @@
     irwUpdateScenarioMastery(scen.id, totalScore);
     let html = '<div class="irw-eos-card">';
     html += '<div class="irw-eos-h"><div class="irw-eos-icon">🏁</div>';
-    const modeLabel = pressureMeta ? '⚡ Pressure mode' : '🎯 Practice mode';
+    const modeLabel = pressureMeta ? 'Pressure mode' : 'Practice mode';
     html += `<div><div class="irw-eos-title">${escHtml(scen.title)} — completed</div><div class="irw-eos-sub">${modeLabel} · ${scen.phases.length} phases</div></div></div>`;
     if (pressureMeta && pressureMeta.overBudgetMs > 0) {
-      html += `<div class="irw-eos-pressure-warn">⏱️ Over budget by ${pressureMeta.minOver} min · accuracy penalty −${Math.round(pressureMeta.penaltyPct * 100)}%</div>`;
+      html += `<div class="irw-eos-pressure-warn">Over budget by ${pressureMeta.minOver} min · accuracy penalty −${Math.round(pressureMeta.penaltyPct * 100)}%</div>`;
     } else if (pressureMeta) {
       const elapsedMin = Math.floor(pressureMeta.elapsedMs / 60000);
       const elapsedSec = Math.floor((pressureMeta.elapsedMs % 60000) / 1000);
-      html += `<div class="irw-eos-pressure-good">⏱️ Completed in ${elapsedMin}m ${elapsedSec.toString().padStart(2,'0')}s · within budget</div>`;
+      html += `<div class="irw-eos-pressure-good">Completed in ${elapsedMin}m ${elapsedSec.toString().padStart(2,'0')}s · within budget</div>`;
     }
     html += '<div class="irw-eos-stats">';
     html += `<div class="irw-eos-stat"><div class="irw-eos-stat-label">Overall accuracy</div><div class="irw-eos-stat-num is-good">${Math.round(totalScore * 100)}%</div></div>`;
@@ -438,8 +437,8 @@
       html += `<div class="irw-eos-phase-acc ${cls}">${Math.round(score * 100)}%</div></div>`;
     });
     html += '</div><div class="irw-eos-cta-row">';
-    html += `<button class="irw-eos-cta is-primary" onclick="irwStartScenario('${escAttr(scen.id)}')">🔁 Replay</button>`;
-    html += `<button class="irw-eos-cta" onclick="setIrwTab('practice')">📋 Back to catalog</button></div></div>`;
+    html += `<button class="irw-eos-cta is-primary" onclick="irwStartScenario('${escAttr(scen.id)}')">Replay</button>`;
+    html += `<button class="irw-eos-cta" onclick="setIrwTab('practice')">Back to catalog</button></div></div>`;
     host.innerHTML = html;
     if (host.scrollIntoView) { try { host.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }
   }
@@ -448,7 +447,7 @@
     if (!host) return;
     // v4.97.1: full PICERL lesson cards from IRW_LESSONS data array.
     let html = '<div class="irw-lessons-intro">';
-    html += '📚 <strong>PICERL phase cheatsheets.</strong> Each card has the phase goal, canonical actions, and the canonical SY0-701 traps for that phase. Print-friendly + searchable.';
+    html += '<strong>PICERL phase cheatsheets.</strong> Each card has the phase goal, canonical actions, and the canonical SY0-701 traps for that phase. Print-friendly + searchable.';
     html += '</div>';
     html += '<div class="irw-lessons-grid">';
     IRW_LESSONS.forEach((lesson, idx) => {
@@ -466,7 +465,7 @@
       html += '</ul>';
       if (lesson.traps && lesson.traps.length > 0) {
         html += '<div class="irw-lesson-traps">';
-        html += '<div class="irw-lesson-traps-h">⚠ Common traps</div>';
+        html += '<div class="irw-lesson-traps-h">Common traps</div>';
         lesson.traps.forEach(t => {
           html += `<div class="irw-lesson-trap">${t}</div>`;
         });
@@ -507,7 +506,7 @@
     const remaining = _irwPressureBudgetMs - elapsed;
     if (remaining <= 0 && !_irwPressureExpired) {
       _irwPressureExpired = true;
-      if (typeof showToast === 'function') showToast('⏱️ Time budget exceeded — accuracy will be penalised', 'info');
+      if (typeof showToast === 'function') showToast('Time budget exceeded — accuracy will be penalised', 'info');
     }
     const timeEl = bar.querySelector('.irw-pb-time');
     const pctEl = bar.querySelector('.irw-pb-pct');
@@ -576,7 +575,7 @@
     if (vectorEntries.length > 0 && vectorEntries[0].pct < 75) {
       const w = vectorEntries[0];
       callouts.push({
-        title: `${w.icon} ${escHtml(w.name)} is your weakest vector at ${w.pct}%.`,
+        title: `${escHtml(w.name)} is your weakest vector at ${w.pct}%.`,
         detail: `Drill it directly to lift the score.`,
         cta: `→ Filter catalog by ${escHtml(w.name)}`,
         action: `setIrwTab('practice')`
@@ -589,7 +588,7 @@
     if (weakScenarios.length > 0) {
       const w = weakScenarios[0];
       callouts.push({
-        title: `${w.scen.icon} <strong>${escHtml(w.scen.title)}</strong> is your weakest scenario at ${Math.round(w.mastery.bestAccuracy * 100)}%.`,
+        title: `<strong>${escHtml(w.scen.title)}</strong> is your weakest scenario at ${Math.round(w.mastery.bestAccuracy * 100)}%.`,
         detail: `Replay to consolidate.`,
         cta: `→ Replay this scenario`,
         action: `irwStartScenario('${escAttr(w.scen.id)}')`
@@ -598,7 +597,7 @@
     // Suggest AI-gen if user has < 5 completed
     if (completedCount < 5) {
       callouts.push({
-        title: `✨ Generate fresh scenarios via AI to deepen your bank.`,
+        title: `Generate fresh scenarios via AI to deepen your bank.`,
         detail: `Sonnet authors new scenarios with the 7-layer validator gating output.`,
         cta: `→ Open AI generator`,
         action: `irwOpenAiGenerator()`
@@ -617,7 +616,7 @@
       const reqId = w.unlockAfter[0];
       const reqScen = IRW_DATA.find(s => s.id === reqId);
       callouts.push({
-        title: `🔓 You\'re halfway to unlocking <strong>${escHtml(w.title)}</strong>.`,
+        title: `You\'re halfway to unlocking <strong>${escHtml(w.title)}</strong>.`,
         detail: `Master "${escHtml(reqScen ? reqScen.title : reqId)}" (1 more pip needed).`,
         cta: `→ Replay prerequisite`,
         action: `irwStartScenario('${escAttr(reqId)}')`
@@ -637,7 +636,7 @@
   
     // LEFT: Per-vector mastery + Per-scenario list
     html += '<div class="irw-dash-card">';
-    html += '<div class="irw-dash-card-h">📊 Per-vector mastery</div>';
+    html += '<div class="irw-dash-card-h">Per-vector mastery</div>';
     if (vectorEntries.length === 0) {
       html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">Complete a scenario to see per-vector breakdown.</div>';
     } else {
@@ -645,19 +644,19 @@
         if (v.count === 0) return;
         const pct = Math.round(v.sum / v.count);
         html += '<div class="irw-dash-vec-row">';
-        html += `<div class="irw-dash-vec-name" style="color:${v.color};">${v.icon} ${escHtml(v.name)}</div>`;
+        html += `<div class="irw-dash-vec-name" style="color:${v.color};">${escHtml(v.name)}</div>`;
         html += `<div class="irw-dash-vec-track"><div class="irw-dash-vec-fill" style="background:${v.color}; width:${pct}%;"></div></div>`;
         html += `<div class="irw-dash-vec-pct">${pct}%</div>`;
         html += '</div>';
       });
     }
   
-    html += '<div class="irw-dash-card-h" style="margin-top:18px;">📜 Per-scenario mastery</div>';
+    html += '<div class="irw-dash-card-h" style="margin-top:18px;">Per-scenario mastery</div>';
     html += '<div class="irw-dash-list">';
     IRW_DATA.forEach(scen => {
       const e = m[scen.id] || { pips: 0, completed: 0, bestAccuracy: 0 };
       html += '<div class="irw-dash-row">';
-      html += `<span class="irw-dash-row-icon">${escHtml(scen.icon)}</span>`;
+      html += '<span class="irw-dash-row-icon"></span>';
       html += `<div class="irw-dash-row-name">${escHtml(scen.title)}</div>`;
       html += '<div class="irw-dash-row-pips">';
       for (let i = 0; i < 3; i++) html += `<div class="irw-dash-pip ${i < e.pips ? 'is-on' : ''}"></div>`;
@@ -673,7 +672,7 @@
   
     // RIGHT: Prescriptive callouts + AI-gen persistence info
     html += '<div class="irw-dash-card">';
-    html += '<div class="irw-dash-card-h">🎯 Drill what\'s weakest</div>';
+    html += '<div class="irw-dash-card-h">Drill what\'s weakest</div>';
     if (callouts.length === 0) {
       html += '<div class="irw-dash-row-acc irw-dash-row-acc-muted">No specific recommendations yet — keep playing to build the picture.</div>';
     } else {
@@ -684,10 +683,10 @@
     // AI-generated scenarios persistence note
     const aiGenScenarios = _irwLoadGeneratedScenarios();
     if (aiGenScenarios.length > 0) {
-      html += `<div class="irw-dash-card-h" style="margin-top:18px;">✨ AI-generated scenarios (${aiGenScenarios.length})</div>`;
+      html += `<div class="irw-dash-card-h" style="margin-top:18px;">AI-generated scenarios (${aiGenScenarios.length})</div>`;
       aiGenScenarios.forEach(scen => {
         html += `<div class="irw-dash-callout" style="background:rgba(124,111,247,.06); border-left-color:#7c6ff7;">`;
-        html += `<strong>${escHtml(scen.icon)} ${escHtml(scen.title)}</strong> · saved to your bank`;
+        html += `<strong>${escHtml(scen.title)}</strong> · saved to your bank`;
         html += `<div class="irw-dash-callout-cta" onclick="irwStartScenario('${escAttr(scen.id)}')">→ Run this scenario</div>`;
         html += '</div>';
       });
@@ -760,7 +759,7 @@
     }
     const s = _irwAiGenState;
     const vectorOptions = Object.entries(IRW_VECTORS).map(([id, v]) =>
-      `<button type="button" class="irw-aigen-pill ${s.vector === id ? 'is-active' : ''}" onclick="irwSetAiGenVector('${escAttr(id)}')">${v.icon} ${escHtml(v.name)}</button>`
+      `<button type="button" class="irw-aigen-pill ${s.vector === id ? 'is-active' : ''}" onclick="irwSetAiGenVector('${escAttr(id)}')">${escHtml(v.name)}</button>`
     ).join('');
     const biasOptions = ['identification', 'containment', 'eradication', 'recovery'].map(b =>
       `<button type="button" class="irw-aigen-pill ${s.bias === b ? 'is-active' : ''}" onclick="irwSetAiGenBias('${b}')">${b.charAt(0).toUpperCase() + b.slice(1)}</button>`
@@ -777,33 +776,33 @@
     html += '<div class="irw-aigen-body">';
     html += '<div class="irw-aigen-controls">';
     html += '<div class="irw-aigen-row">';
-    html += '<div class="irw-aigen-row-label">🎯 Threat vector</div>';
+    html += '<div class="irw-aigen-row-label">Threat vector</div>';
     html += `<div class="irw-aigen-pills">${vectorOptions}</div>`;
     html += '</div>';
     html += '<div class="irw-aigen-row">';
-    html += '<div class="irw-aigen-row-label">⭐ Difficulty</div>';
+    html += '<div class="irw-aigen-row-label">Difficulty</div>';
     html += '<div class="irw-aigen-pills">';
-    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 1 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(1)">★ Foundational</button>`;
-    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 2 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(2)">★★ Exam</button>`;
-    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 3 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(3)">★★★ Real-world</button>`;
+    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 1 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(1)">Foundational</button>`;
+    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 2 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(2)">Exam</button>`;
+    html += `<button type="button" class="irw-aigen-pill ${s.difficulty === 3 ? 'is-active' : ''}" onclick="irwSetAiGenDifficulty(3)">Real-world</button>`;
     html += '</div></div>';
     html += '<div class="irw-aigen-row">';
-    html += '<div class="irw-aigen-row-label">🔥 Bias toward weak phase (optional)</div>';
+    html += '<div class="irw-aigen-row-label">Bias toward weak phase (optional)</div>';
     html += `<div class="irw-aigen-pills">${biasOptions}</div>`;
     html += '</div>';
-    html += `<button type="button" class="irw-aigen-btn" onclick="irwGenerateScenario()" ${s.isGenerating ? 'disabled' : ''}>${s.isGenerating ? '⏳ Generating + validating...' : '✨ Generate scenario'}</button>`;
+    html += `<button type="button" class="irw-aigen-btn" onclick="irwGenerateScenario()" ${s.isGenerating ? 'disabled' : ''}>${s.isGenerating ? 'Generating + validating...' : 'Generate scenario'}</button>`;
     html += '</div>';
     // Validator panel (right side)
     html += '<div class="irw-aigen-validator-shell">';
     if (!s.lastScenario && !s.isGenerating && !s.lastError) {
-      html += '<div class="irw-aigen-validator-empty">📋 Pick options on the left + click Generate. The 7-layer validator output will appear here.</div>';
+      html += '<div class="irw-aigen-validator-empty">Pick options on the left + click Generate. The 7-layer validator output will appear here.</div>';
     }
     if (s.lastError) {
-      html += `<div class="irw-aigen-validator-fail">⚠ ${escHtml(s.lastError)}</div>`;
+      html += `<div class="irw-aigen-validator-fail">${escHtml(s.lastError)}</div>`;
     }
     if (s.lastValidatorResults) {
       const passed = s.lastValidatorResults.filter(r => r.status === 'pass').length;
-      html += `<div class="irw-aigen-validator-h">🛡 7-layer validator · <span style="color:${passed === 7 ? '#22c55e' : '#f59e0b'}; font-family:'SF Mono',monospace;">${passed}/7 ✓</span></div>`;
+      html += `<div class="irw-aigen-validator-h">7-layer validator · <span style="color:${passed === 7 ? '#22c55e' : '#f59e0b'}; font-family:'SF Mono',monospace;">${passed}/7</span></div>`;
       s.lastValidatorResults.forEach((r, idx) => {
         const iconCls = r.status === 'pass' ? '' : (r.status === 'warn' ? 'is-warn' : 'is-fail');
         const icon = r.status === 'pass' ? '✓' : (r.status === 'warn' ? '!' : '✗');

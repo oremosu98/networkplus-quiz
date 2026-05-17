@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=4.99.77">
+<link rel="stylesheet" href="dg-system.css?v=4.99.78">
 <script>
 // v4.87.0: Inline cert detection — runs synchronously before <body>
 // renders so the right banner shows on first paint (no Network+ → Security+
@@ -252,7 +252,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.77</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.78</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1664,12 +1664,12 @@
       <h1 class="ed-pagehead-display">IR <em>war room.</em></h1>
       <p class="ed-pagehead-lede">Walk a real incident through PICERL — Preparation, Identification, Containment, Eradication, Recovery, Lessons Learned.</p>
     </div>
-    <span id="irw-streak-badge" class="irw-streak-badge">&#128737;&#65039; 0</span>
+    <span id="irw-streak-badge" class="irw-streak-badge">0</span>
   </div>
   <div class="irw-tab-bar" role="tablist" aria-label="IR War Room tabs">
-    <button class="irw-tab-btn irw-tab-active" id="irw-tab-btn-practice" role="tab" aria-selected="true" tabindex="0" onclick="setIrwTab('practice')">&#9658; Practice</button>
-    <button class="irw-tab-btn" id="irw-tab-btn-lessons" role="tab" aria-selected="false" tabindex="-1" onclick="setIrwTab('lessons')">&#128218; Lessons</button>
-    <button class="irw-tab-btn" id="irw-tab-btn-dashboard" role="tab" aria-selected="false" tabindex="-1" onclick="setIrwTab('dashboard')">&#128202; Dashboard</button>
+    <button class="irw-tab-btn irw-tab-active" id="irw-tab-btn-practice" role="tab" aria-selected="true" tabindex="0" onclick="setIrwTab('practice')">Practice</button>
+    <button class="irw-tab-btn" id="irw-tab-btn-lessons" role="tab" aria-selected="false" tabindex="-1" onclick="setIrwTab('lessons')">Lessons</button>
+    <button class="irw-tab-btn" id="irw-tab-btn-dashboard" role="tab" aria-selected="false" tabindex="-1" onclick="setIrwTab('dashboard')">Dashboard</button>
   </div>
   <div id="irw-tab-practice" class="irw-tab-panel" role="tabpanel">
     <div id="irw-stage-host"></div>
