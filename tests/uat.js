@@ -16539,9 +16539,9 @@ test('v4.87.4 Logo: brandSvg const declared in renderAppSidebar',
 test('v4.87.4 Logo: M14 hammer rotated -25° present',
   /transform="rotate\(-25 35 30\)"/.test(js));
 test('v4.87.4 Logo: M14 anvil silhouette path present',
-  /M30 60 L82 60[\s\S]{0,100}fill="#f0f0f8"/.test(js));
+  /M30 60 L82 60[\s\S]{0,100}class="sb-brand-anvil"/.test(js));
 test('v4.87.4 Logo: M14 amber spark circle present',
-  /circle cx="55" cy="50" r="3" fill="#f59e0b"/.test(js));
+  /circle cx="55" cy="50" r="3" class="sb-brand-spark"/.test(js));
 test('v4.87.4 Logo: sidebar mark renders ${brandSvg} not "CA" text',
   /sb-brand-mark[^>]*>\$\{brandSvg\}<\/div>/.test(js));
 test('v4.87.4 Logo: tombstone — "CA" text content removed from sidebar mark',

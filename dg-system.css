@@ -2407,5 +2407,210 @@ html[data-theme] body #page-amm .amm-dash-overall{display:flex!important;gap:16p
 html[data-theme] body #page-amm .amm-dash-overall-num{font-weight:800!important;color:var(--text)!important;}
 html[data-theme] body #page-amm .amm-dash-overall-lbl{font-size:10px!important;color:var(--text-dim)!important;text-transform:uppercase!important;}
 
-/* ── Reduced-motion gate ── */
+/* ─��� Reduced-motion gate ── */
 @media (prefers-reduced-motion: reduce){#page-amm .amm-q-opt,#page-amm .amm-dash-cta,#page-amm .amm-reveal-btn{transition:none!important;}}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BATCH 4r — ACRONYM BLITZ (#page-acronyms) editorial override
+   Locked to: mockups/secplus-acronym-blitz-concept.html (editorial TARGET)
+   + mockups/security-acronym-blitz-concept.html (impl spec, 6 states)
+   0 emoji · 0 hex in COLOR · bronze accent · hairline · de-carded
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Page column ── */
+html[data-theme] body #page-acronyms{max-width:1000px!important;margin:0 auto!important;padding:0 32px 90px!important;}
+
+/* ── .ed-pagehead de-card ── */
+html[data-theme] body #page-acronyms .ed-pagehead{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin-bottom:14px!important;}
+html[data-theme] body #page-acronyms .ed-pagehead::before,html[data-theme] body #page-acronyms .ed-pagehead::after{content:none!important;}
+html[data-theme] body #page-acronyms .ed-pagehead-eyebrow{font-size:12px!important;font-weight:700!important;letter-spacing:0.16em!important;text-transform:uppercase!important;color:var(--accent)!important;}
+html[data-theme] body #page-acronyms .ed-pagehead-eyebrow::before{content:none!important;}
+html[data-theme] body #page-acronyms .ed-pagehead-display{font-size:32px!important;font-weight:800!important;letter-spacing:-0.025em!important;color:var(--text)!important;outline:none!important;border:0!important;border-radius:0!important;background:none!important;}
+html[data-theme] body #page-acronyms .ed-pagehead-display em{font-style:normal!important;color:var(--accent)!important;-webkit-text-fill-color:var(--accent)!important;background:none!important;}
+
+/* ── Level badge ── */
+html[data-theme] body #page-acronyms .ab-level-badge{font-size:10px!important;font-weight:800!important;letter-spacing:0.1em!important;text-transform:uppercase!important;color:var(--green)!important;border:1px solid color-mix(in oklab,var(--green) 45%,transparent)!important;border-radius:999px!important;padding:6px 12px!important;background:none!important;box-shadow:none!important;}
+
+/* ── Rec host / mission card ── */
+html[data-theme] body #page-acronyms #acronym-rec-host{background:none!important;border:0!important;box-shadow:none!important;}
+
+/* ── Tab bar editorial ── */
+html[data-theme] body #page-acronyms .ab-tab-bar{display:flex!important;gap:6px!important;border-top:0!important;border-bottom:1px solid var(--border)!important;margin-bottom:18px!important;padding:0!important;background:none!important;}
+html[data-theme] body #page-acronyms .ab-tab-btn{background:none!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;color:var(--text-dim)!important;font:700 12px/1 Inter,-apple-system,sans-serif!important;padding:11px 16px!important;cursor:pointer!important;box-shadow:none!important;margin-bottom:-1px!important;}
+html[data-theme] body #page-acronyms .ab-tab-btn:hover{color:var(--text)!important;}
+html[data-theme] body #page-acronyms .ab-tab-btn.ab-tab-active,html[data-theme] body #page-acronyms .ab-tab-btn[aria-selected="true"]{color:var(--accent)!important;border-bottom-color:var(--accent)!important;background:none!important;}
+
+/* ── Learn tab — lesson sidebar ── */
+html[data-theme] body #page-acronyms .ab-learn-layout{display:grid!important;grid-template-columns:300px 1fr!important;gap:24px!important;align-items:start!important;}
+html[data-theme] body #page-acronyms .ab-lesson-sidebar{display:flex!important;flex-direction:column!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;}
+html[data-theme] body #page-acronyms .ab-lesson-item{display:flex!important;align-items:center!important;gap:13px!important;padding:15px 12px!important;border:0!important;background:none!important;text-align:left!important;cursor:pointer!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;box-shadow:none!important;transition:background 0.12s ease!important;}
+html[data-theme] body #page-acronyms .ab-lesson-item:last-child{border-bottom:0!important;}
+html[data-theme] body #page-acronyms .ab-lesson-item:hover{background:color-mix(in oklab,var(--text) 4%,transparent)!important;}
+html[data-theme] body #page-acronyms .ab-lesson-item.ab-lesson-active{background:color-mix(in oklab,var(--accent) 8%,transparent)!important;}
+html[data-theme] body #page-acronyms .ab-lesson-icon{display:none!important;}
+html[data-theme] body #page-acronyms .ab-lesson-num{font-size:10px!important;font-weight:700!important;letter-spacing:0.12em!important;text-transform:uppercase!important;color:var(--text-dim)!important;}
+html[data-theme] body #page-acronyms .ab-lesson-title{margin-top:3px!important;font-size:12px!important;font-weight:700!important;color:var(--text)!important;}
+html[data-theme] body #page-acronyms .ab-lesson-item:hover .ab-lesson-title{color:var(--accent)!important;}
+
+/* ── Learn tab — lesson main panel ── */
+html[data-theme] body #page-acronyms .ab-lesson-main{border:1px solid var(--border)!important;border-radius:16px!important;padding:54px 36px!important;text-align:center!important;background:none!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms .ab-lesson-header-icon{display:none!important;}
+html[data-theme] body #page-acronyms .ab-lesson-header h3{font-size:23px!important;font-weight:800!important;letter-spacing:-0.02em!important;color:var(--text)!important;text-transform:none!important;}
+html[data-theme] body #page-acronyms .ab-lesson-desc{font-size:12px!important;color:var(--text-dim)!important;margin-top:10px!important;max-width:46ch!important;margin-left:auto!important;margin-right:auto!important;line-height:1.6!important;}
+
+/* ── Learn tab — placeholder ── */
+html[data-theme] body #page-acronyms .ab-lesson-placeholder,html[data-theme] body #page-acronyms .ab-lesson-placeholder-v2{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;}
+html[data-theme] body #page-acronyms .st-lesson-placeholder-icon{display:none!important;}
+html[data-theme] body #page-acronyms .st-lesson-placeholder-v2{text-align:center!important;}
+
+/* ── Practice tab — mode bar ── */
+html[data-theme] body #page-acronyms .ab-mode-bar{display:inline-flex!important;gap:2px!important;border:1px solid var(--border)!important;border-radius:9px!important;padding:3px!important;background:none!important;margin-bottom:14px!important;}
+html[data-theme] body #page-acronyms .ab-mode-btn{background:none!important;border:0!important;border-radius:6px!important;color:var(--text-dim)!important;font:600 12px/1 Inter,-apple-system,sans-serif!important;padding:8px 14px!important;cursor:pointer!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms .ab-mode-btn:hover{color:var(--text)!important;}
+html[data-theme] body #page-acronyms .ab-mode-btn.ab-mode-active,html[data-theme] body #page-acronyms .ab-mode-btn[aria-pressed="true"]{color:var(--text)!important;background:color-mix(in oklab,var(--text) 8%,transparent)!important;box-shadow:inset 0 0 0 1px var(--border)!important;}
+
+/* ── Practice tab — stats strip ── */
+html[data-theme] body #page-acronyms .ab-stats-strip{display:flex!important;align-items:center!important;gap:16px!important;margin-bottom:14px!important;padding:10px 14px!important;background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;font-size:12px!important;}
+html[data-theme] body #page-acronyms .ab-stat-label{color:var(--text-dim)!important;font-weight:600!important;}
+html[data-theme] body #page-acronyms #ab-score,html[data-theme] body #page-acronyms #ab-streak{font-weight:700!important;color:var(--text)!important;font-variant-numeric:tabular-nums!important;}
+html[data-theme] body #page-acronyms .ab-cat-badge{font-size:11px!important;color:var(--text-dim)!important;font-weight:600!important;background:none!important;border:0!important;padding:0!important;}
+
+/* ── Practice tab — question card de-carded ── */
+html[data-theme] body #page-acronyms #ab-q-card{background:none!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:22px!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms #ab-q-num{font-size:11px!important;color:var(--text-dim)!important;font-weight:700!important;letter-spacing:0.06em!important;text-transform:uppercase!important;}
+html[data-theme] body #page-acronyms #ab-question{font-size:16px!important;font-weight:600!important;color:var(--text)!important;margin:8px 0 18px!important;line-height:1.5!important;}
+
+/* ── Practice tab — MCQ grid ── */
+html[data-theme] body #page-acronyms .ab-mcq-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;}
+html[data-theme] body #page-acronyms .ab-mcq-btn{text-align:left!important;background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;padding:14px 16px!important;cursor:pointer!important;font:600 13px/1.4 Inter,-apple-system,sans-serif!important;color:var(--text)!important;transition:border-color 0.15s ease,background-color 0.15s ease!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms .ab-mcq-btn:hover:not(:disabled){border-color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 6%,transparent)!important;}
+html[data-theme] body #page-acronyms .ab-mcq-btn:disabled{cursor:default!important;}
+html[data-theme] body #page-acronyms .ab-mcq-btn.ab-correct{border-color:var(--green)!important;background:color-mix(in oklab,var(--green) 10%,transparent)!important;color:var(--green)!important;}
+html[data-theme] body #page-acronyms .ab-mcq-btn.ab-wrong{border-color:var(--red)!important;background:color-mix(in oklab,var(--red) 10%,transparent)!important;color:var(--red)!important;}
+
+/* ── Practice tab — feedback area ── */
+html[data-theme] body #page-acronyms .ab-feedback{margin-top:14px!important;}
+html[data-theme] body #page-acronyms .ab-fb-correct{padding:12px 14px!important;background:color-mix(in oklab,var(--green) 8%,transparent)!important;border-left:3px solid var(--green)!important;border-radius:6px!important;font-size:13px!important;color:var(--text)!important;line-height:1.6!important;}
+html[data-theme] body #page-acronyms .ab-fb-wrong{padding:12px 14px!important;background:color-mix(in oklab,var(--red) 8%,transparent)!important;border-left:3px solid var(--red)!important;border-radius:6px!important;font-size:13px!important;color:var(--text)!important;line-height:1.6!important;}
+html[data-theme] body #page-acronyms .ab-fb-correct-answer{padding:8px 14px!important;font-size:12px!important;color:var(--text-mid)!important;}
+html[data-theme] body #page-acronyms .ab-fb-streak{font-size:12px!important;color:var(--accent)!important;font-weight:700!important;margin-top:6px!important;padding:0 14px!important;}
+html[data-theme] body #page-acronyms .ab-fb-mnemonic{font-size:12px!important;color:var(--text-dim)!important;font-style:italic!important;margin-top:8px!important;padding:0 14px!important;}
+
+/* ── Practice tab — Next button ── */
+html[data-theme] body #page-acronyms #ab-next-btn{background:var(--accent)!important;color:var(--bg)!important;border:0!important;border-radius:10px!important;font-weight:700!important;font-size:14px!important;padding:14px 20px!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms #ab-next-btn:hover{filter:brightness(1.06)!important;}
+
+/* ── Practice tab — heatmap ── */
+html[data-theme] body #page-acronyms .ab-heatmap{margin-top:18px!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;}
+html[data-theme] body #page-acronyms .ab-heat-cell{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;padding:12px 10px!important;text-align:center!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms .ab-heat-icon{display:none!important;}
+html[data-theme] body #page-acronyms .ab-heat-pct{font-size:16px!important;font-weight:800!important;color:var(--text)!important;font-variant-numeric:tabular-nums!important;}
+html[data-theme] body #page-acronyms .ab-heat-label{font-size:11px!important;font-weight:600!important;color:var(--text-dim)!important;margin-top:4px!important;}
+html[data-theme] body #page-acronyms .ab-heat-box{font-size:10px!important;color:var(--text-dim)!important;margin-top:2px!important;}
+
+/* ── Practice tab — focus picker (category mode) ── */
+html[data-theme] body #page-acronyms .ab-focus-picker{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-bottom:14px!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;}
+html[data-theme] body #page-acronyms .ab-focus-chip{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;padding:7px 12px!important;font:600 12px/1 Inter,-apple-system,sans-serif!important;color:var(--text-dim)!important;cursor:pointer!important;box-shadow:none!important;transition:border-color 0.12s,color 0.12s!important;}
+html[data-theme] body #page-acronyms .ab-focus-chip:hover{border-color:var(--accent)!important;color:var(--text)!important;}
+html[data-theme] body #page-acronyms .ab-focus-chip-active,html[data-theme] body #page-acronyms .ab-focus-chip.ab-focus-chip-active{border-color:var(--accent)!important;color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 10%,transparent)!important;}
+
+/* ── Dashboard tab ── */
+html[data-theme] body #page-acronyms #ab-dashboard-content{background:none!important;border:0!important;box-shadow:none!important;padding:0!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-card{background:none!important;border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;padding:14px 0!important;box-shadow:none!important;border-left:0!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-card:last-child{border-bottom:0!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-head{font-size:13px!important;font-weight:700!important;color:var(--text)!important;margin-bottom:8px!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-bar{height:5px!important;background:color-mix(in oklab,var(--text) 10%,transparent)!important;border-radius:99px!important;overflow:hidden!important;margin-bottom:6px!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-bar div{background:var(--accent)!important;border-radius:99px!important;}
+html[data-theme] body #page-acronyms .ab-dash-cat-stats{font-size:11px!important;color:var(--text-dim)!important;display:flex!important;gap:14px!important;}
+
+/* ── Reduced-motion gate ── */
+@media (prefers-reduced-motion: reduce){#page-acronyms .ab-mcq-btn,#page-acronyms .ab-focus-chip,#page-acronyms .ab-lesson-item,#page-acronyms #ab-next-btn{transition:none!important;}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BATCH 5s — SIDEBAR + TOPBAR PANEL editorial rebrand (v4.99.86)
+   Global chrome visible on all ~30 pages. De-purples light mode, replaces
+   Unicode glyph icons with monoline SVG, editorial bronze accent, hairline
+   layout. Scoped via #app-sidebar / #app-topbar / .app-sidebar / .app-topbar.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar base ── */
+html[data-theme] body #app-sidebar{background:var(--bg)!important;border-right:1px solid var(--border)!important;}
+html[data-theme] body .app-sidebar{background:var(--bg)!important;border-right:1px solid var(--border)!important;}
+
+/* ── Brand mark de-purple ── */
+html[data-theme] body .sb-brand-mark{border-radius:9px!important;border:1px solid var(--border)!important;background:none!important;}
+html[data-theme] body .sb-brand-hammer{fill:var(--accent)!important;}
+html[data-theme] body .sb-brand-handle{fill:var(--text-dim)!important;}
+html[data-theme] body .sb-brand-anvil{fill:var(--text-2,var(--text-mid))!important;}
+html[data-theme] body .sb-brand-spark{fill:var(--yellow,oklch(0.80 0.14 70))!important;}
+html[data-theme] body .sb-brand-cert{color:var(--accent)!important;}
+
+/* ── Section labels ── */
+html[data-theme] body .sb-section-label{font-size:10px!important;font-weight:700!important;letter-spacing:0.14em!important;text-transform:uppercase!important;color:var(--text-dim)!important;}
+
+/* ── Nav items ── */
+html[data-theme] body .sb-item{border-radius:8px!important;font-size:13px!important;font-weight:500!important;color:var(--text-mid,var(--text-dim))!important;transition:background 0.12s ease,color 0.12s ease!important;}
+html[data-theme] body .sb-item:hover{background:color-mix(in oklab,var(--accent) 7%,transparent)!important;color:var(--text)!important;}
+html[data-theme] body .sb-item.sb-item-active{background:color-mix(in oklab,var(--accent) 12%,transparent)!important;color:var(--text)!important;}
+html[data-theme] body .sb-item.sb-item-active::before{background:var(--accent)!important;}
+
+/* ── Nav item SVG icons ── */
+html[data-theme] body .sb-item-icon{width:18px!important;height:18px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:0!important;line-height:0!important;}
+html[data-theme] body .sb-item-icon svg{width:16px!important;height:16px!important;color:var(--text-dim)!important;}
+html[data-theme] body .sb-item.sb-item-active .sb-item-icon svg{color:var(--accent)!important;}
+html[data-theme] body .sb-item:hover .sb-item-icon svg{color:var(--text)!important;}
+
+/* ── Pro lock badge ── */
+html[data-theme] body .sb-item-lock{font-size:9px!important;font-weight:800!important;letter-spacing:0.1em!important;text-transform:uppercase!important;color:var(--accent)!important;opacity:0.7!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;}
+
+/* ── Streak footer ── */
+html[data-theme] body .sb-streak .sb-streak-flame{display:none!important;}
+html[data-theme] body .sb-streak-num{color:var(--accent)!important;font-weight:800!important;}
+html[data-theme] body .sb-streak-label{color:var(--text-dim)!important;}
+html[data-theme] body .sb-streak-empty{color:var(--text-dim)!important;font-size:12px!important;}
+
+/* ── TOPBAR ── */
+html[data-theme] body #app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}
+html[data-theme] body .app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}
+
+/* ── Topbar icon buttons ── */
+html[data-theme] body .topbar-iconbtn{width:30px!important;height:30px!important;border-radius:7px!important;border:1px solid var(--border)!important;background:none!important;color:var(--text-dim)!important;display:inline-grid!important;place-items:center!important;font-size:0!important;line-height:0!important;transition:border-color 0.12s ease,color 0.12s ease!important;}
+html[data-theme] body .topbar-iconbtn:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body .topbar-iconbtn svg{width:15px!important;height:15px!important;}
+
+/* ── Topbar toggle (hamburger) ── */
+html[data-theme] body .topbar-toggle{border:1px solid var(--border)!important;border-radius:7px!important;background:none!important;color:var(--text-dim)!important;transition:border-color 0.12s ease,color 0.12s ease!important;}
+html[data-theme] body .topbar-toggle:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+
+/* ── Topbar breadcrumb ── */
+html[data-theme] body .topbar-crumb{font-size:13px!important;font-weight:600!important;color:var(--text-mid,var(--text-dim))!important;letter-spacing:-0.01em!important;}
+
+/* ── Topbar countdown chip (dot indicator, no emoji) ── */
+html[data-theme] body .topbar-countdown{border:1px solid var(--border)!important;border-radius:6px!important;background:none!important;color:var(--text-mid,var(--text-dim))!important;font-size:11px!important;font-weight:700!important;transition:border-color 0.12s ease!important;}
+html[data-theme] body .topbar-countdown:hover{border-color:var(--accent)!important;}
+html[data-theme] body .topbar-countdown-dot{width:6px!important;height:6px!important;border-radius:50%!important;display:inline-block!important;flex:none!important;}
+html[data-theme] body .topbar-countdown-ok .topbar-countdown-dot{background:var(--green)!important;}
+html[data-theme] body .topbar-countdown-soon .topbar-countdown-dot{background:var(--yellow,oklch(0.80 0.14 70))!important;}
+html[data-theme] body .topbar-countdown-urgent .topbar-countdown-dot{background:var(--red,oklch(0.66 0.17 25))!important;}
+html[data-theme] body .topbar-countdown-past .topbar-countdown-dot{background:var(--green)!important;}
+/* Hide legacy ico span if it still renders */
+html[data-theme] body .topbar-countdown-ico{display:none!important;}
+
+/* ── Topbar time ── */
+html[data-theme] body .topbar-time{font-size:11px!important;font-weight:500!important;color:var(--text-dim)!important;}
+
+/* ── Topbar quota chip ── */
+html[data-theme] body .topbar-quota-chip{border:1px solid var(--border)!important;border-radius:5px!important;background:none!important;font-size:11px!important;font-weight:600!important;color:var(--text-dim)!important;}
+html[data-theme] body .topbar-quota-chip .quota-chip-icon{display:none!important;}
+
+/* ── Topbar version pill ── */
+html[data-theme] body .topbar-version-pill{font-size:10px!important;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace!important;color:var(--text-dim)!important;letter-spacing:.04em!important;}
+
+/* ── Light mode sidebar de-purple ── */
+html[data-theme="light"] body .app-sidebar,html[data-theme="light"] body #app-sidebar{background:var(--bg)!important;}
+html[data-theme="light"] body .sb-item:hover{background:color-mix(in oklab,var(--accent) 7%,transparent)!important;color:var(--text)!important;}
+html[data-theme="light"] body .sb-item.sb-item-active{background:color-mix(in oklab,var(--accent) 12%,transparent)!important;color:var(--text)!important;}
+html[data-theme="light"] body .sb-item.sb-item-active::before{background:var(--accent)!important;}
+
+/* ── Reduced-motion gate ── */
+@media (prefers-reduced-motion: reduce){.sb-item,.topbar-iconbtn,.topbar-toggle,.topbar-countdown{transition:none!important;}}

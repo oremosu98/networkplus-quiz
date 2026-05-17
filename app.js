@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.84
+// Network+ AI Quiz — app.js  v4.99.86
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.84';
+const APP_VERSION = '4.99.86';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -16440,7 +16440,7 @@ const abScaffold = createDrillScaffold({
       const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1 };
       const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="ab-heat-cell" style="border-color:${cat.color}"><div class="ab-heat-icon">${cat.icon}</div><div class="ab-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="ab-heat-label">${cat.label.split(' ')[0]}</div><div class="ab-heat-box">Box ${d.box}/5</div></div>`;
+      return `<div class="ab-heat-cell"><div class="ab-heat-icon"></div><div class="ab-heat-pct">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="ab-heat-label">${cat.label.split(' ')[0]}</div><div class="ab-heat-box">Box ${d.box}/5</div></div>`;
     }).join('');
   },
   dashHeading: 'Category Mastery',
@@ -16459,7 +16459,7 @@ const abScaffold = createDrillScaffold({
       const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="ab-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="ab-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="ab-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="ab-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+      return `<div class="ab-dash-cat-card"><div class="ab-dash-cat-head">${escHtml(cat.label)}</div><div class="ab-dash-cat-bar"><div style="width:${catAcc}%;height:100%;border-radius:3px;transition:width .3s"></div></div><div class="ab-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
     }).join('');
   },
   gateStateKey: '_abGateState',
@@ -16558,7 +16558,7 @@ function abRenderFocusPicker() {
   el.innerHTML = AB_CAT_IDS.map(c => {
     const cat = AB_CATEGORIES[c];
     const active = abFocusCat === c ? ' ab-focus-chip-active' : '';
-    return `<button class="ab-focus-chip${active}" data-cat="${c}" onclick="abSetFocusCat('${c}')" style="--ab-cat-color:${cat.color}">${cat.icon} ${escHtml(cat.label)}</button>`;
+    return `<button class="ab-focus-chip${active}" data-cat="${c}" onclick="abSetFocusCat('${c}')">${escHtml(cat.label)}</button>`;
   }).join('');
 }
 
@@ -16590,7 +16590,7 @@ function abNextQuestion() {
   if (qEl) qEl.innerHTML = askExpand
     ? `What does <strong>${escHtml(item.abbr)}</strong> stand for?`
     : `What is the abbreviation for <strong>${escHtml(item.full)}</strong>?`;
-  if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+  if (catBadge) catBadge.textContent = cat.label;
 
   const ansArea = document.getElementById('ab-answer-area');
   if (ansArea) {
@@ -16604,7 +16604,7 @@ function abNextQuestion() {
   document.getElementById('ab-feedback').innerHTML = '';
   document.getElementById('ab-next-btn')?.classList.add('is-hidden');
   document.getElementById('ab-score').textContent = abCorrect + ' / ' + abTotal;
-  document.getElementById('ab-streak').textContent = '\uD83D\uDD25 ' + abStreak;
+  document.getElementById('ab-streak').textContent = '' + abStreak;
   abRenderLevelBadge();
 }
 
@@ -16616,20 +16616,20 @@ function abPickAnswer(btn, chosen, correct) {
   updateAbMastery(abQ.item.abbr, isCorrect);
   if (isCorrect) { abCorrect++; abStreak++; } else { abStreak = 0; if (abMode === 'endless') { abEndEndless(); return; } }
   document.getElementById('ab-score').textContent = abCorrect + ' / ' + abTotal;
-  document.getElementById('ab-streak').textContent = '\uD83D\uDD25 ' + abStreak;
+  document.getElementById('ab-streak').textContent = '' + abStreak;
   document.getElementById('ab-next-btn')?.classList.remove('is-hidden');
 
   const fb = document.getElementById('ab-feedback');
   if (fb) {
     let html = '';
     if (isCorrect) {
-      html = `<div class="ab-fb-correct"><strong>\u2705 Correct!</strong> ${escHtml(abQ.item.abbr)} = ${escHtml(abQ.item.full)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
-      if (abStreak >= 5) html += '<div class="ab-fb-streak">\uD83D\uDD25 ' + abStreak + ' streak!</div>';
+      html = `<div class="ab-fb-correct"><strong>Correct!</strong> ${escHtml(abQ.item.abbr)} = ${escHtml(abQ.item.full)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
+      if (abStreak >= 5) html += '<div class="ab-fb-streak">' + abStreak + ' streak!</div>';
     } else {
-      html = `<div class="ab-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
+      html = `<div class="ab-fb-wrong"><strong>Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
       html += `<div class="ab-fb-correct-answer">Correct: <strong>${escHtml(abQ.item.abbr)}</strong> = ${escHtml(abQ.item.full)}</div>`;
     }
-    html += `<div class="ab-fb-mnemonic">\uD83D\uDCA1 ${escHtml(abQ.item.mnemonic)}</div>`;
+    html += `<div class="ab-fb-mnemonic">${escHtml(abQ.item.mnemonic)}</div>`;
     fb.innerHTML = html;
   }
   abRenderHeatmap();
@@ -18986,6 +18986,31 @@ const SIDEBAR_ACTIVE_MAP = {
   'settings': 'settings'
 };
 
+// v4.99.86: monoline SVG icons for sidebar nav items (editorial rebrand).
+// Same pattern as _ctsLineIcon / tbPaletteLineIcon — returns a 16x16 SVG string.
+function _sbNavIcon(pageId) {
+  var icons = {
+    'setup': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    'progress': '<svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 14l4-4 4 4 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'analytics': '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>',
+    'topology-builder': '<svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l3 7M15 8l-3 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    'acl': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 6v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/></svg>',
+    'irw': '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l9 4.5v5c0 5-4 9.5-9 10.5-5-1-9-5.5-9-10.5v-5L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v4M12 15h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    'pht': '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'subnet': '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v1M12 20v1M4.22 4.22l.7.7M18.36 18.36l.7.7M1 12h1M22 12h1M4.22 19.78l.7-.7M18.36 5.64l.7-.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/></svg>',
+    'ports': '<svg viewBox="0 0 24 24" fill="none"><path d="M5 5h4v4H5zM15 5h4v4h-4zM5 15h4v4H5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17 15v6M14 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    'acronyms': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h6M4 12h4M4 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 7h6M12 12h8M16 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.5"/></svg>',
+    'osi-sorter': '<svg viewBox="0 0 24 24" fill="none"><path d="M3 4h18v3H3zM3 9h18v3H3zM3 14h18v3H3zM3 19h18v3H3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" opacity="0.7"/><path d="M12 4v18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 3"/></svg>',
+    'cables': '<svg viewBox="0 0 24 24" fill="none"><path d="M6 4v16M18 4v16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6 8h12M6 12h12M6 16h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/></svg>',
+    'network-analysis': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'ptr': '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'settings': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z" stroke="currentColor" stroke-width="1.4"/></svg>',
+    'amm': '<svg viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M18 18L6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="18" cy="18" r="2" stroke="currentColor" stroke-width="1.4"/></svg>',
+    'cts': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h7M13 6h7M4 12h7M13 12h7M4 18h7M13 18h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="6" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/><circle cx="7" cy="18" r="1.5" fill="currentColor"/></svg>'
+  };
+  return icons[pageId] || '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>';
+}
+
 // Stash the click handlers on a global so inline onclick="..." can reach them.
 // Not elegant but avoids wiring every button with a JS reference.
 window.__aclSidebarHandlers = {};
@@ -19010,14 +19035,13 @@ function renderAppSidebar() {
   // and anonymous see 🔒 on every locked entry. The body classes are managed
   // in _renderQuotaChip (signed-in path) + the auth listener SIGNED_OUT branch.
   const renderItem = it => {
-    const hasIcon = it.icon;
     const isLocked = (typeof PRO_ONLY_PAGES !== 'undefined') && PRO_ONLY_PAGES[it.page];
     const lockClass = isLocked ? ' is-pro-only' : '';
     const lockBadge = isLocked
-      ? '<span class="sb-item-lock" aria-label="Pro only" title="Pro only">&#128274;</span>'
+      ? '<span class="sb-item-lock" aria-label="Pro only" title="Pro only">PRO</span>'
       : '';
     return `<button type="button" class="sb-item${lockClass}" data-sb-page="${it.page}" onclick="__aclSidebarHandlers['${it.page}'] && __aclSidebarHandlers['${it.page}']()">
-      ${hasIcon ? `<span class="sb-item-icon" aria-hidden="true">${it.icon}</span>` : '<span class="sb-item-icon">&bull;</span>'}
+      <span class="sb-item-icon" aria-hidden="true">${_sbNavIcon(it.page)}</span>
       <span class="sb-item-label">${escHtml(it.label)}</span>
       ${lockBadge}
     </button>`;
@@ -19027,16 +19051,14 @@ function renderAppSidebar() {
   try {
     const s = (typeof getStreak === 'function') ? getStreak() : { current: 0, best: 0 };
     if (s && s.current >= 1) {
-      const fire = s.current >= 14 ? '\ud83d\udd25\ud83d\udd25' : '\ud83d\udd25';
       streakHtml = `<button type="button" class="sb-streak sb-streak-active" onclick="goSetup()" title="View full streak history">
-        <span class="sb-streak-flame" aria-hidden="true">${fire}</span>
         <span class="sb-streak-text">
           <span class="sb-streak-num">${s.current}</span>
           <span class="sb-streak-label">day streak</span>
         </span>
       </button>`;
     } else {
-      streakHtml = `<div class="sb-streak-empty">Take your first quiz to start a streak \ud83d\udd25</div>`;
+      streakHtml = `<div class="sb-streak-empty">Take your first quiz to start a streak</div>`;
     }
   } catch (_) { streakHtml = ''; }
 
@@ -19047,16 +19069,16 @@ function renderAppSidebar() {
   const certShortLabel = (CERT_PACK && CERT_PACK.meta)
     ? CERT_PACK.meta.name.replace('CompTIA ', '') + ' ' + CERT_PACK.meta.code
     : 'Network+ N10-009';
-  // M14 inline SVG: hammer (rotated -25°, accent purple) + anvil silhouette
-  // (white) + single amber spark. Hardcoded brand colors so the mark renders
-  // identically across themes (sidebar background is always dark).
+  // M14 inline SVG: hammer (rotated -25°, accent bronze) + anvil silhouette
+  // + single warm spark. Uses CSS currentColor via inline style vars so the
+  // mark adapts across themes (v4.99.86 editorial de-purple).
   const brandSvg = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
     + '<g transform="rotate(-25 35 30)">'
-    + '<rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>'
-    + '<rect x="32" y="32" width="6" height="22" fill="#3d3870"/>'
+    + '<rect x="20" y="20" width="32" height="12" rx="2" class="sb-brand-hammer"/>'
+    + '<rect x="32" y="32" width="6" height="22" class="sb-brand-handle"/>'
     + '</g>'
-    + '<path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>'
-    + '<circle cx="55" cy="50" r="3" fill="#f59e0b"/>'
+    + '<path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" class="sb-brand-anvil"/>'
+    + '<circle cx="55" cy="50" r="3" class="sb-brand-spark"/>'
     + '</svg>';
   el.innerHTML = `
     <a class="sb-brand sb-brand-link" href="https://certanvil.com/" title="Back to CertAnvil home">
@@ -19178,11 +19200,11 @@ function _renderConnectivityBanner(state) {
   }
   if (state === 'offline') {
     el.className = 'connectivity-banner offline';
-    el.textContent = '⚡ You\'re offline — AI features (Generate Quiz, Diagnostic, Coach) won\'t work until you reconnect.';
+    el.textContent = 'You\'re offline — AI features (Generate Quiz, Diagnostic, Coach) won\'t work until you reconnect.';
     requestAnimationFrame(() => el.classList.add('is-shown'));
   } else if (state === 'online') {
     el.className = 'connectivity-banner online';
-    el.textContent = '✓ Back online — AI features ready again.';
+    el.textContent = 'Back online — AI features ready again.';
     requestAnimationFrame(() => el.classList.add('is-shown'));
     // Auto-hide after 3 seconds
     setTimeout(() => _renderConnectivityBanner('hidden'), 3000);
@@ -19329,7 +19351,7 @@ function _maybeShowDailyRecap() {
       <div class="dr-stat-row"><span class="dr-stat-k">Questions today</span><span class="dr-stat-v"><strong>${todayQ}</strong> of ${goal} goal</span></div>
       <div class="dr-stat-row"><span class="dr-stat-k">Accuracy today</span><span class="dr-stat-v"><strong>${todayAcc}%</strong> ${deltaHtml}</span></div>
       <div class="dr-stat-row"><span class="dr-stat-k">Sessions</span><span class="dr-stat-v">${todayCount}</span></div>
-      <div class="dr-stat-row"><span class="dr-stat-k">Current streak</span><span class="dr-stat-v">${streak} day${streak === 1 ? '' : 's'} \u{1F525}</span></div>
+      <div class="dr-stat-row"><span class="dr-stat-k">Current streak</span><span class="dr-stat-v">${streak} day${streak === 1 ? '' : 's'}</span></div>
       ${examRow}
     `;
     const statsEl = document.getElementById('dr-stats');
@@ -19365,14 +19387,11 @@ function renderTopbarCountdown() {
   btn.classList.remove('is-hidden');
   // Urgency tier + icon
   btn.classList.remove('topbar-countdown-urgent', 'topbar-countdown-soon', 'topbar-countdown-ok', 'topbar-countdown-past');
-  let ico = '\u{1F4C5}';
-  if (days === null || days > 30) { btn.classList.add('topbar-countdown-ok'); ico = '\u{1F4C5}'; }
-  else if (days > 7) { btn.classList.add('topbar-countdown-soon'); ico = '\u23F0'; }
-  else if (days > 0) { btn.classList.add('topbar-countdown-urgent'); ico = '\u{1F525}'; }
-  else if (days === 0) { btn.classList.add('topbar-countdown-urgent'); ico = '\u{1F3AF}'; }
-  else { btn.classList.add('topbar-countdown-past'); ico = '\u2705'; }
-  const icoEl = btn.querySelector('.topbar-countdown-ico');
-  if (icoEl) icoEl.textContent = ico;
+  if (days === null || days > 30) { btn.classList.add('topbar-countdown-ok'); }
+  else if (days > 7) { btn.classList.add('topbar-countdown-soon'); }
+  else if (days > 0) { btn.classList.add('topbar-countdown-urgent'); }
+  else if (days === 0) { btn.classList.add('topbar-countdown-urgent'); }
+  else { btn.classList.add('topbar-countdown-past'); }
   // Value label
   if (days === null) val.textContent = '\u2014';
   else if (days === 0) val.textContent = 'Today';
