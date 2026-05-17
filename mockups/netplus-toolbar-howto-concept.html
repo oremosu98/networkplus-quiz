@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Network Builder toolbar + how-to redesign concept (Network+ · command sheet · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. The redesigned HOME for the old
+  Network Builder "Full Toolbar" + "How to build" blocks (the 120px
+  mega-accordion + 5 identical cards in the capture). Sibling of
+  netplus-network-builder-concept.html / -3d-view / -concept-labs, same
+  shell. Live toolbar/lab/AI engine stays in app.js (gated, untouched).
+
+  Design POV - this answers the real question the capture asks:
+   "the canvas-first redesign HID the 120px toolbar + the 5 how-to
+    cards. Where did all those actions go?"
+   · Answer: a summoned COMMAND SHEET, not a permanent mega-block. The
+     8 high-frequency verbs you always switch between live on the
+     canvas mode-bar (Design/Simulate/Trace/Labs/3D/Coach/Grade/Export).
+     Everything lower-frequency (AI Generate, Fix, File ops, Utility)
+     lives here, one keystroke away, costing 0px until summoned. This
+     is the Figma/Linear command-surface pattern, consistent with the
+     canvas-first thesis the founder approved.
+   · The old toolbar's OWN group taxonomy is preserved 1:1 (ACTIONS /
+     SIMULATE / PRACTICE / FILE / SCENARIO / UTILITY) so every single
+     old button is accounted for - nothing was lost in the redesign,
+     just relocated. De-carded to a hairline command list with honest
+     functional descriptors.
+   · 5 identical "How to build" cards -> one numbered hairline stepper
+     (impeccable identical-card-grid ban), in a <details> you collapse
+     once you know it ("onboarding you outgrow", progressive disclosure).
+   · Genuinely destructive commands (Clear canvas / Delete) carry the
+     scoped --dg-danger semantic (functional-only, same discipline as
+     account-page Sign out / Delete account). Everything else neutral.
+   · The purple "Suggested Scenario" billboard from the capture is
+     ALREADY redesigned (the one-line .suggest strip in the builder
+     mockup) - not duplicated here, cross-referenced in the footer.
+  MOTION : emil frequency rule. This is an OCCASIONAL reference/onboarding
+  surface (not a daily-stared-at workspace), so a standard center-origin
+  modal entrance is appropriate (opacity + scale 0.97->1, <=220ms,
+  compositor-only, reduced-motion gated). The command list itself is
+  CALM - it is scanned, NO scroll-reveal.
+  HONESTY : every command mirrors a real button in the capture; nothing
+  invented, nothing dropped. Descriptors grounded in the documented TB
+  feature set (Grade/Coach/AI-Generate-v2/Fix-This-Network/PNG/sim
+  engine). The "Del" key is the ONE real shortcut (stated in the
+  capture's step 4) - no other keybinds fabricated. Em-dash recomposed,
+  arrows kept, "&" rendered correctly (the live product double-escapes
+  it to "&amp;" in the billboard - flagged in the handoff, not here).
+  0 emoji · 0 hardcoded hex · 0 em-dash · app.js/index/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+
+  /* dimmed builder backdrop, just enough context */
+  .bg{position:fixed;inset:0;display:flex;flex-direction:column;filter:saturate(0.7);}
+  .bg-strip{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--dg-rule-soft);}
+  .bg-strip .t{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;color:var(--dg-text-2);}
+  .bg-strip .t i{font-style:normal;color:var(--dg-accent);}
+  .bg-strip .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .bg-canvas{flex:1;background:
+    linear-gradient(var(--dg-grid) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg,var(--dg-grid) 1px,transparent 1px) 0 0/26px 26px,
+    var(--dg-bg);}
+
+  .scrim{position:fixed;inset:0;background:color-mix(in oklab,oklch(0 0 0) 56%,transparent);backdrop-filter:blur(2px);display:grid;place-items:center;padding:28px;z-index:20;}
+  .modal{width:min(660px,100%);max-height:min(86vh,780px);display:flex;flex-direction:column;background:var(--dg-bg);border:1px solid var(--dg-rule);border-radius:16px;overflow:hidden;box-shadow:0 40px 90px -30px color-mix(in oklab,oklch(0 0 0) 70%,transparent);transform-origin:center center;animation:dlg 0.2s var(--ease) both;}
+  @keyframes dlg{from{opacity:0;transform:scale(0.97);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){.modal{animation:none;}}
+
+  .m-h{display:flex;align-items:flex-start;gap:14px;padding:22px 22px 16px;border-bottom:1px solid var(--dg-rule-soft);}
+  .m-ic{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid var(--dg-rule);display:grid;place-items:center;color:var(--dg-accent);}
+  .m-ic svg{width:17px;height:17px;}
+  .m-ht{flex:1;min-width:0;}
+  .m-ht .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .m-ht h1{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin-top:3px;}
+  .m-ht .sub{margin-top:6px;font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.5;}
+  .m-x{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--dg-rule);background:none;color:var(--dg-text-dim);cursor:pointer;display:grid;place-items:center;transition:border-color 0.15s,color 0.15s;}
+  .m-x:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .m-x svg{width:14px;height:14px;}
+
+  .m-body{flex:1;overflow-y:auto;}
+
+  /* How to build = onboarding you outgrow */
+  .howto{border-bottom:1px solid var(--dg-rule-soft);}
+  .howto>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:15px 22px;cursor:pointer;color:var(--dg-text-2);font:700 var(--t-1)/1 Inter,sans-serif;letter-spacing:0.02em;}
+  .howto>summary::-webkit-details-marker{display:none;}
+  .howto>summary .chev{transition:transform 0.18s var(--ease);color:var(--dg-text-dim);display:inline-flex;}
+  .howto[open]>summary .chev{transform:rotate(90deg);}
+  .howto>summary .chev svg{width:14px;height:14px;}
+  .howto>summary .hint{margin-left:auto;font-weight:500;color:var(--dg-text-dim);font-size:11px;}
+  .steps{padding:2px 22px 18px;}
+  .step{display:flex;align-items:flex-start;gap:14px;padding:11px 0;border-top:1px solid var(--dg-rule-soft);}
+  .step:first-child{border-top:0;}
+  .sn{flex:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--dg-rule);display:grid;place-items:center;font:800 11px/1 Inter,sans-serif;color:var(--dg-accent);font-variant-numeric:tabular-nums;}
+  .st{font-size:var(--t-1);}
+  .st b{color:var(--dg-text);font-weight:700;}
+  .st span{color:var(--dg-text-2);}
+  .kbd{font:600 10px/1 var(--mono);border:1px solid var(--dg-rule);border-bottom-width:2px;border-radius:4px;padding:3px 5px;color:var(--dg-text-2);background:var(--dg-bg-2);}
+
+  .grp-h{padding:16px 22px 7px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .cmd{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--dg-rule-soft);padding:13px 22px;cursor:pointer;color:inherit;transition:background 0.12s ease;}
+  .cmd:hover{background:var(--dg-bg-2);}
+  .cmd>.ci{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--dg-rule-soft);display:grid;place-items:center;color:var(--dg-text-dim);transition:color 0.12s ease,border-color 0.12s ease;}
+  .cmd:hover>.ci{color:var(--dg-accent);border-color:var(--dg-accent);}
+  .cmd svg{width:15px;height:15px;}
+  .cmd .cb{flex:1;min-width:0;}
+  .cmd .cn{font-size:var(--t0);font-weight:700;color:var(--dg-text);letter-spacing:-0.01em;}
+  .cmd .cd{margin-top:2px;font-size:11px;color:var(--dg-text-dim);line-height:1.5;}
+  .cmd .cgo{flex:none;color:var(--dg-text-dim);opacity:0;transition:opacity 0.12s ease,transform 0.12s ease;}
+  .cmd:hover .cgo{opacity:1;transform:translateX(2px);}
+  .cmd .cgo svg{width:15px;height:15px;}
+  .cmd.danger:hover{background:color-mix(in oklab,var(--dg-danger) 9%,transparent);}
+  .cmd.danger:hover>.ci{color:var(--dg-danger);border-color:var(--dg-danger);}
+  .cmd.danger .cn{color:var(--dg-danger);}
+
+  .m-f{display:flex;align-items:flex-start;gap:11px;padding:14px 22px;border-top:1px solid var(--dg-rule-soft);font-size:11px;color:var(--dg-text-dim);line-height:1.55;}
+  .m-f svg{width:15px;height:15px;flex:none;color:var(--dg-text-dim);margin-top:1px;}
+  .m-f b{color:var(--dg-text-2);font-weight:700;}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <div class="bg-strip">
+    <span class="t">Network <i>builder.</i></span>
+    <span class="e">Network+ · Sandbox · design &amp; simulate</span>
+  </div>
+  <div class="bg-canvas"></div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tb-h" id="modal">
+    <div class="m-h">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h10M4 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="18" cy="14" r="3.2" stroke="currentColor" stroke-width="1.8"/><path d="M20.4 16.4L23 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <div class="m-ht">
+        <div class="e">Network builder · command sheet</div>
+        <h1 id="tb-h">Toolbar &amp; how-to</h1>
+        <div class="sub">Everything the Full Toolbar held, summoned when you need it. The eight verbs you switch between live on the canvas; the rest live here.</div>
+      </div>
+      <button class="m-x" type="button" aria-label="Close" onclick="document.getElementById('scrim').style.display='none'"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="m-body">
+      <details class="howto" open>
+        <summary>
+          <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          How to build
+          <span class="hint">5 steps · hide once you know this</span>
+        </summary>
+        <div class="steps">
+          <div class="step"><span class="sn">1</span><span class="st"><b>Drag.</b> <span>Pick a device from the palette and drop it onto the canvas.</span></span></div>
+          <div class="step"><span class="sn">2</span><span class="st"><b>Wire.</b> <span>Click device A, then device B, to draw a cable between them.</span></span></div>
+          <div class="step"><span class="sn">3</span><span class="st"><b>Configure.</b> <span>Double-click a device to set IPs, VLANs, routing, DHCP &amp; CLI.</span></span></div>
+          <div class="step"><span class="sn">4</span><span class="st"><b>Move &amp; delete.</b> <span>Drag any device to reposition. Select it and press <span class="kbd">Del</span> to remove.</span></span></div>
+          <div class="step"><span class="sn">5</span><span class="st"><b>Simulate.</b> <span>Use the Ping / ARP / DHCP tools to trace packet flow.</span></span></div>
+        </div>
+      </details>
+
+      <div class="grp-h">Actions</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Grade</span><span class="cd">Score this topology against the active scenario and see what is missing.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="3.5" stroke="currentColor" stroke-width="1.7"/><path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span class="cb"><span class="cn">Coach</span><span class="cd">Ask the AI tutor about this network, a device, or why a check is failing.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 15l.9 2.3L21 18l-2.1.7L18 21l-.9-2.3L15 18l2.1-.7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">AI Generate</span><span class="cd">Describe a network in plain words and the AI builds the topology for you.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <div class="grp-h">Simulate</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span class="cb"><span class="cn">Ping</span><span class="cd">Send an ICMP echo between two devices and watch the path light up.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="6" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span class="cb"><span class="cn">DHCP</span><span class="cd">Run a lease handshake and confirm clients pull a valid address.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <div class="grp-h">Practice</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 3h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span class="cb"><span class="cn">Labs</span><span class="cd">Open Guided Topology Labs: stepped builds keyed to N10-009 objectives.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5 5a1.5 1.5 0 0 0 2 2l5-5a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Fix</span><span class="cd">Take a broken-network challenge: diagnose the fault and repair it.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <div class="grp-h">File</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3h8l4 4v14H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v6M9 13h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+        <span class="cb"><span class="cn">New</span><span class="cd">Start a blank canvas. Prompts to save if the current build has changes.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 3h11l3 3v15H5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 3v6h7V3M8 21v-6h8v6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Save</span><span class="cd">Store the current topology to your saved builds.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Load</span><span class="cd">Open a saved build, or pick a starter from the Scenario list.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <div class="grp-h">Scenario</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V4M5 4h12l-2 4 2 4H5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Free Build · change scenario</span><span class="cd">Currently Free Build. Switch to a guided scenario from the rail (20 available).</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <div class="grp-h">Utility</div>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.6" stroke="currentColor" stroke-width="1.5"/><path d="M5 17l5-4 4 3 3-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Export PNG</span><span class="cd">Download the canvas as an image for notes or sharing.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M9 8V5h6v3M7 8l1 12h8l1-12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Event log</span><span class="cd">Open the simulation log: every ARP, ping, lease and drop, in order.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd danger" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M9 8V5h6v3M7 8l1 12h8l1-12M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Delete selected</span><span class="cd">Remove the selected device or cable. Same as the <span class="kbd">Del</span> key.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="cmd danger" type="button">
+        <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7a8 8 0 1 1 1 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 3v4h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="cb"><span class="cn">Clear canvas</span><span class="cd">Wipe every device and cable and start over. Asks first.</span></span>
+        <span class="cgo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+    </div>
+
+    <div class="m-f"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/></svg><span>The <b>Suggested Scenario</b> that used to sit above this toolbar is now the single dismissible line at the top of the builder, so it never costs you canvas height.</span></div>
+  </div>
+</div>
+
+<script>
+  (function(){var s=document.getElementById('scrim');s.addEventListener('click',function(e){if(e.target===s)s.style.display='none';});document.addEventListener('keydown',function(e){if(e.key==='Escape')s.style.display='none';});})();
+</script>
+
+</body>
+</html>

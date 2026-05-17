@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Network+ Quiz screen redesign concept (N10-009 · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Network+ live quiz screen (answered +
+  correct state, which also shows the unanswered design implicitly).
+  Sec+ twin = secplus-quiz-concept.html (cloned shell + real Sec+
+  question). app.js untouched.
+
+  POV: live screen = soft-shadow card stack, purple, big rounded option
+  chips, sidebar + topbar chrome competing with the question. A quiz is
+  the highest-focus surface in the app. Redesign: strip everything that
+  is not the question. No app sidebar (consistent with the dashboard
+  set). One slim functional quiz bar (Menu · session · score · streak ·
+  flag · theme). Question = a clean typographic block, not a card.
+  Options = hairline rows (letter chip + text), the correct one gets a
+  pass-tint + 2px pass rule (not a big green soft card). Explanation =
+  a quiet bordered block with the real study link + Explain Further /
+  Report. Keyboard map stays (it is a power-user surface).
+  MOTION: emil frequency rule - a quiz is stared at and repeated, so
+  CALM. Option hover/press + the correct-state tint only. NO scroll-
+  reveal, NO confetti, 0 @keyframes.
+  HONESTY: the exact Q1 from the capture (DNS AAAA, Foundational, the
+  verbatim explanation + "Study: DNS Records & DNSSEC (Obj 1.6)" link),
+  1/1 score, streak 1, Question 1 of 5, 5 pips. Em-dash recomposed.
+  0 emoji · 0 hardcoded hex · 0 em-dash.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-pass-ink:oklch(0.22 0.05 152);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-pass-ink:oklch(0.98 0.02 150);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-pass-ink:oklch(0.22 0.05 152);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-pass-ink:oklch(0.98 0.02 150);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+  .qbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 26px;border-bottom:1px solid var(--dg-rule-soft);}
+  .qbar-l{display:flex;align-items:center;gap:18px;min-width:0;}
+  .menu{display:flex;align-items:center;gap:7px;background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;transition:border-color 0.12s,color 0.12s;}
+  .menu:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .menu svg{width:13px;height:13px;}
+  .qtitle .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .qtitle .t{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;}
+  .qbar-r{display:flex;align-items:center;gap:10px;flex:none;}
+  .stat{display:flex;align-items:center;gap:7px;font-size:var(--t-1);font-weight:700;color:var(--dg-text-2);border:1px solid var(--dg-rule);border-radius:999px;padding:6px 12px;font-variant-numeric:tabular-nums;}
+  .stat.streak{color:var(--dg-accent);border-color:color-mix(in oklab,var(--dg-accent) 40%,transparent);}
+  .flag{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 12px;cursor:pointer;}
+  .flag:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .theme{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;}
+  .theme:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  .wrap{max-width:780px;margin:0 auto;padding:24px 26px 60px;}
+  .prog{display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--dg-text-dim);font-size:var(--t-1);font-variant-numeric:tabular-nums;}
+  .prog .nav-a{width:30px;height:30px;border-radius:50%;border:1px solid var(--dg-rule);background:none;color:var(--dg-text-dim);display:grid;place-items:center;cursor:pointer;}
+  .prog .nav-a:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .prog .nav-a svg{width:13px;height:13px;}
+  .pbar{height:3px;border-radius:2px;background:var(--dg-bg-2);margin:14px 0 22px;overflow:hidden;}
+  .pbar i{display:block;height:100%;width:20%;background:var(--dg-accent);border-radius:2px;}
+  .pips{display:flex;gap:8px;margin-bottom:26px;}
+  .pip{width:28px;height:28px;border-radius:50%;border:1px solid var(--dg-rule);display:grid;place-items:center;font-size:var(--t-1);font-weight:700;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .pip.on{background:var(--dg-accent);border-color:var(--dg-accent);color:var(--dg-accent-ink);}
+  .pip.done{border-color:var(--dg-pass);color:var(--dg-pass);}
+
+  .qmeta{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .qmeta .qn{font-size:var(--t-1);font-weight:800;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .qmeta .diff{font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-accent);}
+  .stem{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;line-height:1.35;margin-bottom:26px;}
+
+  .opt{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:none;border:1px solid var(--dg-rule-soft);border-radius:11px;padding:16px 18px;margin-bottom:11px;cursor:pointer;color:var(--dg-text-2);font:600 var(--t0)/1.45 Inter,sans-serif;transition:border-color 0.12s ease,background 0.12s ease,color 0.12s ease;}
+  .opt:hover{border-color:var(--dg-accent);color:var(--dg-text);}
+  .opt .k{flex:none;width:28px;height:28px;border-radius:7px;background:var(--dg-bg-2);display:grid;place-items:center;font-weight:800;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .opt.correct{border-color:var(--dg-pass);background:color-mix(in oklab,var(--dg-pass) 9%,transparent);color:var(--dg-text);}
+  .opt.correct .k{background:var(--dg-pass);color:var(--dg-pass-ink);}
+
+  .exp{margin-top:18px;border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-pass);border-radius:10px;padding:18px 20px;background:color-mix(in oklab,var(--dg-pass) 5%,transparent);}
+  .exp-k{font-size:var(--t-1);font-weight:800;color:var(--dg-pass);margin-bottom:9px;}
+  .exp p{font-size:var(--t0);line-height:1.65;color:var(--dg-text-2);}
+  .exp p strong{color:var(--dg-text);font-weight:700;}
+  .exp-act{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;}
+  .study{display:inline-flex;align-items:center;gap:8px;border:1px solid color-mix(in oklab,var(--dg-accent) 40%,transparent);border-radius:8px;padding:9px 13px;font:700 var(--t-1)/1 Inter,sans-serif;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 8%,transparent);text-decoration:none;cursor:pointer;}
+  .study:hover{filter:brightness(1.08);}
+  .study svg{width:13px;height:13px;}
+  .ghost{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--dg-rule);border-radius:8px;padding:9px 13px;font:600 var(--t-1)/1 Inter,sans-serif;color:var(--dg-text-dim);background:none;cursor:pointer;}
+  .ghost:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .ghost svg{width:13px;height:13px;}
+
+  .qfoot{display:flex;align-items:center;justify-content:flex-end;margin-top:24px;}
+  .next{display:inline-flex;align-items:center;gap:9px;background:var(--dg-accent);color:var(--dg-accent-ink);border:0;border-radius:10px;font:800 var(--t0)/1 Inter,sans-serif;padding:15px 26px;cursor:pointer;}
+  .next:hover{filter:brightness(1.05);}
+  .next svg{width:15px;height:15px;}
+
+  .keys{display:flex;align-items:center;justify-content:center;gap:22px;margin-top:34px;font-size:var(--t-1);color:var(--dg-text-dim);flex-wrap:wrap;}
+  .keys span{display:inline-flex;align-items:center;gap:8px;}
+  .kb{font:600 10px/1 var(--mono);border:1px solid var(--dg-rule);border-bottom-width:2px;border-radius:4px;padding:4px 6px;color:var(--dg-text-2);background:var(--dg-bg-2);}
+
+  @media (prefers-reduced-motion: reduce){.opt,.menu,.theme,.flag{transition:none;}}
+  @media (max-width:680px){.qbar,.wrap{padding-left:18px;padding-right:18px;}.stem{font-size:var(--t1);}.qbar-r .stat{display:none;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="qbar">
+  <span class="qbar-l">
+    <button class="menu" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Menu</button>
+    <span class="qtitle"><span class="e">Network+ · N10-009 · quiz session</span><span class="t">Foundational · Mixed</span></span>
+  </span>
+  <span class="qbar-r">
+    <span class="stat">1 / 1</span>
+    <span class="stat streak">Streak 1</span>
+    <button class="flag" type="button">Flag</button>
+    <button class="theme" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+  </span>
+</header>
+
+<main class="wrap">
+  <div class="prog">
+    <button class="nav-a" type="button" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span>Question <b style="color:var(--dg-text-2)">1</b> of 5 · 0% complete</span>
+    <button class="nav-a" type="button" aria-label="Next"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="pbar"><i></i></div>
+  <div class="pips">
+    <span class="pip done">1</span><span class="pip">2</span><span class="pip">3</span><span class="pip">4</span><span class="pip">5</span>
+  </div>
+
+  <div class="qmeta"><span class="qn">Q1</span><span class="diff">Foundational</span></div>
+  <div class="stem">Which DNS record type is used to map a domain name to an IPv6 address?</div>
+
+  <button class="opt correct" type="button"><span class="k">A</span><span>AAAA record</span></button>
+  <button class="opt" type="button"><span class="k">B</span><span>A record</span></button>
+  <button class="opt" type="button"><span class="k">C</span><span>MX record</span></button>
+  <button class="opt" type="button"><span class="k">D</span><span>CNAME record</span></button>
+
+  <div class="exp">
+    <div class="exp-k">Correct</div>
+    <p>AAAA records map domain names to IPv6 addresses (128-bit). <strong>A records</strong> map to IPv4 addresses (32-bit). <strong>MX records</strong> specify mail exchange servers for email routing. <strong>CNAME records</strong> create aliases for domain names. The question specifically asks for IPv6 mapping, which is the unique purpose of AAAA records.</p>
+    <div class="exp-act">
+      <a class="study" href="#"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h12a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2zM4 6a2 2 0 0 1 2-2h12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Study: DNS Records &amp; DNSSEC (Obj 1.6)</a>
+      <button class="ghost" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-1 .5-1.5 1-1.5 2M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Explain further</button>
+      <button class="ghost" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M5 21V4h10l-1.5 4L15 12H5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Report issue</button>
+    </div>
+  </div>
+
+  <div class="qfoot">
+    <button class="next" type="button">Next<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <div class="keys">
+    <span><span class="kb">A</span><span class="kb">B</span><span class="kb">C</span><span class="kb">D</span> pick</span>
+    <span><span class="kb">&crarr;</span> submit / next</span>
+    <span><span class="kb">F</span> flag</span>
+  </div>
+</main>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

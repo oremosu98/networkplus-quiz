@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Privacy Policy redesign concept (landing · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Landing /privacy reskinned onto the
+  evolved dg-system. The legal TEXT is the founder-vetted v1.0 content
+  sourced VERBATIM from landing/privacy.html (not fabricated, not
+  summarised) - only the visual system changes. landing/privacy.html
+  untouched (gated landing sweep).
+
+  POV: live page = soft-shadow TOC card + gradient-left TL;DR boxes +
+  soft-card tables + soft-card contact (the light-edtech slop pattern).
+  Redesign: de-carded legal document. TOC -> hairline 2-col index.
+  TL;DR -> a quiet accent-tinted callout (flat, no gradient, impeccable
+  ban). Tables -> hairline editorial tables. Contact -> hairline block.
+  Section numbers as the §-eyebrow used across the system.
+  MOTION: a legal page is read top-to-bottom (emil) -> CALM. No
+  scroll-reveal, no fills, 0 @keyframes. Only TOC-anchor + hover.
+  HONESTY: all 13 sections, all 6 TL;DRs, all 4 tables, every clause
+  preserved verbatim from landing/privacy.html v1.0 (11 May 2026).
+  Em-dash recomposed to commas/colons (legal meaning unchanged), the
+  one editorial change the dg-system requires. 0 emoji · 0 hex.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:var(--dg-accent);text-decoration:none;}
+  a:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--dg-rule-soft);max-width:1180px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:var(--t1);letter-spacing:-0.02em;color:var(--dg-text);}
+  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--dg-text);color:var(--dg-bg);display:grid;place-items:center;font-size:15px;}
+  .nav-r{display:flex;align-items:center;gap:24px;font-size:var(--t-1);color:var(--dg-text-dim);font-weight:600;}
+  .nav-r a{color:var(--dg-text-dim);}
+  .nav-r a:hover{color:var(--dg-text);text-decoration:none;}
+  .nav-tt{background:none;border:1px solid var(--dg-rule);border-radius:7px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 10px;cursor:pointer;}
+  .nav-tt:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  .doc{max-width:760px;margin:0 auto;padding:0 40px;}
+  .hero{text-align:center;padding:70px 0 26px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{font-size:var(--t4);font-weight:800;letter-spacing:-0.03em;line-height:1.05;margin:18px 0 14px;}
+  .sub{color:var(--dg-text-2);font-size:var(--t1);line-height:1.6;max-width:640px;margin:0 auto;}
+  .meta{display:inline-flex;align-items:center;gap:10px;font-size:var(--t-1);color:var(--dg-text-dim);margin-top:18px;}
+  .meta i{width:6px;height:6px;border-radius:50%;background:var(--dg-accent);font-style:normal;}
+  .meta b{color:var(--dg-text-2);font-weight:700;}
+
+  .toc{border-top:1px solid var(--dg-rule);border-bottom:1px solid var(--dg-rule);margin:36px 0 14px;padding:24px 0;}
+  .toc-k{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);margin-bottom:14px;}
+  .toc ol{list-style:none;columns:2;column-gap:48px;font-size:var(--t-1);}
+  .toc li{padding:5px 0;break-inside:avoid;}
+  .toc a{color:var(--dg-text-2);font-weight:600;}
+  .toc a:hover{color:var(--dg-accent);text-decoration:none;}
+  .toc a .nn{color:var(--dg-text-dim);font-variant-numeric:tabular-nums;margin-right:9px;}
+
+  .body{padding:30px 0 80px;}
+  .sec{padding:40px 0 0;}
+  .sec h2{font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;margin-top:6px;scroll-margin-top:24px;}
+  .sn{font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-accent);}
+  .sec h3{font-size:var(--t0);font-weight:800;margin:26px 0 7px;letter-spacing:-0.01em;color:var(--dg-text);}
+  .sec p{font-size:var(--t0);line-height:1.7;color:var(--dg-text-2);margin:11px 0;}
+  .sec p strong,.sec li strong{color:var(--dg-text);font-weight:700;}
+  .sec ul{list-style:none;margin:12px 0 16px;}
+  .sec li{font-size:var(--t0);line-height:1.65;color:var(--dg-text-2);padding:6px 0 6px 20px;position:relative;}
+  .sec li::before{content:"";position:absolute;left:2px;top:13px;width:5px;height:5px;border-radius:50%;background:var(--dg-rule);}
+  code{font-family:var(--mono);font-size:12px;background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);border-radius:4px;padding:2px 6px;color:var(--dg-text-2);}
+  em{color:var(--dg-text-dim);font-style:italic;}
+
+  .tldr{border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-accent);border-radius:8px;padding:14px 18px;margin:16px 0 20px;background:color-mix(in oklab,var(--dg-accent) 5%,transparent);font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;}
+  .tldr b{display:block;color:var(--dg-accent);font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:var(--t-1);border:1px solid var(--dg-rule-soft);border-radius:8px;overflow:hidden;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--dg-rule-soft);vertical-align:top;line-height:1.55;color:var(--dg-text-2);}
+  th{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dg-text-dim);background:var(--dg-bg-2);}
+  td strong{color:var(--dg-text);font-weight:700;}
+  tr:last-child td{border-bottom:0;}
+
+  .card{border:1px solid var(--dg-rule);border-radius:12px;padding:20px 24px;margin:18px 0;}
+  .card h4{font-size:var(--t0);font-weight:800;margin-bottom:10px;}
+  .card p{font-size:var(--t-1);color:var(--dg-text-2);margin:6px 0;line-height:1.6;}
+  .back{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:var(--t-1);margin-top:28px;}
+
+  footer{border-top:1px solid var(--dg-rule-soft);}
+  .foot{max-width:1180px;margin:0 auto;padding:26px 40px;display:flex;align-items:center;justify-content:space-between;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .foot .fl{font-family:var(--mono);font-size:11px;}
+  .foot nav{display:flex;gap:22px;}
+  .foot nav a{color:var(--dg-text-dim);}
+  .foot nav a:hover{color:var(--dg-text);text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){.nav-tt{transition:none;}}
+  @media (max-width:680px){.toc ol{columns:1;}.nav,.doc,.foot{padding-left:22px;padding-right:22px;}h1{font-size:var(--t3);}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="nav">
+  <span class="brand"><span class="mk" aria-hidden="true">&#9650;</span>CertAnvil</span>
+  <span class="nav-r">
+    <a href="#">Why CertAnvil</a>
+    <a href="#">Certs</a>
+    <a href="#">Pricing</a>
+    <button class="nav-tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+  </span>
+</header>
+
+<div class="doc">
+
+  <section class="hero">
+    <div class="eyebrow">Legal · Privacy Policy</div>
+    <h1>Your data, plainly explained.</h1>
+    <p class="sub">Email, quiz history, billing state, and real-user performance metrics. That's it. No tracking pixels, no advertising data sharing, no behavioural profiling. This page explains what we collect, why, and how to get rid of it whenever you want.</p>
+    <p class="meta"><i aria-hidden="true"></i>Last updated · <b>11 May 2026</b> · v1.0 (initial)</p>
+  </section>
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-k">Contents</div>
+    <ol>
+      <li><a href="#s1"><span class="nn">01</span>Who we are</a></li>
+      <li><a href="#s2"><span class="nn">02</span>What we collect</a></li>
+      <li><a href="#s3"><span class="nn">03</span>Why we collect it</a></li>
+      <li><a href="#s4"><span class="nn">04</span>Who we share with</a></li>
+      <li><a href="#s5"><span class="nn">05</span>Where it's stored</a></li>
+      <li><a href="#s6"><span class="nn">06</span>How long we keep it</a></li>
+      <li><a href="#s7"><span class="nn">07</span>Cookies + similar</a></li>
+      <li><a href="#s8"><span class="nn">08</span>Your rights</a></li>
+      <li><a href="#s9"><span class="nn">09</span>International transfers</a></li>
+      <li><a href="#s10"><span class="nn">10</span>Security</a></li>
+      <li><a href="#s11"><span class="nn">11</span>Children</a></li>
+      <li><a href="#s12"><span class="nn">12</span>Changes to this policy</a></li>
+      <li><a href="#s13"><span class="nn">13</span>Contact us</a></li>
+    </ol>
+  </nav>
+
+  <article class="body">
+
+    <section class="sec" id="s1">
+      <div class="sn">§ 01</div><h2>Who we are</h2>
+      <p>CertAnvil ("we", "us", "our") is an AI-tutored CompTIA certification prep app operated by Oluwasimisola Oremosu, sole trader, registered in the United Kingdom. We're a single-founder business at the time of writing, not a corporation, not a department within a larger company. The product runs at <strong>certanvil.com</strong> and at per-cert subdomains like <strong>networkplus.certanvil.com</strong>.</p>
+      <p>This policy describes how the website, the cert apps, the landing pages, and any future Apple App Store / Google Play distributions of CertAnvil handle your personal data. If you're reading this after we incorporate as a limited company or join a larger organisation, the policy will be updated, see <a href="#s12">§ 12</a>.</p>
+    </section>
+
+    <section class="sec" id="s2">
+      <div class="sn">§ 02</div><h2>What we collect</h2>
+      <div class="tldr"><b>TL;DR</b>Your email · what you answered on quizzes · your subscription state if you're paying · anonymised performance metrics so we know if the app's fast enough on your phone. We don't collect your real name, phone number, address, or location.</div>
+      <p>Five categories of data, each with a specific purpose. Nothing collected is sold or used for advertising.</p>
+      <h3>2.1 · Account data (when you sign up)</h3>
+      <ul>
+        <li><strong>Email address</strong>, required. We use magic-link authentication: you type your email, we send a one-use sign-in link. No passwords means no password resets, no leaked-password breaches. Your email is the only identity we hold.</li>
+        <li><strong>Display name</strong>, optional, set in account settings. Shown only to you, used to personalise greetings.</li>
+        <li><strong>Active cert preference</strong>, which CompTIA exam you're studying (Network+ N10-009, Security+ SY0-701, etc.). Used to load the right content pack.</li>
+        <li><strong>Exam date</strong>, optional. Used to calculate "days until exam" countdowns and pace your daily plan.</li>
+        <li><strong>Account timestamps</strong>, when you signed up and when your profile was last modified.</li>
+        <li><strong>Role flag</strong>, almost always <code>user</code>. The founder is <code>admin</code> for product operations.</li>
+      </ul>
+      <h3>2.2 · Quiz + study data (built up as you use the app)</h3>
+      <ul>
+        <li><strong>Quiz history</strong>, per-question record of what you answered, whether you got it right, how long it took. This drives Pass Plan accuracy and the spaced-repetition queue.</li>
+        <li><strong>Wrong-answer bank</strong>, questions you got wrong, so you can drill them again.</li>
+        <li><strong>Streak data</strong>, consecutive-day study streak, longest streak.</li>
+        <li><strong>Daily goal</strong>, how many questions per day you've set as a target.</li>
+        <li><strong>Drill mastery scores</strong>, per-category accuracy on Subnet Trainer, Port Drill, Acronym Blitz, OSI Sorter, Cable ID, and other drills.</li>
+        <li><strong>Milestones</strong>, which achievements you've unlocked (47 total, all visible in the app).</li>
+        <li><strong>Diagnostic results + Pass Plan</strong>, the 20-question diagnostic and the resulting study plan, if you take it.</li>
+        <li><strong>Topology saves + ACL state</strong>, work-in-progress saves for the Topology Builder and ACL Builder features.</li>
+      </ul>
+      <h3>2.3 · Billing data (only if you subscribe to Pro)</h3>
+      <ul>
+        <li><strong>Stripe customer ID + subscription ID</strong>, opaque identifiers from Stripe. We don't see your card number, card expiry, or full billing address, those live with Stripe.</li>
+        <li><strong>Tier</strong>, <code>free</code> or <code>pro</code>.</li>
+        <li><strong>Subscription status</strong>, <code>active</code>, <code>past_due</code>, <code>canceled</code>, etc.</li>
+        <li><strong>Billing period</strong>, <code>monthly</code> or <code>annual</code>.</li>
+        <li><strong>Current period end</strong>, when your current billing window expires (used to surface "renews on" dates).</li>
+        <li><strong>Pass-guarantee extension timestamp</strong>, set manually if you successfully claim a pass-guarantee extension.</li>
+      </ul>
+      <p>Stripe is independently responsible for the card and address data they process on our behalf. See their <a href="#">privacy policy</a> for details.</p>
+      <h3>2.4 · Performance telemetry (real-user metrics)</h3>
+      <ul>
+        <li><strong>Core Web Vitals</strong>, LCP, FCP, CLS, TTFB, and INP timings captured by your browser's standard <code>PerformanceObserver</code> API. Tells us if the app feels fast on your real device + network.</li>
+        <li><strong>App version + cert pack</strong>, so we can correlate "this release made things faster" or "Network+ users see worse performance than Security+ users."</li>
+        <li><strong>Viewport dimensions + connection type</strong>, width by height (e.g. 768 by 1024 for iPad portrait) and a network hint (e.g. <code>4g</code>, <code>slow-2g</code>).</li>
+        <li><strong>User-agent string (truncated)</strong>, the standard browser-identification string, capped at 200 characters. Used to slice metrics by iOS vs Android vs desktop.</li>
+        <li><strong>Page path</strong>, which page you were on (e.g. <code>/?cert=secplus</code>). We scrub any auth-related query parameters (tokens, codes) before storage.</li>
+      </ul>
+      <p>One row per session, sent once when you switch tabs or close the page. Linked to your user ID so we can correlate with other data, but never used to track behaviour for marketing.</p>
+      <h3>2.5 · Operational logging</h3>
+      <ul>
+        <li><strong>AI usage counter</strong>, daily count of AI calls (Generate Quiz, Diagnostic, Topic Deep Dive, etc.). Used to enforce the Free tier's 20-questions-per-day quota and to detect abuse. <em>Not</em> the content of your prompts, just the count.</li>
+        <li><strong>Error logs</strong>, if the app crashes or throws an unexpected error, we record the error message, the file and line where it happened, and a stack trace. Stored locally in your browser (via <code>localStorage</code>) for the most recent 100 errors. <em>Optionally</em> auto-reported to a GitHub issue tracker if you have configured your own GitHub token in Settings, defaults to off.</li>
+      </ul>
+      <h3>2.6 · What we DO NOT collect</h3>
+      <ul>
+        <li>Your real name (display names are pseudonyms you choose)</li>
+        <li>Phone numbers</li>
+        <li>Physical addresses (Stripe collects billing addresses for tax purposes; we don't see them in detail)</li>
+        <li>National ID / passport / social security numbers</li>
+        <li>Date of birth / age (beyond your self-attestation that you're 13+, see <a href="#s11">§ 11</a>)</li>
+        <li>Demographic data (race, ethnicity, gender, sexual orientation, political views, religion, union membership)</li>
+        <li>Health or biometric data</li>
+        <li>Precise location data (no IP-to-city, no GPS)</li>
+        <li>Browsing history outside CertAnvil</li>
+        <li>Contacts, calendars, photos, or files from your device</li>
+        <li>The content of AI prompts (only the count is logged for quota enforcement)</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="s3">
+      <div class="sn">§ 03</div><h2>Why we collect it</h2>
+      <div class="tldr"><b>TL;DR</b>Either it's necessary to give you the product you signed up for (account, quiz history, billing), or it's anonymous-enough metrics to make the product better (performance telemetry).</div>
+      <table>
+        <thead><tr><th>Data</th><th>Why</th><th>Lawful basis (GDPR)</th></tr></thead>
+        <tbody>
+          <tr><td>Email</td><td>Sign in via magic-link · send receipts · respond to support</td><td>Contract (necessary to provide the service)</td></tr>
+          <tr><td>Quiz history</td><td>Compute readiness · power Pass Plan · drive spaced-repetition</td><td>Contract</td></tr>
+          <tr><td>Billing state</td><td>Enforce Pro entitlements · handle renewals + cancellations</td><td>Contract + legitimate interests (fraud + chargeback protection)</td></tr>
+          <tr><td>Performance telemetry</td><td>Detect regressions · prioritise optimisation work · validate that releases help real users</td><td>Legitimate interests (product improvement) · pseudonymous</td></tr>
+          <tr><td>AI usage count</td><td>Enforce Free 20-q-per-day quota · detect abuse of the proxy</td><td>Contract + legitimate interests</td></tr>
+          <tr><td>Error logs</td><td>Fix crashes you encounter</td><td>Legitimate interests · stored locally by default</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="sec" id="s4">
+      <div class="sn">§ 04</div><h2>Who we share with</h2>
+      <div class="tldr"><b>TL;DR</b>A small list of named sub-processors that store data or send emails on our behalf. We do not sell your data. We do not share data with advertisers. We do not have third-party tracking pixels.</div>
+      <table>
+        <thead><tr><th>Sub-processor</th><th>What they handle</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Supabase</strong></td><td>Database (account, quiz history, subscription state, telemetry) · authentication (magic-link)</td><td>EU (Frankfurt) by default</td></tr>
+          <tr><td><strong>Stripe</strong></td><td>Payments · card processing · subscription billing · invoices</td><td>US + EU</td></tr>
+          <tr><td><strong>Anthropic</strong></td><td>The AI model behind Generate Quiz, Diagnostic, Topic Deep Dive, etc. Receives the question-generation prompt; never receives your email, name, or other identifying data.</td><td>US</td></tr>
+          <tr><td><strong>Resend</strong></td><td>Sends magic-link emails and (later) transactional emails like billing receipts. Receives your email address only.</td><td>US</td></tr>
+          <tr><td><strong>Vercel</strong></td><td>Hosting for the CertAnvil website and serverless API endpoints. Sees request metadata (IP, UA) but doesn't access database content.</td><td>Global edge network</td></tr>
+          <tr><td><strong>Hostinger</strong></td><td>Email inbox provider for <code>hello@certanvil.com</code> and aliases. Receives any email you send us directly.</td><td>EU</td></tr>
+        </tbody>
+      </table>
+      <p>If we add a new sub-processor we'll update this list and increment the policy version (see <a href="#s12">§ 12</a>). We don't share data with anyone outside this list, no advertising networks, no analytics providers other than what's listed, no data brokers.</p>
+    </section>
+
+    <section class="sec" id="s5">
+      <div class="sn">§ 05</div><h2>Where it's stored</h2>
+      <p>Your account + quiz data lives in Supabase's EU-Frankfurt region by default. Stripe billing data is stored across their US and EU regions. Vercel caches static assets and serverless function inputs globally on its edge network.</p>
+      <p>Your browser also caches state locally via <code>localStorage</code> (quiz history, streak, drill mastery, theme preference, optionally your Anthropic API key if you're a BYOK user). This local cache is purely client-side, we don't read it remotely. You can clear it at any time via your browser's site-data tools.</p>
+    </section>
+
+    <section class="sec" id="s6">
+      <div class="sn">§ 06</div><h2>How long we keep it</h2>
+      <table>
+        <thead><tr><th>Data</th><th>Retention</th></tr></thead>
+        <tbody>
+          <tr><td>Account data (email, profile, quiz history)</td><td>For as long as your account exists. <strong>Permanently deleted within 7 days</strong> when you self-delete from Settings.</td></tr>
+          <tr><td>Subscription record</td><td>Kept after cancellation for historical accuracy. We can re-issue a Pro entitlement if you resubscribe. Deleted on full account deletion.</td></tr>
+          <tr><td>Stripe records</td><td>Stripe retains payment records per their retention policy (typically 7 years for tax + chargeback purposes). We can't delete Stripe-side records ourselves.</td></tr>
+          <tr><td>Performance telemetry</td><td>Indefinite while useful for product decisions. Periodic anonymisation purges may apply once the dataset grows; we'll update this when applicable.</td></tr>
+          <tr><td>Error logs (browser-local)</td><td>Most recent 100 entries on your device. Auto-rolling; nothing leaves your browser unless you've configured GitHub auto-reporting.</td></tr>
+          <tr><td>Auto-backups</td><td>Last 7 days of your in-browser state. Stored locally only.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Self-delete</strong>: from your cert-app Settings, "Delete my account". This cancels your subscription with Stripe, deletes your Supabase auth user (which cascades to profile + quiz history + subscription + telemetry), and clears your browser cache. The Stripe billing records remain at Stripe per their retention policy; the cert-app side is fully erased.</p>
+    </section>
+
+    <section class="sec" id="s7">
+      <div class="sn">§ 07</div><h2>Cookies + similar technologies</h2>
+      <div class="tldr"><b>TL;DR</b>One first-party cookie for your sign-in session. No tracking cookies, no third-party advertising cookies.</div>
+      <ul>
+        <li><strong>Session cookie</strong> (essential), a single cookie scoped to <code>.certanvil.com</code> issued by our Supabase auth integration so you stay signed in across <code>certanvil.com</code>, <code>networkplus.certanvil.com</code>, and any future cert subdomains. Cleared when you sign out.</li>
+        <li><strong>Theme preference</strong>, stored in <code>localStorage</code> (not technically a cookie). Remembers your dark/light setting.</li>
+        <li><strong>App state cache</strong>, stored in <code>localStorage</code>. Mirrors your quiz history and progress for offline-tolerant operation. Not transmitted by itself.</li>
+      </ul>
+      <p>We do not use third-party analytics cookies, advertising cookies, or social-media tracking pixels. We collect no information about your activity on other websites.</p>
+    </section>
+
+    <section class="sec" id="s8">
+      <div class="sn">§ 08</div><h2>Your rights</h2>
+      <p>If you're in the UK or EU, the UK GDPR and EU GDPR give you specific rights over your personal data. If you're in California, the CCPA gives you similar rights. We honour these for everyone, regardless of where you live, because it's the right thing to do.</p>
+      <h3>8.1 · Access</h3>
+      <p>Export everything we have about you at any time. Cert app, Settings, <strong>Export Data</strong>. You'll get a JSON file with your full profile, quiz history, wrong bank, streak, milestones, and drill mastery. Stripe billing history is exportable separately from your <a href="#">Stripe Customer Portal</a>.</p>
+      <h3>8.2 · Erasure ("right to be forgotten")</h3>
+      <p>Self-service deletion from Settings, see <a href="#s6">§ 06</a>. The cascade is irreversible. You can also email us if you'd prefer assisted deletion.</p>
+      <h3>8.3 · Correction</h3>
+      <p>Update your email, display name, cert preference, and exam date from Settings at any time.</p>
+      <h3>8.4 · Portability</h3>
+      <p>The Export Data action produces a machine-readable JSON snapshot, suitable for moving to another service.</p>
+      <h3>8.5 · Restriction of processing</h3>
+      <p>If you want us to stop processing your data temporarily (e.g. while a dispute is resolved), email <a href="#">privacy@certanvil.com</a>. We'll restrict within 7 days.</p>
+      <h3>8.6 · Objection</h3>
+      <p>If you object to a specific processing activity, email us and we'll respond within 7 days. The performance telemetry described in <a href="#s2">§ 2.4</a> is collected under legitimate interests, if you'd like to opt out specifically of that, contact us and we'll suppress your user ID from future telemetry rows.</p>
+      <h3>8.7 · Lodge a complaint</h3>
+      <p>If you believe we've mishandled your data, you can complain to your data protection supervisory authority. In the UK that's the <a href="#">Information Commissioner's Office (ICO)</a>. We'd love a chance to fix things first, email <a href="#">privacy@certanvil.com</a> and we'll respond within 7 days.</p>
+    </section>
+
+    <section class="sec" id="s9">
+      <div class="sn">§ 09</div><h2>International transfers</h2>
+      <p>Some of our sub-processors (Stripe, Anthropic, Resend, Vercel) are based in the United States. When your data moves from the UK/EU to the US, we rely on the <strong>EU-US Data Privacy Framework</strong> and on <strong>Standard Contractual Clauses</strong> approved by the European Commission. The sub-processors named in <a href="#s4">§ 04</a> all maintain these safeguards. Supabase data is held in the EU-Frankfurt region by default and does not leave the EEA for your account + quiz data.</p>
+    </section>
+
+    <section class="sec" id="s10">
+      <div class="sn">§ 10</div><h2>Security</h2>
+      <p>How we protect your data:</p>
+      <ul>
+        <li><strong>Encryption in transit</strong>, all traffic between your browser and our servers uses TLS 1.2 or above. The certificate is auto-rotated by Vercel.</li>
+        <li><strong>Encryption at rest</strong>, Supabase + Stripe both encrypt stored data at rest using industry-standard AES-256.</li>
+        <li><strong>Authentication</strong>, magic-link only. No passwords means no leaked-password breaches. Sign-in links expire after 60 minutes and are single-use.</li>
+        <li><strong>Row-level security</strong>, Supabase RLS policies enforce that your data is only readable by you (and by the founder for admin tasks like subscription support).</li>
+        <li><strong>Service-role keys</strong>, held only in server-side environment variables, never in client code.</li>
+        <li><strong>No card data</strong>, Stripe handles all PCI scope. We never see card numbers, CVCs, or expiration dates.</li>
+        <li><strong>Webhook signature verification</strong>, Stripe events posted to our endpoint are verified against the signing secret to prevent forged "subscription created" events.</li>
+      </ul>
+      <p>If we ever have a security incident that affects your personal data, we'll notify you by email within 72 hours of becoming aware of it (GDPR Article 33) and we'll publish a status note on our blog/changelog.</p>
+    </section>
+
+    <section class="sec" id="s11">
+      <div class="sn">§ 11</div><h2>Children</h2>
+      <p>CertAnvil is intended for use by people aged <strong>13 and over</strong> (or 16+ in jurisdictions where higher consent ages apply for online services, e.g. parts of the EU). We do not knowingly collect personal data from anyone under 13. If you believe a child has provided us with personal data, please email <a href="#">privacy@certanvil.com</a> and we will delete it promptly.</p>
+    </section>
+
+    <section class="sec" id="s12">
+      <div class="sn">§ 12</div><h2>Changes to this policy</h2>
+      <p>If we make a meaningful change to this policy, adding a new sub-processor, expanding what we collect, changing retention, we'll update the version date at the top of this page and send signed-in users an email summarising the change. Minor edits (typos, link fixes, clarifications that don't change substance) won't trigger an email.</p>
+      <p>This is <strong>v1.0</strong>, the initial publication of the policy. Future versions will be listed below as they ship.</p>
+    </section>
+
+    <section class="sec" id="s13">
+      <div class="sn">§ 13</div><h2>Contact us</h2>
+      <div class="card">
+        <h4>Privacy questions, data requests, complaints</h4>
+        <p><strong>Email</strong> · <a href="#">privacy@certanvil.com</a></p>
+        <p><strong>Response time</strong> · within 7 days for routine requests, 30 days for complex data access / erasure requests</p>
+        <p><strong>Postal</strong> · Oluwasimisola Oremosu, United Kingdom (full address provided on request for formal correspondence)</p>
+      </div>
+      <a class="back" href="#"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to CertAnvil</a>
+    </section>
+
+  </article>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="fl">certanvil.com · forged in code</span>
+    <nav><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></nav>
+  </div>
+</footer>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

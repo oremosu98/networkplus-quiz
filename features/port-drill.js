@@ -509,7 +509,7 @@
     const hasCmd = !!cmdEntry;
     const cmdRow = hasCmd ? `<div class="port-ref-cmd">
       <code class="port-ref-cmd-text">${escHtml(cmdEntry.cmd)}</code>
-      <button type="button" class="port-ref-cmd-copy" onclick="copyCmd(event, '${escHtml(cmdEntry.cmd).replace(/'/g, '&#39;')}')" aria-label="Copy command">&#128203;</button>
+      <button type="button" class="port-ref-cmd-copy" onclick="copyCmd(event, '${escHtml(cmdEntry.cmd).replace(/'/g, '&#39;')}')" aria-label="Copy command">Copy</button>
     </div>` : '';
     return `<div class="port-ref-card ${hasCmd ? 'port-ref-card-has-cmd' : ''}" data-proto="${p.proto.toLowerCase()}" data-port="${p.port}">
       <div class="port-ref-card-top">
@@ -619,7 +619,7 @@
     if (!el) return;
     el.innerHTML = PT_CATEGORIES.map(c => {
       const active = ptFocusCat === c.id ? ' pt-focus-chip-active' : '';
-      return `<button class="pt-focus-chip${active}" data-cat="${c.id}" onclick="ptSetFocusCat('${c.id}')" style="--pt-cat-color:${c.color}">${c.icon} ${escHtml(c.label)}</button>`;
+      return `<button class="pt-focus-chip${active}" data-cat="${c.id}" onclick="ptSetFocusCat('${c.id}')">${escHtml(c.label)}</button>`;
     }).join('');
   }
   function ptStartTimer() {
@@ -637,7 +637,7 @@
   function ptStopTimer() { if (ptTimerInterval) { clearInterval(ptTimerInterval); ptTimerInterval = null; } }
   function ptEndTimedChallenge() {
     const card = document.getElementById('pt-q-card');
-    if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\u23f0</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${ptCorrect}</strong> out of <strong>${ptTotal}</strong></div><button class="btn btn-primary" onclick="setPortPracticeMode('timed')">Try Again</button></div>`;
+    if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${ptCorrect}</strong> out of <strong>${ptTotal}</strong></div><button class="btn btn-primary" onclick="setPortPracticeMode('timed')">Try Again</button></div>`;
   }
   
   // ── Question generation ──
@@ -675,7 +675,7 @@
     if (qEl) qEl.innerHTML = askPort
       ? `What port is <strong>${escHtml(correct.proto)}</strong>?`
       : `Port <strong>${correct.port}/${correct.tp}</strong> is for?`;
-    if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+    if (catBadge) catBadge.textContent = cat.label;
     const ansArea = document.getElementById('pt-answer-area');
     if (ansArea) {
       ansArea.innerHTML = `<div class="pt-mcq-grid">${opts.map(o => {
@@ -690,7 +690,7 @@
     const nb = document.getElementById('pt-next-btn');
     if (nb) nb.classList.add('is-hidden');
     document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
-    document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+    document.getElementById('pt-streak').textContent = '' + ptStreak;
     ptRenderLevelBadge();
   }
   
@@ -717,7 +717,7 @@
     const catBadge = document.getElementById('pt-cat-badge');
     if (numEl) numEl.textContent = 'Q' + ptIdx;
     if (qEl) qEl.innerHTML = `Select all <strong>${n}</strong> ports in the <strong>${escHtml(cat.label)}</strong> family`;
-    if (catBadge) catBadge.textContent = cat.icon + ' ' + cat.label;
+    if (catBadge) catBadge.textContent = cat.label;
     const ansArea = document.getElementById('pt-answer-area');
     if (ansArea) {
       ansArea.innerHTML = `<div class="pt-mcq-grid">${allOpts.map(o =>
@@ -779,7 +779,7 @@
     if (qEl) qEl.innerHTML = askPort
       ? `<strong>${escHtml(correct.proto)}</strong> is the secure version of <strong>${escHtml(pair.insecure.proto)}</strong>. Which port?`
       : `Which protocol replaces <strong>${escHtml(pair.insecure.proto)}</strong> (port ${pair.insecure.port})${qual}?`;
-    if (catBadge) catBadge.textContent = '\uD83D\uDD12 Secure Pairs';
+    if (catBadge) catBadge.textContent = 'Secure Pairs';
     const ansArea = document.getElementById('pt-answer-area');
     if (ansArea) {
       ansArea.innerHTML = `<div class="pt-mcq-grid">${opts.map(o => {
@@ -809,7 +809,7 @@
     }
     ptRenderFeedback(ptQ, chosen, isCorrect, elapsed);
     document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
-    document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+    document.getElementById('pt-streak').textContent = '' + ptStreak;
     ptRenderLevelBadge();
     if (ptMode === 'timed' && isCorrect) { setTimeout(() => { if (ptTimerValue > 0) ptNextQuestion(); }, 800); }
   }
@@ -822,10 +822,10 @@
     const proto = q.correct ? q.correct.proto : (q.correctPorts ? q.correctPorts.map(p => p.proto).join(', ') : '');
     const cat = q.cat || (q.correct ? ptCatOf(q.correct.proto) : PT_CATEGORIES[0]);
     if (isCorrect) {
-      html = `<div class="pt-fb-correct"><strong>\u2705 Correct!</strong> <span class="pt-fb-answer">${escHtml(proto)}</span><span class="pt-fb-time">${elapsed}s</span></div>`;
-      if (ptStreak >= 5) html += `<div class="pt-fb-streak">\uD83D\uDD25 ${ptStreak} streak!</div>`;
+      html = `<div class="pt-fb-correct"><strong>Correct!</strong> <span class="pt-fb-answer">${escHtml(proto)}</span><span class="pt-fb-time">${elapsed}s</span></div>`;
+      if (ptStreak >= 5) html += `<div class="pt-fb-streak">${ptStreak} streak!</div>`;
     } else {
-      html = `<div class="pt-fb-wrong"><strong>\u274c Incorrect.</strong></div>`;
+      html = `<div class="pt-fb-wrong"><strong>Incorrect.</strong></div>`;
       if (q.correct) html += `<div class="pt-fb-correct-answer">Correct: <strong>${q.correct.port}/${q.correct.tp} (${escHtml(q.correct.proto)})</strong></div>`;
       if (q.type === 'family' && q.correctPorts) {
         html += `<div class="pt-fb-correct-answer">Correct ports: <strong>${q.correctPorts.map(p => p.port + '/' + escHtml(p.proto)).join(', ')}</strong></div>`;
@@ -835,7 +835,7 @@
       if (q.correct) {
         const c = q.correct;
         steps.push(`${escHtml(c.proto)} uses port <strong>${c.port}/${c.tp}</strong>`);
-        steps.push(`It belongs to the <strong>${cat.icon} ${escHtml(cat.label)}</strong> family`);
+        steps.push(`It belongs to the <strong>${escHtml(cat.label)}</strong> family`);
         const mnemonic = PORT_MNEMONICS[c.proto];
         if (mnemonic) steps.push(`<strong>Memory hook:</strong> ${escHtml(mnemonic)}`);
         // Show secure pair context if applicable
@@ -848,7 +848,7 @@
         html += '</div>';
       }
       // AI Coach
-      html += `<div style="margin-top:10px"><button class="btn btn-ghost" onclick="ptAskCoach()" style="font-size:12px">\uD83E\uDD16 Ask Coach</button></div>`;
+      html += `<div style="margin-top:10px"><button class="btn btn-ghost" onclick="ptAskCoach()" style="font-size:12px">Ask Coach</button></div>`;
       html += '<div id="pt-coach-panel" class="pt-coach-panel"></div>';
     }
     fb.innerHTML = html;
@@ -857,7 +857,7 @@
     ptRenderHeatmap();
     ptRenderLevelBadge();
     document.getElementById('pt-score').textContent = ptCorrect + ' / ' + ptTotal;
-    document.getElementById('pt-streak').textContent = '\uD83D\uDD25 ' + ptStreak;
+    document.getElementById('pt-streak').textContent = '' + ptStreak;
   }
   
   async function ptAskCoach() {
@@ -897,8 +897,8 @@
       const done = progress[l.id] && progress[l.id].passed;
       const locked = i > 0 && !ptIsLessonComplete(PORT_LESSONS[i - 1].id);
       const active = ptActiveLesson === l.id;
-      const icon = done ? '\u2705' : locked ? '\uD83D\uDD12' : l.icon;
-      return `<div class="pt-lesson-item${active ? ' pt-lesson-active' : ''}${locked ? ' pt-lesson-locked' : ''}" onclick="${locked ? '' : `ptOpenLesson('${l.id}')`}">
+      const icon = '';
+      return `<div class="pt-lesson-item${active ? ' pt-lesson-active' : ''}${locked ? ' pt-lesson-locked' : ''}${done ? ' pt-lesson-done' : ''}" onclick="${locked ? '' : `ptOpenLesson('${l.id}')`}">
         <span class="pt-lesson-icon">${icon}</span>
         <span class="pt-lesson-info"><span class="pt-lesson-num">Lesson ${i + 1}</span><span class="pt-lesson-title">${escHtml(l.title)}</span></span>
       </div>`;
@@ -915,7 +915,7 @@
     if (!lesson) return;
     const main = document.getElementById('pt-lesson-main');
     if (!main) return;
-    let html = `<div class="pt-lesson-header"><span class="pt-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="pt-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
+    let html = `<div class="pt-lesson-header"><span class="pt-lesson-header-icon"></span><h3>${escHtml(lesson.title)}</h3><p class="pt-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
     html += '<div class="pt-lesson-theory">';
     lesson.theory.forEach(t => { html += `<div class="pt-theory-block">${t}</div>`; });
     // Show terminal commands for this category's ports
@@ -923,13 +923,13 @@
     if (cat) {
       const cmds = cat.protos.filter(p => portCommands[p]).map(p => ({ proto: p, ...portCommands[p], port: portData.find(d => d.proto === p) }));
       if (cmds.length > 0) {
-        html += '<div class="pt-theory-block"><strong>\uD83D\uDCBB Try it in Terminal:</strong><div style="margin-top:8px">';
+        html += '<div class="pt-theory-block"><strong>Try it in Terminal:</strong><div style="margin-top:8px">';
         cmds.forEach(c => { if (c.port) html += `<div style="margin-bottom:6px;font-size:12px;color:var(--text-dim)">${c.port.port}/${c.port.tp} — ${escHtml(c.proto)}</div>` + _terminalCardHtml(c.cmd, c.note); });
         html += '</div></div>';
       }
     }
     html += '</div>';
-    html += '<div class="pt-lesson-gate"><h4>\uD83C\uDFAF Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
+    html += '<div class="pt-lesson-gate"><h4>Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
     html += '<div id="pt-gate-area"></div></div>';
     main.innerHTML = html;
     ptRenderGate(lesson);
@@ -959,7 +959,7 @@
         ptSaveLessonProgress(p);
         ptRenderLessonSidebar();
       }
-      area.innerHTML = `<div class="pt-gate-result ${passed ? 'pt-gate-pass' : 'pt-gate-fail'}">${passed ? '\u2705 Passed! ' + gs.correct + '/5 — Next lesson unlocked!' : '\u274c ' + gs.correct + '/5 — Need 3/5. Try again!'}</div>${!passed ? '<button class="btn btn-primary" style="margin-top:12px" onclick="ptOpenLesson(\'' + gs.lessonId + '\')">Retry</button>' : ''}`;
+      area.innerHTML = `<div class="pt-gate-result ${passed ? 'pt-gate-pass' : 'pt-gate-fail'}">${passed ? 'Passed! ' + gs.correct + '/5 — Next lesson unlocked!' : '' + gs.correct + '/5 — Need 3/5. Try again!'}</div>${!passed ? '<button class="btn btn-primary" style="margin-top:12px" onclick="ptOpenLesson(\'' + gs.lessonId + '\')">Retry</button>' : ''}`;
       return;
     }
     const q = gs.questions[gs.current];
@@ -994,8 +994,8 @@
     const fb = document.getElementById('pt-gate-fb');
     if (fb) {
       fb.innerHTML = isCorrect
-        ? `<div class="pt-fb-correct">\u2705 Correct! ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`
-        : `<div class="pt-fb-wrong">\u274c ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`;
+        ? `<div class="pt-fb-correct">Correct! ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`
+        : `<div class="pt-fb-wrong">Incorrect. ${escHtml(q.correct.proto)} = ${q.correct.port}</div>`;
     }
     setTimeout(() => ptRenderGateQuestion(area, gs), 1200);
   }
@@ -1010,7 +1010,7 @@
       const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="pt-heat-cell" style="border-color:${cat.color}"><div class="pt-heat-icon">${cat.icon}</div><div class="pt-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="pt-heat-label">${cat.label.split(' ')[0]}</div><div class="pt-heat-box">Box ${d.box}/5</div></div>`;
+      return `<div class="pt-heat-cell"><div class="pt-heat-icon"></div><div class="pt-heat-pct">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="pt-heat-label">${cat.label.split(' ')[0]}</div><div class="pt-heat-box">Box ${d.box}/5</div></div>`;
     }).join('') + '</div>';
   }
   
@@ -1045,7 +1045,7 @@
       const d = m.perCategory[cat.id] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      html += `<div class="pt-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="pt-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="pt-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="pt-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>\uD83D\uDD25 ${d.streak}</span></div></div>`;
+      html += `<div class="pt-dash-cat-card"><div class="pt-dash-cat-head">${escHtml(cat.label)}</div><div class="pt-dash-cat-bar"><div style="width:${catAcc}%;height:100%;border-radius:3px;transition:width .3s"></div></div><div class="pt-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>${d.streak} streak</span></div></div>`;
     });
     html += '</div>';
   
@@ -1055,7 +1055,7 @@
       html += '<h3 class="pt-dash-heading">Weakest Ports</h3><div class="pt-dash-weak">';
       weakPorts.forEach(w => {
         const p = portData.find(d => d.proto === w.proto);
-        html += `<div class="pt-dash-weak-row"><span class="pt-dash-weak-proto">${escHtml(w.proto)}</span><span class="pt-dash-weak-port">${p ? p.port : '?'}</span><span class="pt-dash-weak-acc" style="color:${w.acc >= 70 ? 'var(--green)' : 'var(--red)'}">${w.acc}%</span><span class="pt-dash-weak-seen">${w.seen} seen</span></div>`;
+        html += `<div class="pt-dash-weak-row"><span class="pt-dash-weak-proto">${escHtml(w.proto)}</span><span class="pt-dash-weak-port">${p ? p.port : '?'}</span><span class="pt-dash-weak-acc">${w.acc}%</span><span class="pt-dash-weak-seen">${w.seen} seen</span></div>`;
       });
       html += '</div>';
     }
@@ -1065,7 +1065,7 @@
     html += '<h3 class="pt-dash-heading">Lesson Progress</h3><div class="pt-dash-lessons">';
     PORT_LESSONS.forEach((l, i) => {
       const done = lp[l.id] && lp[l.id].passed;
-      html += `<div class="pt-dash-lesson-row"><span>${done ? '\u2705' : '\u2b1c'}</span><span>Lesson ${i + 1}: ${escHtml(l.title)}</span></div>`;
+      html += `<div class="pt-dash-lesson-row"><span class="pt-dash-lesson-dot${done ? ' pt-dash-lesson-done' : ''}"></span><span>Lesson ${i + 1}: ${escHtml(l.title)}</span></div>`;
     });
     html += '</div>';
   

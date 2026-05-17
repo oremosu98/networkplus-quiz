@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.86
+// Network+ AI Quiz — app.js  v4.99.88
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.86';
+const APP_VERSION = '4.99.88';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -15906,8 +15906,6 @@ function createDrillScaffold(cfg) {
     if (!el) return;
     const m = getMastery();
     el.textContent = m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1);
-    el.style.background = typeof cfg.badgeColor === 'object' ? (cfg.badgeColor[m.currentLevel] || '#8b5cf6') : cfg.badgeColor;
-    el.style.color = '#fff';
   }
 
   function getLessonProgress() { try { return JSON.parse(localStorage.getItem(cfg.lessonsKey) || '{}'); } catch { return {}; } }
@@ -15923,10 +15921,9 @@ function createDrillScaffold(cfg) {
       const unlocked = isLessonUnlocked(l);
       const done = progress[l.id] && progress[l.id].passed;
       const active = cfg.activeLesson.get() === l.id;
-      const icon = done ? '\u2705' : unlocked ? l.icon : '\uD83D\uDD12';
-      const cls = `${cfg.prefix}-lesson-item${active ? ` ${cfg.prefix}-lesson-active` : ''}${!unlocked ? ` ${cfg.prefix}-lesson-locked` : ''}`;
+      const cls = `${cfg.prefix}-lesson-item${active ? ` ${cfg.prefix}-lesson-active` : ''}${!unlocked ? ` ${cfg.prefix}-lesson-locked` : ''}${done ? ` ${cfg.prefix}-lesson-done` : ''}`;
       return `<button class="${cls}" onclick="${unlocked ? `${openLessonFn}('${l.id}')` : ''}" ${!unlocked ? 'disabled' : ''}>
-        <span class="${cfg.prefix}-lesson-icon">${icon}</span>
+        <span class="${cfg.prefix}-lesson-icon"></span>
         <span class="${cfg.prefix}-lesson-info"><span class="${cfg.prefix}-lesson-num">Lesson ${i+1}</span><span class="${cfg.prefix}-lesson-title">${escHtml(l.title)}</span></span>
       </button>`;
     }).join('');
@@ -15946,15 +15943,15 @@ function createDrillScaffold(cfg) {
     if (!main) return;
     let html = `<div class="${cfg.prefix}-lesson-header">`;
     if (cfg.prefix === 'ab') {
-      html += `<span class="${cfg.prefix}-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="${cfg.prefix}-lesson-desc">${escHtml(lesson.desc)}</p>`;
+      html += `<span class="${cfg.prefix}-lesson-header-icon"></span><h3>${escHtml(lesson.title)}</h3><p class="${cfg.prefix}-lesson-desc">${escHtml(lesson.desc)}</p>`;
     } else {
-      html += `<h3>${lesson.icon} ${escHtml(lesson.title)}</h3><p style="font-size:13px;color:var(--text-mid);margin-top:6px">${escHtml(lesson.desc)}</p>`;
+      html += `<h3>${escHtml(lesson.title)}</h3><p style="font-size:13px;color:var(--text-mid);margin-top:6px">${escHtml(lesson.desc)}</p>`;
     }
     html += `</div>`;
     html += `<div class="${cfg.prefix}-lesson-theory">`;
     lesson.theory.forEach(t => { html += `<div class="${cfg.prefix}-theory-block">${t}</div>`; });
     html += '</div>';
-    html += `<div class="${cfg.prefix}-lesson-gate"><h4>\uD83C\uDFAF Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4><div id="${cfg.prefix}-gate-area"></div></div>`;
+    html += `<div class="${cfg.prefix}-lesson-gate"><h4>Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4><div id="${cfg.prefix}-gate-area"></div></div>`;
     main.innerHTML = html;
     cfg.renderGate(lesson);
   }
@@ -15964,7 +15961,7 @@ function createDrillScaffold(cfg) {
     const passed = gs.correct >= 3;
     const openLessonFn = cfg.prefix === 'ab' ? 'abOpenLesson' : cfg.prefix === 'os' ? 'osOpenLesson' : 'cbOpenLesson';
     const activeLessonVar = cfg.prefix === 'ab' ? 'abActiveLesson' : cfg.prefix === 'os' ? 'osActiveLesson' : 'cbActiveLesson';
-    area.innerHTML = `<div class="${cfg.prefix}-gate-result ${passed ? cfg.prefix + '-gate-pass' : cfg.prefix + '-gate-fail'}"><div style="font-size:32px;margin-bottom:8px">${passed ? '\uD83C\uDF89' : '\uD83D\uDCAA'}</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">${passed ? 'Lesson Complete!' : 'Keep Practicing'}</div><div style="font-size:14px;color:var(--text-mid)">${gs.correct}/5 correct${passed ? '' : ' \u2014 need 3 to pass'}</div>${!passed ? `<button class="btn btn-ghost" style="margin-top:12px" onclick="${openLessonFn}(${activeLessonVar})">Retry</button>` : ''}</div>`;
+    area.innerHTML = `<div class="${cfg.prefix}-gate-result ${passed ? cfg.prefix + '-gate-pass' : cfg.prefix + '-gate-fail'}"><div style="font-size:16px;font-weight:700;margin-bottom:6px">${passed ? 'Lesson Complete!' : 'Keep Practicing'}</div><div style="font-size:14px;color:var(--text-mid)">${gs.correct}/5 correct${passed ? '' : ' \u2014 need 3 to pass'}</div>${!passed ? `<button class="btn btn-ghost" style="margin-top:12px" onclick="${openLessonFn}(${activeLessonVar})">Retry</button>` : ''}</div>`;
     if (passed) { const p = getLessonProgress(); p[cfg.activeLesson.get()] = { passed: true, date: new Date().toISOString() }; saveLessonProgress(p); renderLessonSidebar(); }
     return true;
   }
@@ -15976,7 +15973,7 @@ function createDrillScaffold(cfg) {
     if (isCorrect) gs.correct++;
     gs.current++;
     const fb = document.getElementById(cfg.prefix + '-gate-fb');
-    if (fb) { fb.innerHTML = isCorrect ? `<div class="${cfg.prefix}-fb-correct" style="margin-top:8px">\u2705 Correct!</div>` : `<div class="${cfg.prefix}-fb-wrong" style="margin-top:8px">\u274c Incorrect</div>`; }
+    if (fb) { fb.innerHTML = isCorrect ? `<div class="${cfg.prefix}-fb-correct" style="margin-top:8px">Correct!</div>` : `<div class="${cfg.prefix}-fb-wrong" style="margin-top:8px">Incorrect</div>`; }
     const renderGateQFn = cfg.prefix === 'ab' ? abRenderGateQuestion : cfg.prefix === 'os' ? osRenderGateQuestion : cbRenderGateQuestion;
     setTimeout(() => renderGateQFn(document.getElementById(cfg.prefix + '-gate-area'), gs), 1200);
   }
@@ -15985,7 +15982,7 @@ function createDrillScaffold(cfg) {
     const container = document.getElementById(cfg.endlessContainerId);
     const setModeFn = cfg.prefix === 'ab' ? 'setAbMode' : cfg.prefix === 'os' ? 'setOsMode' : 'setCbMode';
     const streak = cfg.streakVar.get();
-    const inner = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\uD83D\uDCA5</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Streak Ended!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You reached a streak of <strong>${streak}</strong></div><button class="btn btn-primary" onclick="${setModeFn}('endless')">Try Again</button></div>`;
+    const inner = `<div style="text-align:center;padding:30px"><div style="font-size:22px;font-weight:800;margin-bottom:8px">Streak Ended!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You reached a streak of <strong>${streak}</strong></div><button class="btn btn-primary" onclick="${setModeFn}('endless')">Try Again</button></div>`;
     if (container) container.innerHTML = cfg.endlessWrapHtml ? cfg.endlessWrapHtml(inner) : inner;
   }
 
@@ -16797,8 +16794,7 @@ const osScaffold = createDrillScaffold({
     return OSI_LAYERS.map(layer => {
       const d = m.perLayer[layer.num] || { seen: 0, correct: 0, box: 1 };
       const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
-      const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="os-heat-cell" style="border-color:${layer.color}"><div class="os-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="os-heat-label">L${layer.num}</div><div class="os-heat-box">Box ${d.box}/5</div></div>`;
+      return `<div class="os-heat-cell"><div class="os-heat-pct">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="os-heat-label">L${layer.num}</div><div class="os-heat-box">Box ${d.box}/5</div></div>`;
     }).join('');
   },
   dashHeading: 'Layer Mastery',
@@ -16815,8 +16811,7 @@ const osScaffold = createDrillScaffold({
     return OSI_LAYERS.map(layer => {
       const d = m.perLayer[layer.num] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const layerAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
-      const barColor = layerAcc >= 80 ? 'var(--green)' : layerAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="os-dash-cat-card" style="border-left:3px solid ${layer.color}"><div class="os-dash-cat-head">L${layer.num} ${layer.name}</div><div class="os-dash-cat-bar"><div style="width:${layerAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="os-dash-cat-stats"><span>${layerAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+      return `<div class="os-dash-cat-card"><div class="os-dash-cat-head">L${layer.num} ${layer.name}</div><div class="os-dash-cat-bar"><div style="width:${layerAcc}%;height:100%;border-radius:3px;transition:width .3s"></div></div><div class="os-dash-cat-stats"><span>${layerAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
     }).join('');
   },
   gateStateKey: '_osGateState',
@@ -18202,7 +18197,7 @@ function osRenderSort() {
     });
     const placedHere = Object.entries(st.placements).filter(([k]) => parseInt(k) === layer.num).map(([, v]) => v);
     html += `<div class="os-lane" data-layer="${layer.num}" ondragover="osDragOver(event)" ondrop="osDrop(event,${layer.num})" onclick="osClickLane(${layer.num})">`;
-    html += `<div class="os-lane-num" style="background:${layer.color}">${layer.num}</div>`;
+    html += `<div class="os-lane-num">${layer.num}</div>`;
     html += `<div class="os-lane-name">${layer.name}</div>`;
     html += `<div class="os-lane-items">`;
     placedHere.forEach(n => {
@@ -18218,7 +18213,7 @@ function osRenderSort() {
   }
   area.innerHTML = html;
   document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
-  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  document.getElementById('os-streak').textContent = '' + osStreak;
   osRenderLevelBadge();
 }
 
@@ -18292,13 +18287,13 @@ function osCheckSort() {
     const hasWrong = wrongItems.length > 0;
     roundCorrect += correctItems.length;
     html += `<div class="os-lane${isAllCorrect && itemsHere.length > 0 ? ' os-lane-correct' : ''}${hasWrong ? ' os-lane-wrong' : ''}" data-layer="${layer.num}">`;
-    html += `<div class="os-lane-num" style="background:${layer.color}">${layer.num}</div>`;
+    html += `<div class="os-lane-num">${layer.num}</div>`;
     html += `<div class="os-lane-name">${layer.name}</div>`;
     html += `<div class="os-lane-items">`;
     itemsHere.forEach(n => {
       const d = OS_DATA.find(x => x.name === n);
       const correct = d && d.layer === layer.num;
-      html += `<div class="os-sort-item" style="border-color:${correct ? 'var(--green)' : 'var(--red)'}; background:${correct ? 'var(--green-bg)' : 'var(--red-bg)'}">${escHtml(n)} ${correct ? '\u2705' : '\u274c L' + (d ? d.layer : '?')}</div>`;
+      html += `<div class="os-sort-item ${correct ? 'os-sort-correct' : 'os-sort-wrong'}">${escHtml(n)}${correct ? '' : ' L' + (d ? d.layer : '?')}</div>`;
     });
     html += '</div></div>';
   });
@@ -18315,7 +18310,7 @@ function osCheckSort() {
   html += '<button class="os-sort-check-btn" onclick="osGenSortRound()" style="margin-top:12px">Next Round \u2192</button>';
   area.innerHTML = html;
   document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
-  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  document.getElementById('os-streak').textContent = '' + osStreak;
   osRenderHeatmap();
   osRenderLevelBadge();
   evaluateMilestones();
@@ -18354,7 +18349,7 @@ function osGenIdentifyQ() {
   html += '</div>';
   area.innerHTML = html;
   document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
-  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  document.getElementById('os-streak').textContent = '' + osStreak;
   osRenderLevelBadge();
 }
 
@@ -18364,14 +18359,14 @@ function osPickIdentify(btn, isCorrect, label) {
   updateOsMastery(osQ.item.name, isCorrect);
   if (isCorrect) { osCorrect++; osStreak++; } else { osStreak = 0; if (osMode === 'endless') { osEndEndless(); return; } }
   document.getElementById('os-score').textContent = osCorrect + ' / ' + osTotal;
-  document.getElementById('os-streak').textContent = '\uD83D\uDD25 ' + osStreak;
+  document.getElementById('os-streak').textContent = '' + osStreak;
   document.getElementById('os-next-btn')?.classList.remove('is-hidden');
   const fb = document.getElementById('os-identify-fb');
   if (fb) {
     if (isCorrect) {
-      fb.innerHTML = `<div class="os-fb-correct" style="margin-top:12px"><strong>\u2705 Correct!</strong> ${escHtml(osQ.item.name)} = Layer ${osQ.item.layer} (${OSI_LAYERS.find(l => l.num === osQ.item.layer).name})</div>`;
+      fb.innerHTML = `<div class="os-fb-correct" style="margin-top:12px"><strong>Correct!</strong> ${escHtml(osQ.item.name)} = Layer ${osQ.item.layer} (${OSI_LAYERS.find(l => l.num === osQ.item.layer).name})</div>`;
     } else {
-      fb.innerHTML = `<div class="os-fb-wrong" style="margin-top:12px"><strong>\u274c Incorrect.</strong></div><div class="os-fb-correct-answer">Correct: ${escHtml(osQ.correctAnswer)}</div>`;
+      fb.innerHTML = `<div class="os-fb-wrong" style="margin-top:12px"><strong>Incorrect.</strong></div><div class="os-fb-correct-answer">Correct: ${escHtml(osQ.correctAnswer)}</div>`;
     }
   }
   osRenderHeatmap();
@@ -18544,8 +18539,7 @@ const cbScaffold = createDrillScaffold({
       const cat = CB_CATEGORIES[c];
       const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1 };
       const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
-      const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="cb-heat-cell" style="border-color:${cat.color}"><div class="cb-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="cb-heat-label">${cat.label}</div><div class="cb-heat-box">Box ${d.box}/5</div></div>`;
+      return `<div class="cb-heat-cell"><div class="cb-heat-pct">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="cb-heat-label">${cat.label}</div><div class="cb-heat-box">Box ${d.box}/5</div></div>`;
     }).join('');
   },
   dashHeading: 'Category Mastery',
@@ -18563,8 +18557,7 @@ const cbScaffold = createDrillScaffold({
       const cat = CB_CATEGORIES[c];
       const d = m.perCategory[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
-      const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="cb-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="cb-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="cb-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="cb-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
+      return `<div class="cb-dash-cat-card"><div class="cb-dash-cat-head">${escHtml(cat.label)}</div><div class="cb-dash-cat-bar"><div style="width:${catAcc}%;height:100%;border-radius:3px;transition:width .3s"></div></div><div class="cb-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span></div></div>`;
     }).join('');
   },
   gateStateKey: '_cbGateState',
@@ -18712,7 +18705,7 @@ function cbRenderQ(question, correct, opts) {
   if (numEl) numEl.textContent = 'Q' + cbIdx;
   if (qEl) qEl.innerHTML = question;
   const cat = CB_CATEGORIES[cbQ.catId];
-  if (catBadge && cat) catBadge.textContent = cat.icon + ' ' + cat.label;
+  if (catBadge && cat) catBadge.textContent = cat.label;
 
   const ansArea = document.getElementById('cb-answer-area');
   if (ansArea) {
@@ -18723,7 +18716,7 @@ function cbRenderQ(question, correct, opts) {
   document.getElementById('cb-feedback').innerHTML = '';
   document.getElementById('cb-next-btn')?.classList.add('is-hidden');
   document.getElementById('cb-score').textContent = cbCorrect + ' / ' + cbTotal;
-  document.getElementById('cb-streak').textContent = '\uD83D\uDD25 ' + cbStreak;
+  document.getElementById('cb-streak').textContent = '' + cbStreak;
   cbRenderLevelBadge();
 }
 
@@ -18735,20 +18728,20 @@ function cbPickAnswer(btn, chosen, correct) {
   updateCbMastery(cbQ.itemName, cbQ.catId, isCorrect);
   if (isCorrect) { cbCorrect++; cbStreak++; } else { cbStreak = 0; if (cbMode === 'endless') { cbEndEndless(); return; } }
   document.getElementById('cb-score').textContent = cbCorrect + ' / ' + cbTotal;
-  document.getElementById('cb-streak').textContent = '\uD83D\uDD25 ' + cbStreak;
+  document.getElementById('cb-streak').textContent = '' + cbStreak;
   document.getElementById('cb-next-btn')?.classList.remove('is-hidden');
 
   const fb = document.getElementById('cb-feedback');
   if (fb) {
     let html = '';
     if (isCorrect) {
-      html = `<div class="cb-fb-correct"><strong>\u2705 Correct!</strong> ${escHtml(correct)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
-      if (cbStreak >= 5) html += '<div class="cb-fb-streak">\uD83D\uDD25 ' + cbStreak + ' streak!</div>';
+      html = `<div class="cb-fb-correct"><strong>Correct!</strong> ${escHtml(correct)}<span style="float:right;font-size:12px;color:var(--text-dim)">${elapsed}s</span></div>`;
+      if (cbStreak >= 5) html += '<div class="cb-fb-streak">' + cbStreak + ' streak!</div>';
     } else {
-      html = `<div class="cb-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
+      html = `<div class="cb-fb-wrong"><strong>Incorrect.</strong> Your answer: <code>${escHtml(chosen)}</code></div>`;
       html += `<div class="cb-fb-correct-answer">Correct: <strong>${escHtml(correct)}</strong></div>`;
     }
-    if (cbQ.tip) html += `<div class="cb-fb-tip">\uD83D\uDCA1 ${escHtml(cbQ.tip)}</div>`;
+    if (cbQ.tip) html += `<div class="cb-fb-tip">${escHtml(cbQ.tip)}</div>`;
     fb.innerHTML = html;
   }
   cbRenderHeatmap();

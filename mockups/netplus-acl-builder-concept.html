@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · ACL Builder redesign concept (Network+ · firewall rules · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Redesign of the ACL Builder working
+  screen (Network+ flagship, sibling of netplus-network-builder). Live
+  ACL evaluator/grader stays in features/acl-builder.js (gated).
+
+  POV: the current screen is five stacked soft-shadow cards (scenario /
+  rule list / test packets / grade) - impeccable identical-card-grid
+  ban. The screen has exactly three jobs: the SPEC (what to build), the
+  RULE LIST (what you build), the VERDICT (does it pass). Make that the
+  structure: a quiet spec rail on the left, the rule-list + packet
+  ledger as the protagonist column, grade as a calm footer band. All
+  de-carded to hairline. Packet tuples set in mono (they ARE code).
+  Rule order matters here, so the empty state TEACHES first-match-wins
+  rather than just saying "no rules yet".
+  Destructive "Clear" carries scoped --dg-danger (functional-only,
+  same discipline as account-page). expected:deny/permit keep semantic
+  red/green via --dg-danger / --dg-pass (these ARE pass/fail truth,
+  not decoration).
+  MOTION: a practice workspace is used repeatedly -> emil CALM. Hover/
+  press only. NO scroll-reveal, NO fills, 0 @keyframes.
+  HONESTY: scenario brief, INTERMEDIATE, N10-009 4.3 + 4.5, STATELESS,
+  the three subnets + CIDRs, all 3 requirements, all 5 test packets
+  (exact src:port -> dst:port proto + expected verdict), the empty
+  rule list, Test All / Replay / Grade / AI Coach - every value
+  mirrored from the capture. Em-dash recomposed, arrows kept.
+  0 emoji · 0 hardcoded hex · 0 em-dash · app.js/index/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+
+  .strip{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 26px;border-bottom:1px solid var(--dg-rule-soft);flex:none;}
+  .s-l{display:flex;align-items:center;gap:18px;min-width:0;}
+  .menu{display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;transition:border-color 0.12s,color 0.12s;}
+  .menu:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .menu svg{width:14px;height:14px;}
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .title{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;}
+  .title i{font-style:normal;color:var(--dg-accent);}
+  .s-r{display:flex;align-items:center;gap:12px;flex:none;}
+  .curscn{display:flex;align-items:center;gap:8px;font-size:var(--t-1);color:var(--dg-text-2);border:1px solid var(--dg-rule);border-radius:999px;padding:6px 13px;font-weight:600;}
+  .curscn .d{width:6px;height:6px;border-radius:50%;background:var(--dg-accent);}
+  .ghost{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 13px;cursor:pointer;transition:border-color 0.15s,color 0.15s;}
+  .ghost:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  .work{flex:1;display:grid;grid-template-columns:340px 1fr;gap:0;min-height:0;}
+  .spec{border-right:1px solid var(--dg-rule-soft);padding:26px 26px 40px;overflow-y:auto;}
+  .col{padding:26px 30px 48px;overflow-y:auto;max-width:840px;}
+
+  .sp-k{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .sp-h{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin:8px 0 12px;}
+  .sp-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+  .tg{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dg-text-dim);border:1px solid var(--dg-rule-soft);border-radius:5px;padding:4px 8px;}
+  .tg.mid{color:var(--dg-accent);border-color:color-mix(in oklab,var(--dg-accent) 40%,transparent);}
+  .sp-d{font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;}
+
+  .nets{margin:20px 0;border-top:1px solid var(--dg-rule-soft);}
+  .net{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--dg-rule-soft);font-size:var(--t-1);}
+  .net .nl{font-weight:700;color:var(--dg-text);}
+  .net .nv{font-family:var(--mono);font-size:12px;color:var(--dg-text-dim);}
+
+  .req-k{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);margin:22px 0 10px;}
+  .req{display:flex;gap:10px;font-size:var(--t-1);color:var(--dg-text-2);line-height:1.55;padding:8px 0;border-top:1px solid var(--dg-rule-soft);}
+  .req:first-of-type{border-top:0;}
+  .req .rn{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--dg-rule);display:grid;place-items:center;font:800 10px/1 Inter;color:var(--dg-text-dim);}
+  .req b{color:var(--dg-text);font-weight:700;}
+  .learn{display:inline-flex;align-items:center;gap:7px;margin-top:18px;background:none;border:0;color:var(--dg-accent);font:700 var(--t-1)/1 Inter,sans-serif;cursor:pointer;padding:0;}
+  .learn:hover{text-decoration:underline;text-underline-offset:3px;}
+  .learn svg{width:13px;height:13px;}
+
+  .sec{margin-bottom:34px;}
+  .sec-h{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:11px;border-bottom:1px solid var(--dg-rule);margin-bottom:0;}
+  .sec-h .ht{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  .sec-h h2{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;}
+  .sec-h .meta{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .sec-h .acts{display:flex;align-items:center;gap:8px;flex:none;}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;font:700 var(--t-1)/1 Inter,sans-serif;padding:9px 14px;cursor:pointer;border:1px solid var(--dg-rule);background:none;color:var(--dg-text-2);transition:border-color 0.15s,color 0.15s,background 0.15s;}
+  .btn:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .btn svg{width:13px;height:13px;}
+  .btn.pri{background:var(--dg-accent);border-color:var(--dg-accent);color:var(--dg-accent-ink);}
+  .btn.pri:hover{filter:brightness(1.04);color:var(--dg-accent-ink);}
+  .btn.danger{color:var(--dg-text-dim);}
+  .btn.danger:hover{border-color:var(--dg-danger);color:var(--dg-danger);}
+
+  .empty{margin-top:22px;border:1px dashed var(--dg-rule);border-radius:12px;padding:34px 26px;text-align:center;}
+  .empty .pl{width:34px;height:34px;margin:0 auto 14px;border-radius:9px;border:1px solid var(--dg-rule);display:grid;place-items:center;color:var(--dg-text-dim);}
+  .empty .pl svg{width:16px;height:16px;}
+  .empty h3{font-size:var(--t0);font-weight:800;}
+  .empty p{margin-top:7px;font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto;}
+  .empty p b{color:var(--dg-text-2);font-weight:700;}
+
+  .pk{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:13px 2px;border-top:1px solid var(--dg-rule-soft);}
+  .pk:first-of-type{border-top:0;}
+  .pk .pl{min-width:0;}
+  .pk .pn{font-size:var(--t-1);font-weight:700;color:var(--dg-text);}
+  .pk .pt{margin-top:4px;font-family:var(--mono);font-size:12px;color:var(--dg-text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pk .pt .ar{color:var(--dg-text-2);}
+  .pk .pt .pr{color:var(--dg-text-2);}
+  .pk .px{font-size:11px;color:var(--dg-text-dim);text-align:right;white-space:nowrap;}
+  .pk .px b{font-weight:800;font-variant-numeric:tabular-nums;}
+  .pk .px b.deny{color:var(--dg-danger);}
+  .pk .px b.permit{color:var(--dg-pass);}
+
+  .custom{display:inline-flex;align-items:center;gap:7px;margin-top:16px;background:none;border:0;color:var(--dg-accent);font:700 var(--t-1)/1 Inter,sans-serif;cursor:pointer;padding:0;}
+  .custom:hover{text-decoration:underline;text-underline-offset:3px;}
+  .custom svg{width:13px;height:13px;}
+
+  .grade{margin-top:14px;border:1px solid var(--dg-rule-soft);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:12px;color:var(--dg-text-dim);font-size:var(--t-1);}
+  .grade .gi{width:8px;height:8px;border-radius:50%;background:var(--dg-rule);flex:none;}
+
+  @media (prefers-reduced-motion: reduce){.menu,.ghost,.btn,.learn,.custom{transition:none;}}
+  @media (max-width:980px){.work{grid-template-columns:1fr;}.spec{border-right:0;border-bottom:1px solid var(--dg-rule-soft);}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="strip">
+  <span class="s-l">
+    <button class="menu" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Menu</button>
+    <span><div class="eyebrow">Network+ · Sandbox · firewall rules</div><div class="title">ACL <i>builder.</i></div></span>
+  </span>
+  <span class="s-r">
+    <span class="curscn"><span class="d" aria-hidden="true"></span>Guest Isolation from HR</span>
+    <button class="ghost" type="button">Change scenario</button>
+    <button class="ghost" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+  </span>
+</header>
+
+<div class="work">
+  <aside class="spec">
+    <div class="sp-k">Scenario</div>
+    <h1 class="sp-h">Guest Isolation from HR</h1>
+    <div class="sp-tags">
+      <span class="tg mid">Intermediate</span>
+      <span class="tg">N10-009 · 4.3</span>
+      <span class="tg">N10-009 · 4.5</span>
+      <span class="tg">Stateless</span>
+    </div>
+    <p class="sp-d">Guest Wi-Fi clients must reach the internet freely but must NOT reach the internal HR subnet. Classic VLAN isolation pattern.</p>
+
+    <div class="nets">
+      <div class="net"><span class="nl">Guest VLAN</span><span class="nv">10.10.0.0/24</span></div>
+      <div class="net"><span class="nl">HR Subnet</span><span class="nv">10.20.0.0/24</span></div>
+      <div class="net"><span class="nl">Internet</span><span class="nv">any</span></div>
+    </div>
+
+    <div class="req-k">Requirements</div>
+    <div class="req"><span class="rn">1</span><span>Deny <b>all</b> traffic from Guest VLAN (10.10.0.0/24) to HR Subnet (10.20.0.0/24).</span></div>
+    <div class="req"><span class="rn">2</span><span>Allow Guest VLAN to reach the internet on HTTPS (TCP 443) and DNS (UDP 53).</span></div>
+    <div class="req"><span class="rn">3</span><span>HR Subnet is not affected by this ACL.</span></div>
+
+    <button class="learn" type="button">Learn more about this scenario<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </aside>
+
+  <main class="col">
+    <section class="sec">
+      <div class="sec-h">
+        <span class="ht"><h2>Rule list</h2><span class="meta">Top to bottom · first match wins</span></span>
+        <span class="acts">
+          <button class="btn danger" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8h14M9 8V5h6v3M7 8l1 12h8l1-12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Clear</button>
+          <button class="btn pri" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add rule</button>
+        </span>
+      </div>
+      <div class="empty">
+        <span class="pl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        <h3>No rules yet</h3>
+        <p>Add your first rule. The list is read <b>top to bottom and the first match wins</b>, so order is the puzzle. Anything that matches nothing hits the implicit <b>deny</b> at the end.</p>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-h">
+        <span class="ht"><h2>Test packets</h2><span class="meta">5 packets · expected verdicts</span></span>
+        <span class="acts">
+          <button class="btn" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8a8 8 0 1 1 0 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 4v4h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Replay</button>
+          <button class="btn pri" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Test all</button>
+        </span>
+      </div>
+      <div class="pk"><span class="pl"><span class="pn">Guest to HR SMB</span><span class="pt">10.10.0.5:any <span class="ar">&rarr;</span> 10.20.0.10:445 <span class="pr">TCP</span></span></span><span class="px">expected <b class="deny">deny</b></span></div>
+      <div class="pk"><span class="pl"><span class="pn">Guest to HR web</span><span class="pt">10.10.0.5:any <span class="ar">&rarr;</span> 10.20.0.10:80 <span class="pr">TCP</span></span></span><span class="px">expected <b class="deny">deny</b></span></div>
+      <div class="pk"><span class="pl"><span class="pn">Guest to internet HTTPS</span><span class="pt">10.10.0.5:any <span class="ar">&rarr;</span> 8.8.8.8:443 <span class="pr">TCP</span></span></span><span class="px">expected <b class="permit">permit</b></span></div>
+      <div class="pk"><span class="pl"><span class="pn">Guest to DNS</span><span class="pt">10.10.0.5:any <span class="ar">&rarr;</span> 1.1.1.1:53 <span class="pr">UDP</span></span></span><span class="px">expected <b class="permit">permit</b></span></div>
+      <div class="pk"><span class="pl"><span class="pn">Guest to plain HTTP (no permit)</span><span class="pt">10.10.0.5:any <span class="ar">&rarr;</span> 8.8.8.8:80 <span class="pr">TCP</span></span></span><span class="px">expected <b class="deny">deny</b></span></div>
+      <button class="custom" type="button">Test a custom packet<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </section>
+
+    <section class="sec" style="margin-bottom:0;">
+      <div class="sec-h">
+        <span class="ht"><h2>Grade</h2><span class="meta">Score against the requirements</span></span>
+        <span class="acts">
+          <button class="btn" type="button"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>AI Coach</button>
+          <button class="btn pri" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>Grade my ACL</button>
+        </span>
+      </div>
+      <div class="grade"><span class="gi" aria-hidden="true"></span>Build your rules, then Grade my ACL to score them against all three requirements.</div>
+    </section>
+  </main>
+</div>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

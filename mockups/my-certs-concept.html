@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · My certs switcher concept (product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Restyles the live "My certs" switcher
+  into the dg-system.
+
+  Register : PRODUCT. impeccable flags "modal as first thought" as lazy, so
+  the call is deliberate: this IS a legitimate dialog (transient,
+  menu-invoked switch-cert task) AND it keeps a real inline alternative
+  ("Browse all certs" -> full page). Kept as a dialog, restyled, not removed.
+  Audit fix vs the live modal (screenshot):
+   · nested rounded cards inside the modal  -> the modal is the one
+     container; certs become hairline rows (impeccable: nested cards are
+     always wrong).
+   · purple ACTIVE tag + purple links  -> dg accent / dg-pass tints.
+   · emoji-ish marks  -> mono cert chips, line-icon close + chevron.
+   · em-dashes  -> recomposed.
+   · motion: emil-design-eng MODAL rules = center transform-origin (NOT
+     origin-aware like the account popover; a modal is not anchored to a
+     trigger), scale 0.96 -> 1 + opacity + backdrop fade, ~220ms ease-out,
+     Esc / backdrop / X close, focus moves to the dialog. Gated by
+     html.reveal-on so reduced-motion / no-JS get it fully shown, no flash.
+  Dual-theme : exact 4-block dg-* cascade + flash-free bootstrap + toggle.
+-->
+<style>
+  html:root {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+    --t-1: 12.5px; --t0: 15px; --t1: 19px; --t2: 23px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: light) {
+    html:root {
+      --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+      --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+      --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+      --dg-text-dim: oklch(0.50 0.013 280);
+      --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+      --dg-pass: oklch(0.50 0.15 150);
+    }
+  }
+  html[data-theme="dark"] {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+  }
+  html[data-theme="light"] {
+    --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+    --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+    --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+    --dg-text-dim: oklch(0.50 0.013 280);
+    --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+    --dg-pass: oklch(0.50 0.15 150);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--dg-bg); color: var(--dg-text); min-height: 100vh;
+    font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, sans-serif;
+    font-size: var(--t0); line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  /* faint page behind, for context */
+  .page-ghost { padding: 80px 24px; text-align: center; color: var(--dg-rule); user-select: none; }
+  .page-ghost h2 { font-size: 64px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .reopen {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--dg-accent); color: var(--dg-accent-ink); border: 0;
+    font: 700 var(--t-1)/1 Inter, sans-serif; padding: 11px 18px; border-radius: 10px;
+    cursor: pointer; display: none;
+  }
+  .theme-toggle {
+    position: fixed; top: 18px; right: 20px; z-index: 5;
+    background: none; border: 1px solid var(--dg-rule); border-radius: 8px;
+    color: var(--dg-text-dim); font: 600 var(--t-1)/1 Inter, sans-serif;
+    padding: 8px 12px; cursor: pointer; letter-spacing: 0.04em;
+  }
+  .theme-toggle:hover { border-color: var(--dg-accent); color: var(--dg-accent); }
+
+  .backdrop {
+    position: fixed; inset: 0; z-index: 40;
+    background: color-mix(in oklab, var(--dg-text) 42%, transparent);
+    display: grid; place-items: center; padding: 24px;
+    opacity: 1; transition: opacity 0.22s var(--ease);
+  }
+  .modal {
+    width: 100%; max-width: 480px; background: var(--dg-bg);
+    border: 1px solid var(--dg-rule); border-radius: 16px; overflow: hidden;
+    transform-origin: center;
+    box-shadow: 0 28px 70px -22px color-mix(in oklab, var(--dg-text) 38%, transparent);
+  }
+  html.reveal-on .backdrop { opacity: 0; }
+  html.reveal-on .backdrop.in { opacity: 1; }
+  html.reveal-on .modal { opacity: 0; transform: scale(0.96) translateY(8px); transition: opacity 0.22s var(--ease), transform 0.22s var(--ease); }
+  html.reveal-on .backdrop.in .modal { opacity: 1; transform: none; }
+
+  .m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 22px 0; }
+  .m-title { font-size: var(--t2); font-weight: 800; letter-spacing: -0.02em; }
+  .m-x { background: none; border: 0; cursor: pointer; color: var(--dg-text-dim); width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; transition: background 0.12s ease, color 0.12s ease; }
+  .m-x:hover { background: var(--dg-bg-2); color: var(--dg-text); }
+  .m-x svg { width: 16px; height: 16px; }
+  .m-sub { padding: 8px 22px 18px; font-size: var(--t-1); color: var(--dg-text-dim); }
+
+  .crow { display: flex; align-items: center; gap: 15px; padding: 18px 22px; border-top: 1px solid var(--dg-rule-soft); text-decoration: none; color: inherit; transition: background 0.12s ease; }
+  .crow:hover { background: var(--dg-bg-2); }
+  .cmk { width: 38px; height: 38px; border-radius: 10px; flex: none; display: grid; place-items: center; font: 800 12px var(--mono); color: var(--dg-text-2); background: var(--dg-bg-2); border: 1px solid var(--dg-rule-soft); }
+  .c-main { flex: 1; min-width: 0; }
+  .c-name { font-size: var(--t0); font-weight: 700; color: var(--dg-text); display: flex; align-items: center; gap: 9px; }
+  .c-meta { margin-top: 4px; font-size: var(--t-1); color: var(--dg-text-dim); font-family: var(--mono); }
+  .tag { font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; }
+  .tag.pass { color: var(--dg-pass); background: color-mix(in oklab, var(--dg-pass) 16%, transparent); }
+  .tag.active { color: var(--dg-accent); background: color-mix(in oklab, var(--dg-accent) 16%, transparent); }
+  .c-act { font: 700 var(--t-1)/1 Inter, sans-serif; color: var(--dg-accent); white-space: nowrap; }
+  .crow:hover .c-act { text-decoration: underline; text-underline-offset: 3px; }
+  .m-foot { border-top: 1px solid var(--dg-rule); }
+  .m-foot button { width: 100%; background: none; border: 0; cursor: pointer; padding: 16px; font: 700 var(--t-1)/1 Inter, sans-serif; color: var(--dg-text-2); display: flex; align-items: center; justify-content: center; gap: 8px; transition: color 0.12s ease, background 0.12s ease; }
+  .m-foot button:hover { color: var(--dg-accent); background: var(--dg-bg-2); }
+  .m-foot svg { width: 13px; height: 13px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .backdrop, .modal { transition: none !important; opacity: 1 !important; transform: none !important; }
+  }
+</style>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('certanvilTheme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.documentElement.classList.add('reveal-on');
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button>
+
+<div class="page-ghost" aria-hidden="true">
+  <h2>Forge your way<br>through CompTIA certs.</h2>
+</div>
+
+<div class="backdrop in" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="modal">
+    <div class="m-head">
+      <div class="m-title" id="mTitle">Your certifications</div>
+      <button class="m-x" id="mX" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p class="m-sub">Switch between certs, see status, or jump back into a session.</p>
+
+    <a class="crow" href="#">
+      <span class="cmk" aria-hidden="true">N+</span>
+      <span class="c-main">
+        <span class="c-name">Network+ <span class="tag pass">Passed</span></span>
+        <span class="c-meta">N10-009 · 767 / 900 · 2026-05-05</span>
+      </span>
+      <span class="c-act">Keep practicing &rarr;</span>
+    </a>
+
+    <a class="crow" href="#">
+      <span class="cmk" aria-hidden="true">S+</span>
+      <span class="c-main">
+        <span class="c-name">Security+ <span class="tag active">Active</span></span>
+        <span class="c-meta">SY0-701 · target exam 2026-07-29</span>
+      </span>
+      <span class="c-act">Resume &rarr;</span>
+    </a>
+
+    <div class="m-foot">
+      <button type="button">Browse all certs
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<button class="reopen" id="reopen" type="button">Open My certs</button>
+
+<script>
+  (function () {
+    var bd = document.getElementById('backdrop');
+    var modal = document.getElementById('modal');
+    var reopen = document.getElementById('reopen');
+    function close() {
+      bd.classList.remove('in');
+      setTimeout(function () { bd.style.display = 'none'; reopen.style.display = 'block'; }, 240);
+    }
+    function open() {
+      bd.style.display = 'grid'; reopen.style.display = 'none';
+      requestAnimationFrame(function () { requestAnimationFrame(function () { bd.classList.add('in'); }); });
+      modal.focus();
+    }
+    document.getElementById('mX').addEventListener('click', close);
+    bd.addEventListener('click', function (e) { if (e.target === bd) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && bd.classList.contains('in')) close();
+    });
+    reopen.addEventListener('click', open);
+  })();
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var mq = window.matchMedia('(prefers-color-scheme: light)');
+    function effective() {
+      var a = document.documentElement.getAttribute('data-theme');
+      if (a === 'light' || a === 'dark') return a;
+      return mq.matches ? 'light' : 'dark';
+    }
+    function label() { btn.textContent = effective() === 'light' ? 'Dark' : 'Light'; }
+    label();
+    btn.addEventListener('click', function () {
+      var next = effective() === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('certanvilTheme', next); } catch (e) {}
+      label();
+    });
+    mq.addEventListener('change', function () {
+      if (!document.documentElement.getAttribute('data-theme')) label();
+    });
+  })();
+</script>
+
+</body>
+</html>

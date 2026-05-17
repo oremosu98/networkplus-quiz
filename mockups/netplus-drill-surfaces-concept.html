@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>Subnet Trainer + Port Drill — Editorial Concept</title>
+<style>
+:root {
+  --bg: oklch(0.17 0.012 270);
+  --surface: oklch(0.21 0.012 270);
+  --border: oklch(0.30 0.01 270);
+  --text: oklch(0.93 0.01 90);
+  --text-mid: oklch(0.70 0.01 90);
+  --text-dim: oklch(0.52 0.01 90);
+  --accent: oklch(0.72 0.155 55);
+  --green: oklch(0.72 0.17 145);
+  --red: oklch(0.62 0.20 25);
+  --yellow: oklch(0.78 0.14 85);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font:14px/1.5 -apple-system, system-ui, sans-serif; padding:40px 32px 80px; max-width:900px; margin:0 auto; }
+h1 { font-size:28px; font-weight:900; letter-spacing:-0.03em; }
+h1 em { color:var(--accent); font-style:normal; }
+.eyebrow { font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-dim); margin-bottom:4px; }
+.back { font-size:13px; color:var(--text-dim); text-decoration:none; margin-bottom:12px; display:inline-block; }
+.level-badge { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--green); border:1px solid color-mix(in oklab, var(--green) 40%, transparent); border-radius:10px; padding:3px 10px; }
+
+/* ══ Tab bar ══ */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin:24px 0 20px; }
+.tab { background:none; border:none; color:var(--text-dim); font:13px/1 -apple-system, system-ui, sans-serif; font-weight:600; padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab.on { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* ══ Mode bar (Practice) ══ */
+.modes { display:flex; gap:4px; padding:4px; border:1px solid var(--border); border-radius:8px; margin-bottom:18px; width:fit-content; }
+.mode { background:none; border:none; color:var(--text-dim); font:12px/1 -apple-system, system-ui, sans-serif; font-weight:500; padding:7px 12px; border-radius:5px; cursor:pointer; }
+.mode.on { background:color-mix(in oklab, var(--text) 8%, transparent); color:var(--text); }
+
+/* ══ Stats strip ══ */
+.stats { display:flex; gap:16px; align-items:center; padding:10px 16px; border:1px solid var(--border); border-radius:8px; margin-bottom:18px; }
+.stat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); }
+.stat-val { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
+.stat-val.streak { color:var(--accent); }
+.cat-badge { font-size:11px; font-weight:600; color:var(--text-mid); margin-left:auto; }
+
+/* ══ Question card ══ */
+.qcard { border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:18px; }
+.q-num { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px; }
+.q-stem { font-size:17px; font-weight:600; line-height:1.4; }
+.q-stem strong { color:var(--accent); }
+
+/* ══ MCQ grid ══ */
+.mcq { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+.opt { border:1px solid var(--border); border-radius:8px; padding:12px 16px; font:14px/1.3 'SF Mono', monospace; cursor:pointer; background:none; color:var(--text); text-align:left; }
+.opt:hover { border-color:var(--accent); background:color-mix(in oklab, var(--accent) 5%, transparent); }
+.opt.correct { border-color:var(--green); background:color-mix(in oklab, var(--green) 8%, transparent); color:var(--green); }
+.opt.wrong { border-color:var(--red); background:color-mix(in oklab, var(--red) 8%, transparent); color:var(--red); }
+
+/* ══ Feedback ══ */
+.fb { margin-top:14px; padding:14px 16px; border-radius:8px; }
+.fb-correct { background:color-mix(in oklab, var(--green) 8%, transparent); border-left:2px solid var(--green); }
+.fb-correct strong { color:var(--green); }
+.fb-wrong { background:color-mix(in oklab, var(--red) 6%, transparent); border-left:2px solid var(--red); }
+.fb-wrong strong { color:var(--red); }
+.fb-answer { color:var(--text-mid); font-size:12px; margin-left:8px; }
+.fb-time { color:var(--text-dim); font-size:11px; margin-left:auto; float:right; font-variant-numeric:tabular-nums; }
+.fb-streak { color:var(--accent); font-size:12px; font-weight:600; margin-top:6px; }
+.steps { margin-top:12px; }
+.steps-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); margin-bottom:8px; }
+.step { display:flex; align-items:baseline; gap:8px; font-size:13px; color:var(--text-mid); margin-bottom:6px; }
+.step-num { font-size:10px; font-weight:800; color:var(--accent); min-width:14px; }
+.coach-btn { border:1px solid var(--border); border-radius:6px; padding:6px 12px; font-size:11px; font-weight:600; color:var(--text-dim); background:none; cursor:pointer; margin-top:12px; }
+.coach-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ══ Heatmap ══ */
+.heatmap { margin-top:20px; }
+.heatmap-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); margin-bottom:10px; }
+.heat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; }
+.heat-cell { border:1px solid var(--border); border-radius:8px; padding:10px 12px; text-align:center; }
+.heat-label { font-size:11px; font-weight:600; color:var(--text-mid); margin-bottom:4px; }
+.heat-pct { font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; }
+.heat-pct.pass { color:var(--green); }
+.heat-pct.mid { color:var(--yellow); }
+.heat-pct.low { color:var(--red); }
+.heat-pct.none { color:var(--text-dim); }
+.heat-box { font-size:10px; color:var(--text-dim); margin-top:2px; }
+
+/* ══ Reference (collapsed) ══ */
+.ref { margin-top:20px; }
+.ref summary { font-size:13px; font-weight:700; color:var(--text-mid); cursor:pointer; padding:8px 0; border-top:1px solid var(--border); }
+
+/* ══ Learn tab — Lesson sidebar ══ */
+.learn-layout { display:grid; grid-template-columns:240px 1fr; gap:20px; }
+.lesson-sidebar { border-right:1px solid var(--border); padding-right:16px; }
+.lesson-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; cursor:pointer; margin-bottom:2px; }
+.lesson-item:hover { background:color-mix(in oklab, var(--text) 5%, transparent); }
+.lesson-item.active { background:color-mix(in oklab, var(--accent) 8%, transparent); }
+.lesson-item.active .lesson-title { color:var(--accent); }
+.lesson-num { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); }
+.lesson-title { font-size:13px; font-weight:500; color:var(--text-mid); }
+.lesson-status { width:6px; height:6px; border-radius:50%; margin-left:auto; }
+.lesson-status.done { background:var(--green); }
+.lesson-status.locked { background:var(--text-dim); opacity:0.4; }
+.lesson-status.current { background:var(--accent); }
+
+/* ══ Dashboard ══ */
+.dash-hero { display:grid; grid-template-columns:1fr auto; gap:20px; padding:16px 0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.dash-level-title { font-size:14px; font-weight:700; }
+.dash-level-bar { width:180px; height:4px; background:var(--border); border-radius:2px; margin:6px 0 4px; }
+.dash-level-fill { height:100%; border-radius:2px; background:var(--accent); }
+.dash-level-next { font-size:11px; color:var(--text-dim); }
+.dash-stats { display:flex; gap:20px; }
+.dash-stat { text-align:center; }
+.dash-stat-val { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+.dash-stat-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); }
+.dash-heading { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.10em; color:var(--text-dim); margin:20px 0 10px; }
+.dash-cats { display:grid; gap:8px; }
+.dash-cat { display:grid; grid-template-columns:1fr 90px 60px; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--border); border-radius:8px; }
+.dash-cat-name { font-size:13px; font-weight:600; }
+.dash-cat-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.dash-cat-bar-fill { height:100%; border-radius:2px; background:var(--accent); }
+.dash-cat-acc { font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; }
+.dash-cat-acc.pass { color:var(--green); }
+.dash-cat-acc.mid { color:var(--yellow); }
+.dash-cat-acc.low { color:var(--red); }
+
+/* ══ Dashboard callouts ══ */
+.callout { border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:14px; }
+.callout-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); margin-bottom:10px; }
+.callout-row { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+.callout-name { font-weight:500; color:var(--text-mid); }
+.callout-pct { font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--red); }
+.callout-action { font-size:11px; font-weight:600; color:var(--accent); margin-left:auto; }
+
+/* ══ Lesson progress ══ */
+.lesson-row { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; color:var(--text-mid); border-bottom:1px solid color-mix(in oklab, var(--border) 50%, transparent); }
+.lesson-dot { width:6px; height:6px; border-radius:50%; }
+.lesson-dot.done { background:var(--green); }
+.lesson-dot.pending { background:var(--border); }
+
+.section-label { font-size:10px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin-top:32px; margin-bottom:4px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     SUBNET TRAINER — Editorial concept
+     0 emoji · 0 hardcoded hex · hairline editorial
+     Single accent for all categories (rainbow killed)
+     Dot status indicators · text verdicts
+══════════════════════════════════════════════════ -->
+
+<div class="section-label">Surface 1 — Subnet Trainer</div>
+
+<a class="back" href="#">← Menu</a>
+<div class="eyebrow">Drill · IPv4 maths</div>
+<h1>Subnet <em>mastery.</em></h1>
+<span class="level-badge">Intermediate</span>
+
+<!-- Tab bar: bare text, no emoji -->
+<div class="tabs">
+  <button class="tab on">Learn</button>
+  <button class="tab">Practice</button>
+  <button class="tab">Dashboard</button>
+</div>
+
+<!-- ═══ Learn tab ═══ -->
+<div class="learn-layout" style="margin-bottom:40px">
+  <nav class="lesson-sidebar">
+    <div class="lesson-item active">
+      <div><div class="lesson-num">Lesson 1</div><div class="lesson-title">Binary & Powers of 2</div></div>
+      <div class="lesson-status done"></div>
+    </div>
+    <div class="lesson-item">
+      <div><div class="lesson-num">Lesson 2</div><div class="lesson-title">IP Address Structure</div></div>
+      <div class="lesson-status done"></div>
+    </div>
+    <div class="lesson-item">
+      <div><div class="lesson-num">Lesson 3</div><div class="lesson-title">Subnet Masks & CIDR</div></div>
+      <div class="lesson-status current"></div>
+    </div>
+    <div class="lesson-item">
+      <div><div class="lesson-num">Lesson 4</div><div class="lesson-title">The Block Size Method</div></div>
+      <div class="lesson-status locked"></div>
+    </div>
+  </nav>
+  <div>
+    <div style="font-size:15px; font-weight:600; margin-bottom:4px;">Start Lesson 1: Binary & Powers of 2</div>
+    <div style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">Foundational subnetting math · ~5 min</div>
+    <button style="background:var(--accent); color:#000; border:none; padding:8px 16px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer;">Start Lesson 1 →</button>
+  </div>
+</div>
+
+<!-- ═══ Practice tab ═══ -->
+<div class="section-label">Practice state</div>
+
+<!-- Mode bar: bare text, segmented control -->
+<div class="modes">
+  <button class="mode on">Adaptive Drill</button>
+  <button class="mode">Timed Challenge</button>
+  <button class="mode">Category Focus</button>
+</div>
+
+<!-- Stats strip: bare numbers, no emoji -->
+<div class="stats">
+  <div><div class="stat-label">Score</div><div class="stat-val">7 / 10</div></div>
+  <div><div class="stat-label">Streak</div><div class="stat-val streak">5</div></div>
+  <div class="cat-badge">Masks & CIDR</div>
+</div>
+
+<!-- Question card -->
+<div class="qcard">
+  <div class="q-num">Q11</div>
+  <div class="q-stem">What is the subnet mask for <strong>/26</strong>?</div>
+  <div class="mcq">
+    <button class="opt correct">255.255.255.192</button>
+    <button class="opt">255.255.255.128</button>
+    <button class="opt">255.255.255.224</button>
+    <button class="opt">255.255.255.240</button>
+  </div>
+  <!-- Correct feedback -->
+  <div class="fb fb-correct">
+    <strong>Correct!</strong> <span class="fb-answer">255.255.255.192</span><span class="fb-time">3.2s</span>
+    <div class="fb-streak">5 streak!</div>
+  </div>
+</div>
+
+<!-- Wrong feedback example -->
+<div class="qcard" style="margin-top:12px">
+  <div class="q-num">Q12</div>
+  <div class="q-stem">What is the broadcast address for <strong>192.168.1.100/26</strong>?</div>
+  <div class="mcq">
+    <button class="opt wrong">192.168.1.191</button>
+    <button class="opt correct">192.168.1.127</button>
+    <button class="opt">192.168.1.63</button>
+    <button class="opt">192.168.1.255</button>
+  </div>
+  <div class="fb fb-wrong">
+    <strong>Incorrect.</strong> Your answer: <code style="font-size:12px">192.168.1.191</code>
+    <div style="margin-top:6px; font-size:13px;">Correct answer: <strong>192.168.1.127</strong></div>
+    <div class="steps">
+      <div class="steps-title">Step-by-step solution:</div>
+      <div class="step"><span class="step-num">1</span>Network: 192.168.1.64</div>
+      <div class="step"><span class="step-num">2</span>Host bits: 6</div>
+      <div class="step"><span class="step-num">3</span>Fill all host bits with 1</div>
+      <div class="step"><span class="step-num">4</span>Broadcast: 192.168.1.127</div>
+    </div>
+    <button class="coach-btn">Ask Coach to explain</button>
+  </div>
+</div>
+
+<!-- Category heatmap: no emoji icons, no rainbow borders -->
+<div class="heatmap">
+  <div class="heatmap-title">Category Mastery</div>
+  <div class="heat-grid">
+    <div class="heat-cell">
+      <div class="heat-label">Masks</div>
+      <div class="heat-pct pass">92%</div>
+      <div class="heat-box">Box 4/5</div>
+    </div>
+    <div class="heat-cell">
+      <div class="heat-label">Addressing</div>
+      <div class="heat-pct mid">68%</div>
+      <div class="heat-box">Box 2/5</div>
+    </div>
+    <div class="heat-cell">
+      <div class="heat-label">Counting</div>
+      <div class="heat-pct low">41%</div>
+      <div class="heat-box">Box 1/5</div>
+    </div>
+    <div class="heat-cell">
+      <div class="heat-label">Membership</div>
+      <div class="heat-pct none">—</div>
+      <div class="heat-box">Box 1/5</div>
+    </div>
+    <div class="heat-cell">
+      <div class="heat-label">Design</div>
+      <div class="heat-pct pass">85%</div>
+      <div class="heat-box">Box 3/5</div>
+    </div>
+    <div class="heat-cell">
+      <div class="heat-label">Advanced</div>
+      <div class="heat-pct mid">54%</div>
+      <div class="heat-box">Box 2/5</div>
+    </div>
+  </div>
+</div>
+
+<!-- Reference: bare text summary -->
+<div class="ref">
+  <details>
+    <summary>Quick Reference · All CIDR masks</summary>
+  </details>
+</div>
+
+<!-- ═══ Dashboard tab ═══ -->
+<div class="section-label" style="margin-top:48px">Dashboard state</div>
+
+<div class="dash-hero">
+  <div>
+    <div class="dash-level-title">Intermediate</div>
+    <div class="dash-level-bar"><div class="dash-level-fill" style="width:45%"></div></div>
+    <div class="dash-level-next">Next: Advanced (70% acc, 40+ Qs)</div>
+  </div>
+  <div class="dash-stats">
+    <div class="dash-stat"><div class="dash-stat-val">42</div><div class="dash-stat-label">Questions</div></div>
+    <div class="dash-stat"><div class="dash-stat-val">68%</div><div class="dash-stat-label">Accuracy</div></div>
+    <div class="dash-stat"><div class="dash-stat-val">29</div><div class="dash-stat-label">Correct</div></div>
+  </div>
+</div>
+
+<!-- Callouts: no emoji headers -->
+<div class="callout">
+  <div class="callout-title">Your weakest categories — drill these now</div>
+  <div class="callout-row"><span class="callout-name">Host & Subnet Math</span><span class="callout-pct">41%</span><span class="callout-action">Drill →</span></div>
+  <div class="callout-row"><span class="callout-name">Subnet Membership</span><span class="callout-pct">52%</span><span class="callout-action">Drill →</span></div>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Haven't touched in a while — refresh these</div>
+  <div class="callout-row"><span class="callout-name">Design & VLSM</span><span class="callout-pct" style="color:var(--text-dim)">12d stale</span><span class="callout-action">Refresh →</span></div>
+</div>
+
+<!-- Category mastery: single accent bar, no rainbow -->
+<div class="dash-heading">Category Mastery</div>
+<div class="dash-cats">
+  <div class="dash-cat"><span class="dash-cat-name">Masks & CIDR</span><div class="dash-cat-bar"><div class="dash-cat-bar-fill" style="width:92%"></div></div><span class="dash-cat-acc pass">92%</span></div>
+  <div class="dash-cat"><span class="dash-cat-name">Network & Broadcast</span><div class="dash-cat-bar"><div class="dash-cat-bar-fill" style="width:68%"></div></div><span class="dash-cat-acc mid">68%</span></div>
+  <div class="dash-cat"><span class="dash-cat-name">Host & Subnet Math</span><div class="dash-cat-bar"><div class="dash-cat-bar-fill" style="width:41%"></div></div><span class="dash-cat-acc low">41%</span></div>
+  <div class="dash-cat"><span class="dash-cat-name">Design & VLSM</span><div class="dash-cat-bar"><div class="dash-cat-bar-fill" style="width:85%"></div></div><span class="dash-cat-acc pass">85%</span></div>
+</div>
+
+<!-- Lesson progress: dot indicators, no emoji -->
+<div class="dash-heading">Lesson Progress</div>
+<div class="lesson-row"><span class="lesson-dot done"></span>Lesson 1: Binary & Powers of 2</div>
+<div class="lesson-row"><span class="lesson-dot done"></span>Lesson 2: IP Address Structure</div>
+<div class="lesson-row"><span class="lesson-dot done"></span>Lesson 3: Subnet Masks & CIDR</div>
+<div class="lesson-row"><span class="lesson-dot pending"></span>Lesson 4: The Block Size Method</div>
+<div class="lesson-row"><span class="lesson-dot pending"></span>Lesson 5: Network & Broadcast</div>
+
+<!-- ══════════════════════════════════════════════════
+     PORT DRILL — same editorial language, adapted
+══════════════════════════════════════════════════ -->
+
+<div class="section-label" style="margin-top:64px">Surface 2 — Port Drill (same system)</div>
+
+<a class="back" href="#">← Menu</a>
+<div class="eyebrow">Drill · 27 protocols</div>
+<h1>Port <em>mastery.</em></h1>
+<span class="level-badge">Beginner</span>
+
+<div class="tabs">
+  <button class="tab">Learn</button>
+  <button class="tab on">Practice</button>
+  <button class="tab">Dashboard</button>
+</div>
+
+<!-- Port Drill: 6 modes, segmented -->
+<div class="modes">
+  <button class="mode on">Adaptive</button>
+  <button class="mode">Timed 30s</button>
+  <button class="mode">Endless</button>
+  <button class="mode">Family</button>
+  <button class="mode">Pairs</button>
+  <button class="mode">Category</button>
+</div>
+
+<div class="stats">
+  <div><div class="stat-label">Score</div><div class="stat-val">3 / 4</div></div>
+  <div><div class="stat-label">Streak</div><div class="stat-val streak">3</div></div>
+  <div class="cat-badge">Remote Access</div>
+</div>
+
+<div class="qcard">
+  <div class="q-num">Q5</div>
+  <div class="q-stem">What port is <strong>SSH</strong>?</div>
+  <div class="mcq">
+    <button class="opt correct">22/TCP</button>
+    <button class="opt">23/TCP</button>
+    <button class="opt">3389/TCP</button>
+    <button class="opt">5900/TCP</button>
+  </div>
+  <div class="fb fb-correct">
+    <strong>Correct!</strong> <span class="fb-answer">SSH</span><span class="fb-time">1.8s</span>
+  </div>
+</div>
+
+<!-- Port reference: bare text -->
+<div class="ref">
+  <details>
+    <summary>Port Reference · All 40 ports</summary>
+  </details>
+</div>
+
+<!--
+  EDITORIAL PRINCIPLES APPLIED:
+  ═══════════════════════════════
+  1. 0 emoji anywhere — functional state is communicated via:
+     - Dot indicators (6px circles: green=done, accent=current, dim=locked)
+     - Text verdicts ("Correct!" / "Incorrect." — no ✅/❌)
+     - Color on numbers (green/yellow/red on accuracy %, accent on streak)
+     - Step numbers (accent-colored ordinal, not emoji)
+
+  2. 0 hardcoded hex — all colors via CSS tokens (--accent, --green, --red, --yellow, --text-dim)
+
+  3. Rainbow killed — categories do NOT get per-category colors.
+     All bars use single --accent fill. Accuracy communicates via semantic
+     pass/mid/low color on the PERCENTAGE TEXT, not on the bar/border.
+     Category heatmap cells use same hairline border, no per-category color.
+
+  4. Level badge — green pass-colour (same pattern as AB/CTS level badges)
+     NOT a rainbow pill that changes per-level with inline style
+
+  5. Lesson sidebar — dot status indicators (same as sidebar nav pattern)
+     NOT emoji (✅/🔒/category emoji)
+
+  6. Coach button — bare text "Ask Coach to explain"
+     NOT 🤖 robot emoji
+
+  7. Streak — accent-colored number only, no 🔥
+
+  8. Focus picker chips — accent active state only, no per-category --cat-color
+
+  9. Feedback — text verdicts with semantic background tint
+     Correct = green-tint + green text
+     Wrong = red-tint + red text
+     Same pattern as CTS/IRW/PHT/AMM proven system
+
+  10. Dashboard callouts — bare text titles, no emoji prefix
+      "Your weakest categories — drill these now" not "⚠️ Your weakest..."
+      "Haven't touched in a while" not "🕐 Haven't touched..."
+-->
+
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Security+ Home redesign concept (SY0-701 · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Security+ Home. Structurally MIRRORS
+  netplus-home-concept.html exactly (founder-preferred layout) - same
+  shell, classes, sections and motion - with honest SY0-701 data.
+  app.js untouched.
+
+  POV: identical-soft-card stack -> editorial. ONE prescriptive hero
+  (readiness verdict + the single highest-leverage action), de-carded
+  bands below. emil frequency rule: Home is opened every day -> CALM.
+  The only motion is the readiness bar growing once on load (gated,
+  reduced-motion = resting width). NO scroll-reveal.
+  HONESTY: private builder band; readiness 517/900, 14% pass prob,
+  +/-76, range 441-593, pass mark 720; streak 4 days; daily goal 0/20;
+  PKI & Certificate Management weak; Email & Web Security daily
+  challenge; the real Today's Plan 5 chips (2 weak · 3 stale); 5
+  SY0-701 domains @ 12/22/18/28/20 weighting with their real
+  mastered/not-studied states. Em-dash recomposed, arrows kept.
+  0 emoji · 0 hardcoded hex · 0 em-dash.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-warn:oklch(0.80 0.14 70);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-warn:oklch(0.58 0.14 65);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-warn:oklch(0.80 0.14 70);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-warn:oklch(0.58 0.14 65);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px 90px;}
+
+  .band{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 18px;border-bottom:1px solid var(--dg-rule-soft);font-size:var(--t-1);color:var(--dg-text-dim);text-align:center;}
+  .band svg{width:14px;height:14px;color:var(--dg-pass);flex:none;}
+  .band b{color:var(--dg-text-2);font-weight:700;}
+  .band i{font-style:normal;color:var(--dg-accent);}
+
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:30px;padding:46px 0 34px;flex-wrap:wrap;}
+  .greet{min-width:280px;flex:1;}
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-text-dim);}
+  h1{font-size:var(--t4);font-weight:800;letter-spacing:-0.03em;line-height:1.05;margin:13px 0;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+  .sub{font-size:var(--t0);color:var(--dg-text-2);max-width:430px;line-height:1.6;}
+  .sub a{color:var(--dg-accent);text-decoration:none;font-weight:600;}
+
+  .rd{flex:none;width:300px;border:1px solid var(--dg-rule);border-radius:14px;padding:18px 20px;}
+  .rd-k{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .rd-n{font-size:var(--t4);font-weight:800;letter-spacing:-0.03em;line-height:1;margin:9px 0 2px;}
+  .rd-n s{text-decoration:none;font-size:var(--t1);color:var(--dg-text-dim);font-weight:700;}
+  .rd-tier{display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-warn);margin-bottom:13px;}
+  .rd-bar{height:5px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;position:relative;}
+  .rd-fill{display:block;height:100%;border-radius:3px;background:var(--dg-warn);width:57%;transform-origin:left;}
+  html.reveal-on .rd-fill{transform:scaleX(0);transition:transform 1s var(--ease);}
+  html.reveal-on .rd-fill.in{transform:scaleX(1);}
+  .rd-meta{display:flex;justify-content:space-between;margin-top:11px;font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .rd-meta b{color:var(--dg-text-2);font-weight:700;}
+
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border-top:1px solid var(--dg-rule);border-bottom:1px solid var(--dg-rule);}
+  .stat{padding:18px 22px;border-right:1px solid var(--dg-rule-soft);}
+  .stat:last-child{border-right:0;}
+  .stat .sk{font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .stat .sv{font-size:var(--t2);font-weight:800;margin-top:7px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+  .stat .sv s{text-decoration:none;font-size:var(--t-1);color:var(--dg-text-dim);font-weight:600;}
+  .stat .sd{font-size:11px;color:var(--dg-text-dim);margin-top:3px;}
+
+  .nbm{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 0;border-bottom:1px solid var(--dg-rule);flex-wrap:wrap;}
+  .nbm-l{min-width:260px;flex:1;}
+  .nbm-k{font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-accent);}
+  .nbm h2{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin:9px 0 6px;}
+  .nbm p{font-size:var(--t-1);color:var(--dg-text-dim);}
+  .cta{display:inline-flex;align-items:center;gap:8px;background:var(--dg-accent);color:var(--dg-accent-ink);border:0;border-radius:9px;font:800 var(--t0)/1 Inter,sans-serif;padding:14px 22px;cursor:pointer;text-decoration:none;flex:none;}
+  .cta:hover{filter:brightness(1.05);}
+  .cta svg{width:15px;height:15px;}
+  .cta.ghost{background:none;border:1px solid var(--dg-rule);color:var(--dg-text);}
+  .cta.ghost:hover{border-color:var(--dg-accent);color:var(--dg-accent);filter:none;}
+
+  .row{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:22px 0;border-bottom:1px solid var(--dg-rule);flex-wrap:wrap;}
+  .row-l{min-width:260px;flex:1;}
+  .rk{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .rh{font-size:var(--t1);font-weight:800;letter-spacing:-0.01em;margin:8px 0 5px;}
+  .rp{font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.6;max-width:560px;}
+  .rp b{color:var(--dg-text-2);font-weight:700;}
+  .rmeta{font-size:11px;color:var(--dg-text-dim);align-self:center;white-space:nowrap;}
+
+  .diag{display:flex;gap:34px;padding:24px 0;border-bottom:1px solid var(--dg-rule);flex-wrap:wrap;align-items:center;}
+  .diag-l{min-width:280px;flex:1;}
+  .diag-nums{display:flex;gap:30px;}
+  .dn{text-align:left;}
+  .dn b{display:block;font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+  .dn span{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-text-dim);}
+
+  .plan{padding:26px 0;border-bottom:1px solid var(--dg-rule);}
+  .plan-h{display:flex;align-items:baseline;gap:13px;flex-wrap:wrap;margin-bottom:5px;}
+  .plan-h h2{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;}
+  .plan-h .pe{font-size:var(--t-1);color:var(--dg-accent);font-weight:700;}
+  .plan p{font-size:var(--t-1);color:var(--dg-text-dim);max-width:620px;line-height:1.6;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 14px;}
+  .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--dg-rule);border-radius:999px;padding:9px 15px;font-size:var(--t-1);font-weight:600;color:var(--dg-text-2);cursor:pointer;background:none;transition:border-color 0.12s,color 0.12s;}
+  .chip:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .chip .w{width:6px;height:6px;border-radius:50%;background:var(--dg-warn);}
+  .chip .st{width:6px;height:6px;border-radius:50%;background:var(--dg-text-dim);}
+  .chip.dr{color:var(--dg-accent);border-color:color-mix(in oklab,var(--dg-accent) 40%,transparent);}
+  .plan-f{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .plan-f .leg{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+
+  .sess{padding:30px 0 8px;}
+  .sec-k{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .sec-t{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin:7px 0 3px;}
+  .sec-t i{font-style:normal;color:var(--dg-accent);}
+  .sess-grp{margin-top:26px;}
+  .sg-h{display:flex;align-items:baseline;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--dg-rule);}
+  .sg-h .t{font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--dg-text-2);}
+  .sg-h .d{font-size:11px;color:var(--dg-text-dim);}
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+  .opt{text-align:left;background:none;border:0;border-right:1px solid var(--dg-rule-soft);border-bottom:1px solid var(--dg-rule-soft);padding:18px 20px 18px 0;cursor:pointer;transition:padding-left 0.14s var(--ease);}
+  .opt:hover{padding-left:10px;}
+  .opt:nth-child(3n){border-right:0;}
+  .opt .on{font-size:var(--t0);font-weight:800;letter-spacing:-0.01em;}
+  .opt .od{font-size:11px;color:var(--dg-text-dim);margin-top:5px;line-height:1.5;}
+  .opt.exam .on{color:var(--dg-text);}
+  .opt.simwrap{padding-right:20px;}
+  .dbd{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:2px;}
+  .db{text-align:left;background:none;border:0;border-right:1px solid var(--dg-rule-soft);padding:16px 16px 16px 0;cursor:pointer;transition:padding-left 0.14s var(--ease);}
+  .db:hover{padding-left:8px;}
+  .db:last-child{border-right:0;}
+  .db .dbk{font-size:11px;font-weight:800;color:var(--dg-accent);font-variant-numeric:tabular-nums;}
+  .db .dbn{font-size:var(--t-1);font-weight:700;margin-top:5px;letter-spacing:-0.01em;}
+  .db .dbm{font-size:10px;color:var(--dg-text-dim);margin-top:4px;}
+  .strict{display:flex;align-items:center;gap:11px;margin-top:18px;padding:14px 0;border-top:1px solid var(--dg-rule-soft);font-size:var(--t-1);color:var(--dg-text-dim);}
+  .strict .box{width:15px;height:15px;border:1px solid var(--dg-rule);border-radius:4px;flex:none;}
+  .strict b{color:var(--dg-text-2);font-weight:700;}
+
+  .dom{padding:30px 0 0;}
+  .dom-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--dg-rule);margin-top:18px;}
+  .dc{padding:20px 18px;border-right:1px solid var(--dg-rule-soft);}
+  .dc:last-child{border-right:0;}
+  .dc .dck{display:flex;align-items:baseline;justify-content:space-between;}
+  .dc .dck .n{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .dc .dck .w{font-size:10px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .dc h3{font-size:var(--t0);font-weight:800;margin:9px 0 11px;letter-spacing:-0.01em;}
+  .dc .tl{font-size:11px;color:var(--dg-text-dim);line-height:1.85;}
+  .dc .tl .on{color:var(--dg-accent);}
+  .dc .dcm{margin-top:14px;padding-top:12px;border-top:1px solid var(--dg-rule-soft);}
+  .dc .dcm .v{font-size:var(--t1);font-weight:800;font-variant-numeric:tabular-nums;}
+  .dc .dcm .vs{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-text-dim);margin-top:3px;}
+  .dc .dcm .v.pass{color:var(--dg-pass);}
+  .dc .dcm .v.warn{color:var(--dg-warn);}
+
+  .custom-q{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:26px;padding:18px 0;border-top:1px solid var(--dg-rule);font-size:var(--t-1);color:var(--dg-text-dim);}
+  .custom-q b{color:var(--dg-text);font-weight:700;}
+  .custom-q .go{color:var(--dg-accent);font-weight:700;cursor:pointer;}
+
+  .tt{position:fixed;top:18px;right:20px;background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;z-index:30;}
+  .tt:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  @media (prefers-reduced-motion: reduce){.rd-fill,.opt,.db,.chip,.cta{transition:none!important;}html.reveal-on .rd-fill{transform:scaleX(1);}}
+  @media (max-width:860px){.opts{grid-template-columns:1fr;}.dbd,.dom-grid{grid-template-columns:1fr 1fr;}.opt,.db,.dc{border-right:0;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var m=matchMedia('(prefers-reduced-motion: reduce)').matches;if(!m)document.documentElement.className='reveal-on';}catch(e){}})();</script>
+</head>
+<body>
+
+<button class="tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+
+<div class="band">
+  <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.9"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.9"/></svg>
+  <span><b>Private builder</b> · CompTIA Security+ (SY0-701) study mode · <i>target exam 2026-07-29</i></span>
+</div>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="greet">
+      <div class="eyebrow">Friday · May 15 · 11:47pm</div>
+      <h1>Working late, <i>Simi.</i></h1>
+      <p class="sub">Yesterday you wobbled on <a href="#">PKI &amp; Certificate Management</a> and <a href="#">Zero Trust &amp; SDN</a>. Fifteen focused minutes now would lift your readiness toward the pass line.</p>
+    </div>
+    <div class="rd">
+      <div class="rd-k">Exam readiness · scaled 100-900</div>
+      <div class="rd-n">517<s> / 900</s></div>
+      <div class="rd-tier">Building</div>
+      <div class="rd-bar"><span class="rd-fill" id="rdFill"></span></div>
+      <div class="rd-meta"><span><b>14%</b> pass probability</span><span>&plusmn; 76 pts</span></div>
+      <div class="rd-meta"><span>range <b>441-593</b></span><span>pass mark <b>720</b></span></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="sk">Today</div><div class="sv">0<s> / 20</s></div><div class="sd">daily goal · 0%</div></div>
+    <div class="stat"><div class="sk">Streak</div><div class="sv">4<s> days</s></div><div class="sd">longest · 4 days</div></div>
+  </div>
+
+  <div class="nbm">
+    <div class="nbm-l">
+      <div class="nbm-k">Next best move</div>
+      <h2>Review 6 cards due</h2>
+      <p>About 3 minutes. Re-encounter what you forgot. The highest-leverage minute of study you can do today.</p>
+    </div>
+    <a class="cta" href="#">Start review<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="row">
+    <div class="row-l">
+      <div class="rk">Drill these to move your score</div>
+      <div class="rh">PKI &amp; Certificate Management</div>
+      <div class="rp"><b>+1 pt</b> predicted · 75% &rarr; 96% on the highest-leverage gap</div>
+    </div>
+    <a class="cta ghost" href="#">Drill now<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="diag">
+    <div class="diag-l">
+      <div class="rk">New · recommended</div>
+      <div class="rh">Where do you stand on SY0-701?</div>
+      <div class="rp">Take a 20-question Baseline Diagnostic. Get your pass probability, weak-domain priorities, and your first review cards, all in one go.</div>
+    </div>
+    <div class="diag-nums">
+      <span class="dn"><b>20</b><span>questions</span></span>
+      <span class="dn"><b>~30</b><span>minutes</span></span>
+      <span class="dn"><b>5</b><span>domains</span></span>
+    </div>
+    <a class="cta" href="#">Take the diagnostic<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="row">
+    <div class="row-l">
+      <div class="rk">Spaced repetition · daily review</div>
+      <div class="rh">6 cards due for review</div>
+      <div class="rp">Re-encounter what you have forgotten. Items resurface on a growing schedule until they stick.</div>
+    </div>
+    <span class="rmeta">6 active</span>
+    <a class="cta ghost" href="#">Start review<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="row">
+    <div class="row-l">
+      <div class="rk">Today</div>
+      <div class="rh">Don't break your 4-day streak</div>
+      <div class="rp">One question is all it takes to keep it alive. Daily challenge topic: <b>Email &amp; Web Security</b>.</div>
+    </div>
+    <a class="cta" href="#">Save streak<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="plan">
+    <div class="plan-h"><h2>Today's plan</h2><span class="pe">5 topics · ~21 min · fastest route to exam-ready</span></div>
+    <p>Hits your 2 weakest topics from recent quizzes plus 3 you have not touched in a while. Mixed difficulty, 7 questions per topic.</p>
+    <div class="chips">
+      <button class="chip" type="button"><span class="w"></span>PKI &amp; Certificate Management &rarr;</button>
+      <button class="chip" type="button"><span class="w"></span>Zero Trust &amp; SDN &rarr;</button>
+      <button class="chip" type="button"><span class="st"></span>Threat Actors &amp; Motivations &rarr;</button>
+      <button class="chip" type="button"><span class="st"></span>Attack Vectors &amp; Surfaces &rarr;</button>
+      <button class="chip" type="button"><span class="st"></span>Application Vulnerabilities &rarr;</button>
+    </div>
+    <div class="plan-f">
+      <span class="leg">2 weak · 3 stale · mixed difficulty</span>
+      <a class="cta" href="#">Begin plan<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </div>
+
+  <div class="sess">
+    <div class="sec-k">§ 01</div>
+    <div class="sec-t">Pick your <i>session</i></div>
+    <p class="rp">Three commitment levels. Start where your time and energy are right now.</p>
+
+    <div class="sess-grp">
+      <div class="sg-h"><span class="t">Quick · 3-5 min</span><span class="d">Daily-habit fuel · low-friction wins</span></div>
+      <div class="opts">
+        <button class="opt" type="button"><div class="on">5-min Warmup</div><div class="od">5 Qs · Foundational</div></button>
+        <button class="opt" type="button"><div class="on">Daily Challenge</div><div class="od">1 Q · ~1 min · streak +1</div></button>
+        <button class="opt" type="button"><div class="on">Drill Mistakes</div><div class="od">6 wrong answers saved</div></button>
+      </div>
+    </div>
+
+    <div class="sess-grp">
+      <div class="sg-h"><span class="t">Practice · 10-30 min</span><span class="d">Focused study · build understanding</span></div>
+      <div class="opts">
+        <button class="opt" type="button"><div class="on">15-min Weak Spots</div><div class="od">10 Qs · Exam level · your weakest topic</div></button>
+        <button class="opt" type="button"><div class="on">20-min Deep Scan</div><div class="od">20 Qs · Exam level · mixed</div></button>
+        <button class="opt" type="button"><div class="on">30 Questions</div><div class="od">Marathon mixed · ~25 min</div></button>
+        <button class="opt" type="button"><div class="on">45 Questions</div><div class="od">Marathon mixed · ~38 min</div></button>
+        <button class="opt" type="button"><div class="on">Custom Quiz</div><div class="od">Tune topic, difficulty, length</div></button>
+        <button class="opt" type="button" style="opacity:0;pointer-events:none;"></button>
+      </div>
+      <div class="sg-h" style="margin-top:22px;"><span class="t">Drill by domain</span><span class="d">SY0-701 weighting · 10 Qs each</span></div>
+      <div class="dbd">
+        <button class="db" type="button"><div class="dbk">1.0 · 12%</div><div class="dbn">General Security Concepts</div><div class="dbm">10 Qs</div></button>
+        <button class="db" type="button"><div class="dbk">2.0 · 22%</div><div class="dbn">Threats, Vulns &amp; Mitigations</div><div class="dbm">10 Qs</div></button>
+        <button class="db" type="button"><div class="dbk">3.0 · 18%</div><div class="dbn">Security Architecture</div><div class="dbm">10 Qs</div></button>
+        <button class="db" type="button"><div class="dbk">4.0 · 28%</div><div class="dbn">Security Operations</div><div class="dbm">10 Qs</div></button>
+        <button class="db" type="button"><div class="dbk">5.0 · 20%</div><div class="dbn">Program Mgmt &amp; Oversight</div><div class="dbm">10 Qs</div></button>
+      </div>
+    </div>
+
+    <div class="sess-grp">
+      <div class="sg-h"><span class="t">Exam simulation · 60-90 min</span><span class="d">Pressure-test your readiness · scored 100-900</span></div>
+      <div class="opts">
+        <button class="opt simwrap exam" type="button"><div class="on">60-Question SIM</div><div class="od">Closest to the real thing without the timer</div></button>
+        <button class="opt simwrap exam" type="button"><div class="on">Full Exam Simulator</div><div class="od">90 questions · 90-min timer · scored 100-900</div></button>
+        <button class="opt simwrap" type="button" style="opacity:0;pointer-events:none;"></button>
+      </div>
+      <div class="strict"><span class="box" aria-hidden="true"></span><span><b>Strict Mode</b> · locked order · no flagging · no navigator</span></div>
+    </div>
+  </div>
+
+  <div class="dom">
+    <div class="sec-k">§ 02</div>
+    <div class="sec-t">By <i>domain</i></div>
+    <p class="rp">SY0-701 exam weighting and where you stand in each.</p>
+    <div class="dom-grid">
+      <div class="dc">
+        <div class="dck"><span class="n">Domain 1</span><span class="w">12% exam</span></div>
+        <h3>General Concepts</h3>
+        <div class="tl">Security Controls<br>CIA Triad &amp; AAA<br>Change Mgmt<br>Cryptography<br><span class="on">PKI</span></div>
+        <div class="dcm"><div class="v pass">95%</div><div class="vs">Mastered</div></div>
+      </div>
+      <div class="dc">
+        <div class="dck"><span class="n">Domain 2</span><span class="w">22% exam</span></div>
+        <h3>Threats &amp; Vulns</h3>
+        <div class="tl">Threat Actors<br>Attack Vectors<br>Social Engineering<br>Malware Types<br>Mitigation</div>
+        <div class="dcm"><div class="v">&mdash;</div><div class="vs">Not studied</div></div>
+      </div>
+      <div class="dc">
+        <div class="dck"><span class="n">Domain 3</span><span class="w">18% exam</span></div>
+        <h3>Architecture</h3>
+        <div class="tl">Architecture Models<br><span class="on">Zero Trust &amp; SDN</span><br>Cloud Security<br>Data Protection<br>Resilience</div>
+        <div class="dcm"><div class="v warn">90%</div><div class="vs">Proficient</div></div>
+      </div>
+      <div class="dc">
+        <div class="dck"><span class="n">Domain 4</span><span class="w">28% exam</span></div>
+        <h3>Operations</h3>
+        <div class="tl">Hardening<br>Vuln Mgmt<br>Monitoring &amp; SIEM<br>IAM<br>Incident Response</div>
+        <div class="dcm"><div class="v">&mdash;</div><div class="vs">Not studied</div></div>
+      </div>
+      <div class="dc">
+        <div class="dck"><span class="n">Domain 5</span><span class="w">20% exam</span></div>
+        <h3>Program Mgmt</h3>
+        <div class="tl">Governance<br>Risk Mgmt<br>Third-Party Risk<br>Compliance<br>Audits</div>
+        <div class="dcm"><div class="v">&mdash;</div><div class="vs">Not studied</div></div>
+      </div>
+    </div>
+    <div class="custom-q"><span><b>Custom Quiz</b> · topic, difficulty &amp; count</span><span class="go">Configure &rarr;</span></div>
+  </div>
+
+</div>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+  (function(){var f=document.getElementById('rdFill');if(!f)return;if(!document.documentElement.classList.contains('reveal-on'))return;requestAnimationFrame(function(){requestAnimationFrame(function(){f.classList.add('in');});});})();
+</script>
+
+</body>
+</html>

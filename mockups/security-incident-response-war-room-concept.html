@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Incident Response War Room flagship drill concept (Sec+)</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #131320;
+    --surface-2: #1a1a2e;
+    --surface-3: #222235;
+    --border: #2e2e48;
+    --border-strong: #3a3a55;
+    --accent: #7c6ff7;
+    --accent-light: #a99df9;
+    --text: #f0f0f8;
+    --text-mid: #b0b0cc;
+    --text-dim: #6b6b90;
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,.12);
+    --green-border: rgba(34,197,94,.32);
+    --red: #f87171;
+    --red-soft: rgba(248,113,113,.10);
+    --red-border: rgba(248,113,113,.32);
+    --orange: #f59e0b;
+    --orange-soft: rgba(245,158,11,.12);
+    --orange-border: rgba(245,158,11,.32);
+    --yellow: #fbbf24;
+    --yellow-soft: rgba(251,191,36,.12);
+    --blue: #3b82f6;
+    --blue-soft: rgba(59,130,246,.12);
+    --blue-border: rgba(59,130,246,.32);
+
+    /* 6 SANS PICERL phase colors */
+    --p1: #3b82f6;   /* Preparation — blue */
+    --p1-soft: rgba(59,130,246,.10);
+    --p1-border: rgba(59,130,246,.34);
+    --p2: #06b6d4;   /* Identification — cyan */
+    --p2-soft: rgba(6,182,212,.10);
+    --p2-border: rgba(6,182,212,.34);
+    --p3: #f59e0b;   /* Containment — orange */
+    --p3-soft: rgba(245,158,11,.10);
+    --p3-border: rgba(245,158,11,.34);
+    --p4: #ef4444;   /* Eradication — red */
+    --p4-soft: rgba(239,68,68,.10);
+    --p4-border: rgba(239,68,68,.34);
+    --p5: #22c55e;   /* Recovery — green */
+    --p5-soft: rgba(34,197,94,.10);
+    --p5-border: rgba(34,197,94,.34);
+    --p6: #a855f7;   /* Lessons Learned — purple */
+    --p6-soft: rgba(168,85,247,.10);
+    --p6-border: rgba(168,85,247,.34);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050510;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 32px 16px 80px;
+  }
+  .mockup-doc { max-width: 1180px; margin: 0 auto; }
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px dashed var(--border); }
+  .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .doc-sub { color: var(--text-mid); font-size: 14px; margin-bottom: 16px; max-width: 820px; margin-left: auto; margin-right: auto; }
+  .doc-meta { display: inline-block; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .doc-pin { display: inline-block; padding: 4px 12px; background: rgba(124,111,247,.12); border: 1px solid rgba(124,111,247,.32); border-radius: 99px; font-size: 11px; color: var(--accent-light); font-family: 'SF Mono', monospace; margin-left: 8px; }
+  .doc-flagship { display: inline-block; padding: 4px 12px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.32); border-radius: 99px; font-size: 11px; color: var(--orange); font-family: 'SF Mono', monospace; margin-left: 8px; }
+  .state-section { margin-bottom: 64px; }
+  .state-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .state-title { font-size: 18px; font-weight: 700; color: var(--accent-light); }
+  .state-tag { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-dim); }
+  .state-note { color: var(--text-mid); font-size: 13px; margin-bottom: 20px; max-width: 920px; }
+  .state-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 12px; }
+  .state-note strong { color: var(--text); }
+  .state-depth {
+    display: inline-block;
+    padding: 3px 10px;
+    background: rgba(245,158,11,.10);
+    border: 1px solid rgba(245,158,11,.32);
+    border-radius: 99px;
+    font-size: 10px;
+    color: var(--orange);
+    font-family: 'SF Mono', monospace;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .app-mock {
+    background: #fafbff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    color: #1a1a2e;
+    min-height: 480px;
+  }
+
+  /* Drill head */
+  .drill-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e5e7f0;
+    margin-bottom: 16px;
+  }
+  .drill-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: #ef4444; margin-bottom: 2px;
+  }
+  .drill-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #1a1a2e; }
+  .drill-sub { font-size: 12px; color: #6b6b90; margin-top: 4px; }
+  .drill-stats { display: flex; gap: 16px; align-items: center; font-size: 12px; color: #6b6b90; }
+  .drill-stat-num { font-weight: 800; font-size: 18px; color: #1a1a2e; }
+
+  /* Tabs */
+  .tabs-row { display: flex; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid #e5e7f0; margin-bottom: 18px; }
+  .tab-btn {
+    padding: 8px 16px; font-size: 13px; font-weight: 600;
+    background: transparent; border: 0; color: #6b6b90;
+    border-bottom: 2px solid transparent; cursor: pointer;
+    margin-bottom: -15px;
+  }
+  .tab-btn.is-active { color: #1a1a2e; border-bottom-color: #ef4444; }
+
+  /* Setup screen — scenario catalog */
+  .setup-grid { display: grid; grid-template-columns: 280px 1fr; gap: 18px; }
+  .setup-side {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 16px;
+  }
+  .setup-side-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b6b90; margin-bottom: 10px; }
+  .setup-mode-list { display: flex; flex-direction: column; gap: 6px; }
+  .setup-mode {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 12px;
+    background: #f7f8fc; border: 1px solid transparent;
+    border-radius: 8px; cursor: pointer;
+  }
+  .setup-mode.is-active { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.32); }
+  .setup-mode-icon { font-size: 18px; flex-shrink: 0; }
+  .setup-mode-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .setup-mode-desc { font-size: 11px; color: #6b6b90; margin-top: 2px; }
+
+  .setup-filter {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 14px;
+  }
+  .filter-pill {
+    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    background: #f4f5fa; color: #6b6b90; border: 1px solid transparent;
+    border-radius: 99px; cursor: pointer;
+  }
+  .filter-pill.is-active { background: rgba(239,68,68,.08); color: #ef4444; border-color: rgba(239,68,68,.32); }
+
+  .scenario-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  }
+  .scen-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 14px;
+    position: relative;
+  }
+  .scen-card.is-locked { opacity: .55; }
+  .scen-card-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .scen-card-icon { font-size: 22px; }
+  .scen-card-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .scen-card-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: #6b6b90; margin-top: 4px; }
+  .scen-card-tag { padding: 2px 8px; background: #f4f5fa; border-radius: 99px; font-family: 'SF Mono', monospace; font-size: 10px; }
+  .scen-card-tag.diff-3 { background: rgba(239,68,68,.10); color: #ef4444; }
+  .scen-card-tag.diff-2 { background: rgba(245,158,11,.10); color: #f59e0b; }
+  .scen-card-tag.diff-1 { background: rgba(34,197,94,.10); color: #22c55e; }
+  .scen-card-desc { font-size: 12px; color: #6b6b90; line-height: 1.5; margin-top: 8px; }
+  .scen-card-mastery { display: flex; gap: 4px; margin-top: 10px; }
+  .scen-card-pip {
+    width: 18px; height: 4px; border-radius: 2px;
+    background: #e5e7f0;
+  }
+  .scen-card-pip.is-on { background: #22c55e; }
+  .scen-card-lock {
+    position: absolute; top: 12px; right: 12px;
+    padding: 2px 8px; background: rgba(107,107,144,.12);
+    border-radius: 99px; font-size: 10px; color: #6b6b90;
+    font-family: 'SF Mono', monospace;
+  }
+  .scen-card-aigen {
+    border: 2px dashed rgba(124,111,247,.42);
+    background: rgba(124,111,247,.04);
+    grid-column: span 2;
+    text-align: center; padding: 18px;
+  }
+  .scen-card-aigen-title { font-size: 13px; font-weight: 700; color: #7c6ff7; }
+  .scen-card-aigen-sub { font-size: 11px; color: #6b6b90; margin-top: 4px; }
+  .scen-card-aigen-btn {
+    margin-top: 10px;
+    padding: 8px 16px; background: #7c6ff7; color: #fff;
+    border: 0; border-radius: 8px; font-weight: 700; font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* Active scenario layout — 3-column War Room */
+  .war-room { display: grid; grid-template-columns: 280px 1fr 280px; gap: 14px; }
+  .wr-col {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 14px;
+    min-height: 580px;
+  }
+  .wr-col-h {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: #6b6b90;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f1f7;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .wr-col-h-pulse {
+    width: 8px; height: 8px; background: #ef4444;
+    border-radius: 50%;
+  }
+
+  /* Scenario context (left col) */
+  .ctx-incident-tag { display: inline-block; padding: 3px 10px; background: rgba(239,68,68,.10); border: 1px solid rgba(239,68,68,.32); border-radius: 99px; font-size: 11px; color: #ef4444; font-family: 'SF Mono', monospace; font-weight: 700; }
+  .ctx-title { font-size: 15px; font-weight: 800; margin-top: 8px; color: #1a1a2e; }
+  .ctx-summary { font-size: 12px; color: #4a4a66; line-height: 1.55; margin-top: 8px; }
+  .ctx-meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .ctx-meta-pill {
+    padding: 4px 9px; font-size: 11px;
+    background: #f4f5fa; color: #4a4a66;
+    border-radius: 99px; font-family: 'SF Mono', monospace;
+  }
+  .ctx-iocs { margin-top: 16px; padding-top: 12px; border-top: 1px solid #f0f1f7; }
+  .ctx-iocs-h { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b6b90; margin-bottom: 6px; }
+  .ctx-ioc-row {
+    font-family: 'SF Mono', monospace; font-size: 11px;
+    background: #f7f8fc; padding: 6px 8px;
+    border-radius: 6px; margin-bottom: 4px;
+    color: #4a4a66;
+    word-break: break-all;
+  }
+  .ctx-ioc-row strong { color: #ef4444; }
+
+  /* PICERL Timeline (center col) */
+  .timeline-shell { padding: 6px 4px 0 4px; }
+  .timeline-bar {
+    position: relative;
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+    margin-bottom: 18px;
+  }
+  .tl-stage {
+    position: relative;
+    background: #f4f5fa;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 9px 6px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .tl-stage.is-done { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.32); }
+  .tl-stage.is-active { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.42); box-shadow: 0 0 0 2px rgba(245,158,11,.18); }
+  .tl-stage-num {
+    font-size: 11px; font-weight: 700; color: #6b6b90;
+    font-family: 'SF Mono', monospace;
+  }
+  .tl-stage.is-done .tl-stage-num { color: #22c55e; }
+  .tl-stage.is-active .tl-stage-num { color: #f59e0b; }
+  .tl-stage-name { font-size: 11px; font-weight: 700; color: #1a1a2e; margin-top: 2px; }
+  .tl-stage-acc {
+    font-size: 10px; color: #6b6b90; margin-top: 2px;
+    font-family: 'SF Mono', monospace;
+  }
+  .tl-stage.is-done .tl-stage-acc { color: #22c55e; }
+  .tl-stage-check {
+    position: absolute; top: -6px; right: -4px;
+    width: 16px; height: 16px; background: #22c55e;
+    border-radius: 50%; color: #fff; font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Phase prompt card */
+  .phase-prompt {
+    background: linear-gradient(135deg, rgba(245,158,11,.06) 0%, rgba(255,255,255,1) 60%);
+    border: 1px solid rgba(245,158,11,.32);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .phase-prompt-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: #f59e0b;
+  }
+  .phase-prompt-title { font-size: 17px; font-weight: 800; margin-top: 4px; color: #1a1a2e; }
+  .phase-prompt-stem { font-size: 13px; color: #4a4a66; margin-top: 8px; line-height: 1.55; }
+
+  .actions-instructions {
+    font-size: 11px; color: #6b6b90; margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  /* Action cards (decision deck) */
+  .action-deck { display: flex; flex-direction: column; gap: 8px; }
+  .action-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .action-card:hover { border-color: rgba(124,111,247,.32); }
+  .action-card.is-picked-correct { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.42); }
+  .action-card.is-picked-wrong { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.42); }
+  .action-card.is-revealed-correct { background: rgba(34,197,94,.04); border-color: rgba(34,197,94,.32); }
+  .action-card.is-revealed-correct .action-card-name::before { content: '✓ '; color: #22c55e; font-weight: 800; }
+  .action-card.is-picked-wrong .action-card-name::before { content: '✗ '; color: #ef4444; font-weight: 800; }
+  .action-checkbox {
+    width: 18px; height: 18px;
+    background: #f4f5fa; border: 1px solid #cdcde0;
+    border-radius: 4px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+  }
+  .action-card.is-picked-correct .action-checkbox {
+    background: #22c55e; color: #fff; border-color: #22c55e;
+  }
+  .action-card.is-picked-wrong .action-checkbox {
+    background: #ef4444; color: #fff; border-color: #ef4444;
+  }
+  .action-card-name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .action-card-meta { font-size: 11px; color: #6b6b90; margin-top: 2px; }
+  .action-card-why {
+    font-size: 11px; color: #4a4a66; margin-top: 6px; padding-top: 6px;
+    border-top: 1px dashed #e5e7f0; line-height: 1.5;
+  }
+  .action-card-why strong { color: #1a1a2e; }
+
+  /* Submit footer */
+  .submit-row {
+    display: flex; gap: 10px; align-items: center; justify-content: space-between;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid #f0f1f7;
+  }
+  .submit-counter { font-size: 11px; color: #6b6b90; font-family: 'SF Mono', monospace; }
+  .submit-btn {
+    padding: 9px 18px; background: #1a1a2e; color: #fff;
+    border: 0; border-radius: 8px; font-weight: 700; font-size: 13px;
+    cursor: pointer;
+  }
+  .submit-btn:disabled { background: #c7c7d6; cursor: not-allowed; }
+  .submit-btn.is-confirm { background: #22c55e; }
+
+  /* Evidence/alert feed (right col) */
+  .alert-row {
+    background: #f7f8fc; border-left: 3px solid #ef4444;
+    padding: 8px 10px; border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 11px; color: #4a4a66; line-height: 1.5;
+  }
+  .alert-row.is-new {
+    border-left-color: #f59e0b;
+    background: rgba(245,158,11,.06);
+    box-shadow: 0 0 0 1px rgba(245,158,11,.32);
+  }
+  .alert-row-time { font-family: 'SF Mono', monospace; font-size: 10px; color: #6b6b90; }
+  .alert-row-src { font-weight: 700; color: #1a1a2e; font-size: 11px; }
+
+  /* Pressure mode timer */
+  .pressure-bar {
+    background: linear-gradient(135deg, #1a1a2e 0%, #38163f 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pressure-bar-l { display: flex; align-items: center; gap: 12px; }
+  .pressure-bar-pulse {
+    width: 12px; height: 12px; background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(239,68,68,.32);
+  }
+  .pressure-bar-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fbbf24; }
+  .pressure-bar-mode { font-size: 14px; font-weight: 800; }
+  .pressure-bar-r {
+    text-align: right;
+  }
+  .pressure-bar-time {
+    font-family: 'SF Mono', monospace; font-size: 22px; font-weight: 800;
+    color: #fbbf24;
+  }
+  .pressure-bar-budget { font-size: 10px; color: #b0b0cc; font-family: 'SF Mono', monospace; }
+
+  /* AI Generator panel */
+  .aigen-panel {
+    background: #fff; border: 1px solid rgba(124,111,247,.32);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .aigen-h {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .aigen-h-icon { font-size: 22px; }
+  .aigen-h-title { font-size: 15px; font-weight: 800; color: #7c6ff7; }
+  .aigen-h-sub { font-size: 11px; color: #6b6b90; margin-top: 1px; }
+  .aigen-row { margin-bottom: 12px; }
+  .aigen-row-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b6b90; margin-bottom: 4px; }
+  .aigen-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .aigen-pill {
+    padding: 6px 11px; font-size: 12px; font-weight: 600;
+    background: #f4f5fa; color: #4a4a66; border: 1px solid transparent;
+    border-radius: 99px; cursor: pointer;
+  }
+  .aigen-pill.is-active { background: rgba(124,111,247,.08); color: #7c6ff7; border-color: rgba(124,111,247,.32); }
+
+  .aigen-validator {
+    background: #f7f8fc; border: 1px solid #e5e7f0;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 14px;
+  }
+  .aigen-validator-h {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: #6b6b90; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .aigen-check-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #4a4a66;
+    padding: 4px 0;
+  }
+  .aigen-check-icon {
+    width: 16px; height: 16px;
+    background: #22c55e; color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .aigen-check-icon.is-warn { background: #f59e0b; }
+  .aigen-check-icon.is-fail { background: #ef4444; }
+  .aigen-check-detail { font-size: 11px; color: #6b6b90; margin-left: 24px; margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+  .aigen-output {
+    background: rgba(34,197,94,.04); border: 1px solid rgba(34,197,94,.32);
+    border-radius: 10px;
+    padding: 14px; margin-top: 14px;
+  }
+  .aigen-output-h { font-size: 13px; font-weight: 800; color: #16a34a; margin-bottom: 6px; }
+  .aigen-output-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .aigen-output-summary { font-size: 12px; color: #4a4a66; line-height: 1.55; }
+
+  /* End-of-scenario summary */
+  .eos-card {
+    background: linear-gradient(135deg, rgba(34,197,94,.06) 0%, rgba(255,255,255,1) 70%);
+    border: 1px solid rgba(34,197,94,.32);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .eos-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .eos-icon { font-size: 32px; }
+  .eos-title { font-size: 22px; font-weight: 800; color: #1a1a2e; }
+  .eos-sub { font-size: 13px; color: #6b6b90; margin-top: 2px; }
+
+  .eos-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .eos-stat {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .eos-stat-label { font-size: 10px; color: #6b6b90; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+  .eos-stat-num { font-size: 22px; font-weight: 800; color: #1a1a2e; margin-top: 2px; }
+  .eos-stat-num.is-good { color: #22c55e; }
+  .eos-stat-sub { font-size: 10px; color: #6b6b90; margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+  .eos-phase-table {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .eos-phase-row {
+    display: grid; grid-template-columns: 30px 1fr 60px 80px;
+    gap: 10px; align-items: center;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f0f1f7;
+    font-size: 12px;
+  }
+  .eos-phase-row:last-child { border-bottom: 0; }
+  .eos-phase-stage {
+    font-family: 'SF Mono', monospace; font-weight: 700;
+    color: #6b6b90;
+  }
+  .eos-phase-name { font-weight: 700; color: #1a1a2e; }
+  .eos-phase-acc { font-family: 'SF Mono', monospace; font-weight: 700; }
+  .eos-phase-acc.is-good { color: #22c55e; }
+  .eos-phase-acc.is-mid { color: #f59e0b; }
+  .eos-phase-acc.is-bad { color: #ef4444; }
+  .eos-phase-time { color: #6b6b90; font-family: 'SF Mono', monospace; font-size: 11px; text-align: right; }
+
+  .eos-mistake-row {
+    background: rgba(239,68,68,.04); border-left: 3px solid #ef4444;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #4a4a66; line-height: 1.55;
+  }
+  .eos-mistake-row strong { color: #1a1a2e; }
+  .eos-mistake-stage { font-family: 'SF Mono', monospace; font-size: 10px; color: #ef4444; font-weight: 700; }
+
+  .eos-cta-row { display: flex; gap: 8px; margin-top: 16px; }
+  .eos-cta {
+    flex: 1;
+    padding: 11px 14px; background: #1a1a2e; color: #fff;
+    border: 0; border-radius: 8px; font-weight: 700; font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .eos-cta-secondary {
+    background: #fff; color: #1a1a2e;
+    border: 1px solid #cdcde0;
+  }
+
+  /* Lessons tab */
+  .lessons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .lesson-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 16px;
+    border-top: 3px solid var(--p1);
+  }
+  .lesson-card.p1 { border-top-color: var(--p1); }
+  .lesson-card.p2 { border-top-color: var(--p2); }
+  .lesson-card.p3 { border-top-color: var(--p3); }
+  .lesson-card.p4 { border-top-color: var(--p4); }
+  .lesson-card.p5 { border-top-color: var(--p5); }
+  .lesson-card.p6 { border-top-color: var(--p6); }
+  .lesson-card-h {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .lesson-card-num { font-family: 'SF Mono', monospace; font-weight: 800; font-size: 14px; color: #6b6b90; }
+  .lesson-card-name { font-size: 16px; font-weight: 800; color: #1a1a2e; }
+  .lesson-card-goal { font-size: 12px; color: #6b6b90; margin-bottom: 10px; line-height: 1.5; font-style: italic; }
+  .lesson-card-bullets { list-style: none; padding: 0; margin: 0; }
+  .lesson-card-bullets li {
+    padding: 4px 0; padding-left: 16px;
+    font-size: 12px; color: #4a4a66; line-height: 1.5;
+    position: relative;
+  }
+  .lesson-card-bullets li::before {
+    content: '▸'; position: absolute; left: 4px;
+    color: #6b6b90;
+  }
+  .lesson-card-bullets li strong { color: #1a1a2e; }
+  .lesson-card-traps {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid #f0f1f7;
+  }
+  .lesson-card-traps-h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #ef4444; margin-bottom: 4px; }
+  .lesson-card-trap { font-size: 11px; color: #6b6b90; line-height: 1.5; padding: 2px 0; }
+  .lesson-card-trap strong { color: #1a1a2e; }
+
+  /* Dashboard tab */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .dash-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    padding: 16px;
+  }
+  .dash-card-h { font-size: 13px; font-weight: 800; color: #1a1a2e; margin-bottom: 12px; }
+  .dash-phase-bar-row { display: grid; grid-template-columns: 100px 1fr 50px; gap: 10px; align-items: center; padding: 5px 0; font-size: 12px; }
+  .dash-phase-bar-name { font-weight: 700; color: #1a1a2e; }
+  .dash-phase-bar-track { background: #f0f1f7; border-radius: 99px; height: 8px; overflow: hidden; }
+  .dash-phase-bar-fill { height: 100%; border-radius: 99px; }
+  .dash-phase-bar-fill.p1 { background: var(--p1); width: 78%; }
+  .dash-phase-bar-fill.p2 { background: var(--p2); width: 64%; }
+  .dash-phase-bar-fill.p3 { background: var(--p3); width: 42%; }
+  .dash-phase-bar-fill.p4 { background: var(--p4); width: 71%; }
+  .dash-phase-bar-fill.p5 { background: var(--p5); width: 88%; }
+  .dash-phase-bar-fill.p6 { background: var(--p6); width: 55%; }
+  .dash-phase-bar-pct { font-family: 'SF Mono', monospace; font-weight: 700; color: #4a4a66; text-align: right; }
+
+  .dash-callout {
+    background: rgba(245,158,11,.04); border-left: 3px solid #f59e0b;
+    padding: 10px 12px; border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 12px; color: #4a4a66; line-height: 1.55;
+  }
+  .dash-callout strong { color: #1a1a2e; }
+  .dash-callout-cta { display: inline-block; margin-top: 6px; font-size: 11px; color: #f59e0b; font-weight: 700; cursor: pointer; }
+
+  .dash-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .dash-stat-pill {
+    background: #f7f8fc; border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .dash-stat-pill-num { font-size: 20px; font-weight: 800; color: #1a1a2e; }
+  .dash-stat-pill-label { font-size: 10px; color: #6b6b90; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-top: 2px; }
+
+  /* Wrong action reveal modal */
+  .reveal-card {
+    background: linear-gradient(135deg, rgba(239,68,68,.06) 0%, rgba(255,255,255,1) 70%);
+    border: 1px solid rgba(239,68,68,.32);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 12px;
+  }
+  .reveal-h {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .reveal-h-icon {
+    width: 32px; height: 32px; background: #ef4444; color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px;
+  }
+  .reveal-h-title { font-size: 16px; font-weight: 800; color: #1a1a2e; }
+  .reveal-h-sub { font-size: 11px; color: #6b6b90; margin-top: 1px; }
+  .reveal-body { font-size: 13px; color: #4a4a66; line-height: 1.6; }
+  .reveal-body strong { color: #1a1a2e; }
+  .reveal-body code { background: #f4f5fa; padding: 1px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 12px; color: #ef4444; }
+
+</style>
+</head>
+<body>
+<div class="mockup-doc">
+
+<div class="doc-header">
+  <div class="doc-title">CertAnvil — Incident Response War Room (flagship #1 for Sec+)</div>
+  <div class="doc-sub">SY0-701 Domain 4 (28%) flagship. NIST/SANS PICERL-shaped drill that walks the user through unfolding incident scenarios, with phase-by-phase decision points, evidence feed, pressure mode, AI scenario generator, and a 7-layer validation pipeline modelled on the Topology Builder pattern. <strong>This is the depth contract — production code ships in batches against this visual spec.</strong></div>
+  <div class="doc-meta">SECPLUS · IR_WAR_ROOM_FLAGSHIP_v1</div>
+  <div class="doc-pin">2026-05-08 · concept-mockup-first (#15 in series)</div>
+  <div class="doc-flagship">flagship-tier — depth-justified</div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 1 — Drill home / setup -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 1 · Drill home — scenario catalog + mode picker</div>
+    <div class="state-tag">page-irw · setup tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">25 static scenarios</span>
+    <span class="state-depth">5 threat-vector filters</span>
+    <span class="state-depth">2 modes (practice/pressure)</span>
+    <span class="state-depth">progressive disclosure (mastery-gated unlocks)</span>
+    <strong>Setup screen.</strong> Sidebar locks in the mode + difficulty profile; the right panel is a filterable catalog of scenarios grouped by threat vector. Each card shows its difficulty, IR phases tested, and per-scenario mastery pips (3 = full mastery). Locked scenarios show <code>🔒 Master "X" first</code>. The dashed AI-Generate card lives at the bottom of every filter view — it expands the bank infinitely while staying inside the validation envelope.
+  </div>
+  <div class="app-mock">
+    <div class="drill-head">
+      <div>
+        <div class="drill-eyebrow">🚨 Flagship Drill · SY0-701 Domain 4</div>
+        <div class="drill-title">Incident Response War Room</div>
+        <div class="drill-sub">Walk a real incident through PICERL — Preparation, Identification, Containment, Eradication, Recovery, Lessons Learned</div>
+      </div>
+      <div class="drill-stats">
+        <div><div class="drill-stat-num">8/25</div><div>scenarios mastered</div></div>
+        <div><div class="drill-stat-num">61%</div><div>avg containment accuracy</div></div>
+        <div><div class="drill-stat-num">9d</div><div>streak</div></div>
+      </div>
+    </div>
+    <div class="tabs-row">
+      <button class="tab-btn is-active">▶ Practice</button>
+      <button class="tab-btn">📚 Lessons</button>
+      <button class="tab-btn">📊 Dashboard</button>
+    </div>
+
+    <div class="setup-grid">
+      <div class="setup-side">
+        <div class="setup-side-h">⚙️ Mode</div>
+        <div class="setup-mode-list">
+          <div class="setup-mode is-active">
+            <div class="setup-mode-icon">🎯</div>
+            <div>
+              <div class="setup-mode-name">Practice</div>
+              <div class="setup-mode-desc">No timer. Reveal-on-mistake. Build mastery first.</div>
+            </div>
+          </div>
+          <div class="setup-mode">
+            <div class="setup-mode-icon">⏱️</div>
+            <div>
+              <div class="setup-mode-name">Pressure</div>
+              <div class="setup-mode-desc">Live timer + alerts inject mid-phase. Realistic SOC feel.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setup-side-h" style="margin-top: 18px;">🧬 Difficulty</div>
+        <div class="setup-mode-list">
+          <div class="setup-mode">
+            <div class="setup-mode-icon">⭐</div>
+            <div>
+              <div class="setup-mode-name">Foundational</div>
+              <div class="setup-mode-desc">Single-vector. 1 wrong action ≤ teaches</div>
+            </div>
+          </div>
+          <div class="setup-mode is-active">
+            <div class="setup-mode-icon">⭐⭐</div>
+            <div>
+              <div class="setup-mode-name">Exam-level</div>
+              <div class="setup-mode-desc">Mixed signals. Distractor-rich. SY0-701-shaped.</div>
+            </div>
+          </div>
+          <div class="setup-mode">
+            <div class="setup-mode-icon">⭐⭐⭐</div>
+            <div>
+              <div class="setup-mode-name">Real-world</div>
+              <div class="setup-mode-desc">Multi-stage attack. Decoys. Time pressure mandatory.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="setup-filter">
+          <div class="filter-pill is-active">All vectors (25)</div>
+          <div class="filter-pill">🦠 Ransomware (6)</div>
+          <div class="filter-pill">👤 Insider threat (4)</div>
+          <div class="filter-pill">☁️ Cloud breach (5)</div>
+          <div class="filter-pill">🎣 Phish-derived (5)</div>
+          <div class="filter-pill">🔗 Supply chain (3)</div>
+          <div class="filter-pill">🌐 DDoS (2)</div>
+        </div>
+
+        <div class="scenario-grid">
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">🦠</div>
+              <div>
+                <div class="scen-card-title">Ryuk on finance workstation</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span class="scen-card-tag">6 phases · 22 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Encrypted files appear on FIN-WS-08. SMB shares accessed cross-VLAN. C2 beacon to known TOR node. Walk the playbook.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">👤</div>
+              <div>
+                <div class="scen-card-title">Departing engineer · data exfil via personal cloud</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-3">★★★ Real</span>
+                  <span class="scen-card-tag">6 phases · 24 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">DLP flags 4.2 GB upload to personal Dropbox 6h after resignation. HR not notified yet. Legal will be involved.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">🎣</div>
+              <div>
+                <div class="scen-card-title">CFO BEC → wire fraud almost executed</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span class="scen-card-tag">6 phases · 21 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Spoofed CFO email instructs treasury to wire $480K. Treasurer hesitates. You have 18 minutes.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">☁️</div>
+              <div>
+                <div class="scen-card-title">S3 bucket exposure — customer PII</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span class="scen-card-tag">6 phases · 23 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Researcher reports public S3 bucket containing 2.1M customer records. CloudTrail shows 14d of unauthorized GETs.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip"></div>
+              <div class="scen-card-pip"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card is-locked">
+            <div class="scen-card-lock">🔒 Master Ryuk first</div>
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">🦠</div>
+              <div>
+                <div class="scen-card-title">LockBit 3.0 — multi-host, double extortion</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-3">★★★ Real</span>
+                  <span class="scen-card-tag">6 phases · 28 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">15 hosts encrypted across 3 VLANs. Attacker exfiltrated 380 GB before encryption. Public leak site countdown: 72h.</div>
+          </div>
+
+          <div class="scen-card is-locked">
+            <div class="scen-card-lock">🔒 Master 5 scenarios first</div>
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">🔗</div>
+              <div>
+                <div class="scen-card-title">Tampered NPM package · supply chain</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag diff-3">★★★ Real</span>
+                  <span class="scen-card-tag">6 phases · 26 actions</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Dependency bot flags new version of utility lib bundled with credential-stealer. Library used in 12 internal projects.</div>
+          </div>
+
+          <div class="scen-card scen-card-aigen">
+            <div style="font-size: 26px;">✨</div>
+            <div class="scen-card-aigen-title">Generate a fresh scenario</div>
+            <div class="scen-card-aigen-sub">Sonnet authors a new incident matching your weak phases · output runs through the 7-layer validation pipeline before it loads</div>
+            <button class="scen-card-aigen-btn">Open AI Generator →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 2 — Active scenario, Identification phase -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 2 · Active scenario · Identification phase (3-column War Room)</div>
+    <div class="state-tag">page-irw · scenario "Ryuk on finance workstation"</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">3-column war-room layout</span>
+    <span class="state-depth">PICERL timeline spine</span>
+    <span class="state-depth">multi-select decision deck</span>
+    <span class="state-depth">live evidence feed</span>
+    <strong>Active scenario.</strong> Left column = scenario context + IOCs the user can re-read at any time. Center = the timeline (PICERL stages, current stage glowing) above the active phase prompt + decision deck (multi-select; user must pick the right 2-4 actions out of 6-8). Right column = evidence feed — fresh alerts appear with an orange glow + the evidence ticker auto-scrolls. The Submit button gates on at least 1 action picked; <strong>over-selecting is a wrong-answer signal</strong> (just like real SOC noise discipline).
+  </div>
+  <div class="app-mock">
+    <div class="war-room">
+      <!-- LEFT: scenario context -->
+      <div class="wr-col">
+        <div class="wr-col-h">📋 Incident</div>
+        <div class="ctx-incident-tag">SEV-2 · ACTIVE</div>
+        <div class="ctx-title">Ryuk ransomware on FIN-WS-08</div>
+        <div class="ctx-summary">
+          At 09:14, file-server ABC-FS01 logged 3,400 SMB writes from <strong>FIN-WS-08</strong> in 90 seconds. EDR on FIN-WS-08 flagged a process tree: <code>cmd.exe → powershell.exe → ryuk.exe</code>. CPU pinned at 100%. Files in C:\Users\jdoe\Documents now have <code>.ryk</code> extension. User reports "ransom note popped up."
+        </div>
+        <div class="ctx-meta-row">
+          <span class="ctx-meta-pill">Vector: 🦠 ransomware</span>
+          <span class="ctx-meta-pill">Vertical: corp finance</span>
+          <span class="ctx-meta-pill">Started: 09:14 local</span>
+          <span class="ctx-meta-pill">Now: 09:21 (7m elapsed)</span>
+        </div>
+        <div class="ctx-iocs">
+          <div class="ctx-iocs-h">🔍 IOCs surfaced so far</div>
+          <div class="ctx-ioc-row"><strong>SHA256:</strong> 4f3c…b2e1 (ryuk.exe)</div>
+          <div class="ctx-ioc-row"><strong>C2:</strong> 185.220.101.42:443</div>
+          <div class="ctx-ioc-row"><strong>Mutex:</strong> RyukReadMe.txt</div>
+          <div class="ctx-ioc-row"><strong>Affected host:</strong> FIN-WS-08 (10.4.12.18)</div>
+          <div class="ctx-ioc-row"><strong>User:</strong> CORP\jdoe</div>
+        </div>
+      </div>
+
+      <!-- CENTER: timeline + phase prompt + decision deck -->
+      <div class="wr-col">
+        <div class="wr-col-h">⏱ PICERL Timeline</div>
+        <div class="timeline-shell">
+          <div class="timeline-bar">
+            <div class="tl-stage is-done">
+              <div class="tl-stage-num">1</div>
+              <div class="tl-stage-name">Preparation</div>
+              <div class="tl-stage-acc">100%</div>
+              <div class="tl-stage-check">✓</div>
+            </div>
+            <div class="tl-stage is-active">
+              <div class="tl-stage-num">2</div>
+              <div class="tl-stage-name">Identification</div>
+              <div class="tl-stage-acc">in progress</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">3</div>
+              <div class="tl-stage-name">Containment</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">4</div>
+              <div class="tl-stage-name">Eradication</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">5</div>
+              <div class="tl-stage-name">Recovery</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">6</div>
+              <div class="tl-stage-name">Lessons</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+          </div>
+
+          <div class="phase-prompt">
+            <div class="phase-prompt-eyebrow">PHASE 2 · IDENTIFICATION</div>
+            <div class="phase-prompt-title">What do you do RIGHT NOW to confirm and triage this incident?</div>
+            <div class="phase-prompt-stem">Pick every action that's appropriate at this stage. <strong>Over-picking is a wrong-answer signal</strong> — pick only what is required to confirm scope and classify severity, not what you'd do later in containment or eradication.</div>
+          </div>
+
+          <div class="actions-instructions">Pick all that apply (3 expected · 6 options):</div>
+
+          <div class="action-deck">
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Open a ticket and assign severity SEV-2</div>
+                <div class="action-card-meta">Action · Identification</div>
+              </div>
+            </div>
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Pull EDR process tree + parent process for ryuk.exe</div>
+                <div class="action-card-meta">Action · Identification</div>
+              </div>
+            </div>
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Cross-check C2 IP against threat intel feed</div>
+                <div class="action-card-meta">Action · Identification</div>
+              </div>
+            </div>
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Power off FIN-WS-08 immediately</div>
+                <div class="action-card-meta">Action · Containment</div>
+              </div>
+            </div>
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Restore files from backup</div>
+                <div class="action-card-meta">Action · Recovery</div>
+              </div>
+            </div>
+            <div class="action-card">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Wipe and re-image FIN-WS-08</div>
+                <div class="action-card-meta">Action · Eradication</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <div class="submit-counter">0 of 3 expected · 0 selected</div>
+            <button class="submit-btn" disabled>Lock answers →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: alert/evidence feed -->
+      <div class="wr-col">
+        <div class="wr-col-h">📡 Live evidence feed <div class="wr-col-h-pulse"></div></div>
+        <div class="alert-row is-new">
+          <div class="alert-row-time">09:21:47</div>
+          <div class="alert-row-src">EDR · FIN-WS-08</div>
+          <div>Process <code>ryuk.exe</code> spawned <code>vssadmin.exe delete shadows /all /quiet</code> — VSS shadow copies destroyed.</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:21:02</div>
+          <div class="alert-row-src">FW · perimeter</div>
+          <div>Outbound TCP 443 from 10.4.12.18 → 185.220.101.42 (TOR exit · threat-intel hit)</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:18:44</div>
+          <div class="alert-row-src">SMB · ABC-FS01</div>
+          <div>3,400 SMB writes by CORP\jdoe in 90s — anomaly score 9.4 / 10</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:14:02</div>
+          <div class="alert-row-src">EDR · FIN-WS-08</div>
+          <div>Suspicious parent chain: <code>cmd.exe → powershell.exe → ryuk.exe</code></div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:13:51</div>
+          <div class="alert-row-src">User report</div>
+          <div>"My files have weird names and a popup says I need to pay to get them back" — jdoe@corp.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 3 — Containment phase, with answers locked + reveal -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 3 · Containment phase · answers locked, reveal showing</div>
+    <div class="state-tag">page-irw · scenario "Ryuk" · phase 3 · post-submit</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">per-action explanations</span>
+    <span class="state-depth">trap-callout for power-off (volatile evidence)</span>
+    <span class="state-depth">phase 1+2 marked done w/ accuracy</span>
+    <strong>Reveal mode.</strong> User has locked answers. Correct picks are green-checked, wrong picks are red-X'd, missed-required actions get a callout. Each card now exposes its <code>why</code> — the reasoning that makes this a "flagship-level" drill is the explanation depth, not just the right/wrong feedback. The big trap card at the bottom is the canonical Sec+ exam confusion ("power-off destroys volatile evidence — isolate-without-power-off is the right move").
+  </div>
+  <div class="app-mock">
+    <div class="war-room">
+      <div class="wr-col">
+        <div class="wr-col-h">📋 Incident</div>
+        <div class="ctx-incident-tag">SEV-2 · ACTIVE</div>
+        <div class="ctx-title">Ryuk ransomware on FIN-WS-08</div>
+        <div class="ctx-summary">Identification confirmed. C2 IP added to threat-intel watchlist. EDR process tree captured. Now containing.</div>
+        <div class="ctx-meta-row">
+          <span class="ctx-meta-pill">Now: 09:28 (14m elapsed)</span>
+          <span class="ctx-meta-pill">+1 host suspected: HR-WS-04</span>
+        </div>
+      </div>
+
+      <div class="wr-col">
+        <div class="wr-col-h">⏱ PICERL Timeline</div>
+        <div class="timeline-shell">
+          <div class="timeline-bar">
+            <div class="tl-stage is-done">
+              <div class="tl-stage-num">1</div>
+              <div class="tl-stage-name">Preparation</div>
+              <div class="tl-stage-acc">100%</div>
+              <div class="tl-stage-check">✓</div>
+            </div>
+            <div class="tl-stage is-done">
+              <div class="tl-stage-num">2</div>
+              <div class="tl-stage-name">Identification</div>
+              <div class="tl-stage-acc">100%</div>
+              <div class="tl-stage-check">✓</div>
+            </div>
+            <div class="tl-stage is-active">
+              <div class="tl-stage-num">3</div>
+              <div class="tl-stage-name">Containment</div>
+              <div class="tl-stage-acc">in progress</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">4</div>
+              <div class="tl-stage-name">Eradication</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">5</div>
+              <div class="tl-stage-name">Recovery</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+            <div class="tl-stage">
+              <div class="tl-stage-num">6</div>
+              <div class="tl-stage-name">Lessons</div>
+              <div class="tl-stage-acc">—</div>
+            </div>
+          </div>
+
+          <div class="phase-prompt">
+            <div class="phase-prompt-eyebrow">PHASE 3 · CONTAINMENT</div>
+            <div class="phase-prompt-title">Stop the spread without destroying evidence.</div>
+            <div class="phase-prompt-stem">5 expected actions · evidence preservation matters · over-aggressive containment can cost the eradication phase later.</div>
+          </div>
+
+          <div class="actions-instructions">Reveal — 4 of 5 correct · 1 wrong (power-off trap):</div>
+
+          <div class="action-deck">
+            <div class="action-card is-picked-correct">
+              <div class="action-checkbox">✓</div>
+              <div>
+                <div class="action-card-name">Network-isolate FIN-WS-08 via EDR (keep powered on)</div>
+                <div class="action-card-meta">Containment · evidence-preserving</div>
+                <div class="action-card-why"><strong>Correct.</strong> Isolating via EDR cuts the host off from network spread + C2 callouts while keeping memory + running processes intact for forensics. This is the canonical containment move.</div>
+              </div>
+            </div>
+            <div class="action-card is-picked-correct">
+              <div class="action-checkbox">✓</div>
+              <div>
+                <div class="action-card-name">Block C2 IP 185.220.101.42 at perimeter firewall</div>
+                <div class="action-card-meta">Containment · network-level</div>
+                <div class="action-card-why"><strong>Correct.</strong> Blocks command-and-control for any other infected host you haven't found yet — including HR-WS-04 just flagged.</div>
+              </div>
+            </div>
+            <div class="action-card is-picked-correct">
+              <div class="action-checkbox">✓</div>
+              <div>
+                <div class="action-card-name">Disable CORP\jdoe AD account + force re-auth across session</div>
+                <div class="action-card-meta">Containment · identity-level</div>
+                <div class="action-card-why"><strong>Correct.</strong> Stops the attacker pivoting with jdoe's credentials to other hosts. Pair with Kerberos golden-ticket invalidation if AD is on the table.</div>
+              </div>
+            </div>
+            <div class="action-card is-picked-correct">
+              <div class="action-checkbox">✓</div>
+              <div>
+                <div class="action-card-name">Capture memory image (RAM dump) before any power state change</div>
+                <div class="action-card-meta">Containment · forensic preservation</div>
+                <div class="action-card-why"><strong>Correct.</strong> Order of volatility (RFC 3227): RAM > swap > network state > disk. Captured BEFORE any reboot/power-off, you preserve injected DLLs, decryption keys still resident, and C2 session state.</div>
+              </div>
+            </div>
+            <div class="action-card is-picked-wrong">
+              <div class="action-checkbox">✗</div>
+              <div>
+                <div class="action-card-name">Power off FIN-WS-08 to stop encryption</div>
+                <div class="action-card-meta">Eradication-flavored · destroys evidence</div>
+                <div class="action-card-why"><strong>Trap.</strong> Power-off destroys all volatile evidence (RAM, running processes, network sessions, decryption keys still resident in memory). Network-isolate first, RAM-dump second, only THEN power down if needed. This is the #1 SY0-701 IR trap.</div>
+              </div>
+            </div>
+            <div class="action-card is-revealed-correct">
+              <div class="action-checkbox"></div>
+              <div>
+                <div class="action-card-name">Sweep AD for SMB sessions originating from 10.4.12.18</div>
+                <div class="action-card-meta">Containment · scope expansion · MISSED</div>
+                <div class="action-card-why"><strong>Required — you missed this.</strong> Containment isn't just "stop the obvious thing" — it's "find the unknown spread." This is what surfaced HR-WS-04 (the second infected host now on the right-panel feed).</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reveal-card">
+            <div class="reveal-h">
+              <div class="reveal-h-icon">!</div>
+              <div>
+                <div class="reveal-h-title">The power-off trap</div>
+                <div class="reveal-h-sub">SY0-701 Domain 4 · the most common containment-phase exam mistake</div>
+              </div>
+            </div>
+            <div class="reveal-body">
+              "Powering off the infected host stops the encryption" sounds right — and it does stop encryption — but it <strong>destroys all volatile evidence</strong> in the process. RAM holds the running ransomware process state, the decryption key (sometimes), injected DLLs, the C2 session, and recently-accessed file tables. <code>Network-isolate</code> achieves the same containment goal (no more spread, no more C2) <strong>while preserving</strong> everything forensics needs to attribute the attack and possibly recover keys. <em>Memorize: isolate ≠ power off.</em>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <div class="submit-counter">Phase score: 4/5 + missed 1 + wrong 1 → <strong style="color:#f59e0b">71%</strong></div>
+            <button class="submit-btn is-confirm">Advance to Eradication →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="wr-col">
+        <div class="wr-col-h">📡 Live evidence feed</div>
+        <div class="alert-row is-new">
+          <div class="alert-row-time">09:27:14</div>
+          <div class="alert-row-src">EDR · HR-WS-04</div>
+          <div>Same SHA256 (<code>4f3c…b2e1</code>) detected — second infected host. Auto-isolated.</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:25:30</div>
+          <div class="alert-row-src">FW · perimeter</div>
+          <div>185.220.101.42 added to deny-list · 14 outbound attempts blocked since</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:23:11</div>
+          <div class="alert-row-src">EDR · FIN-WS-08</div>
+          <div>Network-isolated · C2 callouts now blackholed</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:22:49</div>
+          <div class="alert-row-src">AD · DC01</div>
+          <div>jdoe account disabled · 3 active sessions force-terminated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 4 — Pressure mode active -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 4 · Pressure mode — live timer + alert injection</div>
+    <div class="state-tag">page-irw · pressure mode · phase 3</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">25:00 budget</span>
+    <span class="state-depth">alerts inject mid-phase</span>
+    <span class="state-depth">over-time penalty</span>
+    <span class="state-depth">SOC-realistic feel</span>
+    <strong>Pressure mode.</strong> Same scenario, time-budget overlay, fresh alerts inject ~every 30-90s and force re-prioritization. Time over budget kicks containment accuracy down 5% per minute. The entire screen "darkens" toward urgent — header gradient shifts from neutral → red as time runs down. New evidence cards land with a brief glow (<code>is-new</code>), already-seen alerts fade.
+  </div>
+  <div class="app-mock">
+    <div class="pressure-bar">
+      <div class="pressure-bar-l">
+        <div class="pressure-bar-pulse"></div>
+        <div>
+          <div class="pressure-bar-label">⚡ PRESSURE MODE — RYUK SCENARIO</div>
+          <div class="pressure-bar-mode">Containment Phase · 3 of 6</div>
+        </div>
+      </div>
+      <div class="pressure-bar-r">
+        <div class="pressure-bar-time">07:42</div>
+        <div class="pressure-bar-budget">of 25:00 budget · 30%</div>
+      </div>
+    </div>
+
+    <div class="war-room">
+      <div class="wr-col">
+        <div class="wr-col-h">📋 Incident · 3 hosts now</div>
+        <div class="ctx-incident-tag">SEV-2 · ESCALATING</div>
+        <div class="ctx-title">Ryuk · spreading laterally</div>
+        <div class="ctx-summary">Third host detected mid-phase. SOC-team Slack channel pinged the IR group. Time pressure mounting.</div>
+        <div class="ctx-meta-row">
+          <span class="ctx-meta-pill">Started: 09:14</span>
+          <span class="ctx-meta-pill">Now: 09:38</span>
+          <span class="ctx-meta-pill">Hosts hit: 3</span>
+        </div>
+      </div>
+
+      <div class="wr-col">
+        <div class="wr-col-h">⏱ PICERL Timeline</div>
+        <div class="timeline-shell">
+          <div class="timeline-bar">
+            <div class="tl-stage is-done"><div class="tl-stage-num">1</div><div class="tl-stage-name">Prep</div><div class="tl-stage-acc">02:18</div><div class="tl-stage-check">✓</div></div>
+            <div class="tl-stage is-done"><div class="tl-stage-num">2</div><div class="tl-stage-name">ID</div><div class="tl-stage-acc">04:11</div><div class="tl-stage-check">✓</div></div>
+            <div class="tl-stage is-active"><div class="tl-stage-num">3</div><div class="tl-stage-name">Contain</div><div class="tl-stage-acc">in prog</div></div>
+            <div class="tl-stage"><div class="tl-stage-num">4</div><div class="tl-stage-name">Eradicate</div><div class="tl-stage-acc">—</div></div>
+            <div class="tl-stage"><div class="tl-stage-num">5</div><div class="tl-stage-name">Recover</div><div class="tl-stage-acc">—</div></div>
+            <div class="tl-stage"><div class="tl-stage-num">6</div><div class="tl-stage-name">Lessons</div><div class="tl-stage-acc">—</div></div>
+          </div>
+          <div class="phase-prompt">
+            <div class="phase-prompt-eyebrow">⚡ PHASE 3 · CONTAINMENT (LIVE)</div>
+            <div class="phase-prompt-title">Third host just popped. Re-scope your containment NOW.</div>
+            <div class="phase-prompt-stem">5 actions expected · time budget 04:00 remaining for this phase · alerts will keep injecting.</div>
+          </div>
+          <div class="actions-instructions">Lock fast — alerts injecting every ~45s:</div>
+          <div class="action-deck" style="opacity:.7">
+            <div class="action-card is-picked-correct"><div class="action-checkbox">✓</div><div><div class="action-card-name">Isolate FIN-WS-08, HR-WS-04, AND ENG-WS-12 via EDR</div><div class="action-card-meta">Scope-expanded containment</div></div></div>
+            <div class="action-card is-picked-correct"><div class="action-checkbox">✓</div><div><div class="action-card-name">Block C2 IP at perimeter</div><div class="action-card-meta">Network containment</div></div></div>
+            <div class="action-card"><div class="action-checkbox"></div><div><div class="action-card-name">Capture RAM dumps from all 3 hosts</div><div class="action-card-meta">Forensic preservation</div></div></div>
+            <div class="action-card"><div class="action-checkbox"></div><div><div class="action-card-name">Notify CISO + legal counsel + cyber insurance</div><div class="action-card-meta">Comms + legal containment</div></div></div>
+            <div class="action-card"><div class="action-checkbox"></div><div><div class="action-card-name">Disable jdoe + sweep AD for new sessions</div><div class="action-card-meta">Identity containment</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wr-col">
+        <div class="wr-col-h">📡 Live alert injection <div class="wr-col-h-pulse"></div></div>
+        <div class="alert-row is-new">
+          <div class="alert-row-time">09:38:02 (now)</div>
+          <div class="alert-row-src">⚡ EDR · ENG-WS-12</div>
+          <div>SAME SHA256 detected — third infected host. Lateral via SMB.</div>
+        </div>
+        <div class="alert-row is-new">
+          <div class="alert-row-time">09:37:18</div>
+          <div class="alert-row-src">⚡ FW · DMZ</div>
+          <div>Outbound 443 spike from 3 internal IPs to 185.220.101.42</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:36:22</div>
+          <div class="alert-row-src">CISO Slack</div>
+          <div>"Status update needed in 5min for exec call"</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-row-time">09:35:00</div>
+          <div class="alert-row-src">Cyber-insurance hotline</div>
+          <div>"Please notify within 30min of incident confirmation per policy clause 4.2"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 5 — End-of-scenario summary -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 5 · End-of-scenario summary</div>
+    <div class="state-tag">page-irw · post-Lessons-Learned</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">4-stat hero</span>
+    <span class="state-depth">per-phase accuracy table</span>
+    <span class="state-depth">mistake-timeline replay</span>
+    <span class="state-depth">CTA: replay or next scenario</span>
+    <strong>Summary card.</strong> Top stats convert to mastery points: containment accuracy + time-to-containment + sequencing accuracy + over-pick discipline. Per-phase row shows each phase's score + time spent. Below: every wrong/missed action surfaces as a "mistake card" with the canonical fix. CTAs: replay this scenario, drill weakest phase, or pick next scenario.
+  </div>
+  <div class="app-mock">
+    <div class="eos-card">
+      <div class="eos-h">
+        <div class="eos-icon">🏁</div>
+        <div>
+          <div class="eos-title">Ryuk on FIN-WS-08 — completed</div>
+          <div class="eos-sub">Practice mode · ★★ Exam · 6 phases · 22 actions</div>
+        </div>
+      </div>
+
+      <div class="eos-stat-grid">
+        <div class="eos-stat">
+          <div class="eos-stat-label">Containment accuracy</div>
+          <div class="eos-stat-num is-good">82%</div>
+          <div class="eos-stat-sub">18/22 correct picks</div>
+        </div>
+        <div class="eos-stat">
+          <div class="eos-stat-label">Time-to-contain</div>
+          <div class="eos-stat-num">18m 04s</div>
+          <div class="eos-stat-sub">target: ≤ 25m</div>
+        </div>
+        <div class="eos-stat">
+          <div class="eos-stat-label">Sequence accuracy</div>
+          <div class="eos-stat-num is-good">100%</div>
+          <div class="eos-stat-sub">phases in correct order</div>
+        </div>
+        <div class="eos-stat">
+          <div class="eos-stat-label">Over-pick discipline</div>
+          <div class="eos-stat-num">2 over</div>
+          <div class="eos-stat-sub">noise penalty −4%</div>
+        </div>
+      </div>
+
+      <div class="eos-phase-table">
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P1</div>
+          <div class="eos-phase-name">Preparation — pre-incident readiness</div>
+          <div class="eos-phase-acc is-good">100%</div>
+          <div class="eos-phase-time">02:18</div>
+        </div>
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P2</div>
+          <div class="eos-phase-name">Identification — confirm + classify</div>
+          <div class="eos-phase-acc is-good">100%</div>
+          <div class="eos-phase-time">04:11</div>
+        </div>
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P3</div>
+          <div class="eos-phase-name">Containment — stop spread, preserve evidence</div>
+          <div class="eos-phase-acc is-mid">71%</div>
+          <div class="eos-phase-time">04:48</div>
+        </div>
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P4</div>
+          <div class="eos-phase-name">Eradication — remove malware, patch root cause</div>
+          <div class="eos-phase-acc is-good">86%</div>
+          <div class="eos-phase-time">03:22</div>
+        </div>
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P5</div>
+          <div class="eos-phase-name">Recovery — restore from clean, monitor</div>
+          <div class="eos-phase-acc is-good">100%</div>
+          <div class="eos-phase-time">02:49</div>
+        </div>
+        <div class="eos-phase-row">
+          <div class="eos-phase-stage">P6</div>
+          <div class="eos-phase-name">Lessons learned — document, update playbook</div>
+          <div class="eos-phase-acc is-good">100%</div>
+          <div class="eos-phase-time">00:36</div>
+        </div>
+      </div>
+
+      <div style="font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px;">📍 Mistakes worth re-drilling</div>
+      <div class="eos-mistake-row">
+        <div class="eos-mistake-stage">P3 · CONTAINMENT</div>
+        <strong>You picked "Power off FIN-WS-08 to stop encryption" — power-off destroys volatile evidence.</strong> The right move was network-isolation via EDR (host stays powered on; spread stops; RAM stays intact for forensics). #1 SY0-701 IR trap.
+      </div>
+      <div class="eos-mistake-row">
+        <div class="eos-mistake-stage">P3 · CONTAINMENT</div>
+        <strong>You missed "Sweep AD for SMB sessions originating from 10.4.12.18".</strong> Containment isn't just "stop the obvious thing." Active scope-expansion sweeps surface the second/third infected hosts (HR-WS-04, ENG-WS-12) that you'd have to find later anyway.
+      </div>
+
+      <div class="eos-cta-row">
+        <button class="eos-cta">🔁 Replay Ryuk scenario</button>
+        <button class="eos-cta eos-cta-secondary">🎯 Drill Containment phase only</button>
+        <button class="eos-cta eos-cta-secondary">▶ Next scenario: BEC wire fraud</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 6 — AI Generator with validator pipeline -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 6 · AI Scenario Generator + 7-layer validation pipeline</div>
+    <div class="state-tag">page-irw · setup tab · ai-gen panel</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">Sonnet authored (Tier C)</span>
+    <span class="state-depth">7-layer validator (PICERL ordering, action realism, IOC plausibility, distractor quality, etc.)</span>
+    <span class="state-depth">Haiku → Sonnet escalation on validator-fail</span>
+    <strong>AI generator with live validator output.</strong> User picks a threat vector + difficulty + emphasis (which weak phase Claude should bias toward). Sonnet authors a fresh scenario; the output passes through the 7-layer validator (modeled on the Topology Builder's <code>tbDeepValidateAndFix</code> + the question-generation pipeline). Each check shows its result inline. Failures auto-retry on a stripped prompt; persistent failures escalate Haiku → Sonnet. <strong>Nothing reaches the canvas until every layer passes.</strong> This is the same quality-gate philosophy as the question pipeline (60% catch / 0% FP) extended to scenario generation.
+  </div>
+  <div class="app-mock">
+    <div style="display:grid; grid-template-columns: 360px 1fr; gap: 18px;">
+      <div class="aigen-panel">
+        <div class="aigen-h">
+          <div class="aigen-h-icon">✨</div>
+          <div>
+            <div class="aigen-h-title">AI Scenario Generator</div>
+            <div class="aigen-h-sub">Sonnet 4.6 · Tier C · validator-gated</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">🎯 Threat vector</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill">Ransomware</div>
+            <div class="aigen-pill">Insider</div>
+            <div class="aigen-pill is-active">Cloud breach</div>
+            <div class="aigen-pill">Phish-derived</div>
+            <div class="aigen-pill">Supply chain</div>
+            <div class="aigen-pill">DDoS</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">⭐ Difficulty</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill">★ Foundational</div>
+            <div class="aigen-pill is-active">★★ Exam</div>
+            <div class="aigen-pill">★★★ Real-world</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">🔥 Bias toward (optional)</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill is-active">Containment phase (your weakest @ 42%)</div>
+          </div>
+        </div>
+        <button class="scen-card-aigen-btn" style="width:100%; margin-top:8px;">Generate scenario →</button>
+      </div>
+
+      <div>
+        <div class="aigen-validator">
+          <div class="aigen-validator-h">
+            🛡️ 7-layer validation pipeline · all checks must pass
+            <span style="color:#22c55e; font-family:'SF Mono', monospace;">7/7 ✓</span>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>1. PICERL stage ordering</strong> — 6 phases present in canonical order</div>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>2. Action realism</strong> — every action maps to a real SY0-701-tested control / tool</div>
+          </div>
+          <div class="aigen-check-detail">No mythical tools (e.g. "AntiRansomBot 9000"); no fictional CVEs</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>3. IOC plausibility</strong> — IPs, hashes, domains follow real format + are not real registered IOCs</div>
+          </div>
+          <div class="aigen-check-detail">Validator pings RFC1918 + reserved-IP space + PRIVATE hash format</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>4. Per-phase action count</strong> — each phase has 4-8 actions, not less, not more</div>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>5. Distractor quality</strong> — every wrong action has a documented reason it's tempting</div>
+          </div>
+          <div class="aigen-check-detail">≥2 plausible tempters per phase, no obvious junk distractors</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>6. Trap presence</strong> — at least 1 SY0-701-canonical trap in containment or eradication phase</div>
+          </div>
+          <div class="aigen-check-detail">e.g. power-off-vs-isolate, wipe-before-image, restore-before-eradicate</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>7. Citation grounding</strong> — every "why" references NIST SP 800-61, SANS PICERL, or specific SY0-701 objective</div>
+          </div>
+          <div class="aigen-check-detail">No inventing standards; no stale references (NIST IR 1.0)</div>
+        </div>
+
+        <div class="aigen-output">
+          <div class="aigen-output-h">✓ Validated · ready to load</div>
+          <div class="aigen-output-title">S3 bucket exfil — discovered via threat-intel pivot</div>
+          <div class="aigen-output-summary">
+            6h ago, threat-intel feed flags a ransomware crew leak site listing your company's customer PII. CloudTrail review surfaces unauthenticated GETs from 11 IPs over 14 days hitting <code>s3://corp-customer-archive/</code>. Bucket policy: public-read since deploy of new dev tooling 21 days ago. ~2.1M records exposed. CFO + legal + breach counsel waiting on triage. <strong>Containment-heavy</strong> scenario per your bias request — 7 of 22 actions live in the containment phase.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 7 — Lessons tab -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 7 · Lessons tab — 6 PICERL phase cheatsheets</div>
+    <div class="state-tag">page-irw · lessons tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">6 phase cheatsheets</span>
+    <span class="state-depth">trap-callouts per phase</span>
+    <span class="state-depth">NIST SP 800-61 + SANS PICERL grounding</span>
+    <strong>Lessons tab.</strong> Six cheatsheet cards — one per PICERL phase — each color-coded to match the timeline. Goal statement, 3-5 canonical actions, then the trap-callouts (the 1-2 mistakes SY0-701 LOVES to test on this phase). Cards are self-contained reference material — print-friendly + searchable.
+  </div>
+  <div class="app-mock">
+    <div class="lessons-grid">
+      <div class="lesson-card p1">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P1</div>
+          <div class="lesson-card-name">Preparation</div>
+        </div>
+        <div class="lesson-card-goal">"You can't pause an incident to write a playbook." Build readiness BEFORE day-zero.</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>IR plan</strong> documented + reviewed annually</li>
+          <li><strong>IR team</strong> roles assigned (commander, scribe, comms, legal, forensics)</li>
+          <li><strong>Tooling</strong> staged (EDR, SIEM, NetFlow, write-blockers, RAM-capture)</li>
+          <li><strong>Tabletop exercises</strong> quarterly with realistic scenarios</li>
+          <li><strong>Backups + comms tree</strong> tested + out-of-band channel ready</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps</div>
+          <div class="lesson-card-trap"><strong>"Buy more tools."</strong> Tooling without playbook + practice doesn't help. Process &gt; products.</div>
+        </div>
+      </div>
+
+      <div class="lesson-card p2">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P2</div>
+          <div class="lesson-card-name">Identification</div>
+        </div>
+        <div class="lesson-card-goal">"Is this an incident? What kind? How bad?" Confirm and classify.</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Confirm</strong> via correlation across sources (EDR + FW + user report)</li>
+          <li><strong>Classify</strong> incident type (malware / data breach / DoS / etc.)</li>
+          <li><strong>Assign severity</strong> per the IR plan's matrix (impact × urgency)</li>
+          <li><strong>Open ticket</strong> + start the scribe log + start incident timer</li>
+          <li><strong>Stay broad</strong> — collect IOCs even if you're not sure they're related yet</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps</div>
+          <div class="lesson-card-trap"><strong>Jumping to containment too early.</strong> Without classification, you over-isolate or under-isolate. Classify first.</div>
+        </div>
+      </div>
+
+      <div class="lesson-card p3">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P3</div>
+          <div class="lesson-card-name">Containment</div>
+        </div>
+        <div class="lesson-card-goal">"Stop the spread. Preserve evidence. Don't make eradication harder."</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Network-isolate</strong> infected hosts via EDR (NOT power off)</li>
+          <li><strong>Block C2</strong> at perimeter / DNS sinkhole</li>
+          <li><strong>Identity-contain</strong> — disable compromised accounts + force re-auth</li>
+          <li><strong>RAM dump</strong> before any state-changing action (RFC 3227 order of volatility)</li>
+          <li><strong>Scope-expand</strong> — sweep for lateral movement (other hosts hit?)</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps · the famous ones</div>
+          <div class="lesson-card-trap"><strong>Power-off vs isolate.</strong> Power-off destroys RAM, swap, network state, decryption keys. Isolate keeps the host alive for forensics. <em>Never power off first.</em></div>
+          <div class="lesson-card-trap"><strong>Wipe-and-reimage too soon.</strong> That's eradication. Wiping pre-evidence-capture loses attribution + IOCs.</div>
+        </div>
+      </div>
+
+      <div class="lesson-card p4">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P4</div>
+          <div class="lesson-card-name">Eradication</div>
+        </div>
+        <div class="lesson-card-goal">"Remove the malware AND the way it got in. If you only remove the malware, it'll come back."</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Wipe-and-reimage</strong> (preferred over disinfection — trust nothing)</li>
+          <li><strong>Patch</strong> the exploited vulnerability (not just the host you found)</li>
+          <li><strong>Rotate credentials</strong> for any account that touched the affected host</li>
+          <li><strong>Revoke certs</strong> if private keys were on the box</li>
+          <li><strong>Update IOC blocklists</strong> permanently — promote from temporary block</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps</div>
+          <div class="lesson-card-trap"><strong>"Just run AV again."</strong> Disinfection isn't trust-restoring. Reimage from clean baseline.</div>
+          <div class="lesson-card-trap"><strong>Patching only the affected host.</strong> Same vuln exists on every other host. Patch fleet-wide.</div>
+        </div>
+      </div>
+
+      <div class="lesson-card p5">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P5</div>
+          <div class="lesson-card-name">Recovery</div>
+        </div>
+        <div class="lesson-card-goal">"Get back to business safely. Watch for recurrence." Restore + monitor + validate.</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Restore from clean backup</strong> verified pre-incident timestamp</li>
+          <li><strong>Validate integrity</strong> — hash-check restored files vs known-good</li>
+          <li><strong>Stage re-introduction</strong> — bring services back gradually + monitored</li>
+          <li><strong>Heightened monitoring</strong> for ~30d post-recovery (recurrence risk)</li>
+          <li><strong>User communication</strong> — what was affected, what to watch for</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps</div>
+          <div class="lesson-card-trap"><strong>Restore before eradication.</strong> Restoring onto an unpatched host re-infects. Sequence matters.</div>
+          <div class="lesson-card-trap"><strong>Restoring from compromised backup.</strong> Pre-incident timestamps only. Verify backup hashes.</div>
+        </div>
+      </div>
+
+      <div class="lesson-card p6">
+        <div class="lesson-card-h">
+          <div class="lesson-card-num">P6</div>
+          <div class="lesson-card-name">Lessons Learned</div>
+        </div>
+        <div class="lesson-card-goal">"How do we make sure this never happens again — or at least costs less next time?"</div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Post-incident review</strong> within 2 weeks while details fresh</li>
+          <li><strong>Document timeline</strong> — every action + when + by whom</li>
+          <li><strong>Identify gaps</strong> in detection, response, comms, tooling</li>
+          <li><strong>Update playbook</strong> with new attack-pattern + better response</li>
+          <li><strong>Share intel</strong> with peer orgs / ISAC if appropriate</li>
+        </ul>
+        <div class="lesson-card-traps">
+          <div class="lesson-card-traps-h">⚠ Common traps</div>
+          <div class="lesson-card-trap"><strong>Skipping it.</strong> "We're too busy" = next incident is the same incident. Always close the loop.</div>
+          <div class="lesson-card-trap"><strong>Blame culture.</strong> Blameless postmortems surface real gaps. Punitive ones surface lies.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 8 — Dashboard -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 8 · Dashboard — per-phase mastery + weak-phase callouts</div>
+    <div class="state-tag">page-irw · dashboard tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">per-phase mastery bars</span>
+    <span class="state-depth">prescriptive callouts (drill weak phase)</span>
+    <span class="state-depth">3-stat hero</span>
+    <span class="state-depth">scenario log w/ accuracy + time</span>
+    <strong>Dashboard tab.</strong> Per-phase mastery bars (matches PICERL color scheme). Top stats: scenarios completed, average containment-accuracy, current streak. Below that, prescriptive callouts — like Subnet Trainer's "drill weakest" pattern — point at your weakest phase + lowest-accuracy threat-vector with a one-click "drill this only" CTA. Right pane shows recent scenario log: name + accuracy + time-to-contain.
+  </div>
+  <div class="app-mock">
+    <div class="dash-stat-grid">
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">8/25</div>
+        <div class="dash-stat-pill-label">Scenarios mastered</div>
+      </div>
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">61%</div>
+        <div class="dash-stat-pill-label">Avg containment accuracy</div>
+      </div>
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">9d</div>
+        <div class="dash-stat-pill-label">Current streak</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-h">📊 Per-phase mastery</div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p1);">P1 Preparation</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p1"></div></div>
+          <div class="dash-phase-bar-pct">78%</div>
+        </div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p2);">P2 Identification</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p2"></div></div>
+          <div class="dash-phase-bar-pct">64%</div>
+        </div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p3);">P3 Containment</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p3"></div></div>
+          <div class="dash-phase-bar-pct">42%</div>
+        </div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p4);">P4 Eradication</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p4"></div></div>
+          <div class="dash-phase-bar-pct">71%</div>
+        </div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p5);">P5 Recovery</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p5"></div></div>
+          <div class="dash-phase-bar-pct">88%</div>
+        </div>
+        <div class="dash-phase-bar-row">
+          <div class="dash-phase-bar-name" style="color:var(--p6);">P6 Lessons</div>
+          <div class="dash-phase-bar-track"><div class="dash-phase-bar-fill p6"></div></div>
+          <div class="dash-phase-bar-pct">55%</div>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-h">🎯 Drill what's weakest</div>
+        <div class="dash-callout">
+          <strong>Containment is your weakest phase at 42%.</strong> Power-off-vs-isolate trap caught you twice. Forensics-preservation actions consistently missed.
+          <div class="dash-callout-cta">→ Drill Containment phase across 3 random scenarios</div>
+        </div>
+        <div class="dash-callout">
+          <strong>Cloud breach scenarios at 38%</strong> — your lowest threat vector. CloudTrail+IAM-rotation actions are the gap.
+          <div class="dash-callout-cta">→ Generate AI cloud-breach scenario</div>
+        </div>
+        <div class="dash-callout">
+          <strong>Pressure mode containment is 23% slower than practice.</strong> Identify-phase decision time bleeds into your containment budget.
+          <div class="dash-callout-cta">→ Replay Ryuk on Pressure mode</div>
+        </div>
+
+        <div style="font-size:13px; font-weight:800; color:#1a1a2e; margin-top:14px; margin-bottom:8px;">📜 Recent scenarios</div>
+        <div class="dash-callout" style="background:rgba(34,197,94,.04); border-left-color:#22c55e;">
+          <strong>Ryuk on FIN-WS-08</strong> · 82% containment · 18m04s · 2026-05-08
+        </div>
+        <div class="dash-callout" style="background:rgba(245,158,11,.04); border-left-color:#f59e0b;">
+          <strong>BEC wire-fraud (CFO spoof)</strong> · 67% · 16m30s · 2026-05-07
+        </div>
+        <div class="dash-callout" style="background:rgba(239,68,68,.04); border-left-color:#ef4444;">
+          <strong>S3 PII exposure</strong> · 38% · 28m12s · 2026-05-06 — <em>weak run</em>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- Outro -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section" style="text-align:center; padding-top:40px; border-top: 1px dashed var(--border);">
+  <div style="font-size: 12px; color: var(--text-dim); font-family: 'SF Mono', monospace; line-height: 1.8;">
+    8 states locked · drill home → identification → containment-with-reveal → pressure-mode → end-of-scenario → AI-generator → lessons → dashboard<br>
+    <span style="color:var(--accent-light);">Flagship-tier scope:</span> 25 static scenarios · 5 vectors · 6 PICERL phases · 22 avg actions · pressure mode · AI generator · 7-layer validator · per-phase mastery<br>
+    <span style="color:var(--orange);">Ship plan:</span> v4.97.0 engine + 5 scenarios + practice mode → v4.97.1 pressure mode + 5 scenarios + lessons → v4.97.2 AI gen + validator + 5 more → v4.97.3 final 10 + dashboard
+  </div>
+</div>
+
+</div>
+</body>
+</html>

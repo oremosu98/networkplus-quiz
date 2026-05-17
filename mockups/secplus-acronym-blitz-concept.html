@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Acronym Blitz drill concept (cert-app · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Cert-app "Acronym blitz" Learn tab,
+  faithfully restyled. PRODUCT register. De-carded: purple gradient
+  "Recommended start" card -> accent-bordered focus block (one accent,
+  no gradient, impeccable). Lesson list -> hairline rows. emoji ->
+  line icons. MOTION : calm, hover/press only, NO reveal (a lesson rail
+  is scanned/clicked repeatedly). HONESTY : mirrors the real screen
+  exactly, including a likely Net+/Sec+ copy mismatch on this SY0-701
+  build ("Core Protocols / TCP,UDP,HTTP,DNS / Foundational NETWORKING
+  acronyms" vs the security-flavoured lesson titles). Mirrored as-is,
+  flagged for the founder to verify, NOT silently rewritten.
+  0 emoji · 0 hex · 0 em-dash · index/app/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--t-1:12px;--t0:14.5px;--t1:18px;--t2:23px;--t3:32px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;}
+  .side{border-right:1px solid var(--dg-rule-soft);display:flex;flex-direction:column;padding:20px 0;}
+  .side-brand{padding:0 20px 18px;border-bottom:1px solid var(--dg-rule-soft);}
+  .sb-name{font-size:var(--t-1);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-2);}
+  .sb-name b{color:var(--dg-accent);}
+  .sb-cert{margin-top:6px;font-size:11px;color:var(--dg-text-dim);font-family:var(--mono);}
+  .nav-grp{padding:18px 12px 4px;}
+  .nav-grp-h{padding:0 8px 8px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .nav-i{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;text-decoration:none;color:var(--dg-text-2);font-size:var(--t-1);font-weight:600;transition:background 0.12s ease,color 0.12s ease;}
+  .nav-i svg{width:16px;height:16px;color:var(--dg-text-dim);flex:none;transition:color 0.12s ease;}
+  .nav-i:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .nav-i.on{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 12%,transparent);}
+  .nav-i.on svg{color:var(--dg-accent);}
+  .side-foot{margin-top:auto;padding:16px 20px 0;}
+  .streak{display:flex;align-items:center;gap:9px;}
+  .streak svg{width:16px;height:16px;color:var(--dg-accent);flex:none;}
+  .streak b{font-size:var(--t0);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .streak span{font-size:11px;color:var(--dg-text-dim);}
+  .envchip{margin-top:14px;display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--dg-accent);border:1px solid color-mix(in oklab,var(--dg-accent) 50%,transparent);border-radius:5px;padding:3px 7px;}
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid var(--dg-rule-soft);}
+  .top-l{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;color:var(--dg-text-dim);}
+  .top-r{display:flex;align-items:center;gap:13px;}
+  .chip-pro{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:3px 7px;}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .pill{display:flex;align-items:center;gap:9px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:5px 11px 5px 5px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:170px;}
+  .avatar{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .content{padding:32px 32px 90px;max-width:1000px;}
+  .head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .eyebrow{font-size:var(--t-1);font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{margin-top:10px;font-size:var(--t3);font-weight:800;letter-spacing:-0.025em;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+  .level{font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:999px;padding:6px 12px;}
+  .rule{margin-top:14px;height:1px;background:var(--dg-rule);}
+  .recstart{margin-top:24px;border:1px solid color-mix(in oklab,var(--dg-accent) 45%,transparent);border-radius:14px;padding:24px 26px;}
+  .rs-k{font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-accent);}
+  .rs-t{margin-top:9px;font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;}
+  .rs-d{margin-top:7px;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--dg-accent);color:var(--dg-accent-ink);font:700 var(--t0)/1 Inter,sans-serif;border:0;border-radius:10px;padding:13px 20px;cursor:pointer;transition:filter 0.15s var(--ease),transform 0.12s var(--ease);}
+  .btn.sm{font-size:var(--t-1);padding:11px 17px;}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(0.97);}
+  .btn svg{width:13px;height:13px;}
+  .rs-a{margin-top:16px;}
+  .rs-f{margin-top:14px;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .tabs{margin-top:30px;display:flex;gap:6px;border-bottom:1px solid var(--dg-rule);}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--dg-text-dim);font:700 var(--t-1)/1 Inter,sans-serif;padding:11px 16px;cursor:pointer;letter-spacing:0.02em;}
+  .tab.on{color:var(--dg-accent);border-bottom-color:var(--dg-accent);}
+  .tab:hover{color:var(--dg-text);}
+  .learn{margin-top:24px;display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;}
+  .lessons{display:flex;flex-direction:column;}
+  .lesson{display:flex;align-items:center;gap:13px;padding:15px 12px;border:0;background:none;text-align:left;cursor:pointer;border-bottom:1px solid var(--dg-rule-soft);transition:background 0.12s ease;}
+  .lesson:last-child{border-bottom:0;}
+  .lesson:hover{background:var(--dg-bg-2);}
+  .lesson svg{width:18px;height:18px;color:var(--dg-text-dim);flex:none;transition:color 0.12s ease;}
+  .lesson:hover svg{color:var(--dg-accent);}
+  .l-k{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .l-t{margin-top:3px;font-size:var(--t-1);font-weight:700;color:var(--dg-text);}
+  .lesson:hover .l-t{color:var(--dg-accent);}
+  .panel{border:1px solid var(--dg-rule);border-radius:16px;padding:54px 36px;text-align:center;}
+  .panel .pic{width:48px;height:48px;margin:0 auto 18px;color:var(--dg-accent);}
+  .panel-t{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;}
+  .panel-d{margin-top:10px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:46ch;margin-left:auto;margin-right:auto;line-height:1.6;}
+  .panel-a{margin-top:22px;}
+  @media (prefers-reduced-motion: reduce){.theme-toggle,.nav-i,.tab,.lesson,.btn{transition:none;}}
+  @media (max-width:880px){.app{grid-template-columns:1fr;}.side{display:none;}.learn{grid-template-columns:1fr;}.panel{padding:40px 24px;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="side-brand"><div class="sb-name">Cert<b>Anvil</b></div><div class="sb-cert">Security+ · SY0-701</div></div>
+    <nav class="nav-grp"><div class="nav-grp-h">Practice</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Home</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Progress</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Analytics</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>IR War Room</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Phishing Triage</a>
+    </nav>
+    <nav class="nav-grp"><div class="nav-grp-h">Drills</div>
+      <a class="nav-i on" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h9l5 5v11H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Acronym Blitz</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Attack-to-Mitigation</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h7v7H4zM13 11h7v7h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Control Type Sorter</a>
+    </nav>
+    <nav class="nav-grp"><div class="nav-grp-h">Account</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 .1-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="streak"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c1 3-1 5-1 7a3 3 0 0 0 6 0c0-1 0-2-1-3 3 2 5 5 5 8a9 9 0 1 1-18 0c0-4 3-7 5-9 1 2 2 3 4 3 0-2 0-4 1-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><b>4</b><span>day streak · longest 4</span></div>
+      <span class="envchip">PROD</span>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top"><span class="top-l">Acronym Blitz</span><span class="top-r"><span class="chip-pro">Pro</span><button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button><span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span></span></header>
+    <div class="content">
+      <div class="head-row">
+        <div><div class="eyebrow">Drill · 110 acronyms</div><h1>Acronym <i>blitz.</i></h1></div>
+        <span class="level">Beginner</span>
+      </div>
+      <div class="rule"></div>
+
+      <div class="recstart">
+        <div class="rs-k">Recommended start</div>
+        <div class="rs-t">Start Lesson 1: Core Protocols</div>
+        <div class="rs-d">TCP, UDP, HTTP, DNS, DHCP and friends · about 5 min</div>
+        <div class="rs-a"><button class="btn" type="button">Start Lesson 1 <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+        <div class="rs-f">110+ acronyms become exam-ready by category.</div>
+      </div>
+
+      <div class="tabs"><button class="tab on" type="button">Learn</button><button class="tab" type="button">Practice</button><button class="tab" type="button">Dashboard</button></div>
+
+      <div class="learn">
+        <div class="lessons">
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.3L3 18l3 3 6.4-6.3a4 4 0 0 0 5.3-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span><div class="l-k">Lesson 1</div><div class="l-t">Threats &amp; Attacks</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span><div class="l-k">Lesson 2</div><div class="l-t">Detection &amp; Response</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l8 8-2 2-2-2v-2h-2v-2h-2l-2-2" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span><div class="l-k">Lesson 3</div><div class="l-t">Identity &amp; Access</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg><span><div class="l-k">Lesson 4</div><div class="l-t">Crypto &amp; PKI</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" stroke="currentColor" stroke-width="1.5"/></svg><span><div class="l-k">Lesson 5</div><div class="l-t">Network Security</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span><div class="l-k">Lesson 6</div><div class="l-t">Compliance &amp; Governance</div></span></button>
+          <button class="lesson" type="button"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span><div class="l-k">Lesson 7</div><div class="l-t">Operations &amp; Cloud</div></span></button>
+        </div>
+        <div class="panel">
+          <svg class="pic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.5 1 2h6c0-.5.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="panel-t">Start Lesson 1</div>
+          <div class="panel-d">Foundational networking acronyms · about 5 min · click any lesson in the sidebar to jump around.</div>
+          <div class="panel-a"><button class="btn" type="button">Start Lesson 1 <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>(function(){var b=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();</script>
+</body>
+</html>

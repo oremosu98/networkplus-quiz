@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Account page concept (full · product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. FULL account page restyled faithfully
+  from the founder's real full-screen capture. The earlier mockup was a
+  thin subset (only Profile + Subscription); this adds the real sections
+  it missed: §03 Exam results, §04 Security, §05 Notifications, §06 Data
+  & privacy, §07 Danger zone. Identity reconciled to the real screen
+  (member since 2026-05-06 · owner; entitlements = Network+ + Security+).
+
+  Register : PRODUCT, settings surface. De-carded: real page is stacked
+  white panels -> hairline editorial sections + left-aligned label/value
+  rows (data scannability, not centered). One scoped semantic token added:
+  --dg-danger, used ONLY for "Sign out everywhere" + "Delete account"
+  (genuinely destructive; impeccable permits functional semantic colour).
+  emil-design-eng: occasional surface -> light section reveal, gated +
+  reduced-motion. 0 emoji · 0 hardcoded hex · 0 em-dash. auth-state.js
+  untouched, the port is gated-lane.
+  HONESTY : every value mirrors the real capture, nothing invented.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--maxw:760px;--t-1:12.5px;--t0:15px;--t1:19px;--t2:26px;--t3:38px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px;}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:15px 24px;border-bottom:1px solid var(--dg-rule-soft);max-width:1080px;margin:0 auto;}
+  .brand{font-size:var(--t-1);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-2);}
+  .brand b{color:var(--dg-accent);}
+  .bar-nav{display:flex;align-items:center;gap:22px;font-size:var(--t-1);}
+  .bar-nav a{color:var(--dg-text-dim);text-decoration:none;}
+  .bar-nav a:hover{color:var(--dg-accent);}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .pill{display:flex;align-items:center;gap:9px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:5px 11px 5px 5px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:170px;}
+  .avatar{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  main{padding:40px 0 96px;}
+  .crumb{font-size:var(--t-1);color:var(--dg-text-dim);}
+  .crumb a{color:var(--dg-text-dim);text-decoration:none;}
+  .crumb a:hover{color:var(--dg-accent);}
+  .eyebrow{margin-top:22px;font-size:var(--t-1);font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{margin-top:10px;font-size:var(--t3);font-weight:800;letter-spacing:-0.025em;}
+  .sub{margin-top:12px;font-size:var(--t1);color:var(--dg-text-2);max-width:56ch;}
+  .adminband{margin-top:34px;display:flex;align-items:center;gap:16px;padding:18px 20px;border:1px solid var(--dg-rule);border-radius:12px;background:var(--dg-bg-2);text-decoration:none;color:inherit;transition:border-color 0.15s var(--ease);}
+  .adminband:hover{border-color:var(--dg-accent);}
+  .adminband .ab-ico{width:20px;height:20px;color:var(--dg-accent);flex:none;}
+  .adminband .ab-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .adminband .ab-d{font-size:var(--t-1);color:var(--dg-text-dim);margin-top:2px;}
+  .adminband .ab-x{margin-left:auto;color:var(--dg-text-dim);width:16px;height:16px;flex:none;transition:transform 0.15s var(--ease);}
+  .adminband:hover .ab-x{transform:translateX(3px);color:var(--dg-accent);}
+  .idrow{margin-top:30px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .idrow .av{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:18px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .id-email{font-size:var(--t1);font-weight:700;color:var(--dg-text);}
+  .id-meta{margin-top:7px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid var(--dg-rule);}
+  .chip.pro{color:var(--dg-pass);border-color:color-mix(in oklab,var(--dg-pass) 45%,transparent);}
+  .chip.adm{color:var(--dg-accent);border-color:color-mix(in oklab,var(--dg-accent) 45%,transparent);}
+  .id-since{font-size:var(--t-1);color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  section{margin-top:52px;}
+  .s-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--dg-rule);}
+  .s-no{font-size:var(--t-1);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .s-head h2{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;}
+  .s-head .s-note{font-size:var(--t-1);color:var(--dg-text-dim);text-align:right;max-width:46ch;}
+  .s-intro{margin-top:14px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:70ch;}
+  .defrow{display:grid;grid-template-columns:160px 1fr auto;gap:20px;align-items:center;padding:16px 2px;border-bottom:1px solid var(--dg-rule-soft);}
+  .defrow:last-child{border-bottom:0;}
+  .defrow .k{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .defrow .v{font-size:var(--t0);color:var(--dg-text);min-width:0;}
+  .defrow .v small{color:var(--dg-text-dim);font-size:var(--t-1);}
+  .defrow .v .m{font-family:var(--mono);font-size:var(--t-1);}
+  .lnk{background:none;border:0;cursor:pointer;font:700 var(--t-1)/1 Inter,sans-serif;color:var(--dg-accent);letter-spacing:0.02em;padding:6px 2px;}
+  .lnk:hover{text-decoration:underline;text-underline-offset:3px;}
+  .lnk[disabled]{color:var(--dg-text-dim);cursor:default;text-decoration:none;}
+  .lnk.danger{color:var(--dg-danger);}
+  .tier-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:20px 2px 6px;}
+  .tier-row .tl{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .tier-row .tv{margin-top:8px;font-size:var(--t1);font-weight:700;color:var(--dg-text);}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--dg-accent);color:var(--dg-accent-ink);font:700 var(--t-1)/1 Inter,sans-serif;text-decoration:none;padding:12px 18px;border-radius:10px;border:0;cursor:pointer;transition:transform 0.12s var(--ease),filter 0.15s var(--ease);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(0.97);}
+  .subhead{margin-top:24px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .ent,.exr{display:flex;align-items:center;gap:16px;padding:18px 2px;border-bottom:1px solid var(--dg-rule-soft);}
+  .ent:last-child,.exr:last-child{border-bottom:0;}
+  .e-mk{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;font:800 11px var(--mono);color:var(--dg-text-2);background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);}
+  .e-main{min-width:0;flex:1;}
+  .e-name{font-size:var(--t0);font-weight:700;color:var(--dg-text);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .e-meta{margin-top:4px;font-size:var(--t-1);color:var(--dg-text-dim);font-family:var(--mono);}
+  .tag{font-size:10px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;padding:3px 7px;border-radius:5px;}
+  .tag.pass{color:var(--dg-pass);background:color-mix(in oklab,var(--dg-pass) 16%,transparent);}
+  .tag.active{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 16%,transparent);}
+  .tag.none{color:var(--dg-text-dim);border:1px solid var(--dg-rule);}
+  .exr.passed{border:1px solid color-mix(in oklab,var(--dg-pass) 35%,transparent);border-radius:10px;background:color-mix(in oklab,var(--dg-pass) 7%,transparent);padding:18px 16px;margin-bottom:10px;}
+  .sess{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--dg-rule-soft);border-radius:10px;margin-top:18px;}
+  .sess .si{width:30px;height:30px;color:var(--dg-text-dim);flex:none;}
+  .sess .st{font-size:var(--t-1);font-weight:700;color:var(--dg-text);display:flex;align-items:center;gap:9px;}
+  .sess .sd{margin-top:3px;font-size:11px;color:var(--dg-text-dim);font-family:var(--mono);}
+  .here{font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--dg-pass);}
+  .sess-out{margin-top:16px;text-align:right;}
+  .tgl-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 2px;border-bottom:1px solid var(--dg-rule-soft);}
+  .tgl-row:last-of-type{border-bottom:0;}
+  .tgl-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .tgl-d{margin-top:4px;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .tgl{width:42px;height:24px;border-radius:999px;border:1px solid var(--dg-rule);background:var(--dg-bg-2);position:relative;cursor:pointer;flex:none;transition:background 0.15s var(--ease),border-color 0.15s var(--ease);}
+  .tgl::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dg-text-dim);transition:transform 0.18s var(--ease),background 0.18s var(--ease);}
+  .tgl.on{background:color-mix(in oklab,var(--dg-accent) 30%,transparent);border-color:var(--dg-accent);}
+  .tgl.on::after{transform:translateX(18px);background:var(--dg-accent);}
+  .danger-zone{margin-top:52px;border:1px solid color-mix(in oklab,var(--dg-danger) 40%,transparent);border-radius:12px;padding:22px 24px;}
+  .dz-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;}
+  .dz-no{font-size:var(--t-1);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-danger);}
+  .dz-head h2{font-size:var(--t1);font-weight:800;color:var(--dg-danger);}
+  .dz-d{margin-top:12px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:70ch;}
+  .btn-danger{display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:none;border:1px solid var(--dg-danger);color:var(--dg-danger);font:700 var(--t-1)/1 Inter,sans-serif;padding:12px 18px;border-radius:10px;cursor:pointer;transition:background 0.12s ease;}
+  .btn-danger:hover{background:color-mix(in oklab,var(--dg-danger) 12%,transparent);}
+  html.reveal-on .reveal{opacity:0;transform:translateY(16px);transition:opacity 0.5s var(--ease),transform 0.5s var(--ease);}
+  html.reveal-on .reveal.is-in{opacity:1;transform:none;}
+  @media (prefers-reduced-motion: reduce){.reveal{opacity:1 !important;transform:none !important;}.theme-toggle,.btn,.lnk,.adminband,.tgl,.tgl::after{transition:none;}}
+  @media (max-width:680px){.defrow,.tgl-row{grid-template-columns:1fr;display:flex;flex-direction:column;align-items:flex-start;gap:8px;}.s-head{flex-direction:column;}.s-head .s-note{text-align:left;}}
+</style>
+<script>
+  (function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}try{if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window)document.documentElement.classList.add('reveal-on');}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="bar">
+  <span class="brand">Cert<b>Anvil</b></span>
+  <span class="bar-nav">
+    <a href="#">Why CertAnvil</a><a href="#">Certs</a><a href="#">Pricing</a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button>
+    <span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span>
+  </span>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumb"><a href="#">Home</a> · Account</nav>
+    <div class="eyebrow reveal">Account</div>
+    <h1 class="reveal">Your account</h1>
+    <p class="sub reveal">Profile, billing, security and data, across every cert you study.</p>
+
+    <a class="adminband reveal" href="#">
+      <svg class="ab-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.3L3 18l3 3 6.4-6.3a4 4 0 0 0 5.3-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span><div class="ab-t">Admin Dashboard</div><div class="ab-d">Users, cert packs, deploy status, telemetry · owner-only operations.</div></span>
+      <svg class="ab-x" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+
+    <div class="idrow reveal">
+      <span class="av" aria-hidden="true">S</span>
+      <span style="min-width:0">
+        <div class="id-email">simi.oremosu@gmail.com</div>
+        <div class="id-meta">
+          <span class="chip pro">Pro · all certs</span>
+          <span class="chip adm">Admin</span>
+          <span class="id-since">Member since 2026-05-06 · owner</span>
+        </div>
+      </span>
+    </div>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">01 · Profile</span><h2>Profile</h2></div>
+      <div class="defrow"><span class="k">Email</span><span class="v"><span class="m">simi.oremosu@gmail.com</span></span><button class="lnk" type="button">Change email</button></div>
+      <div class="defrow"><span class="k">Display name</span><span class="v">Simi</span><button class="lnk" type="button">Edit</button></div>
+      <div class="defrow"><span class="k">Avatar</span><span class="v">Auto-generated from email initial</span><button class="lnk" type="button" disabled>Upload (soon)</button></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">02 · Subscription</span><h2>Subscription &amp; certs</h2><span class="s-note">Manage tier and active cert entitlements</span></div>
+      <div class="tier-row"><span><div class="tl">Current tier</div><div class="tv"><span class="chip pro">Pro · all certs</span></div></span><a class="btn" href="#">Upgrade <svg viewBox="0 0 24 24" fill="none" width="13" height="13" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      <div class="subhead">Active cert entitlements</div>
+      <div class="ent"><span class="e-mk" aria-hidden="true">N+</span><span class="e-main"><span class="e-name">Network+ <span class="tag pass">Passed</span></span><span class="e-meta">N10-009 · 767 / 900 · passed 2026-05-05</span></span><button class="lnk" type="button">Open</button></div>
+      <div class="ent"><span class="e-mk" aria-hidden="true">S+</span><span class="e-main"><span class="e-name">Security+ <span class="tag active">Active</span></span><span class="e-meta">SY0-701 · private builder · target exam 2026-07-29</span></span><button class="lnk" type="button">Resume</button></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">03 · Exam results</span><h2>Real-world exam attempts</h2></div>
+      <p class="s-intro">Track your attempts at the real CompTIA and vendor exams. Marking a result unlocks the Passed badge on your cert tile and powers Pass-Guarantee eligibility. Always editable.</p>
+      <div class="exr passed"><span class="e-mk" aria-hidden="true">N+</span><span class="e-main"><span class="e-name">Network+ · N10-009 <span class="tag pass">Passed</span></span><span class="e-meta">767 / 900 · passed 2026-05-05 · Pearson VUE</span></span><button class="lnk" type="button">Edit</button></div>
+      <div class="exr"><span class="e-mk" aria-hidden="true">S+</span><span class="e-main"><span class="e-name">Security+ · SY0-701 <span class="tag none">Not taken yet</span></span><span class="e-meta">SY0-701 · pass at or above 750 / 900</span></span><button class="lnk" type="button">Mark result &rarr;</button></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">04 · Security</span><h2>Security</h2></div>
+      <div class="defrow"><span class="k">Sign-in method</span><span class="v">Magic link via <span class="m">simi.oremosu@gmail.com</span></span><span></span></div>
+      <div class="defrow"><span class="k">Linked accounts</span><span class="v"><small>Google · Microsoft (coming with OAuth-ready expansion)</small></span><span></span></div>
+      <div class="subhead">Active sessions</div>
+      <div class="sess">
+        <svg class="si" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span style="flex:1;min-width:0"><span class="st">Mac · Chrome <span class="here">This device</span></span><span class="sd">Active right now · cookie-backed session (cross-subdomain)</span></span>
+      </div>
+      <div class="sess-out"><button class="lnk danger" type="button">Sign out everywhere</button></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">05 · Notifications</span><h2>Email preferences</h2></div>
+      <p class="s-intro">Toggles save to your account immediately. Email delivery wires up in a future ship.</p>
+      <div class="tgl-row"><span><div class="tgl-t">When a new cert pack ships</div><div class="tgl-d">A single email when a cert you have notified-me'd on goes live</div></span><span class="tgl on" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="tgl-row"><span><div class="tgl-t">Weekly progress summary</div><div class="tgl-d">Sunday 9am · questions answered, streak, weakest topic</div></span><span class="tgl on" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="tgl-row"><span><div class="tgl-t">Exam-date approaching</div><div class="tgl-d">Reminders at 14d, 7d, 3d and 1d before your set exam date</div></span><span class="tgl on" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="tgl-row"><span><div class="tgl-t">Marketing emails</div><div class="tgl-d">Product updates, tips, occasional discounts</div></span><span class="tgl" role="switch" aria-checked="false" tabindex="0"></span></div>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><span class="s-no">06 · Data &amp; privacy</span><h2>Your data</h2></div>
+      <p class="s-intro">Export everything you have stored on CertAnvil. Account deletion is in the danger zone below.</p>
+      <div class="defrow"><span class="k">Export data</span><span class="v">JSON archive of profile, cert metadata and recent quiz history</span><button class="btn" type="button">Download .json</button></div>
+    </section>
+
+    <div class="danger-zone reveal">
+      <div class="dz-head"><span class="dz-no">07 · Danger zone</span><h2>Delete account</h2></div>
+      <p class="dz-d">Marks your account for deletion. After 7 days, your profile and quiz history are permanently purged. You can cancel during the grace window by signing in.</p>
+      <button class="btn-danger" type="button">Delete account
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</main>
+
+<script>
+  (function(){
+    if(document.documentElement.classList.contains('reveal-on')){
+      var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('is-in');io.unobserve(en.target);}});},{rootMargin:'0px 0px -10% 0px',threshold:0.04});
+      document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+    }
+    document.querySelectorAll('.tgl').forEach(function(t){t.addEventListener('click',function(){var on=t.classList.toggle('on');t.setAttribute('aria-checked',on?'true':'false');});});
+  })();
+  (function(){
+    var btn=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');
+    function eff(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}
+    function lab(){btn.textContent=eff()==='light'?'Dark':'Light';}lab();
+    btn.addEventListener('click',function(){var n=eff()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lab();});
+    mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lab();});
+  })();
+</script>
+
+</body>
+</html>

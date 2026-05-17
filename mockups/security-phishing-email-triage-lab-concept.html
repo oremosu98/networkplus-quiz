@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Phishing Email Triage Lab flagship drill concept (Sec+)</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #131320;
+    --surface-2: #1a1a2e;
+    --surface-3: #222235;
+    --border: #2e2e48;
+    --border-strong: #3a3a55;
+    --accent: #7c6ff7;
+    --accent-light: #a99df9;
+    --text: #f0f0f8;
+    --text-mid: #b0b0cc;
+    --text-dim: #6b6b90;
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,.12);
+    --green-border: rgba(34,197,94,.32);
+    --red: #f87171;
+    --red-soft: rgba(248,113,113,.10);
+    --red-border: rgba(248,113,113,.32);
+    --orange: #f59e0b;
+    --orange-soft: rgba(245,158,11,.12);
+    --orange-border: rgba(245,158,11,.32);
+    --yellow: #fbbf24;
+    --blue: #3b82f6;
+
+    /* 4 attack-variant colors */
+    --v-email: #3b82f6;     /* Email phish — blue */
+    --v-email-soft: rgba(59,130,246,.10);
+    --v-email-border: rgba(59,130,246,.32);
+    --v-sms: #16a34a;       /* Smishing — green */
+    --v-sms-soft: rgba(22,163,74,.10);
+    --v-sms-border: rgba(22,163,74,.32);
+    --v-voice: #d946ef;     /* Vishing — magenta */
+    --v-voice-soft: rgba(217,70,239,.10);
+    --v-voice-border: rgba(217,70,239,.32);
+    --v-qr: #f59e0b;        /* Quishing — orange */
+    --v-qr-soft: rgba(245,158,11,.10);
+    --v-qr-border: rgba(245,158,11,.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050510;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 32px 16px 80px;
+  }
+  .mockup-doc { max-width: 1180px; margin: 0 auto; }
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px dashed var(--border); }
+  .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .doc-sub { color: var(--text-mid); font-size: 14px; margin-bottom: 16px; max-width: 820px; margin-left: auto; margin-right: auto; }
+  .doc-meta { display: inline-block; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+  .doc-pin { display: inline-block; padding: 4px 12px; background: rgba(124,111,247,.12); border: 1px solid rgba(124,111,247,.32); border-radius: 99px; font-size: 11px; color: var(--accent-light); font-family: 'SF Mono', monospace; margin-left: 8px; }
+  .doc-flagship { display: inline-block; padding: 4px 12px; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.32); border-radius: 99px; font-size: 11px; color: var(--orange); font-family: 'SF Mono', monospace; margin-left: 8px; }
+  .state-section { margin-bottom: 64px; }
+  .state-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .state-title { font-size: 18px; font-weight: 700; color: var(--accent-light); }
+  .state-tag { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-dim); }
+  .state-note { color: var(--text-mid); font-size: 13px; margin-bottom: 20px; max-width: 920px; }
+  .state-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 12px; }
+  .state-note strong { color: var(--text); }
+  .state-depth {
+    display: inline-block; padding: 3px 10px;
+    background: rgba(245,158,11,.10); border: 1px solid rgba(245,158,11,.32);
+    border-radius: 99px; font-size: 10px; color: var(--orange); font-family: 'SF Mono', monospace;
+    margin-right: 6px; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+
+  .app-mock {
+    background: #fafbff; border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; color: #1a1a2e; min-height: 480px;
+  }
+
+  /* Drill head */
+  .drill-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 14px; border-bottom: 1px solid #e5e7f0; margin-bottom: 16px;
+  }
+  .drill-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ef4444; margin-bottom: 2px; }
+  .drill-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #1a1a2e; }
+  .drill-sub { font-size: 12px; color: #6b6b90; margin-top: 4px; }
+  .drill-stats { display: flex; gap: 16px; align-items: center; font-size: 12px; color: #6b6b90; }
+  .drill-stat-num { font-weight: 800; font-size: 18px; color: #1a1a2e; }
+
+  /* Tabs */
+  .tabs-row { display: flex; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid #e5e7f0; margin-bottom: 18px; }
+  .tab-btn {
+    padding: 8px 16px; font-size: 13px; font-weight: 600;
+    background: transparent; border: 0; color: #6b6b90;
+    border-bottom: 2px solid transparent; cursor: pointer; margin-bottom: -15px;
+  }
+  .tab-btn.is-active { color: #1a1a2e; border-bottom-color: #ef4444; }
+
+  /* Setup grid */
+  .setup-grid { display: grid; grid-template-columns: 280px 1fr; gap: 18px; }
+  .setup-side { background: #fff; border: 1px solid #e5e7f0; border-radius: 10px; padding: 16px; }
+  .setup-side-h { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b6b90; margin-bottom: 10px; }
+  .setup-mode-list { display: flex; flex-direction: column; gap: 6px; }
+  .setup-mode {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 12px; background: #f7f8fc; border: 1px solid transparent;
+    border-radius: 8px; cursor: pointer;
+  }
+  .setup-mode.is-active { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.32); }
+  .setup-mode-icon { font-size: 18px; flex-shrink: 0; }
+  .setup-mode-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .setup-mode-desc { font-size: 11px; color: #6b6b90; margin-top: 2px; }
+
+  .variant-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .variant-pill {
+    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    background: #f4f5fa; color: #6b6b90; border: 1px solid transparent;
+    border-radius: 99px; cursor: pointer;
+  }
+  .variant-pill.is-active.email { background: var(--v-email-soft); color: var(--v-email); border-color: var(--v-email-border); }
+  .variant-pill.is-active.sms { background: var(--v-sms-soft); color: var(--v-sms); border-color: var(--v-sms-border); }
+  .variant-pill.is-active.voice { background: var(--v-voice-soft); color: var(--v-voice); border-color: var(--v-voice-border); }
+  .variant-pill.is-active.qr { background: var(--v-qr-soft); color: var(--v-qr); border-color: var(--v-qr-border); }
+
+  /* Email-client mock (inbox view) */
+  .mailclient {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 10px;
+    overflow: hidden;
+    display: grid; grid-template-columns: 200px 320px 1fr;
+    min-height: 600px;
+  }
+  .mc-sidebar {
+    background: #f7f8fc; border-right: 1px solid #e5e7f0;
+    padding: 14px 8px;
+  }
+  .mc-side-folder {
+    padding: 7px 10px; font-size: 12px; color: #4a4a66;
+    border-radius: 6px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mc-side-folder.is-active { background: rgba(59,130,246,.10); color: #3b82f6; font-weight: 700; }
+  .mc-side-folder-count { margin-left: auto; font-size: 10px; color: #6b6b90; font-family: 'SF Mono', monospace; }
+
+  .mc-list { background: #fff; border-right: 1px solid #e5e7f0; }
+  .mc-list-header {
+    padding: 12px; border-bottom: 1px solid #e5e7f0;
+    font-size: 12px; font-weight: 700; color: #1a1a2e;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .mc-list-row {
+    padding: 12px; border-bottom: 1px solid #f0f1f7;
+    cursor: pointer;
+    position: relative;
+  }
+  .mc-list-row:hover { background: #fafbff; }
+  .mc-list-row.is-active { background: rgba(59,130,246,.06); }
+  .mc-list-row.is-suspicious::before {
+    content: '🚩'; position: absolute; top: 12px; right: 8px; font-size: 10px;
+  }
+  .mc-list-row-l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+  .mc-list-sender { font-weight: 700; color: #1a1a2e; font-size: 13px; }
+  .mc-list-time { color: #6b6b90; font-size: 10px; font-family: 'SF Mono', monospace; }
+  .mc-list-subj { font-size: 12px; color: #1a1a2e; font-weight: 600; }
+  .mc-list-preview { font-size: 11px; color: #6b6b90; margin-top: 2px; line-height: 1.4; }
+
+  .mc-reading {
+    padding: 16px;
+    background: #fff;
+  }
+  .mc-rd-head {
+    padding-bottom: 12px; border-bottom: 1px solid #e5e7f0; margin-bottom: 14px;
+  }
+  .mc-rd-subj { font-size: 18px; font-weight: 800; color: #1a1a2e; margin-bottom: 6px; }
+  .mc-rd-from-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4a4a66; }
+  .mc-rd-from-row strong { color: #1a1a2e; }
+  .mc-rd-meta { font-size: 11px; color: #6b6b90; margin-top: 2px; font-family: 'SF Mono', monospace; }
+  .mc-rd-body { font-size: 13px; color: #1a1a2e; line-height: 1.7; }
+  .mc-rd-body p { margin-bottom: 12px; }
+  .mc-rd-body a { color: #3b82f6; text-decoration: underline; }
+
+  /* Highlightable flag */
+  .flag {
+    background: rgba(245,158,11,.12);
+    border-bottom: 2px dashed #f59e0b;
+    cursor: pointer;
+    padding: 1px 3px; border-radius: 3px;
+    position: relative;
+  }
+  .flag.is-tagged {
+    background: rgba(34,197,94,.20);
+    border-bottom-color: #22c55e;
+  }
+  .flag.is-revealed-missed {
+    background: rgba(239,68,68,.16);
+    border-bottom-color: #ef4444;
+    border-bottom-style: solid;
+  }
+  .flag-tooltip {
+    position: absolute; top: 100%; left: 0;
+    background: #1a1a2e; color: #fff;
+    padding: 8px 10px; font-size: 11px; line-height: 1.5;
+    border-radius: 6px; min-width: 220px; max-width: 320px;
+    z-index: 10;
+    margin-top: 6px;
+    font-weight: normal;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  }
+  .flag-tooltip strong { color: #fbbf24; }
+  .flag-tooltip code { background: rgba(255,255,255,.08); padding: 1px 4px; border-radius: 3px; font-family: 'SF Mono', monospace; color: #fbbf24; }
+  .flag-tooltip::before {
+    content: ''; position: absolute; top: -6px; left: 12px;
+    border-width: 0 6px 6px 6px; border-style: solid;
+    border-color: transparent transparent #1a1a2e transparent;
+  }
+
+  /* Triage actions panel */
+  .triage-bar {
+    background: linear-gradient(135deg, rgba(239,68,68,.06) 0%, rgba(255,255,255,1) 70%);
+    border: 1px solid rgba(239,68,68,.32);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .triage-bar-l { display: flex; align-items: center; gap: 12px; }
+  .triage-bar-flags-counter {
+    font-family: 'SF Mono', monospace; font-size: 22px; font-weight: 800; color: #ef4444;
+  }
+  .triage-bar-flags-label { font-size: 11px; color: #6b6b90; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .triage-bar-r { display: flex; gap: 8px; }
+  .triage-decision-btn {
+    padding: 9px 14px; font-size: 12px; font-weight: 700;
+    border: 1px solid #e5e7f0; background: #fff; color: #1a1a2e;
+    border-radius: 8px; cursor: pointer;
+  }
+  .triage-decision-btn.is-correct { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .triage-decision-btn.is-wrong { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+  /* Reveal panel */
+  .reveal-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 12px;
+    padding: 18px; margin-top: 14px;
+  }
+  .reveal-h {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 12px; border-bottom: 1px solid #f0f1f7; margin-bottom: 12px;
+  }
+  .reveal-h-icon-good { width: 36px; height: 36px; background: #22c55e; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+  .reveal-h-icon-bad { width: 36px; height: 36px; background: #ef4444; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+  .reveal-h-title { font-size: 18px; font-weight: 800; color: #1a1a2e; }
+  .reveal-h-sub { font-size: 12px; color: #6b6b90; margin-top: 2px; }
+
+  .reveal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .reveal-stat {
+    background: #f7f8fc; border-radius: 8px;
+    padding: 10px; text-align: center;
+  }
+  .reveal-stat-num { font-size: 22px; font-weight: 800; color: #1a1a2e; }
+  .reveal-stat-num.is-good { color: #22c55e; }
+  .reveal-stat-num.is-bad { color: #ef4444; }
+  .reveal-stat-label { font-size: 10px; color: #6b6b90; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-top: 2px; }
+
+  .reveal-section-h {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: #4a4a66; margin: 14px 0 8px 0;
+  }
+  .reveal-flag-row {
+    background: #f7f8fc; border-left: 3px solid #ef4444;
+    padding: 10px 12px; border-radius: 6px; margin-bottom: 6px;
+    font-size: 12px; color: #4a4a66; line-height: 1.5;
+  }
+  .reveal-flag-row.is-good { border-left-color: #22c55e; background: rgba(34,197,94,.04); }
+  .reveal-flag-row strong { color: #1a1a2e; }
+  .reveal-flag-row code { background: #fff; border: 1px solid #e5e7f0; padding: 1px 6px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 11px; color: #ef4444; }
+
+  /* SMS UI (smishing) */
+  .phone-frame {
+    width: 320px; margin: 0 auto;
+    background: #1a1a2e; border-radius: 28px;
+    padding: 14px 14px 24px 14px;
+  }
+  .phone-screen {
+    background: #fff; border-radius: 18px;
+    overflow: hidden;
+    height: 540px;
+    display: flex; flex-direction: column;
+  }
+  .phone-statusbar {
+    background: #f4f5fa; padding: 4px 14px; font-size: 9px;
+    color: #6b6b90; font-family: 'SF Mono', monospace;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .phone-app-h {
+    padding: 14px; border-bottom: 1px solid #e5e7f0;
+    text-align: center;
+  }
+  .phone-app-h-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .phone-app-h-sub { font-size: 10px; color: #6b6b90; margin-top: 2px; font-family: 'SF Mono', monospace; }
+  .phone-msg-list { flex: 1; padding: 14px; }
+  .phone-msg-bubble {
+    background: #f4f5fa; padding: 11px 13px; border-radius: 14px 14px 14px 2px;
+    font-size: 12px; color: #1a1a2e; line-height: 1.55;
+    margin-bottom: 6px;
+  }
+  .phone-msg-bubble a { color: #3b82f6; }
+  .phone-msg-time { font-size: 9px; color: #6b6b90; margin-bottom: 8px; text-align: center; font-family: 'SF Mono', monospace; }
+
+  /* Voicemail UI (vishing) */
+  .voicemail-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 12px;
+    padding: 16px;
+  }
+  .voicemail-head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #f0f1f7; margin-bottom: 12px; }
+  .voicemail-icon { width: 44px; height: 44px; background: var(--v-voice-soft); color: var(--v-voice); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .voicemail-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .voicemail-meta { font-size: 11px; color: #6b6b90; margin-top: 2px; font-family: 'SF Mono', monospace; }
+  .voicemail-player {
+    background: #f7f8fc; border-radius: 10px;
+    padding: 12px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .voicemail-play-btn {
+    width: 36px; height: 36px; background: var(--v-voice); color: #fff;
+    border: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    cursor: pointer;
+  }
+  .voicemail-progress {
+    flex: 1;
+    height: 4px; background: #e5e7f0; border-radius: 99px;
+    position: relative;
+  }
+  .voicemail-progress-fill {
+    width: 60%; height: 100%; background: var(--v-voice); border-radius: 99px;
+  }
+  .voicemail-time { font-size: 11px; color: #6b6b90; font-family: 'SF Mono', monospace; }
+  .voicemail-transcript-h { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b6b90; margin-bottom: 6px; }
+  .voicemail-transcript {
+    background: #f7f8fc; border-radius: 8px;
+    padding: 12px; font-size: 12px; line-height: 1.7; color: #1a1a2e;
+    font-style: italic;
+  }
+
+  /* QR phish (quishing) */
+  .qr-card {
+    background: #fff; border: 1px solid #e5e7f0; border-radius: 12px;
+    padding: 18px;
+    display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: center;
+  }
+  .qr-image {
+    width: 200px; height: 200px;
+    background: repeating-conic-gradient(#1a1a2e 0% 25%, #fff 0% 50%) 50% / 12px 12px;
+    border-radius: 8px;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 1px #e5e7f0;
+    position: relative;
+  }
+  .qr-image::after {
+    content: '⚠️ Suspicious'; position: absolute; bottom: -10px; right: -10px;
+    background: #ef4444; color: #fff;
+    padding: 4px 10px; border-radius: 99px;
+    font-size: 10px; font-weight: 800;
+  }
+  .qr-mobile-preview {
+    background: #1a1a2e; color: #fff;
+    border-radius: 12px; padding: 12px;
+    margin-top: 10px;
+  }
+  .qr-mobile-preview-h { font-size: 11px; font-weight: 700; color: #fbbf24; margin-bottom: 4px; }
+  .qr-mobile-url { font-family: 'SF Mono', monospace; font-size: 11px; color: #fff; word-break: break-all; }
+  .qr-mobile-url strong { color: #ef4444; }
+
+  /* AI generator panel */
+  .aigen-panel { background: #fff; border: 1px solid rgba(124,111,247,.32); border-radius: 12px; padding: 18px; }
+  .aigen-h { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .aigen-h-icon { font-size: 22px; }
+  .aigen-h-title { font-size: 15px; font-weight: 800; color: #7c6ff7; }
+  .aigen-h-sub { font-size: 11px; color: #6b6b90; margin-top: 1px; }
+  .aigen-row { margin-bottom: 12px; }
+  .aigen-row-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b6b90; margin-bottom: 4px; }
+  .aigen-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .aigen-pill {
+    padding: 6px 11px; font-size: 12px; font-weight: 600;
+    background: #f4f5fa; color: #4a4a66; border: 1px solid transparent;
+    border-radius: 99px; cursor: pointer;
+  }
+  .aigen-pill.is-active { background: rgba(124,111,247,.08); color: #7c6ff7; border-color: rgba(124,111,247,.32); }
+
+  .aigen-validator { background: #f7f8fc; border: 1px solid #e5e7f0; border-radius: 10px; padding: 12px; margin-top: 14px; }
+  .aigen-validator-h { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b6b90; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .aigen-check-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4a4a66; padding: 4px 0; }
+  .aigen-check-icon { width: 16px; height: 16px; background: #22c55e; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+  .aigen-check-icon.is-warn { background: #f59e0b; }
+  .aigen-check-icon.is-fail { background: #ef4444; }
+  .aigen-check-detail { font-size: 11px; color: #6b6b90; margin-left: 24px; margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+  .aigen-output { background: rgba(34,197,94,.04); border: 1px solid rgba(34,197,94,.32); border-radius: 10px; padding: 14px; margin-top: 14px; }
+  .aigen-output-h { font-size: 13px; font-weight: 800; color: #16a34a; margin-bottom: 6px; }
+  .aigen-output-summary { font-size: 12px; color: #4a4a66; line-height: 1.55; font-family: 'SF Mono', monospace; }
+
+  /* Lessons cards */
+  .lessons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .lesson-card { background: #fff; border: 1px solid #e5e7f0; border-radius: 10px; padding: 16px; border-top: 3px solid var(--v-email); }
+  .lesson-card.email { border-top-color: var(--v-email); }
+  .lesson-card.sms { border-top-color: var(--v-sms); }
+  .lesson-card.voice { border-top-color: var(--v-voice); }
+  .lesson-card.qr { border-top-color: var(--v-qr); }
+  .lesson-card.anatomy { border-top-color: #ef4444; grid-column: span 2; }
+  .lesson-card-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .lesson-card-icon { font-size: 22px; }
+  .lesson-card-name { font-size: 16px; font-weight: 800; color: #1a1a2e; }
+  .lesson-card-bullets { list-style: none; padding: 0; margin: 0; }
+  .lesson-card-bullets li {
+    padding: 4px 0; padding-left: 16px; font-size: 12px; color: #4a4a66; line-height: 1.5;
+    position: relative;
+  }
+  .lesson-card-bullets li::before { content: '▸'; position: absolute; left: 4px; color: #6b6b90; }
+  .lesson-card-bullets li strong { color: #1a1a2e; }
+  .anatomy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
+  .anatomy-flag-card { background: #f7f8fc; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #4a4a66; line-height: 1.5; }
+  .anatomy-flag-card strong { color: #1a1a2e; display: block; margin-bottom: 2px; }
+  .anatomy-flag-card code { background: #fff; padding: 1px 4px; border-radius: 3px; font-family: 'SF Mono', monospace; font-size: 11px; color: #ef4444; }
+
+  /* Dashboard */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .dash-card { background: #fff; border: 1px solid #e5e7f0; border-radius: 10px; padding: 16px; }
+  .dash-card-h { font-size: 13px; font-weight: 800; color: #1a1a2e; margin-bottom: 12px; }
+  .dash-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .dash-stat-pill { background: #f7f8fc; border-radius: 8px; padding: 10px; text-align: center; }
+  .dash-stat-pill-num { font-size: 20px; font-weight: 800; color: #1a1a2e; }
+  .dash-stat-pill-label { font-size: 10px; color: #6b6b90; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; margin-top: 2px; }
+  .dash-vec-row { display: grid; grid-template-columns: 80px 1fr 50px; gap: 10px; align-items: center; padding: 6px 0; font-size: 12px; }
+  .dash-vec-name { font-weight: 700; color: #1a1a2e; }
+  .dash-vec-track { background: #f0f1f7; border-radius: 99px; height: 8px; overflow: hidden; }
+  .dash-vec-fill { height: 100%; border-radius: 99px; }
+  .dash-vec-fill.email { background: var(--v-email); width: 78%; }
+  .dash-vec-fill.sms { background: var(--v-sms); width: 62%; }
+  .dash-vec-fill.voice { background: var(--v-voice); width: 41%; }
+  .dash-vec-fill.qr { background: var(--v-qr); width: 36%; }
+  .dash-vec-pct { font-family: 'SF Mono', monospace; font-weight: 700; color: #4a4a66; text-align: right; }
+  .dash-callout { background: rgba(245,158,11,.04); border-left: 3px solid #f59e0b; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 12px; color: #4a4a66; line-height: 1.55; }
+  .dash-callout strong { color: #1a1a2e; }
+  .dash-callout-cta { display: inline-block; margin-top: 6px; font-size: 11px; color: #f59e0b; font-weight: 700; cursor: pointer; }
+
+  /* Scenario card grid (setup) */
+  .scenario-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .scen-card { background: #fff; border: 1px solid #e5e7f0; border-radius: 10px; padding: 14px; }
+  .scen-card.locked { opacity: .55; }
+  .scen-card-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .scen-card-icon { font-size: 22px; }
+  .scen-card-title { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .scen-card-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: #6b6b90; margin-top: 4px; }
+  .scen-card-tag { padding: 2px 8px; background: #f4f5fa; border-radius: 99px; font-family: 'SF Mono', monospace; font-size: 10px; }
+  .scen-card-tag.email { background: var(--v-email-soft); color: var(--v-email); }
+  .scen-card-tag.sms { background: var(--v-sms-soft); color: var(--v-sms); }
+  .scen-card-tag.voice { background: var(--v-voice-soft); color: var(--v-voice); }
+  .scen-card-tag.qr { background: var(--v-qr-soft); color: var(--v-qr); }
+  .scen-card-tag.diff-3 { background: rgba(239,68,68,.10); color: #ef4444; }
+  .scen-card-tag.diff-2 { background: rgba(245,158,11,.10); color: #f59e0b; }
+  .scen-card-tag.diff-1 { background: rgba(34,197,94,.10); color: #22c55e; }
+  .scen-card-desc { font-size: 12px; color: #6b6b90; line-height: 1.5; margin-top: 8px; }
+  .scen-card-mastery { display: flex; gap: 4px; margin-top: 10px; }
+  .scen-card-pip { width: 18px; height: 4px; border-radius: 2px; background: #e5e7f0; }
+  .scen-card-pip.is-on { background: #22c55e; }
+  .scen-card-aigen { border: 2px dashed rgba(124,111,247,.42); background: rgba(124,111,247,.04); grid-column: span 2; text-align: center; padding: 18px; }
+  .scen-card-aigen-title { font-size: 13px; font-weight: 700; color: #7c6ff7; }
+  .scen-card-aigen-sub { font-size: 11px; color: #6b6b90; margin-top: 4px; }
+  .scen-card-aigen-btn { margin-top: 10px; padding: 8px 16px; background: #7c6ff7; color: #fff; border: 0; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
+
+</style>
+</head>
+<body>
+<div class="mockup-doc">
+
+<div class="doc-header">
+  <div class="doc-title">CertAnvil — Phishing Email Triage Lab (flagship #2 for Sec+)</div>
+  <div class="doc-sub">SY0-701 Domain 2 (22%) flagship. Click-the-flag inbox simulator with 4 attack vectors (email phish, smishing, vishing, quishing). 60 hand-curated phish + AI-generated extension via 7-layer validator. Tests detection skill (find the red flags) AND decision skill (Report / Delete / Reply / Click / Spam) — visceral, replayable, novel interaction model. <strong>This is the depth contract — production code ships in batches against this visual spec.</strong></div>
+  <div class="doc-meta">SECPLUS · PHISH_TRIAGE_FLAGSHIP_v1</div>
+  <div class="doc-pin">2026-05-08 · concept-mockup-first (#16 in series)</div>
+  <div class="doc-flagship">flagship-tier — depth-justified</div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 1 — Drill home / setup -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 1 · Drill home — vector picker + scenario catalog</div>
+    <div class="state-tag">page-pht · setup tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">60 static phish (30 email · 15 SMS · 8 voice · 7 QR)</span>
+    <span class="state-depth">3 modes (tutorial/practice/speed)</span>
+    <span class="state-depth">progressive disclosure</span>
+    <strong>Setup screen.</strong> Sidebar locks the mode. Variant pills filter the catalog by attack type — colored by vector (blue email · green SMS · magenta voice · orange QR). Each card shows the attack pattern category + difficulty + per-scenario mastery pips. The dashed AI-Generate card lives at the bottom — Sonnet authors a fresh phish in the chosen vector, validator-gated.
+  </div>
+  <div class="app-mock">
+    <div class="drill-head">
+      <div>
+        <div class="drill-eyebrow">🎣 Flagship Drill · SY0-701 Domain 2</div>
+        <div class="drill-title">Phishing Email Triage Lab</div>
+        <div class="drill-sub">Spot the red flags. Pick the right action. Across email, SMS, voice, and QR — every form Sec+ tests.</div>
+      </div>
+      <div class="drill-stats">
+        <div><div class="drill-stat-num">14/60</div><div>phish mastered</div></div>
+        <div><div class="drill-stat-num">68%</div><div>flag-catch rate</div></div>
+        <div><div class="drill-stat-num">12d</div><div>streak</div></div>
+      </div>
+    </div>
+    <div class="tabs-row">
+      <button class="tab-btn is-active">▶ Practice</button>
+      <button class="tab-btn">📚 Lessons</button>
+      <button class="tab-btn">📊 Dashboard</button>
+    </div>
+
+    <div class="setup-grid">
+      <div class="setup-side">
+        <div class="setup-side-h">⚙️ Mode</div>
+        <div class="setup-mode-list">
+          <div class="setup-mode">
+            <div class="setup-mode-icon">🎓</div>
+            <div>
+              <div class="setup-mode-name">Tutorial</div>
+              <div class="setup-mode-desc">Hover-reveal of every flag. Best first time.</div>
+            </div>
+          </div>
+          <div class="setup-mode is-active">
+            <div class="setup-mode-icon">🎯</div>
+            <div>
+              <div class="setup-mode-name">Practice</div>
+              <div class="setup-mode-desc">Click-to-tag. No timer. Reveal-on-submit.</div>
+            </div>
+          </div>
+          <div class="setup-mode">
+            <div class="setup-mode-icon">⏱️</div>
+            <div>
+              <div class="setup-mode-name">Speed</div>
+              <div class="setup-mode-desc">90s/phish budget. Penalty for wrong tags.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setup-side-h" style="margin-top: 18px;">📊 Streak focus</div>
+        <div class="setup-mode-list">
+          <div class="setup-mode is-active">
+            <div class="setup-mode-icon">🎯</div>
+            <div>
+              <div class="setup-mode-name">Weak vectors first</div>
+              <div class="setup-mode-desc">QR + voice prioritized (your worst @ 36% / 41%)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="variant-row">
+          <div class="variant-pill is-active email">All vectors (60)</div>
+          <div class="variant-pill is-active email">📧 Email (30)</div>
+          <div class="variant-pill is-active sms">💬 SMS (15)</div>
+          <div class="variant-pill is-active voice">📞 Voice (8)</div>
+          <div class="variant-pill is-active qr">📱 QR (7)</div>
+        </div>
+
+        <div class="scenario-grid">
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">📧</div>
+              <div>
+                <div class="scen-card-title">"CFO" wire-fraud BEC</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag email">email</span>
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span>9 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Display-name spoof of CFO Sarah Chen. Reply-To mismatch. Urgency + secrecy + wire transfer. SY0-701 trap-rich.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">📧</div>
+              <div>
+                <div class="scen-card-title">Microsoft password expiry</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag email">email</span>
+                  <span class="scen-card-tag diff-1">★ Found</span>
+                  <span>7 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">"Your Microsoft 365 password expires in 24h." Spoofed sender domain, link to credential harvest.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip is-on"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">💬</div>
+              <div>
+                <div class="scen-card-title">Bank "fraud alert" smish</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag sms">sms</span>
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span>6 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">"Suspicious charge of $487. Reply YES or visit bit.ly/xyz" — short-link, urgency, callback number.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">📞</div>
+              <div>
+                <div class="scen-card-title">Fake Microsoft tech support</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag voice">voice</span>
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span>5 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">Recorded voicemail claiming "your Microsoft account was hacked, call back urgently." Caller-ID spoof.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">📱</div>
+              <div>
+                <div class="scen-card-title">Parking-meter QR scam</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag qr">qr</span>
+                  <span class="scen-card-tag diff-2">★★ Exam</span>
+                  <span>4 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">QR sticker pasted over the legitimate one. Decoded URL points to credential-harvest mimicking the real parking app.</div>
+            <div class="scen-card-mastery">
+              <div class="scen-card-pip is-on"></div>
+              <div class="scen-card-pip"></div>
+              <div class="scen-card-pip"></div>
+            </div>
+          </div>
+
+          <div class="scen-card locked">
+            <div class="scen-card-row1">
+              <div class="scen-card-icon">📧</div>
+              <div>
+                <div class="scen-card-title">Sophisticated vendor-invoice update</div>
+                <div class="scen-card-meta">
+                  <span class="scen-card-tag email">email</span>
+                  <span class="scen-card-tag diff-3">★★★ Hard</span>
+                  <span>11 red flags</span>
+                </div>
+              </div>
+            </div>
+            <div class="scen-card-desc">🔒 Master 5 BEC scenarios first. Real vendor's account was compromised; attacker emails from the legit address requesting bank-detail change for next invoice cycle.</div>
+          </div>
+
+          <div class="scen-card scen-card-aigen">
+            <div style="font-size: 26px;">✨</div>
+            <div class="scen-card-aigen-title">Generate a fresh phish</div>
+            <div class="scen-card-aigen-sub">Sonnet authors a new phish in your weakest vector (QR · 36% catch-rate) · validator-gated</div>
+            <button class="scen-card-aigen-btn">Open AI Generator →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 2 — Email-client mock with active triage -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 2 · Email client — inbox view, scenario active</div>
+    <div class="state-tag">page-pht · scenario "CFO BEC wire fraud" · email opened</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">Outlook/Gmail-shape email client</span>
+    <span class="state-depth">3-pane layout (folders / list / reading)</span>
+    <span class="state-depth">flag pre-tagged in list (🚩) on suspicious rows</span>
+    <strong>Email client.</strong> Sidebar = folder navigation (Inbox active). List pane shows several emails — the suspicious one auto-flags with 🚩 to draw attention (in Tutorial mode this is visible; in Speed mode it's hidden). Reading pane shows the rendered phish. The reader knows it's the test scenario by the orange triage bar at the top.
+  </div>
+  <div class="app-mock">
+    <div class="triage-bar">
+      <div class="triage-bar-l">
+        <div class="triage-bar-flags-counter">0/9</div>
+        <div>
+          <div class="triage-bar-flags-label">Red flags tagged</div>
+          <div style="font-size: 13px; font-weight: 800; color: #1a1a2e;">CFO BEC wire-fraud · Practice mode</div>
+        </div>
+      </div>
+      <div class="triage-bar-r">
+        <button class="triage-decision-btn">🚨 Report to security</button>
+        <button class="triage-decision-btn">🗑 Delete</button>
+        <button class="triage-decision-btn">↩ Reply</button>
+        <button class="triage-decision-btn">🔗 Click link</button>
+        <button class="triage-decision-btn">📥 Spam</button>
+      </div>
+    </div>
+
+    <div class="mailclient">
+      <div class="mc-sidebar">
+        <div style="font-size:10px; color:#6b6b90; font-weight:700; padding: 4px 10px 8px 10px; text-transform: uppercase; letter-spacing: .08em;">Folders</div>
+        <div class="mc-side-folder is-active">📥 Inbox <span class="mc-side-folder-count">87</span></div>
+        <div class="mc-side-folder">⭐ Starred <span class="mc-side-folder-count">14</span></div>
+        <div class="mc-side-folder">📤 Sent <span class="mc-side-folder-count">312</span></div>
+        <div class="mc-side-folder">📝 Drafts <span class="mc-side-folder-count">3</span></div>
+        <div class="mc-side-folder">🗑 Trash</div>
+        <div class="mc-side-folder">🚫 Spam <span class="mc-side-folder-count">21</span></div>
+      </div>
+
+      <div class="mc-list">
+        <div class="mc-list-header">
+          <span>Inbox · 87 unread</span>
+          <span style="font-size: 10px; color: #6b6b90;">Most recent</span>
+        </div>
+        <div class="mc-list-row is-active is-suspicious">
+          <div class="mc-list-l1">
+            <span class="mc-list-sender">Sarah Chen, CFO</span>
+            <span class="mc-list-time">09:14</span>
+          </div>
+          <div class="mc-list-subj">[URGENT] Wire transfer needed before close — CONFIDENTIAL</div>
+          <div class="mc-list-preview">Hi James — I need your help with an urgent confidential wire transfer for our acquisition…</div>
+        </div>
+        <div class="mc-list-row">
+          <div class="mc-list-l1">
+            <span class="mc-list-sender">Slack</span>
+            <span class="mc-list-time">08:42</span>
+          </div>
+          <div class="mc-list-subj">3 new mentions in #engineering</div>
+          <div class="mc-list-preview">@jdoe was mentioned in a thread by @kris about the Q3 roadmap planning…</div>
+        </div>
+        <div class="mc-list-row">
+          <div class="mc-list-l1">
+            <span class="mc-list-sender">GitHub</span>
+            <span class="mc-list-time">08:18</span>
+          </div>
+          <div class="mc-list-subj">[corp-platform] PR #4271 ready for review</div>
+          <div class="mc-list-preview">kris opened a pull request: feat(billing): add Stripe webhook idempotency…</div>
+        </div>
+        <div class="mc-list-row">
+          <div class="mc-list-l1">
+            <span class="mc-list-sender">Linear</span>
+            <span class="mc-list-time">Yesterday</span>
+          </div>
+          <div class="mc-list-subj">Daily digest · 3 issues assigned to you</div>
+          <div class="mc-list-preview">Yesterday's snapshot of your assignments and recent activity…</div>
+        </div>
+        <div class="mc-list-row">
+          <div class="mc-list-l1">
+            <span class="mc-list-sender">HR Team</span>
+            <span class="mc-list-time">Mon</span>
+          </div>
+          <div class="mc-list-subj">Reminder: Open enrollment closes Friday</div>
+          <div class="mc-list-preview">Just a friendly reminder that benefits open enrollment closes this Friday at 5pm PT…</div>
+        </div>
+      </div>
+
+      <div class="mc-reading">
+        <div class="mc-rd-head">
+          <div class="mc-rd-subj">[URGENT] Wire transfer needed before close — CONFIDENTIAL</div>
+          <div class="mc-rd-from-row">
+            <span style="background:#3b82f6; color:#fff; width: 28px; height: 28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;">SC</span>
+            <strong>Sarah Chen, CFO</strong> <span style="color:#6b6b90;">&lt;<span class="flag">sarah.chen.cfo@gmail.com</span>&gt;</span>
+          </div>
+          <div class="mc-rd-meta">To: james.doe@corp.com · Reply-To: <span class="flag">treasury.processing@corp-finance-secure.com</span> · 09:14 · 5 min ago</div>
+        </div>
+
+        <div class="mc-rd-body">
+          <p><span class="flag">Hi James,</span></p>
+
+          <p>I'm currently in a confidential M&amp;A discussion and need your immediate help. We need to wire <strong>$487,000</strong> to our advisory firm's escrow account by <span class="flag">end of business today</span> to lock in their engagement before our window closes.</p>
+
+          <p>Wire details are attached. <span class="flag">Please don't loop anyone else in</span> — this is highly sensitive until the deal is announced. If anyone asks, defer to me directly.</p>
+
+          <p>Account details + routing info here: <a href="#"><span class="flag">https://corp-finance-secure.com/wire-update.aspx?ref=Q3a82F</span></a></p>
+
+          <p>Confirm receipt as soon as you can. <span class="flag">I'm unavailable by phone</span> the next 2 hours but please proceed with the wire — I trust your judgement.</p>
+
+          <p>Thanks,<br>Sarah</p>
+          <p style="color:#6b6b90; font-size:11px;"><em>Sent from my iPhone</em></p>
+
+          <p style="border-top: 1px solid #e5e7f0; padding-top: 10px; margin-top: 14px; font-size: 11px; color: #6b6b90;">📎 1 attachment: <span class="flag">wire-instructions-q4.zip</span> (password protected; password in email above)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 3 — Mid-triage: 4 of 9 flags tagged + tooltip showing -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 3 · Mid-triage — 4 of 9 flags tagged, tooltip on hover</div>
+    <div class="state-tag">page-pht · click-to-tag interaction</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">click-to-tag flag interaction</span>
+    <span class="state-depth">tooltip explains WHY each tag is a flag</span>
+    <span class="state-depth">live counter (4/9) updates with each tag</span>
+    <span class="state-depth">over-tagging penalised on submit</span>
+    <strong>Active interaction.</strong> User has tagged 4 flags so far (turn green). Hovering a tagged flag shows the explanation card. The triage bar updates in real time. Tutorial mode shows untagged flags pulsing orange (visible hint); Practice + Speed modes hide the pulse — flags only highlight when clicked. Wrong-tags (clicking non-flag text) decrement score on submit.
+  </div>
+  <div class="app-mock">
+    <div class="triage-bar">
+      <div class="triage-bar-l">
+        <div class="triage-bar-flags-counter" style="color:#22c55e;">4/9</div>
+        <div>
+          <div class="triage-bar-flags-label">Red flags tagged</div>
+          <div style="font-size: 13px; font-weight: 800; color: #1a1a2e;">CFO BEC wire-fraud · still 5 to find</div>
+        </div>
+      </div>
+      <div class="triage-bar-r">
+        <button class="triage-decision-btn">🚨 Report to security</button>
+        <button class="triage-decision-btn">🗑 Delete</button>
+        <button class="triage-decision-btn">↩ Reply</button>
+        <button class="triage-decision-btn">🔗 Click link</button>
+        <button class="triage-decision-btn">📥 Spam</button>
+      </div>
+    </div>
+
+    <div class="mc-reading" style="background:#fff; border:1px solid #e5e7f0; border-radius:10px; padding: 18px;">
+      <div class="mc-rd-head">
+        <div class="mc-rd-subj">[URGENT] Wire transfer needed before close — CONFIDENTIAL</div>
+        <div class="mc-rd-from-row">
+          <span style="background:#3b82f6; color:#fff; width: 28px; height: 28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;">SC</span>
+          <strong>Sarah Chen, CFO</strong> <span style="color:#6b6b90;">&lt;<span class="flag is-tagged">sarah.chen.cfo@gmail.com</span>&gt;</span>
+        </div>
+        <div class="mc-rd-meta">To: james.doe@corp.com · Reply-To: <span class="flag is-tagged" style="position:relative; display:inline-block;">treasury.processing@corp-finance-secure.com<div class="flag-tooltip"><strong>🚩 Reply-To mismatch with From.</strong> The "From" claims to be from corp.com (Sarah Chen) but Reply-To points to <code>corp-finance-secure.com</code> — a typosquat domain registered separately. Replying sends your message to the attacker's inbox, not Sarah's.</div></span> · 09:14</div>
+      </div>
+
+      <div class="mc-rd-body">
+        <p><span class="flag">Hi James,</span></p>
+
+        <p>I'm currently in a confidential M&amp;A discussion and need your immediate help. We need to wire <strong>$487,000</strong> to our advisory firm's escrow account by <span class="flag is-tagged">end of business today</span> to lock in their engagement before our window closes.</p>
+
+        <p>Wire details are attached. <span class="flag is-tagged">Please don't loop anyone else in</span> — this is highly sensitive until the deal is announced. If anyone asks, defer to me directly.</p>
+
+        <p>Account details + routing info here: <a href="#"><span class="flag">https://corp-finance-secure.com/wire-update.aspx?ref=Q3a82F</span></a></p>
+
+        <p>Confirm receipt as soon as you can. <span class="flag">I'm unavailable by phone</span> the next 2 hours but please proceed with the wire — I trust your judgement.</p>
+
+        <p>Thanks,<br>Sarah</p>
+        <p style="color:#6b6b90; font-size:11px;"><em>Sent from my iPhone</em></p>
+
+        <p style="border-top: 1px solid #e5e7f0; padding-top: 10px; margin-top: 14px; font-size: 11px; color: #6b6b90;">📎 1 attachment: <span class="flag">wire-instructions-q4.zip</span> (password protected; password in email above)</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 4 — Reveal panel post-decision -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 4 · Reveal — flags + decision graded</div>
+    <div class="state-tag">page-pht · post-Report-to-security</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">flag-catch %</span>
+    <span class="state-depth">decision-correct flag</span>
+    <span class="state-depth">missed-flag callouts</span>
+    <span class="state-depth">over-tag penalty</span>
+    <strong>Reveal.</strong> User picked "Report to Security" + tagged 7 of 9 flags + over-tagged 1 (clicked the password attachment without it being on the answer key). Top hero: 7/9 flags + correct decision. Below: every missed flag and every wrong-tag surfaces with the canonical explanation. The "anatomy of this phish" callout names the SY0-701 attack pattern (BEC + display-name spoof + urgency + isolation).
+  </div>
+  <div class="app-mock">
+    <div class="reveal-card">
+      <div class="reveal-h">
+        <div class="reveal-h-icon-good">✓</div>
+        <div>
+          <div class="reveal-h-title">Right call — reported to security</div>
+          <div class="reveal-h-sub">Decision: Report ✓ · Flag-catch: 7/9 · Over-tagged: 1 (−5%)</div>
+        </div>
+      </div>
+
+      <div class="reveal-grid">
+        <div class="reveal-stat">
+          <div class="reveal-stat-num is-good">78%</div>
+          <div class="reveal-stat-label">Flag-catch rate</div>
+        </div>
+        <div class="reveal-stat">
+          <div class="reveal-stat-num is-good">✓</div>
+          <div class="reveal-stat-label">Decision correct</div>
+        </div>
+        <div class="reveal-stat">
+          <div class="reveal-stat-num is-bad">1</div>
+          <div class="reveal-stat-label">Wrong tag</div>
+        </div>
+      </div>
+
+      <div class="reveal-section-h">✓ Flags you caught (7)</div>
+      <div class="reveal-flag-row is-good">
+        <strong>Display-name spoof.</strong> "Sarah Chen, CFO" with email <code>sarah.chen.cfo@gmail.com</code>. The visible name is your CFO; the actual address is gmail.com, not corp.com. Display names can be set to anything.
+      </div>
+      <div class="reveal-flag-row is-good">
+        <strong>Reply-To mismatch.</strong> From claims corp.com; Reply-To routes to <code>corp-finance-secure.com</code> — a typosquat. Replies go to attacker, not CFO.
+      </div>
+      <div class="reveal-flag-row is-good">
+        <strong>Urgency cue: "end of business today".</strong> Time pressure designed to short-circuit verification. Real CFO requests rarely come with a 6-hour deadline.
+      </div>
+      <div class="reveal-flag-row is-good">
+        <strong>Isolation cue: "Please don't loop anyone else in".</strong> Classic BEC tactic — secrecy stops the target asking the real CFO to verify in person/Slack.
+      </div>
+
+      <div class="reveal-section-h">⚠ Flags you missed (2)</div>
+      <div class="reveal-flag-row">
+        <strong>Generic greeting "Hi James".</strong> CFO would more likely say "James" or use a familiar nickname based on your real relationship. Generic "Hi [firstname]" is a template footprint.
+      </div>
+      <div class="reveal-flag-row">
+        <strong>"I'm unavailable by phone".</strong> Pre-empts the obvious verification step (calling Sarah). Real BEC almost always includes a "don't call me, I'm in a meeting" line — the attacker can't actually pick up.
+      </div>
+
+      <div class="reveal-section-h">✗ Wrong tag (1)</div>
+      <div class="reveal-flag-row" style="border-left-color:#f59e0b;">
+        <strong>You tagged the .zip attachment as suspicious — sort of.</strong> The attachment IS suspicious in a real-world sense, but the password-protected zip technique is what bypasses corporate scanners — the file format itself isn't the flag, the <em>context</em> is (CFO sending a password-protected zip to treasury). Fine instinct, off the answer key.
+      </div>
+
+      <div class="reveal-section-h">🧬 Anatomy of this phish</div>
+      <div class="reveal-flag-row" style="border-left-color:#7c6ff7; background:rgba(124,111,247,.04);">
+        <strong>Pattern: BEC (Business Email Compromise) — display-name spoof variant.</strong> SY0-701 Domain 2.2 — social engineering. The attack vector is impersonation of a senior executive to authorize a fraudulent wire transfer. Defense triad: <strong>(1)</strong> verify out-of-band (call Sarah on a known number), <strong>(2)</strong> bank-detail change requests must use a separate approval channel (e.g. signed memo), <strong>(3)</strong> finance team training to question urgency + isolation cues.
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <button style="flex:1; padding: 11px 14px; background: #1a1a2e; color: #fff; border: 0; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">▶ Next phish (Microsoft password expiry)</button>
+        <button style="flex:1; padding: 11px 14px; background: #fff; color: #1a1a2e; border: 1px solid #cdcde0; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">🔁 Replay this phish</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 5 — Smishing variant -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 5 · Smishing variant — phone SMS UI</div>
+    <div class="state-tag">page-pht · scenario "Bank fraud-alert smish"</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">native-feeling phone SMS UI</span>
+    <span class="state-depth">click-the-flag still works (tap-to-tag on phone elements)</span>
+    <span class="state-depth">vector-specific flags (short-link, callback number, lookalike sender ID)</span>
+    <strong>Smishing UI.</strong> Phone-frame mock with iPhone-style status bar. The SMS thread shows the suspicious message rendered like Apple Messages — the sender ID claims to be "BANK-ALERT" (no number) which is itself the first flag (legit SMS shortcodes appear with the org's number, not a custom-branded sender ID for unsolicited fraud-alerts). Click-to-tag works on every flag in the message body.
+  </div>
+  <div class="app-mock">
+    <div style="display:grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start;">
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-statusbar">
+            <span>9:14 AM</span>
+            <span>5G ◢◢◢ 87%</span>
+          </div>
+          <div class="phone-app-h">
+            <div class="phone-app-h-name"><span class="flag">BANK-ALERT</span></div>
+            <div class="phone-app-h-sub">SMS / Text Message</div>
+          </div>
+          <div class="phone-msg-list">
+            <div class="phone-msg-time">Today · 9:13 AM</div>
+            <div class="phone-msg-bubble">
+              <span class="flag">🚨 ALERT</span>: We detected a suspicious charge of <strong>$487.00</strong> on your debit card ending 4271. <span class="flag">Reply YES if authorized, NO if fraud.</span>
+              <br><br>
+              Or visit: <a href="#"><span class="flag">bit.ly/cap-fraud-7K2x</span></a>
+              <br><br>
+              <span class="flag">Failure to respond within 30 min</span> will result in card lock. <span class="flag">Call back: 1-800-FAKE-BANK</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="triage-bar">
+          <div class="triage-bar-l">
+            <div class="triage-bar-flags-counter" style="color:#22c55e;">3/6</div>
+            <div>
+              <div class="triage-bar-flags-label">Red flags tagged · smishing</div>
+              <div style="font-size: 13px; font-weight: 800; color: #1a1a2e;">Bank fraud-alert · 3 still to find</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff; border:1px solid #e5e7f0; border-radius:10px; padding:14px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6b6b90; margin-bottom: 10px;">Decision</div>
+          <div style="display: flex; flex-direction:column; gap:6px;">
+            <button class="triage-decision-btn" style="text-align:left;">🚨 Report to security · forward as phish</button>
+            <button class="triage-decision-btn" style="text-align:left;">🗑 Delete</button>
+            <button class="triage-decision-btn" style="text-align:left;">📞 Call back the number</button>
+            <button class="triage-decision-btn" style="text-align:left;">↩ Reply YES</button>
+            <button class="triage-decision-btn" style="text-align:left;">📵 Block sender</button>
+          </div>
+        </div>
+
+        <div style="background:rgba(22,163,74,.04); border-left:3px solid var(--v-sms); padding: 12px; border-radius:6px; margin-top:14px; font-size:12px; color:#4a4a66; line-height:1.55;">
+          <strong>Smishing-specific flags to look for</strong>
+          <ul style="list-style:none; padding:0; margin:8px 0 0 0;">
+            <li style="padding: 3px 0;">▸ <strong>Custom sender ID</strong> (not a phone number) for unsolicited fraud-alerts — legit banks use either your registered short-code or your bank's actual number</li>
+            <li style="padding: 3px 0;">▸ <strong>Shortened URLs</strong> (bit.ly, tinyurl) hide the real destination</li>
+            <li style="padding: 3px 0;">▸ <strong>Tight time window</strong> (30 min, 1 hour) to short-circuit verification</li>
+            <li style="padding: 3px 0;">▸ <strong>Reply-keyword</strong> (YES/NO) to fish for engagement before the link click</li>
+            <li style="padding: 3px 0;">▸ <strong>Callback number</strong> not on the back of your physical card</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 6 — Vishing + Quishing variants combined -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 6 · Vishing + Quishing variants</div>
+    <div class="state-tag">page-pht · scenarios "Fake MS tech support" + "Parking-meter QR"</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">voicemail player UI w/ transcript</span>
+    <span class="state-depth">QR image + decoded mobile preview</span>
+    <span class="state-depth">vector-unique flags per UI</span>
+    <strong>Voice + QR.</strong> Vishing renders as a voicemail player with a transcript pane (click-to-tag works on the transcript text). Quishing shows the QR code itself + a "what your phone would show" mobile preview that decodes the URL — the user tags flags in the URL (typosquat domain, suspicious path, IP-instead-of-domain). Both are smaller scope than email but use vector-specific UI to feel native.
+  </div>
+  <div class="app-mock">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+      <div>
+        <div style="font-size:13px; font-weight:800; color:var(--v-voice); margin-bottom:8px;">📞 Vishing — voicemail</div>
+        <div class="voicemail-card">
+          <div class="voicemail-head">
+            <div class="voicemail-icon">📞</div>
+            <div>
+              <div class="voicemail-title"><span class="flag">+1 (425) 555-0192</span></div>
+              <div class="voicemail-meta">Today · 09:42 AM · 0:38 voicemail</div>
+            </div>
+          </div>
+          <div class="voicemail-player">
+            <button class="voicemail-play-btn">▶</button>
+            <div class="voicemail-progress"><div class="voicemail-progress-fill"></div></div>
+            <div class="voicemail-time">0:23 / 0:38</div>
+          </div>
+          <div class="voicemail-transcript-h">📝 Auto-transcript</div>
+          <div class="voicemail-transcript">
+            "<span class="flag">This is Microsoft Security Support</span>. We've detected suspicious activity on your Microsoft 365 account. Your account will be <span class="flag">permanently locked in 24 hours</span> unless you call us back at <span class="flag">1-800-555-0192</span>. <span class="flag">Press 1 to speak with a security agent immediately</span>, or visit <span class="flag">microsoft-account-verify.com</span> to confirm your identity. This is your final warning."
+          </div>
+          <div style="margin-top:14px;">
+            <div class="triage-bar-flags-label" style="margin-bottom: 8px;">Decision</div>
+            <div style="display: flex; flex-direction:column; gap:6px;">
+              <button class="triage-decision-btn" style="text-align:left;">🚨 Report to security · attach voicemail</button>
+              <button class="triage-decision-btn" style="text-align:left;">🗑 Delete voicemail</button>
+              <button class="triage-decision-btn" style="text-align:left;">📞 Call back</button>
+              <button class="triage-decision-btn" style="text-align:left;">📵 Block caller</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px; font-weight:800; color:var(--v-qr); margin-bottom:8px;">📱 Quishing — QR phish</div>
+        <div class="qr-card">
+          <div class="qr-image"></div>
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#1a1a2e; margin-bottom:4px;">Found on parking meter, downtown</div>
+            <div style="font-size:11px; color:#6b6b90; line-height:1.5;">A QR sticker pasted over the meter's official one. Decoded URL appears below.</div>
+            <div class="qr-mobile-preview">
+              <div class="qr-mobile-preview-h">📱 What your phone shows after scan</div>
+              <div class="qr-mobile-url">
+                <span class="flag">https://</span><strong><span class="flag">park-now-pay.app</span></strong><span class="flag">/meter?id=4271&amp;p=Q3a82F</span>
+              </div>
+              <div style="font-size:10px; color:#fbbf24; margin-top:6px;">⚠️ Real city app: <code>parkdc.dc.gov</code>; this domain registered 4 days ago.</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:rgba(245,158,11,.06); border-left:3px solid var(--v-qr); padding:12px; border-radius:6px; margin-top:14px; font-size:12px; color:#4a4a66; line-height:1.55;">
+          <strong>Quishing-specific flags</strong>
+          <ul style="list-style:none; padding:0; margin:8px 0 0 0;">
+            <li style="padding: 3px 0;">▸ <strong>Sticker-over-original</strong> physical attack pattern</li>
+            <li style="padding: 3px 0;">▸ <strong>Lookalike domain</strong> (park-now-pay.app vs parkdc.dc.gov)</li>
+            <li style="padding: 3px 0;">▸ <strong>Recent registration</strong> (4 days, public WHOIS check)</li>
+            <li style="padding: 3px 0;">▸ <strong>HTTPS doesn't equal trustworthy</strong> — scammers use Let's Encrypt too</li>
+            <li style="padding: 3px 0;">▸ <strong>QR-only payment flow</strong> when official app + meter buttons exist</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 7 — AI Generator + 7-layer validation -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 7 · AI Phish Generator + 7-layer validation pipeline</div>
+    <div class="state-tag">page-pht · setup tab · ai-gen panel</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">Sonnet authored (Tier C)</span>
+    <span class="state-depth">7-layer validator (no real PII, no real domains, ≥4 flags, ≥1 SY0-701 trap, etc.)</span>
+    <span class="state-depth">Haiku → Sonnet escalation on validator-fail</span>
+    <strong>AI generator with live validator output.</strong> Same architecture as IR War Room — Sonnet authors a fresh phish in the chosen vector + difficulty + bias (e.g. "QR weakest"); the output passes through the 7-layer validator before it loads. Each layer shows pass/warn/fail inline. <strong>Critical: validator rejects any phish that names real people, uses real-registered phish domains, or doesn't include the target SY0-701 attack pattern.</strong>
+  </div>
+  <div class="app-mock">
+    <div style="display:grid; grid-template-columns: 360px 1fr; gap: 18px;">
+      <div class="aigen-panel">
+        <div class="aigen-h">
+          <div class="aigen-h-icon">✨</div>
+          <div>
+            <div class="aigen-h-title">AI Phish Generator</div>
+            <div class="aigen-h-sub">Sonnet 4.6 · Tier C · validator-gated</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">🎯 Vector</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill">📧 Email</div>
+            <div class="aigen-pill">💬 SMS</div>
+            <div class="aigen-pill">📞 Voice</div>
+            <div class="aigen-pill is-active">📱 QR</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">⭐ Difficulty</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill">★ Foundational</div>
+            <div class="aigen-pill is-active">★★ Exam</div>
+            <div class="aigen-pill">★★★ Hard</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">🎬 Attack pattern</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill">Random</div>
+            <div class="aigen-pill is-active">MFA-update QR</div>
+            <div class="aigen-pill">Restaurant menu QR</div>
+            <div class="aigen-pill">Package-tracking QR</div>
+          </div>
+        </div>
+        <div class="aigen-row">
+          <div class="aigen-row-label">🔥 Sector context (optional)</div>
+          <div class="aigen-pills">
+            <div class="aigen-pill is-active">Corp / SMB</div>
+            <div class="aigen-pill">Healthcare</div>
+            <div class="aigen-pill">Education</div>
+            <div class="aigen-pill">Finance</div>
+          </div>
+        </div>
+        <button class="scen-card-aigen-btn" style="width:100%; margin-top:8px;">Generate phish →</button>
+      </div>
+
+      <div>
+        <div class="aigen-validator">
+          <div class="aigen-validator-h">
+            🛡️ 7-layer validation pipeline · all checks must pass
+            <span style="color:#22c55e; font-family:'SF Mono', monospace;">7/7 ✓</span>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>1. No real PII</strong> — generated names, emails, phone numbers don't match real registered accounts</div>
+          </div>
+          <div class="aigen-check-detail">Validator cross-checks against 50K-name corpus + RFC reserved-IP space</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>2. No real-registered phish domain</strong> — generated lookalikes don't collide with currently-active domains</div>
+          </div>
+          <div class="aigen-check-detail">DNS lookup pre-flight; rejects if domain resolves to anything other than NXDOMAIN or RFC1918</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>3. ≥4 red flags present + each has a documented "why"</strong></div>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>4. ≥1 SY0-701-canonical attack pattern</strong> — display-name spoof, urgency, isolation, typosquat, lookalike URL, etc.</div>
+          </div>
+          <div class="aigen-check-detail">Mapped to Domain 2.2 social-engineering subtopics</div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>5. Decision-correct mapping</strong> — phish always has 1 right action + 1-2 plausible-but-wrong distractor decisions</div>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>6. Vector-format match</strong> — email phish has email shape; SMS is ≤300 chars; voicemail is ≤45s read-time</div>
+          </div>
+          <div class="aigen-check-row">
+            <div class="aigen-check-icon">✓</div>
+            <div><strong>7. No copyrighted brand-asset reproduction</strong> — Microsoft/Apple/Bank-of-America logos are referenced by name only, never inlined as image</div>
+          </div>
+          <div class="aigen-check-detail">Legal boundary same as <code>QUESTION_EXEMPLARS</code>: zero paid-bank or trademarked content</div>
+        </div>
+
+        <div class="aigen-output">
+          <div class="aigen-output-h">✓ Validated · ready to load</div>
+          <div style="font-size:14px; font-weight:700; color:#1a1a2e; margin-bottom:6px;">"MFA Update Required" QR phish</div>
+          <div class="aigen-output-summary">
+            QR sticker on print-out of internal "IT Update Notice" placed in the breakroom · decoded URL: <code>mfa-corp-update.io/?u={user}</code> · 6 red flags · trap pattern: company-internal-looking print-out + lookalike domain + urgency · primary right-decision: Report to security · main wrong-decision distractor: Scan-and-update (people defer to "official-looking" company memos)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 8 — Lessons tab -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 8 · Lessons tab — anatomy + 4-vector cheatsheets</div>
+    <div class="state-tag">page-pht · lessons tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">anatomy-of-a-phish reference card</span>
+    <span class="state-depth">4 vector-specific cheatsheets</span>
+    <span class="state-depth">SY0-701 Domain 2.2 grounding</span>
+    <strong>Lessons tab.</strong> Top card is the universal "anatomy of a phish" — 8 generic flag categories that show up across every vector. Below: 4 vector-specific cards (one each for email, SMS, voice, QR) with the unique tells and the canonical SY0-701 traps for that delivery mode.
+  </div>
+  <div class="app-mock">
+    <div class="lessons-grid">
+      <div class="lesson-card anatomy">
+        <div class="lesson-card-h">
+          <div class="lesson-card-icon">🧬</div>
+          <div class="lesson-card-name">Anatomy of a phish — universal flags</div>
+        </div>
+        <div class="anatomy-grid">
+          <div class="anatomy-flag-card">
+            <strong>1. Sender mismatch</strong>
+            Display-name says one thing, email/number/sender-ID says another. <code>"Microsoft" &lt;noreply@suspicious.tk&gt;</code>
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>2. Urgency cue</strong>
+            "ACT NOW", "24 hours", "final notice." Designed to short-circuit verification.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>3. Isolation / secrecy</strong>
+            "Don't tell anyone", "between us", "I'm in a meeting." Stops you asking the real person.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>4. Lookalike URL / domain</strong>
+            Typosquat (<code>microsoft.com</code> vs <code>mlcrosoft.com</code>), recent registration, IP-instead-of-domain.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>5. Generic greeting</strong>
+            "Dear Customer", "Hi User", or template-style first-name only. Templates beget mass-send.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>6. Suspicious attachment / payload</strong>
+            <code>.zip</code> (often password-protected to bypass scanners), <code>.iso</code>, <code>.exe</code>, macros enabled.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>7. Pre-empts verification</strong>
+            "I can't be reached by phone", "don't reply to this address", "use the form below." Closes alternative channels.
+          </div>
+          <div class="anatomy-flag-card">
+            <strong>8. Money or credentials ask</strong>
+            Wire transfer, gift card, password reset, MFA prompt. The point of the entire attack.
+          </div>
+        </div>
+      </div>
+
+      <div class="lesson-card email">
+        <div class="lesson-card-h">
+          <div class="lesson-card-icon">📧</div>
+          <div class="lesson-card-name">Email phish — vector-unique flags</div>
+        </div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Reply-To &ne; From</strong> — replies are routed to attacker's inbox</li>
+          <li><strong>Display-name spoof</strong> — anyone can set "From" display name to "your CEO"</li>
+          <li><strong>Hover URL &ne; visible URL</strong> — link text says one thing, href says another</li>
+          <li><strong>Header anomalies</strong> — SPF/DKIM/DMARC failures (advanced; usually behind-the-scenes)</li>
+          <li><strong>BEC → wire fraud</strong> is the #1 financial-loss phish category</li>
+        </ul>
+      </div>
+
+      <div class="lesson-card sms">
+        <div class="lesson-card-h">
+          <div class="lesson-card-icon">💬</div>
+          <div class="lesson-card-name">Smishing — vector-unique flags</div>
+        </div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Custom sender ID</strong> for unsolicited fraud-alerts (legit banks use your registered shortcode)</li>
+          <li><strong>Shortened URLs</strong> (bit.ly, tinyurl) hide the real destination — never tap blind</li>
+          <li><strong>Reply-keyword fishing</strong> ("YES/NO") — reply confirms your number is live + reachable</li>
+          <li><strong>Callback number not on physical card</strong> — verify against the back of your debit card, not the SMS</li>
+          <li><strong>Tighter time pressure</strong> than email (30 min instead of 24 hr)</li>
+        </ul>
+      </div>
+
+      <div class="lesson-card voice">
+        <div class="lesson-card-h">
+          <div class="lesson-card-icon">📞</div>
+          <div class="lesson-card-name">Vishing — vector-unique flags</div>
+        </div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Caller-ID spoofing</strong> is trivial — assume any incoming number can be faked</li>
+          <li><strong>Recorded message + "press 1"</strong> — robocall pattern</li>
+          <li><strong>Tax/IRS/Medicare</strong> impersonations are seasonal favourites</li>
+          <li><strong>"Microsoft / Apple support"</strong> — neither company calls you about your account</li>
+          <li><strong>Verify via known number</strong> from the back of your card or the official website — never the number in the voicemail</li>
+        </ul>
+      </div>
+
+      <div class="lesson-card qr">
+        <div class="lesson-card-h">
+          <div class="lesson-card-icon">📱</div>
+          <div class="lesson-card-name">Quishing — vector-unique flags</div>
+        </div>
+        <ul class="lesson-card-bullets">
+          <li><strong>Physical sticker over original</strong> — common at parking meters, restaurants, vending</li>
+          <li><strong>Decode URL before tapping</strong> — most camera apps preview the URL on hover</li>
+          <li><strong>Recent domain registration</strong> — public WHOIS check; phish domains often &lt;30 days old</li>
+          <li><strong>HTTPS &ne; trustworthy</strong> — Let's Encrypt issues for free; padlock means "encrypted in transit", not "legit"</li>
+          <li><strong>Use official app instead</strong> — when in doubt, install the org's app from the App Store, not via QR</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- STATE 9 — Dashboard -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section">
+  <div class="state-header">
+    <div class="state-title">STATE 9 · Dashboard — per-vector mastery + drill prescriptions</div>
+    <div class="state-tag">page-pht · dashboard tab</div>
+  </div>
+  <div class="state-note">
+    <span class="state-depth">per-vector mastery bars</span>
+    <span class="state-depth">flag-catch trend (last 7 phish)</span>
+    <span class="state-depth">prescriptive callouts (drill weakest vector)</span>
+    <strong>Dashboard tab.</strong> Per-vector mastery bars colored by attack type. Top stats: phish completed, average flag-catch rate, current streak. Bottom-right: prescriptive callouts — same Subnet-Trainer pattern — point at your weakest vector + most-missed flag-category with one-click "drill this only" CTAs.
+  </div>
+  <div class="app-mock">
+    <div class="dash-stat-grid">
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">14/60</div>
+        <div class="dash-stat-pill-label">Phish mastered</div>
+      </div>
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">68%</div>
+        <div class="dash-stat-pill-label">Avg flag-catch rate</div>
+      </div>
+      <div class="dash-stat-pill">
+        <div class="dash-stat-pill-num">12d</div>
+        <div class="dash-stat-pill-label">Current streak</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-h">📊 Per-vector mastery</div>
+        <div class="dash-vec-row">
+          <div class="dash-vec-name" style="color:var(--v-email);">📧 Email</div>
+          <div class="dash-vec-track"><div class="dash-vec-fill email"></div></div>
+          <div class="dash-vec-pct">78%</div>
+        </div>
+        <div class="dash-vec-row">
+          <div class="dash-vec-name" style="color:var(--v-sms);">💬 SMS</div>
+          <div class="dash-vec-track"><div class="dash-vec-fill sms"></div></div>
+          <div class="dash-vec-pct">62%</div>
+        </div>
+        <div class="dash-vec-row">
+          <div class="dash-vec-name" style="color:var(--v-voice);">📞 Voice</div>
+          <div class="dash-vec-track"><div class="dash-vec-fill voice"></div></div>
+          <div class="dash-vec-pct">41%</div>
+        </div>
+        <div class="dash-vec-row">
+          <div class="dash-vec-name" style="color:var(--v-qr);">📱 QR</div>
+          <div class="dash-vec-track"><div class="dash-vec-fill qr"></div></div>
+          <div class="dash-vec-pct">36%</div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <div class="dash-card-h">🎬 Most-missed flag categories</div>
+          <div class="dash-vec-row">
+            <div class="dash-vec-name" style="color:#ef4444;">Reply-To &ne; From</div>
+            <div class="dash-vec-track"><div class="dash-vec-fill" style="background:#ef4444; width:35%;"></div></div>
+            <div class="dash-vec-pct">35%</div>
+          </div>
+          <div class="dash-vec-row">
+            <div class="dash-vec-name" style="color:#ef4444;">Header anomaly</div>
+            <div class="dash-vec-track"><div class="dash-vec-fill" style="background:#ef4444; width:42%;"></div></div>
+            <div class="dash-vec-pct">42%</div>
+          </div>
+          <div class="dash-vec-row">
+            <div class="dash-vec-name" style="color:#f59e0b;">Lookalike URL</div>
+            <div class="dash-vec-track"><div class="dash-vec-fill" style="background:#f59e0b; width:58%;"></div></div>
+            <div class="dash-vec-pct">58%</div>
+          </div>
+          <div class="dash-vec-row">
+            <div class="dash-vec-name" style="color:#22c55e;">Urgency cue</div>
+            <div class="dash-vec-track"><div class="dash-vec-fill" style="background:#22c55e; width:88%;"></div></div>
+            <div class="dash-vec-pct">88%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-h">🎯 Drill what's weakest</div>
+        <div class="dash-callout">
+          <strong>QR phishing is your weakest vector at 36%.</strong> Lookalike domain detection + recent-registration WHOIS instinct are both gaps.
+          <div class="dash-callout-cta">→ Drill 5 random QR phish</div>
+        </div>
+        <div class="dash-callout">
+          <strong>Reply-To &ne; From flag missed 65% of the time.</strong> The single highest-yield email-phish indicator + the most often skipped.
+          <div class="dash-callout-cta">→ Drill 3 BEC scenarios with Reply-To traps</div>
+        </div>
+        <div class="dash-callout">
+          <strong>Voice (vishing) is 41% — second weakest.</strong> "Microsoft" / "tax authority" callbacks consistently caught you.
+          <div class="dash-callout-cta">→ Generate AI vishing scenario</div>
+        </div>
+
+        <div style="font-size:13px; font-weight:800; color:#1a1a2e; margin-top:18px; margin-bottom:8px;">📜 Recent triages</div>
+        <div class="dash-callout" style="background:rgba(34,197,94,.04); border-left-color:#22c55e;">
+          <strong>CFO BEC wire-fraud (email)</strong> · 7/9 flags · Report ✓ · 78% · 2026-05-08
+        </div>
+        <div class="dash-callout" style="background:rgba(245,158,11,.04); border-left-color:#f59e0b;">
+          <strong>Bank fraud-alert smish</strong> · 4/6 flags · Report ✓ · 67% · 2026-05-07
+        </div>
+        <div class="dash-callout" style="background:rgba(239,68,68,.04); border-left-color:#ef4444;">
+          <strong>Parking-meter QR scam</strong> · 1/4 flags · Click ✗ · 25% · 2026-05-06 — <em>weak run</em>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<!-- Outro -->
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<div class="state-section" style="text-align:center; padding-top:40px; border-top: 1px dashed var(--border);">
+  <div style="font-size: 12px; color: var(--text-dim); font-family: 'SF Mono', monospace; line-height: 1.8;">
+    9 states locked · drill home → email inbox → mid-triage with tooltip → reveal → smishing → vishing+quishing → AI generator → lessons → dashboard<br>
+    <span style="color:var(--accent-light);">Flagship-tier scope:</span> 60 static phish · 4 vectors (email 30 / SMS 15 / voice 8 / QR 7) · click-to-tag interaction · 3 modes · AI generator · 7-layer validator · per-vector mastery<br>
+    <span style="color:var(--orange);">Ship plan:</span> v4.98.0 engine + 15 email + click-flag UI + lessons → v4.98.1 +15 email + smishing (SMS UI + 15) → v4.98.2 vishing (8) + quishing (7) → v4.98.3 AI gen + validator + dashboard
+  </div>
+</div>
+
+</div>
+</body>
+</html>

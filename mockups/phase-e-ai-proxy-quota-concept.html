@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Phase E AI proxy + quota UI concept</title>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #131320;
+    --surface-2: #1a1a2e;
+    --border: #2e2e48;
+    --accent: #7c6ff7;
+    --accent-light: #a99df9;
+    --text: #f0f0f8;
+    --text-mid: #b0b0cc;
+    --text-dim: #6b6b90;
+    --green: #22c55e;
+    --green-soft: rgba(34,197,94,.10);
+    --green-border: rgba(34,197,94,.32);
+    --orange: #f59e0b;
+    --orange-soft: rgba(245,158,11,.10);
+    --orange-border: rgba(245,158,11,.32);
+    --red: #f87171;
+    --red-soft: rgba(248,113,113,.10);
+    --red-border: rgba(248,113,113,.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #050510;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 32px 16px 80px;
+  }
+  .mockup-doc { max-width: 1100px; margin: 0 auto; }
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px dashed var(--border); }
+  .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .doc-sub { color: var(--text-mid); font-size: 14px; margin-bottom: 16px; max-width: 800px; margin-left: auto; margin-right: auto; }
+  .doc-meta { display: inline-block; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; font-size: 11px; color: var(--text-dim); font-family: 'SF Mono', monospace; }
+
+  .state-section { margin-bottom: 56px; }
+  .state-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .state-title { font-size: 18px; font-weight: 700; color: var(--accent-light); }
+  .state-tag { font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-dim); }
+  .state-note { color: var(--text-mid); font-size: 13px; margin-bottom: 18px; max-width: 800px; }
+  .state-note code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--accent-light); font-family: 'SF Mono', monospace; font-size: 12px; }
+
+  /* Cert-app dark surface (matches the actual cert-app theme) */
+  .app-mock {
+    background: #0e0e18;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* Topbar mockup — matches cert-app shape */
+  .ca-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(19,19,32,0.85);
+    backdrop-filter: blur(8px);
+  }
+  .ca-topbar-left {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .ca-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 800;
+    font-size: 14px;
+  }
+  .ca-logo-mark {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #0a0a12 100%);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    color: var(--accent-light);
+    font-size: 11px;
+  }
+  .ca-breadcrumb {
+    font-size: 13px;
+    color: var(--text-mid);
+  }
+  .ca-breadcrumb-active {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .ca-topbar-right {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  /* THE QUOTA CHIP — the centrepiece of this mockup */
+  .ca-quota-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ca-quota-chip-icon {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .ca-quota-chip-label {
+    font-variant-numeric: tabular-nums;
+  }
+  .ca-quota-chip-bar {
+    width: 32px; height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.12);
+  }
+  .ca-quota-chip-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Variants — 4 states */
+  .ca-quota-chip.is-low {
+    background: var(--green-soft);
+    border: 1px solid var(--green-border);
+    color: var(--green);
+  }
+  .ca-quota-chip.is-low .ca-quota-chip-fill { background: var(--green); }
+
+  .ca-quota-chip.is-approaching {
+    background: var(--orange-soft);
+    border: 1px solid var(--orange-border);
+    color: var(--orange);
+  }
+  .ca-quota-chip.is-approaching .ca-quota-chip-fill { background: var(--orange); }
+
+  .ca-quota-chip.is-exceeded {
+    background: var(--red-soft);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+  }
+  .ca-quota-chip.is-exceeded .ca-quota-chip-fill { background: var(--red); width: 100%; }
+
+  .ca-quota-chip.is-pro {
+    background: rgba(124,111,247,0.12);
+    border: 1px solid rgba(124,111,247,0.4);
+    color: var(--accent-light);
+  }
+  .ca-quota-chip.is-pro .ca-quota-chip-bar { display: none; }
+
+  /* Account pill */
+  .ca-account-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px 6px 6px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-mid);
+  }
+  .ca-account-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    display: grid; place-items: center;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Body content — placeholder for the cert-app's main area */
+  .ca-body {
+    padding: 28px 24px;
+    min-height: 200px;
+  }
+  .ca-page-h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .ca-page-sub {
+    font-size: 13px;
+    color: var(--text-mid);
+    margin-bottom: 16px;
+  }
+  .ca-cta-btn {
+    display: inline-block;
+    padding: 9px 18px;
+    background: var(--accent);
+    color: #fff !important;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .ca-cta-btn.disabled {
+    background: var(--surface-2);
+    color: var(--text-dim) !important;
+    border: 1px dashed var(--border);
+    cursor: not-allowed;
+  }
+  .ca-cta-btn.ghost {
+    background: transparent;
+    color: var(--text-mid) !important;
+    border: 1px solid var(--border);
+  }
+
+  /* Quota-exceeded blocking card */
+  .ca-quota-block {
+    background: linear-gradient(135deg, rgba(248,113,113,0.06), rgba(248,113,113,0.02));
+    border: 1px solid var(--red-border);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    max-width: 540px;
+    margin: 24px auto;
+  }
+  .ca-quota-block-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 14px;
+    background: var(--red-soft);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+    display: grid; place-items: center;
+    font-size: 24px;
+  }
+  .ca-quota-block-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .ca-quota-block-sub {
+    font-size: 13px;
+    color: var(--text-mid);
+    margin-bottom: 18px;
+    line-height: 1.5;
+    max-width: 380px;
+    margin-left: auto; margin-right: auto;
+  }
+  .ca-quota-block-reset {
+    display: inline-block;
+    margin-bottom: 18px;
+    padding: 6px 14px;
+    background: var(--surface-2);
+    border-radius: 99px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .ca-quota-block-actions {
+    display: flex; gap: 10px; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .ca-quota-block-cta {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    color: #fff !important;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 0;
+  }
+
+  /* Approaching-limit nudge banner */
+  .ca-quota-nudge {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--orange-soft);
+    border: 1px solid var(--orange-border);
+    border-radius: 8px;
+    margin-bottom: 18px;
+  }
+  .ca-quota-nudge-text {
+    font-size: 13px;
+    color: var(--orange);
+  }
+  .ca-quota-nudge-text strong { font-weight: 700; }
+  .ca-quota-nudge-cta {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-light);
+    text-decoration: none;
+  }
+  .ca-quota-nudge-cta:hover { text-decoration: underline; }
+
+  /* Tooltip preview (shown statically below chip in mockup) */
+  .ca-quota-tooltip {
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.55;
+    max-width: 280px;
+  }
+  .ca-quota-tooltip-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .ca-quota-tooltip-row {
+    display: flex; justify-content: space-between;
+    margin: 4px 0;
+  }
+  .ca-quota-tooltip-key { color: var(--text-dim); }
+  .ca-quota-tooltip-value { color: var(--text); font-variant-numeric: tabular-nums; }
+  .ca-quota-tooltip-divider {
+    margin: 8px 0;
+    height: 1px;
+    background: var(--border);
+  }
+  .ca-quota-tooltip-cta {
+    display: block;
+    text-align: center;
+    padding: 6px 0;
+    background: var(--accent);
+    color: #fff !important;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 4px;
+  }
+
+  /* Settings page mockup */
+  .ca-settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 14px 24px;
+  }
+  .ca-settings-card-h {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .ca-settings-card-sub {
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-bottom: 14px;
+  }
+  .ca-settings-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .ca-settings-meta {
+    font-size: 11px;
+    color: var(--green);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ca-settings-link {
+    color: var(--accent-light);
+    text-decoration: none;
+    font-size: 12px;
+  }
+  .ca-settings-info-card {
+    background: linear-gradient(135deg, rgba(124,111,247,0.08), rgba(124,111,247,0.02));
+    border: 1px solid rgba(124,111,247,0.32);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .ca-settings-info-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .ca-settings-info-h {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .ca-settings-info-body {
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .ca-settings-tier-list {
+    margin-top: 10px;
+    padding-left: 0;
+    list-style: none;
+    font-size: 12px;
+  }
+  .ca-settings-tier-list li {
+    padding: 4px 0;
+    color: var(--text-mid);
+  }
+  .ca-settings-tier-list li strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  /* Migration banner */
+  .ca-migration-banner {
+    margin: 12px 24px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(34,197,94,0.10), rgba(34,197,94,0.02));
+    border: 1px solid var(--green-border);
+    border-left: 4px solid var(--green);
+    border-radius: 8px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .ca-migration-banner-icon {
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+  .ca-migration-banner-body {
+    flex: 1 1 auto;
+  }
+  .ca-migration-banner-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .ca-migration-banner-sub {
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .ca-migration-banner-actions {
+    display: flex; gap: 8px;
+  }
+  .ca-banner-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .ca-banner-btn.primary {
+    background: var(--green);
+    color: #fff !important;
+    border: 0;
+  }
+  .ca-banner-btn.ghost {
+    background: transparent;
+    color: var(--text-mid) !important;
+    border: 1px solid var(--border);
+  }
+  .ca-banner-dismiss {
+    background: transparent;
+    border: 0;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  /* Side-by-side state grid */
+  .state-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .state-grid-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  /* Variant row — three chips side-by-side */
+  .chip-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 24px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .chip-row-label {
+    width: 100%;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: -8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Design notes */
+  .design-notes {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 32px;
+  }
+  .design-notes h3 {
+    color: var(--accent-light);
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  .design-notes h4 {
+    color: var(--text);
+    font-size: 13px;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+  .design-notes p, .design-notes li {
+    color: var(--text-mid);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .design-notes code {
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent-light);
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+  }
+  .design-notes ul { padding-left: 18px; margin-bottom: 8px; }
+  .decision-callout {
+    background: rgba(245,158,11,0.08);
+    border-left: 3px solid var(--orange);
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 12px 0;
+    color: var(--text-mid);
+    font-size: 13px;
+  }
+  .decision-callout strong { color: var(--orange); }
+
+  @media (max-width: 720px) {
+    .state-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="mockup-doc">
+  <div class="doc-header">
+    <div class="doc-title">🔋 Phase E — AI proxy + quota UI</div>
+    <p class="doc-sub">Server-side Claude calls, server-side quota enforcement, and the user-visible UI surfaces that come with it. The proxy itself is invisible — these mockups cover the visible bits: quota chip, exceeded state, Settings transformation, migration banner.</p>
+    <span class="doc-meta">v1 · 2026-05-09 · pre-implementation · awaiting sign-off</span>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 1 — Quota chip variants
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">1 — Quota chip in topbar (4 variants)</div>
+      <div class="state-tag">state: quota-chip</div>
+    </div>
+    <p class="state-note">The chip lives in the cert-app topbar between the cert switcher and the account pill. Compact pill with progress bar + count. Color shifts based on remaining quota: green (low usage) → amber (≥80% used) → red (exceeded). Pro variant has no fraction — just count + "Pro" badge in purple. Click to expand a tooltip with detail (shown in state 2 below).</p>
+
+    <div class="chip-row">
+      <div class="chip-row-label">Free user · low usage (3 / 20)</div>
+      <div class="ca-quota-chip is-low">
+        <span class="ca-quota-chip-icon">🔋</span>
+        <span class="ca-quota-chip-label">3 / 20 today</span>
+        <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill" style="width: 15%;"></span></span>
+      </div>
+
+      <div class="chip-row-label">Free user · approaching limit (17 / 20)</div>
+      <div class="ca-quota-chip is-approaching">
+        <span class="ca-quota-chip-icon">⚠️</span>
+        <span class="ca-quota-chip-label">17 / 20 today</span>
+        <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill" style="width: 85%;"></span></span>
+      </div>
+
+      <div class="chip-row-label">Free user · exceeded (20 / 20)</div>
+      <div class="ca-quota-chip is-exceeded">
+        <span class="ca-quota-chip-icon">🔴</span>
+        <span class="ca-quota-chip-label">Limit reached</span>
+        <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill"></span></span>
+      </div>
+
+      <div class="chip-row-label">Pro user · unlimited (57 today, no fraction)</div>
+      <div class="ca-quota-chip is-pro">
+        <span class="ca-quota-chip-icon">⚡</span>
+        <span class="ca-quota-chip-label">57 today · Pro</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 2 — Chip with tooltip expanded (real placement)
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">2 — Chip in real topbar position + tooltip</div>
+      <div class="state-tag">state: chip-in-context</div>
+    </div>
+    <p class="state-note">Real cert-app topbar with the quota chip inserted between breadcrumb and account pill. Hover (or click on mobile) reveals the tooltip with reset countdown and upgrade CTA. The tooltip is the secondary affordance — clicking the chip itself just expands it.</p>
+
+    <div class="app-mock">
+      <div class="ca-topbar">
+        <div class="ca-topbar-left">
+          <div class="ca-logo">
+            <span class="ca-logo-mark">N+</span>
+            <span>Network+</span>
+          </div>
+          <span class="ca-breadcrumb">
+            <span>Practice</span> · <span class="ca-breadcrumb-active">Mixed quiz</span>
+          </span>
+        </div>
+        <div class="ca-topbar-right">
+          <!-- The new quota chip -->
+          <div class="ca-quota-chip is-approaching">
+            <span class="ca-quota-chip-icon">⚠️</span>
+            <span class="ca-quota-chip-label">17 / 20 today</span>
+            <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill" style="width: 85%;"></span></span>
+          </div>
+          <button class="ca-account-pill">
+            <span class="ca-account-avatar">S</span>
+            <span>simi@…</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ca-body">
+        <div style="display: flex; gap: 24px; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div class="ca-page-h1">Mixed quiz · Question 7 of 10</div>
+            <div class="ca-page-sub">Each question costs 1 quota call. You'll have 13 questions left after this set if you finish.</div>
+            <button class="ca-cta-btn">Continue quiz →</button>
+          </div>
+          <div style="flex: 0 0 280px;">
+            <div class="ca-quota-tooltip">
+              <div class="ca-quota-tooltip-title">⚠️ Approaching daily limit</div>
+              <div class="ca-quota-tooltip-row">
+                <span class="ca-quota-tooltip-key">Used today</span>
+                <span class="ca-quota-tooltip-value">17 / 20</span>
+              </div>
+              <div class="ca-quota-tooltip-row">
+                <span class="ca-quota-tooltip-key">Resets in</span>
+                <span class="ca-quota-tooltip-value">4h 23m</span>
+              </div>
+              <div class="ca-quota-tooltip-row">
+                <span class="ca-quota-tooltip-key">Plan</span>
+                <span class="ca-quota-tooltip-value">Free</span>
+              </div>
+              <div class="ca-quota-tooltip-divider"></div>
+              <a class="ca-quota-tooltip-cta" href="#">Upgrade to Pro · unlimited →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 3 — Quota-exceeded blocking state
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">3 — Quota-exceeded state when starting a quiz</div>
+      <div class="state-tag">state: quota-exceeded</div>
+    </div>
+    <p class="state-note">When the user clicks "Start quiz" while at 20/20, the proxy returns 429 and the cert-app shows this hero card in place of the quiz. NOT a modal — modal would interrupt; this replaces the action target so the user understands why nothing happened. Two CTAs: upgrade-to-Pro (primary) or wait-until-reset (secondary, gray).</p>
+
+    <div class="app-mock">
+      <div class="ca-topbar">
+        <div class="ca-topbar-left">
+          <div class="ca-logo">
+            <span class="ca-logo-mark">N+</span>
+            <span>Network+</span>
+          </div>
+          <span class="ca-breadcrumb">
+            <span>Practice</span> · <span class="ca-breadcrumb-active">Quiz</span>
+          </span>
+        </div>
+        <div class="ca-topbar-right">
+          <div class="ca-quota-chip is-exceeded">
+            <span class="ca-quota-chip-icon">🔴</span>
+            <span class="ca-quota-chip-label">Limit reached</span>
+            <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill"></span></span>
+          </div>
+          <button class="ca-account-pill">
+            <span class="ca-account-avatar">S</span>
+            <span>simi@…</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ca-body">
+        <div class="ca-quota-block">
+          <div class="ca-quota-block-icon">🔋</div>
+          <div class="ca-quota-block-title">You've used today's free questions</div>
+          <div class="ca-quota-block-sub">Free is 20 questions per day, every day, no card required. You're back at 0 / 20 at midnight UTC — or upgrade to Pro for unlimited and no daily wall.</div>
+          <div class="ca-quota-block-reset">⏱ Resets in <strong>4h 23m</strong></div>
+          <div class="ca-quota-block-actions">
+            <a class="ca-quota-block-cta" href="#">Upgrade to Pro · $9.99/mo →</a>
+            <button class="ca-cta-btn ghost">I'll wait until reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 4 — Settings page transformation
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">4 — Settings page: BYOK section gone</div>
+      <div class="state-tag">state: settings-before-after</div>
+    </div>
+    <p class="state-note">Side-by-side: current Settings has an "Anthropic API key" section with a paste field + "Saved" indicator. After Phase E, that section is replaced with a small read-only info card explaining the new model. Clean, no friction. Existing stored keys are quietly ignored (no breakage); a one-time migration banner offers to delete the stored key (state 5 below).</p>
+
+    <div class="state-grid">
+      <div>
+        <div class="state-grid-label">Before — current Settings</div>
+        <div class="app-mock">
+          <div class="ca-topbar">
+            <div class="ca-topbar-left">
+              <div class="ca-logo"><span class="ca-logo-mark">N+</span><span>Settings</span></div>
+            </div>
+          </div>
+          <div class="ca-settings-card">
+            <div class="ca-settings-card-h">Anthropic API key</div>
+            <div class="ca-settings-card-sub">Required for AI question generation. <a href="#" class="ca-settings-link">Get a key →</a></div>
+            <input type="text" class="ca-settings-input" value="sk-ant-api03-•••••••••••••" />
+            <div class="ca-settings-meta">✓ Saved · 47 days ago</div>
+          </div>
+          <div class="ca-settings-card">
+            <div class="ca-settings-card-h">Theme</div>
+            <div class="ca-settings-card-sub">Dark / Light · auto-saves</div>
+          </div>
+          <div class="ca-settings-card">
+            <div class="ca-settings-card-h">Exam date</div>
+            <div class="ca-settings-card-sub">Set a target so readiness can compute pace</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="state-grid-label">After — Phase E ships</div>
+        <div class="app-mock">
+          <div class="ca-topbar">
+            <div class="ca-topbar-left">
+              <div class="ca-logo"><span class="ca-logo-mark">N+</span><span>Settings</span></div>
+            </div>
+          </div>
+          <div class="ca-settings-card" style="background: transparent; border-style: dashed;">
+            <div class="ca-settings-info-card">
+              <div class="ca-settings-info-icon">⚡</div>
+              <div class="ca-settings-info-h">AI generation included</div>
+              <div class="ca-settings-info-body">
+                We handle the AI cost — no API key needed.
+                <ul class="ca-settings-tier-list">
+                  <li><strong>Free</strong> — 20 questions / day · resets midnight UTC</li>
+                  <li><strong>Pro</strong> — unlimited within fair use ($9.99/mo or $89/yr)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="ca-settings-card">
+            <div class="ca-settings-card-h">Theme</div>
+            <div class="ca-settings-card-sub">Dark / Light · auto-saves</div>
+          </div>
+          <div class="ca-settings-card">
+            <div class="ca-settings-card-h">Exam date</div>
+            <div class="ca-settings-card-sub">Set a target so readiness can compute pace</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 5 — Migration banner for existing BYOK users
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">5 — Migration banner (one-time, for existing BYOK users)</div>
+      <div class="state-tag">state: migration-banner</div>
+    </div>
+    <p class="state-note">Triggered on first sign-in after Phase E ships, only for users with a stored <code>STORAGE.KEY</code> in localStorage. Banner sits below the topbar, dismissible. Two actions: "Got it" (just dismiss + don't show again) or "Delete my stored key" (clears localStorage + shows brief confirm toast). The "stored key" never gets sent anywhere now, but offering deletion is a privacy gesture worth making.</p>
+
+    <div class="app-mock">
+      <div class="ca-topbar">
+        <div class="ca-topbar-left">
+          <div class="ca-logo">
+            <span class="ca-logo-mark">N+</span>
+            <span>Network+</span>
+          </div>
+          <span class="ca-breadcrumb">
+            <span class="ca-breadcrumb-active">Home</span>
+          </span>
+        </div>
+        <div class="ca-topbar-right">
+          <div class="ca-quota-chip is-low">
+            <span class="ca-quota-chip-icon">🔋</span>
+            <span class="ca-quota-chip-label">0 / 20 today</span>
+            <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill" style="width: 0%;"></span></span>
+          </div>
+          <button class="ca-account-pill">
+            <span class="ca-account-avatar">S</span>
+            <span>simi@…</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ca-migration-banner">
+        <span class="ca-migration-banner-icon">🎉</span>
+        <div class="ca-migration-banner-body">
+          <div class="ca-migration-banner-title">You don't need an API key anymore — we handle it now</div>
+          <div class="ca-migration-banner-sub">CertAnvil now covers the AI cost on every plan. Your Anthropic key from <strong>47 days ago</strong> is no longer used and can be deleted from your browser. Your study progress is unchanged.</div>
+          <div class="ca-migration-banner-actions">
+            <button class="ca-banner-btn primary">Delete my stored key</button>
+            <button class="ca-banner-btn ghost">Got it</button>
+          </div>
+        </div>
+        <button class="ca-banner-dismiss" aria-label="Dismiss">✕</button>
+      </div>
+
+      <div class="ca-body">
+        <div class="ca-page-h1">Welcome back, Simi</div>
+        <div class="ca-page-sub">Your Network+ readiness is 645 · Sec+ exam in 80 days</div>
+        <button class="ca-cta-btn">Continue studying →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       STATE 6 — Approaching-limit nudge above quiz
+       ───────────────────────────────────────── -->
+  <div class="state-section">
+    <div class="state-header">
+      <div class="state-title">6 — Inline nudge when approaching limit (≥18 / 20)</div>
+      <div class="state-tag">state: approach-nudge</div>
+    </div>
+    <p class="state-note">When the user starts a 5-question quiz and would only have 2 remaining after, show this inline banner inside the quiz interface. Different from the chip (which is always visible) — this is contextual to the action they're about to take. Optional but worth doing because it signals BEFORE they hit the wall, not at the wall.</p>
+
+    <div class="app-mock">
+      <div class="ca-topbar">
+        <div class="ca-topbar-left">
+          <div class="ca-logo">
+            <span class="ca-logo-mark">N+</span>
+            <span>Network+</span>
+          </div>
+        </div>
+        <div class="ca-topbar-right">
+          <div class="ca-quota-chip is-approaching">
+            <span class="ca-quota-chip-icon">⚠️</span>
+            <span class="ca-quota-chip-label">18 / 20 today</span>
+            <span class="ca-quota-chip-bar"><span class="ca-quota-chip-fill" style="width: 90%;"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ca-body">
+        <div class="ca-quota-nudge">
+          <span class="ca-quota-nudge-text">
+            ⚠️ <strong>2 questions left today</strong> · this 5-Q set will hit your limit. Resets at midnight UTC.
+          </span>
+          <a href="#" class="ca-quota-nudge-cta">Upgrade to Pro for unlimited →</a>
+        </div>
+        <div class="ca-page-h1">Mixed quiz · 5 questions</div>
+        <div class="ca-page-sub">Topics: Network Security, Routing, Subnetting</div>
+        <button class="ca-cta-btn ghost">Drop to 2 questions instead</button>
+        <button class="ca-cta-btn" style="margin-left: 8px;">Start anyway →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────
+       Design notes
+       ───────────────────────────────────────── -->
+  <div class="design-notes">
+    <h3>🧱 Design decisions to sign off (or push back)</h3>
+
+    <div class="decision-callout">
+      <strong>Decision A — Chip lives in the topbar, not the sidebar or the quiz screen.</strong> Topbar is always visible across all cert-app pages (Home, Practice, Drills, Topology, etc.) — quota awareness should be persistent, not page-specific. Sidebar feels too far from the action; in-quiz is too contextual.
+    </div>
+
+    <div class="decision-callout">
+      <strong>Decision B — Reset at midnight UTC, not local time.</strong> Single global reset moment makes server-side enforcement trivial (just a <code>current_date</code> in Postgres). Local-time reset would require timezone metadata per user + edge cases on travel/DST. UTC is "honest" and the chip surfaces "Resets in 4h 23m" so users see a real countdown anyway.
+    </div>
+
+    <div class="decision-callout">
+      <strong>Decision C — Quota-exceeded is an inline replacement, not a modal.</strong> When the user clicks "Start quiz" at 20/20, we replace the quiz body with the exceeded card. Modals are interruptive ("you can't do this thing") — replacement explains why ("here's why you can't do this thing") and sells Pro contextually. Less feels-like-a-trap.
+    </div>
+
+    <div class="decision-callout">
+      <strong>Decision D — One-time migration banner for existing BYOK users only.</strong> Users with no <code>STORAGE.KEY</code> see nothing new (they just enjoy server-handled AI). Users with a stored key see the banner once, can dismiss or delete the key. Stored key is silently ignored regardless — banner is purely a privacy/awareness gesture.
+    </div>
+
+    <div class="decision-callout">
+      <strong>Decision E — Quota counts <code>fetchQuestions</code> calls only, NOT validation/coaching/teacher.</strong> Validation second-pass + explain-further + coach-this-topic are infrastructure costs we eat. Counting them would make "20 questions/day" feel like "5 questions/day in practice." The user-facing count matches the user-facing number.
+    </div>
+
+    <h4>What's NOT in this mockup (deferred to Phase E.5/E.6)</h4>
+    <ul>
+      <li>The <strong>quota dashboard view</strong> (history of daily usage, which days you hit the cap, per-cert breakdown). Optional polish — defer until users actually ask.</li>
+      <li><strong>Pro fair-use throttling UI</strong> — what does the chip look like for a Pro user who hit the soft cap of ~200/day and got throttled to 50/hr? Probably another red-tinted state similar to the Free exceeded view but with different copy. Will design when that scenario actually happens (Phase E.6, post-launch).</li>
+      <li><strong>Anonymous-user quota</strong>. Anonymous users can't be quota-tracked server-side because there's no user_id. Decision needed: do anonymous users get any quiz access at all, or is "sign up free, get 20/day" the only path? Current default: signed-in only, anon sees the homepage CTA to sign up. Worth confirming.</li>
+    </ul>
+
+    <h4>Implementation order (post-mockup signoff)</h4>
+    <ul>
+      <li><strong>E.0</strong> — Schema migration ✅ (just shipped, awaiting Supabase apply)</li>
+      <li><strong>E.1</strong> — AI proxy endpoint at <code>cert-app/api/ai/generate.js</code></li>
+      <li><strong>E.2</strong> — Wire <code>consume_daily_quota</code> check in proxy</li>
+      <li><strong>E.3</strong> — Client refactor: centralize via <code>_callClaude()</code> helper, replace ~10 direct Anthropic calls. Deploy quota chip in topbar.</li>
+      <li><strong>E.4</strong> — Settings transformation (state 4) + migration banner (state 5)</li>
+      <li><strong>E.5</strong> — Inline nudge (state 6) + tooltip detail (state 2)</li>
+      <li><strong>E.6</strong> — Pro fair-use throttling (post-launch / when needed)</li>
+    </ul>
+    <p>Estimated total: 4-6 feature-days across 2 weeks. Slots into your weekly cadence after Stripe Phase 4.1 wrap-up + alongside any flagship work.</p>
+  </div>
+</div>
+</body>
+</html>

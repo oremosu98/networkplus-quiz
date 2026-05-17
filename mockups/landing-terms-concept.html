@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Terms of Service redesign concept (landing · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Landing /terms reskinned onto the
+  dg-system, sibling of landing-privacy-concept.html (same legal-doc
+  template for cross-page consistency). Legal TEXT is the founder-vetted
+  v1.0 content sourced VERBATIM from landing/terms.html (not fabricated,
+  not summarised). landing/terms.html untouched (gated landing sweep).
+
+  POV: same de-carded legal treatment as the privacy reskin. Three
+  source callout variants mapped to the system: TL;DR + "What it is"
+  -> accent .tldr; "Don't" / "Important" -> .warn using the scoped
+  --dg-danger semantic (functional caution only, same discipline as the
+  account-page Sign out / Delete). No gradients (impeccable).
+  MOTION: legal page, read top-to-bottom (emil) -> CALM. 0 @keyframes.
+  HONESTY: all 16 sections, every clause/table/callout preserved
+  verbatim from landing/terms.html v1.0 (11 May 2026). Em-dash
+  recomposed to commas/colons (legal meaning unchanged). 0 emoji · 0 hex.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:var(--dg-accent);text-decoration:none;}
+  a:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--dg-rule-soft);max-width:1180px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:var(--t1);letter-spacing:-0.02em;color:var(--dg-text);}
+  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--dg-text);color:var(--dg-bg);display:grid;place-items:center;font-size:15px;}
+  .nav-r{display:flex;align-items:center;gap:24px;font-size:var(--t-1);color:var(--dg-text-dim);font-weight:600;}
+  .nav-r a{color:var(--dg-text-dim);}
+  .nav-r a:hover{color:var(--dg-text);text-decoration:none;}
+  .nav-tt{background:none;border:1px solid var(--dg-rule);border-radius:7px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 10px;cursor:pointer;}
+  .nav-tt:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  .doc{max-width:760px;margin:0 auto;padding:0 40px;}
+  .hero{text-align:center;padding:70px 0 26px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{font-size:var(--t4);font-weight:800;letter-spacing:-0.03em;line-height:1.05;margin:18px 0 14px;}
+  .sub{color:var(--dg-text-2);font-size:var(--t1);line-height:1.6;max-width:640px;margin:0 auto;}
+  .meta{display:inline-flex;align-items:center;gap:10px;font-size:var(--t-1);color:var(--dg-text-dim);margin-top:18px;}
+  .meta i{width:6px;height:6px;border-radius:50%;background:var(--dg-accent);font-style:normal;}
+  .meta b{color:var(--dg-text-2);font-weight:700;}
+
+  .toc{border-top:1px solid var(--dg-rule);border-bottom:1px solid var(--dg-rule);margin:36px 0 14px;padding:24px 0;}
+  .toc-k{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);margin-bottom:14px;}
+  .toc ol{list-style:none;columns:2;column-gap:48px;font-size:var(--t-1);}
+  .toc li{padding:5px 0;break-inside:avoid;}
+  .toc a{color:var(--dg-text-2);font-weight:600;}
+  .toc a:hover{color:var(--dg-accent);text-decoration:none;}
+  .toc a .nn{color:var(--dg-text-dim);font-variant-numeric:tabular-nums;margin-right:9px;}
+
+  .body{padding:30px 0 80px;}
+  .sec{padding:40px 0 0;}
+  .sec h2{font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;margin-top:6px;scroll-margin-top:24px;}
+  .sn{font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-accent);}
+  .sec h3{font-size:var(--t0);font-weight:800;margin:26px 0 7px;letter-spacing:-0.01em;color:var(--dg-text);}
+  .sec p{font-size:var(--t0);line-height:1.7;color:var(--dg-text-2);margin:11px 0;}
+  .sec p strong,.sec li strong{color:var(--dg-text);font-weight:700;}
+  .sec ul{list-style:none;margin:12px 0 16px;}
+  .sec li{font-size:var(--t0);line-height:1.65;color:var(--dg-text-2);padding:6px 0 6px 20px;position:relative;}
+  .sec li::before{content:"";position:absolute;left:2px;top:13px;width:5px;height:5px;border-radius:50%;background:var(--dg-rule);}
+  code{font-family:var(--mono);font-size:12px;background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);border-radius:4px;padding:2px 6px;color:var(--dg-text-2);}
+
+  .tldr{border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-accent);border-radius:8px;padding:14px 18px;margin:16px 0 20px;background:color-mix(in oklab,var(--dg-accent) 5%,transparent);font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;}
+  .tldr b{display:block;color:var(--dg-accent);font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+  .warn{border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-danger);border-radius:8px;padding:14px 18px;margin:16px 0 20px;background:color-mix(in oklab,var(--dg-danger) 6%,transparent);font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;}
+  .warn b{display:block;color:var(--dg-danger);font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:var(--t-1);border:1px solid var(--dg-rule-soft);border-radius:8px;overflow:hidden;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--dg-rule-soft);vertical-align:top;line-height:1.55;color:var(--dg-text-2);}
+  th{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dg-text-dim);background:var(--dg-bg-2);}
+  td strong{color:var(--dg-text);font-weight:700;}
+  tr:last-child td{border-bottom:0;}
+
+  .card{border:1px solid var(--dg-rule);border-radius:12px;padding:20px 24px;margin:18px 0;}
+  .card h4{font-size:var(--t0);font-weight:800;margin-bottom:10px;}
+  .card p{font-size:var(--t-1);color:var(--dg-text-2);margin:5px 0;line-height:1.6;}
+  .back{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:var(--t-1);margin-top:28px;}
+
+  footer{border-top:1px solid var(--dg-rule-soft);}
+  .foot{max-width:1180px;margin:0 auto;padding:26px 40px;display:flex;align-items:center;justify-content:space-between;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .foot .fl{font-family:var(--mono);font-size:11px;}
+  .foot nav{display:flex;gap:22px;}
+  .foot nav a{color:var(--dg-text-dim);}
+  .foot nav a:hover{color:var(--dg-text);text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){.nav-tt{transition:none;}}
+  @media (max-width:680px){.toc ol{columns:1;}.nav,.doc,.foot{padding-left:22px;padding-right:22px;}h1{font-size:var(--t3);}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="nav">
+  <span class="brand"><span class="mk" aria-hidden="true">&#9650;</span>CertAnvil</span>
+  <span class="nav-r">
+    <a href="#">Why CertAnvil</a>
+    <a href="#">Certs</a>
+    <a href="#">Pricing</a>
+    <button class="nav-tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+  </span>
+</header>
+
+<div class="doc">
+
+  <section class="hero">
+    <div class="eyebrow">Legal · Terms of Service</div>
+    <h1>Fair terms. No surprises.</h1>
+    <p class="sub">Plain-English contract between you and CertAnvil. What you can do with the product, what we promise, what happens if you cancel, refund + pass-guarantee details, and the boring-but-real legal bits at the bottom.</p>
+    <p class="meta"><i aria-hidden="true"></i>Last updated · <b>11 May 2026</b> · v1.0 (initial)</p>
+  </section>
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-k">Contents</div>
+    <ol>
+      <li><a href="#s1"><span class="nn">01</span>Agreement</a></li>
+      <li><a href="#s2"><span class="nn">02</span>Eligibility</a></li>
+      <li><a href="#s3"><span class="nn">03</span>Your account</a></li>
+      <li><a href="#s4"><span class="nn">04</span>Subscriptions + pricing</a></li>
+      <li><a href="#s5"><span class="nn">05</span>Pass guarantee</a></li>
+      <li><a href="#s6"><span class="nn">06</span>Refunds</a></li>
+      <li><a href="#s7"><span class="nn">07</span>Cancellation</a></li>
+      <li><a href="#s8"><span class="nn">08</span>Acceptable use</a></li>
+      <li><a href="#s9"><span class="nn">09</span>Intellectual property</a></li>
+      <li><a href="#s10"><span class="nn">10</span>AI-generated content</a></li>
+      <li><a href="#s11"><span class="nn">11</span>Service availability</a></li>
+      <li><a href="#s12"><span class="nn">12</span>Limitation of liability</a></li>
+      <li><a href="#s13"><span class="nn">13</span>Termination by us</a></li>
+      <li><a href="#s14"><span class="nn">14</span>Disputes + governing law</a></li>
+      <li><a href="#s15"><span class="nn">15</span>Changes to these terms</a></li>
+      <li><a href="#s16"><span class="nn">16</span>Contact</a></li>
+    </ol>
+  </nav>
+
+  <article class="body">
+
+    <section class="sec" id="s1">
+      <div class="sn">§ 01</div><h2>Agreement</h2>
+      <p>These Terms of Service ("Terms") are a contract between you and Oluwasimisola Oremosu (sole trader, United Kingdom), trading as <strong>CertAnvil</strong>. By creating an account, subscribing to a paid plan, or using any part of the CertAnvil website or apps, you agree to these Terms and to our <a href="#">Privacy Policy</a>.</p>
+      <p>If you don't agree, please don't use CertAnvil. You can stop using it at any time and (if you have an account) delete it from Settings, see <a href="#s7">§ 07</a>.</p>
+    </section>
+
+    <section class="sec" id="s2">
+      <div class="sn">§ 02</div><h2>Eligibility</h2>
+      <p>To use CertAnvil you must be at least <strong>13 years old</strong>. In jurisdictions where the minimum age for digital consent is higher (e.g. 16 in parts of the EU), you must meet that local minimum or have a parent/guardian's permission.</p>
+      <p>If you're using CertAnvil on behalf of an employer or training provider, you confirm you have authority to bind that organisation to these Terms.</p>
+      <p>You may not use CertAnvil if you're subject to economic sanctions imposed by the UK, the EU, the United States, or the United Nations that would prevent us from providing services to you.</p>
+    </section>
+
+    <section class="sec" id="s3">
+      <div class="sn">§ 03</div><h2>Your account</h2>
+      <div class="tldr"><b>TL;DR</b>You're responsible for the email you sign up with and what happens on your account. We authenticate by magic-link only, no passwords means treat your inbox like the key.</div>
+      <p>You sign in by requesting a single-use link sent to your email address. Anyone with access to that inbox can sign in as you. Keep your email account secure, enable two-factor authentication with your email provider.</p>
+      <p>You're responsible for the activity that happens under your account. If you suspect someone else has accessed your account, sign out from Settings (which invalidates active sessions) and contact <a href="#">support@certanvil.com</a> immediately.</p>
+      <p>One person, one account. Don't share accounts or sell access. Team licences for bootcamps and training providers will be available separately, until they ship, contact us if you need bulk access.</p>
+    </section>
+
+    <section class="sec" id="s4">
+      <div class="sn">§ 04</div><h2>Subscriptions + pricing</h2>
+      <div class="tldr"><b>TL;DR</b>Free tier = $0 forever with a 20-question-per-day cap. Pro = $9.99/month or $89/year, auto-renews until you cancel.</div>
+      <h3>4.1 · Free tier</h3>
+      <p>The Free tier is available without a credit card, indefinitely. It includes the Baseline Diagnostic, Pass Plan, all basic drills (Subnet Trainer · Port Drill · Acronym Blitz · OSI Sorter · Cable ID), and up to <strong>20 AI-generated questions per day</strong>. The daily limit resets at midnight UTC. Pro-only features (Topology Builder, ACL Builder, Incident Response War Room, Phishing Triage Lab, Packet Trace, Exam Simulator) are not included.</p>
+      <h3>4.2 · Pro tier</h3>
+      <p>Pro unlocks unlimited AI question generation across all certs, the Exam Simulator (90-Q timed), every Pro-only drill, advanced analytics (Knowledge Constellation, weak-spots, readiness trends, retention coaching), and the Pass Guarantee described in <a href="#s5">§ 05</a>. Two billing periods are available at checkout:</p>
+      <table>
+        <thead><tr><th>Plan</th><th>Price (USD)</th><th>Renews</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Pro Monthly</strong></td><td>$9.99 / month</td><td>Every 30 days</td></tr>
+          <tr><td><strong>Pro Annual</strong></td><td>$89.00 / year</td><td>Every 365 days · saves ~26% vs Monthly</td></tr>
+        </tbody>
+      </table>
+      <h3>4.3 · Billing + auto-renewal</h3>
+      <p>Subscriptions are processed by <strong>Stripe</strong>. By subscribing you authorise Stripe to charge your payment method on the renewal date until you cancel. Stripe handles all card data, we never see it. Stripe will email you a receipt for each charge.</p>
+      <p>If a renewal payment fails, Stripe will automatically retry up to 4 times over approximately 7 days. During that grace period your subscription status is <code>past_due</code> and you keep Pro access, but you'll see a banner asking you to update your card. If all retries fail, your subscription is moved to <code>canceled</code> and your access reverts to Free.</p>
+      <h3>4.4 · Price changes</h3>
+      <p>We may change subscription prices at any time. <strong>If we change the price of your specific plan, we'll email you at least 30 days before the change applies to your account.</strong> You can cancel before the new price takes effect if you don't want to continue at the new price. Existing annual subscribers are price-locked for the remainder of their current paid year.</p>
+      <h3>4.5 · Currency + tax</h3>
+      <p>Prices are listed in US dollars and processed by Stripe. Stripe applies VAT/sales tax automatically based on your billing country where required. The amount charged to your card may differ slightly from the listed dollar amount because of currency conversion done by your card issuer.</p>
+    </section>
+
+    <section class="sec" id="s5">
+      <div class="sn">§ 05</div><h2>Pass guarantee</h2>
+      <div class="tldr"><b>What it is</b>If you study with Pro, follow the Pass Plan, and fail your first attempt at the relevant CompTIA exam, we extend your Pro subscription so you can prepare for the retake without paying more.</div>
+      <h3>5.1 · Who qualifies</h3>
+      <ul>
+        <li>You held an <strong>active Pro subscription</strong> for at least 30 consecutive days before your exam date.</li>
+        <li>You completed the <strong>Baseline Diagnostic</strong> at least once.</li>
+        <li>You followed the Pass Plan with a documented study pattern, at least 60% of recommended sessions completed (visible on your readiness dashboard).</li>
+        <li>You scored below the official CompTIA passing threshold (e.g. 720/900 for Network+ N10-009) on your <strong>first attempt</strong> of the relevant exam.</li>
+      </ul>
+      <h3>5.2 · What you get</h3>
+      <p>Your Pro subscription is extended by <strong>at least 60 days</strong> at no additional charge so you can prepare for the retake. The exact extension is set during manual review depending on how far you were from passing and how much active study time you had.</p>
+      <h3>5.3 · How to claim</h3>
+      <p>Email <a href="#">support@certanvil.com</a> within <strong>30 days</strong> of your unsuccessful attempt with:</p>
+      <ul>
+        <li>The email address on your CertAnvil account.</li>
+        <li>A copy of your CompTIA score report (PDF or photo) showing your exam date, attempt number, and final score.</li>
+        <li>The exam name and version (e.g. "Network+ N10-009").</li>
+      </ul>
+      <p>We review claims manually within 7 days of receipt. We don't penalise you for low effort, the eligibility bar is "you tried and it didn't work", not "you nailed every drill".</p>
+      <h3>5.4 · What's not covered</h3>
+      <ul>
+        <li>Subsequent attempts (the guarantee covers the first attempt only, though we may extend again in genuine special circumstances at our discretion).</li>
+        <li>Exams you didn't actually take. The official CompTIA score report is required.</li>
+        <li>Fraudulent claims (fake score reports, multiple accounts). We reserve the right to refuse and terminate the account.</li>
+        <li>Beta exams or exam codes other than the ones the Pass Plan was authored for. Currently supported: <strong>N10-009</strong> (Network+), <strong>SY0-701</strong> (Security+). More to come.</li>
+      </ul>
+    </section>
+
+    <section class="sec" id="s6">
+      <div class="sn">§ 06</div><h2>Refunds</h2>
+      <h3>6.1 · 14-day refund window for first-time subscribers</h3>
+      <p>If you're a <strong>first-time Pro subscriber</strong> and you cancel within 14 days of your initial payment, we'll refund that payment in full. This applies to your first paid subscription only, subsequent resubscriptions don't reset the window.</p>
+      <p>To request a refund in the 14-day window, cancel your subscription from your Stripe Customer Portal and email <a href="#">billing@certanvil.com</a> with the email on your account. We'll process the refund within 7 days.</p>
+      <h3>6.2 · Beyond 14 days</h3>
+      <p>After the initial 14-day window, refunds are issued only in genuine special circumstances (e.g. service unavailable for an extended period, billed for a plan you didn't request). Cancel anytime to stop future charges, see <a href="#s7">§ 07</a>.</p>
+      <h3>6.3 · UK + EU consumer rights</h3>
+      <p>If you're a consumer in the UK or EU, you have statutory rights to refunds and cancellation under your local consumer-protection law (UK Consumer Rights Act, EU Consumer Rights Directive). These statutory rights apply alongside § 06.1 and are not affected by it. Note that by starting to use a digital subscription within the 14-day cooling-off window, you typically waive the right to cancel under the EU CRD; § 06.1 above is more generous than that minimum and applies anyway.</p>
+    </section>
+
+    <section class="sec" id="s7">
+      <div class="sn">§ 07</div><h2>Cancellation</h2>
+      <h3>7.1 · Cancel subscription (keep account)</h3>
+      <p>Open your <strong>Stripe Customer Portal</strong> from your CertAnvil Account page and click "Cancel subscription". Cancellation takes effect at the end of your current billing period, you keep Pro access until then. After it expires, you're back on Free with no charges.</p>
+      <h3>7.2 · Delete account (everything goes)</h3>
+      <p>From the cert app, Settings, "Delete my account". This will:</p>
+      <ul>
+        <li>Cancel any active Stripe subscription <strong>immediately</strong> (not at period end, you lose Pro access right away).</li>
+        <li>Permanently delete your account email, profile, quiz history, drill mastery, milestones, topology saves, and performance telemetry rows.</li>
+        <li>Sign you out and clear local browser cache.</li>
+      </ul>
+      <p>The deletion cascade is irreversible. Stripe's billing history is retained on their side per their retention policy (typically 7 years for tax + chargeback compliance), we can't delete that.</p>
+    </section>
+
+    <section class="sec" id="s8">
+      <div class="sn">§ 08</div><h2>Acceptable use</h2>
+      <div class="warn"><b>Don't</b>Use CertAnvil to study for the exam, yes. Use the AI proxy to generate non-cert content, scrape questions for resale, or run automated load tests, no.</div>
+      <p>You may:</p>
+      <ul>
+        <li>Use CertAnvil to prepare for the certifications it supports.</li>
+        <li>Share screenshots, your readiness number, and your honest opinion of the product on social media.</li>
+        <li>Cite specific question explanations in a study group, as long as you don't republish wholesale chunks of the question bank.</li>
+      </ul>
+      <p>You may not:</p>
+      <ul>
+        <li>Use the AI question-generation pipeline to produce non-cert content (creative writing, code generation, general-purpose chat).</li>
+        <li>Automate access to the AI proxy beyond normal human use, no headless browsers, no scripts, no API scraping.</li>
+        <li>Bypass the daily-question quota by creating multiple Free accounts.</li>
+        <li>Reverse-engineer, decompile, or attempt to extract our prompts, system instructions, or proprietary content.</li>
+        <li>Republish or resell the question bank, exemplar bank, or any other CertAnvil content as your own product.</li>
+        <li>Use CertAnvil for any unlawful purpose, including reselling access in jurisdictions where we are blocked or sanctioned.</li>
+        <li>Submit fraudulent pass-guarantee claims.</li>
+      </ul>
+      <p>If we believe you're violating these rules, we may suspend or terminate your account, see <a href="#s13">§ 13</a>.</p>
+    </section>
+
+    <section class="sec" id="s9">
+      <div class="sn">§ 09</div><h2>Intellectual property</h2>
+      <p>CertAnvil's question exemplar bank, retention-concept library, scenario explanations, drill content, and underlying code are owned by us. You get a personal, non-transferable, non-exclusive licence to use them via the product for the duration of your account. You don't get the right to redistribute, resell, or build derivative products from them.</p>
+      <p><strong>Your data is yours</strong>. We do not claim ownership of your quiz history, your saved topologies, or anything else you input. You can export it at any time (Settings, Export Data) and we delete it on request.</p>
+      <p>The CompTIA exam names (Network+, Security+, N10-009, SY0-701, etc.) are trademarks of CompTIA. CertAnvil is not affiliated with or endorsed by CompTIA. We prepare you for their exams using publicly-documented objectives.</p>
+    </section>
+
+    <section class="sec" id="s10">
+      <div class="sn">§ 10</div><h2>AI-generated content</h2>
+      <div class="warn"><b>Important</b>Questions and explanations are generated by an AI model (Anthropic's Claude). We validate them through a 7-layer pipeline, but AI output can still be wrong. Use CertAnvil as a study aid, not as a single source of truth.</div>
+      <p>The questions, explanations, deep dives, and AI coach responses in CertAnvil are produced by Anthropic's Claude model with a 7-layer validation stack (prompt self-check · curated exemplar bank · semantic second-pass · interrogative-stem gate · programmatic validator · regression gate · Sonnet escalation). We work hard to minimise hallucinations and factual errors. We can't guarantee every output is perfect.</p>
+      <p><strong>Always cross-check</strong> answers against the official CompTIA objectives and reputable resources (Professor Messer, Jason Dion's books, the CompTIA Exam Objectives PDF). If you spot an error, please report it via the "Report this question" button in the app, your reports directly improve the validation pipeline.</p>
+      <p>We are not responsible for exam outcomes that depend on relying solely on AI-generated content as your only source of preparation.</p>
+    </section>
+
+    <section class="sec" id="s11">
+      <div class="sn">§ 11</div><h2>Service availability</h2>
+      <p>We aim for 99.5% uptime on a rolling 30-day basis. Realistically you should expect occasional downtime for maintenance, dependency outages (Supabase, Stripe, Vercel, Anthropic), or genuine bugs.</p>
+      <p>CertAnvil is provided "as is" and "as available". We don't guarantee that the service will be uninterrupted, error-free, or that any specific feature will be available at any specific time. We may add, modify, or remove features at our discretion, though we'll try to give notice for material changes affecting Pro subscribers.</p>
+    </section>
+
+    <section class="sec" id="s12">
+      <div class="sn">§ 12</div><h2>Limitation of liability</h2>
+      <p>To the maximum extent permitted by applicable law:</p>
+      <ul>
+        <li>CertAnvil's total liability to you for any claim arising out of or related to these Terms or the service is limited to <strong>the amount you paid us in the 12 months before the claim arose</strong>. For Free users, that maximum is &pound;0.</li>
+        <li>We are not liable for indirect, incidental, consequential, special, or punitive damages, including lost profits, lost study time, exam fees you had to re-pay, or career outcomes affected by an exam result.</li>
+        <li>We are not liable for the actions of third-party sub-processors (Stripe, Anthropic, Supabase, etc.), though we'll cooperate with you to resolve issues caused by them.</li>
+      </ul>
+      <p>Nothing in these Terms limits liability for death or personal injury caused by our negligence, fraud, or any other liability that cannot be limited under applicable law (notably your statutory rights as a consumer under UK or EU law).</p>
+    </section>
+
+    <section class="sec" id="s13">
+      <div class="sn">§ 13</div><h2>Termination by us</h2>
+      <p>We may suspend or terminate your account if you:</p>
+      <ul>
+        <li>Violate the Acceptable Use rules in <a href="#s8">§ 08</a>.</li>
+        <li>Submit fraudulent pass-guarantee claims, chargebacks for legitimate charges, or fake billing disputes.</li>
+        <li>Have an unpaid balance for more than 30 days after grace-period retries have exhausted.</li>
+        <li>Use the service in a way that creates legal liability for us (e.g. operating from a sanctioned jurisdiction).</li>
+      </ul>
+      <p>If we terminate your account for a violation of these Terms, you forfeit any unused portion of your subscription and we are not obligated to refund. If we terminate your account for any other reason (e.g. we wind down the service entirely), we'll refund the unused portion of your most recent payment on a pro-rata basis.</p>
+    </section>
+
+    <section class="sec" id="s14">
+      <div class="sn">§ 14</div><h2>Disputes + governing law</h2>
+      <h3>14.1 · Try to resolve directly first</h3>
+      <p>If you have a complaint, please email <a href="#">support@certanvil.com</a> with the details. We respond to most complaints within 7 days and try to resolve them quickly and fairly.</p>
+      <h3>14.2 · Governing law</h3>
+      <p>These Terms are governed by the laws of <strong>England and Wales</strong>. Any legal dispute will be brought in the courts of England and Wales, except that if you're a consumer in the UK, EU, or another jurisdiction with mandatory local consumer-protection law, you may also bring claims in your local courts under your local law where required by that law.</p>
+      <h3>14.3 · No class actions</h3>
+      <p>To the maximum extent permitted by applicable law, you agree to resolve disputes individually rather than as part of a class action or representative proceeding. (This clause does not apply if it would conflict with mandatory consumer law in your jurisdiction.)</p>
+    </section>
+
+    <section class="sec" id="s15">
+      <div class="sn">§ 15</div><h2>Changes to these terms</h2>
+      <p>We may update these Terms from time to time. For material changes (pricing, refund policy, acceptable use rules, governing law) we'll notify subscribers by email at least 14 days before they take effect. For minor edits (typos, link fixes, clarifications that don't change substance) we may publish the updated version without notice. The "Last updated" date at the top of this page reflects the most recent material change.</p>
+      <p>This is <strong>v1.0</strong>, the initial publication of the Terms. Future versions will be listed below as they ship.</p>
+    </section>
+
+    <section class="sec" id="s16">
+      <div class="sn">§ 16</div><h2>Contact</h2>
+      <div class="card">
+        <h4>Reach a human</h4>
+        <p><strong>Support + complaints</strong> · <a href="#">support@certanvil.com</a></p>
+        <p><strong>Billing</strong> · <a href="#">billing@certanvil.com</a></p>
+        <p><strong>Privacy + data requests</strong> · <a href="#">privacy@certanvil.com</a></p>
+        <p><strong>General</strong> · <a href="#">hello@certanvil.com</a></p>
+        <p><strong>Response time</strong> · within 7 days for most enquiries</p>
+      </div>
+      <a class="back" href="#"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to CertAnvil</a>
+    </section>
+
+  </article>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="fl">certanvil.com · forged in code</span>
+    <nav><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></nav>
+  </div>
+</footer>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

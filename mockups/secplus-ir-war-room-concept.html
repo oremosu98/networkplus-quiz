@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Security+ IR War Room concept (cert-app · product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Cert-app IR War Room (Security+ flagship,
+  Domain 4) restyled faithfully from the founder's real full-screen capture.
+
+  Register : PRODUCT, a scenario launcher. Audit fix vs the live page:
+   · 20 near-identical scenario CARDS in a grid = impeccable's "identical
+     card grids" absolute ban -> a scannable de-carded hairline LIST.
+   · two mode CARDS (Practice / Pressure) -> a segmented toggle + a
+     hairline note. emoji per type -> quiet tinted type tags, no emoji.
+   · em-dashes in titles/sub -> recomposed (middot / colon). Attack-chain
+     arrows kept (meaningful, not em-dashes).
+  MOTION : emil-design-eng frequency rule. A 20-item list is SCANNED, so
+  per-row reveal would be the AI-tell and slow the scan. CALM: hover/press
+  + tab/toggle state only, NO scroll-reveal, NO fills. (Consistent with
+  Progress; Analytics is where purposeful motion lives.)
+  HONESTY : all 20 scenarios mirror the real screen (titles, type +
+  difficulty, 6 phases + correct-action counts, descriptions, the locked
+  progression, 0/20 mastered · 0 completed, the 7-layer AI-generator copy).
+  Locked prerequisites are kept generic-faithful (the exact unlock chain is
+  not legible in the capture, so it is not fabricated).
+  0 emoji · 0 hex · 0 em-dash · index/app/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--t-1:12px;--t0:14.5px;--t1:18px;--t2:23px;--t3:32px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;}
+  .side{border-right:1px solid var(--dg-rule-soft);display:flex;flex-direction:column;padding:20px 0;}
+  .side-brand{padding:0 20px 18px;border-bottom:1px solid var(--dg-rule-soft);}
+  .sb-name{font-size:var(--t-1);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-2);}
+  .sb-name b{color:var(--dg-accent);}
+  .sb-cert{margin-top:6px;font-size:11px;color:var(--dg-text-dim);font-family:var(--mono);}
+  .nav-grp{padding:18px 12px 4px;}
+  .nav-grp-h{padding:0 8px 8px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .nav-i{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;text-decoration:none;color:var(--dg-text-2);font-size:var(--t-1);font-weight:600;transition:background 0.12s ease,color 0.12s ease;}
+  .nav-i svg{width:16px;height:16px;color:var(--dg-text-dim);flex:none;transition:color 0.12s ease;}
+  .nav-i:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .nav-i.on{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 12%,transparent);}
+  .nav-i.on svg{color:var(--dg-accent);}
+  .side-foot{margin-top:auto;padding:16px 20px 0;}
+  .streak{display:flex;align-items:center;gap:9px;}
+  .streak svg{width:16px;height:16px;color:var(--dg-accent);flex:none;}
+  .streak b{font-size:var(--t0);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .streak span{font-size:11px;color:var(--dg-text-dim);}
+  .envchip{margin-top:14px;display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--dg-accent);border:1px solid color-mix(in oklab,var(--dg-accent) 50%,transparent);border-radius:5px;padding:3px 7px;}
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid var(--dg-rule-soft);}
+  .top-l{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;color:var(--dg-text-dim);}
+  .top-r{display:flex;align-items:center;gap:13px;}
+  .chip-pro{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:3px 7px;}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .pill{display:flex;align-items:center;gap:9px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:5px 11px 5px 5px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:170px;}
+  .avatar{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .content{padding:32px 32px 90px;max-width:1000px;}
+  .eyebrow{font-size:var(--t-1);font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{margin-top:10px;font-size:var(--t3);font-weight:800;letter-spacing:-0.025em;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+  .sub{margin-top:12px;font-size:var(--t1);color:var(--dg-text-2);max-width:64ch;line-height:1.5;}
+  .tabs{margin-top:20px;display:flex;gap:6px;border-bottom:1px solid var(--dg-rule);}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--dg-text-dim);font:700 var(--t-1)/1 Inter,sans-serif;padding:11px 14px;cursor:pointer;letter-spacing:0.02em;}
+  .tab.on{color:var(--dg-accent);border-bottom-color:var(--dg-accent);}
+  .tab:hover{color:var(--dg-text);}
+  .stats{margin-top:26px;display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--dg-rule);border-radius:12px;overflow:hidden;max-width:480px;}
+  .stat{padding:16px 20px;border-left:1px solid var(--dg-rule-soft);}
+  .stat:first-child{border-left:0;}
+  .stat .n{font-size:var(--t2);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .stat .n small{color:var(--dg-text-dim);font-size:var(--t-1);font-weight:600;}
+  .stat .k{margin-top:5px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .mode{margin-top:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .seg{display:inline-flex;border:1px solid var(--dg-rule);border-radius:9px;overflow:hidden;}
+  .seg button{background:none;border:0;color:var(--dg-text-dim);font:700 var(--t-1)/1 Inter,sans-serif;padding:11px 16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:flex-start;}
+  .seg button .sd{font-size:10px;font-weight:600;letter-spacing:0.02em;color:var(--dg-text-dim);}
+  .seg button.on{background:color-mix(in oklab,var(--dg-accent) 12%,transparent);color:var(--dg-accent);}
+  .seg button.on .sd{color:var(--dg-accent);}
+  .mode-note{font-size:var(--t-1);color:var(--dg-text-dim);flex:1;min-width:220px;}
+  .mode-note b{color:var(--dg-text-2);font-weight:700;}
+
+  .list{margin-top:30px;border-top:1px solid var(--dg-rule);}
+  .sc{display:grid;grid-template-columns:30px 1fr 132px;gap:18px;align-items:start;padding:18px 4px;border-bottom:1px solid var(--dg-rule-soft);}
+  .sc-i{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:800 11px var(--mono);color:var(--dg-text-2);background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);margin-top:2px;}
+  .sc-main{min-width:0;}
+  .sc-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .sc-tags{margin-top:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .tag{font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:3px 7px;border-radius:5px;}
+  .tag.type{color:var(--dg-text-2);border:1px solid var(--dg-rule);}
+  .tag.exam{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 15%,transparent);}
+  .tag.real{color:var(--dg-text-dim);border:1px solid var(--dg-rule);}
+  .tag.lock{color:var(--dg-text-dim);border:1px dashed var(--dg-rule);}
+  .sc-meta{margin-left:auto;font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .sc-d{margin-top:8px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:62ch;line-height:1.5;}
+  .phases{margin-top:10px;display:flex;gap:5px;}
+  .phases i{width:22px;height:4px;border-radius:2px;background:var(--dg-rule-soft);}
+  .sc-act{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--dg-accent);color:var(--dg-accent-ink);font:700 var(--t-1)/1 Inter,sans-serif;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;white-space:nowrap;transition:filter 0.15s var(--ease),transform 0.12s var(--ease);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(0.97);}
+  .btn svg{width:12px;height:12px;}
+  .locktxt{font-size:10px;color:var(--dg-text-dim);text-align:right;display:flex;align-items:center;gap:6px;}
+  .locktxt svg{width:12px;height:12px;}
+  .sc.locked{opacity:0.62;}
+  .sc.locked .sc-t{color:var(--dg-text-2);}
+
+  .gen{margin-top:34px;border:1px solid var(--dg-rule);border-radius:12px;background:var(--dg-bg-2);padding:20px 22px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+  .gen svg{width:20px;height:20px;color:var(--dg-accent);flex:none;margin-top:2px;}
+  .gen-x{flex:1;min-width:260px;}
+  .gen-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .gen-d{margin-top:6px;font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.55;}
+  .gen-d b{color:var(--dg-text-2);font-weight:700;}
+  .gen .btn{align-self:center;}
+
+  @media (prefers-reduced-motion: reduce){.theme-toggle,.nav-i,.btn,.tab,.seg button{transition:none;}}
+  @media (max-width:880px){.app{grid-template-columns:1fr;}.side{display:none;}.sc{grid-template-columns:1fr;}.sc-i{display:none;}.sc-act{justify-self:start;align-items:flex-start;}.stats{grid-template-columns:1fr;}}
+</style>
+<script>
+  (function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side-brand"><div class="sb-name">Cert<b>Anvil</b></div><div class="sb-cert">Security+ · SY0-701</div></div>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Practice</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Home</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Progress</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Analytics</a>
+      <a class="nav-i on" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>IR War Room</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Phishing Triage</a>
+    </nav>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Drills</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h9l5 5v11H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Acronym Blitz</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Attack-to-Mitigation</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h7v7H4zM13 11h7v7h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Control Type Sorter</a>
+    </nav>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Account</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 .1-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="streak"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c1 3-1 5-1 7a3 3 0 0 0 6 0c0-1 0-2-1-3 3 2 5 5 5 8a9 9 0 1 1-18 0c0-4 3-7 5-9 1 2 2 3 4 3 0-2 0-4 1-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><b>4</b><span>day streak · longest 4</span></div>
+      <span class="envchip">PROD</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <span class="top-l">IR War Room</span>
+      <span class="top-r"><span class="chip-pro">Pro</span><button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button><span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span></span>
+    </header>
+
+    <div class="content">
+      <div class="eyebrow">Flagship drill · Security+ · Domain 4</div>
+      <h1>IR <i>war room.</i></h1>
+      <p class="sub">Walk a real incident through PICERL: Preparation, Identification, Containment, Eradication, Recovery, Lessons Learned.</p>
+      <div class="tabs">
+        <button class="tab on" type="button">Practice</button>
+        <button class="tab" type="button">Lessons</button>
+        <button class="tab" type="button">Dashboard</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">0<small> / 20</small></div><div class="k">Mastered</div></div>
+        <div class="stat"><div class="n">0</div><div class="k">Completed</div></div>
+        <div class="stat"><div class="n">20</div><div class="k">Scenarios</div></div>
+      </div>
+
+      <div class="mode">
+        <span class="seg">
+          <button class="on" type="button">Practice <span class="sd">no timer · build mastery first</span></button>
+          <button type="button">Pressure <span class="sd">25 to 35 min · realistic SOC feel</span></button>
+        </span>
+        <span class="mode-note"><b>Practice mode.</b> No timer, reveal-on-mistake. Switch to Pressure when you are ready for the SOC analyst feel.</span>
+      </div>
+
+      <div class="list">
+        <div class="sc"><span class="sc-i">01</span><span class="sc-main"><span class="sc-t">Ryuk ransomware on finance workstation</span><span class="sc-tags"><span class="tag type">Ransomware</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 23 correct actions</span></span><span class="sc-d">Encrypted files appear on FIN-WS-08. SMB shares accessed cross-VLAN. C2 beacon to a known TOR node. Walk the playbook.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc"><span class="sc-i">02</span><span class="sc-main"><span class="sc-t">CFO BEC &rarr; wire fraud almost executed</span><span class="sc-tags"><span class="tag type">Phish-derived</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Spoofed CFO email instructs treasury to wire $480K. Treasurer hesitates. You have 18 minutes before the bank cutoff.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc"><span class="sc-i">03</span><span class="sc-main"><span class="sc-t">S3 bucket exposure, customer PII leaked</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Researcher reports a public S3 bucket containing 2.1M customer records. CloudTrail shows 14 days of unauthorized GETs.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc locked"><span class="sc-i">04</span><span class="sc-main"><span class="sc-t">Departing engineer · data exfil via personal cloud</span><span class="sc-tags"><span class="tag type">Insider threat</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">DLP flags 4.2 GB upload to personal Dropbox 6h after resignation. HR not notified yet. Legal will be involved.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">05</span><span class="sc-main"><span class="sc-t">LockBit 3.0 · multi-host, double extortion</span><span class="sc-tags"><span class="tag type">Ransomware</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 27 correct actions</span></span><span class="sc-d">15 hosts encrypted across 3 VLANs. Attacker exfiltrated 380 GB before encryption. Public leak-site countdown: 72h.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc"><span class="sc-i">06</span><span class="sc-main"><span class="sc-t">L7 DDoS on public API, bot army at 50K rps</span><span class="sc-tags"><span class="tag type">DDoS</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Public API getting hammered with 50K reqs from a bot army. Customers complaining. CDN backend pegged.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc locked"><span class="sc-i">07</span><span class="sc-main"><span class="sc-t">Tampered NPM dependency · supply-chain compromise</span><span class="sc-tags"><span class="tag type">Supply chain</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 22 correct actions</span></span><span class="sc-d">Dependency bot flags a new version of a utility lib bundled with a credential stealer. Lib used in 12 internal projects.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc"><span class="sc-i">08</span><span class="sc-main"><span class="sc-t">AWS root access key leaked on public GitHub</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 21 correct actions</span></span><span class="sc-d">Bug-bounty researcher reports a root account AWS_SECRET_ACCESS_KEY committed to a public repo 6 days ago.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc locked"><span class="sc-i">09</span><span class="sc-main"><span class="sc-t">Spear phish &rarr; 3-week dwell &rarr; ransomware activation</span><span class="sc-tags"><span class="tag type">Phish-derived</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 24 correct actions</span></span><span class="sc-d">Engineering laptop encrypted today. Forensics show the attacker has been pivoting since a spear phish 3 weeks ago.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">10</span><span class="sc-main"><span class="sc-t">Container escape &rarr; cluster compromise · k8s production</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 32 correct actions</span></span><span class="sc-d">Privileged pod exploited on the node. Cluster control-plane access likely. 28 production services at risk.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">11</span><span class="sc-main"><span class="sc-t">MFA push-fatigue &rarr; admin account takeover</span><span class="sc-tags"><span class="tag type">Phish-derived</span><span class="tag exam">Exam</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 26 correct actions</span></span><span class="sc-d">Admin user approved a malicious MFA push at 02:47am after 14 spam attempts. Attacker now has corp VPN access.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">12</span><span class="sc-main"><span class="sc-t">DNS registrar hijack &rarr; MX record swap &rarr; email interception</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Attacker compromised the registrar account. Changed MX records 4 hours ago. Customer emails were intercepted.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc"><span class="sc-i">13</span><span class="sc-main"><span class="sc-t">Stolen laptop · full-disk encryption was disabled</span><span class="sc-tags"><span class="tag type">Insider threat</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 21 correct actions</span></span><span class="sc-d">Engineer laptop stolen at the airport. FDE was disabled by user override 8 months ago. Cached creds and source code at risk.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc locked"><span class="sc-i">14</span><span class="sc-main"><span class="sc-t">Third-party SaaS provider breached · downstream impact</span><span class="sc-tags"><span class="tag type">Supply chain</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 26 correct actions</span></span><span class="sc-d">Your CRM vendor disclosed a breach. Customer and sales-pipeline data possibly exposed. You respond as if breached.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">15</span><span class="sc-main"><span class="sc-t">AD golden ticket attack · domain-wide persistence</span><span class="sc-tags"><span class="tag type">Insider threat</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 22 correct actions</span></span><span class="sc-d">EDR flagged anomalous Kerberos activity. Attacker has the krbtgt hash, forging tickets cluster-wide with admin permissions.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc"><span class="sc-i">16</span><span class="sc-main"><span class="sc-t">Vishing call impersonating IT &rarr; helpdesk credential theft</span><span class="sc-tags"><span class="tag type">Phish-derived</span><span class="tag exam">Exam</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Helpdesk agent gave creds and reset MFA over the phone for a remote engineer locked out. Attacker drained the sales pipeline.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><button class="btn" type="button">Start <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+
+        <div class="sc locked"><span class="sc-i">17</span><span class="sc-main"><span class="sc-t">0-day RCE on customer-facing web app · live exploitation</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 26 correct actions</span></span><span class="sc-d">Public-facing API exploited via a 0-day in a dependency. WAF logs show shell-spawn attempts. Patch not yet available.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">18</span><span class="sc-main"><span class="sc-t">Azure tenant compromise via Global Admin token theft</span><span class="sc-tags"><span class="tag type">Cloud breach</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 23 correct actions</span></span><span class="sc-d">GuardDuty fired on unusual Microsoft Graph API calls. Attacker has Global Admin via a stolen refresh token and dumped 200 mailboxes.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">19</span><span class="sc-main"><span class="sc-t">CFO embezzlement · financial insider with legitimate access</span><span class="sc-tags"><span class="tag type">Insider threat</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 28 correct actions</span></span><span class="sc-d">Anonymous tip: the CFO may have wired $1.2M to a shell company over 6 months. All transactions used legitimate authority.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+
+        <div class="sc locked"><span class="sc-i">20</span><span class="sc-main"><span class="sc-t">APT-style nation-state intrusion · government-affiliated threat actor</span><span class="sc-tags"><span class="tag type">Insider threat</span><span class="tag real">Real-world</span><span class="tag lock">Locked</span><span class="sc-meta">6 phases · 27 correct actions</span></span><span class="sc-d">CISA tipped you off: a government-affiliated threat actor has been in your network for 90+ days. Cleared sophistication. Hunt mode.</span><span class="phases"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="sc-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier scenario</span></span></div>
+      </div>
+
+      <div class="gen">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="gen-x">
+          <div class="gen-t">AI scenario generator</div>
+          <div class="gen-d">Sonnet 4.6 authors fresh scenarios on demand. A <b>7-layer validator</b> gates every output: PICERL ordering · action realism · IOC plausibility · per-phase count · distractor quality · trap presence · citation grounding.</div>
+        </span>
+        <button class="btn" type="button">Open generator <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var btn=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');
+    function eff(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}
+    function lab(){btn.textContent=eff()==='light'?'Dark':'Light';}lab();
+    btn.addEventListener('click',function(){var n=eff()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lab();});
+    mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lab();});
+  })();
+</script>
+
+</body>
+</html>

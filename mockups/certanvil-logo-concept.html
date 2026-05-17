@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil Logo Concept · editorial restyle (mark + wordmark)</title>
+<!--
+  CONCEPT · not production. A faithful RESTYLE of the existing M14 mark
+  (hammer + anvil + spark) for the editorial rebrand. SAME geometry —
+  only the execution evolves: generic purple → forged brass, cool
+  near-black tile → editorial charcoal, softer "app-icon" radius →
+  crisper forged plate. Paired with the CertAnvil wordmark treatment.
+  Shown at favicon sizes (must read tiny) and in the topbar lockup on
+  BOTH themes (the rebrand is dual-theme). Production favicon.svg / OG /
+  PWA / email assets are untouched until this is locked.
+-->
+<style>
+  :root {
+    --dark-bg: #0F1014; --dark-text: oklch(0.96 0.006 275); --dark-dim: oklch(0.725 0.013 275);
+    --light-bg: #F9F6F2; --light-text: oklch(0.26 0.015 280); --light-dim: oklch(0.50 0.013 280);
+    --brass: #EAB358;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, -apple-system, system-ui, sans-serif; background: #1b1c20; color: #e8e8ee; padding: 48px 32px; }
+  h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #9a9aa6; margin-bottom: 6px; }
+  .note { font-size: 13px; color: #7a7a86; max-width: 60ch; margin-bottom: 40px; line-height: 1.6; }
+  .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 32px; }
+  .stage { border-radius: 14px; padding: 40px 36px; }
+  .stage.dark  { background: var(--dark-bg);  color: var(--dark-text); }
+  .stage.light { background: var(--light-bg); color: var(--light-text); }
+  .stage h2 { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.55; margin-bottom: 28px; font-weight: 700; }
+
+  /* the topbar lockup: mark + wordmark */
+  .lockup { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+  .lockup .mark { width: 34px; height: 34px; flex: none; }
+  .wordmark { font-size: 15px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+  .stage.dark  .wordmark { color: var(--dark-dim); }
+  .stage.light .wordmark { color: var(--light-dim); }
+  .wordmark b { color: var(--brass); font-weight: 700; }
+  .stage.light .wordmark b { color: oklch(0.50 0.13 62); }   /* forged-bronze on paper */
+
+  /* hero-scale lockup */
+  .hero-lockup { display: flex; align-items: center; gap: 22px; }
+  .hero-lockup .mark { width: 60px; height: 60px; }
+  .hero-word { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+  .stage.light .hero-word { color: var(--light-text); }
+  .hero-word b { color: var(--brass); }
+  .stage.light .hero-word b { color: oklch(0.50 0.13 62); }
+
+  .sizes { display: flex; align-items: flex-end; gap: 28px; margin-top: 36px; padding-top: 28px; border-top: 1px solid rgba(128,128,128,0.25); }
+  .size-cell { text-align: center; }
+  .size-cell span { display: block; font-size: 10px; opacity: 0.5; margin-top: 8px; letter-spacing: 0.05em; }
+
+  .compare { display: flex; gap: 40px; align-items: center; margin-top: 18px; }
+  .compare figure { text-align: center; }
+  .compare figcaption { font-size: 11px; color: #7a7a86; margin-top: 10px; }
+  .swatch-row { display: flex; gap: 10px; margin-top: 24px; }
+  .sw { width: 64px; height: 40px; border-radius: 6px; display:flex; align-items:flex-end; justify-content:center; font-size:9px; padding-bottom:4px; }
+</style>
+</head>
+<body>
+
+<h1>CertAnvil · Logo restyle concept</h1>
+<p class="note">Faithful restyle of the existing M14 mark. Same hammer + anvil + spark composition, same proportions. Only the execution moves: generic purple hammer head and handle become forged brass and forged-steel, the cool near-black plate becomes the editorial charcoal, the soft app-icon radius tightens into a stamped-plate corner. Self-contained tile, so it reads on light and dark chrome alike. Wordmark sets Cert in the neutral, Anvil in the brass.</p>
+
+<div class="panel">
+  <div class="stage dark">
+    <h2>Dark theme · topbar lockup</h2>
+    <div class="lockup">
+      <svg class="mark" viewBox="0 0 100 100" aria-label="CertAnvil">
+        <rect width="100" height="100" rx="11" fill="#0F1014"/>
+        <g transform="rotate(-25 35 30)">
+          <rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/>
+          <rect x="32" y="32" width="6" height="22" fill="#5A5A66"/>
+        </g>
+        <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/>
+        <circle cx="55" cy="50" r="3" fill="#F0A53A"/>
+      </svg>
+      <span class="wordmark">Cert<b>Anvil</b></span>
+    </div>
+    <div class="hero-lockup">
+      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="11" fill="#0F1014"/>
+        <g transform="rotate(-25 35 30)">
+          <rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/>
+          <rect x="32" y="32" width="6" height="22" fill="#5A5A66"/>
+        </g>
+        <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/>
+        <circle cx="55" cy="50" r="3" fill="#F0A53A"/>
+      </svg>
+      <span class="hero-word">Cert<b>Anvil</b></span>
+    </div>
+    <div class="sizes">
+      <div class="size-cell"><svg width="16" height="16" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>16 favicon</span></div>
+      <div class="size-cell"><svg width="24" height="24" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>24</span></div>
+      <div class="size-cell"><svg width="40" height="40" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>40</span></div>
+      <div class="size-cell"><svg width="64" height="64" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>64 app icon</span></div>
+    </div>
+  </div>
+
+  <div class="stage light">
+    <h2>Light theme · topbar lockup</h2>
+    <div class="lockup">
+      <svg class="mark" viewBox="0 0 100 100" aria-label="CertAnvil">
+        <rect width="100" height="100" rx="11" fill="#0F1014"/>
+        <g transform="rotate(-25 35 30)">
+          <rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/>
+          <rect x="32" y="32" width="6" height="22" fill="#5A5A66"/>
+        </g>
+        <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/>
+        <circle cx="55" cy="50" r="3" fill="#F0A53A"/>
+      </svg>
+      <span class="wordmark">Cert<b>Anvil</b></span>
+    </div>
+    <div class="hero-lockup">
+      <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+        <rect width="100" height="100" rx="11" fill="#0F1014"/>
+        <g transform="rotate(-25 35 30)">
+          <rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/>
+          <rect x="32" y="32" width="6" height="22" fill="#5A5A66"/>
+        </g>
+        <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/>
+        <circle cx="55" cy="50" r="3" fill="#F0A53A"/>
+      </svg>
+      <span class="hero-word">Cert<b>Anvil</b></span>
+    </div>
+    <div class="sizes">
+      <div class="size-cell"><svg width="16" height="16" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>16 favicon</span></div>
+      <div class="size-cell"><svg width="24" height="24" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>24</span></div>
+      <div class="size-cell"><svg width="40" height="40" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>40</span></div>
+      <div class="size-cell"><svg width="64" height="64" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg><span>64 app icon</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="compare">
+  <figure>
+    <svg width="72" height="72" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="#0a0a12"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/><rect x="32" y="32" width="6" height="22" fill="#3d3870"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/><circle cx="55" cy="50" r="3" fill="#f59e0b"/></svg>
+    <figcaption>BEFORE · purple M14</figcaption>
+  </figure>
+  <span style="font-size:22px;color:#7a7a86">&rarr;</span>
+  <figure>
+    <svg width="72" height="72" viewBox="0 0 100 100"><rect width="100" height="100" rx="11" fill="#0F1014"/><g transform="rotate(-25 35 30)"><rect x="20" y="20" width="32" height="12" rx="2" fill="#EAB358"/><rect x="32" y="32" width="6" height="22" fill="#5A5A66"/></g><path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#F4F2EE"/><circle cx="55" cy="50" r="3" fill="#F0A53A"/></svg>
+    <figcaption>AFTER · forged brass</figcaption>
+  </figure>
+  <div class="swatch-row">
+    <div class="sw" style="background:#EAB358;color:#3a2a08">brass</div>
+    <div class="sw" style="background:#5A5A66;color:#d8d8de">steel</div>
+    <div class="sw" style="background:#F0A53A;color:#3a2208">spark</div>
+    <div class="sw" style="background:#0F1014;color:#9a9aa6">plate</div>
+  </div>
+</div>
+
+</body>
+</html>

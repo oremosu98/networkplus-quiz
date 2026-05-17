@@ -252,7 +252,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.86</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.88</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -1189,9 +1189,9 @@
 
   <!-- Tab bar -->
   <div class="st-tab-bar" role="tablist">
-    <button class="st-tab-btn st-tab-active" id="st-tab-btn-learn" role="tab" onclick="setSubnetTab('learn')">&#128218; Learn</button>
-    <button class="st-tab-btn" id="st-tab-btn-practice" role="tab" onclick="setSubnetTab('practice')">&#127919; Practice</button>
-    <button class="st-tab-btn" id="st-tab-btn-dashboard" role="tab" onclick="setSubnetTab('dashboard')">&#128202; Dashboard</button>
+    <button class="st-tab-btn st-tab-active" id="st-tab-btn-learn" role="tab" onclick="setSubnetTab('learn')">Learn</button>
+    <button class="st-tab-btn" id="st-tab-btn-practice" role="tab" onclick="setSubnetTab('practice')">Practice</button>
+    <button class="st-tab-btn" id="st-tab-btn-dashboard" role="tab" onclick="setSubnetTab('dashboard')">Dashboard</button>
   </div>
 
   <!-- ═══ Learn Tab ═══ -->
@@ -1201,10 +1201,10 @@
       <div id="st-lesson-main" class="st-lesson-main">
         <!-- v4.79.0: strong "start now" CTA replaces vague "Select a lesson" per Codex round-3. -->
         <div class="st-lesson-placeholder st-lesson-placeholder-v2">
-          <div class="st-lesson-placeholder-icon">📐</div>
+          <div class="st-lesson-placeholder-icon"></div>
           <h2 class="st-lesson-placeholder-title">Start Lesson 1: Binary &amp; Powers of 2</h2>
           <p class="st-lesson-placeholder-sub">Foundational subnetting math · ~5 min · click any lesson in the sidebar to jump around.</p>
-          <button type="button" class="btn btn-primary" onclick="stOpenLesson(1)">⚡ Start Lesson 1 →</button>
+          <button type="button" class="btn btn-primary" onclick="stOpenLesson(1)">Start Lesson 1 →</button>
         </div>
       </div>
     </div>
@@ -1214,16 +1214,16 @@
   <div id="st-tab-practice" class="st-tab-panel is-hidden">
     <!-- Mode selector -->
     <div class="st-mode-bar" role="group" aria-label="Practice mode">
-      <button class="st-mode-btn st-mode-active" id="st-mode-drill" onclick="setSubnetMode('drill')">&#127919; Adaptive Drill</button>
-      <button class="st-mode-btn" id="st-mode-timed" onclick="setSubnetMode('timed')">&#9201; Timed Challenge</button>
-      <button class="st-mode-btn" id="st-mode-focus" onclick="setSubnetMode('focus')">&#127993; Category Focus</button>
+      <button class="st-mode-btn st-mode-active" id="st-mode-drill" onclick="setSubnetMode('drill')">Adaptive Drill</button>
+      <button class="st-mode-btn" id="st-mode-timed" onclick="setSubnetMode('timed')">Timed Challenge</button>
+      <button class="st-mode-btn" id="st-mode-focus" onclick="setSubnetMode('focus')">Category Focus</button>
     </div>
     <!-- Category focus picker (hidden unless focus mode) -->
     <div id="st-focus-picker" class="st-focus-picker is-hidden"></div>
     <!-- Stats strip -->
     <div class="st-stats-strip">
       <span class="st-stat"><span class="st-stat-label">Score</span> <span id="st-score">0 / 0</span></span>
-      <span class="st-stat"><span class="st-stat-label">Streak</span> <span id="st-streak">&#128293; 0</span></span>
+      <span class="st-stat"><span class="st-stat-label">Streak</span> <span id="st-streak">0</span></span>
       <span id="st-cat-badge" class="st-cat-badge"></span>
       <span id="st-diff-badge" class="st-diff-badge"></span>
       <span id="st-timer-wrap" class="st-stat is-hidden"><span class="st-stat-label">Time</span> <span id="st-timer" class="st-timer">60</span></span>
@@ -1241,7 +1241,7 @@
     <div id="st-heatmap" class="st-heatmap"></div>
     <!-- Collapsible reference table -->
     <details class="subnet-ref" id="st-ref-details">
-      <summary style="cursor:pointer;font-weight:700;font-size:14px">&#128214; Quick Reference</summary>
+      <summary style="cursor:pointer;font-weight:700;font-size:14px">Quick Reference</summary>
       <table class="subnet-table" style="margin-top:12px">
         <tr><th>CIDR</th><th>Mask</th><th>Hosts</th><th>Block</th></tr>
         <tr><td>/8</td><td>255.0.0.0</td><td>16,777,214</td><td>16,777,216</td></tr>
@@ -1402,9 +1402,9 @@
 
   <!-- Tab bar -->
   <div class="pt-tab-bar" role="tablist">
-    <button class="pt-tab-btn pt-tab-active" id="pt-tab-btn-learn" role="tab" onclick="setPortTab('learn')">&#128218; Learn</button>
-    <button class="pt-tab-btn" id="pt-tab-btn-practice" role="tab" onclick="setPortTab('practice')">&#127919; Practice</button>
-    <button class="pt-tab-btn" id="pt-tab-btn-dashboard" role="tab" onclick="setPortTab('dashboard')">&#128202; Dashboard</button>
+    <button class="pt-tab-btn pt-tab-active" id="pt-tab-btn-learn" role="tab" onclick="setPortTab('learn')">Learn</button>
+    <button class="pt-tab-btn" id="pt-tab-btn-practice" role="tab" onclick="setPortTab('practice')">Practice</button>
+    <button class="pt-tab-btn" id="pt-tab-btn-dashboard" role="tab" onclick="setPortTab('dashboard')">Dashboard</button>
   </div>
 
   <!-- ═══ Learn Tab ═══ -->
@@ -1414,10 +1414,10 @@
       <div id="pt-lesson-main" class="pt-lesson-main">
         <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
         <div class="pt-lesson-placeholder pt-lesson-placeholder-v2 st-lesson-placeholder-v2">
-          <div class="st-lesson-placeholder-icon">🔌</div>
+          <div class="st-lesson-placeholder-icon"></div>
           <h2 class="st-lesson-placeholder-title">Start Lesson 1</h2>
           <p class="st-lesson-placeholder-sub">Foundational port-protocol pairings · ~5 min · click any lesson in the sidebar to jump around.</p>
-          <button type="button" class="btn btn-primary" onclick="ptOpenLesson(1)">⚡ Start Lesson 1 →</button>
+          <button type="button" class="btn btn-primary" onclick="ptOpenLesson(1)">Start Lesson 1 →</button>
         </div>
       </div>
     </div>
@@ -1427,19 +1427,19 @@
   <div id="pt-tab-practice" class="pt-tab-panel is-hidden">
     <!-- Mode selector -->
     <div class="pt-mode-bar" role="group" aria-label="Practice mode">
-      <button class="pt-mode-btn pt-mode-active" id="pt-mode-drill" onclick="setPortPracticeMode('drill')">&#127919; Adaptive</button>
-      <button class="pt-mode-btn" id="pt-mode-timed" onclick="setPortPracticeMode('timed')">&#9201; Timed 30s</button>
-      <button class="pt-mode-btn" id="pt-mode-endless" onclick="setPortPracticeMode('endless')">&#128279; Endless</button>
-      <button class="pt-mode-btn" id="pt-mode-family" onclick="setPortPracticeMode('family')">&#128101; Family</button>
-      <button class="pt-mode-btn" id="pt-mode-pairs" onclick="setPortPracticeMode('pairs')">&#128274; Pairs</button>
-      <button class="pt-mode-btn" id="pt-mode-focus" onclick="setPortPracticeMode('focus')">&#127993; Category</button>
+      <button class="pt-mode-btn pt-mode-active" id="pt-mode-drill" onclick="setPortPracticeMode('drill')">Adaptive</button>
+      <button class="pt-mode-btn" id="pt-mode-timed" onclick="setPortPracticeMode('timed')">Timed 30s</button>
+      <button class="pt-mode-btn" id="pt-mode-endless" onclick="setPortPracticeMode('endless')">Endless</button>
+      <button class="pt-mode-btn" id="pt-mode-family" onclick="setPortPracticeMode('family')">Family</button>
+      <button class="pt-mode-btn" id="pt-mode-pairs" onclick="setPortPracticeMode('pairs')">Pairs</button>
+      <button class="pt-mode-btn" id="pt-mode-focus" onclick="setPortPracticeMode('focus')">Category</button>
     </div>
     <!-- Category focus picker (hidden unless focus mode) -->
     <div id="pt-focus-picker" class="pt-focus-picker is-hidden"></div>
     <!-- Stats strip -->
     <div class="pt-stats-strip">
       <span class="pt-stat"><span class="pt-stat-label">Score</span> <span id="pt-score">0 / 0</span></span>
-      <span class="pt-stat"><span class="pt-stat-label">Streak</span> <span id="pt-streak">&#128293; 0</span></span>
+      <span class="pt-stat"><span class="pt-stat-label">Streak</span> <span id="pt-streak">0</span></span>
       <span id="pt-cat-badge" class="pt-cat-badge"></span>
       <span id="pt-timer-wrap" class="pt-stat is-hidden"><span class="pt-stat-label">Time</span> <span id="pt-timer" class="pt-timer">30</span></span>
     </div>
@@ -1455,7 +1455,7 @@
     <div id="pt-heatmap" class="pt-heatmap"></div>
     <!-- Collapsible reference -->
     <details id="port-ref" class="subnet-ref" style="margin-top:20px">
-      <summary style="cursor:pointer;font-weight:700;font-size:14px">&#128214; Port Reference &middot; All 40 ports</summary>
+      <summary style="cursor:pointer;font-weight:700;font-size:14px">Port Reference &middot; All 40 ports</summary>
       <div class="port-ref-controls" style="margin-top:12px">
         <input type="search" id="port-ref-search" class="port-ref-search" placeholder="Search protocol or port&#8230;" aria-label="Search port reference" oninput="filterPortReference()">
         <div class="port-ref-sort" role="group" aria-label="Sort ports">
@@ -1732,9 +1732,9 @@
   <!-- v4.81.10: Drill Mission Card (Codex r8) -->
   <div id="osi-rec-host" hidden></div>
   <div class="os-tab-bar" role="tablist" aria-label="OSI Layer Sorter tabs">
-    <button class="os-tab-btn os-tab-active" id="os-tab-btn-learn" role="tab" aria-selected="true" aria-controls="os-tab-learn" tabindex="0" onclick="setOsTab('learn')">&#128218; Learn</button>
-    <button class="os-tab-btn" id="os-tab-btn-practice" role="tab" aria-selected="false" aria-controls="os-tab-practice" tabindex="-1" onclick="setOsTab('practice')">&#127919; Practice</button>
-    <button class="os-tab-btn" id="os-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="os-tab-dashboard" tabindex="-1" onclick="setOsTab('dashboard')">&#128202; Dashboard</button>
+    <button class="os-tab-btn os-tab-active" id="os-tab-btn-learn" role="tab" aria-selected="true" aria-controls="os-tab-learn" tabindex="0" onclick="setOsTab('learn')">Learn</button>
+    <button class="os-tab-btn" id="os-tab-btn-practice" role="tab" aria-selected="false" aria-controls="os-tab-practice" tabindex="-1" onclick="setOsTab('practice')">Practice</button>
+    <button class="os-tab-btn" id="os-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="os-tab-dashboard" tabindex="-1" onclick="setOsTab('dashboard')">Dashboard</button>
   </div>
   <div id="os-tab-learn" class="os-tab-panel" role="tabpanel" aria-labelledby="os-tab-btn-learn" tabindex="0">
     <div class="os-learn-layout">
@@ -1742,19 +1742,19 @@
       <div id="os-lesson-main" class="os-lesson-main">
         <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
         <div class="os-lesson-placeholder os-lesson-placeholder-v2 st-lesson-placeholder-v2">
-          <div class="st-lesson-placeholder-icon">🌐</div>
+          <div class="st-lesson-placeholder-icon"></div>
           <h2 class="st-lesson-placeholder-title">Start Lesson 1: Layers 1 &amp; 2</h2>
           <p class="st-lesson-placeholder-sub">Foundational OSI model · ~5 min · click any lesson in the sidebar to jump around.</p>
-          <button type="button" class="btn btn-primary" onclick="osOpenLesson(1)">⚡ Start Lesson 1 →</button>
+          <button type="button" class="btn btn-primary" onclick="osOpenLesson(1)">Start Lesson 1 →</button>
         </div>
       </div>
     </div>
   </div>
   <div id="os-tab-practice" class="os-tab-panel is-hidden" role="tabpanel" aria-labelledby="os-tab-btn-practice" tabindex="-1">
     <div class="os-mode-bar" role="group" aria-label="Practice mode">
-      <button class="os-mode-btn os-mode-active" id="os-mode-sort" aria-pressed="true" onclick="setOsMode('sort')">&#128203; Sort</button>
-      <button class="os-mode-btn" id="os-mode-identify" aria-pressed="false" onclick="setOsMode('identify')">&#127919; Identify</button>
-      <button class="os-mode-btn" id="os-mode-endless" aria-pressed="false" onclick="setOsMode('endless')">&#128279; Endless</button>
+      <button class="os-mode-btn os-mode-active" id="os-mode-sort" aria-pressed="true" onclick="setOsMode('sort')">Sort</button>
+      <button class="os-mode-btn" id="os-mode-identify" aria-pressed="false" onclick="setOsMode('identify')">Identify</button>
+      <button class="os-mode-btn" id="os-mode-endless" aria-pressed="false" onclick="setOsMode('endless')">Endless</button>
     </div>
     <div class="os-diff-bar" role="group" aria-label="Difficulty">
       <button class="os-diff-btn os-diff-active" id="os-diff-easy" aria-pressed="true" onclick="setOsDifficulty('easy')">Easy</button>
@@ -1763,7 +1763,7 @@
     </div>
     <div class="os-stats-strip" aria-live="polite" aria-atomic="true">
       <span class="os-stat"><span class="os-stat-label">Score</span> <span id="os-score">0 / 0</span></span>
-      <span class="os-stat"><span class="os-stat-label">Streak</span> <span id="os-streak">&#128293; 0</span></span>
+      <span class="os-stat"><span class="os-stat-label">Streak</span> <span id="os-streak">0</span></span>
     </div>
     <div id="os-practice-area" class="os-practice-area" aria-live="polite"></div>
     <div id="os-heatmap" class="os-heatmap"></div>
@@ -1789,9 +1789,9 @@
   <!-- v4.81.10: Drill Mission Card (Codex r8) -->
   <div id="cable-rec-host" hidden></div>
   <div class="cb-tab-bar" role="tablist" aria-label="Cable &amp; Connector ID tabs">
-    <button class="cb-tab-btn cb-tab-active" id="cb-tab-btn-learn" role="tab" aria-selected="true" aria-controls="cb-tab-learn" tabindex="0" onclick="setCbTab('learn')">&#128218; Learn</button>
-    <button class="cb-tab-btn" id="cb-tab-btn-practice" role="tab" aria-selected="false" aria-controls="cb-tab-practice" tabindex="-1" onclick="setCbTab('practice')">&#127919; Practice</button>
-    <button class="cb-tab-btn" id="cb-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="cb-tab-dashboard" tabindex="-1" onclick="setCbTab('dashboard')">&#128202; Dashboard</button>
+    <button class="cb-tab-btn cb-tab-active" id="cb-tab-btn-learn" role="tab" aria-selected="true" aria-controls="cb-tab-learn" tabindex="0" onclick="setCbTab('learn')">Learn</button>
+    <button class="cb-tab-btn" id="cb-tab-btn-practice" role="tab" aria-selected="false" aria-controls="cb-tab-practice" tabindex="-1" onclick="setCbTab('practice')">Practice</button>
+    <button class="cb-tab-btn" id="cb-tab-btn-dashboard" role="tab" aria-selected="false" aria-controls="cb-tab-dashboard" tabindex="-1" onclick="setCbTab('dashboard')">Dashboard</button>
   </div>
   <div id="cb-tab-learn" class="cb-tab-panel" role="tabpanel" aria-labelledby="cb-tab-btn-learn" tabindex="0">
     <div class="cb-learn-layout">
@@ -1799,24 +1799,24 @@
       <div id="cb-lesson-main" class="cb-lesson-main">
         <!-- v4.79.0: strong "start now" CTA replaces vague placeholder per Codex round-3. -->
         <div class="cb-lesson-placeholder cb-lesson-placeholder-v2 st-lesson-placeholder-v2">
-          <div class="st-lesson-placeholder-icon">🔌</div>
+          <div class="st-lesson-placeholder-icon"></div>
           <h2 class="st-lesson-placeholder-title">Start Lesson 1: Cat5e/6/6A</h2>
           <p class="st-lesson-placeholder-sub">Foundational cable types · ~5 min · click any lesson in the sidebar to jump around.</p>
-          <button type="button" class="btn btn-primary" onclick="cbOpenLesson(1)">⚡ Start Lesson 1 →</button>
+          <button type="button" class="btn btn-primary" onclick="cbOpenLesson(1)">Start Lesson 1 →</button>
         </div>
       </div>
     </div>
   </div>
   <div id="cb-tab-practice" class="cb-tab-panel is-hidden" role="tabpanel" aria-labelledby="cb-tab-btn-practice" tabindex="-1">
     <div class="cb-mode-bar" role="group" aria-label="Practice mode">
-      <button class="cb-mode-btn cb-mode-active" id="cb-mode-adaptive" aria-pressed="true" onclick="setCbMode('adaptive')">&#127919; Adaptive</button>
-      <button class="cb-mode-btn" id="cb-mode-specs" aria-pressed="false" onclick="setCbMode('specs')">&#128203; Match Specs</button>
-      <button class="cb-mode-btn" id="cb-mode-scenario" aria-pressed="false" onclick="setCbMode('scenario')">&#127959; Scenario</button>
-      <button class="cb-mode-btn" id="cb-mode-endless" aria-pressed="false" onclick="setCbMode('endless')">&#128279; Endless</button>
+      <button class="cb-mode-btn cb-mode-active" id="cb-mode-adaptive" aria-pressed="true" onclick="setCbMode('adaptive')">Adaptive</button>
+      <button class="cb-mode-btn" id="cb-mode-specs" aria-pressed="false" onclick="setCbMode('specs')">Match Specs</button>
+      <button class="cb-mode-btn" id="cb-mode-scenario" aria-pressed="false" onclick="setCbMode('scenario')">Scenario</button>
+      <button class="cb-mode-btn" id="cb-mode-endless" aria-pressed="false" onclick="setCbMode('endless')">Endless</button>
     </div>
     <div class="cb-stats-strip" aria-live="polite" aria-atomic="true">
       <span class="cb-stat"><span class="cb-stat-label">Score</span> <span id="cb-score">0 / 0</span></span>
-      <span class="cb-stat"><span class="cb-stat-label">Streak</span> <span id="cb-streak">&#128293; 0</span></span>
+      <span class="cb-stat"><span class="cb-stat-label">Streak</span> <span id="cb-streak">0</span></span>
       <span id="cb-cat-badge" class="cb-cat-badge"></span>
     </div>
     <div class="subnet-card" id="cb-q-card" aria-live="polite">

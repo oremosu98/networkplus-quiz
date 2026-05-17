@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Security+ Analytics redesign concept (SY0-701 · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Security+ Performance Analytics.
+  Structurally MIRRORS netplus-analytics-concept.html exactly
+  (founder-preferred layout) with honest SY0-701 data. app.js untouched.
+
+  POV: descriptive card wall -> prescriptive editorial. Score is a
+  typographic verdict + WHY (4 weighted components) + the gap-closing
+  actions, then de-carded diagnostic bands.
+  MOTION: emil frequency rule. Analytics is OCCASIONAL and the score
+  reveal is meaningful, so this is the ONE surface that earns motion:
+   · readiness count-up (rAF, easeOutExpo, ~900ms)
+   · component + domain bars scaleX from left, 60ms stagger
+  All gated behind html.reveal-on + .is-in; prefers-reduced-motion =
+  instant final state (count shown, scaleX(1)). Compositor-only
+  (transform/opacity), never width. Bars carry display:block + a
+  resting inline width so no-JS / reduced-motion still renders them.
+  HONESTY: readiness 517/900 Building; 4 components Accuracy 28 /
+  Coverage 22 / Recency 15 / Volume 13 (SY0-701 weights 40/30/20/10);
+  the real "accuracy is the bottleneck" verdict at 28%; the 203-pt gap
+  actions (refresh recency +42 · coverage strong); Difficulty
+  98/95/100; Domain Mastery uses the CORRECT SY0-701 names; streak 0
+  (longest 4); milestones 4/40; recent-misses pattern = General
+  Security Concepts 67%. Reviews-due 6 corroborated by Home.
+  0 emoji · 0 hardcoded hex · 0 em-dash.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-warn:oklch(0.80 0.14 70);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--t5:60px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-warn:oklch(0.58 0.14 65);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-warn:oklch(0.80 0.14 70);--dg-danger:oklch(0.66 0.17 25);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-warn:oklch(0.58 0.14 65);--dg-danger:oklch(0.52 0.19 25);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:46px 26px 90px;}
+
+  .top{margin-bottom:24px;}
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-text-dim);}
+  h1{font-size:var(--t4);font-weight:800;letter-spacing:-0.03em;margin:12px 0 0;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+
+  .nbm{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px 0;border-top:1px solid var(--dg-rule);border-bottom:1px solid var(--dg-rule);flex-wrap:wrap;}
+  .nbm-l{min-width:260px;flex:1;}
+  .nbm-k{font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-accent);}
+  .nbm h2{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin:9px 0 5px;}
+  .nbm p{font-size:var(--t-1);color:var(--dg-text-dim);}
+  .nbm p b{color:var(--dg-text-2);font-weight:700;}
+  .cta{display:inline-flex;align-items:center;gap:8px;background:var(--dg-accent);color:var(--dg-accent-ink);border:0;border-radius:9px;font:800 var(--t0)/1 Inter,sans-serif;padding:14px 22px;cursor:pointer;text-decoration:none;flex:none;}
+  .cta:hover{filter:brightness(1.05);}
+  .cta svg{width:15px;height:15px;}
+  .cta.ghost{background:none;border:1px solid var(--dg-rule);color:var(--dg-text);}
+  .cta.ghost:hover{border-color:var(--dg-accent);color:var(--dg-accent);filter:none;}
+
+  .ready{padding:34px 0 26px;border-bottom:1px solid var(--dg-rule);}
+  .rk{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .rn{font-size:var(--t5);font-weight:800;letter-spacing:-0.03em;line-height:1;margin:10px 0 4px;font-variant-numeric:tabular-nums;}
+  .rn s{text-decoration:none;font-size:var(--t2);color:var(--dg-text-dim);font-weight:700;}
+  .rtier{display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-warn);}
+  .dbk-list{margin-top:22px;display:grid;gap:12px;}
+  .dbk{display:grid;grid-template-columns:190px 1fr 46px;gap:14px;align-items:center;}
+  .dbk .l{font-size:var(--t-1);font-weight:600;color:var(--dg-text-2);}
+  .dbk .track{height:6px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;}
+  .dbk .fill{display:block;height:100%;border-radius:3px;background:var(--dg-rule);transform-origin:left;}
+  .dbk .fill.s{background:var(--dg-pass);}
+  .dbk .fill.o{background:var(--dg-warn);}
+  .dbk .v{font-size:var(--t-1);font-weight:800;text-align:right;font-variant-numeric:tabular-nums;color:var(--dg-text-dim);}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--dg-rule);}
+  .stat{padding:18px 20px;border-right:1px solid var(--dg-rule-soft);}
+  .stat:last-child{border-right:0;}
+  .stat .sk{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .stat .sv{font-size:var(--t2);font-weight:800;margin-top:7px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+
+  .sec{padding:30px 0;border-bottom:1px solid var(--dg-rule);}
+  .sk2{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .sh{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin:7px 0 4px;}
+  .sh i{font-style:normal;color:var(--dg-accent);}
+  .sp{font-size:var(--t-1);color:var(--dg-text-dim);max-width:600px;line-height:1.6;}
+
+  .comp{margin-top:22px;display:grid;gap:15px;}
+  .cmp{display:grid;grid-template-columns:230px 1fr 40px;gap:16px;align-items:center;}
+  .cmp .cl{min-width:0;}
+  .cmp .cn{font-size:var(--t-1);font-weight:700;color:var(--dg-text);}
+  .cmp .cw{font-size:11px;color:var(--dg-text-dim);margin-top:2px;}
+  .cmp .ct{height:8px;border-radius:4px;background:var(--dg-bg-2);overflow:hidden;}
+  .cmp .cf{display:block;height:100%;border-radius:4px;background:var(--dg-danger);transform-origin:left;}
+  .cmp .cv{font-size:var(--t-1);font-weight:800;text-align:right;font-variant-numeric:tabular-nums;}
+
+  .verdict{margin-top:22px;border:1px solid color-mix(in oklab,var(--dg-warn) 40%,var(--dg-rule));border-radius:10px;padding:15px 17px;background:color-mix(in oklab,var(--dg-warn) 7%,transparent);font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;}
+  .verdict b{color:var(--dg-text);font-weight:800;}
+
+  .gap{margin-top:24px;}
+  .gap-k{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);margin-bottom:14px;}
+  .acts{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--dg-rule);}
+  .act{padding:18px 22px 18px 0;border-right:1px solid var(--dg-rule-soft);}
+  .act:last-child{border-right:0;padding-right:0;padding-left:22px;}
+  .act .ak{font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-accent);}
+  .act .ah{font-size:var(--t1);font-weight:800;margin:8px 0 5px;letter-spacing:-0.01em;}
+  .act .ah s{text-decoration:none;color:var(--dg-pass);}
+  .act p{font-size:11px;color:var(--dg-text-dim);line-height:1.55;}
+  .act . go{display:inline-flex;align-items:center;gap:7px;margin-top:11px;color:var(--dg-accent);font:700 var(--t-1)/1 Inter,sans-serif;cursor:pointer;}
+  .act .go svg{width:13px;height:13px;}
+  .live{margin-top:16px;font-size:11px;color:var(--dg-text-dim);}
+
+  .trend{margin-top:20px;border:1px solid var(--dg-rule-soft);border-radius:10px;padding:18px;}
+  .trend svg{width:100%;height:130px;display:block;}
+  .bars{margin-top:20px;display:flex;align-items:flex-end;gap:6px;height:120px;}
+  .bars i{flex:1;background:var(--dg-pass);border-radius:3px 3px 0 0;display:block;transform-origin:bottom;}
+  .bars i.bad{background:var(--dg-danger);}
+  .bars-x{display:flex;justify-content:space-between;margin-top:9px;font-size:11px;color:var(--dg-text-dim);}
+
+  .diff{margin-top:20px;display:grid;gap:14px;}
+  .df{display:grid;grid-template-columns:120px 1fr 80px;gap:16px;align-items:center;}
+  .df .dl{font-size:var(--t-1);font-weight:600;color:var(--dg-text-2);}
+  .df .dt{height:6px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;}
+  .df .dff{display:block;height:100%;border-radius:3px;background:var(--dg-pass);transform-origin:left;}
+  .df .dv{font-size:var(--t-1);font-weight:800;text-align:right;font-variant-numeric:tabular-nums;color:var(--dg-pass);}
+  .df .dv.sub{color:var(--dg-text-dim);}
+
+  .dm{margin-top:20px;border-top:1px solid var(--dg-rule);}
+  .dm-r{display:grid;grid-template-columns:1fr 150px 110px;gap:18px;align-items:center;padding:15px 2px;border-bottom:1px solid var(--dg-rule-soft);}
+  .dm-r .dn{font-size:var(--t-1);font-weight:700;}
+  .dm-r .dn s{text-decoration:none;color:var(--dg-text-dim);font-weight:600;font-size:11px;display:block;margin-top:3px;}
+  .dm-r .dt{height:5px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;}
+  .dm-r .dff{display:block;height:100%;border-radius:3px;background:var(--dg-rule);transform-origin:left;}
+  .dm-r .dff.s{background:var(--dg-pass);}
+  .dm-r .dff.o{background:var(--dg-warn);}
+  .dm-r .dvv{font-size:var(--t-1);font-weight:800;text-align:right;font-variant-numeric:tabular-nums;color:var(--dg-text-dim);}
+  .dm-r .dvv.s{color:var(--dg-pass);}
+  .dm-r .dvv.o{color:var(--dg-warn);}
+
+  .const{margin-top:18px;border:1px solid var(--dg-rule-soft);border-radius:10px;height:240px;position:relative;overflow:hidden;background:
+    radial-gradient(circle at 30% 40%,color-mix(in oklab,var(--dg-accent) 5%,transparent),transparent 60%);}
+  .const .nd{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--dg-rule);}
+  .const .nd.a{background:var(--dg-accent);width:11px;height:11px;box-shadow:0 0 0 4px color-mix(in oklab,var(--dg-accent) 18%,transparent);}
+  .const .nd.s{background:var(--dg-pass);}
+  .const .lbl{position:absolute;font-size:10px;font-weight:700;color:var(--dg-text-dim);letter-spacing:0.05em;}
+
+  .hm{margin-top:18px;display:grid;grid-template-columns:repeat(14,1fr);gap:5px;}
+  .hm i{aspect-ratio:1;border-radius:3px;background:var(--dg-bg-2);}
+  .hm i.l1{background:color-mix(in oklab,var(--dg-accent) 24%,var(--dg-bg-2));}
+  .hm i.l2{background:color-mix(in oklab,var(--dg-accent) 50%,var(--dg-bg-2));}
+  .hm i.l3{background:color-mix(in oklab,var(--dg-accent) 78%,var(--dg-bg-2));}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--dg-rule);margin-top:20px;}
+  .half{padding:22px 24px 22px 0;border-right:1px solid var(--dg-rule-soft);}
+  .half:last-child{border-right:0;padding-right:0;padding-left:24px;}
+  .half .hk{font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .half .hv{font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;margin:10px 0 4px;font-variant-numeric:tabular-nums;}
+  .half p{font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.6;}
+
+  .ms{margin-top:20px;}
+  .ms-h{display:flex;align-items:baseline;justify-content:space-between;}
+  .ms-h .v{font-size:var(--t-1);color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .ms-h .v b{color:var(--dg-text-2);font-weight:800;}
+  .ms-track{height:5px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;margin:12px 0 20px;}
+  .ms-fill{display:block;height:100%;border-radius:3px;background:var(--dg-accent);transform-origin:left;}
+  .ms-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--dg-rule-soft);}
+  .mi{padding:15px 16px 15px 0;border-right:1px solid var(--dg-rule-soft);}
+  .mi:last-child{border-right:0;}
+  .mi .mn{font-size:var(--t-1);font-weight:800;}
+  .mi .md{font-size:11px;color:var(--dg-text-dim);margin-top:4px;line-height:1.5;}
+
+  .tt{position:fixed;top:18px;right:20px;background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;z-index:30;}
+  .tt:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  html.reveal-on .reveal .fill,html.reveal-on .reveal .cf,html.reveal-on .reveal .dff,html.reveal-on .reveal .d-fill,html.reveal-on .reveal .ms-fill,html.reveal-on .reveal i[data-h]{transform:scaleX(0);}
+  html.reveal-on .reveal .bars i{transform:scaleY(0);}
+  html.reveal-on .reveal.is-in .fill,html.reveal-on .reveal.is-in .cf,html.reveal-on .reveal.is-in .dff,html.reveal-on .reveal.is-in .ms-fill{transform:scaleX(1);transition:transform 0.9s var(--ease);}
+  html.reveal-on .reveal.is-in .bars i{transform:scaleY(1);transition:transform 0.7s var(--ease);}
+  @media (prefers-reduced-motion: reduce){
+    html.reveal-on .reveal .fill,html.reveal-on .reveal .cf,html.reveal-on .reveal .dff,html.reveal-on .reveal .ms-fill,html.reveal-on .reveal.is-in .fill,html.reveal-on .reveal.is-in .cf,html.reveal-on .reveal.is-in .dff,html.reveal-on .reveal.is-in .ms-fill{transform:scaleX(1)!important;transition:none!important;}
+    html.reveal-on .reveal .bars i,html.reveal-on .reveal.is-in .bars i{transform:scaleY(1)!important;transition:none!important;}
+  }
+  @media (max-width:760px){.stats{grid-template-columns:1fr 1fr;}.acts,.two,.ms-grid{grid-template-columns:1fr;}.act,.half,.mi{border-right:0;padding:16px 0;}.cmp,.dbk,.dm-r,.df{grid-template-columns:1fr;}.cmp .ct,.dbk .track,.dm-r .dt,.df .dt{order:3;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var m=matchMedia('(prefers-reduced-motion: reduce)').matches;if(!m)document.documentElement.className='reveal-on';}catch(e){}})();</script>
+</head>
+<body>
+
+<button class="tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+
+<div class="wrap">
+  <div class="top">
+    <div class="eyebrow">Readiness · trend · what to fix next</div>
+    <h1>Performance <i>analytics.</i></h1>
+  </div>
+
+  <div class="nbm">
+    <div class="nbm-l">
+      <div class="nbm-k">Your next best move</div>
+      <h2>PKI &amp; Certificate Management</h2>
+      <p><b>+1 pt</b> predicted · 75% &rarr; 96% · the highest-leverage gap you have</p>
+    </div>
+    <a class="cta" href="#">Drill now<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="ready reveal" id="readyBlk">
+    <div class="rk">Exam readiness · scaled 100-900</div>
+    <div class="rn"><span id="rdCount">517</span><s> / 900</s></div>
+    <div class="rtier">Building</div>
+    <div class="dbk-list">
+      <div class="dbk"><span class="l">General Security Concepts</span><span class="track"><i class="fill s" style="width:88%"></i></span><span class="v">88%</span></div>
+      <div class="dbk"><span class="l">Threats, Vulns &amp; Mitigations</span><span class="track"><i class="fill" style="width:4%"></i></span><span class="v">&mdash;</span></div>
+      <div class="dbk"><span class="l">Security Architecture</span><span class="track"><i class="fill s" style="width:90%"></i></span><span class="v">90%</span></div>
+      <div class="dbk"><span class="l">Security Operations</span><span class="track"><i class="fill" style="width:4%"></i></span><span class="v">&mdash;</span></div>
+      <div class="dbk"><span class="l">Program Mgmt &amp; Oversight</span><span class="track"><i class="fill" style="width:4%"></i></span><span class="v">&mdash;</span></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="sk">Sessions</div><div class="sv">17</div></div>
+    <div class="stat"><div class="sk">Questions</div><div class="sv">65</div></div>
+    <div class="stat"><div class="sk">Accuracy</div><div class="sv">97%</div></div>
+    <div class="stat"><div class="sk">Reviews due</div><div class="sv">6</div></div>
+  </div>
+
+  <section class="sec reveal">
+    <div class="sk2">Score breakdown</div>
+    <div class="sh">Why you're at <i>517</i></div>
+    <div class="sp">CompTIA-shaped. Four components feed your 100-900 scaled score. The weakest one is the lever.</div>
+    <div class="comp">
+      <div class="cmp"><span class="cl"><span class="cn">Accuracy</span><span class="cw">40% weight · domain-weighted, difficulty-boosted</span></span><span class="ct"><i class="cf" style="width:28%"></i></span><span class="cv" style="color:var(--dg-danger)">28%</span></div>
+      <div class="cmp"><span class="cl"><span class="cn">Coverage</span><span class="cw">30% weight · learning all 37 topics</span></span><span class="ct"><i class="cf" style="width:22%"></i></span><span class="cv" style="color:var(--dg-danger)">22%</span></div>
+      <div class="cmp"><span class="cl"><span class="cn">Recency</span><span class="cw">20% weight · 14-day half-life</span></span><span class="ct"><i class="cf" style="width:15%"></i></span><span class="cv" style="color:var(--dg-danger)">15%</span></div>
+      <div class="cmp"><span class="cl"><span class="cn">Volume</span><span class="cw">10% weight · capped at 500 Qs</span></span><span class="ct"><i class="cf" style="width:13%"></i></span><span class="cv" style="color:var(--dg-danger)">13%</span></div>
+    </div>
+    <div class="verdict"><b>Accuracy is the bottleneck.</b> Your domain-weighted accuracy is 28%. Tightening your weakest topics moves the needle most. See the actions below.</div>
+
+    <div class="gap">
+      <div class="gap-k">Closing the 203-point gap</div>
+      <div class="acts">
+        <div class="act">
+          <div class="ak">Refresh recency &rarr; <s>+42 pts</s></div>
+          <div class="ah">5 questions on each of your 6 stalest topics</div>
+          <p>Recency decays on a 14-day half-life. About 24 minutes total.</p>
+          <span class="go">Start refresh quiz<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="act">
+          <div class="ak">Coverage strong</div>
+          <div class="ah">Every studied topic is at or above 80%</div>
+          <p>Maximum coverage on the remaining domains is the next gain.</p>
+          <span class="go">Pick a new domain<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+      <div class="live">Updates live as you study. All four components recompute after every session.</div>
+    </div>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">Accuracy · long term</div>
+    <div class="sh">Are you trending <i>toward pass?</i></div>
+    <div class="trend">
+      <svg viewBox="0 0 600 130" preserveAspectRatio="none" aria-label="Readiness trend vs pass mark">
+        <line x1="0" y1="40" x2="600" y2="40" stroke="var(--dg-rule-soft)" stroke-width="1" stroke-dasharray="4 5"/>
+        <text x="6" y="34" font-size="10" fill="var(--dg-text-dim)" font-family="Inter">pass mark 720</text>
+        <polyline points="20,104 120,101 220,103 320,99 420,100 520,98 580,99" fill="none" stroke="var(--dg-accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="580" cy="99" r="3.5" fill="var(--dg-accent)"/>
+      </svg>
+    </div>
+    <p class="sp" style="margin-top:14px;">Flat and well below the line. Coverage is what unlocks the climb. Most domains are still untouched.</p>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">Accuracy · last 14 sessions</div>
+    <div class="sh">Accuracy <i>trend.</i></div>
+    <div class="bars">
+      <i style="height:88%"></i><i style="height:92%"></i><i style="height:90%"></i><i style="height:95%"></i><i style="height:97%"></i><i style="height:93%"></i><i style="height:96%"></i><i style="height:98%"></i><i style="height:94%"></i><i style="height:97%"></i><i class="bad" style="height:62%"></i><i style="height:95%"></i><i style="height:98%"></i><i style="height:97%"></i>
+    </div>
+    <div class="bars-x"><span>14 sessions ago</span><span>Average 96%</span><span>latest</span></div>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">Topics · per-difficulty accuracy</div>
+    <div class="sh">Difficulty <i>breakdown.</i></div>
+    <div class="diff">
+      <div class="df"><span class="dl">Mixed</span><span class="dt"><i class="dff" style="width:98%"></i></span><span class="dv">98%</span></div>
+      <div class="df"><span class="dl">Exam Level</span><span class="dt"><i class="dff" style="width:95%"></i></span><span class="dv">95%</span></div>
+      <div class="df"><span class="dl">Foundational</span><span class="dt"><i class="dff" style="width:100%"></i></span><span class="dv">100%</span></div>
+    </div>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">Domains · per-domain mastery</div>
+    <div class="sh">Domain <i>mastery.</i></div>
+    <div class="dm">
+      <div class="dm-r"><span class="dn">General Security Concepts<s>SY0-701 · 1.0</s></span><span class="dt"><i class="dff s" style="width:88%"></i></span><span class="dvv s">88% Mastered</span></div>
+      <div class="dm-r"><span class="dn">Threats, Vulns &amp; Mitigations<s>SY0-701 · 2.0</s></span><span class="dt"><i class="dff" style="width:3%"></i></span><span class="dvv">Not studied</span></div>
+      <div class="dm-r"><span class="dn">Security Architecture<s>SY0-701 · 3.0</s></span><span class="dt"><i class="dff s" style="width:90%"></i></span><span class="dvv s">90% Mastered</span></div>
+      <div class="dm-r"><span class="dn">Security Operations<s>SY0-701 · 4.0</s></span><span class="dt"><i class="dff" style="width:3%"></i></span><span class="dvv">Not studied</span></div>
+      <div class="dm-r"><span class="dn">Program Mgmt &amp; Oversight<s>SY0-701 · 5.0</s></span><span class="dt"><i class="dff" style="width:3%"></i></span><span class="dvv">Not studied</span></div>
+    </div>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">50 topics · size = practice, colour = mastery</div>
+    <div class="sh">Knowledge <i>constellation.</i></div>
+    <div class="const" aria-hidden="true">
+      <span class="lbl" style="left:14%;top:22%;">General Security Concepts</span>
+      <span class="lbl" style="left:60%;top:16%;">Security Operations</span>
+      <span class="lbl" style="left:74%;top:62%;">Program Mgmt &amp; Oversight</span>
+      <span class="lbl" style="left:20%;top:70%;">Threats, Vulns &amp; Mitigations</span>
+      <span class="lbl" style="left:52%;top:78%;">Security Architecture</span>
+      <span class="nd a" style="left:17%;top:40%;"></span><span class="nd s" style="left:24%;top:33%;"></span>
+      <span class="nd" style="left:30%;top:48%;"></span><span class="nd" style="left:38%;top:30%;"></span>
+      <span class="nd" style="left:46%;top:44%;"></span><span class="nd" style="left:55%;top:34%;"></span>
+      <span class="nd" style="left:63%;top:50%;"></span><span class="nd" style="left:70%;top:40%;"></span>
+      <span class="nd" style="left:58%;top:66%;"></span><span class="nd o" style="left:50%;top:60%;"></span>
+      <span class="nd" style="left:42%;top:64%;"></span><span class="nd" style="left:34%;top:72%;"></span>
+      <span class="nd" style="left:78%;top:54%;"></span><span class="nd" style="left:68%;top:70%;"></span>
+      <span class="nd" style="left:26%;top:58%;"></span><span class="nd" style="left:48%;top:50%;"></span>
+    </div>
+  </section>
+
+  <section class="sec reveal">
+    <div class="sk2">Pulse · last 28 days</div>
+    <div class="sh">Study <i>activity.</i></div>
+    <div class="hm" aria-hidden="true">
+      <i></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i></i><i></i><i class="l1"></i><i></i><i></i><i></i><i class="l1"></i><i></i><i></i>
+      <i class="l2"></i><i></i><i class="l1"></i><i></i><i></i><i class="l3"></i><i class="l2"></i><i></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i></i><i></i>
+    </div>
+  </section>
+
+  <div class="two">
+    <div class="half">
+      <div class="hk">Streak · last 30 days</div>
+      <div class="hv">0</div>
+      <p>Study today to start a new streak. Longest so far is 4 days.</p>
+    </div>
+    <div class="half">
+      <div class="hk">Patterns · recent mistakes</div>
+      <div class="hv" style="font-size:var(--t1);color:var(--dg-text-2);">General Security Concepts</div>
+      <p>67% of your recent misses sit in this one domain. Tightening it lifts the weakest block of your readiness score.</p>
+    </div>
+  </div>
+
+  <section class="sec reveal" style="border-bottom:0;padding-bottom:0;">
+    <div class="sk2">Milestones</div>
+    <div class="ms">
+      <div class="ms-h"><div class="sh" style="margin:0;">Milestones <i>unlocked.</i></div><span class="v"><b>4</b> / 40</span></div>
+      <div class="ms-track"><span class="ms-fill" style="width:10%"></span></div>
+      <div class="ms-grid">
+        <div class="mi"><div class="mn">Weekend warrior</div><div class="md">Studied across a weekend</div></div>
+        <div class="mi"><div class="mn">Reconnaissance</div><div class="md">Completed your first diagnostic</div></div>
+        <div class="mi"><div class="mn">Flawless</div><div class="md">A perfect quiz, no wrong answers</div></div>
+        <div class="mi"><div class="mn">First steps</div><div class="md">Your first study session logged</div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+  (function(){
+    var on=document.documentElement.classList.contains('reveal-on');
+    if(!on)return;
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-in');io.unobserve(e.target);}});},{threshold:0.18});
+    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+    var c=document.getElementById('rdCount'),blk=document.getElementById('readyBlk'),done=false;
+    function run(){if(done)return;done=true;var to=517,st=null,d=900;function fr(t){if(!st)st=t;var p=Math.min((t-st)/d,1);var e=1-Math.pow(2,-10*p);c.textContent=Math.round(e*to);if(p<1)requestAnimationFrame(fr);else c.textContent=to;}requestAnimationFrame(fr);}
+    var io2=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){run();io2.unobserve(e.target);}});},{threshold:0.4});
+    io2.observe(blk);
+  })();
+</script>
+
+</body>
+</html>

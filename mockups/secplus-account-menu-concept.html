@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Cert-app account + cert-switcher menu concept (dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. The CERT-APP account dropdown (distinct
+  from the simpler landing account-menu-concept): adds the cloud sync-status
+  row, the SWITCH CERT section with active check, Cert preferences, "Back to
+  certanvil.com", and owner-only Admin Dashboard.
+
+  Register : PRODUCT. Legitimate dropdown (menu-invoked, transient, has a
+  full-page alternative), not "modal as first thought". De-carded: generic
+  dropdown card -> hairline popover; emoji glyphs -> 1.5px line icons;
+  switch-cert rows show a check on the active cert; sync uses --dg-pass dot;
+  Admin in accent; Sign out uses the scoped semantic --dg-danger (functional,
+  destructive, per impeccable, not decorative).
+  MOTION : emil-design-eng. Occasional surface -> standard popover motion,
+  ORIGIN-AWARE (transform-origin top right, scales from the pill, NOT
+  centered like a modal), opacity + scale(0.97) + small translateY, ~180ms
+  shared --ease, CSS transition (interruptible), fires on toggle. Pill
+  :active press, chevron rotate. Gated html.reveal-on; reduced-motion =
+  opacity only, no movement, no flash.
+  HONESTY : mirrors the capture exactly (Free tier · Security+ active;
+  Synced; Network+ N10-009 / Security+ SY0-701 active; the six items;
+  Admin Dashboard; Sign out). Not reconciled against other captures.
+  0 emoji · 0 hardcoded hex · 0 em-dash · auth-state.js untouched (gated).
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);--t-1:12.5px;--t0:15px;--t1:19px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-danger:oklch(0.66 0.17 25);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-danger:oklch(0.52 0.19 25);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--dg-rule-soft);}
+  .bar-l{display:flex;align-items:center;gap:16px;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .bar-l .menu{display:flex;align-items:center;gap:8px;font-weight:600;}
+  .bar-l .menu svg{width:15px;height:15px;}
+  .bar-l .pg{color:var(--dg-text-2);font-weight:700;}
+  .bar-r{display:flex;align-items:center;gap:13px;}
+  .chip-pro{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:3px 7px;}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .ghost{padding:80px 28px;color:var(--dg-rule);user-select:none;text-align:center;}
+  .ghost h2{font-size:46px;font-weight:800;letter-spacing:-0.02em;}
+
+  .acct{position:relative;}
+  .pill{display:flex;align-items:center;gap:10px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:6px 12px 6px 6px;cursor:pointer;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:230px;transition:border-color 0.15s var(--ease),transform 0.12s var(--ease);}
+  .pill:hover{border-color:var(--dg-text-dim);}
+  .pill:active{transform:scale(0.98);}
+  .pill:focus-visible{outline:2px solid var(--dg-accent);outline-offset:2px;}
+  .avatar{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chev{width:14px;height:14px;flex:none;color:var(--dg-text-dim);transition:transform 0.18s var(--ease);}
+  .acct.open .chev{transform:rotate(180deg);}
+
+  .menu-pop{position:absolute;top:calc(100% + 8px);right:0;width:280px;background:var(--dg-bg);border:1px solid var(--dg-rule);border-radius:14px;padding:6px;transform-origin:top right;box-shadow:0 18px 44px -16px color-mix(in oklab,var(--dg-text) 22%,transparent);opacity:0;transform:scale(0.97) translateY(-4px);pointer-events:none;transition:opacity 0.18s var(--ease),transform 0.18s var(--ease);z-index:50;}
+  .acct.open .menu-pop{opacity:1;transform:none;pointer-events:auto;}
+  .m-id{padding:12px 12px 10px;}
+  .m-email{font-size:var(--t-1);font-weight:700;color:var(--dg-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .m-status{margin-top:6px;font-size:11.5px;color:var(--dg-text-dim);display:flex;align-items:center;gap:7px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .dot.pass{background:var(--dg-pass);}
+  .m-sync{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;font-size:11.5px;color:var(--dg-text-dim);}
+  .m-sync .s{display:flex;align-items:center;gap:7px;}
+  .m-sync button{background:none;border:0;cursor:pointer;font:700 11.5px/1 Inter,sans-serif;color:var(--dg-accent);}
+  .m-sync button:hover{text-decoration:underline;text-underline-offset:3px;}
+  .m-sep{height:1px;background:var(--dg-rule-soft);margin:5px 6px;}
+  .m-lab{padding:9px 12px 5px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .cert-row{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;cursor:pointer;text-align:left;padding:9px 12px;border-radius:9px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;transition:background 0.12s ease,color 0.12s ease;}
+  .cert-row:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .cert-row .cmk{width:24px;height:24px;border-radius:6px;flex:none;display:grid;place-items:center;font:800 9px var(--mono);color:var(--dg-text-2);background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);}
+  .cert-row .cn{flex:1;min-width:0;}
+  .cert-row .cc{font-size:10px;color:var(--dg-text-dim);font-family:var(--mono);font-weight:600;}
+  .cert-row .ck{width:15px;height:15px;color:var(--dg-accent);flex:none;opacity:0;}
+  .cert-row.active{color:var(--dg-text);}
+  .cert-row.active .ck{opacity:1;}
+  .cert-row.active .cmk{border-color:color-mix(in oklab,var(--dg-accent) 45%,transparent);color:var(--dg-accent);}
+  .mi{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;cursor:pointer;text-align:left;padding:10px 12px;border-radius:9px;font:600 var(--t-1)/1.2 Inter,sans-serif;color:var(--dg-text-2);transition:background 0.12s ease,color 0.12s ease;}
+  .mi svg{width:16px;height:16px;flex:none;color:var(--dg-text-dim);transition:color 0.12s ease;}
+  .mi:hover,.mi:focus-visible{background:var(--dg-bg-2);color:var(--dg-text);outline:none;}
+  .mi:hover svg,.mi:focus-visible svg{color:var(--dg-accent);}
+  .mi.admin{color:var(--dg-accent);}
+  .mi.admin svg{color:var(--dg-accent);}
+  .mi.out{color:var(--dg-danger);}
+  .mi.out svg{color:var(--dg-danger);}
+  .mi.out:hover{background:color-mix(in oklab,var(--dg-danger) 12%,transparent);color:var(--dg-danger);}
+  .reopen{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--dg-accent);color:var(--dg-accent-ink);border:0;font:700 var(--t-1)/1 Inter,sans-serif;padding:11px 18px;border-radius:10px;cursor:pointer;display:none;}
+  @media (prefers-reduced-motion: reduce){.menu-pop{transition:opacity 0.12s linear;transform:none;}.acct.open .menu-pop{transform:none;}.chev,.pill,.theme-toggle,.mi,.cert-row{transition:none;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}try{if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('reveal-on');}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="bar">
+  <span class="bar-l"><span class="menu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Menu</span><span class="pg">Control Type Sorter</span></span>
+  <span class="bar-r">
+    <span class="chip-pro">Pro</span>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button>
+    <span class="acct open" id="acct">
+      <button class="pill" id="pill" type="button" aria-haspopup="menu" aria-expanded="true" aria-controls="acctmenu">
+        <span class="avatar" aria-hidden="true">S</span>
+        <span class="e">simi.oremosu@gmail.com</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="menu-pop" id="acctmenu" role="menu" aria-label="Account and cert switcher">
+        <div class="m-id">
+          <div class="m-email">simi.oremosu@gmail.com</div>
+          <div class="m-status"><span class="dot pass" aria-hidden="true"></span> Free tier · Security+ active</div>
+        </div>
+        <div class="m-sync"><span class="s"><span class="dot pass" aria-hidden="true"></span> Synced</span><button type="button">Sync now</button></div>
+        <div class="m-sep"></div>
+        <div class="m-lab">Switch cert</div>
+        <button class="cert-row" role="menuitemradio" aria-checked="false" type="button">
+          <span class="cmk" aria-hidden="true">N+</span>
+          <span class="cn">Network+ <span class="cc">N10-009</span></span>
+          <svg class="ck" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="cert-row active" role="menuitemradio" aria-checked="true" type="button">
+          <span class="cmk" aria-hidden="true">S+</span>
+          <span class="cn">Security+ <span class="cc">SY0-701</span></span>
+          <svg class="ck" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="m-sep"></div>
+        <button class="mi" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 .1-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Account settings
+        </button>
+        <button class="mi" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h10M19 7h0M9 12h10M5 12h0M13 17h6M5 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="7" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="7" cy="12" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="11" cy="17" r="2" stroke="currentColor" stroke-width="1.6"/></svg>
+          Cert preferences
+        </button>
+        <button class="mi" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 10L12 5 2 10l10 5 10-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          My certs
+        </button>
+        <button class="mi" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 21V10M12 21V4M19 21v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Cross-cert analytics
+        </button>
+        <button class="mi" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 19l-7-7 7-7M3 12h13a5 5 0 0 1 5 5v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back to certanvil.com
+        </button>
+        <button class="mi admin" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 12l1.8 1.8L15 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Admin Dashboard
+        </button>
+        <div class="m-sep"></div>
+        <button class="mi out" role="menuitem" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sign out
+        </button>
+      </div>
+    </span>
+  </span>
+</header>
+
+<div class="ghost" aria-hidden="true"><h2>Classify the control.</h2></div>
+<button class="reopen" id="reopen" type="button">Open account menu</button>
+
+<script>
+  (function(){
+    var acct=document.getElementById('acct'),pill=document.getElementById('pill'),reopen=document.getElementById('reopen');
+    function close(){acct.classList.remove('open');pill.setAttribute('aria-expanded','false');setTimeout(function(){acct.style.display='none';reopen.style.display='block';},220);}
+    function open(){acct.style.display='';reopen.style.display='none';requestAnimationFrame(function(){requestAnimationFrame(function(){acct.classList.add('open');pill.setAttribute('aria-expanded','true');});});pill.focus();}
+    pill.addEventListener('click',function(e){e.stopPropagation();if(acct.classList.contains('open')){close();}else{acct.classList.add('open');pill.setAttribute('aria-expanded','true');}});
+    document.addEventListener('click',function(e){if(acct.style.display!=='none'&&!acct.contains(e.target)&&acct.classList.contains('open'))close();});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&acct.classList.contains('open')){close();}});
+    reopen.addEventListener('click',open);
+  })();
+  (function(){var b=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Security+ Phishing Triage concept (cert-app · product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Cert-app Phishing Triage (Security+
+  flagship, Domain 2) restyled faithfully from the founder's real
+  full-screen capture.
+
+  Register : PRODUCT, scenario launcher. Audit fix vs the live page:
+   · 27 near-identical phish CARDS in a grid = impeccable's "identical
+     card grids" absolute ban -> a scannable de-carded hairline LIST,
+     grouped by the 4 vectors (matches the real filter pills).
+   · two-tone vector + difficulty pills -> quiet tinted tags. emoji per
+     vector -> no emoji, the vector tag is the identifier.
+   · em-dashes in titles/sub/desc -> recomposed (middot / colon).
+     Attack-chain arrows kept (meaningful, not em-dashes).
+  MOTION : emil-design-eng frequency rule. A 27-item list is SCANNED, so
+  per-row reveal would be the AI-tell and slow the scan. CALM: hover/press
+  + tab/filter state only, NO scroll-reveal, NO fills. (Same call as IR
+  War Room and Progress; Analytics is where purposeful motion lives.)
+  HONESTY : all 27 phish mirror the real screen (titles, vector +
+  difficulty, red-flag counts, descriptions, locked progression,
+  0/27 mastered · 0 completed · 27 in bank, the 7-layer validator copy).
+  Locked prerequisites kept generic-faithful (exact unlock chain not
+  legible in the capture, so not fabricated).
+  0 emoji · 0 hex · 0 em-dash · index/app/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--t-1:12px;--t0:14.5px;--t1:18px;--t2:23px;--t3:32px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;}
+  .side{border-right:1px solid var(--dg-rule-soft);display:flex;flex-direction:column;padding:20px 0;}
+  .side-brand{padding:0 20px 18px;border-bottom:1px solid var(--dg-rule-soft);}
+  .sb-name{font-size:var(--t-1);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-2);}
+  .sb-name b{color:var(--dg-accent);}
+  .sb-cert{margin-top:6px;font-size:11px;color:var(--dg-text-dim);font-family:var(--mono);}
+  .nav-grp{padding:18px 12px 4px;}
+  .nav-grp-h{padding:0 8px 8px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .nav-i{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:8px;text-decoration:none;color:var(--dg-text-2);font-size:var(--t-1);font-weight:600;transition:background 0.12s ease,color 0.12s ease;}
+  .nav-i svg{width:16px;height:16px;color:var(--dg-text-dim);flex:none;transition:color 0.12s ease;}
+  .nav-i:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .nav-i.on{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 12%,transparent);}
+  .nav-i.on svg{color:var(--dg-accent);}
+  .side-foot{margin-top:auto;padding:16px 20px 0;}
+  .streak{display:flex;align-items:center;gap:9px;}
+  .streak svg{width:16px;height:16px;color:var(--dg-accent);flex:none;}
+  .streak b{font-size:var(--t0);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .streak span{font-size:11px;color:var(--dg-text-dim);}
+  .envchip{margin-top:14px;display:inline-block;font-size:10px;font-weight:800;letter-spacing:0.12em;color:var(--dg-accent);border:1px solid color-mix(in oklab,var(--dg-accent) 50%,transparent);border-radius:5px;padding:3px 7px;}
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid var(--dg-rule-soft);}
+  .top-l{font-size:var(--t-1);font-weight:700;letter-spacing:0.04em;color:var(--dg-text-dim);}
+  .top-r{display:flex;align-items:center;gap:13px;}
+  .chip-pro{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:3px 7px;}
+  .theme-toggle{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;}
+  .theme-toggle:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .pill{display:flex;align-items:center;gap:9px;background:var(--dg-bg-2);border:1px solid var(--dg-rule);border-radius:999px;padding:5px 11px 5px 5px;color:var(--dg-text-2);font:600 var(--t-1)/1 Inter,sans-serif;max-width:170px;}
+  .avatar{width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:11px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+  .pill .e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .content{padding:32px 32px 90px;max-width:1000px;}
+  .eyebrow{font-size:var(--t-1);font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{margin-top:10px;font-size:var(--t3);font-weight:800;letter-spacing:-0.025em;}
+  h1 i{font-style:normal;color:var(--dg-accent);}
+  .sub{margin-top:12px;font-size:var(--t1);color:var(--dg-text-2);max-width:64ch;line-height:1.5;}
+  .tabs{margin-top:20px;display:flex;gap:6px;border-bottom:1px solid var(--dg-rule);}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--dg-text-dim);font:700 var(--t-1)/1 Inter,sans-serif;padding:11px 14px;cursor:pointer;letter-spacing:0.02em;}
+  .tab.on{color:var(--dg-accent);border-bottom-color:var(--dg-accent);}
+  .tab:hover{color:var(--dg-text);}
+  .stats{margin-top:26px;display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--dg-rule);border-radius:12px;overflow:hidden;max-width:480px;}
+  .stat{padding:16px 20px;border-left:1px solid var(--dg-rule-soft);}
+  .stat:first-child{border-left:0;}
+  .stat .n{font-size:var(--t2);font-weight:800;color:var(--dg-text);font-variant-numeric:tabular-nums;}
+  .stat .n small{color:var(--dg-text-dim);font-size:var(--t-1);font-weight:600;}
+  .stat .k{margin-top:5px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .note{margin-top:22px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:78ch;}
+  .note b{color:var(--dg-text-2);font-weight:700;}
+  .filters{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;}
+  .fchip{background:none;border:1px solid var(--dg-rule);border-radius:999px;padding:8px 13px;cursor:pointer;font:700 var(--t-1)/1 Inter,sans-serif;color:var(--dg-text-2);transition:border-color 0.12s ease,color 0.12s ease;}
+  .fchip span{color:var(--dg-text-dim);font-weight:600;}
+  .fchip:hover{border-color:var(--dg-text-dim);color:var(--dg-text);}
+  .fchip.on{color:var(--dg-accent);border-color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 10%,transparent);}
+  .fchip.on span{color:var(--dg-accent);}
+
+  .grp{margin-top:34px;}
+  .grp-h{display:flex;align-items:baseline;gap:12px;padding-bottom:11px;border-bottom:1px solid var(--dg-rule);}
+  .grp-h h2{font-size:var(--t1);font-weight:800;letter-spacing:-0.01em;}
+  .grp-h .c{font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .ph{display:grid;grid-template-columns:30px 1fr 116px;gap:18px;align-items:start;padding:17px 4px;border-bottom:1px solid var(--dg-rule-soft);}
+  .ph:last-child{border-bottom:0;}
+  .ph-i{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:800 11px var(--mono);color:var(--dg-text-2);background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);margin-top:2px;}
+  .ph-main{min-width:0;}
+  .ph-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .ph-tags{margin-top:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .tag{font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:3px 7px;border-radius:5px;}
+  .tag.vec{color:var(--dg-text-2);border:1px solid var(--dg-rule);}
+  .tag.exam{color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 15%,transparent);}
+  .tag.found{color:var(--dg-text-dim);border:1px solid var(--dg-rule);}
+  .tag.hard{color:var(--dg-pass);background:color-mix(in oklab,var(--dg-pass) 14%,transparent);}
+  .tag.lock{color:var(--dg-text-dim);border:1px dashed var(--dg-rule);}
+  .ph-flags{margin-left:auto;font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .ph-d{margin-top:8px;font-size:var(--t-1);color:var(--dg-text-dim);max-width:62ch;line-height:1.5;}
+  .steps{margin-top:10px;display:flex;gap:6px;align-items:center;}
+  .steps i{width:7px;height:7px;border-radius:50%;background:var(--dg-rule-soft);}
+  .steps span{font-size:10px;color:var(--dg-text-dim);letter-spacing:0.06em;text-transform:uppercase;margin-left:4px;}
+  .ph-act{justify-self:end;}
+  .btn{display:inline-flex;align-items:center;gap:7px;background:var(--dg-accent);color:var(--dg-accent-ink);font:700 var(--t-1)/1 Inter,sans-serif;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;white-space:nowrap;transition:filter 0.15s var(--ease),transform 0.12s var(--ease);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:scale(0.97);}
+  .btn svg{width:12px;height:12px;}
+  .locktxt{font-size:10px;color:var(--dg-text-dim);display:flex;align-items:center;gap:6px;justify-content:flex-end;text-align:right;}
+  .locktxt svg{width:12px;height:12px;flex:none;}
+  .ph.locked{opacity:0.62;}
+  .ph.locked .ph-t{color:var(--dg-text-2);}
+  .gen{margin-top:34px;border:1px solid var(--dg-rule);border-radius:12px;background:var(--dg-bg-2);padding:20px 22px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+  .gen svg{width:20px;height:20px;color:var(--dg-accent);flex:none;margin-top:2px;}
+  .gen-x{flex:1;min-width:260px;}
+  .gen-t{font-size:var(--t0);font-weight:700;color:var(--dg-text);}
+  .gen-d{margin-top:6px;font-size:var(--t-1);color:var(--dg-text-dim);line-height:1.55;}
+  .gen-d b{color:var(--dg-text-2);font-weight:700;}
+  .gen .btn{align-self:center;}
+  @media (prefers-reduced-motion: reduce){.theme-toggle,.nav-i,.btn,.tab,.fchip{transition:none;}}
+  @media (max-width:880px){.app{grid-template-columns:1fr;}.side{display:none;}.ph{grid-template-columns:1fr;}.ph-i{display:none;}.ph-act{justify-self:start;}.stats{grid-template-columns:1fr;}}
+</style>
+<script>
+  (function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="side-brand"><div class="sb-name">Cert<b>Anvil</b></div><div class="sb-cert">Security+ · SY0-701</div></div>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Practice</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Home</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Progress</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Analytics</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>IR War Room</a>
+      <a class="nav-i on" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Phishing Triage</a>
+    </nav>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Drills</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h9l5 5v11H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Acronym Blitz</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Attack-to-Mitigation</a>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h7v7H4zM13 11h7v7h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Control Type Sorter</a>
+    </nav>
+    <nav class="nav-grp">
+      <div class="nav-grp-h">Account</div>
+      <a class="nav-i" href="#"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 13a7 7 0 0 0 .1-2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 3h-5L9 5.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1L9.5 21h5l.5-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="streak"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3c1 3-1 5-1 7a3 3 0 0 0 6 0c0-1 0-2-1-3 3 2 5 5 5 8a9 9 0 1 1-18 0c0-4 3-7 5-9 1 2 2 3 4 3 0-2 0-4 1-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><b>4</b><span>day streak · longest 4</span></div>
+      <span class="envchip">PROD</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <span class="top-l">Phishing Triage</span>
+      <span class="top-r"><span class="chip-pro">Pro</span><button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button><span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span></span>
+    </header>
+
+    <div class="content">
+      <div class="eyebrow">Flagship drill · Security+ · Domain 2</div>
+      <h1>Phishing <i>triage.</i></h1>
+      <p class="sub">Spot the red flags. Pick the right action. Across email, SMS, voice and QR, every form Sec+ tests.</p>
+      <div class="tabs">
+        <button class="tab on" type="button">Practice</button>
+        <button class="tab" type="button">Lessons</button>
+        <button class="tab" type="button">Dashboard</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">0<small> / 27</small></div><div class="k">Mastered</div></div>
+        <div class="stat"><div class="n">0</div><div class="k">Completed</div></div>
+        <div class="stat"><div class="n">27</div><div class="k">Phish in bank</div></div>
+      </div>
+
+      <p class="note"><b>Practice mode.</b> Click the red flags, pick the right action, reveal on submit. All 4 vectors live: email, smishing, vishing, quishing. AI generator and dashboard added in v4.98.3.</p>
+
+      <div class="filters">
+        <button class="fchip on" type="button">All <span>27</span></button>
+        <button class="fchip" type="button">Email phish <span>10</span></button>
+        <button class="fchip" type="button">Smishing <span>6</span></button>
+        <button class="fchip" type="button">Vishing <span>6</span></button>
+        <button class="fchip" type="button">Quishing <span>5</span></button>
+      </div>
+
+      <section class="grp">
+        <div class="grp-h"><h2>Email phish</h2><span class="c">10 in bank</span></div>
+        <div class="ph"><span class="ph-i">01</span><span class="ph-main"><span class="ph-t">"CFO" wire-fraud BEC</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">8 red flags</span></span><span class="ph-d">Display-name spoof of CFO Sarah Chen. Reply-To mismatch. Urgency plus secrecy plus wire transfer. SY0-701 trap-rich.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">02</span><span class="ph-main"><span class="ph-t">Microsoft password expiry credential phish</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag found">Foundational</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">"Your Microsoft 365 password expires in 24h." Spoofed sender domain, link to credential harvest.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph locked"><span class="ph-i">03</span><span class="ph-main"><span class="ph-t">Vendor invoice "bank account update"</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag hard">Hard</span><span class="tag lock">Locked</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">A real vendor's account is compromised; the attacker emails from the legit address requesting a bank-detail change for the next invoice cycle.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier phish</span></span></div>
+        <div class="ph"><span class="ph-i">04</span><span class="ph-main"><span class="ph-t">IT helpdesk MFA reset request</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">"IT" emailing about a new MFA enrolment requirement. Lookalike helpdesk URL, urgency cues.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">05</span><span class="ph-main"><span class="ph-t">Bank "fraud alert" with callback number</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">"Suspicious activity on your account." Provides a callback number that routes to a scammer call center.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">06</span><span class="ph-main"><span class="ph-t">"CEO" urgent gift card request</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">CEO display-name spoof requesting urgent gift card purchases for "client appreciation".</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">07</span><span class="ph-main"><span class="ph-t">"DocuSign" contract requires signature</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">Fake DocuSign envelope with a View Document button leading to credential harvest. Brand-impersonation classic.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">08</span><span class="ph-main"><span class="ph-t">"GitHub" security alert · suspicious sign-in</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">Dev-targeted GitHub impersonation. "Sign-in attempt from new device" with a link to a fake login page.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">09</span><span class="ph-main"><span class="ph-t">"AWS" account suspension warning</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag exam">Exam</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">"Your AWS account will be suspended" with a link to a fake AWS console. Targets cloud admins.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">10</span><span class="ph-main"><span class="ph-t">"HR" benefits enrolment closing reminder</span><span class="ph-tags"><span class="tag vec">Email phish</span><span class="tag found">Foundational</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">Fake HR portal link to capture employee SSO credentials. Foundational phish, easy to spot if you check.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><h2>Smishing</h2><span class="c">6 in bank</span></div>
+        <div class="ph"><span class="ph-i">11</span><span class="ph-main"><span class="ph-t">Bank "fraud alert" smish</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag exam">Exam</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">SMS impersonating a bank with a fake fraud alert, a reply-keyword, and a short link.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">12</span><span class="ph-main"><span class="ph-t">USPS package delivery failure smish</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag found">Foundational</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">Fake package delivery failure with a link to "reschedule" that leads to credential capture.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">13</span><span class="ph-main"><span class="ph-t">"IRS" tax refund SMS scam</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag found">Foundational</span><span class="ph-flags">4 red flags</span></span><span class="ph-d">Fake IRS tax refund notice. Government impersonation always equals scam.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph locked"><span class="ph-i">14</span><span class="ph-main"><span class="ph-t">"Microsoft" 2FA code request smish</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag exam">Exam</span><span class="tag lock">Locked</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">Fake Microsoft 2FA notice asking you to forward your code. Critical: never share 2FA codes.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier phish</span></span></div>
+        <div class="ph"><span class="ph-i">15</span><span class="ph-main"><span class="ph-t">"Apple" ID locked smish</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag found">Foundational</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">"Your Apple ID was locked" with a link to a fake Apple sign-in page.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">16</span><span class="ph-main"><span class="ph-t">"Verizon" billing dispute smish</span><span class="ph-tags"><span class="tag vec">Smishing</span><span class="tag found">Foundational</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">Fake Verizon overcharge dispute with a link to "verify account". Telco impersonation classic.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><h2>Vishing</h2><span class="c">6 in bank</span></div>
+        <div class="ph"><span class="ph-i">17</span><span class="ph-main"><span class="ph-t">Fake "Microsoft Security Support" voicemail</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag exam">Exam</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">Recorded voicemail claiming your Microsoft account was hacked, call back urgently. Caller-ID spoofed.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">18</span><span class="ph-main"><span class="ph-t">"IRS" back-tax demand · arrest threat</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag found">Foundational</span><span class="ph-flags">8 red flags</span></span><span class="ph-d">Aggressive voicemail demanding immediate payment for back taxes with an arrest threat. Most common phone scam.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph locked"><span class="ph-i">19</span><span class="ph-main"><span class="ph-t">Bank "fraud verification" callback</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag exam">Exam</span><span class="tag lock">Locked</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">Caller claims to be from your bank verifying a suspicious charge, asks you to confirm account details over the phone.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier phish</span></span></div>
+        <div class="ph"><span class="ph-i">20</span><span class="ph-main"><span class="ph-t">"Social Security" SSN suspension scam</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag found">Foundational</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">Voicemail claims your Social Security number has been suspended for criminal activity. Aggressive scam pattern.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph locked"><span class="ph-i">21</span><span class="ph-main"><span class="ph-t">"Tech support" remote-access scam</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag exam">Exam</span><span class="tag lock">Locked</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">Caller claims your computer has a virus and offers to fix it via remote access, a gateway to credential theft plus ransomware.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier phish</span></span></div>
+        <div class="ph"><span class="ph-i">22</span><span class="ph-main"><span class="ph-t">"Police" outstanding warrant scam</span><span class="ph-tags"><span class="tag vec">Vishing</span><span class="tag exam">Exam</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">Caller claims to be local police with an outstanding warrant, demands immediate payment to "clear" it.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><h2>Quishing</h2><span class="c">5 in bank</span></div>
+        <div class="ph"><span class="ph-i">23</span><span class="ph-main"><span class="ph-t">Parking meter QR sticker scam</span><span class="ph-tags"><span class="tag vec">Quishing</span><span class="tag exam">Exam</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">A QR sticker pasted over the parking meter's official one. The decoded URL points to credential harvest mimicking the city's parking app.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph locked"><span class="ph-i">24</span><span class="ph-main"><span class="ph-t">Corporate-themed "MFA update" QR poster</span><span class="ph-tags"><span class="tag vec">Quishing</span><span class="tag hard">Hard</span><span class="tag lock">Locked</span><span class="ph-flags">7 red flags</span></span><span class="ph-d">A print-out poster looking like an internal IT notice asking employees to scan a QR for an "MFA update". Lookalike-domain credential harvest.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><span class="locktxt"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Master an earlier phish</span></span></div>
+        <div class="ph"><span class="ph-i">25</span><span class="ph-main"><span class="ph-t">Restaurant menu QR · credential harvest</span><span class="ph-tags"><span class="tag vec">Quishing</span><span class="tag found">Foundational</span><span class="ph-flags">4 red flags</span></span><span class="ph-d">A QR code on a restaurant table for the "menu" leads to a credential-harvest page with a fake login.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">26</span><span class="ph-main"><span class="ph-t">Emotional charity donation QR scam</span><span class="ph-tags"><span class="tag vec">Quishing</span><span class="tag exam">Exam</span><span class="ph-flags">6 red flags</span></span><span class="ph-d">A QR code on a charity flier with emotional fundraising language. The decoded URL captures payment details and diverts donations.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+        <div class="ph"><span class="ph-i">27</span><span class="ph-main"><span class="ph-t">Conference badge QR · credential harvest</span><span class="ph-tags"><span class="tag vec">Quishing</span><span class="tag exam">Exam</span><span class="ph-flags">5 red flags</span></span><span class="ph-d">A QR badge at a conference networking event linked to an "exclusive event app", actually credential harvest for LinkedIn-style accounts.</span><span class="steps"><i></i><i></i><i></i><span>not started</span></span></span><span class="ph-act"><button class="btn" type="button">Triage <svg viewBox="0 0 24 24" fill="none"><path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+      </section>
+
+      <div class="gen">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span class="gen-x">
+          <div class="gen-t">AI phish generator</div>
+          <div class="gen-d">Sonnet 4.6 authors fresh phish across all 4 vectors. A <b>7-layer validator</b> gates every output: vector validity · action realism · no real PII · at least 4 flags · SY0-701 citation · 6 decision actions · vector-format match.</div>
+        </span>
+        <button class="btn" type="button">Open generator <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var btn=document.getElementById('themeToggle'),mq=window.matchMedia('(prefers-color-scheme: light)');
+    function eff(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}
+    function lab(){btn.textContent=eff()==='light'?'Dark':'Light';}lab();
+    btn.addEventListener('click',function(){var n=eff()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lab();});
+    mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lab();});
+  })();
+</script>
+
+</body>
+</html>

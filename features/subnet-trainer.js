@@ -452,7 +452,7 @@
     el.innerHTML = ST_CAT_IDS.map(c => {
       const cat = ST_CATEGORIES[c];
       const active = stFocusCat === c ? ' st-focus-chip-active' : '';
-      return `<button class="st-focus-chip${active}" data-cat="${c}" onclick="stSetFocusCat('${c}')" style="--st-cat-color:${cat.color}">${cat.icon} ${escHtml(cat.label)}</button>`;
+      return `<button class="st-focus-chip${active}" data-cat="${c}" onclick="stSetFocusCat('${c}')">${escHtml(cat.label)}</button>`;
     }).join('');
   }
   
@@ -472,7 +472,7 @@
   function stStopTimer() { if (stTimerInterval) { clearInterval(stTimerInterval); stTimerInterval = null; } }
   function stEndTimedChallenge() {
     const card = document.getElementById('st-q-card');
-    if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:48px;margin-bottom:12px">\u23f0</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${stCorrect}</strong> out of <strong>${stTotal}</strong></div><button class="btn btn-primary" onclick="setSubnetMode('timed')">Try Again</button></div>`;
+    if (card) card.innerHTML = `<div style="text-align:center;padding:30px"><div style="font-size:22px;font-weight:800;margin-bottom:8px">Time\u2019s Up!</div><div style="font-size:16px;color:var(--text-mid);margin-bottom:16px">You scored <strong>${stCorrect}</strong> out of <strong>${stTotal}</strong></div><button class="btn btn-primary" onclick="setSubnetMode('timed')">Try Again</button></div>`;
   }
   
   // ── Question Flow ──
@@ -505,7 +505,7 @@
   
     // Update stats strip
     document.getElementById('st-score').textContent = stCorrect + ' / ' + stTotal;
-    document.getElementById('st-streak').textContent = '\ud83d\udd25 ' + stStreak;
+    document.getElementById('st-streak').textContent = '' + stStreak;
     const catBadge = document.getElementById('st-cat-badge');
     if (catBadge && stQ.category) { const c = ST_CATEGORIES[stQ.category]; catBadge.textContent = c ? c.icon + ' ' + c.label : ''; catBadge.style.color = c ? c.color : ''; }
     const diffBadge = document.getElementById('st-diff-badge');
@@ -540,7 +540,7 @@
     else { stStreak = 0; }
   
     document.getElementById('st-score').textContent = stCorrect + ' / ' + stTotal;
-    document.getElementById('st-streak').textContent = '\ud83d\udd25 ' + stStreak;
+    document.getElementById('st-streak').textContent = '' + stStreak;
     document.getElementById('st-next-btn')?.classList.remove('is-hidden');
   
     // Render feedback
@@ -557,10 +557,10 @@
     if (!fb) return;
     let html = '';
     if (isCorrect) {
-      html = `<div class="st-fb-correct"><strong>\u2705 Correct!</strong> <span class="st-fb-answer">${escHtml(q.answer)}</span><span class="st-fb-time">${elapsed}s</span></div>`;
-      if (stStreak >= 5) html += '<div class="st-fb-streak">\ud83d\udd25 ' + stStreak + ' streak!</div>';
+      html = `<div class="st-fb-correct"><strong>Correct!</strong> <span class="st-fb-answer">${escHtml(q.answer)}</span><span class="st-fb-time">${elapsed}s</span></div>`;
+      if (stStreak >= 5) html += '<div class="st-fb-streak">' + stStreak + ' streak!</div>';
     } else {
-      html = `<div class="st-fb-wrong"><strong>\u274c Incorrect.</strong> Your answer: <code>${escHtml(userAnswer)}</code></div>`;
+      html = `<div class="st-fb-wrong"><strong>Incorrect.</strong> Your answer: <code>${escHtml(userAnswer)}</code></div>`;
       html += `<div class="st-fb-correct-answer">Correct answer: <strong>${escHtml(q.answer)}</strong></div>`;
       // Step-by-step walkthrough
       if (q.steps && q.steps.length) {
@@ -575,7 +575,7 @@
         html += '</details>';
       }
       // AI Coach button
-      html += `<button class="btn btn-ghost st-coach-btn" onclick="stAskCoach()">&#129302; Ask Coach to explain</button>`;
+      html += `<button class="btn btn-ghost st-coach-btn" onclick="stAskCoach()">Ask Coach to explain</button>`;
       html += '<div id="st-coach-panel" class="st-coach-panel"></div>';
     }
     fb.innerHTML = html;
@@ -648,8 +648,8 @@
       const unlocked = isLessonUnlocked(l);
       const done = progress[l.id] && progress[l.id].passed;
       const active = stActiveLesson === l.id;
-      const icon = done ? '\u2705' : unlocked ? l.icon : '\ud83d\udd12';
-      const cls = `st-lesson-item${active ? ' st-lesson-active' : ''}${!unlocked ? ' st-lesson-locked' : ''}`;
+      const icon = done ? '' : unlocked ? '' : '';
+      const cls = `st-lesson-item${active ? ' st-lesson-active' : ''}${!unlocked ? ' st-lesson-locked' : ''}${done ? ' st-lesson-done' : ''}`;
       return `<button class="${cls}" onclick="${unlocked ? `stOpenLesson('${l.id}')` : ''}" ${!unlocked ? 'disabled' : ''}>
         <span class="st-lesson-icon">${icon}</span>
         <span class="st-lesson-info"><span class="st-lesson-num">Lesson ${i+1}</span><span class="st-lesson-title">${escHtml(l.title)}</span></span>
@@ -674,13 +674,13 @@
     const main = document.getElementById('st-lesson-main');
     if (!main) return;
   
-    let html = `<div class="st-lesson-header"><span class="st-lesson-header-icon">${lesson.icon}</span><h3>${escHtml(lesson.title)}</h3><p class="st-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
+    let html = `<div class="st-lesson-header"><span class="st-lesson-header-icon"></span><h3>${escHtml(lesson.title)}</h3><p class="st-lesson-desc">${escHtml(lesson.desc)}</p></div>`;
     // Theory
     html += '<div class="st-lesson-theory">';
     lesson.theory.forEach(t => { html += `<div class="st-theory-block">${t}</div>`; });
     html += '</div>';
     // Practice gate
-    html += '<div class="st-lesson-gate"><h4>\ud83c\udfaf Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
+    html += '<div class="st-lesson-gate"><h4>Practice Gate \u2014 Get 3/5 to unlock the next lesson</h4>';
     html += '<div id="st-gate-area"></div></div>';
   
     main.innerHTML = html;
@@ -752,7 +752,7 @@
     if (correct) gs.correct++;
     const fb = document.getElementById('st-gate-fb');
     if (fb) {
-      fb.innerHTML = correct ? `<div class="st-fb-correct">\u2705 Correct! ${escHtml(q.answer)}</div>` : `<div class="st-fb-wrong">\u274c ${escHtml(q.answer)}</div>`;
+      fb.innerHTML = correct ? `<div class="st-fb-correct">Correct! ${escHtml(q.answer)}</div>` : `<div class="st-fb-wrong">Incorrect. ${escHtml(q.answer)}</div>`;
       fb.className = 'st-feedback st-feedback-visible';
     }
     gs.current++;
@@ -769,7 +769,7 @@
       const d = m.categories[c] || { seen: 0, correct: 0, box: 1 };
       const acc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const color = d.seen === 0 ? 'var(--text-dim)' : acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      return `<div class="st-heat-cell" style="border-color:${cat.color}"><div class="st-heat-icon">${cat.icon}</div><div class="st-heat-pct" style="color:${color}">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="st-heat-label">${cat.label.split(' ')[0]}</div><div class="st-heat-box">Box ${d.box}/5</div></div>`;
+      return `<div class="st-heat-cell"><div class="st-heat-icon"></div><div class="st-heat-pct">${d.seen > 0 ? acc + '%' : '\u2014'}</div><div class="st-heat-label">${cat.label.split(' ')[0]}</div><div class="st-heat-box">Box ${d.box}/5</div></div>`;
     }).join('') + '</div>';
   }
   
@@ -778,11 +778,7 @@
     const el = document.getElementById('st-level-badge');
     if (!el) return;
     const m = getSubnetMastery();
-    const colors = { beginner: '#22c55e', intermediate: '#f59e0b', advanced: '#f97316', expert: '#ef4444' };
     el.textContent = m.currentLevel.charAt(0).toUpperCase() + m.currentLevel.slice(1);
-    el.style.background = (colors[m.currentLevel] || '#7c6ff7') + '22';
-    el.style.color = colors[m.currentLevel] || '#7c6ff7';
-    el.style.borderColor = (colors[m.currentLevel] || '#7c6ff7') + '55';
   }
   
   // ── Dashboard ──
@@ -824,10 +820,10 @@
       .sort((a, b) => a.accuracy - b.accuracy)
       .slice(0, 3);
     if (weakest.length > 0) {
-      html += '<div class="st-dash-callout st-dash-callout-weak"><div class="st-dash-callout-title">⚠️ Your weakest categories — drill these now</div><div class="st-dash-callout-rows">';
+      html += '<div class="st-dash-callout st-dash-callout-weak"><div class="st-dash-callout-title">Your weakest categories — drill these now</div><div class="st-dash-callout-rows">';
       weakest.forEach(w => {
         const pctNum = Math.round(w.accuracy * 100);
-        html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${w.id}')" title="Jump to focus drill on ${escHtml(w.cat.label)}"><span class="st-dash-callout-icon">${w.cat.icon}</span><span class="st-dash-callout-name">${escHtml(w.cat.label)}</span><span class="st-dash-callout-pct">${pctNum}%</span><span class="st-dash-callout-action">Drill →</span></button>`;
+        html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${w.id}')" title="Jump to focus drill on ${escHtml(w.cat.label)}"><span class="st-dash-callout-icon"></span><span class="st-dash-callout-name">${escHtml(w.cat.label)}</span><span class="st-dash-callout-pct">${pctNum}%</span><span class="st-dash-callout-action">Drill →</span></button>`;
       });
       html += '</div></div>';
     }
@@ -838,9 +834,9 @@
       .sort((a, b) => b.daysSince - a.daysSince)
       .slice(0, 3);
     if (stale.length > 0) {
-      html += '<div class="st-dash-callout st-dash-callout-stale"><div class="st-dash-callout-title">🕐 Haven\'t touched in a while — refresh these</div><div class="st-dash-callout-rows">';
+      html += '<div class="st-dash-callout st-dash-callout-stale"><div class="st-dash-callout-title">Haven\'t touched in a while — refresh these</div><div class="st-dash-callout-rows">';
       stale.forEach(s => {
-        html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${s.id}')" title="Jump to focus drill on ${escHtml(s.cat.label)}"><span class="st-dash-callout-icon">${s.cat.icon}</span><span class="st-dash-callout-name">${escHtml(s.cat.label)}</span><span class="st-dash-callout-pct">${s.daysSince}d stale</span><span class="st-dash-callout-action">Refresh →</span></button>`;
+        html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${s.id}')" title="Jump to focus drill on ${escHtml(s.cat.label)}"><span class="st-dash-callout-icon"></span><span class="st-dash-callout-name">${escHtml(s.cat.label)}</span><span class="st-dash-callout-pct">${s.daysSince}d stale</span><span class="st-dash-callout-action">Refresh →</span></button>`;
       });
       html += '</div></div>';
     }
@@ -853,7 +849,7 @@
       .sort((a, b) => a.accuracy - b.accuracy)
       .slice(0, 3);
     if (typeRows.length > 0) {
-      html += '<div class="st-dash-callout st-dash-callout-types"><div class="st-dash-callout-title">🎯 Specific question types tripping you up</div><div class="st-dash-callout-type-list">';
+      html += '<div class="st-dash-callout st-dash-callout-types"><div class="st-dash-callout-title">Specific question types tripping you up</div><div class="st-dash-callout-type-list">';
       typeRows.forEach(r => {
         const pctNum = Math.round(r.accuracy * 100);
         const humanType = r.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -869,7 +865,7 @@
       const d = m.categories[c] || { seen: 0, correct: 0, box: 1, streak: 0 };
       const catAcc = d.seen > 0 ? Math.round(d.correct / d.seen * 100) : 0;
       const barColor = catAcc >= 80 ? 'var(--green)' : catAcc >= 50 ? 'var(--yellow)' : 'var(--red)';
-      html += `<div class="st-dash-cat-card" style="border-left:3px solid ${cat.color}"><div class="st-dash-cat-head">${cat.icon} ${escHtml(cat.label)}</div><div class="st-dash-cat-bar"><div style="width:${catAcc}%;background:${barColor};height:100%;border-radius:3px;transition:width .3s"></div></div><div class="st-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>\ud83d\udd25 ${d.streak}</span></div></div>`;
+      html += `<div class="st-dash-cat-card"><div class="st-dash-cat-head">${escHtml(cat.label)}</div><div class="st-dash-cat-bar"><div style="width:${catAcc}%;height:100%;border-radius:3px;transition:width .3s"></div></div><div class="st-dash-cat-stats"><span>${catAcc}% acc</span><span>${d.seen} seen</span><span>Box ${d.box}/5</span><span>${d.streak} streak</span></div></div>`;
     });
     html += '</div>';
   
@@ -878,7 +874,7 @@
     const lp = getLessonProgress();
     SUBNET_LESSONS.forEach((l, i) => {
       const done = lp[l.id] && lp[l.id].passed;
-      html += `<div class="st-dash-lesson-row"><span>${done ? '\u2705' : '\u2b1c'}</span><span>Lesson ${i+1}: ${escHtml(l.title)}</span></div>`;
+      html += `<div class="st-dash-lesson-row"><span class="st-dash-lesson-dot${done ? ' st-dash-lesson-done' : ''}"></span><span>Lesson ${i+1}: ${escHtml(l.title)}</span></div>`;
     });
     html += '</div>';
   

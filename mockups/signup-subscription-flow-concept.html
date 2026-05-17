@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Signup & Subscription Flow · Concept Draft</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-deep: #050508;
+    --surface: #14141f;
+    --surface2: #1c1c2a;
+    --surface3: #25253a;
+    --border: rgba(255,255,255,.08);
+    --border-strong: rgba(255,255,255,.16);
+    --text: #ebebf2;
+    --text-mid: #a8a8b8;
+    --text-dim: #707080;
+    --accent: #7c6ff7;
+    --accent-light: #9b8df9;
+    --accent-dim: rgba(124,111,247,.3);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,.15);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,.15);
+    --yellow: #fbbf24;
+    --yellow-dim: rgba(251,191,36,.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,.15);
+    --blue: #38bdf8;
+    --pink: #ec4899;
+    --pink-dim: rgba(236,72,153,.12);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --radius-lg: 22px;
+    --shadow: 0 6px 24px rgba(0,0,0,.4);
+    --shadow-lg: 0 18px 60px rgba(0,0,0,.55);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(ellipse at top, #15152a 0%, #0a0a0f 60%);
+    color: var(--text);
+    line-height: 1.55;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .doc-hero { margin-bottom: 56px; }
+  .doc-eyebrow {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent-light);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 5px 12px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+  .doc-h1 {
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    line-height: 1.1;
+  }
+  .doc-h1 .accent { color: var(--accent-light); }
+  .doc-sub {
+    font-size: 18px;
+    color: var(--text-mid);
+    max-width: 780px;
+    margin: 0 0 20px;
+  }
+  .doc-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .doc-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    padding: 5px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .doc-meta-item .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot-yellow { background: var(--yellow); }
+
+  /* ── Section ── */
+  .section { margin-bottom: 64px; }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-size: 14px;
+    color: var(--accent-light);
+    font-weight: 700;
+    background: var(--accent-dim);
+    padding: 3px 10px;
+    border-radius: 10px;
+    letter-spacing: .04em;
+  }
+  .section-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .section-blurb {
+    font-size: 15px;
+    color: var(--text-mid);
+    margin: 0;
+    max-width: 760px;
+  }
+
+  /* ── Decision-confirmed banner ── */
+  .decisions-banner {
+    background: linear-gradient(135deg, rgba(34,197,94,.08), rgba(34,197,94,.02));
+    border: 1px solid rgba(34,197,94,.3);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .decisions-banner h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    color: var(--green);
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+  .decisions-banner ul {
+    margin: 0;
+    padding-left: 22px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .decisions-banner li {
+    margin-bottom: 6px;
+  }
+  .decisions-banner strong { color: var(--green); }
+
+  /* ── Compass diagram ── */
+  .compass {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    margin-bottom: 28px;
+  }
+  .compass-grid {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr 80px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .compass-col-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .compass-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: border-color .2s, transform .2s;
+  }
+  .compass-node.entry { background: linear-gradient(135deg, rgba(56,189,248,.08), rgba(56,189,248,.02)); border-color: rgba(56,189,248,.3); }
+  .compass-node.outcome-free { background: linear-gradient(135deg, rgba(248,250,252,.04), rgba(248,250,252,.01)); }
+  .compass-node.outcome-pro { background: linear-gradient(135deg, rgba(124,111,247,.08), rgba(124,111,247,.02)); border-color: var(--accent-dim); }
+  .compass-node.outcome-departed { background: linear-gradient(135deg, rgba(239,68,68,.06), rgba(239,68,68,.01)); border-color: rgba(239,68,68,.2); }
+  .compass-node-emoji { font-size: 22px; margin-right: 6px; }
+  .compass-node-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px;
+    display: flex;
+    align-items: center;
+  }
+  .compass-node-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .compass-arrow {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 18px;
+  }
+  .compass-legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-mid);
+  }
+  .compass-legend-item { display: flex; align-items: center; gap: 6px; }
+  .compass-legend-dot {
+    width: 10px; height: 10px; border-radius: 3px;
+  }
+
+  /* ── Flow tabs ── */
+  .flow-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px;
+  }
+  .flow-tab {
+    flex: 1;
+    min-width: 130px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-mid);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .flow-tab:hover { color: var(--text); background: var(--surface2); }
+  .flow-tab.is-active {
+    background: var(--accent-dim);
+    color: var(--accent-light);
+    border-color: var(--accent-dim);
+  }
+  .flow-tab-num {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-dim);
+    margin-right: 6px;
+    background: var(--surface3);
+    padding: 2px 6px;
+    border-radius: 8px;
+    letter-spacing: .05em;
+  }
+  .flow-tab.is-active .flow-tab-num {
+    background: var(--accent);
+    color: white;
+  }
+  .flow-panel { display: none; }
+  .flow-panel.is-active { display: block; }
+
+  /* ── Flow step ── */
+  .flow-step {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-step-num {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1;
+    padding-top: 8px;
+    opacity: .8;
+  }
+  .flow-step-num.muted { color: var(--text-dim); }
+  .flow-step-content {}
+  .flow-step-title {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .flow-step-desc {
+    font-size: 14px;
+    color: var(--text-mid);
+    margin: 0 0 14px;
+    max-width: 720px;
+  }
+  .flow-step-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 10px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .tag-anon { background: var(--blue); color: white; }
+  .tag-free { background: var(--text-dim); color: white; }
+  .tag-pro { background: var(--accent); color: white; }
+  .tag-decision { background: var(--orange); color: white; }
+  .tag-backend { background: rgba(255,255,255,.1); color: var(--text-mid); }
+
+  /* ── Screen mocks ── */
+  .screen-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 24px;
+    align-items: start;
+    margin-top: 10px;
+  }
+  .screen-grid.single { grid-template-columns: minmax(0, 1fr); }
+  .screen-frame {
+    background: linear-gradient(180deg, #0a0a0f 0%, #14141f 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .screen-frame-chrome {
+    background: #16161e;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'SF Mono', Monaco, monospace;
+  }
+  .screen-frame-chrome .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .screen-frame-chrome .dot-r { background: #ff5f57; }
+  .screen-frame-chrome .dot-y { background: #febc2e; }
+  .screen-frame-chrome .dot-g { background: #28c840; }
+  .screen-frame-chrome .url {
+    flex: 1;
+    background: var(--bg);
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-left: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .screen-frame-body { padding: 24px; min-height: 280px; }
+  .screen-frame.phone {
+    max-width: 360px;
+    border-radius: 32px;
+  }
+  .screen-frame.phone .screen-frame-chrome {
+    padding: 14px 18px;
+    border-radius: 32px 32px 0 0;
+  }
+  .screen-frame.email {
+    background: #fff;
+    color: #1a1a1a;
+    border-radius: 8px;
+  }
+  .screen-frame.email .screen-frame-chrome {
+    background: #f4f4f5;
+    border-bottom: 1px solid #e4e4e7;
+    color: #71717a;
+  }
+  .screen-frame.email .screen-frame-body {
+    color: #1a1a1a;
+  }
+  .screen-frame.email-app { background: linear-gradient(180deg, #fafbfc, #fff); color: #1c1d21; }
+  .screen-frame.stripe {
+    background: linear-gradient(180deg, #f6f9fc 0%, #eef2f7 100%);
+    border-color: #cfd7df;
+    color: #32325d;
+  }
+  .screen-frame.stripe .screen-frame-chrome {
+    background: #fff;
+    border-bottom: 1px solid #e3e8ee;
+    color: #6772e5;
+  }
+
+  /* ── Mocked UI elements ── */
+  .mock-h1 { font-size: 22px; font-weight: 800; margin: 0 0 10px; letter-spacing: -.01em; }
+  .mock-h2 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
+  .mock-p { font-size: 13px; color: var(--text-mid); margin: 0 0 12px; line-height: 1.6; }
+  .mock-input {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .mock-input::before {
+    content: attr(data-placeholder);
+    color: var(--text-dim);
+  }
+  .mock-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mock-btn.full { width: 100%; justify-content: center; }
+  .mock-btn.secondary { background: var(--surface3); color: var(--text); }
+  .mock-btn.danger { background: var(--red); }
+  .mock-btn.ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--text); }
+  .mock-link { color: var(--accent-light); font-size: 12px; text-decoration: none; }
+  .mock-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+  .mock-stripe-card {
+    background: white;
+    border: 1px solid #e3e8ee;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(50,50,93,.07);
+    color: #32325d;
+  }
+  .mock-stripe-card .mock-h1 { color: #32325d; font-size: 18px; }
+  .mock-stripe-card .mock-p { color: #525f7f; font-size: 12px; }
+  .mock-stripe-field {
+    background: white;
+    border: 1px solid #e3e8ee;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #424770;
+  }
+  .mock-stripe-btn {
+    background: #635bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .mock-plan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .mock-plan-card.is-selected {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(124,111,247,.12), rgba(124,111,247,.04));
+  }
+  .mock-plan-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .mock-plan-name { font-size: 14px; font-weight: 700; }
+  .mock-plan-price { font-size: 18px; font-weight: 800; color: var(--accent-light); }
+  .mock-plan-sub { font-size: 11px; color: var(--text-dim); }
+  .mock-badge-best-value {
+    background: var(--green);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+
+  /* ── Annotation card (right column) ── */
+  .annotation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    font-size: 12px;
+  }
+  .annotation h4 {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .annotation ul {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    color: var(--text-mid);
+  }
+  .annotation li { margin-bottom: 5px; }
+  .annotation code {
+    background: var(--surface3);
+    color: var(--accent-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'SF Mono', Monaco, monospace;
+  }
+  .annotation-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .annotation-row strong { color: var(--text); }
+  .annot-icon {
+    width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .annot-supabase { background: rgba(62,207,142,.15); color: #3ecf8e; }
+  .annot-stripe { background: rgba(99,91,255,.15); color: #635bff; }
+  .annot-app { background: var(--accent-dim); color: var(--accent-light); }
+  .annot-email { background: rgba(56,189,248,.15); color: var(--blue); }
+  .annot-decision { background: var(--orange-dim); color: var(--orange); }
+
+  /* ── Pricing page mock ── */
+  .pricing-mock {
+    background: linear-gradient(180deg, #0a0a0f 0%, #1c1c2a 100%);
+    padding: 32px 28px;
+    border-radius: var(--radius);
+    margin: 12px 0;
+  }
+  .pricing-h1 {
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, #fff, var(--accent-light));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .pricing-sub {
+    font-size: 14px;
+    color: var(--text-mid);
+    text-align: center;
+    margin: 0 0 24px;
+  }
+  .pricing-toggle {
+    display: flex;
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 4px;
+    margin: 0 auto 28px;
+    max-width: 280px;
+    border: 1px solid var(--border);
+  }
+  .pricing-toggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-mid);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .pricing-toggle button.active {
+    background: var(--accent);
+    color: white;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .pricing-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+  }
+  .pricing-card.pro {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(124,111,247,.1), var(--surface2));
+  }
+  .pricing-card-name { font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+  .pricing-card-price { font-size: 36px; font-weight: 800; margin: 8px 0; }
+  .pricing-card-price-sub { font-size: 13px; color: var(--text-dim); margin: 0 0 18px; }
+  .pricing-card-features { list-style: none; padding: 0; margin: 0 0 20px; font-size: 13px; color: var(--text-mid); }
+  .pricing-card-features li {
+    padding: 4px 0 4px 22px;
+    position: relative;
+  }
+  .pricing-card-features li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+  }
+  .pricing-card .mock-btn { width: 100%; justify-content: center; }
+  .pricing-card-badge {
+    position: absolute;
+    top: -10px;
+    right: 14px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 10px;
+    letter-spacing: .04em;
+  }
+
+  /* ── Paywall modal mock ── */
+  .paywall-mock {
+    background: rgba(0,0,0,.5);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+  .paywall-modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px;
+    border: 1px solid var(--accent-dim);
+    max-width: 380px;
+    margin: 0 auto;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(124,111,247,.2);
+  }
+  .paywall-emoji { font-size: 40px; margin-bottom: 10px; }
+  .paywall-title { font-size: 19px; font-weight: 800; margin: 0 0 8px; }
+  .paywall-sub { font-size: 13px; color: var(--text-mid); margin: 0 0 18px; }
+
+  /* ── Decision callout ── */
+  .decision-card {
+    background: linear-gradient(135deg, rgba(251,146,60,.06), rgba(251,146,60,.01));
+    border: 1px solid rgba(251,146,60,.3);
+    border-left: 3px solid var(--orange);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .decision-card-label {
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .decision-card strong { color: var(--orange); }
+
+  /* ── Roadmap table ── */
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  .roadmap-table th, .roadmap-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .roadmap-table th {
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 700;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table td { color: var(--text-mid); }
+  .roadmap-table td strong { color: var(--text); }
+  .roadmap-phase {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    letter-spacing: .03em;
+  }
+  .phase-now { background: var(--accent-dim); color: var(--accent-light); }
+  .phase-soon { background: var(--yellow-dim); color: var(--yellow); }
+  .phase-later { background: var(--surface3); color: var(--text-mid); }
+
+  /* ── Edge case grid ── */
+  .edge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .edge-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .edge-card h4 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .edge-card p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+  .edge-card-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    letter-spacing: .05em;
+  }
+  .tag-error { background: var(--red-dim); color: var(--red); }
+  .tag-warning { background: var(--yellow-dim); color: var(--yellow); }
+  .tag-flow { background: var(--accent-dim); color: var(--accent-light); }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  .doc-footer a { color: var(--accent-light); text-decoration: none; }
+
+  /* ── Quote callout ── */
+  .quote-callout {
+    background: linear-gradient(135deg, var(--accent-dim), rgba(124,111,247,.04));
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius);
+    padding: 22px 28px;
+    margin: 28px 0;
+    text-align: center;
+  }
+  .quote-callout-text {
+    font-size: 17px;
+    font-style: italic;
+    color: var(--text);
+    margin: 0 0 8px;
+    line-height: 1.4;
+  }
+  .quote-callout-attr {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ── Diagrams ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-top: 16px;
+  }
+  .arch-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .arch-row:last-child { margin-bottom: 0; }
+  .arch-row-label {
+    flex-shrink: 0;
+    width: 130px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding-top: 12px;
+  }
+  .arch-box {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+  }
+  .arch-box-title { font-weight: 700; font-size: 13px; margin: 0 0 4px; }
+  .arch-box-desc { font-size: 11px; color: var(--text-dim); margin: 0; }
+  .arch-supabase .arch-box-title { color: #3ecf8e; }
+  .arch-stripe .arch-box-title { color: #635bff; }
+  .arch-app .arch-box-title { color: var(--accent-light); }
+
+  /* small screens */
+  @media (max-width: 900px) {
+    .screen-grid { grid-template-columns: 1fr; }
+    .compass-grid { grid-template-columns: 1fr; gap: 12px; }
+    .compass-arrow { display: none; }
+    .doc-h1 { font-size: 32px; }
+    .section-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ─── Hero ─── -->
+  <div class="doc-hero">
+    <span class="doc-eyebrow">Concept Draft · Signup + Subscription Flow</span>
+    <h1 class="doc-h1">From <span class="accent">first tap</span> to <span class="accent">paying customer</span></h1>
+    <p class="doc-sub">
+      Every way a user can enter CertAnvil, every state they can hold (anonymous · free · pro · departed), every path between those states. Designed to take you from "we don't actually have a signup flow" to "ship-ready architecture" in one approval pass.
+    </p>
+    <div class="doc-meta">
+      <span class="doc-meta-item"><span class="dot dot-green"></span> 4 shape decisions confirmed</span>
+      <span class="doc-meta-item"><span class="dot dot-green"></span> Aligned with locked Phase 4 Stripe architecture</span>
+      <span class="doc-meta-item"><span class="dot dot-yellow"></span> v2 · App Store + admin ops + returning-user flow added</span>
+      <span class="doc-meta-item">📅 2026-05-11</span>
+    </div>
+  </div>
+
+  <!-- ─── v2.1 lock-in callout ─── -->
+  <div class="decisions-banner" style="background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(34,197,94,.02));border-color:rgba(34,197,94,.4);margin-bottom:24px">
+    <h3 style="color:var(--green)">✓ v2.1 lock-ins (2026-05-11)</h3>
+    <p style="margin:0 0 10px;color:var(--text-mid);font-size:13px;">Three additional decisions locked in this morning's session. <strong style="color:var(--text)">Status: in the pipeline, no execution today</strong> — captured here so they don't get lost.</p>
+    <ul>
+      <li><strong style="color:var(--green)">App Store path · Path B (hybrid Stripe + Apple IAP)</strong> — founder conviction: "App Store integration is the biggest driver of users — once they see App Store capability they will believe in the legitimacy of the app." v1 ships Stripe-only on web; Apple IAP added as Phase 12 (~3-week sprint, post-web-launch).</li>
+      <li><strong style="color:var(--green)">Playtester comp · LIFETIME Pro</strong> — the 5 founder-network friends currently on comp'd access get permanent Pro status. One-time SQL on launch + welcome email.</li>
+      <li><strong style="color:var(--green)">ToS + Privacy Policy · "really good and legit" drafts</strong> — founder-stated quality bar (not boilerplate). Customised to CertAnvil's actual data flows. Queued for next Thursday tech-debt slot.</li>
+    </ul>
+  </div>
+
+  <!-- ─── v2 additions callout ─── -->
+  <div class="decisions-banner" style="background:linear-gradient(135deg,rgba(251,146,60,.08),rgba(251,146,60,.02));border-color:rgba(251,146,60,.4);margin-bottom:24px">
+    <h3 style="color:var(--orange)">✏️ v2 additions (2026-05-11)</h3>
+    <ul>
+      <li><strong style="color:var(--orange)">App Store IAP section</strong> — Apple's policy on subscriptions could affect end-of-June App Store target. Three paths laid out (web-only, hybrid, IAP-only) — <strong>Path B locked above.</strong></li>
+      <li><strong style="color:var(--orange)">Returning-user flow</strong> — added as a 6th flow tab. Same magic-link mechanism, but "Welcome back" framing instead of "Welcome."</li>
+      <li><strong style="color:var(--orange)">Admin / founder ops</strong> — new section covering the internal tools needed to run the business (comp Pro, refunds, MRR view, playtest migration).</li>
+      <li><strong style="color:var(--orange)">Edge cases + roadmap + open questions</strong> — expanded to cover email change, multi-tab concurrency, ToS/Privacy pages, OAuth alternatives, tax/VAT, and more.</li>
+    </ul>
+  </div>
+
+  <!-- ─── Decisions banner ─── -->
+  <div class="decisions-banner">
+    <h3>✓ Confirmed decisions (2026-05-11 founder review · v2.1 lock-ins below)</h3>
+    <ul>
+      <li><strong>Account creation BEFORE payment</strong> for the "sign up + subscribe" combined flow. Magic-link → email-verified Supabase user → then Stripe Checkout for an authenticated user. Cleaner failed-payment recovery, matches existing auth infrastructure.</li>
+      <li><strong>Annual ($89/yr) is the default selected plan</strong> on the pricing page with "Best value · save 26%" badge. Monthly ($9.99/mo) remains a one-tap toggle.</li>
+      <li><strong>Self-service account deletion</strong> from Settings. Stripe subscription is auto-cancelled via the same flow (server calls Stripe API → webhook fires → Supabase auth user cascades delete). GDPR/CCPA-clean by default.</li>
+      <li><strong>PLG primary path preserved</strong>: anonymous diagnostic → free signup at step 5 (only after value delivered) → contextual paywall on day 7. Direct conversion flows exist for users who arrive convinced.</li>
+      <li style="border-top:1px solid rgba(34,197,94,.2);padding-top:8px;margin-top:8px"><strong>🆕 Path B for App Store distribution</strong> · hybrid Stripe (web) + Apple IAP (iOS). Founder conviction: App Store presence is the biggest legitimacy driver for cert-prep users. Web economics preserved; Apple users get native install + Apple's trust signal. Phase 12 build (~3 weeks · Capacitor wrapper + IAP entitlement reconciliation).</li>
+      <li><strong>🆕 Lifetime comp for the 5 playtester accounts</strong> · they were here from day one. One-time SQL on launch: <code>UPDATE subscriptions SET tier='pro', status='active', comp_reason='playtest_lifetime', current_period_end='2099-12-31' WHERE user_id IN (...)</code> + welcome email explaining their permanent Pro status.</li>
+      <li><strong>🆕 ToS + Privacy Policy = high-quality drafts</strong>, not boilerplate · founder bar is "really good and legit" — customised to CertAnvil's actual data flows (Supabase auth/storage · Stripe billing · cert-app usage telemetry · Web Vitals collector). Queued for the next Thursday tech-debt slot.</li>
+    </ul>
+  </div>
+
+  <!-- ─── Section 1: The Customer Compass ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <div>
+        <h2 class="section-title">The Customer Compass</h2>
+        <p class="section-blurb">Three entry points · five possible outcomes · every arrow is a flow we need to handle.</p>
+      </div>
+    </div>
+
+    <div class="compass">
+      <div class="compass-grid">
+        <div>
+          <div class="compass-col-label">Entry</div>
+          <div class="compass-node entry">
+            <div class="compass-node-title"><span class="compass-node-emoji">🌐</span> Landing page</div>
+            <div class="compass-node-sub">certanvil.com · typed URL, organic search, referral</div>
+          </div>
+          <div class="compass-node entry">
+            <div class="compass-node-title"><span class="compass-node-emoji">🔗</span> Cert subdomain</div>
+            <div class="compass-node-sub">networkplus.certanvil.com · bookmark, direct link</div>
+          </div>
+          <div class="compass-node entry">
+            <div class="compass-node-title"><span class="compass-node-emoji">📣</span> Promo / paid ad</div>
+            <div class="compass-node-sub">deep link to /pricing or to a specific cert</div>
+          </div>
+        </div>
+        <div class="compass-arrow">→</div>
+        <div>
+          <div class="compass-col-label">Decision branch</div>
+          <div class="compass-node" style="border-color: rgba(56,189,248,.4);">
+            <div class="compass-node-title"><span class="compass-node-emoji">🩺</span> Try first (PLG)</div>
+            <div class="compass-node-sub">Anonymous diagnostic → see value → THEN sign up</div>
+          </div>
+          <div class="compass-node" style="border-color: rgba(124,111,247,.4);">
+            <div class="compass-node-title"><span class="compass-node-emoji">⚡</span> Convert direct</div>
+            <div class="compass-node-sub">Already convinced → straight to sign-up + checkout</div>
+          </div>
+          <div class="compass-node" style="border-color: rgba(168,168,184,.2);">
+            <div class="compass-node-title"><span class="compass-node-emoji">📖</span> Just sign up</div>
+            <div class="compass-node-sub">Create account, stay free, decide later</div>
+          </div>
+        </div>
+        <div class="compass-arrow">→</div>
+        <div>
+          <div class="compass-col-label">Steady-state outcome</div>
+          <div class="compass-node outcome-free">
+            <div class="compass-node-title"><span class="compass-node-emoji">☕</span> Free account</div>
+            <div class="compass-node-sub">Signed in · 20 Q/day · basic plan · pro features paywalled</div>
+          </div>
+          <div class="compass-node outcome-pro">
+            <div class="compass-node-title"><span class="compass-node-emoji">💎</span> Pro Monthly</div>
+            <div class="compass-node-sub">$9.99/mo · unlimited · all certs · pass guarantee</div>
+          </div>
+          <div class="compass-node outcome-pro">
+            <div class="compass-node-title"><span class="compass-node-emoji">💎</span> Pro Annual</div>
+            <div class="compass-node-sub">$89/yr · 26% savings · same access</div>
+          </div>
+          <div class="compass-node outcome-departed">
+            <div class="compass-node-title"><span class="compass-node-emoji">👋</span> Departed</div>
+            <div class="compass-node-sub">Account deleted · subscription cancelled · cascaded clean</div>
+          </div>
+        </div>
+      </div>
+      <div class="compass-legend">
+        <span class="compass-legend-item"><span class="compass-legend-dot" style="background: rgba(56,189,248,.6)"></span> Anonymous</span>
+        <span class="compass-legend-item"><span class="compass-legend-dot" style="background: rgba(168,168,184,.6)"></span> Free tier</span>
+        <span class="compass-legend-item"><span class="compass-legend-dot" style="background: rgba(124,111,247,.7)"></span> Pro tier</span>
+        <span class="compass-legend-item"><span class="compass-legend-dot" style="background: rgba(239,68,68,.6)"></span> Deleted</span>
+      </div>
+    </div>
+
+    <div class="quote-callout">
+      <p class="quote-callout-text">"The user pays after they've felt the product work, not before. Every step asks for less commitment than the value just delivered."</p>
+      <p class="quote-callout-attr">— Cert SaaS Onboarding Roadmap guiding principle (2026-04-26)</p>
+    </div>
+  </section>
+
+  <!-- ─── Section 2: All 5 flows in tabbed view ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <div>
+        <h2 class="section-title">All five flows · screen by screen</h2>
+        <p class="section-blurb">Tap a flow to see the screen-by-screen journey, with annotations of what happens backend at each step.</p>
+      </div>
+    </div>
+
+    <div class="flow-tabs" role="tablist">
+      <button class="flow-tab is-active" data-tab="plg" role="tab"><span class="flow-tab-num">★</span>PLG Primary <em style="opacity:.6;font-weight:400">(recommended)</em></button>
+      <button class="flow-tab" data-tab="direct" role="tab"><span class="flow-tab-num">A</span>Sign up + subscribe</button>
+      <button class="flow-tab" data-tab="free" role="tab"><span class="flow-tab-num">B</span>Sign up + remain free</button>
+      <button class="flow-tab" data-tab="upgrade" role="tab"><span class="flow-tab-num">C</span>Upgrade later</button>
+      <button class="flow-tab" data-tab="delete" role="tab"><span class="flow-tab-num">D</span>Delete account</button>
+      <button class="flow-tab" data-tab="returning" role="tab"><span class="flow-tab-num">E</span>Returning sign-in</button>
+    </div>
+
+    <!-- ── PLG primary path ── -->
+    <div class="flow-panel is-active" data-panel="plg">
+
+      <div class="flow-step">
+        <div class="flow-step-num">0</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Land on certanvil.com</h3>
+          <p class="flow-step-desc">Hero with sample question, competitor callout (Jason Dion · Professor Messer · CertMaster · Boson), and the pass guarantee front and center. Pricing visible but secondary to "Try it now."</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+          <span class="flow-step-tag tag-decision">Step 0 of 11</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">https://certanvil.com</span>
+              </div>
+              <div class="screen-frame-body">
+                <div style="text-align:center;padding:20px 0">
+                  <h1 style="font-size:30px;font-weight:800;margin:0 0 8px;background:linear-gradient(135deg,#fff,var(--accent-light));-webkit-background-clip:text;background-clip:text;color:transparent;">Pass your CompTIA cert.</h1>
+                  <h1 style="font-size:30px;font-weight:800;margin:0 0 12px;color:var(--text);">Or your money back.</h1>
+                  <p style="color:var(--text-mid);font-size:14px;max-width:480px;margin:0 auto 22px;">AI-tutored quiz prep with the same exemplar bank that landed our founder 767/900 on Network+. Try a sample question right now — no signup needed.</p>
+                  <div style="display:flex;gap:10px;justify-content:center;">
+                    <button class="mock-btn">🩺 Take 20-Q diagnostic</button>
+                    <button class="mock-btn secondary">View pricing</button>
+                  </div>
+                  <p style="font-size:11px;color:var(--text-dim);margin-top:14px;">~30 min · no account · no card · see your weakest domains</p>
+                </div>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Backend</h4>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div><strong>Static page</strong> — landing/index.html, already exists in repo</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div>No auth, no DB, no Stripe yet</div></div>
+              <h4 style="margin-top:14px">Decisions baked in</h4>
+              <ul>
+                <li>"Try" CTA is louder than "Pricing"</li>
+                <li>Pass guarantee in the hero (most competitors hide it)</li>
+                <li>Sample-Q teaser visible above the fold (Codex draft recommendation)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Set up the diagnostic · 30 seconds</h3>
+          <p class="flow-step-desc">Pick cert (Network+ / Security+ live, others "coming soon"). Pick exam date if known (drives urgency framing). Pick intensity (Light · Standard · Intense — affects Pass Plan daily load).</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">https://networkplus.certanvil.com/?diagnostic=1</span>
+              </div>
+              <div class="screen-frame-body">
+                <h2 class="mock-h1">Tell us 3 things</h2>
+                <p class="mock-p">We'll calibrate your diagnostic and pass-plan to your reality.</p>
+                <div style="margin:14px 0">
+                  <p style="font-size:12px;color:var(--text-dim);font-weight:700;margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Which cert?</p>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span style="background:var(--accent);color:white;font-size:12px;padding:6px 12px;border-radius:6px;font-weight:600;">CompTIA Network+ N10-009</span>
+                    <span style="background:var(--surface2);font-size:12px;padding:6px 12px;border-radius:6px;color:var(--text-mid)">Security+ SY0-701</span>
+                  </div>
+                </div>
+                <div style="margin:14px 0">
+                  <p style="font-size:12px;color:var(--text-dim);font-weight:700;margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Exam date?</p>
+                  <div class="mock-input" style="font-size:12px;color:var(--text-dim);">📅 e.g. 2026-07-29 — or "not yet booked"</div>
+                </div>
+                <div style="margin:14px 0">
+                  <p style="font-size:12px;color:var(--text-dim);font-weight:700;margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">How intense?</p>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span style="background:var(--surface2);font-size:12px;padding:6px 12px;border-radius:6px;color:var(--text-mid)">🌱 Light <small>10Q/day</small></span>
+                    <span style="background:var(--accent);color:white;font-size:12px;padding:6px 12px;border-radius:6px;font-weight:600">⚡ Standard <small>25Q/day</small></span>
+                    <span style="background:var(--surface2);font-size:12px;padding:6px 12px;border-radius:6px;color:var(--text-mid)">🔥 Intense <small>50Q/day</small></span>
+                  </div>
+                </div>
+                <button class="mock-btn full" style="margin-top:18px">Start diagnostic →</button>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Behind the scenes</h4>
+              <div class="annotation-row"><span class="annot-icon annot-app">💾</span><div>Stored in localStorage only · zero backend</div></div>
+              <h4 style="margin-top:14px">Step purpose</h4>
+              <ul>
+                <li>Calibrates question generation for the diagnostic itself</li>
+                <li>Drives Pass Plan daily-load calculation in step 3</li>
+                <li>Captures exam date for retention urgency in step 9</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">20-question diagnostic · 30 min</h3>
+          <p class="flow-step-desc">Already built (v4.81.0 + v4.99.46 mobile-fix). Three-tier confidence ratings per question. Mixed difficulty, mixed domain coverage. The user feels what real exam prep is like before being asked for anything.</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+          <span class="flow-step-tag tag-backend">Already built</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Pass Plan reveal · insight, not numbers</h3>
+          <p class="flow-step-desc">Already built (v4.81.x). Copy upgrade still needed: surface what the diagnostic FOUND — "Wireless is 14% of the exam, and you got 30%. We'll fix that in 5 days." — not just the readiness score.</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+          <span class="flow-step-tag tag-backend">Built; copy refresh needed</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">4</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">First guided win · PRESCRIBED, not a menu</h3>
+          <p class="flow-step-desc">Diagnostic routes them to a SPECIFIC 5-minute activity that addresses their weakest domain. Not "here's a launcher, pick something" — "Wireless is your weak spot, here are 5 questions to fix it."</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+          <span class="flow-step-tag tag-decision">Router NEW</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num" style="color:var(--accent-light)">5</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">⭐ Account creation · only NOW</h3>
+          <p class="flow-step-desc">Value delivered. Pass Plan computed. First win logged. NOW we ask: "Save your progress" — not "create an account." Magic-link only (no password). Email collection only.</p>
+          <span class="flow-step-tag tag-decision">★ Conversion moment</span>
+          <span class="flow-step-tag tag-backend">Supabase magic-link</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">networkplus.certanvil.com/save-progress</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:32px 24px">
+                <div style="font-size:38px;margin-bottom:10px">📊</div>
+                <h2 class="mock-h1" style="font-size:22px">Save your Pass Plan</h2>
+                <p class="mock-p" style="max-width:300px;margin:0 auto 18px">You've logged your weak spots, your first win, and your exam date. Save it so we're here when you come back tomorrow.</p>
+                <div style="text-align:left">
+                  <div class="mock-input" style="font-size:12px;color:var(--text-dim);">📧 you@example.com</div>
+                  <button class="mock-btn full">Send me a magic link →</button>
+                </div>
+                <p style="font-size:11px;color:var(--text-dim);margin-top:14px">No password. No card. Free forever. We'll email you a single-use sign-in link.</p>
+                <hr class="mock-divider">
+                <a href="#" class="mock-link">Continue without saving (lose progress)</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>What happens on submit</h4>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div><strong>signInWithOtp({ email })</strong> — Supabase magic-link</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-email">✉</span><div>Email sent via Supabase's SMTP (Resend backend already configured)</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div>UI shows "Check your inbox" interstitial</div></div>
+              <h4 style="margin-top:14px">What the email contains</h4>
+              <ul>
+                <li>Single-use magic link valid for 60 min</li>
+                <li>Click → returns to <code>/welcome</code> path with diagnostic state already hydrated from localStorage</li>
+              </ul>
+              <h4 style="margin-top:14px">Why right here</h4>
+              <ul>
+                <li>User has invested ~35 min already</li>
+                <li>Pass Plan + first-win are concrete; "save it" is a felt loss aversion</li>
+                <li>Asking for less than what we just delivered</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">6</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Day 1 close · streak + trending</h3>
+          <p class="flow-step-desc">After signup, dashboard shows: ✓ Diagnostic done · 🔥 Streak: 1 day · 📈 Trending to 740/900 by exam date. Sets the recurring-visit hook.</p>
+          <span class="flow-step-tag tag-free">Free account</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">7</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Free first week · no paywall</h3>
+          <p class="flow-step-desc">Days 1-7: full access to everything (drills, lessons, prescribed plan). 20 Q/day quota is the ONLY gate — and most learners don't hit it. PLG bet: by day 7 they're already invested.</p>
+          <span class="flow-step-tag tag-free">Free + open</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num" style="color:var(--accent-light)">8</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">⭐ Contextual paywall · day 7</h3>
+          <p class="flow-step-desc">First time they hit the 20 Q/day cap OR open a Pro-locked drill (Topology Builder, ACL Builder, IRW, PHT, Network Analysis), paywall fires with pass guarantee + annual default.</p>
+          <span class="flow-step-tag tag-decision">★ Revenue moment</span>
+
+          <div class="screen-grid">
+            <div class="paywall-mock">
+              <div class="paywall-modal">
+                <div class="paywall-emoji">🎯</div>
+                <h2 class="paywall-title">You're in the zone.</h2>
+                <p class="paywall-sub">You've been studying 7 days. You're trending to <strong style="color:var(--green)">740/900</strong> by Jul 29. Most of our exam-passers unlock Pro right about now.</p>
+                <div class="mock-plan-card is-selected">
+                  <div class="mock-plan-card-header">
+                    <div>
+                      <span class="mock-plan-name">Pro Annual</span>
+                      <span class="mock-badge-best-value">Save 26%</span>
+                    </div>
+                    <span class="mock-plan-price">$89<small style="font-size:12px;font-weight:600">/yr</small></span>
+                  </div>
+                  <div class="mock-plan-sub">Pass guarantee · Unlimited Q · All certs · Money-back if you fail</div>
+                </div>
+                <div class="mock-plan-card">
+                  <div class="mock-plan-card-header">
+                    <span class="mock-plan-name">Pro Monthly</span>
+                    <span class="mock-plan-price">$9.99<small style="font-size:12px;font-weight:600">/mo</small></span>
+                  </div>
+                  <div class="mock-plan-sub">Cancel anytime. No commitment.</div>
+                </div>
+                <button class="mock-btn full" style="margin-top:14px">Get Pro · 7-day pass guarantee</button>
+                <a href="#" class="mock-link" style="display:block;margin-top:10px">Maybe later — keep using free</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Trigger conditions (ANY)</h4>
+              <ul>
+                <li>Hit 20 Q/day quota for the first time</li>
+                <li>Tap Pro-locked drill: TB · ACL · IRW · PHT · NA</li>
+                <li>Day 7 of free signup (calendar-based, gentle nudge)</li>
+              </ul>
+              <h4 style="margin-top:14px">Decisions baked in</h4>
+              <ul>
+                <li>Annual pre-selected with the green save-26% badge</li>
+                <li>Pass guarantee in the body copy</li>
+                <li>"Maybe later" is a real escape — not hidden</li>
+              </ul>
+              <h4 style="margin-top:14px">On "Get Pro" tap</h4>
+              <div class="annotation-row"><span class="annot-icon annot-stripe">$</span><div>Redirect to Stripe Checkout with user's email pre-filled and chosen Price ID</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num muted">9</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Retention · exam-aware urgency</h3>
+          <p class="flow-step-desc">Not generic "you have a 3-day streak!" — but "Your exam is in 14 days. You're trending to 740. Two more sessions before next weekend will bump you to 770."</p>
+          <span class="flow-step-tag tag-pro">Pro</span>
+          <span class="flow-step-tag tag-free">Free</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num muted">10</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Cohort · deferred until 100+ paid</h3>
+          <p class="flow-step-desc">"You're in the top 8% of N10-009 takers this month." Doesn't fire until there are enough users to make the percentile honest.</p>
+          <span class="flow-step-tag tag-pro">Pro</span>
+          <span class="flow-step-tag tag-backend">Deferred</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow A: Sign up + subscribe ── -->
+    <div class="flow-panel" data-panel="direct">
+
+      <div class="decision-card">
+        <div class="decision-card-label">Locked decision</div>
+        Account creation happens BEFORE payment. Magic-link signup → email verified → Stripe Checkout for the authenticated user. Cleaner failed-payment recovery; matches the existing magic-link infrastructure. Stripe collects the payment, not the account.
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Tap "Get Pro" on landing or /pricing</h3>
+          <p class="flow-step-desc">User arrives already convinced — paid ad, referral link, returning visitor who's read enough. Click any "Get Pro" / "Subscribe" / "Start free trial" CTA.</p>
+          <span class="flow-step-tag tag-anon">Anonymous → Free signup</span>
+
+          <div class="screen-grid">
+            <div class="pricing-mock">
+              <h2 class="pricing-h1">Simple. Honest. Pass-guaranteed.</h2>
+              <p class="pricing-sub">One price unlocks every cert we ship. Money-back if you don't pass.</p>
+              <div class="pricing-toggle">
+                <button>Monthly</button>
+                <button class="active">Annual · save 26%</button>
+              </div>
+              <div class="pricing-grid">
+                <div class="pricing-card">
+                  <div class="pricing-card-name">Free</div>
+                  <div class="pricing-card-price">$0</div>
+                  <div class="pricing-card-price-sub">forever</div>
+                  <ul class="pricing-card-features">
+                    <li>20 questions per day</li>
+                    <li>Diagnostic + Pass Plan</li>
+                    <li>Basic drills (Subnet · Ports)</li>
+                    <li>Single cert at a time</li>
+                  </ul>
+                  <button class="mock-btn secondary">Start free</button>
+                </div>
+                <div class="pricing-card pro">
+                  <span class="pricing-card-badge">Best value</span>
+                  <div class="pricing-card-name">Pro</div>
+                  <div class="pricing-card-price">$89<small style="font-size:14px;font-weight:600">/yr</small></div>
+                  <div class="pricing-card-price-sub">save 26% · or $9.99/mo</div>
+                  <ul class="pricing-card-features">
+                    <li>Unlimited questions</li>
+                    <li>Pass guarantee — money back</li>
+                    <li>All Pro drills (TB · ACL · IRW · PHT · NA)</li>
+                    <li>Every cert · single price</li>
+                    <li>Exam simulator + PBQs</li>
+                  </ul>
+                  <button class="mock-btn">Get Pro →</button>
+                </div>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Page location</h4>
+              <ul><li><code>landing/pricing.html</code> — placeholder exists, needs CTAs wired</li></ul>
+              <h4 style="margin-top:14px">Monthly toggle</h4>
+              <ul>
+                <li>Tap "Monthly" → Pro card shows $9.99/mo, badge disappears</li>
+                <li>Selected period is persisted in <code>?period=monthly</code> URL param so Checkout receives the right Price ID</li>
+              </ul>
+              <h4 style="margin-top:14px">CTA behavior</h4>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div>Click "Get Pro" → check auth state</div></div>
+              <ul>
+                <li>Signed in → straight to Stripe Checkout</li>
+                <li>Anonymous → step 2 (signup first)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Sign-up screen · magic-link only</h3>
+          <p class="flow-step-desc">Single email field. No password. No name. We collect the absolute minimum so the conversion friction is near-zero. Their chosen plan (Monthly vs Annual) is stashed in URL state.</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">certanvil.com/signup?plan=annual</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:32px 24px">
+                <h2 class="mock-h1">One step to Pro</h2>
+                <p class="mock-p">We'll email you a magic link. No password to remember.</p>
+                <div style="text-align:left;margin:14px 0">
+                  <p style="font-size:11px;color:var(--text-dim);font-weight:700;margin:0 0 4px;text-transform:uppercase;letter-spacing:.06em">Email</p>
+                  <div class="mock-input" style="font-size:13px;color:var(--text-dim)">you@example.com</div>
+                </div>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:left;margin:14px 0">
+                  <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:700">Your plan</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <div style="font-weight:700;font-size:14px;">Pro Annual</div>
+                      <div style="font-size:11px;color:var(--text-dim)">$89/yr · save 26% vs monthly</div>
+                    </div>
+                    <a href="#" class="mock-link">Switch to monthly</a>
+                  </div>
+                </div>
+                <button class="mock-btn full">Send my magic link</button>
+                <p style="font-size:11px;color:var(--text-dim);margin-top:14px">By continuing you agree to our <a href="#" class="mock-link">Terms</a> and <a href="#" class="mock-link">Privacy</a>. We'll charge you on the next screen after sign-in.</p>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Submit triggers</h4>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div><code>supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: "/checkout?plan=annual" } })</code></div></div>
+              <h4 style="margin-top:14px">Why pre-set redirect</h4>
+              <ul>
+                <li>Magic link returns user to <code>/checkout?plan=annual</code> instead of the homepage</li>
+                <li>Even if they switch devices (sign in on desktop after tapping link on phone), state is in the URL</li>
+                <li>If they ditch the funnel here, they're still a signed-in free user (already valuable)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">"Check your inbox" interstitial</h3>
+          <p class="flow-step-desc">Plain page that tells them what to expect, with a small "We didn't get it" troubleshoot section.</p>
+          <span class="flow-step-tag tag-anon">Anonymous · pending verify</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">certanvil.com/signup/check-inbox</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:40px 24px">
+                <div style="font-size:48px;margin-bottom:12px">📬</div>
+                <h2 class="mock-h1">Check your inbox</h2>
+                <p class="mock-p" style="max-width:300px;margin:0 auto 18px">We sent a sign-in link to <strong style="color:var(--text)">you@example.com</strong>. It works once and expires in 60 minutes.</p>
+                <div style="background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:14px;text-align:left;font-size:12px;color:var(--text-mid);">
+                  <strong style="color:var(--text)">Didn't get it?</strong>
+                  <ul style="margin:6px 0 0;padding-left:18px;font-size:11px">
+                    <li>Check spam (sometimes Gmail puts magic-links there)</li>
+                    <li>Make sure the email matches what you typed</li>
+                    <li>Try again in 60 seconds if it's not here yet</li>
+                  </ul>
+                </div>
+                <a href="#" class="mock-link" style="display:inline-block;margin-top:12px">Resend the link</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Backend</h4>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div>Static page, no state. URL alone tells the rendering.</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-email">✉</span><div>Email send is handled by Supabase auth (Resend SMTP under the hood). Template configured in Supabase dashboard.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">4</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Click magic link → verified</h3>
+          <p class="flow-step-desc">The email lands. User taps. Supabase verifies the token, creates the auth.users row, sets the cross-subdomain cookie session (Phase C′), and redirects to <code>/checkout?plan=annual</code>.</p>
+          <span class="flow-step-tag tag-free">Free signed-in</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame email">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span style="margin-left:auto;font-size:10px">Mail · Inbox</span>
+              </div>
+              <div class="screen-frame-body" style="background:#fff;padding:24px">
+                <div style="border-bottom:1px solid #e4e4e7;padding-bottom:14px;margin-bottom:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <strong style="font-size:14px">Your CertAnvil sign-in link</strong>
+                    <span style="font-size:11px;color:#71717a">just now</span>
+                  </div>
+                  <div style="font-size:11px;color:#71717a;margin-top:4px">from noreply@certanvil.com</div>
+                </div>
+                <p style="margin:0 0 14px;color:#1a1a1a;font-size:14px">Hi 👋</p>
+                <p style="margin:0 0 14px;color:#3f3f46;font-size:13px;line-height:1.6">Click the link below to sign in to CertAnvil. It works once and expires in 60 minutes.</p>
+                <div style="background:#7c6ff7;color:white;padding:12px 18px;border-radius:8px;text-align:center;font-weight:600;font-size:14px;margin:14px 0;cursor:pointer">→ Sign in to CertAnvil</div>
+                <p style="font-size:12px;color:#71717a;margin:14px 0 0;line-height:1.6">Or paste this URL into your browser:<br><code style="font-size:11px;color:#3f3f46;word-break:break-all">https://certanvil.com/auth/callback?token=eyJh...&plan=annual</code></p>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>What the click triggers</h4>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div><strong>Supabase verifies the OTP</strong>, creates the auth.users + profiles rows (handle_new_user trigger)</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div><strong>Cookie session</strong> written to <code>.certanvil.com</code> domain (Phase C′ cross-subdomain)</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div><strong>Redirect</strong> to <code>/checkout?plan=annual</code>, which step 5 handles</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">5</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Stripe Checkout · payment</h3>
+          <p class="flow-step-desc">Server endpoint <code>POST /api/stripe/create-checkout-session</code> creates a Stripe Checkout Session with the user's email, the chosen Price ID, and success/cancel URLs. We redirect to Stripe's hosted page.</p>
+          <span class="flow-step-tag tag-free">Free → Pending Pro</span>
+          <span class="flow-step-tag tag-backend">Stripe-hosted</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame stripe">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url" style="background:#fafbfc;color:#525f7f">checkout.stripe.com/c/pay/cs_test_a1b2c3...</span>
+              </div>
+              <div class="screen-frame-body" style="background:#f6f9fc;padding:24px;color:#32325d">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+                  <div style="width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800">C</div>
+                  <strong style="font-size:14px">CertAnvil</strong>
+                </div>
+                <div style="background:white;border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:0 2px 6px rgba(50,50,93,.07)">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:#32325d;font-weight:600">
+                    <span>CertAnvil Pro · Annual</span>
+                    <span>$89.00</span>
+                  </div>
+                  <div style="font-size:11px;color:#8898aa;margin-top:4px">$89.00 / year — renews 2027-05-11</div>
+                  <hr style="border:0;border-top:1px solid #e3e8ee;margin:10px 0">
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:#525f7f">
+                    <span>Tax (calculated at checkout)</span>
+                    <span>—</span>
+                  </div>
+                </div>
+                <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 2px 6px rgba(50,50,93,.07)">
+                  <div style="font-size:12px;color:#525f7f;font-weight:600;margin-bottom:6px">Contact info</div>
+                  <div style="background:#f7fafc;border:1px solid #e3e8ee;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:10px;color:#424770">you@example.com (pre-filled, locked)</div>
+                  <div style="font-size:12px;color:#525f7f;font-weight:600;margin-bottom:6px">Payment</div>
+                  <div class="mock-stripe-field">💳 Card number</div>
+                  <div style="display:flex;gap:6px"><div class="mock-stripe-field" style="flex:1;margin:0">MM / YY</div><div class="mock-stripe-field" style="flex:1;margin:0">CVC</div></div>
+                  <button class="mock-stripe-btn">Pay $89.00 →</button>
+                  <div style="text-align:center;margin-top:10px;font-size:10px;color:#8898aa">🍎 Apple Pay · 🅖 Google Pay · also accepted</div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Created server-side</h4>
+              <div class="annotation-row"><span class="annot-icon annot-stripe">$</span><div><strong>POST /api/stripe/create-checkout-session</strong> in <code>landing/api/stripe/</code></div></div>
+              <ul>
+                <li>Auth: Supabase JWT in Authorization header</li>
+                <li>Body: <code>{ priceId: env.STRIPE_PRICE_ANNUAL_ID }</code></li>
+                <li>Stripe SDK call: <code>stripe.checkout.sessions.create({...})</code></li>
+                <li>Returns: Checkout URL → 303 redirect</li>
+              </ul>
+              <h4 style="margin-top:14px">Stripe-hosted handles</h4>
+              <ul>
+                <li>Card collection (PCI-scope on Stripe, not us)</li>
+                <li>Apple Pay + Google Pay buttons</li>
+                <li>SCA / 3D Secure when required</li>
+                <li>Tax calculation</li>
+                <li>Failed-payment retry + dunning</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">6</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Payment success → Pro unlocked</h3>
+          <p class="flow-step-desc">Stripe redirects to <code>/welcome-pro?session_id=...</code>. Behind the scenes the webhook fired and updated the <code>subscriptions</code> row to tier='pro'. Welcome screen confirms + lands them in the cert dashboard with Pro features unlocked.</p>
+          <span class="flow-step-tag tag-pro">Pro · active</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">networkplus.certanvil.com/welcome-pro</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:36px 24px">
+                <div style="font-size:48px;margin-bottom:12px">🎉</div>
+                <h2 class="mock-h1" style="font-size:24px">Welcome to Pro.</h2>
+                <p class="mock-p" style="max-width:340px;margin:0 auto 18px">Your card was charged $89.00. Pass guarantee active. Every drill, every cert, every feature — all yours.</p>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:left;margin-bottom:16px;font-size:12px;color:var(--text-mid)">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Plan</span><strong style="color:var(--text)">Pro Annual</strong></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Next charge</span><strong style="color:var(--text)">2027-05-11 · $89.00</strong></div>
+                  <div style="display:flex;justify-content:space-between"><span>Receipt</span><a href="#" class="mock-link">Emailed to you</a></div>
+                </div>
+                <button class="mock-btn full">Take me to my dashboard →</button>
+                <a href="#" class="mock-link" style="display:inline-block;margin-top:12px">Manage billing in Stripe Portal</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Webhook timing</h4>
+              <ul>
+                <li>Stripe redirect happens immediately on payment-success</li>
+                <li>Webhook may land 1-3 seconds AFTER the redirect</li>
+                <li>So the success page polls <code>is_pro()</code> for up to 5 seconds before rendering "you're Pro now"</li>
+              </ul>
+              <h4 style="margin-top:14px">Webhook event chain</h4>
+              <div class="annotation-row"><span class="annot-icon annot-stripe">$</span><div><strong>checkout.session.completed</strong> fires</div></div>
+              <ul>
+                <li>Idempotency: insert event_id into <code>stripe_events</code> (no-op if exists)</li>
+                <li>Upsert <code>subscriptions</code> row: tier='pro', stripe_customer_id, stripe_subscription_id, billing_period='annual', current_period_end</li>
+                <li>Trigger welcome email via Resend (Phase 4.5)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow B: Free signup ── -->
+    <div class="flow-panel" data-panel="free">
+
+      <div class="decision-card">
+        <div class="decision-card-label">When this fires</div>
+        Users who tap "Start free" on the pricing page OR finish the PLG diagnostic and want to save their progress without paying. <strong>Same magic-link flow as Flow A — minus the Stripe Checkout step.</strong>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Tap "Start free" or "Save progress"</h3>
+          <p class="flow-step-desc">From pricing page (free card) OR from the post-diagnostic save-progress prompt. Either entry leads to the same magic-link sign-up screen, but <code>?plan=free</code> in the URL.</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Email entry · magic-link sent</h3>
+          <p class="flow-step-desc">Identical sign-up UI as Flow A step 2-3, except no "Your plan" sidebar — just "Save progress" or "Create free account". Email field, single button.</p>
+          <span class="flow-step-tag tag-anon">Anonymous → pending verify</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Click link → verified → dashboard</h3>
+          <p class="flow-step-desc">No checkout step. After verification, redirect goes to the cert app dashboard directly. They're a free signed-in user with all the Phase C′ state hydration (history, streak, wrong bank, milestones, diagnostic result).</p>
+          <span class="flow-step-tag tag-free">Free signed-in</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">networkplus.certanvil.com</span>
+              </div>
+              <div class="screen-frame-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:14px">
+                  <div style="display:flex;align-items:center;gap:8px"><strong style="font-size:13px">CertAnvil · Network+</strong><span style="font-size:10px;background:var(--surface3);padding:2px 7px;border-radius:6px;color:var(--text-mid)">FREE</span></div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim)">3 / 20 today · <strong style="color:var(--accent-light)">you@…</strong></div>
+                </div>
+                <h2 style="font-size:18px;margin:0 0 14px">Welcome back, you'</h2>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+                  <div style="font-size:12px;font-weight:700;color:var(--accent-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Today's focus</div>
+                  <div style="font-size:13px;color:var(--text);margin-bottom:8px">Wireless · 14% of the exam, 30% accuracy</div>
+                  <button class="mock-btn">5-Q drill →</button>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">
+                    <div style="font-size:18px;font-weight:800;color:var(--accent-light)">🔥 1</div>
+                    <div style="font-size:10px;color:var(--text-dim)">DAY STREAK</div>
+                  </div>
+                  <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">
+                    <div style="font-size:18px;font-weight:800;color:var(--green)">740</div>
+                    <div style="font-size:10px;color:var(--text-dim)">TREND TO PASS</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>What they can do</h4>
+              <ul>
+                <li>Quiz with all topics</li>
+                <li>20 questions per day quota</li>
+                <li>Subnet Trainer (basic) · Port Drill · Acronym Blitz</li>
+                <li>Pass Plan view + analytics</li>
+              </ul>
+              <h4 style="margin-top:14px">What's paywalled</h4>
+              <ul>
+                <li>Topology Builder · 🔒</li>
+                <li>ACL Builder · 🔒</li>
+                <li>Incident Response War Room · 🔒</li>
+                <li>Phishing Triage Lab · 🔒</li>
+                <li>Network Analysis Drill · 🔒</li>
+                <li>Exam Simulator · 🔒</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow C: Upgrade later ── -->
+    <div class="flow-panel" data-panel="upgrade">
+
+      <div class="decision-card">
+        <div class="decision-card-label">Trigger conditions</div>
+        Any of the following fires the upgrade prompt for a free signed-in user: (a) tap a Pro-locked drill, (b) hit the 20 Q/day quota, (c) it's been 7+ days since signup and they keep using the app, (d) tap an explicit "Upgrade" link in Settings or topbar.
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Hit a Pro paywall</h3>
+          <p class="flow-step-desc">User taps Topology Builder · 🔒 in the cert app sidebar. Paywall modal fires (same modal copy as PLG step 8).</p>
+          <span class="flow-step-tag tag-free">Free signed-in</span>
+
+          <div class="screen-grid">
+            <div class="paywall-mock">
+              <div class="paywall-modal">
+                <div class="paywall-emoji">🔒</div>
+                <h2 class="paywall-title">Topology Builder is a Pro feature</h2>
+                <p class="paywall-sub">Drag · drop · simulate STP, OSPF, BGP, and 15 more scenarios. Most learners use TB the day before their exam to lock-in routing fundamentals.</p>
+                <div class="mock-plan-card is-selected">
+                  <div class="mock-plan-card-header">
+                    <div><span class="mock-plan-name">Pro Annual</span><span class="mock-badge-best-value">Save 26%</span></div>
+                    <span class="mock-plan-price">$89<small style="font-size:12px;font-weight:600">/yr</small></span>
+                  </div>
+                  <div class="mock-plan-sub">Unlimited Q · all drills · pass guarantee</div>
+                </div>
+                <div class="mock-plan-card">
+                  <div class="mock-plan-card-header"><span class="mock-plan-name">Pro Monthly</span><span class="mock-plan-price">$9.99<small style="font-size:12px;font-weight:600">/mo</small></span></div>
+                  <div class="mock-plan-sub">Cancel anytime</div>
+                </div>
+                <button class="mock-btn full" style="margin-top:14px">Unlock Topology Builder →</button>
+                <a href="#" class="mock-link" style="display:block;margin-top:10px">Not now — back to free tier</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Same modal as PLG step 8</h4>
+              <ul>
+                <li>Annual default, Monthly toggle</li>
+                <li>Feature-specific headline ("Topology Builder is a Pro feature")</li>
+                <li>Body copy adapts to feature: TB · ACL · IRW · PHT · NA · Exam Simulator</li>
+              </ul>
+              <h4 style="margin-top:14px">Gate enforced at</h4>
+              <div class="annotation-row"><span class="annot-icon annot-app">🎨</span><div>Client-side <code>isPro()</code> check inside <code>showPage('topology-builder')</code> (Phase 4.3)</div></div>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div>Server-side <code>is_pro(uid)</code> for any RPC that does Pro work</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Stripe Checkout · user already authenticated</h3>
+          <p class="flow-step-desc">Same Stripe Checkout flow as Flow A step 5 — but no signup needed because they already have a session. Email pre-filled (locked), Price ID set from their plan choice.</p>
+          <span class="flow-step-tag tag-free">Free → Pending Pro</span>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Pay → Pro unlocked · feature opens</h3>
+          <p class="flow-step-desc">Same success flow as Flow A step 6 — but the redirect goes to the ORIGINAL feature they were trying to open (Topology Builder), not the welcome screen. The journey continues without interruption.</p>
+          <span class="flow-step-tag tag-pro">Pro · active</span>
+          <div class="annotation" style="margin-top:14px">
+            <h4>UX subtlety</h4>
+            <ul>
+              <li>Stripe success URL is <code>?return_to=topology-builder</code></li>
+              <li>Welcome state is light: brief "🎉 You're Pro" toast, then immediate TB load</li>
+              <li>Welcome-Pro confirmation screen ONLY fires for Flow A (direct signup + subscribe)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow D: Delete account ── -->
+    <div class="flow-panel" data-panel="delete">
+
+      <div class="decision-card">
+        <div class="decision-card-label">Compliance</div>
+        Self-service deletion is the GDPR/CCPA-friendly default. The deletion cascades through Stripe (cancel sub) → Supabase auth (delete user → cascades profile + history + every related row). Irreversible. Confirmed via type-the-email pattern.
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Settings → Delete my account</h3>
+          <p class="flow-step-desc">Bottom of Settings page (below Export Data + Sign out). Red button. Two confirmations.</p>
+          <span class="flow-step-tag tag-free">Free</span>
+          <span class="flow-step-tag tag-pro">Pro</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">networkplus.certanvil.com/settings</span>
+              </div>
+              <div class="screen-frame-body">
+                <h2 class="mock-h1" style="font-size:18px">Settings</h2>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+                  <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px">Account</div>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--text-mid)">Email</span><strong>you@example.com</strong></div>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span style="color:var(--text-mid)">Plan</span><strong style="color:var(--accent-light)">Pro Annual · $89/yr</strong></div>
+                  <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-mid)">Next charge</span><strong>2027-05-11</strong></div>
+                </div>
+                <button class="mock-btn ghost" style="margin-bottom:6px;width:100%;justify-content:flex-start">Manage billing · Stripe Portal →</button>
+                <button class="mock-btn ghost" style="margin-bottom:6px;width:100%;justify-content:flex-start">Export my data (JSON)</button>
+                <button class="mock-btn ghost" style="margin-bottom:6px;width:100%;justify-content:flex-start">Sign out</button>
+                <div class="mock-divider"></div>
+                <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px">Danger zone</div>
+                <button class="mock-btn danger" style="width:100%;justify-content:center">Delete my account</button>
+                <p style="font-size:11px;color:var(--text-dim);margin-top:6px">Irreversible · cancels subscription · deletes all data</p>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Visible to</h4>
+              <ul><li>All signed-in users (Free + Pro)</li></ul>
+              <h4 style="margin-top:14px">Position</h4>
+              <ul><li>Bottom of Settings page, after Export and Sign out</li><li>Visually demoted (red, "Danger zone" header)</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Confirmation modal · type your email</h3>
+          <p class="flow-step-desc">Shows what they'll lose (specific to their state). Asks them to type their email to confirm. Type-mismatch keeps the delete button disabled — prevents accidental confirms on mobile.</p>
+          <span class="flow-step-tag tag-decision">Irreversible</span>
+
+          <div class="screen-grid">
+            <div class="paywall-mock">
+              <div class="paywall-modal" style="border-color:rgba(239,68,68,.3);box-shadow:0 20px 60px rgba(239,68,68,.15)">
+                <div class="paywall-emoji">⚠️</div>
+                <h2 class="paywall-title" style="color:var(--red)">Delete your account?</h2>
+                <p class="paywall-sub">This will permanently delete everything below. We can't restore it after.</p>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:left;font-size:12px;color:var(--text-mid);margin-bottom:14px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Quiz history</span><strong style="color:var(--text)">147 sessions</strong></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Streak</span><strong style="color:var(--text)">23 days</strong></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Milestones</span><strong style="color:var(--text)">12 unlocked</strong></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Pro subscription</span><strong style="color:var(--accent-light)">Annual · cancels</strong></div>
+                  <div style="display:flex;justify-content:space-between"><span>Refund window</span><strong style="color:var(--text)">Past · no refund</strong></div>
+                </div>
+                <p style="font-size:11px;color:var(--text-dim);margin:8px 0;text-align:left">Type <strong style="color:var(--text)">you@example.com</strong> to confirm:</p>
+                <div class="mock-input" style="font-size:12px;color:var(--text-dim);text-align:left">type your email here</div>
+                <button class="mock-btn danger full" style="opacity:.4">Permanently delete my account</button>
+                <a href="#" class="mock-link" style="display:block;margin-top:10px">Cancel · keep my account</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>State-aware copy</h4>
+              <ul>
+                <li><strong>Free user</strong>: skips "Pro subscription" line; copy reads "Free account · no charges to cancel"</li>
+                <li><strong>Pro user · within refund window</strong>: shows "Refund window · 5 days left · contact <a href="#" class="mock-link">support@</a> for pro-rated refund"</li>
+                <li><strong>Pro user · past refund window</strong>: shows "Refund window · past · no refund"</li>
+              </ul>
+              <h4 style="margin-top:14px">Cancel-anytime nudge</h4>
+              <ul><li>If user is Pro Annual, link to "Cancel subscription but keep account" sends them to Stripe Customer Portal instead</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Confirm → backend cascade → goodbye</h3>
+          <p class="flow-step-desc">Single RPC <code>delete_my_account()</code> orchestrates everything server-side. User watches a brief progress indicator, then lands on a "you're gone" page (logged out, signup link still available).</p>
+          <span class="flow-step-tag tag-decision">Cascading delete</span>
+
+          <div class="arch-diagram">
+            <div class="arch-row">
+              <div class="arch-row-label">Step 1<br><small style="font-weight:400;color:var(--text-mid)">~100ms</small></div>
+              <div class="arch-box arch-stripe">
+                <div class="arch-box-title">Stripe · cancel subscription</div>
+                <div class="arch-box-desc">Server calls <code>stripe.subscriptions.cancel(stripe_subscription_id, { prorate: false })</code>. Webhook fires <code>customer.subscription.deleted</code> a moment later.</div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-row-label">Step 2<br><small style="font-weight:400;color:var(--text-mid)">~200ms</small></div>
+              <div class="arch-box arch-supabase">
+                <div class="arch-box-title">Supabase · delete auth.users</div>
+                <div class="arch-box-desc">Server (service-role) calls <code>supabase.auth.admin.deleteUser(user_id)</code>. The <code>ON DELETE CASCADE</code> chain takes care of profiles + quiz_history + subscriptions + web_vitals + every related row.</div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-row-label">Step 3<br><small style="font-weight:400;color:var(--text-mid)">~50ms</small></div>
+              <div class="arch-box arch-app">
+                <div class="arch-box-title">Client · localStorage clear + sign out</div>
+                <div class="arch-box-desc">Calls <code>cloudStore.clearLocalCache()</code> + <code>supabase.auth.signOut()</code> → localStorage purged → cookie session invalidated → redirect to <code>certanvil.com/goodbye</code>.</div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-row-label">Step 4<br><small style="font-weight:400;color:var(--text-mid)">~background</small></div>
+              <div class="arch-box arch-app">
+                <div class="arch-box-title">Resend · "we're sorry to see you go" email</div>
+                <div class="arch-box-desc">Optional: triggered by the same RPC before the user is deleted. Includes a link to sign up again if they change their mind, and a one-line ask "what made you leave?" pointing to a Tally form.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-grid" style="margin-top:18px">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">certanvil.com/goodbye</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:48px 24px">
+                <div style="font-size:42px;margin-bottom:10px">👋</div>
+                <h2 class="mock-h1">You're gone.</h2>
+                <p class="mock-p" style="max-width:320px;margin:0 auto 20px">Your account, your subscription, and your data have been permanently deleted. We hope the cert went well.</p>
+                <a href="#" class="mock-link">Sign up again anytime →</a>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Logged out state</h4>
+              <ul><li>No session cookie</li><li>localStorage cleared</li><li>Same as a never-visited browser</li></ul>
+              <h4 style="margin-top:14px">Auth.users row</h4>
+              <ul><li>Truly deleted, not soft-deleted</li><li>Same email can sign up fresh later (new user_id, new profile)</li><li>GDPR-clean: no orphan PII anywhere in DB</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Flow E: Returning sign-in ── -->
+    <div class="flow-panel" data-panel="returning">
+
+      <div class="decision-card">
+        <div class="decision-card-label">Same mechanism, different framing</div>
+        A user who has signed up before comes back from a fresh browser (cleared cookies, new device, incognito). They tap "Sign in." Same magic-link mechanism as first-time signup — but the copy says "Welcome back" instead of "Welcome", and the post-verify redirect goes to their last-known dashboard state, not the onboarding flow.
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Tap "Sign in" from landing or cert app</h3>
+          <p class="flow-step-desc">Landing has a "Sign in" link in the top-right next to "Get Pro." The cert app shows a "Sign in" CTA when accessed without a session cookie.</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">certanvil.com</span>
+              </div>
+              <div class="screen-frame-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:14px">
+                  <strong style="font-size:13px">CertAnvil</strong>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <a href="#" class="mock-link">Sign in →</a>
+                    <button class="mock-btn" style="padding:6px 12px;font-size:12px">Get Pro</button>
+                  </div>
+                </div>
+                <div style="text-align:center;padding:30px 16px">
+                  <h2 style="font-size:24px;font-weight:800;margin:0 0 8px;color:var(--text)">Pass your cert.</h2>
+                  <p class="mock-p" style="max-width:300px;margin:0 auto">AI-tutored quiz prep with the pass guarantee.</p>
+                </div>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Auth-aware routing</h4>
+              <ul>
+                <li>"Sign in" link visible only when no session cookie</li>
+                <li>"Get Pro" stays visible to all (works for free users too — upgrade path)</li>
+                <li>Account pill (avatar + email) replaces both when signed in</li>
+              </ul>
+              <h4 style="margin-top:14px">Already built</h4>
+              <ul><li>Account pill + auth detection lives in <code>auth-state.js</code> (Phase C′)</li><li>The "Sign in" CTA itself needs adding to landing header</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Email entry — "Welcome back" framing</h3>
+          <p class="flow-step-desc">Same form as first-time signup (one email field, one button) — copy is just slightly different. No plan selector, no "Save progress" emphasis. Just "we'll email you a link."</p>
+          <span class="flow-step-tag tag-anon">Anonymous</span>
+
+          <div class="screen-grid">
+            <div class="screen-frame">
+              <div class="screen-frame-chrome">
+                <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                <span class="url">certanvil.com/signin</span>
+              </div>
+              <div class="screen-frame-body" style="text-align:center;padding:32px 24px">
+                <div style="font-size:38px;margin-bottom:10px">👋</div>
+                <h2 class="mock-h1" style="font-size:22px">Welcome back</h2>
+                <p class="mock-p" style="max-width:300px;margin:0 auto 18px">We'll email you a magic link to sign in. No password to remember.</p>
+                <div style="text-align:left">
+                  <div class="mock-input" style="font-size:12px;color:var(--text-dim);">📧 you@example.com</div>
+                  <button class="mock-btn full">Send my sign-in link</button>
+                </div>
+                <p style="font-size:11px;color:var(--text-dim);margin-top:14px">No account? <a href="#" class="mock-link">Get started free</a></p>
+              </div>
+            </div>
+            <div class="annotation">
+              <h4>Behind the scenes</h4>
+              <div class="annotation-row"><span class="annot-icon annot-supabase">⚡</span><div>Same <code>signInWithOtp({ email })</code> — Supabase treats it identically to first-time signup. If the email exists in auth.users, the magic link signs them in. If not, it creates them.</div></div>
+              <h4 style="margin-top:14px">UX detail</h4>
+              <ul><li>"No account?" link distinguishes intent — sends new users to <code>/signup</code> with the marketing framing instead</li><li>Identical backend, distinct landing pages = clearer mental models</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h3 class="flow-step-title">Click → restored state → land where you left off</h3>
+          <p class="flow-step-desc">Magic link verifies → session cookie set → Phase C′ <code>cloudStore.hydrate()</code> pulls their cloud-side state (history, streak, wrong bank, milestones, etc.) → redirect to whatever cert they last had active.</p>
+          <span class="flow-step-tag tag-free">Free / Pro · signed in</span>
+          <div class="annotation" style="margin-top:14px">
+            <h4>State that restores</h4>
+            <ul>
+              <li>Subscription tier (instant <code>is_pro()</code> check)</li>
+              <li>Active cert (Network+ or Security+)</li>
+              <li>Streak + history + wrong bank + milestones (cloud-store hydrate)</li>
+              <li>Last-active page if recent (sessionStorage hint, falls back to homepage)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ─── Section 3: Edge cases ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <div>
+        <h2 class="section-title">Edge cases · what could go wrong</h2>
+        <p class="section-blurb">Real customer-acquisition flows hit messy reality. Here's how each fails gracefully.</p>
+      </div>
+    </div>
+
+    <div class="edge-grid">
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Payment failure</span>
+        <h4>Card declined at Checkout</h4>
+        <p>Stripe Checkout retries automatically and shows the user the decline reason inline. We never see it — they either resolve it themselves and complete, or they abandon. If they abandon, they're still a free signed-in user. No DB rollback needed.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Card lapses mid-subscription</span>
+        <h4>Payment fails on renewal</h4>
+        <p>Stripe webhook fires <code>invoice.payment_failed</code> → subscription status becomes 'past_due'. Cert app shows a yellow dunning banner: "Your card was declined · update payment method." Stripe auto-retries 4 times over 7 days. If all fail, status becomes 'unpaid' and tier reverts to 'free' on the next page load.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Magic link expired</span>
+        <h4>User clicked the link 70 minutes later</h4>
+        <p>Supabase rejects the token. Error page reads "Link expired — these are single-use and only valid for 60 min. <strong>Resend</strong> a fresh one." Resend button on the same page. State preserved in URL so they don't re-enter their plan choice.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Webhook race</span>
+        <h4>User hits success page before webhook lands</h4>
+        <p>Success page polls <code>is_pro()</code> for up to 5 seconds before declaring failure. 99% of the time it's instant. On the rare miss, page shows "We're still processing your payment · refresh in 10s." Customer gets unlocked once webhook completes. Idempotent.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Switch plans mid-cycle</span>
+        <h4>Pro Monthly → Pro Annual</h4>
+        <p>User clicks "Manage billing" → Stripe Customer Portal → "Switch plan." Stripe handles the proration (charges difference + extends period). Webhook fires <code>customer.subscription.updated</code> with new billing_period. Cert app picks up the change on next page load.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Cancel but want to come back</span>
+        <h4>Cancelled subscription, signed in again</h4>
+        <p>Subscription row still exists with status='canceled' (we keep it for history). On next sign-in, paywall is back. Upgrading creates a NEW Stripe subscription → webhook upserts the row with new status='active'. Welcome-back email sent.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Duplicate signup</span>
+        <h4>Email already exists</h4>
+        <p>Supabase magic-link is identity-by-email, so this is a non-issue — the link sent to an existing email just signs that user in. No "account already exists" error to design for.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Refund</span>
+        <h4>User requests refund within window</h4>
+        <p>Manual review (Phase 4 decision). User emails support@. Founder issues refund in Stripe dashboard → <code>charge.refunded</code> webhook fires → optionally also cancel the subscription manually. Schema supports this but no auto-handler in v1.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Account deleted while subscribed</span>
+        <h4>User deletes mid-cycle, hasn't cancelled</h4>
+        <p>Our deletion RPC cancels Stripe sub first. If Stripe API call fails (network blip), we DON'T proceed to delete the Supabase user — error surfaces, user retries. Stripe sub stays active, no zombie billing.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Email change</span>
+        <h4>User wants to change their account email</h4>
+        <p>Settings → "Change email" → enter new email → magic-link to NEW email → click to confirm → Supabase updates <code>auth.users.email</code> + we sync to Stripe customer via API. Old email loses access. Pre-launch v0: defer this — users can email support@. v1.1 ship: self-service.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Forgot which email</span>
+        <h4>"I signed up with… something@gmail.com?"</h4>
+        <p>Magic-link auth means we can't help — we don't store any other identity beyond email. Users get nothing. Mitigation: post-signup welcome email is critical (it gives them their canonical address). Long-term: optional "remind me later" SMS or recovery-email field. Not v1.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Multi-device session</span>
+        <h4>Phone + laptop + tablet all signed in</h4>
+        <p>Phase C′ cookie-backed Supabase storage means all three see the same session. One device cancels mid-cycle → other devices still show Pro UI until next page load (when <code>is_pro()</code> re-checks). Acceptable: subscription state is eventually-consistent, not real-time. Worst case is a few minutes of stale UI on inactive devices.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Mid-cycle plan switch</span>
+        <h4>Monthly user wants Annual (or vice versa)</h4>
+        <p>"Manage billing" → Stripe Customer Portal → "Switch plan." Stripe handles proration automatically — charges the difference for upgrade, credits remaining time for downgrade. Webhook fires <code>customer.subscription.updated</code>; we just refresh the subscriptions row. Zero new UI to build (Portal is hosted).</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Receipt / invoice download</span>
+        <h4>"I need to expense this through work"</h4>
+        <p>Stripe Customer Portal exposes all past invoices as downloadable PDFs. Every charge also generates an automatic emailed receipt (Stripe-default). For v1: link from cert app Settings → Customer Portal handles it. No bespoke invoice UI needed.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Typo'd email at signup</span>
+        <h4>User typed "you@gmial.com"</h4>
+        <p>Magic link goes to a non-existent address → bounces or vanishes. User never verifies, never reaches checkout. From their POV: tap → "check inbox" → silence. Mitigation: signup form runs a typo-correction check on common domains (gmail, yahoo, outlook) before submit. Stripe also pre-validates email format on its side.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Concurrent magic-link clicks</span>
+        <h4>User clicks the link from email twice (browser + tab)</h4>
+        <p>Supabase magic-links are single-use — second click fails with "link already used or expired." User sees the error and is told to "Sign in again" → resends new link. Mildly annoying but not breaking. Don't auto-handle; just clear error copy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 03.5: Distribution channel implications ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num" style="background:rgba(251,146,60,.15);color:var(--orange)">⚠ 03.5</span>
+      <div>
+        <h2 class="section-title">Distribution channel · Web vs App Store</h2>
+        <p class="section-blurb">The flows above assume Stripe everywhere. That's correct for the WEB app. The App Store version (Phase 12 target — end of June) hits Apple's IAP rules and may need a parallel architecture.</p>
+      </div>
+    </div>
+
+    <div class="decision-card" style="background:linear-gradient(135deg,rgba(251,146,60,.08),rgba(251,146,60,.02));border-color:rgba(251,146,60,.4)">
+      <div class="decision-card-label">⚠ Why this matters · App Store Review Guidelines §3.1.1</div>
+      <strong>"If you want to unlock features or functionality within your app (by way of example: subscriptions, in-game currencies, premium content), you must use in-app purchase."</strong> Stripe subscriptions sold inside an iOS app are technically not allowed. Reviewers can — and do — reject apps for this. The post-Epic ruling created an exception ("external-link entitlement") but it requires Apple approval and explicit anti-steering UX.
+    </div>
+
+    <p style="font-size:15px;color:var(--text);margin:24px 0 14px;font-weight:600;">Three paths · pick before App Store submission</p>
+
+    <div class="edge-grid" style="margin-top:0">
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Path A · simplest</span>
+        <h4>Stripe-only · skip App Store entirely</h4>
+        <p style="margin-bottom:8px"><strong>Setup:</strong> Ship as PWA only. Web users add to home screen (already built · Phase 5 A2HS banner). No App Store submission, no Apple cut, no IAP integration.</p>
+        <p style="margin-bottom:8px"><strong>Pros:</strong> Zero extra work · keep 100% of revenue · no review gate · single codebase.</p>
+        <p style="margin-bottom:8px"><strong>Cons:</strong> No App Store discovery · iOS users have to know to "Add to Home Screen" (a 60-70% drop-off vs native install) · no App Store credibility signal.</p>
+        <p><strong>Verdict:</strong> Realistic if launch traction is built through founder-network + SEO + paid social. The current 5-friend playtest doesn't need an App Store presence.</p>
+      </div>
+      <div class="edge-card" style="border-color:var(--green);background:linear-gradient(135deg,rgba(34,197,94,.06),transparent);box-shadow:0 0 24px rgba(34,197,94,.1)">
+        <span class="edge-card-tag" style="background:var(--green);color:white">✓ Path B · LOCKED 2026-05-11</span>
+        <h4>Stripe on web + Apple IAP on iOS</h4>
+        <p style="margin-bottom:8px"><strong>Setup:</strong> Stripe stays the source of truth for web subscriptions. Add Apple IAP for iOS app submission via PWA-to-App-Store wrappers (Capacitor / PWABuilder). Two billing systems · users billed by whichever surface they signed up on.</p>
+        <p style="margin-bottom:8px"><strong>Pros:</strong> Maximizes reach · App Store visibility · web economics preserved · Apple users get native install experience.</p>
+        <p style="margin-bottom:8px"><strong>Cons:</strong> Two billing integrations · 30% Apple cut on iOS-billed subscriptions (15% after year 1) · entitlement table needs to track BOTH stripe_subscription_id AND apple_transaction_id · cross-platform restore-purchases UX.</p>
+        <p><strong>Verdict:</strong> Industry-standard pattern (Spotify · Headspace · Duolingo all do this). Right answer for v1 launch IF you want App Store presence.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Path C · purist</span>
+        <h4>Apple IAP only · no Stripe</h4>
+        <p style="margin-bottom:8px"><strong>Setup:</strong> Apple IAP across both web and iOS. Web users sign up with Apple ID → Apple bills them via Apple Pay. No Stripe at all.</p>
+        <p style="margin-bottom:8px"><strong>Pros:</strong> Single billing system · simpler · no dual entitlement reconciliation.</p>
+        <p style="margin-bottom:8px"><strong>Cons:</strong> 30%/15% Apple cut on EVERY subscription including web · users without Apple ID can't subscribe · web conversion drops because Apple ID requirement is unusual outside iOS context · Apple controls all customer support escalations · refund decisions go through Apple.</p>
+        <p><strong>Verdict:</strong> Not recommended. Loses the web-first revenue advantage.</p>
+      </div>
+    </div>
+
+    <div class="decision-card" style="margin-top:24px;background:linear-gradient(135deg,rgba(34,197,94,.06),rgba(34,197,94,.01));border-color:rgba(34,197,94,.4)">
+      <div class="decision-card-label" style="color:var(--green)">✓ Founder decision · 2026-05-11</div>
+      <strong style="color:var(--green)">Path B · hybrid Stripe + Apple IAP.</strong> Founder conviction: "App Store integration is the biggest driver of users — once they see App Store capability they will believe in the legitimacy of the app." This locks the architecture: build Stripe-only first (covered by Phase 4 in the roadmap below), then add Apple IAP as Phase 12 (~3-week sprint · Capacitor wrapper + entitlement reconciliation). The all-Stripe v1 ships unchanged — IAP bolts on later without rework.
+      <br><br>
+      <strong style="color:var(--text)">Implementation impact on this mockup:</strong> none for Phase 4 (v1 web launch is still Stripe-only). Phase 12 (post-web-launch) adds: <code>subscriptions.apple_transaction_id</code> column · IAP entitlement check in <code>is_pro()</code> · cross-platform "restore purchases" UX · Apple's product/price config in App Store Connect mirroring Stripe Price IDs.
+    </div>
+  </section>
+
+  <!-- ─── Section 4: Backend architecture ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <div>
+        <h2 class="section-title">Backend architecture · what gets built where</h2>
+        <p class="section-blurb">Three concerns. Three locations. One clean boundary between each.</p>
+      </div>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-row">
+        <div class="arch-row-label">Identity</div>
+        <div class="arch-box arch-supabase">
+          <div class="arch-box-title">Supabase Auth · magic-link</div>
+          <div class="arch-box-desc"><code>auth.users</code> · <code>profiles</code> · cookie session at <code>.certanvil.com</code> domain · cross-subdomain ready (Phase C′)</div>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-row-label">Billing</div>
+        <div class="arch-box arch-stripe">
+          <div class="arch-box-title">Stripe · Checkout + Customer Portal</div>
+          <div class="arch-box-desc">Hosted Checkout (no Elements). Customer Portal handles plan changes, cancels, invoices. Webhook updates our <code>subscriptions</code> table — Stripe is source of truth, we just mirror.</div>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-row-label">Entitlement</div>
+        <div class="arch-box arch-supabase">
+          <div class="arch-box-title">Supabase RPC · is_pro(uid)</div>
+          <div class="arch-box-desc">SQL function that checks <code>subscriptions.tier = 'pro' AND status IN ('active','trialing') AND current_period_end > now()</code>. Read by client (paywall UI) and server (rate-limiting RPCs).</div>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-row-label">Endpoints</div>
+        <div class="arch-box arch-app">
+          <div class="arch-box-title">Vercel serverless · landing/api/stripe/*</div>
+          <div class="arch-box-desc">Three new endpoints: <code>create-checkout-session.js</code> · <code>create-portal-session.js</code> · <code>webhook.js</code>. All ~50 LOC each. Same pattern as existing <code>landing/api/notify.js</code>.</div>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-row-label">Schema</div>
+        <div class="arch-box arch-supabase">
+          <div class="arch-box-title">Already migrated · v4.99.x</div>
+          <div class="arch-box-desc"><code>subscriptions</code> · <code>stripe_events</code> · <code>ai_usage</code> · <code>is_pro()</code> · <code>consume_daily_quota()</code> · all live. Just needs the actual Stripe webhook to start writing.</div>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-row-label">Deletion</div>
+        <div class="arch-box arch-supabase">
+          <div class="arch-box-title">RPC · delete_my_account()</div>
+          <div class="arch-box-desc">NEW. Server-side function that (a) cancels Stripe subscription via service-role call, (b) calls <code>auth.admin.deleteUser()</code>. Cascade-on-delete handles everything else.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Section 04.5: Admin / founder ops ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num" style="background:rgba(168,168,184,.15);color:var(--text-mid)">04.5</span>
+      <div>
+        <h2 class="section-title">Admin &amp; founder ops · the internal-only stuff</h2>
+        <p class="section-blurb">Tools you'll need to run the business. None of this is user-facing — it's the founder-side ops surface that turns "we have a subscription product" into "we have a subscription business we can actually operate."</p>
+      </div>
+    </div>
+
+    <div class="edge-grid">
+      <div class="edge-card" style="border-color:var(--green);background:linear-gradient(135deg,rgba(34,197,94,.04),transparent)">
+        <span class="edge-card-tag" style="background:var(--green);color:white">✓ LOCKED · lifetime comp</span>
+        <h4>Migrate existing playtest accounts</h4>
+        <p>The 5 friends currently on comp'd access were here from day one — they get <strong style="color:var(--green)">lifetime Pro</strong>. One-time SQL on launch day: <code>UPDATE subscriptions SET tier='pro', status='active', comp_reason='playtest_lifetime', current_period_end='2099-12-31' WHERE user_id IN (...)</code>. Plus a welcome email explaining their permanent Pro status ("you were here from day one · thank you · Pro is yours forever").</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag" style="background:var(--accent-dim);color:var(--accent-light)">Critical · launch-blocker</span>
+        <h4>Subscription dashboard · MRR + churn view</h4>
+        <p>Bare-minimum admin page at <code>/admin/subscriptions</code> showing: total subscribers · MRR · churn rate · revenue this month vs last · list of past_due users (need email follow-up). Stripe Dashboard already shows most of this — could just be a link rather than built UI. Decision: link to Stripe + add a Supabase admin SQL view for "users + sub state."</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Founder-only</span>
+        <h4>Comp someone Pro · referral / friend</h4>
+        <p>Bob from the LinkedIn group should get free Pro for life. Admin UI: enter email → "Comp this user · 12 months / Lifetime / Specific date" → updates subscriptions row with tier='pro' + comp_reason='referral_bob'. No Stripe customer created, no charge. Backend ~10 LOC.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Founder-only</span>
+        <h4>Manual refund · Stripe + DB sync</h4>
+        <p>"This user emailed asking for a refund, I'm OK with it." Issue refund in Stripe Dashboard → <code>charge.refunded</code> webhook fires → optionally also cancel the sub. For v1: do this entirely in Stripe Dashboard, no custom UI. Phase 4.7+ can add a "Refund this user" button if the volume justifies.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Founder-only</span>
+        <h4>Extend pass-guarantee window</h4>
+        <p>User claims pass-guarantee at day 30. Manual review confirms they followed the plan. Extend their period by 60 days = effectively another exam cycle free. Admin UI: enter user email → "Extend pass-guarantee by N days" → updates <code>pass_guarantee_extended_at</code> + extends <code>current_period_end</code> in Stripe via API. ~15 LOC.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Moderation</span>
+        <h4>Ban / disable abusive user</h4>
+        <p>"This user is abusing the AI proxy for non-cert content." Admin UI: enter email → "Disable account · keep data" sets a flag that blocks all <code>/api/ai/generate</code> calls. Different from delete — preserves history for legal record. Worth having for Trust &amp; Safety even at low volume.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Observability</span>
+        <h4>Web Vitals dashboard (Phase 6b data)</h4>
+        <p>v4.99.45 collector is logging now. Admin page reads <code>web_vitals</code> table and shows p75 LCP by version + iOS vs Android median + connection-type slicing. Already <a href="../MOBILE_BASELINE.md">spec'd</a> in MOBILE_BASELINE.md — just needs the actual SQL queries + a chart library (could use Chart.js inline · 15 KB · no build).</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Observability</span>
+        <h4>Quota usage view</h4>
+        <p>"Which users are hitting the 20 Q/day free limit?" — those are the conversion-prime users. SQL view over <code>ai_usage</code> table. Could be a weekly digest email instead of UI. For v1: do it as a Supabase Dashboard saved query, no UI build.</p>
+      </div>
+    </div>
+
+    <div class="decision-card" style="margin-top:24px">
+      <div class="decision-card-label">Build philosophy</div>
+      <strong>Almost all admin tools should be Supabase SQL queries + Stripe Dashboard, not custom UI.</strong> At n=10 paying subscribers, you don't need a custom admin dashboard — you need a few saved SQL queries and the discipline to run them weekly. Build admin UI only when you find yourself doing the same SQL 5+ times. The first month of paid users probably needs ZERO admin UI beyond the playtest migration script.
+    </div>
+  </section>
+
+  <!-- ─── Section 5: Implementation roadmap ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <div>
+        <h2 class="section-title">What gets built · in what order</h2>
+        <p class="section-blurb">Phases that each fit one feature-day (Mon/Wed/Fri) per the weekly cadence. Each phase is independently shippable.</p>
+      </div>
+    </div>
+
+    <table class="roadmap-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Work</th>
+          <th>Surface</th>
+          <th>Est.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="roadmap-phase phase-now">P4.1</span></td>
+          <td><strong>Stripe dashboard setup</strong> · Product + 2 Prices + webhook endpoint + Customer Portal config (Test mode)</td>
+          <td>Founder · Stripe.com</td>
+          <td>15 min</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-now">P4.1</span></td>
+          <td><strong>Vercel env vars</strong> · 7 vars on landing project (test + live)</td>
+          <td>Both</td>
+          <td>5 min</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-now">P4.1</span></td>
+          <td><strong>Webhook handler</strong> · <code>landing/api/stripe/webhook.js</code> with sig verify + 5 event types + idempotency</td>
+          <td>Vercel landing</td>
+          <td>~50 LOC · 1 hr</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.2</span></td>
+          <td><strong>Pricing page wired</strong> · Monthly/Annual toggle + Stripe Checkout redirect</td>
+          <td><code>landing/pricing.html</code></td>
+          <td>1 feature day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.2</span></td>
+          <td><strong>Sign-up + checkout flow</strong> · Flow A end-to-end (signup screen → magic-link → checkout → success)</td>
+          <td><code>landing/signup.html</code> · cert app</td>
+          <td>1 feature day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.3</span></td>
+          <td><strong>Paywall modal + isPro() gating</strong> · client-side gates on TB · ACL · IRW · PHT · NA · Exam Sim</td>
+          <td>Cert app</td>
+          <td>1 feature day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.3</span></td>
+          <td><strong>Upgrade-later flow</strong> · Flow C (paywall → checkout → return to original feature)</td>
+          <td>Cert app</td>
+          <td>0.5 day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.4</span></td>
+          <td><strong>Customer Portal</strong> · "Manage billing" link on /account + create-portal-session endpoint</td>
+          <td>Landing /account · Vercel</td>
+          <td>0.5 day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-later">P4.5</span></td>
+          <td><strong>Account deletion</strong> · Settings UI + <code>delete_my_account()</code> RPC + Stripe cancel cascade</td>
+          <td>Cert app + Supabase</td>
+          <td>1 feature day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-later">P4.6</span></td>
+          <td><strong>Dunning + churn-save UI</strong> · past_due banner + retention copy on cancel</td>
+          <td>Cert app</td>
+          <td>1 feature day</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-later">P4.7</span></td>
+          <td><strong>Pass guarantee form</strong> · manual claim flow + admin extend in Stripe</td>
+          <td>Landing</td>
+          <td>0.5 day</td>
+        </tr>
+        <tr style="background:linear-gradient(90deg,rgba(34,197,94,.06),transparent)">
+          <td><span class="roadmap-phase phase-now">✓ THU TECH-DEBT</span></td>
+          <td><strong>⚖️ Privacy Policy + Terms of Service · "really good and legit" drafts (founder-stated bar 2026-05-11)</strong> · NOT boilerplate · customised to CertAnvil's actual data flows: Supabase auth + storage · Stripe billing handling · cert-app usage telemetry · Web Vitals collector (Phase 6b) · localStorage state · service worker · auto-backup mechanism · cookie domain (.certanvil.com cross-subdomain). Plus explicit refund policy + pass-guarantee terms + data retention period for deleted accounts + acceptable use (no AI proxy abuse) + jurisdiction (US default · UK fallback). Reviewed against GDPR/CCPA baseline.</td>
+          <td>Landing</td>
+          <td>1 day · research+writing</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-now">PRE-LAUNCH</span></td>
+          <td><strong>🎁 Playtest migration script</strong> · one-time SQL to grant comp'd Pro to existing 5 playtester accounts + welcome email explaining lifetime comp</td>
+          <td>Supabase + Resend</td>
+          <td>15 min</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-soon">P4.2.1</span></td>
+          <td><strong>👋 Returning user sign-in flow</strong> · "Sign in" CTA on landing + <code>/signin</code> page + "Welcome back" framing (vs first-time signup)</td>
+          <td>Landing</td>
+          <td>2 hrs</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-later">P12</span></td>
+          <td><strong>📱 App Store distribution path · DECISION FIRST</strong> · pick Path A (PWA-only) · Path B (hybrid Stripe+IAP) · or Path C (IAP-only). See section 03.5. Building IAP integration is ~3 weeks if Path B</td>
+          <td>Decision · then Capacitor</td>
+          <td>Decision now · build later</td>
+        </tr>
+        <tr>
+          <td><span class="roadmap-phase phase-later">P4.8</span></td>
+          <td><strong>🔄 Multi-cert switcher · Pro-aware</strong> · update cert switcher logic so Pro users see both Network+ AND Security+ without re-paywalling. Free users see one cert at a time</td>
+          <td>Cert app</td>
+          <td>2 hrs</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:13px;color:var(--text-mid);margin-top:18px;">
+      <strong style="color:var(--text)">Critical path:</strong> P4.1 → P4.2 → P4.3 gets us shipping our first paid subscription. ~4 feature days minimum. P4.4-7 polish the experience and handle the messy real-life cases. Per cadence: Mon · Wed · Fri feature days = ~2 calendar weeks to ship the critical path, ~3 weeks to ship all of P4.
+    </p>
+  </section>
+
+  <!-- ─── Section 6: Open questions ─── -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <div>
+        <h2 class="section-title">Still open · decisions for a later session</h2>
+        <p class="section-blurb">Not gating implementation, but worth a quick founder-decision sometime in the next week.</p>
+      </div>
+    </div>
+
+    <div class="edge-grid">
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>Free trial · yes or no?</h4>
+        <p>Currently no time-bounded trial — free tier is "the trial." Could add a 7-day trial of Pro that requires a card upfront ("free for 7 days, then $9.99/mo"). Industry-standard but adds friction. PLG path is the current bet: get them to Pro via value, not free-trial pressure.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>Refund window length</h4>
+        <p>"Money-back if you don't pass" is the pass guarantee. But what about generic refund? Stripe lets us decide. Common choices: 7-day money-back (low-friction), 30-day money-back (generous, more refunds), or no auto-refund (only via support, case-by-case). Phase 4 architecture deferred this — needs an answer before launch.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>Annual → Monthly downgrade · when?</h4>
+        <p>Stripe Customer Portal lets users switch periods. Should annual users be able to switch to monthly mid-year? Stripe handles the proration. Default policy: allow it (clean), accept the small revenue hit on the rare downgrade. Alternative: lock annual until renewal, push them to use it.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>"Pause" subscription?</h4>
+        <p>Stripe supports subscription pause (still subscribed, no billing, no access). Useful for users between exams. Adds UI complexity. Defer to v1.1 unless users ask.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>Re-engagement after deletion</h4>
+        <p>Should deleted users be allowed to re-sign-up with the same email? Currently yes (clean), but means they get the new-user free tier again. Alternative: track deleted_emails and warn "this email was deleted on YYYY-MM-DD · re-signing up creates a fresh account with no history." Defaults to "yes, allow."</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>"Cancel survey"</h4>
+        <p>When user cancels via Stripe Portal, we don't see WHY. Could add a Tally form on the "you cancelled" return page. Optional, low-effort, useful for product feedback at this stage. Worth including in Phase 4.6 (churn-save).</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-error">Decision · launch-blocker if EU users</span>
+        <h4>VAT for international subscribers</h4>
+        <p>USD-only is the Phase 4 decision. But a UK or German user paying $9.99/mo legally needs VAT shown separately. Stripe Tax solves this: charges $9.99 + VAT on top, generates compliant invoices. Cost: 0.5% of transaction value. <strong>Defer:</strong> only matters once we get one EU subscriber. Until then, no action needed.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>Cookie consent banner</h4>
+        <p>GDPR requires it for EU users · CCPA-similar for California. Tools like CookieYes or Osano handle this for ~$10/mo. Most US-focused early-stage SaaS skip this for the first 100 users on the "small business" exemption. <strong>Defer</strong> unless you market in EU specifically.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision</span>
+        <h4>OAuth · Sign in with Google / Apple?</h4>
+        <p>Magic-link is cleanest mechanically. But on iOS specifically, Apple's HIG basically requires "Sign in with Apple" if you offer any other social sign-in. <strong>v1 recommendation:</strong> magic-link only · re-evaluate after first 50 sign-ups based on actual user friction reports. Easy to add later (Supabase has built-in OAuth providers).</p>
+      </div>
+      <div class="edge-card" style="border-color:rgba(34,197,94,.4);background:linear-gradient(135deg,rgba(34,197,94,.04),transparent)">
+        <span class="edge-card-tag" style="background:var(--green);color:white">✓ DECIDED · 2026-05-11</span>
+        <h4>App Store distribution path</h4>
+        <p><strong style="color:var(--green)">Path B locked.</strong> Founder conviction: App Store presence is the biggest legitimacy driver for cert-prep users. v1 ships Stripe-only on web; Phase 12 adds Apple IAP via Capacitor wrapper (~3-week sprint). The all-Stripe architecture in this mockup is unchanged — IAP bolts on later without rework. See section 03.5 for the architecture detail.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-warning">Decision · post-launch</span>
+        <h4>Auto-renewal reminder emails</h4>
+        <p>Stripe auto-sends a reminder email 7 days before annual renewal (default behavior). Customers can adjust this in Customer Portal. We don't need to build anything. But should we ALSO send a CertAnvil-branded reminder that says "Your renewal is coming up · here's your year-1 progress"? Retention nudge. Defer to Phase 4.6+.</p>
+      </div>
+      <div class="edge-card">
+        <span class="edge-card-tag tag-flow">Decision · ops</span>
+        <h4>Founder-side metrics dashboard</h4>
+        <p>Stripe Dashboard already shows MRR + churn + new subscribers. Do you ALSO want a CertAnvil-internal dashboard showing exam-pass rate by subscription tier · daily-active subscribers · conversion funnel from free → Pro? Nice-to-have. Could be a Notion page hand-updated weekly until volume justifies automation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <div class="doc-footer">
+    <p>CertAnvil · Signup &amp; Subscription Flow Concept · 2026-05-11</p>
+    <p style="margin-top:4px">Companion docs · <a href="../MOBILE_OPTIMIZATION_PLAN.md">Mobile Optimization Plan</a> · <a href="../MOBILE_BASELINE.md">Mobile Baseline</a> · Phase 4 Stripe Architecture (memory)</p>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.flow-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.flow-tab').forEach(t => t.classList.remove('is-active'));
+      document.querySelectorAll('.flow-panel').forEach(p => p.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      document.querySelector(`.flow-panel[data-panel="${target}"]`).classList.add('is-active');
+      window.scrollTo({ top: tab.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

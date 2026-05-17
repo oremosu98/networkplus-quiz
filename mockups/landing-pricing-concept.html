@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Pricing redesign concept (landing · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Landing /pricing on the evolved
+  dg-system (same language as the founder-approved landing homepage
+  redesign). landing/pricing.html untouched (gated landing sweep).
+
+  POV: the live page is the generic light-edtech slop the impeccable
+  framework flags - purple accent, 3 floating soft-shadow rounded
+  cards, a purple "MOST POPULAR" gradient pill, pastel-green guarantee
+  band, soft-card FAQ. Redesign:
+   · 3 floating soft cards -> a 3-column comparison on ONE hairline
+     plane (impeccable identical-card-grid + soft-shadow ban). Only the
+     PRO column is lifted, via a quiet accent rule + eyebrow, not a
+     gradient bubble.
+   · Price as a typographic anchor, not a coloured chip.
+   · Green-tick emoji-ish bullets -> hairline line-check rows.
+   · Pastel guarantee band -> a calm editorial band (accent at 6%).
+   · Soft-card FAQ -> de-carded <details> accordion, the same pattern
+     as the locked homepage FAQ + concept-labs.
+  MOTION: a pricing page is a scanned decision surface (emil frequency
+  rule) -> CALM. No scroll-reveal, no fills, 0 @keyframes. Only the
+  origin-aware <details> chevron + hover feedback.
+  HONESTY: every tier, price, feature line, the guarantee band copy and
+  all 4 FAQ entries mirrored verbatim from the capture. Em-dash
+  recomposed, arrows kept. 0 emoji · 0 hardcoded hex · 0 em-dash.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--t5:62px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--dg-rule-soft);max-width:1180px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:var(--t1);letter-spacing:-0.02em;}
+  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--dg-text);color:var(--dg-bg);display:grid;place-items:center;font-size:15px;}
+  .nav-r{display:flex;align-items:center;gap:24px;font-size:var(--t-1);color:var(--dg-text-dim);font-weight:600;}
+  .nav-r a{text-decoration:none;}
+  .nav-r a:hover{color:var(--dg-text);}
+  .nav-r a.on{color:var(--dg-accent);}
+  .nav-tt{background:none;border:1px solid var(--dg-rule);border-radius:7px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 10px;cursor:pointer;}
+  .nav-tt:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .nav-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--dg-rule);border-radius:999px;padding:4px 11px 4px 4px;}
+  .nav-pill .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:10px;color:var(--dg-accent);background:color-mix(in oklab,var(--dg-accent) 18%,var(--dg-bg));}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px;}
+  .hero{text-align:center;padding:74px 0 56px;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
+  h1{font-size:var(--t5);font-weight:800;letter-spacing:-0.035em;line-height:1.04;margin:20px 0 0;}
+  .hero p{margin:20px auto 0;max-width:560px;font-size:var(--t1);color:var(--dg-text-2);line-height:1.6;}
+
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--dg-rule);border-radius:16px;overflow:hidden;}
+  .tier{padding:36px 30px 32px;border-right:1px solid var(--dg-rule-soft);display:flex;flex-direction:column;}
+  .tier:last-child{border-right:0;}
+  .tier.pro{background:color-mix(in oklab,var(--dg-accent) 6%,transparent);position:relative;}
+  .tier.pro::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--dg-accent);}
+  .tk{font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .tier.pro .tk{color:var(--dg-accent);}
+  .pop{float:right;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--dg-accent);}
+  .price{display:flex;align-items:baseline;gap:4px;margin:18px 0 4px;}
+  .price .c{font-size:var(--t1);font-weight:700;color:var(--dg-text-dim);}
+  .price .n{font-size:var(--t5);font-weight:800;letter-spacing:-0.03em;line-height:1;}
+  .price .p{font-size:var(--t0);color:var(--dg-text-dim);font-weight:600;}
+  .price .save{font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--dg-pass);border:1px solid color-mix(in oklab,var(--dg-pass) 45%,transparent);border-radius:5px;padding:4px 7px;margin-left:8px;align-self:center;}
+  .alt{font-size:var(--t-1);color:var(--dg-text-dim);}
+  .alt b{color:var(--dg-text-2);font-weight:700;}
+  .soon{font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;margin:18px 0 4px;}
+  .blurb{margin-top:14px;font-size:var(--t-1);color:var(--dg-text-2);line-height:1.6;padding-bottom:20px;border-bottom:1px solid var(--dg-rule-soft);}
+  .feats{list-style:none;margin:20px 0 26px;display:flex;flex-direction:column;gap:13px;flex:1;}
+  .feats li{display:flex;gap:11px;font-size:var(--t-1);color:var(--dg-text-2);line-height:1.5;}
+  .feats li svg{width:15px;height:15px;flex:none;color:var(--dg-pass);margin-top:1px;}
+  .feats li b{color:var(--dg-text);font-weight:700;}
+  .cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:10px;font:800 var(--t0)/1 Inter,sans-serif;padding:15px;cursor:pointer;border:1px solid var(--dg-rule);background:none;color:var(--dg-text);text-decoration:none;transition:border-color 0.15s,color 0.15s;}
+  .cta:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .cta.pri{background:var(--dg-accent);border-color:var(--dg-accent);color:var(--dg-accent-ink);}
+  .cta.pri:hover{filter:brightness(1.05);color:var(--dg-accent-ink);}
+  .cta svg{width:14px;height:14px;}
+
+  .guar{margin:64px 0;border-top:1px solid var(--dg-rule-soft);border-bottom:1px solid var(--dg-rule-soft);background:color-mix(in oklab,var(--dg-pass) 5%,transparent);}
+  .guar-in{max-width:680px;margin:0 auto;padding:44px 40px;text-align:center;}
+  .guar-ic{width:42px;height:42px;margin:0 auto 18px;border-radius:50%;border:1px solid color-mix(in oklab,var(--dg-pass) 50%,var(--dg-rule));display:grid;place-items:center;color:var(--dg-pass);}
+  .guar-ic svg{width:20px;height:20px;}
+  .guar h2{font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;}
+  .guar h2 i{font-style:normal;color:var(--dg-pass);}
+  .guar p{margin-top:14px;font-size:var(--t0);color:var(--dg-text-2);line-height:1.65;}
+  .guar a{color:var(--dg-accent);font-weight:700;text-decoration:none;}
+  .guar a:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  .faq{max-width:980px;margin:0 auto;padding:10px 40px 80px;}
+  .faq h2{text-align:center;font-size:var(--t3);font-weight:800;letter-spacing:-0.02em;margin-bottom:32px;}
+  .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;}
+  details.q{border-top:1px solid var(--dg-rule-soft);}
+  details.q summary{list-style:none;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 0;cursor:pointer;font-size:var(--t0);font-weight:700;letter-spacing:-0.01em;}
+  details.q summary::-webkit-details-marker{display:none;}
+  details.q .chev{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--dg-rule);display:grid;place-items:center;color:var(--dg-text-dim);transition:transform 0.2s var(--ease),border-color 0.15s,color 0.15s;}
+  details.q[open] .chev{transform:rotate(180deg);border-color:var(--dg-accent);color:var(--dg-accent);}
+  details.q .chev svg{width:12px;height:12px;}
+  details.q .a{padding:0 0 22px;font-size:var(--t-1);color:var(--dg-text-2);line-height:1.7;max-width:88%;}
+  details.q .a b{color:var(--dg-text);font-weight:700;}
+  .faq-more{text-align:center;margin-top:34px;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .faq-more a{color:var(--dg-accent);font-weight:700;text-decoration:none;}
+  .faq-more a:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  footer{border-top:1px solid var(--dg-rule-soft);}
+  .foot{max-width:1180px;margin:0 auto;padding:26px 40px;display:flex;align-items:center;justify-content:space-between;font-size:var(--t-1);color:var(--dg-text-dim);}
+  .foot .fl{font-family:var(--mono);font-size:11px;}
+  .foot nav{display:flex;gap:22px;}
+  .foot nav a{text-decoration:none;}
+  .foot nav a:hover{color:var(--dg-text);}
+
+  @media (prefers-reduced-motion: reduce){details.q .chev,.cta,.nav-tt{transition:none;}}
+  @media (max-width:880px){.tiers{grid-template-columns:1fr;}.tier{border-right:0;border-bottom:1px solid var(--dg-rule-soft);}.tier.pro::before{width:100%;height:2px;bottom:auto;}.faq-grid{grid-template-columns:1fr;gap:0;}h1{font-size:var(--t4);}.nav,.wrap,.faq{padding-left:22px;padding-right:22px;}}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="nav">
+  <span class="brand"><span class="mk" aria-hidden="true">&#9650;</span>CertAnvil</span>
+  <span class="nav-r">
+    <a href="#">Why CertAnvil</a>
+    <a href="#">Certs</a>
+    <a href="#" class="on">Pricing</a>
+    <button class="nav-tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+    <span class="nav-pill"><span class="av" aria-hidden="true">S</span>simi.oremosu@&hellip;</span>
+  </span>
+</header>
+
+<section class="wrap hero">
+  <div class="eyebrow">Pricing · simple + honest</div>
+  <h1>Free until it's working.<br>Then $89/yr.</h1>
+  <p>No hidden tiers. No per-cert upcharges. Try the diagnostic, build your habit, then unlock everything if you want to keep going.</p>
+</section>
+
+<section class="wrap">
+  <div class="tiers">
+    <div class="tier">
+      <div class="tk">Free</div>
+      <div class="price"><span class="c">$</span><span class="n">0</span><span class="p">/forever</span></div>
+      <div class="blurb">Try the engine. Build the habit. No credit card required.</div>
+      <ul class="feats">
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>1 cert of your choice</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>20 questions per day</b></li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Full Baseline Diagnostic + Pass Plan</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Streak tracker + daily challenge</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Basic readiness analytics</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Spaced-repetition review</li>
+      </ul>
+      <a class="cta" href="#">Start free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+
+    <div class="tier pro">
+      <div class="tk">Pro<span class="pop">Most popular</span></div>
+      <div class="price"><span class="c">$</span><span class="n">89</span><span class="p">/yr</span><span class="save">Save a third</span></div>
+      <div class="alt">or <b>$9.99/mo</b> billed monthly</div>
+      <div class="blurb" style="margin-top:14px;">Everything unlimited. Pass guarantee. The full prep stack.</div>
+      <ul class="feats">
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Everything in Free, plus:</b></li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Unlimited questions</b> across all certs</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Full Exam Simulator (90Q timed)</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>PBQs: CLI sim, topology builder, ACL builder</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Advanced analytics: Knowledge Constellation, weak-spots, readiness trend</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Pass Plan tracking + retention coaching</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Pass guarantee:</b> extension if you don't pass first try</li>
+      </ul>
+      <a class="cta pri" href="#">Start Pro<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+
+    <div class="tier">
+      <div class="tk">Team</div>
+      <div class="soon">Coming soon</div>
+      <div class="blurb">Bulk licenses for bootcamps, training providers, and IT departments. Custom pricing.</div>
+      <ul class="feats">
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Everything in Pro, for every team member</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Centralised invoicing</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Cohort progress dashboard</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>SSO / domain-restricted enrollment</li>
+        <li><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Priority support</li>
+      </ul>
+      <a class="cta" href="#">Reach out<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<section class="guar">
+  <div class="guar-in">
+    <div class="guar-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V7l8-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h2>Don't pass first try? <i>We've got you.</i></h2>
+    <p>Pro users who put in the work and don't pass on first attempt get their Pro access extended until they do. Manual case review, response within 7 days. <a href="#">Read the full terms &rarr;</a></p>
+  </div>
+</section>
+
+<section class="faq">
+  <h2>Pricing FAQ</h2>
+  <div class="faq-grid">
+    <div>
+      <details class="q" open>
+        <summary>Can I cancel anytime?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+        <div class="a">Yes. Pro is month-to-month or annual, cancel from your account dashboard. <b>Annual cancellations</b> stop the renewal but keep your Pro access through the period you've already paid for.</div>
+      </details>
+      <details class="q">
+        <summary>What's covered by the pass guarantee?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+        <div class="a">Pro users who use the platform actively for 30+ days, complete a mock exam, and don't pass on their <b>first attempt</b> at the real CompTIA exam. Submit your Pearson VUE booking + score report; we extend your Pro access until you pass. Manual review.</div>
+      </details>
+    </div>
+    <div>
+      <details class="q">
+        <summary>Do I need my own AI/API key?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+        <div class="a">No. The Pro subscription covers the AI cost on our side, your monthly fee includes Claude API tokens. Free tier likewise. <b>Zero "bring your own key" complexity.</b></div>
+      </details>
+      <details class="q">
+        <summary>Is there a refund policy?<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+        <div class="a">14-day money-back if Pro isn't right for you. After that, the pass guarantee is the active "we'll back you up" mechanism. We'd rather over-deliver on a few cases than under-deliver on the brand promise.</div>
+      </details>
+    </div>
+  </div>
+  <div class="faq-more">More questions? See the <a href="#">full FAQ on the homepage &rarr;</a></div>
+</section>
+
+<footer>
+  <div class="foot">
+    <span class="fl">certanvil.com · forged in code</span>
+    <nav><a href="#">Why CertAnvil</a><a href="#">Pricing</a><a href="#">FAQ</a><a href="#">Home</a></nav>
+  </div>
+</footer>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>

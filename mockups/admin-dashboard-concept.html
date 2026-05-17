@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Admin Dashboard concept (dashboards · product register · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Restyles the live owner-only Admin
+  Dashboard into the dg-system so all app chrome is one language.
+
+  Register : PRODUCT / dashboards lane (operator surface · density + clarity
+             + scannability over spectacle).
+  Audit fix vs the live page (screenshot):
+   · 4 equal stat CARDS  -> a de-carded hairline stat STRIP. impeccable
+     bans the hero-metric template AND identical card grids; a divided
+     editorial row says the same thing without the card cliche.
+   · boxed table panels  -> editorial tables: uppercase dim column heads,
+     hairline rows, tabular numerals, mono for emails/codes (operator feel),
+     subtle row hover for scan tracking.
+   · loud role/visibility pills  -> quiet tinted tags (ADMIN accent, USER
+     neutral hairline). One accent, restrained.
+   · emoji (wrench/globe/lock)  -> crisp 1.5px line SVG icons.
+   · em-dashes and dash-as-empty cells  -> recomposed (middot, words).
+   · WIDER container than the 760 account column (admin tables need width).
+     Don't reflexively reuse one measure; match it to the surface.
+   · motion: the SAME section scroll-reveal as the rest of the product
+     (emil cohesion). NO stat count-up: animating big KPIs leans into the
+     exact hero-metric SaaS tell impeccable rejects, restraint wins here.
+  Honesty : numbers/users/versions mirror the founder's real admin screen
+            (their own data, local concept file). No fabrication.
+  Dual-theme : exact 4-block dg-* cascade + flash-free bootstrap + toggle.
+-->
+<style>
+  html:root {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+    --maxw: 1120px; --t-1: 12px; --t0: 14.5px; --t1: 18px; --t2: 24px; --t3: 36px; --t-num: 34px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: light) {
+    html:root {
+      --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+      --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+      --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+      --dg-text-dim: oklch(0.50 0.013 280);
+      --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+      --dg-pass: oklch(0.50 0.15 150);
+    }
+  }
+  html[data-theme="dark"] {
+    --dg-bg: oklch(0.17 0.008 275); --dg-bg-2: oklch(0.205 0.009 275);
+    --dg-rule: oklch(0.32 0.011 275); --dg-rule-soft: oklch(0.255 0.010 275);
+    --dg-text: oklch(0.96 0.006 275); --dg-text-2: oklch(0.80 0.012 275);
+    --dg-text-dim: oklch(0.725 0.013 275);
+    --dg-accent: oklch(0.80 0.155 64); --dg-accent-ink: oklch(0.20 0.045 64);
+    --dg-pass: oklch(0.74 0.150 152);
+  }
+  html[data-theme="light"] {
+    --dg-bg: oklch(0.975 0.007 85); --dg-bg-2: oklch(0.945 0.008 85);
+    --dg-rule: oklch(0.85 0.011 85); --dg-rule-soft: oklch(0.90 0.009 85);
+    --dg-text: oklch(0.26 0.015 280); --dg-text-2: oklch(0.42 0.014 280);
+    --dg-text-dim: oklch(0.50 0.013 280);
+    --dg-accent: oklch(0.50 0.155 55); --dg-accent-ink: oklch(0.98 0.012 70);
+    --dg-pass: oklch(0.50 0.15 150);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--dg-bg); color: var(--dg-text);
+    font-family: Inter, -apple-system, "system-ui", "Segoe UI", Roboto, sans-serif;
+    font-size: var(--t0); line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+  .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; border-bottom: 1px solid var(--dg-rule-soft);
+    max-width: var(--maxw); margin: 0 auto;
+  }
+  .brand { font-size: var(--t-1); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-text-2); display: flex; align-items: center; gap: 10px; }
+  .brand b { color: var(--dg-accent); }
+  .brand .atag { color: var(--dg-accent); border: 1px solid color-mix(in oklab, var(--dg-accent) 45%, transparent); border-radius: 5px; padding: 2px 6px; font-size: 10px; letter-spacing: 0.1em; }
+  .bar-nav { display: flex; align-items: center; gap: 22px; font-size: var(--t-1); }
+  .bar-nav a { color: var(--dg-text-dim); text-decoration: none; }
+  .bar-nav a:hover { color: var(--dg-accent); }
+  .theme-toggle {
+    background: none; border: 1px solid var(--dg-rule); border-radius: 8px;
+    color: var(--dg-text-dim); font: 600 var(--t-1)/1 Inter, sans-serif;
+    padding: 7px 11px; cursor: pointer; letter-spacing: 0.04em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .theme-toggle:hover { border-color: var(--dg-accent); color: var(--dg-accent); }
+  .pill { display: flex; align-items: center; gap: 9px; background: var(--dg-bg-2); border: 1px solid var(--dg-rule); border-radius: 999px; padding: 5px 11px 5px 5px; color: var(--dg-text-2); font: 600 var(--t-1)/1 Inter, sans-serif; max-width: 180px; }
+  .avatar { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 11px; color: var(--dg-accent); background: color-mix(in oklab, var(--dg-accent) 18%, var(--dg-bg)); }
+  .pill .e { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  main { padding: 36px 0 90px; }
+  .crumb { font-size: var(--t-1); color: var(--dg-text-dim); }
+  .crumb a { color: var(--dg-text-dim); text-decoration: none; }
+  .crumb a:hover { color: var(--dg-accent); }
+  .eyebrow { margin-top: 20px; font-size: var(--t-1); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dg-accent); display: flex; align-items: center; gap: 8px; }
+  .eyebrow svg { width: 14px; height: 14px; }
+  h1 { margin-top: 10px; font-size: var(--t3); font-weight: 800; letter-spacing: -0.025em; }
+  .sub { margin-top: 11px; font-size: var(--t0); color: var(--dg-text-2); }
+  .sub code { font-family: var(--mono); font-size: 0.86em; color: var(--dg-text); background: var(--dg-bg-2); border: 1px solid var(--dg-rule-soft); border-radius: 5px; padding: 2px 6px; }
+
+  /* de-carded stat strip · divided editorial row, not 4 cards */
+  .stats {
+    margin-top: 34px; display: grid; grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--dg-rule); border-radius: 12px; overflow: hidden;
+  }
+  .stat { padding: 20px 22px; border-left: 1px solid var(--dg-rule-soft); }
+  .stat:first-child { border-left: 0; }
+  .stat .k { font-size: var(--t-1); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dg-text-dim); }
+  .stat .n { margin-top: 12px; font-size: var(--t-num); font-weight: 800; letter-spacing: -0.02em; color: var(--dg-text); font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat .n.ver { font-size: var(--t2); color: var(--dg-accent); }
+  .stat .d { margin-top: 9px; font-size: var(--t-1); color: var(--dg-text-dim); }
+
+  section { margin-top: 48px; }
+  .s-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--dg-rule); }
+  .s-head h2 { font-size: var(--t1); font-weight: 800; letter-spacing: -0.01em; }
+  .s-head .q { font-family: var(--mono); font-size: var(--t-1); color: var(--dg-text-dim); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th, td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--dg-rule-soft); vertical-align: middle; }
+  th { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dg-text-dim); }
+  td { font-size: var(--t-1); color: var(--dg-text-2); }
+  tbody tr { transition: background 0.12s ease; }
+  tbody tr:hover { background: var(--dg-bg-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.mono, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.strong { color: var(--dg-text); font-weight: 700; font-family: Inter, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; color: var(--dg-text-dim); }
+
+  .tag { font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; display: inline-block; }
+  .tag.admin { color: var(--dg-accent); background: color-mix(in oklab, var(--dg-accent) 15%, transparent); }
+  .tag.user { color: var(--dg-text-dim); border: 1px solid var(--dg-rule); }
+  .vis { display: inline-flex; align-items: center; gap: 7px; color: var(--dg-text-2); }
+  .vis svg { width: 14px; height: 14px; color: var(--dg-text-dim); flex: none; }
+  .vis.priv svg { color: var(--dg-accent); }
+
+  html.reveal-on .reveal {
+    opacity: 0; transform: translateY(18px);
+    transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+  }
+  html.reveal-on .reveal.is-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; }
+    .theme-toggle, tbody tr { transition: none; }
+  }
+</style>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('certanvilTheme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          && 'IntersectionObserver' in window) {
+        document.documentElement.classList.add('reveal-on');
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<header class="bar">
+  <span class="brand">Cert<b>Anvil</b> <span class="atag">Admin</span></span>
+  <span class="bar-nav">
+    <a href="#">Users</a><a href="#">Certs</a><a href="#">Ops</a><a href="#">Back to account</a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light/dark theme">Theme</button>
+    <span class="pill"><span class="avatar" aria-hidden="true">S</span><span class="e">simi.oremosu@gmail.com</span></span>
+  </span>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="crumb"><a href="#">Home</a> · <a href="#">Account</a> · Admin Dashboard</nav>
+    <div class="eyebrow reveal">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.3L3 18l3 3 6.4-6.3a4 4 0 0 0 5.3-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      Admin
+    </div>
+    <h1 class="reveal">Dashboard</h1>
+    <p class="sub reveal">Owner-only operations and user management. Restricted by <code>role = 'admin'</code> in <code>profiles</code>.</p>
+
+    <div class="stats reveal">
+      <div class="stat">
+        <div class="k">Total users</div>
+        <div class="n">7</div>
+        <div class="d">+7 this month</div>
+      </div>
+      <div class="stat">
+        <div class="k">Active this week</div>
+        <div class="n">6</div>
+        <div class="d">86% of all users</div>
+      </div>
+      <div class="stat">
+        <div class="k">Cert packs live</div>
+        <div class="n">2</div>
+        <div class="d">Network+ public · Security+ private</div>
+      </div>
+      <div class="stat">
+        <div class="k">App version</div>
+        <div class="n ver">v4.99.63</div>
+        <div class="d">live on networkplus.certanvil.com</div>
+      </div>
+    </div>
+
+    <section class="reveal">
+      <div class="s-head"><h2>Users</h2><span class="q">SELECT * FROM profiles · 7 rows</span></div>
+      <table>
+        <thead>
+          <tr><th>Email</th><th>Role</th><th>Tier</th><th>Display name</th><th>Active cert</th><th>Last seen</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">tester3@certanvil-playtest.com</td><td><span class="tag user">User</span></td><td>Free</td><td>tester3</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">tester5@certanvil-playtest.com</td><td><span class="tag user">User</span></td><td>Free</td><td>tester5</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">tester4@certanvil-playtest.com</td><td><span class="tag user">User</span></td><td>Free</td><td>tester4</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">tester2@certanvil-playtest.com</td><td><span class="tag user">User</span></td><td>Free</td><td>tester2</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">tester1@certanvil-playtest.com</td><td><span class="tag user">User</span></td><td>Free</td><td>tester1</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">simi.oremosu@gmail.com</td><td><span class="tag admin">Admin</span></td><td>Free</td><td>Simi</td><td>netplus</td><td class="num">6d ago</td></tr>
+          <tr><td class="mono">simi_oremosu@hotmail.com</td><td><span class="tag user">User</span></td><td>Free</td><td>simi_oremosu</td><td>netplus</td><td class="num">2026-05-05</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="reveal">
+      <div class="s-head"><h2>Cert packs</h2><span class="q">Visibility + pack-state per cert</span></div>
+      <table>
+        <thead>
+          <tr><th>Cert</th><th>Code</th><th>Visibility</th><th>Question bank</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="strong">Network+</td>
+            <td class="mono">N10-009</td>
+            <td><span class="vis"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" stroke="currentColor" stroke-width="1.5"/></svg>Public</span></td>
+            <td class="num">320 exemplars</td>
+            <td>Live · public tile + auto-deploy</td>
+          </tr>
+          <tr>
+            <td class="strong">Security+</td>
+            <td class="mono">SY0-701</td>
+            <td><span class="vis priv"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5"/></svg>Private · admin-only</span></td>
+            <td class="num">77 exemplars + Phase 2 growing</td>
+            <td>Hidden tile · admin-only via role check</td>
+          </tr>
+          <tr>
+            <td class="strong">AZ-900</td>
+            <td class="mono">AZ-900</td>
+            <td><span class="vis"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Coming-soon tile</span></td>
+            <td class="num">not started</td>
+            <td>Notify-me CTA</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</main>
+
+<script>
+  (function () {
+    if (!document.documentElement.classList.contains('reveal-on')) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.04 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  })();
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var mq = window.matchMedia('(prefers-color-scheme: light)');
+    function effective() {
+      var a = document.documentElement.getAttribute('data-theme');
+      if (a === 'light' || a === 'dark') return a;
+      return mq.matches ? 'light' : 'dark';
+    }
+    function label() { btn.textContent = effective() === 'light' ? 'Dark' : 'Light'; }
+    label();
+    btn.addEventListener('click', function () {
+      var next = effective() === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('certanvilTheme', next); } catch (e) {}
+      label();
+    });
+    mq.addEventListener('change', function () {
+      if (!document.documentElement.getAttribute('data-theme')) label();
+    });
+  })();
+</script>
+
+</body>
+</html>

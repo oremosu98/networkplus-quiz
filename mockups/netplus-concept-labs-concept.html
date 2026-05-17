@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Guided Topology Labs redesign concept (Network+ · modal · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. Redesign of the "Guided Topology Labs"
+  modal launched from the Network Builder's Labs mode (sibling of
+  netplus-network-builder-concept.html / netplus-3d-view-concept.html,
+  same shell so the dimmed backdrop reads as the real builder). The live
+  lab engine + openGuidedLab stay in app.js (gated, untouched).
+
+  Design POV:
+   · Current modal is a soft-shadow card grid of lab cards (impeccable
+     identical-card-grid ban). De-carded to a hairline grouped list:
+     name + difficulty tag (text, not a coloured bubble) + meta line +
+     one-line description. The list IS the design; no card chrome.
+   · Emoji flask header + flame/lock glyphs -> line icons, like every
+     other surface in the system.
+   · Filter pills -> one hairline segmented control (one concern, one
+     control), not 4 floating bubbles.
+   · Emil: a modal keeps CENTER origin (unlike origin-aware popovers).
+     Entrance = opacity + scale 0.97->1, <=220ms, compositor-only,
+     reduced-motion gated. The list itself is calm (it is scanned) -
+     NO scroll-reveal. One purposeful motion: the dialog in/out.
+  HONESTY (important):
+   · The capture shows ONLY the Fundamentals group and 3 of its 5 labs.
+     Those 3 labs are mirrored VERBATIM (names, Obj codes, time, steps,
+     difficulty, description meaning). Em-dash in "IP Addressing 101"
+     recomposed to a colon; "Cable Types" sentence was clipped in the
+     capture and is completed minimally, not invented.
+   · Stat line "30 concept labs · 37 auto-generated configs" is mirrored
+     from the LIVE capture (ground truth). NOTE: CLAUDE.md documents
+     TB_LAB_CATEGORIES as 29 + 35 - a doc/product drift to reconcile,
+     flagged in the handoff, NOT silently resolved here.
+   · "+2 more in Fundamentals" is honest arithmetic (group says 5, 3
+     shown) - no fabricated lab names. The remaining group names
+     (Switching / Routing / Services / Security / Cloud & WAN / Wireless
+     & QoS / Troubleshooting) are the REAL taxonomy documented in
+     CLAUDE.md, shown as plain group rows with NO invented labs or counts.
+  0 emoji · 0 hardcoded hex · 0 em-dash · app.js/index/styles untouched.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+
+  /* dimmed builder backdrop, just enough context */
+  .bg{position:fixed;inset:0;display:flex;flex-direction:column;filter:saturate(0.7);}
+  .bg-strip{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--dg-rule-soft);}
+  .bg-strip .t{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;color:var(--dg-text-2);}
+  .bg-strip .t i{font-style:normal;color:var(--dg-accent);}
+  .bg-strip .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .bg-canvas{flex:1;background:
+    linear-gradient(var(--dg-grid) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg,var(--dg-grid) 1px,transparent 1px) 0 0/26px 26px,
+    var(--dg-bg);}
+
+  .scrim{position:fixed;inset:0;background:color-mix(in oklab,oklch(0 0 0) 56%,transparent);backdrop-filter:blur(2px);display:grid;place-items:center;padding:28px;z-index:20;}
+
+  .modal{width:min(620px,100%);max-height:min(82vh,720px);display:flex;flex-direction:column;background:var(--dg-bg);border:1px solid var(--dg-rule);border-radius:16px;overflow:hidden;box-shadow:0 40px 90px -30px color-mix(in oklab,oklch(0 0 0) 70%,transparent);transform-origin:center center;animation:dlg 0.2s var(--ease) both;}
+  @keyframes dlg{from{opacity:0;transform:scale(0.97);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){.modal{animation:none;}}
+
+  .m-h{display:flex;align-items:flex-start;gap:14px;padding:22px 22px 16px;border-bottom:1px solid var(--dg-rule-soft);}
+  .m-ic{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid var(--dg-rule);display:grid;place-items:center;color:var(--dg-accent);}
+  .m-ic svg{width:17px;height:17px;}
+  .m-ht{flex:1;min-width:0;}
+  .m-ht .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .m-ht h1{font-size:var(--t2);font-weight:800;letter-spacing:-0.02em;margin-top:3px;}
+  .m-ht .sub{margin-top:6px;font-size:var(--t-1);color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .m-ht .sub b{color:var(--dg-text-2);font-weight:700;}
+  .m-x{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--dg-rule);background:none;color:var(--dg-text-dim);cursor:pointer;display:grid;place-items:center;transition:border-color 0.15s,color 0.15s;}
+  .m-x:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+  .m-x svg{width:14px;height:14px;}
+
+  .m-filter{display:flex;gap:2px;margin:14px 22px 4px;border:1px solid var(--dg-rule-soft);border-radius:9px;padding:3px;align-self:flex-start;}
+  .fb{background:none;border:0;border-radius:6px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 14px;cursor:pointer;transition:background 0.12s ease,color 0.12s ease;}
+  .fb:hover{color:var(--dg-text);}
+  .fb.on{color:var(--dg-text);background:var(--dg-bg-2);box-shadow:inset 0 0 0 1px var(--dg-rule);}
+
+  .m-list{flex:1;overflow-y:auto;padding:8px 6px 10px;}
+  .g-h{display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 8px;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .g-h .n{font-weight:600;letter-spacing:0;text-transform:none;font-size:var(--t-1);}
+
+  .lab{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--dg-rule-soft);padding:14px 16px;cursor:pointer;color:inherit;transition:background 0.12s ease;}
+  .lab:first-of-type{border-top:0;}
+  .lab:hover{background:var(--dg-bg-2);}
+  .lab-b{flex:1;min-width:0;}
+  .lab-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .lab-t .nm{font-size:var(--t0);font-weight:700;color:var(--dg-text);letter-spacing:-0.01em;}
+  .tag{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dg-pass);}
+  .lab-m{margin-top:3px;font-size:11px;color:var(--dg-text-dim);font-variant-numeric:tabular-nums;}
+  .lab-d{margin-top:7px;font-size:var(--t-1);color:var(--dg-text-2);line-height:1.55;}
+  .lab-go{flex:none;align-self:center;color:var(--dg-text-dim);transition:color 0.12s ease,transform 0.12s ease;}
+  .lab:hover .lab-go{color:var(--dg-accent);transform:translateX(2px);}
+  .lab-go svg{width:16px;height:16px;}
+
+  .more{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--dg-rule-soft);padding:12px 16px;cursor:pointer;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;transition:background 0.12s ease,color 0.12s ease;}
+  .more:hover{background:var(--dg-bg-2);color:var(--dg-text-2);}
+  .more svg{width:13px;height:13px;}
+
+  .grp{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--dg-rule-soft);padding:15px 16px;cursor:pointer;color:var(--dg-text-2);font:700 var(--t0)/1 Inter,sans-serif;letter-spacing:-0.01em;transition:background 0.12s ease,color 0.12s ease;}
+  .grp:hover{background:var(--dg-bg-2);color:var(--dg-text);}
+  .grp .chev{color:var(--dg-text-dim);}
+  .grp .chev svg{width:15px;height:15px;}
+
+  .m-f{display:flex;align-items:center;gap:12px;padding:14px 22px;border-top:1px solid var(--dg-rule-soft);font-size:11px;color:var(--dg-text-dim);line-height:1.5;}
+  .m-f svg{width:15px;height:15px;flex:none;color:var(--dg-text-dim);}
+  .m-f b{color:var(--dg-text-2);font-weight:700;}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true">
+  <div class="bg-strip">
+    <span class="t">Network <i>builder.</i></span>
+    <span class="e">Network+ · Sandbox · Labs</span>
+  </div>
+  <div class="bg-canvas"></div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lab-h" id="modal">
+    <div class="m-h">
+      <span class="m-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 3h8M7.5 14h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <div class="m-ht">
+        <div class="e">Guided learning</div>
+        <h1 id="lab-h">Topology Labs</h1>
+        <div class="sub"><b>30</b> concept labs · <b>37</b> auto-generated config variants</div>
+      </div>
+      <button class="m-x" type="button" aria-label="Close" onclick="document.getElementById('scrim').style.display='none'"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </div>
+
+    <div class="m-filter" role="tablist" aria-label="Filter by level">
+      <button class="fb on" type="button" role="tab" aria-selected="true">All</button>
+      <button class="fb" type="button" role="tab" aria-selected="false">Beginner</button>
+      <button class="fb" type="button" role="tab" aria-selected="false">Intermediate</button>
+      <button class="fb" type="button" role="tab" aria-selected="false">Advanced</button>
+    </div>
+
+    <div class="m-list">
+      <div class="g-h">Fundamentals <span class="n">5 labs</span></div>
+
+      <button class="lab" type="button">
+        <span class="lab-b">
+          <span class="lab-t"><span class="nm">Basic LAN Setup</span><span class="tag">Beginner</span></span>
+          <span class="lab-m">Obj 1.2 · 10 min · 7 steps</span>
+          <span class="lab-d">Build a simple LAN with a router, switch, and 3 PCs. Configure IPs and verify connectivity with ping.</span>
+        </span>
+        <span class="lab-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <button class="lab" type="button">
+        <span class="lab-b">
+          <span class="lab-t"><span class="nm">IP Addressing 101</span><span class="tag">Beginner</span></span>
+          <span class="lab-m">Obj 1.5 · 10 min · 5 steps</span>
+          <span class="lab-d">Learn the fundamentals of IPv4 addressing: IPs, subnet masks, and default gateways. Build a minimal network and make two PCs talk to each other.</span>
+        </span>
+        <span class="lab-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <button class="lab" type="button">
+        <span class="lab-b">
+          <span class="lab-t"><span class="nm">Cable Types &amp; Topologies</span><span class="tag">Beginner</span></span>
+          <span class="lab-m">Obj 1.3 · 8 min · 5 steps</span>
+          <span class="lab-d">Learn the difference between Cat5e, Cat6, Fiber, Coax, and Console cables by building a star topology and using each cable type.</span>
+        </span>
+        <span class="lab-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+
+      <button class="more" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>2 more labs in Fundamentals</button>
+
+      <button class="grp" type="button">Switching<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Routing<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Services<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Security<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Cloud &amp; WAN<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Wireless &amp; QoS<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="grp" type="button">Troubleshooting<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+    </div>
+
+    <div class="m-f"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l2.4 5 5.6.8-4 4 1 5.6L12 16l-5 2.4 1-5.6-4-4 5.6-.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span><b>37 auto-generated config variants</b> sit alongside these labs, generated to drill the specific objectives you are weakest on.</span></div>
+  </div>
+</div>
+
+<script>
+  (function(){var b=document.querySelectorAll('.fb');b.forEach(function(f){f.addEventListener('click',function(){b.forEach(function(x){x.classList.remove('on');x.setAttribute('aria-selected','false');});f.classList.add('on');f.setAttribute('aria-selected','true');});});})();
+  (function(){var s=document.getElementById('scrim');s.addEventListener('click',function(e){if(e.target===s)s.style.display='none';});document.addEventListener('keydown',function(e){if(e.key==='Escape')s.style.display='none';});})();
+</script>
+
+</body>
+</html>

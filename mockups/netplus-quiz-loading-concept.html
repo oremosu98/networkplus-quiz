@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Network+ Quiz generating state redesign concept (N10-009 · dg-system)</title>
+<!--
+  CONCEPT MOCKUP · not production. The quiz "generating" / loading state
+  shown while the AI builds the set. Sec+ twin = secplus-quiz-loading-
+  concept.html. app.js untouched.
+
+  POV: live state = a soft-shadow card full of pulsing purple blocks +
+  a purple progress bar. Redesign: same chrome-light quiz frame as the
+  question screen (continuity, so the skeleton resolves into the real
+  layout with zero jump). Skeleton = hairline neutral placeholders that
+  match the real stem/option rhythm exactly, with ONE quiet shimmer
+  (compositor-only transform, reduced-motion = static). Honest status
+  line + a thin accent progress bar.
+  MOTION: a loading state legitimately animates (it communicates work),
+  but stays calm: a single left-to-right shimmer sweep on the skeleton,
+  transform-only, reduced-motion gated. The progress bar fills via a
+  width transition driven by real generation progress in production
+  (shown here at a representative 20%).
+  HONESTY: the exact status copy from the capture - "Generating 5
+  Foundational questions on Mixed: All Topics" + "Generating
+  questions...". Em-dash recomposed to a colon. 0 emoji · 0 hex.
+-->
+<style>
+  html:root{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-skel:oklch(0.225 0.009 275);--dg-grid:oklch(0.23 0.009 275);--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);}
+  @media (prefers-color-scheme: light){html:root{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-skel:oklch(0.925 0.008 85);--dg-grid:oklch(0.91 0.008 85);}}
+  html[data-theme="dark"]{--dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);--dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);--dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);--dg-pass:oklch(0.74 0.150 152);--dg-skel:oklch(0.225 0.009 275);--dg-grid:oklch(0.23 0.009 275);}
+  html[data-theme="light"]{--dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);--dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);--dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);--dg-pass:oklch(0.50 0.15 150);--dg-skel:oklch(0.925 0.008 85);--dg-grid:oklch(0.91 0.008 85);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--dg-bg);color:var(--dg-text);font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif;font-size:var(--t0);line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+  .qbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 26px;border-bottom:1px solid var(--dg-rule-soft);}
+  .qbar-l{display:flex;align-items:center;gap:18px;min-width:0;}
+  .menu{display:flex;align-items:center;gap:7px;background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:8px 12px;cursor:pointer;}
+  .menu svg{width:13px;height:13px;}
+  .qtitle .e{font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--dg-text-dim);}
+  .qtitle .t{font-size:var(--t1);font-weight:800;letter-spacing:-0.02em;}
+  .theme{background:none;border:1px solid var(--dg-rule);border-radius:8px;color:var(--dg-text-dim);font:600 var(--t-1)/1 Inter,sans-serif;padding:7px 11px;cursor:pointer;}
+  .theme:hover{border-color:var(--dg-accent);color:var(--dg-accent);}
+
+  .wrap{max-width:780px;margin:0 auto;padding:54px 26px 60px;}
+
+  .sk{border-radius:6px;background:var(--dg-skel);position:relative;overflow:hidden;}
+  html.sh .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,color-mix(in oklab,var(--dg-text) 6%,transparent),transparent);animation:sweep 1.5s var(--ease) infinite;}
+  @keyframes sweep{to{transform:translateX(100%);}}
+  @media (prefers-reduced-motion: reduce){html.sh .sk::after{display:none;}}
+
+  .sk-meta{display:flex;gap:12px;margin-bottom:18px;}
+  .sk-qn{width:34px;height:14px;}
+  .sk-diff{width:84px;height:14px;}
+  .sk-stem{height:22px;margin-bottom:10px;}
+  .sk-stem.w1{width:78%;}
+  .sk-stem.w2{width:54%;}
+  .sk-opts{margin-top:30px;display:flex;flex-direction:column;gap:11px;}
+  .sk-opt{height:56px;border-radius:11px;border:1px solid var(--dg-rule-soft);background:none;display:flex;align-items:center;gap:16px;padding:0 18px;}
+  .sk-opt .k{width:28px;height:28px;border-radius:7px;flex:none;}
+  .sk-opt .ln{height:14px;border-radius:5px;}
+
+  .status{margin-top:44px;text-align:center;}
+  .status .line{font-size:var(--t1);font-weight:700;letter-spacing:-0.01em;color:var(--dg-text-2);}
+  .status .line b{color:var(--dg-accent);font-weight:800;}
+  .pbar{margin:22px auto 0;max-width:360px;height:4px;border-radius:3px;background:var(--dg-bg-2);overflow:hidden;}
+  .pbar i{display:block;height:100%;width:20%;background:var(--dg-accent);border-radius:3px;transition:width 0.4s var(--ease);}
+  .status .sub{margin-top:14px;font-size:var(--t-1);color:var(--dg-text-dim);}
+</style>
+<script>(function(){try{var t=localStorage.getItem('certanvilTheme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var m=matchMedia('(prefers-reduced-motion: reduce)').matches;if(!m)document.documentElement.classList.add('sh');}catch(e){}})();</script>
+</head>
+<body>
+
+<header class="qbar">
+  <span class="qbar-l">
+    <button class="menu" type="button"><svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Menu</button>
+    <span class="qtitle"><span class="e">Network+ · N10-009 · quiz session</span><span class="t">Foundational · Mixed</span></span>
+  </span>
+  <button class="theme" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+</header>
+
+<main class="wrap" aria-busy="true" aria-label="Generating questions">
+  <div class="sk-meta">
+    <span class="sk sk-qn"></span><span class="sk sk-diff"></span>
+  </div>
+  <div class="sk sk-stem w1"></div>
+  <div class="sk sk-stem w2"></div>
+  <div class="sk-opts">
+    <div class="sk-opt"><span class="sk k"></span><span class="sk ln" style="width:42%"></span></div>
+    <div class="sk-opt"><span class="sk k"></span><span class="sk ln" style="width:30%"></span></div>
+    <div class="sk-opt"><span class="sk k"></span><span class="sk ln" style="width:48%"></span></div>
+    <div class="sk-opt"><span class="sk k"></span><span class="sk ln" style="width:36%"></span></div>
+  </div>
+
+  <div class="status">
+    <div class="line">Generating <b>5 Foundational</b> questions on Mixed: All Topics</div>
+    <div class="pbar"><i></i></div>
+    <div class="sub">Generating questions, each one validated before you see it</div>
+  </div>
+</main>
+
+<script>
+  (function(){var b=document.getElementById('themeToggle'),mq=matchMedia('(prefers-color-scheme: light)');function ef(){var a=document.documentElement.getAttribute('data-theme');if(a==='light'||a==='dark')return a;return mq.matches?'light':'dark';}function lb(){b.textContent=ef()==='light'?'Dark':'Light';}lb();b.addEventListener('click',function(){var n=ef()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('certanvilTheme',n);}catch(e){}lb();});mq.addEventListener('change',function(){if(!document.documentElement.getAttribute('data-theme'))lb();});})();
+</script>
+
+</body>
+</html>
