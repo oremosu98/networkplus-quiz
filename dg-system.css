@@ -1079,3 +1079,33 @@ html[data-theme] body #page-acl .acl-sol-action-deny{color:var(--red)!important;
 
 @media (prefers-reduced-motion: reduce){#page-acl [class*="acl-"]{transition:none!important;}}
 @media (max-width:980px){#page-acl .acl-layout{grid-template-columns:1fr;}html[data-theme] body #page-acl .acl-left{border-right:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;padding:4px 0 26px!important;}#page-acl .acl-main{padding:22px 0 48px!important;}}
+
+/* ────────────────────────────────────────────────────────────────────────
+   PER-SURFACE STRUCTURAL RESKIN · Batch 4h · PAYWALL / PRO-GATE MODAL
+   (.quota-exceeded-modal — shared by _showProOnlyUI + the daily-quota
+   -exceeded twin; both appended to <body>, no #page- ancestor)
+   ────────────────────────────────────────────────────────────────────────
+   No locked mockup — redesigned with the taste-skill (editorial-premium)
+   per founder directive. The legacy modal is textbook AI-slop: a ⚡ emoji
+   in a red-tinted glow square, a soft red-bordered card with a heavy 0 20px
+   60px shadow, and a hardcoded PURPLE gradient CTA (#5b4fdb→#7c6ff7 — the
+   #1 editorial-premium AI-tell). One job: state the value, upgrade or
+   dismiss. Editorial: de-card to a calm hairline card on a quiet backdrop,
+   hide the decorative emoji icon (it's a dedicated div — CSS-hidden, zero
+   render change), typographic title, bronze --accent CTA (matches every
+   other primary in the rebrand), editorial ghost dismiss. Pure CSS, scoped
+   to the modal's own class so it covers BOTH the pro-gate and the quota
+   twin (same slop, same fix — desirable). 0 emoji · 0 hex. */
+html[data-theme] body .quota-exceeded-modal{background:color-mix(in oklab,var(--bg) 72%,#000)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+html[data-theme] body .quota-exceeded-card{background:var(--bg)!important;border:1px solid var(--border)!important;border-radius:14px!important;box-shadow:none!important;padding:34px 32px!important;max-width:460px!important;text-align:left!important;}
+html[data-theme] body .quota-exceeded-icon,html[data-theme] body .pro-only-icon{display:none!important;}
+html[data-theme] body .quota-exceeded-card::before{content:"PRO";display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.18em;color:var(--accent);margin-bottom:14px;}
+html[data-theme] body .quota-exceeded-title{font-size:24px!important;font-weight:800!important;letter-spacing:-0.02em;color:var(--text)!important;margin-bottom:10px!important;line-height:1.2;}
+html[data-theme] body .quota-exceeded-sub{font-size:14px!important;color:var(--text-mid)!important;line-height:1.6;margin-bottom:24px!important;}
+html[data-theme] body .quota-exceeded-sub strong{color:var(--text)!important;font-weight:700;}
+html[data-theme] body .quota-exceeded-actions{display:flex;gap:12px;justify-content:flex-start!important;flex-wrap:wrap;}
+html[data-theme] body .quota-exceeded-cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent)!important;color:var(--bg)!important;padding:13px 22px!important;font-size:13px;font-weight:800;border-radius:9px!important;text-decoration:none;border:0;cursor:pointer;box-shadow:none!important;transition:filter .15s ease;}
+html[data-theme] body .quota-exceeded-cta:hover{filter:brightness(1.05);transform:none!important;color:var(--bg)!important;}
+html[data-theme] body .quota-exceeded-dismiss{background:none!important;color:var(--text-dim)!important;border:1px solid var(--border)!important;padding:13px 20px!important;font-size:13px;font-weight:600;border-radius:9px!important;cursor:pointer;font-family:inherit;transition:border-color .15s ease,color .15s ease;}
+html[data-theme] body .quota-exceeded-dismiss:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+@media (prefers-reduced-motion: reduce){html[data-theme] body .quota-exceeded-cta,html[data-theme] body .quota-exceeded-dismiss{transition:none!important;}}
