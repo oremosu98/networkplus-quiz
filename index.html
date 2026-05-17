@@ -32,6 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dg-system.css?v=4.99.65">
 <script>
 // v4.87.0: Inline cert detection — runs synchronously before <body>
 // renders so the right banner shows on first paint (no Network+ → Security+
@@ -196,67 +197,54 @@
       <strong>Private &middot; Builder use</strong> &mdash; CompTIA Security+ (SY0-701) study mode &middot; <em>target exam 2026-07-29</em>
     </span>
   </div>
-  <!-- v4.54.0 editorial hero: display heading + lede (left) + dark readiness card + mini cards (right aside) -->
-  <div class="setup-hero-v2" id="setup-hero-v2">
-    <div class="hero-v2-main">
-      <div class="hero-v2-eyebrow" id="hero-v2-eyebrow">—</div>
-      <h1 class="hero-v2-display" id="hero-v2-display">Good afternoon, <span class="name">Simi.</span></h1>
-      <p class="hero-v2-lede" id="hero-v2-lede">Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.</p>
-      <!-- v4.76.0: dynamic Next-Best-Move CTA card. Decision-tree-driven —
-           surfaces the single highest-pass-rate-impact action right now
-           (SR queue → daily challenge → weak warmup → what-if drill →
-           fallback custom quiz). Replaces the "user has to think which
-           CTA to click" friction. -->
-      <div class="hero-v2-cta" id="hero-v2-cta" hidden>
-        <!-- v4.77.0: more explicit eyebrow per Codex round-2 review. Drops
-             "Your" + CSS bumps visual prominence so the user reads this
-             as "the app is intelligently choosing for me." -->
-        <div class="hero-v2-cta-eyebrow">
-          <span class="hero-v2-cta-icon" id="hero-v2-cta-icon">🎯</span>
-          <span class="hero-v2-cta-eyebrow-text">Next best move</span>
-        </div>
-        <div class="hero-v2-cta-title" id="hero-v2-cta-title">—</div>
-        <div class="hero-v2-cta-sub" id="hero-v2-cta-sub">—</div>
-        <button type="button" class="hero-v2-cta-btn" id="hero-v2-cta-btn">Start →</button>
-        <div class="hero-v2-cta-reason" id="hero-v2-cta-reason">—</div>
-      </div>
+  <!-- dg-system Batch 4 · HOME editorial rebuild (faithful to
+       mockups/netplus-home-concept.html). Markup restructured to the
+       editorial .dgh-* system; every render-fn id contract preserved
+       (hero-v2-eyebrow/display/lede, rc-v2-*, mc-*, hero-v2-cta*,
+       readiness-card-v2/setup-hero-v2 container guards). Zero app.js
+       render-logic change. -->
+  <div class="dgh-wrap">
+  <div class="dgh-top" id="setup-hero-v2">
+    <div class="dgh-greet">
+      <div class="dgh-eyebrow" id="hero-v2-eyebrow">&mdash;</div>
+      <h1 class="dgh-h1" id="hero-v2-display">Good afternoon, <span class="name">Simi.</span></h1>
+      <p class="dgh-sub" id="hero-v2-lede">Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.</p>
     </div>
-    <aside class="hero-v2-aside">
-      <div class="readiness-card-v2" id="readiness-card-v2">
-        <div class="rc-v2-label">Exam readiness · scaled 100&ndash;900</div>
-        <div class="rc-v2-score"><span id="rc-v2-num">&mdash;</span><span class="of">/900</span></div>
-        <!-- v4.73.0: prediction line — pass probability + CI under the score -->
-        <div class="rc-v2-prediction" id="rc-v2-prediction" hidden></div>
-        <div class="rc-v2-bar">
-          <div class="rc-v2-bar-fill" id="rc-v2-bar-fill" style="width:0%"></div>
-          <div class="rc-v2-pass-tick" aria-hidden="true"></div>
-        </div>
-        <div class="rc-v2-foot">
-          <span class="rc-v2-delta" id="rc-v2-delta">&mdash;</span>
-          <span>pass mark 720</span>
-        </div>
-      </div>
-      <!-- v4.73.0: what-if attribution + exam trajectory. Sits in the hero
-           aside below the dark readiness card — only renders when the user
-           has enough history for a meaningful prediction. -->
-      <div class="rc-v2-whatif" id="rc-v2-whatif" hidden>
-        <div class="rc-v2-whatif-label">📊 Drill these to move your score</div>
-        <div class="rc-v2-whatif-row" id="rc-v2-whatif-row"></div>
-      </div>
-      <div class="rc-v2-trajectory" id="rc-v2-trajectory" hidden></div>
-      <div class="hero-v2-mini-row">
-        <div class="mini-card-v2">
-          <span class="mini-card-v2-label">Today</span>
-          <span class="mini-card-v2-val"><span id="mc-today-done">0</span><span class="mini-sub">/ <span id="mc-today-goal">20</span></span></span>
-          <span class="mini-card-v2-sub" id="mc-today-sub">daily goal</span>
-        </div>
-        <div class="mini-card-v2">
-          <span class="mini-card-v2-label">Streak <span aria-hidden="true">&#128293;</span></span>
-          <span class="mini-card-v2-val"><span id="mc-streak-num">0</span><span class="mini-sub">days</span></span>
-          <span class="mini-card-v2-sub" id="mc-streak-sub">longest &middot; 0 days</span>
-        </div>
-      </div>
-    </aside>
+    <div class="dgh-rd" id="readiness-card-v2">
+      <div class="dgh-rd-k">Exam readiness &middot; scaled 100&ndash;900</div>
+      <div class="dgh-rd-n"><span id="rc-v2-num">&mdash;</span><s> / 900</s></div>
+      <div class="dgh-rd-tier" id="rc-v2-tier" hidden></div>
+      <div class="dgh-rd-pred" id="rc-v2-prediction" hidden></div>
+      <div class="dgh-rd-bar"><span class="dgh-rd-fill" id="rc-v2-bar-fill" style="width:0%"></span></div>
+      <div class="dgh-rd-meta"><span id="rc-v2-delta">&mdash;</span><span>pass mark <b>720</b></span></div>
+      <div class="dgh-traj" id="rc-v2-trajectory" hidden></div>
+    </div>
+  </div>
+
+  <div class="dgh-stats">
+    <div class="dgh-stat"><div class="sk">Today</div><div class="sv"><span id="mc-today-done">0</span><span class="mini-sub"> / <span id="mc-today-goal">20</span></span></div><div class="sd" id="mc-today-sub">daily goal</div></div>
+    <div class="dgh-stat"><div class="sk">Streak</div><div class="sv"><span id="mc-streak-num">0</span><span class="mini-sub"> days</span></div><div class="sd" id="mc-streak-sub">longest &middot; 0 days</div></div>
+  </div>
+
+  <!-- Next best move (decision-tree CTA; renderNextBestMove fills the
+       sub-ids + sets #hero-v2-cta-btn onclick + toggles .hidden) -->
+  <div class="dgh-band is-nbm" id="hero-v2-cta" hidden>
+    <div class="dgh-band-l">
+      <div class="dgh-band-k"><span id="hero-v2-cta-icon" aria-hidden="true"></span> Next best move</div>
+      <div class="dgh-band-h" id="hero-v2-cta-title">&mdash;</div>
+      <div class="dgh-band-p" id="hero-v2-cta-sub">&mdash;</div>
+      <div class="dgh-band-p" id="hero-v2-cta-reason" style="margin-top:5px;opacity:.85"></div>
+    </div>
+    <button type="button" class="dgh-cta" id="hero-v2-cta-btn">Start</button>
+  </div>
+
+  <!-- What-if attribution (renderReadinessCardV2 fills #rc-v2-whatif-row +
+       toggles #rc-v2-whatif.hidden; getElementById is position-free) -->
+  <div class="dgh-band" id="rc-v2-whatif" hidden>
+    <div class="dgh-band-l">
+      <div class="dgh-band-k">Drill these to move your score</div>
+      <div id="rc-v2-whatif-row" class="dgh-whatif-row" style="margin-top:9px"></div>
+    </div>
   </div>
   <!-- Hidden legacy hero + readiness (body.hero-v2-active toggles display:none) -->
   <div class="hero is-hidden">
@@ -264,64 +252,51 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.63</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.65</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
     </div>
   </div>
 
-  <!-- v4.81.0: Baseline Diagnostic surface (Codex r5 #1 / Issue #243).
-       Two states swapped by renderDiagnosticSurface():
-       - #diagnostic-cta-card visible when user hasn't taken a diagnostic
-         (or cooldown has elapsed). Hero treatment, gradient card.
-       - #pass-plan-tile visible when a Pass Plan exists. Compact summary
-         tile with "View report" + "Retake in N days" actions.
-       Hidden by default — render fn flips visibility. -->
-  <div id="diagnostic-cta-card" class="diagnostic-cta-card is-hidden">
-    <span class="diagnostic-cta-badge">NEW · Recommended</span>
-    <h3 class="diagnostic-cta-title">🩺 Where do you stand on N10-009?</h3>
-    <p class="diagnostic-cta-sub">Take a 20-question Baseline Diagnostic. Get your pass probability, weak-domain priorities, and your first review cards — all in one go.</p>
-    <div class="diagnostic-cta-pitch">
-      <div class="diagnostic-cta-pitch-item">
-        <span class="diagnostic-cta-pitch-num">20</span>
-        <span class="diagnostic-cta-pitch-lbl">Questions</span>
-      </div>
-      <div class="diagnostic-cta-pitch-item">
-        <span class="diagnostic-cta-pitch-num">~30</span>
-        <span class="diagnostic-cta-pitch-lbl">Minutes</span>
-      </div>
-      <div class="diagnostic-cta-pitch-item">
-        <span class="diagnostic-cta-pitch-num">5</span>
-        <span class="diagnostic-cta-pitch-lbl">Domains</span>
-      </div>
+  <!-- Baseline Diagnostic surface. renderDiagnosticSurface() swaps
+       #diagnostic-cta-card <-> #pass-plan-tile via .is-hidden. Editorial
+       band rebuild; ids/classes/onclicks preserved (diagnostic-cta-title
+       kept for _renderCertAwareCopy Security+ swap). -->
+  <div class="dgh-band is-hidden" id="diagnostic-cta-card">
+    <div class="dgh-band-l">
+      <div class="dgh-band-k">New &middot; recommended</div>
+      <div class="dgh-band-h diagnostic-cta-title">Where do you stand on N10-009?</div>
+      <div class="dgh-band-p">Take a 20-question Baseline Diagnostic. Get your pass probability, weak-domain priorities, and your first review cards, all in one go.</div>
+      <a class="dgh-customq" style="border:0;margin-top:9px;padding:0" href="#" onclick="dismissDiagnosticCta(event)"><span class="go">Skip for now, I'd rather just practise</span></a>
     </div>
-    <button class="btn btn-primary btn-full" onclick="startDiagnostic()">🩺 Take the Diagnostic</button>
-    <a class="diagnostic-cta-skip" href="#" onclick="dismissDiagnosticCta(event)">Skip for now — I'd rather just practise</a>
+    <div class="dgh-diag-nums">
+      <span class="dgh-dn"><b>20</b><span>questions</span></span>
+      <span class="dgh-dn"><b>~30</b><span>minutes</span></span>
+      <span class="dgh-dn"><b>5</b><span>domains</span></span>
+    </div>
+    <button type="button" class="dgh-cta" onclick="startDiagnostic()">Take the diagnostic</button>
   </div>
-  <div id="pass-plan-tile" class="pass-plan-tile is-hidden">
-    <div class="pass-plan-tile-icon">✓</div>
-    <div class="pass-plan-tile-text">
-      <div class="pass-plan-tile-title">Your Pass Plan is active</div>
-      <div class="pass-plan-tile-sub" id="pass-plan-tile-sub">Diagnostic complete</div>
+  <div class="dgh-band is-hidden" id="pass-plan-tile">
+    <div class="dgh-band-l">
+      <div class="dgh-band-k">Baseline diagnostic</div>
+      <div class="dgh-band-h">Your Pass Plan is active</div>
+      <div class="dgh-band-p" id="pass-plan-tile-sub">Diagnostic complete</div>
     </div>
-    <div class="pass-plan-tile-actions">
-      <a href="#" onclick="event.preventDefault();viewPassPlan()">View report →</a>
-      <a href="#" class="pass-plan-tile-retake" id="pass-plan-tile-retake" onclick="event.preventDefault();retakeDiagnostic()">Retake in 7d</a>
-    </div>
+    <span class="dgh-band-meta"><a href="#" class="pass-plan-tile-retake" id="pass-plan-tile-retake" onclick="event.preventDefault();retakeDiagnostic()" style="color:var(--text-dim);text-decoration:none">Retake in 7d</a></span>
+    <button type="button" class="dgh-cta ghost" onclick="event.preventDefault();viewPassPlan()">View report</button>
   </div>
 
-  <!-- v4.74.0: Spaced Repetition Daily Review card. Hidden when no cards
-       are due; surfaces as the highest-priority CTA when there's a due
-       queue (= the most efficient minute of study the user can do today). -->
-  <div id="sr-review-card" class="sr-review-card is-hidden">
-    <div class="sr-review-card-head">
-      <span class="sr-review-card-eyebrow">📚 Spaced Repetition · Daily Review</span>
-      <span class="sr-review-card-stats" id="sr-review-card-stats"></span>
+  <!-- Spaced Repetition daily review. renderSrReviewCard() fills
+       #sr-review-card-headline + #sr-review-card-stats, toggles .is-hidden. -->
+  <div class="dgh-band is-hidden" id="sr-review-card">
+    <div class="dgh-band-l">
+      <div class="dgh-band-k">Spaced repetition &middot; daily review</div>
+      <div class="dgh-band-h" id="sr-review-card-headline">0 cards due</div>
+      <div class="dgh-band-p">Re-encounter what you have forgotten. Items resurface on a growing schedule until they stick.</div>
     </div>
-    <h3 class="sr-review-card-headline" id="sr-review-card-headline">0 cards due</h3>
-    <p class="sr-review-card-sub">Re-encounter what you've forgotten. Items resurface on a growing schedule until they stick.</p>
-    <button class="btn btn-primary btn-full" id="sr-review-start-btn" onclick="startSrReview()">Start review →</button>
+    <span class="dgh-band-meta" id="sr-review-card-stats"></span>
+    <button type="button" class="dgh-cta ghost" id="sr-review-start-btn" onclick="startSrReview()">Start review</button>
   </div>
 
   <!-- Exam Readiness Card -->
@@ -357,8 +332,7 @@
 
   <!-- Today section — conditional cards grouped -->
   <div id="today-section" class="today-section is-hidden" role="region" aria-label="Today's activity">
-    <h4 class="today-section-title">Today</h4>
-    <!-- Daily Goal Ring -->
+    <!-- Daily Goal Ring (legacy daily-goal-card kept; CSS-clipped) -->
     <div id="daily-goal-card" class="daily-goal-card" style="margin-bottom:0">
       <div class="dg-ring-wrap">
         <svg class="dg-ring" width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
@@ -385,7 +359,7 @@
          compat-shim elements (#todays-focus, #rotation-row, #session-banner,
          #focus-banner) were removed in v4.81.23 — all routes converge on
          this single card. Mockup: mockups/today-consolidation-concept.html. -->
-    <div id="today-plan" class="today-plan is-hidden" role="region" aria-label="Today's study plan"></div>
+    <div id="today-plan" class="today-plan dgh-plan is-hidden" role="region" aria-label="Today's study plan"></div>
   </div>
 
   <!-- v4.53.0: tools nav moved into persistent left sidebar (#app-sidebar).
@@ -395,145 +369,55 @@
        prescriptive surface). v4.81.23 removed the element entirely; the
        canonical card is #today-plan above. -->
 
-  <!-- v4.76.0: unified Mode Ladder — replaces former §01 Quick Start +
-       §02 Marathon Mode. Three commitment-level tiers (Quick / Practice /
-       Exam) so the user reads "5-min warmup" as different from "60-min
-       marathon" at a glance, instead of all entries looking equal-weight. -->
-  <div class="modes-ladder ed-section" id="modes-ladder" role="region" aria-label="Pick your session">
-    <div class="ed-section-head">
-      <div class="ed-section-head-left">
-        <span class="ed-section-num">&#167; 01</span>
-        <h3 class="ed-section-title">Pick your <em>session</em></h3>
-      </div>
-      <div class="ed-section-meta">three commitment levels</div>
-    </div>
+  <!-- dg-system Batch 4 · session picker rebuilt to editorial (mockup
+       .sess). Every onclick + the render-fn ids #modes-dc-tile /
+       #modes-dc-sub / #modes-wrong-tile / #modes-wrong-sub /
+       #modes-strict-checkbox preserved; #modes-ladder id kept. -->
+  <div class="dgh-sess" id="modes-ladder" role="region" aria-label="Pick your session">
+    <div class="dgh-sec-k">&#167; 01</div>
+    <div class="dgh-sec-t">Pick your <i>session</i></div>
+    <p class="dgh-sub">Three commitment levels. Start where your time and energy are right now.</p>
 
-    <!-- Tier 1: QUICK — 3-5 minutes — daily-habit fuel -->
-    <div class="modes-tier modes-tier-quick">
-      <div class="modes-tier-head">
-        <span class="modes-tier-icon">&#9889;</span>
-        <div class="modes-tier-titles">
-          <span class="modes-tier-eyebrow">Quick &middot; 3-5 min</span>
-          <span class="modes-tier-sub">Daily-habit fuel &middot; low-friction wins</span>
-        </div>
-      </div>
-      <div class="modes-tier-cards">
-        <button type="button" class="modes-card" onclick="applyPreset('warmup')">
-          <span class="modes-card-icon">&#9889;</span>
-          <span class="modes-card-title">5-min Warmup</span>
-          <span class="modes-card-sub">5 Qs &middot; Foundational</span>
-        </button>
-        <button type="button" class="modes-card modes-card-dc" id="modes-dc-tile" onclick="startDailyChallenge()">
-          <span class="modes-card-icon">&#127919;</span>
-          <span class="modes-card-title">Daily Challenge</span>
-          <span class="modes-card-sub" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span>
-        </button>
-        <button type="button" class="modes-card modes-card-wrong is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()">
-          <span class="modes-card-icon">&#128308;</span>
-          <span class="modes-card-title">Drill Mistakes</span>
-          <span class="modes-card-sub" id="modes-wrong-sub">0 wrong answers saved</span>
-        </button>
+    <div class="dgh-grp">
+      <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily-habit fuel &middot; low-friction wins</span></div>
+      <div class="dgh-opts">
+        <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
+        <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
+        <button type="button" class="dgh-opt is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">0 wrong answers saved</span></button>
       </div>
     </div>
 
-    <!-- Tier 2: PRACTICE — 10-30 minutes — focused study session -->
-    <div class="modes-tier modes-tier-practice">
-      <div class="modes-tier-head">
-        <span class="modes-tier-icon">&#128218;</span>
-        <div class="modes-tier-titles">
-          <span class="modes-tier-eyebrow">Practice &middot; 10-30 min</span>
-          <span class="modes-tier-sub">Focused study &middot; build understanding</span>
-        </div>
+    <div class="dgh-grp">
+      <div class="dgh-grp-h"><span class="t">Practice &middot; 10-30 min</span><span class="d">Focused study &middot; build understanding</span></div>
+      <div class="dgh-opts">
+        <button type="button" class="dgh-opt" onclick="applyPreset('focused')"><span class="on">15-min Weak Spots</span><span class="od">10 Qs &middot; Exam level &middot; your weakest topic</span></button>
+        <button type="button" class="dgh-opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 Qs &middot; Exam level &middot; mixed</span></button>
+        <button type="button" class="dgh-opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed &middot; ~25 min</span></button>
+        <button type="button" class="dgh-opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed &middot; ~38 min</span></button>
+        <button type="button" class="dgh-opt" onclick="_jumpToCustomQuiz()"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
+        <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
       </div>
-      <div class="modes-tier-cards">
-        <button type="button" class="modes-card modes-card-featured" onclick="applyPreset('focused')">
-          <span class="modes-card-icon">&#127919;</span>
-          <span class="modes-card-title">15-min Weak Spots</span>
-          <span class="modes-card-sub">10 Qs &middot; Exam Level &middot; Your weakest topic</span>
-        </button>
-        <button type="button" class="modes-card" onclick="applyPreset('grind')">
-          <span class="modes-card-icon">&#127947;</span>
-          <span class="modes-card-title">20-min Deep Scan</span>
-          <span class="modes-card-sub">20 Qs &middot; Exam Level &middot; Mixed</span>
-        </button>
-        <button type="button" class="modes-card modes-card-marathon" onclick="applyPreset('bulk30')">
-          <span class="modes-card-icon">&#128218;</span>
-          <span class="modes-card-title">30 Questions</span>
-          <span class="modes-card-sub">Marathon mixed &middot; ~25 min</span>
-        </button>
-        <button type="button" class="modes-card modes-card-marathon" onclick="applyPreset('bulk45')">
-          <span class="modes-card-icon">&#128218;</span>
-          <span class="modes-card-title">45 Questions</span>
-          <span class="modes-card-sub">Marathon mixed &middot; ~38 min</span>
-        </button>
-        <button type="button" class="modes-card modes-card-custom" onclick="_jumpToCustomQuiz()">
-          <span class="modes-card-icon">&#9881;&#65039;</span>
-          <span class="modes-card-title">Custom Quiz</span>
-          <span class="modes-card-sub">Tune topic, difficulty, length</span>
-        </button>
-      </div>
-      <!-- v4.81.17: Domain Drill — one-click 10-Q Exam Level quiz on any
-           N10-009 domain. Color-coded left border matches the Custom Quiz
-           accordion + Progress page domain rows so the visual language is
-           consistent across surfaces. -->
-      <div class="modes-domain-row" role="group" aria-label="Drill by domain">
-        <span class="modes-domain-label">Drill by <em>domain</em> &rarr;</span>
-        <div class="modes-domain-tiles">
-          <button type="button" class="modes-domain-tile" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics">
-            <span class="mdt-num">1.0</span>
-            <span class="mdt-name">Networking Concepts</span>
-            <span class="mdt-meta">23% &middot; 10 Qs</span>
-          </button>
-          <button type="button" class="modes-domain-tile" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics">
-            <span class="mdt-num">2.0</span>
-            <span class="mdt-name">Network Implementation</span>
-            <span class="mdt-meta">20% &middot; 10 Qs</span>
-          </button>
-          <button type="button" class="modes-domain-tile" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics">
-            <span class="mdt-num">3.0</span>
-            <span class="mdt-name">Network Operations</span>
-            <span class="mdt-meta">19% &middot; 10 Qs</span>
-          </button>
-          <button type="button" class="modes-domain-tile" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics">
-            <span class="mdt-num">4.0</span>
-            <span class="mdt-name">Network Security</span>
-            <span class="mdt-meta">14% &middot; 10 Qs</span>
-          </button>
-          <button type="button" class="modes-domain-tile" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics">
-            <span class="mdt-num">5.0</span>
-            <span class="mdt-name">Network Troubleshooting</span>
-            <span class="mdt-meta">24% &middot; 10 Qs</span>
-          </button>
-        </div>
+      <div class="dgh-grp-h" style="margin-top:22px"><span class="t">Drill by domain</span><span class="d">N10-009 weighting &middot; 10 Qs each</span></div>
+      <div class="dgh-dbd">
+        <button type="button" class="dgh-db" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics"><span class="dbk">1.0 &middot; 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics"><span class="dbk">2.0 &middot; 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics"><span class="dbk">3.0 &middot; 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics"><span class="dbk">4.0 &middot; 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics"><span class="dbk">5.0 &middot; 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
       </div>
     </div>
 
-    <!-- Tier 3: EXAM — 60-90 minutes — premium dark treatment -->
-    <div class="modes-tier modes-tier-exam">
-      <div class="modes-tier-head">
-        <span class="modes-tier-icon">&#127891;</span>
-        <div class="modes-tier-titles">
-          <span class="modes-tier-eyebrow">Exam Simulation &middot; 60-90 min</span>
-          <span class="modes-tier-sub">Pressure-test your readiness &middot; scored 100-900</span>
-        </div>
+    <div class="dgh-grp">
+      <div class="dgh-grp-h"><span class="t">Exam simulation &middot; 60-90 min</span><span class="d">Pressure-test your readiness &middot; scored 100-900</span></div>
+      <div class="dgh-opts">
+        <button type="button" class="dgh-opt exam" onclick="applyPreset('bulk60')"><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
+        <button type="button" class="dgh-opt exam" onclick="startExam()"><span class="on">Full Exam Simulator</span><span class="od">90 questions &middot; 90-min timer &middot; scored 100-900</span></button>
+        <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
       </div>
-      <div class="modes-tier-cards">
-        <button type="button" class="modes-card modes-card-exam" onclick="applyPreset('bulk60')">
-          <span class="modes-card-icon">&#128218;</span>
-          <span class="modes-card-title">60-Question SIM</span>
-          <span class="modes-card-sub">Closest to the real thing without the timer</span>
-        </button>
-        <button type="button" class="modes-card modes-card-exam modes-card-exam-full" onclick="startExam()">
-          <span class="modes-card-icon">&#127891;</span>
-          <span class="modes-card-title">Full Exam Simulator</span>
-          <span class="modes-card-sub">90 questions &middot; 90-min timer &middot; scored 100-900</span>
-        </button>
-      </div>
-      <!-- v4.79.0: Strict Mode toggle relocated here from the retired
-           standalone exam-section (was duplicating the Full Exam button). -->
-      <label class="modes-strict-toggle" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator — Strict CompTIA conditions">
+      <label class="dgh-strict" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator">
         <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
-        <span class="modes-strict-text">&#128293; <strong>Strict Mode</strong> &middot; locked order &middot; no flagging &middot; no navigator</span>
+        <span class="box" aria-hidden="true"></span>
+        <span><b>Strict Mode</b> &middot; locked order &middot; no flagging &middot; no navigator</span>
       </label>
     </div>
   </div>
@@ -550,18 +434,17 @@
        instances inside the Practice tier of the Mode Ladder above. -->
   <div id="marathon-section" class="ed-section is-hidden" hidden></div>
 
-  <!-- § 03 By Domain — vertical-bar grid, click to drill weakest topic in domain -->
-  <div id="domain-grid-section" class="ed-section is-hidden">
-    <div class="ed-section-head">
-      <div class="ed-section-head-left">
-        <span class="ed-section-num">&#167; 03</span>
-        <h3 class="ed-section-title">By <em>domain</em></h3>
-      </div>
-      <div class="ed-section-meta">N10-009 exam weighting</div>
-    </div>
-    <div id="setup-domain-grid" class="domain-grid" role="list" aria-label="Domain mastery overview">
+  <!-- By domain. renderSetupDomainGrid() fills #setup-domain-grid +
+       toggles #domain-grid-section .is-hidden. Editorial rebuild (mockup
+       .dom); ids/classes preserved. -->
+  <div class="dgh-dom is-hidden" id="domain-grid-section">
+    <div class="dgh-sec-k">&#167; 02</div>
+    <div class="dgh-sec-t">By <i>domain</i></div>
+    <p class="dgh-sub">N10-009 exam weighting and where you stand in each.</p>
+    <div id="setup-domain-grid" class="domain-grid dgh-dom-grid" role="list" aria-label="Domain mastery overview">
       <!-- Filled by renderSetupDomainGrid() -->
     </div>
+    <div class="dgh-customq"><span><b>Custom Quiz</b> &middot; topic, difficulty &amp; count</span><button type="button" class="go" onclick="_jumpToCustomQuiz()">Configure &rarr;</button></div>
   </div>
 
   <!-- v4.79.0: §04 Custom Quiz section heading retired per Codex round-3.
@@ -570,7 +453,7 @@
        depend on the form being visible by default. The Mode Ladder's
        "Custom Quiz" tile still calls _jumpToCustomQuiz to scroll/open. -->
   <details class="card custom-quiz-section" id="custom-quiz-section">
-    <summary class="custom-quiz-summary">&#9881;&#65039; Custom Quiz <span class="adv-hint">&middot; Topic, Difficulty &amp; Count</span></summary>
+    <summary class="custom-quiz-summary">Custom Quiz <span class="adv-hint">&middot; Topic, Difficulty &amp; Count</span></summary>
     <div class="custom-quiz-body">
       <div class="cq-section-head">
         <span class="cq-section-ico" aria-hidden="true">&#129504;</span>
@@ -621,7 +504,7 @@
             <button class="chip" data-v="IPv6">IPv6</button>
             <button class="chip" data-v="NAT & IP Services">NAT & IP Services</button>
             <button class="chip" data-v="NTP, ICMP & Traffic Types">NTP, ICMP & Traffic Types</button>
-            <button class="chip" data-v="Port Numbers">&#128268; Port Numbers</button>
+            <button class="chip" data-v="Port Numbers">Port Numbers</button>
             <button class="chip" data-v="Virtualisation & Cloud">Virtualisation & Cloud</button>
             <button class="chip" data-v="Cloud Networking & VPCs">Cloud Networking &amp; VPCs</button>
             <button class="chip" data-v="Network Appliances & Device Functions">Network Appliances</button>
@@ -744,8 +627,10 @@
       </div>
     </div>
   </details>
-  </div>
-  <!-- /Custom quiz -->
+  </div><!-- /dgh-wrap : editorial column close. This was the long-standing
+       stray Custom-quiz closing tag (page-setup shipped 112-over-113 for
+       many versions); it now legitimately pairs the dg-system Batch 4
+       dgh-wrap, so page-setup is structurally balanced. -->
 
   <!-- v4.80.0: #setup-err relocated OUT of the Custom Quiz <details> per
        Codex round-4 hide-by-default. When the Custom Quiz section is

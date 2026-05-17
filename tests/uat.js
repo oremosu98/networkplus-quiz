@@ -334,7 +334,12 @@ test('Validation in runSessionStep', js.includes('aiValidateQuestions(apiKey, qu
 
 // ── Analytics v2 (v4.5) ──
 console.log('\n\x1b[1m── ANALYTICS v2 (v4.5) ──\x1b[0m');
-test('APP_VERSION is 4.99.63', js.includes("const APP_VERSION = '4.99.63"));
+// v4.99.65: was hardcoded 'APP_VERSION is 4.99.63' (went stale every bump,
+// violates CLAUDE.md "AVOID hardcoding versions"). Now derived from
+// package.json (bump-version always updates it) — self-maintaining + a
+// STRONGER guard: app.js + sw.js MUST equal the package.json version.
+const PKG_VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+test('APP_VERSION matches package.json (' + PKG_VERSION + ')', js.includes("const APP_VERSION = '" + PKG_VERSION + "'"));
 test('getDailyGoal function', js.includes('function getDailyGoal('));
 test('renderDailyGoal function', js.includes('function renderDailyGoal('));
 test('editDailyGoal function', js.includes('function editDailyGoal('));
@@ -348,7 +353,7 @@ test('CSS: .topic-domain-group', css.includes('.topic-domain-group'));
 test('CSS: .daily-goal-card', css.includes('.daily-goal-card'));
 test('CSS: .advanced-section', css.includes('.advanced-section'));
 test('CSS: .hero-stats-strip', css.includes('.hero-stats-strip'));
-test('SW cache bumped to v4.99.63', sw.includes('netplus-v4.99.63'));
+test('SW cache bumped to package.json version (netplus-v' + PKG_VERSION + ')', sw.includes('netplus-v' + PKG_VERSION));
 test('Family Drill: STORAGE.PORT_FAMILY_BEST', js.includes("PORT_FAMILY_BEST:"));
 test('Family Drill: ptMode handles family', js.includes("ptMode === 'family'"));
 test('Family Drill: HTML mode button', html.includes('id="pt-mode-family"'));
@@ -376,8 +381,8 @@ test('hardcore_pass evaluated against history',
 test('HTML: hardcore-checkbox', html.includes('id="hardcore-checkbox"'));
 // v4.79.0: legacy .hardcore-toggle label retired — Strict Mode now lives
 // inside Mode Ladder Exam tier as .modes-strict-toggle (Codex round-3).
-test('v4.79.0: Strict Mode toggle present in Mode Ladder Exam tier',
-  html.includes('class="modes-strict-toggle"'));
+test('v4.79.0/dg4: Strict Mode toggle present in session-picker Exam group',
+  html.includes('class="dgh-strict"') && html.includes('id="modes-strict-checkbox"'));
 test('HTML: exam-hardcore-badge', html.includes('id="exam-hardcore-badge"'));
 test('CSS: .hardcore-toggle', css.includes('.hardcore-toggle'));
 test('CSS: .hardcore-badge', css.includes('.hardcore-badge'));
@@ -521,7 +526,7 @@ test('daily-challenge-card element', html.includes('id="daily-challenge-card"'))
 // v4.81.23 tombstone: #todays-focus element removed (consolidated into #today-plan)
 test('v4.81.23 tombstone: #todays-focus element removed', !html.includes('id="todays-focus"'));
 // v4.76.0: legacy `.quiz-presets` block replaced by `.modes-tier-cards` inside the Mode Ladder
-test('v4.76.0: modes-tier-cards block (replaces .quiz-presets)', html.includes('class="modes-tier-cards"'));
+test('v4.76.0/dg4: session-picker option grid present (was .modes-tier-cards)', html.includes('class="dgh-opts"'));
 test('Preset tile: warmup', html.includes("applyPreset('warmup')"));
 test('Preset tile: focused', html.includes("applyPreset('focused')"));
 test('Preset tile: grind', html.includes("applyPreset('grind')"));
@@ -1865,8 +1870,8 @@ test('v4.76.0 tombstone: legacy "Quick start" \u00a701 heading replaced',
   !/Quick\s*<em>start<\/em>/.test(html));
 test('v4.76.0 tombstone: legacy "Marathon mode" \u00a702 heading replaced',
   !/Marathon\s*<em>mode<\/em>/.test(html));
-test('v4.76.0 replacement: Mode Ladder uses \u00a701 numbering with "Pick your session"',
-  html.includes('&#167; 01') && /Pick your\s*<em>session<\/em>/.test(html));
+test('v4.76.0/dg4: session picker uses \u00a701 numbering with "Pick your session"',
+  html.includes('&#167; 01') && /Pick your\s*<i>session<\/i>/.test(html));
 test('HTML: wrong-preset-tile exists', html.includes('id="wrong-preset-tile"'));
 test('HTML: custom-quiz-section details exists', html.includes('id="custom-quiz-section"'));
 test('HTML: topic-group inside custom-quiz-section', html.indexOf('id="topic-group"') > html.indexOf('id="custom-quiz-section"'));
@@ -5494,12 +5499,12 @@ test('v4.53.0 HTML: mobile sidebar toggle button',
 test('v4.81.23 tombstone: #focus-banner element removed', !html.includes('id="focus-banner"'));
 // v4.76.0 update: \u00a701 + \u00a702 retired. Mode Ladder now uses \u00a701 with
 // "Pick your session" heading; Marathon presets are inside Practice tier.
-test('v4.53.0 HTML: \u00a7 01 editorial section head (now Mode Ladder, was Quick Start)',
-  /&#167;\s*01[\s\S]{0,400}Pick your\s*<em>session<\/em>/.test(html));
+test('v4.53.0/dg4 HTML: \u00a7 01 editorial section head (session picker)',
+  /&#167;\s*01[\s\S]{0,400}Pick your\s*<i>session<\/i>/.test(html));
 test('v4.76.0 HTML: \u00a7 02 retired (Marathon Mode merged into Mode Ladder Practice tier)',
   !/&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
-test('v4.53.0 HTML: \u00a7 03 By Domain editorial section head + grid container',
-  /&#167;\s*03[\s\S]{0,400}By\s*<em>domain<\/em>/.test(html) && html.includes('id="setup-domain-grid"'));
+test('v4.53.0/dg4 HTML: \u00a7 02 By domain editorial section head + grid container',
+  /&#167;\s*02[\s\S]{0,400}By\s*<i>domain<\/i>/.test(html) && html.includes('id="setup-domain-grid"'));
 // v4.79.0: \u00a704 Custom Quiz editorial section head retired per Codex
 // round-3 \u2014 Mode Ladder's "Custom Quiz" tile is the single entry point;
 // the <details> form below is the implementation.
@@ -5654,13 +5659,13 @@ test('v4.54.0 HTML: topbar toggle calls toggleSidebarCollapsed',
   /id="topbar-toggle"[\s\S]{0,200}onclick="toggleSidebarCollapsed/.test(html));
 
 // HTML \u2014 hero v2
-test('v4.54.0 HTML: #setup-hero-v2 wrapper + hero-v2-main + hero-v2-aside',
-  html.includes('id="setup-hero-v2"') && html.includes('class="hero-v2-main"') && html.includes('class="hero-v2-aside"'));
+test('v4.54.0/dg4 HTML: #setup-hero-v2 wrapper + greeting + readiness regions',
+  html.includes('id="setup-hero-v2"') && html.includes('class="dgh-greet"') && html.includes('class="dgh-rd"') && html.includes('id="readiness-card-v2"'));
 test('v4.54.0 HTML: display heading defaults to "Good afternoon, Simi."',
   /id="hero-v2-display"[\s\S]{0,200}Good afternoon, <span class="name">Simi\.<\/span>/.test(html));
-test('v4.54.0 HTML: readiness card v2 has score + bar fill + pass tick + delta',
+test('v4.54.0/dg4 HTML: readiness card v2 has score + bar fill + prediction + delta',
   html.includes('id="rc-v2-num"') && html.includes('id="rc-v2-bar-fill"') &&
-  html.includes('class="rc-v2-pass-tick"') && html.includes('id="rc-v2-delta"'));
+  html.includes('id="rc-v2-prediction"') && html.includes('id="rc-v2-delta"'));
 test('v4.54.0 HTML: two mini cards (today + streak) in hero-v2-mini-row',
   html.includes('id="mc-today-done"') && html.includes('id="mc-today-goal"') &&
   html.includes('id="mc-streak-num"') && html.includes('id="mc-streak-sub"'));
@@ -9930,15 +9935,15 @@ test('v4.76.0 HTML: #hero-v2-cta-btn element exists', html.includes('id="hero-v2
 test('v4.76.0 HTML: #hero-v2-cta-reason element exists', html.includes('id="hero-v2-cta-reason"'));
 
 // 2. Mode Ladder
-test('v4.76.0 HTML: .modes-ladder container exists', html.includes('class="modes-ladder ed-section"'));
-test('v4.76.0 HTML: 3 mode tiers (quick / practice / exam)',
-  html.includes('modes-tier-quick') && html.includes('modes-tier-practice') && html.includes('modes-tier-exam'));
+test('v4.76.0/dg4 HTML: session-picker container exists (#modes-ladder + .dgh-sess)', html.includes('class="dgh-sess"') && html.includes('id="modes-ladder"'));
+test('v4.76.0/dg4 HTML: 3 commitment groups (quick / practice / exam)',
+  (html.match(/class="dgh-grp"/g) || []).length === 3 && html.includes('Quick &middot; 3-5 min') && html.includes('Practice &middot; 10-30 min') && html.includes('Exam simulation &middot; 60-90 min'));
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));
 test('v4.76.0 HTML: Drill Mistakes tile in Quick tier', html.includes('id="modes-wrong-tile"'));
 test('v4.76.0 HTML: Custom Quiz card delegates to _jumpToCustomQuiz',
   html.includes('onclick="_jumpToCustomQuiz()"'));
-test('v4.76.0 HTML: Full Exam Simulator card delegates to startExam',
-  /modes-card-exam-full[\s\S]{0,200}onclick="startExam\(\)"/.test(html));
+test('v4.76.0/dg4 HTML: Full Exam Simulator opt delegates to startExam',
+  /onclick="startExam\(\)"[\s\S]{0,80}Full Exam Simulator/.test(html));
 test('v4.76.0 HTML: legacy wrong-preset-tile + sub preserved (renderWrongBankBtn compat)',
   html.includes('id="wrong-preset-tile"') && html.includes('id="wrong-preset-sub"'));
 test('v4.76.0 HTML: legacy marathon-section preserved as hidden',
@@ -9979,8 +9984,8 @@ test('v4.76.0 CSS: reduced-motion gate present for new elements',
 console.log('\n\x1b[1m── v4.77.0 CODEX ROUND-2 POLISH ──\x1b[0m');
 
 // 1. Eyebrow upgrade
-test('v4.77.0 HTML: eyebrow text drops "Your" — reads "Next best move"',
-  html.includes('>Next best move<') && !html.includes('>Your next best move<'));
+test('v4.77.0/dg4 HTML: NBM eyebrow reads "Next best move" (not "Your next best move")',
+  /Next best move/.test(html) && !/Your next best move/.test(html));
 test('v4.77.0 CSS: eyebrow is now an inline pill (display: inline-flex)',
   /\.hero-v2-cta-eyebrow\s*\{[\s\S]{0,500}display:\s*inline-flex/.test(css));
 test('v4.77.0 CSS: eyebrow has pill background',
@@ -10084,8 +10089,8 @@ test('v4.79.0 home: standalone exam-section retired (was duplicating Mode Ladder
   !/<div class="exam-section">[\s\S]{0,800}Simulate Full Exam/.test(html));
 test('v4.79.0 home: legacy #hardcore-checkbox preserved as hidden compat shim',
   /id="hardcore-checkbox"[^>]*hidden/.test(html));
-test('v4.79.0 home: Strict Mode toggle relocated into Mode Ladder Exam tier',
-  html.includes('id="modes-strict-checkbox"') && html.includes('class="modes-strict-toggle"'));
+test('v4.79.0/dg4 home: Strict Mode toggle in session-picker Exam group',
+  html.includes('id="modes-strict-checkbox"') && html.includes('class="dgh-strict"'));
 test('v4.79.0 home: Strict Mode toggle syncs both checkboxes',
   /modes-strict-checkbox[\s\S]{0,400}hardcore-checkbox/.test(html));
 test('v4.79.0 CSS: .modes-strict-toggle styled', css.includes('.modes-strict-toggle'));
@@ -11996,10 +12001,10 @@ test('v4.81.17 DomainDrill: prefillDomainTopics opens the matching accordion',
   /details\[data-domain-idx=/.test(_fnBody(js, 'prefillDomainTopics') || ''));
 test('v4.81.17 DomainDrill: prefillDomainTopics jumps to Custom Quiz section',
   /_jumpToCustomQuiz/.test(_fnBody(js, 'prefillDomainTopics') || ''));
-test('v4.81.17 DomainDrill: Mode Ladder domain row HTML present',
-  html.includes('class="modes-domain-row"'));
-test('v4.81.17 DomainDrill: Mode Ladder has 5 modes-domain-tile buttons',
-  (html.match(/class="modes-domain-tile"/g) || []).length === 5);
+test('v4.81.17/dg4 DomainDrill: session-picker drill-by-domain row present',
+  html.includes('class="dgh-dbd"'));
+test('v4.81.17/dg4 DomainDrill: 5 drill-by-domain buttons',
+  (html.match(/class="dgh-db"/g) || []).length === 5);
 test('v4.81.17 DomainDrill: Mode Ladder tiles wired to applyDomainPreset for all 5 domains',
   /applyDomainPreset\('concepts'\)/.test(html)
     && /applyDomainPreset\('implementation'\)/.test(html)
@@ -16046,7 +16051,7 @@ test('v4.85.27 PassProof: banner has aria-label for accessibility',
 test('v4.85.27 PassProof: banner sits BEFORE the hero (above-the-fold trust)',
   (() => {
     const bannerIdx = html.indexOf('class="pass-proof-banner"');
-    const heroIdx = html.indexOf('class="setup-hero-v2"');
+    const heroIdx = html.indexOf('id="setup-hero-v2"');
     return bannerIdx > 0 && heroIdx > 0 && bannerIdx < heroIdx;
   })());
 

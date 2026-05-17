@@ -1,9 +1,10 @@
-// Service Worker v4.99.63 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v4.99.63';
+// Service Worker v4.99.65 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v4.99.65';
 const SHELL_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './dg-system.css',
   './app.js',
   './manifest.json',
   // v4.87.4: CertAnvil M14 logo. Single SVG = favicon + apple-touch-icon
