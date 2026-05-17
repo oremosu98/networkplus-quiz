@@ -1102,8 +1102,8 @@
     const el = document.getElementById('acl-header-scenario');
     if (!el) return;
     const chip = scen.id === 'free-build'
-      ? '<span class="acl-header-pill acl-header-pill-free">\ud83e\uddea Free Build</span>'
-      : '<span class="acl-header-pill acl-header-pill-scenario" title="' + escHtml(scen.title) + '">' + (scen.icon || '\ud83d\udcc4') + ' ' + escHtml(scen.title) + '</span>';
+      ? '<span class="acl-header-pill acl-header-pill-free">Free Build</span>'
+      : '<span class="acl-header-pill acl-header-pill-scenario" title="' + escHtml(scen.title) + '">' + escHtml(scen.title) + '</span>';
     el.innerHTML = chip +
       '<button type="button" class="btn btn-ghost acl-header-change" onclick="aclOpenScenarioPicker()" style="padding:6px 12px;font-size:12px">Change scenario</button>';
   }
@@ -1124,7 +1124,7 @@
           <div class="acl-sc-zones">
             ${scen.zones.map((z, i) => `<div class="acl-zone" style="--zone-color:${z.color}" data-zone-idx="${i}"><span class="acl-zone-name">${escHtml(z.name)}</span><span class="acl-zone-cidr">${escHtml(z.cidr)}</span></div>`).join('')}
           </div>
-          <div class="acl-sc-hint">\ud83d\udca1 No grading in Free Build \u2014 use <em>Test Custom Packet</em> below to explore how rules behave.</div>
+          <div class="acl-sc-hint">No grading in Free Build \u2014 use <em>Test Custom Packet</em> below to explore how rules behave.</div>
         </div>`;
       return;
     }
@@ -1141,7 +1141,7 @@
           <section class="acl-learn-sec"><h4>How traffic flows</h4><p>${escHtml(scen.explanation.dataFlow)}</p></section>
           <section class="acl-learn-sec"><h4>Key devices</h4><ul class="acl-learn-list">${scen.explanation.keyDevices.map(d => `<li><strong>${escHtml(d.name)}</strong> \u2014 ${escHtml(d.role)}</li>`).join('')}</ul></section>
           <section class="acl-learn-sec"><h4>Key concepts</h4><ul class="acl-learn-list">${scen.explanation.concepts.map(c => `<li><strong>${escHtml(c.term)}</strong> \u2014 ${escHtml(c.meaning)}</li>`).join('')}</ul></section>
-          <section class="acl-learn-sec acl-learn-exam"><h4>\ud83c\udf93 Exam relevance</h4><p>${escHtml(scen.explanation.examTies)}</p></section>
+          <section class="acl-learn-sec acl-learn-exam"><h4>Exam relevance</h4><p>${escHtml(scen.explanation.examTies)}</p></section>
         </div>
       </details>` : '';
     el.innerHTML = `
@@ -1154,7 +1154,7 @@
               <span class="acl-sc-diff acl-sc-diff-${scen.difficulty}">${scen.difficulty}</span>
               ${(scen.objectives || []).map(o => `<span class="acl-sc-obj">N10-009 \u00b7 ${escHtml(o)}</span>`).join('')}
               <!-- v4.55.1: mode badge \u2014 shows stateful vs stateless at a glance -->
-              <span class="acl-sc-mode acl-sc-mode-${scen.mode === 'stateful' ? 'stateful' : 'stateless'}" title="${scen.mode === 'stateful' ? 'Stateful firewall \u2014 return traffic auto-permits' : 'Stateless firewall \u2014 return traffic needs explicit rules'}">${scen.mode === 'stateful' ? '\ud83d\udd01 Stateful' : '\u2195\ufe0f Stateless'}</span>
+              <span class="acl-sc-mode acl-sc-mode-${scen.mode === 'stateful' ? 'stateful' : 'stateless'}" title="${scen.mode === 'stateful' ? 'Stateful firewall \u2014 return traffic auto-permits' : 'Stateless firewall \u2014 return traffic needs explicit rules'}">${scen.mode === 'stateful' ? 'Stateful' : 'Stateless'}</span>
             </div>
             <div class="acl-sc-sub">${escHtml(scen.description)}</div>
           </div>
@@ -1163,7 +1163,7 @@
           ${scen.zones.map((z, i) => `<div class="acl-zone" style="--zone-color:${z.color}" data-zone-idx="${i}"><span class="acl-zone-name">${escHtml(z.name)}</span><span class="acl-zone-cidr">${escHtml(z.cidr)}</span></div>`).join('')}
         </div>
         <div class="acl-sc-reqs">
-          <div class="acl-sc-reqs-head">\ud83d\udccb Requirements</div>
+          <div class="acl-sc-reqs-head">Requirements</div>
           <ul class="acl-sc-reqs-list">${reqsHtml}</ul>
         </div>
         ${learnHtml}
@@ -1196,7 +1196,7 @@
       const actIco = r.action === 'permit' ? '\u2714' : '\u2716';
       return `<div class="acl-rule-row" data-rule-id="${r.id}">
         <div class="acl-rule-num">${i + 1}</div>
-        <div class="acl-rule-cell acl-rule-action"><span class="acl-act-pill ${actCls}">${actIco} ${r.action}</span></div>
+        <div class="acl-rule-cell acl-rule-action"><span class="acl-act-pill ${actCls}">${r.action}</span></div>
         <div class="acl-rule-cell acl-rule-proto">${escHtml(r.proto)}</div>
         <div class="acl-rule-cell acl-rule-src">
           <div class="acl-rule-addr">${escHtml(r.srcAddr)}</div>
@@ -1216,7 +1216,7 @@
     }).join('');
     const implicit = `<div class="acl-rule-implicit" aria-hidden="true">
       <div class="acl-rule-num acl-rule-num-implicit">\u221e</div>
-      <div class="acl-rule-implicit-text"><span class="acl-act-pill acl-act-deny">\u2716 implicit deny</span> \u00b7 any packet that reaches this rule is dropped</div>
+      <div class="acl-rule-implicit-text"><span class="acl-act-pill acl-act-deny">implicit deny</span> \u00b7 any packet that reaches this rule is dropped</div>
     </div>`;
     el.innerHTML = rows + implicit;
   
@@ -1265,8 +1265,8 @@
     el.innerHTML = `
       <div class="acl-panel-head">
         <div class="acl-panel-title"><span class="acl-panel-ico">\ud83e\uddea</span> Test Packets</div>
-        <button type="button" class="btn btn-primary acl-test-run" onclick="aclRunAllTests()" ${disable}>\u25B6 Test All</button>
-        <button type="button" class="btn btn-ghost acl-test-replay" onclick="aclReplayAnimation()" ${disable} title="Replay packet-flow animation">\ud83d\udd04 Replay</button>
+        <button type="button" class="btn btn-primary acl-test-run" onclick="aclRunAllTests()" ${disable}>Test All</button>
+        <button type="button" class="btn btn-ghost acl-test-replay" onclick="aclReplayAnimation()" ${disable} title="Replay packet-flow animation">Replay</button>
       </div>
       <div class="acl-tp-list">${canned}</div>
       <details class="acl-custom-packet">
@@ -1279,7 +1279,7 @@
             <label class="acl-custom-lbl">Dest Port<input class="acl-custom-input" id="acl-cp-dp" placeholder="any or e.g. 443" value="443"></label>
             <label class="acl-custom-lbl">Proto<select class="acl-custom-input" id="acl-cp-proto"><option value="tcp">tcp</option><option value="udp">udp</option><option value="icmp">icmp</option><option value="any">any</option></select></label>
           </div>
-          <button type="button" class="btn btn-primary acl-custom-run" onclick="aclRunCustomPacket()">\u25B6 Send Packet</button>
+          <button type="button" class="btn btn-primary acl-custom-run" onclick="aclRunCustomPacket()">Send Packet</button>
           <div id="acl-custom-result" class="acl-custom-result"></div>
         </div>
       </details>`;
@@ -1311,7 +1311,7 @@
     const hasHints = Array.isArray(scen.hints) && scen.hints.length > 0;
     const tierUsed = (aclState.hintsUsed && aclState.hintsUsed[scen.id]) || 0;
     const hintsLeft = hasHints ? Math.max(0, scen.hints.length - tierUsed) : 0;
-    const hintBtnLabel = hasHints ? (tierUsed === 0 ? `\ud83d\udca1 Hint` : `\ud83d\udca1 Hint (${hintsLeft} left)`) : '';
+    const hintBtnLabel = hasHints ? (tierUsed === 0 ? `Hint` : `Hint (${hintsLeft} left)`) : '';
     const hintBtn = hasHints
       ? `<button type="button" class="btn btn-ghost acl-hint-btn" onclick="aclShowHint()">${hintBtnLabel}</button>`
       : '';
@@ -1321,8 +1321,8 @@
         <div class="acl-panel-title"><span class="acl-panel-ico">\ud83c\udfaf</span> Grade</div>
         <div class="acl-grade-actions">
           ${hintBtn}
-          <button type="button" class="btn btn-ghost acl-coach-btn" onclick="aclAskCoach()">\ud83e\udde0 AI Coach</button>
-          <button type="button" class="btn btn-primary acl-grade-btn" onclick="aclGrade()">\ud83c\udfaf Grade My ACL</button>
+          <button type="button" class="btn btn-ghost acl-coach-btn" onclick="aclAskCoach()">AI Coach</button>
+          <button type="button" class="btn btn-primary acl-grade-btn" onclick="aclGrade()">Grade My ACL</button>
         </div>
       </div>
       <div class="acl-grade-body">
