@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v5.0.8
+   Network+ AI Quiz — styles.css  v5.0.9
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -6147,7 +6147,7 @@ input::placeholder { color: var(--text-dim); }
   background: rgba(var(--accent-rgb), .1);
   border: 1px solid rgba(var(--accent-rgb), .26);
   color: var(--accent-light);
-  transition: background .2s cubic-bezier(0.2,, border-color .2s cubic-bezier(0.2,, color .2s cubic-bezier(0.2,;
+  transition: background .2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .2s cubic-bezier(0.2, 0.8, 0.2, 1), color .2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .acl-header-pill-free {
   background: rgba(var(--accent-rgb), .08);
@@ -6444,7 +6444,7 @@ input::placeholder { color: var(--text-dim); }
   border: 1px solid rgba(var(--accent-rgb), .15);
   border-radius: 10px;
   font-size: 12px;
-  transition: background .25s cubic-bezier(0.2,, border-color .25s cubic-bezier(0.2,, color .25s cubic-bezier(0.2,;
+  transition: background .25s cubic-bezier(0.2, 0.8, 0.2, 1), border-color .25s cubic-bezier(0.2, 0.8, 0.2, 1), color .25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .acl-tp-row.acl-tp-pass { background: rgba(34, 197, 94, .06); border-color: rgba(34, 197, 94, .3); }
 .acl-tp-row.acl-tp-fail { background: rgba(239, 68, 68, .06); border-color: rgba(239, 68, 68, .3); }
