@@ -14638,6 +14638,88 @@
     }
   };
 
+  // ── V2 bridge: Coach topology review. Added v5.3.0 Ship #8. ──────
+  // Returns a promise resolving to { status, payload?, error?, scenario? }
+  // instead of rendering into V1's #tb-coach-modal. Shares the same cache,
+  // prompt construction, and API call as V1's tbCoachTopology().
+  window.tbV2CoachTopology = async function() {
+    if (tbState.devices.length === 0) {
+      return { status: 'error', error: 'Add some devices before asking the Coach.' };
+    }
+    if (tbIsPristineScenario()) {
+      var _scen = TB_SCENARIOS.find(function(s) { return s.id === tbState.pristineScenarioId; });
+      return { status: 'error', error: '“' + (_scen ? _scen.title : 'Scenario') + '” is a reference scenario — Coach reviews your own edits.' };
+    }
+    var key = (localStorage.getItem(STORAGE.KEY) || '').trim();
+    if (!key) {
+      return { status: 'error', error: 'Add your Anthropic API key in Settings to use the Coach.' };
+    }
+
+    var scen = TB_SCENARIOS.find(function(s) { return s.id === tbSelectedScenario; }) || TB_SCENARIOS[0];
+    var activeLab = tbActiveLab ? TB_LABS.find(function(l) { return l.id === tbActiveLab.labId; }) : null;
+    var activeStep = (activeLab && activeLab.steps) ? activeLab.steps[tbActiveLab.stepIdx] : null;
+    var cacheContext = activeLab
+      ? scen.id + '::' + tbActiveLab.labId + '::step' + tbActiveLab.stepIdx
+      : scen.id;
+    var hash = tbTopologyHash(tbState, cacheContext);
+
+    // Cache hit
+    var cache = tbLoadCoachCache();
+    if (cache[hash] && cache[hash].payload) {
+      return { status: 'cached', payload: cache[hash].payload, scenario: scen };
+    }
+
+    // Build prompt (same two paths as V1 tbCoachTopology)
+    var serialized = tbSerializeTopology(tbState);
+    var prompt;
+    if (activeLab && activeStep) {
+      var stepNum = tbActiveLab.stepIdx + 1;
+      var totalSteps = activeLab.steps.length;
+      var stripMd = function(s) { return String(s || '').replace(/\*\*/g, '').replace(/`/g, ''); };
+      prompt = 'You are a CompTIA Network+ (N10-009) instructor helping a student complete a specific hands-on lab step. Be a TUTOR, not a reviewer — reference the exact step goal and nudge toward the solution.'
+        + '\n\nLAB: ' + activeLab.title + ' (N10-009 Obj ' + activeLab.objective + ', ' + activeLab.difficulty + ')'
+        + '\nOverview: ' + activeLab.description
+        + '\n\nSTEP ' + stepNum + ' OF ' + totalSteps + ': "' + stripMd(activeStep.title) + '"'
+        + '\nGoal: ' + stripMd(activeStep.instruction)
+        + '\nHint: ' + stripMd(activeStep.hint || '(no hint)')
+        + '\n\nTOPOLOGY:\n' + serialized
+        + '\n\nRespond with ONLY a JSON object: { "tour": "1-2 sentence progress observation", "strengths": ["2-3 items"], "concerns": ["1-3 blocking items"], "upgrades": ["2-3 next actions in order"], "objectives": ["1-3 N10-009 objectives as X.Y — Name"], "studyTip": "1 sentence broader concept" }. Under 400 words.';
+    } else {
+      prompt = 'You are a CompTIA Network+ (N10-009) instructor reviewing a student\'s topology. Be direct, specific, tie to N10-009 objectives.'
+        + '\n\nScenario: ' + scen.title + '\n' + scen.description
+        + '\n\nTopology:\n' + serialized
+        + '\n\nRespond with ONLY a JSON object: { "tour": "2-3 sentence walkthrough", "strengths": ["2-4 items"], "concerns": ["2-4 issues"], "upgrades": ["2-3 suggestions"], "objectives": ["2-4 N10-009 objectives as X.Y — Name"], "studyTip": "1 sentence drill advice" }. Under 500 words.';
+    }
+
+    try {
+      var res = await _claudeFetch({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: CLAUDE_TEACHER_MODEL, max_tokens: MAX_TOKENS_TEACHER_DEFAULT, messages: [{ role: 'user', content: prompt }] })
+      });
+      if (!res.ok) {
+        var errText = await res.text().catch(function() { return ''; });
+        return { status: 'error', error: 'API returned ' + res.status + '. ' + errText.slice(0, 160), scenario: scen };
+      }
+      var data = await res.json();
+      var text = (data.content && data.content[0] && data.content[0].text) || '';
+      var cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      var payload;
+      try { payload = JSON.parse(cleaned); } catch (_e) {
+        var m = cleaned.match(/\{[\s\S]*\}/);
+        if (m) { try { payload = JSON.parse(m[0]); } catch (__) {} }
+      }
+      if (!payload || !payload.tour) {
+        return { status: 'error', error: 'Coach returned an unexpected response. Try again.', scenario: scen };
+      }
+      cache[hash] = { t: Date.now(), payload: payload };
+      tbSaveCoachCache(cache);
+      return { status: 'success', payload: payload, scenario: scen };
+    } catch (e) {
+      return { status: 'error', error: e && e.message ? e.message : 'Network error.', scenario: scen };
+    }
+  };
+
   // ── Register feature module entry point ──
   // Same contract as v4.99.36-43. Shell calls
   // window._certanvilFeatures["topology-builder"].enter() after lazy-load

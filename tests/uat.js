@@ -20682,6 +20682,102 @@ test('v5.2.0 CSS: V2 3D overlay overrides #tb-3d-host position to flex-relative'
     && /\.v2-3d-overlay\s+#tb-3d-host[\s\S]{0,200}flex:\s*1/.test(v2css);
 })());
 
+// ── v5.3.0: TB V2 Ship #8 — Coach mode ─────────────────────────────
+test('v5.3.0 V1 bridge: window.tbV2CoachTopology async function exists in topology-builder.js', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return /window\.tbV2CoachTopology\s*=\s*async\s+function/.test(js);
+})());
+
+test('v5.3.0 V1 bridge: tbV2CoachTopology validates devices > 0 before coach call', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return /tbV2CoachTopology[\s\S]{0,200}tbState\.devices\.length\s*===\s*0/.test(js);
+})());
+
+test('v5.3.0 V1 bridge: tbV2CoachTopology checks pristine scenario and API key', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return /tbV2CoachTopology[\s\S]{0,800}tbIsPristineScenario/.test(js)
+    && /tbV2CoachTopology[\s\S]{0,1200}STORAGE\.KEY/.test(js);
+})());
+
+test('v5.3.0 V1 bridge: tbV2CoachTopology shares cache via tbTopologyHash + tbSaveCoachCache', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return /tbV2CoachTopology[\s\S]{0,2500}tbTopologyHash/.test(js)
+    && /tbV2CoachTopology[\s\S]{0,5000}tbSaveCoachCache/.test(js);
+})());
+
+test('v5.3.0 V2 JS: _showCoachUI + _hideCoachUI lifecycle functions exist', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /function _showCoachUI\b/.test(js) && /function _hideCoachUI\b/.test(js);
+})());
+
+test('v5.3.0 V2 JS: _renderCoachPanel builds right-side coach panel with close button', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /function _renderCoachPanel\b/.test(js)
+    && /tbv2-coach-panel/.test(js)
+    && /tbv2-cp-close/.test(js);
+})());
+
+test('v5.3.0 V2 JS: _runCoachAnalysis calls tbV2CoachTopology with mode guard', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /function _runCoachAnalysis\b/.test(js)
+    && /tbV2CoachTopology\(\)\.then/.test(js)
+    && /_activeMode\s*!==\s*'coach'/.test(js);
+})());
+
+test('v5.3.0 V2 JS: _renderCoachResult renders all 6 coach payload sections', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /function _renderCoachResult\b/.test(js)
+    && /payload\.tour/.test(js)
+    && /strengths/.test(js) && /concerns/.test(js) && /upgrades/.test(js) && /objectives/.test(js)
+    && /studyTip/.test(js);
+})());
+
+test('v5.3.0 V2 JS: _setMode wires coach mode to _showCoachUI/_hideCoachUI', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /modeId\s*===\s*'coach'[\s\S]{0,30}_showCoachUI/.test(js)
+    && /_hideCoachUI\(\)/.test(js);
+})());
+
+test('v5.3.0 V2 JS: exit() lifecycle calls _hideCoachUI for cleanup', (() => {
+  let js = '';
+  try { js = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  const exitMatch = js.match(/function exit\(\)\s*\{[\s\S]{0,300}\}/);
+  return exitMatch && /_hideCoachUI\(\)/.test(exitMatch[0]);
+})());
+
+test('v5.3.0 CSS: V2 coach panel, loading, error, result, tip styles exist', (() => {
+  let css = '';
+  try { css = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.css'), 'utf8'); } catch (_) { return false; }
+  return /\.v2-coach-panel\b/.test(css)
+    && /\.v2-cp-loading\b/.test(css)
+    && /\.v2-cp-error\b/.test(css)
+    && /\.v2-cp-section\b/.test(css)
+    && /\.v2-cp-tip\b/.test(css);
+})());
+
+test('v5.3.0 CSS: V2 coach panel slide-in via v2-coach-visible', (() => {
+  let css = '';
+  try { css = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.css'), 'utf8'); } catch (_) { return false; }
+  return /\.v2-coach-panel[\s\S]{0,250}translateX\(100%\)/.test(css)
+    && /\.v2-coach-visible[\s\S]{0,80}translateX\(0\)/.test(css);
+})());
+
+test('v5.3.0 CSS: V2 coach reduced-motion gate for panel and spinner', (() => {
+  let css = '';
+  try { css = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.css'), 'utf8'); } catch (_) { return false; }
+  return /prefers-reduced-motion[\s\S]{0,200}\.v2-coach-panel/.test(css)
+    && /prefers-reduced-motion[\s\S]{0,200}\.v2-cp-spinner/.test(css);
+})());
+
 test('v4.99.59 EnvStrategy: ENVIRONMENT_STRATEGY.md exists at repo root', (() => {
   try { return fs.statSync(path.join(ROOT, 'ENVIRONMENT_STRATEGY.md')).isFile(); }
   catch (_) { return false; }

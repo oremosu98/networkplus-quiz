@@ -533,6 +533,8 @@
       label.innerHTML = '<b>Labs</b> mode -- ' + msg;
     } else if (_activeMode === 'threed') {
       label.innerHTML = '<b>3D</b> mode -- ' + msg;
+    } else if (_activeMode === 'coach') {
+      label.innerHTML = '<b>Coach</b> mode -- ' + msg;
     }
   }
 
@@ -1487,6 +1489,155 @@
     if (overlay) overlay.remove();
   }
 
+  // ════════════════════════════════════════════════════════════════════
+  // COACH MODE — Ship #8
+  // AI topology review. Calls tbV2CoachTopology (V1 bridge) which does
+  // validation, cache lookup, and the Claude Sonnet API call, returning
+  // structured JSON { tour, strengths[], concerns[], upgrades[],
+  // objectives[], studyTip }. V2 renders the result in an editorial
+  // right-side panel — V1's #tb-coach-modal is never used.
+  // ════════════════════════════════════════════════════════════════════
+
+  function _showCoachUI() {
+    _renderCoachPanel();
+    var panel = document.getElementById('tbv2-coach-panel');
+    if (panel) {
+      panel.offsetHeight; // reflow for transition
+      panel.classList.add('v2-coach-visible');
+    }
+    _ensureEngine().then(function() {
+      if (_activeMode !== 'coach') return;
+      _runCoachAnalysis();
+    });
+  }
+
+  function _hideCoachUI() {
+    var panel = document.getElementById('tbv2-coach-panel');
+    if (panel) { panel.classList.remove('v2-coach-visible'); panel.remove(); }
+  }
+
+  function _renderCoachPanel() {
+    var canvasWrap = document.querySelector('#page-topology-builder-v2 .canvas');
+    if (!canvasWrap) return;
+    var old = document.getElementById('tbv2-coach-panel');
+    if (old) old.remove();
+
+    var el = document.createElement('div');
+    el.id = 'tbv2-coach-panel';
+    el.className = 'v2-coach-panel';
+    el.innerHTML = '<div class="v2-cp-head">'
+      + '<div>'
+      + '<div class="v2-cp-eyebrow">AI Coach</div>'
+      + '<div class="v2-cp-title">Topology review</div>'
+      + '</div>'
+      + '<button class="v2-cp-close" id="tbv2-cp-close" type="button">'
+      + '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+      + '</button>'
+      + '</div>'
+      + '<div class="v2-cp-body" id="tbv2-cp-body">'
+      + '<div class="v2-cp-loading"><div class="v2-cp-spinner"></div>'
+      + '<div class="v2-cp-loading-text">Analyzing your topology...</div>'
+      + '<div class="v2-cp-loading-sub">Usually takes 3-5 seconds</div>'
+      + '</div></div>';
+    canvasWrap.appendChild(el);
+
+    // Wire close button
+    var closeBtn = document.getElementById('tbv2-cp-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() { _setMode('design'); });
+    }
+  }
+
+  function _runCoachAnalysis() {
+    if (typeof window.tbV2CoachTopology !== 'function') {
+      _renderCoachError('Coach engine not loaded.');
+      return;
+    }
+    window.tbV2CoachTopology().then(function(result) {
+      // Guard: user may have switched modes before the async resolved
+      if (_activeMode !== 'coach') return;
+      if (result.status === 'error') {
+        _renderCoachError(result.error);
+      } else {
+        _renderCoachResult(result.payload, result.scenario, result.status === 'cached');
+      }
+    }).catch(function(err) {
+      if (_activeMode !== 'coach') return;
+      _renderCoachError(err && err.message ? err.message : 'Unexpected error.');
+    });
+  }
+
+  function _renderCoachError(msg) {
+    var body = document.getElementById('tbv2-cp-body');
+    if (!body) return;
+    body.innerHTML = '<div class="v2-cp-error">'
+      + '<div class="v2-cp-error-title">Could not reach the Coach</div>'
+      + '<p class="v2-cp-error-msg">' + _esc(msg) + '</p>'
+      + '<button class="v2-cp-retry" type="button" id="tbv2-cp-retry">Retry</button>'
+      + '</div>';
+    var retryBtn = document.getElementById('tbv2-cp-retry');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function() {
+        var b = document.getElementById('tbv2-cp-body');
+        if (b) {
+          b.innerHTML = '<div class="v2-cp-loading"><div class="v2-cp-spinner"></div>'
+            + '<div class="v2-cp-loading-text">Analyzing your topology...</div>'
+            + '<div class="v2-cp-loading-sub">Usually takes 3-5 seconds</div></div>';
+        }
+        _runCoachAnalysis();
+      });
+    }
+  }
+
+  function _renderCoachResult(payload, scen, cached) {
+    var body = document.getElementById('tbv2-cp-body');
+    if (!body) return;
+
+    var html = '';
+    if (cached) {
+      html += '<span class="v2-cp-cached">Cached</span>';
+    }
+    if (scen) {
+      html += '<div class="v2-cp-scenario">' + _esc(scen.title) + '</div>';
+    }
+
+    // Tour / overview
+    if (payload.tour) {
+      html += '<div class="v2-cp-section">'
+        + '<div class="v2-cp-section-h">Overview</div>'
+        + '<p class="v2-cp-tour">' + _esc(payload.tour) + '</p></div>';
+    }
+
+    // List sections
+    var sections = [
+      { key: 'strengths',  label: 'Strengths',          cls: 'v2-cp-good' },
+      { key: 'concerns',   label: 'Concerns',           cls: 'v2-cp-warn' },
+      { key: 'upgrades',   label: 'Suggestions',        cls: 'v2-cp-upgrade' },
+      { key: 'objectives', label: 'Objectives covered', cls: 'v2-cp-obj' }
+    ];
+    for (var i = 0; i < sections.length; i++) {
+      var sec = sections[i];
+      var items = payload[sec.key];
+      if (Array.isArray(items) && items.length > 0) {
+        html += '<div class="v2-cp-section ' + sec.cls + '">'
+          + '<div class="v2-cp-section-h">' + sec.label + '</div><ul class="v2-cp-list">';
+        for (var j = 0; j < items.length; j++) {
+          html += '<li>' + _esc(items[j]) + '</li>';
+        }
+        html += '</ul></div>';
+      }
+    }
+
+    // Study tip
+    if (payload.studyTip) {
+      html += '<div class="v2-cp-section v2-cp-tip">'
+        + '<div class="v2-cp-section-h">Study tip</div>'
+        + '<p>' + _esc(payload.studyTip) + '</p></div>';
+    }
+
+    body.innerHTML = html;
+  }
+
   // ── Wire all interaction listeners ────────────────────────────────
   function _wireInteraction() {
     var svg = document.getElementById('tbv2-canvas-svg');
@@ -1650,6 +1801,11 @@
     } else {
       _hideThreedUI();
     }
+    if (modeId === 'coach') {
+      _showCoachUI();
+    } else {
+      _hideCoachUI();
+    }
 
     // Re-render canvas
     _renderCanvas();
@@ -1734,6 +1890,8 @@
   function exit() {
     // Restore 3D host to V1's page if 3D mode is active when user navigates away
     _hideThreedUI();
+    // Dismiss coach panel
+    _hideCoachUI();
     // End any active lab
     if (window.tbV2ExitLab && window.tbV2GetActiveLab && window.tbV2GetActiveLab()) {
       window.tbV2ExitLab();
