@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Network+ Home</title>
+<style>
+/* ── Tokens ────────────────────────────────────────────── */
+:root {
+  --accent: #b5651d;
+  --accent-light: #e8a04c;
+  --accent-bg: rgba(181,101,29,.08);
+  --bg: #f7f5f2;
+  --surface: #fff;
+  --sidebar-bg: #1e1a16;
+  --sidebar-accent: #e8a04c;
+  --text: #1a1714;
+  --text-mid: #6b5e52;
+  --text-dim: #9a8d80;
+  --border: rgba(0,0,0,.08);
+  --green: #2d8a4e;
+  --green-bg: rgba(45,138,78,.08);
+  --green-border: rgba(45,138,78,.18);
+  --red: #c0392b;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { display: block; }
+
+/* ── Layout ────────────────────────────────────────────── */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 210px; flex-shrink: 0;
+  background: var(--sidebar-bg); color: rgba(255,255,255,.7);
+  display: flex; flex-direction: column; padding: 16px 0;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.main-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: 8px 28px; gap: 12px; border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 0; z-index: 10;
+  font-size: 12px; color: var(--text-mid);
+}
+.content { padding: 0 28px 60px; max-width: 1280px; margin: 0 auto; width: 100%; }
+
+/* ── Sidebar ───────────────────────────────────────────── */
+.sb-brand { padding: 0 16px 14px; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 10px; }
+.sb-brand-row { display: flex; align-items: center; gap: 10px; }
+.sb-logo {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; color: #fff; letter-spacing: -.5px;
+}
+.sb-brand-name { font-size: 13px; font-weight: 700; color: #fff; }
+.sb-brand-cert { font-size: 11px; color: var(--sidebar-accent); font-weight: 600; }
+.sb-brand-ver { font-size: 10px; color: rgba(255,255,255,.35); font-family: 'SF Mono', monospace; }
+.sb-section { padding: 6px 16px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,.3); margin-top: 6px; }
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 16px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,.6); cursor: pointer;
+  transition: background .15s, color .15s;
+  border-left: 2px solid transparent;
+}
+.sb-item:hover { background: rgba(255,255,255,.04); color: rgba(255,255,255,.85); }
+.sb-item.active { color: var(--sidebar-accent); border-left-color: var(--sidebar-accent); background: rgba(232,160,76,.06); }
+.sb-item-icon { width: 16px; height: 16px; opacity: .5; flex-shrink: 0; }
+.sb-item.active .sb-item-icon { opacity: 1; }
+.sb-item .pro-badge {
+  font-size: 9px; font-weight: 700; background: var(--accent);
+  color: #fff; padding: 1px 5px; border-radius: 3px; margin-left: auto;
+}
+.sb-spacer { flex: 1; }
+.sb-streak-row {
+  margin: 0 12px; padding: 10px 12px; background: rgba(255,255,255,.04);
+  border-radius: 8px; display: flex; align-items: center; gap: 8px;
+}
+.sb-streak-icon { width: 22px; height: 22px; flex-shrink: 0; }
+.sb-streak-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.7); }
+.sb-streak-days { display: flex; gap: 3px; margin-top: 8px; padding: 0 12px 6px; }
+.sb-day {
+  width: 22px; height: 22px; border-radius: 50%; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.05); color: rgba(255,255,255,.3);
+}
+.sb-day.today { background: var(--sidebar-accent); color: var(--sidebar-bg); }
+
+/* ── Topbar ────────────────────────────────────────────── */
+.tb-time { font-weight: 500; }
+.tb-badge {
+  padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;
+  border: 1px solid var(--border);
+}
+.tb-badge.pro { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tb-version { font-family: 'SF Mono', monospace; font-size: 11px; color: var(--text-dim); }
+.tb-icon-btn {
+  width: 30px; height: 30px; border-radius: 6px; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background .15s;
+}
+.tb-icon-btn:hover { background: rgba(0,0,0,.04); }
+.tb-bell { position: relative; }
+.tb-bell-dot {
+  position: absolute; top: 4px; right: 4px; width: 7px; height: 7px;
+  background: var(--accent); border-radius: 50%; border: 1.5px solid var(--surface);
+}
+.tb-user {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 4px 8px 4px 4px; border-radius: 20px;
+  transition: background .15s;
+}
+.tb-user:hover { background: rgba(0,0,0,.04); }
+.tb-avatar {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 12px;
+}
+.tb-user-name { font-size: 12px; font-weight: 500; }
+
+/* ── Pass Banner ───────────────────────────────────────── */
+.pass-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px; margin: 16px 0 0;
+  background: var(--green-bg); border: 1px solid var(--green-border);
+  border-radius: var(--radius); font-size: 13px; color: var(--text-mid);
+}
+.pass-banner-check {
+  width: 22px; height: 22px; background: var(--green); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 12px; flex-shrink: 0;
+}
+.pass-banner strong { color: var(--text); font-weight: 700; }
+.pass-banner .date { color: var(--text-dim); margin-left: 2px; }
+.pass-banner .link { color: var(--accent); font-weight: 600; margin-left: 6px; }
+
+/* ── 2-col grid ────────────────────────────────────────── */
+.home-grid {
+  display: grid; grid-template-columns: 1fr 380px;
+  gap: 20px; margin-top: 20px;
+}
+.col-main { display: flex; flex-direction: column; gap: 16px; }
+.col-side { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Hero ──────────────────────────────────────────────── */
+.hero-date {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-dim);
+}
+.hero-greet {
+  font-size: 38px; font-weight: 800; line-height: 1.1;
+  color: var(--text); margin: 4px 0 8px; letter-spacing: -.5px;
+}
+.hero-greet em { color: var(--accent); font-style: normal; }
+.hero-body { font-size: 14px; color: var(--text-mid); line-height: 1.55; max-width: 520px; }
+.hero-body a { font-weight: 600; }
+
+/* ── Stat cards row ────────────────────────────────────── */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer;
+  transition: box-shadow .2s cubic-bezier(.2,.8,.2,1), transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-icon { width: 28px; height: 28px; flex-shrink: 0; }
+.stat-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-dim);
+}
+.stat-big { font-size: 22px; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-big span { font-size: 14px; font-weight: 500; color: var(--text-dim); }
+.stat-sub { font-size: 11px; color: var(--text-dim); }
+.stat-info { flex: 1; }
+.stat-chevron { color: var(--text-dim); font-size: 16px; opacity: .4; }
+
+/* ── Drill chips ───────────────────────────────────────── */
+.drill-section { }
+.drill-header {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-dim); margin-bottom: 8px;
+}
+.drill-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.drill-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  border-radius: 20px; font-size: 12px; color: var(--text-mid);
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.drill-chip:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); transform: translateY(-1px); }
+.drill-pts {
+  font-weight: 700; color: var(--green); font-size: 11px;
+  background: var(--green-bg); padding: 1px 6px; border-radius: 10px;
+}
+.drill-name { font-weight: 600; color: var(--text); }
+.drill-range { color: var(--text-dim); }
+.drill-collapse {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface);
+  transition: transform .2s;
+}
+.drill-collapse:hover { transform: rotate(180deg); }
+
+/* ── Cards (shared) ────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.card-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-dim); margin-bottom: 6px;
+}
+.card-eyebrow .tag {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 9px; font-weight: 700;
+}
+.card-eyebrow .tag-new { background: var(--accent-bg); color: var(--accent); }
+.card-title { font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.25; }
+.card-desc { font-size: 13px; color: var(--text-mid); margin-top: 4px; line-height: 1.5; }
+
+/* ── Diagnostic card ───────────────────────────────────── */
+.diag-card { }
+.diag-stats {
+  display: flex; gap: 24px; margin-top: 14px;
+}
+.diag-stat { text-align: center; }
+.diag-stat-num {
+  font-size: 28px; font-weight: 800; color: var(--text); line-height: 1;
+}
+.diag-stat-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-dim); margin-top: 2px;
+}
+.diag-skip { font-size: 12px; color: var(--accent); cursor: pointer; margin-top: 12px; display: inline-block; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm); font-size: 13px;
+  font-weight: 700; cursor: pointer; margin-top: 10px;
+  transition: transform .15s cubic-bezier(.2,.8,.2,1), box-shadow .2s;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(181,101,29,.25); }
+
+/* ── Today's Plan card ─────────────────────────────────── */
+.plan-card .card-title em { color: var(--accent); font-style: normal; font-weight: 800; }
+.plan-meta {
+  font-size: 11px; color: var(--text-dim); margin-top: 2px;
+}
+.plan-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.plan-body { margin-top: 4px; }
+.plan-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.plan-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px 5px 8px; border: 1px solid var(--border);
+  border-radius: 20px; font-size: 12px; font-weight: 500;
+  color: var(--text); cursor: pointer;
+  transition: border-color .2s, transform .15s;
+}
+.plan-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+.plan-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.plan-link { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 10px; display: inline-block; cursor: pointer; }
+
+/* ── Domain section ────────────────────────────────────── */
+.domain-section { }
+.domain-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;
+}
+.domain-header h3 {
+  font-size: 13px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.domain-header .desc { font-size: 12px; color: var(--text-dim); }
+.domain-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.domain-col {
+  background: var(--surface); padding: 14px 12px;
+  display: flex; flex-direction: column;
+}
+.domain-weight { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+.domain-name { font-size: 13px; font-weight: 700; color: var(--text); margin: 2px 0 8px; }
+.domain-topic { font-size: 11px; color: var(--text-mid); line-height: 1.7; }
+.domain-topic .weak { color: var(--accent); font-weight: 600; }
+.domain-mastery { margin-top: auto; padding-top: 10px; }
+.domain-mastery-num { font-size: 20px; font-weight: 800; line-height: 1; }
+.domain-mastery-num.mastered { color: var(--green); }
+.domain-mastery-num.proficient { color: var(--accent); }
+.domain-mastery-num.novice { color: var(--text-dim); }
+.domain-mastery-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+
+/* ── Readiness card (right col) ────────────────────────── */
+.readiness-card { }
+.readiness-eyebrow {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--text-dim); margin-bottom: 6px;
+}
+.readiness-score {
+  font-size: 52px; font-weight: 900; color: var(--text); line-height: 1;
+  letter-spacing: -1px;
+}
+.readiness-score span { font-size: 22px; font-weight: 500; color: var(--text-dim); }
+.readiness-prob { font-size: 12px; color: var(--text-mid); margin: 4px 0 10px; }
+.readiness-bar-track {
+  width: 100%; height: 6px; background: var(--border);
+  border-radius: 3px; position: relative; overflow: visible;
+}
+.readiness-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--red), var(--accent));
+  border-radius: 3px; width: 0; transition: width 1.2s cubic-bezier(.2,.8,.2,1);
+}
+.readiness-bar-mark {
+  position: absolute; top: -3px; width: 2px; height: 12px;
+  background: var(--text); border-radius: 1px;
+}
+.readiness-range {
+  display: flex; justify-content: space-between; margin-top: 6px;
+  font-size: 11px; color: var(--text-dim);
+}
+
+/* ── NBM card ──────────────────────────────────────────── */
+.nbm-card {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.nbm-card .card-eyebrow { color: rgba(255,255,255,.7); }
+.nbm-card .card-title { color: #fff; }
+.nbm-card .card-desc { color: rgba(255,255,255,.8); }
+.nbm-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.nbm-bullets { list-style: none; margin-top: 6px; }
+.nbm-bullets li {
+  font-size: 12px; color: rgba(255,255,255,.75); padding-left: 12px;
+  position: relative; line-height: 1.7;
+}
+.nbm-bullets li::before { content: ''; position: absolute; left: 0; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.4); }
+.btn-white {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; background: #fff; color: var(--accent);
+  border: none; border-radius: var(--radius-sm); font-size: 13px;
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: transform .15s cubic-bezier(.2,.8,.2,1), box-shadow .2s;
+}
+.btn-white:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+
+/* ── Spaced Rep card ───────────────────────────────────── */
+.sr-card { }
+.sr-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sr-meta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: transparent; color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: border-color .2s, background .15s;
+}
+.btn-ghost:hover { border-color: var(--accent); background: var(--accent-bg); }
+
+/* ── Challenge card ────────────────────────────────────── */
+.challenge-card {
+  background: var(--accent-bg); border-color: rgba(181,101,29,.15);
+}
+.challenge-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.challenge-topic { font-size: 12px; color: var(--text-mid); margin-top: 2px; }
+.challenge-streak { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 4px; }
+
+/* ── Pick session ──────────────────────────────────────── */
+.session-section { }
+.session-eyebrow-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.session-count { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; }
+.session-title { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.2; }
+.session-title em { color: var(--accent); font-style: normal; }
+.session-desc { font-size: 12px; color: var(--text-dim); margin: 2px 0 10px; }
+.session-group-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--accent); margin: 10px 0 5px;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.session-group-label .sub { color: var(--text-dim); font-weight: 500; text-transform: none; letter-spacing: 0; }
+.session-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.session-card {
+  padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, transform .15s cubic-bezier(.2,.8,.2,1);
+}
+.session-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.session-card-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.session-card-meta { font-size: 11px; color: var(--text-dim); }
+.domain-drill-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.domain-drill {
+  padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  text-align: center; cursor: pointer; font-size: 11px;
+  transition: border-color .2s, transform .15s;
+}
+.domain-drill:hover { border-color: var(--accent); transform: translateY(-1px); }
+.domain-drill-name { font-weight: 600; color: var(--text); font-size: 11px; }
+.domain-drill-count { color: var(--text-dim); font-size: 10px; }
+
+/* ── Custom Quiz row ───────────────────────────────────── */
+.custom-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+}
+.custom-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.custom-config { font-size: 12px; color: var(--accent); font-weight: 600; cursor: pointer; }
+
+/* ── Streak badges ─────────────────────────────────────── */
+.streak-badges { display: flex; gap: 10px; margin-top: 8px; }
+.streak-badge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: var(--sidebar-bg);
+  border-radius: var(--radius); min-width: 120px;
+}
+.streak-badge-num { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; }
+.streak-badge-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.5); }
+.streak-badge-icon { width: 18px; height: 18px; }
+
+/* ── Brand icon helper ─────────────────────────────────── */
+.brand-icon { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* ── Animations ────────────────────────────────────────── */
+.reveal {
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .55s cubic-bezier(.2,.8,.2,1), transform .55s cubic-bezier(.2,.8,.2,1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+@keyframes countUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes chipCascade {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes barSweep { from { width: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .readiness-bar-fill { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar (matches current live app) ──────────── -->
+  <nav class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-row">
+        <div class="sb-logo">CA</div>
+        <div>
+          <div class="sb-brand-name">CertAnvil</div>
+          <div class="sb-brand-cert">Network+ N10-009</div>
+          <div class="sb-brand-ver">v5.3.0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">Practice</div>
+    <div class="sb-item active"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_54%20PM%20(5).png" alt=""> Home</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_19_15%20PM%20(4).png" alt=""> Progress</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_19_14%20PM%20(2).png" alt=""> Analytics</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_54%20PM%20(2).png" alt=""> Network Builder</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_56%20PM%20(10).png" alt=""> Builder V2</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_55%20PM%20(6).png" alt=""> ACL Builder</div>
+
+    <div class="sb-section">Drills</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_19_14%20PM%20(1).png" alt=""> Subnet Mastery</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_19_16%20PM%20(5).png" alt=""> Port Drill</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_19_14%20PM%20(1).png" alt=""> Acronym Blitz</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_55%20PM%20(9).png" alt=""> OSI Sorter</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_54%20PM%20(3).png" alt=""> Cable ID</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_13%20PM%20(3).png" alt=""> Network Analysis</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_55%20PM%20(7).png" alt=""> Packet Trace</div>
+
+    <div class="sb-section">Account</div>
+    <div class="sb-item"><img class="sb-item-icon brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_56%20PM%20(10).png" alt=""> Settings</div>
+
+    <div class="sb-spacer"></div>
+
+    <div class="sb-streak-row">
+      <img class="sb-streak-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_13%20PM%20(2).png" alt="">
+      <span class="sb-streak-label">1 day streak</span>
+    </div>
+    <div class="sb-streak-days">
+      <div class="sb-day">S</div>
+      <div class="sb-day today">M</div>
+      <div class="sb-day">T</div>
+      <div class="sb-day">W</div>
+      <div class="sb-day">T</div>
+      <div class="sb-day">F</div>
+      <div class="sb-day">S</div>
+    </div>
+  </nav>
+
+  <!-- ── Main wrap ───────────────────────────────────── -->
+  <div class="main-wrap">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <span class="tb-time">Mon · 5:18pm</span>
+      <span class="tb-badge pro">Pro</span>
+      <span class="tb-version">v5.3.0</span>
+      <div class="tb-icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <div class="tb-icon-btn tb-bell">
+        <img src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_27_55%20PM%20(8).png" style="width:18px;height:18px;object-fit:contain;" alt="">
+        <div class="tb-bell-dot"></div>
+      </div>
+      <div class="tb-user">
+        <div class="tb-avatar">S</div>
+        <span class="tb-user-name">Simi O.</span>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- Pass banner -->
+      <div class="pass-banner reveal">
+        <div class="pass-banner-check">&#10003;</div>
+        <span>
+          <strong>I passed Network+ N10-009 (767/900)</strong> on 2026-05-05 using CertAnvil.
+          <span class="date">Security+ pack coming next.</span>
+        </span>
+      </div>
+
+      <!-- 2-col grid -->
+      <div class="home-grid">
+
+        <!-- ── LEFT COLUMN ───────────────────────────── -->
+        <div class="col-main">
+
+          <!-- Hero -->
+          <div class="reveal" style="--d:0">
+            <div class="hero-date">Monday · May 18 · 4:32pm</div>
+            <h1 class="hero-greet">Good evening,<br><em>Simi.</em></h1>
+            <p class="hero-body">Yesterday you wobbled on <a href="#">Cable Issues</a> and <a href="#">Ethernet Basics</a>. Fifteen minutes now pushes your score past the pass line.</p>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="stat-row reveal" style="--d:1">
+            <div class="stat-card">
+              <div class="stat-icon"><img class="brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_12%20PM%20(1)%20(1).png" alt=""></div>
+              <div class="stat-info">
+                <div class="stat-label">Today</div>
+                <div class="stat-big">0 <span>/20</span></div>
+                <div class="stat-sub">daily goal · 0%</div>
+              </div>
+              <div class="stat-chevron">&#8250;</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><img class="brand-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_13%20PM%20(2).png" alt=""></div>
+              <div class="stat-info">
+                <div class="stat-label">Streak</div>
+                <div class="stat-big">1 day</div>
+                <div class="stat-sub">longest · 4 days</div>
+              </div>
+              <div class="stat-chevron">&#8250;</div>
+            </div>
+          </div>
+
+          <!-- Drill chips -->
+          <div class="drill-section reveal" style="--d:2">
+            <div class="drill-header">Drill these to move your score</div>
+            <div class="drill-chips">
+              <div class="drill-chip"><span class="drill-pts">+29 pts</span> <span class="drill-name">Ethernet Basics</span> <span class="drill-range">8% &#8594; 18%</span></div>
+              <div class="drill-chip"><span class="drill-pts">+17 pts</span> <span class="drill-name">Cable Issues</span> <span class="drill-range">8% &#8594; 18%</span></div>
+              <div class="drill-chip"><span class="drill-pts">+8 pts</span> <span class="drill-name">PKI &amp; Certificate Management</span> <span class="drill-range">87% &#8594; 88%</span></div>
+              <div class="drill-collapse" title="Show more">&#8964;</div>
+            </div>
+          </div>
+
+          <!-- Diagnostic -->
+          <div class="card diag-card reveal" style="--d:3">
+            <div class="card-eyebrow"><span class="tag tag-new">New</span> Recommended</div>
+            <div class="card-title">Where do you stand on N10-009?</div>
+            <div class="card-desc">Twenty questions. You walk away with a pass probability, your weakest domains ranked, and your first review cards.</div>
+            <a class="diag-skip" href="#">Skip for now, I'd rather just practise</a>
+            <div class="diag-stats">
+              <div class="diag-stat"><div class="diag-stat-num" data-count="20">0</div><div class="diag-stat-label">Questions</div></div>
+              <div class="diag-stat"><div class="diag-stat-num">~30</div><div class="diag-stat-label">Minutes</div></div>
+              <div class="diag-stat"><div class="diag-stat-num" data-count="5">0</div><div class="diag-stat-label">Domains</div></div>
+            </div>
+            <button class="btn-primary">Take the diagnostic</button>
+          </div>
+
+          <!-- Today's Plan -->
+          <div class="card plan-card reveal" style="--d:4">
+            <div class="card-eyebrow">Today's Plan</div>
+            <div class="plan-header">
+              <div>
+                <div class="card-title">5 topics · ~21 min · <em>fastest</em> route to exam-ready</div>
+                <div class="card-desc plan-body">Hits your 2 weakest topics from recent quizzes plus 3 topics you haven't touched in a while. Mixed difficulty, 7 questions per topic.</div>
+              </div>
+              <button class="btn-primary" style="margin-top:0;white-space:nowrap;">Begin plan &#8594;</button>
+            </div>
+            <div class="plan-meta">2 weak · 3 stale · mixed difficulty</div>
+            <div class="plan-chips" id="plan-chips">
+              <div class="plan-chip"><span class="plan-chip-dot"></span> Cable Issues &#8594;</div>
+              <div class="plan-chip"><span class="plan-chip-dot"></span> Ethernet Basics &#8594;</div>
+              <div class="plan-chip"><span class="plan-chip-dot"></span> TCP/IP Basics &#8594;</div>
+              <div class="plan-chip"><span class="plan-chip-dot"></span> Subnetting &amp; IP Addressing &#8594;</div>
+              <div class="plan-chip"><span class="plan-chip-dot"></span> TCP/IP Applications &#8594;</div>
+            </div>
+            <a class="plan-link" href="#">Drill in Subnet Trainer &#8594;</a>
+          </div>
+
+          <!-- By Domain -->
+          <div class="domain-section reveal" style="--d:5">
+            <div class="domain-header">
+              <h3>By Domain</h3>
+              <span class="desc">N10-009 exam weighting and where you stand in each.</span>
+            </div>
+            <div class="domain-grid">
+              <div class="domain-col">
+                <div class="domain-weight">22% Exam</div>
+                <div class="domain-name">Networking Concepts</div>
+                <div class="domain-topic">OSI Model<br>TCP/IP Basics<br>Subnetting<br>DNS &amp; DHCP<br>IPv6</div>
+                <div class="domain-mastery"><div class="domain-mastery-num mastered">100 %</div><div class="domain-mastery-label">Mastered</div></div>
+              </div>
+              <div class="domain-col">
+                <div class="domain-weight">26% Exam</div>
+                <div class="domain-name">Network Implementation</div>
+                <div class="domain-topic">Routing<br>OSPF<br>BGP<br>VLANs<br>STP</div>
+                <div class="domain-mastery"><div class="domain-mastery-num novice">0 %</div><div class="domain-mastery-label">Novice</div></div>
+              </div>
+              <div class="domain-col">
+                <div class="domain-weight">16% Exam</div>
+                <div class="domain-name">Network Operations</div>
+                <div class="domain-topic">Monitoring<br>Data Centers<br>WAN<br>SD-WAN<br>BCDR</div>
+                <div class="domain-mastery"><div class="domain-mastery-num mastered">100 %</div><div class="domain-mastery-label">Mastered</div></div>
+              </div>
+              <div class="domain-col">
+                <div class="domain-weight">14% Exam</div>
+                <div class="domain-name">Network Security</div>
+                <div class="domain-topic">TCP/IP Security<br>AAA<br>IPsec<br><span class="weak">PKI</span><br>Firewalls</div>
+                <div class="domain-mastery"><div class="domain-mastery-num proficient">75 %</div><div class="domain-mastery-label">Proficient</div></div>
+              </div>
+              <div class="domain-col">
+                <div class="domain-weight">24% Exam</div>
+                <div class="domain-name">Network Troubleshooting</div>
+                <div class="domain-topic">7-Step Method<br>Cable Issues<br>Service Issues<br>Perf Issues<br>Connection Issues</div>
+                <div class="domain-mastery"><div class="domain-mastery-num novice">50 %</div><div class="domain-mastery-label">Novice</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Streak badges -->
+          <div class="streak-badges reveal" style="--d:6">
+            <div class="streak-badge">
+              <div>
+                <div class="streak-badge-num">1</div>
+                <div class="streak-badge-label">Day Streak</div>
+              </div>
+              <img class="streak-badge-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_13%20PM%20(2).png" alt="">
+            </div>
+            <div class="streak-badge">
+              <div>
+                <div class="streak-badge-num">1</div>
+                <div class="streak-badge-label">Best Streak</div>
+              </div>
+              <img class="streak-badge-icon" src="../SVG%20ICONS/Transparanet%20svgs/ChatGPT%20Image%20May%2018%2C%202026%2C%2001_18_13%20PM%20(2).png" alt="">
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── RIGHT COLUMN ──────────────────────────── -->
+        <div class="col-side">
+
+          <!-- Readiness -->
+          <div class="card readiness-card reveal" style="--d:1">
+            <div class="readiness-eyebrow">Exam Readiness · Scaled 100-900</div>
+            <div class="readiness-score" id="readiness-num">0<span>/900</span></div>
+            <div class="readiness-prob">5% pass probability, 73 pts</div>
+            <div class="readiness-bar-track">
+              <div class="readiness-bar-fill" id="readiness-bar" data-target="65"></div>
+              <div class="readiness-bar-mark" style="left:80%"></div>
+            </div>
+            <div class="readiness-range"><span>range 514-660</span><span>pass mark 720</span></div>
+          </div>
+
+          <!-- NBM -->
+          <div class="card nbm-card reveal" style="--d:2">
+            <div class="card-eyebrow">Next Best Move</div>
+            <div class="nbm-header">
+              <div>
+                <div class="card-title">Review 8 cards due</div>
+                <ul class="nbm-bullets">
+                  <li>Four minutes. Eight cards need your attention.</li>
+                  <li>Lock in material before it fades.</li>
+                </ul>
+              </div>
+              <button class="btn-white">Start review &#8594;</button>
+            </div>
+          </div>
+
+          <!-- Spaced Rep -->
+          <div class="card sr-card reveal" style="--d:3">
+            <div class="card-eyebrow">Spaced Repetition · Daily Review</div>
+            <div class="sr-header">
+              <div>
+                <div class="card-title">8 cards due for review</div>
+                <div class="card-desc">Cards you missed return at increasing intervals until you lock them in.</div>
+                <div class="sr-meta">8 active</div>
+              </div>
+              <button class="btn-ghost">Start review</button>
+            </div>
+          </div>
+
+          <!-- Daily Challenge -->
+          <div class="card challenge-card reveal" style="--d:4">
+            <div class="card-eyebrow">Daily Challenge</div>
+            <div class="challenge-header">
+              <div>
+                <div class="challenge-topic">One question · Topic: Network Monitoring &amp; Observability</div>
+                <div class="challenge-streak">Start your streak today</div>
+              </div>
+              <button class="btn-primary" style="margin-top:0;padding:8px 16px;">Play &#8594;</button>
+            </div>
+          </div>
+
+          <!-- Pick Session -->
+          <div class="session-section reveal" style="--d:5">
+            <div class="session-eyebrow-row">
+              <span class="session-count">5 of 5</span>
+            </div>
+            <div class="session-title">Pick your <em>session</em></div>
+            <div class="session-desc">Three commitment levels. Match the session to your energy.</div>
+
+            <div class="session-group-label">Quick · 3-5 min <span class="sub">Daily habit · quick wins</span></div>
+            <div class="session-grid">
+              <div class="session-card"><div class="session-card-name">5-min Warmup</div><div class="session-card-meta">5 Qs · Foundational</div></div>
+              <div class="session-card"><div class="session-card-name">Daily Challenge</div><div class="session-card-meta">1 Q · ~1 min · streak +1</div></div>
+              <div class="session-card"><div class="session-card-name">Drill Mistakes</div><div class="session-card-meta">8 wrong answers saved</div></div>
+            </div>
+
+            <div class="session-group-label">Practice · 10-30 min <span class="sub">Focused study · build understanding</span></div>
+            <div class="session-grid">
+              <div class="session-card"><div class="session-card-name">15-min Weak Spots</div><div class="session-card-meta">10 Qs · Exam level · your weakest topic</div></div>
+              <div class="session-card"><div class="session-card-name">20-min Deep Scan</div><div class="session-card-meta">20 Qs · Exam level · mixed</div></div>
+              <div class="session-card"><div class="session-card-name">30 Questions</div><div class="session-card-meta">Marathon mixed · ~25 min</div></div>
+            </div>
+
+            <div class="session-group-label">Drill by Domain <span class="sub">N10-009 weighting · 10 Qs each</span></div>
+            <div class="domain-drill-grid">
+              <div class="domain-drill"><div class="domain-drill-name">Networking Concepts</div><div class="domain-drill-count">10 Qs</div></div>
+              <div class="domain-drill"><div class="domain-drill-name">Network Implementation</div><div class="domain-drill-count">10 Qs</div></div>
+              <div class="domain-drill"><div class="domain-drill-name">Network Operations</div><div class="domain-drill-count">10 Qs</div></div>
+              <div class="domain-drill"><div class="domain-drill-name">Network Security</div><div class="domain-drill-count">10 Qs</div></div>
+              <div class="domain-drill"><div class="domain-drill-name">Network Troubleshooting</div><div class="domain-drill-count">10 Qs</div></div>
+            </div>
+          </div>
+
+          <!-- Custom Quiz -->
+          <div class="custom-row reveal" style="--d:6">
+            <div>
+              <div class="card-eyebrow" style="margin-bottom:2px">Custom Quiz <span style="font-weight:400;letter-spacing:0;text-transform:none">topic, difficulty &amp; count</span></div>
+              <div class="custom-label">Custom Quiz · Topic, Difficulty &amp; Count</div>
+            </div>
+            <a class="custom-config" href="#">Configure &#8594;</a>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Emil Animations ─────────────────────────────────── -->
+<script>
+(function() {
+  'use strict';
+
+  /* ── IntersectionObserver staggered reveal ──────────── */
+  const reveals = document.querySelectorAll('.reveal');
+  let baseDelay = 0;
+  const io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var d = parseInt(entry.target.style.getPropertyValue('--d')) || 0;
+        entry.target.style.transitionDelay = (d * 80 + baseDelay) + 'ms';
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(function(el) { io.observe(el); });
+
+  /* ── Count-up animation ────────────────────────────── */
+  function animateCount(el, target, duration, suffix) {
+    if (!el) return;
+    var start = 0;
+    var startTime = null;
+    suffix = suffix || '';
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = Math.round(start + (target - start) * eased);
+      el.textContent = current;
+      if (progress < 1) requestAnimationFrame(step);
+      else el.textContent = target + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ── Readiness score count-up + bar sweep ──────────── */
+  var readinessEl = document.getElementById('readiness-num');
+  var readinessBar = document.getElementById('readiness-bar');
+  var readinessObs = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting) {
+      // Count up from 0 to 587
+      var start = null;
+      var duration = 1400;
+      function step(ts) {
+        if (!start) start = ts;
+        var p = Math.min((ts - start) / duration, 1);
+        var eased = 1 - Math.pow(1 - p, 3);
+        var val = Math.round(587 * eased);
+        readinessEl.innerHTML = val + '<span>/900</span>';
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+      // Bar sweep
+      setTimeout(function() {
+        readinessBar.style.width = readinessBar.dataset.target + '%';
+      }, 200);
+      readinessObs.unobserve(readinessEl);
+    }
+  }, { threshold: 0.3 });
+  if (readinessEl) readinessObs.observe(readinessEl);
+
+  /* ── Diagnostic stat count-ups ─────────────────────── */
+  document.querySelectorAll('[data-count]').forEach(function(el) {
+    var target = parseInt(el.dataset.count);
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        animateCount(el, target, 800, '');
+        obs.unobserve(el);
+      }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+  });
+
+  /* ── Plan chip cascade ─────────────────────────────── */
+  var planChips = document.getElementById('plan-chips');
+  if (planChips) {
+    var chipObs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        var chips = planChips.querySelectorAll('.plan-chip');
+        chips.forEach(function(chip, i) {
+          chip.style.opacity = '0';
+          chip.style.transform = 'translateY(8px) scale(.96)';
+          chip.style.transition = 'opacity .4s cubic-bezier(.2,.8,.2,1), transform .4s cubic-bezier(.2,.8,.2,1)';
+          chip.style.transitionDelay = (i * 60) + 'ms';
+          setTimeout(function() {
+            chip.style.opacity = '1';
+            chip.style.transform = 'translateY(0) scale(1)';
+          }, 50);
+        });
+        chipObs.unobserve(planChips);
+      }
+    }, { threshold: 0.3 });
+    chipObs.observe(planChips);
+  }
+
+  /* ── Drill chip cascade ────────────────────────────── */
+  var drillChips = document.querySelector('.drill-chips');
+  if (drillChips) {
+    var dcObs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        var chips = drillChips.querySelectorAll('.drill-chip');
+        chips.forEach(function(chip, i) {
+          chip.style.opacity = '0';
+          chip.style.transform = 'translateY(6px)';
+          chip.style.transition = 'opacity .35s cubic-bezier(.2,.8,.2,1), transform .35s cubic-bezier(.2,.8,.2,1)';
+          chip.style.transitionDelay = (i * 100) + 'ms';
+          setTimeout(function() {
+            chip.style.opacity = '1';
+            chip.style.transform = 'translateY(0)';
+          }, 50);
+        });
+        dcObs.unobserve(drillChips);
+      }
+    }, { threshold: 0.3 });
+    dcObs.observe(drillChips);
+  }
+
+})();
+</script>
+</body>
+</html>

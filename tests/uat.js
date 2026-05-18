@@ -1837,12 +1837,12 @@ console.log('\n\x1b[1m── v4.32 LAYOUT RESTRUCTURE ──\x1b[0m');
 test('HTML: today-section wrapper exists', html.includes('id="today-section"'));
 test('HTML: today-section contains daily-goal-card', html.includes('today-section') && html.indexOf('id="daily-goal-card"') > html.indexOf('id="today-section"'));
 test('HTML: today-section contains streak-defender', html.indexOf('id="streak-defender"') > html.indexOf('id="today-section"'));
-test('HTML: today-section contains daily-challenge-card', html.indexOf('id="daily-challenge-card"') > html.indexOf('id="today-section"'));
+test('codex-home: #daily-challenge-card promoted into .col-side (was in #today-section)', html.includes('id="daily-challenge-card"') && /id="daily-challenge-card"[^>]*class="[^"]*\bchallenge-card\b|class="[^"]*\bchallenge-card\b[^"]*"[^>]*id="daily-challenge-card"/.test(html) && html.indexOf('id="daily-challenge-card"') < html.indexOf('id="today-section"'));
 // v4.81.23 tombstones: legacy chip rows + session banner removed; #today-plan
 // is now the single canonical card inside #today-section.
 test('v4.81.23 tombstone: #todays-focus removed from today-section', !html.includes('id="todays-focus"'));
 test('v4.81.23 tombstone: #session-banner removed from today-section', !html.includes('id="session-banner"'));
-test('v4.81.23: #today-plan lives inside #today-section', html.indexOf('id="today-plan"') > html.indexOf('id="today-section"'));
+test('codex-home: #today-plan promoted into .col-main (was in #today-section)', html.includes('id="today-plan"') && /id="today-plan"[^>]*class="[^"]*\bplan-card\b/.test(html) && html.indexOf('id="today-plan"') < html.indexOf('id="today-section"'));
 // v4.41.0: #weak-banner removed from Today section (redundant with #todays-focus chip row)
 test('HTML: weak-banner REMOVED (v4.41.0 density pass)', !html.includes('id="weak-banner"'));
 test('HTML: persistent sidebar exists (v4.53.0 replaces old setup-nav row)',
@@ -1908,7 +1908,7 @@ test('Label: Settings page editorial heading (v4.54.9: .ed-pagehead-display "You
   /id="page-settings"[\s\S]{0,800}ed-pagehead-display[^<]*>Your\s*<em>settings\.<\/em>/.test(html));
 test('Label: sidebar entry "Network Builder" (v4.53.0: moved from setup-nav to sidebar)',
   /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'Network Builder'/.test(js));
-test('Label: Marathon Mode heading preserved', html.includes('Marathon Mode'));
+test('codex-home: legacy #marathon-section stub + Marathon presets in session picker', html.includes('id="marathon-section"') && html.includes("applyPreset('bulk30')") && html.includes("applyPreset('bulk45')"));
 // Internal code identifiers must NOT have been renamed
 test('Code: examHardcore state var preserved', js.includes('let examHardcore'));
 test('Code: setHardcoreMode function preserved', js.includes('function setHardcoreMode('));
@@ -5503,8 +5503,8 @@ test('v4.53.0/dg4 HTML: \u00a7 01 editorial section head (session picker)',
   /&#167;\s*01[\s\S]{0,400}Pick your\s*<i>session<\/i>/.test(html));
 test('v4.76.0 HTML: \u00a7 02 retired (Marathon Mode merged into Mode Ladder Practice tier)',
   !/&#167;\s*02[\s\S]{0,400}Marathon\s*<em>mode<\/em>/.test(html));
-test('v4.53.0/dg4 HTML: \u00a7 02 By domain editorial section head + grid container',
-  /&#167;\s*02[\s\S]{0,400}By\s*<i>domain<\/i>/.test(html) && html.includes('id="setup-domain-grid"'));
+test('codex-home HTML: By Domain section head + #setup-domain-grid container',
+  /class="domain-header"[\s\S]{0,160}<h3>By Domain<\/h3>/.test(html) && html.includes('id="setup-domain-grid"') && html.includes('id="domain-grid-section"'));
 // v4.79.0: \u00a704 Custom Quiz editorial section head retired per Codex
 // round-3 \u2014 Mode Ladder's "Custom Quiz" tile is the single entry point;
 // the <details> form below is the implementation.
@@ -5662,8 +5662,8 @@ test('v4.54.0 HTML: topbar toggle calls toggleSidebarCollapsed',
   /id="topbar-toggle"[\s\S]{0,200}onclick="toggleSidebarCollapsed/.test(html));
 
 // HTML \u2014 hero v2
-test('v4.54.0/dg4 HTML: #setup-hero-v2 wrapper + greeting + readiness regions',
-  html.includes('id="setup-hero-v2"') && html.includes('class="dgh-greet"') && html.includes('class="dgh-rd"') && html.includes('id="readiness-card-v2"'));
+test('codex-home HTML: #setup-hero-v2 hero + #readiness-card-v2 split across .col-main/.col-side',
+  /id="setup-hero-v2"[^>]*class="[^"]*\bch-hero\b|class="[^"]*\bch-hero\b[^"]*"[^>]*id="setup-hero-v2"/.test(html) && /id="readiness-card-v2"[^>]*class="[^"]*\breadiness-card\b|class="[^"]*\breadiness-card\b[^"]*"[^>]*id="readiness-card-v2"/.test(html) && html.includes('class="col-main"') && html.includes('class="col-side"'));
 test('v4.54.0 HTML: display heading defaults to "Good afternoon, Simi."',
   /id="hero-v2-display"[\s\S]{0,200}Good afternoon, <span class="name">Simi\.<\/span>/.test(html));
 test('v4.54.0/dg4 HTML: readiness card v2 has score + bar fill + prediction + delta',
@@ -9949,7 +9949,7 @@ test('v4.76.0 HTML: #hero-v2-cta-btn element exists', html.includes('id="hero-v2
 test('v4.76.0 HTML: #hero-v2-cta-reason element exists', html.includes('id="hero-v2-cta-reason"'));
 
 // 2. Mode Ladder
-test('v4.76.0/dg4 HTML: session-picker container exists (#modes-ladder + .dgh-sess)', html.includes('class="dgh-sess"') && html.includes('id="modes-ladder"'));
+test('codex-home HTML: session-picker container exists (#modes-ladder + .dgh-sess in .col-side)', /class="[^"]*\bdgh-sess\b/.test(html) && html.includes('id="modes-ladder"') && /id="modes-ladder"[^>]*class="[^"]*\bcol-side-card\b|class="[^"]*\bcol-side-card\b[^"]*"[^>]*id="modes-ladder"/.test(html));
 test('v4.76.0/dg4 HTML: 3 commitment groups (quick / practice / exam)',
   (html.match(/class="dgh-grp"/g) || []).length === 3 && html.includes('Quick &middot; 3-5 min') && html.includes('Practice &middot; 10-30 min') && html.includes('Exam simulation &middot; 60-90 min'));
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));
