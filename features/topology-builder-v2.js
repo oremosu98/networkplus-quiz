@@ -209,6 +209,12 @@
     cabLayer.innerHTML = cabHtml;
 
     // ── Devices ───────────────────────────────────────────────────
+    // Labs mode: compute highlight IDs once outside the loop
+    var _labHL = (function() {
+      if (_activeMode !== 'labs') return [];
+      var al = window.tbV2GetActiveLab ? window.tbV2GetActiveLab() : null;
+      return (al && al._highlightIds) ? al._highlightIds : [];
+    })();
     var devHtml = '';
     for (var i = 0; i < state.devices.length; i++) {
       var d = state.devices[i];
@@ -217,6 +223,7 @@
 
       var selCls = selectedId === d.id ? ' v2-device-selected' : '';
       var pendCls = pendingFrom === d.id ? ' v2-device-pending' : '';
+      var labTargetCls = (_labHL.length && _labHL.indexOf(d.id) !== -1) ? ' v2-lab-target' : '';
 
       // Health badge logic (matches V1)
       var isEndpoint = ['pc','laptop','smartphone','game-console','smart-tv','server','printer','voip','iot'].indexOf(d.type) !== -1;
@@ -251,7 +258,7 @@
           + '<text text-anchor="middle" dy="5" font-size="12" font-weight="700" fill="' + dmeta.color + '">' + _esc(dmeta.short || '?') + '</text>';
       }
 
-      devHtml += '<g class="v2-device' + selCls + pendCls + '" data-v2-device="' + d.id + '" transform="translate(' + d.x + ', ' + d.y + ')">'
+      devHtml += '<g class="v2-device' + selCls + pendCls + labTargetCls + '" data-v2-device="' + d.id + '" transform="translate(' + d.x + ', ' + d.y + ')">'
         + '<rect class="v2-device-bg" x="-48" y="-36" width="96" height="72" rx="10" ry="10"'
         + ' fill="' + dmeta.color + '" fill-opacity="' + (isLight ? '0.12' : '0.18') + '"'
         + ' stroke="' + dmeta.color + '" stroke-width="2"/>'
@@ -522,6 +529,8 @@
       label.innerHTML = '<b>Simulate</b> mode -- ' + msg;
     } else if (_activeMode === 'trace') {
       label.innerHTML = '<b>Trace</b> mode -- ' + msg;
+    } else if (_activeMode === 'labs') {
+      label.innerHTML = '<b>Labs</b> mode -- ' + msg;
     }
   }
 
@@ -1066,6 +1075,312 @@
     }
   }
 
+  // ════════════════════════════════════════════════════════════════════
+  // LABS MODE — Ship #6
+  // Editorial picker → step panel → completion card.
+  // All state owned by V1 (tbActiveLab). V2 reads via bridge getters
+  // and writes via bridge mutators (tbV2StartLab / tbV2LabNext /
+  // tbV2LabSkip / tbV2LabHint / tbV2ExitLab). Never touches tbState
+  // directly — same strangler-fig contract as Ships #4 and #5.
+  // ════════════════════════════════════════════════════════════════════
+
+  var _labFilterCat = 'all';
+  var _labStartTime = 0;
+
+  // Convert **bold** and `code` markdown into safe HTML.
+  function _parseMd(text) {
+    var esc = _esc(text);
+    return esc
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code class="v2-ls-code">$1</code>');
+  }
+
+  // Find a lab definition by id from V1's TB_LABS array.
+  function _findLab(labId) {
+    var labs = window.tbV2GetAllLabs ? window.tbV2GetAllLabs() : [];
+    for (var i = 0; i < labs.length; i++) {
+      if (labs[i].id === labId) return labs[i];
+    }
+    return null;
+  }
+
+  // ── Lab Picker ────────────────────────────────────────────────────
+  function _renderLabPicker() {
+    var cats = window.tbV2GetLabCategories ? window.tbV2GetLabCategories() : {};
+    var allLabs = window.tbV2GetAllLabs ? window.tbV2GetAllLabs() : [];
+    var catNames = Object.keys(cats);
+
+    // Filter tabs: All + each category
+    var tabsHtml = '<button class="v2-lp-tab' + (_labFilterCat === 'all' ? ' on' : '') + '" data-lp-cat="all">All</button>';
+    for (var t = 0; t < catNames.length; t++) {
+      var catN = catNames[t];
+      tabsHtml += '<button class="v2-lp-tab' + (_labFilterCat === catN ? ' on' : '') + '" data-lp-cat="' + _esc(catN) + '">' + _esc(catN) + '</button>';
+    }
+
+    // Lab rows grouped by category
+    var rowsHtml = '';
+    for (var g = 0; g < catNames.length; g++) {
+      var catKey = catNames[g];
+      if (_labFilterCat !== 'all' && _labFilterCat !== catKey) continue;
+      var labIds = cats[catKey];
+      rowsHtml += '<div class="v2-lp-group">'
+        + '<div class="v2-lp-grp-head">' + _esc(catKey)
+        + ' <span class="v2-lp-grp-count">' + labIds.length + '</span></div>';
+      for (var r = 0; r < labIds.length; r++) {
+        var lab = null;
+        for (var m = 0; m < allLabs.length; m++) {
+          if (allLabs[m].id === labIds[r]) { lab = allLabs[m]; break; }
+        }
+        if (!lab) continue;
+        var diffCls = lab.difficulty ? ' v2-lp-diff-' + lab.difficulty.toLowerCase() : '';
+        rowsHtml += '<button class="v2-lp-row" data-lp-start="' + _esc(lab.id) + '">'
+          + '<span class="v2-lp-row-title">' + _esc(lab.title) + '</span>'
+          + '<span class="v2-lp-row-meta">'
+          + '<span class="v2-lp-diff' + diffCls + '">' + _esc(lab.difficulty || '') + '</span>'
+          + ' · ' + _esc(lab.duration || '')
+          + '</span></button>';
+      }
+      rowsHtml += '</div>';
+    }
+
+    var canvasEl = document.querySelector('#page-topology-builder-v2 .canvas');
+    if (!canvasEl) return;
+    var existing = document.getElementById('tbv2-lab-picker');
+    if (existing) existing.remove();
+
+    var el = document.createElement('div');
+    el.id = 'tbv2-lab-picker';
+    el.className = 'v2-lp-overlay';
+    el.innerHTML = '<div class="v2-lp-card">'
+      + '<div class="v2-lp-head"><div>'
+      + '<span class="v2-lp-eyebrow">Labs</span>'
+      + '<h3>Guided Topology Exercises</h3></div>'
+      + '<button class="v2-lp-close" id="tbv2-lp-close">×</button></div>'
+      + '<div class="v2-lp-tabs">' + tabsHtml + '</div>'
+      + '<div class="v2-lp-list">' + rowsHtml + '</div>'
+      + '</div>';
+    canvasEl.appendChild(el);
+    _wireLabPicker();
+  }
+
+  function _wireLabPicker() {
+    var overlay = document.getElementById('tbv2-lab-picker');
+    if (!overlay) return;
+    overlay.addEventListener('click', function(e) {
+      if (e.target.closest('#tbv2-lp-close')) { _hideLabsUI(); _setMode('design'); return; }
+      var tabBtn = e.target.closest('[data-lp-cat]');
+      if (tabBtn) { _labFilterCat = tabBtn.dataset.lpCat; _renderLabPicker(); return; }
+      var startBtn = e.target.closest('[data-lp-start]');
+      if (startBtn) { _labStart(startBtn.dataset.lpStart); return; }
+    });
+  }
+
+  // ── Lab Step Panel ────────────────────────────────────────────────
+  function _renderLabStep(feedbackMsg) {
+    var active = window.tbV2GetActiveLab ? window.tbV2GetActiveLab() : null;
+    if (!active) return;
+    var labDef = _findLab(active.labId);
+    if (!labDef || !labDef.steps) return;
+    var step = labDef.steps[active.stepIdx];
+    if (!step) return;
+
+    var totalSteps = labDef.steps.length;
+    var stepIdx = active.stepIdx;
+    var isLast = stepIdx >= totalSteps - 1;
+    var pct = Math.round(((stepIdx + 1) / totalSteps) * 100);
+
+    // Progress dots
+    var dotsHtml = '';
+    for (var di = 0; di < totalSteps; di++) {
+      dotsHtml += '<span class="v2-ls-dot'
+        + (di === stepIdx ? ' on' : (di < stepIdx ? ' done' : '')) + '"></span>';
+    }
+
+    // Hint
+    var hintShown = (active.hintsUsed || 0) > 0;
+    var hintHtml = step.hint
+      ? '<div class="v2-ls-hint-row">'
+        + '<button class="v2-ls-hint-btn" id="tbv2-lab-hint-btn">' + (hintShown ? 'Hide hint' : 'Show hint') + '</button>'
+        + (hintShown ? '<p class="v2-ls-hint-text">' + _parseMd(step.hint) + '</p>' : '')
+        + '</div>'
+      : '';
+
+    // Inline feedback (from failed check)
+    var feedbackHtml = feedbackMsg
+      ? '<p class="v2-ls-feedback">' + _esc(feedbackMsg) + '</p>'
+      : '';
+
+    var canvasEl = document.querySelector('#page-topology-builder-v2 .canvas');
+    if (!canvasEl) return;
+    var existing = document.getElementById('tbv2-lab-step');
+    if (existing) existing.remove();
+
+    var el = document.createElement('div');
+    el.id = 'tbv2-lab-step';
+    el.className = 'v2-lab-step';
+    el.innerHTML = '<div class="v2-ls-header">'
+      + '<div class="v2-ls-dots">' + dotsHtml + '</div>'
+      + '<div class="v2-ls-pbar"><div class="v2-ls-pbar-fill" style="width:' + pct + '%"></div></div>'
+      + '<div class="v2-ls-meta"><span class="v2-ls-lab-title">' + _esc(labDef.title) + '</span>'
+      + ' · Step <strong>' + (stepIdx + 1) + '</strong> of ' + totalSteps + '</div>'
+      + '</div>'
+      + '<div class="v2-ls-body">'
+      + '<p class="v2-ls-step-title">' + _esc(step.title || '') + '</p>'
+      + '<p class="v2-ls-instruction">' + _parseMd(step.instruction || '') + '</p>'
+      + hintHtml + feedbackHtml
+      + '</div>'
+      + '<div class="v2-ls-foot">'
+      + '<button class="v2-ls-btn v2-ls-skip" id="tbv2-lab-skip-btn">Skip</button>'
+      + '<button class="v2-ls-btn v2-ls-next" id="tbv2-lab-next-btn">'
+      + (isLast ? 'Finish ✓' : 'Next →') + '</button>'
+      + '</div>';
+    canvasEl.appendChild(el);
+    _wireLabStep();
+  }
+
+  function _wireLabStep() {
+    var el = document.getElementById('tbv2-lab-step');
+    if (!el) return;
+    el.addEventListener('click', function(e) {
+      if (e.target.closest('#tbv2-lab-hint-btn')) { _labStepHint(); return; }
+      if (e.target.closest('#tbv2-lab-skip-btn')) { _labStepSkip(); return; }
+      if (e.target.closest('#tbv2-lab-next-btn')) { _labStepNext(); return; }
+    });
+  }
+
+  // ── Lab Completion Card ───────────────────────────────────────────
+  function _renderLabComplete(labDef, hintsUsed) {
+    var stepEl = document.getElementById('tbv2-lab-step');
+    if (stepEl) stepEl.remove();
+
+    var canvasEl = document.querySelector('#page-topology-builder-v2 .canvas');
+    if (!canvasEl) return;
+    var existing = document.getElementById('tbv2-lab-complete');
+    if (existing) existing.remove();
+
+    var elapsed = Math.round((Date.now() - _labStartTime) / 1000);
+    var mins = Math.floor(elapsed / 60);
+    var secs = elapsed % 60;
+    var timeStr = mins > 0 ? mins + 'm ' + secs + 's' : secs + 's';
+    var totalSteps = labDef ? (labDef.steps || []).length : 0;
+
+    var el = document.createElement('div');
+    el.id = 'tbv2-lab-complete';
+    el.className = 'v2-lab-complete';
+    el.innerHTML = '<div class="v2-lc-inner">'
+      + '<div class="v2-lc-check">✓</div>'
+      + '<p class="v2-lc-eyebrow">Lab complete</p>'
+      + '<h3 class="v2-lc-title">' + _esc(labDef ? labDef.title : 'Lab') + '</h3>'
+      + '<div class="v2-lc-stats">'
+      + '<div class="v2-lc-stat"><span class="v2-lc-stat-n">' + timeStr + '</span><span class="v2-lc-stat-l">Time</span></div>'
+      + '<div class="v2-lc-stat"><span class="v2-lc-stat-n">' + totalSteps + '</span><span class="v2-lc-stat-l">Steps</span></div>'
+      + '<div class="v2-lc-stat"><span class="v2-lc-stat-n">' + (hintsUsed || 0) + '</span><span class="v2-lc-stat-l">Hints</span></div>'
+      + '</div>'
+      + '<div class="v2-lc-foot">'
+      + '<button class="v2-lc-btn v2-lc-back" id="tbv2-lc-back-btn">Back to Labs</button>'
+      + '</div></div>';
+    canvasEl.appendChild(el);
+    _wireLabComplete();
+  }
+
+  function _wireLabComplete() {
+    var el = document.getElementById('tbv2-lab-complete');
+    if (!el) return;
+    el.addEventListener('click', function(e) {
+      if (e.target.closest('#tbv2-lc-back-btn')) {
+        el.remove();
+        _labFilterCat = 'all';
+        _renderLabPicker();
+      }
+    });
+  }
+
+  // ── Lab Action Handlers ───────────────────────────────────────────
+  function _labStart(labId) {
+    var picker = document.getElementById('tbv2-lab-picker');
+    if (picker) picker.remove();
+    _labStartTime = Date.now();
+    if (window.tbV2StartLab) window.tbV2StartLab(labId);
+    _renderLabStep();
+    _renderCanvas();
+  }
+
+  function _labStepNext() {
+    var active = window.tbV2GetActiveLab ? window.tbV2GetActiveLab() : null;
+    if (!active) return;
+    var labDef = _findLab(active.labId);
+    if (!labDef || !labDef.steps) return;
+    var step = labDef.steps[active.stepIdx];
+    if (!step) return;
+    var state = window.tbGetState ? window.tbGetState() : null;
+    if (!state) return;
+
+    var isLast = active.stepIdx >= labDef.steps.length - 1;
+    var checkPassed = step.check(state);
+
+    if (!checkPassed && !isLast) {
+      // Show inline feedback — do not advance
+      var msg = (typeof step.feedback === 'function' && step.feedback(state)) || 'Complete this step first.';
+      _renderLabStep(msg);
+      return;
+    }
+
+    var hintsUsed = active.hintsUsed || 0;
+
+    if (isLast) {
+      // Complete the lab: capture data before tbEndLab nulls tbActiveLab
+      if (window.tbV2ExitLab) window.tbV2ExitLab();
+      _renderLabComplete(labDef, hintsUsed);
+      _renderCanvas();
+    } else {
+      // Advance to next step via V1 bridge (V1 handles stepIdx++ + tbRenderLabStep)
+      if (window.tbV2LabNext) window.tbV2LabNext();
+      _renderLabStep();
+      _renderCanvas();
+    }
+  }
+
+  function _labStepHint() {
+    if (window.tbV2LabHint) window.tbV2LabHint();
+    _renderLabStep(); // Re-render to expose/hide hint
+  }
+
+  function _labStepSkip() {
+    if (window.tbV2LabSkip) window.tbV2LabSkip();
+    var activeAfter = window.tbV2GetActiveLab ? window.tbV2GetActiveLab() : null;
+    if (!activeAfter) {
+      // Last step was skipped — go back to picker
+      var stepEl = document.getElementById('tbv2-lab-step');
+      if (stepEl) stepEl.remove();
+      _labFilterCat = 'all';
+      _renderLabPicker();
+    } else {
+      _renderLabStep();
+      _renderCanvas();
+    }
+  }
+
+  // ── Labs Show / Hide ──────────────────────────────────────────────
+  function _showLabsUI() {
+    _labFilterCat = 'all';
+    _ensureEngine().then(function() {
+      _renderLabPicker();
+    });
+  }
+
+  function _hideLabsUI() {
+    var picker = document.getElementById('tbv2-lab-picker');
+    if (picker) picker.remove();
+    var stepEl = document.getElementById('tbv2-lab-step');
+    if (stepEl) stepEl.remove();
+    var completeEl = document.getElementById('tbv2-lab-complete');
+    if (completeEl) completeEl.remove();
+    // Exit any active lab cleanly
+    if (window.tbV2ExitLab && window.tbV2GetActiveLab && window.tbV2GetActiveLab()) {
+      window.tbV2ExitLab();
+    }
+  }
+
   // ── Wire all interaction listeners ────────────────────────────────
   function _wireInteraction() {
     var svg = document.getElementById('tbv2-canvas-svg');
@@ -1218,6 +1533,11 @@
       _showTraceUI();
     } else {
       _hideTraceUI();
+    }
+    if (modeId === 'labs') {
+      _showLabsUI();
+    } else {
+      _hideLabsUI();
     }
 
     // Re-render canvas

@@ -14596,6 +14596,31 @@
   window.tbV2TraceStep = tbTraceStep;
   window.tbV2GetTraceState = function() { return _tbUiState.trace; };
 
+  // ── V2 bridge: lab functions so V2 can open/manage labs. Added v5.1.0 Ship #6.
+  window.tbV2GetLabCategories = function() { return TB_LAB_CATEGORIES; };
+  window.tbV2GetLabVariantGroups = function() { return TB_LAB_VARIANT_GROUPS; };
+  window.tbV2GetAllLabs = function() { return TB_LABS; };
+  window.tbV2GetActiveLab = function() { return tbActiveLab; };
+  window.tbV2StartLab = function(labId) { tbStartLab(labId); };
+  window.tbV2LabNext = function() { tbLabNext(); };
+  window.tbV2LabPrev = function() { tbLabPrev(); };
+  window.tbV2LabHint = function() { if (tbActiveLab) tbActiveLab.hintsUsed = (tbActiveLab.hintsUsed || 0) + 1; };
+  window.tbV2LabSkip = function() {
+    if (!tbActiveLab) return;
+    var _skipLabDef = null;
+    for (var _i = 0; _i < TB_LABS.length; _i++) {
+      if (TB_LABS[_i].id === tbActiveLab.labId) { _skipLabDef = TB_LABS[_i]; break; }
+    }
+    if (!_skipLabDef || !_skipLabDef.steps) return;
+    if (tbActiveLab.stepIdx < _skipLabDef.steps.length - 1) {
+      tbActiveLab.stepIdx++;
+      tbRenderLabStep();
+    } else {
+      tbEndLab();
+    }
+  };
+  window.tbV2ExitLab = function() { tbEndLab(); };
+
   // ── Register feature module entry point ──
   // Same contract as v4.99.36-43. Shell calls
   // window._certanvilFeatures["topology-builder"].enter() after lazy-load

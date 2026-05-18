@@ -20505,6 +20505,94 @@ test('v5.0.8 CSS: V2 trace initiation panel styles exist', (() => {
     && /\.v2-ti-foot/.test(v2css);
 })());
 
+// ── v5.1.0 — TB V2 Ship #6: Labs mode ──────────────────────────────────────
+test('v5.1.0 JS: V1 bridge exposes lab category + data getters', (() => {
+  let tb = '';
+  try { tb = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return tb.includes('window.tbV2GetLabCategories')
+    && tb.includes('window.tbV2GetAllLabs')
+    && tb.includes('window.tbV2GetActiveLab')
+    && tb.includes('window.tbV2GetLabVariantGroups');
+})());
+
+test('v5.1.0 JS: V1 bridge exposes lab action functions (Start/Next/Prev/Hint/Skip/Exit)', (() => {
+  let tb = '';
+  try { tb = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder.js'), 'utf8'); } catch (_) { return false; }
+  return tb.includes('window.tbV2StartLab')
+    && tb.includes('window.tbV2LabNext')
+    && tb.includes('window.tbV2LabPrev')
+    && tb.includes('window.tbV2LabHint')
+    && tb.includes('window.tbV2LabSkip')
+    && tb.includes('window.tbV2ExitLab');
+})());
+
+test('v5.1.0 JS: V2 has _renderLabPicker + _wireLabPicker for lab picker overlay', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('_renderLabPicker') && v2.includes('_wireLabPicker');
+})());
+
+test('v5.1.0 JS: V2 has _renderLabStep + _wireLabStep for step panel', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('_renderLabStep') && v2.includes('_wireLabStep');
+})());
+
+test('v5.1.0 JS: V2 has _renderLabComplete + _wireLabComplete for completion card', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('_renderLabComplete') && v2.includes('_wireLabComplete');
+})());
+
+test('v5.1.0 JS: V2 has _labStart + _labStepNext + _labStepHint + _labStepSkip action handlers', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('_labStart') && v2.includes('_labStepNext')
+    && v2.includes('_labStepHint') && v2.includes('_labStepSkip');
+})());
+
+test('v5.1.0 JS: V2 _showLabsUI + _hideLabsUI toggle labs UI', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('function _showLabsUI') && v2.includes('function _hideLabsUI');
+})());
+
+test('v5.1.0 JS: V2 _setMode wires labs UI on mode enter', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return /modeId === 'labs'[\s\S]{1,60}_showLabsUI/.test(v2);
+})());
+
+test('v5.1.0 JS: V2 _parseMd converts **bold** and `code` markdown', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('function _parseMd')
+    && v2.includes('<strong>') && v2.includes('v2-ls-code');
+})());
+
+test('v5.1.0 JS: V2 _findLab locates lab definition by id', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('function _findLab') && v2.includes('tbV2GetAllLabs');
+})());
+
+test('v5.1.0 JS: V2 labs canvas render adds v2-lab-target class from _highlightIds', (() => {
+  let v2 = '';
+  try { v2 = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.js'), 'utf8'); } catch (_) { return false; }
+  return v2.includes('v2-lab-target') && v2.includes('_highlightIds') && v2.includes('_labHL');
+})());
+
+test('v5.1.0 CSS: V2 labs picker overlay, step panel, completion card styles exist', (() => {
+  let v2css = '';
+  try { v2css = fs.readFileSync(path.join(ROOT, 'features', 'topology-builder-v2.css'), 'utf8'); } catch (_) { return false; }
+  return /\.v2-lp-overlay/.test(v2css)
+    && /\.v2-lp-card/.test(v2css)
+    && /\.v2-lab-step/.test(v2css)
+    && /\.v2-ls-pbar/.test(v2css)
+    && /\.v2-lab-complete/.test(v2css)
+    && /v2LabTargetPulse/.test(v2css);
+})());
+
 test('v4.99.59 EnvStrategy: ENVIRONMENT_STRATEGY.md exists at repo root', (() => {
   try { return fs.statSync(path.join(ROOT, 'ENVIRONMENT_STRATEGY.md')).isFile(); }
   catch (_) { return false; }
