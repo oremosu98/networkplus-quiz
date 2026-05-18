@@ -14565,6 +14565,18 @@
   window.tbGetCableTypes = function() { return TB_CABLE_TYPES; };
   window.tbDeviceIcon = tbDeviceIcon;
 
+  // ── V2 bridge: mutation functions so V2 can modify engine state
+  // without reaching into V1 internals. Added v5.0.5 Ship #3.
+  window.tbAddDevice = tbAddDevice;
+  window.tbAddCable = tbAddCable;
+  window.tbDeleteSelected = tbDeleteSelected;
+  window.tbSaveDraft = tbSaveDraft;
+  window.tbOpenConfigPanel = tbOpenConfigPanel;
+  window.tbSetSelectedId = function(id) { tbSelectedId = id; };
+  window.tbSetPendingCableFrom = function(id) { tbPendingCableFrom = id; };
+  window.tbSetSelectedCableType = function(type) { tbSelectedCableType = type; };
+  window.tbGetSelectedCableType = function() { return tbSelectedCableType; };
+
   // ── Register feature module entry point ──
   // Same contract as v4.99.36-43. Shell calls
   // window._certanvilFeatures["topology-builder"].enter() after lazy-load

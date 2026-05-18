@@ -319,11 +319,12 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
 #page-topology-v2 .mode-panels > * { pointer-events: auto; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Ship #2 — Canvas device + cable rendering
+   Ship #2 + #3 — Canvas device + cable rendering + interaction
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Device nodes ───────────────────────────────────────────────────── */
-#page-topology-v2 .v2-device { cursor: grab; }
+#page-topology-v2 .v2-device { cursor: grab; user-select: none; }
+#page-topology-v2 .v2-device:active { cursor: grabbing; }
 #page-topology-v2 .v2-device:hover .v2-device-bg { stroke-opacity: 0.8; }
 #page-topology-v2 .v2-device-selected .v2-device-bg {
   stroke: var(--accent); stroke-width: 2.5; stroke-opacity: 1;

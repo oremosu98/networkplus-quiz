@@ -20343,6 +20343,44 @@ test('v4.99.59 EnvStrategy: every migration dated >= 2026-05-12 carries a -- ROL
   return offenders.length === 0;
 })());
 
+// ── v5.0.5 — TB V2 Ship #3: Device interaction ──
+const _featureV2Js = (() => {
+  try { return fs.readFileSync(path.join(ROOT, 'features/topology-builder-v2.js'), 'utf8'); }
+  catch (_) { return ''; }
+})();
+test('v5.0.5 JS: V2 has _onDeviceMouseDown interaction handler',
+  /function _onDeviceMouseDown\(e\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _onMouseMove drag handler',
+  /function _onMouseMove\(e\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _onMouseUp handler (end drag / cable pending)',
+  /function _onMouseUp\(e\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _onPaletteDeviceClick (add device from palette)',
+  /function _onPaletteDeviceClick\(e\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _attachKeyHandler (Delete/Backspace/Escape)',
+  /function _attachKeyHandler\(\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _wireInteraction called in enter flow',
+  /function _wireInteraction\(\)/.test(_featureV2Js)
+  && /_wireInteraction\(\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 has _clientToSvg coordinate transform',
+  /function _clientToSvg\(svg, clientX, clientY\)/.test(_featureV2Js));
+test('v5.0.5 JS: V2 cable chip click handler syncs to V1 via tbSetSelectedCableType',
+  /function _onCableChipClick\(e\)/.test(_featureV2Js)
+  && /tbSetSelectedCableType/.test(_featureV2Js));
+test('v5.0.5 JS: V1 bridge exposes mutation functions (tbAddDevice, tbDeleteSelected, tbAddCable)',
+  /window\.tbAddDevice\s*=\s*tbAddDevice/.test(_featureTbRaw)
+  && /window\.tbDeleteSelected\s*=\s*tbDeleteSelected/.test(_featureTbRaw)
+  && /window\.tbAddCable\s*=\s*tbAddCable/.test(_featureTbRaw));
+test('v5.0.5 JS: V1 bridge exposes state setters (tbSetSelectedId, tbSetPendingCableFrom)',
+  /window\.tbSetSelectedId\s*=\s*function/.test(_featureTbRaw)
+  && /window\.tbSetPendingCableFrom\s*=\s*function/.test(_featureTbRaw));
+test('v5.0.5 JS: V1 bridge exposes tbSaveDraft + tbOpenConfigPanel',
+  /window\.tbSaveDraft\s*=\s*tbSaveDraft/.test(_featureTbRaw)
+  && /window\.tbOpenConfigPanel\s*=\s*tbOpenConfigPanel/.test(_featureTbRaw));
+test('v5.0.5 JS: V2 double-click detection uses DOUBLE_CLICK_MS',
+  /DOUBLE_CLICK_MS/.test(_featureV2Js)
+  && /_lastClickDevId/.test(_featureV2Js)
+  && /tbOpenConfigPanel/.test(_featureV2Js));
+
 test('v4.99.59 EnvStrategy: ENVIRONMENT_STRATEGY.md exists at repo root', (() => {
   try { return fs.statSync(path.join(ROOT, 'ENVIRONMENT_STRATEGY.md')).isFile(); }
   catch (_) { return false; }

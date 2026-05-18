@@ -8,7 +8,9 @@
 //
 // Ship #1: Visual shell — layout, modebar, palette, scenario rail.
 // Ship #2: Design mode canvas — reads tbState via V1 bridge getters,
-//   draws devices + cables on the V2 SVG canvas. No interaction yet.
+//   draws devices + cables on the V2 SVG canvas.
+// Ship #3: Device interaction — drag, palette add, delete, cable wiring,
+//   selection, double-click config. Mutations via V1 bridge functions.
 //
 // ARCHITECTURE:
 // · V2 has its own render layer (this file) + CSS (topology-builder-v2.css)
@@ -101,6 +103,14 @@
   // ── Active mode state ─────────────────────────────────────────────
   var _activeMode = 'design';
   var _engineLoaded = false;
+  var _selectedCableType = 'cat6';
+
+  // ── Interaction state (Ship #3) ───────────────────────────────────
+  var _dragging = null;     // { id, offsetX, offsetY, moved, startX, startY }
+  var _lastClickDevId = null;
+  var _lastClickTime = 0;
+  var DOUBLE_CLICK_MS = 400;
+  var TB_CANVAS_W = 1800, TB_CANVAS_H = 1100;
 
   // ── Escaping ──────────────────────────────────────────────────────
   function _esc(s) {
@@ -267,6 +277,278 @@
 
   // Expose render so it can be called externally (e.g., after engine mutations)
   window.tbv2RenderCanvas = _renderCanvas;
+
+  // ════════════════════════════════════════════════════════════════════
+  // CANVAS INTERACTION — Ship #3
+  // Device drag, palette add, selection, cable wiring, delete,
+  // double-click config. All mutations flow through V1 bridge fns.
+  // ════════════════════════════════════════════════════════════════════
+
+  // ── SVG coordinate transform ──────────────────────────────────────
+  function _clientToSvg(svg, clientX, clientY) {
+    var pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    var ctm = svg.getScreenCTM();
+    if (!ctm) return { x: clientX, y: clientY };
+    var r = pt.matrixTransform(ctm.inverse());
+    return {
+      x: Math.max(75, Math.min(TB_CANVAS_W - 75, r.x)),
+      y: Math.max(60, Math.min(TB_CANVAS_H - 60, r.y))
+    };
+  }
+
+  // ── Device mousedown — selection + drag start + dblclick detect ───
+  function _onDeviceMouseDown(e) {
+    if (_activeMode !== 'design') return;
+    var g = e.target.closest('[data-v2-device]');
+    if (!g) return;
+    e.stopPropagation();
+    e.preventDefault();
+    var id = g.getAttribute('data-v2-device');
+
+    // Double-click detection (manual — DOM recreation kills native dblclick)
+    var now = Date.now();
+    if (_lastClickDevId === id && now - _lastClickTime < DOUBLE_CLICK_MS) {
+      _lastClickDevId = null;
+      _lastClickTime = 0;
+      _dragging = null;
+      if (typeof window.tbOpenConfigPanel === 'function') {
+        window.tbOpenConfigPanel(id);
+      }
+      return;
+    }
+    _lastClickDevId = id;
+    _lastClickTime = now;
+
+    var state = window.tbGetState ? window.tbGetState() : null;
+    if (!state) return;
+    var dev = null;
+    for (var i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].id === id) { dev = state.devices[i]; break; }
+    }
+    if (!dev) return;
+
+    // Cable wiring: if pending from another device, complete the cable
+    var pendingFrom = window.tbGetPendingCableFrom ? window.tbGetPendingCableFrom() : null;
+    if (pendingFrom && pendingFrom !== id) {
+      // Sync cable type to V1 before adding
+      if (typeof window.tbSetSelectedCableType === 'function') {
+        window.tbSetSelectedCableType(_selectedCableType);
+      }
+      if (typeof window.tbAddCable === 'function') {
+        window.tbAddCable(pendingFrom, id);
+      }
+      if (typeof window.tbSetPendingCableFrom === 'function') {
+        window.tbSetPendingCableFrom(null);
+      }
+      if (typeof window.tbSetSelectedId === 'function') {
+        window.tbSetSelectedId(null);
+      }
+      _renderCanvas();
+      _updateStatus('Cable drawn. Keep building.');
+      return;
+    }
+
+    // Start drag
+    var svg = document.getElementById('tbv2-canvas-svg');
+    if (!svg) return;
+    var svgPt = _clientToSvg(svg, e.clientX, e.clientY);
+    _dragging = {
+      id: id,
+      offsetX: svgPt.x - dev.x,
+      offsetY: svgPt.y - dev.y,
+      moved: false,
+      startX: dev.x,
+      startY: dev.y
+    };
+
+    // Select device
+    if (typeof window.tbSetSelectedId === 'function') {
+      window.tbSetSelectedId(id);
+    }
+    _renderCanvas();
+  }
+
+  // ── Mouse move — drag device ──────────────────────────────────────
+  function _onMouseMove(e) {
+    if (!_dragging) return;
+    var svg = document.getElementById('tbv2-canvas-svg');
+    if (!svg) return;
+    var svgPt = _clientToSvg(svg, e.clientX, e.clientY);
+    var state = window.tbGetState ? window.tbGetState() : null;
+    if (!state) return;
+    var dev = null;
+    for (var i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].id === _dragging.id) { dev = state.devices[i]; break; }
+    }
+    if (!dev) return;
+
+    var nx = Math.round(svgPt.x - _dragging.offsetX);
+    var ny = Math.round(svgPt.y - _dragging.offsetY);
+    if (Math.abs(nx - _dragging.startX) > 3 || Math.abs(ny - _dragging.startY) > 3) {
+      _dragging.moved = true;
+    }
+    dev.x = Math.max(55, Math.min(TB_CANVAS_W - 55, nx));
+    dev.y = Math.max(45, Math.min(TB_CANVAS_H - 45, ny));
+    _renderCanvas();
+  }
+
+  // ── Mouse up — end drag or start cable pending ────────────────────
+  function _onMouseUp(e) {
+    if (!_dragging) return;
+    var id = _dragging.id;
+    var moved = _dragging.moved;
+    _dragging = null;
+
+    if (moved) {
+      // Device was dragged — save the new position
+      var state = window.tbGetState ? window.tbGetState() : null;
+      if (state) state.updated = Date.now();
+      if (typeof window.tbSaveDraft === 'function') window.tbSaveDraft();
+      _updateStatus('Moved. Click another device to wire a cable.');
+    } else {
+      // Click without drag — toggle cable pending mode
+      var pending = window.tbGetPendingCableFrom ? window.tbGetPendingCableFrom() : null;
+      if (pending === id) {
+        // Click same device again — cancel pending
+        if (typeof window.tbSetPendingCableFrom === 'function') window.tbSetPendingCableFrom(null);
+        _updateStatus('Cable cancelled.');
+      } else {
+        // Start pending cable from this device
+        if (typeof window.tbSetPendingCableFrom === 'function') window.tbSetPendingCableFrom(id);
+        _updateStatus('Click a second device to draw the cable, or click again to cancel.');
+      }
+      _renderCanvas();
+    }
+  }
+
+  // ── Canvas click (empty area) — deselect ──────────────────────────
+  function _onCanvasClick(e) {
+    if (_activeMode !== 'design') return;
+    // Only deselect if clicking empty canvas area (not on a device or cable)
+    if (e.target.closest('[data-v2-device]') || e.target.closest('[data-v2-cable]')) return;
+    if (typeof window.tbSetSelectedId === 'function') window.tbSetSelectedId(null);
+    if (typeof window.tbSetPendingCableFrom === 'function') window.tbSetPendingCableFrom(null);
+    _renderCanvas();
+  }
+
+  // ── Cable click — select cable ────────────────────────────────────
+  function _onCableClick(e) {
+    if (_activeMode !== 'design') return;
+    var hit = e.target.closest('[data-v2-cable]');
+    if (!hit) return;
+    e.stopPropagation();
+    var cableId = hit.getAttribute('data-v2-cable');
+    if (typeof window.tbSetSelectedId === 'function') window.tbSetSelectedId(cableId);
+    if (typeof window.tbSetPendingCableFrom === 'function') window.tbSetPendingCableFrom(null);
+    _renderCanvas();
+  }
+
+  // ── Palette click — add device at canvas center ───────────────────
+  function _onPaletteDeviceClick(e) {
+    if (_activeMode !== 'design') return;
+    var btn = e.target.closest('.dev-btn[data-type]');
+    if (!btn) return;
+    var type = btn.getAttribute('data-type');
+    if (!type) return;
+
+    // Place at a staggered position near center to avoid stacking
+    var state = window.tbGetState ? window.tbGetState() : null;
+    var count = state ? state.devices.length : 0;
+    var cx = TB_CANVAS_W / 2 + ((count % 5) - 2) * 120;
+    var cy = TB_CANVAS_H / 2 + (Math.floor(count / 5) % 3 - 1) * 100;
+
+    if (typeof window.tbAddDevice === 'function') {
+      window.tbAddDevice(type, cx, cy);
+    }
+    _renderCanvas();
+    _updateStatus(_esc(type) + ' added. Drag to position, click to wire cables.');
+  }
+
+  // ── Cable chip click — select cable type ──────────────────────────
+  function _onCableChipClick(e) {
+    var chip = e.target.closest('.cable-chip[data-cable]');
+    if (!chip) return;
+    _selectedCableType = chip.getAttribute('data-cable');
+    // Sync to V1 engine
+    if (typeof window.tbSetSelectedCableType === 'function') {
+      window.tbSetSelectedCableType(_selectedCableType);
+    }
+    // Update chip active state
+    var chips = document.querySelectorAll('#tbv2-palette-list .cable-chip');
+    for (var i = 0; i < chips.length; i++) {
+      if (chips[i].getAttribute('data-cable') === _selectedCableType) {
+        chips[i].classList.add('on');
+      } else {
+        chips[i].classList.remove('on');
+      }
+    }
+  }
+
+  // ── Keyboard — Delete / Backspace / Escape ────────────────────────
+  var _keyHandlerAttached = false;
+  function _attachKeyHandler() {
+    if (_keyHandlerAttached) return;
+    _keyHandlerAttached = true;
+    window.addEventListener('keydown', function(e) {
+      var page = document.getElementById('page-topology-v2');
+      if (!page || !page.classList.contains('active')) return;
+      // Don't hijack if user is typing in an input
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        var selId = window.tbGetSelectedId ? window.tbGetSelectedId() : null;
+        if (selId) {
+          e.preventDefault();
+          if (typeof window.tbDeleteSelected === 'function') window.tbDeleteSelected();
+          _renderCanvas();
+        }
+      } else if (e.key === 'Escape') {
+        if (typeof window.tbSetSelectedId === 'function') window.tbSetSelectedId(null);
+        if (typeof window.tbSetPendingCableFrom === 'function') window.tbSetPendingCableFrom(null);
+        _renderCanvas();
+        _updateStatus('Cancelled.');
+      }
+    });
+  }
+
+  // ── Status line helper ────────────────────────────────────────────
+  function _updateStatus(msg) {
+    var label = document.getElementById('tbv2-mode-label');
+    if (!label) return;
+    if (_activeMode === 'design') {
+      label.innerHTML = '<b>Design</b> mode -- ' + msg;
+    }
+  }
+
+  // ── Wire all interaction listeners ────────────────────────────────
+  function _wireInteraction() {
+    var svg = document.getElementById('tbv2-canvas-svg');
+    if (!svg) return;
+
+    // Device mousedown (event delegation on devices layer)
+    svg.addEventListener('mousedown', _onDeviceMouseDown);
+
+    // Global mousemove/mouseup for drag (attach to window for smooth drag)
+    window.addEventListener('mousemove', _onMouseMove);
+    window.addEventListener('mouseup', _onMouseUp);
+
+    // Canvas click for deselect
+    svg.addEventListener('click', _onCanvasClick);
+
+    // Cable hitbox click
+    svg.addEventListener('click', _onCableClick);
+
+    // Palette device clicks (event delegation)
+    var paletteList = document.getElementById('tbv2-palette-list');
+    if (paletteList) {
+      paletteList.addEventListener('click', _onPaletteDeviceClick);
+      paletteList.addEventListener('click', _onCableChipClick);
+    }
+
+    // Keyboard handler
+    _attachKeyHandler();
+  }
 
   // ── Build the palette HTML ────────────────────────────────────────
   function _renderPalette(el) {
@@ -454,9 +736,10 @@
       });
     }
 
-    // Load the V1 engine, then render the canvas
+    // Load the V1 engine, then render the canvas + wire interaction
     _ensureEngine().then(function() {
       _renderCanvas();
+      _wireInteraction();
     });
   }
 
