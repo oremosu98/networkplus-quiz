@@ -820,7 +820,7 @@
       .sort((a, b) => a.accuracy - b.accuracy)
       .slice(0, 3);
     if (weakest.length > 0) {
-      html += '<div class="st-dash-callout st-dash-callout-weak"><div class="st-dash-callout-title">Your weakest categories — drill these now</div><div class="st-dash-callout-rows">';
+      html += '<div class="st-dash-callout st-dash-callout-weak"><div class="st-dash-callout-title">Your weakest categories. Drill these now.</div><div class="st-dash-callout-rows">';
       weakest.forEach(w => {
         const pctNum = Math.round(w.accuracy * 100);
         html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${w.id}')" title="Jump to focus drill on ${escHtml(w.cat.label)}"><span class="st-dash-callout-icon"></span><span class="st-dash-callout-name">${escHtml(w.cat.label)}</span><span class="st-dash-callout-pct">${pctNum}%</span><span class="st-dash-callout-action">Drill →</span></button>`;
@@ -834,7 +834,7 @@
       .sort((a, b) => b.daysSince - a.daysSince)
       .slice(0, 3);
     if (stale.length > 0) {
-      html += '<div class="st-dash-callout st-dash-callout-stale"><div class="st-dash-callout-title">Haven\'t touched in a while — refresh these</div><div class="st-dash-callout-rows">';
+      html += '<div class="st-dash-callout st-dash-callout-stale"><div class="st-dash-callout-title">Haven\'t touched in a while. Refresh these.</div><div class="st-dash-callout-rows">';
       stale.forEach(s => {
         html += `<button class="st-dash-callout-row" onclick="stDashJumpToCategory('${s.id}')" title="Jump to focus drill on ${escHtml(s.cat.label)}"><span class="st-dash-callout-icon"></span><span class="st-dash-callout-name">${escHtml(s.cat.label)}</span><span class="st-dash-callout-pct">${s.daysSince}d stale</span><span class="st-dash-callout-action">Refresh →</span></button>`;
       });

@@ -280,7 +280,7 @@
   function renderExamResultsList(role, profile) {
     var certs = getCertEntitlements(role).filter(function (c) { return c.status !== 'locked'; });
     if (!certs.length) {
-      return '<p class="er-empty">No certs unlocked yet — pick a cert and start studying first.</p>';
+      return '<p class="er-empty">No certs unlocked yet. Pick a cert and start studying.</p>';
     }
     var results = (profile && profile.metadata && profile.metadata.cert_results) || {};
     return certs.map(function (c) { return renderExamResultRow(c, results[c.id]); }).join('');
@@ -362,7 +362,7 @@
       +     '<div class="er-field">'
       +       '<label class="er-field-label">Date of exam</label>'
       +       '<input class="er-field-input" type="date" value="' + escapeHtml(initialDate) + '" data-er-field="date">'
-      +       '<span class="er-field-help">Backdate fine — we believe you</span>'
+      +       '<span class="er-field-help">Backdate fine. We trust your date.</span>'
       +     '</div>'
       +   '</div>'
       +   '<div class="er-form-row full">'

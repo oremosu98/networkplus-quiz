@@ -9,6 +9,18 @@
 (function() {
   'use strict';
 
+  // ── M-3: Scroll-triggered section reveals ──
+  if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var revealIO = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('is-visible'); revealIO.unobserve(e.target); }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealIO.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el) { el.classList.add('is-visible'); });
+  }
+
   // ── Theme toggle ────────────────────────────────────────────────────────
   const themeToggle = document.getElementById('theme-toggle');
   if (themeToggle) {
@@ -168,7 +180,7 @@
       }
       if (notifyFoot) {
         if (success) {
-          notifyFoot.textContent = '✓ Got it — confirmation sent. Check your inbox; we\'ll email you the moment ' + certLabel + ' goes live.';
+          notifyFoot.textContent = '✓ Got it. Confirmation sent. Check your inbox; we\'ll email you the moment ' + certLabel + ' goes live.';
         } else {
           notifyFoot.textContent = '✓ Saved. We\'ll email you the moment ' + certLabel + ' goes live.';
         }

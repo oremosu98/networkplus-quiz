@@ -114,7 +114,7 @@
   };
   
   const PORT_LESSONS = [
-    { id: 'web', title: 'Web Protocols', icon: '\uD83C\uDF10', catId: 'web', desc: 'HTTP and HTTPS — the foundation of the modern internet.',
+    { id: 'web', title: 'Web Protocols', icon: '\uD83C\uDF10', catId: 'web', desc: 'HTTP (port 80) and HTTPS (port 443).',
       theory: [
         '<strong>HTTP (Port 80/TCP)</strong> — HyperText Transfer Protocol. The original web protocol. Sends data in cleartext — anyone on the network can read it. Uses request-response model: client sends GET/POST, server replies with status code (200 OK, 404 Not Found, 301 Redirect).',
         '<strong>HTTPS (Port 443/TCP)</strong> — HTTP over TLS. Encrypts the entire HTTP session. The browser verifies the server\'s certificate via PKI (chain of trust: leaf cert → intermediate CA → root CA). TLS 1.3 is the current standard. Look for the padlock icon.',
@@ -178,7 +178,7 @@
         '<strong>Syslog (Port 514/UDP)</strong> — Centralized logging. Devices send log messages to a syslog server. 8 severity levels: 0=Emergency to 7=Debug. "Every Awesome Cisco Engineer Will Need Icecream Daily" (Emerg/Alert/Crit/Error/Warning/Notice/Info/Debug).',
         '<strong>Exam tip:</strong> SNMP v3 adds encryption + authentication (v1/v2c are cleartext). SNMP=161 (query), SNMP Trap=162 (alert). Syslog=514/UDP. Know the 8 severity levels.'
       ] },
-    { id: 'routing', title: 'Routing Protocols', icon: '\uD83D\uDEA6', catId: 'routing', desc: 'BGP — the protocol that runs the internet.',
+    { id: 'routing', title: 'Routing Protocols', icon: '\uD83D\uDEA6', catId: 'routing', desc: 'BGP: the routing protocol between autonomous systems.',
       theory: [
         '<strong>BGP (Port 179/TCP)</strong> — Border Gateway Protocol. The only EGP (Exterior Gateway Protocol) still in use. Routes between autonomous systems (AS). Every ISP, cloud provider, and CDN uses BGP.',
         '<strong>How it works:</strong> BGP peers establish TCP connections on port 179. They exchange route advertisements with AS_PATH attributes. The best path is selected based on shortest AS_PATH, local preference, and other attributes.',

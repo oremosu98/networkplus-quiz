@@ -2539,10 +2539,9 @@ html[data-theme] body .app-sidebar{background:var(--bg)!important;border-right:1
 
 /* ── Brand mark de-purple ── */
 html[data-theme] body .sb-brand-mark{border-radius:9px!important;border:1px solid var(--border)!important;background:none!important;}
-html[data-theme] body .sb-brand-hammer{fill:var(--accent)!important;}
-html[data-theme] body .sb-brand-handle{fill:var(--text-dim)!important;}
-html[data-theme] body .sb-brand-anvil{fill:var(--text-2,var(--text-mid))!important;}
-html[data-theme] body .sb-brand-spark{fill:var(--yellow,oklch(0.80 0.14 70))!important;}
+html[data-theme] body .sb-brand-c{stroke:var(--accent)!important;}
+html[data-theme] body .sb-brand-slash{stroke:var(--text-dim)!important;}
+html[data-theme] body .sb-brand-a{stroke:var(--accent)!important;}
 html[data-theme] body .sb-brand-cert{color:var(--accent)!important;}
 
 /* ── Section labels ── */
@@ -3321,6 +3320,64 @@ html[data-theme] body #page-web-vitals .wv-table tr:last-child td{border-bottom:
 html[data-theme] body #page-web-vitals .wv-table td:first-child{color:var(--text)!important;font-weight:600!important;}
 html[data-theme] body #page-web-vitals .wv-loading,html[data-theme] body #page-web-vitals .wv-empty,html[data-theme] body #page-web-vitals .wv-error{background:none!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:32px 24px!important;font-size:13px!important;color:var(--text-dim)!important;text-align:center!important;box-shadow:none!important;}
 html[data-theme] body #page-web-vitals .wv-error{color:var(--red,#f87171)!important;border-color:color-mix(in oklab,var(--red,#f87171) 30%,transparent)!important;}
+
+/* ── P1: Global primitives de-purple ── */
+html[data-theme] body *:focus-visible{box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 20%,transparent)!important;outline:none!important;}
+html[data-theme] body .chip.on{background:color-mix(in oklab,var(--accent) 18%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body .chip-smart.on{background:color-mix(in oklab,var(--accent) 25%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+@keyframes chipFlash{0%{box-shadow:0 0 0 6px color-mix(in oklab,var(--accent) 35%,transparent);}100%{box-shadow:0 0 0 0 transparent;}}
+
+/* ── P3: Milestone + A2HS emoji hide ── */
+html[data-theme] body .ana-milestone-icon{display:none!important;}
+html[data-theme] body .a2hs-banner-icon{display:none!important;}
+
+/* ── P2: Session transition + complete ── */
+html[data-theme] body #page-session-transition .session-emoji,html[data-theme] body #page-session-complete .session-emoji{display:none!important;}
+html[data-theme] body #page-session-transition .session-hero-eyebrow,html[data-theme] body #page-session-complete .session-hero-eyebrow{color:var(--text-dim)!important;padding-left:0!important;}
+html[data-theme] body #page-session-transition .session-hero-eyebrow::before,html[data-theme] body #page-session-complete .session-hero-eyebrow::before{content:none!important;}
+html[data-theme] body #page-session-transition .session-hero-display,html[data-theme] body #page-session-complete .session-hero-display{color:var(--text)!important;}
+html[data-theme] body #page-session-transition .session-hero-display em,html[data-theme] body #page-session-complete .session-hero-display em{color:var(--accent)!important;}
+html[data-theme] body #page-session-transition .session-result-row{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;}
+html[data-theme] body #page-session-transition .card{background:none!important;border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;box-shadow:none!important;padding:16px 0!important;}
+html[data-theme] body #page-session-transition .card h3{font-size:10px!important;font-weight:700!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:var(--text-dim)!important;}
+
+/* ── P2: Diagnostic quiz ── */
+html[data-theme] body #page-diagnostic-quiz .diag-conf-icon{display:none!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-quiz-pill.objective{background:color-mix(in oklab,var(--accent) 15%,transparent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-quiz-option.selected{border-color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 8%,transparent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-quiz-option.selected .diag-quiz-option-letter{background:var(--accent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-conf-tier.selected[data-tier="confident"]{border-color:var(--green)!important;background:color-mix(in oklab,var(--green) 10%,transparent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-conf-tier.selected[data-tier="uncertain"]{border-color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 10%,transparent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-conf-tier.selected[data-tier="guessing"]{border-color:var(--text-dim)!important;background:color-mix(in oklab,var(--text) 6%,transparent)!important;}
+html[data-theme] body #page-diagnostic-quiz .diag-quiz-card{background:none!important;border:1px solid var(--border)!important;box-shadow:none!important;}
+
+/* ── P2: Diagnostic result / Pass Plan ── */
+html[data-theme] body #page-diagnostic-result .pass-plan-hero{background:none!important;border:1px solid var(--border)!important;box-shadow:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-hero::before{display:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-section-h .icon{display:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-review-icon{display:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-pbq-icon{display:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-section{background:none!important;border:0!important;border-bottom:1px solid var(--border)!important;border-radius:0!important;box-shadow:none!important;padding:18px 0!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-section-h{font-size:14px!important;font-weight:800!important;color:var(--text)!important;letter-spacing:-.01em!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-pbq-rec{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-pbq-cta{color:var(--accent)!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-review-seeded{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;}
+html[data-theme] body #page-diagnostic-result .pass-plan-final-cta .btn-primary{background:var(--accent)!important;border-color:var(--accent)!important;color:var(--bg)!important;}
+
+/* ── P2: Production Monitor ── */
+html[data-theme] body #page-monitor h2{font-size:22px!important;font-weight:800!important;letter-spacing:-.02em!important;color:var(--text)!important;}
+html[data-theme] body #page-monitor .btn-ghost{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-dim)!important;font-weight:600!important;}
+html[data-theme] body #page-monitor .btn-ghost:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body #page-monitor .btn-danger{background:none!important;border:1px solid color-mix(in oklab,var(--red,#f87171) 40%,transparent)!important;border-radius:8px!important;color:var(--red,#f87171)!important;box-shadow:none!important;}
+html[data-theme] body #page-monitor .monitor-log{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;}
+
+/* ── P7: Inline purple overrides ── */
+html[data-theme] body .deep-explain{border-left-color:var(--accent)!important;background:var(--surface)!important;border-color:var(--border)!important;color:var(--text)!important;}
+html[data-theme] body .deep-explain strong{color:var(--accent)!important;}
+html[data-theme] body .deep-explain-text{color:var(--text)!important;}
+html[data-theme] body .deep-explain-text a{color:var(--accent)!important;}
+html[data-theme] body .qnav-sq.current{background:color-mix(in oklab,var(--accent) 25%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+html[data-theme] body .qnav-sq.answered{background:color-mix(in oklab,var(--accent) 12%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
 
 /* ── Reduced-motion gate ── */
 @media (prefers-reduced-motion: reduce){.sb-item,.topbar-iconbtn,.topbar-toggle,.topbar-countdown,.st-focus-chip,.pt-focus-chip,.st-mode-btn,.pt-mode-btn,.os-mode-btn,.cb-mode-btn,.os-diff-btn,.os-tab-btn,.cb-tab-btn,.na-tab,.ptr-tab-btn,.na-option,.ptr-opt,.ptr-prog-dot,.exam-flag-btn,.qnav-sq,.option,.review-filter-chip,.sr-option,.sr-confidence-btn,.drills-tile,.secplus-drill-tile,.tad-link,.tad-cert-row{transition:none!important;}}

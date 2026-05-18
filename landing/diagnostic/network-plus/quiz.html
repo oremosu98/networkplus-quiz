@@ -34,13 +34,10 @@
   <div class="topbar-inner">
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <g transform="rotate(-25 35 30)">
-            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
-            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
-          </g>
-          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
-          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil</span>
@@ -72,8 +69,8 @@
 
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
-    <p id="dq-loading-text">Preparing your diagnostic…</p>
-    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">Generating 20 fresh questions across the 5 Network+ domains.</p>
+    <p id="dq-loading-text">Loading questions…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">20 questions across the 5 Network+ domains.</p>
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
@@ -696,7 +693,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Same quality, same scoring.';
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -723,8 +720,8 @@
   }
 
   // ── Path B · Fresh start · AI-first with fallback ──
-  loadingText.textContent = 'Preparing your diagnostic…';
-  loadingSub.textContent = 'Generating 20 fresh questions across the 5 Network+ domains.';
+  loadingText.textContent = 'Loading questions…';
+  loadingSub.textContent = '20 questions across the 5 Network+ domains.';
 
   // Turnstile callback · set on window so the cf-turnstile widget can call it
   var turnstileSettled = false;
@@ -774,7 +771,7 @@
   }
 
   async function fetchAIQuestions(turnstileToken) {
-    loadingText.textContent = 'Generating your questions…';
+    loadingText.textContent = 'Building your question set…';
     loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
 
     var controller = new AbortController();
@@ -802,7 +799,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. We\'re using our local pool so you can still take the diagnostic. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
           }
           return;
         }

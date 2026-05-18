@@ -928,6 +928,11 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   box-shadow: 0 24px 60px -12px rgba(20,20,40,.4);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+  transform: scale(0.95) translateY(8px);
+  transition: transform .25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.auth-modal-overlay:not([hidden]) .auth-modal-card {
+  transform: scale(1) translateY(0);
 }
 
 .auth-modal-close {
@@ -3658,7 +3663,7 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
   animation: confettiBurstPop .6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes confettiBurstPop {
-  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  0% { transform: scale(0.85) rotate(-10deg); opacity: 0; }
   60% { transform: scale(1.15) rotate(5deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
@@ -4542,4 +4547,79 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
     grid-row: 2;
     text-align: right;
   }
+}
+
+/* ── M-3: Scroll-triggered section reveals ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 500ms cubic-bezier(0.23, 1, 0.32, 1),
+              transform 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── M-3: Hero staggered entrance ── */
+.hero-stagger { opacity: 0; transform: translateY(20px); animation: heroReveal .5s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.hero-stagger:nth-child(1) { animation-delay: 0ms; }
+.hero-stagger:nth-child(2) { animation-delay: 80ms; }
+.hero-stagger:nth-child(3) { animation-delay: 160ms; }
+.hero-stagger:nth-child(4) { animation-delay: 240ms; }
+.hero-stagger:nth-child(5) { animation-delay: 320ms; }
+@keyframes heroReveal { to { opacity: 1; transform: translateY(0); } }
+
+/* ── M-3: CTA button :active press ── */
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active,
+.cert-tile:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 100ms;
+}
+
+/* ── M-6: FAQ accordion smooth open (grid-template-rows trick) ── */
+.faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .3s ease-out;
+  overflow: hidden;
+}
+.faq-item[open] .faq-a {
+  grid-template-rows: 1fr;
+}
+.faq-a > * {
+  overflow: hidden;
+}
+
+/* ── M-6: Proof-of-product tile hover ── */
+.pp-tile {
+  transition: border-color .2s ease, transform .2s ease;
+}
+@media (hover: hover) {
+  .pp-tile:hover {
+    border-color: var(--accent-soft-border);
+    transform: translateY(-2px);
+  }
+}
+
+/* ── M-6: Sample question feedback glow ── */
+.sq-option.is-correct {
+  transition: box-shadow .3s ease-out, border-color .15s;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .25);
+}
+.sq-option.is-wrong {
+  transition: box-shadow .3s ease-out, border-color .15s;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, .25);
+}
+
+/* ── Reduced-motion gate for M-3 + M-6 ── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .hero-stagger { opacity: 1; transform: none; animation: none; }
+  .auth-modal-card { transform: none; transition: none; }
+  .faq-a { transition: none; grid-template-rows: 1fr; }
+  .sq-option.is-correct,
+  .sq-option.is-wrong { transition: none; }
 }

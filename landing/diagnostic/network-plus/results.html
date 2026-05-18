@@ -31,13 +31,10 @@
   <div class="topbar-inner">
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <g transform="rotate(-25 35 30)">
-            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
-            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
-          </g>
-          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
-          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil</span>
@@ -145,8 +142,8 @@
   // ── Helper: shareable-link error ─────────────────────────────────
   function renderShareError(reason) {
     var hint;
-    if (reason === 'expired') hint = 'This shared diagnostic has expired (90-day limit). Ask the sender to share a fresh link, or take your own diagnostic to see your baseline.';
-    else if (reason === 'not_found') hint = 'That share link is invalid or no longer available. Take the diagnostic yourself to see what an honest baseline looks like.';
+    if (reason === 'expired') hint = 'This shared diagnostic has expired (90-day limit). Ask the sender for a fresh link, or take the diagnostic yourself.';
+    else if (reason === 'not_found') hint = 'That share link is invalid or no longer available. Take the diagnostic to see your baseline.';
     else hint = 'Couldn\'t load the shared diagnostic · ' + reason + '. Take the diagnostic yourself to see your baseline.';
 
     // hint is static copy controlled by us (not user input) so safe to inline.
@@ -180,7 +177,7 @@
       '<div class="dr-hero">' +
         '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
         '<h1 class="dr-h1">Take the diagnostic to see results</h1>' +
-        '<p class="dr-sub">It looks like you haven\'t taken the Network+ baseline diagnostic in this browser session. Start the 20-minute flow to get your score, weak-domain map, and Pass Plan.</p>' +
+        '<p class="dr-sub">No results in this browser session. Start the 20-minute flow to get your score, weak-domain map, and Pass Plan.</p>' +
       '</div>' +
       '<div class="dr-cta-block">' +
         '<div class="dr-cta-list">' +
@@ -228,9 +225,9 @@
 
   function bandCopy(band) {
     if (band === 'ready')      return { label: 'Exam-ready', headline: 'Strong baseline · book the exam.', tone: 'You\'re already above pass on this 20-question slice. Tighten the weak corners and lock in the date.' };
-    if (band === 'on-pace')    return { label: 'On pace',    headline: 'You\'d pass today.',                  tone: 'You crossed pass on this baseline. Lift the bottom 1-2 domains and add an 90-question exam sim for full-load confidence.' };
-    if (band === 'near-pass')  return { label: 'Near pass',  headline: 'Closer than you think.',              tone: 'You\'re 1-2 weak domains away from pass. Drill those topics deliberately · most students close this gap in 2-4 weeks.' };
-    return                     { label: 'Foundation',         headline: 'Honest baseline.',                    tone: 'Plenty of headroom. Anchor on Network+ N10-009 objectives and rebuild from the weakest domain up · most students start here and reach pass in 6-8 weeks of focused study.' };
+    if (band === 'on-pace')    return { label: 'On pace',    headline: 'You\'d pass today.',                  tone: 'You crossed pass on this baseline. Lift the bottom 1-2 domains and add an 90-question exam sim to confirm.' };
+    if (band === 'near-pass')  return { label: 'Near pass',  headline: 'Close to pass.',              tone: '1-2 weak domains separate you from pass. Drill those topics for 2-4 weeks.' };
+    return                     { label: 'Foundation',         headline: 'Starting baseline.',                    tone: 'Plenty of headroom. Anchor on Network+ N10-009 objectives and rebuild from the weakest domain up. 6-8 weeks of focused study typically closes the gap.' };
   }
 
   // Concrete drill targets per domain (used in Pass Plan + weak-domain UI)
@@ -300,7 +297,7 @@
     } else {
       steps.push(
         '<strong>Drill the bottom two domains</strong> ' +
-        '<span class="muted">to push them past 90%. Even strong baselines have asymmetry · your real exam will too.</span>'
+        '<span class="muted">to push them past 90%. Strong baselines still have weak corners. Your exam tests all domains.</span>'
       );
     }
 
@@ -325,17 +322,17 @@
     if (band === 'foundation' || band === 'near-pass') {
       steps.push(
         '<strong>Use Topic Deep Dive + Subnet Trainer first.</strong> ' +
-        '<span class="muted">Don\'t rush into 90-Q exam mode while the foundation is still settling · it just rehearses the wrong answers.</span>'
+        '<span class="muted">Don\'t rush into 90-Q exam mode while the foundation is still settling · you\'ll rehearse wrong answers.</span>'
       );
     } else if (band === 'on-pace') {
       steps.push(
         '<strong>Mix custom quizzes with 90-Q exam sims.</strong> ' +
-        '<span class="muted">You\'re at the right band to start pressure-testing with full-length simulations. Aim for 2-3 sims at ≥760 before booking the exam.</span>'
+        '<span class="muted">You\'re ready for full-length simulations. Aim for 2-3 sims at ≥760 before booking the exam.</span>'
       );
     } else { /* ready */
       steps.push(
         '<strong>Book the exam window in the next 2-3 weeks.</strong> ' +
-        '<span class="muted">Don\'t let cold-start decay erode the lead. Run a 90-Q exam sim 5-7 days before the real test as the dress rehearsal.</span>'
+        '<span class="muted">Don\'t lose momentum by waiting too long. Run a 90-Q exam sim 5-7 days before the real test as the dress rehearsal.</span>'
       );
     }
 
@@ -749,7 +746,7 @@
         }
         // Success: show "check your inbox" · keep form disabled so they don't double-send
         setContinueStatus(
-          '✓ Magic link sent to ' + emailRaw + '. Click the link in your inbox to finish signing up · your diagnostic results will land in your profile automatically.',
+          '✓ Magic link sent to ' + emailRaw + '. Click the link in your inbox to finish signing up · your diagnostic results transfer to your profile on sign-in.',
           'success'
         );
       }).catch(function(err) {
@@ -854,7 +851,7 @@
         setDownloadStatus('Too many requests from this IP · please wait an hour before trying again.', 'error');
       } else if (r.body && r.body.ok) {
         cachedShareToken = r.body.token || cachedShareToken;
-        setDownloadStatus('✓ Sent to ' + addr + ' · check your inbox in a minute (and your spam folder, just in case).', 'success');
+        setDownloadStatus('✓ Sent to ' + addr + ' · check your inbox in a minute (and spam folder).', 'success');
       } else {
         var msg = (r.body && r.body.error) || 'unknown_error';
         setDownloadStatus('Couldn\'t send email · ' + msg + ' · please try again.', 'error');

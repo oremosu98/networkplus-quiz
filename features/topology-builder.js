@@ -2583,7 +2583,7 @@
       id: 'no-orphans',
       severity: 'warning',
       label: 'No orphan devices (every device wired to something)',
-      hint: 'Every placed device should be connected to at least one cable — orphan devices look like mistakes.',
+      hint: 'Every placed device should be connected to at least one cable. Orphan devices look like mistakes.',
       test: s => s.devices.every(d => tbNeighborsOf(s, d.id).length > 0),
     },
     {
@@ -2597,7 +2597,7 @@
       id: 'cloud-behind-firewall',
       severity: 'critical',
       label: 'Internet/cloud node wired directly to a firewall',
-      hint: 'The WAN/cloud must connect through a firewall — never directly to a switch or endpoint.',
+      hint: 'The WAN/cloud must connect through a firewall. Never directly to a switch or endpoint.',
       test: s => {
         const clouds = tbDevicesOfType(s, 'cloud');
         if (!clouds.length) return true;
@@ -2646,7 +2646,7 @@
       id: 'internal-behind-firewall',
       severity: 'warning',
       label: 'Internal switch reaches the WAN through a firewall or router',
-      hint: 'Your internal LAN should never wire straight to the cloud — put a firewall or router in the path.',
+      hint: 'Your internal LAN should never wire straight to the cloud. Put a firewall or router in the path.',
       test: s => {
         const sws = tbDevicesOfType(s, 'switch');
         if (!sws.length) return true;
@@ -2887,7 +2887,7 @@
       tour: [
         {
           title: 'Small Office',
-          body: 'The canonical small-business network — internet → firewall → one switch, a handful of PCs and a shared printer. No DMZ, no internal segmentation, no complexity. This is what most offices below ~30 people actually run.',
+          body: 'The canonical small-business network — internet → firewall → one switch, a handful of PCs and a shared printer. No DMZ, no internal segmentation, no complexity. This is what most offices below ~30 people run.',
           camera: { position: [28, 26, 36], target: [-7, 2, -2], durationMs: 1200 },
           highlight: [],
           durationMs: 12000

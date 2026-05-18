@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v4.99.93
+// Network+ AI Quiz — app.js  v5.0.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '4.99.93';
+const APP_VERSION = '5.0.2';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1022,13 +1022,13 @@ function _showDesktopOnlyNudge(featureName, featureDescription) {
   overlay.innerHTML = '' +
     '<div class="donudge-card" role="document">' +
       '<button type="button" class="donudge-close" aria-label="Close" onclick="_closeDesktopOnlyNudge()">×</button>' +
-      '<div class="donudge-icon">🖥️</div>' +
+      '<div class="donudge-icon" aria-hidden="true"></div>' +
       '<h2 class="donudge-title">' + _escNudge(featureName) + ' works best on desktop</h2>' +
       '<p class="donudge-sub">' + _escNudge(featureDescription) + '</p>' +
       '<div class="donudge-actions">' +
         (canShare
-          ? '<button type="button" class="donudge-btn donudge-btn-primary" onclick="_shareDesktopOnlyLink(' + JSON.stringify(featureName).replace(/"/g, '&quot;') + ')">📨 Send me a link to my desktop</button>'
-          : '<button type="button" class="donudge-btn donudge-btn-primary" onclick="_copyDesktopOnlyLink()">📋 Copy link to share with desktop</button>'
+          ? '<button type="button" class="donudge-btn donudge-btn-primary" onclick="_shareDesktopOnlyLink(' + JSON.stringify(featureName).replace(/"/g, '&quot;') + ')">Send me a link to my desktop</button>'
+          : '<button type="button" class="donudge-btn donudge-btn-primary" onclick="_copyDesktopOnlyLink()">Copy link to share with desktop</button>'
         ) +
         '<button type="button" class="donudge-btn donudge-btn-ghost" onclick="_closeDesktopOnlyNudge()">Maybe later</button>' +
       '</div>' +
@@ -1063,9 +1063,9 @@ async function _copyDesktopOnlyLink() {
   const url = location.origin + location.pathname;
   try {
     await navigator.clipboard.writeText(url);
-    showSuccessToast('Link copied — paste it in a desktop browser');
+    showSuccessToast('Link copied. Paste it in a desktop browser.');
   } catch (_) {
-    showErrorToast('Copy failed — link is: ' + url);
+    showErrorToast('Copy failed. Link is: ' + url);
   }
 }
 
@@ -1226,7 +1226,7 @@ function renderMonitor() {
   const topErrors = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const ghToken = localStorage.getItem(STORAGE.GH_TOKEN) || '';
-  const ghStatus = ghToken ? '🟢 Connected' : '⚪ Not configured';
+  const ghStatus = ghToken ? 'Connected' : 'Not configured';
   const reportedCount = getReportedErrors().length;
 
   statsEl.innerHTML = `
@@ -1603,7 +1603,7 @@ if ('serviceWorker' in navigator) {
       banner.setAttribute('role', 'status');
       banner.setAttribute('aria-live', 'polite');
       banner.innerHTML =
-        '<span class="sw-banner-icon" aria-hidden="true">📦</span>' +
+        '<span class="sw-banner-icon" aria-hidden="true"></span>' +
         '<span class="sw-banner-body">' +
           '<strong class="sw-banner-title">New version available</strong>' +
           '<span class="sw-banner-sub">Refresh to load the latest CertAnvil</span>' +
@@ -1784,7 +1784,7 @@ async function _loadFeature(name) {
         : '<button type="button" class="a2hs-banner-cta">Install</button>'
           + '<button type="button" class="a2hs-banner-dismiss" aria-label="Dismiss">×</button>';
       banner.innerHTML =
-        '<span class="a2hs-banner-icon" aria-hidden="true">📲</span>' +
+        '<span class="a2hs-banner-icon" aria-hidden="true"></span>' +
         '<span class="a2hs-banner-body">' +
           '<strong class="a2hs-banner-title">Install CertAnvil</strong>' +
           subCopy +
@@ -2283,7 +2283,7 @@ function renderHistoryPanel() {
   // Domain colours match the 5-colour palette used in Custom Quiz
   // accordions (v4.50.0) and Domain Mastery card.
   const DOMAIN_COLOURS = {
-    concepts:        '#7c6ff7',
+    concepts:        '#b8860b',
     implementation:  '#22c55e',
     operations:      '#3b82f6',
     security:        '#f59e0b',
@@ -2420,7 +2420,7 @@ function renderDailyGoal() {
     countEl.textContent = done;
   }
   if (pct >= 100)      msgEl.textContent = '\ud83c\udf89 Goal smashed for today!';
-  else if (pct >= 75)  msgEl.textContent = 'Almost there — push through!';
+  else if (pct >= 75)  msgEl.textContent = 'Almost there. Push through.';
   else if (pct >= 40)  msgEl.textContent = 'Solid progress. Keep going.';
   else if (done > 0)   msgEl.textContent = 'Good start. Stay consistent.';
   else                 msgEl.textContent = "Let's get started today";
@@ -4213,7 +4213,7 @@ function _buildPassPlan(session) {
   // PBQ recommendation — ACL Builder is the only PBQ today, so always rec it.
   const pbqRec = {
     title: 'Try the ACL Ordering PBQ',
-    sub: 'PBQs are weighted 3-4× on the real exam. ACL ordering is the most-confused firewall concept — build the muscle now.',
+    sub: 'PBQs are weighted 3-4× on the real exam. ACL ordering is the most-confused firewall concept. Build the muscle now.',
     cta: 'Open ACL PBQ →',
     targetFn: 'aclOpenFromPassPlan'
   };
@@ -4815,7 +4815,7 @@ function _computeNextBestMove() {
         sub: '20 questions · ~30 min · seeds your review queue',
         ctaLabel: 'Take diagnostic →',
         ctaFn: 'startDiagnostic()',
-        reason: 'Calibrated baseline before you start drilling — biggest single signal'
+        reason: 'Calibrated baseline before you start drilling. Biggest single signal.'
       };
     }
   } catch (_) {}
@@ -4839,7 +4839,7 @@ function _computeNextBestMove() {
           sub: '~' + minutes + ' min · re-encounter what you forgot',
           ctaLabel: 'Start review →',
           ctaFn: 'startSrReview()',
-          reason: 'Highest-leverage minute of study you can do today'
+          reason: 'Re-encounter forgotten material before it fades further'
         };
       }
     }
@@ -4994,7 +4994,7 @@ function renderAnalyticsActionHeadline() {
     + '<div class="ana-action-text">'
     + '<div class="ana-action-topic">' + escHtml(top.topic) + '</div>'
     + '<div class="ana-action-meta">+<strong>' + top.deltaPredicted + ' pts</strong> predicted &middot; '
-    + top.currentPct + '% → 80% · highest-leverage gap</div>'
+    + top.currentPct + '% → 80% · biggest gap</div>'
     + '</div>'
     + '<button type="button" class="ana-action-btn" onclick="focusTopic(\'' + safeTopic + '\')">Drill now →</button>'
     + '</div>';
@@ -5101,7 +5101,7 @@ function _pickRecommendedDrill() {
       sub: 'Performance-based question · closest to real exam format',
       ctaLabel: 'Open ACL PBQ →',
       ctaFn: 'openAclPbqPicker();',
-      reason: 'You\'ve mastered the drills — try the exam-format PBQ'
+      reason: 'You\'ve mastered the drills. Try the exam-format PBQ.'
     };
   }
 
@@ -5152,7 +5152,7 @@ function _pickProgressRecommendation() {
   const top = weak[0];
   const topicName = top.topic || 'Unknown';
   return {
-    eyebrow: 'Highest-leverage focus',
+    eyebrow: 'Biggest gap',
     icon: '🎯',
     headline: 'Drill ' + topicName,
     sub: 'Your weakest area right now · short focused session',
@@ -5397,7 +5397,7 @@ function _pickOsiMission() {
       sub: 'Physical + Data Link · the foundation of OSI · ~5 min',
       ctaLabel: '⚡ Start Lesson 1 →',
       ctaFn: 'setOsTab(\'learn\'); osOpenLesson(1);',
-      reason: 'Layer placement is a constant on N10-009 — start at the bottom'
+      reason: 'Layer placement is a constant on N10-009. Start at the bottom.'
     };
   }
   if (s.hasLessons && !s.hasPractice) {
@@ -5450,7 +5450,7 @@ function _pickCableMission() {
       sub: 'Cat 5e through Cat 8 · speeds, distances, differences · ~5 min',
       ctaLabel: '⚡ Start Lesson 1 →',
       ctaFn: 'setCbTab(\'learn\'); cbOpenLesson(1);',
-      reason: 'Cabling is N10-009 1.5 — pure rote that becomes muscle memory'
+      reason: 'Cabling is N10-009 1.5. Pure rote that becomes muscle memory.'
     };
   }
   if (s.hasLessons && !s.hasPractice) {
@@ -5522,7 +5522,7 @@ function _pickTopologyRecommendation() {
             eyebrow: 'Suggested scenario',
             icon: '🏗️',
             headline: m.name,
-            sub: 'Targets your weak area: ' + escHtml(weak[i].topic),
+            sub: 'Focused on your weak area: ' + escHtml(weak[i].topic),
             ctaLabel: 'Load scenario →',
             ctaFn: "tbLoadScenarioWithBuild('" + m.scen + "');",
             reason: 'Matches your weakest topic · scenario tour included'
@@ -8341,7 +8341,7 @@ function showMilestoneCelebration(milestoneId) {
   try {
     const def = (MILESTONE_DEFS || []).find(m => m.id === milestoneId);
     if (!def) return;
-    showCelebrationToast(def.icon + ' ' + def.label, def.desc);
+    showCelebrationToast(def.label, def.desc);
     launchMiniConfetti();
   } catch (_) { /* celebration is best-effort */ }
 }
@@ -9170,7 +9170,7 @@ const MILESTONE_DEFS = [
   { id: 'early_bird',       label: 'Early bird',          desc: 'Study before 7am',                       icon: '🐦' },
   { id: 'weekend_warrior',  label: 'Weekend warrior',     desc: 'Study on both Saturday and Sunday of the same week', icon: '🎽' },
   { id: 'diversity_5',      label: 'Renaissance',         desc: 'Study 5 different topics in a single day', icon: '🎨' },
-  { id: 'deep_dive_10',     label: 'Deep diver',          desc: 'Use Explain Further 10 times',           icon: '🌊' },
+  { id: 'deep_dive_10',     label: 'Curious mind',          desc: 'Use Explain Further 10 times',           icon: '🌊' },
   { id: 'daily_challenge_7',label: 'Daily disciple',      desc: '7-day Daily Challenge streak',           icon: '📅' },
   { id: 'daily_challenge_30',label:'Daily devotee',       desc: '30-day Daily Challenge streak',          icon: '🗓️' },
   // ── v4.13: Hardcore exam (#48) ──
@@ -13639,7 +13639,7 @@ async function showTopicDeepDive(topicName) {
     renderTopicDive(guide, topicName);
   } catch (e) {
     // Fallback: try to render what we can, or show error
-    contentEl.innerHTML = '<div class="topic-dive-error">⚠️ Could not generate topic guide. Please try again.<br><button class="btn btn-primary" style="margin-top:12px" onclick="showTopicDeepDive(\'' + escHtml(topicName).replace(/'/g, "\\'") + '\')">Retry</button></div>';
+    contentEl.innerHTML = '<div class="topic-dive-error">Could not generate topic guide. Please try again.<br><button class="btn btn-primary" style="margin-top:12px" onclick="showTopicDeepDive(\'' + escHtml(topicName).replace(/'/g, "\\'") + '\')">Retry</button></div>';
   }
 }
 
@@ -13778,7 +13778,7 @@ const _dnsLab = {
     { narration: 'MX records tell SMTP where to deliver mail for a domain. This is objective 1.6 — DNS record types.',   cmd: 'dig MX google.com',         expect: 'A list of mail exchangers with priority values. Lower priority wins.' },
     { narration: 'NS records list the authoritative nameservers — the servers Google designates as the source of truth for google.com.', cmd: 'dig NS google.com',          expect: 'Four ns*.google.com entries.' },
     { narration: 'TXT records hold arbitrary text. In practice they carry SPF, DKIM, and DMARC records for email security (ties into objective 4.3).', cmd: 'dig TXT google.com',        expect: 'Several TXT entries including one that starts with "v=spf1".' },
-    { narration: 'Here\'s the real magic. +trace makes dig walk the full recursive chain live — root (.) → .com → Google\'s authoritative nameservers. This is what happens every time you type a URL into a browser (unless the answer is cached).', cmd: 'dig +trace google.com',     expect: 'A multi-stage walk: 13 root nameservers → .com gTLD nameservers → ns*.google.com → final A record.' },
+    { narration: '+trace makes dig walk the full recursive chain live: root (.) → .com → Google\'s authoritative nameservers. This is what happens every time you type a URL into a browser (unless the answer is cached).', cmd: 'dig +trace google.com',     expect: 'A multi-stage walk: 13 root nameservers → .com gTLD nameservers → ns*.google.com → final A record.' },
     { narration: 'Finally, the legacy tool. nslookup is still on the N10-009 exam, so make sure you\'ve seen it at least once.', cmd: 'nslookup google.com',       expect: 'A Non-authoritative answer with an IP address.' }
   ],
   wrap: 'Great — you\'ve now seen every DNS record type the exam will throw at you, and watched recursive resolution happen live. Head back to the app and fire the DNS drill to lock it in.'
@@ -13787,7 +13787,7 @@ const _routingLab = {
   title: 'Routing & Your Real Default Gateway',
   objective: '2.2 / 5.1',
   duration: '~15 min',
-  intro: 'We\'ll trace how packets actually leave your machine and reach the internet — using YOUR real network, not a textbook diagram. The whole point: hop 1 of every traceroute from your machine is literally the router on your desk.',
+  intro: 'We\'ll trace how packets leave your machine and reach the internet — using YOUR real network, not a textbook diagram. Hop 1 of every traceroute from your machine is the router on your desk.',
   steps: [
     { narration: 'Pull your real default gateway. Write down the gateway IP — that\'s the router your packets hand off to.',                                                 cmd: 'route -n get default',       expect: 'A block of text including "gateway: x.x.x.x" — that\'s the router.' },
     { narration: 'Now look at the full routing table. Find the "default" entry (destination 0.0.0.0 or default). That\'s where packets go when nothing more specific matches.', cmd: 'netstat -rn',                expect: 'A table with destinations, gateways, flags, and interfaces. Look for the "default" row.' },
@@ -13802,7 +13802,7 @@ const _portsLab = {
   title: 'Ports & Listening Services',
   objective: '1.4 / 1.5',
   duration: '~15 min',
-  intro: 'We\'ll see real protocols running on real ports — on your own machine and on the internet. This is the lab that makes "port 443 = HTTPS" stop being a flashcard and start being muscle memory.',
+  intro: 'We\'ll see real protocols running on real ports — on your own machine and on the internet. After this lab, "port 443 = HTTPS" is muscle memory, not a flashcard.',
   steps: [
     { narration: 'First, see every port your own machine is listening on. Every LISTEN line is a service waiting for connections. Notice IPv4 (tcp4) and IPv6 (tcp6) variants.', cmd: 'netstat -an | grep LISTEN',                      expect: 'A list of local addresses in the form *.port or 127.0.0.1.port with state LISTEN.' },
     { narration: 'Same data, but with process names. Now you can see which app owns each listening port — ControlCenter on 7000, mdnsresponder on 5353, etc.',                  cmd: 'lsof -i -P -n | grep LISTEN',                    expect: 'Rows showing COMMAND, PID, USER, and the address:port with LISTEN.' },
@@ -13811,13 +13811,13 @@ const _portsLab = {
     { narration: 'Netcat scan — quickly check if specific ports are open on a remote host. scanme.nmap.org is nmap\'s official test server (free to scan, permitted by policy).', cmd: 'nc -zv scanme.nmap.org 22 80 443',               expect: 'Three lines indicating "succeeded" or "open" (or "refused" if one is closed).' },
     { narration: 'Full TCP connect scan on yourself. This is what an attacker sees from port scanning — every open listening port on your machine.',                            cmd: 'nmap -sT localhost',                             expect: 'A list of open ports with service names (e.g. 22/tcp ssh, 5353/tcp ...). Install nmap with brew install nmap if missing.' }
   ],
-  wrap: 'Now fire the Port Drill mode — you\'ve just seen a bunch of these ports actually DO something, which makes them stick.'
+  wrap: 'Now fire the Port Drill mode — you\'ve seen these ports DO something, which makes them stick.'
 };
 const _tlsLab = {
   title: 'TLS Handshake & Secure Protocols',
   objective: '4.3',
   duration: '~15 min',
-  intro: 'We\'ll peel back HTTPS and watch the TLS handshake actually happen — cert chain, SNI, cipher suite, the whole thing. This is the lab that turns "PKI" from a textbook acronym into something you\'ve seen with your own eyes.',
+  intro: 'We\'ll peel back HTTPS and watch the TLS handshake happen: cert chain, SNI, cipher suite, the whole thing. After this lab, "PKI" is something you\'ve seen, not a textbook acronym.',
   steps: [
     { narration: 'Dump the full certificate chain for Google. You\'ll see the leaf cert, an intermediate CA, and the root — the chain of trust the N10-009 objectives describe. Hit Ctrl+C when you\'re done reading.', cmd: 'openssl s_client -connect google.com:443', expect: 'Several "Certificate chain" entries with subject (s:) and issuer (i:) lines, followed by the full leaf cert in PEM format, then "SSL-Session" details including Protocol (TLSv1.3) and Cipher.' },
     { narration: 'Now do the same thing with SNI — Server Name Indication. SNI lets one IP host many HTTPS sites by telling the server which hostname you want BEFORE the cert is picked. Different servername → potentially different cert.', cmd: 'openssl s_client -connect google.com:443 -servername example.com', expect: 'A different cert chain in the response because the server now selects the cert for example.com (or a default cert if that vhost isn\'t hosted there).' },
@@ -13832,7 +13832,7 @@ const _arpLab = {
   title: 'ARP & Layer 2 Adjacency',
   objective: '2.1',
   duration: '~10 min',
-  intro: 'ARP is how Layer 3 (IP) actually reaches Layer 2 (MAC). This lab makes the abstract "ARP resolves IP to MAC" sentence concrete by letting you watch your own ARP cache populate and disappear.',
+  intro: 'ARP is how Layer 3 (IP) reaches Layer 2 (MAC). This lab makes the abstract "ARP resolves IP to MAC" sentence concrete by letting you watch your own ARP cache populate and disappear.',
   steps: [
     { narration: 'Your own MAC address. This is the L2 identity of your machine on the local network — 6 bytes, printed as hex. The first 3 bytes are the OUI (Organizationally Unique Identifier) and identify the vendor.', cmd: 'ifconfig en0 | grep ether', expect: 'A line like "ether a4:83:e7:xx:xx:xx". Write the first 3 bytes down — that\'s Apple\'s OUI block.' },
     { narration: 'Look up the OUI online to see the vendor. For Apple it should say "Apple, Inc." — this is how a switch or a network scanner identifies devices without ever resolving their IP.', cmd: 'echo "Paste your OUI at https://www.wireshark.org/tools/oui-lookup.html"', expect: 'The Wireshark lookup tool returns the vendor name for any valid OUI. Apple OUIs start with a4:83:e7, f0:18:98, etc.' },
@@ -15647,7 +15647,7 @@ function _renderAnaWrongPatterns() {
 
   return `<div class="ana-card ana-card-wp" id="ana-s-wrong-patterns">
     ${_edCardhead(`Patterns \u00b7 ${recent.length} recent mistakes`, 'Wrong-answer', 'patterns.')}
-    <div class="ana-subtitle">Clustered by cause \u2014 fix the pattern, not just the topic.</div>
+    <div class="ana-subtitle">Clustered by cause. Fix the pattern, not only the topic.</div>
     <div class="wp-list">
       ${patterns.slice(0, 4).map((p, i) => `
         <div class="wp-pattern" style="--wp-accent:${p.accent}">
@@ -18018,7 +18018,7 @@ function ptrRenderDashboard() {
       <div>
         <div class="ptr-dash-eyebrow">Drill · Network+</div>
         <h2 class="ptr-dash-title">Packet Trace</h2>
-        <p class="ptr-dash-sub">${PT_DATA.length} curated scenarios. Walk a packet through each network hop-by-hop, answer a question at each step.</p>
+        <p class="ptr-dash-sub">${PT_DATA.length} scenarios. Walk a packet through each network hop-by-hop, answer a question at each step.</p>
       </div>
       <div class="ptr-dash-stats">
         <div><div class="ptr-dash-stat-num">${masteredCount}</div><div>scenarios mastered</div></div>
@@ -19059,16 +19059,13 @@ function renderAppSidebar() {
   const certShortLabel = (CERT_PACK && CERT_PACK.meta)
     ? CERT_PACK.meta.name.replace('CompTIA ', '') + ' ' + CERT_PACK.meta.code
     : 'Network+ N10-009';
-  // M14 inline SVG: hammer (rotated -25°, accent bronze) + anvil silhouette
-  // + single warm spark. Uses CSS currentColor via inline style vars so the
-  // mark adapts across themes (v4.99.86 editorial de-purple).
-  const brandSvg = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-    + '<g transform="rotate(-25 35 30)">'
-    + '<rect x="20" y="20" width="32" height="12" rx="2" class="sb-brand-hammer"/>'
-    + '<rect x="32" y="32" width="6" height="22" class="sb-brand-handle"/>'
-    + '</g>'
-    + '<path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" class="sb-brand-anvil"/>'
-    + '<circle cx="55" cy="50" r="3" class="sb-brand-spark"/>'
+  // C/A monogram inline SVG: stylised C upper-left, diagonal slash, A lower-right.
+  // Stroke-only design per the locked mockup at mockups/certanvil-ca-monogram-concept.html.
+  // Uses CSS classes so dg-system.css can theme strokes across dark/light.
+  const brandSvg = '<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    + '<path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" class="sb-brand-c" stroke-width="7" stroke-linecap="round"/>'
+    + '<line x1="30" y1="84" x2="70" y2="16" class="sb-brand-slash" stroke-width="5" stroke-linecap="round"/>'
+    + '<path d="M46 88 L64 50 L82 88 M53 74 L75 74" class="sb-brand-a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
     + '</svg>';
   el.innerHTML = `
     <a class="sb-brand sb-brand-link" href="https://certanvil.com/" title="Back to CertAnvil home">

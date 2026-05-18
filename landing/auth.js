@@ -231,7 +231,7 @@
     if (authSubText) {
       authSubText.textContent = isPlaytest
         ? 'Tester credentials only. The rest of the world uses magic links.'
-        : "Drop your email and we'll send a one-click sign-in link. New here? Same form — your account gets created automatically.";
+        : "Drop your email and we'll send a one-click sign-in link. New here? Same form; your account gets created automatically.";
     }
     if (authSubmit) {
       authSubmit.textContent = isPlaytest ? 'Sign in →' : 'Continue with email →';

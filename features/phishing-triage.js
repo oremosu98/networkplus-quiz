@@ -245,7 +245,7 @@
     html += `<div class="pht-rd-subj">${escHtml(scen.subject)}</div>`;
     html += '<div class="pht-rd-from-row">';
     const av = scen.sender.avatar || '??';
-    const avC = scen.sender.avatarColor || '#7c6ff7';
+    const avC = scen.sender.avatarColor || '#b8860b';
     html += `<span class="pht-rd-avatar" style="background:${avC};">${escHtml(av)}</span>`;
     html += `<strong>${escHtml(scen.sender.name)}</strong> <span class="pht-rd-faded">&lt;<span class="flag" data-fid="sender-email" onclick="phtToggleFlag(event, 'sender-email')">${escHtml(scen.sender.email)}</span>&gt;</span>`;
     html += '</div>';
@@ -442,7 +442,7 @@
     html += '<div class="pht-voice-tips">';
     html += '<div class="pht-voice-tips-h">Vishing-specific flags</div>';
     html += '<ul>';
-    html += '<li>Caller-ID can be spoofed — never trust alone</li>';
+    html += '<li>Caller-ID can be spoofed. Never trust it alone.</li>';
     html += '<li>Microsoft / Apple / IRS / SSA NEVER call you</li>';
     html += '<li>SSN / arrest / warrant threats = scam</li>';
     html += '<li><strong>Gift cards / Bitcoin = always scam</strong></li>';

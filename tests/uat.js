@@ -16528,24 +16528,25 @@ test('v4.87.3 PassProof: tombstone — old "using this tool" copy removed',
   !/767\/900[\s\S]{0,200}using this tool/.test(html));
 
 // ═══════════════════════════════════════════════════════════════════════
-// v4.87.4 — M14 logo lockup adopted (hammer + anvil + spark). Replaces
-// the "CA" text placeholder in the sidebar with the inline SVG logo.
-// Same SVG also serves as favicon, apple-touch-icon, and PWA manifest
-// icon — single source for all logo surfaces.
+// v4.87.4 → v5.0.2: brand mark upgraded from M14 hammer+anvil to C/A monogram.
+// The C/A monogram is a stroke-only SVG: stylised C, diagonal slash, A.
+// Per locked mockup at mockups/certanvil-ca-monogram-concept.html.
 // ═══════════════════════════════════════════════════════════════════════
 
 test('v4.87.4 Logo: brandSvg const declared in renderAppSidebar',
   /const\s+brandSvg\s*=\s*['"`]<svg/.test(js));
-test('v4.87.4 Logo: M14 hammer rotated -25° present',
-  /transform="rotate\(-25 35 30\)"/.test(js));
-test('v4.87.4 Logo: M14 anvil silhouette path present',
-  /M30 60 L82 60[\s\S]{0,100}class="sb-brand-anvil"/.test(js));
-test('v4.87.4 Logo: M14 amber spark circle present',
-  /circle cx="55" cy="50" r="3" class="sb-brand-spark"/.test(js));
+test('v5.0.2 Logo: C/A monogram C-arc path present',
+  /M58 12 C42 6, 16 16, 14 34[\s\S]{0,100}class="sb-brand-c"/.test(js));
+test('v5.0.2 Logo: C/A monogram slash line present',
+  /x1="30" y1="84" x2="70" y2="16"[\s\S]{0,60}class="sb-brand-slash"/.test(js));
+test('v5.0.2 Logo: C/A monogram A-legs path present',
+  /M46 88 L64 50 L82 88[\s\S]{0,80}class="sb-brand-a"/.test(js));
 test('v4.87.4 Logo: sidebar mark renders ${brandSvg} not "CA" text',
   /sb-brand-mark[^>]*>\$\{brandSvg\}<\/div>/.test(js));
 test('v4.87.4 Logo: tombstone — "CA" text content removed from sidebar mark',
   !/sb-brand-mark[^>]*>CA<\/div>/.test(js));
+test('v5.0.2 Logo: tombstone — old M14 hammer+anvil removed',
+  !/rotate\(-25 35 30\)/.test(js) && !/sb-brand-anvil/.test(js) && !/sb-brand-spark/.test(js));
 
 test('v4.87.4 Favicon: index.html links favicon.svg',
   /<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="favicon\.svg"/.test(html));

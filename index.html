@@ -208,7 +208,7 @@
     <div class="dgh-greet">
       <div class="dgh-eyebrow" id="hero-v2-eyebrow">&mdash;</div>
       <h1 class="dgh-h1" id="hero-v2-display">Good afternoon, <span class="name">Simi.</span></h1>
-      <p class="dgh-sub" id="hero-v2-lede">Complete your first quiz to activate your readiness score. <strong>Fifteen focused minutes</strong> now compounds more than an hour tomorrow.</p>
+      <p class="dgh-sub" id="hero-v2-lede">Complete your first quiz to see your readiness score. Start with <strong>fifteen minutes</strong> today.</p>
     </div>
     <div class="dgh-rd" id="readiness-card-v2">
       <div class="dgh-rd-k">Exam readiness &middot; scaled 100&ndash;900</div>
@@ -252,7 +252,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v4.99.93</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v5.0.2</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -293,7 +293,7 @@
     <div class="dgh-band-l">
       <div class="dgh-band-k">Spaced repetition &middot; daily review</div>
       <div class="dgh-band-h" id="sr-review-card-headline">0 cards due</div>
-      <div class="dgh-band-p">Re-encounter what you have forgotten. Items resurface on a growing schedule until they stick.</div>
+      <div class="dgh-band-p">Re-encounter what you have forgotten. Each card comes back on a growing interval.</div>
     </div>
     <span class="dgh-band-meta" id="sr-review-card-stats"></span>
     <button type="button" class="dgh-cta ghost" id="sr-review-start-btn" onclick="startSrReview()">Start review</button>
@@ -316,7 +316,7 @@
     </div>
     <!-- v4.73.0: prediction line with confidence interval + pass probability -->
     <div class="readiness-prediction" id="readiness-prediction" hidden></div>
-    <div class="readiness-action" id="readiness-action">Complete your first quiz to activate your readiness score.</div>
+    <div class="readiness-action" id="readiness-action">Complete your first quiz to see your readiness score.</div>
     <div class="readiness-exam-row" id="readiness-exam-row">
       <!-- v4.46.1: single chip (built by _buildExamDateChipHtml) replaces old
            3-element row (label + button + countdown). Fills on renderReadinessCard. -->
@@ -379,7 +379,7 @@
     <p class="dgh-sub">Three commitment levels. Start where your time and energy are right now.</p>
 
     <div class="dgh-grp">
-      <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily-habit fuel &middot; low-friction wins</span></div>
+      <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily habit &middot; quick wins</span></div>
       <div class="dgh-opts">
         <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
         <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
@@ -747,7 +747,7 @@
       <div class="pass-plan-pbq-icon">🔧</div>
       <div class="pass-plan-pbq-text">
         <div class="pass-plan-pbq-title" id="pass-plan-pbq-title">Try the ACL Ordering PBQ</div>
-        <div class="pass-plan-pbq-sub" id="pass-plan-pbq-sub">PBQs are weighted 3-4× on the real exam. Build the muscle now.</div>
+        <div class="pass-plan-pbq-sub" id="pass-plan-pbq-sub">PBQs carry 3-4× weight on the real exam. Start practising now.</div>
       </div>
       <a href="#" class="pass-plan-pbq-cta" id="pass-plan-pbq-cta" onclick="event.preventDefault();aclOpenFromPassPlan()">Open ACL PBQ →</a>
     </div>
@@ -954,7 +954,7 @@
   <div id="sr-empty" class="sr-empty" hidden>
     <div class="sr-empty-icon"></div>
     <h2>Queue empty</h2>
-    <p>No cards are due right now. Come back later — items reschedule based on your last review and resurface when due.</p>
+    <p>No cards are due right now. Come back later — each card is rescheduled based on your last review and reappears when due.</p>
     <button class="btn btn-primary" onclick="goSetup()">Back to home</button>
   </div>
   <div id="sr-complete" class="sr-empty" hidden>
@@ -1004,7 +1004,7 @@
     <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="sc-sub"></p>
   </div>
   <div id="sc-results"></div>
-  <button class="btn btn-primary btn-full" onclick="startSession()">New Session &#9889;</button>
+  <button class="btn btn-primary btn-full" onclick="startSession()">New Session</button>
   <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="goSetup()">&#8592; Back to Menu</button>
 </div>
 
@@ -1278,7 +1278,7 @@
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Muscle memory &middot; fast feedback</div>
       <h1 class="ed-pagehead-display">Interactive <em>drills.</em></h1>
-      <p class="ed-pagehead-lede">Drills for the rote parts of Network+ — muscle memory and tool-recognition. Pick one.</p>
+      <p class="ed-pagehead-lede">Drills for the rote parts of Network+: muscle memory and tool recognition. Pick one.</p>
     </div>
   </div>
   <!-- v4.78.0: per-page recommendation. Surfaces weakest drill so the
@@ -1343,7 +1343,7 @@
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Network analysis tools &middot; CompTIA Domain 5.5</div>
       <h1 class="ed-pagehead-display">Network <em>analysis.</em></h1>
-      <p class="ed-pagehead-lede">tcpdump, Wireshark, Nmap, and output reading. The tools that trip people up most.</p>
+      <p class="ed-pagehead-lede">tcpdump, Wireshark, Nmap, and output reading. The tools people find hardest.</p>
     </div>
   </div>
 
@@ -1662,7 +1662,7 @@
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Flagship drill &middot; Security+ &middot; Domain 4</div>
       <h1 class="ed-pagehead-display">IR <em>war room.</em></h1>
-      <p class="ed-pagehead-lede">Walk a real incident through PICERL — Preparation, Identification, Containment, Eradication, Recovery, Lessons Learned.</p>
+      <p class="ed-pagehead-lede">Walk a real incident through PICERL: Preparation, Identification, Containment, Eradication, Recovery, Lessons Learned.</p>
     </div>
     <span id="irw-streak-badge" class="irw-streak-badge">0</span>
   </div>
@@ -1696,7 +1696,7 @@
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Flagship drill &middot; Security+ &middot; Domain 2</div>
       <h1 class="ed-pagehead-display">Phishing <em>triage.</em></h1>
-      <p class="ed-pagehead-lede">Spot the red flags. Pick the right action. Across email, SMS, voice, and QR — every form Sec+ tests.</p>
+      <p class="ed-pagehead-lede">Spot the red flags. Pick the right action. Across email, SMS, voice, and QR: the forms Sec+ tests.</p>
     </div>
     <span id="pht-streak-badge" class="pht-streak-badge">0</span>
   </div>
@@ -1886,7 +1886,7 @@
         <span class="settings-group-num">&sect; 01</span>
         <div class="settings-group-titles">
           <h2 class="settings-group-h">Study <em>setup</em></h2>
-          <p class="settings-group-sub">Goals, exam date, and at-a-glance status &mdash; the inputs that shape your daily study cadence.</p>
+          <p class="settings-group-sub">Goals, exam date, and at-a-glance status. These set your daily study cadence.</p>
         </div>
       </div>
       <!-- v4.81.11: Study Setup Health card (Codex r9 #5) -->
@@ -1902,7 +1902,7 @@
         <div class="settings-exam-row" id="settings-exam-row">
           <!-- Populated by syncSettingsExamDate() on every Settings page visit -->
         </div>
-        <p class="settings-section-hint">Powers the <strong>days until exam</strong> countdown on Home + Analytics, and the red marker cell on the 365-day study heatmap. Set it &mdash; keep your study pressure honest.</p>
+        <p class="settings-section-hint">Powers the <strong>days until exam</strong> countdown on Home + Analytics, and the red marker cell on the 365-day study heatmap. Set it to keep your study pressure honest.</p>
       </section>
       <!-- v4.54.10: editable daily question goal. -->
       <section class="card settings-section">
@@ -1954,7 +1954,7 @@
       <!-- v4.81.2: automatic-backup safety net -->
       <section class="card settings-section">
         <h3 class="settings-section-title">Automatic backups</h3>
-        <p class="settings-section-hint" style="margin-top:0;margin-bottom:10px">Daily rolling snapshots of every progress key in your browser. Kept for the last 7 days plus any pre-restore safety snapshots. Restore rolls back ALL of your data to that day&#39;s state &mdash; current state is auto-snapshotted first so you can roll forward again.</p>
+        <p class="settings-section-hint" style="margin-top:0;margin-bottom:10px">Daily rolling snapshots of every progress key in your browser. Kept for the last 7 days plus any pre-restore safety snapshots. Restore rolls back ALL of your data to that day&#39;s state; current state is auto-snapshotted first, so you can roll forward again.</p>
         <div id="autobackup-list" class="autobackup-list">
           <div class="ab-empty">No automatic backups yet &mdash; one will be created on your next page load.</div>
         </div>
@@ -1971,7 +1971,7 @@
         <span class="settings-group-num">&sect; 03</span>
         <div class="settings-group-titles">
           <h2 class="settings-group-h">Danger <em>zone</em></h2>
-          <p class="settings-group-sub">Destructive actions. Cannot be undone via Edit menu &mdash; only via Automatic Backups in &sect; 02.</p>
+          <p class="settings-group-sub">Destructive actions. Cannot be undone via Edit menu. Use Automatic Backups in &sect; 02 to recover.</p>
         </div>
       </div>
       <section class="card settings-section settings-section-danger">
@@ -2050,7 +2050,7 @@
   <div id="tb-mobile-nudge" class="tb-mobile-nudge is-hidden">
     <div class="tb-mobile-nudge-icon">&#128187;</div>
     <h3>Topology Builder works best on a desktop</h3>
-    <p>Drag and drop + precise cable wiring don&rsquo;t translate well to small screens. Grab a laptop or external monitor for the best experience.</p>
+    <p>Drag and drop + precise cable wiring don&rsquo;t translate well to small screens. Use a laptop or external monitor.</p>
     <button class="btn btn-ghost" onclick="tbForceOpen()">Open Anyway</button>
   </div>
 
@@ -2415,7 +2415,7 @@
           <div class="tb-3d-mobile-nudge" id="tb-3d-mobile-nudge">
             <div class="tb-3d-mobile-icon">&#128241;</div>
             <h3>3D View works best on desktop</h3>
-            <p>Orbit, zoom, and click-to-inspect aren't well tuned for small touchscreens yet. Head to a laptop or external monitor for the full effect.</p>
+            <p>Orbit, zoom, and click-to-inspect aren't well tuned for small touchscreens yet. Use a laptop or external monitor.</p>
             <button type="button" class="btn btn-ghost" onclick="tb3dDismissMobileNudge()">Open anyway</button>
           </div>
         </div>
@@ -2738,7 +2738,7 @@
     <div class="acl-modal-backdrop" onclick="aclCloseCoachModal()"></div>
     <div class="acl-modal-card">
       <div class="acl-modal-head">
-        <h3 id="acl-coach-modal-title" class="acl-modal-title">&#129302; ACL Coach</h3>
+        <h3 id="acl-coach-modal-title" class="acl-modal-title">ACL Coach</h3>
         <button type="button" class="acl-modal-close" onclick="aclCloseCoachModal()" aria-label="Close coach">&times;</button>
       </div>
       <div id="acl-coach-body" class="acl-modal-body"></div>
@@ -2752,13 +2752,13 @@
 <div id="page-monitor" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
     <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
-    <h2>&#128737;&#65039; Production Monitor</h2>
+    <h2>Production Monitor</h2>
   </div>
   <div class="monitor-stats" id="monitor-stats"></div>
   <div class="monitor-actions">
-    <button class="btn btn-ghost" onclick="copyErrorLog()" style="font-size:13px">&#128203; Copy Log</button>
-    <button class="btn btn-ghost" onclick="exportErrorLog()" style="font-size:13px">&#128229; Export JSON</button>
-    <button class="btn btn-danger" onclick="clearErrorLog()" style="font-size:13px">&#128465; Clear All</button>
+    <button class="btn btn-ghost" onclick="copyErrorLog()" style="font-size:13px">Copy Log</button>
+    <button class="btn btn-ghost" onclick="exportErrorLog()" style="font-size:13px">Export JSON</button>
+    <button class="btn btn-danger" onclick="clearErrorLog()" style="font-size:13px">Clear All</button>
   </div>
   <div id="monitor-log" class="monitor-log"></div>
 </div>

@@ -91,7 +91,7 @@
         passScore: 720,
         examName: 'Network+ N10-009',
         cta: { label: 'Open →', href: 'https://networkplus.certanvil.com/?cert=netplus' },
-        coachActive: 'Foundation cert — opens the door to CCNA, AWS networking, and beyond.'
+        coachActive: 'Foundation cert. Leads to CCNA, AWS networking, and cloud tracks.'
       },
       {
         id: 'secplus',
@@ -107,7 +107,7 @@
         cta: role === 'admin'
           ? { label: 'Resume →', href: 'https://networkplus.certanvil.com/?cert=secplus' }
           : { label: 'Upgrade →', href: '#', disabled: true, title: 'Stripe billing coming with Phase G' },
-        coachActive: 'Builds on N+ — 65% knowledge transfer from Network+.'
+        coachActive: 'Builds on N+. 65% knowledge transfer from Network+.'
       },
       {
         id: 'az900',
@@ -229,7 +229,7 @@
       +       escapeHtml(cert.name)
       +       ' <span class="cca-pr-status-pill cca-pr-status-passed">✓ Passed</span>'
       +     '</div>'
-      +     '<div class="cca-pr-coach">Maintenance practice — keep your knowledge sharp for related certs</div>'
+      +     '<div class="cca-pr-coach">Maintenance practice. Keep your knowledge sharp for related certs.</div>'
       +   '</div>'
       +   '<div class="cca-pr-readiness">'
       +     '<div class="cca-pr-readiness-label">'
@@ -391,7 +391,7 @@
       +       escapeHtml(cert.name)
       +       ' <span class="cca-pr-status-pill cca-pr-status-soon">Pro only</span>'
       +     '</div>'
-      +     '<div class="cca-pr-coach">Upgrade to Pro to unlock — 65% transfers from Network+</div>'
+      +     '<div class="cca-pr-coach">Upgrade to Pro to unlock. 65% transfers from Network+.</div>'
       +   '</div>'
       +   '<div class="cca-pr-readiness cca-pr-readiness-empty">'
       +     '<div class="cca-pr-readiness-label">'

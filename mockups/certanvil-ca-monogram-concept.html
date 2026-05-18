@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil Logo System · C/A Monogram + Wordmark</title>
+<!--
+  CONCEPT. Two-part logo system:
+  1. WORDMARK — "CERTANVIL" with CERT in neutral ink, ANVIL in bronze accent.
+     This IS the site name / primary logo. Used in topbar, hero, footer.
+  2. C/A MONOGRAM — hand-drawn by founder. A stylised "C" upper-left
+     connected by a diagonal slash to an "A" lower-right. Used as the
+     SVG favicon, PWA icon, app sidebar brand mark, email header, OG.
+  Both shown at multiple sizes, both themes, in context.
+-->
+<style>
+  :root {
+    --dark-bg: oklch(0.16 0.009 275);
+    --dark-surface: oklch(0.19 0.009 275);
+    --dark-text: oklch(0.96 0.006 275);
+    --dark-dim: oklch(0.55 0.013 275);
+    --dark-border: oklch(0.28 0.008 275);
+
+    --light-bg: oklch(0.975 0.007 85);
+    --light-surface: oklch(0.99 0.004 85);
+    --light-text: oklch(0.22 0.015 280);
+    --light-dim: oklch(0.50 0.013 280);
+    --light-border: oklch(0.85 0.008 85);
+
+    --brass-dark: oklch(0.80 0.155 64);
+    --brass-light: oklch(0.50 0.155 55);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+
+  body {
+    font-family: Inter, -apple-system, system-ui, sans-serif;
+    background: #111114;
+    color: #e8e8ee;
+    padding: 48px 32px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6a6a76;
+    margin-bottom: 6px;
+  }
+
+  .note {
+    font-size: 13px;
+    color: #7a7a86;
+    max-width: 65ch;
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #5a5a66;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2a2a32;
+  }
+
+  /* theme stages */
+  .panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .stage {
+    border-radius: 14px;
+    padding: 40px 36px;
+    border: 1px solid;
+  }
+  .stage.dark {
+    background: var(--dark-bg);
+    color: var(--dark-text);
+    border-color: var(--dark-border);
+  }
+  .stage.light {
+    background: var(--light-bg);
+    color: var(--light-text);
+    border-color: var(--light-border);
+  }
+  .stage h2 {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.45;
+    margin-bottom: 28px;
+    font-weight: 700;
+  }
+
+  /* ─────────────────────────────────────────
+     THE C/A MONOGRAM SVG
+     ───────────────────────────────────────── */
+
+  .monogram-grid {
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .mono-size {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .mono-size .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+  }
+
+  .mono-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid;
+    overflow: hidden;
+    flex: none;
+  }
+  .stage.dark .mono-box {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+  }
+  .stage.light .mono-box {
+    background: var(--light-surface);
+    border-color: var(--light-border);
+  }
+  .mono-box svg {
+    display: block;
+  }
+
+  /* favicon-tiny needs tighter radius */
+  .mono-box.sz-16 { border-radius: 4px; }
+  .mono-box.sz-32 { border-radius: 6px; }
+
+  /* ─────────────────────────────────────────
+     WORDMARK
+     ───────────────────────────────────────── */
+
+  .wordmark {
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+  }
+  .stage.dark .wordmark {
+    color: var(--dark-dim);
+  }
+  .stage.light .wordmark {
+    color: var(--light-dim);
+  }
+  .wordmark .anvil {
+    color: var(--brass-dark);
+  }
+  .stage.light .wordmark .anvil {
+    color: var(--brass-light);
+  }
+
+  /* ─────────────────────────────────────────
+     TOPBAR LOCKUP (icon + wordmark)
+     ───────────────────────────────────────── */
+
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .lockup .mono-box {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+  }
+  .lockup .wordmark {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+  }
+
+  /* hero-scale lockup */
+  .hero-lockup {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .hero-lockup .mono-box {
+    width: 52px;
+    height: 52px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+  .hero-word {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .stage.dark .hero-word { color: var(--dark-text); }
+  .stage.light .hero-word { color: var(--light-text); }
+  .hero-word .anvil { color: var(--brass-dark); }
+  .stage.light .hero-word .anvil { color: var(--brass-light); }
+
+  /* ─────────────────────────────────────────
+     ICON-ONLY ROW (favicon, PWA, sidebar)
+     ───────────────────────────────────────── */
+
+  .sizes-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid;
+  }
+  .stage.dark .sizes-row { border-color: var(--dark-border); }
+  .stage.light .sizes-row { border-color: var(--light-border); }
+
+  /* ─────────────────────────────────────────
+     SIDEBAR CONTEXT
+     ───────────────────────────────────────── */
+
+  .sidebar-mock {
+    width: 220px;
+    padding: 16px 14px;
+    border-radius: 12px;
+    border: 1px solid;
+  }
+  .stage.dark .sidebar-mock {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+  }
+  .stage.light .sidebar-mock {
+    background: var(--light-surface);
+    border-color: var(--light-border);
+  }
+
+  .sb-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid;
+  }
+  .stage.dark .sb-brand-row { border-color: var(--dark-border); }
+  .stage.light .sb-brand-row { border-color: var(--light-border); }
+
+  .sb-brand-row .mono-box {
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    border-radius: 7px;
+  }
+  .sb-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sb-brand-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .sb-brand-name .anvil { color: var(--brass-dark); }
+  .stage.light .sb-brand-name .anvil { color: var(--brass-light); }
+  .sb-brand-sub {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.35;
+    letter-spacing: 0.04em;
+  }
+
+  .sb-nav-item {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 6px;
+    opacity: 0.5;
+    margin-bottom: 2px;
+  }
+  .sb-nav-item.active {
+    opacity: 1;
+    font-weight: 600;
+  }
+  .stage.dark .sb-nav-item.active {
+    background: color-mix(in oklab, var(--brass-dark) 8%, transparent);
+    color: var(--brass-dark);
+  }
+  .stage.light .sb-nav-item.active {
+    background: color-mix(in oklab, var(--brass-light) 10%, transparent);
+    color: var(--brass-light);
+  }
+
+  /* ─────────────────────────────────────────
+     TOPBAR CONTEXT
+     ───────────────────────────────────────── */
+
+  .topbar-mock {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 1px solid;
+  }
+  .stage.dark .topbar-mock {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+  }
+  .stage.light .topbar-mock {
+    background: var(--light-surface);
+    border-color: var(--light-border);
+  }
+
+  .topbar-mock .mono-box {
+    width: 28px;
+    height: 28px;
+    padding: 3px;
+    border-radius: 6px;
+  }
+  .topbar-nav {
+    display: flex;
+    gap: 20px;
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.45;
+  }
+
+  /* ─────────────────────────────────────────
+     COMPARISON: OLD vs NEW
+     ───────────────────────────────────────── */
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  .compare-col {
+    padding: 32px 28px;
+    border-radius: 14px;
+    border: 1px solid var(--dark-border);
+    background: var(--dark-bg);
+  }
+  .compare-col h3 {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.35;
+    margin-bottom: 20px;
+  }
+  .compare-col .old-mark {
+    width: 48px;
+    height: 48px;
+    background: oklch(0.19 0.009 275);
+    border: 1px solid var(--dark-border);
+    border-radius: 10px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>CertAnvil Logo System</h1>
+<p class="note">
+  Two-part brand identity. (1) The wordmark CERT<b style="color:var(--brass-dark)">ANVIL</b> with CERT
+  in neutral ink and ANVIL in forged bronze. This is the primary site name. (2) The C/A monogram:
+  a stylised C above-left, diagonal slash, A below-right. Used as app icon, favicon, PWA, sidebar brand mark.
+  Both shown at operational sizes, both themes.
+</p>
+
+<!-- ══════════════════════════════════════════
+     SECTION 1: THE MONOGRAM AT SIZES
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">1. The C/A monogram at every operational size</div>
+
+<div class="panel">
+  <!-- DARK -->
+  <div class="stage dark">
+    <h2>Dark theme</h2>
+    <div class="monogram-grid">
+
+      <div class="mono-size">
+        <div class="mono-box sz-16" style="width:16px;height:16px;padding:1px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="10" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="7" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">16</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box sz-32" style="width:32px;height:32px;padding:3px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="8" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="6" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">32</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:48px;height:48px;padding:5px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">48</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:72px;height:72px;padding:8px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">72</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:120px;height:120px;padding:14px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="4" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">120 (PWA)</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LIGHT -->
+  <div class="stage light">
+    <h2>Light theme</h2>
+    <div class="monogram-grid">
+
+      <div class="mono-size">
+        <div class="mono-box sz-16" style="width:16px;height:16px;padding:1px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="10" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="7" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">16</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box sz-32" style="width:32px;height:32px;padding:3px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="8" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="6" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">32</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:48px;height:48px;padding:5px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">48</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:72px;height:72px;padding:8px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">72</span>
+      </div>
+
+      <div class="mono-size">
+        <div class="mono-box" style="width:120px;height:120px;padding:14px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="4" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="label">120 (PWA)</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     SECTION 2: WORDMARK + MONOGRAM LOCKUP
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">2. Topbar lockup (monogram + wordmark)</div>
+
+<div class="panel">
+  <div class="stage dark">
+    <h2>Dark theme</h2>
+
+    <!-- topbar-scale -->
+    <div class="lockup">
+      <div class="mono-box" style="padding:4px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="wordmark">CERT<span class="anvil">ANVIL</span></span>
+    </div>
+
+    <!-- hero-scale -->
+    <div class="hero-lockup">
+      <div class="mono-box" style="padding:7px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="hero-word">Cert<span class="anvil">Anvil</span></span>
+    </div>
+
+  </div>
+
+  <div class="stage light">
+    <h2>Light theme</h2>
+
+    <!-- topbar-scale -->
+    <div class="lockup">
+      <div class="mono-box" style="padding:4px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="wordmark">CERT<span class="anvil">ANVIL</span></span>
+    </div>
+
+    <!-- hero-scale -->
+    <div class="hero-lockup">
+      <div class="mono-box" style="padding:7px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="4" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="hero-word">Cert<span class="anvil">Anvil</span></span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     SECTION 3: IN-CONTEXT — SIDEBAR
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">3. In context: app sidebar brand</div>
+
+<div class="panel">
+  <div class="stage dark">
+    <h2>Dark theme</h2>
+    <div class="sidebar-mock">
+      <div class="sb-brand-row">
+        <div class="mono-box" style="padding:3px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="sb-brand-text">
+          <span class="sb-brand-name">Cert<span class="anvil">Anvil</span></span>
+          <span class="sb-brand-sub">Network+ N10-009</span>
+        </div>
+      </div>
+      <div class="sb-nav-item active">Home</div>
+      <div class="sb-nav-item">Progress</div>
+      <div class="sb-nav-item">Analytics</div>
+      <div class="sb-nav-item">Network Builder</div>
+    </div>
+  </div>
+
+  <div class="stage light">
+    <h2>Light theme</h2>
+    <div class="sidebar-mock">
+      <div class="sb-brand-row">
+        <div class="mono-box" style="padding:3px;">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+            <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="sb-brand-text">
+          <span class="sb-brand-name">Cert<span class="anvil">Anvil</span></span>
+          <span class="sb-brand-sub">Network+ N10-009</span>
+        </div>
+      </div>
+      <div class="sb-nav-item active">Home</div>
+      <div class="sb-nav-item">Progress</div>
+      <div class="sb-nav-item">Analytics</div>
+      <div class="sb-nav-item">Network Builder</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     SECTION 4: IN-CONTEXT — LANDING TOPBAR
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">4. In context: landing topbar</div>
+
+<div class="panel">
+  <div class="stage dark">
+    <h2>Dark theme</h2>
+    <div class="topbar-mock">
+      <div class="mono-box" style="padding:3px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="wordmark" style="font-size:14px;">CERT<span class="anvil">ANVIL</span></span>
+      <div class="topbar-nav">
+        <span>Why CertAnvil</span>
+        <span>Certs</span>
+        <span>Pricing</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage light">
+    <h2>Light theme</h2>
+    <div class="topbar-mock">
+      <div class="mono-box" style="padding:3px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--light-dim)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="wordmark" style="font-size:14px;">CERT<span class="anvil">ANVIL</span></span>
+      <div class="topbar-nav">
+        <span>Why CertAnvil</span>
+        <span>Certs</span>
+        <span>Pricing</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     SECTION 5: BEFORE / AFTER
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">5. Before / after comparison</div>
+
+<div class="compare">
+  <div class="compare-col">
+    <h3>Before (hammer + anvil)</h3>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="old-mark">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-25 35 30)">
+            <rect x="20" y="20" width="32" height="12" rx="2" fill="#7c6ff7"/>
+            <rect x="32" y="32" width="6" height="22" fill="#3d3870"/>
+          </g>
+          <path d="M30 60 L82 60 L77 65 L75 72 L80 72 L80 80 L32 80 L32 72 L37 72 L35 65 Z" fill="#f0f0f8"/>
+          <circle cx="55" cy="50" r="3" fill="#f59e0b"/>
+        </svg>
+      </div>
+      <span style="font-size:15px;font-weight:700;letter-spacing:0.1em;color:var(--dark-dim);">CERTANVIL</span>
+    </div>
+    <p style="font-size:11px;color:#5a5a66;margin-top:14px;line-height:1.5;">
+      Purple hammer on anvil. Illustrative. Loses detail at favicon size.
+      Purple does not match the editorial bronze system.
+    </p>
+  </div>
+
+  <div class="compare-col" style="border-color:var(--brass-dark);">
+    <h3>After (C/A monogram)</h3>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="mono-box" style="width:48px;height:48px;padding:5px;">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--dark-dim)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--brass-dark)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="wordmark" style="font-size:15px;">CERT<span class="anvil">ANVIL</span></span>
+    </div>
+    <p style="font-size:11px;color:#5a5a66;margin-top:14px;line-height:1.5;">
+      Stroke-only monogram. Reads at 16px. Bronze accent carries the
+      editorial system. Founder-drawn, not generated.
+    </p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     SECTION 6: STANDALONE MONOGRAM (large, for review)
+     ══════════════════════════════════════════ -->
+
+<div class="section-label">6. Monogram detail (review scale)</div>
+
+<div class="panel">
+  <div class="stage dark" style="display:flex;align-items:center;justify-content:center;padding:60px;">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <!-- C: full open arc, upper-left quadrant -->
+      <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64"
+            stroke="var(--brass-dark)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+      <!-- Slash: diagonal connector between C and A -->
+      <line x1="30" y1="84" x2="70" y2="16"
+            stroke="var(--dark-dim)" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- A: two legs meeting at apex + crossbar, lower-right -->
+      <path d="M46 88 L64 50 L82 88 M53 74 L75 74"
+            stroke="var(--brass-dark)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="stage light" style="display:flex;align-items:center;justify-content:center;padding:60px;">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64"
+            stroke="var(--brass-light)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+      <line x1="30" y1="84" x2="70" y2="16"
+            stroke="var(--light-dim)" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M46 88 L64 50 L82 88 M53 74 L75 74"
+            stroke="var(--brass-light)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </div>
+</div>
+
+</body>
+</html>
