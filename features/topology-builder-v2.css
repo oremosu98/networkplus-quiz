@@ -5,24 +5,24 @@
    · mockups/network-builder-revamp-concept.html (canvas bible)
    · mockups/network-builder-modes-concept.html (modes bible)
 
-   All rules scoped under #page-topology-v2 — zero collision with V1.
+   All rules scoped under #page-topology-builder-v2 — zero collision with V1.
    Uses the dg token system (var(--accent), var(--bg), etc.) set by
    dg-system.css. 0 hardcoded hex in color values. 0 emoji. 0 em-dash.
    ════════════════════════════════════════════════════════════════════════ */
 
 /* ── Full-viewport takeover (hide app chrome when V2 is active) ──────── */
-html:has(#page-topology-v2.page.active) #app-sidebar,
-html:has(#page-topology-v2.page.active) #app-topbar,
-html:has(#page-topology-v2.page.active) #sb-mobile-toggle {
+html:has(#page-topology-builder-v2.page.active) #app-sidebar,
+html:has(#page-topology-builder-v2.page.active) #app-topbar,
+html:has(#page-topology-builder-v2.page.active) #sb-mobile-toggle {
   display: none !important;
 }
-html:has(#page-topology-v2.page.active) #page-topology-v2 {
+html:has(#page-topology-builder-v2.page.active) #page-topology-builder-v2 {
   position: fixed; inset: 0; z-index: 10;
   display: flex; flex-direction: column;
 }
 
 /* ── Page root ───────────────────────────────────────────────────────── */
-#page-topology-v2 {
+#page-topology-builder-v2 {
   background: var(--bg);
   color: var(--text);
   font: 400 14px/1.5 Inter, -apple-system, system-ui, sans-serif;
@@ -32,100 +32,100 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
 }
 
 /* ── Strip header ────────────────────────────────────────────────────── */
-#page-topology-v2 .strip {
+#page-topology-builder-v2 .strip {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 16px; flex: none;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
   gap: 12px; min-height: 48px;
 }
-#page-topology-v2 .s-l {
+#page-topology-builder-v2 .s-l {
   display: flex; align-items: center; gap: 12px;
 }
-#page-topology-v2 .s-r {
+#page-topology-builder-v2 .s-r {
   display: flex; align-items: center; gap: 10px;
 }
-#page-topology-v2 .menu-btn {
+#page-topology-builder-v2 .menu-btn {
   display: flex; align-items: center; gap: 5px;
   background: none; border: 1px solid var(--border); border-radius: 7px;
   color: var(--text-dim); font: 600 11px/1 Inter, sans-serif;
   padding: 7px 10px; cursor: pointer; white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
 }
-#page-topology-v2 .menu-btn:hover { border-color: var(--accent); color: var(--accent); }
-#page-topology-v2 .menu-btn svg { width: 13px; height: 13px; flex: none; }
-#page-topology-v2 .eyebrow {
+#page-topology-builder-v2 .menu-btn:hover { border-color: var(--accent); color: var(--accent); }
+#page-topology-builder-v2 .menu-btn svg { width: 13px; height: 13px; flex: none; }
+#page-topology-builder-v2 .eyebrow {
   font: 700 9px/1 Inter, sans-serif; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-dim);
 }
-#page-topology-v2 .h1 {
+#page-topology-builder-v2 .h1 {
   font: 800 16px/1.2 Inter, sans-serif; letter-spacing: -0.01em;
   margin-top: 1px;
 }
-#page-topology-v2 .h1 em {
+#page-topology-builder-v2 .h1 em {
   font-style: normal; color: var(--accent); font-weight: 800;
 }
-#page-topology-v2 .count-pill {
+#page-topology-builder-v2 .count-pill {
   font: 600 11px/1 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   color: var(--text-dim); background: var(--surface);
   border: 1px solid var(--border); border-radius: 6px;
   padding: 5px 10px; white-space: nowrap;
 }
-#page-topology-v2 .count-pill b { color: var(--text); }
-#page-topology-v2 .theme-btn {
+#page-topology-builder-v2 .count-pill b { color: var(--text); }
+#page-topology-builder-v2 .theme-btn {
   width: 28px; height: 28px; border-radius: 7px;
   border: 1px solid var(--border); background: none;
   color: var(--text-dim); display: grid; place-items: center;
   cursor: pointer; transition: border-color 0.15s, color 0.15s;
 }
-#page-topology-v2 .theme-btn:hover { border-color: var(--accent); color: var(--accent); }
-#page-topology-v2 .theme-btn svg { width: 14px; height: 14px; }
+#page-topology-builder-v2 .theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+#page-topology-builder-v2 .theme-btn svg { width: 14px; height: 14px; }
 
 /* ── 3-column workspace ──────────────────────────────────────────────── */
-#page-topology-v2 .work {
+#page-topology-builder-v2 .work {
   flex: 1; display: grid;
   grid-template-columns: 212px 1fr 236px;
   min-height: 0;
 }
 
 /* ── LEFT RAIL: Device palette ───────────────────────────────────────── */
-#page-topology-v2 .palette {
+#page-topology-builder-v2 .palette {
   border-right: 1px solid var(--border);
   overflow-y: auto; background: var(--bg);
 }
-#page-topology-v2 .palette-head {
+#page-topology-builder-v2 .palette-head {
   padding: 14px 14px 0;
 }
-#page-topology-v2 .palette-head h2 {
+#page-topology-builder-v2 .palette-head h2 {
   font: 800 13px/1 Inter, sans-serif; letter-spacing: -0.01em;
   text-transform: none;
 }
-#page-topology-v2 .palette-head p {
+#page-topology-builder-v2 .palette-head p {
   font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.3;
 }
-#page-topology-v2 .palette-search {
+#page-topology-builder-v2 .palette-search {
   display: block; padding: 10px 14px 0;
 }
-#page-topology-v2 .palette-input {
+#page-topology-builder-v2 .palette-input {
   width: 100%; padding: 6px 10px;
   font: 400 11px/1.3 Inter, sans-serif;
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: 6px;
   outline: none; transition: border-color 0.15s;
 }
-#page-topology-v2 .palette-input:focus {
+#page-topology-builder-v2 .palette-input:focus {
   border-color: var(--accent);
 }
-#page-topology-v2 .palette-input::placeholder { color: var(--text-dim); }
-#page-topology-v2 .cat {
+#page-topology-builder-v2 .palette-input::placeholder { color: var(--text-dim); }
+#page-topology-builder-v2 .cat {
   padding: 10px 6px 2px;
 }
-#page-topology-v2 .cat-h {
+#page-topology-builder-v2 .cat-h {
   font: 700 9px/1 Inter, sans-serif; text-transform: uppercase;
   letter-spacing: 0.10em; color: var(--text-dim);
   padding: 8px 8px 6px;
 }
-#page-topology-v2 .dev-btn {
+#page-topology-builder-v2 .dev-btn {
   display: flex; align-items: center; gap: 8px; width: 100%;
   background: none; border: 0; border-radius: 6px;
   padding: 7px 8px; cursor: pointer;
@@ -133,179 +133,179 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
   transition: background 0.1s, color 0.1s;
   text-align: left;
 }
-#page-topology-v2 .dev-btn:hover {
+#page-topology-builder-v2 .dev-btn:hover {
   background: var(--surface); color: var(--text);
 }
-#page-topology-v2 .dev-btn svg {
+#page-topology-builder-v2 .dev-btn svg {
   width: 18px; height: 18px; flex: none; color: var(--text-dim);
   transition: color 0.1s;
 }
-#page-topology-v2 .dev-btn:hover svg { color: var(--accent); }
+#page-topology-builder-v2 .dev-btn:hover svg { color: var(--accent); }
 
 /* Cable type chips */
-#page-topology-v2 .cable-section {
+#page-topology-builder-v2 .cable-section {
   padding: 10px 14px; border-top: 1px solid var(--border); margin-top: 4px;
 }
-#page-topology-v2 .cable-section h3 {
+#page-topology-builder-v2 .cable-section h3 {
   font: 700 9px/1 Inter, sans-serif; text-transform: uppercase;
   letter-spacing: 0.10em; color: var(--text-dim); margin-bottom: 8px;
 }
-#page-topology-v2 .cable-chip {
+#page-topology-builder-v2 .cable-chip {
   display: inline-flex; align-items: center; gap: 5px;
   background: none; border: 1px solid var(--border); border-radius: 5px;
   padding: 5px 8px; margin: 0 4px 4px 0; cursor: pointer;
   font: 500 10px/1 Inter, sans-serif; color: var(--text-dim);
   transition: border-color 0.15s, color 0.15s;
 }
-#page-topology-v2 .cable-chip:hover { border-color: var(--text-mid); color: var(--text); }
-#page-topology-v2 .cable-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); }
-#page-topology-v2 .cable-chip .dot {
+#page-topology-builder-v2 .cable-chip:hover { border-color: var(--text-mid); color: var(--text); }
+#page-topology-builder-v2 .cable-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); }
+#page-topology-builder-v2 .cable-chip .dot {
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor;
 }
 
 /* ── CENTER: Canvas ──────────────────────────────────────────────────── */
-#page-topology-v2 .canvas {
+#page-topology-builder-v2 .canvas {
   position: relative; min-width: 0; overflow: hidden;
   background:
     linear-gradient(var(--border) 1px, transparent 1px) 0 0 / 24px 24px,
     linear-gradient(90deg, var(--border) 1px, transparent 1px) 0 0 / 24px 24px,
     var(--bg);
 }
-#page-topology-v2 .cv {
+#page-topology-builder-v2 .cv {
   width: 100%; height: 100%;
 }
 
 /* Mode label (floating top-left indicator) */
-#page-topology-v2 .mode-label {
+#page-topology-builder-v2 .mode-label {
   position: absolute; top: 14px; left: 14px; z-index: 4;
   font: 500 11px/1 Inter, sans-serif; color: var(--text-dim);
   background: color-mix(in oklab, var(--bg) 85%, transparent);
   border: 1px solid var(--border); border-radius: 6px;
   padding: 6px 10px; backdrop-filter: blur(6px);
 }
-#page-topology-v2 .mode-label b { color: var(--text); font-weight: 700; }
+#page-topology-builder-v2 .mode-label b { color: var(--text); font-weight: 700; }
 
 /* Help button (floating top-right) */
-#page-topology-v2 .help-btn {
+#page-topology-builder-v2 .help-btn {
   position: absolute; top: 14px; right: 14px; z-index: 5;
   width: 28px; height: 28px; border-radius: 7px;
   border: 1px solid var(--border); background: var(--bg);
   color: var(--text-dim); display: grid; place-items: center; cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-#page-topology-v2 .help-btn:hover { border-color: var(--accent); color: var(--accent); }
-#page-topology-v2 .help-btn svg { width: 13px; height: 13px; }
+#page-topology-builder-v2 .help-btn:hover { border-color: var(--accent); color: var(--accent); }
+#page-topology-builder-v2 .help-btn svg { width: 13px; height: 13px; }
 
 /* ── Floating modebar ────────────────────────────────────────────────── */
-#page-topology-v2 .modebar {
+#page-topology-builder-v2 .modebar {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 2px; background: var(--bg);
   border: 1px solid var(--border); border-radius: 10px;
   padding: 3px; z-index: 5;
   box-shadow: 0 8px 24px -10px oklch(0 0 0 / 0.25);
 }
-#page-topology-v2 .mb {
+#page-topology-builder-v2 .mb {
   display: flex; align-items: center; gap: 6px;
   background: none; border: 0; border-radius: 7px;
   color: var(--text-dim); font: 600 11px/1 Inter, sans-serif;
   padding: 8px 10px; cursor: pointer; white-space: nowrap;
   transition: background 0.1s, color 0.1s;
 }
-#page-topology-v2 .mb svg { width: 13px; height: 13px; flex: none; }
-#page-topology-v2 .mb:hover { color: var(--text); background: var(--surface); }
-#page-topology-v2 .mb.on { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
-#page-topology-v2 .mb-sep {
+#page-topology-builder-v2 .mb svg { width: 13px; height: 13px; flex: none; }
+#page-topology-builder-v2 .mb:hover { color: var(--text); background: var(--surface); }
+#page-topology-builder-v2 .mb.on { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+#page-topology-builder-v2 .mb-sep {
   width: 1px; background: var(--border);
   margin: 4px 2px; flex: none;
 }
 
 /* ── RIGHT RAIL: Scenarios ───────────────────────────────────────────── */
-#page-topology-v2 .scenarios {
+#page-topology-builder-v2 .scenarios {
   border-left: 1px solid var(--border);
   overflow-y: auto; background: var(--bg);
 }
-#page-topology-v2 .scenarios .palette-head {
+#page-topology-builder-v2 .scenarios .palette-head {
   padding: 14px 14px 0;
 }
-#page-topology-v2 .scn { padding: 10px 6px; }
-#page-topology-v2 .scn-g { padding: 10px 6px 2px; }
-#page-topology-v2 .scn-gh {
+#page-topology-builder-v2 .scn { padding: 10px 6px; }
+#page-topology-builder-v2 .scn-g { padding: 10px 6px 2px; }
+#page-topology-builder-v2 .scn-gh {
   font: 700 9px/1 Inter, sans-serif; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--text-dim);
   padding: 6px 8px 4px; display: flex; justify-content: space-between;
 }
-#page-topology-v2 .scn-gh .n { font-weight: 600; letter-spacing: 0; }
-#page-topology-v2 .scn-row {
+#page-topology-builder-v2 .scn-gh .n { font-weight: 600; letter-spacing: 0; }
+#page-topology-builder-v2 .scn-row {
   display: flex; justify-content: space-between; align-items: center;
   width: 100%; background: none; border: 0; border-radius: 6px;
   padding: 7px 8px; cursor: pointer;
   font: 500 11px/1.2 Inter, sans-serif; color: var(--text-mid);
   text-align: left; transition: background 0.1s, color 0.1s;
 }
-#page-topology-v2 .scn-row:hover { background: var(--surface); color: var(--text); }
-#page-topology-v2 .scn-row .dv {
+#page-topology-builder-v2 .scn-row:hover { background: var(--surface); color: var(--text); }
+#page-topology-builder-v2 .scn-row .dv {
   font: 500 9px/1 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   color: var(--text-dim); flex: none;
 }
-#page-topology-v2 .scn-row.on {
+#page-topology-builder-v2 .scn-row.on {
   color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent);
 }
-#page-topology-v2 .scn-row.on .dv { color: var(--accent); }
+#page-topology-builder-v2 .scn-row.on .dv { color: var(--accent); }
 
 /* ── SVG canvas nodes ────────────────────────────────────────────────── */
-#page-topology-v2 .node-body {
+#page-topology-builder-v2 .node-body {
   fill: var(--surface); stroke: var(--border); stroke-width: 1.5;
   transition: stroke 0.15s;
 }
-#page-topology-v2 .node-body:hover,
-#page-topology-v2 .node-body.selected {
+#page-topology-builder-v2 .node-body:hover,
+#page-topology-builder-v2 .node-body.selected {
   stroke: var(--accent); filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 30%, transparent));
 }
-#page-topology-v2 .node-label {
+#page-topology-builder-v2 .node-label {
   font: 700 11px/1 Inter, sans-serif; fill: var(--text);
 }
-#page-topology-v2 .node-sublabel {
+#page-topology-builder-v2 .node-sublabel {
   font: 500 9px/1 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   fill: var(--text-dim);
 }
-#page-topology-v2 .cable {
+#page-topology-builder-v2 .cable {
   stroke: var(--text-dim); stroke-width: 1.5; stroke-linecap: round;
   opacity: 0.5;
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────── */
-#page-topology-v2 .empty-state {
+#page-topology-builder-v2 .empty-state {
   position: absolute; inset: 0; z-index: 3;
   display: flex; align-items: center; justify-content: center;
 }
-#page-topology-v2 .empty-card {
+#page-topology-builder-v2 .empty-card {
   text-align: center; max-width: 340px;
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 12px; padding: 32px 28px;
   box-shadow: 0 12px 32px -12px oklch(0 0 0 / 0.15);
 }
-#page-topology-v2 .empty-title {
+#page-topology-builder-v2 .empty-title {
   font: 800 18px/1.2 Inter, sans-serif; margin-bottom: 8px;
 }
-#page-topology-v2 .empty-sub {
+#page-topology-builder-v2 .empty-sub {
   font-size: 12px; color: var(--text-dim); line-height: 1.5;
   margin-bottom: 16px;
 }
-#page-topology-v2 .empty-btn {
+#page-topology-builder-v2 .empty-btn {
   display: inline-flex; align-items: center; gap: 6px;
   background: none; border: 1px solid var(--border); border-radius: 7px;
   color: var(--text-dim); font: 600 11px/1 Inter, sans-serif;
   padding: 8px 14px; cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-#page-topology-v2 .empty-btn:hover { border-color: var(--accent); color: var(--accent); }
-#page-topology-v2 .empty-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-#page-topology-v2 .empty-kbd {
+#page-topology-builder-v2 .empty-btn:hover { border-color: var(--accent); color: var(--accent); }
+#page-topology-builder-v2 .empty-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#page-topology-builder-v2 .empty-kbd {
   font: 500 10px/1 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   color: var(--text-dim); margin-top: 14px;
 }
-#page-topology-v2 .empty-kbd kbd {
+#page-topology-builder-v2 .empty-kbd kbd {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 4px; padding: 2px 6px;
   font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
@@ -313,40 +313,40 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
 }
 
 /* ── Mode panels (container for mode-specific content) ───────────────── */
-#page-topology-v2 .mode-panels {
+#page-topology-builder-v2 .mode-panels {
   position: absolute; inset: 0; pointer-events: none; z-index: 6;
 }
-#page-topology-v2 .mode-panels > * { pointer-events: auto; }
+#page-topology-builder-v2 .mode-panels > * { pointer-events: auto; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Ship #2 + #3 — Canvas device + cable rendering + interaction
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Device nodes ───────────────────────────────────────────────────── */
-#page-topology-v2 .v2-device { cursor: grab; user-select: none; }
-#page-topology-v2 .v2-device:active { cursor: grabbing; }
-#page-topology-v2 .v2-device:hover .v2-device-bg { stroke-opacity: 0.8; }
-#page-topology-v2 .v2-device-selected .v2-device-bg {
+#page-topology-builder-v2 .v2-device { cursor: grab; user-select: none; }
+#page-topology-builder-v2 .v2-device:active { cursor: grabbing; }
+#page-topology-builder-v2 .v2-device:hover .v2-device-bg { stroke-opacity: 0.8; }
+#page-topology-builder-v2 .v2-device-selected .v2-device-bg {
   stroke: var(--accent); stroke-width: 2.5; stroke-opacity: 1;
   filter: drop-shadow(0 0 6px color-mix(in oklab, var(--accent) 40%, transparent));
 }
-#page-topology-v2 .v2-device-pending .v2-device-bg {
+#page-topology-builder-v2 .v2-device-pending .v2-device-bg {
   stroke-dasharray: 6 3; stroke: var(--accent);
 }
-#page-topology-v2 .v2-device-label {
+#page-topology-builder-v2 .v2-device-label {
   pointer-events: none; user-select: none;
 }
-#page-topology-v2 .v2-health-badge { pointer-events: none; }
+#page-topology-builder-v2 .v2-health-badge { pointer-events: none; }
 
 /* ── Cables ─────────────────────────────────────────────────────────── */
-#page-topology-v2 .v2-cable-sheath { pointer-events: none; }
-#page-topology-v2 .v2-cable { pointer-events: none; }
-#page-topology-v2 .v2-cable-hit { cursor: pointer; }
+#page-topology-builder-v2 .v2-cable-sheath { pointer-events: none; }
+#page-topology-builder-v2 .v2-cable { pointer-events: none; }
+#page-topology-builder-v2 .v2-cable-hit { cursor: pointer; }
 
 /* Cable health status — override conductor stroke */
-#page-topology-v2 .v2-cable-healthy { stroke: var(--green, #22c55e) !important; }
-#page-topology-v2 .v2-cable-partial { stroke: var(--yellow, #f59e0b) !important; }
-#page-topology-v2 .v2-cable-selected {
+#page-topology-builder-v2 .v2-cable-healthy { stroke: var(--green, #22c55e) !important; }
+#page-topology-builder-v2 .v2-cable-partial { stroke: var(--yellow, #f59e0b) !important; }
+#page-topology-builder-v2 .v2-cable-selected {
   stroke: var(--accent) !important;
   filter: drop-shadow(0 0 4px color-mix(in oklab, var(--accent) 50%, transparent));
 }
@@ -356,9 +356,9 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
 
 /* ── Reduced-motion gate ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  #page-topology-v2 *,
-  #page-topology-v2 *::before,
-  #page-topology-v2 *::after {
+  #page-topology-builder-v2 *,
+  #page-topology-builder-v2 *::before,
+  #page-topology-builder-v2 *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -367,11 +367,11 @@ html:has(#page-topology-v2.page.active) #page-topology-v2 {
 
 /* ── Responsive: collapse rails on narrow viewports ──────────────────── */
 @media (max-width: 900px) {
-  #page-topology-v2 .work {
+  #page-topology-builder-v2 .work {
     grid-template-columns: 1fr;
   }
-  #page-topology-v2 .palette,
-  #page-topology-v2 .scenarios {
+  #page-topology-builder-v2 .palette,
+  #page-topology-builder-v2 .scenarios {
     display: none;
   }
 }

@@ -491,7 +491,7 @@
     if (_keyHandlerAttached) return;
     _keyHandlerAttached = true;
     window.addEventListener('keydown', function(e) {
-      var page = document.getElementById('page-topology-v2');
+      var page = document.getElementById('page-topology-builder-v2');
       if (!page || !page.classList.contains('active')) return;
       // Don't hijack if user is typing in an input
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
@@ -703,7 +703,7 @@
     var paletteList = document.getElementById('tbv2-palette-list');
     var modebar = document.getElementById('tbv2-modebar');
     var scenarioRail = document.getElementById('tbv2-scenarios');
-    var canvasWrap = document.querySelector('#page-topology-v2 .canvas');
+    var canvasWrap = document.querySelector('#page-topology-builder-v2 .canvas');
 
     if (paletteList) _renderPalette(paletteList);
     if (modebar) {
