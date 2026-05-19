@@ -533,50 +533,111 @@ html[data-theme] body #page-setup details.custom-quiz-section{background:none;bo
    emoji icons. Force editorial; scoped to #custom-quiz-section;
    !important / html[data-theme] body specificity exactly where styles.css
    needs beating. Chip data-v contract untouched (style only). */
-html[data-theme] body #page-setup #custom-quiz-section .cq-section-head{border-bottom:1px solid var(--border);}
-html[data-theme] body #page-setup #custom-quiz-section .cq-section-title{color:var(--text-dim);}
-#page-setup #custom-quiz-section .cq-section-ico,#page-setup #custom-quiz-section .cq-mode-ico,#page-setup #custom-quiz-section .cq-generate-ico{display:none!important;}
-html[data-theme] body #page-setup #custom-quiz-section .topic-quickpicks{border-bottom:1px solid var(--border);}
-html[data-theme] body #page-setup #custom-quiz-section .topic-domain-prefill{border-bottom:1px solid var(--border);}
+html[data-theme] body #custom-quiz-section .cq-section-head{border-bottom:1px solid var(--border);}
+html[data-theme] body #custom-quiz-section .cq-section-title{color:var(--text-dim);}
+#custom-quiz-section .cq-section-ico,#custom-quiz-section .cq-mode-ico,#custom-quiz-section .cq-generate-ico{display:none!important;}
+html[data-theme] body #custom-quiz-section .topic-quickpicks{border-bottom:1px solid var(--border);}
+html[data-theme] body #custom-quiz-section .topic-domain-prefill{border-bottom:1px solid var(--border);}
 
-html[data-theme] body #page-setup #custom-quiz-section .chip{background:none;border:1px solid var(--border);color:var(--text-mid);box-shadow:none;}
-html[data-theme] body #page-setup #custom-quiz-section .chip.on{background:color-mix(in oklab,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent);}
-html[data-theme] body #page-setup #custom-quiz-section .chip-smart{border-color:var(--border);color:var(--text-mid);background:none;}
-html[data-theme] body #page-setup #custom-quiz-section .chip-smart.on{border-color:var(--accent);color:var(--accent);background:color-mix(in oklab,var(--accent) 14%,transparent);}
+html[data-theme] body #custom-quiz-section .chip{background:none;border:1px solid var(--border);color:var(--text-mid);box-shadow:none;}
+html[data-theme] body #custom-quiz-section .chip.on{background:color-mix(in oklab,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent);}
+html[data-theme] body #custom-quiz-section .chip-smart{border-color:var(--border);color:var(--text-mid);background:none;}
+html[data-theme] body #custom-quiz-section .chip-smart.on{border-color:var(--accent);color:var(--accent);background:color-mix(in oklab,var(--accent) 14%,transparent);}
 
-#page-setup #custom-quiz-section .chip-tier-found,#page-setup #custom-quiz-section .chip-tier-exam,#page-setup #custom-quiz-section .chip-tier-hard,#page-setup #custom-quiz-section .chip-tier-mixed{border-color:var(--border)!important;color:var(--text-mid)!important;background:none!important;}
-#page-setup #custom-quiz-section .chip-tier-found.on,#page-setup #custom-quiz-section .chip-tier-exam.on,#page-setup #custom-quiz-section .chip-tier-hard.on,#page-setup #custom-quiz-section .chip-tier-mixed.on{border-color:var(--accent)!important;color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 14%,transparent)!important;}
+#custom-quiz-section .chip-tier-found,#custom-quiz-section .chip-tier-exam,#custom-quiz-section .chip-tier-hard,#custom-quiz-section .chip-tier-mixed{border-color:var(--border)!important;color:var(--text-mid)!important;background:none!important;}
+#custom-quiz-section .chip-tier-found.on,#custom-quiz-section .chip-tier-exam.on,#custom-quiz-section .chip-tier-hard.on,#custom-quiz-section .chip-tier-mixed.on{border-color:var(--accent)!important;color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 14%,transparent)!important;}
 
-#page-setup #custom-quiz-section .chip-count{background:none!important;border:1px solid var(--border)!important;box-shadow:none!important;}
-#page-setup #custom-quiz-section .chip-count.on{background:color-mix(in oklab,var(--accent) 14%,transparent)!important;border-color:var(--accent)!important;box-shadow:none!important;}
-#page-setup #custom-quiz-section .chip-count .chip-count-num{color:var(--text);}
-#page-setup #custom-quiz-section .chip-count .chip-count-sub{color:var(--text-dim);}
-#page-setup #custom-quiz-section .chip-count.on .chip-count-num,#page-setup #custom-quiz-section .chip-count.on .chip-count-sub{color:var(--accent);}
+#custom-quiz-section .chip-count{background:none!important;border:1px solid var(--border)!important;box-shadow:none!important;}
+#custom-quiz-section .chip-count.on{background:color-mix(in oklab,var(--accent) 14%,transparent)!important;border-color:var(--accent)!important;box-shadow:none!important;}
+#custom-quiz-section .chip-count .chip-count-num{color:var(--text);}
+#custom-quiz-section .chip-count .chip-count-sub{color:var(--text-dim);}
+#custom-quiz-section .chip-count.on .chip-count-num,#custom-quiz-section .chip-count.on .chip-count-sub{color:var(--accent);}
 
-html[data-theme] body #page-setup #custom-quiz-section .cq-mode-card{background:none;border:1px solid var(--border);box-shadow:none;}
-html[data-theme] body #page-setup #custom-quiz-section .cq-mode-card:hover{background:none;border-color:var(--accent);box-shadow:none;transform:none;}
-html[data-theme] body #page-setup #custom-quiz-section .cq-mode-card.on{background:color-mix(in oklab,var(--accent) 12%,transparent);border-color:var(--accent);box-shadow:none;}
-html[data-theme] body #page-setup #custom-quiz-section .cq-mode-card .cq-mode-title{color:var(--text);}
-html[data-theme] body #page-setup #custom-quiz-section .cq-mode-card.on .cq-mode-title{color:var(--accent);}
-#page-setup #custom-quiz-section .cq-mode-sub{color:var(--text-dim);}
+html[data-theme] body #custom-quiz-section .cq-mode-card{background:none;border:1px solid var(--border);box-shadow:none;}
+html[data-theme] body #custom-quiz-section .cq-mode-card:hover{background:none;border-color:var(--accent);box-shadow:none;transform:none;}
+html[data-theme] body #custom-quiz-section .cq-mode-card.on{background:color-mix(in oklab,var(--accent) 12%,transparent);border-color:var(--accent);box-shadow:none;}
+html[data-theme] body #custom-quiz-section .cq-mode-card .cq-mode-title{color:var(--text);}
+html[data-theme] body #custom-quiz-section .cq-mode-card.on .cq-mode-title{color:var(--accent);}
+#custom-quiz-section .cq-mode-sub{color:var(--text-dim);}
 
 /* editorial: domain accordions are a divided list inside the ONE custom-quiz
    panel, NOT individually-bordered boxes nested in a bordered box (box-in-box
    AI-tell). Hairline bottom rule instead of a full border. */
-html[data-theme] body #page-setup #custom-quiz-section .topic-domain-group{background:none;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;border-radius:0;overflow:visible;}
-html[data-theme] body #page-setup #custom-quiz-section .topic-domain-group:last-of-type{border-bottom:0!important;}
-html[data-theme] body #page-setup #custom-quiz-section .topic-domain-group[open]{border-color:var(--dg-rule-soft);}
-#page-setup #custom-quiz-section .topic-domain-group .dom-weight,#page-setup #custom-quiz-section .topic-domain-group[open] .dom-weight{background:color-mix(in oklab,var(--accent) 14%,transparent)!important;color:var(--accent)!important;}
-html[data-theme] body #page-setup #custom-quiz-section .topic-domain-group > summary:hover{background:none;}
-html[data-theme] body #page-setup #custom-quiz-section .tdp-pill{background:none;border:1px solid var(--border)!important;color:var(--text-mid);}
-html[data-theme] body #page-setup #custom-quiz-section .tdp-pill:hover{background:none;border-color:var(--accent)!important;color:var(--accent);transform:none;}
+html[data-theme] body #custom-quiz-section .topic-domain-group{background:none;border:0!important;border-bottom:1px solid var(--dg-rule-soft)!important;border-radius:0;overflow:visible;}
+html[data-theme] body #custom-quiz-section .topic-domain-group:last-of-type{border-bottom:0!important;}
+html[data-theme] body #custom-quiz-section .topic-domain-group[open]{border-color:var(--dg-rule-soft);}
+#custom-quiz-section .topic-domain-group .dom-weight,#custom-quiz-section .topic-domain-group[open] .dom-weight{background:color-mix(in oklab,var(--accent) 14%,transparent)!important;color:var(--accent)!important;}
+html[data-theme] body #custom-quiz-section .topic-domain-group > summary:hover{background:none;}
+html[data-theme] body #custom-quiz-section .tdp-pill{background:none;border:1px solid var(--border)!important;color:var(--text-mid);}
+html[data-theme] body #custom-quiz-section .tdp-pill:hover{background:none;border-color:var(--accent)!important;color:var(--accent);transform:none;}
 
-html[data-theme] body #page-setup #custom-quiz-section .cq-summary-bar{background:none;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;}
-#page-setup #custom-quiz-section .cq-summary-prose{color:var(--text-dim);}
-#page-setup #custom-quiz-section .cq-summary-prose strong{color:var(--accent);}
-#page-setup #custom-quiz-section .cq-summary-prose em{color:var(--text-mid);font-style:normal;}
-html[data-theme] body #page-setup #custom-quiz-section .cq-summary-cta{background:var(--accent)!important;color:var(--bg)!important;border:0!important;box-shadow:none!important;}
-html[data-theme] body #page-setup #custom-quiz-section .cq-summary-cta:hover{filter:brightness(1.05);transform:none;box-shadow:none!important;}
+html[data-theme] body #custom-quiz-section .cq-summary-bar{background:none;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;}
+#custom-quiz-section .cq-summary-prose{color:var(--text-dim);}
+#custom-quiz-section .cq-summary-prose strong{color:var(--accent);}
+#custom-quiz-section .cq-summary-prose em{color:var(--text-mid);font-style:normal;}
+html[data-theme] body #custom-quiz-section .cq-summary-cta{background:var(--accent)!important;color:var(--bg)!important;border:0!important;box-shadow:none!important;}
+html[data-theme] body #custom-quiz-section .cq-summary-cta:hover{filter:brightness(1.05);transform:none;box-shadow:none!important;}
+
+/* ════════════════════════════════════════════════════════════════════════
+   v5.5.4 · SECTION 5 — Custom Quiz HORIZONTAL MODAL (JS-portal build).
+   Founder: a pop-up off Configure →, not an on-page never-ending column.
+   app.js portals <details id="custom-quiz-section"> to <body> on open
+   (toggle-event driven, all entry points) so NO ancestor transform /
+   containment can break position:fixed (the CSS-only attempt fought the
+   page-nav system + flaky SW cache). Selectors are #page-setup-free so
+   they apply when portaled; type tokens re-declared here because the
+   --t*/--dgh-ease vars live on #page-setup (colour tokens are global on
+   html[data-theme] so they inherit on <body>). Contract byte-exact:
+   every id / data-v / .cq-* / onclick preserved; index.html source
+   unchanged (runtime reparent only) so UAT guards stay green.
+   emil modal: scale(0.96)+opacity (never scale(0)), ease-out ~220ms,
+   transform-origin centre (modals stay centred), backdrop fade, JS
+   scroll-lock, Esc + backdrop + native summary-× dismiss, reduced-
+   motion = fade only. taste-skill→dashboards: focused configurator
+   overlay, sticky Generate footer, restraint. */
+#custom-quiz-section{--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--dgh-ease:cubic-bezier(0.16,1,0.3,1);}
+html body #custom-quiz-section{display:none;}
+html body #custom-quiz-section[open]{display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;z-index:140;margin:0;padding:clamp(16px,4vh,46px);background:color-mix(in oklab,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:0;border-radius:0;box-shadow:none;overflow:auto;animation:cqModalFade .2s cubic-bezier(0.16,1,0.3,1);}
+@keyframes cqModalFade{from{opacity:0}to{opacity:1}}
+#custom-quiz-section[open]>.custom-quiz-summary,#custom-quiz-section[open]>.custom-quiz-body{width:min(1040px,calc(100vw - clamp(28px,7vw,84px)));flex:none;animation:cqModalPanel .24s cubic-bezier(0.16,1,0.3,1);}
+@keyframes cqModalPanel{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}
+html[data-theme] body #custom-quiz-section[open]>.custom-quiz-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-bottom:0;border-radius:16px 16px 0 0;padding:20px 26px;margin:0;font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;color:var(--text);letter-spacing:-0.01em;}
+#custom-quiz-section[open]>.custom-quiz-summary::-webkit-details-marker{display:none;}
+#custom-quiz-section[open]>.custom-quiz-summary::after{content:"\2715";font-family:Inter,-apple-system,sans-serif;font-size:15px;font-weight:600;color:var(--text-dim);width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;flex:none;}
+@media (hover:hover) and (pointer:fine){#custom-quiz-section[open]>.custom-quiz-summary:hover::after{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--border));}}
+#custom-quiz-section .adv-hint{font-family:Inter,-apple-system,sans-serif;font-size:11.5px;font-weight:600;color:var(--text-dim);letter-spacing:0;}
+html[data-theme] body #custom-quiz-section[open]>.custom-quiz-body{max-height:min(82vh,680px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:0 0 16px 16px;padding:24px clamp(20px,2.4vw,28px) 0;box-shadow:0 40px 80px -34px rgba(0,0,0,.5);}
+#custom-quiz-section .cq-section-ico,#custom-quiz-section .cq-mode-ico,#custom-quiz-section .cq-generate-ico{display:none;}
+html[data-theme] body #custom-quiz-section .cq-section-title{font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;letter-spacing:-0.01em;color:var(--text);}
+#custom-quiz-section[open] #topic-group{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;align-items:start;}
+#custom-quiz-section[open] #topic-group>.cq-section-head,#custom-quiz-section[open] #topic-group>.topic-domain-prefill,#custom-quiz-section[open] #topic-group>.topic-quickpicks{grid-column:1 / -1;}
+#custom-quiz-section[open] #topic-group>.topic-quickpicks{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+html[data-theme] body #custom-quiz-section[open] .topic-domain-group{align-self:start;background:color-mix(in oklab,var(--text) 3%,var(--surface));border:1px solid var(--border)!important;border-bottom:1px solid var(--border)!important;border-radius:12px;overflow:hidden;}
+#custom-quiz-section[open] .cq-options-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,6vw,80px);align-items:start;margin-top:24px;}
+#custom-quiz-section[open] .cq-options-grid>div{min-width:0;}
+#custom-quiz-section[open] .cq-options-grid .chip-group{display:flex;flex-wrap:wrap;gap:10px;}
+#custom-quiz-section[open] #diff-group .chip{flex:1 1 calc(50% - 5px);justify-content:center;text-align:center;}
+#custom-quiz-section[open] #count-group .chip-count{flex:1 1 0;min-width:64px;}
+@media (max-width:760px){#custom-quiz-section[open] .cq-options-grid{grid-template-columns:1fr;gap:24px;}}
+/* emil-design-eng — the v4.99.x rebrand set transform:none on these for
+   editorial calm. The Custom Quiz is a focused configurator you actively
+   click, so restore tactile feedback: crisp hover + press scale. Scoped
+   html[data-theme] body #…[open] so it outranks the rebrand's
+   transform:none without !important. transform/opacity only (GPU),
+   durations in emil's press/hover range, --dgh-ease (strong ease-out),
+   hover gated to fine pointers, reduced-motion neutralised. */
+html[data-theme] body #custom-quiz-section[open] .chip,html[data-theme] body #custom-quiz-section[open] .cq-mode-card,html[data-theme] body #custom-quiz-section[open] .tdp-pill,html[data-theme] body #custom-quiz-section[open] .cq-summary-cta,html[data-theme] body #custom-quiz-section[open] .topic-domain-group>summary{transition:transform .15s cubic-bezier(0.16,1,0.3,1),border-color .15s cubic-bezier(0.16,1,0.3,1),background .15s cubic-bezier(0.16,1,0.3,1),color .15s cubic-bezier(0.16,1,0.3,1),filter .15s cubic-bezier(0.16,1,0.3,1);}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme] body #custom-quiz-section[open] .chip:hover,html[data-theme] body #custom-quiz-section[open] .tdp-pill:hover{border-color:color-mix(in oklab,var(--accent) 50%,var(--border));color:var(--accent);}
+  html[data-theme] body #custom-quiz-section[open] .cq-mode-card:hover{border-color:color-mix(in oklab,var(--accent) 45%,var(--border));transform:translateY(-1px);}
+  html[data-theme] body #custom-quiz-section[open] .topic-domain-group>summary:hover{background:color-mix(in oklab,var(--accent) 6%,transparent);}
+  html[data-theme] body #custom-quiz-section[open] .cq-summary-cta:hover{filter:brightness(1.06);transform:translateY(-1px);}
+}
+html[data-theme] body #custom-quiz-section[open] .chip:active,html[data-theme] body #custom-quiz-section[open] .cq-mode-card:active,html[data-theme] body #custom-quiz-section[open] .tdp-pill:active,html[data-theme] body #custom-quiz-section[open] .cq-summary-cta:active{transform:scale(0.97);}
+@media (prefers-reduced-motion:reduce){html[data-theme] body #custom-quiz-section[open] .chip,html[data-theme] body #custom-quiz-section[open] .cq-mode-card,html[data-theme] body #custom-quiz-section[open] .tdp-pill,html[data-theme] body #custom-quiz-section[open] .cq-summary-cta,html[data-theme] body #custom-quiz-section[open] .topic-domain-group>summary{transition:none!important;transform:none!important;}}
+html[data-theme] body #custom-quiz-section[open] .cq-summary-bar{position:sticky;bottom:0;margin:18px clamp(-20px,-2.4vw,-28px) 0;padding:16px clamp(20px,2.4vw,28px);background:color-mix(in oklab,var(--surface) 92%,var(--bg));border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+@media (prefers-reduced-motion:reduce){#custom-quiz-section[open],#custom-quiz-section[open]>.custom-quiz-summary,#custom-quiz-section[open]>.custom-quiz-body{animation:cqModalFade .15s ease!important;}}
+@media (max-width:760px){#custom-quiz-section[open] #topic-group,#custom-quiz-section[open] #topic-group>.topic-quickpicks{grid-template-columns:1fr;}}
 
 @media (prefers-reduced-motion: reduce){#page-setup .dgh-rd-fill,#page-setup .dgh-opt,#page-setup .dgh-db,#page-setup .dgh-cta{transition:none!important;}}
 @media (max-width:860px){#page-setup .dgh-opts{grid-template-columns:1fr;}#page-setup .dgh-dbd,#page-setup .dgh-dom-grid{grid-template-columns:1fr 1fr;}#page-setup .dgh-opt,#page-setup .dgh-db,#page-setup #setup-domain-grid .domain-cell{border-right:0;}#page-setup .dgh-top{flex-direction:column;}#page-setup .dgh-rd{width:100%;}}

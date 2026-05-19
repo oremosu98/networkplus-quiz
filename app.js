@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v5.5.3
+// Network+ AI Quiz — app.js  v5.5.4
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '5.5.3';
+const APP_VERSION = '5.5.4';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -4937,13 +4937,61 @@ function _setWarmupTopic(topic) {
 
 // Helper: scroll-into-view + open the Custom Quiz details panel.
 function _jumpToCustomQuiz() {
+  // v5.5.4: Custom Quiz is a modal — _cqModalInit portals it to <body> on
+  // open so position:fixed can't be broken by an ancestor. Just open it;
+  // the old page-scroll-into-view was dropped (the modal centres itself).
   try {
     const cq = document.getElementById('custom-quiz-section');
     if (cq && !cq.open) cq.open = true;
-    const el = document.getElementById('topic-group');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (_) {}
 }
+
+// v5.5.4: Custom Quiz modal — portal + dismissals. The <details> 'toggle'
+// event fires for EVERY open/close path (Configure-> / drillTopic / the
+// 5804 flow / native summary-x / Esc / backdrop), so one listener handles
+// them all. On open: stash a placeholder at the original spot, move the
+// element to <body> (escapes the page-nav transform on #page-setup so
+// position:fixed resolves to the viewport), lock background scroll. On
+// close: restore exactly. Listeners bind to document (always present) and
+// resolve elements at event time -> DOM-readiness- and entry-point-safe.
+(function _cqModalInit() {
+  function init() {
+    var cq = document.getElementById('custom-quiz-section');
+    if (!cq || cq._cqWired) return;
+    cq._cqWired = true;
+    var ph = null;          // placeholder comment marking the original spot
+    var prevOverflow = '';
+    cq.addEventListener('toggle', function () {
+      if (cq.open) {
+        if (cq.parentNode !== document.body) {
+          ph = document.createComment('cq-portal');
+          cq.parentNode.insertBefore(ph, cq);
+          document.body.appendChild(cq);
+        }
+        prevOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+      } else if (ph && ph.parentNode) {
+        ph.parentNode.insertBefore(cq, ph);
+        ph.remove();
+        ph = null;
+        document.documentElement.style.overflow = prevOverflow;
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && cq.open) cq.open = false;
+    });
+    document.addEventListener('click', function (e) {
+      if (cq.open && e.target === cq) cq.open = false;
+    });
+  }
+  try {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  } catch (_) {}
+})();
 
 // Render the Next-Best-Move CTA card on the homepage.
 function renderNextBestMove() {

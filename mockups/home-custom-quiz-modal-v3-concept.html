@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom Quiz modal v3 — concept · CertAnvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     HOME · SECTION 5 — CUSTOM QUIZ as a HORIZONTAL MODAL POPUP (v3 concept)
+
+     Founder ask: the Custom Quiz "feels like a never ending vertical row";
+     make it horizontal AND make it a POP-UP triggered by the "Configure →"
+     button (from the reshuffled session board) instead of an on-page
+     section that sits there.
+
+     APPROACH (contract-preserving): keep <details id="custom-quiz-section">
+     + every internal id / class / data-v / onclick BYTE-EXACT. CSS turns
+     details[open] into a centered modal + backdrop; closed = display:none
+     (it no longer sits on the page). The body becomes a WIDE modal: the 5
+     domain groups laid as a multi-column grid (not a tall stack) + a
+     sticky horizontal footer (Difficulty · Questions · live summary ·
+     Generate). _jumpToCustomQuiz() already just sets .open=true — the
+     only JS change at integration is dropping its now-pointless
+     scrollIntoView + adding backdrop/Esc close.
+
+     emil modal motion: scale(0.96)+opacity (never scale(0)), ease-out
+     ~220ms, transform-origin CENTER (emil: modals stay centered, unlike
+     popovers), backdrop fade, reduced-motion gated.
+
+     DISCUSSION ONLY. Click "Configure →" to open. Esc / backdrop / × to
+     close. Theme toggle top-right.
+═══════════════════════════════════════════════════════════════════════ -->
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  #page-setup{
+    --bg:oklch(0.16 0.009 275);--surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --text:oklch(0.96 0.006 275);--text-mid:oklch(0.78 0.010 275);--text-dim:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--dg-rule-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-deep:oklch(0.70 0.150 62);--bg-on-accent:oklch(0.18 0.020 275);
+    --green:oklch(0.74 0.150 152);
+    --t-1:12px;--t0:14px;--t1:18px;--t2:23px;--dgh-ease:cubic-bezier(0.16,1,0.3,1);
+    --eo:cubic-bezier(0.23,1,0.32,1);
+    display:block;background:var(--bg);color:var(--text);min-height:100vh;
+    font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(24px,5vh,60px) clamp(20px,4vw,40px) 120px;
+  }
+  [data-theme="light"] #page-setup{
+    --bg:oklch(0.975 0.007 85);--surface:oklch(0.992 0.004 85);--surface-2:oklch(0.965 0.010 84);
+    --text:oklch(0.22 0.015 280);--text-mid:oklch(0.36 0.014 280);--text-dim:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);--dg-rule-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);--accent-deep:oklch(0.42 0.150 52);--bg-on-accent:oklch(0.985 0.010 85);
+    --green:oklch(0.52 0.13 150);
+  }
+  #page-setup *{box-sizing:border-box}
+  #page-setup .ch-wrap{max-width:1180px;margin:0 auto}
+
+  /* the trigger (the reshuffled session board's Configure → footer) */
+  #page-setup .demo-foot{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+  #page-setup .custom-row{display:inline-flex;align-items:center;gap:12px}
+  #page-setup .custom-label{font-size:13px;color:var(--text-dim)}
+  #page-setup .custom-config{font-size:13px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;font-family:inherit;transition:transform .15s var(--eo)}
+  #page-setup .custom-config:active{transform:scale(0.97)}
+  #page-setup .demo-note{max-width:1180px;margin:26px auto 0;font:500 12.5px/1.6 Inter,sans-serif;color:var(--text-dim)}
+
+  /* ════════════════════════════════════════════════════════════════════
+     CUSTOM QUIZ as MODAL. Closed = not on the page at all. Open = centered
+     overlay + backdrop. The <details> IS the fixed full-screen layer; the
+     .custom-quiz-body is the panel. Native summary-click closes it.
+  ════════════════════════════════════════════════════════════════════ */
+  #page-setup #custom-quiz-section{display:none}
+  #page-setup #custom-quiz-section[open]{
+    display:flex;align-items:center;justify-content:center;
+    position:fixed;inset:0;z-index:120;padding:clamp(16px,4vh,48px);
+    background:color-mix(in oklab,var(--bg) 72%,transparent);
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    animation:cqFade .2s var(--eo);
+  }
+  @keyframes cqFade{from{opacity:0}to{opacity:1}}
+  #page-setup #custom-quiz-section[open] .custom-quiz-summary,
+  #page-setup #custom-quiz-section[open] .custom-quiz-body{animation:cqPanel .24s var(--eo)}
+  @keyframes cqPanel{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}
+  /* the panel = summary (header) + body, visually one card */
+  #page-setup #custom-quiz-section[open] .custom-quiz-summary{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:min(1040px,calc(100vw - clamp(32px,8vw,96px)));
+    margin-top:calc(-1 * min(85vh,720px)/2 + 28px);
+    z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;
+    list-style:none;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-bottom:0;
+    border-radius:18px 18px 0 0;padding:20px 26px;
+    font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;color:var(--text);letter-spacing:-0.01em;
+  }
+  #page-setup #custom-quiz-section[open] .custom-quiz-summary::-webkit-details-marker{display:none}
+  #page-setup #custom-quiz-section[open] .custom-quiz-summary::after{
+    content:"✕";font-family:Inter,sans-serif;font-size:15px;font-weight:600;color:var(--text-dim);
+    width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;transition:color .15s var(--eo),border-color .15s var(--eo)}
+  @media (hover:hover) and (pointer:fine){#page-setup #custom-quiz-section[open] .custom-quiz-summary:hover::after{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--border))}}
+  #page-setup #custom-quiz-section .adv-hint{font-family:Inter,sans-serif;font-size:11.5px;font-weight:600;color:var(--text-dim);letter-spacing:0}
+  #page-setup #custom-quiz-section[open] .custom-quiz-body{
+    width:min(1040px,calc(100vw - clamp(32px,8vw,96px)));
+    max-height:min(85vh,720px);overflow-y:auto;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:0 0 18px 18px;padding:78px clamp(22px,2.4vw,30px) 0;
+    box-shadow:0 40px 80px -32px rgba(0,0,0,.5);
+  }
+
+  /* section heads */
+  #page-setup .cq-section-head{display:flex;align-items:center;gap:9px;margin:0 0 13px}
+  #page-setup .cq-section-ico{display:none}
+  #page-setup .cq-section-title{font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;letter-spacing:-0.01em;color:var(--text);margin:0}
+  #page-setup .cq-section-title::before{content:"";display:inline-block;width:18px;height:2px;background:var(--accent);vertical-align:middle;margin-right:11px;border-radius:2px}
+
+  /* TOPIC area — prefill pills + Smart/Mixed + the 5 domain groups as a
+     multi-column grid (was a tall vertical stack) */
+  #page-setup .topic-domain-prefill{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  #page-setup .tdp-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim)}
+  #page-setup .tdp-pills{display:flex;flex-wrap:wrap;gap:8px}
+  #page-setup .tdp-pill{font-size:12px;font-weight:600;color:var(--text-mid);background:none;border:1px solid var(--border);border-radius:999px;padding:7px 13px;cursor:pointer;font-family:inherit;transition:border-color .15s var(--eo),color .15s var(--eo),transform .15s var(--eo)}
+  @media (hover:hover) and (pointer:fine){#page-setup .tdp-pill:hover{border-color:color-mix(in oklab,var(--accent) 45%,var(--border));color:var(--accent)}}
+  #page-setup .tdp-pill:active{transform:scale(0.97)}
+  #page-setup .topic-quickpicks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+  #page-setup .cq-mode-card{display:flex;align-items:center;gap:13px;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:13px;padding:15px 18px;cursor:pointer;font-family:inherit;transition:border-color .16s var(--eo),background .16s var(--eo),transform .15s var(--eo)}
+  #page-setup .cq-mode-card.on{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,transparent)}
+  @media (hover:hover) and (pointer:fine){#page-setup .cq-mode-card:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border))}}
+  #page-setup .cq-mode-card:active{transform:scale(0.99)}
+  #page-setup .cq-mode-ico{display:none}
+  #page-setup .cq-mode-title{display:block;font-size:var(--t0);font-weight:700;color:var(--text)}
+  #page-setup .cq-mode-card.on .cq-mode-title{color:var(--accent)}
+  #page-setup .cq-mode-sub{display:block;font-size:11.5px;color:var(--text-dim);margin-top:2px}
+  #page-setup .topic-group-v2{margin-bottom:8px}
+  #page-setup .cq-domains{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 22px;margin-top:6px}
+  #page-setup .topic-domain-group{border:1px solid var(--border);border-radius:12px;background:var(--surface-2);overflow:hidden}
+  #page-setup .topic-domain-group>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;cursor:pointer;padding:13px 16px;font-size:12.5px;font-weight:700;color:var(--text)}
+  #page-setup .topic-domain-group>summary::-webkit-details-marker{display:none}
+  #page-setup .topic-domain-group>summary::after{content:"+";color:var(--text-dim);font-size:15px;font-weight:600}
+  #page-setup .topic-domain-group[open]>summary::after{content:"–"}
+  #page-setup .topic-domain-group[open]>summary{border-bottom:1px solid var(--border)}
+  #page-setup .dom-weight{font-size:10.5px;font-weight:800;letter-spacing:0.05em;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,transparent);padding:3px 8px;border-radius:6px}
+  #page-setup .topic-domain-group .chip-grid{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+  #page-setup .chip{font-size:12px;font-weight:600;color:var(--text-mid);background:none;border:1px solid var(--border);border-radius:999px;padding:7px 13px;cursor:pointer;font-family:inherit;transition:border-color .15s var(--eo),color .15s var(--eo),background .15s var(--eo)}
+  #page-setup .chip.on{border-color:var(--accent);color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,transparent)}
+  @media (hover:hover) and (pointer:fine){#page-setup .chip:hover{border-color:color-mix(in oklab,var(--accent) 45%,var(--border));color:var(--accent)}}
+  #page-setup .chip:active{transform:scale(0.97)}
+
+  /* sticky horizontal footer: Difficulty · Questions · summary · Generate */
+  #page-setup .cq-foot-band{position:sticky;bottom:0;margin:22px clamp(-22px,-2.4vw,-30px) 0;padding:18px clamp(22px,2.4vw,30px);background:color-mix(in oklab,var(--surface) 88%,var(--bg));border-top:1px solid var(--border);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  #page-setup .cq-options-grid{display:flex;align-items:flex-start;gap:clamp(20px,3vw,40px);flex-wrap:wrap}
+  #page-setup .cq-options-grid>div{min-width:0}
+  #page-setup .cq-options-grid .cq-section-head{margin-bottom:9px}
+  #page-setup .cq-options-grid .cq-section-title{font-size:13px}
+  #page-setup .cq-options-grid .cq-section-title::before{width:14px;margin-right:9px}
+  #page-setup .chip-group{display:flex;flex-wrap:wrap;gap:8px}
+  #page-setup .chip-count{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 14px}
+  #page-setup .chip-count-num{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:600}
+  #page-setup .chip-count-sub{font-size:9.5px;color:var(--text-dim)}
+  #page-setup .chip-count.on .chip-count-sub{color:color-mix(in oklab,var(--accent) 80%,var(--text-dim))}
+  #page-setup .cq-summary-bar{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--dg-rule-soft)}
+  #page-setup .cq-summary-prose{font-size:12.5px;color:var(--text-mid);line-height:1.5}
+  #page-setup .cq-summary-prose strong{font-family:'Fraunces',Georgia,serif;font-weight:600;color:var(--text);font-size:15px}
+  #page-setup .cq-summary-prose em{font-style:normal;color:var(--accent);font-weight:600}
+  #page-setup .cq-summary-cta{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:800;font-family:Inter,sans-serif;color:var(--bg-on-accent);background:var(--accent);border:0;border-radius:12px;padding:13px 26px;cursor:pointer;transition:transform .15s var(--eo),filter .15s var(--eo)}
+  @media (hover:hover) and (pointer:fine){#page-setup .cq-summary-cta:hover{filter:brightness(1.05)}}
+  #page-setup .cq-summary-cta:active{transform:scale(0.97)}
+  #page-setup .cq-generate-ico{display:none}
+
+  @media (prefers-reduced-motion:reduce){
+    #page-setup #custom-quiz-section[open],
+    #page-setup #custom-quiz-section[open] .custom-quiz-summary,
+    #page-setup #custom-quiz-section[open] .custom-quiz-body{animation:cqFade .15s ease!important}
+    #page-setup .chip,#page-setup .tdp-pill,#page-setup .cq-mode-card,#page-setup .cq-summary-cta,#page-setup .custom-config{transition:none!important;transform:none!important}
+  }
+  @media (max-width:760px){
+    #page-setup .cq-domains{grid-template-columns:1fr}
+    #page-setup .topic-quickpicks{grid-template-columns:1fr}
+  }
+
+  .mk-bar{position:fixed;top:14px;right:16px;z-index:200;display:flex;gap:8px}
+  .mk-bar button{font:600 12px Inter,sans-serif;padding:7px 13px;border-radius:9px;border:1px solid #555;background:#222;color:#eee;cursor:pointer}
+  [data-theme="light"] .mk-bar button{background:#fff;color:#333;border-color:#ccc}
+</style>
+</head>
+<body>
+<div class="mk-bar">
+  <button onclick="document.documentElement.setAttribute('data-theme',document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">Theme</button>
+</div>
+
+<div id="page-setup" class="page active">
+  <div class="ch-wrap">
+
+    <div class="demo-note">This is the reshuffled session board's footer. Click <strong>Configure →</strong> — the Custom Quiz opens as a centered modal (it no longer sits on the page). Esc, the backdrop, or × closes it.</div>
+    <div class="demo-foot" style="margin-top:14px">
+      <label style="display:inline-flex;align-items:center;gap:10px;font-size:12px;color:var(--text-mid)"><input type="checkbox" style="width:16px;height:16px"> <b style="color:var(--text)">Strict Mode</b> · locked order · no flagging · no navigator</label>
+      <div class="custom-row">
+        <span class="custom-label">Custom Quiz · Topic, Difficulty &amp; Count</span>
+        <button type="button" class="custom-config" onclick="document.getElementById('custom-quiz-section').open=true">Configure →</button>
+      </div>
+    </div>
+
+    <!-- EXACT custom-quiz-section contract (ids / classes / data-v / onclicks
+         reproduced verbatim from index.html). CSS makes details[open] a modal. -->
+    <details class="card custom-quiz-section" id="custom-quiz-section">
+      <summary class="custom-quiz-summary">Custom Quiz <span class="adv-hint">· Topic, Difficulty &amp; Count</span></summary>
+      <div class="custom-quiz-body">
+        <div class="cq-section-head">
+          <span class="cq-section-ico" aria-hidden="true">&#129504;</span>
+          <h3 class="cq-section-title">Topic</h3>
+        </div>
+        <div class="chip-group topic-group-v2" id="topic-group">
+          <div class="topic-domain-prefill" role="group" aria-label="Pre-fill by domain">
+            <span class="tdp-label">Pick a domain:</span>
+            <div class="tdp-pills">
+              <button type="button" class="tdp-pill" data-domain-idx="1" onclick="prefillDomainTopics('concepts')">1.0 Concepts</button>
+              <button type="button" class="tdp-pill" data-domain-idx="2" onclick="prefillDomainTopics('implementation')">2.0 Implementation</button>
+              <button type="button" class="tdp-pill" data-domain-idx="3" onclick="prefillDomainTopics('operations')">3.0 Operations</button>
+              <button type="button" class="tdp-pill" data-domain-idx="4" onclick="prefillDomainTopics('security')">4.0 Security</button>
+              <button type="button" class="tdp-pill" data-domain-idx="5" onclick="prefillDomainTopics('troubleshooting')">5.0 Troubleshooting</button>
+            </div>
+          </div>
+          <div class="topic-quickpicks">
+            <button class="chip chip-smart cq-mode-card" data-v="&#129504; Smart (Spaced Rep)" type="button">
+              <span class="cq-mode-ico" aria-hidden="true">&#129504;</span>
+              <span class="cq-mode-text"><span class="cq-mode-title">Smart</span><span class="cq-mode-sub">Targets your weak and overdue topics</span></span>
+            </button>
+            <button class="chip on cq-mode-card" data-v="Mixed &mdash; All Topics" type="button">
+              <span class="cq-mode-ico" aria-hidden="true">&#127922;</span>
+              <span class="cq-mode-text"><span class="cq-mode-title">Mixed</span><span class="cq-mode-sub">Random across every topic</span></span>
+            </button>
+          </div>
+          <div class="cq-domains">
+            <details class="topic-domain-group" data-domain-idx="1" open>
+              <summary><span class="dom-name">1.0 Networking Concepts</span><span class="dom-weight">23%</span></summary>
+              <div class="chip-grid">
+                <button class="chip" data-v="Network Models & OSI">Network Models &amp; OSI</button>
+                <button class="chip" data-v="TCP/IP Basics">TCP/IP Basics</button>
+                <button class="chip" data-v="Subnetting & IP Addressing">Subnetting &amp; IP</button>
+                <button class="chip" data-v="IPv6">IPv6</button>
+                <button class="chip" data-v="NAT & IP Services">NAT &amp; IP Services</button>
+                <button class="chip" data-v="Port Numbers">Port Numbers</button>
+                <button class="chip" data-v="Virtualisation & Cloud">Virtualisation &amp; Cloud</button>
+              </div>
+            </details>
+            <details class="topic-domain-group" data-domain-idx="2">
+              <summary><span class="dom-name">2.0 Network Implementation</span><span class="dom-weight">20%</span></summary>
+              <div class="chip-grid">
+                <button class="chip" data-v="Routing Protocols">Routing Protocols</button>
+                <button class="chip" data-v="OSPF">OSPF</button>
+                <button class="chip" data-v="BGP">BGP</button>
+                <button class="chip" data-v="Switch Features & VLANs">Switch &amp; VLANs</button>
+                <button class="chip" data-v="Wireless Networking">Wireless Networking</button>
+                <button class="chip" data-v="Ethernet Basics">Ethernet Basics</button>
+              </div>
+            </details>
+            <details class="topic-domain-group" data-domain-idx="3">
+              <summary><span class="dom-name">3.0 Network Operations</span><span class="dom-weight">19%</span></summary>
+              <div class="chip-grid">
+                <button class="chip" data-v="Network Operations">Network Operations</button>
+                <button class="chip" data-v="WAN Connectivity">WAN Connectivity</button>
+                <button class="chip" data-v="SD-WAN & SASE">SD-WAN &amp; SASE</button>
+                <button class="chip" data-v="Network Monitoring & Observability">Monitoring &amp; SNMP</button>
+              </div>
+            </details>
+            <details class="topic-domain-group" data-domain-idx="4">
+              <summary><span class="dom-name">4.0 Network Security</span><span class="dom-weight">14%</span></summary>
+              <div class="chip-grid">
+                <button class="chip" data-v="AAA & Authentication">AAA &amp; Authentication</button>
+                <button class="chip" data-v="IPsec & VPN Protocols">IPsec &amp; VPN</button>
+                <button class="chip" data-v="PKI & Certificate Management">PKI &amp; Certificates</button>
+                <button class="chip" data-v="Firewalls, DMZ & Security Zones">Firewalls &amp; DMZ</button>
+                <button class="chip" data-v="Network Attacks & Threats">Attacks &amp; Threats</button>
+              </div>
+            </details>
+            <details class="topic-domain-group" data-domain-idx="5">
+              <summary><span class="dom-name">5.0 Network Troubleshooting</span><span class="dom-weight">24%</span></summary>
+              <div class="chip-grid">
+                <button class="chip" data-v="Network Troubleshooting & Tools">Troubleshooting &amp; Tools</button>
+                <button class="chip" data-v="CompTIA Troubleshooting Methodology">7-Step Methodology</button>
+                <button class="chip" data-v="Cable Issues">Cable Issues</button>
+                <button class="chip" data-v="Connection Issues">Connection Issues</button>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="cq-foot-band">
+          <div class="cq-options-grid">
+            <div>
+              <div class="cq-section-head"><span class="cq-section-ico" aria-hidden="true">&#9889;</span><h3 class="cq-section-title">Difficulty</h3></div>
+              <div class="chip-group cq-diff-group" id="diff-group">
+                <button class="chip chip-tier-found" data-v="Foundational" type="button">Foundational</button>
+                <button class="chip on chip-tier-exam" data-v="Exam Level" type="button">Exam Level</button>
+                <button class="chip chip-tier-hard" data-v="Hard / Tricky" type="button">Hard</button>
+                <button class="chip chip-tier-mixed" data-v="Mixed" type="button">Mixed</button>
+              </div>
+            </div>
+            <div>
+              <div class="cq-section-head"><span class="cq-section-ico" aria-hidden="true">&#127919;</span><h3 class="cq-section-title">Questions</h3></div>
+              <div class="chip-group cq-count-group" id="count-group">
+                <button class="chip chip-count" data-v="5" type="button"><span class="chip-count-num">5</span><span class="chip-count-sub">~5 min</span></button>
+                <button class="chip chip-count on" data-v="10" type="button"><span class="chip-count-num">10</span><span class="chip-count-sub">~10 min</span></button>
+                <button class="chip chip-count" data-v="15" type="button"><span class="chip-count-num">15</span><span class="chip-count-sub">~15 min</span></button>
+                <button class="chip chip-count" data-v="20" type="button"><span class="chip-count-num">20</span><span class="chip-count-sub">~20 min</span></button>
+              </div>
+            </div>
+          </div>
+          <div class="cq-summary-bar" id="cq-summary-bar">
+            <div class="cq-summary-prose" id="cq-summary-prose"><strong>10</strong> exam-level questions · <em>Mixed across all topics</em> · est. ~10 min</div>
+            <button class="btn btn-primary cq-summary-cta" onclick="startQuiz()"><span class="cq-generate-ico" aria-hidden="true">&#9889;</span><span>Generate Quiz →</span></button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</div>
+<script>
+  /* Mockup-only modal close wiring (at integration: drop _jumpToCustomQuiz's
+     scrollIntoView + add this backdrop/Esc close). chip toggles are demo. */
+  (function(){
+    var cq=document.getElementById('custom-quiz-section');
+    cq.addEventListener('click',function(e){ if(e.target===cq) cq.open=false; });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&cq.open) cq.open=false; });
+    cq.querySelectorAll('.chip:not(.cq-mode-card),.cq-mode-card,.tdp-pill').forEach(function(b){
+      b.addEventListener('click',function(){
+        if(b.classList.contains('cq-mode-card')){cq.querySelectorAll('.cq-mode-card').forEach(function(x){x.classList.remove('on')});b.classList.add('on');return;}
+        if(b.closest('#diff-group')){b.closest('#diff-group').querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')});b.classList.add('on');return;}
+        if(b.closest('#count-group')){b.closest('#count-group').querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')});b.classList.add('on');return;}
+        if(b.classList.contains('tdp-pill'))return;
+        b.classList.toggle('on');
+      });
+    });
+  })();
+</script>
+</body>
+</html>
