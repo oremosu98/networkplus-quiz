@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<!--
+  CertAnvil — Section 6 redesign concept ("Why CertAnvil?"). MOCKUP FOR
+  DISCUSSION. Not production. Self-contained.
+
+  Playbook applied:
+   - Phase 0 system REUSED verbatim (Fraunces+Inter, forged bronze, cool
+     slate ink, warm ivory, light+dark). Brief: keep the font; the BLUE
+     accent is wrong → rebuilt on the locked bronze system.
+   - taste-skill (warm-modern): the live design is a 4-EQUAL-COLUMN card
+     grid with 24px line glyphs (the recurring "feature boxes" AI tell,
+     now the 6th surface). Redesigned as an editorial header + the four
+     reasons as a single FRAMED 2x2 ledger (one composed object, hairline
+     divided cells, big Fraunces numerals, NOT four floating soft-shadow
+     cards), closed by a quiet cert-badge proof band. Same framed-panel
+     grammar as the section-5 "deal" panel, so the page reads as one
+     system.
+   - Icons: each reason carries one of the four user-attached feature
+     PNGs (assets/why/why-firsthand|fresh|checked|ready.png — navy ink +
+     cream + warm orange, within the locked family) in the same cream
+     56px chip as the section-5 step icons. The cert proof band keeps the
+     5 cert badges (N+, S+, AZ, CC, AW) as a wordless fifth reason: one
+     engine behind every cert. The chip stays cream in dark too (section
+     5 precedent) so the navy-ink icons stay legible on the dark panel.
+   - emil-design-eng: scoped entrance, header reveals then the ledger
+     frame settles and the four cells stagger, the proof band resolves
+     last. Transform/opacity only, custom easing, reduced-motion path,
+     scoped trigger. An argument section should feel composed, not busy.
+   - stop-slop: every em-dash removed ("panicking — closer to", etc.);
+     the vague declarative openers cut ("Subjective readiness is
+     unreliable", "AI on its own makes mistakes"); the verb rule-of-three
+     ("studied for, sat, and passed") collapsed; the "memorising answer
+     C" cliché replaced; the duplicated "every/any question" de-duped;
+     reader put in each sentence.
+
+  No script.js / sample-questions.js / UAT contract on this section. Only
+  id="why" is preserved (the "#why" nav anchor + the scoping root). Fresh
+  .wyx-* classes → zero production .why-grid/.why-item/.why-glyph bleed;
+  the bare ".why{padding;background}" rule is beaten per-property by #why.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — section 6 concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:oklch(0.975 0.007 85);font-family:'Inter',system-ui,sans-serif}
+  body.dark{background:oklch(0.16 0.009 275)}
+  .toolbar{position:fixed;right:16px;top:16px;z-index:50}
+  .toolbar button{border:1px solid oklch(0.86 0.008 85);background:oklch(0.992 0.004 85);color:oklch(0.30 0.015 280);border-radius:8px;padding:7px 12px;cursor:pointer;font:600 12px/1 'Inter',sans-serif}
+  body.dark .toolbar button{border-color:oklch(0.30 0.008 275);background:oklch(0.205 0.009 275);color:oklch(0.9 0.006 275)}
+
+  /* ───────────── SECTION 6 — scoped under #why ───────────── */
+  #why{
+    --bg:oklch(0.975 0.007 85);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
+    --eo:cubic-bezier(0.23,1,0.32,1);
+    position:relative;display:block;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(56px,9vh,108px) clamp(20px,4vw,56px);
+    border-top:1px solid var(--border-soft);
+  }
+  body.dark #why{
+    --bg:oklch(0.16 0.009 275);
+    --surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+  }
+  #why *{box-sizing:border-box}
+  #why .wyx-wrap{max-width:1140px;margin:0 auto}
+
+  /* — header (centered editorial; a deliberate variation from the
+       section-5 left 2-col, still the same eyebrow/Fraunces grammar) — */
+  #why .wyx-head{max-width:none;text-align:center;margin-bottom:clamp(36px,5vw,60px)}
+  #why .wyx-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+  #why .wyx-eyebrow::before,
+  #why .wyx-eyebrow::after{content:"";width:26px;height:1px;background:linear-gradient(90deg,transparent,var(--accent))}
+  #why .wyx-eyebrow::after{background:linear-gradient(90deg,var(--accent),transparent)}
+  #why .wyx-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,3.8vw,52px);line-height:1.06;letter-spacing:-.02em;color:var(--ink);margin:0 auto 18px;max-width:18ch}
+  #why .wyx-title .wyx-em{font-style:italic;color:var(--accent)}
+  #why .wyx-lede{font-size:clamp(15px,1.2vw,17.5px);line-height:1.62;color:var(--ink-soft);max-width:54ch;margin:0 auto}
+
+  /* — the four reasons: ONE framed 2x2 ledger, hairline-divided cells,
+       no per-card chrome (kills the equal-soft-card grid tell) — */
+  #why .wyx-grid{
+    display:grid;grid-template-columns:1fr 1fr;
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow-card);
+    overflow:hidden;
+  }
+  #why .wyx-cell{
+    display:grid;grid-template-columns:auto 56px 1fr;align-items:start;
+    column-gap:18px;row-gap:0;
+    padding:clamp(26px,3vw,38px) clamp(24px,2.6vw,34px);
+    border-bottom:1px solid var(--border);
+    transition:background 180ms ease;
+  }
+  #why .wyx-cell:nth-child(odd){border-right:1px solid var(--border)}
+  #why .wyx-cell:nth-last-child(-n+2){border-bottom:0}
+  @media (hover:hover){#why .wyx-cell:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}}
+  #why .wyx-n{
+    grid-row:1;font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600;
+    color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.5;
+    width:30px;flex:none;
+  }
+  #why .wyx-ic{
+    grid-row:1;width:56px;height:56px;border-radius:15px;flex:none;
+    background-color:#FFFBF3;border:1px solid var(--border);box-shadow:var(--shadow-soft);
+    display:grid;place-items:center;
+  }
+  #why .wyx-ic img{width:52px;height:52px;object-fit:contain;display:block}
+  #why .wyx-body{grid-column:2 / 4;padding-top:18px;min-width:0}
+  #why .wyx-name{font-size:16px;font-weight:650;color:var(--ink);letter-spacing:-.01em;margin-bottom:7px}
+  #why .wyx-desc{font-size:13.5px;line-height:1.62;color:var(--ink-soft)}
+  #why .wyx-desc strong{color:var(--ink);font-weight:650}
+
+  /* — closing proof band: the 5 attached cert badges as the wordless
+       fifth reason ("one engine, every cert"), not decoration — */
+  #why .wyx-certs{
+    margin-top:clamp(30px,4vw,46px);padding-top:clamp(28px,3.4vw,40px);
+    border-top:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;
+  }
+  #why .wyx-certs-cap{font-size:13.5px;line-height:1.6;color:var(--muted);max-width:52ch}
+  #why .wyx-certs-cap strong{color:var(--ink-soft);font-weight:650}
+  #why .wyx-badges{display:flex;align-items:center;justify-content:center;gap:clamp(14px,2.6vw,30px);flex-wrap:wrap}
+  #why .wyx-badge{display:flex;flex-direction:column;align-items:center;gap:9px}
+  #why .wyx-badge img{
+    width:clamp(46px,5vw,58px);height:auto;display:block;border-radius:13px;
+    filter:drop-shadow(0 6px 14px oklch(0.22 0.015 280 / .14));
+  }
+  #why .wyx-badge.is-soon img{opacity:.52;filter:grayscale(.35) drop-shadow(0 5px 12px oklch(0.22 0.015 280 / .10))}
+  #why .wyx-badge-tag{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+  #why .wyx-badge.is-soon .wyx-badge-tag{color:var(--muted)}
+
+  /* entrance (emil) — scoped #why.wyx-in */
+  #why .wyx-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
+  #why.wyx-in .wyx-r{opacity:1;transform:none}
+  #why.wyx-in .wyx-r[data-d="1"]{transition-delay:40ms}
+  #why.wyx-in .wyx-r[data-d="2"]{transition-delay:120ms}
+  #why.wyx-in .wyx-r[data-d="3"]{transition-delay:200ms}
+  #why .wyx-grid{opacity:0;transform:translateY(20px) scale(0.992);transition:opacity 700ms var(--eo) 200ms,transform 700ms var(--eo) 200ms}
+  #why.wyx-in .wyx-grid{opacity:1;transform:none}
+  #why .wyx-cell{opacity:0;transform:translateY(12px);transition:opacity 480ms var(--eo),transform 480ms var(--eo)}
+  #why.wyx-in .wyx-cell{opacity:1;transform:none}
+  #why.wyx-in .wyx-cell:nth-child(1){transition-delay:340ms}
+  #why.wyx-in .wyx-cell:nth-child(2){transition-delay:400ms}
+  #why.wyx-in .wyx-cell:nth-child(3){transition-delay:460ms}
+  #why.wyx-in .wyx-cell:nth-child(4){transition-delay:520ms}
+  #why .wyx-certs{opacity:0;transform:translateY(14px);transition:opacity 620ms var(--eo) 560ms,transform 620ms var(--eo) 560ms}
+  #why.wyx-in .wyx-certs{opacity:1;transform:none}
+
+  @media (max-width:820px){
+    #why .wyx-grid{grid-template-columns:1fr}
+    #why .wyx-cell{border-right:0!important}
+    #why .wyx-cell:nth-last-child(-n+2){border-bottom:1px solid var(--border)}
+    #why .wyx-cell:last-child{border-bottom:0}
+  }
+  @media (max-width:540px){
+    #why .wyx-title{font-size:clamp(27px,8vw,36px)}
+    #why .wyx-cell{grid-template-columns:auto 1fr;column-gap:14px}
+    #why .wyx-ic{display:none}
+    #why .wyx-body{grid-column:2 / 3;padding-top:14px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #why .wyx-r,#why .wyx-grid,#why .wyx-cell,#why .wyx-certs{transition:opacity 220ms ease !important;transform:none !important}
+    #why.wyx-in .wyx-r,#why.wyx-in .wyx-cell{transform:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar"><button id="t-theme" type="button">Toggle dark</button></div>
+
+<section class="why" id="why">
+  <div class="wyx-wrap">
+
+    <div class="wyx-head">
+      <span class="wyx-eyebrow wyx-r" data-d="1">Why CertAnvil</span>
+      <h2 class="wyx-title wyx-r" data-d="1">Why it holds up under a <span class="wyx-em">real exam.</span></h2>
+      <p class="wyx-lede wyx-r" data-d="2">Four things most prep tools skip. Each one is why a high score here means you're actually ready, not just good at one question bank.</p>
+    </div>
+
+    <div class="wyx-grid wyx-r" data-d="3">
+
+      <div class="wyx-cell">
+        <span class="wyx-n">01</span>
+        <span class="wyx-ic"><img src="assets/why/why-firsthand.png" alt=""></span>
+        <div class="wyx-body">
+          <div class="wyx-name">Built by someone who sat the exam</div>
+          <p class="wyx-desc">I sat and passed every cert on this platform. The questions match what the real exam asks, not what a generic study app guesses you'll need.</p>
+        </div>
+      </div>
+
+      <div class="wyx-cell">
+        <span class="wyx-n">02</span>
+        <span class="wyx-ic"><img src="assets/why/why-fresh.png" alt=""></span>
+        <div class="wyx-body">
+          <div class="wyx-name">You'll never see the same question twice</div>
+          <p class="wyx-desc">Most tools ship one fixed bank of 500 questions. CertAnvil generates fresh ones every session, so your score reflects what you <strong>know</strong>, not what you memorised.</p>
+        </div>
+      </div>
+
+      <div class="wyx-cell">
+        <span class="wyx-n">03</span>
+        <span class="wyx-ic"><img src="assets/why/why-checked.png" alt=""></span>
+        <div class="wyx-body">
+          <div class="wyx-name">Questions get checked before you see them</div>
+          <p class="wyx-desc">AI alone makes mistakes. Every question clears seven checks first, including a second AI pass and a factual-correctness gate. <strong>Wrong answers never ship.</strong></p>
+        </div>
+      </div>
+
+      <div class="wyx-cell">
+        <span class="wyx-n">04</span>
+        <span class="wyx-ic"><img src="assets/why/why-ready.png" alt=""></span>
+        <div class="wyx-body">
+          <div class="wyx-name">Know when you're actually ready</div>
+          <p class="wyx-desc">Guessing how ready you feel never works. Your readiness score is one number, recalculated every quiz and weighted to the exam blueprint. When it says you'll pass, you will.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="wyx-certs">
+      <p class="wyx-certs-cap">And the same engine sits behind every cert. <strong>Network+ is live today; Security+, Azure, CCNA and AWS are on the way.</strong></p>
+      <div class="wyx-badges">
+        <div class="wyx-badge"><img src="assets/certs/cert-netplus.png" alt="CompTIA Network+"><span class="wyx-badge-tag">Live</span></div>
+        <div class="wyx-badge is-soon"><img src="assets/certs/cert-secplus.png" alt="CompTIA Security+"><span class="wyx-badge-tag">Soon</span></div>
+        <div class="wyx-badge is-soon"><img src="assets/certs/cert-az.png" alt="Microsoft Azure"><span class="wyx-badge-tag">Soon</span></div>
+        <div class="wyx-badge is-soon"><img src="assets/certs/cert-ccna.png" alt="Cisco CCNA"><span class="wyx-badge-tag">Soon</span></div>
+        <div class="wyx-badge is-soon"><img src="assets/certs/cert-aws.png" alt="AWS"><span class="wyx-badge-tag">Soon</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function(){
+      var s=document.getElementById('why');
+      if(!s)return;
+      if('IntersectionObserver' in window){
+        var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){s.classList.add('wyx-in');io.disconnect();}});},{threshold:0.12});
+        io.observe(s);
+      } else { s.classList.add('wyx-in'); }
+      document.getElementById('t-theme').addEventListener('click',function(){document.body.classList.toggle('dark');});
+    })();
+  </script>
+</section>
+</body>
+</html>
