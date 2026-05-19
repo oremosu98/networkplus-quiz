@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<!--
+  CertAnvil — Section 3 redesign concept ("Pick your cert")
+  MOCKUP FOR DISCUSSION. Not production. Standalone + self-contained.
+
+  Playbook applied:
+   - Phase 0 system REUSED verbatim (Fraunces+Inter, forged bronze, cool
+     slate ink, warm ivory, light+dark). Brief: keep font + colour scheme.
+   - taste-skill (warm-modern): the live design is a 6-equal-card grid —
+     the doubled "three equal feature boxes" AI tell, zero hierarchy, and
+     it implies all six certs are equally available (they are not). Redesigned
+     as ONE featured-live protagonist (Network+, the only thing you can do
+     now) + a quiet hairline ROSTER of the five being forged. Real
+     hierarchy, honest state, no card-grid spam.
+   - emil-design-eng: scoped #cl.cl-in scroll entrance, featured panel
+     leads then roster rows stagger; press/hover feedback; transform+opacity
+     only; full reduced-motion path; scoped trigger.
+   - stop-slop: section copy tightened; "Coming soon" pill spam removed
+     (the ETA carries the state); honest specific voice.
+
+  CONTRACT PRESERVED (script.js drives this section — same discipline as
+  the hero auth DOM + sq2 host): every tile keeps .cert-tile +
+  is-live/is-private/is-soon + data-cert + href + ids
+  (cert-tile-netplus/-status/-cta, cert-tile-secplus/-status/-cta,
+  cert-tile-secplus-soon) + hidden on the private Sec+ tile + inner
+  .cert-glyph/.cert-name/.cert-code/.cert-desc/.cert-foot/.cert-progress/
+  .cert-cta/.cert-cta-notify/.cert-status/.status-dot. Layout is pure CSS
+  over the same hooks; script.js getElementById + .closest('.cert-tile')
+  + [data-cert] queries all still resolve.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — section 3 concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:oklch(0.975 0.007 85);font-family:'Inter',system-ui,sans-serif}
+  body.dark{background:oklch(0.16 0.009 275)}
+  .toolbar{position:fixed;right:16px;top:16px;z-index:50;display:flex;gap:8px;font:600 12px/1 'Inter',sans-serif}
+  .toolbar button{border:1px solid oklch(0.86 0.008 85);background:oklch(0.992 0.004 85);color:oklch(0.30 0.015 280);border-radius:8px;padding:7px 12px;cursor:pointer}
+  body.dark .toolbar button{border-color:oklch(0.30 0.008 275);background:oklch(0.205 0.009 275);color:oklch(0.9 0.006 275)}
+
+  /* ───────────────── SECTION 3 — scoped under #cl ───────────────── */
+  #cl{
+    --bg:oklch(0.975 0.007 85);
+    --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
+    --eo:cubic-bezier(0.23,1,0.32,1);
+    --eio:cubic-bezier(0.77,0,0.175,1);
+    position:relative;display:block;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(56px,9vh,108px) clamp(20px,4vw,56px);
+    border-top:1px solid var(--border-soft);
+  }
+  body.dark #cl{
+    --bg:oklch(0.16 0.009 275);--bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+  }
+  #cl *{box-sizing:border-box}
+  #cl a{color:inherit;text-decoration:none}
+  #cl [hidden]{display:none!important}   /* keep private Sec+ tile hidden (display:flex must not leak it) */
+  #cl .cl-wrap{max-width:1240px;margin:0 auto}
+
+  #cl .cl-head{margin-bottom:clamp(28px,4vw,44px);max-width:600px}
+  #cl .cl-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  #cl .cl-eyebrow::after{content:"";flex:none;width:28px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+  #cl .cl-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,3.6vw,50px);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:14px}
+  #cl .cl-title .cl-em{font-style:italic;color:var(--accent)}
+  #cl .cl-sub{font-size:clamp(15px,1.15vw,17.5px);line-height:1.6;color:var(--ink-soft);max-width:48ch}
+
+  #cl .cl-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:clamp(24px,3vw,40px);align-items:start}
+
+  /* ── featured live cert (the protagonist) ── */
+  #cl .cert-tile.is-live,#cl .cert-tile.is-private{
+    display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:24px;
+    box-shadow:var(--shadow-card);
+    padding:clamp(26px,3vw,40px);height:100%;
+    transition:transform 200ms var(--eo),box-shadow 200ms ease;
+  }
+  @media (hover:hover){#cl .cert-tile.is-live:hover{transform:translateY(-3px)}}
+  #cl .cert-tile.is-live .cert-tile-top,#cl .cert-tile.is-private .cert-tile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+  #cl .cert-tile.is-live .cert-glyph,#cl .cert-tile.is-private .cert-glyph{
+    width:84px;height:84px;flex:none;font-size:0;
+    background-color:#FFFBF3;
+    border:1px solid var(--border);border-radius:20px;
+    box-shadow:var(--shadow-soft);
+    background-size:62px 62px;background-position:center;background-repeat:no-repeat;
+  }
+  #cl .cert-glyph-netplus{background-image:url('assets/certs/cert-netplus.png')}
+  #cl .cert-glyph-secplus{background-image:url('assets/certs/cert-secplus.png')}
+  #cl .cert-status{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:7px 13px;border-radius:999px}
+  #cl .cert-status.status-live{color:var(--accent);background:color-mix(in oklab,var(--accent) 11%,transparent);border:1px solid color-mix(in oklab,var(--accent) 35%,transparent)}
+  #cl .cert-status.status-private{color:var(--muted);background:color-mix(in oklab,var(--muted) 12%,transparent);border:1px solid var(--border)}
+  #cl .cert-status .status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 22%,transparent)}
+  #cl .cert-tile.is-live .cert-name,#cl .cert-tile.is-private .cert-name{font-family:'Fraunces',Georgia,serif;font-size:clamp(26px,2.6vw,36px);font-weight:600;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
+  #cl .cert-tile.is-live .cert-code,#cl .cert-tile.is-private .cert-code{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:18px}
+  #cl .cert-tile.is-live .cert-desc,#cl .cert-tile.is-private .cert-desc{font-size:15px;line-height:1.62;color:var(--ink-soft);margin-bottom:26px}
+  #cl .cert-tile.is-live .cert-foot,#cl .cert-tile.is-private .cert-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:20px;border-top:1px solid var(--border)}
+  #cl .cert-tile.is-live .cert-progress,#cl .cert-tile.is-private .cert-progress{font-size:13px;font-weight:500;color:var(--muted)}
+  #cl .cert-tile.is-live .cert-cta,#cl .cert-tile.is-private .cert-cta{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:15px;font-weight:600;color:var(--on-accent);
+    background:var(--accent);padding:13px 22px;border-radius:12px;
+    box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 12px 22px -12px color-mix(in oklab,var(--accent-deep) 58%,transparent);
+    transition:transform 150ms var(--eo),background 180ms ease;
+  }
+  @media (hover:hover){#cl .cert-tile.is-live:hover .cert-cta{background:var(--accent-deep)}}
+  #cl .cert-tile.is-live .cert-cta:active,#cl .cert-tile.is-private .cert-cta:active{transform:scale(0.97)}
+
+  /* ── roster of the forge (the five coming-soon) ── */
+  #cl .cl-roster{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:20px;background:linear-gradient(180deg,var(--surface),var(--surface-2));overflow:hidden}
+  #cl .cl-roster-h{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+  #cl .cert-tile.is-soon{
+    display:flex;align-items:center;gap:16px;
+    padding:16px 22px;border-bottom:1px solid var(--border);
+    transition:background 160ms ease;
+  }
+  #cl .cert-tile.is-soon:last-child{border-bottom:0}
+  @media (hover:hover){#cl .cert-tile.is-soon:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}}
+  #cl .cert-tile.is-soon .cert-tile-top{flex:none}
+  #cl .cert-tile.is-soon .cert-glyph{
+    width:46px;height:46px;font-size:0;
+    background-color:#FFFBF3;
+    border:1px solid var(--border);border-radius:13px;
+    background-size:34px 34px;background-position:center;background-repeat:no-repeat;
+  }
+  #cl .cert-tile.is-soon .cert-glyph-secplus{background-image:url('assets/certs/cert-secplus.png')}
+  #cl .cert-tile.is-soon .cert-glyph-az900,#cl .cert-tile.is-soon .cert-glyph-az104{background-image:url('assets/certs/cert-az.png')}
+  #cl .cert-tile.is-soon .cert-glyph-ccna{background-image:url('assets/certs/cert-ccna.png')}
+  #cl .cert-tile.is-soon .cert-glyph-aws{background-image:url('assets/certs/cert-aws.png')}
+  #cl .cert-tile.is-soon .cert-status{display:none}            /* ETA carries the state — no pill spam */
+  #cl .cl-soon-body{flex:1;min-width:0}
+  #cl .cert-tile.is-soon .cert-name{font-size:15.5px;font-weight:650;color:var(--ink);margin-bottom:2px}
+  #cl .cert-tile.is-soon .cert-code{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  #cl .cert-tile.is-soon .cert-desc{display:none}              /* roster stays scannable */
+  #cl .cert-tile.is-soon .cert-foot{display:flex;align-items:center;gap:18px;flex:none}
+  #cl .cert-tile.is-soon .cert-progress{font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap}
+  #cl .cert-tile.is-soon .cert-cta-notify{
+    font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);
+    background:none;border:1px solid var(--border);border-radius:9px;
+    padding:8px 14px;cursor:pointer;white-space:nowrap;
+    transition:color 150ms ease,border-color 150ms ease,transform 150ms var(--eo);
+  }
+  @media (hover:hover){#cl .cert-tile.is-soon .cert-cta-notify:hover{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--border))}}
+  #cl .cert-tile.is-soon .cert-cta-notify:active{transform:scale(0.97)}
+
+  /* entrance (emil) — scoped #cl.cl-in */
+  #cl .cl-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
+  #cl.cl-in .cl-r{opacity:1;transform:none}
+  #cl.cl-in .cl-r[data-d="1"]{transition-delay:40ms}
+  #cl.cl-in .cl-r[data-d="2"]{transition-delay:110ms}
+  #cl .cert-tile.is-live,#cl .cl-roster{opacity:0;transform:translateY(20px) scale(0.985);transition:opacity 680ms var(--eo) 140ms,transform 680ms var(--eo) 140ms}
+  #cl.cl-in .cert-tile.is-live,#cl.cl-in .cl-roster{opacity:1;transform:none}
+  #cl .cert-tile.is-soon{opacity:0;transform:translateX(10px);transition:opacity 460ms var(--eo),transform 460ms var(--eo)}
+  #cl.cl-in .cert-tile.is-soon{opacity:1;transform:none}
+  #cl.cl-in .cert-tile.is-soon:nth-child(2){transition-delay:260ms}
+  #cl.cl-in .cert-tile.is-soon:nth-child(3){transition-delay:320ms}
+  #cl.cl-in .cert-tile.is-soon:nth-child(4){transition-delay:380ms}
+  #cl.cl-in .cert-tile.is-soon:nth-child(5){transition-delay:440ms}
+  #cl.cl-in .cert-tile.is-soon:nth-child(6){transition-delay:500ms}
+
+  @media (max-width:940px){
+    #cl .cl-grid{grid-template-columns:1fr;gap:28px}
+  }
+  @media (max-width:560px){
+    #cl .cl-title{font-size:clamp(26px,8vw,34px)}
+    #cl .cert-tile.is-soon{flex-wrap:wrap;gap:12px}
+    #cl .cert-tile.is-soon .cert-foot{width:100%;justify-content:space-between;padding-left:62px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #cl .cl-r,#cl .cert-tile.is-live,#cl .cl-roster,#cl .cert-tile.is-soon{transition:opacity 240ms ease !important;transform:none !important}
+    #cl.cl-in .cl-r,#cl.cl-in .cert-tile.is-live,#cl.cl-in .cl-roster,#cl.cl-in .cert-tile.is-soon{transform:none !important}
+    #cl .cert-tile.is-live,#cl .cert-tile.is-soon .cert-cta-notify,#cl .cert-tile.is-live .cert-cta{transition:background 160ms ease,color 160ms ease !important;transform:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="t-theme" type="button">Toggle dark</button>
+  <button id="t-admin" type="button">Toggle admin (Sec+ private)</button>
+</div>
+
+<section id="cl">
+  <div class="cl-wrap">
+    <div class="cl-head">
+      <span class="cl-eyebrow cl-r" data-d="1">Our cert library</span>
+      <h2 class="cl-title cl-r" data-d="1">Pick your <span class="cl-em">cert</span>.</h2>
+      <p class="cl-sub cl-r" data-d="2">Network+ is live today. Five more are on the anvil — get pinged the day each one ships.</p>
+    </div>
+
+    <div class="cl-grid">
+      <!-- FEATURED: Network+ live (the only actionable cert). Contract: a.cert-tile.is-live + href + data-cert + id + inner hooks + #cert-tile-netplus-status/-cta for the signed-in "Passed" swap. -->
+      <a class="cert-tile is-live cl-r" data-d="2" href="https://networkplus.certanvil.com/?cert=netplus" data-cert="netplus" id="cert-tile-netplus">
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-netplus">N+</div>
+          <span class="cert-status status-live" id="cert-tile-netplus-status"><span class="status-dot"></span>Live</span>
+        </div>
+        <div class="cert-name">Network+</div>
+        <div class="cert-code">N10-009 · 90 questions · 90 min</div>
+        <div class="cert-desc">All five N10-009 domains. Hand-curated questions, an interactive topology lab, a packet-trace simulator, and an exam mode that mirrors the real 90-question test.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">5 domains · 50 topics</span>
+          <span class="cert-cta" id="cert-tile-netplus-cta">Start studying →</span>
+        </div>
+      </a>
+
+      <!-- PRIVATE Sec+ (admin/builder only; hidden by default — script.js
+           un-hides for builder mode). Featured-style when shown. -->
+      <a class="cert-tile is-private" href="https://networkplus.certanvil.com/?cert=secplus" data-cert="secplus" id="cert-tile-secplus" hidden>
+        <div class="cert-tile-top">
+          <div class="cert-glyph cert-glyph-secplus">S+</div>
+          <span class="cert-status status-private" id="cert-tile-secplus-status">Private</span>
+        </div>
+        <div class="cert-name">Security+</div>
+        <div class="cert-code">SY0-701 · target exam 2026-07-29</div>
+        <div class="cert-desc">Get exam-ready for SY0-701. Threat actors, identity, SIEM, incident response, and governance, built with the same engine that got Network+ across the line.</div>
+        <div class="cert-foot">
+          <span class="cert-progress">5 domains · 37 topics</span>
+          <span class="cert-cta" id="cert-tile-secplus-cta">Continue prep →</span>
+        </div>
+      </a>
+
+      <!-- ROSTER: the five being forged. Each keeps .cert-tile.is-soon +
+           data-cert + (id where present) + .cert-cta-notify so the notify
+           modal wiring + builder toggle still resolve. -->
+      <div class="cl-roster cl-r" data-d="2">
+        <div class="cl-roster-h">On the anvil</div>
+
+        <div class="cert-tile is-soon" data-cert="secplus" id="cert-tile-secplus-soon">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-secplus">S+</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Security+</div>
+            <div class="cert-code">SY0-701 · CompTIA's flagship security cert</div>
+            <div class="cert-desc">Threat actors, identity, SIEM, incident response, and governance. Includes the IR War Room and Phishing Triage drills.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~6 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
+        </div>
+
+        <div class="cert-tile is-soon" data-cert="az900">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-az900">AZ</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Azure Fundamentals</div>
+            <div class="cert-code">AZ-900 · cloud entry-point</div>
+            <div class="cert-desc">Microsoft's entry-point cloud cert, retuned for Azure.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~6 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
+        </div>
+
+        <div class="cert-tile is-soon" data-cert="ccna">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-ccna">CC</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Cisco CCNA</div>
+            <div class="cert-code">200-301 · routing + switching</div>
+            <div class="cert-desc">Cisco's flagship associate cert. OSPF, BGP, and a full IOS CLI lab.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~10 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
+        </div>
+
+        <div class="cert-tile is-soon" data-cert="aws-saa">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-aws">AW</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">AWS Solutions Architect</div>
+            <div class="cert-code">SAA-C03 · associate level</div>
+            <div class="cert-desc">AWS's most-requested associate cert. VPC, IAM, and the services on the exam.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~12 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
+        </div>
+
+        <div class="cert-tile is-soon" data-cert="az104">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-az104">AZ</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Azure Administrator</div>
+            <div class="cert-code">AZ-104 · associate level</div>
+            <div class="cert-desc">The day-to-day Azure admin cert. Identity, governance, storage, networking, compute.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~14 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var sec=document.getElementById('cl');
+      if(!sec)return;
+      if('IntersectionObserver' in window){
+        var io=new IntersectionObserver(function(es){
+          es.forEach(function(e){ if(e.isIntersecting){ sec.classList.add('cl-in'); io.disconnect(); } });
+        },{threshold:0.15});
+        io.observe(sec);
+      } else { sec.classList.add('cl-in'); }
+      /* mockup harness only — NOT shipped */
+      document.getElementById('t-theme').addEventListener('click',function(){document.body.classList.toggle('dark');});
+      document.getElementById('t-admin').addEventListener('click',function(){
+        var priv=document.getElementById('cert-tile-secplus');
+        var soon=document.getElementById('cert-tile-secplus-soon');
+        if(priv.hasAttribute('hidden')){priv.removeAttribute('hidden');soon.style.display='none';}
+        else{priv.setAttribute('hidden','');soon.style.display='';}
+      });
+    })();
+  </script>
+</section>
+</body>
+</html>

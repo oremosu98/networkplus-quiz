@@ -846,36 +846,172 @@
 <!-- ══════════════════════════════════════════
      CERT PICKER
 ══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     CERT LIBRARY v2 — featured-live + "on the anvil" roster.
+     FULLY SCOPED under #certs (the section's own id; ID specificity beats
+     styles.css/dg-system.css .cert-* class rules). Kept id="certs" so the
+     hero/footer anchors still resolve. Every script.js contract preserved:
+     .cert-tile + is-live/is-private/is-soon + data-cert + href + ids
+     (cert-tile-netplus/-status/-cta, cert-tile-secplus/-status/-cta,
+     cert-tile-secplus-soon) + hidden on the private Sec+ tile +
+     .cert-glyph/.cert-name/.cert-code/.cert-desc/.cert-foot/.cert-progress/
+     .cert-cta/.cert-cta-notify/.cert-status/.status-dot. Layout is pure
+     scoped CSS over the same hooks — getElementById + .closest('.cert-tile')
+     + [data-cert] all still resolve, so the builder/notify wiring works.
+     [data-theme="dark"] variant matches the prod theme system. Fonts from
+     the hero-v2 head links. #sq2 above + #proof-of-product below untouched.
+══════════════════════════════════════════ -->
+<style id="cl-styles">
+  #certs{
+    --bg:oklch(0.975 0.007 85);
+    --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
+    --eo:cubic-bezier(0.23,1,0.32,1);
+    --eio:cubic-bezier(0.77,0,0.175,1);
+    position:relative;display:block;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(56px,9vh,108px) clamp(20px,4vw,56px);
+    border-top:1px solid var(--border-soft);
+  }
+  [data-theme="dark"] #certs{
+    --bg:oklch(0.16 0.009 275);--bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+  }
+  #certs *{box-sizing:border-box}
+  #certs a{color:inherit;text-decoration:none}
+  #certs [hidden]{display:none!important}
+  /* COMPLETE scoped reset — this section reuses production .cert-* class
+     names (script.js contract), so styles.css / dg-system.css inject
+     old-vertical-card margins/padding that bleed in. Zero them here at
+     #certs (1,2,0) specificity (the ID beats every styles.css/dg-system
+     class selector); the component rules below re-apply exact spacing. */
+  #certs .cert-tile,#certs .cert-tile-top,#certs .cert-glyph,
+  #certs .cert-name,#certs .cert-code,#certs .cert-desc,
+  #certs .cert-foot,#certs .cert-progress,#certs .cert-cta,
+  #certs .cert-cta-notify,#certs .cert-status,#certs .status-dot{
+    margin:0;padding:0;min-height:0;max-width:none;
+  }
+  /* kill production pseudo-accents on cert tiles (old "live" green bar);
+     this scoped layer uses no ::before/::after on .cert-tile. */
+  #certs .cert-tile::before,#certs .cert-tile::after{content:none!important;display:none!important}
+  #certs .cl-wrap{max-width:1240px;margin:0 auto}
+  #certs .cl-head{margin-bottom:clamp(28px,4vw,44px);max-width:600px}
+  #certs .cl-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  #certs .cl-eyebrow::after{content:"";flex:none;width:28px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+  #certs .cl-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,3.6vw,50px);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:14px}
+  #certs .cl-title .cl-em{font-style:italic;color:var(--accent)}
+  #certs .cl-sub{font-size:clamp(15px,1.15vw,17.5px);line-height:1.6;color:var(--ink-soft);max-width:48ch}
+  #certs .cl-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:clamp(24px,3vw,40px);align-items:start}
+  #certs .cert-tile.is-live,#certs .cert-tile.is-private{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow-card);padding:clamp(26px,3vw,40px);height:100%;transition:transform 200ms var(--eo),box-shadow 200ms ease}
+  @media (hover:hover){#certs .cert-tile.is-live:hover{transform:translateY(-3px)}}
+  #certs .cert-tile.is-live .cert-tile-top,#certs .cert-tile.is-private .cert-tile-top{display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+  #certs .cert-tile.is-live .cert-glyph,#certs .cert-tile.is-private .cert-glyph{width:84px;height:84px;flex:none;font-size:0;background-color:#FFFBF3;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-soft);background-size:62px 62px;background-position:center;background-repeat:no-repeat}
+  #certs .cert-glyph-netplus{background-image:url('assets/certs/cert-netplus.png')}
+  #certs .cert-glyph-secplus{background-image:url('assets/certs/cert-secplus.png')}
+  #certs .cert-status{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:7px 13px;border-radius:999px}
+  #certs .cert-status.status-live{color:var(--accent);background:color-mix(in oklab,var(--accent) 11%,transparent);border:1px solid color-mix(in oklab,var(--accent) 35%,transparent)}
+  #certs .cert-status.status-private{color:var(--muted);background:color-mix(in oklab,var(--muted) 12%,transparent);border:1px solid var(--border)}
+  #certs .cert-status .status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 22%,transparent)}
+  #certs .cert-tile.is-live .cert-name,#certs .cert-tile.is-private .cert-name{font-family:'Fraunces',Georgia,serif;font-size:clamp(26px,2.6vw,36px);font-weight:600;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
+  #certs .cert-tile.is-live .cert-code,#certs .cert-tile.is-private .cert-code{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:18px}
+  #certs .cert-tile.is-live .cert-desc,#certs .cert-tile.is-private .cert-desc{font-size:15px;line-height:1.62;color:var(--ink-soft);margin-bottom:26px}
+  #certs .cert-tile.is-live .cert-foot,#certs .cert-tile.is-private .cert-foot{margin-top:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px;padding-top:20px;border-top:1px solid var(--border)}
+  #certs .cert-tile.is-live .cert-progress,#certs .cert-tile.is-private .cert-progress{font-size:13px;font-weight:500;color:var(--muted)}
+  #certs .cert-tile.is-live .cert-cta,#certs .cert-tile.is-private .cert-cta{display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:600;color:var(--on-accent);background:var(--accent);padding:13px 22px;border-radius:12px;box-shadow:0 1px 0 rgba(255,255,255,.16) inset,0 12px 22px -12px color-mix(in oklab,var(--accent-deep) 58%,transparent);transition:transform 150ms var(--eo),background 180ms ease}
+  @media (hover:hover){#certs .cert-tile.is-live:hover .cert-cta{background:var(--accent-deep)}}
+  #certs .cert-tile.is-live .cert-cta:active,#certs .cert-tile.is-private .cert-cta:active{transform:scale(0.97)}
+  #certs .cl-roster{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:20px;background:linear-gradient(180deg,var(--surface),var(--surface-2));overflow:hidden}
+  #certs .cl-roster-h{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+  #certs .cert-tile.is-soon{display:flex;flex-direction:row;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--border);transition:background 160ms ease}
+  #certs .cert-tile.is-soon:last-child{border-bottom:0}
+  @media (hover:hover){#certs .cert-tile.is-soon:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}}
+  #certs .cert-tile.is-soon .cert-tile-top{flex:none}
+  #certs .cert-tile.is-soon .cert-glyph{width:46px;height:46px;font-size:0;background-color:#FFFBF3;border:1px solid var(--border);border-radius:13px;background-size:34px 34px;background-position:center;background-repeat:no-repeat}
+  #certs .cert-tile.is-soon .cert-glyph-secplus{background-image:url('assets/certs/cert-secplus.png')}
+  #certs .cert-tile.is-soon .cert-glyph-az900,#certs .cert-tile.is-soon .cert-glyph-az104{background-image:url('assets/certs/cert-az.png')}
+  #certs .cert-tile.is-soon .cert-glyph-ccna{background-image:url('assets/certs/cert-ccna.png')}
+  #certs .cert-tile.is-soon .cert-glyph-aws{background-image:url('assets/certs/cert-aws.png')}
+  #certs .cert-tile.is-soon .cert-status{display:none}
+  #certs .cl-soon-body{flex:1;min-width:0}
+  #certs .cert-tile.is-soon .cert-name{font-size:15.5px;font-weight:650;color:var(--ink);margin-bottom:2px}
+  #certs .cert-tile.is-soon .cert-code{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  #certs .cert-tile.is-soon .cert-desc{display:none}
+  #certs .cert-tile.is-soon .cert-foot{display:flex;flex-direction:row;align-items:center;gap:18px;flex:none}
+  #certs .cert-tile.is-soon .cert-progress{font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap}
+  #certs .cert-tile.is-soon .cert-cta-notify{font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);background:none;border:1px solid var(--border);border-radius:9px;padding:8px 14px;cursor:pointer;white-space:nowrap;transition:color 150ms ease,border-color 150ms ease,transform 150ms var(--eo)}
+  @media (hover:hover){#certs .cert-tile.is-soon .cert-cta-notify:hover{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--border))}}
+  #certs .cert-tile.is-soon .cert-cta-notify:active{transform:scale(0.97)}
+  #certs .cl-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
+  #certs.cl-in .cl-r{opacity:1;transform:none}
+  #certs.cl-in .cl-r[data-d="1"]{transition-delay:40ms}
+  #certs.cl-in .cl-r[data-d="2"]{transition-delay:110ms}
+  #certs .cert-tile.is-live,#certs .cl-roster{opacity:0;transform:translateY(20px) scale(0.985);transition:opacity 680ms var(--eo) 140ms,transform 680ms var(--eo) 140ms}
+  #certs.cl-in .cert-tile.is-live,#certs.cl-in .cl-roster{opacity:1;transform:none}
+  #certs .cert-tile.is-soon{opacity:0;transform:translateX(10px);transition:opacity 460ms var(--eo),transform 460ms var(--eo)}
+  #certs.cl-in .cert-tile.is-soon{opacity:1;transform:none}
+  #certs.cl-in .cert-tile.is-soon:nth-child(2){transition-delay:260ms}
+  #certs.cl-in .cert-tile.is-soon:nth-child(3){transition-delay:320ms}
+  #certs.cl-in .cert-tile.is-soon:nth-child(4){transition-delay:380ms}
+  #certs.cl-in .cert-tile.is-soon:nth-child(5){transition-delay:440ms}
+  #certs.cl-in .cert-tile.is-soon:nth-child(6){transition-delay:500ms}
+  @media (max-width:940px){#certs .cl-grid{grid-template-columns:1fr;gap:28px}}
+  @media (max-width:560px){
+    #certs .cl-title{font-size:clamp(26px,8vw,34px)}
+    #certs .cert-tile.is-soon{flex-wrap:wrap;gap:12px}
+    #certs .cert-tile.is-soon .cert-foot{width:100%;justify-content:space-between;padding-left:62px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #certs .cl-r,#certs .cert-tile.is-live,#certs .cl-roster,#certs .cert-tile.is-soon{transition:opacity 240ms ease !important;transform:none !important}
+    #certs.cl-in .cl-r,#certs.cl-in .cert-tile.is-live,#certs.cl-in .cl-roster,#certs.cl-in .cert-tile.is-soon{transform:none !important}
+    #certs .cert-tile.is-live,#certs .cert-tile.is-soon .cert-cta-notify,#certs .cert-tile.is-live .cert-cta{transition:background 160ms ease,color 160ms ease !important;transform:none !important}
+  }
+</style>
+
 <section class="certs" id="certs">
-  <div class="container">
-    <div class="section-head">
-      <h2>Pick your cert</h2>
-      <span class="section-help">Click any LIVE cert to start studying</span>
+  <div class="cl-wrap">
+    <div class="cl-head">
+      <span class="cl-eyebrow cl-r" data-d="1">Our cert library</span>
+      <h2 class="cl-title cl-r" data-d="1">Pick your <span class="cl-em">cert</span>.</h2>
+      <p class="cl-sub cl-r" data-d="2">Network+ is live today. Five more are on the anvil — get pinged the day each one ships.</p>
     </div>
 
-    <div class="cert-grid">
-      <!-- Network+ — LIVE. Status + CTA personalize for signed-in users
-           who have passed (script.js swaps to "✓ Passed" badge + "keep
-           practicing" CTA). IDs target the swap. -->
-      <a class="cert-tile is-live" href="https://networkplus.certanvil.com/?cert=netplus" data-cert="netplus" id="cert-tile-netplus">
+    <div class="cl-grid">
+      <!-- Network+ — LIVE (featured). script.js swaps #cert-tile-netplus-status/-cta
+           to a "Passed" state for signed-in passers. -->
+      <a class="cert-tile is-live cl-r" data-d="2" href="https://networkplus.certanvil.com/?cert=netplus" data-cert="netplus" id="cert-tile-netplus">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-netplus">N+</div>
           <span class="cert-status status-live" id="cert-tile-netplus-status"><span class="status-dot"></span>Live</span>
         </div>
         <div class="cert-name">Network+</div>
         <div class="cert-code">N10-009 · 90 questions · 90 min</div>
-        <div class="cert-desc">Cover all 5 N10-009 domains. Hand-curated questions, an interactive topology lab, packet-trace simulator, and an exam mode that mirrors the real 90-question test.</div>
+        <div class="cert-desc">All five N10-009 domains. Hand-curated questions, an interactive topology lab, a packet-trace simulator, and an exam mode that mirrors the real 90-question test.</div>
         <div class="cert-foot">
           <span class="cert-progress">5 domains · 50 topics</span>
           <span class="cert-cta" id="cert-tile-netplus-cta">Start studying →</span>
         </div>
       </a>
 
-      <!-- Security+ — PRIVATE BUILDER (hidden by default; un-hidden by
-           script.js for signed-in admin users in builder mode). Link sends
-           ?cert=secplus so the cert app at networkplus.certanvil.com
-           switches to Security+ mode in one click (instead of needing the
-           in-app cert switcher dropdown). -->
+      <!-- Security+ — PRIVATE BUILDER (hidden; script.js un-hides for
+           builder mode, sends ?cert=secplus). Featured-style when shown. -->
       <a class="cert-tile is-private" href="https://networkplus.certanvil.com/?cert=secplus" data-cert="secplus" id="cert-tile-secplus" hidden>
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-secplus">S+</div>
@@ -883,92 +1019,113 @@
         </div>
         <div class="cert-name">Security+</div>
         <div class="cert-code">SY0-701 · target exam 2026-07-29</div>
-        <div class="cert-desc">Get exam-ready for SY0-701. Threat actors, identity, SIEM, incident response, and governance — every domain in one focused workspace, built with the same engine that got Network+ across the line.</div>
+        <div class="cert-desc">Get exam-ready for SY0-701. Threat actors, identity, SIEM, incident response, and governance, built with the same engine that got Network+ across the line.</div>
         <div class="cert-foot">
           <span class="cert-progress">5 domains · 37 topics</span>
           <span class="cert-cta" id="cert-tile-secplus-cta">Continue prep →</span>
         </div>
       </a>
 
-      <!-- v4.99.19: Security+ — COMING SOON (public-facing variant).
-           Visible to all visitors by default. script.js hides this when
-           builder mode is on (admin sees the private tile above instead).
-           Mutually exclusive with #cert-tile-secplus. -->
-      <div class="cert-tile is-soon" data-cert="secplus" id="cert-tile-secplus-soon">
-        <div class="cert-tile-top">
-          <div class="cert-glyph cert-glyph-secplus">S+</div>
-          <span class="cert-status status-soon">Coming soon</span>
-        </div>
-        <div class="cert-name">Security+</div>
-        <div class="cert-code">SY0-701 · CompTIA's flagship security cert</div>
-        <div class="cert-desc">Threat actors, identity, SIEM, incident response, and governance. Same CertAnvil engine that got Network+ across the line, retuned for SecOps. Includes the IR War Room and Phishing Triage drills.</div>
-        <div class="cert-foot">
-          <span class="cert-progress">~6 weeks ETA</span>
-          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
-        </div>
-      </div>
+      <!-- ROSTER — the five being forged. script.js hides #cert-tile-secplus-soon
+           in builder mode (mutually exclusive with the private tile above). -->
+      <div class="cl-roster cl-r" data-d="2">
+        <div class="cl-roster-h">On the anvil</div>
 
-      <!-- AZ-900 — COMING SOON -->
-      <div class="cert-tile is-soon" data-cert="az900">
-        <div class="cert-tile-top">
-          <div class="cert-glyph cert-glyph-az900">AZ</div>
-          <span class="cert-status status-soon">Coming soon</span>
+        <div class="cert-tile is-soon" data-cert="secplus" id="cert-tile-secplus-soon">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-secplus">S+</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Security+</div>
+            <div class="cert-code">SY0-701 · CompTIA's flagship security cert</div>
+            <div class="cert-desc">Threat actors, identity, SIEM, incident response, and governance. Includes the IR War Room and Phishing Triage drills.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~6 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
         </div>
-        <div class="cert-name">Azure Fundamentals</div>
-        <div class="cert-code">AZ-900 · cloud entry-point</div>
-        <div class="cert-desc">Microsoft's entry-point cloud cert. Same CertAnvil engine you know, retuned for Azure. First-party Microsoft Learn references in explanations.</div>
-        <div class="cert-foot">
-          <span class="cert-progress">~6 weeks ETA</span>
-          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
-        </div>
-      </div>
 
-      <!-- CCNA — COMING SOON -->
-      <div class="cert-tile is-soon" data-cert="ccna">
-        <div class="cert-tile-top">
-          <div class="cert-glyph cert-glyph-ccna">CC</div>
-          <span class="cert-status status-soon">Coming soon</span>
+        <div class="cert-tile is-soon" data-cert="az900">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-az900">AZ</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Azure Fundamentals</div>
+            <div class="cert-code">AZ-900 · cloud entry-point</div>
+            <div class="cert-desc">Microsoft's entry-point cloud cert, retuned for Azure.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~6 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
         </div>
-        <div class="cert-name">Cisco CCNA</div>
-        <div class="cert-code">200-301 · routing + switching</div>
-        <div class="cert-desc">Cisco's flagship associate cert. Goes deeper on routing — OSPF, BGP, and a full IOS CLI lab — for engineers who want to configure gear, not memorise it.</div>
-        <div class="cert-foot">
-          <span class="cert-progress">~10 weeks ETA</span>
-          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
-        </div>
-      </div>
 
-      <!-- AWS SAA — COMING SOON -->
-      <div class="cert-tile is-soon" data-cert="aws-saa">
-        <div class="cert-tile-top">
-          <div class="cert-glyph cert-glyph-aws">AW</div>
-          <span class="cert-status status-soon">Coming soon</span>
+        <div class="cert-tile is-soon" data-cert="ccna">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-ccna">CC</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Cisco CCNA</div>
+            <div class="cert-code">200-301 · routing + switching</div>
+            <div class="cert-desc">Cisco's flagship associate cert. OSPF, BGP, and a full IOS CLI lab.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~10 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
         </div>
-        <div class="cert-name">AWS Solutions Architect</div>
-        <div class="cert-code">SAA-C03 · associate level</div>
-        <div class="cert-desc">AWS's most-requested associate cert. Real-world architecture practice across VPC, IAM, and the services on the exam.</div>
-        <div class="cert-foot">
-          <span class="cert-progress">~12 weeks ETA</span>
-          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
-        </div>
-      </div>
 
-      <!-- Azure AZ-104 — COMING SOON -->
-      <div class="cert-tile is-soon" data-cert="az104">
-        <div class="cert-tile-top">
-          <div class="cert-glyph cert-glyph-az104">AZ</div>
-          <span class="cert-status status-soon">Coming soon</span>
+        <div class="cert-tile is-soon" data-cert="aws-saa">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-aws">AW</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">AWS Solutions Architect</div>
+            <div class="cert-code">SAA-C03 · associate level</div>
+            <div class="cert-desc">AWS's most-requested associate cert. VPC, IAM, and the services on the exam.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~12 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
         </div>
-        <div class="cert-name">Azure Administrator</div>
-        <div class="cert-code">AZ-104 · associate level</div>
-        <div class="cert-desc">The day-to-day Azure admin cert. Identity, governance, storage, networking, compute: what you need to run Azure in production.</div>
-        <div class="cert-foot">
-          <span class="cert-progress">~14 weeks ETA</span>
-          <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+
+        <div class="cert-tile is-soon" data-cert="az104">
+          <div class="cert-tile-top">
+            <div class="cert-glyph cert-glyph-az104">AZ</div>
+            <span class="cert-status status-soon">Coming soon</span>
+          </div>
+          <div class="cl-soon-body">
+            <div class="cert-name">Azure Administrator</div>
+            <div class="cert-code">AZ-104 · associate level</div>
+            <div class="cert-desc">The day-to-day Azure admin cert. Identity, governance, storage, networking, compute.</div>
+          </div>
+          <div class="cert-foot">
+            <span class="cert-progress">~14 weeks</span>
+            <button class="cert-cta cert-cta-notify" type="button">Notify me ↗</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    (function(){
+      var sec=document.getElementById('certs');
+      if(!sec)return;
+      if('IntersectionObserver' in window){
+        var io=new IntersectionObserver(function(es){
+          es.forEach(function(e){ if(e.isIntersecting){ sec.classList.add('cl-in'); io.disconnect(); } });
+        },{threshold:0.15});
+        io.observe(sec);
+      } else { sec.classList.add('cl-in'); }
+    })();
+  </script>
 </section>
 
 <!-- ══════════════════════════════════════════
