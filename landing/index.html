@@ -1921,135 +1921,380 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     FAQ SECTION (Ship 2 from pricing+FAQ mockup)
-     Native <details>/<summary> accordion — zero JS, accessible.
+     FAQ v2 — editorial 2-col (left rail + ONE framed accordion),
+     not a flat 9-row stack. FULLY SCOPED under #faq (the id is kept
+     as the "#faq" anchor + scoping root; native <details>, zero JS,
+     no script.js / sample-questions.js / UAT contract on this
+     section). Fresh .fqx-* classes → zero production .faq-*/.compare-*
+     bleed. Blue accent removed → the locked forged-bronze system.
+     [data-theme="dark"] matches the prod theme system; fonts from the
+     hero-v2 head. FAQ icons live in assets/faq/*. #why above +
+     <footer> below + topbar/auth untouched.
 ══════════════════════════════════════════ -->
+<style id="fqx-styles">
+  #faq{
+    --bg:oklch(0.975 0.007 85);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
+    --eo:cubic-bezier(0.23,1,0.32,1);
+    position:relative;display:block;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(56px,9vh,108px) clamp(20px,4vw,56px);
+    border-top:1px solid var(--border-soft);
+  }
+  [data-theme="dark"] #faq{
+    --bg:oklch(0.16 0.009 275);
+    --surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+  }
+  #faq *{box-sizing:border-box}
+  #faq .fqx-wrap{
+    max-width:1180px;margin:0 auto;
+    display:grid;grid-template-columns:0.82fr 1.18fr;gap:clamp(32px,5vw,76px);align-items:start;
+  }
+
+  #faq .fqx-rail{position:sticky;top:48px}
+  #faq .fqx-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+  #faq .fqx-eyebrow img{width:18px;height:18px;display:block}
+  #faq .fqx-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,3.6vw,50px);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:18px}
+  #faq .fqx-title .fqx-em{font-style:italic;color:var(--accent)}
+  #faq .fqx-lede{font-size:clamp(15px,1.15vw,17px);line-height:1.62;color:var(--ink-soft);max-width:36ch;margin-bottom:26px}
+  #faq .fqx-help{
+    display:flex;gap:14px;align-items:flex-start;
+    padding:20px;border:1px solid var(--border);border-radius:18px;
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));box-shadow:var(--shadow-soft);max-width:38ch;
+  }
+  #faq .fqx-help-ic{width:42px;height:42px;flex:none;border-radius:12px;background-color:#FFFBF3;border:1px solid var(--border);display:grid;place-items:center}
+  [data-theme="dark"] #faq .fqx-help-ic{background-color:#FFFBF3}
+  #faq .fqx-help-ic img{width:28px;height:28px;display:block}
+  #faq .fqx-help-b{min-width:0}
+  #faq .fqx-help-t{font-size:14.5px;font-weight:650;color:var(--ink);margin-bottom:3px}
+  #faq .fqx-help-d{font-size:13px;line-height:1.55;color:var(--muted);margin-bottom:10px}
+  #faq .fqx-help-a{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:650;color:var(--accent);text-decoration:none}
+  #faq .fqx-help-a svg{width:15px;height:15px;transition:transform 220ms var(--eo)}
+  @media (hover:hover){#faq .fqx-help-a:hover svg{transform:translateX(3px)}}
+
+  #faq .fqx-acc{
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow-card);overflow:hidden;
+  }
+  #faq .fqx-item{border-bottom:1px solid var(--border)}
+  #faq .fqx-item:last-child{border-bottom:0}
+  #faq .fqx-q{
+    list-style:none;cursor:pointer;
+    display:grid;grid-template-columns:44px 1fr 24px;align-items:center;gap:16px;
+    padding:21px clamp(20px,2.4vw,28px);
+    transition:background 200ms ease;
+  }
+  #faq .fqx-q::-webkit-details-marker{display:none}
+  @media (hover:hover){#faq .fqx-q:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}}
+  #faq details[open] > .fqx-q{background:color-mix(in oklab,var(--accent) 5%,transparent)}
+  #faq .fqx-q-ic{width:44px;height:44px;flex:none;border-radius:13px;background-color:#FFFBF3;border:1px solid var(--border);box-shadow:var(--shadow-soft);display:grid;place-items:center}
+  [data-theme="dark"] #faq .fqx-q-ic{background-color:#FFFBF3}
+  #faq .fqx-q-ic img{width:30px;height:30px;display:block}
+  #faq .fqx-q-t{font-size:15.5px;font-weight:650;color:var(--ink);letter-spacing:-.01em;line-height:1.4}
+  #faq .fqx-q-tog{position:relative;width:18px;height:18px;flex:none;justify-self:end}
+  #faq .fqx-q-tog::before,#faq .fqx-q-tog::after{content:"";position:absolute;left:50%;top:50%;background:var(--accent);border-radius:2px;transition:transform 300ms var(--eo),opacity 300ms var(--eo)}
+  #faq .fqx-q-tog::before{width:14px;height:2px;transform:translate(-50%,-50%)}
+  #faq .fqx-q-tog::after{width:2px;height:14px;transform:translate(-50%,-50%)}
+  #faq details[open] > .fqx-q .fqx-q-tog::after{transform:translate(-50%,-50%) scaleY(0);opacity:0}
+  #faq details[open] > .fqx-q .fqx-q-tog::before{transform:translate(-50%,-50%) rotate(180deg)}
+
+  #faq .fqx-a{
+    padding:0 clamp(20px,2.4vw,28px) 24px calc(44px + 16px + clamp(20px,2.4vw,28px));
+    font-size:14px;line-height:1.66;color:var(--ink-soft);
+  }
+  #faq .fqx-a p{margin-bottom:12px}
+  #faq .fqx-a p:last-child{margin-bottom:0}
+  #faq .fqx-a strong{color:var(--ink);font-weight:650}
+  #faq .fqx-a-foot{font-size:13px;color:var(--muted);padding-top:14px;margin-top:14px;border-top:1px solid var(--border-soft)}
+  #faq details[open] > .fqx-a{animation:fqxReveal 440ms var(--eo)}
+  @keyframes fqxReveal{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+
+  #faq .fqx-cmp{margin:14px 0 4px;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg)}
+  #faq .fqx-cmp-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;border-bottom:1px solid var(--border-soft)}
+  #faq .fqx-cmp-row:last-child{border-bottom:0}
+  #faq .fqx-cmp-cell{padding:11px 14px;font-size:12.5px;line-height:1.45;color:var(--ink-soft)}
+  #faq .fqx-cmp-row.is-head .fqx-cmp-cell{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+  #faq .fqx-cmp-cell.is-feat{font-weight:600;color:var(--ink)}
+  #faq .fqx-cmp-cell.is-them{color:var(--muted)}
+  #faq .fqx-cmp-cell.is-us,#faq .fqx-cmp-row.is-head .fqx-cmp-cell.is-us{color:var(--accent-deep);font-weight:650;background:color-mix(in oklab,var(--accent) 6%,transparent)}
+  [data-theme="dark"] #faq .fqx-cmp-cell.is-us,[data-theme="dark"] #faq .fqx-cmp-row.is-head .fqx-cmp-cell.is-us{color:var(--accent-bright)}
+
+  #faq .fqx-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
+  #faq.fqx-in .fqx-r{opacity:1;transform:none}
+  #faq.fqx-in .fqx-r[data-d="1"]{transition-delay:40ms}
+  #faq.fqx-in .fqx-r[data-d="2"]{transition-delay:110ms}
+  #faq.fqx-in .fqx-r[data-d="3"]{transition-delay:180ms}
+  #faq .fqx-acc{opacity:0;transform:translateY(20px) scale(0.992);transition:opacity 700ms var(--eo) 200ms,transform 700ms var(--eo) 200ms}
+  #faq.fqx-in .fqx-acc{opacity:1;transform:none}
+  #faq .fqx-item{opacity:0;transform:translateY(10px);transition:opacity 440ms var(--eo),transform 440ms var(--eo)}
+  #faq.fqx-in .fqx-item{opacity:1;transform:none}
+  #faq.fqx-in .fqx-item:nth-child(1){transition-delay:300ms}
+  #faq.fqx-in .fqx-item:nth-child(2){transition-delay:350ms}
+  #faq.fqx-in .fqx-item:nth-child(3){transition-delay:400ms}
+  #faq.fqx-in .fqx-item:nth-child(4){transition-delay:450ms}
+  #faq.fqx-in .fqx-item:nth-child(5){transition-delay:500ms}
+  #faq.fqx-in .fqx-item:nth-child(6){transition-delay:545ms}
+  #faq.fqx-in .fqx-item:nth-child(7){transition-delay:585ms}
+  #faq.fqx-in .fqx-item:nth-child(8){transition-delay:620ms}
+  #faq.fqx-in .fqx-item:nth-child(9){transition-delay:650ms}
+
+  @media (max-width:920px){
+    #faq .fqx-wrap{grid-template-columns:1fr;gap:34px}
+    #faq .fqx-rail{position:static}
+    #faq .fqx-lede,#faq .fqx-help{max-width:none}
+  }
+  @media (max-width:560px){
+    #faq .fqx-title{font-size:clamp(27px,8vw,34px)}
+    #faq .fqx-q{grid-template-columns:36px 1fr 20px;gap:13px;padding:18px 16px}
+    #faq .fqx-q-ic{width:36px;height:36px;border-radius:11px}
+    #faq .fqx-q-ic img{width:24px;height:24px}
+    #faq .fqx-a{padding-left:16px;padding-right:16px}
+    #faq .fqx-cmp-row{grid-template-columns:1fr}
+    #faq .fqx-cmp-cell{border-bottom:1px solid var(--border-soft)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #faq .fqx-r,#faq .fqx-acc,#faq .fqx-item{transition:opacity 220ms ease !important;transform:none !important}
+    #faq.fqx-in .fqx-r,#faq.fqx-in .fqx-item{transform:none !important}
+    #faq details[open] > .fqx-a{animation:none !important}
+    #faq .fqx-q-tog::before,#faq .fqx-q-tog::after{transition:none !important}
+  }
+</style>
+
 <section class="faq-section" id="faq">
-  <div class="container">
-    <div class="faq-section-head">
-      <span class="faq-eyebrow">Common questions</span>
-      <h2 class="faq-h2">Questions and answers</h2>
-      <p class="faq-sub">No fluff. If something's not here, reach out — we'll add it.</p>
+  <div class="fqx-wrap">
+
+    <div class="fqx-rail">
+      <span class="fqx-eyebrow fqx-r" data-d="1">
+        <img src="assets/faq/faq-question-bubble.svg" alt="" width="18" height="18">
+        Common questions
+      </span>
+      <h2 class="fqx-title fqx-r" data-d="1">Questions, <span class="fqx-em">answered.</span></h2>
+      <p class="fqx-lede fqx-r" data-d="2">The honest version of every question people ask before they sign up. If yours isn't here, send it over and we'll add it.</p>
+      <div class="fqx-help fqx-r" data-d="3">
+        <span class="fqx-help-ic"><img src="assets/faq/support-chat.svg" alt=""></span>
+        <div class="fqx-help-b">
+          <div class="fqx-help-t">Still stuck?</div>
+          <p class="fqx-help-d">Email us and a real person gets back to you, usually the same day.</p>
+          <a class="fqx-help-a" href="mailto:hello@certanvil.com">hello@certanvil.com
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="faq-list">
-      <details class="faq-item">
-        <summary class="faq-q">How is this different from other cert prep tools? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">
-          <p>Most cert prep is a fixed bank of questions someone wrote a few years ago. You churn through them, memorise the answers, and end up confident on the bank but shaky on the exam. CertAnvil writes fresh questions every time you study, so you can't shortcut it.</p>
-          <div class="compare-table">
-            <div class="compare-row is-header">
-              <div class="compare-cell">&nbsp;</div>
-              <div class="compare-cell">Static prep tools</div>
-              <div class="compare-cell is-us">CertAnvil</div>
+
+    <div class="fqx-acc fqx-r" data-d="3">
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/clarity-compass.svg" alt=""></span>
+          <span class="fqx-q-t">How is this different from other cert prep tools?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Most cert prep is a fixed bank someone wrote years ago. You churn through it, memorise the answers, and end up confident on the bank but shaky on the exam. CertAnvil writes fresh questions every time you study, so you can't shortcut it.</p>
+          <div class="fqx-cmp">
+            <div class="fqx-cmp-row is-head">
+              <div class="fqx-cmp-cell">&nbsp;</div>
+              <div class="fqx-cmp-cell">Static prep tools</div>
+              <div class="fqx-cmp-cell is-us">CertAnvil</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Where questions come from</div>
-              <div class="compare-cell is-them">A fixed bank of ~500–1,000</div>
-              <div class="compare-cell is-us">Generated fresh, every session</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Where questions come from</div>
+              <div class="fqx-cmp-cell is-them">A fixed bank of ~500–1,000</div>
+              <div class="fqx-cmp-cell is-us">Generated fresh, every session</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Hands-on questions (PBQs)</div>
-              <div class="compare-cell is-them">Drag-and-drop, if anything</div>
-              <div class="compare-cell is-us">Real CLI sim, topology builder, ACL lab</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Hands-on questions (PBQs)</div>
+              <div class="fqx-cmp-cell is-them">Drag-and-drop, if anything</div>
+              <div class="fqx-cmp-cell is-us">Real CLI sim, topology builder, ACL lab</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">What you pay for</div>
-              <div class="compare-cell is-them">One cert at a time</div>
-              <div class="compare-cell is-us">$89/yr, every cert we cover</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">What you pay for</div>
+              <div class="fqx-cmp-cell is-them">One cert at a time</div>
+              <div class="fqx-cmp-cell is-us">$89/yr, every cert we cover</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">If you fail</div>
-              <div class="compare-cell is-them">Tough luck</div>
-              <div class="compare-cell is-us">We extend your Pro access until you pass</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">If you fail</div>
+              <div class="fqx-cmp-cell is-them">Tough luck</div>
+              <div class="fqx-cmp-cell is-us">We extend your Pro access until you pass</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">How often content updates</div>
-              <div class="compare-cell is-them">Whenever someone gets around to it</div>
-              <div class="compare-cell is-us">Continuously — every quiz is new</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">How often content updates</div>
+              <div class="fqx-cmp-cell is-them">Whenever someone gets to it</div>
+              <div class="fqx-cmp-cell is-us">Continuously; every quiz is new</div>
             </div>
           </div>
-          <p class="faq-a-foot">A static bank isn't a bad thing — some people prefer working through a fixed set linearly. Lots of our users keep one for breadth and use CertAnvil to drill the weak spots. Whatever works for how you study.</p>
+          <p class="fqx-a-foot">A static bank isn't a bad thing. Some people prefer working a fixed set linearly, and plenty of our users keep one for breadth and use CertAnvil to drill the weak spots. Whatever works for how you study.</p>
         </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">Can I really study for free? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">Yes, properly free — not a 7-day trial. You get <strong>20 fresh AI-generated questions every day</strong>, plus the diagnostic, your Pass Plan, your streak tracker, and your analytics. Enough to keep a real daily habit going. The drills and labs (Acronym Blitz, Subnet Trainer, the topology + ACL labs, the Sec+ war room and phishing simulator) are Pro — they're the heavier interactive bits and the cost adds up. When 20 a day stops being enough, or you want unlimited drills, that's when most people upgrade.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/no-account-needed.svg" alt=""></span>
+          <span class="fqx-q-t">Can I really study for free?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Yes, properly free, not a 7-day trial. You get <strong>20 fresh AI-generated questions every day</strong>, plus the diagnostic, your Pass Plan, your streak tracker, and your analytics. Enough to keep a real daily habit going.</p>
+          <p>The drills and labs (Acronym Blitz, Subnet Trainer, the topology and ACL labs, the Sec+ war room and phishing simulator) are Pro: the heavier interactive bits, where the cost adds up. When 20 a day stops being enough, or you want unlimited drills, that's when most people upgrade.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">What's the difference between Free and Pro? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">
-          <p>Two tiers, both paid for forever — no annual nonsense, no hidden quotas inside Pro.</p>
-          <div class="compare-table">
-            <div class="compare-row is-header">
-              <div class="compare-cell">&nbsp;</div>
-              <div class="compare-cell">Free</div>
-              <div class="compare-cell is-us">Pro</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/confidence-crown.svg" alt=""></span>
+          <span class="fqx-q-t">What's the difference between Free and Pro?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Two tiers, both paid for forever. No annual nonsense, no hidden quotas inside Pro.</p>
+          <div class="fqx-cmp">
+            <div class="fqx-cmp-row is-head">
+              <div class="fqx-cmp-cell">&nbsp;</div>
+              <div class="fqx-cmp-cell">Free</div>
+              <div class="fqx-cmp-cell is-us">Pro</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">AI-generated questions</div>
-              <div class="compare-cell is-them">20 / day</div>
-              <div class="compare-cell is-us">Unlimited</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">AI-generated questions</div>
+              <div class="fqx-cmp-cell is-them">20 / day</div>
+              <div class="fqx-cmp-cell is-us">Unlimited</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Diagnostic + Pass Plan</div>
-              <div class="compare-cell is-them">✓</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Diagnostic + Pass Plan</div>
+              <div class="fqx-cmp-cell is-them">Yes</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Streak + analytics</div>
-              <div class="compare-cell is-them">✓</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Streak + analytics</div>
+              <div class="fqx-cmp-cell is-them">Yes</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Drills (Acronym Blitz, Port Drill, OSI, Cable ID, etc.)</div>
-              <div class="compare-cell is-them">—</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Drills (Acronym Blitz, Port Drill, OSI, Cable ID)</div>
+              <div class="fqx-cmp-cell is-them">No</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Subnet Trainer + Network Builder + ACL Lab</div>
-              <div class="compare-cell is-them">—</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Subnet Trainer + Network Builder + ACL Lab</div>
+              <div class="fqx-cmp-cell is-them">No</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Sec+ flagships (IR War Room, Phishing Triage)</div>
-              <div class="compare-cell is-them">—</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Sec+ flagships (IR War Room, Phishing Triage)</div>
+              <div class="fqx-cmp-cell is-them">No</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
-            <div class="compare-row">
-              <div class="compare-cell is-feature">Pass guarantee</div>
-              <div class="compare-cell is-them">—</div>
-              <div class="compare-cell is-us">✓</div>
+            <div class="fqx-cmp-row">
+              <div class="fqx-cmp-cell is-feat">Pass guarantee</div>
+              <div class="fqx-cmp-cell is-them">No</div>
+              <div class="fqx-cmp-cell is-us">Yes</div>
             </div>
           </div>
-          <p class="faq-a-foot">Pro is $9.99/mo or $89/yr (saves about a third) and covers every cert in the lineup, not just one.</p>
+          <p class="fqx-a-foot">Pro is $9.99/mo or $89/yr (saves about a third) and covers every cert in the lineup, not just one.</p>
         </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">What's a Performance-Based Question (PBQ)? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">PBQs are the hands-on bits of the exam — configuring a network topology, typing CLI commands, sorting things into the right place. Worth roughly 40% of your score and most people fail because they didn't practise them. We bake them in: a real CLI sim, a topology builder, and an ACL lab — not a drag-and-drop pretending to be one. They sit in the Pro tier because they're the heaviest features to run.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/pbq-simulator.svg" alt=""></span>
+          <span class="fqx-q-t">What's a Performance-Based Question (PBQ)?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>PBQs are the hands-on parts of the exam: configuring a topology, typing CLI commands, sorting things into the right place. They're worth roughly 40% of your score, and most people fail because they didn't practise them. We bake them in with a real CLI sim, a topology builder, and an ACL lab, not a drag-and-drop pretending to be one. They sit in Pro because they're the heaviest features to run.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">How does the pass guarantee work? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">If you're on Pro, put the work in (30+ days actively studying, mock exam done, streak going), and still fail on your first sit — we keep your Pro access on until you pass. Just send us the Pearson VUE booking and your score report and we'll sort it within a week.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/pass-guarantee-badge.svg" alt=""></span>
+          <span class="fqx-q-t">How does the pass guarantee work?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>If you're on Pro, put the work in (30+ days actively studying, mock exam done, streak going), and still fail on your first sit, we keep your Pro access on until you pass. Send us the Pearson VUE booking and your score report and we'll sort it within a week.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">Do I need my own AI key or anything?  <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a"><strong>Nope.</strong> The AI cost is on us — Free and Pro both. You don't need to set anything up, paste any keys, or know what an API is. Just sign up and study.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/ai-explanation-spark.svg" alt=""></span>
+          <span class="fqx-q-t">Do I need my own AI key or anything?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p><strong>Nope.</strong> The AI cost is on us, Free and Pro both. You don't need to set anything up, paste any keys, or know what an API is. Just sign up and study.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">What if my exam isn't on the list? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">Hit "Notify me" on the cert tile and we'll email you the day it goes live — no marketing list, just that one email. Network+ and Security+ are live now; AZ-900, CCNA, AWS SAA, and AZ-104 are next in the queue.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/exam-path.svg" alt=""></span>
+          <span class="fqx-q-t">What if my exam isn't on the list?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Hit "Notify me" on the cert tile and we'll email you the day it goes live: no marketing list, just that one email. Network+ and Security+ are live now; AZ-900, CCNA, AWS SAA, and AZ-104 are next in the queue.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">Can I cancel anytime? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">Yes, from your account in two clicks. Monthly plans stop at the end of the current month; annual plans stop renewing but you keep Pro for the rest of the year you paid for. No cancellation form, no "are you sure" nonsense.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/cancel-anytime.svg" alt=""></span>
+          <span class="fqx-q-t">Can I cancel anytime?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Yes, from your account in two clicks. Monthly plans stop at the end of the current month; annual plans stop renewing but you keep Pro for the rest of the year you paid for. No cancellation form, no "are you sure" nonsense.</p>
+        </div>
       </details>
-      <details class="faq-item">
-        <summary class="faq-q">How do you keep the questions original? <span class="faq-q-chevron" aria-hidden="true">▼</span></summary>
-        <div class="faq-a">Every question is generated from scratch, then put through seven separate checks before you ever see it. The reference set the AI learns from is 320+ exemplars we wrote ourselves, working from the public exam blueprint — we don't train on or scrape questions from any of the paid prep companies. It's all clean, original, and tied directly to the exam objectives.</div>
+
+      <details class="fqx-item">
+        <summary class="fqx-q">
+          <span class="fqx-q-ic"><img src="assets/faq/originality-fingerprint.svg" alt=""></span>
+          <span class="fqx-q-t">How do you keep the questions original?</span>
+          <span class="fqx-q-tog" aria-hidden="true"></span>
+        </summary>
+        <div class="fqx-a">
+          <p>Every question is generated from scratch, then put through seven separate checks before you see it. The reference set the AI learns from is 320+ exemplars we wrote ourselves from the public exam blueprint. We don't train on or scrape questions from any paid prep company. It's clean, original, and tied directly to the exam objectives.</p>
+        </div>
       </details>
+
     </div>
+
   </div>
+
+  <script>
+    /* Scoped entrance trigger only — no script.js contract on this
+       section (native <details>, zero JS). script.js never touches
+       .fqx-in. */
+    (function(){
+      var s=document.getElementById('faq');
+      if(!s)return;
+      if('IntersectionObserver' in window){
+        var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){s.classList.add('fqx-in');io.disconnect();}});},{threshold:0.08});
+        io.observe(s);
+      } else { s.classList.add('fqx-in'); }
+    })();
+  </script>
 </section>
 
 <!-- ══════════════════════════════════════════
