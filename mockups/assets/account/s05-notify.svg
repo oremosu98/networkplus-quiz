@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">CertAnvil 14-notification-checklist</title>
+  <desc id="desc">Transparent CertAnvil-style SVG icon in orange, cream, and dark ink.</desc>
+  <defs>
+    <linearGradient id="ca-orange" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#E17A1A"/>
+      <stop offset="1" stop-color="#C65300"/>
+    </linearGradient>
+    <linearGradient id="ca-cream" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFFDF8"/>
+      <stop offset="1" stop-color="#FFF7EC"/>
+    </linearGradient>
+    <filter id="ca-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#141827" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .line { fill:none; stroke:#2B333B; stroke-width:8; stroke-linecap:round; stroke-linejoin:round; }
+      .line-sm { fill:none; stroke:#2B333B; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; }
+      .line-xs { fill:none; stroke:#2B333B; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+      .muted { stroke:#D9D0C4; }
+      .orange { stroke:#C65300; }
+      .fill-cream { fill:url(#ca-cream); }
+      .fill-soft { fill:#F8F1E8; }
+      .fill-orange { fill:url(#ca-orange); }
+      .fill-ink { fill:#141827; }
+      .text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-weight:800; }
+    </style>
+  </defs>
+
+  <g filter="url(#ca-shadow)">
+    <rect class="fill-cream line" x="96" y="51" width="112" height="154" rx="20"/>
+    <path class="line-sm muted" d="M128 88h54M128 126h54M128 164h54"/>
+    <path class="line-sm orange" d="M111 86l8 8 15-19M111 124l8 8 15-19"/>
+    <path class="fill-cream line" d="M71 172c-21 0-38-17-38-38 0-13 7-25 18-32v-8c0-22 17-39 38-39s38 17 38 39v8c11 7 18 19 18 32 0 21-17 38-38 38H71z"/>
+    <path class="line-sm" d="M72 195h36"/>
+    <circle class="fill-orange" cx="127" cy="94" r="10"/>
+  </g>
+
+</svg>
