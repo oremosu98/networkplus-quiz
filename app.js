@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v5.5.8
+// Network+ AI Quiz — app.js  v5.5.9
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '5.5.8';
+const APP_VERSION = '5.5.9';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1602,8 +1602,14 @@ if ('serviceWorker' in navigator) {
       banner.className = 'sw-update-banner';
       banner.setAttribute('role', 'status');
       banner.setAttribute('aria-live', 'polite');
+      // v5.5.9: brand sync-arrows (18_sync_arrows.svg, trimmed — namespaced
+      // gradient, no <filter>/<title>/<style> so it inlines safely; the
+      // outline rides currentColor so it adapts per theme, one arrowhead
+      // keeps the brand orange). Dropped into the already-empty
+      // .sw-banner-icon span (v5.0.2 stripped its old 📦). Additive only —
+      // the title/sub/cta/dismiss contract below is byte-exact.
       banner.innerHTML =
-        '<span class="sw-banner-icon" aria-hidden="true"></span>' +
+        '<span class="sw-banner-icon" aria-hidden="true"><svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="swSyncOrange" x1="22" y1="18" x2="106" y2="110" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E27822"/><stop offset="1" stop-color="#C95500"/></linearGradient></defs><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M37 52a31 31 0 0 1 49-19l8 8"/><path d="M94 27v18H76"/><path d="M91 76a31 31 0 0 1-49 19l-8-8"/><path d="M34 101V83h18" stroke="url(#swSyncOrange)" stroke-width="7"/><circle cx="64" cy="64" r="12"/></g></svg></span>' +
         '<span class="sw-banner-body">' +
           '<strong class="sw-banner-title">New version available</strong>' +
           '<span class="sw-banner-sub">Refresh to load the latest CertAnvil</span>' +

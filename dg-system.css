@@ -2851,6 +2851,38 @@ html[data-theme] body .sb-streak.sb-streak-active{transition:background 0.16s ea
 html[data-theme] body .sb-streak.sb-streak-active:active{transform:scale(0.99)!important;box-shadow:none!important;}
 @media (prefers-reduced-motion:reduce){html[data-theme] body .sb-streak,html[data-theme] body .sb-streak.sb-streak-active{transition:none!important;transform:none!important;}}
 
+/* ── SW update toast · v5.5.9 redesign ──
+   Founder: the "New version available" banner is off-system. styles.css
+   .sw-update-banner styles a white button as color:var(--accent2,#5b4fdb)
+   → the PURPLE "Refresh" the rebrand stripped, on a flat gradient card.
+   styles.css is UNTOUCHED (UAT 16400/16404/16409/16410/16412 stay green,
+   no migration) — this scoped block de-purples + de-gradients it into an
+   editorial toast with the brand sync-arrows. The banner is appended to
+   <body> (NOT #page-setup) so global dg tokens are used and easing is a
+   LITERAL cubic-bezier (var(--dgh-ease) is #page-setup-scoped — a non-
+   ancestor var() would invalidate the declaration: the v5.5.4 lesson).
+   taste-skill + emil-design-eng. Beats styles.css via html[data-theme]
+   body + later source + !important (the v5.5.8 global-chrome pattern). */
+html[data-theme] body .sw-update-banner{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:14px!important;box-shadow:0 1px 0 color-mix(in oklab,var(--text) 4%,transparent),0 18px 40px -16px color-mix(in oklab,var(--text) 24%,transparent)!important;gap:14px!important;animation:swBannerEditorialIn 0.36s cubic-bezier(0.16,1,0.3,1)!important;}
+html[data-theme] body .sw-banner-icon{flex:none!important;width:38px!important;height:38px!important;display:grid!important;place-items:center!important;border-radius:10px!important;color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 9%,transparent)!important;border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border))!important;font-size:0!important;}
+html[data-theme] body .sw-banner-icon svg{width:22px!important;height:22px!important;}
+html[data-theme] body .sw-banner-title{color:var(--text)!important;font-weight:700!important;font-size:14px!important;letter-spacing:-0.005em!important;}
+html[data-theme] body .sw-banner-sub{color:var(--text-dim)!important;font-size:12px!important;}
+html[data-theme] body .sw-banner-cta{background:var(--accent)!important;color:var(--bg)!important;border:1px solid color-mix(in oklab,var(--accent) 60%,var(--text))!important;padding:9px 18px!important;border-radius:10px!important;font-weight:700!important;font-size:13px!important;transition:transform 0.15s cubic-bezier(0.16,1,0.3,1),filter 0.16s ease!important;}
+html[data-theme] body .sw-banner-cta:active{transform:scale(0.97)!important;}
+html[data-theme] body .sw-banner-dismiss{color:var(--text-dim)!important;border-radius:7px!important;transition:color 0.15s ease,background 0.15s ease!important;}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme] body .sw-banner-cta:hover{filter:brightness(1.06)!important;transform:translateY(-1px)!important;}
+  html[data-theme] body .sw-banner-dismiss:hover{color:var(--text)!important;background:color-mix(in oklab,var(--accent) 10%,transparent)!important;}
+}
+@keyframes swBannerEditorialIn{from{opacity:0;transform:translateY(16px) scale(0.98);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){
+  @keyframes swBannerEditorialIn{from{opacity:0;}to{opacity:1;}}
+  html[data-theme] body .sw-update-banner{animation:swBannerEditorialIn 0.2s ease!important;}
+  html[data-theme] body .sw-banner-cta,html[data-theme] body .sw-banner-dismiss{transition:none!important;}
+  html[data-theme] body .sw-banner-cta:hover{transform:none!important;}
+}
+
 /* ── TOPBAR ── */
 html[data-theme] body #app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}
 html[data-theme] body .app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}

@@ -16415,6 +16415,18 @@ test('v4.99.27 Css: mobile breakpoint hides sub-text to save vertical space',
   /@media \(max-width:\s*480px\)[\s\S]{0,500}\.sw-banner-sub\s*\{\s*display:\s*none/.test(css));
 test('v4.99.27 Css: reduced-motion gate present for banner',
   /prefers-reduced-motion[\s\S]{0,300}\.sw-update-banner\s*\{\s*animation:\s*none/.test(css));
+// v5.5.9 — SW update-banner redesign (founder: off-system purple Refresh).
+// styles.css UNTOUCHED (the v4.99.27 guards above read app.js/styles.css
+// and stay green); the editorial look is a scoped dg-system.css de-card
+// (not UAT-read, the v5.5.8 pattern). This guards the ADDITIVE app.js
+// render: the brand sync-arrows (namespaced swSyncOrange) inlined into the
+// .sw-banner-icon span, with the title/cta/dismiss contract byte-exact.
+// Doubles as a tombstone vs reverting the icon span to empty.
+test('v5.5.9 SwBanner: brand sync SVG inlined in .sw-banner-icon (namespaced swSyncOrange), title/Refresh/dismiss contract preserved',
+  /class="sw-banner-icon"[^>]*>\s*<svg viewBox="0 0 128 128"[\s\S]{0,200}linearGradient id="swSyncOrange"/.test(js)
+  && /stroke="url\(#swSyncOrange\)"[\s\S]{0,140}<\/svg><\/span>/.test(js)
+  && /sw-banner-title[\s\S]{0,200}New version available[\s\S]{0,500}sw-banner-cta[\s\S]{0,80}Refresh/.test(js)
+  && /sw-banner-dismiss[\s\S]{0,300}banner\.remove\(\)/.test(js));
 
 // ── v4.99.28 — iOS Plan Phase 2: Mobile UX audit fixes ──
 test('v4.99.28 InputZoom: input[type=password]/text now uses 16px font (prevents iOS zoom)',
