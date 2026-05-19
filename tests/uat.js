@@ -9963,6 +9963,22 @@ test('codex-home HTML v5.5.3: session-picker reshuffled full-width (#modes-ladde
   && !/id="modes-ladder"[^>]*\bcol-side-card\b|\bcol-side-card\b[^"]*"[^>]*id="modes-ladder"/.test(html)
   && html.indexOf('id="daily-challenge-card"') < html.indexOf('id="modes-ladder"')
   && html.indexOf('id="modes-ladder"') < html.indexOf('id="domain-grid-section"'));
+// v5.5.5 — Continue anchor: the right rail's ALWAYS-present bottom (founder
+// caught dead space below Daily Challenge when NBM/SR collapse). It is the
+// rail's reliable bottom: after #daily-challenge-card, before #modes-ladder
+// (.col-side closes before the full-width session board). The is-hidden
+// NOT() is load-bearing — this card must never collapse (that IS the fix);
+// it tombstones any future is-hidden regression. dg-system.css carries the
+// look (not UAT-read), so this guard is HTML structure + the always-called
+// renderContinueCard contract only.
+test('codex-home HTML v5.5.5: #continue-card always-present rail anchor (in .col-side after #daily-challenge-card, before #modes-ladder; NOT is-hidden; renderContinueCard defined + called both render paths)',
+  html.includes('id="continue-card"')
+  && /id="continue-card"[^>]*class="[^"]*\bcontinue-card\b|class="[^"]*\bcontinue-card\b[^"]*"[^>]*id="continue-card"/.test(html)
+  && html.indexOf('id="daily-challenge-card"') < html.indexOf('id="continue-card"')
+  && html.indexOf('id="continue-card"') < html.indexOf('id="modes-ladder"')
+  && !/id="continue-card"[^>]*\bis-hidden\b|\bis-hidden\b[^"]*"[^>]*id="continue-card"/.test(html)
+  && /function renderContinueCard\s*\(/.test(js)
+  && (js.match(/typeof renderContinueCard === 'function'\) renderContinueCard\(\)/g) || []).length >= 2);
 test('v4.76.0/dg4 HTML: 3 commitment groups (quick / practice / exam)',
   (html.match(/class="dgh-grp"/g) || []).length === 3 && html.includes('Quick &middot; 3-5 min') && html.includes('Practice &middot; 10-30 min') && html.includes('Exam simulation &middot; 60-90 min'));
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));

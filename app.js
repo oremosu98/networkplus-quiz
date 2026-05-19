@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v5.5.4
+// Network+ AI Quiz — app.js  v5.5.5
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '5.5.4';
+const APP_VERSION = '5.5.5';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1927,6 +1927,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof renderSrReviewCard === 'function') renderSrReviewCard();
   if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
   if (typeof renderNextBestMove === 'function') renderNextBestMove();
+  // v5.5.5: Continue anchor — always-present rail bottom (never is-hidden);
+  // same first-paint parity as the NBM/SR/diagnostic surfaces above.
+  if (typeof renderContinueCard === 'function') renderContinueCard();
   // v4.81.2: take a daily auto-backup. Idempotent — once per day. Catches
   // any catastrophic corruption (test injection, browser bug, user mishap)
   // with a rolling 7-day rollback window. Filed in direct response to a
@@ -2158,6 +2161,8 @@ function goSetup() {
   if (typeof renderDiagnosticSurface === 'function') renderDiagnosticSurface();
   // v4.76.0: dynamic next-best-move CTA in the hero
   if (typeof renderNextBestMove === 'function') renderNextBestMove();
+  // v5.5.5: Continue anchor — always-present rail bottom (never is-hidden).
+  if (typeof renderContinueCard === 'function') renderContinueCard();
   renderWrongBankBtn();
   renderStreakDefender();
   renderDailyChallengeCard();
@@ -9647,6 +9652,92 @@ function getDailyChallengeTopic() {
   const topics = Object.keys(TOPIC_DOMAINS);
   return topics[Math.abs(hash) % topics.length];
 }
+
+// v5.5.5 — Continue anchor. The right rail's ALWAYS-present bottom: on a
+// low-data account #hero-v2-cta (NBM) + #sr-review-card collapse and the
+// tall left column leaves dead space below Daily Challenge. This card is
+// always rendered (never is-hidden) so the rail can't collapse, and it is
+// always prescriptive — re-entry + proof of motion (the one job nothing
+// else on Home has: NBM = what's optimal, SR = cards due, Daily Challenge
+// = the 1-Q habit, Today's Plan = the 5-topic route; this = pick your
+// thread back up). Reads existing signals only; zero new storage.
+function renderContinueCard() {
+  const card = document.getElementById('continue-card');
+  if (!card) return;
+  let hist = [];
+  try { hist = loadHistory(); } catch (_) {}
+  const last = (hist && hist.length) ? hist[0] : null;
+  const totalQ = (hist || []).reduce((s, e) => s + (parseInt(e && e.total, 10) || 0), 0);
+  const hasHistory = !!last && totalQ > 0;
+
+  const setTxt  = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setHtml = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+  const btn = document.getElementById('cc-action');
+
+  // Zero/low: no real history -> one confident first move (never an empty
+  // card; this is what makes the rail un-collapsible).
+  if (!hasHistory) {
+    card.setAttribute('data-state', 'fresh');
+    setTxt('cc-eyebrow-t', 'Start here');
+    setTxt('cc-headline', 'You have not built a streak yet');
+    setTxt('cc-context', 'A five-minute warm-up sets your first readiness score and starts the chain.');
+    setTxt('cc-action-t', 'Take the 5-min Warmup');
+    if (btn) btn.onclick = function () { try { applyPreset('warmup'); } catch (_) {} };
+    return;
+  }
+
+  card.setAttribute('data-state', 'returning');
+  let streak = 0;
+  try { streak = getStreak().current || 0; } catch (_) {}
+  const todayN = (typeof getTodayQuestionCount === 'function') ? (getTodayQuestionCount() || 0) : 0;
+  setTxt('cc-m1n', streak);
+  setTxt('cc-m2n', todayN);
+  setTxt('cc-m3n', totalQ);
+
+  let daysAgo = 0;
+  try {
+    const t = new Date(last.date).getTime();
+    if (!isNaN(t)) daysAgo = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  } catch (_) {}
+  const whenStr = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
+  const lastScore = (parseInt(last.score, 10) || 0) + ' / ' + (parseInt(last.total, 10) || 0);
+  const lastTopic = String(last.topic || 'your last topic');
+
+  let wrongN = 0;
+  try { wrongN = loadWrongBank().length; } catch (_) {}
+
+  setTxt('cc-eyebrow-t', 'Pick up where you left off');
+
+  if (wrongN > 0) {
+    // Highest-leverage re-entry: re-test the misses.
+    setTxt('cc-headline', lastTopic);
+    setHtml('cc-context', 'Last session <b>' + escHtml(lastScore) + '</b> · ' + escHtml(whenStr) + ' · ' + wrongN + ' still in your wrong bank.');
+    setTxt('cc-action-t', wrongN === 1 ? 'Drill the 1 you missed' : 'Drill the ' + wrongN + ' you missed');
+    if (btn) btn.onclick = function () { try { startWrongDrill(); } catch (_) {} };
+    return;
+  }
+
+  // No pending misses -> resume the weakest topic from the same plan
+  // signals Today's Plan uses.
+  let weakTopic = null;
+  try {
+    const plan = (typeof buildSessionPlan === 'function') ? buildSessionPlan(SESSION_TOPICS) : null;
+    if (plan && plan.length) { const w = plan.find(i => i && i.signal === 'weak') || plan[0]; weakTopic = w && w.topic; }
+  } catch (_) {}
+
+  if (weakTopic) {
+    setTxt('cc-headline', String(weakTopic));
+    setHtml('cc-context', 'Last session <b>' + escHtml(lastScore) + '</b> on ' + escHtml(lastTopic) + ' · ' + escHtml(whenStr) + '. This is your weakest area now.');
+    setTxt('cc-action-t', 'Resume weak spots');
+    if (btn) btn.onclick = function () { try { focusTopic(weakTopic); } catch (_) {} };
+  } else {
+    setTxt('cc-headline', lastTopic);
+    setHtml('cc-context', 'Last session <b>' + escHtml(lastScore) + '</b> · ' + escHtml(whenStr) + '. Keep the chain going.');
+    setTxt('cc-action-t', 'Continue weak spots');
+    if (btn) btn.onclick = function () { try { applyPreset('focused'); } catch (_) {} };
+  }
+}
+
 function renderDailyChallengeCard() {
   const card = document.getElementById('daily-challenge-card');
   if (!card) return;

@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=5.5.4">
+<link rel="stylesheet" href="dg-system.css?v=5.5.5">
 <!-- v5.5.1 — Fraunces display face for the editorial system (Home v3
      reimagining + cross-surface). Body stays the app font; Fraunces is
      scoped to display moments in dg-system.css. preconnect + display=swap
@@ -332,6 +332,37 @@
            into the right column per the codex mockup (position-free). -->
       <div id="daily-challenge-card" class="card challenge-card daily-challenge-card reveal is-hidden" style="--d:4" role="region" aria-label="Daily Challenge"></div>
 
+      <!-- Continue anchor (v5.5.5) — the rail's ALWAYS-present bottom.
+           Founder spotted dead space below Daily Challenge: on a low-data
+           account #hero-v2-cta (NBM) + #sr-review-card collapse while the
+           tall left column keeps going. renderContinueCard() reads existing
+           signals only (loadHistory · getStreak · getTodayQuestionCount ·
+           buildSessionPlan · loadWrongBank) and is ALWAYS called, never
+           collapsed away, so the rail can't shrink. Net-new additive DOM;
+           zero existing id/onclick touched; getElementById is position-
+           free so no other render fn moves. Last in .col-side by design.
+           (Comment intentionally avoids the literal hidden-class token so
+           the v5.5.5 tombstone regex cannot false-trip on prose.) -->
+      <div class="card continue-card reveal" style="--d:5" id="continue-card" data-state="fresh" role="region" aria-label="Continue where you left off">
+        <div class="cc-eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="cc-eyebrow-t">Pick up where you left off</span>
+        </div>
+        <div class="cc-momentum" id="cc-momentum">
+          <div class="cc-m"><span class="cc-mn is-accent" id="cc-m1n">0</span><span class="cc-ml">day streak</span></div>
+          <div class="cc-m"><span class="cc-mn" id="cc-m2n">0</span><span class="cc-ml">done today</span></div>
+          <div class="cc-m"><span class="cc-mn" id="cc-m3n">0</span><span class="cc-ml">questions</span></div>
+        </div>
+        <div class="cc-body">
+          <div class="cc-headline" id="cc-headline">&mdash;</div>
+          <div class="cc-context" id="cc-context">&mdash;</div>
+        </div>
+        <button type="button" class="cc-action" id="cc-action">
+          <span id="cc-action-t">Start</span>
+          <span class="cc-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -459,7 +490,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v5.5.4</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v5.5.5</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>

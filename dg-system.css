@@ -3638,3 +3638,49 @@ html[data-theme] body .qnav-sq.answered{background:color-mix(in oklab,var(--acce
 
 /* ── Reduced-motion gate ── */
 @media (prefers-reduced-motion: reduce){.sb-item,.topbar-iconbtn,.topbar-toggle,.topbar-countdown,.st-focus-chip,.pt-focus-chip,.st-mode-btn,.pt-mode-btn,.os-mode-btn,.cb-mode-btn,.os-diff-btn,.os-tab-btn,.cb-tab-btn,.na-tab,.ptr-tab-btn,.na-option,.ptr-opt,.ptr-prog-dot,.exam-flag-btn,.qnav-sq,.option,.review-filter-chip,.sr-option,.sr-confidence-btn,.drills-tile,.secplus-drill-tile,.tad-link,.tad-cert-row{transition:none!important;}}
+
+/* ════════════════════════════════════════════════════════════════
+   v5.5.5 · THE CONTINUE ANCHOR — the right rail's always-present
+   bottom. Founder spotted dead space below Daily Challenge: on a
+   low-data account #hero-v2-cta (NBM) + #sr-review-card collapse
+   while the tall left column keeps going, leaving a bottom-right
+   wedge. taste-skill → dashboards: the operator's next action,
+   ALWAYS rendered (rail can't collapse → void fixed structurally)
+   + ALWAYS prescriptive (earns its slot → not the filler the
+   anti-slop rule bans). Quiet hairline card — NBM keeps the one
+   bronze fill — faint accent radial + accent eyebrow = "your live
+   thread". Scoped #continue-card (unique id) + html[data-theme]
+   body #page-setup .continue-card to beat the styles.css .card
+   glass. App tokens only; cert + theme aware. The generic
+   #page-setup .card hover-lift + reduced-motion gate already cover
+   the card (it carries class card); only the .cc-* specifics +
+   button motion are added here. Net-new additive DOM, zero
+   contract touched. */
+html[data-theme] body #page-setup .continue-card{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--surface),color-mix(in oklab,var(--surface) 84%,var(--bg)));border:1px solid color-mix(in oklab,var(--accent) 20%,var(--border));border-radius:18px;padding:22px 22px 24px;box-shadow:none;margin:0;}
+#page-setup .continue-card::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 78% at 100% 0%,color-mix(in oklab,var(--accent) 8%,transparent),transparent 58%);}
+#page-setup .continue-card .cc-eyebrow{position:relative;display:flex;align-items:center;gap:9px;font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+#page-setup .continue-card .cc-eyebrow svg{width:13px;height:13px;flex:none;}
+#page-setup .continue-card .cc-momentum{position:relative;display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:18px;background:color-mix(in oklab,var(--accent) 3%,transparent);}
+#page-setup .continue-card .cc-m{flex:1;padding:11px 14px;text-align:left;}
+#page-setup .continue-card .cc-m+.cc-m{border-left:1px solid var(--border);}
+html[data-theme] body #page-setup .continue-card .cc-mn{font-family:'Fraunces',Georgia,serif;font-size:21px;font-weight:600;color:var(--text);letter-spacing:-0.01em;display:block;line-height:1;}
+#page-setup .continue-card .cc-mn.is-accent{color:var(--accent);}
+#page-setup .continue-card .cc-ml{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);margin-top:6px;display:block;}
+#page-setup .continue-card .cc-body{position:relative;}
+html[data-theme] body #page-setup .continue-card .cc-headline{font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;color:var(--text);letter-spacing:-0.012em;line-height:1.18;}
+#page-setup .continue-card .cc-context{font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-top:7px;max-width:38ch;}
+#page-setup .continue-card .cc-context b{color:var(--text-mid);font-weight:650;}
+html[data-theme] body #page-setup .continue-card .cc-action{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:18px;font-family:Inter,-apple-system,sans-serif;font-size:13.5px;font-weight:700;color:var(--accent);text-align:left;background:color-mix(in oklab,var(--accent) 5%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:13px 16px;border-radius:11px;cursor:pointer;}
+#page-setup .continue-card .cc-arrow{font-size:15px;}
+#page-setup .continue-card[data-state="fresh"] .cc-momentum{display:none;}
+html[data-theme] body #page-setup .continue-card[data-state="fresh"]{border-color:color-mix(in oklab,var(--accent) 26%,var(--border));}
+#page-setup .continue-card .cc-action{transition:transform .16s var(--dgh-ease),background .18s var(--dgh-ease),border-color .18s var(--dgh-ease);}
+#page-setup .continue-card .cc-arrow{transition:transform .2s var(--dgh-ease);}
+html[data-theme] body #page-setup .continue-card .cc-action:active{transform:scale(0.985);}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme] body #page-setup .continue-card .cc-action:hover{background:color-mix(in oklab,var(--accent) 11%,transparent);border-color:color-mix(in oklab,var(--accent) 48%,transparent);}
+  html[data-theme] body #page-setup .continue-card .cc-action:hover .cc-arrow{transform:translateX(3px);}
+}
+@media (prefers-reduced-motion:reduce){
+  #page-setup .continue-card .cc-action,#page-setup .continue-card .cc-arrow{transition:none!important;transform:none!important;}
+}

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-cert="netplus">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home · Continue anchor — concept · CertAnvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;550;600;650;700;800&display=swap" rel="stylesheet">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     HOME · the "Continue" anchor  (v3 concept)
+
+     Founder spotted dead space in the right rail below Daily Challenge.
+     Diagnosis: #page-setup is a rigid 2-col grid (wide .col-main / fixed
+     372px .col-side). The left column is intrinsically tall (hero → stats
+     → diagnostic → the tall Today's Plan). The rail is mostly CONDITIONAL
+     cards (NBM hidden until data · SR is-hidden until SR data), so on a
+     low-data account the rail collapses while the left keeps going — the
+     §01 session board is a full-width row that only starts BELOW the whole
+     grid. The void is that bottom-right wedge.
+
+     Founder chose: an always-on Continue anchor. taste-skill → dashboards:
+     the rail's bottom becomes the operator's next action — ALWAYS present
+     (so the rail never collapses → fixes the void structurally) and ALWAYS
+     prescriptive (so it earns its place → not the slop "filler card" the
+     dashboards guidance bans). Its job is the one nothing else on the page
+     does: re-entry + proof-of-motion (NBM = what's optimal · SR = cards due
+     · Daily Challenge = the 1-Q habit · Today's Plan = the 5-topic route ·
+     THIS = pick your thread back up, and the receipts that you're moving).
+
+     Two states shown (toggle, top-right) — the extremes that prove it can
+     never collapse: a returning grinder, and someone barely started. Both
+     render a confident, specific action. Theme + cert also toggle.
+
+     DISCUSSION ONLY — not an integration. Sign off before I build it.
+═══════════════════════════════════════════════════════════════════════ -->
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+
+  /* ── locked forged-bronze editorial system (inherited verbatim from the
+        Home masthead v3 concept; cert + theme aware) ── */
+  #page-setup{
+    --bg:oklch(0.975 0.007 85);--surface:oklch(0.992 0.004 85);--surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);--ink-soft:oklch(0.36 0.014 280);--muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);--border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);--accent-bright:oklch(0.80 0.155 64);--accent-deep:oklch(0.42 0.150 52);--on-accent:oklch(0.985 0.010 85);
+    --pass:oklch(0.52 0.13 150);--warn:oklch(0.62 0.14 70);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .26);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--eo:cubic-bezier(0.23,1,0.32,1);
+    display:block;background:var(--bg);color:var(--ink);min-height:100vh;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(26px,4.5vh,46px) clamp(20px,4vw,56px) clamp(60px,10vh,110px);
+  }
+  [data-theme="dark"] #page-setup{
+    --bg:oklch(0.16 0.009 275);--surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);--accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
+    --pass:oklch(0.74 0.150 152);--warn:oklch(0.80 0.130 75);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+  }
+  #page-setup *{box-sizing:border-box}
+  #page-setup .ch-wrap{max-width:1140px;margin:0 auto}
+
+  /* ════════════════════════════════════════════════════════════════
+     THE CONTINUE ANCHOR
+     A quiet hairline rail card (NOT the bronze fill — that is NBM's one
+     focal job). It gets a faint accent radial + accent eyebrow so it
+     reads as "your live thread", anchored, without shouting. Three zones:
+       1. eyebrow            — what this is
+       2. momentum strip     — receipts you are moving (the unique value)
+       3. the thread + action — the single specific re-entry tap
+     The momentum strip is suppressed in the just-started state (all-zeros
+     is not proof of anything) so the card degrades to a clean confident
+     first action instead of an empty stat row.
+  ════════════════════════════════════════════════════════════════ */
+  #page-setup .continue-card{
+    position:relative;border:1px solid color-mix(in oklab,var(--accent) 20%,var(--border));
+    border-radius:18px;padding:clamp(20px,2.4vw,26px);
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    box-shadow:var(--shadow-soft);overflow:hidden;
+  }
+  #page-setup .continue-card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 78% at 100% 0%,color-mix(in oklab,var(--accent) 8%,transparent),transparent 58%);
+  }
+  #page-setup .cc-eyebrow{
+    position:relative;font-size:10.5px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:14px;
+    display:flex;align-items:center;gap:9px;
+  }
+  [data-theme="dark"] #page-setup .cc-eyebrow{color:var(--accent-bright)}
+  #page-setup .cc-eyebrow svg{width:13px;height:13px;flex:none}
+
+  /* momentum strip — de-carded, hairline-divided (dashboards: no metric
+     tiles; quiet inline readouts). Fraunces figures. */
+  #page-setup .cc-momentum{
+    position:relative;display:flex;border:1px solid var(--border-soft);
+    border-radius:11px;overflow:hidden;margin-bottom:18px;
+    background:color-mix(in oklab,var(--accent) 3%,transparent);
+  }
+  #page-setup .cc-m{flex:1;padding:11px 14px;text-align:left}
+  #page-setup .cc-m+.cc-m{border-left:1px solid var(--border-soft)}
+  #page-setup .cc-mn{
+    font-family:'Fraunces',Georgia,serif;font-size:21px;font-weight:600;
+    color:var(--ink);letter-spacing:-.01em;display:block;line-height:1;
+  }
+  #page-setup .cc-mn.is-accent{color:var(--accent-deep)}
+  [data-theme="dark"] #page-setup .cc-mn.is-accent{color:var(--accent-bright)}
+  #page-setup .cc-ml{
+    font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin-top:6px;display:block;
+  }
+
+  #page-setup .cc-body{position:relative}
+  #page-setup .cc-headline{
+    font-family:'Fraunces',Georgia,serif;font-size:clamp(18px,2vw,21px);
+    font-weight:600;color:var(--ink);letter-spacing:-.012em;line-height:1.18;
+  }
+  #page-setup .cc-context{
+    font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:7px;max-width:38ch;
+  }
+  #page-setup .cc-context b{color:var(--ink-soft);font-weight:650}
+
+  /* the action — full-bleed accent-outline (matches .btn-ghost), the
+     prescriptive tap. Quiet vs NBM's solid bronze, still unmistakably
+     the thing to do. */
+  #page-setup .cc-action{
+    position:relative;display:flex;align-items:center;justify-content:space-between;
+    gap:12px;width:100%;margin-top:18px;font-family:'Inter',sans-serif;
+    font-size:13.5px;font-weight:700;color:var(--accent);text-align:left;
+    background:color-mix(in oklab,var(--accent) 5%,transparent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+    padding:13px 16px;border-radius:11px;cursor:pointer;
+  }
+  [data-theme="dark"] #page-setup .cc-action{color:var(--accent-bright)}
+  #page-setup .cc-action .cc-arrow{font-size:15px;transition:transform 200ms var(--eo)}
+
+  /* states */
+  #page-setup .continue-card[data-state="fresh"] .cc-momentum{display:none}
+  #page-setup .continue-card[data-state="fresh"]{
+    border-color:color-mix(in oklab,var(--accent) 26%,var(--border));
+  }
+
+  /* ── context mini: the rail with the void CLOSED ── */
+  .ctx{max-width:1140px;margin:34px auto 0;padding-top:30px;border-top:1px dashed color-mix(in oklab,#b8860b 36%,#bbb)}
+  [data-theme="dark"] .ctx{border-color:#4a3a14}
+  .ctx-h{font:800 11px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#9b7b2e;margin:0 0 16px}
+  [data-theme="dark"] .ctx-h{color:#d9b56a}
+  .ctx-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,0.85fr);gap:24px;align-items:start}
+  .ctx-tall{border:1px solid var(--border,#ddd);border-radius:14px;background:linear-gradient(180deg,var(--surface,#fff),var(--surface-2,#f5f5f5));min-height:430px;display:flex;align-items:center;justify-content:center;color:var(--muted,#999);font:600 12px Inter,sans-serif;text-align:center;padding:20px}
+  #page-setup .ctx-rail{display:flex;flex-direction:column;gap:14px}
+  #page-setup .ctx-mini{border:1px solid var(--border);border-radius:13px;padding:15px 17px;background:var(--surface)}
+  #page-setup .ctx-mini .e{font:800 9.5px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+  #page-setup .ctx-mini .t{font-family:'Fraunces',Georgia,serif;font-size:15px;font-weight:600;color:var(--ink);margin-top:7px}
+  #page-setup .ctx-mini.score .t{font-size:30px;letter-spacing:-.02em}
+  #page-setup .ctx-mini .s{font-size:11px;color:var(--muted);margin-top:4px}
+
+  /* ── motion · emil-design-eng (matches the masthead concept) ── */
+  #page-setup .reveal{opacity:0;transform:translateY(12px);transition:opacity 520ms var(--eo),transform 520ms var(--eo);transition-delay:calc(var(--d,0)*60ms)}
+  #page-setup.is-in .reveal{opacity:1;transform:none}
+  #page-setup .cc-action{transition:transform 150ms var(--eo),background 180ms ease,border-color 180ms ease}
+  #page-setup .cc-action:active{transform:scale(.985)}
+  @media (hover:hover) and (pointer:fine){
+    #page-setup .continue-card{transition:transform 200ms ease,border-color 200ms ease}
+    #page-setup .continue-card:hover{transform:translateY(-2px);border-color:color-mix(in oklab,var(--accent) 40%,var(--border))}
+    #page-setup .cc-action:hover{background:color-mix(in oklab,var(--accent) 11%,transparent);border-color:color-mix(in oklab,var(--accent) 48%,transparent)}
+    #page-setup .cc-action:hover .cc-arrow{transform:translateX(3px)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #page-setup .reveal{transition:opacity 200ms ease!important;transform:none!important;transition-delay:0ms!important}
+    #page-setup.is-in .reveal{transform:none!important}
+    #page-setup .continue-card,#page-setup .cc-action,#page-setup .cc-arrow{transition:none!important;transform:none!important}
+  }
+
+  /* ── stage chrome ── */
+  .stage{max-width:560px;margin:0 auto}
+  .stage-h{font-family:'Fraunces',Georgia,serif;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#9b7b2e;margin:0 0 18px;text-align:center}
+  [data-theme="dark"] .stage-h{color:#d9b56a}
+  .mk-bar{position:fixed;top:14px;right:16px;z-index:99;display:flex;gap:8px}
+  .mk-bar button{font:600 12px Inter,sans-serif;padding:7px 13px;border-radius:9px;border:1px solid #ccc;background:#fff;color:#333;cursor:pointer}
+  .mk-bar button.on{background:#b8860b;color:#fff;border-color:#b8860b}
+  [data-theme="dark"] .mk-bar button{background:#222;color:#eee;border-color:#444}
+  [data-theme="dark"] .mk-bar button.on{background:#d9b56a;color:#1a1a1a;border-color:#d9b56a}
+  .mk-note{max-width:1140px;margin:30px auto 0;padding:15px 18px;border:1px dashed color-mix(in oklab,#b8860b 40%,#ccc);border-radius:12px;font:500 12.5px/1.65 Inter,sans-serif;color:#7a5c12}
+  [data-theme="dark"] .mk-note{color:#d9b56a;border-color:#5a4416}
+  .mk-note b{font-weight:800}
+  .mk-note code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(184,134,11,.12);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="mk-bar">
+  <button onclick="tgTheme()">Theme</button>
+  <button onclick="tgCert()">Cert</button>
+  <button id="stBtn" class="on" onclick="tgState()">State: returning</button>
+</div>
+
+<div id="page-setup" class="page active" data-cert="netplus">
+  <div class="ch-wrap">
+
+    <div class="stage">
+      <p class="stage-h">The Continue anchor &middot; pins the bottom of the rail</p>
+
+      <div class="card continue-card reveal" id="continue-card" data-state="returning" style="--d:0">
+        <div class="cc-eyebrow" id="cc-eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="cc-eyebrow-t">Pick up where you left off</span>
+        </div>
+
+        <div class="cc-momentum" id="cc-momentum">
+          <div class="cc-m"><span class="cc-mn is-accent" id="cc-m1n">4</span><span class="cc-ml" id="cc-m1l">day streak</span></div>
+          <div class="cc-m"><span class="cc-mn" id="cc-m2n">12</span><span class="cc-ml" id="cc-m2l">done today</span></div>
+          <div class="cc-m"><span class="cc-mn" id="cc-m3n">318</span><span class="cc-ml" id="cc-m3l">questions</span></div>
+        </div>
+
+        <div class="cc-body">
+          <div class="cc-headline" id="cc-headline">Subnetting &amp; IP Addressing</div>
+          <div class="cc-context" id="cc-context">Last session <b>6 / 10</b> &middot; 2 days ago &middot; 4 still in your wrong bank.</div>
+        </div>
+
+        <button type="button" class="cc-action" id="cc-action">
+          <span id="cc-action-t">Drill the 4 you missed</span>
+          <span class="cc-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- context: the actual rail with the wedge closed -->
+    <div class="ctx">
+      <p class="ctx-h">In the rail &middot; the void below Daily Challenge is gone</p>
+      <div class="ctx-grid">
+        <div class="ctx-tall">left column &middot; hero &rarr; stats &rarr; diagnostic &rarr; the tall Today&rsquo;s Plan</div>
+        <div class="ctx-rail">
+          <div class="ctx-mini score"><div class="e">Exam readiness</div><div class="t" id="ctx-rd">622</div><div class="s">pass mark 720</div></div>
+          <div class="ctx-mini"><div class="e">Daily challenge</div><div class="t">Incident Response</div><div class="s">1 question &middot; ~1 min &middot; streak +1</div></div>
+          <div class="card continue-card" id="ctx-continue" data-state="returning" style="box-shadow:none">
+            <div class="cc-eyebrow"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="ctx-cc-eyebrow">Pick up where you left off</span></div>
+            <div class="cc-momentum" id="ctx-cc-momentum">
+              <div class="cc-m"><span class="cc-mn is-accent" id="ctx-m1">4</span><span class="cc-ml">day streak</span></div>
+              <div class="cc-m"><span class="cc-mn" id="ctx-m2">12</span><span class="cc-ml">done today</span></div>
+              <div class="cc-m"><span class="cc-mn" id="ctx-m3">318</span><span class="cc-ml">questions</span></div>
+            </div>
+            <div class="cc-headline" id="ctx-cc-headline">Subnetting &amp; IP Addressing</div>
+            <div class="cc-context" id="ctx-cc-context">Last session <b>6 / 10</b> &middot; 2 days ago &middot; 4 still in your wrong bank.</div>
+            <button type="button" class="cc-action"><span id="ctx-cc-action">Drill the 4 you missed</span><span class="cc-arrow" aria-hidden="true">&rarr;</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="mk-note">
+      <b>The Continue anchor.</b> taste-skill &rarr; <b>dashboards</b>: the rail&rsquo;s bottom becomes the operator&rsquo;s next action &mdash; it is the one card that is <b>always present</b> (so the rail can never collapse &rarr; the void is fixed structurally, not papered over) and <b>always prescriptive</b> (so it earns its slot &rarr; not the &ldquo;filler card&rdquo; the dashboards anti-slop rule bans). Its job is the one nothing else on the page has: <b>re-entry + receipts</b> &mdash; NBM answers &ldquo;what&rsquo;s optimal&rdquo;, SR is &ldquo;cards due&rdquo;, Daily Challenge is the 1-Q habit, Today&rsquo;s Plan is the 5-topic route; <b>this</b> is &ldquo;here&rsquo;s your thread, here&rsquo;s proof you&rsquo;re moving, one tap to keep pulling it.&rdquo;
+      <br><br>
+      <b>stop-slop:</b> momentum strip is real receipts, not a vanity row &mdash; it is suppressed entirely in the just-started state (all-zeros proves nothing) so the card degrades to a clean confident first action instead of an empty grid. Copy is specific and active (&ldquo;Drill the 4 you missed&rdquo;, not &ldquo;Continue learning&rdquo;); no em-dashes; no throat-clearing.
+      <b>emil:</b> quiet hairline card (NOT the bronze fill &mdash; NBM keeps the one focal solid), faint accent radial + accent eyebrow so it reads as your live thread; reveal entrance rides the page IIFE; card lift + arrow nudge gated to fine pointers; <code>:active</code> press; reduced-motion = opacity only.
+      <br><br>
+      <b>Integration contract (honest):</b> this is net-new, additive DOM &mdash; one <code>&lt;div id="continue-card"&gt;</code> placed LAST in <code>.col-side</code> (so it is the reliable bottom of the rail, after the conditional <code>#daily-challenge-card</code>), a <code>renderContinueCard()</code> in app.js that reads existing plumbing only (<code>loadHistory()</code> &middot; <code>STORAGE.STREAK</code> &middot; daily-goal &middot; <code>computeWeakSpotScores()</code> &middot; <code>STORAGE.WRONG_BANK</code>) and is <b>always called, never <code>is-hidden</code></b>, plus scoped <code>#page-setup</code> CSS in dg-system.css. Zero existing id / onclick / contract touched; <code>getElementById</code> is position-free so no other render fn moves. Toggle <b>State</b> (top-right) between a returning grinder and someone barely started &mdash; both render a confident specific action, which is the whole point. Discussion only &mdash; sign off and I integrate surgically.
+    </p>
+
+  </div>
+</div>
+
+<script>
+  function tgTheme(){var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark');}
+  function tgCert(){var s=document.getElementById('page-setup');s.setAttribute('data-cert',s.getAttribute('data-cert')==='secplus'?'netplus':'secplus');paint();}
+
+  var state='returning';
+  function tgState(){
+    state = state==='returning' ? 'fresh' : 'returning';
+    document.getElementById('stBtn').textContent = 'State: ' + (state==='returning'?'returning':'just started');
+    paint();
+  }
+
+  function paint(){
+    var sec=document.getElementById('page-setup');
+    var cert=sec.getAttribute('data-cert');
+    var net = cert!=='secplus';
+    // cert-aware sample weak topic + the diagnostic-ish readiness number
+    var topic = net ? 'Subnetting &amp; IP Addressing' : 'PKI &amp; Certificate Management';
+    var rd    = net ? '622' : '548';
+
+    document.getElementById('continue-card').setAttribute('data-state', state);
+    document.getElementById('ctx-continue').setAttribute('data-state', state);
+    document.getElementById('ctx-rd').textContent = rd;
+
+    if(state==='returning'){
+      set('cc-eyebrow-t','Pick up where you left off');
+      set('cc-headline', topic);
+      document.getElementById('cc-context').innerHTML = 'Last session <b>6 / 10</b> &middot; 2 days ago &middot; 4 still in your wrong bank.';
+      set('cc-action-t','Drill the 4 you missed');
+      set('cc-m1n','4'); set('cc-m2n','12'); set('cc-m3n','318');
+      // ctx mirror
+      set('ctx-cc-eyebrow','Pick up where you left off');
+      set('ctx-cc-headline', topic);
+      document.getElementById('ctx-cc-context').innerHTML = 'Last session <b>6 / 10</b> &middot; 2 days ago &middot; 4 still in your wrong bank.';
+      set('ctx-cc-action','Drill the 4 you missed');
+      set('ctx-m1','4'); set('ctx-m2','12'); set('ctx-m3','318');
+    } else {
+      set('cc-eyebrow-t','Start here');
+      set('cc-headline','You haven&rsquo;t built a streak yet');
+      document.getElementById('cc-context').innerHTML = 'A five-minute warm-up sets your first readiness score and starts the chain.';
+      set('cc-action-t','Take the 5-min Warmup');
+      set('ctx-cc-eyebrow','Start here');
+      set('ctx-cc-headline','You haven&rsquo;t built a streak yet');
+      document.getElementById('ctx-cc-context').innerHTML = 'A five-minute warm-up sets your first readiness score and starts the chain.';
+      set('ctx-cc-action','Take the 5-min Warmup');
+    }
+  }
+  function set(id,html){var el=document.getElementById(id);if(el)el.innerHTML=html;}
+
+  (function(){
+    var p=document.getElementById('page-setup');
+    paint();
+    requestAnimationFrame(function(){requestAnimationFrame(function(){p.classList.add('is-in');});});
+  })();
+</script>
+</body>
+</html>
