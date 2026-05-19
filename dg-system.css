@@ -235,7 +235,7 @@ html[data-theme] body #page-setup .readiness-card{position:relative;overflow:hid
    small uppercase caption directly below (the index.html text content was
    tweaked " / 900" → "out of 900" for clean caption read). */
 #page-setup .readiness-score{position:relative;display:flex;flex-direction:column;align-items:baseline;gap:0;font-variant-numeric:tabular-nums;}
-html[data-theme] body #page-setup .readiness-score #rc-v2-num{display:block;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(94px,11.5vw,140px);line-height:1;letter-spacing:-0.03em;color:var(--text);}
+html[data-theme] body #page-setup .readiness-score #rc-v2-num{display:block;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(94px,11.5vw,140px);line-height:1;letter-spacing:-0.03em;color:var(--text);font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum";}
 html[data-theme] body #page-setup .readiness-score span:not(#rc-v2-num){display:block;margin-top:14px;font-family:Inter,-apple-system,sans-serif;font-weight:600;font-size:13.5px;line-height:1;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);}
 #page-setup .readiness-tier{position:relative;display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 26%,transparent);padding:5px 11px;border-radius:7px;margin:12px 0 0;}
 #page-setup .readiness-prob{position:relative;font-size:13px;color:var(--text-mid);margin:12px 0 0;line-height:1.5;font-variant-numeric:tabular-nums;}
