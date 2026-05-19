@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-cert="secplus">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Sections 2+3 v3 — concept · CertAnvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     HOME · SECTIONS 2 + 3 — DAILY-ACTION CARDS + RESHUFFLED SESSION BOARD
+     v3 concept. Inherits Section 1's language (locked bronze, Fraunces
+     display, dashboards routing, emil motion).
+
+     THE RESHUFFLE (the founder's explicit ask): "Pick your session" was a
+     tall vertical dropdown because it's trapped in the 372px .col-side
+     rail (the .col-side overrides force grid-template-columns:1fr). It was
+     ORIGINALLY designed with a horizontal 3-col grid. So: pull #modes-
+     ladder out of the rail into a FULL-WIDTH horizontal "session board" —
+     the three commitment tiers (Quick → Practice → Exam) read left→right
+     as an effort ladder. Same call v5.4.0 made for the By-Domain matrix.
+
+     CONTRACT-FAITHFUL: reproduces the EXACT #modes-ladder markup + every
+     onclick (applyPreset/applyDomainPreset/startExam/startDailyChallenge/
+     startWrongDrill/_jumpToCustomQuiz) + ids (#modes-ladder/#modes-dc-tile
+     /#modes-dc-sub/#modes-wrong-tile/#modes-wrong-sub/#modes-strict-
+     checkbox) + the .dgh-* / .tplan-* / .dc-* class systems. Internals
+     unchanged; only the CONTAINER placement (col-side → full-width) + the
+     layout (vertical → horizontal) change at integration.
+
+     DISCUSSION ONLY — not an integration. Toggle theme/cert top-right.
+═══════════════════════════════════════════════════════════════════════ -->
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  #page-setup{
+    --bg:oklch(0.16 0.009 275);--surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --text:oklch(0.96 0.006 275);--text-mid:oklch(0.78 0.010 275);--text-dim:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--dg-rule-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);--accent-deep:oklch(0.70 0.150 62);--bg-on-accent:oklch(0.18 0.020 275);
+    --green:oklch(0.74 0.150 152);--yellow:oklch(0.80 0.130 75);
+    --t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--dgh-ease:cubic-bezier(0.16,1,0.3,1);
+    display:block;background:var(--bg);color:var(--text);min-height:100vh;
+    font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+    padding:clamp(24px,4vh,42px) clamp(20px,4vw,40px) 100px;
+  }
+  [data-theme="light"] #page-setup{
+    --bg:oklch(0.975 0.007 85);--surface:oklch(0.992 0.004 85);--surface-2:oklch(0.965 0.010 84);
+    --text:oklch(0.22 0.015 280);--text-mid:oklch(0.36 0.014 280);--text-dim:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);--dg-rule-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);--accent-deep:oklch(0.42 0.150 52);--bg-on-accent:oklch(0.985 0.010 85);
+    --green:oklch(0.52 0.13 150);--yellow:oklch(0.62 0.14 70);
+  }
+  #page-setup *{box-sizing:border-box}
+  #page-setup .ch-wrap{max-width:1240px;margin:0 auto}
+  #page-setup .is-hidden{display:none!important}
+
+  /* ── SECTION 2: daily-action cards (Today's Plan + Daily Challenge) ── */
+  #page-setup .action-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;margin-bottom:18px}
+  #page-setup .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px}
+
+  /* Today's Plan — renderTodayPlan() .tplan-* contract */
+  #page-setup .plan-card{background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border))}
+  #page-setup .tplan-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent)}
+  #page-setup .tplan-headline{font-family:'Fraunces',Georgia,serif;font-size:clamp(20px,2.2vw,26px);font-weight:600;letter-spacing:-0.015em;line-height:1.18;color:var(--text);margin:11px 0 0}
+  #page-setup .tplan-headline b,#page-setup .tplan-headline strong{color:var(--accent);font-weight:600}
+  #page-setup .tplan-sub{font-size:13px;color:var(--text-mid);line-height:1.55;margin:9px 0 0;max-width:54ch}
+  #page-setup .tplan-chips{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0 0}
+  #page-setup .tplan-chip{display:inline-flex;align-items:center;gap:9px;background:color-mix(in oklab,var(--accent) 8%,transparent);border:1px solid color-mix(in oklab,var(--accent) 24%,var(--border));border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;text-align:left}
+  #page-setup .tplan-chip-icon{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+  #page-setup .tplan-chip-arrow{color:var(--text-dim);font-size:11px}
+  #page-setup .tplan-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 0 0}
+  #page-setup .tplan-foot-meta{font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim)}
+  #page-setup .tplan-cta{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;font-family:Inter,sans-serif;color:var(--bg-on-accent);background:var(--accent);border:0;border-radius:11px;padding:12px 22px;cursor:pointer}
+
+  /* Daily Challenge — renderDailyChallengeCard() .dc-* contract */
+  #page-setup .challenge-card{display:flex;flex-direction:column;background:linear-gradient(150deg,var(--accent),color-mix(in oklab,var(--accent) 76%,black));border:0;color:var(--bg-on-accent);position:relative;overflow:hidden}
+  #page-setup .challenge-card::before{content:"";position:absolute;right:-26px;top:-26px;width:140px;height:140px;border-radius:50%;background:color-mix(in oklab,var(--bg) 14%,transparent);pointer-events:none}
+  #page-setup .dc-icon{display:none}
+  #page-setup .dc-title{position:relative;font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;letter-spacing:-0.01em;color:var(--bg-on-accent)}
+  #page-setup .dc-sub{position:relative;font-size:12.5px;line-height:1.5;color:color-mix(in oklab,var(--bg-on-accent) 82%,transparent);margin:7px 0 0}
+  #page-setup .dc-body{position:relative;margin-top:auto;padding-top:18px}
+  #page-setup .dc-btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:800;color:var(--accent);background:var(--bg-on-accent);border:0;border-radius:11px;padding:11px 20px;cursor:pointer}
+
+  /* ── SECTION 3: PICK YOUR SESSION — reshuffled FULL-WIDTH horizontal board ──
+     #modes-ladder pulled out of .col-side. The base .dgh-* contract is
+     unchanged; the layout is a 3-tier horizontal board (Quick → Practice
+     → Exam = a left→right effort ladder), with Drill-by-domain a
+     horizontal strip + a footer bar. */
+  #page-setup #modes-ladder{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2.6vw,30px);margin-bottom:18px}
+  #page-setup .dgh-sess-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--border)}
+  #page-setup .dgh-sec-k{font-size:10px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-dim)}
+  #page-setup .dgh-sec-t{font-family:'Fraunces',Georgia,serif;font-size:var(--t2);font-weight:600;letter-spacing:-0.02em;margin:6px 0 0;color:var(--text)}
+  #page-setup .dgh-sec-t i,#page-setup .dgh-sec-t em{font-style:normal;color:var(--accent)}
+  #page-setup .dgh-sess>.dgh-sub{font-size:12.5px;color:var(--text-dim);max-width:42ch;margin:0}
+  /* the board: three tiers side by side */
+  #page-setup .dgh-board{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:22px}
+  #page-setup .dgh-grp{margin:0;padding:0 26px;border-right:1px solid var(--dg-rule-soft)}
+  #page-setup .dgh-grp:first-child{padding-left:0}
+  #page-setup .dgh-grp:last-child{padding-right:0;border-right:0}
+  #page-setup .dgh-grp-h{display:flex;flex-direction:column;gap:4px;padding-bottom:13px;border-bottom:1px solid var(--border);margin-bottom:6px}
+  #page-setup .dgh-grp-h .t{font-size:10.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--accent)}
+  #page-setup .dgh-grp-h .d{font-size:11px;color:var(--text-dim)}
+  #page-setup .dgh-opts{display:flex;flex-direction:column;gap:0}
+  #page-setup .dgh-opt{display:flex;flex-direction:column;gap:3px;text-align:left;background:none;border:0;border-bottom:1px solid var(--dg-rule-soft);border-radius:8px;padding:14px 12px;cursor:pointer;font-family:inherit;transition:background .16s var(--dgh-ease),padding-left .16s var(--dgh-ease)}
+  #page-setup .dgh-opt:last-of-type{border-bottom:0}
+  #page-setup .dgh-opt[aria-hidden="true"]{display:none}
+  #page-setup .dgh-opt .on{font-size:var(--t0);font-weight:700;letter-spacing:-0.01em;color:var(--text);transition:color .16s var(--dgh-ease)}
+  #page-setup .dgh-opt .od{font-size:11.5px;color:var(--text-dim);line-height:1.45}
+  #page-setup .dgh-opt.exam .on{color:var(--accent)}
+  @media (hover:hover) and (pointer:fine){
+    #page-setup .dgh-opt:hover{background:color-mix(in oklab,var(--accent) 8%,transparent);padding-left:18px}
+    #page-setup .dgh-opt:hover .on{color:var(--accent)}
+  }
+  #page-setup .dgh-opt:active{transform:scale(0.985)}
+  /* Drill by domain — a horizontal strip spanning full width */
+  #page-setup .dgh-dbd-wrap{margin-top:22px;padding-top:20px;border-top:1px solid var(--border)}
+  #page-setup .dgh-grp-h.dbd-h{flex-direction:row;align-items:baseline;gap:12px;border:0;padding:0;margin-bottom:14px}
+  #page-setup .dgh-dbd{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  #page-setup .dgh-db{display:flex;flex-direction:column;gap:5px;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px 15px;cursor:pointer;font-family:inherit;transition:background .16s var(--dgh-ease),border-color .16s var(--dgh-ease),transform .16s var(--dgh-ease)}
+  @media (hover:hover) and (pointer:fine){#page-setup .dgh-db:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border));transform:translateY(-2px)}}
+  #page-setup .dgh-db:active{transform:scale(0.98)}
+  #page-setup .dgh-db .dbk{font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent)}
+  #page-setup .dgh-db .dbn{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3}
+  #page-setup .dgh-db .dbm{font-size:10.5px;color:var(--text-dim)}
+  /* footer bar: Strict Mode + Custom Quiz */
+  #page-setup .dgh-foot{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+  #page-setup .dgh-strict{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:12px;color:var(--text-mid)}
+  #page-setup .dgh-strict input{position:absolute;opacity:0;width:0;height:0}
+  #page-setup .dgh-strict .box{width:18px;height:18px;border-radius:5px;border:1px solid var(--border);background:var(--surface-2);flex:none;display:grid;place-items:center;transition:background .16s var(--dgh-ease),border-color .16s var(--dgh-ease)}
+  #page-setup .dgh-strict input:checked+.box{background:var(--accent);border-color:var(--accent)}
+  #page-setup .dgh-strict input:checked+.box::after{content:"";width:9px;height:5px;border-left:2px solid var(--bg-on-accent);border-bottom:2px solid var(--bg-on-accent);transform:rotate(-45deg) translateY(-1px)}
+  #page-setup .dgh-strict b{color:var(--text);font-weight:700}
+  #page-setup .custom-row{display:flex;align-items:center;gap:12px}
+  #page-setup .custom-label{font-size:12.5px;color:var(--text-dim)}
+  #page-setup .custom-config{font-size:12.5px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer}
+
+  /* ── emil motion: entrance reveal (rides the page's .reveal IIFE),
+     hover handled above gated to fine pointers, press scale on tiles.
+     Reduced-motion: opacity only, no movement. ── */
+  #page-setup .reveal{opacity:0;transform:translateY(15px);transition:opacity .55s var(--dgh-ease),transform .55s var(--dgh-ease);transition-delay:calc(var(--d,0)*70ms)}
+  #page-setup.is-in .reveal{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    #page-setup .reveal{transition:opacity .2s ease!important;transform:none!important;transition-delay:0ms!important}
+    #page-setup.is-in .reveal{transform:none!important}
+    #page-setup .dgh-opt,#page-setup .dgh-db,#page-setup .tplan-cta,#page-setup .dc-btn{transition:none!important;transform:none!important}
+  }
+  @media (max-width:900px){
+    #page-setup .action-row{grid-template-columns:1fr}
+    #page-setup .dgh-board{grid-template-columns:1fr;gap:0}
+    #page-setup .dgh-grp{padding:0;border-right:0;border-bottom:1px solid var(--dg-rule-soft);padding-bottom:18px;margin-bottom:18px}
+    #page-setup .dgh-grp:last-child{border-bottom:0}
+    #page-setup .dgh-dbd{grid-template-columns:repeat(2,1fr)}
+  }
+
+  .mk-bar{position:fixed;top:14px;right:16px;z-index:99;display:flex;gap:8px}
+  .mk-bar button{font:600 12px Inter,sans-serif;padding:7px 13px;border-radius:9px;border:1px solid #555;background:#222;color:#eee;cursor:pointer}
+  [data-theme="light"] .mk-bar button{background:#fff;color:#333;border-color:#ccc}
+  .mk-note{max-width:1240px;margin:34px auto 0;padding:14px 18px;border:1px dashed color-mix(in oklab,#b8860b 40%,#888);border-radius:12px;font:500 12.5px/1.6 Inter,sans-serif;color:#d9b56a}
+  [data-theme="light"] .mk-note{color:#7a5c12;border-color:color-mix(in oklab,#b8860b 40%,#ccc)}
+</style>
+</head>
+<body>
+<div class="mk-bar">
+  <button onclick="document.documentElement.setAttribute('data-theme',document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">Theme</button>
+  <button onclick="var s=document.documentElement;s.setAttribute('data-cert',s.getAttribute('data-cert')==='secplus'?'netplus':'secplus')">Cert</button>
+</div>
+
+<div id="page-setup" class="page active" data-cert="secplus">
+  <div class="ch-wrap">
+
+    <!-- SECTION 2 — daily-action cards -->
+    <div class="action-row">
+      <div class="card plan-card today-plan reveal" style="--d:0" id="today-plan" role="region" aria-label="Today's study plan">
+        <div class="tplan-eyebrow">Today's plan</div>
+        <div class="tplan-headline"><b>5 topics · ~21 min</b> · built from your weak and stale topics</div>
+        <div class="tplan-sub">Your 2 weakest topics from recent quizzes, plus 3 you haven't practised in 2+ weeks. Mixed difficulty, 7 questions each.</div>
+        <div class="tplan-chips">
+          <button class="tplan-chip"><span class="tplan-chip-icon"></span><span class="tplan-chip-name">PKI &amp; Certificate Management</span><span class="tplan-chip-arrow">→</span></button>
+          <button class="tplan-chip"><span class="tplan-chip-icon"></span><span class="tplan-chip-name">Zero Trust &amp; SDN</span><span class="tplan-chip-arrow">→</span></button>
+          <button class="tplan-chip"><span class="tplan-chip-icon"></span><span class="tplan-chip-name">Threat Actors &amp; Motivations</span><span class="tplan-chip-arrow">→</span></button>
+          <button class="tplan-chip"><span class="tplan-chip-icon"></span><span class="tplan-chip-name">Attack Vectors &amp; Surfaces</span><span class="tplan-chip-arrow">→</span></button>
+          <button class="tplan-chip"><span class="tplan-chip-icon"></span><span class="tplan-chip-name">Application Vulnerabilities</span><span class="tplan-chip-arrow">→</span></button>
+        </div>
+        <div class="tplan-foot">
+          <span class="tplan-foot-meta">2 weak · 3 stale · mixed difficulty</span>
+          <button class="tplan-cta" type="button">Begin plan →</button>
+        </div>
+      </div>
+
+      <div class="card challenge-card daily-challenge-card reveal" style="--d:1" id="daily-challenge-card" role="region" aria-label="Daily Challenge">
+        <span class="dc-icon" aria-hidden="true"></span>
+        <div class="dc-title">Daily Challenge</div>
+        <div class="dc-sub">One question · Topic: <b>Incident Response</b> · 1 minute, streak +1.</div>
+        <div class="dc-body"><button class="dc-btn" type="button">Play →</button></div>
+      </div>
+    </div>
+
+    <!-- SECTION 3 — Pick your session, RESHUFFLED full-width horizontal board.
+         EXACT #modes-ladder contract: every onclick + id + .dgh-* class. -->
+    <div class="dgh-sess reveal" style="--d:2" id="modes-ladder" role="region" aria-label="Pick your session">
+      <div class="dgh-sess-head">
+        <div>
+          <div class="dgh-sec-k">&#167; 01</div>
+          <div class="dgh-sec-t">Pick your <i>session</i></div>
+        </div>
+        <p class="dgh-sub">A quick habit, focused study, or a full exam. Pick what fits the time you have.</p>
+      </div>
+
+      <div class="dgh-board">
+        <div class="dgh-grp">
+          <div class="dgh-grp-h"><span class="t">Quick · 3-5 min</span><span class="d">Daily habit · keeps your streak</span></div>
+          <div class="dgh-opts">
+            <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs · Foundational</span></button>
+            <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q · ~1 min · streak +1</span></button>
+            <button type="button" class="dgh-opt" id="modes-wrong-tile" onclick="startWrongDrill()"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">8 wrong answers saved</span></button>
+          </div>
+        </div>
+
+        <div class="dgh-grp">
+          <div class="dgh-grp-h"><span class="t">Practice · 10-30 min</span><span class="d">Focused study · fix your weak spots</span></div>
+          <div class="dgh-opts">
+            <button type="button" class="dgh-opt" onclick="applyPreset('focused')"><span class="on">15-min Weak Spots</span><span class="od">10 Qs · Exam level · your weakest topic</span></button>
+            <button type="button" class="dgh-opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 Qs · Exam level · mixed</span></button>
+            <button type="button" class="dgh-opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed · ~25 min</span></button>
+            <button type="button" class="dgh-opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed · ~38 min</span></button>
+            <button type="button" class="dgh-opt" onclick="_jumpToCustomQuiz()"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
+            <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
+          </div>
+        </div>
+
+        <div class="dgh-grp">
+          <div class="dgh-grp-h"><span class="t">Exam simulation · 60-90 min</span><span class="d">Pressure-test readiness · scored 100-900</span></div>
+          <div class="dgh-opts">
+            <button type="button" class="dgh-opt exam" onclick="applyPreset('bulk60')"><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
+            <button type="button" class="dgh-opt exam" onclick="startExam()"><span class="on">Full Exam Simulator</span><span class="od">90 questions · 90-min timer · scored 100-900</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dgh-dbd-wrap">
+        <div class="dgh-grp-h dbd-h"><span class="t">Drill by domain</span><span class="d">Exam weighting · 10 Qs each</span></div>
+        <div class="dgh-dbd">
+          <button type="button" class="dgh-db" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs · Exam Level · all 13 Networking Concepts topics"><span class="dbk">1.0 · 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
+          <button type="button" class="dgh-db" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs · Exam Level · all 13 Network Implementation topics"><span class="dbk">2.0 · 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
+          <button type="button" class="dgh-db" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs · Exam Level · all 7 Network Operations topics"><span class="dbk">3.0 · 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
+          <button type="button" class="dgh-db" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs · Exam Level · all 11 Network Security topics"><span class="dbk">4.0 · 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
+          <button type="button" class="dgh-db" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs · Exam Level · all 6 Network Troubleshooting topics"><span class="dbk">5.0 · 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
+        </div>
+      </div>
+
+      <div class="dgh-foot">
+        <label class="dgh-strict" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator">
+          <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
+          <span class="box" aria-hidden="true"></span>
+          <span><b>Strict Mode</b> · locked order · no flagging · no navigator</span>
+        </label>
+        <div class="custom-row">
+          <span class="custom-label">Custom Quiz · Topic, Difficulty &amp; Count</span>
+          <button type="button" class="custom-config" onclick="_jumpToCustomQuiz()">Configure →</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="mk-note"><strong>Home · Sections 2 + 3 — daily-action cards + the reshuffled session board.</strong> "Pick your session" is pulled out of the 372px right rail into a full-width horizontal board: the three commitment tiers read left → right as an effort ladder (Quick → Practice → Exam), Drill-by-domain is a 5-up strip, Strict Mode + Custom Quiz a footer bar. Far less vertical scroll, scannable at a glance. Today's Plan + Daily Challenge reimagined in the Section-1 language. Every <code>#modes-ladder</code> onclick + id + the <code>.dgh-*/.tplan-*/.dc-*</code> contract is reproduced exactly — at integration the internals are unchanged; only the container moves out of <code>.col-side</code> (a small DOM move + UAT guard 9952 migrated, same as v5.4.0 did for By-Domain). Toggle theme/cert top-right. Discussion only.</p>
+
+  </div>
+</div>
+<script>
+  (function(){var p=document.getElementById('page-setup');
+    document.querySelector('.mk-bar');
+    requestAnimationFrame(function(){requestAnimationFrame(function(){p.classList.add('is-in');});});
+  })();
+</script>
+</body>
+</html>

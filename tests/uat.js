@@ -9949,7 +9949,20 @@ test('v4.76.0 HTML: #hero-v2-cta-btn element exists', html.includes('id="hero-v2
 test('v4.76.0 HTML: #hero-v2-cta-reason element exists', html.includes('id="hero-v2-cta-reason"'));
 
 // 2. Mode Ladder
-test('codex-home HTML: session-picker container exists (#modes-ladder + .dgh-sess in .col-side)', /class="[^"]*\bdgh-sess\b/.test(html) && html.includes('id="modes-ladder"') && /id="modes-ladder"[^>]*class="[^"]*\bcol-side-card\b|class="[^"]*\bcol-side-card\b[^"]*"[^>]*id="modes-ladder"/.test(html));
+// v5.5.3 MIGRATED — the session picker was reshuffled OUT of the cramped
+// 372px .col-side rail into a full-width horizontal board (#modes-ladder
+// now a .ch-wrap sibling after the masthead grid, with a new .dgh-board
+// 3-tier wrapper; col-side-card class dropped). Same full-width treatment
+// v5.4.0 gave the By-Domain matrix. This guard keeps equal regression
+// strength: asserts the new structure AND tombstones the old col-side
+// placement so it can't silently regress to the vertical rail dropdown.
+test('codex-home HTML v5.5.3: session-picker reshuffled full-width (#modes-ladder + .dgh-sess + .dgh-board, OUT of .col-side rail)',
+  /class="[^"]*\bdgh-sess\b/.test(html)
+  && html.includes('id="modes-ladder"')
+  && html.includes('class="dgh-board"')
+  && !/id="modes-ladder"[^>]*\bcol-side-card\b|\bcol-side-card\b[^"]*"[^>]*id="modes-ladder"/.test(html)
+  && html.indexOf('id="daily-challenge-card"') < html.indexOf('id="modes-ladder"')
+  && html.indexOf('id="modes-ladder"') < html.indexOf('id="domain-grid-section"'));
 test('v4.76.0/dg4 HTML: 3 commitment groups (quick / practice / exam)',
   (html.match(/class="dgh-grp"/g) || []).length === 3 && html.includes('Quick &middot; 3-5 min') && html.includes('Practice &middot; 10-30 min') && html.includes('Exam simulation &middot; 60-90 min'));
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));

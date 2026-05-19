@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=5.5.2">
+<link rel="stylesheet" href="dg-system.css?v=5.5.3">
 <!-- v5.5.1 — Fraunces display face for the editorial system (Home v3
      reimagining + cross-surface). Body stays the app font; Fraunces is
      scoped to display moments in dg-system.css. preconnect + display=swap
@@ -332,63 +332,79 @@
            into the right column per the codex mockup (position-free). -->
       <div id="daily-challenge-card" class="card challenge-card daily-challenge-card reveal is-hidden" style="--d:4" role="region" aria-label="Daily Challenge"></div>
 
-      <!-- session picker. Every onclick + the render-fn ids #modes-dc-tile /
-           #modes-dc-sub / #modes-wrong-tile / #modes-wrong-sub /
-           #modes-strict-checkbox preserved; #modes-ladder id kept. -->
-      <div class="dgh-sess col-side-card reveal" style="--d:5" id="modes-ladder" role="region" aria-label="Pick your session">
+    </div>
+  </div>
+
+  <!-- session picker — v3 reshuffle. Pulled OUT of the 372px .col-side rail
+       into a FULL-WIDTH horizontal board (.col-side overrides forced it
+       vertical though it was designed 3-col). Same full-width treatment
+       v5.4.0 gave the By-Domain matrix. Every onclick + render-fn id
+       (#modes-dc-tile / #modes-dc-sub / #modes-wrong-tile / #modes-wrong-sub
+       / #modes-strict-checkbox) + the .dgh-db cert-aware contract + exactly
+       3 .dgh-grp tier strings preserved; the rail-wrapper class is dropped
+       (it is now a full-width .ch-wrap sibling, not a side-rail card). -->
+  <div class="dgh-sess reveal" style="--d:0" id="modes-ladder" role="region" aria-label="Pick your session">
+    <div class="dgh-sess-head">
+      <div>
         <div class="dgh-sec-k">&#167; 01</div>
         <div class="dgh-sec-t">Pick your <i>session</i></div>
-        <p class="dgh-sub">Three commitment levels. Start where your time and energy are right now.</p>
+      </div>
+      <p class="dgh-sub">A quick habit, focused study, or a full exam. Pick what fits the time you have.</p>
+    </div>
 
-        <div class="dgh-grp">
-          <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily habit &middot; quick wins</span></div>
-          <div class="dgh-opts">
-            <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
-            <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
-            <button type="button" class="dgh-opt is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">0 wrong answers saved</span></button>
-          </div>
-        </div>
-
-        <div class="dgh-grp">
-          <div class="dgh-grp-h"><span class="t">Practice &middot; 10-30 min</span><span class="d">Focused study &middot; build understanding</span></div>
-          <div class="dgh-opts">
-            <button type="button" class="dgh-opt" onclick="applyPreset('focused')"><span class="on">15-min Weak Spots</span><span class="od">10 Qs &middot; Exam level &middot; your weakest topic</span></button>
-            <button type="button" class="dgh-opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 Qs &middot; Exam level &middot; mixed</span></button>
-            <button type="button" class="dgh-opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed &middot; ~25 min</span></button>
-            <button type="button" class="dgh-opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed &middot; ~38 min</span></button>
-            <button type="button" class="dgh-opt" onclick="_jumpToCustomQuiz()"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
-            <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
-          </div>
-          <div class="dgh-grp-h" style="margin-top:22px"><span class="t">Drill by domain</span><span class="d">Exam weighting &middot; 10 Qs each</span></div>
-          <div class="dgh-dbd">
-            <button type="button" class="dgh-db" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics"><span class="dbk">1.0 &middot; 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
-            <button type="button" class="dgh-db" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics"><span class="dbk">2.0 &middot; 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
-            <button type="button" class="dgh-db" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics"><span class="dbk">3.0 &middot; 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
-            <button type="button" class="dgh-db" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics"><span class="dbk">4.0 &middot; 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
-            <button type="button" class="dgh-db" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics"><span class="dbk">5.0 &middot; 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
-          </div>
-        </div>
-
-        <div class="dgh-grp">
-          <div class="dgh-grp-h"><span class="t">Exam simulation &middot; 60-90 min</span><span class="d">Pressure-test your readiness &middot; scored 100-900</span></div>
-          <div class="dgh-opts">
-            <button type="button" class="dgh-opt exam" onclick="applyPreset('bulk60')"><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
-            <button type="button" class="dgh-opt exam" onclick="startExam()"><span class="on">Full Exam Simulator</span><span class="od">90 questions &middot; 90-min timer &middot; scored 100-900</span></button>
-            <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
-          </div>
-          <label class="dgh-strict" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator">
-            <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
-            <span class="box" aria-hidden="true"></span>
-            <span><b>Strict Mode</b> &middot; locked order &middot; no flagging &middot; no navigator</span>
-          </label>
+    <div class="dgh-board">
+      <div class="dgh-grp">
+        <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily habit &middot; keeps your streak</span></div>
+        <div class="dgh-opts">
+          <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
+          <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
+          <button type="button" class="dgh-opt is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">0 wrong answers saved</span></button>
         </div>
       </div>
 
-      <div class="custom-row reveal" style="--d:6">
+      <div class="dgh-grp">
+        <div class="dgh-grp-h"><span class="t">Practice &middot; 10-30 min</span><span class="d">Focused study &middot; fix your weak spots</span></div>
+        <div class="dgh-opts">
+          <button type="button" class="dgh-opt" onclick="applyPreset('focused')"><span class="on">15-min Weak Spots</span><span class="od">10 Qs &middot; Exam level &middot; your weakest topic</span></button>
+          <button type="button" class="dgh-opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 Qs &middot; Exam level &middot; mixed</span></button>
+          <button type="button" class="dgh-opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed &middot; ~25 min</span></button>
+          <button type="button" class="dgh-opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed &middot; ~38 min</span></button>
+          <button type="button" class="dgh-opt" onclick="_jumpToCustomQuiz()"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
+          <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
+        </div>
+      </div>
+
+      <div class="dgh-grp">
+        <div class="dgh-grp-h"><span class="t">Exam simulation &middot; 60-90 min</span><span class="d">Pressure-test your readiness &middot; scored 100-900</span></div>
+        <div class="dgh-opts">
+          <button type="button" class="dgh-opt exam" onclick="applyPreset('bulk60')"><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
+          <button type="button" class="dgh-opt exam" onclick="startExam()"><span class="on">Full Exam Simulator</span><span class="od">90 questions &middot; 90-min timer &middot; scored 100-900</span></button>
+          <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dgh-dbd-wrap">
+      <div class="dgh-grp-h dbd-h"><span class="t">Drill by domain</span><span class="d">Exam weighting &middot; 10 Qs each</span></div>
+      <div class="dgh-dbd">
+        <button type="button" class="dgh-db" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics"><span class="dbk">1.0 &middot; 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics"><span class="dbk">2.0 &middot; 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics"><span class="dbk">3.0 &middot; 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics"><span class="dbk">4.0 &middot; 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics"><span class="dbk">5.0 &middot; 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
+      </div>
+    </div>
+
+    <div class="dgh-foot">
+      <label class="dgh-strict" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator">
+        <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
+        <span class="box" aria-hidden="true"></span>
+        <span><b>Strict Mode</b> &middot; locked order &middot; no flagging &middot; no navigator</span>
+      </label>
+      <div class="custom-row">
         <span class="custom-label">Custom Quiz &middot; Topic, Difficulty &amp; Count</span>
         <button type="button" class="custom-config" onclick="_jumpToCustomQuiz()">Configure &rarr;</button>
       </div>
-
     </div>
   </div>
 
@@ -443,7 +459,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v5.5.2</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v5.5.3</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
