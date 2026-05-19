@@ -31,3 +31,6 @@ AI_QUIZ_HANDOFF.md
 
 # Claude Design prototype bundles — local reference only, not shipped
 .design-reference/
+
+# brainstorming visual companion (transient session files)
+.superpowers/
