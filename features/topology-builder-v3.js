@@ -514,7 +514,51 @@
     pal.innerHTML = html;
   }
 
-  function _wireDragToCanvas() { /* TASK 3.3 */ }
+  function _wireDragToCanvas() {
+    var canvas = document.getElementById('tb3-canvas-wrap');
+    if (!canvas) return;
+
+    var draggedType = null;
+
+    // Listen to dragstart on the palette items (delegated)
+    document.addEventListener('dragstart', function (e) {
+      var item = e.target.closest('.tb3-palette-item');
+      if (!item) return;
+      draggedType = item.getAttribute('data-device-type');
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    canvas.addEventListener('dragover', function (e) {
+      if (!draggedType) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    canvas.addEventListener('drop', function (e) {
+      if (!draggedType) return;
+      e.preventDefault();
+      // Convert client coords to logical canvas coords
+      var rect = canvas.getBoundingClientRect();
+      var cx = e.clientX - rect.left;
+      var cy = e.clientY - rect.top;
+      var lx = state.viewport.x + cx / state.viewport.zoom - 38; // device half-width
+      var ly = state.viewport.y + cy / state.viewport.zoom - 38;
+      // Snap to 40px grid
+      lx = Math.round(lx / 40) * 40;
+      ly = Math.round(ly / 40) * 40;
+
+      var dev = buildDevice(draggedType, lx, ly);
+      dev.label = draggedType.toUpperCase().slice(0, 4);
+      state.devices.push(dev);
+      state.selectedId = dev.id;
+      _renderCanvas();
+      _renderMinimap();
+      _updateDeviceCount();
+      _renderInspector();
+      _saveState();
+      draggedType = null;
+    });
+  }
 
   // ───────────────────────────────────────────────────────────
   // CABLES (TASK 4.x)
