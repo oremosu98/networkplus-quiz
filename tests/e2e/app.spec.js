@@ -2488,6 +2488,88 @@ test.describe('topology-builder-v3', () => {
     await expect(page.locator('#tb3-inspector')).toBeVisible();
     await expect(page.locator('#tb3-inspector')).toContainText('Inspector');
   });
+
+  test('10: scenarios picker opens from rrail', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await expect(page.locator('#tb3-picker')).toBeVisible();
+    await expect(page.locator('#tb3-picker')).toContainText('Pick a lab');
+  });
+
+  test('11: picker close button restores rrail', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await expect(page.locator('#tb3-picker')).toBeVisible();
+    await page.click('#tb3-picker-close');
+    await expect(page.locator('#tb3-picker')).toBeHidden();
+    await expect(page.locator('#tb3-rrail-scenarios')).toBeVisible();
+  });
+
+  test('12: clicking scenario row loads devices onto canvas', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await page.click('.tb3-picker-row[data-scenario-id="star-topology"]');
+    // star-topology = 1 switch + 1 server + 3 workstations = 5 devices
+    await expect(page.locator('#tb3-canvas-svg .tb3-dev')).toHaveCount(5);
+  });
+
+  test('13: loading scenario swaps intent chip', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await page.click('.tb3-picker-row[data-scenario-id="star-topology"]');
+    await expect(page.locator('#tb3-intent-name')).toContainText('Lab');
+    await expect(page.locator('#tb3-intent-name')).toContainText('Star topology');
+  });
+
+  test('14: completion pill appears with goals-met state on star-topology load', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await page.click('.tb3-picker-row[data-scenario-id="star-topology"]');
+    // Close the picker so the rrail (which contains the pill) becomes visible
+    await page.click('#tb3-picker-close');
+    // star-topology starting state is designed to meet completion already
+    await expect(page.locator('#tb3-completion-pill')).toBeVisible();
+    await expect(page.locator('#tb3-completion-pill')).toHaveClass(/on/);
+    await expect(page.locator('#tb3-completion-pill')).toContainText('Goals met');
+  });
+
+  test('15: intent chip click returns to Free Build', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    await page.click('.tb3-picker-row[data-scenario-id="star-topology"]');
+    // Close the picker so the rrail is visible before clicking the intent chip
+    await page.click('#tb3-picker-close');
+    await page.click('#tb3-intent-chip');
+    await expect(page.locator('#tb3-intent-name')).toContainText('Free Build');
+    await expect(page.locator('#tb3-canvas-svg .tb3-dev')).toHaveCount(0);
+    await expect(page.locator('#tb3-completion-pill')).toBeHidden();
+  });
+
+  test('16: Free Build backup restores prior canvas after Lab', async ({ page }) => {
+    // page.evaluate'd because the confirm() dialog is awkward to drive via UI
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    // 1. Drop a device so Free Build has content
+    const router = page.locator('.tb3-palette-item[data-device-type="router"]');
+    await router.dragTo(page.locator('#tb3-canvas-wrap'), { targetPosition: { x: 200, y: 200 } });
+    await expect(page.locator('#tb3-canvas-svg .tb3-dev')).toHaveCount(1);
+    await page.waitForTimeout(600); // debounced save
+    // 2. Auto-accept the confirm prompt
+    page.once('dialog', dialog => dialog.accept());
+    // 3. Load scenario via the exposed function
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._loadScenario('star-topology'));
+    await expect(page.locator('#tb3-canvas-svg .tb3-dev')).toHaveCount(5);
+    // 4. Intent chip click → restore Free Build (no confirm needed)
+    await page.click('#tb3-intent-chip');
+    await expect(page.locator('#tb3-canvas-svg .tb3-dev')).toHaveCount(1);
+    await expect(page.locator('#tb3-intent-name')).toContainText('Free Build');
+  });
+
+  test('17: picker renders all 8 scenarios', async ({ page }) => {
+    await page.click('[data-sb-page="topology-builder-v3"]');
+    await page.click('#tb3-rrail-scenarios');
+    const rows = page.locator('#tb3-picker .tb3-picker-row');
+    await expect(rows).toHaveCount(8);
+  });
 });
 
 
