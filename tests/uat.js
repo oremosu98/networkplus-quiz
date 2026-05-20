@@ -21156,6 +21156,34 @@ test('v6.x TB v3: reduced-motion gate', tbv3Css.includes('prefers-reduced-motion
 test('v6.x TB v3: 40px grid snap', tbv3Module.includes('Math.round(lx / 40) * 40'));
 test('v6.x TB v3: STORAGE.TB_V3_DRAFT does not collide with REPORTS', !/TB_V3_DRAFT:\s*'nplus_(bug_)?reports'/.test(tbv3AppJs));
 
+// ────────────────────────────────────────────────────────────
+// v6.x · Topology Builder v3 Phase 2 — Pure Functions (4 fixtures)
+// ────────────────────────────────────────────────────────────
+(function _tbv3Phase2Fixtures() {
+  function assert(cond, msg) { test(msg, !!cond); }
+
+  const tbv3Src = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  // ── 1. validateScenarioShape(s) ─────────────────────────
+  const vssDecl = _fnBody(tbv3Src, 'validateScenarioShape');
+  assert(vssDecl, 'phase2: validateScenarioShape exists');
+
+  function callVss(s) {
+    const sb = { result: null };
+    vm.runInNewContext(vssDecl + ' result = validateScenarioShape(' + JSON.stringify(s) + ');', sb);
+    return sb.result;
+  }
+
+  assert(callVss({ id:'x', title:'X', category:'topology', objectiveRefs:[], startingState:{devices:[],cables:[],viewport:{x:0,y:0,zoom:1}}, completion:{requiredDevices:[]} }) === true, 'A: minimal valid passes');
+  assert(callVss(null) === false, 'B: null fails');
+  assert(callVss({}) === false, 'C: empty object fails');
+  assert(callVss({ id:'x', title:'X', category:'bogus', objectiveRefs:[], startingState:{devices:[],cables:[],viewport:{x:0,y:0,zoom:1}}, completion:{requiredDevices:[]} }) === false, 'D: bad category fails');
+  assert(callVss({ id:'x', title:'X', category:'topology', objectiveRefs:[], startingState:{devices:'no'}, completion:{requiredDevices:[]} }) === false, 'E: bad startingState fails');
+  assert(callVss({ id:'', title:'X', category:'topology', objectiveRefs:[], startingState:{devices:[],cables:[],viewport:{x:0,y:0,zoom:1}}, completion:{requiredDevices:[]} }) === false, 'F: empty id fails');
+  assert(callVss({ id:'x', title:'X', category:'wan', objectiveRefs:['1.6'], startingState:{devices:[],cables:[],viewport:{x:0,y:0,zoom:1}}, completion:{requiredDevices:['router']} }) === true, 'G: wan category valid');
+  assert(callVss({ id:'x', title:'X', category:'topology', objectiveRefs:[], startingState:{devices:[],cables:[],viewport:{x:0,y:0,zoom:1}}, completion:null }) === false, 'H: null completion fails');
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
