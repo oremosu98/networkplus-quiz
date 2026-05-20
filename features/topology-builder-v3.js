@@ -373,7 +373,54 @@
     _saveState();
   }
 
-  function _renderMinimap() { /* TASK 2.5 */ }
+  function _renderMinimap() {
+    var inner = document.getElementById('tb3-minimap-inner');
+    var wrap = document.getElementById('tb3-canvas-wrap');
+    if (!inner || !wrap) return;
+
+    // Compute bounding box of all devices (or default if empty)
+    var bb = { minX: -500, minY: -500, maxX: 500, maxY: 500 };
+    if (state.devices.length > 0) {
+      bb.minX = bb.maxX = state.devices[0].x;
+      bb.minY = bb.maxY = state.devices[0].y;
+      state.devices.forEach(function (d) {
+        if (d.x < bb.minX) bb.minX = d.x;
+        if (d.x + 76 > bb.maxX) bb.maxX = d.x + 76;
+        if (d.y < bb.minY) bb.minY = d.y;
+        if (d.y + 76 > bb.maxY) bb.maxY = d.y + 76;
+      });
+      // Pad so devices aren't at the edge
+      var padX = (bb.maxX - bb.minX) * 0.2 + 100;
+      var padY = (bb.maxY - bb.minY) * 0.2 + 100;
+      bb.minX -= padX; bb.maxX += padX;
+      bb.minY -= padY; bb.maxY += padY;
+    }
+
+    var bbW = bb.maxX - bb.minX;
+    var bbH = bb.maxY - bb.minY;
+    var mmW = inner.clientWidth;
+    var mmH = inner.clientHeight;
+
+    // Render device dots
+    var dots = '';
+    state.devices.forEach(function (d) {
+      var px = ((d.x + 38 - bb.minX) / bbW) * 100;
+      var py = ((d.y + 38 - bb.minY) / bbH) * 100;
+      dots += '<div class="tb3-minimap-dot" style="left:' + px + '%;top:' + py + '%"></div>';
+    });
+
+    // Render current viewport rect
+    var vp = state.viewport;
+    var vpW = wrap.clientWidth / vp.zoom;
+    var vpH = wrap.clientHeight / vp.zoom;
+    var vx = ((vp.x - bb.minX) / bbW) * 100;
+    var vy = ((vp.y - bb.minY) / bbH) * 100;
+    var vw = (vpW / bbW) * 100;
+    var vh = (vpH / bbH) * 100;
+
+    inner.innerHTML = dots +
+      '<div class="tb3-minimap-viewport" style="left:' + vx + '%;top:' + vy + '%;width:' + vw + '%;height:' + vh + '%"></div>';
+  }
 
   // ───────────────────────────────────────────────────────────
   // PALETTE (TASK 3.x)
