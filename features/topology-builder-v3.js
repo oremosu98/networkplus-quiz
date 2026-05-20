@@ -1393,17 +1393,33 @@
   function _onPickerRowActivate(scenarioId) {
     var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === scenarioId; });
     if (!scenario) return;
-    // Phase 2 backup-on-load logic lands in Stage 7. For Stage 3 we just load.
+
+    var hasContent = state.devices.length > 0 || state.cables.length > 0;
+    var inFreeBuild = state.intent === 'free-build';
+
+    if (hasContent && inFreeBuild) {
+      // Confirm-then-backup-then-load. Uses confirm() for Phase 2; a custom
+      // modal can replace this in Phase 2.x — keeping the surface minimal here.
+      var ok = window.confirm('Load "' + scenario.title + '"? Your current Free Build canvas will be saved and you can restore it later via the intent chip.');
+      if (!ok) return;
+      backupFreeBuild(state);
+    } else if (hasContent && state.intent === 'lab') {
+      // Switching from one lab to another — no backup needed (the old lab is
+      // recoverable from the scenario itself).
+      var ok2 = window.confirm('Switch to "' + scenario.title + '"? The current lab will be discarded.');
+      if (!ok2) return;
+    }
+
     state = loadScenarioOnCanvas(state, scenario);
     _renderCanvas();
     _renderMinimap();
     _updateDeviceCount();
     _renderInspector();
-    _renderModeBar();        // re-render so intent chip can pick up state.intent (wired Stage 4)
-    _renderPickerPanel();    // re-render so the picked row gets '.on'
-    _renderIntentChip();     // Task 4.1 (phase 2) — update chip to Lab · {title}
-    _saveState();
+    _renderModeBar();
+    _renderIntentChip();
+    _renderPickerPanel();
     _renderCompletionPill();
+    _saveState();
   }
 
   function _wireGlobalKeys() {
