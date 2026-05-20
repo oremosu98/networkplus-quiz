@@ -151,6 +151,36 @@
     return (ipA[fullOctets] & bitMask) === (ipB[fullOctets] & bitMask);
   }
 
+  function routeNextHop(srcIp, dstIp, device) {
+    if (!device) return null;
+    var dstParsed = parseCidr(dstIp + '/32');
+    if (!dstParsed) return null;
+    var L3_MULTI = (device.type === 'router' || device.type === 'l3-switch' || device.type === 'firewall' || device.type === 'vpn');
+    if (L3_MULTI && Array.isArray(device.interfaces)) {
+      for (var i = 0; i < device.interfaces.length; i++) {
+        var iface = device.interfaces[i];
+        if (!iface || typeof iface.ip !== 'string' || typeof iface.mask !== 'number') continue;
+        var ifaceParsed = parseCidr(iface.ip + '/' + iface.mask);
+        if (!ifaceParsed) continue;
+        if (inSameSubnet(ifaceParsed.ip, dstParsed.ip, iface.mask)) {
+          return { via: 'direct' };
+        }
+      }
+      return null;
+    }
+    // Endpoint (workstation, server, laptop, smartphone, cloud, internet)
+    if (!device.config || typeof device.config.ip !== 'string') return null;
+    var srcParsed = parseCidr(device.config.ip + '/' + (device.config.mask || 24));
+    if (!srcParsed) return null;
+    if (inSameSubnet(srcParsed.ip, dstParsed.ip, srcParsed.mask)) {
+      return { via: 'direct' };
+    }
+    if (typeof device.config.gateway === 'string' && device.config.gateway.length) {
+      return { via: 'gateway', gateway: device.config.gateway };
+    }
+    return null;
+  }
+
   // ───────────────────────────────────────────────────────────
   // SCENARIOS CATALOG (Phase 2 — 8 starter; full 20-25 in Phase 2.x)
   //
@@ -2322,6 +2352,7 @@
     // Phase 3 — reachability engine
     parseCidr: parseCidr,
     inSameSubnet: inSameSubnet,
+    routeNextHop: routeNextHop,
     // Scenarios (phase 2)
     TB_V3_SCENARIOS: TB_V3_SCENARIOS,
     validateScenarioShape: validateScenarioShape,

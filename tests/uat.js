@@ -21370,6 +21370,43 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   assert(callIss([10,0,0,1],     [10,0,0,5],       30) === false, 'iss-D: /30 different /30');
   assert(callIss([1,2,3,4],      [5,6,7,8],         0) === true,  'iss-E: /0 always matches');
   assert(callIss([192,168,10,5], [192,168,10,5],   32) === true,  'iss-F: /32 exact match');
+
+  // ── 3. routeNextHop(srcIp, dstIp, device) ────────────────
+  const rnhDecl = _fnBody(tbv3SrcP3, 'routeNextHop');
+  assert(rnhDecl, 'phase3: routeNextHop exists');
+
+  function callRnh(srcIp, dstIp, device) {
+    const sb = { result: null };
+    vm.runInNewContext(
+      pcDecl + ' ' + issDecl + ' ' + rnhDecl +
+      ' result = routeNextHop(' + JSON.stringify(srcIp) + ',' + JSON.stringify(dstIp) + ',' + JSON.stringify(device) + ');',
+      sb
+    );
+    return sb.result;
+  }
+
+  const endpointDirect = { type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } };
+  assert(callRnh('192.168.10.10', '192.168.10.254', endpointDirect).via === 'direct', 'rnh-A: endpoint same-subnet returns direct');
+
+  const offSub = callRnh('192.168.10.10', '192.168.20.5', endpointDirect);
+  assert(offSub.via === 'gateway' && offSub.gateway === '192.168.10.1', 'rnh-B: endpoint off-subnet returns gateway');
+
+  const noGw = { type:'workstation', config:{ ip:'192.168.10.10', mask:24 } };
+  assert(callRnh('192.168.10.10', '192.168.20.5', noGw) === null, 'rnh-C: endpoint off-subnet no-gateway returns null');
+
+  const router = { type:'router', interfaces:[
+    { ip:'192.168.10.1', mask:24 },
+    { ip:'192.168.20.1', mask:24 },
+  ]};
+  assert(callRnh('192.168.10.1', '192.168.10.20', router).via === 'direct', 'rnh-D: router subnet on iface returns direct');
+  assert(callRnh('192.168.10.1', '192.168.20.20', router).via === 'direct', 'rnh-E: router second subnet on iface returns direct');
+  assert(callRnh('192.168.10.1', '10.0.0.5', router) === null, 'rnh-F: router with no matching interface returns null');
+
+  const endpointNoIp = { type:'workstation', config:{} };
+  assert(callRnh(null, '192.168.10.20', endpointNoIp) === null, 'rnh-G: endpoint with no IP returns null');
+
+  const noConfig = { type:'workstation' };
+  assert(callRnh(null, '192.168.10.20', noConfig) === null, 'rnh-H: endpoint with no config returns null');
 })();
 
 // ── Summary ──
