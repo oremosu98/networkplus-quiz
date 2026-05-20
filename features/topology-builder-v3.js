@@ -677,10 +677,114 @@
   // SELECTION + INSPECTOR (TASK 5.x)
   // ───────────────────────────────────────────────────────────
 
-  function _selectDevice(id) { /* TASK 5.1 */ }
-  function _deleteSelected() { /* TASK 5.3 */ }
-  function _renderInspector() { /* TASK 5.4 */ }
-  function _wireGlobalKeys() { /* TASK 5.3 — Delete + Escape + Space-pan */ }
+  function _selectDevice(id) {
+    state.selectedId = id;
+    _renderCanvas();
+    _renderInspector();
+    _updateSelectionChip();
+  }
+
+  function _updateSelectionChip() {
+    var chip = document.getElementById('tb3-canvas-chip');
+    if (!chip) return;
+    if (!state.selectedId) {
+      chip.classList.remove('visible');
+      chip.innerHTML = '';
+      return;
+    }
+    var dev = state.devices.find(function (d) { return d.id === state.selectedId; });
+    if (!dev) {
+      chip.classList.remove('visible');
+      return;
+    }
+    chip.classList.add('visible');
+    chip.innerHTML = '<span class="k">' + (dev.label || dev.id.slice(-4)) + '</span> · selected · <span style="color:var(--tb3-text-dim)">double-click to configure</span>';
+  }
+
+  function _deleteSelected() {
+    if (!state.selectedId) return;
+    state.devices = state.devices.filter(function (d) { return d.id !== state.selectedId; });
+    state.cables = state.cables.filter(function (c) {
+      return c.fromId !== state.selectedId && c.toId !== state.selectedId;
+    });
+    state.selectedId = null;
+    _renderCanvas();
+    _renderMinimap();
+    _updateDeviceCount();
+    _renderInspector();
+    _updateSelectionChip();
+    _saveState();
+  }
+
+  function _renderInspector() {
+    var body = document.getElementById('tb3-body');
+    var insp = document.getElementById('tb3-inspector');
+    if (!body || !insp) return;
+
+    if (!state.selectedId) {
+      body.classList.remove('inspector-open');
+      insp.innerHTML = '';
+      return;
+    }
+    var dev = state.devices.find(function (d) { return d.id === state.selectedId; });
+    if (!dev) {
+      body.classList.remove('inspector-open');
+      insp.innerHTML = '';
+      return;
+    }
+
+    body.classList.add('inspector-open');
+    var def = TB_V3_DEVICE_TYPES[dev.type] || { label: dev.type };
+    insp.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:14px">' +
+        '<div>' +
+          '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tb3-text-dim);margin-bottom:6px">Inspector</div>' +
+          '<h3 style="font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;letter-spacing:-.01em;margin:0;color:var(--tb3-text);text-transform:none">' + def.label + '</h3>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' +
+          '<label style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--tb3-text-dim)">Label</label>' +
+          '<input type="text" id="tb3-insp-label" value="' + _escAttr(dev.label || '') + '" style="background:var(--tb3-surface);border:1px solid var(--tb3-border);border-radius:6px;padding:8px 10px;color:var(--tb3-text);font-size:13px;font-family:Inter">' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--tb3-text-dim);font-family:ui-monospace,Menlo,monospace">id: ' + dev.id + '</div>' +
+        '<div style="font-size:11px;color:var(--tb3-text-dim);font-family:ui-monospace,Menlo,monospace">position: ' + dev.x + ', ' + dev.y + '</div>' +
+      '</div>';
+
+    // Wire the label edit
+    var labelInput = document.getElementById('tb3-insp-label');
+    if (labelInput) {
+      labelInput.addEventListener('input', function () {
+        dev.label = labelInput.value;
+        _renderCanvas();
+        _saveState();
+      });
+    }
+  }
+
+  function _escAttr(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+
+  function _wireGlobalKeys() {
+    document.addEventListener('keydown', function (e) {
+      if (!document.getElementById('page-topology-builder-v3').classList.contains('active')) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selectedId) {
+          e.preventDefault();
+          _deleteSelected();
+        }
+      }
+      if (e.key === 'Escape') {
+        if (state.selectedId) {
+          state.selectedId = null;
+          _renderCanvas();
+          _renderInspector();
+          _updateSelectionChip();
+        }
+      }
+    });
+  }
 
   // ───────────────────────────────────────────────────────────
   // MODE BAR + INTENT CHIP (TASK 7.x)
