@@ -311,6 +311,7 @@
     } catch (e) {
       // Silent — start fresh
     }
+    _renderIntentChip(); // Task 4.1 (phase 2) — restore chip after state reload
   }
 
   // ───────────────────────────────────────────────────────────
@@ -407,6 +408,8 @@
     _wirePicker();      // Task 2.1 (phase 2)
     _wireGlobalKeys();  // Task 5.3
     _wireExport();      // Task 8.2
+    _wireIntent();      // Task 4.1 (phase 2)
+    _renderIntentChip();// Task 4.1 (phase 2)
   }
 
   function _updateDeviceCount() {
@@ -1078,6 +1081,7 @@
     _renderInspector();
     _renderModeBar();        // re-render so intent chip can pick up state.intent (wired Stage 4)
     _renderPickerPanel();    // re-render so the picked row gets '.on'
+    _renderIntentChip();     // Task 4.1 (phase 2) — update chip to Lab · {title}
     _saveState();
   }
 
@@ -1110,6 +1114,51 @@
   // ───────────────────────────────────────────────────────────
   // MODE BAR + INTENT CHIP (TASK 7.x)
   // ───────────────────────────────────────────────────────────
+
+  function _renderIntentChip() {
+    var nameEl = document.getElementById('tb3-intent-name');
+    var lblEl = nameEl ? nameEl.parentElement.querySelector('.tb3-intent-lbl') : null;
+    var chip = document.getElementById('tb3-intent-chip');
+    if (!nameEl || !chip) return;
+
+    if (state.intent === 'lab' && state.activeScenarioId) {
+      var scen = TB_V3_SCENARIOS.find(function (s) { return s.id === state.activeScenarioId; });
+      nameEl.textContent = scen ? 'Lab · ' + scen.title : 'Lab';
+      if (lblEl) lblEl.textContent = 'Intent';
+      chip.classList.add('lab');
+    } else {
+      nameEl.textContent = 'Free Build';
+      if (lblEl) lblEl.textContent = 'Intent';
+      chip.classList.remove('lab');
+    }
+  }
+
+  function _wireIntent() {
+    var chip = document.getElementById('tb3-intent-chip');
+    if (!chip) return;
+    chip.addEventListener('click', function () {
+      if (state.intent === 'lab') {
+        var restored = restoreFreeBuild();
+        if (restored) {
+          state = restored;
+        } else {
+          state = {
+            devices: [], cables: [],
+            viewport: { x: 0, y: 0, zoom: 1 },
+            intent: 'free-build', mode: 'design',
+            selectedId: null, activeScenarioId: null,
+          };
+        }
+        _renderCanvas();
+        _renderMinimap();
+        _updateDeviceCount();
+        _renderInspector();
+        _renderIntentChip();
+        _renderPickerPanel();
+        _saveState();
+      }
+    });
+  }
 
   function _renderModeBar() {
     var row = document.getElementById('tb3-modes-row');
