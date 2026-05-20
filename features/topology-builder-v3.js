@@ -558,6 +558,49 @@
       _saveState();
       draggedType = null;
     });
+
+    // Drag a device that's ALREADY on the canvas to reposition
+    var movingDev = null;
+    var moveStartX = 0, moveStartY = 0;
+    var moveDevStartX = 0, moveDevStartY = 0;
+
+    canvas.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return; // left click only
+      // Find a device group ancestor
+      var g = e.target.closest('.tb3-dev');
+      if (!g) return;
+      // Don't drag if space is held (that's panning)
+      if (canvas.classList.contains('panning')) return;
+      var id = g.getAttribute('data-device-id');
+      var dev = state.devices.find(function (d) { return d.id === id; });
+      if (!dev) return;
+      movingDev = dev;
+      moveStartX = e.clientX;
+      moveStartY = e.clientY;
+      moveDevStartX = dev.x;
+      moveDevStartY = dev.y;
+      state.selectedId = id;
+      _renderCanvas();
+      _renderInspector();
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!movingDev) return;
+      var dx = (e.clientX - moveStartX) / state.viewport.zoom;
+      var dy = (e.clientY - moveStartY) / state.viewport.zoom;
+      movingDev.x = Math.round((moveDevStartX + dx) / 40) * 40;
+      movingDev.y = Math.round((moveDevStartY + dy) / 40) * 40;
+      _renderCanvas();
+      _renderMinimap();
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (movingDev) {
+        movingDev = null;
+        _saveState();
+      }
+    });
   }
 
   // ───────────────────────────────────────────────────────────
