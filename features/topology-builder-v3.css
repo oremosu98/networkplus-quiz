@@ -603,6 +603,136 @@ html[data-theme="light"] #page-topology-builder-v3 {
   border-color: var(--tb3-accent);
 }
 
+/* ════════════════════════════════════════════════════════════
+   Diagnostic drawer (Phase 3) — 320px right-anchored
+   ════════════════════════════════════════════════════════════ */
+#page-topology-builder-v3 .tb3-diagnostic {
+  border-left: 1px solid var(--tb3-border-soft);
+  background: var(--tb3-surface-2);
+  display: none;
+  flex-direction: column;
+  padding: 18px;
+  /* v5.9.1 lesson: grid items need min-height:0 + overflow:hidden so the inner scrollable list engages. */
+  min-height: 0;
+  overflow: hidden;
+}
+#page-topology-builder-v3 .tb3-body.diagnostic-open {
+  grid-template-columns: 200px 1fr 320px;
+}
+#page-topology-builder-v3 .tb3-body.diagnostic-open .tb3-rrail { display: none; }
+#page-topology-builder-v3 .tb3-body.diagnostic-open .tb3-diagnostic { display: flex; }
+#page-topology-builder-v3 .tb3-body.diagnostic-open.picker-open .tb3-picker { display: none; }
+#page-topology-builder-v3 .tb3-body.diagnostic-open.inspector-open .tb3-inspector { display: none; }
+#page-topology-builder-v3 .tb3-diagnostic-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+#page-topology-builder-v3 .tb3-diagnostic-eyebrow {
+  font-size: 10px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--tb3-text-dim);
+}
+#page-topology-builder-v3 .tb3-diagnostic-title {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 600; font-size: 18px;
+  letter-spacing: -.01em;
+  color: var(--tb3-text);
+  margin: 4px 0 0;
+  text-transform: none;
+}
+#page-topology-builder-v3 #tb3-diagnostic-close {
+  background: transparent; border: 0;
+  color: var(--tb3-text-dim);
+  font-size: 18px; cursor: pointer;
+  padding: 4px 8px; line-height: 1;
+  transition: color 150ms ease;
+}
+#page-topology-builder-v3 #tb3-diagnostic-close:hover { color: var(--tb3-text); }
+#page-topology-builder-v3 .tb3-diagnostic-rule {
+  height: 1px; background: var(--tb3-border-soft);
+  margin: 0 -18px 14px;
+}
+#page-topology-builder-v3 .tb3-diagnostic-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;     /* v5.9.1 lesson */
+  display: flex; flex-direction: column; gap: 12px;
+  padding-right: 4px;
+}
+#page-topology-builder-v3 .tb3-diagnostic-row {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  font: inherit;
+  color: inherit;
+}
+#page-topology-builder-v3 .tb3-diagnostic-row:hover {
+  background: color-mix(in oklab, var(--tb3-accent) 6%, transparent);
+}
+#page-topology-builder-v3 .tb3-diagnostic-row:focus-visible {
+  outline: none;
+  background: color-mix(in oklab, var(--tb3-accent) 6%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--tb3-accent) 40%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  #page-topology-builder-v3 .tb3-diagnostic-row:active { transform: scale(0.98); }
+}
+#page-topology-builder-v3 .tb3-diagnostic-row-t {
+  font-size: 13px; font-weight: 600;
+  color: var(--tb3-text); letter-spacing: -.005em;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+#page-topology-builder-v3 .tb3-diagnostic-row-r {
+  font-size: 11.5px; line-height: 1.4;
+  color: var(--tb3-text-dim);
+}
+#page-topology-builder-v3 .tb3-diagnostic-empty {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 24px 8px;
+}
+#page-topology-builder-v3 .tb3-diagnostic-empty-l {
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 240px;
+}
+#page-topology-builder-v3 .tb3-diagnostic-empty-eyebrow {
+  font-size: 10px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--tb3-pass);
+}
+#page-topology-builder-v3 .tb3-diagnostic-empty-t {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 600; font-size: 17px;
+  color: var(--tb3-text);
+  letter-spacing: -.01em;
+  line-height: 1.3;
+}
+#page-topology-builder-v3 .tb3-diagnostic-empty-s {
+  font-size: 12px; color: var(--tb3-text-dim);
+  line-height: 1.5;
+}
+#page-topology-builder-v3 .tb3-diagnostic-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--tb3-border-soft);
+  font-size: 10px; color: var(--tb3-text-dim);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+#page-topology-builder-v3 .tb3-body.diagnostic-open .tb3-diagnostic {
+  animation: tb3DiagnosticEnter 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes tb3DiagnosticEnter {
+  from { transform: translateX(100%); opacity: 0.7; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 *,
@@ -611,4 +741,6 @@ html[data-theme="light"] #page-topology-builder-v3 {
     transition: none !important;
     animation: none !important;
   }
+  #page-topology-builder-v3 .tb3-body.diagnostic-open .tb3-diagnostic { animation: none; }
+  #page-topology-builder-v3 .tb3-diagnostic-row { transition: none; }
 }

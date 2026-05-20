@@ -1645,6 +1645,7 @@
         '</div>' +
         '<div class="tb3-inspector" id="tb3-inspector"></div>' +
         '<div class="tb3-picker" id="tb3-picker"></div>' +
+        '<aside class="tb3-diagnostic" id="tb3-diagnostic" role="dialog" aria-labelledby="tb3-diagnostic-title"></aside>' +
       '</div>' +
 
       // Status bar
@@ -1667,6 +1668,7 @@
     _wireDragToCanvas();// Task 3.3
     _wireCableDrawing();// Task 4.1
     _wirePicker();      // Task 2.1 (phase 2)
+    _wireDiagnosticDrawer();
     _wireGlobalKeys();  // Task 5.3
     _wireExport();      // Task 8.2
     _wireIntent();      // Task 4.1 (phase 2)
@@ -2595,6 +2597,108 @@
     _closePicker();
   }
 
+  // ───────────────────────────────────────────────────────────
+  // DIAGNOSTIC DRAWER (Phase 3 — surfaces reachability failures)
+  // 320px right-anchored slide-out, mutual-exclusion with picker/Inspector.
+  // ───────────────────────────────────────────────────────────
+
+  var REACH_REASON_TEMPLATES = {
+    'no-ip':             function (ctx) { return ctx.failedLabel + ' has no IP. Set one in the Inspector.'; },
+    'no-gateway':        function (ctx) { return ctx.failedLabel + ' has no default gateway.'; },
+    'no-route':          function (ctx) { return ctx.failedLabel + ' has no route to ' + ctx.dstCidr + '.'; },
+    'no-cable-path':     function (ctx) { return 'No cable path reaches ' + ctx.dstLabel + ' from ' + ctx.srcLabel + '.'; },
+    'no-router-between': function (ctx) { return ctx.srcLabel + ' IP ' + ctx.srcCidr + ' is on a different subnet from ' + ctx.dstLabel + ' (' + ctx.dstCidr + '). No router between them.'; },
+  };
+
+  function _labelOf(deviceId) {
+    var d = (state.devices || []).find(function (x) { return x.id === deviceId; });
+    return d ? (d.label || d.id) : deviceId;
+  }
+  function _cidrOf(deviceId) {
+    var d = (state.devices || []).find(function (x) { return x.id === deviceId; });
+    if (!d) return '(none)';
+    if (Array.isArray(d.interfaces) && d.interfaces[0]) return d.interfaces[0].ip + '/' + d.interfaces[0].mask;
+    if (d.config && d.config.ip) return d.config.ip + '/' + (d.config.mask || 24);
+    return '(none)';
+  }
+
+  function _renderDiagnosticDrawer() {
+    var panel = document.getElementById('tb3-diagnostic');
+    if (!panel) return;
+    var scen = TB_V3_SCENARIOS.find(function (s) { return s.id === state.activeScenarioId; });
+    var completion = scen && scen.completion;
+    if (!completion) { panel.innerHTML = ''; return; }
+    var result = checkCompletion(state, completion);
+    var failures = result.reachabilityFailures || [];
+    var bodyHtml;
+    if (failures.length === 0 && result.complete) {
+      bodyHtml =
+        '<div class="tb3-diagnostic-empty">' +
+          '<div class="tb3-diagnostic-empty-l">' +
+            '<div class="tb3-diagnostic-empty-eyebrow">All paths reachable</div>' +
+            '<div class="tb3-diagnostic-empty-t">Every required cable type-pair has a working route.</div>' +
+            '<div class="tb3-diagnostic-empty-s">The pill flips back to N TO GO if a path breaks as you edit.</div>' +
+          '</div>' +
+        '</div>';
+    } else {
+      var rows = failures.map(function (f) {
+        var template = REACH_REASON_TEMPLATES[f.reason] || function () { return 'Path failed: ' + f.reason; };
+        var ctx = {
+          srcLabel: _labelOf(f.from),
+          dstLabel: _labelOf(f.to),
+          failedLabel: _labelOf(f.failedAt),
+          srcCidr: _cidrOf(f.from),
+          dstCidr: _cidrOf(f.to),
+        };
+        return '<button type="button" class="tb3-diagnostic-row" data-device-id="' + _escAttr(f.failedAt) + '">' +
+          '<div class="tb3-diagnostic-row-t">' + _escAttr(_labelOf(f.from)) + ' &rarr; ' + _escAttr(_labelOf(f.to)) + '</div>' +
+          '<div class="tb3-diagnostic-row-r">' + _escAttr(template(ctx)) + '</div>' +
+          '</button>';
+      }).join('');
+      bodyHtml = '<div class="tb3-diagnostic-list" id="tb3-diagnostic-list">' + rows + '</div>';
+    }
+    panel.innerHTML =
+      '<div class="tb3-diagnostic-head">' +
+        '<div>' +
+          '<div class="tb3-diagnostic-eyebrow">Diagnostics</div>' +
+          '<h2 class="tb3-diagnostic-title" id="tb3-diagnostic-title">' + (failures.length ? "Why goals aren't met" : 'Goals met') + '</h2>' +
+        '</div>' +
+        '<button type="button" id="tb3-diagnostic-close" aria-label="Close">&times;</button>' +
+      '</div>' +
+      '<div class="tb3-diagnostic-rule"></div>' +
+      bodyHtml +
+      '<div class="tb3-diagnostic-foot">Updated live as you edit</div>';
+  }
+
+  function _openDiagnostic() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('picker-open');
+    body.classList.remove('inspector-open');
+    body.classList.add('diagnostic-open');
+    _renderDiagnosticDrawer();
+  }
+
+  function _closeDiagnostic() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('diagnostic-open');
+  }
+
+  function _wireDiagnosticDrawer() {
+    var panel = document.getElementById('tb3-diagnostic');
+    if (!panel) return;
+    panel.addEventListener('click', function (e) {
+      if (e.target.id === 'tb3-diagnostic-close') { _closeDiagnostic(); return; }
+      var row = e.target.closest('.tb3-diagnostic-row');
+      if (row) {
+        var devId = row.getAttribute('data-device-id');
+        _closeDiagnostic();
+        if (typeof _selectDevice === 'function') _selectDevice(devId);
+      }
+    });
+  }
+
   function _wireGlobalKeys() {
     document.addEventListener('keydown', function (e) {
       if (!document.getElementById('page-topology-builder-v3').classList.contains('active')) return;
@@ -2607,6 +2711,8 @@
         }
       }
       if (e.key === 'Escape') {
+        var body = document.getElementById('tb3-body');
+        if (body && body.classList.contains('diagnostic-open')) { _closeDiagnostic(); return; }
         if (document.getElementById('tb3-body').classList.contains('picker-open')) {
           _closePicker();
           return;
@@ -2791,6 +2897,9 @@
     _openPicker: _openPicker,
     _closePicker: _closePicker,
     _renderCompletionPill: _renderCompletionPill,
+    _openDiagnostic: _openDiagnostic,
+    _closeDiagnostic: _closeDiagnostic,
+    _renderDiagnosticDrawer: _renderDiagnosticDrawer,
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
