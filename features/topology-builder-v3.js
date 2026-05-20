@@ -800,12 +800,15 @@
       objectiveRefs: ['2.1', '2.3'],
       startingState: {
         devices: [
-          { id: 'sc_roas_router', type: 'router', x: 600, y: 200, label: 'R1' },
+          { id: 'sc_roas_router', type: 'router', x: 600, y: 200, label: 'R1', interfaces:[
+            { ip:'192.168.10.1', mask:24 },
+            { ip:'192.168.20.1', mask:24 },
+          ] },
           { id: 'sc_roas_switch', type: 'switch', x: 600, y: 380, label: 'SW1' },
-          { id: 'sc_roas_v10_a',  type: 'workstation', x: 320, y: 560, label: 'VLAN10-A' },
-          { id: 'sc_roas_v10_b',  type: 'workstation', x: 480, y: 560, label: 'VLAN10-B' },
-          { id: 'sc_roas_v20_a',  type: 'workstation', x: 720, y: 560, label: 'VLAN20-A' },
-          { id: 'sc_roas_v20_b',  type: 'workstation', x: 880, y: 560, label: 'VLAN20-B' },
+          { id: 'sc_roas_v10_a',  type: 'workstation', x: 320, y: 560, label: 'VLAN10-A', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+          { id: 'sc_roas_v10_b',  type: 'workstation', x: 480, y: 560, label: 'VLAN10-B', config:{ ip:'192.168.10.11', mask:24, gateway:'192.168.10.1' } },
+          { id: 'sc_roas_v20_a',  type: 'workstation', x: 720, y: 560, label: 'VLAN20-A', config:{ ip:'192.168.20.10', mask:24, gateway:'192.168.20.1' } },
+          { id: 'sc_roas_v20_b',  type: 'workstation', x: 880, y: 560, label: 'VLAN20-B', config:{ ip:'192.168.20.11', mask:24, gateway:'192.168.20.1' } },
         ],
         cables: [
           { id: 'sc_roas_c1', fromId: 'sc_roas_router', toId: 'sc_roas_switch', type: 'cat6' },
@@ -1468,11 +1471,14 @@
       objectiveRefs: ['2.1', '2.3'],
       startingState: {
         devices: [
-          { id: 'sc_svi_l3',    type: 'l3-switch',   x: 600, y: 240, label: 'L3-SW' },
-          { id: 'sc_svi_v10a',  type: 'workstation', x: 280, y: 480, label: 'VLAN10-A' },
-          { id: 'sc_svi_v10b',  type: 'workstation', x: 440, y: 480, label: 'VLAN10-B' },
-          { id: 'sc_svi_v20a',  type: 'workstation', x: 760, y: 480, label: 'VLAN20-A' },
-          { id: 'sc_svi_v20b',  type: 'workstation', x: 920, y: 480, label: 'VLAN20-B' },
+          { id: 'sc_svi_l3',    type: 'l3-switch',   x: 600, y: 240, label: 'L3-SW', interfaces:[
+            { ip:'192.168.10.1', mask:24 },
+            { ip:'192.168.20.1', mask:24 },
+          ] },
+          { id: 'sc_svi_v10a',  type: 'workstation', x: 280, y: 480, label: 'VLAN10-A', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+          { id: 'sc_svi_v10b',  type: 'workstation', x: 440, y: 480, label: 'VLAN10-B', config:{ ip:'192.168.10.11', mask:24, gateway:'192.168.10.1' } },
+          { id: 'sc_svi_v20a',  type: 'workstation', x: 760, y: 480, label: 'VLAN20-A', config:{ ip:'192.168.20.10', mask:24, gateway:'192.168.20.1' } },
+          { id: 'sc_svi_v20b',  type: 'workstation', x: 920, y: 480, label: 'VLAN20-B', config:{ ip:'192.168.20.11', mask:24, gateway:'192.168.20.1' } },
         ],
         cables: [
           { id: 'sc_svi_c1', fromId: 'sc_svi_l3', toId: 'sc_svi_v10a', type: 'cat6' },
