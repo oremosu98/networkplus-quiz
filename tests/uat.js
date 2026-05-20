@@ -21002,7 +21002,40 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
 
   var c422 = callClassify({ status: 422, body: { message: 'validation' } });
   assert(c422.type === 'payload' && c422.queueAction === 'enqueue' && c422.terminal === true, '422 → payload, terminal');
-})();
+
+  // ── 4. enqueueReport(rpt, store) ─────────────────────────
+  const enqueueDecl = _fnBody(reportsSrc, 'enqueueReport');
+  assert(enqueueDecl, 'enqueueReport exists');
+
+  function callEnq(rpt, store) {
+    var s = { result: null };
+    vm.runInNewContext(
+      enqueueDecl + ' result = enqueueReport(' +
+        JSON.stringify(rpt) + ', ' + JSON.stringify(store) + ');',
+      s
+    );
+    return s.result;
+  }
+
+  // A: empty store + new rpt
+  var sA = callEnq({ id: 'rpt_x', payload: { title: 'a' }, attempts: 1, terminal: false }, []);
+  assert(sA.length === 1 && sA[0].id === 'rpt_x', 'A: empty + new → 1 entry');
+
+  // B: store has rpt with same id → updates in-place + attempts++
+  var sB = callEnq(
+    { id: 'rpt_x', payload: { title: 'a' }, attempts: 2, terminal: false },
+    [{ id: 'rpt_x', payload: { title: 'a' }, attempts: 1, terminal: false }]
+  );
+  assert(sB.length === 1 && sB[0].attempts === 2, 'B: same id → updates in place');
+
+  // C: store at cap=25, adds new → LRU drops oldest
+  var bigStore = [];
+  for (var i = 0; i < 25; i++) bigStore.push({ id: 'rpt_' + i, payload: {}, attempts: 1, terminal: false });
+  var sC = callEnq({ id: 'rpt_new', payload: {}, attempts: 1, terminal: false }, bigStore);
+  assert(sC.length === 25, 'C: stays at cap 25');
+  assert(sC.find(function(x){ return x.id === 'rpt_new'; }), 'C: new entry present');
+  assert(!sC.find(function(x){ return x.id === 'rpt_0'; }), 'C: oldest (rpt_0) dropped');
+})(); // close _reportFixtures IIFE
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

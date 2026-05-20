@@ -112,7 +112,27 @@
     return { type: 'unknown', queueAction: 'enqueue',
       toast: { tone: 'red', title: "Couldn't send (HTTP " + status + ')' }, terminal: true };
   }
-  function enqueueReport(rpt, store) { return store; /* TASK 1.8 */ }
+  function enqueueReport(rpt, store) {
+    var QUEUE_CAP = 25;
+    var s = (store || []).slice();
+    // Update in place if same id
+    var idx = -1;
+    for (var i = 0; i < s.length; i++) { if (s[i].id === rpt.id) { idx = i; break; } }
+    if (idx > -1) {
+      s[idx] = rpt;
+      return s;
+    }
+    // Append
+    s.push(rpt);
+    // LRU: drop oldest non-terminal first, else oldest period
+    while (s.length > QUEUE_CAP) {
+      var dropAt = -1;
+      for (var j = 0; j < s.length; j++) { if (!s[j].terminal) { dropAt = j; break; } }
+      if (dropAt === -1) dropAt = 0;
+      s.splice(dropAt, 1);
+    }
+    return s;
+  }
 
   // ───────────────────────────────────────────────────────────
   // DRAWER UI (TASK 2.x)
