@@ -758,6 +758,7 @@ const STORAGE = {
   SR_QUEUE: 'nplus_sr_queue',
   REPORTS: 'nplus_reports',
   BUG_REPORTS: 'nplus_bug_reports', // v5.6.x bug-report drawer retry queue
+  TB_V3_DRAFT: 'nplus_tb_v3_draft', // v6.x topology-builder v3 canvas state (Net+ only)
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
   PORT_FAMILY_BEST: 'nplus_port_family_best',
