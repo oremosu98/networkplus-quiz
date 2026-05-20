@@ -21582,6 +21582,69 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   assert(typeof noSrvResult.complete === 'boolean', 'cr-H: no-representative-device returns boolean complete');
 })();
 
+// ─── Topology Builder v3 Phase 3 structural guards (10 asserts) ─────────
+(function _tbv3Phase3StructuralGuards() {
+  const tbv3SrcP3g = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssP3g = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('phase3: parseCidr + inSameSubnet + routeNextHop + computePath + computeReachability exposed',
+    tbv3SrcP3g.includes('parseCidr: parseCidr') &&
+    tbv3SrcP3g.includes('inSameSubnet: inSameSubnet') &&
+    tbv3SrcP3g.includes('routeNextHop: routeNextHop') &&
+    tbv3SrcP3g.includes('computePath: computePath') &&
+    tbv3SrcP3g.includes('computeReachability: computeReachability'));
+
+  test('phase3: diagnostic drawer fns exposed',
+    tbv3SrcP3g.includes('_openDiagnostic: _openDiagnostic') &&
+    tbv3SrcP3g.includes('_closeDiagnostic: _closeDiagnostic') &&
+    tbv3SrcP3g.includes('_renderDiagnosticDrawer: _renderDiagnosticDrawer'));
+
+  test('phase3: diagnostic drawer CSS scoped', tbv3CssP3g.includes('#page-topology-builder-v3 .tb3-diagnostic'));
+
+  test('phase3: drawer scroll constraints present (v5.9.1 lesson)',
+    /\.tb3-diagnostic[^}]*min-height:\s*0/.test(tbv3CssP3g) &&
+    /\.tb3-diagnostic[^}]*overflow:\s*hidden/.test(tbv3CssP3g) &&
+    /tb3-diagnostic-list[^}]*min-height:\s*0/.test(tbv3CssP3g));
+
+  test('phase3: 5 failure-reason templates present',
+    tbv3SrcP3g.includes("'no-ip'") &&
+    tbv3SrcP3g.includes("'no-gateway'") &&
+    tbv3SrcP3g.includes("'no-route'") &&
+    tbv3SrcP3g.includes("'no-cable-path'") &&
+    tbv3SrcP3g.includes("'no-router-between'"));
+
+  test('phase3: Inspector L3 fields render block present',
+    tbv3SrcP3g.includes('tb3-insp-ip') &&
+    tbv3SrcP3g.includes('tb3-insp-mask') &&
+    tbv3SrcP3g.includes('tb3-insp-gw'));
+
+  test('phase3: Inspector interface block present',
+    tbv3SrcP3g.includes('tb3-insp-iface-row') &&
+    tbv3SrcP3g.includes('tb3-insp-iface-add'));
+
+  test('phase3: Inspector L2 caption present', tbv3SrcP3g.includes('Layer-2 device'));
+
+  test('phase3: _autoFillIp helper present', tbv3SrcP3g.includes('function _autoFillIp'));
+
+  test('phase3: all scenarios carry IP config or interfaces', (function () {
+    const sandbox = {};
+    (new Function('window', tbv3SrcP3g))(sandbox);
+    const f = sandbox._certanvilFeatures['topology-builder-v3'];
+    const L3 = ['router','l3-switch','firewall','vpn','cloud','internet'];
+    const ENDPOINT = ['workstation','server','laptop','smartphone'];
+    let n = 0;
+    f.TB_V3_SCENARIOS.forEach(function (s) {
+      const ok = s.startingState.devices.some(function (d) {
+        if (L3.indexOf(d.type) !== -1) return Array.isArray(d.interfaces) && d.interfaces.length > 0;
+        if (ENDPOINT.indexOf(d.type) !== -1) return d.config && d.config.ip;
+        return true; // L2 stays unconfigured by design
+      });
+      if (ok) n++;
+    });
+    return n === f.TB_V3_SCENARIOS.length;
+  })());
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
