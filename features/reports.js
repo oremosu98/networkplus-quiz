@@ -533,7 +533,73 @@
   // SETTINGS PANEL (TASK 7.x)
   // ───────────────────────────────────────────────────────────
 
-  function renderSettingsReportsPanel(host) { /* TASK 7.1 */ }
+  function renderSettingsReportsPanel(host) {
+    if (!host) return;
+    var q = _loadQueue();
+    var rows = q.map(function(r){
+      var status = r.terminal ? 'hf' : 'tr';
+      var statusLabel = r.terminal ? 'Failed' : 'Pending';
+      var ago = r.last_try ? _ago(r.last_try) : '';
+      return (
+        '<div class="br-sp-row" data-id="' + r.id + '">' +
+          '<div class="br-sp-status br-sp-' + status + '"><span class="br-sp-dot"></span>' + statusLabel + '</div>' +
+          '<div class="br-sp-body"><div class="br-sp-title">' + _esc(r.payload.title) + '</div>' +
+            '<div class="br-sp-sub">' + r.id + ' · ' + (r.attempts || 1) + ' attempt' + ((r.attempts || 1) === 1 ? '' : 's') + '</div></div>' +
+          '<div class="br-sp-when">' + ago + '</div>' +
+          '<div class="br-sp-acts">' +
+            '<button class="br-sp-retry" data-id="' + r.id + '">Retry</button>' +
+            '<button class="br-sp-del" data-id="' + r.id + '">Delete</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    host.innerHTML =
+      '<div class="br-sp-hd"><div class="br-sp-eyb">&sect; Reports</div>' +
+      '<h4>Pending reports</h4><div class="br-sp-meta">' + q.length + ' queued · drains on next page load</div></div>' +
+      '<div class="br-sp-list">' + (rows || '<div class="br-sp-empty">No queued reports.</div>') + '</div>';
+
+    // Wire retry/delete
+    host.querySelectorAll('.br-sp-retry').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var id = b.getAttribute('data-id');
+        var qNow = _loadQueue();
+        var entry = qNow.find(function(x){ return x.id === id; });
+        if (!entry) return;
+        var result = await submitReport(entry.payload);
+        if (result.type === 'success') {
+          _saveQueue(qNow.filter(function(x){ return x.id !== id; }));
+        } else {
+          entry.attempts = (entry.attempts || 1) + 1;
+          entry.terminal = !!result.terminal;
+          _saveQueue(qNow);
+        }
+        renderSettingsReportsPanel(host);
+        _updateTopbarDot();
+      });
+    });
+    host.querySelectorAll('.br-sp-del').forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.getAttribute('data-id');
+        _saveQueue(_loadQueue().filter(function(x){ return x.id !== id; }));
+        renderSettingsReportsPanel(host);
+        _updateTopbarDot();
+      });
+    });
+  }
+
+  function _ago(iso) {
+    try {
+      var t = new Date(iso).getTime(); var s = Math.floor((Date.now() - t) / 1000);
+      if (s < 60) return s + 's ago';
+      if (s < 3600) return Math.floor(s/60) + 'm ago';
+      if (s < 86400) return Math.floor(s/3600) + 'h ago';
+      return Math.floor(s/86400) + 'd ago';
+    } catch (e) { return ''; }
+  }
+  function _esc(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
 
   // Register on the standard feature-modules contract
   window._certanvilFeatures = window._certanvilFeatures || {};

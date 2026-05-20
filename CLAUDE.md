@@ -164,7 +164,7 @@ All keys centralized in the `STORAGE` namespace at `app.js:64–103`. 38 keys, a
 
 **Convention**: always access through `STORAGE.*`; never inline `localStorage.getItem('nplus_…')`. Export/Import Data (under Settings) walks the namespace.
 
-**`BUG_REPORTS` queue drain**: failed bug-report submissions are queued under `STORAGE.BUG_REPORTS` and drained once per `DOMContentLoaded` via a 2s-delayed `_loadFeature('reports').then(m => m.drainQueue())` hook at the bottom of `app.js`. Skips terminal entries + rate-limited entries (`next_try`); landed reports surface a green "Filed offline N reports" toast.
+**`BUG_REPORTS` queue drain**: failed bug-report submissions are queued under `STORAGE.BUG_REPORTS` and drained once per `DOMContentLoaded` via a 2s-delayed `_loadFeature('reports').then(m => m.drainQueue())` hook at the bottom of `app.js`. Skips terminal entries + rate-limited entries (`next_try`); landed reports surface a green "Filed offline N reports" toast. Settings → `#settings-reports-section` (appended by `renderSettingsPage()` after § 03 Danger Zone, lazy-loaded via `_loadFeature('reports').renderSettingsReportsPanel`) surfaces queued reports with per-row Retry/Delete actions for manual recovery.
 
 ### Weak Spots v2 — `computeWeakSpotScores()`
 At `app.js:3672`. Drives the homepage `🎯 Weak spots` chip row + Subnet Trainer dashboard callouts. 4 combined signals:

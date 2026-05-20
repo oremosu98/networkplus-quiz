@@ -19595,6 +19595,30 @@ function renderSettingsPage() {
   // exam date / daily goal / API key / backup status in one card so
   // the user can see whether their setup is safe at a glance.
   if (typeof renderSettingsHealthCard === 'function') renderSettingsHealthCard();
+  // Stage 6 (bug-report popup): Reports recovery surface. Appended as a
+  // new section at the bottom of .settings-layout (after § 03 Danger Zone)
+  // on every Settings render — idempotent via #settings-reports-section.
+  // The reports module is lazy-loaded; if its panel renderer is present,
+  // it paints the queued reports list with Retry/Delete actions.
+  try {
+    var settingsLayout = document.querySelector('#page-settings .settings-layout');
+    if (settingsLayout) {
+      var reportsSection = document.getElementById('settings-reports-section');
+      if (!reportsSection) {
+        reportsSection = document.createElement('section');
+        reportsSection.className = 'card settings-section';
+        reportsSection.id = 'settings-reports-section';
+        settingsLayout.appendChild(reportsSection);
+      }
+      if (typeof _loadFeature === 'function') {
+        _loadFeature('reports').then(function(m){
+          if (m && typeof m.renderSettingsReportsPanel === 'function') {
+            m.renderSettingsReportsPanel(reportsSection);
+          }
+        }).catch(function(){});
+      }
+    }
+  } catch (_) {}
 }
 
 // v4.81.11: Study Setup Health card (Codex r9 #5) — top-of-Settings
