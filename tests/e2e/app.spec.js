@@ -2243,5 +2243,147 @@ test.describe('SR Review — v4.81.31 legacy-card scrub', () => {
   });
 });
 
+test.describe('bug-report drawer', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed a fake GH token so the form is unlocked
+    await page.addInitScript(() => {
+      try { localStorage.setItem('nplus_gh_monitor_token', 'ghp_test_dummy_token_value_for_e2e_only'); } catch (e) {}
+    });
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+  });
+
+  test('01: opens from topbar bug icon', async ({ page }) => {
+    await page.click('#topbar-bug-report');
+    const drawer = page.locator('#bug-report-drawer');
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute('role', 'dialog');
+    await expect(drawer).toHaveAttribute('aria-modal', 'true');
+    await expect(page.locator('#br-input-title')).toBeFocused();
+  });
+
+  test('02: closes via ESC, ×, Cancel, and backdrop click', async ({ page }) => {
+    // ESC — wait for drawer to be visible (forces lazy-load + ESC listener
+    // registration) before pressing Escape; then wait for the full portal
+    // teardown (240ms transition) before re-opening
+    await page.click('#topbar-bug-report');
+    await expect(page.locator('#bug-report-drawer')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#bug-report-drawer')).toHaveCount(0);
+    await expect(page.locator('#br-portal')).toHaveCount(0);
+    // ×
+    await page.click('#topbar-bug-report');
+    await page.click('#br-close');
+    await expect(page.locator('#bug-report-drawer')).toHaveCount(0);
+    await expect(page.locator('#br-portal')).toHaveCount(0);
+    // Cancel
+    await page.click('#topbar-bug-report');
+    await page.click('#br-cancel');
+    await expect(page.locator('#bug-report-drawer')).toHaveCount(0);
+    await expect(page.locator('#br-portal')).toHaveCount(0);
+    // Backdrop
+    await page.click('#topbar-bug-report');
+    await page.locator('#br-backdrop').click({ position: { x: 10, y: 10 } });
+    await expect(page.locator('#bug-report-drawer')).toHaveCount(0);
+    await expect(page.locator('#br-portal')).toHaveCount(0);
+  });
+
+  test('03: Send disabled until both required fields filled', async ({ page }) => {
+    await page.click('#topbar-bug-report');
+    const send = page.locator('#br-send');
+    await expect(send).toBeDisabled();
+    await page.fill('#br-input-title', 'a');
+    await expect(send).toBeDisabled();
+    await page.fill('#br-input-desc', 'b');
+    await expect(send).toBeEnabled();
+    await page.fill('#br-input-title', '');
+    await expect(send).toBeDisabled();
+  });
+
+  test('04: char counter activates at 4,000 and hard-caps at 5,000', async ({ page }) => {
+    await page.click('#topbar-bug-report');
+    const counter = page.locator('#br-desc-counter');
+    await expect(counter).toBeHidden();
+    await page.fill('#br-input-desc', 'a'.repeat(3999));
+    await expect(counter).toBeHidden();
+    await page.fill('#br-input-desc', 'a'.repeat(4000));
+    await expect(counter).toBeVisible();
+    await page.fill('#br-input-desc', 'a'.repeat(5500));
+    const actualLen = await page.inputValue('#br-input-desc').then(s => s.length);
+    expect(actualLen).toBe(5000);
+  });
+
+  test('05: steps expander inserts textarea and hides link', async ({ page }) => {
+    await page.click('#topbar-bug-report');
+    await expect(page.locator('#br-steps-toggle')).toBeVisible();
+    await expect(page.locator('#br-input-steps')).toHaveCount(0);
+    await page.click('#br-steps-toggle');
+    await expect(page.locator('#br-input-steps')).toBeVisible();
+    await expect(page.locator('#br-steps-toggle')).toBeHidden();
+  });
+
+  test('06: queue drain seed → drains on page load', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('nplus_bug_reports', JSON.stringify([{
+          id: 'rpt_test', attempts: 1, terminal: false,
+          payload: {
+            id: 'rpt_test', title: 'queued', description: 'q',
+            steps: null, attempt_count: 1, submitted_at: '2026-05-20T14:32:07Z',
+            context: { version: 'v5.5.12', page: '#page-setup', cert: 'netplus-N10-009',
+                       theme: 'light', viewport: '1440x900', last_quiz: null, wrong_bank_size: 0 }
+          }
+        }]));
+      } catch (e) {}
+    });
+    // Intercept the GitHub API call and return 401 (since fake token) — confirms a request was attempted
+    await page.route('https://api.github.com/**', route => route.fulfill({ status: 401, body: '{}' }));
+    await page.goto('/');
+    await page.waitForTimeout(3500); // 2s delay + buffer
+    // After drain, queue should have updated attempts (the 401 marks it terminal)
+    const q = await page.evaluate(() => localStorage.getItem('nplus_bug_reports'));
+    expect(q).toBeTruthy();
+    const parsed = JSON.parse(q);
+    expect(parsed.length).toBe(1);
+    expect(parsed[0].terminal).toBe(true);
+  });
+
+  test('07: token banner shows when GH_TOKEN missing', async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.removeItem('nplus_gh_monitor_token'); } catch (e) {}
+    });
+    await page.goto('/');
+    await page.click('#topbar-bug-report');
+    await expect(page.locator('#br-no-token')).toBeVisible();
+    await expect(page.locator('#br-send')).toBeDisabled();
+  });
+
+  test('08: cross-cert leak filter — Sec+ active reads secplus cert', async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.setItem('nplus_dev_cert', 'secplus'); } catch (e) {}
+    });
+    await page.goto('/');
+    await page.click('#topbar-bug-report');
+    const ctxText = await page.locator('.br-ctx-fields').innerText();
+    expect(ctxText).toContain('secplus');
+    expect(ctxText).not.toContain('netplus');
+  });
+
+  test('09: topbar dot appears when queue non-empty', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('nplus_bug_reports', JSON.stringify([{
+          id: 'rpt_test', attempts: 1, terminal: true,
+          payload: { id:'rpt_test', title:'q', context:{} }
+        }]));
+      } catch (e) {}
+    });
+    await page.goto('/');
+    // Open the drawer (which triggers _updateTopbarDot)
+    await page.click('#topbar-bug-report');
+    await page.click('#br-close');
+    await expect(page.locator('#topbar-bug-report')).toHaveClass(/has-queue/);
+  });
+});
 
 
