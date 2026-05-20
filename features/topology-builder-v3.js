@@ -181,6 +181,106 @@
     return null;
   }
 
+  function computePath(srcId, dstId, state) {
+    if (srcId === dstId) return { ok: true, hops: [srcId] };
+    var devices = (state && state.devices) || [];
+    var cables = (state && state.cables) || [];
+    function findDev(id) {
+      for (var i = 0; i < devices.length; i++) if (devices[i].id === id) return devices[i];
+      return null;
+    }
+    function isL3(dev) {
+      return dev && (dev.type === 'router' || dev.type === 'l3-switch' || dev.type === 'firewall' || dev.type === 'vpn');
+    }
+    function devIp(dev) {
+      if (!dev) return null;
+      if (isL3(dev) && Array.isArray(dev.interfaces)) {
+        for (var i = 0; i < dev.interfaces.length; i++) if (dev.interfaces[i] && dev.interfaces[i].ip) return dev.interfaces[i].ip;
+        return null;
+      }
+      return (dev.config && dev.config.ip) || null;
+    }
+    // BFS through L2-transparent cables, stopping at any L3 boundary unless it satisfies the predicate
+    function bfsL2(startId, predicate) {
+      var visited = {}; visited[startId] = true;
+      var queue = [{ id: startId, path: [startId] }];
+      while (queue.length) {
+        var node = queue.shift();
+        var nodeDev = findDev(node.id);
+        if (node.id !== startId && predicate(nodeDev, node)) {
+          return node.path;
+        }
+        // If we've hit an L3 device that's not our start and not the predicate match, stop traversing through it
+        if (node.id !== startId && isL3(nodeDev)) continue;
+        // L2 transparent or start node — traverse all cables
+        for (var i = 0; i < cables.length; i++) {
+          var c = cables[i];
+          var other = null;
+          if (c.fromId === node.id) other = c.toId;
+          else if (c.toId === node.id) other = c.fromId;
+          if (other && !visited[other]) {
+            visited[other] = true;
+            queue.push({ id: other, path: node.path.concat([other]) });
+          }
+        }
+      }
+      return null;
+    }
+
+    var src = findDev(srcId);
+    var dst = findDev(dstId);
+    if (!src) return { ok: false, reason: 'no-ip', failedAt: srcId };
+    if (!dst) return { ok: false, reason: 'no-cable-path', failedAt: srcId };
+
+    var srcIp = devIp(src);
+    if (!srcIp) return { ok: false, reason: 'no-ip', failedAt: srcId };
+
+    var dstIp = devIp(dst);
+    if (!dstIp) return { ok: false, reason: 'no-ip', failedAt: dstId };
+
+    function step(currentId, currentSrcIp, visitedRouters) {
+      var current = findDev(currentId);
+      var nextHop = routeNextHop(currentSrcIp, dstIp, current);
+      if (!nextHop) {
+        if (isL3(current)) return { ok: false, reason: 'no-route', failedAt: currentId };
+        if (current.config && !current.config.gateway) return { ok: false, reason: 'no-gateway', failedAt: currentId };
+        return { ok: false, reason: 'no-route', failedAt: currentId };
+      }
+      if (nextHop.via === 'direct') {
+        var path = bfsL2(currentId, function (d) { return d && d.id === dstId; });
+        if (path) return { ok: true, hops: path };
+        return { ok: false, reason: 'no-cable-path', failedAt: currentId };
+      }
+      // via gateway — find a device whose IP matches the gateway, must be L3
+      var gwIp = nextHop.gateway;
+      var path2 = bfsL2(currentId, function (d) {
+        if (!d) return false;
+        if (isL3(d) && Array.isArray(d.interfaces)) {
+          for (var i = 0; i < d.interfaces.length; i++) {
+            if (d.interfaces[i] && d.interfaces[i].ip === gwIp) return true;
+          }
+        } else if (d.config && d.config.ip === gwIp) {
+          return true;
+        }
+        return false;
+      });
+      if (!path2) return { ok: false, reason: 'no-cable-path', failedAt: currentId };
+      var gwDev = findDev(path2[path2.length - 1]);
+      if (!isL3(gwDev)) {
+        return { ok: false, reason: 'no-router-between', failedAt: currentId };
+      }
+      if (visitedRouters[gwDev.id]) {
+        return { ok: false, reason: 'no-route', failedAt: gwDev.id };
+      }
+      visitedRouters[gwDev.id] = true;
+      var sub = step(gwDev.id, gwIp, visitedRouters);
+      if (!sub.ok) return sub;
+      return { ok: true, hops: path2.slice(0, -1).concat(sub.hops) };
+    }
+
+    return step(srcId, srcIp, {});
+  }
+
   // ───────────────────────────────────────────────────────────
   // SCENARIOS CATALOG (Phase 2 — 8 starter; full 20-25 in Phase 2.x)
   //
@@ -2353,6 +2453,7 @@
     parseCidr: parseCidr,
     inSameSubnet: inSameSubnet,
     routeNextHop: routeNextHop,
+    computePath: computePath,
     // Scenarios (phase 2)
     TB_V3_SCENARIOS: TB_V3_SCENARIOS,
     validateScenarioShape: validateScenarioShape,

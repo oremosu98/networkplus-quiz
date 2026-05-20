@@ -21407,6 +21407,122 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
 
   const noConfig = { type:'workstation' };
   assert(callRnh(null, '192.168.10.20', noConfig) === null, 'rnh-H: endpoint with no config returns null');
+
+  // ── 4. computePath(srcId, dstId, state) ──────────────────
+  const cpDecl = _fnBody(tbv3SrcP3, 'computePath');
+  assert(cpDecl, 'phase3: computePath exists');
+
+  function callCp(srcId, dstId, state) {
+    const sb = { result: null };
+    vm.runInNewContext(
+      pcDecl + ' ' + issDecl + ' ' + rnhDecl + ' ' + cpDecl +
+      ' result = computePath(' + JSON.stringify(srcId) + ',' + JSON.stringify(dstId) + ',' + JSON.stringify(state) + ');',
+      sb
+    );
+    return sb.result;
+  }
+
+  // Same-subnet simple LAN: ws-1 → ws-2 via switch
+  const lan = {
+    devices: [
+      { id:'sw',  type:'switch' },
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+      { id:'ws2', type:'workstation', config:{ ip:'192.168.10.11', mask:24, gateway:'192.168.10.1' } },
+    ],
+    cables: [
+      { id:'c1', fromId:'sw', toId:'ws1' },
+      { id:'c2', fromId:'sw', toId:'ws2' },
+    ],
+  };
+  const okA = callCp('ws1', 'ws2', lan);
+  assert(okA.ok === true, 'cp-A: same-subnet via switch succeeds');
+  assert(Array.isArray(okA.hops) && okA.hops[0] === 'ws1' && okA.hops[okA.hops.length-1] === 'ws2', 'cp-A2: hops start at src end at dst');
+
+  // No IP failure
+  const noIp = {
+    devices: [
+      { id:'ws1', type:'workstation' },
+      { id:'ws2', type:'workstation', config:{ ip:'192.168.10.11', mask:24 } },
+    ],
+    cables: [],
+  };
+  const failB = callCp('ws1', 'ws2', noIp);
+  assert(failB.ok === false && failB.reason === 'no-ip' && failB.failedAt === 'ws1', 'cp-B: no-ip fails at source');
+
+  // Different subnet, no gateway
+  const cpNoGw = {
+    devices: [
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24 } },
+      { id:'ws2', type:'workstation', config:{ ip:'192.168.20.10', mask:24, gateway:'192.168.20.1' } },
+    ],
+    cables: [],
+  };
+  const failC = callCp('ws1', 'ws2', cpNoGw);
+  assert(failC.ok === false && failC.reason === 'no-gateway', 'cp-C: off-subnet no-gateway fails');
+
+  // Different subnet, valid router
+  const routed = {
+    devices: [
+      { id:'sw1', type:'switch' },
+      { id:'sw2', type:'switch' },
+      { id:'r1',  type:'router', interfaces:[
+        { ip:'192.168.10.1', mask:24 },
+        { ip:'192.168.20.1', mask:24 },
+      ]},
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+      { id:'srv', type:'server',      config:{ ip:'192.168.20.10', mask:24, gateway:'192.168.20.1' } },
+    ],
+    cables: [
+      { id:'c1', fromId:'ws1', toId:'sw1' },
+      { id:'c2', fromId:'sw1', toId:'r1' },
+      { id:'c3', fromId:'r1',  toId:'sw2' },
+      { id:'c4', fromId:'sw2', toId:'srv' },
+    ],
+  };
+  const okD = callCp('ws1', 'srv', routed);
+  assert(okD.ok === true, 'cp-D: off-subnet via router succeeds');
+  assert(okD.hops.indexOf('r1') !== -1, 'cp-D2: router appears in hops');
+
+  // Off-subnet, gateway IP unreachable via cables
+  const orphan = {
+    devices: [
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+      { id:'srv', type:'server',      config:{ ip:'192.168.20.10', mask:24, gateway:'192.168.20.1' } },
+    ],
+    cables: [],
+  };
+  const failE = callCp('ws1', 'srv', orphan);
+  assert(failE.ok === false && (failE.reason === 'no-cable-path' || failE.reason === 'no-route'), 'cp-E: no cable path to gateway fails');
+
+  // Same-subnet but disconnected (no cables)
+  const lan2 = {
+    devices: [
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.1' } },
+      { id:'ws2', type:'workstation', config:{ ip:'192.168.10.11', mask:24, gateway:'192.168.10.1' } },
+    ],
+    cables: [],
+  };
+  const failF = callCp('ws1', 'ws2', lan2);
+  assert(failF.ok === false && failF.reason === 'no-cable-path', 'cp-F: same-subnet no cable returns no-cable-path');
+
+  // Gateway points at a non-router device
+  const fakeGw = {
+    devices: [
+      { id:'sw1', type:'switch' },
+      { id:'ws1', type:'workstation', config:{ ip:'192.168.10.10', mask:24, gateway:'192.168.10.99' } },
+      { id:'ws2', type:'workstation', config:{ ip:'192.168.10.99', mask:24 } },
+      { id:'srv', type:'server',      config:{ ip:'192.168.20.10', mask:24 } },
+    ],
+    cables: [
+      { id:'c1', fromId:'ws1', toId:'sw1' },
+      { id:'c2', fromId:'sw1', toId:'ws2' },
+    ],
+  };
+  const failG = callCp('ws1', 'srv', fakeGw);
+  assert(failG.ok === false && failG.reason === 'no-router-between', 'cp-G: gateway pointing at non-router fails no-router-between');
+
+  // Source equals destination — trivially reachable
+  assert(callCp('ws1', 'ws1', lan).ok === true, 'cp-H: src===dst trivially ok');
 })();
 
 // ── Summary ──
