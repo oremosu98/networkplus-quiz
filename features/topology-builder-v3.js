@@ -34,7 +34,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r4';
+  var TB3_CSS_REV = 'r5'; // phase 2 bumps for picker panel + intent chip CSS appended in this stage
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -105,6 +105,40 @@
     } catch (e) {
       return { devices: [], cables: [], viewport: { x: 0, y: 0, zoom: 1 }, intent: 'free-build', mode: 'design', selectedId: null };
     }
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // SCENARIOS CATALOG (Phase 2 — 8 starter; full 20-25 in Phase 2.x)
+  //
+  // Schema (locked from spec §9):
+  //   id            slug, unique
+  //   title         string
+  //   category      'topology' | 'architecture' | 'wan' | 'cloud' | 'wireless' | 'security' | 'vlan'
+  //   objectiveRefs string[] of N10-009 objective numbers
+  //   startingState { devices:[...], cables:[...], viewport:{x,y,zoom} }
+  //   brief         string (1-paragraph)
+  //   examRelevance { overview, howItRoutes, keyDevices, keyConcepts, examRelevance }
+  //   completion    { requiredDevices:[type], expectedCount:{type:n}, requiredCables:[{from,to}] }
+  //
+  // Device ids inside startingState use 'sc_<slug>_<n>' so a duplicate-load
+  // doesn't collide with prior Free Build content (which uses 'dev_<hex>_<2hex>').
+  // ───────────────────────────────────────────────────────────
+
+  var TB_V3_SCENARIOS = []; // populated incrementally in Stages 1 + 5
+
+  function validateScenarioShape(s) {
+    if (!s || typeof s !== 'object') return false;
+    if (typeof s.id !== 'string' || !s.id.length) return false;
+    if (typeof s.title !== 'string' || !s.title.length) return false;
+    var cats = ['topology','architecture','wan','cloud','wireless','security','vlan'];
+    if (cats.indexOf(s.category) === -1) return false;
+    if (!Array.isArray(s.objectiveRefs)) return false;
+    if (!s.startingState || typeof s.startingState !== 'object') return false;
+    if (!Array.isArray(s.startingState.devices)) return false;
+    if (!Array.isArray(s.startingState.cables)) return false;
+    if (!s.completion || typeof s.completion !== 'object') return false;
+    if (!Array.isArray(s.completion.requiredDevices)) return false;
+    return true;
   }
 
   // ───────────────────────────────────────────────────────────
@@ -926,6 +960,9 @@
     buildCable: buildCable,
     serialiseState: serialiseState,
     parseState: parseState,
+    // Scenarios (phase 2)
+    TB_V3_SCENARIOS: TB_V3_SCENARIOS,
+    validateScenarioShape: validateScenarioShape,
     // State access (for tests)
     _getState: function () { return state; },
     _setState: function (s) { state = s; },
