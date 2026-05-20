@@ -76,7 +76,42 @@
     out.push('_Filed via in-app reporter · id: ' + (p.id || '') + '_');
     return out.join('\n');
   }
-  function classifyError(resp) { return null; /* TASK 1.6 */ }
+  function classifyError(resp) {
+    var r = resp || {};
+    var status = r.status;
+
+    if (status === 200 || status === 201) {
+      return { type: 'success', queueAction: 'clear', toast: { tone: 'ok', title: 'Report filed' }, terminal: false };
+    }
+    if (status === 0 || r.network) {
+      return { type: 'offline', queueAction: 'enqueue',
+        toast: { tone: 'amber', title: 'Saved offline · retries on next visit' }, terminal: false };
+    }
+    if (status >= 500) {
+      return { type: 'server', queueAction: 'enqueue',
+        toast: { tone: 'amber', title: 'GitHub error · retries on next visit' }, terminal: false };
+    }
+    if (status === 403 && typeof r.ratelimit_remaining === 'number' && r.ratelimit_remaining === 0) {
+      return { type: 'ratelimit', queueAction: 'requeue',
+        toast: { tone: 'amber', title: 'Rate-limited · retries soon' },
+        next_try: r.ratelimit_reset || null, terminal: false };
+    }
+    if (status === 403) {
+      return { type: 'scope', queueAction: 'enqueue',
+        toast: { tone: 'red', title: 'Token lacks scope · update in Settings' }, terminal: true };
+    }
+    if (status === 401) {
+      return { type: 'auth', queueAction: 'enqueue',
+        toast: { tone: 'red', title: 'Token rejected · open Settings' }, terminal: true };
+    }
+    if (status === 422) {
+      return { type: 'payload', queueAction: 'enqueue',
+        toast: { tone: 'red', title: "Couldn't send · check console" }, terminal: true };
+    }
+    // Unknown 4xx — treat as terminal payload error
+    return { type: 'unknown', queueAction: 'enqueue',
+      toast: { tone: 'red', title: "Couldn't send (HTTP " + status + ')' }, terminal: true };
+  }
   function enqueueReport(rpt, store) { return store; /* TASK 1.8 */ }
 
   // ───────────────────────────────────────────────────────────

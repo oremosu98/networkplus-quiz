@@ -20968,6 +20968,40 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
   assert(md.indexOf('| version | v5.5.12 |') > -1, 'context table row');
   assert(md.indexOf('| cert | netplus-N10-009 |') > -1, 'cert row');
   assert(md.indexOf('rpt_2026-05-20T14-32-07_a3f9') > -1, 'footer id');
+
+  // ── 3. classifyError(resp) ───────────────────────────────
+  const classifyDecl = _fnBody(reportsSrc, 'classifyError');
+  assert(classifyDecl, 'classifyError exists');
+
+  function callClassify(input) {
+    var s = { result: null };
+    vm.runInNewContext(
+      classifyDecl + ' result = classifyError(' + JSON.stringify(input) + ');',
+      s
+    );
+    return s.result;
+  }
+
+  var c201 = callClassify({ status: 201 });
+  assert(c201.type === 'success' && c201.queueAction === 'clear' && c201.terminal === false, '201 → success/clear');
+
+  var cOff = callClassify({ status: 0, network: true });
+  assert(cOff.type === 'offline' && cOff.queueAction === 'enqueue' && cOff.terminal === false, 'offline → enqueue transient');
+
+  var c5xx = callClassify({ status: 503 });
+  assert(c5xx.type === 'server' && c5xx.queueAction === 'enqueue' && c5xx.terminal === false, '503 → transient');
+
+  var cRl = callClassify({ status: 403, ratelimit_remaining: 0, ratelimit_reset: 1716200000 });
+  assert(cRl.type === 'ratelimit' && cRl.queueAction === 'requeue' && cRl.terminal === false, '403 + rl:0 → requeue');
+
+  var cScope = callClassify({ status: 403 });
+  assert(cScope.type === 'scope' && cScope.queueAction === 'enqueue' && cScope.terminal === true, '403 no rl → scope, terminal');
+
+  var c401 = callClassify({ status: 401 });
+  assert(c401.type === 'auth' && c401.queueAction === 'enqueue' && c401.terminal === true, '401 → auth, terminal');
+
+  var c422 = callClassify({ status: 422, body: { message: 'validation' } });
+  assert(c422.type === 'payload' && c422.queueAction === 'enqueue' && c422.terminal === true, '422 → payload, terminal');
 })();
 
 // ── Summary ──
