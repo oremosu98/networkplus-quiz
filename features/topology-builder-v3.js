@@ -324,6 +324,46 @@
         ],
       },
     },
+    {
+      id: 'wireless-controller-bss-ess',
+      title: 'Wireless infrastructure (BSS + ESS) with controller',
+      category: 'wireless',
+      objectiveRefs: ['2.4'],
+      startingState: {
+        devices: [
+          { id: 'sc_wls_wlc', type: 'wlc',        x: 600, y: 180, label: 'WLC-01' },
+          { id: 'sc_wls_sw',  type: 'switch',     x: 600, y: 360, label: 'CORE-SW' },
+          { id: 'sc_wls_ap1', type: 'ap',         x: 360, y: 540, label: 'AP-01' },
+          { id: 'sc_wls_ap2', type: 'ap',         x: 600, y: 540, label: 'AP-02' },
+          { id: 'sc_wls_ap3', type: 'ap',         x: 840, y: 540, label: 'AP-03' },
+          { id: 'sc_wls_cli1',type: 'smartphone', x: 280, y: 700, label: 'PHONE' },
+          { id: 'sc_wls_cli2',type: 'laptop',     x: 520, y: 700, label: 'LAPTOP' },
+        ],
+        cables: [
+          { id: 'sc_wls_c1', fromId: 'sc_wls_wlc', toId: 'sc_wls_sw',  type: 'cat6' },
+          { id: 'sc_wls_c2', fromId: 'sc_wls_sw',  toId: 'sc_wls_ap1', type: 'cat6' },
+          { id: 'sc_wls_c3', fromId: 'sc_wls_sw',  toId: 'sc_wls_ap2', type: 'cat6' },
+          { id: 'sc_wls_c4', fromId: 'sc_wls_sw',  toId: 'sc_wls_ap3', type: 'cat6' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'A controller-based wireless deployment (ESS = Extended Service Set) has multiple APs sharing one SSID, coordinated by a Wireless LAN Controller. Roaming clients transition seamlessly between APs because the controller arbitrates the handoff.',
+      examRelevance: {
+        overview:      'ESS = multiple APs broadcasting the same SSID, controlled centrally by a WLC.',
+        howItRoutes:   'APs tunnel client traffic to the controller (CAPWAP); controller forwards to wired LAN. Roaming = the controller migrates the client session.',
+        keyDevices:    'WLC (controller), APs (each = its own BSS), backbone switch.',
+        keyConcepts:   'BSS vs ESS, BSSID vs SSID, lightweight vs autonomous APs, roaming.',
+        examRelevance: 'N10-009 obj 2.4 — wireless deployment models. Differentiate ad-hoc / infrastructure / mesh.',
+      },
+      completion: {
+        requiredDevices: ['wlc','switch','ap'],
+        expectedCount:   { wlc:1, switch:1, ap:3 },
+        requiredCables:  [
+          { from:'wlc',    to:'switch' },
+          { from:'switch', to:'ap' },
+        ],
+      },
+    },
   ];
 
   function validateScenarioShape(s) {
