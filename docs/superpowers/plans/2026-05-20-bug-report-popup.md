@@ -1587,8 +1587,11 @@ test.describe('bug-report drawer', () => {
   });
 
   test('02: closes via ESC, ×, Cancel, and backdrop click', async ({ page }) => {
-    // ESC — wait for the full portal teardown (240ms transition) before re-opening
+    // ESC — wait for drawer to be visible (forces lazy-load + ESC listener
+    // registration) before pressing Escape; then wait for the full portal
+    // teardown (240ms transition) before re-opening
     await page.click('#topbar-bug-report');
+    await expect(page.locator('#bug-report-drawer')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.locator('#bug-report-drawer')).toHaveCount(0);
     await expect(page.locator('#br-portal')).toHaveCount(0);
