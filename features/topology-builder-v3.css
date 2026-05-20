@@ -412,6 +412,60 @@ html[data-theme="light"] #page-topology-builder-v3 {
   font-family: ui-monospace, Menlo, monospace;
 }
 
+/* ════════════════════════════════════════════════════════════
+   Scenarios picker panel (phase 2) — 320px right-anchored
+   ════════════════════════════════════════════════════════════ */
+#page-topology-builder-v3 .tb3-picker {
+  border-left: 1px solid var(--tb3-border-soft);
+  background: var(--tb3-surface-2);
+  display: none;
+  flex-direction: column;
+  padding: 18px;
+}
+#page-topology-builder-v3 .tb3-body.picker-open {
+  grid-template-columns: 200px 1fr 320px;
+}
+#page-topology-builder-v3 .tb3-body.picker-open .tb3-rrail { display: none; }
+#page-topology-builder-v3 .tb3-body.picker-open .tb3-picker { display: flex; }
+/* Picker + Inspector mutually exclusive (one rail panel at a time) */
+#page-topology-builder-v3 .tb3-body.picker-open.inspector-open .tb3-inspector { display: none; }
+
+#page-topology-builder-v3 .tb3-picker-grp { display: flex; flex-direction: column; gap: 8px; }
+#page-topology-builder-v3 .tb3-picker-grp-h {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--tb3-text-dim);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--tb3-border-soft);
+}
+#page-topology-builder-v3 .tb3-picker-row {
+  padding: 10px 12px;
+  border: 1px solid var(--tb3-border-soft);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--tb3-surface);
+  transition: border-color .15s ease, background .15s ease, transform .12s ease;
+  outline: none;
+}
+#page-topology-builder-v3 .tb3-picker-row:hover,
+#page-topology-builder-v3 .tb3-picker-row:focus-visible {
+  border-color: var(--tb3-accent);
+  background: color-mix(in oklab, var(--tb3-accent) 6%, var(--tb3-surface));
+}
+#page-topology-builder-v3 .tb3-picker-row:active { transform: scale(0.98); }
+#page-topology-builder-v3 .tb3-picker-row.on {
+  border-color: var(--tb3-accent);
+  background: color-mix(in oklab, var(--tb3-accent) 10%, var(--tb3-surface));
+}
+#page-topology-builder-v3 .tb3-picker-row-t {
+  font-size: 13px; font-weight: 600; color: var(--tb3-text); letter-spacing: -.005em;
+  line-height: 1.35;
+}
+#page-topology-builder-v3 .tb3-picker-row-m {
+  font-size: 10.5px; color: var(--tb3-text-dim);
+  font-family: ui-monospace, Menlo, monospace; margin-top: 4px;
+  letter-spacing: .02em;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 *,

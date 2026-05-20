@@ -335,7 +335,7 @@
           '<div class="tb3-rrail-btn locked" title="Inspector (active when device selected)">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>' +
           '</div>' +
-          '<div class="tb3-rrail-btn locked" title="Scenarios (Phase 2)">' +
+          '<div class="tb3-rrail-btn" id="tb3-rrail-scenarios" title="Scenarios — pick a lab">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v14"/></svg>' +
           '</div>' +
           '<div class="tb3-rrail-btn locked" title="Coach (Phase 7)">' +
@@ -343,6 +343,7 @@
           '</div>' +
         '</div>' +
         '<div class="tb3-inspector" id="tb3-inspector"></div>' +
+        '<div class="tb3-picker" id="tb3-picker"></div>' +
       '</div>' +
 
       // Status bar
@@ -364,6 +365,7 @@
     _renderMinimap();   // Task 2.5
     _wireDragToCanvas();// Task 3.3
     _wireCableDrawing();// Task 4.1
+    _wirePicker();      // Task 2.1 (phase 2)
     _wireGlobalKeys();  // Task 5.3
     _wireExport();      // Task 8.2
   }
@@ -930,6 +932,106 @@
     return String(s || '').replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
   }
 
+  // ───────────────────────────────────────────────────────────
+  // SCENARIOS PICKER PANEL (phase 2)
+  //
+  // 320px right-anchored slide-out, same mechanism as the Inspector.
+  // The body re-grids when '.tb3-body.picker-open' is added (rrail hides,
+  // picker takes the column). Scenarios grouped by spec §9 category.
+  // ───────────────────────────────────────────────────────────
+
+  var TB_V3_CATEGORY_LABELS = {
+    topology:     'Topology types',
+    architecture: 'Architectures',
+    wan:          'WAN',
+    cloud:        'Cloud',
+    wireless:     'Wireless',
+    security:     'Security',
+    vlan:         'VLAN / routing',
+  };
+
+  function _renderPickerPanel() {
+    var body = document.getElementById('tb3-body');
+    var panel = document.getElementById('tb3-picker');
+    if (!body || !panel) return;
+
+    // Group scenarios by category, preserve declaration order within each group.
+    var grouped = {};
+    TB_V3_SCENARIOS.forEach(function (s) {
+      (grouped[s.category] = grouped[s.category] || []).push(s);
+    });
+
+    var html =
+      '<div style="display:flex;flex-direction:column;gap:14px;height:100%">' +
+        '<div style="display:flex;align-items:baseline;justify-content:space-between">' +
+          '<div>' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tb3-text-dim);margin-bottom:6px">Scenarios</div>' +
+            '<h3 style="font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;letter-spacing:-.01em;margin:0;color:var(--tb3-text);text-transform:none">Pick a lab</h3>' +
+          '</div>' +
+          '<button type="button" id="tb3-picker-close" aria-label="Close" style="background:transparent;border:0;color:var(--tb3-text-dim);font-size:18px;cursor:pointer;padding:4px 8px">&times;</button>' +
+        '</div>' +
+        '<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:18px" id="tb3-picker-list">';
+
+    Object.keys(TB_V3_CATEGORY_LABELS).forEach(function (cat) {
+      var rows = grouped[cat];
+      if (!rows || !rows.length) return;
+      html += '<div class="tb3-picker-grp">';
+      html += '<div class="tb3-picker-grp-h">' + TB_V3_CATEGORY_LABELS[cat] + '</div>';
+      rows.forEach(function (s) {
+        var active = (state.intent === 'lab' && state.activeScenarioId === s.id);
+        html += '<div class="tb3-picker-row' + (active ? ' on' : '') + '" data-scenario-id="' + _escAttr(s.id) + '" role="button" tabindex="0">';
+        html += '<div class="tb3-picker-row-t">' + _escAttr(s.title) + '</div>';
+        html += '<div class="tb3-picker-row-m">' + s.objectiveRefs.map(_escAttr).join(' &middot; ') + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+    panel.innerHTML = html;
+  }
+
+  function _openPicker() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    // Mutually exclusive with Inspector (only one rail panel at a time).
+    body.classList.remove('inspector-open');
+    body.classList.add('picker-open');
+    _renderPickerPanel();
+  }
+
+  function _closePicker() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('picker-open');
+  }
+
+  function _wirePicker() {
+    var btn = document.getElementById('tb3-rrail-scenarios');
+    if (btn) btn.addEventListener('click', _openPicker);
+
+    // Picker delegated handlers — close + row click + Enter on focused row.
+    var panel = document.getElementById('tb3-picker');
+    if (panel) {
+      panel.addEventListener('click', function (e) {
+        if (e.target.id === 'tb3-picker-close') { _closePicker(); return; }
+        var row = e.target.closest('.tb3-picker-row');
+        if (row) { _onPickerRowActivate(row.getAttribute('data-scenario-id')); }
+      });
+      panel.addEventListener('keydown', function (e) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('tb3-picker-row')) {
+          e.preventDefault();
+          _onPickerRowActivate(e.target.getAttribute('data-scenario-id'));
+        }
+      });
+    }
+  }
+
+  // Stub for Stage 3 — row click handler.
+  function _onPickerRowActivate(scenarioId) {
+    // Implemented in Task 3.1
+  }
+
   function _wireGlobalKeys() {
     document.addEventListener('keydown', function (e) {
       if (!document.getElementById('page-topology-builder-v3').classList.contains('active')) return;
@@ -942,6 +1044,10 @@
         }
       }
       if (e.key === 'Escape') {
+        if (document.getElementById('tb3-body').classList.contains('picker-open')) {
+          _closePicker();
+          return;
+        }
         if (state.selectedId) {
           state.selectedId = null;
           _renderCanvas();
