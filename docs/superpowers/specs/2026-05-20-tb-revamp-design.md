@@ -37,7 +37,7 @@ This revamp scraps both v1 and v2 from the frontend and ships a fresh **v3** tha
 - Animated cable-routing optimisation pass beyond the v1 force-directed auto-layout
 
 **Out:**
-- Multi-cert support in v3 day-one — Phase 1 ships Network+ only. Security+ scenario catalog is a separate Phase 10+ effort with its own spec.
+- **Security+ support — permanently.** Sec+ gets its own dedicated builder (a separate future spec, founder's call), NOT a multi-cert mode of v3. v3 is Network+ only, forever. Sidebar entry will be gated by `CURRENT_CERT === 'netplus'`.
 - Real-time packet capture from a physical network (this is a teaching tool, not a sniffer)
 
 ## 3. Architecture
@@ -319,24 +319,24 @@ Cross-cutting test concerns (per `feedback_data_safety_discipline.md`):
 - All localStorage writes during testing happen on `localhost:3131` only — NEVER on prod (the v4.81.x rule)
 - Cross-cert leak filter: `_isCurrentCertTopic()` applied throughout (per v5.5.7 pattern)
 
-## 14. Open questions and deferred decisions
+## 14. Open questions — all resolved 2026-05-20
 
-| # | Question | Default if not raised |
+| # | Question | Resolution |
 |---|---|---|
-| Q1 | Right-rail width in Phase 1 — 56px (icon-only) or 200px (icon + label list)? | 56px icon-only. Inspector expands the rail to 340px when configuring a device. |
-| Q2 | Save state per-cert or global? | Per-cert (`STORAGE.TB_V3_DRAFT_NETPLUS` namespace). Sec+ gets its own draft when that cert pack lands in Phase 10+. |
-| Q3 | Cable routing algorithm — auto-Bezier (Phase 1) vs orthogonal (right-angle) routing? | Auto-Bezier. Orthogonal is a Phase 6+ polish. |
-| Q4 | OSI mode interaction — read-only view OR editable on bands? | Read-only initially (Phase 5). Edits go back to Design mode. Re-evaluate after dogfood. |
-| Q5 | 3D View — keep all v1 OSI/VLAN/subnet floors OR start with just OSI? | All three (founder-stated favourites from v1). 3D is Phase 6, plenty of time. |
-| Q6 | Migrate old v1 saved topologies in Phase 9? | Yes — export tool reads `STORAGE.TOPOLOGIES` (v1's key), translates to v3 schema, offers user a one-time import. Discard v1 storage after migration confirmed. |
+| Q1 | Right-rail width in Phase 1 — 56px (icon-only) or 200px (icon + label list)? | **56px icon-only collapsed default + contextual expand.** Inspector slides out to 340px on device select. Scenarios picker (Phase 2) slides out to 320px panel. Coach (Phase 7) slides out to 380px. Gives the canvas the most pixels by default and the rail's content the most room when it matters. |
+| Q2 | Save state per-cert or global? | **Global single key** `STORAGE.TB_V3_DRAFT` → `nplus_tb_v3_draft`. v3 is Net+ only (see §2 Out). No cert namespace needed. |
+| Q3 | Cable routing algorithm — auto-Bezier (Phase 1) vs orthogonal? | **Auto-Bezier locked.** Smooth curves match the dashboards aesthetic, work at any zoom, and read more natural than right-angle routing for organic network layouts. Orthogonal is a Phase 6+ polish if dogfood ever asks for it. |
+| Q4 | OSI mode interaction — read-only view OR editable on bands? | **Read-only.** Edits go back to Design mode. Keeps OSI mode focused on its job (the layer lens) without overloading. |
+| Q5 | 3D View — keep all v1 OSI/VLAN/subnet floors OR start with just OSI? | **All three floors kept.** OSI / VLAN / subnet — founder-stated favourites from v1. Ships in Phase 6. |
+| Q6 | Migrate v1 saved data in Phase 9? | Two things to clarify: (a) the **preloaded scenarios catalog** (v1's `TB_SCENARIOS` array — 16 baked-into-code scenarios) is **not migrated** — Phase 2 authors new ones aligned to the N10-009 blueprint with the 7-category structure; (b) any **user-saved free-build topologies** (`STORAGE.TOPOLOGIES` localStorage key) get a one-time migration tool that reads them, translates to v3 schema, offers import. If the key is empty/missing at Phase 9, skip the migration entirely. |
 
-Defaults are what the implementation plan will assume unless the founder overrides during plan review.
+All resolutions are locked. Plan author treats these as decided.
 
 ## 15. Acceptance criteria
 
 Each phase has its own acceptance gate. Across the whole revamp:
 
-- [ ] Page `#page-topology-builder-v3` renders cleanly on both Net+ and Sec+ (Sec+ shows "Coming next" placeholder until Phase 10+)
+- [ ] Page `#page-topology-builder-v3` renders cleanly for Network+. Sec+ users see no Network Builder sidebar entry (gated by `CURRENT_CERT === 'netplus'`). Their builder is a separate future spec.
 - [ ] Lazy-load via `_loadFeature('topology-builder-v3')` works on cold session + hot session
 - [ ] Full-viewport takeover hides `#app-sidebar` + `#app-topbar` when `#page-topology-builder-v3.page.active`
 - [ ] All 5 action modes switch cleanly (no state loss, no flicker, no console errors)
