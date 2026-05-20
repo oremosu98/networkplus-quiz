@@ -464,10 +464,10 @@
       startingState: {
         devices: [
           { id: 'sc_star_1', type: 'switch',      x: 600, y: 360, label: 'SW1' },
-          { id: 'sc_star_2', type: 'server',      x: 360, y: 200, label: 'SRV-01' },
-          { id: 'sc_star_3', type: 'workstation', x: 360, y: 520, label: 'WS-01' },
-          { id: 'sc_star_4', type: 'workstation', x: 840, y: 520, label: 'WS-02' },
-          { id: 'sc_star_5', type: 'workstation', x: 840, y: 200, label: 'WS-03' },
+          { id: 'sc_star_2', type: 'server',      x: 360, y: 200, label: 'SRV-01', config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+          { id: 'sc_star_3', type: 'workstation', x: 360, y: 520, label: 'WS-01',  config: { ip: '192.168.10.20', mask: 24, gateway: '192.168.10.1' } },
+          { id: 'sc_star_4', type: 'workstation', x: 840, y: 520, label: 'WS-02',  config: { ip: '192.168.10.21', mask: 24, gateway: '192.168.10.1' } },
+          { id: 'sc_star_5', type: 'workstation', x: 840, y: 200, label: 'WS-03',  config: { ip: '192.168.10.22', mask: 24, gateway: '192.168.10.1' } },
         ],
         cables: [
           { id: 'sc_star_c1', fromId: 'sc_star_1', toId: 'sc_star_2', type: 'cat6' },
@@ -501,10 +501,10 @@
       objectiveRefs: ['1.2'],
       startingState: {
         devices: [
-          { id: 'sc_mesh_1', type: 'router', x: 360, y: 200, label: 'R1' },
-          { id: 'sc_mesh_2', type: 'router', x: 840, y: 200, label: 'R2' },
-          { id: 'sc_mesh_3', type: 'router', x: 360, y: 520, label: 'R3' },
-          { id: 'sc_mesh_4', type: 'router', x: 840, y: 520, label: 'R4' },
+          { id: 'sc_mesh_1', type: 'router', x: 360, y: 200, label: 'R1', interfaces:[{ ip:'10.0.12.1', mask:30 },{ ip:'10.0.13.1', mask:30 },{ ip:'10.0.14.1', mask:30 }] },
+          { id: 'sc_mesh_2', type: 'router', x: 840, y: 200, label: 'R2', interfaces:[{ ip:'10.0.12.2', mask:30 },{ ip:'10.0.23.1', mask:30 },{ ip:'10.0.24.1', mask:30 }] },
+          { id: 'sc_mesh_3', type: 'router', x: 360, y: 520, label: 'R3', interfaces:[{ ip:'10.0.13.2', mask:30 },{ ip:'10.0.23.2', mask:30 },{ ip:'10.0.34.1', mask:30 }] },
+          { id: 'sc_mesh_4', type: 'router', x: 840, y: 520, label: 'R4', interfaces:[{ ip:'10.0.14.2', mask:30 },{ ip:'10.0.24.2', mask:30 },{ ip:'10.0.34.2', mask:30 }] },
         ],
         cables: [
           { id: 'sc_mesh_c1', fromId: 'sc_mesh_1', toId: 'sc_mesh_2', type: 'cat6' },
@@ -780,11 +780,11 @@
       objectiveRefs: ['1.2'],
       startingState: {
         devices: [
-          { id: 'sc_ring_1', type: 'router', x: 600, y: 160, label: 'R1' },
-          { id: 'sc_ring_2', type: 'router', x: 840, y: 280, label: 'R2' },
-          { id: 'sc_ring_3', type: 'router', x: 760, y: 520, label: 'R3' },
-          { id: 'sc_ring_4', type: 'router', x: 440, y: 520, label: 'R4' },
-          { id: 'sc_ring_5', type: 'router', x: 360, y: 280, label: 'R5' },
+          { id: 'sc_ring_1', type: 'router', x: 600, y: 160, label: 'R1', interfaces:[{ ip:'10.0.51.1', mask:30 },{ ip:'10.0.12.1', mask:30 }] },
+          { id: 'sc_ring_2', type: 'router', x: 840, y: 280, label: 'R2', interfaces:[{ ip:'10.0.12.2', mask:30 },{ ip:'10.0.23.1', mask:30 }] },
+          { id: 'sc_ring_3', type: 'router', x: 760, y: 520, label: 'R3', interfaces:[{ ip:'10.0.23.2', mask:30 },{ ip:'10.0.34.1', mask:30 }] },
+          { id: 'sc_ring_4', type: 'router', x: 440, y: 520, label: 'R4', interfaces:[{ ip:'10.0.34.2', mask:30 },{ ip:'10.0.45.1', mask:30 }] },
+          { id: 'sc_ring_5', type: 'router', x: 360, y: 280, label: 'R5', interfaces:[{ ip:'10.0.45.2', mask:30 },{ ip:'10.0.51.2', mask:30 }] },
         ],
         cables: [
           { id: 'sc_ring_c1', fromId: 'sc_ring_1', toId: 'sc_ring_2', type: 'cat6' },
@@ -818,8 +818,8 @@
       objectiveRefs: ['1.2'],
       startingState: {
         devices: [
-          { id: 'sc_p2p_1', type: 'router', x: 440, y: 360, label: 'R1' },
-          { id: 'sc_p2p_2', type: 'router', x: 800, y: 360, label: 'R2' },
+          { id: 'sc_p2p_1', type: 'router', x: 440, y: 360, label: 'R1', interfaces:[{ ip:'10.0.12.1', mask:30 }] },
+          { id: 'sc_p2p_2', type: 'router', x: 800, y: 360, label: 'R2', interfaces:[{ ip:'10.0.12.2', mask:30 }] },
         ],
         cables: [
           { id: 'sc_p2p_c1', fromId: 'sc_p2p_1', toId: 'sc_p2p_2', type: 'fiber' },
