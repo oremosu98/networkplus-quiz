@@ -59,6 +59,83 @@
   // PURE FUNCTIONS (testable in isolation via vm-sandbox)
   // ───────────────────────────────────────────────────────────
 
+  function _autoFillIp(dev, state) {
+    var ENDPOINT_TYPES = ['workstation','server','laptop','smartphone'];
+    var L3_MULTI_TYPES = ['router','l3-switch','firewall','vpn'];
+    if (ENDPOINT_TYPES.indexOf(dev.type) === -1 && L3_MULTI_TYPES.indexOf(dev.type) === -1) {
+      return; // L2 / cloud / internet — no config
+    }
+    var devices = (state && state.devices) || [];
+    // Find existing router IP to adopt its subnet
+    var routerIp = null;
+    for (var i = 0; i < devices.length; i++) {
+      var d = devices[i];
+      if (d.type === 'router' && Array.isArray(d.interfaces) && d.interfaces[0] && d.interfaces[0].ip) {
+        routerIp = d.interfaces[0].ip;
+        break;
+      }
+    }
+    var subnetPrefix = '192.168.10';
+    if (routerIp) {
+      var parts = routerIp.split('.');
+      if (parts.length === 4) subnetPrefix = parts[0] + '.' + parts[1] + '.' + parts[2];
+    }
+    // Find next unused .10+ in this subnet
+    var used = {};
+    devices.forEach(function (d) {
+      if (d.config && d.config.ip) {
+        var p = d.config.ip.split('.');
+        if (p[0] + '.' + p[1] + '.' + p[2] === subnetPrefix) used[parseInt(p[3], 10)] = true;
+      }
+      if (Array.isArray(d.interfaces)) {
+        d.interfaces.forEach(function (iface) {
+          if (iface && iface.ip) {
+            var p2 = iface.ip.split('.');
+            if (p2[0] + '.' + p2[1] + '.' + p2[2] === subnetPrefix) used[parseInt(p2[3], 10)] = true;
+          }
+        });
+      }
+    });
+    if (ENDPOINT_TYPES.indexOf(dev.type) !== -1) {
+      var n = 10;
+      while (used[n]) n++;
+      dev.config = dev.config || {};
+      dev.config.ip = subnetPrefix + '.' + n;
+      dev.config.mask = 24;
+      if (routerIp) dev.config.gateway = routerIp;
+    } else if (dev.type === 'router' && !routerIp) {
+      // First router becomes .1 of 192.168.10.0/24
+      dev.interfaces = dev.interfaces || [];
+      dev.interfaces.push({ ip: '192.168.10.1', mask: 24 });
+    } else if (dev.type === 'router') {
+      // Subsequent router gets a new subnet
+      var subnetN = 20;
+      var prefix2;
+      do {
+        prefix2 = '192.168.' + subnetN;
+        var collision = devices.some(function (dd) {
+          if (dd.config && dd.config.ip && dd.config.ip.indexOf(prefix2 + '.') === 0) return true;
+          if (Array.isArray(dd.interfaces)) {
+            return dd.interfaces.some(function (iface) {
+              return iface && iface.ip && iface.ip.indexOf(prefix2 + '.') === 0;
+            });
+          }
+          return false;
+        });
+        if (!collision) break;
+        subnetN += 10;
+      } while (subnetN < 250);
+      dev.interfaces = dev.interfaces || [];
+      dev.interfaces.push({ ip: prefix2 + '.1', mask: 24 });
+    } else if (dev.type === 'l3-switch') {
+      dev.interfaces = dev.interfaces || [];
+      dev.interfaces.push({ ip: subnetPrefix + '.1', mask: 24 });
+    } else if (dev.type === 'firewall' || dev.type === 'vpn') {
+      dev.interfaces = dev.interfaces || [];
+      dev.interfaces.push({ ip: '', mask: 24 });
+    }
+  }
+
   function buildDevice(type, x, y) {
     return {
       id: 'dev_' + Date.now().toString(36) + '_' + Math.floor(Math.random()*1296).toString(36).padStart(2,'0'),
@@ -1976,6 +2053,7 @@
 
       var dev = buildDevice(draggedType, lx, ly);
       dev.label = draggedType.toUpperCase().slice(0, 4);
+      _autoFillIp(dev, state);
       state.devices.push(dev);
       state.selectedId = dev.id;
       _renderCanvas();
@@ -2687,7 +2765,8 @@
     buildCable: buildCable,
     serialiseState: serialiseState,
     parseState: parseState,
-    // Phase 3 — reachability engine
+    // Phase 3 — IP auto-fill + reachability engine
+    _autoFillIp: _autoFillIp,
     parseCidr: parseCidr,
     inSameSubnet: inSameSubnet,
     routeNextHop: routeNextHop,
