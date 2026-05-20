@@ -21218,6 +21218,60 @@ test('v6.x TB v3: STORAGE.TB_V3_DRAFT does not collide with REPORTS', !/TB_V3_DR
   assert(loaded.activeScenarioId === 'star-topology', 'D: activeScenarioId set');
   assert(loaded.selectedId === null, 'E: selectedId reset');
   assert(loaded.devices[0].id === 'sc_star_1', 'F: device ids preserved');
+
+  // ── 3. checkCompletion(state, completion) ────────────────
+  const ccDecl = _fnBody(tbv3Src, 'checkCompletion');
+  assert(ccDecl, 'phase2: checkCompletion exists');
+
+  function callCc(state, completion) {
+    const sb = { result: null };
+    vm.runInNewContext(ccDecl + ' result = checkCompletion(' + JSON.stringify(state) + ', ' + JSON.stringify(completion) + ');', sb);
+    return sb.result;
+  }
+
+  const ccComp = {
+    requiredDevices: ['switch','server','workstation'],
+    expectedCount: { switch:1, server:1, workstation:3 },
+    requiredCables: [
+      { from:'switch', to:'server' },
+      { from:'switch', to:'workstation' }
+    ]
+  };
+
+  // A: empty → incomplete
+  const eA = callCc({ devices:[], cables:[] }, ccComp);
+  assert(eA && eA.complete === false, 'A: empty incomplete');
+  assert(eA.missingDevices.length === 3, 'A: 3 missing device types');
+
+  // B: only 1 workstation present → still incomplete
+  const eB = callCc({ devices:[
+    { id:'a', type:'switch' }, { id:'b', type:'server' }, { id:'c', type:'workstation' }
+  ], cables:[
+    { id:'c1', fromId:'a', toId:'b' }, { id:'c2', fromId:'a', toId:'c' }
+  ]}, ccComp);
+  assert(eB.complete === false, 'B: 1 ws but need 3');
+  assert(eB.deviceCountMismatch.indexOf('workstation') !== -1, 'B: workstation count flagged');
+
+  // C: all 3 workstations + cables present → complete
+  const eC = callCc({ devices:[
+    { id:'a', type:'switch' }, { id:'b', type:'server' },
+    { id:'c', type:'workstation' }, { id:'d', type:'workstation' }, { id:'e', type:'workstation' }
+  ], cables:[
+    { id:'c1', fromId:'a', toId:'b' },
+    { id:'c2', fromId:'a', toId:'c' },
+    { id:'c3', fromId:'a', toId:'d' },
+    { id:'c4', fromId:'a', toId:'e' }
+  ]}, ccComp);
+  assert(eC.complete === true, 'C: all goals met');
+  assert(eC.missingCables.length === 0, 'C: no missing cables');
+
+  // D: devices present but no cables → required cables surface
+  const eD = callCc({ devices:[
+    { id:'a', type:'switch' }, { id:'b', type:'server' },
+    { id:'c', type:'workstation' }, { id:'d', type:'workstation' }, { id:'e', type:'workstation' }
+  ], cables:[]}, ccComp);
+  assert(eD.complete === false, 'D: incomplete on missing cables');
+  assert(eD.missingCables.length === 2, 'D: both required pair types flagged');
 })();
 
 // ── Summary ──

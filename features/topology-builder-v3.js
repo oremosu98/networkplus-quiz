@@ -164,6 +164,45 @@
     };
   }
 
+  // Pure: returns { complete:boolean, missingDevices, deviceCountMismatch, missingCables }
+  // 'requiredCables' is a pair list — each {from,to} matches if AT LEAST ONE cable
+  // connects a device of type 'from' to a device of type 'to' (order-agnostic).
+  function checkCompletion(state, completion) {
+    var c = completion || {};
+    var devices = state.devices || [];
+    var cables = state.cables || [];
+
+    var typeCount = {};
+    devices.forEach(function (d) { typeCount[d.type] = (typeCount[d.type] || 0) + 1; });
+
+    var missingDevices = (c.requiredDevices || []).filter(function (t) { return !typeCount[t]; });
+
+    var deviceCountMismatch = [];
+    if (c.expectedCount) {
+      Object.keys(c.expectedCount).forEach(function (t) {
+        if ((typeCount[t] || 0) < c.expectedCount[t]) deviceCountMismatch.push(t);
+      });
+    }
+
+    var typeOfId = {};
+    devices.forEach(function (d) { typeOfId[d.id] = d.type; });
+
+    var missingCables = (c.requiredCables || []).filter(function (req) {
+      var ok = cables.some(function (cb) {
+        var ft = typeOfId[cb.fromId], tt = typeOfId[cb.toId];
+        return (ft === req.from && tt === req.to) || (ft === req.to && tt === req.from);
+      });
+      return !ok;
+    });
+
+    return {
+      complete: missingDevices.length === 0 && deviceCountMismatch.length === 0 && missingCables.length === 0,
+      missingDevices: missingDevices,
+      deviceCountMismatch: deviceCountMismatch,
+      missingCables: missingCables,
+    };
+  }
+
   // ───────────────────────────────────────────────────────────
   // SAVE / LOAD (TASK 6.x)
   // ───────────────────────────────────────────────────────────
@@ -987,6 +1026,7 @@
     TB_V3_SCENARIOS: TB_V3_SCENARIOS,
     validateScenarioShape: validateScenarioShape,
     loadScenarioOnCanvas: loadScenarioOnCanvas,
+    checkCompletion: checkCompletion,
     // State access (for tests)
     _getState: function () { return state; },
     _setState: function (s) { state = s; },
