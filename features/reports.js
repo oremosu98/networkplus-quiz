@@ -2,6 +2,10 @@
 // Lazy-loaded via _loadFeature('reports') from the topbar bug iconbtn
 // and from DOMContentLoaded (queue drain). Self-contained: zero deps
 // on other feature modules.
+//
+// No `enter` / `leave` lifecycle (the standard feature-module pattern)
+// because this is a drawer + queue feature, not a page. Entry points are
+// `openDrawer()` (UI from topbar) and `drainQueue()` (DOMContentLoaded).
 
 (function () {
   'use strict';
