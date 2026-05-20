@@ -20894,6 +20894,49 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
   return /Risk tier/i.test(pt) && /Supabase branch DB/.test(pt) && /-- ROLLBACK/.test(pt);
 })());
 
+// ────────────────────────────────────────────────────────────
+// v5.6.x · Bug-Report Pure Functions (4 fixtures)
+// ────────────────────────────────────────────────────────────
+(function _reportFixtures() {
+  // Local bridge: this file uses test(name, condition); plan uses assert(cond, msg).
+  // Wrap test() with arg-swap so the verbatim fixture code from the plan runs unchanged.
+  function assert(cond, msg) { test(msg, !!cond); }
+
+  const reportsSrc = fs.readFileSync(path.join(__dirname,'..','features','reports.js'),'utf8');
+
+  // ── 1. buildPayload(form, ctx) ───────────────────────────
+  // NOTE: _fnBody returns the FULL "function NAME(args) { ... }" declaration,
+  // not just the inner body. Inline the declaration directly inside the
+  // sandbox template — matches the existing pattern at uat.js:277-290.
+  const buildPayloadDecl = _fnBody(reportsSrc, 'buildPayload');
+  assert(buildPayloadDecl, 'buildPayload exists');
+
+  const sandbox = { result: null };
+  const code = `
+    ${buildPayloadDecl}
+    result = buildPayload(
+      { title: '  streak issue  ', desc: 'detail', steps: null },
+      { cert: 'netplus-N10-009', theme: 'light', version: 'v5.5.12',
+        page: '#page-setup', viewport: '1440x900',
+        last_quiz: { topic: 'subnetting', score: '7/10', minutes_ago: 2 },
+        wrong_bank_size: 4 }
+    );
+  `;
+  vm.runInNewContext(code, sandbox);
+  const p = sandbox.result;
+  assert(p && typeof p === 'object', 'buildPayload returns object');
+  assert(/^rpt_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}_[a-f0-9]{4}$/.test(p.id), 'id format rpt_<iso-no-colons>_<4hex>');
+  assert(p.title === 'streak issue', 'title trimmed');
+  assert(p.description === 'detail', 'description present');
+  assert(p.steps === null, 'steps null passes through');
+  assert(p.context && p.context.version === 'v5.5.12', 'context.version');
+  assert(p.context.cert === 'netplus-N10-009', 'context.cert');
+  assert(p.context.last_quiz && p.context.last_quiz.score === '7/10', 'context.last_quiz nested');
+  assert(p.context.wrong_bank_size === 4, 'context.wrong_bank_size');
+  assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(p.submitted_at), 'submitted_at ISO Z');
+  assert(p.attempt_count === 1, 'attempt_count starts at 1');
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

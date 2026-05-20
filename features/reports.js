@@ -14,7 +14,33 @@
   // PURE FUNCTIONS (testable in isolation via vm-sandbox)
   // ───────────────────────────────────────────────────────────
 
-  function buildPayload(form, ctx) { return null; /* TASK 1.2 */ }
+  function buildPayload(form, ctx) {
+    // ISO-no-colons + 4-char hex random for stable ID across retries
+    var iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'); // strip ms
+    var idIso = iso.replace(/:/g, '-');
+    var hex = Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+    var id = 'rpt_' + idIso.replace(/Z$/, '') + '_' + hex;
+
+    function trim(s) { return (s == null ? '' : String(s)).trim(); }
+
+    return {
+      id: id,
+      title: trim(form && form.title),
+      description: trim(form && form.desc),
+      steps: form && form.steps ? trim(form.steps) : null,
+      context: {
+        version: (ctx && ctx.version) || 'unknown',
+        page: (ctx && ctx.page) || 'unknown',
+        cert: (ctx && ctx.cert) || 'unknown',
+        theme: (ctx && ctx.theme) || 'unknown',
+        viewport: (ctx && ctx.viewport) || 'unknown',
+        last_quiz: (ctx && ctx.last_quiz) || null,
+        wrong_bank_size: (ctx && typeof ctx.wrong_bank_size === 'number') ? ctx.wrong_bank_size : 0,
+      },
+      submitted_at: iso,
+      attempt_count: 1,
+    };
+  }
   function renderIssueBody(payload) { return ''; /* TASK 1.4 */ }
   function classifyError(resp) { return null; /* TASK 1.6 */ }
   function enqueueReport(rpt, store) { return store; /* TASK 1.8 */ }
