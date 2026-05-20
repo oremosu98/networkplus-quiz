@@ -191,8 +191,115 @@
     );
   }
 
-  function openDrawer() { /* TASK 2.3 */ }
-  function closeDrawer() { /* TASK 2.3 */ }
+  var _drawerHost = null;
+  var _drawerOpenedAt = 0;
+  var _prevFocus = null;
+  var _escListener = null;
+
+  function _getCtx() {
+    function safeRead(fn) { try { return fn(); } catch (e) { return null; } }
+    var theme = safeRead(function(){ return document.documentElement.getAttribute('data-theme') || 'dark'; });
+    var page = safeRead(function(){
+      var pages = document.querySelectorAll('.page.active'); return pages.length ? '#' + pages[0].id : 'unknown';
+    });
+    var cert = safeRead(function(){
+      // Read from CERT_PACK if available; fall back to localStorage CURRENT_CERT
+      if (window.CERT_PACK && window.CERT_PACK.meta) {
+        return (window.CURRENT_CERT || 'netplus') + '-' + window.CERT_PACK.meta.objectiveCode;
+      }
+      return (window.CURRENT_CERT || 'unknown');
+    });
+    var version = safeRead(function(){ return window.APP_VERSION || 'unknown'; });
+    var viewport = window.innerWidth + 'x' + window.innerHeight;
+    var lastQuiz = safeRead(function(){
+      if (typeof loadHistory !== 'function') return null;
+      var h = loadHistory();
+      if (!h || !h.length) return null;
+      var last = h[0];
+      var minsAgo = Math.round((Date.now() - last.timestamp) / 60000);
+      return { topic: last.topic, score: last.correct + '/' + last.total, minutes_ago: minsAgo };
+    });
+    var wrongBankSize = safeRead(function(){
+      if (typeof loadWrongBank !== 'function') return 0;
+      return (loadWrongBank() || []).length;
+    }) || 0;
+
+    return {
+      version: version, page: page, cert: cert, theme: theme,
+      viewport: viewport, last_quiz: lastQuiz, wrong_bank_size: wrongBankSize,
+    };
+  }
+
+  function _hasToken() {
+    try { return !!localStorage.getItem(STORAGE.GH_TOKEN); } catch (e) { return false; }
+  }
+
+  function openDrawer() {
+    if (_drawerHost) return; // idempotent
+    _prevFocus = document.activeElement;
+
+    var ctx = _getCtx();
+    var host = document.createElement('div');
+    host.id = 'br-portal';
+    host.innerHTML = _drawerHtml(ctx);
+    document.body.appendChild(host);
+    _drawerHost = host;
+    _drawerOpenedAt = Date.now();
+
+    // Disable token banner if token exists
+    if (!_hasToken()) {
+      host.querySelector('#br-no-token').hidden = false;
+    }
+
+    // Wire ESC + backdrop click + close × + cancel
+    _escListener = function (e) { if (e.key === 'Escape') closeDrawer(); };
+    document.addEventListener('keydown', _escListener);
+    host.querySelector('#br-backdrop').addEventListener('click', closeDrawer);
+    host.querySelector('#br-close').addEventListener('click', closeDrawer);
+    host.querySelector('#br-cancel').addEventListener('click', closeDrawer);
+
+    // Settings deep-link
+    var settingsLink = host.querySelector('#br-open-settings');
+    if (settingsLink) settingsLink.addEventListener('click', function(e){
+      e.preventDefault(); closeDrawer();
+      if (typeof showPage === 'function') showPage('settings');
+    });
+
+    // Reveal with motion next frame (so transform transitions instead of snapping)
+    requestAnimationFrame(function(){
+      host.querySelector('#br-backdrop').classList.add('open');
+      host.querySelector('#bug-report-drawer').classList.add('open');
+      setTimeout(function(){
+        var titleInput = host.querySelector('#br-input-title');
+        if (titleInput) titleInput.focus();
+      }, 220);
+    });
+
+    _wireForm(host); // TASK 3.x
+    _wireSubmit(host); // TASK 5.x
+  }
+
+  function closeDrawer() {
+    if (!_drawerHost) return;
+    var host = _drawerHost;
+    host.querySelector('#br-backdrop').classList.remove('open');
+    var drawer = host.querySelector('#bug-report-drawer');
+    drawer.classList.remove('open');
+    document.removeEventListener('keydown', _escListener);
+    _escListener = null;
+
+    // Wait for transition before removing from DOM
+    setTimeout(function(){
+      if (host.parentNode) host.parentNode.removeChild(host);
+      _drawerHost = null;
+      if (_prevFocus && _prevFocus.focus) _prevFocus.focus();
+      _prevFocus = null;
+    }, 240);
+  }
+
+  // Stubs that later tasks will implement; provide empty bodies so openDrawer doesn't error
+  function _wireForm(host) {}
+  function _wireSubmit(host) {}
 
   // ───────────────────────────────────────────────────────────
   // SUBMIT + RETRY (TASK 5.x, 6.x)
