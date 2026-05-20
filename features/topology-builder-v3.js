@@ -127,7 +127,46 @@
   // doesn't collide with prior Free Build content (which uses 'dev_<hex>_<2hex>').
   // ───────────────────────────────────────────────────────────
 
-  var TB_V3_SCENARIOS = []; // populated incrementally in Stages 1 + 5
+  var TB_V3_SCENARIOS = [
+    {
+      id: 'star-topology',
+      title: 'Star topology with central switch',
+      category: 'topology',
+      objectiveRefs: ['1.2', '2.1'],
+      startingState: {
+        devices: [
+          { id: 'sc_star_1', type: 'switch',      x: 600, y: 360, label: 'SW1' },
+          { id: 'sc_star_2', type: 'server',      x: 360, y: 200, label: 'SRV-01' },
+          { id: 'sc_star_3', type: 'workstation', x: 360, y: 520, label: 'WS-01' },
+          { id: 'sc_star_4', type: 'workstation', x: 840, y: 520, label: 'WS-02' },
+          { id: 'sc_star_5', type: 'workstation', x: 840, y: 200, label: 'WS-03' },
+        ],
+        cables: [
+          { id: 'sc_star_c1', fromId: 'sc_star_1', toId: 'sc_star_2', type: 'cat6' },
+          { id: 'sc_star_c2', fromId: 'sc_star_1', toId: 'sc_star_3', type: 'cat6' },
+          { id: 'sc_star_c3', fromId: 'sc_star_1', toId: 'sc_star_4', type: 'cat6' },
+          { id: 'sc_star_c4', fromId: 'sc_star_1', toId: 'sc_star_5', type: 'cat6' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'A star topology centralises connections through a single switch. The exam expects you to recognise the failure-domain trade-off (switch down = all hosts offline) versus the wiring simplicity that makes it the default LAN shape.',
+      examRelevance: {
+        overview:      'Star = all endpoints home-run to one central node (switch). Today\'s dominant LAN shape.',
+        howItRoutes:   'L2 forwarding via MAC table on the central switch. No routing required for intra-LAN traffic.',
+        keyDevices:    'Central switch (L2) + server (broadcast member) + workstations (endpoints).',
+        keyConcepts:   'Single point of failure at the central switch. Cable count = N hosts. Adds and moves do not affect peers.',
+        examRelevance: 'N10-009 obj 1.2 (topology shapes) + obj 2.1 (switching). Often paired with mesh/ring contrasts on PBQs.',
+      },
+      completion: {
+        requiredDevices: ['switch','server','workstation'],
+        expectedCount:   { switch:1, server:1, workstation:3 },
+        requiredCables:  [
+          { from:'switch', to:'server' },
+          { from:'switch', to:'workstation' },
+        ],
+      },
+    },
+  ];
 
   function validateScenarioShape(s) {
     if (!s || typeof s !== 'object') return false;
@@ -1029,7 +1068,17 @@
 
   // Stub for Stage 3 — row click handler.
   function _onPickerRowActivate(scenarioId) {
-    // Implemented in Task 3.1
+    var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === scenarioId; });
+    if (!scenario) return;
+    // Phase 2 backup-on-load logic lands in Stage 7. For Stage 3 we just load.
+    state = loadScenarioOnCanvas(state, scenario);
+    _renderCanvas();
+    _renderMinimap();
+    _updateDeviceCount();
+    _renderInspector();
+    _renderModeBar();        // re-render so intent chip can pick up state.intent (wired Stage 4)
+    _renderPickerPanel();    // re-render so the picked row gets '.on'
+    _saveState();
   }
 
   function _wireGlobalKeys() {
@@ -1170,6 +1219,9 @@
     // versions, so test 07 calls this directly. Same _-prefix precedent as
     // _getState/_setState.
     _deleteSelected: function () { _deleteSelected(); },
+    _loadScenario: function (id) { _onPickerRowActivate(id); },
+    _openPicker: _openPicker,
+    _closePicker: _closePicker,
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
