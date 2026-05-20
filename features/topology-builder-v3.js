@@ -1060,6 +1060,43 @@
         ],
       },
     },
+    {
+      id: 'l3-switch-svi',
+      title: 'L3 switch with SVIs (inter-VLAN routing)',
+      category: 'vlan',
+      objectiveRefs: ['2.1', '2.3'],
+      startingState: {
+        devices: [
+          { id: 'sc_svi_l3',    type: 'l3-switch',   x: 600, y: 240, label: 'L3-SW' },
+          { id: 'sc_svi_v10a',  type: 'workstation', x: 280, y: 480, label: 'VLAN10-A' },
+          { id: 'sc_svi_v10b',  type: 'workstation', x: 440, y: 480, label: 'VLAN10-B' },
+          { id: 'sc_svi_v20a',  type: 'workstation', x: 760, y: 480, label: 'VLAN20-A' },
+          { id: 'sc_svi_v20b',  type: 'workstation', x: 920, y: 480, label: 'VLAN20-B' },
+        ],
+        cables: [
+          { id: 'sc_svi_c1', fromId: 'sc_svi_l3', toId: 'sc_svi_v10a', type: 'cat6' },
+          { id: 'sc_svi_c2', fromId: 'sc_svi_l3', toId: 'sc_svi_v10b', type: 'cat6' },
+          { id: 'sc_svi_c3', fromId: 'sc_svi_l3', toId: 'sc_svi_v20a', type: 'cat6' },
+          { id: 'sc_svi_c4', fromId: 'sc_svi_l3', toId: 'sc_svi_v20b', type: 'cat6' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'Router-on-a-stick uses a single router + trunk for inter-VLAN routing. An L3 switch eliminates the router by adding SVIs (Switched Virtual Interfaces) — one virtual interface per VLAN, doing the routing at line rate on the switch ASIC. Faster, no hairpin, the standard inter-VLAN approach in modern campus networks.',
+      examRelevance: {
+        overview:      'An L3 switch routes between VLANs locally using one SVI per VLAN — no external router needed.',
+        howItRoutes:   'Each VLAN gateway is an SVI on the switch (e.g. interface vlan 10 ip address ...); the switch routes inter-VLAN traffic in hardware via its ASIC.',
+        keyDevices:    'One L3 switch (with SVIs configured) + access ports assigned to each VLAN.',
+        keyConcepts:   'Switched Virtual Interface (SVI) per VLAN, hardware-accelerated inter-VLAN routing, no hairpin to a router.',
+        examRelevance: 'N10-009 obj 2.1 (switching) + 2.3 (VLANs) — recognise L3-switch SVI; contrast with router-on-a-stick performance + complexity.',
+      },
+      completion: {
+        requiredDevices: ['l3-switch', 'workstation'],
+        expectedCount:   { 'l3-switch': 1, workstation: 4 },
+        requiredCables:  [
+          { from:'l3-switch', to:'workstation' },
+        ],
+      },
+    },
   ];
 
   function validateScenarioShape(s) {
