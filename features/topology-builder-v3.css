@@ -559,6 +559,50 @@ html[data-theme="light"] #page-topology-builder-v3 {
   color: oklch(0.65 0.18 25);
 }
 
+/* Task 3.2 — L3 multi-interface rows */
+#page-topology-builder-v3 .tb3-insp-iface-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+#page-topology-builder-v3 .tb3-insp-iface-label {
+  width: 36px; font-size: 10px; font-weight: 700;
+  color: var(--tb3-text-dim); text-transform: uppercase;
+  letter-spacing: .08em;
+}
+#page-topology-builder-v3 .tb3-insp-iface-ip { flex: 1; }
+#page-topology-builder-v3 .tb3-insp-iface-mask { width: 80px; flex: none; }
+#page-topology-builder-v3 .tb3-insp-iface-del {
+  width: 24px; height: 24px;
+  background: transparent;
+  border: 1px solid var(--tb3-border);
+  border-radius: 4px;
+  color: var(--tb3-text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+#page-topology-builder-v3 .tb3-insp-iface-del:hover {
+  color: var(--tb3-red);
+  border-color: var(--tb3-red);
+}
+#page-topology-builder-v3 .tb3-insp-iface-add {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--tb3-border);
+  border-radius: 6px;
+  color: var(--tb3-text-mid);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+#page-topology-builder-v3 .tb3-insp-iface-add:hover {
+  color: var(--tb3-accent);
+  border-color: var(--tb3-accent);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 *,

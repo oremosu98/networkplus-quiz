@@ -2199,13 +2199,34 @@
           '</label>' +
           '<div class="tb3-insp-caption" id="tb3-insp-cap" hidden></div>' +
         '</div>';
+    } else if (L3_MULTI_TYPES.indexOf(dev.type) !== -1) {
+      var ifaces = Array.isArray(dev.interfaces) ? dev.interfaces : [];
+      var rows = ifaces.map(function (iface, idx) {
+        var ipVal = _escAttr((iface && iface.ip) || '');
+        var maskVal = (iface && typeof iface.mask === 'number') ? iface.mask : 24;
+        return '<div class="tb3-insp-iface-row" data-iface-idx="' + idx + '">' +
+          '<div class="tb3-insp-iface-label">if' + idx + '</div>' +
+          '<input type="text" class="tb3-insp-input tb3-insp-iface-ip" data-iface-idx="' + idx + '" value="' + ipVal + '" placeholder="192.168.10.1" />' +
+          '<select class="tb3-insp-input tb3-insp-iface-mask" data-iface-idx="' + idx + '">' +
+            [8,16,24,25,26,27,28,29,30,32].map(function(m){
+              return '<option value="' + m + '"' + (m === maskVal ? ' selected' : '') + '>/' + m + '</option>';
+            }).join('') +
+          '</select>' +
+          '<button type="button" class="tb3-insp-iface-del" data-iface-idx="' + idx + '" aria-label="Remove interface">&times;</button>' +
+          '</div>';
+      }).join('');
+      ipBlock =
+        '<div class="tb3-insp-section">' +
+          '<div class="tb3-insp-section-h">L3 interfaces</div>' +
+          '<div id="tb3-insp-ifaces">' + rows + '</div>' +
+          '<button type="button" class="tb3-insp-iface-add" id="tb3-insp-iface-add">+ Interface</button>' +
+        '</div>';
     } else if (L2_TYPES.indexOf(dev.type) !== -1) {
       ipBlock =
         '<div class="tb3-insp-section">' +
           '<div class="tb3-insp-caption tb3-insp-caption-l2">Layer-2 device — no IP configuration.</div>' +
         '</div>';
     }
-    // L3_MULTI_TYPES handled in Task 3.2 — leaving Inspector unchanged for those
 
     insp.innerHTML =
       '<div style="display:flex;flex-direction:column;gap:14px">' +
@@ -2277,6 +2298,55 @@
       if (!el) return;
       el.addEventListener('blur', applyIpCommit);
       el.addEventListener('change', applyIpCommit);
+    });
+
+    // Wire L3 multi-interface handlers (Task 3.2)
+    var addBtn = document.getElementById('tb3-insp-iface-add');
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        dev.interfaces = dev.interfaces || [];
+        dev.interfaces.push({ ip: '', mask: 24 });
+        _renderInspector();
+        _saveState();
+        _renderCompletionPill();
+      });
+    }
+    document.querySelectorAll('.tb3-insp-iface-del').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-iface-idx'), 10);
+        if (dev.interfaces && idx >= 0 && idx < dev.interfaces.length) {
+          dev.interfaces.splice(idx, 1);
+          _renderInspector();
+          _saveState();
+          _renderCompletionPill();
+        }
+      });
+    });
+    document.querySelectorAll('.tb3-insp-iface-ip').forEach(function (input) {
+      input.addEventListener('blur', function () {
+        var idx = parseInt(input.getAttribute('data-iface-idx'), 10);
+        var v = input.value.trim();
+        if (v && !parseCidr(v + '/32')) {
+          input.classList.add('is-invalid');
+          return;
+        }
+        input.classList.remove('is-invalid');
+        dev.interfaces = dev.interfaces || [];
+        dev.interfaces[idx] = dev.interfaces[idx] || { ip: '', mask: 24 };
+        dev.interfaces[idx].ip = v;
+        _saveState();
+        _renderCompletionPill();
+      });
+    });
+    document.querySelectorAll('.tb3-insp-iface-mask').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var idx = parseInt(sel.getAttribute('data-iface-idx'), 10);
+        dev.interfaces = dev.interfaces || [];
+        dev.interfaces[idx] = dev.interfaces[idx] || { ip: '', mask: 24 };
+        dev.interfaces[idx].mask = parseInt(sel.value, 10);
+        _saveState();
+        _renderCompletionPill();
+      });
     });
   }
 
