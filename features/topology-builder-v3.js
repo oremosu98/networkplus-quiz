@@ -637,6 +637,120 @@
         ],
       },
     },
+    {
+      id: 'mpls-wan',
+      title: 'MPLS WAN (provider any-to-any)',
+      category: 'wan',
+      objectiveRefs: ['1.6'],
+      startingState: {
+        devices: [
+          { id: 'sc_mpls_mpls', type: 'cloud',  x: 600, y: 360, label: 'MPLS-CORE' },
+          { id: 'sc_mpls_hq',   type: 'router', x: 600, y: 160, label: 'HQ' },
+          { id: 'sc_mpls_b1',   type: 'router', x: 280, y: 280, label: 'BR-1' },
+          { id: 'sc_mpls_b2',   type: 'router', x: 280, y: 480, label: 'BR-2' },
+          { id: 'sc_mpls_b3',   type: 'router', x: 920, y: 280, label: 'BR-3' },
+          { id: 'sc_mpls_b4',   type: 'router', x: 920, y: 480, label: 'BR-4' },
+        ],
+        cables: [
+          { id: 'sc_mpls_c1', fromId: 'sc_mpls_hq', toId: 'sc_mpls_mpls', type: 'fiber' },
+          { id: 'sc_mpls_c2', fromId: 'sc_mpls_b1', toId: 'sc_mpls_mpls', type: 'fiber' },
+          { id: 'sc_mpls_c3', fromId: 'sc_mpls_b2', toId: 'sc_mpls_mpls', type: 'fiber' },
+          { id: 'sc_mpls_c4', fromId: 'sc_mpls_b3', toId: 'sc_mpls_mpls', type: 'fiber' },
+          { id: 'sc_mpls_c5', fromId: 'sc_mpls_b4', toId: 'sc_mpls_mpls', type: 'fiber' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'MPLS WAN puts a provider-managed L3 cloud between every site. Each branch has one link into the MPLS PE; the provider handles any-to-any reachability without the customer having to build the mesh. The classic enterprise WAN before SD-WAN started displacing it.',
+      examRelevance: {
+        overview:      'Customer sites connect into a provider MPLS cloud; the provider supplies inter-site reachability.',
+        howItRoutes:   'CE routers peer with PE routers via BGP or static routes; the provider builds an L3VPN across the MPLS backbone.',
+        keyDevices:    'Customer-edge (CE) routers + provider-edge (PE) routers + the provider MPLS core (the cloud).',
+        keyConcepts:   'Any-to-any reachability without customer-managed links; CE/PE separation; QoS classes; L3VPN.',
+        examRelevance: 'N10-009 obj 1.6 — recognise the MPLS provider model; contrast with hub-and-spoke and full mesh.',
+      },
+      completion: {
+        requiredDevices: ['router', 'cloud'],
+        expectedCount:   { router: 5, cloud: 1 },
+        requiredCables:  [
+          { from:'router', to:'cloud' },
+        ],
+      },
+    },
+    {
+      id: 'partial-mesh-wan',
+      title: 'Partial mesh WAN (4 routers, 4 links)',
+      category: 'wan',
+      objectiveRefs: ['1.6'],
+      startingState: {
+        devices: [
+          { id: 'sc_pm_a', type: 'router', x: 440, y: 240, label: 'R-A' },
+          { id: 'sc_pm_b', type: 'router', x: 760, y: 240, label: 'R-B' },
+          { id: 'sc_pm_c', type: 'router', x: 440, y: 520, label: 'R-C' },
+          { id: 'sc_pm_d', type: 'router', x: 760, y: 520, label: 'R-D' },
+        ],
+        cables: [
+          { id: 'sc_pm_c1', fromId: 'sc_pm_a', toId: 'sc_pm_b', type: 'fiber' },
+          { id: 'sc_pm_c2', fromId: 'sc_pm_a', toId: 'sc_pm_c', type: 'fiber' },
+          { id: 'sc_pm_c3', fromId: 'sc_pm_b', toId: 'sc_pm_c', type: 'fiber' },
+          { id: 'sc_pm_c4', fromId: 'sc_pm_c', toId: 'sc_pm_d', type: 'fiber' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'Partial mesh wires only the critical pairs between sites instead of fully meshing every router. It is the practical compromise — full mesh is N(N-1)/2 links and does not scale; partial mesh picks the high-traffic edges and lets routing protocols carry the rest through neighbours.',
+      examRelevance: {
+        overview:      'Some-but-not-all router pairs have direct links; the rest reach each other via intermediaries.',
+        howItRoutes:   'Direct links carry their pair traffic; routing protocols (OSPF, BGP) forward across intermediate routers for unconnected pairs.',
+        keyDevices:    'Routers at every site, but link count is less than N(N-1)/2.',
+        keyConcepts:   'Cost vs reliability trade-off; protected pairs vs transit pairs; partial mesh is what full mesh degrades to when budget shrinks.',
+        examRelevance: 'N10-009 obj 1.6 — recognise partial mesh; contrast against full mesh and hub-and-spoke.',
+      },
+      completion: {
+        requiredDevices: ['router'],
+        expectedCount:   { router: 4 },
+        requiredCables:  [
+          { from:'router', to:'router' },
+        ],
+      },
+    },
+    {
+      id: 'dual-isp-failover',
+      title: 'Dual-ISP failover (redundant internet edge)',
+      category: 'wan',
+      objectiveRefs: ['1.6'],
+      startingState: {
+        devices: [
+          { id: 'sc_disp_ispa', type: 'internet', x: 440, y: 160, label: 'ISP-A' },
+          { id: 'sc_disp_ispb', type: 'internet', x: 760, y: 160, label: 'ISP-B' },
+          { id: 'sc_disp_rtr',  type: 'router',   x: 600, y: 320, label: 'EDGE-R' },
+          { id: 'sc_disp_fw',   type: 'firewall', x: 600, y: 480, label: 'EDGE-FW' },
+          { id: 'sc_disp_sw',   type: 'switch',   x: 600, y: 640, label: 'LAN-SW' },
+        ],
+        cables: [
+          { id: 'sc_disp_c1', fromId: 'sc_disp_rtr', toId: 'sc_disp_ispa', type: 'fiber' },
+          { id: 'sc_disp_c2', fromId: 'sc_disp_rtr', toId: 'sc_disp_ispb', type: 'fiber' },
+          { id: 'sc_disp_c3', fromId: 'sc_disp_rtr', toId: 'sc_disp_fw',   type: 'cat6'  },
+          { id: 'sc_disp_c4', fromId: 'sc_disp_fw',  toId: 'sc_disp_sw',   type: 'cat6'  },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'Dual-ISP failover keeps internet access alive when one provider drops. The edge router holds two upstream links and either BGP (if both ISPs support it) or default-route tracking shifts traffic onto the surviving link. The classic small-enterprise high-availability edge.',
+      examRelevance: {
+        overview:      'Edge router with two ISP uplinks — one preferred, the other standby (or load-balanced).',
+        howItRoutes:   'BGP advertises the customer prefixes to both ISPs and prefers the primary; without BGP, IP SLA + floating static routes provide the failover trigger.',
+        keyDevices:    'Edge router, two ISP handoffs, firewall, LAN switch.',
+        keyConcepts:   'Active/standby vs active/active uplinks, BGP multi-homing, default-route tracking, redundancy at the edge.',
+        examRelevance: 'N10-009 obj 1.6 — recognise the redundant WAN edge; classic high-availability question pattern.',
+      },
+      completion: {
+        requiredDevices: ['router', 'internet', 'firewall', 'switch'],
+        expectedCount:   { router: 1, internet: 2, firewall: 1, switch: 1 },
+        requiredCables:  [
+          { from:'router',   to:'internet' },
+          { from:'router',   to:'firewall' },
+          { from:'firewall', to:'switch' },
+        ],
+      },
+    },
   ];
 
   function validateScenarioShape(s) {
