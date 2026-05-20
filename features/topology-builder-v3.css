@@ -156,8 +156,13 @@ html[data-theme="light"] #page-topology-builder-v3 {
 #page-topology-builder-v3 .tb3-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 200px 1fr 56px;
+  /* Default: palette + canvas only. The right rail floats over the canvas
+     as a pill (see .tb3-rrail below) so the canvas grid uses the full
+     remaining width. When the inspector opens, the body re-grids to add
+     the inspector column (see .inspector-open override). */
+  grid-template-columns: 200px 1fr;
   min-height: 0;
+  position: relative;
 }
 
 /* Palette */
@@ -330,32 +335,44 @@ html[data-theme="light"] #page-topology-builder-v3 {
 #page-topology-builder-v3 .tb3-canvas-chip.visible { display: flex; }
 #page-topology-builder-v3 .tb3-canvas-chip .k { color: var(--tb3-text); font-weight: 700; }
 
-/* Right rail (56px) */
+/* Right rail — floats as a pill over the canvas (Figma/Miro pattern) so the
+   canvas grid uses the full available width. When the inspector opens, the
+   rail hides and the inspector takes its own column. */
 #page-topology-builder-v3 .tb3-rrail {
-  border-left: 1px solid var(--tb3-border-soft);
-  background: var(--tb3-surface-2);
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: 1px solid var(--tb3-border);
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--tb3-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex; flex-direction: column; align-items: center;
-  padding: 14px 0;
-  gap: 16px;
+  padding: 6px;
+  gap: 4px;
+  z-index: 10;
 }
 #page-topology-builder-v3 .tb3-rrail-btn {
-  width: 30px; height: 30px;
+  width: 32px; height: 32px;
   display: grid; place-items: center;
   color: var(--tb3-text-dim);
   border-radius: 6px;
   cursor: pointer;
+  transition: color .15s ease, background .15s ease;
 }
 #page-topology-builder-v3 .tb3-rrail-btn:hover {
   color: var(--tb3-accent);
-  background: color-mix(in oklab, var(--tb3-accent) 8%, transparent);
+  background: color-mix(in oklab, var(--tb3-accent) 10%, transparent);
 }
+#page-topology-builder-v3 .tb3-rrail-btn:active { transform: scale(0.94); }
 #page-topology-builder-v3 .tb3-rrail-btn.locked { opacity: 0.35; cursor: default; }
+#page-topology-builder-v3 .tb3-rrail-btn.locked:hover { color: var(--tb3-text-dim); background: transparent; }
 
-/* Inspector panel (expands right rail to 340px) */
+/* Inspector panel — appears as a fixed column on the right when a device is
+   selected. The body re-grids to make room; the floating rrail hides. */
 #page-topology-builder-v3 .tb3-inspector {
   border-left: 1px solid var(--tb3-border-soft);
   background: var(--tb3-surface-2);
-  width: 340px;
   display: none;
   flex-direction: column;
   padding: 18px;
