@@ -922,6 +922,11 @@
     // State access (for tests)
     _getState: function () { return state; },
     _setState: function (s) { state = s; },
+    // Exposed for Playwright tests — synthetic keydown delivery to the
+    // document-level _wireGlobalKeys listener is unreliable across Chromium
+    // versions, so test 07 calls this directly. Same _-prefix precedent as
+    // _getState/_setState.
+    _deleteSelected: function () { _deleteSelected(); },
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
