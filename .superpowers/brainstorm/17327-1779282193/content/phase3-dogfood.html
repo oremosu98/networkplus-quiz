@@ -1,0 +1,117 @@
+<h2>Phase 3 dogfood smoke &middot; 10 steps</h2>
+<p class="subtitle">Run these on <code>http://localhost:3131</code>. If any step fails, ping back with which one + what you saw and I'll fix before we ship Phase 3.</p>
+
+<style>
+  .ds-list{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+  .ds-step{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;
+    padding:14px 16px 16px;
+    display:grid;
+    grid-template-columns:38px 1fr;
+    gap:14px;
+  }
+  .ds-n{
+    font:600 22px/1 'Fraunces',Georgia,serif;
+    color:rgba(212,160,66,.9);
+    letter-spacing:-.02em;
+  }
+  .ds-body{display:flex;flex-direction:column;gap:6px}
+  .ds-t{font:600 14px Inter,sans-serif;color:#f4ebd8;letter-spacing:-.005em}
+  .ds-h{font-size:12px;line-height:1.55;color:#c8baa0}
+  .ds-h code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:3px;color:#f4ebd8}
+  .ds-h .warn{color:rgba(239,164,108,.95);font-weight:600}
+</style>
+
+<div class="ds-list">
+
+  <div class="ds-step">
+    <div class="ds-n">01</div>
+    <div class="ds-body">
+      <div class="ds-t">Open Network Builder from sidebar</div>
+      <div class="ds-h">In the left sidebar, click <b>Network Builder</b> (the FIRST entry). Page opens full-viewport &mdash; sidebar and topbar hide. Confirm the intent chip in the status bar reads <code>Free Build</code>. In the right-rail, verify the rrail icons are visible but the completion pill area is <b>empty</b> (no pill showing in Free Build). Any locked rrail icons should display their lock badges as expected.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">02</div>
+    <div class="ds-body">
+      <div class="ds-t">Drop a router on the canvas</div>
+      <div class="ds-h">From the left palette, drag a <b>Router</b> onto the canvas and release. The device should auto-fill with IP <code>192.168.10.1/24</code> on interface 0. The Inspector panel should open automatically on the right side, showing the <b>L3 interface block</b> populated with: an IP field containing <code>192.168.10.1</code>, a Mask field containing <code>255.255.255.0</code> (or <code>/24</code>), and a delete button for that interface. If the IP block is empty or the Inspector does not open, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">03</div>
+    <div class="ds-body">
+      <div class="ds-t">Drop a workstation</div>
+      <div class="ds-h">From the left palette, drag a <b>Workstation</b> onto the canvas. Auto-fill should give it IP <code>192.168.10.10/24</code> and gateway <code>192.168.10.1</code>. The Inspector should open for the workstation showing: IP field <code>192.168.10.10</code>, Mask field <code>255.255.255.0</code> (or <code>/24</code>), and Gateway field <code>192.168.10.1</code>. All three fields populated. If any field is empty, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">04</div>
+    <div class="ds-body">
+      <div class="ds-t">Connect router &rarr; workstation via cable</div>
+      <div class="ds-h">Press <code>c</code> to enter cable mode (the cursor should change to crosshair and the status bar should show something like <code>Cable mode &middot; click two devices</code>). Click the router, then click the workstation. A cable should appear connecting the two devices on the canvas. Press <code>Esc</code> to exit cable mode. Confirm the cable is visible. <span class="warn">Note:</span> you now have a 2-device Free Build canvas (router + workstation + 1 cable) &mdash; this is your Free Build backup that should persist through steps 5&ndash;9.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">05</div>
+    <div class="ds-body">
+      <div class="ds-t">Open the scenarios picker &mdash; pick &ldquo;Star topology with central switch&rdquo;</div>
+      <div class="ds-h">Click the <b>Scenarios</b> icon in the right-rail. The picker panel slides out from the right. Scroll to the <b>Topology types</b> category and click <b>Star topology with central switch</b>. A confirm dialog appears (your Free Build has content &mdash; it will be saved). Click <b>Accept</b>. The canvas loads with the pre-configured star topology: 1 switch + 1 server + 3 workstations + 4 cables, <b>all with their IPs already configured</b>. Close the picker with the <b>&times;</b> button. Confirm: (a) the intent chip now reads <code>Lab &middot; Star topology with central switch</code> and (b) the completion pill in the right-rail reads <b>GOALS MET</b> with an accent-filled (bright) style. If the pill says anything else, check that all required devices are on canvas with valid IPs.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">06</div>
+    <div class="ds-body">
+      <div class="ds-t">Click the completion pill &mdash; diagnostic drawer opens</div>
+      <div class="ds-h">With the picker closed, click the <b>GOALS MET</b> pill in the right-rail. A diagnostic drawer should slide in from the right. In the empty (all-passing) state, verify the drawer shows: an eyebrow reading <code>DIAGNOSTICS / Goals met</code> (or similar), a body line reading <code>All paths reachable</code> or equivalent, a sub-line like <code>Every required cable type-pair has a working route</code>, and a footer reading <code>UPDATED LIVE AS YOU EDIT</code> (or similar). No failure rows should be visible. If the drawer does not open or shows failure rows, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">07</div>
+    <div class="ds-body">
+      <div class="ds-t">Close the diagnostic drawer</div>
+      <div class="ds-h">Click the <b>&times;</b> button inside the diagnostic drawer (or click outside it if that closes it). The drawer should slide out and the right-rail should return to its normal state with the completion pill visible again. Confirm the pill still reads <b>GOALS MET</b> after closing.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">08</div>
+    <div class="ds-body">
+      <div class="ds-t">Break the scenario &mdash; verify diagnostic updates</div>
+      <div class="ds-h">Click <b>WS-01</b> (or any workstation) on the canvas to select it. The Inspector opens. Find the <b>Gateway</b> field and clear it (select all and delete), then click elsewhere to blur. The completion pill should flip from <b>GOALS MET</b> to <b>1 TO GO</b> (dimmed style). Now click the pill to open the diagnostic drawer. Verify the drawer shows <b>one failure row</b> with a title like <code>SRV-01 &rarr; WS-01</code> (or a similar unreachable-pair label) and a reason like <code>WS-01 has no default gateway.</code> If the pill does not flip or the drawer shows no failure row, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">09</div>
+    <div class="ds-body">
+      <div class="ds-t">Fix the failure &mdash; verify recovery</div>
+      <div class="ds-h">While the diagnostic drawer is open showing the failure row, click the failure row. The drawer should close and the Inspector should open for <b>WS-01</b> (auto-selected). Re-type the gateway <code>192.168.10.1</code> in the Gateway field and blur. Now click the pill again to re-open the drawer. The drawer should show the empty (passing) state again &mdash; <code>All paths reachable</code> and no failure rows. The pill in the right-rail should have flipped back to <b>GOALS MET</b> (accent-filled). If the pill does not recover or the drawer still shows failures, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">10</div>
+    <div class="ds-body">
+      <div class="ds-t">Reload mid-Lab &mdash; state persists + Free Build restores</div>
+      <div class="ds-h">With the scenario still loaded (Lab mode, GOALS MET), <b>reload the page</b>. Navigate back to <b>Network Builder</b> from the sidebar. The scenario should still be loaded &mdash; same devices with their IPs, intent chip reading <code>Lab &middot; Star topology with central switch</code>, completion pill showing <b>GOALS MET</b>. Now click the <b>intent chip</b>. The canvas should clear and the intent chip should change to <code>Free Build</code>. Your original 2-device Free Build canvas from steps 2&ndash;4 (router + workstation + 1 cable, with their auto-filled IPs) should restore. <span class="warn">Critical:</span> both Lab state and the Free Build backup must survive the reload. If the Free Build devices are missing after clicking the intent chip, flag the backup-restore flow.</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:24px;padding:14px 18px;border-left:2px solid rgba(212,160,66,0.7);background:rgba(212,160,66,0.05);font-size:13px;line-height:1.6;color:#c8baa0">
+  <b style="color:#f4ebd8">When all 10 pass</b>: tell me &ldquo;ship Phase 3&rdquo; (or similar) and I&rsquo;ll merge <code>feat/tb-v3-phase3</code> into <code>main</code>, bump the version, expand the CLAUDE.md row, push to main, monitor CI, and prod-verify.
+  <br><br>
+  If any step is broken or feels off: tell me which step + what you saw + what you expected, and I&rsquo;ll fix on the branch before we ship.
+  <br><br>
+  <b style="color:#f4ebd8">Phase 3 known limitation:</b> Scenarios with L3 transit paths (spine-leaf two-spine-to-spine routing, distant-router reachability across multiple hops) currently use a smart-pick strategy that succeeds if <em>any</em> representative pair can route &mdash; not if every possible pair routes. A future Phase 3b can tighten this by adding static-route configuration to the scenario definitions so the validator can verify full-mesh reachability explicitly.
+</div>
