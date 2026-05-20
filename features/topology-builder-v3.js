@@ -283,6 +283,47 @@
         ],
       },
     },
+    {
+      id: 'hybrid-cloud',
+      title: 'Hybrid cloud (on-prem + public cloud)',
+      category: 'cloud',
+      objectiveRefs: ['1.8'],
+      startingState: {
+        devices: [
+          { id: 'sc_hyb_onprem_sw', type: 'switch',   x: 320, y: 360, label: 'ONPREM-SW' },
+          { id: 'sc_hyb_onprem_fw', type: 'firewall', x: 520, y: 360, label: 'EDGE-FW' },
+          { id: 'sc_hyb_vpn',       type: 'vpn',      x: 720, y: 360, label: 'IPSEC-VPN' },
+          { id: 'sc_hyb_cloud',     type: 'cloud',    x: 920, y: 360, label: 'AWS-VPC' },
+          { id: 'sc_hyb_srv',       type: 'server',   x: 320, y: 180, label: 'APP-01' },
+          { id: 'sc_hyb_ws',        type: 'workstation', x: 320, y: 540, label: 'WS-01' },
+        ],
+        cables: [
+          { id: 'sc_hyb_c1', fromId: 'sc_hyb_onprem_sw', toId: 'sc_hyb_srv',       type: 'cat6' },
+          { id: 'sc_hyb_c2', fromId: 'sc_hyb_onprem_sw', toId: 'sc_hyb_ws',        type: 'cat6' },
+          { id: 'sc_hyb_c3', fromId: 'sc_hyb_onprem_sw', toId: 'sc_hyb_onprem_fw', type: 'cat6' },
+          { id: 'sc_hyb_c4', fromId: 'sc_hyb_onprem_fw', toId: 'sc_hyb_vpn',       type: 'fiber' },
+          { id: 'sc_hyb_c5', fromId: 'sc_hyb_vpn',       toId: 'sc_hyb_cloud',     type: 'fiber' },
+        ],
+        viewport: { x: 0, y: 0, zoom: 1 },
+      },
+      brief: 'Hybrid cloud extends on-prem into a public-cloud VPC via an IPsec VPN over the public internet. The model behind most enterprise cloud migrations — keep regulated workloads on-prem, burst stateless ones to AWS/Azure.',
+      examRelevance: {
+        overview:      'On-prem network + public-cloud VPC, joined by VPN (or Direct Connect / ExpressRoute).',
+        howItRoutes:   'On-prem default route hands cloud-bound traffic to the edge firewall, which steers it through the VPN tunnel to the cloud gateway.',
+        keyDevices:    'Edge firewall, VPN gateway (on-prem side), cloud VPC (which hosts its own VPN endpoint).',
+        keyConcepts:   'Site-to-site VPN. Encryption boundary at the VPN gateways. VPC = cloud-side virtual network.',
+        examRelevance: 'N10-009 obj 1.8 — cloud deployment models (hybrid vs public vs private vs community).',
+      },
+      completion: {
+        requiredDevices: ['switch','firewall','vpn','cloud'],
+        expectedCount:   { switch:1, firewall:1, vpn:1, cloud:1 },
+        requiredCables:  [
+          { from:'switch',   to:'firewall' },
+          { from:'firewall', to:'vpn' },
+          { from:'vpn',      to:'cloud' },
+        ],
+      },
+    },
   ];
 
   function validateScenarioShape(s) {
