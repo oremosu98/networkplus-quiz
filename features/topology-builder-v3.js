@@ -214,7 +214,62 @@
   // CANVAS (TASK 2.x)
   // ───────────────────────────────────────────────────────────
 
-  function _renderCanvas() { /* TASK 2.1 */ }
+  function _renderCanvas() {
+    var svg = document.getElementById('tb3-canvas-svg');
+    if (!svg) return;
+
+    var wrap = document.getElementById('tb3-canvas-wrap');
+    var w = wrap.clientWidth;
+    var h = wrap.clientHeight;
+
+    // The viewBox tracks pan + zoom. Logical canvas is infinite; we just shift
+    // the viewBox origin and scale to zoom in/out.
+    var v = state.viewport;
+    var vbW = w / v.zoom;
+    var vbH = h / v.zoom;
+    svg.setAttribute('viewBox', v.x + ' ' + v.y + ' ' + vbW + ' ' + vbH);
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+
+    // Grid pattern — repeats every 40 logical px
+    svg.innerHTML =
+      '<defs>' +
+        '<pattern id="tb3-grid" width="40" height="40" patternUnits="userSpaceOnUse">' +
+          '<path d="M 40 0 L 0 0 0 40" fill="none" stroke="color-mix(in oklab, var(--tb3-text) 6%, transparent)" stroke-width="1"/>' +
+        '</pattern>' +
+      '</defs>' +
+      '<rect class="tb3-canvas-grid" x="' + (v.x - 200) + '" y="' + (v.y - 200) + '" width="' + (vbW + 400) + '" height="' + (vbH + 400) + '" fill="url(#tb3-grid)"/>';
+
+    // Render cables FIRST so they appear behind devices
+    state.cables.forEach(function (cbl) {
+      var fromDev = state.devices.find(function (d) { return d.id === cbl.fromId; });
+      var toDev = state.devices.find(function (d) { return d.id === cbl.toId; });
+      if (!fromDev || !toDev) return;
+      var fx = fromDev.x + 38, fy = fromDev.y + 38; // device center (76/2)
+      var tx = toDev.x + 38, ty = toDev.y + 38;
+      var midX = (fx + tx) / 2, midY = (fy + ty) / 2;
+      // Bezier with control points offset toward each end for organic curves
+      var d = 'M ' + fx + ' ' + fy + ' Q ' + midX + ' ' + midY + ' ' + tx + ' ' + ty;
+      svg.innerHTML += '<path class="tb3-cable" data-cable-id="' + cbl.id + '" d="' + d + '"/>';
+    });
+
+    // Render devices
+    state.devices.forEach(function (dev) {
+      var selected = state.selectedId === dev.id;
+      svg.innerHTML +=
+        '<g class="tb3-dev' + (selected ? ' selected' : '') + '" data-device-id="' + dev.id + '" transform="translate(' + dev.x + ',' + dev.y + ')">' +
+          '<rect class="tb3-dev-rect" x="0" y="0" width="76" height="76" rx="9"/>' +
+          '<text class="tb3-dev-label" x="38" y="50" font-family="Inter">' + (dev.label || dev.id.slice(-4)) + '</text>' +
+          '<text class="tb3-dev-type" x="38" y="66" font-family="Inter">' + dev.type + '</text>' +
+        '</g>';
+    });
+  }
+
+  function _updateZoomDisplay() {
+    var el = document.getElementById('tb3-zoom-pct');
+    if (el) el.textContent = Math.round(state.viewport.zoom * 100) + '%';
+  }
+
   function _wirePanZoom() { /* TASK 2.3 */ }
   function _renderMinimap() { /* TASK 2.5 */ }
 
