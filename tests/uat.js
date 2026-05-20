@@ -20935,6 +20935,39 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
   assert(p.context.wrong_bank_size === 4, 'context.wrong_bank_size');
   assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(p.submitted_at), 'submitted_at ISO Z');
   assert(p.attempt_count === 1, 'attempt_count starts at 1');
+
+  // ── 2. renderIssueBody(payload) ──────────────────────────
+  const renderBodyDecl = _fnBody(reportsSrc, 'renderIssueBody');
+  assert(renderBodyDecl, 'renderIssueBody exists');
+
+  const rbSandbox = { result: null };
+  const rbCode = `
+    ${renderBodyDecl}
+    result = renderIssueBody({
+      id: 'rpt_2026-05-20T14-32-07_a3f9',
+      title: 'streak does not update',
+      description: 'finished a 10-q session, streak stale',
+      steps: null,
+      context: { version: 'v5.5.12', page: '#page-setup', cert: 'netplus-N10-009',
+                 theme: 'light', viewport: '1440x900',
+                 last_quiz: { topic: 'subnetting', score: '7/10', minutes_ago: 2 },
+                 wrong_bank_size: 4 },
+      submitted_at: '2026-05-20T14:32:07Z',
+      attempt_count: 1
+    });
+  `;
+  vm.runInNewContext(rbCode, rbSandbox);
+  const md = sandbox.result = rbSandbox.result;
+  assert(typeof md === 'string', 'renderIssueBody returns string');
+  assert(md.indexOf('## What happened') > -1, 'has What happened section');
+  assert(md.indexOf('finished a 10-q session') > -1, 'has description text');
+  assert(md.indexOf('## Steps to reproduce') > -1, 'has Steps section');
+  assert(md.indexOf('_not provided_') > -1, 'null steps render as italic not provided');
+  assert(md.indexOf('<details>') > -1, 'auto-context collapsible');
+  assert(md.indexOf('Auto-attached context') > -1, 'summary text');
+  assert(md.indexOf('| version | v5.5.12 |') > -1, 'context table row');
+  assert(md.indexOf('| cert | netplus-N10-009 |') > -1, 'cert row');
+  assert(md.indexOf('rpt_2026-05-20T14-32-07_a3f9') > -1, 'footer id');
 })();
 
 // ── Summary ──

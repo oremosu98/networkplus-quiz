@@ -41,7 +41,41 @@
       attempt_count: 1,
     };
   }
-  function renderIssueBody(payload) { return ''; /* TASK 1.4 */ }
+  function renderIssueBody(payload) {
+    var p = payload || {};
+    var c = p.context || {};
+    var lq = c.last_quiz;
+    var lqLine = lq ? (lq.topic + ' · ' + lq.score + ' · ' + lq.minutes_ago + 'm ago') : 'none';
+    var stepsBlock = p.steps ? p.steps : '_not provided_';
+
+    var out = [];
+    out.push('## What happened');
+    out.push('');
+    out.push(p.description || '');
+    out.push('');
+    out.push('## Steps to reproduce');
+    out.push('');
+    out.push(stepsBlock);
+    out.push('');
+    out.push('<details>');
+    out.push('<summary>Auto-attached context</summary>');
+    out.push('');
+    out.push('| field | value |');
+    out.push('|---|---|');
+    out.push('| version | ' + (c.version || '') + ' |');
+    out.push('| page | ' + (c.page || '') + ' |');
+    out.push('| cert | ' + (c.cert || '') + ' |');
+    out.push('| theme | ' + (c.theme || '') + ' |');
+    out.push('| viewport | ' + (c.viewport || '') + ' |');
+    out.push('| last quiz | ' + lqLine + ' |');
+    out.push('| wrong-bank | ' + (typeof c.wrong_bank_size === 'number' ? c.wrong_bank_size : 0) + ' |');
+    out.push('');
+    out.push('</details>');
+    out.push('');
+    out.push('---');
+    out.push('_Filed via in-app reporter · id: ' + (p.id || '') + '_');
+    return out.join('\n');
+  }
   function classifyError(resp) { return null; /* TASK 1.6 */ }
   function enqueueReport(rpt, store) { return store; /* TASK 1.8 */ }
 
