@@ -21074,6 +21074,68 @@ test('reduced-motion gate present', dgCss.includes('prefers-reduced-motion'));
 // Tombstone — STORAGE.BUG_REPORTS must not collide with STORAGE.REPORTS string
 test('BUG_REPORTS does not collide with REPORTS key', !/BUG_REPORTS:\s*'nplus_reports'/.test(appJs));
 
+// ────────────────────────────────────────────────────────────
+// v6.x · Topology Builder v3 Pure Functions (4 fixtures)
+// ────────────────────────────────────────────────────────────
+(function _tbv3Fixtures() {
+  function assert(cond, msg) { test(msg, !!cond); }
+
+  const tbv3Src = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  // ── 1. buildDevice(type, x, y) ─────────────────────────
+  const buildDeviceDecl = _fnBody(tbv3Src, 'buildDevice');
+  assert(buildDeviceDecl, 'buildDevice exists');
+
+  const sandbox = { result: null };
+  vm.runInNewContext(buildDeviceDecl + ' result = buildDevice("router", 100, 200);', sandbox);
+  const d = sandbox.result;
+  assert(d && typeof d === 'object', 'buildDevice returns object');
+  assert(/^dev_[a-z0-9]+_[a-z0-9]{2}$/.test(d.id), 'id matches dev_<hex>_<2hex> pattern');
+  assert(d.type === 'router', 'type passthrough');
+  assert(d.x === 100 && d.y === 200, 'coords passthrough');
+  assert(d.label === '', 'label defaults empty');
+  assert(typeof d.config === 'object', 'config is object');
+
+  // ── 2. buildCable(from, fromPort, to, toPort) ──────────
+  const buildCableDecl = _fnBody(tbv3Src, 'buildCable');
+  assert(buildCableDecl, 'buildCable exists');
+  const csb = { result: null };
+  vm.runInNewContext(buildCableDecl + ' result = buildCable("dev_a", 0, "dev_b", 1);', csb);
+  const c = csb.result;
+  assert(c && /^cbl_/.test(c.id), 'cable id has cbl_ prefix');
+  assert(c.fromId === 'dev_a' && c.toId === 'dev_b', 'endpoints passthrough');
+  assert(c.fromPort === 0 && c.toPort === 1, 'ports passthrough');
+
+  // ── 3. serialiseState(state) ───────────────────────────
+  const serDecl = _fnBody(tbv3Src, 'serialiseState');
+  assert(serDecl, 'serialiseState exists');
+  const ssb = { result: null };
+  vm.runInNewContext(serDecl + ' result = serialiseState({ devices: [{id:"d1",x:0,y:0,type:"router"}], cables: [], viewport: {x:0,y:0,zoom:1}, intent: "free-build", mode: "design", selectedId: "d1" });', ssb);
+  assert(typeof ssb.result === 'string', 'serialiseState returns string');
+  const parsed = JSON.parse(ssb.result);
+  assert(Array.isArray(parsed.devices) && parsed.devices.length === 1, 'devices preserved');
+  assert(parsed.intent === 'free-build', 'intent preserved');
+  assert(!('selectedId' in parsed), 'selectedId NOT serialised (transient only)');
+
+  // ── 4. parseState(json) ────────────────────────────────
+  const parseDecl = _fnBody(tbv3Src, 'parseState');
+  assert(parseDecl, 'parseState exists');
+
+  function callParse(input) {
+    const psb = { result: null };
+    vm.runInNewContext(parseDecl + ' result = parseState(' + JSON.stringify(input) + ');', psb);
+    return psb.result;
+  }
+  const pA = callParse('{"devices":[{"id":"d1"}],"cables":[],"viewport":{"x":50,"y":-30,"zoom":1.5},"intent":"lab","mode":"trace"}');
+  assert(pA.devices.length === 1 && pA.viewport.zoom === 1.5 && pA.intent === 'lab', 'A: full valid input round-trips');
+
+  const pB = callParse('not json at all');
+  assert(pB.devices.length === 0 && pB.viewport.zoom === 1 && pB.intent === 'free-build', 'B: invalid JSON falls back to defaults');
+
+  const pC = callParse('{}');
+  assert(pC.devices.length === 0 && pC.intent === 'free-build' && pC.selectedId === null, 'C: empty object → defaults + selectedId null');
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
