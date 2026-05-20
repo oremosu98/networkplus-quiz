@@ -105,8 +105,44 @@
   // ───────────────────────────────────────────────────────────
 
   var _saveTimer = null;
-  function _saveState() { /* TASK 6.2 */ }
-  function _loadState() { /* TASK 6.3 */ }
+  function _saveState() {
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(function () {
+      try {
+        localStorage.setItem(STORAGE.TB_V3_DRAFT, serialiseState(state));
+        _updateSaveIndicator('saved');
+      } catch (e) {
+        _updateSaveIndicator('error');
+      }
+    }, 500);
+    _updateSaveIndicator('saving');
+  }
+
+  function _updateSaveIndicator(status) {
+    var el = document.getElementById('tb3-status-save');
+    if (!el) return;
+    if (status === 'saving') {
+      el.textContent = '· saving';
+      el.style.color = 'var(--tb3-text-dim)';
+    } else if (status === 'saved') {
+      el.textContent = '· saved';
+      el.style.color = 'var(--tb3-pass)';
+    } else {
+      el.textContent = '· save error';
+      el.style.color = 'var(--tb3-red)';
+    }
+  }
+
+  function _loadState() {
+    try {
+      var json = localStorage.getItem(STORAGE.TB_V3_DRAFT);
+      if (json) {
+        state = parseState(json);
+      }
+    } catch (e) {
+      // Silent — start fresh
+    }
+  }
 
   // ───────────────────────────────────────────────────────────
   // WORKSPACE RENDER (TASK 1.x)
