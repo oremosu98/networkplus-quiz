@@ -203,9 +203,11 @@
       var pages = document.querySelectorAll('.page.active'); return pages.length ? '#' + pages[0].id : 'unknown';
     });
     var cert = safeRead(function(){
-      // Read from CERT_PACK if available; fall back to localStorage CURRENT_CERT
-      if (window.CERT_PACK && window.CERT_PACK.meta) {
-        return (window.CURRENT_CERT || 'netplus') + '-' + window.CERT_PACK.meta.objectiveCode;
+      // Read from CERT_PACK if available; fall back to localStorage CURRENT_CERT.
+      // CERT_PACK.meta.code is the objective code ('N10-009', 'SY0-701'), NOT
+      // 'objectiveCode' (which doesn't exist on the meta object).
+      if (window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.code) {
+        return (window.CURRENT_CERT || 'netplus') + '-' + window.CERT_PACK.meta.code;
       }
       return (window.CURRENT_CERT || 'unknown');
     });

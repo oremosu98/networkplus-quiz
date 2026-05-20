@@ -3754,6 +3754,12 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
    .superpowers/brainstorm/.../components-light-v4-final.html
    ──────────────────────────────────────────────────────────── */
 
+/* [hidden] attribute is overridden by component display:flex rules below;
+   re-assert it for every br-* surface so JS toggling .hidden actually hides. */
+#br-portal [hidden],
+#bug-report-drawer [hidden],
+.br-toast[hidden]{ display:none !important; }
+
 .br-backdrop{
   position:fixed; inset:0; z-index:9000;
   background:color-mix(in oklab, var(--text) 36%, transparent);
@@ -3788,6 +3794,9 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
 .br-title{
   font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:20px;
   letter-spacing:-.012em; line-height:1.1; color:var(--text); margin:0;
+  /* override the global h3{text-transform:uppercase} from styles.css so the
+     locked mockup's mixed-case "Report an issue" reads correctly. */
+  text-transform:none;
 }
 .br-close{
   flex:none; width:30px; height:30px; border-radius:8px;

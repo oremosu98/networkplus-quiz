@@ -34,7 +34,7 @@
 | `index.html` | All page structures (30+ pages: setup, quiz, exam, results, review, subnet, ports, drills launcher, topology, analytics, progress, guided labs, …) + global chrome (sidebar + topbar incl. `#topbar-bug-report` iconbtn that lazy-loads `features/reports.js`) | ~115 KB |
 | `app.js` | All app logic — state, AI calls, rendering, game loops, analytics, 5 activity sub-systems, cloud-flush hooks. Exposes `window.CURRENT_CERT` + `window.CERT_PACK` for lazy-loaded feature modules. | **~2.0 MB / ~32K lines** |
 | `styles.css` | Full dark/light theme styling + account pill + cert switcher + `@media (prefers-reduced-motion)` gate | ~485 KB |
-| `dg-system.css` | Editorial design-system overrides — forged-bronze tokens, scoped page reskins, `.br-*` bug-report drawer block | growing |
+| `dg-system.css` | Editorial design-system overrides — forged-bronze tokens, scoped page reskins, `.br-*` bug-report drawer block (incl. scoped `[hidden]{display:none!important}` since component `display:flex` rules otherwise override the attribute) | growing |
 | `sw.js` | Service worker — stale-while-revalidate, shell-asset precache, 60-entry LRU cap, Supabase API pass-through, auto-update broadcast | ~120 lines |
 | **`lib/supabase.js`** | **Phase C′** — Supabase client init with cookie-backed storage adapter (cross-subdomain session sharing) | ~150 lines |
 | **`lib/supabase-umd.min.js`** | **v4.89.1** — vendored Supabase UMD bundle (was cdn.jsdelivr; vendored after intermittent 503 broke auth) | 197 KB |
