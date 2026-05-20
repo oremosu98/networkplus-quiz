@@ -21272,6 +21272,41 @@ test('v6.x TB v3: STORAGE.TB_V3_DRAFT does not collide with REPORTS', !/TB_V3_DR
   ], cables:[]}, ccComp);
   assert(eD.complete === false, 'D: incomplete on missing cables');
   assert(eD.missingCables.length === 2, 'D: both required pair types flagged');
+
+  // ── 4. backupFreeBuild / restoreFreeBuild ────────────────
+  // These are wrappers over localStorage so we extract bodies + simulate the
+  // localStorage via a stub injected into the sandbox.
+  const bfbDecl = _fnBody(tbv3Src, 'backupFreeBuild');
+  const rfbDecl = _fnBody(tbv3Src, 'restoreFreeBuild');
+  // Dependencies: backup calls serialiseState; restore calls parseState. Prepend both.
+  const ssDecl = _fnBody(tbv3Src, 'serialiseState');
+  const psDecl = _fnBody(tbv3Src, 'parseState');
+  assert(bfbDecl && rfbDecl, 'phase2: backup/restore fns exist');
+
+  // Round-trip in the same sandbox:
+  const sandbox = {
+    _store: {},
+    localStorage: null,
+    STORAGE: { TB_V3_FREEBUILD_BACKUP: 'nplus_tb_v3_freebuild_backup' },
+    out: null,
+  };
+  sandbox.localStorage = {
+    getItem: function (k) { return Object.prototype.hasOwnProperty.call(sandbox._store, k) ? sandbox._store[k] : null; },
+    setItem: function (k, v) { sandbox._store[k] = String(v); },
+    removeItem: function (k) { delete sandbox._store[k]; },
+  };
+
+  const fbState = { devices:[{ id:'d1', type:'router', x:100, y:100, label:'R1' }], cables:[], viewport:{x:0,y:0,zoom:1}, intent:'free-build', mode:'design', selectedId:null, activeScenarioId:null };
+  vm.runInNewContext(ssDecl + ' ' + bfbDecl + ' out = backupFreeBuild(' + JSON.stringify(fbState) + ');', sandbox);
+  assert(sandbox._store['nplus_tb_v3_freebuild_backup'], 'A: backup wrote to STORAGE.TB_V3_FREEBUILD_BACKUP');
+
+  vm.runInNewContext(psDecl + ' ' + rfbDecl + ' out = restoreFreeBuild();', sandbox);
+  assert(sandbox.out && Array.isArray(sandbox.out.devices) && sandbox.out.devices.length === 1, 'B: restore returns prior state');
+  assert(sandbox.out.devices[0].id === 'd1', 'C: device id preserved through round-trip');
+
+  // After restore, the backup is cleared (one-shot).
+  vm.runInNewContext(psDecl + ' ' + rfbDecl + ' out = restoreFreeBuild();', sandbox);
+  assert(sandbox.out === null, 'D: subsequent restore returns null (one-shot)');
 })();
 
 // ── Summary ──

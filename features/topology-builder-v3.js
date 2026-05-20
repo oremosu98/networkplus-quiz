@@ -203,6 +203,33 @@
     };
   }
 
+  // Snapshot the current canvas (when intent === 'free-build') so the user
+  // can load a Lab scenario without losing work. One-shot restore.
+  function backupFreeBuild(s) {
+    try {
+      localStorage.setItem(STORAGE.TB_V3_FREEBUILD_BACKUP, serialiseState(s));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Returns the parsed prior state and clears the backup. Returns null if no backup exists.
+  function restoreFreeBuild() {
+    try {
+      var json = localStorage.getItem(STORAGE.TB_V3_FREEBUILD_BACKUP);
+      if (!json) return null;
+      var parsed = parseState(json);
+      localStorage.removeItem(STORAGE.TB_V3_FREEBUILD_BACKUP);
+      // Force intent back to free-build (the backup IS the free-build canvas).
+      parsed.intent = 'free-build';
+      parsed.activeScenarioId = null;
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ───────────────────────────────────────────────────────────
   // SAVE / LOAD (TASK 6.x)
   // ───────────────────────────────────────────────────────────
@@ -1027,6 +1054,8 @@
     validateScenarioShape: validateScenarioShape,
     loadScenarioOnCanvas: loadScenarioOnCanvas,
     checkCompletion: checkCompletion,
+    backupFreeBuild: backupFreeBuild,
+    restoreFreeBuild: restoreFreeBuild,
     // State access (for tests)
     _getState: function () { return state; },
     _setState: function (s) { state = s; },
