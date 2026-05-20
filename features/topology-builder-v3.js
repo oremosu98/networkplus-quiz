@@ -607,7 +607,70 @@
   // CABLES (TASK 4.x)
   // ───────────────────────────────────────────────────────────
 
-  function _wireCableDrawing() { /* TASK 4.1 */ }
+  function _wireCableDrawing() {
+    var canvas = document.getElementById('tb3-canvas-wrap');
+    if (!canvas) return;
+
+    var pendingFromId = null;
+
+    // Toggle cable mode by clicking a device while no movement happened
+    // Heuristic: a fast click (mousedown+mouseup within 200ms, no move) starts/completes a cable.
+    // (The drag handler in Task 3.3 only fires moveDev if mouse moves >0px which is fine in practice.)
+
+    // For simplicity Phase 1: dedicated keyboard shortcut "C" enters cable mode.
+    // While in cable mode: first device click sets pendingFromId, second device click creates the cable.
+    var cableMode = false;
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'c' || e.key === 'C') {
+        if (!document.getElementById('page-topology-builder-v3').classList.contains('active')) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        cableMode = !cableMode;
+        pendingFromId = null;
+        canvas.style.cursor = cableMode ? 'crosshair' : '';
+        _updateStatus('cable-mode', cableMode ? 'cable' : 'design');
+      }
+      if (e.key === 'Escape') {
+        cableMode = false;
+        pendingFromId = null;
+        canvas.style.cursor = '';
+        _updateStatus('cable-mode', 'design');
+      }
+    });
+
+    canvas.addEventListener('click', function (e) {
+      if (!cableMode) return;
+      var g = e.target.closest('.tb3-dev');
+      if (!g) return;
+      var id = g.getAttribute('data-device-id');
+      if (!pendingFromId) {
+        pendingFromId = id;
+        _updateStatus('cable-pending', 'pending');
+        return;
+      }
+      if (pendingFromId !== id) {
+        var cbl = buildCable(pendingFromId, 0, id, 0);
+        state.cables.push(cbl);
+        _renderCanvas();
+        _renderMinimap();
+        _updateDeviceCount();
+        _saveState();
+      }
+      pendingFromId = null;
+      cableMode = false;
+      canvas.style.cursor = '';
+      _updateStatus('cable-done', 'design');
+    });
+  }
+
+  function _updateStatus(reason, mode) {
+    var el = document.getElementById('tb3-status-mode');
+    if (!el) return;
+    if (mode === 'cable') el.textContent = 'Cable mode · click two devices';
+    else if (mode === 'pending') el.textContent = 'Cable mode · click second device';
+    else el.textContent = 'Design';
+  }
+
   function _renderCables() { /* TASK 4.2 */ }
 
   // ───────────────────────────────────────────────────────────
