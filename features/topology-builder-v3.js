@@ -591,6 +591,7 @@
       // Silent — start fresh
     }
     _renderIntentChip(); // Task 4.1 (phase 2) — restore chip after state reload
+    _renderCompletionPill(); // Task 6.1 (phase 2) — restore pill after state reload
   }
 
   // ───────────────────────────────────────────────────────────
@@ -651,6 +652,7 @@
           '</div>' +
         '</div>' +
         '<div class="tb3-rrail" id="tb3-rrail">' +
+          '<div id="tb3-completion-pill" class="tb3-completion-pill" hidden></div>' +
           '<div class="tb3-rrail-btn locked" title="Inspector (active when device selected)">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>' +
           '</div>' +
@@ -689,6 +691,7 @@
     _wireExport();      // Task 8.2
     _wireIntent();      // Task 4.1 (phase 2)
     _renderIntentChip();// Task 4.1 (phase 2)
+    _renderCompletionPill(); // Task 6.1 (phase 2)
   }
 
   function _updateDeviceCount() {
@@ -809,6 +812,7 @@
         panning = false;
         wrap.classList.remove('grabbing');
         _saveState();
+        _renderCompletionPill();
       }
     });
 
@@ -834,6 +838,7 @@
       _renderMinimap();
       _updateZoomDisplay();
       _saveState();
+      _renderCompletionPill();
     }, { passive: false });
 
     // Zoom buttons
@@ -860,6 +865,7 @@
     _renderMinimap();
     _updateZoomDisplay();
     _saveState();
+    _renderCompletionPill();
   }
 
   function _renderMinimap() {
@@ -1045,6 +1051,7 @@
       _updateDeviceCount();
       _renderInspector();
       _saveState();
+      _renderCompletionPill();
       draggedType = null;
     });
 
@@ -1088,6 +1095,7 @@
       if (movingDev) {
         movingDev = null;
         _saveState();
+        _renderCompletionPill();
       }
     });
   }
@@ -1144,6 +1152,7 @@
         _renderMinimap();
         _updateDeviceCount();
         _saveState();
+        _renderCompletionPill();
       }
       pendingFromId = null;
       cableMode = false;
@@ -1203,6 +1212,7 @@
     _renderInspector();
     _updateSelectionChip();
     _saveState();
+    _renderCompletionPill();
   }
 
   function _renderInspector() {
@@ -1245,12 +1255,43 @@
         dev.label = labelInput.value;
         _renderCanvas();
         _saveState();
+        _renderCompletionPill();
       });
     }
   }
 
   function _escAttr(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // COMPLETION PILL (Task 6.1 — phase 2)
+  // ───────────────────────────────────────────────────────────
+
+  function _renderCompletionPill() {
+    var pill = document.getElementById('tb3-completion-pill');
+    if (!pill) return;
+
+    if (state.intent !== 'lab' || !state.activeScenarioId) {
+      pill.hidden = true;
+      pill.classList.remove('on');
+      pill.textContent = '';
+      return;
+    }
+
+    var scen = TB_V3_SCENARIOS.find(function (s) { return s.id === state.activeScenarioId; });
+    if (!scen || !scen.completion) { pill.hidden = true; return; }
+
+    var res = checkCompletion(state, scen.completion);
+    pill.hidden = false;
+    if (res.complete) {
+      pill.classList.add('on');
+      pill.textContent = 'Goals met';
+    } else {
+      pill.classList.remove('on');
+      var missing = (res.missingDevices.length + res.deviceCountMismatch.length + res.missingCables.length);
+      pill.textContent = missing + ' to go';
+    }
   }
 
   // ───────────────────────────────────────────────────────────
@@ -1362,6 +1403,7 @@
     _renderPickerPanel();    // re-render so the picked row gets '.on'
     _renderIntentChip();     // Task 4.1 (phase 2) — update chip to Lab · {title}
     _saveState();
+    _renderCompletionPill();
   }
 
   function _wireGlobalKeys() {
@@ -1435,6 +1477,7 @@
         _renderIntentChip();
         _renderPickerPanel();
         _saveState();
+        _renderCompletionPill();
       }
     });
   }
@@ -1465,6 +1508,7 @@
         _renderModeBar();
         _updateStatus('mode-change', mode);
         _saveState();
+        _renderCompletionPill();
       });
     });
   }
@@ -1550,6 +1594,7 @@
     _loadScenario: function (id) { _onPickerRowActivate(id); },
     _openPicker: _openPicker,
     _closePicker: _closePicker,
+    _renderCompletionPill: _renderCompletionPill,
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler

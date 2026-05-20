@@ -479,6 +479,25 @@ html[data-theme="light"] #page-topology-builder-v3 {
   background: var(--tb3-accent-deep);
 }
 
+/* Completion pill (Task 6.1 phase 2) */
+#page-topology-builder-v3 .tb3-completion-pill {
+  font-size: 10px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid var(--tb3-border);
+  border-radius: 999px;
+  color: var(--tb3-text-dim);
+  background: var(--tb3-surface);
+  white-space: nowrap;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+#page-topology-builder-v3 .tb3-completion-pill.on {
+  color: var(--tb3-on-accent);
+  background: var(--tb3-pass);
+  border-color: var(--tb3-pass);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 *,
