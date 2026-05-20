@@ -29,11 +29,18 @@
   // CSS LOADING (single-call from enter())
   // ───────────────────────────────────────────────────────────
 
+  // CSS revision counter — manually bumped after each CSS edit during dev
+  // iteration. Forces SW + browser cache miss on the .css URL even when
+  // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
+  // APP_VERSION will be the canonical cache key and this constant can be
+  // retired (or kept at .0 forever).
+  var TB3_CSS_REV = 'r2';
+
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/features/topology-builder-v3.css?v=' + (window.APP_VERSION || 'dev');
+    link.href = '/features/topology-builder-v3.css?v=' + (window.APP_VERSION || 'dev') + '-' + TB3_CSS_REV;
     document.head.appendChild(link);
   }
 
