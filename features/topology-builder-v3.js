@@ -724,8 +724,8 @@
           { id: 'sc_wls_ap1', type: 'ap',         x: 360, y: 540, label: 'AP-01' },
           { id: 'sc_wls_ap2', type: 'ap',         x: 600, y: 540, label: 'AP-02' },
           { id: 'sc_wls_ap3', type: 'ap',         x: 840, y: 540, label: 'AP-03' },
-          { id: 'sc_wls_cli1',type: 'smartphone', x: 280, y: 700, label: 'PHONE' },
-          { id: 'sc_wls_cli2',type: 'laptop',     x: 520, y: 700, label: 'LAPTOP' },
+          { id: 'sc_wls_cli1',type: 'smartphone', x: 280, y: 700, label: 'PHONE',  config:{ ip:'192.168.10.20', mask:24, gateway:'192.168.10.1' } },
+          { id: 'sc_wls_cli2',type: 'laptop',     x: 520, y: 700, label: 'LAPTOP', config:{ ip:'192.168.10.21', mask:24, gateway:'192.168.10.1' } },
         ],
         cables: [
           { id: 'sc_wls_c1', fromId: 'sc_wls_wlc', toId: 'sc_wls_sw',  type: 'cat6' },
@@ -1258,12 +1258,12 @@
       objectiveRefs: ['2.4'],
       startingState: {
         devices: [
-          { id: 'sc_wm_rtr', type: 'router',     x: 520, y: 160, label: 'GATEWAY' },
+          { id: 'sc_wm_rtr', type: 'router',     x: 520, y: 160, label: 'GATEWAY', interfaces:[{ ip:'192.168.10.1', mask:24 }] },
           { id: 'sc_wm_sw',  type: 'switch',     x: 520, y: 320, label: 'LAN-SW' },
           { id: 'sc_wm_ap1', type: 'ap',         x: 320, y: 480, label: 'AP-1 (root)' },
           { id: 'sc_wm_ap2', type: 'ap',         x: 520, y: 480, label: 'AP-2 (mesh)' },
           { id: 'sc_wm_ap3', type: 'ap',         x: 720, y: 480, label: 'AP-3 (mesh)' },
-          { id: 'sc_wm_phn', type: 'smartphone', x: 920, y: 480, label: 'CLIENT' },
+          { id: 'sc_wm_phn', type: 'smartphone', x: 920, y: 480, label: 'CLIENT',     config:{ ip:'192.168.10.20', mask:24, gateway:'192.168.10.1' } },
         ],
         cables: [
           { id: 'sc_wm_c1', fromId: 'sc_wm_rtr', toId: 'sc_wm_sw',  type: 'cat6' },
@@ -1302,7 +1302,7 @@
           { id: 'sc_wb_apa',  type: 'ap',     x: 440, y: 320, label: 'AP-A (bridge)' },
           { id: 'sc_wb_apb',  type: 'ap',     x: 760, y: 320, label: 'AP-B (bridge)' },
           { id: 'sc_wb_swb',  type: 'switch', x: 960, y: 480, label: 'SW-B' },
-          { id: 'sc_wb_lap',  type: 'laptop', x: 240, y: 640, label: 'LAPTOP-A' },
+          { id: 'sc_wb_lap',  type: 'laptop', x: 240, y: 640, label: 'LAPTOP-A', config:{ ip:'192.168.10.20', mask:24 } },
         ],
         cables: [
           { id: 'sc_wb_c1', fromId: 'sc_wb_swa', toId: 'sc_wb_apa', type: 'cat6' },
