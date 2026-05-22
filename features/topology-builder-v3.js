@@ -2166,6 +2166,10 @@
 
     canvas.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return; // left click only
+      // Skip in cable mode — the cable handler owns clicks on devices.
+      // _renderCanvas() detaches the click target on every mousedown,
+      // which would break e.target.closest('.tb3-dev') in the cable handler.
+      if (canvas.style.cursor === 'crosshair') return;
       // Find a device group ancestor
       var g = e.target.closest('.tb3-dev');
       if (!g) return;
@@ -2402,9 +2406,12 @@
 
     insp.innerHTML =
       '<div style="display:flex;flex-direction:column;gap:14px">' +
-        '<div>' +
-          '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tb3-text-dim);margin-bottom:6px">Inspector</div>' +
-          '<h3 style="font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;letter-spacing:-.01em;margin:0;color:var(--tb3-text);text-transform:none">' + def.label + '</h3>' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">' +
+          '<div>' +
+            '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--tb3-text-dim);margin-bottom:6px">Inspector</div>' +
+            '<h3 style="font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;letter-spacing:-.01em;margin:0;color:var(--tb3-text);text-transform:none">' + def.label + '</h3>' +
+          '</div>' +
+          '<button type="button" id="tb3-insp-close" aria-label="Close Inspector" style="background:transparent;border:0;color:var(--tb3-text-dim);font-size:22px;line-height:1;padding:4px 8px;cursor:pointer;margin:-4px -4px 0 0">&times;</button>' +
         '</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px">' +
           '<label style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--tb3-text-dim)">Label</label>' +
@@ -2423,6 +2430,16 @@
         _renderCanvas();
         _saveState();
         _renderCompletionPill();
+      });
+    }
+
+    var closeBtn = document.getElementById('tb3-insp-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        state.selectedId = null;
+        _renderCanvas();
+        _renderInspector();
+        _updateSelectionChip();
       });
     }
 
