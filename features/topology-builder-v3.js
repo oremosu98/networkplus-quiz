@@ -1749,6 +1749,27 @@
         '<div class="tb3-inspector" id="tb3-inspector"></div>' +
         '<div class="tb3-picker" id="tb3-picker"></div>' +
         '<aside class="tb3-diagnostic" id="tb3-diagnostic" role="dialog" aria-labelledby="tb3-diagnostic-title"></aside>' +
+        '<aside id="tb3-simulate-panel" aria-label="Simulate panel">' +
+          '<div class="tb3-sim-head">' +
+            '<div>' +
+              '<div class="tb3-sim-eyebrow">Simulate</div>' +
+              '<h3 class="tb3-sim-title">Packet drill</h3>' +
+            '</div>' +
+            '<button type="button" id="tb3-sim-close" aria-label="Close Simulate">&times;</button>' +
+          '</div>' +
+          '<div id="tb3-sim-preview-section" class="tb3-sim-section" hidden>' +
+            '<div class="tb3-sim-section-h">Validator preview</div>' +
+            '<button type="button" id="tb3-sim-preview-btn">Replay validator paths</button>' +
+          '</div>' +
+          '<div id="tb3-sim-drill-section" class="tb3-sim-section">' +
+            '<div class="tb3-sim-section-h">Drill</div>' +
+            '<div id="tb3-sim-drill-controls"></div>' +
+          '</div>' +
+          '<div id="tb3-sim-log-section" class="tb3-sim-section">' +
+            '<div class="tb3-sim-section-h">Log</div>' +
+            '<div id="tb3-sim-log"></div>' +
+          '</div>' +
+        '</aside>' +
       '</div>' +
 
       // Status bar
