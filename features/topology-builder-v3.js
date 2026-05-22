@@ -3376,6 +3376,93 @@
     host.scrollTop = host.scrollHeight;
   }
 
+  function _runValidatorPreview() {
+    var scen = TB_V3_SCENARIOS.find(function (s) { return s.id === state.activeScenarioId; });
+    if (!scen || !scen.completion) return;
+
+    var completion = scen.completion;
+    var reach = computeReachability(state, completion);
+    var failures = (reach && reach.failures) || [];
+
+    // Build the pair queue from required cables.
+    var queue = [];
+    (completion.requiredCables || []).forEach(function (req, idx) {
+      // Smart-pick: first device of fromType + first device of toType
+      var srcDev = state.devices.find(function (d) { return d.type === req.from; });
+      var dstDev = state.devices.find(function (d) { return d.type === req.to && d.id !== (srcDev && srcDev.id); });
+      if (!srcDev || !dstDev) return;
+      var fail = failures.find(function (f) { return f.from === srcDev.id && f.to === dstDev.id; });
+      queue.push({
+        idx: idx,
+        pair: { fromType: req.from, toType: req.to },
+        srcId: srcDev.id,
+        dstId: dstDev.id,
+        protocol: 'ping',
+        expected: fail ? 'fail' : 'ok',
+        failedAt: fail ? fail.failedAt : null,
+        failReason: fail ? fail.reason : null,
+      });
+    });
+
+    if (queue.length === 0) return;
+
+    _simState.previewQueue = queue;
+    _simState.playing = true;
+    _setPreviewHeader('running');
+
+    _runNextPreviewPair();
+  }
+
+  function _runNextPreviewPair() {
+    if (!_simState.playing || _simState.previewQueue.length === 0) {
+      _simState.playing = false;
+      _setPreviewHeader('idle');
+      return;
+    }
+    var pair = _simState.previewQueue.shift();
+    var path;
+    if (pair.expected === 'fail') {
+      path = [pair.srcId, pair.failedAt];
+    } else {
+      var result = computePath(pair.srcId, pair.dstId, state);
+      path = result.ok ? result.hops : [pair.srcId, pair.dstId];
+    }
+    _animatePacket({
+      path: path,
+      protocol: pair.protocol,
+      failedAt: pair.expected === 'fail' ? pair.failedAt : null,
+      failReason: pair.failReason,
+      onLog: _appendLogEntry,
+      onComplete: function () {
+        _appendLogEntry({
+          ts: Date.now(),
+          protocol: pair.protocol,
+          text: pair.expected === 'ok'
+            ? (pair.srcId + ' → ' + pair.dstId + ' · ' + pair.protocol + ' reached')
+            : (pair.srcId + ' → ' + pair.dstId + ' · stopped at ' + pair.failedAt),
+          failure: pair.expected === 'fail',
+          pair: { path: path, protocol: pair.protocol, failedAt: pair.failedAt, failReason: pair.failReason },
+        });
+        var gap = _reducedMotion() ? 200 : 600;
+        setTimeout(_runNextPreviewPair, gap);
+      },
+    });
+  }
+
+  function _setPreviewHeader(state_) {
+    var section = document.getElementById('tb3-sim-preview-section');
+    if (!section) return;
+    var btn = section.querySelector('#tb3-sim-preview-btn');
+    if (!btn) return;
+    if (state_ === 'running') {
+      btn.textContent = 'Stop';
+      btn.classList.add('is-running');
+    } else {
+      btn.textContent = 'Replay validator paths';
+      btn.classList.remove('is-running');
+    }
+  }
+
   function _wireSimulate() {
     var panel = document.getElementById('tb3-simulate-panel');
     if (!panel) return;
@@ -3401,6 +3488,38 @@
     });
     var sendBtn = panel.querySelector('#tb3-sim-send');
     if (sendBtn) sendBtn.onclick = _onDrillSend;
+    var previewBtn = panel.querySelector('#tb3-sim-preview-btn');
+    if (previewBtn) {
+      previewBtn.onclick = function () {
+        if (_simState.playing) {
+          _simState.playing = false;
+          _simState.previewQueue = [];
+          if (_simState.currentPacket) cancelAnimationFrame(_simState.currentPacket);
+          _setPreviewHeader('idle');
+        } else {
+          _runValidatorPreview();
+        }
+      };
+    }
+    var logHost = panel.querySelector('#tb3-sim-log');
+    if (logHost) {
+      logHost.onclick = function (e) {
+        var row = e.target.closest('.tb3-sim-log-row');
+        if (!row) return;
+        var idx = parseInt(row.getAttribute('data-log-idx'), 10);
+        if (isNaN(idx)) return;
+        var entry = _simState.log[idx];
+        if (!entry || !entry.pair) return;
+        // Re-play the pair via _animatePacket.
+        _animatePacket({
+          path: entry.pair.path,
+          protocol: entry.pair.protocol,
+          failedAt: entry.pair.failedAt,
+          failReason: entry.pair.failReason,
+          onLog: _appendLogEntry,
+        });
+      };
+    }
   }
 
   function _onDrillSend() {
