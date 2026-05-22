@@ -3025,6 +3025,54 @@
     btn.disabled = !ok;
   }
 
+  // ───────────────────────────────────────────────────────────
+  // STAGE 4.3 — Animation orchestrator + per-protocol motion stubs
+  // ───────────────────────────────────────────────────────────
+
+  function _animatePacket(spec) {
+    // spec = { path: [deviceId, …], protocol: 'ping'|'arp'|'dhcp',
+    //         onComplete, onFailedAt, onLog, failedAt? }
+    if (!spec || !spec.path || spec.path.length < 2) {
+      if (spec && spec.onComplete) spec.onComplete();
+      return;
+    }
+    var proto = spec.protocol || 'ping';
+    var motion = ({ ping: _motionPing, arp: _motionArp, dhcp: _motionDhcp })[proto];
+    if (!motion) {
+      if (spec.onComplete) spec.onComplete();
+      return;
+    }
+    motion(spec);
+  }
+
+  function _motionPing(spec) {
+    // Implemented in Stage 5.
+    _appendLogEntry({
+      ts: Date.now(),
+      protocol: 'ping',
+      text: 'ping ' + spec.path[0] + ' → ' + spec.path[spec.path.length - 1] + ' (motion stub)',
+      failure: false,
+    });
+  }
+  function _motionArp(spec) {
+    // Implemented in Stage 6.
+    _appendLogEntry({
+      ts: Date.now(),
+      protocol: 'arp',
+      text: 'ARP ' + spec.path[0] + ' → ' + spec.path[spec.path.length - 1] + ' (motion stub)',
+      failure: false,
+    });
+  }
+  function _motionDhcp(spec) {
+    // Implemented in Stage 7.
+    _appendLogEntry({
+      ts: Date.now(),
+      protocol: 'dhcp',
+      text: 'DHCP ' + spec.path[0] + ' → ' + spec.path[spec.path.length - 1] + ' (motion stub)',
+      failure: false,
+    });
+  }
+
   function _appendLogEntry(entry) {
     // entry = { ts, protocol, text, failure?, pair? }
     _simState.log.push(entry);
@@ -3085,14 +3133,18 @@
   }
 
   function _onDrillSend() {
-    // Stage 4 + 5 fill this in. For now: log a placeholder entry.
-    _simState.log.push({
-      ts: Date.now(),
-      text: 'Drill: ' + (_simState.drillProtocol || 'ping') + ' from ' +
-        _simState.drillSrcId + ' to ' + _simState.drillDstId + ' (animation pending)',
-      failure: false,
+    if (!_simState.drillSrcId || !_simState.drillDstId) return;
+    if (_simState.drillSrcId === _simState.drillDstId) return;
+    var result = computePath(_simState.drillSrcId, _simState.drillDstId, state);
+    // computePath returns {ok, hops?, reason?, failedAt?} — hops is the path array
+    var path = result.ok ? result.hops : (result.hops || [_simState.drillSrcId]);
+    _animatePacket({
+      path: path,
+      protocol: _simState.drillProtocol,
+      failedAt: result.ok ? null : result.failedAt,
+      failReason: result.ok ? null : result.reason,
+      onLog: _appendLogEntry,
     });
-    _renderSimLog();
   }
 
   function _wireGlobalKeys() {

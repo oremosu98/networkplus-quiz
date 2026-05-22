@@ -21667,6 +21667,14 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   // Stage 3 guards
   test('phase4: canvas click handler dispatches to Simulate-mode device picker',
     /state\.mode\s*===\s*'simulate'[\s\S]{0,400}closest\('\.tb3-dev'\)/.test(tbv3SrcP4));
+
+  // Stage 4 guards
+  test('phase4: animation engine + 3 per-protocol motion fns defined',
+    /function\s+_motionPing\s*\(|var\s+_motionPing\s*=/.test(tbv3SrcP4) &&
+    /function\s+_motionArp\s*\(|var\s+_motionArp\s*=/.test(tbv3SrcP4) &&
+    /function\s+_motionDhcp\s*\(|var\s+_motionDhcp\s*=/.test(tbv3SrcP4) &&
+    /function\s+_animatePacket\s*\(/.test(tbv3SrcP4)
+  );
 })();
 
 // ── Summary ──
