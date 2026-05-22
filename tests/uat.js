@@ -21679,6 +21679,17 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     'phase4: failure UX uses _failDevice + Phase 3 REACH_REASON_TEMPLATES',
     /_failDevice\s*\(/.test(tbv3SrcP4) && /REACH_REASON_TEMPLATES/.test(tbv3SrcP4)
   );
+
+  // Stage 10.1 guards — reduced-motion paths
+  test(
+    'phase4: _reducedMotion check is used in motion fns',
+    /_reducedMotion\s*\(\s*\)/.test(tbv3SrcP4)
+  );
+
+  test(
+    'phase4: reduced-motion CSS gate covers packet + dev-failing + panel',
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?(tb3-dev-failing|tb3-packet|tb3-simulate-panel)/m.test(tbv3Css)
+  );
 })();
 
 // ── Summary ──
