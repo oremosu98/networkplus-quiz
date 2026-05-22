@@ -21645,6 +21645,13 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   })());
 })();
 
+(function _tbv3Phase4Fixtures() {
+  const tbv3SrcP4 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('phase4: Simulate pill is no longer locked in _renderModeBar',
+    !/\{\s*id:\s*'simulate',[^}]*locked:\s*true/.test(tbv3SrcP4));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

@@ -26,6 +26,17 @@
     activeScenarioId: null, // phase 2: id of currently-loaded scenario when intent === 'lab'
   };
 
+  // Ephemeral Simulate-mode state (Phase 4) — NOT persisted, cleared on mode exit
+  var _simState = {
+    drillSrcId: null,        // device id
+    drillDstId: null,        // device id
+    drillProtocol: 'ping',   // 'ping' | 'arp' | 'dhcp'
+    previewQueue: [],        // validator-preview pairs waiting
+    currentPacket: null,     // in-flight animation handle for cancel
+    log: [],                 // entries; max 200; FIFO trim
+    playing: false,          // true while Validator Preview queue is running
+  };
+
   // ───────────────────────────────────────────────────────────
   // CSS LOADING (single-call from enter())
   // ───────────────────────────────────────────────────────────
@@ -35,7 +46,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r8'; // r8: Phase 3 diagnostic drawer + Inspector IP fields CSS appended
+  var TB3_CSS_REV = 'r9'; // r9: Phase 4 Simulate mode substrate CSS appended
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -2902,7 +2913,7 @@
     if (!row) return;
     var modes = [
       { id: 'design',   label: 'Design',   icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',           locked: false },
-      { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>',                                                                                                                                                                       locked: true },
+      { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
       { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>',                                                                                                                                                          locked: true },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>',                                                                                                                                                       locked: true },
       { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
