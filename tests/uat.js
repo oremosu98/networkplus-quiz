@@ -21650,6 +21650,13 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
 
   test('phase4: Simulate pill is no longer locked in _renderModeBar',
     !/\{\s*id:\s*'simulate',[^}]*locked:\s*true/.test(tbv3SrcP4));
+
+  test('phase4: _renderSimulatePanel is defined',
+    /function\s+_renderSimulatePanel\s*\(/.test(tbv3SrcP4));
+  test('phase4: _openSimulate is defined',
+    /function\s+_openSimulate\s*\(/.test(tbv3SrcP4));
+  test('phase4: _closeSimulate is defined',
+    /function\s+_closeSimulate\s*\(/.test(tbv3SrcP4));
 })();
 
 // ── Summary ──
