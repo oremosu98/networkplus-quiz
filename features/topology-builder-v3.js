@@ -3025,14 +3025,36 @@
     btn.disabled = !ok;
   }
 
+  function _appendLogEntry(entry) {
+    // entry = { ts, protocol, text, failure?, pair? }
+    _simState.log.push(entry);
+    if (_simState.log.length > 200) _simState.log.shift();
+    _renderSimLog();
+  }
+
   function _renderSimLog() {
     var host = document.getElementById('tb3-sim-log');
     if (!host) return;
     if (_simState.log.length === 0) {
-      host.innerHTML = '<div style="font-size:11px;color:var(--tb3-text-dim);font-style:italic">No packets fired yet.</div>';
+      host.innerHTML = '<div class="tb3-sim-log-empty">No packets fired yet.</div>';
       return;
     }
-    // Real log rendering in Stage 4.x
+    var rows = _simState.log.map(function (e, idx) {
+      var date = new Date(e.ts);
+      var ts = ('0' + date.getHours()).slice(-2) + ':' +
+               ('0' + date.getMinutes()).slice(-2) + ':' +
+               ('0' + date.getSeconds()).slice(-2) + '.' +
+               ('00' + date.getMilliseconds()).slice(-3);
+      var cls = 'tb3-sim-log-row' + (e.failure ? ' fail' : '');
+      var prefix = e.failure ? '✗' : '·';
+      return '<div class="' + cls + '" data-log-idx="' + idx + '">' +
+               '<span class="tb3-sim-log-prefix">' + prefix + '</span>' +
+               '<span class="tb3-sim-log-ts">' + ts + '</span>' +
+               '<span class="tb3-sim-log-text">' + _escAttr(e.text) + '</span>' +
+             '</div>';
+    }).join('');
+    host.innerHTML = rows;
+    host.scrollTop = host.scrollHeight;
   }
 
   function _wireSimulate() {

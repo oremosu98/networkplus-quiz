@@ -932,3 +932,35 @@ html[data-theme="light"] #page-topology-builder-v3 {
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 .tb3-packet { animation: none; transition: none }
 }
+
+/* ── Stage 4.2 — Sim log ────────────────────────────────────── */
+#page-topology-builder-v3 #tb3-sim-log {
+  background: oklch(0.13 0.009 275);
+  border: 1px solid var(--tb3-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+#page-topology-builder-v3 .tb3-sim-log-empty {
+  color: var(--tb3-text-dim);
+  font-style: italic;
+}
+#page-topology-builder-v3 .tb3-sim-log-row {
+  display: grid;
+  grid-template-columns: 14px 70px 1fr;
+  gap: 6px;
+  padding: 2px 0;
+  color: var(--tb3-text);
+  cursor: pointer;
+}
+#page-topology-builder-v3 .tb3-sim-log-row:hover { background: color-mix(in oklab, var(--tb3-text) 4%, transparent) }
+#page-topology-builder-v3 .tb3-sim-log-row.fail .tb3-sim-log-text,
+#page-topology-builder-v3 .tb3-sim-log-row.fail .tb3-sim-log-prefix {
+  color: var(--tb3-pkt-failure);
+}
+#page-topology-builder-v3 .tb3-sim-log-prefix { color: var(--tb3-text-dim) }
+#page-topology-builder-v3 .tb3-sim-log-ts { color: var(--tb3-text-dim) }
