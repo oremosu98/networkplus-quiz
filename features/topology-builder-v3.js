@@ -2930,6 +2930,10 @@
       }
       if (e.key === 'Escape') {
         var body = document.getElementById('tb3-body');
+        if (body && body.classList.contains('simulate-open')) {
+          _closeSimulate();
+          return;
+        }
         if (body && body.classList.contains('diagnostic-open')) { _closeDiagnostic(); return; }
         if (document.getElementById('tb3-body').classList.contains('picker-open')) {
           _closePicker();
@@ -3016,6 +3020,10 @@
       el.addEventListener('click', function () {
         if (el.classList.contains('locked')) return;
         var mode = el.getAttribute('data-mode');
+        if (mode === 'simulate') {
+          _openSimulate();
+          return;
+        }
         if (mode === state.mode) return;
         state.mode = mode;
         _renderModeBar();
