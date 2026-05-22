@@ -855,3 +855,72 @@ html[data-theme="light"] #page-topology-builder-v3 {
   color: var(--tb3-text-dim);
   margin-bottom: 8px;
 }
+
+/* ── Stage 3: Drill controls ─────────────────────────────── */
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-field {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-field-l {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--tb3-text-dim);
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-input {
+  background: var(--tb3-bg-2, var(--tb3-bg));
+  border: 1px solid var(--tb3-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--tb3-text);
+  font-size: 12px;
+  font-family: Inter, system-ui, sans-serif;
+  width: 100%;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-proto-row {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-proto {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--tb3-border);
+  border-radius: 6px;
+  padding: 6px 4px;
+  font-size: 11px;
+  color: var(--tb3-text-dim);
+  cursor: pointer;
+  font-family: ui-monospace, Menlo, monospace;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-proto.on {
+  background: color-mix(in oklab, var(--tb3-accent) 18%, transparent);
+  border-color: var(--tb3-accent);
+  color: var(--tb3-text);
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-cta {
+  width: 100%;
+  background: var(--tb3-accent);
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--tb3-bg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: Inter, system-ui, sans-serif;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-cta:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+#page-topology-builder-v3 #tb3-simulate-panel .tb3-sim-hint {
+  font-size: 10px;
+  color: var(--tb3-text-dim);
+  margin-top: 8px;
+  font-style: italic;
+}

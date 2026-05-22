@@ -2912,7 +2912,44 @@
   function _renderDrillControls() {
     var host = document.getElementById('tb3-sim-drill-controls');
     if (!host) return;
-    host.innerHTML = '<div style="font-size:11px;color:var(--tb3-text-dim)">Drill controls land in Stage 3.</div>';
+
+    var devices = state.devices || [];
+    var deviceOptions = function (selectedId) {
+      var opts = ['<option value="">— choose —</option>'];
+      devices.forEach(function (d) {
+        var sel = (d.id === selectedId) ? ' selected' : '';
+        opts.push('<option value="' + _escAttr(d.id) + '"' + sel + '>' + _escAttr(d.label || d.id.slice(-4)) + '</option>');
+      });
+      return opts.join('');
+    };
+
+    var p = _simState.drillProtocol;
+
+    host.innerHTML =
+      '<label class="tb3-sim-field">' +
+        '<span class="tb3-sim-field-l">Src</span>' +
+        '<select class="tb3-sim-input" id="tb3-sim-src">' + deviceOptions(_simState.drillSrcId) + '</select>' +
+      '</label>' +
+      '<label class="tb3-sim-field">' +
+        '<span class="tb3-sim-field-l">Dst</span>' +
+        '<select class="tb3-sim-input" id="tb3-sim-dst">' + deviceOptions(_simState.drillDstId) + '</select>' +
+      '</label>' +
+      '<div class="tb3-sim-proto-row">' +
+        '<button type="button" class="tb3-sim-proto' + (p === 'ping' ? ' on' : '') + '" data-proto="ping">ping</button>' +
+        '<button type="button" class="tb3-sim-proto' + (p === 'arp'  ? ' on' : '') + '" data-proto="arp">ARP</button>' +
+        '<button type="button" class="tb3-sim-proto' + (p === 'dhcp' ? ' on' : '') + '" data-proto="dhcp">DHCP</button>' +
+      '</div>' +
+      '<button type="button" id="tb3-sim-send" class="tb3-sim-cta">Send</button>' +
+      '<div class="tb3-sim-hint">Tip · click a device on the canvas to fill the next empty slot.</div>';
+
+    _updateSendEnabled();
+  }
+
+  function _updateSendEnabled() {
+    var btn = document.getElementById('tb3-sim-send');
+    if (!btn) return;
+    var ok = !!(_simState.drillSrcId && _simState.drillDstId && _simState.drillSrcId !== _simState.drillDstId);
+    btn.disabled = !ok;
   }
 
   function _renderSimLog() {
