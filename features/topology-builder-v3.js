@@ -1935,6 +1935,11 @@
           '<text class="tb3-dev-type" x="38" y="66" font-family="Inter">' + dev.type + '</text>' +
         '</g>';
     });
+
+    // Phase 4: keep Simulate panel in sync with canvas state (dropdowns reflect new devices)
+    if (state.mode === 'simulate') {
+      _renderSimulatePanel();
+    }
   }
 
   function _updateZoomDisplay() {
@@ -2366,7 +2371,7 @@
           // both filled — replace dst only
           _simState.drillDstId = id;
         }
-        _renderDrillControls();
+        _renderSimulatePanel();
         return;
       }
       if (!cableMode) return;
