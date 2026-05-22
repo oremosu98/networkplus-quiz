@@ -3033,8 +3033,11 @@
   }
 
   function _renderSimulatePanel() {
-    // Stage 3+ will fill _renderDrillControls(); for now the static HTML
-    // from _renderWorkspace is enough.
+    var previewSection = document.getElementById('tb3-sim-preview-section');
+    if (previewSection) {
+      var inLab = (state.intent === 'lab' && state.activeScenarioId);
+      previewSection.hidden = !inLab;
+    }
     _renderDrillControls();
     _renderSimLog();
     _wireSimulate();
