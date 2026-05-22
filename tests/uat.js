@@ -21663,6 +21663,10 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /if\s*\(\s*state\.mode\s*===\s*'simulate'\s*\)\s*return/.test(tbv3SrcP4));
   test('phase4: _closeSimulate is called from each other rail-open path (Picker + Inspector + Drawer + Esc)',
     (tbv3SrcP4.match(/_closeSimulate\(\);/g) || []).length >= 4);
+
+  // Stage 3 guards
+  test('phase4: canvas click handler dispatches to Simulate-mode device picker',
+    /state\.mode\s*===\s*'simulate'[\s\S]{0,400}closest\('\.tb3-dev'\)/.test(tbv3SrcP4));
 })();
 
 // ── Summary ──

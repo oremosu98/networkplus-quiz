@@ -2278,6 +2278,23 @@
     });
 
     canvas.addEventListener('click', function (e) {
+      // Simulate mode owns clicks on devices — fill drill src/dst
+      if (state.mode === 'simulate') {
+        var g = e.target.closest('.tb3-dev');
+        if (!g) return;
+        var id = g.getAttribute('data-device-id');
+        if (!id) return;
+        if (!_simState.drillSrcId) {
+          _simState.drillSrcId = id;
+        } else if (!_simState.drillDstId) {
+          _simState.drillDstId = id;
+        } else {
+          // both filled — replace dst only
+          _simState.drillDstId = id;
+        }
+        _renderDrillControls();
+        return;
+      }
       if (!cableMode) return;
       var g = e.target.closest('.tb3-dev');
       if (!g) return;
