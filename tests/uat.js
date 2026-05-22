@@ -21690,6 +21690,19 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     'phase4: reduced-motion CSS gate covers packet + dev-failing + panel',
     /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?(tb3-dev-failing|tb3-packet|tb3-simulate-panel)/m.test(tbv3Css)
   );
+
+  // Stage 10.2 guards — _simState schema + no-localStorage tombstone
+  test(
+    'phase4: _simState declares all expected keys',
+    /var\s+_simState\s*=\s*\{[\s\S]*?drillSrcId[\s\S]*?drillDstId[\s\S]*?drillProtocol[\s\S]*?previewQueue[\s\S]*?currentPacket[\s\S]*?log[\s\S]*?playing/.test(tbv3SrcP4)
+  );
+
+  test(
+    'phase4: _simState is module-scope only — no localStorage writes (ephemeral-state tombstone)',
+    !/STORAGE\.[A-Z_]+\s*=[^;]*_simState/.test(tbv3SrcP4) &&
+    !/localStorage\.[a-z]+Item\(['"]_simState/.test(tbv3SrcP4) &&
+    !/localStorage\.[a-z]+Item\(['"]nplus_tb_v3_sim/.test(tbv3SrcP4)
+  );
 })();
 
 // ── Summary ──
