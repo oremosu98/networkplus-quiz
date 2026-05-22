@@ -2876,6 +2876,46 @@
     return '(none)';
   }
 
+  function _failDevice(devId, reasonText) {
+    var devEl = document.querySelector('.tb3-dev[data-device-id="' + devId + '"]');
+    if (!devEl) return;
+    if (_reducedMotion()) {
+      devEl.style.filter = 'drop-shadow(0 0 6px var(--tb3-pkt-failure))';
+      setTimeout(function () { devEl.style.filter = ''; }, 1500);
+      return;
+    }
+    // Shake
+    devEl.classList.add('tb3-dev-failing');
+    setTimeout(function () { devEl.classList.remove('tb3-dev-failing'); }, 200);
+    // Glow
+    devEl.style.filter = 'drop-shadow(0 0 10px var(--tb3-pkt-failure))';
+    setTimeout(function () {
+      devEl.style.transition = 'filter 1.2s ease-out';
+      devEl.style.filter = '';
+      setTimeout(function () { devEl.style.transition = ''; }, 1200);
+    }, 400);
+  }
+
+  function _reachReasonText(failedAt, reason, srcId, dstId) {
+    if (typeof REACH_REASON_TEMPLATES !== 'undefined' && REACH_REASON_TEMPLATES[reason]) {
+      var ctx = {
+        srcLabel: _labelOf(srcId),
+        dstLabel: _labelOf(dstId),
+        failedLabel: _labelOf(failedAt),
+        srcCidr: _cidrOf(srcId),
+        dstCidr: _cidrOf(dstId),
+      };
+      var tpl = REACH_REASON_TEMPLATES[reason];
+      if (typeof tpl === 'function') {
+        return tpl(ctx);
+      }
+      if (typeof tpl === 'string') {
+        return tpl.replace(/%(\w+)/g, function (_, k) { return ctx[k] != null ? ctx[k] : ''; });
+      }
+    }
+    return 'Path failed at ' + failedAt + ': ' + reason;
+  }
+
   function _renderDiagnosticDrawer() {
     var panel = document.getElementById('tb3-diagnostic');
     if (!panel) return;
@@ -3069,7 +3109,8 @@
     if (_reducedMotion()) {
       _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[0] + ' sends ICMP echo to ' + path[path.length - 1], failure: false });
       if (spec.failedAt) {
-        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[path.length - 1] + ' unreachable: ' + (spec.failReason || 'no path'), failure: true });
+        _failDevice(spec.failedAt, spec.failReason);
+        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]), failure: true });
       } else {
         _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[path.length - 1] + ' reply received', failure: false });
       }
@@ -3099,7 +3140,13 @@
           el.setAttribute('r', '6');
           // failure here?
           if (spec.failedAt && spec.failedAt === path[path.length - 1]) {
-            _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: 'destination unreachable at ' + spec.failedAt + ': ' + (spec.failReason || ''), failure: true });
+            _failDevice(spec.failedAt, spec.failReason);
+            _appendLogEntry({
+              ts: Date.now(),
+              protocol: 'ping',
+              text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]),
+              failure: true,
+            });
             _despawnPacket(el);
             if (spec.onComplete) spec.onComplete();
             return;
@@ -3134,7 +3181,8 @@
     if (_reducedMotion()) {
       setTimeout(function () {
         if (spec.failedAt) {
-          _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: 'no ARP reply for ' + (dstIp || dstId) + ': ' + (spec.failReason || 'unreachable'), failure: true });
+          _failDevice(spec.failedAt, spec.failReason);
+          _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: _reachReasonText(spec.failedAt, spec.failReason, srcId, dstId), failure: true });
         } else {
           _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: dstId + ' replies: ' + dstIp + ' is at <mac>', failure: false });
         }
@@ -3187,7 +3235,13 @@
     // Phase 4 — unicast reply (300ms) from dst
     setTimeout(function () {
       if (spec.failedAt) {
-        _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: 'no ARP reply for ' + (dstIp || dstId) + ': ' + (spec.failReason || 'unreachable'), failure: true });
+        _failDevice(spec.failedAt, spec.failReason);
+        _appendLogEntry({
+          ts: Date.now(),
+          protocol: 'arp',
+          text: _reachReasonText(spec.failedAt, spec.failReason, srcId, dstId),
+          failure: true,
+        });
         if (spec.onComplete) spec.onComplete();
         return;
       }
@@ -3265,7 +3319,13 @@
               setTimeout(function () {
                 // A — Ack (unicast)
                 if (spec.failedAt) {
-                  _appendLogEntry({ ts: Date.now(), protocol: 'dhcp', text: 'DHCP failed: ' + (spec.failReason || 'no server reply'), failure: true });
+                  _failDevice(spec.failedAt, spec.failReason);
+                  _appendLogEntry({
+                    ts: Date.now(),
+                    protocol: 'dhcp',
+                    text: _reachReasonText(spec.failedAt, spec.failReason, clientId, serverId),
+                    failure: true,
+                  });
                   if (spec.onComplete) spec.onComplete();
                   return;
                 }

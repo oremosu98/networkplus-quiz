@@ -964,3 +964,19 @@ html[data-theme="light"] #page-topology-builder-v3 {
 }
 #page-topology-builder-v3 .tb3-sim-log-prefix { color: var(--tb3-text-dim) }
 #page-topology-builder-v3 .tb3-sim-log-ts { color: var(--tb3-text-dim) }
+
+/* ─────────────────────────────────────────────────────────
+   Phase 4 Stage 8 — failure UX: shake + red glow
+   ───────────────────────────────────────────────────────── */
+#page-topology-builder-v3 .tb3-dev-failing {
+  animation: tb3SimFail 200ms cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes tb3SimFail {
+  0%, 100% { transform: translateX(0) }
+  25% { transform: translateX(-3px) }
+  50% { transform: translateX(3px) }
+  75% { transform: translateX(-3px) }
+}
+@media (prefers-reduced-motion: reduce) {
+  #page-topology-builder-v3 .tb3-dev-failing { animation: none; }
+}

@@ -21675,6 +21675,10 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_motionDhcp\s*\(|var\s+_motionDhcp\s*=/.test(tbv3SrcP4) &&
     /function\s+_animatePacket\s*\(/.test(tbv3SrcP4)
   );
+  test(
+    'phase4: failure UX uses _failDevice + Phase 3 REACH_REASON_TEMPLATES',
+    /_failDevice\s*\(/.test(tbv3SrcP4) && /REACH_REASON_TEMPLATES/.test(tbv3SrcP4)
+  );
 })();
 
 // ── Summary ──
