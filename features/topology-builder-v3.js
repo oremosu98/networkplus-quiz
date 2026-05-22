@@ -2851,6 +2851,72 @@
     });
   }
 
+  // ───────────────────────────────────────────────────────────
+  // SIMULATE PANEL (Phase 4 — open/close + render stubs)
+  // ───────────────────────────────────────────────────────────
+
+  function _openSimulate() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    // Close any other rail panel (single mutual-exclusion family)
+    body.classList.remove('picker-open');
+    body.classList.remove('inspector-open');
+    body.classList.remove('diagnostic-open');
+    body.classList.add('simulate-open');
+    state.mode = 'simulate';
+    _renderSimulatePanel();
+    _renderModeBar();
+  }
+
+  function _closeSimulate() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('simulate-open');
+    // Cancel any in-flight + drain queue + clear log
+    if (_simState.currentPacket) {
+      cancelAnimationFrame(_simState.currentPacket);
+      _simState.currentPacket = null;
+    }
+    _simState.previewQueue = [];
+    _simState.playing = false;
+    _simState.log = [];
+    _simState.drillSrcId = null;
+    _simState.drillDstId = null;
+    state.mode = 'design';
+    _renderModeBar();
+  }
+
+  function _renderSimulatePanel() {
+    // Stage 3+ will fill _renderDrillControls(); for now the static HTML
+    // from _renderWorkspace is enough.
+    _renderDrillControls();
+    _renderSimLog();
+    _wireSimulate();
+  }
+
+  function _renderDrillControls() {
+    var host = document.getElementById('tb3-sim-drill-controls');
+    if (!host) return;
+    host.innerHTML = '<div style="font-size:11px;color:var(--tb3-text-dim)">Drill controls land in Stage 3.</div>';
+  }
+
+  function _renderSimLog() {
+    var host = document.getElementById('tb3-sim-log');
+    if (!host) return;
+    if (_simState.log.length === 0) {
+      host.innerHTML = '<div style="font-size:11px;color:var(--tb3-text-dim);font-style:italic">No packets fired yet.</div>';
+      return;
+    }
+    // Real log rendering in Stage 4.x
+  }
+
+  function _wireSimulate() {
+    var closeBtn = document.getElementById('tb3-sim-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', _closeSimulate);
+    }
+  }
+
   function _wireGlobalKeys() {
     document.addEventListener('keydown', function (e) {
       if (!document.getElementById('page-topology-builder-v3').classList.contains('active')) return;
