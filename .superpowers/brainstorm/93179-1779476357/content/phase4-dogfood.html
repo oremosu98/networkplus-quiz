@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TB v3 Phase 4 · Simulate mode — Founder dogfood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: oklch(0.16 0.009 275);
+    color: #c8baa0;
+    font: 400 14px/1.55 Inter, system-ui, -apple-system, sans-serif;
+    padding: 36px 32px 80px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h2 {
+    font: 600 24px/1.2 'Fraunces', Georgia, serif;
+    color: #f4ebd8;
+    margin: 0 0 6px;
+    letter-spacing: -.005em;
+    text-transform: none;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #968969;
+    margin: 0 0 22px;
+  }
+  .subtitle code {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,.06);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #f4ebd8;
+  }
+</style>
+<style>
+  .ds-list{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+  .ds-step{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;
+    padding:14px 16px 16px;
+    display:grid;
+    grid-template-columns:38px 1fr;
+    gap:14px;
+  }
+  .ds-n{
+    font:600 22px/1 'Fraunces',Georgia,serif;
+    color:rgba(212,160,66,.9);
+    letter-spacing:-.02em;
+  }
+  .ds-body{display:flex;flex-direction:column;gap:6px}
+  .ds-t{font:600 14px Inter,sans-serif;color:#f4ebd8;letter-spacing:-.005em}
+  .ds-h{font-size:12.5px;line-height:1.6;color:#c8baa0}
+  .ds-h b{color:#f4ebd8;font-weight:600}
+  .ds-h code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:3px;color:#f4ebd8}
+  .ds-h .warn{color:rgba(239,164,108,.95);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h2>TB v3 Phase 4 dogfood smoke &middot; 10 steps</h2>
+<p class="subtitle">Run these on <code>http://localhost:3131</code>. Verifies Simulate mode: panel open/close, device dropdowns, ping / ARP / DHCP animations, failure states, Validator Preview sequence, and Esc exit. If any step fails, ping back with which one + what you saw and I'll fix before we ship Phase 4.</p>
+
+<div class="ds-list">
+
+  <div class="ds-step">
+    <div class="ds-n">01</div>
+    <div class="ds-body">
+      <div class="ds-t">Open Network Builder &mdash; confirm Simulate mode pill is now unlocked</div>
+      <div class="ds-h">In the left sidebar, click <b>Network Builder</b>. The canvas opens full-viewport. Look at the floating modebar centered at the top of the canvas. Confirm the <b>Simulate</b> pill is now clickable and <b>not</b> grayed out or showing a lock badge. In Phase 3 it was locked; Phase 4 ships it live. If Simulate still shows as locked, flag it &mdash; something in the mode-unlock logic did not land.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">02</div>
+    <div class="ds-body">
+      <div class="ds-t">Enter Simulate with an empty canvas &mdash; panel opens, Validator Preview hidden, Send disabled</div>
+      <div class="ds-h">With a blank canvas (no devices dropped yet), click the <b>Simulate</b> pill in the modebar. The Simulate panel should open &mdash; a side panel or overlay showing protocol controls. Confirm: (a) the <b>Validator Preview</b> button is <b>hidden</b> (it only appears once a scenario is loaded), (b) the <b>Send</b> button is <b>disabled</b> (greyed out &mdash; nothing to simulate yet). If the panel does not open, or if Send is enabled on an empty canvas, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">03</div>
+    <div class="ds-body">
+      <div class="ds-t">Drop a router + workstation, set IPs &mdash; dropdowns auto-fill, Send enables</div>
+      <div class="ds-h">Staying in Simulate mode, drop a <b>Router</b> from the palette onto the canvas, then a <b>Workstation</b>. Connect them with a cable (press <code>c</code>, click router, click workstation, press <code>Esc</code>). Auto-fill should give the router <code>192.168.10.1/24</code> and the workstation <code>192.168.10.10/24</code> with gateway <code>192.168.10.1</code>. Now click each device in the Simulate panel. Confirm: (a) the source and destination <b>dropdowns auto-fill</b> with the devices and their IPs, (b) the <b>Send button becomes enabled</b>. If the dropdowns stay empty or Send stays disabled after you have two configured devices, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">04</div>
+    <div class="ds-body">
+      <div class="ds-t">Send ping &mdash; round-trip motion completes, log shows &ldquo;ping reached&rdquo;</div>
+      <div class="ds-h">With the router and workstation in place and the Simulate panel open, select <b>Ping</b> as the protocol. Click <b>Send</b>. Watch the canvas: a packet should animate from the source device to the destination and back (round-trip). Confirm: (a) the motion completes fully without freezing, (b) the log panel fills with an entry containing something like <code>ping reached</code> (or equivalent success wording). If the packet animation stalls mid-flight or the log stays empty, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">05</div>
+    <div class="ds-body">
+      <div class="ds-t">Send ARP &mdash; burst pulse + fan-out to subnet members + unicast reply, log fills</div>
+      <div class="ds-h">Switch the protocol selector to <b>ARP</b>. Click <b>Send</b>. ARP is a broadcast protocol: the animation should show a <b>burst pulse</b> radiating outward + a <b>fan-out</b> to all devices on the subnet, followed by a <b>unicast reply</b> from the target. The log panel should fill with both the broadcast line and the reply line &mdash; two distinct log entries. If the animation looks like a plain unicast ping instead of a broadcast burst, or if the log shows only one entry, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">06</div>
+    <div class="ds-body">
+      <div class="ds-t">Send DHCP &mdash; four-stage DORA dance, one log line per stage</div>
+      <div class="ds-h">Switch the protocol selector to <b>DHCP</b>. Click <b>Send</b>. DHCP runs a four-stage exchange: <b>Discover &rarr; Offer &rarr; Request &rarr; Acknowledge</b> (DORA). The animation should step through all four stages on the canvas. The log panel should fill with <b>four log lines</b>, one per stage. Confirm all four stages appear in order. If only some stages animate or the log shows fewer than four entries, flag it with the count you saw.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">07</div>
+    <div class="ds-body">
+      <div class="ds-t">Clear the workstation&rsquo;s gateway &rarr; Send ping &rarr; failure shake + glow + red log row</div>
+      <div class="ds-h">Click the workstation on the canvas to select it. In the Inspector, find the <b>Gateway</b> field and clear it (select all, delete), then click elsewhere to blur. Now switch back to <b>Ping</b> in the Simulate panel and click <b>Send</b>. The packet should travel toward the workstation then <b>stop</b>. Confirm: (a) the workstation shows a <b>red shake + glow</b> animation indicating the failure, (b) the log panel adds a <b>red log row</b> reading something like <code>WS-01 has no default gateway.</code> (or equivalent). If the packet passes through silently or no failure animation fires, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">08</div>
+    <div class="ds-body">
+      <div class="ds-t">Load the Star-topology scenario &mdash; Validator Preview button appears, click &rarr; all green, log shows N pairs reached</div>
+      <div class="ds-h">Click the <b>Scenarios</b> icon in the right-rail. In the picker, scroll to <b>Topology types</b> and select <b>Star topology with central switch</b>. Confirm the dialog and close the picker. Re-enter Simulate mode (click the Simulate pill). Now confirm: (a) the <b>Validator Preview</b> button is now <b>visible</b> in the Simulate panel (it was hidden in steps 2&ndash;3 because no scenario was loaded). Click <b>Validator Preview</b>. The sequence should run through all required device pairs automatically &mdash; each pair animates in turn. Confirm all pairs show <b>green</b> (reachable) and the log shows something like <code>N pairs reached</code>. If the button still does not appear, or any pair shows red on a valid star topology, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">09</div>
+    <div class="ds-body">
+      <div class="ds-t">Break a workstation&rsquo;s gateway in the scenario &mdash; Validator Preview shows failing pair red, others green, click red row re-plays that pair</div>
+      <div class="ds-h">With the Star topology loaded, click any workstation on the canvas and clear its <b>Gateway</b> field in the Inspector. Now click <b>Validator Preview</b> again. The sequence should run: the <b>failing pair</b> (involving the workstation with no gateway) shows <b>red</b>, while all other pairs remain <b>green</b>. Now click the <b>red row</b> in the log or results list. That pair should <b>re-play</b> its animation solo &mdash; just that pair, not the full sequence again. If all pairs show green after breaking the gateway, or clicking the red row does not re-play, flag it.</div>
+    </div>
+  </div>
+
+  <div class="ds-step">
+    <div class="ds-n">10</div>
+    <div class="ds-body">
+      <div class="ds-t">Press Esc mid-Validator-Preview &mdash; queue drains, panel closes, mode returns to Design</div>
+      <div class="ds-h">Re-open Simulate mode (with the Star topology still loaded and the broken gateway from step 9 still in place). Click <b>Validator Preview</b> to start the sequence. While the sequence is actively running (mid-animation, before it finishes), press <b>Esc</b>. Confirm: (a) the current animation <b>drains gracefully</b> (does not freeze or throw an error), (b) the <b>Simulate panel closes</b>, (c) the modebar switches back to <b>Design</b> mode. If pressing Esc mid-sequence causes a freeze, leaves the panel open, or does not return to Design mode, flag it.</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:24px;padding:14px 18px;border-left:2px solid rgba(212,160,66,0.7);background:rgba(212,160,66,0.05);font-size:13px;line-height:1.6;color:#c8baa0">
+  <b style="color:#f4ebd8">When all 10 pass</b>: tell me &ldquo;ship Phase 4&rdquo; (or similar) and I&rsquo;ll merge <code>feat/tb-v3-phase4</code> into <code>main</code>, bump the version, expand the CLAUDE.md row, push to main, monitor CI, and prod-verify.
+  <br><br>
+  If any step is broken or feels off: tell me which step + what you saw + what you expected, and I&rsquo;ll fix on the branch before we ship.
+  <br><br>
+  <b style="color:#f4ebd8">Phase 4 known limitation:</b> The speed-control slider (one adjustable speed per protocol) is not included in this phase &mdash; each protocol runs at a single fixed speed. This can be added as Phase 4a polish if the dogfood reveals it as a friction point.
+</div>
+
+</div>
+</body>
+</html>
