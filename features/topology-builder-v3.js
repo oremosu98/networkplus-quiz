@@ -3118,13 +3118,88 @@
     outbound();
   }
   function _motionArp(spec) {
-    // Implemented in Stage 6.
+    var srcId = spec.path[0];
+    var dstId = spec.path[spec.path.length - 1];
+    var srcDev = state.devices.find(function (d) { return d.id === srcId; });
+    var dstDev = state.devices.find(function (d) { return d.id === dstId; });
+    var dstIp = dstDev && dstDev.config && dstDev.config.ip;
+
     _appendLogEntry({
       ts: Date.now(),
       protocol: 'arp',
-      text: 'ARP ' + spec.path[0] + ' → ' + spec.path[spec.path.length - 1] + ' (motion stub)',
+      text: srcId + ' ARPs for ' + (dstIp || dstId),
       failure: false,
     });
+
+    if (_reducedMotion()) {
+      setTimeout(function () {
+        if (spec.failedAt) {
+          _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: 'no ARP reply for ' + (dstIp || dstId) + ': ' + (spec.failReason || 'unreachable'), failure: true });
+        } else {
+          _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: dstId + ' replies: ' + dstIp + ' is at <mac>', failure: false });
+        }
+        if (spec.onComplete) spec.onComplete();
+      }, 100);
+      return;
+    }
+
+    var srcCenter = _devCenter(srcId);
+    if (!srcCenter) { if (spec.onComplete) spec.onComplete(); return; }
+
+    // Phase 1 — burst ring (200ms)
+    var svg = document.getElementById('tb3-canvas-svg');
+    var ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('cx', srcCenter.x);
+    ring.setAttribute('cy', srcCenter.y);
+    ring.setAttribute('r', '6');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', 'oklch(0.7 0.15 145)');
+    ring.setAttribute('stroke-width', '2');
+    ring.setAttribute('class', 'tb3-packet');
+    svg.appendChild(ring);
+    var burstStart = performance.now();
+    function burstTick(now) {
+      var t = Math.min(1, (now - burstStart) / 200);
+      ring.setAttribute('r', String(6 + t * 90));
+      ring.setAttribute('opacity', String(1 - t));
+      if (t < 1) requestAnimationFrame(burstTick);
+      else _despawnPacket(ring);
+    }
+    requestAnimationFrame(burstTick);
+
+    // Phase 2 — fan-out dots (300ms)
+    setTimeout(function () {
+      var subnetDevs = _sameSubnetDevices(srcId);
+      subnetDevs.forEach(function (d) {
+        var to = _devCenter(d.id);
+        if (!to) return;
+        var dot = _spawnPacketSvg('oklch(0.7 0.15 145)');
+        dot.setAttribute('r', '4');
+        _movePacket(dot, srcCenter, to, 300, function () {
+          // Phase 3 — settle (100ms): brief opacity flash on receiver
+          var devEl = document.querySelector('.tb3-dev[data-device-id="' + d.id + '"]');
+          if (devEl) { devEl.style.opacity = '0.6'; setTimeout(function () { devEl.style.opacity = '1'; }, 100); }
+          _despawnPacket(dot);
+        });
+      });
+    }, 200);
+
+    // Phase 4 — unicast reply (300ms) from dst
+    setTimeout(function () {
+      if (spec.failedAt) {
+        _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: 'no ARP reply for ' + (dstIp || dstId) + ': ' + (spec.failReason || 'unreachable'), failure: true });
+        if (spec.onComplete) spec.onComplete();
+        return;
+      }
+      var dstCenter = _devCenter(dstId);
+      if (!dstCenter) { if (spec.onComplete) spec.onComplete(); return; }
+      var reply = _spawnPacketSvg('oklch(0.74 0.13 65)');
+      _movePacket(reply, dstCenter, srcCenter, 300, function () {
+        _despawnPacket(reply);
+        _appendLogEntry({ ts: Date.now(), protocol: 'arp', text: dstId + ' replies: ' + (dstIp || '?') + ' is at <mac>', failure: false });
+        if (spec.onComplete) spec.onComplete();
+      });
+    }, 600);
   }
   function _motionDhcp(spec) {
     // Implemented in Stage 7.
