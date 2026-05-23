@@ -22095,12 +22095,12 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_openOSI\s*\(/.test(tbv3SrcP6)
   );
   test(
-    'P6: _openOSI calls _openTrace then sets state.mode = "osi"',
-    /_openOSI[\s\S]{0,400}_openTrace[\s\S]{0,200}state\.mode\s*=\s*'osi'/.test(tbv3SrcP6)
+    'P6: _openOSI guards _openTrace with alreadyInTrace then sets state.mode = "osi"',
+    /_openOSI[\s\S]{0,600}alreadyInTrace[\s\S]{0,200}_openTrace[\s\S]{0,200}state\.mode\s*=\s*'osi'/.test(tbv3SrcP6)
   );
   test(
-    "P6: _openOSI adds 'osi-open' body class",
-    /_openOSI[\s\S]{0,400}classList\.add\('osi-open'\)/.test(tbv3SrcP6)
+    "P6: _openOSI adds 'osi-open' to #tb3-body element",
+    /_openOSI[\s\S]{0,600}classList\.add\('osi-open'\)/.test(tbv3SrcP6)
   );
   test(
     'P6: _closeOSI removes osi-open + delegates to _closeTrace',

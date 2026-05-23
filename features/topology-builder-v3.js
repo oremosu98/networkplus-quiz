@@ -3149,18 +3149,25 @@
   }
 
   function _openOSI(payload) {
-    // OSI is a view-toggle on Trace per spec §3.1 — reuse _openTrace fully
-    // (cross-rail sweep + _initTraceState + _renderTracePanel) then override
-    // state.mode and add the osi-open body class.
-    _openTrace(payload || null);
+    // OSI is a view-toggle on Trace per spec §3.1.
+    // If already in trace/osi mode, preserve _traceState (mid-trace toggle must
+    // not re-init the state and destroy currentHopIdx/hops/etc).
+    // If entering fresh, run the full _openTrace path (cross-rail sweep + init).
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    var alreadyInTrace = (state.mode === 'trace' || state.mode === 'osi');
+    if (!alreadyInTrace) {
+      _openTrace(payload || null);   // cross-rail sweep + _initTraceState + panel
+    }
     state.mode = 'osi';
-    document.body.classList.add('osi-open');
+    body.classList.add('osi-open');
     _renderTracePanel();   // re-render so dispatch picks _renderOSIPanel (Stage 5)
     _renderModeBar();      // repaint so OSI pill highlights, Trace pill un-highlights
   }
 
   function _closeOSI() {
-    document.body.classList.remove('osi-open');
+    var body = document.getElementById('tb3-body');
+    if (body) body.classList.remove('osi-open');
     _closeTrace();   // shares teardown — clears _traceState + removes trace-open class
   }
 
@@ -4965,6 +4972,16 @@
     _endTrace: _endTrace,
     _openOSI: _openOSI,
     _closeOSI: function () { _closeOSI(); },
+    // Phase 6 — OSI mode test exposures
+    _genMockMac: _genMockMac,
+    _activeLayersForDev: _activeLayersForDev,
+    _failedReasonToLayer: _failedReasonToLayer,
+    _getTraceState: function () { return _traceState; },
+    _setTraceSrcDst: function (srcId, dstId) {
+      if (!_traceState) return;
+      _traceState.srcId = srcId;
+      _traceState.dstId = dstId;
+    },
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler

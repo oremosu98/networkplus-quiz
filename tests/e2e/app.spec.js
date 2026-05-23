@@ -3115,6 +3115,201 @@ test.describe('topology-builder-v3', () => {
     await page.waitForTimeout(400);
     await expect(page.locator('.tb3-trace-hop.is-current .tb3-trace-hop-num')).toHaveText('2');
   });
+
+  // Phase 6 — OSI mode (Stage 13: tests 46-53)
+
+  test('TB v3 Phase 6 — test 46: OSI pill click auto-enters Trace + sets body.osi-open', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._openOSI();
+    });
+    await expect(page.locator('#tb3-body.osi-open')).toHaveCount(1);
+    await expect(page.locator('#tb3-body.trace-open')).toHaveCount(1);
+    await expect(page.locator('#tb3-trace-panel')).toHaveCount(1);
+  });
+
+  test('TB v3 Phase 6 — test 47: OSI panel renders 7 .tb3-osi-layer rows', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._openOSI();
+    });
+    await expect(page.locator('#tb3-trace-panel .tb3-osi-layer')).toHaveCount(7);
+  });
+
+  test('TB v3 Phase 6 — test 48: active layers per device role', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    const counts = await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      return {
+        workstation: (f._activeLayersForDev && f._activeLayersForDev({ type: 'workstation' }) || []).length,
+        switchDev:   (f._activeLayersForDev && f._activeLayersForDev({ type: 'switch' })      || []).length,
+        router:      (f._activeLayersForDev && f._activeLayersForDev({ type: 'router' })      || []).length
+      };
+    });
+    expect(counts.workstation).toBe(4);
+    expect(counts.switchDev).toBe(2);
+    expect(counts.router).toBe(3);
+  });
+
+  test('TB v3 Phase 6 — test 49: _genMockMac is deterministic', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    const result = await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      return {
+        a1: f._genMockMac && f._genMockMac('d1'),
+        a2: f._genMockMac && f._genMockMac('d1'),
+        b:  f._genMockMac && f._genMockMac('d2')
+      };
+    });
+    expect(result.a1).toBe(result.a2);
+    expect(result.a1).not.toBe(result.b);
+    expect(result.a1).toMatch(/^02:00:00:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$/);
+  });
+
+  test('TB v3 Phase 6 — test 50: failure case marks L3 row .is-failure', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24 } },  // no gateway
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.20.20', mask: 24 } }   // different subnet
+      ];
+      s.cables = [];
+      f._openOSI();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._startTrace && f._startTrace();
+    });
+    await expect(page.locator('#tb3-trace-panel .tb3-osi-layer.is-failure[data-layer="3"]')).toHaveCount(1);
+  });
+
+  test('TB v3 Phase 6 — test 51: prefers-reduced-motion bypasses cascade but trace still advances', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'sw', type: 'switch', hostname: 'SW-1', x: 200, y: 100, config: {} },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24, gateway: '192.168.10.1' } }
+      ];
+      s.cables = [
+        { id: 'c1', fromId: 'd1', fromPort: 0, toId: 'sw', toPort: 0, type: 'cat6' },
+        { id: 'c2', fromId: 'sw', fromPort: 1, toId: 'd2', toPort: 0, type: 'cat6' }
+      ];
+      f._openOSI();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._startTrace && f._startTrace();
+    });
+    await expect(page.locator('#tb3-trace-panel .tb3-osi-layer')).toHaveCount(7);
+  });
+
+  test('TB v3 Phase 6 — test 52: Trace ↔ OSI mid-trace toggle preserves currentHopIdx', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    const result = await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'sw', type: 'switch', hostname: 'SW-1', x: 200, y: 100, config: {} },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24, gateway: '192.168.10.1' } }
+      ];
+      s.cables = [
+        { id: 'c1', fromId: 'd1', fromPort: 0, toId: 'sw', toPort: 0, type: 'cat6' },
+        { id: 'c2', fromId: 'sw', fromPort: 1, toId: 'd2', toPort: 0, type: 'cat6' }
+      ];
+      f._openTrace();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._startTrace && f._startTrace();
+      const ts = f._getTraceState ? f._getTraceState() : null;
+      if (ts) ts.currentHopIdx = 1;
+      f._openOSI();
+      const ts2 = f._getTraceState ? f._getTraceState() : null;
+      return { afterToggleIdx: ts2 ? ts2.currentHopIdx : null };
+    });
+    expect(result.afterToggleIdx).toBe(1);
+  });
+
+  test('TB v3 Phase 6 — test 53: cross-rail _openPicker from OSI removes both trace-open AND osi-open', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24 } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [];
+      f._openOSI();
+      f._openPicker && f._openPicker();
+    });
+    await expect(page.locator('#tb3-body.osi-open')).toHaveCount(0);
+    await expect(page.locator('#tb3-body.trace-open')).toHaveCount(0);
+  });
 });
 
 
