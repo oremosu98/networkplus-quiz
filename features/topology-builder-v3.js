@@ -3275,9 +3275,58 @@
   }
 
   function _updateHopBadge() {
-    // Stub for Stage 6 — Stage 10 implements the full badge animation.
-    // Stage 6's hop list re-render (via _renderTracePanel) handles the
-    // current-hop visual state via the .is-current class.
+    if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') {
+      _clearHopBadges();
+      return;
+    }
+    // Remove any existing badge first.
+    _clearHopBadges();
+
+    const idx = _traceState.currentHopIdx;
+    const hopId = _traceState.hops[idx];
+    if (!hopId) return;
+    const isFailed = (idx === _traceState.failedAt);
+
+    const devGroup = document.querySelector('g.tb3-dev[data-device-id="' + _escAttr(hopId) + '"]');
+    if (!devGroup) return;
+
+    // Find the device's bounding rect inside the group — the badge sits at top-right.
+    const rect = devGroup.querySelector('rect') || devGroup.querySelector('image') || devGroup.firstElementChild;
+    if (!rect) return;
+    const rectX = parseFloat(rect.getAttribute('x') || rect.getAttribute('cx') || 0);
+    const rectY = parseFloat(rect.getAttribute('y') || rect.getAttribute('cy') || 0);
+    const rectW = parseFloat(rect.getAttribute('width') || 60);
+
+    // Build the badge SVG group.
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const badge = document.createElementNS(SVG_NS, 'g');
+    badge.classList.add('tb3-trace-badge');
+    if (isFailed) badge.classList.add('is-failed');
+    badge.setAttribute('transform', 'translate(' + (rectX + rectW - 4) + ',' + (rectY - 4) + ')');
+
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('r', '7');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('class', 'tb3-trace-badge-circle');
+
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('x', '0');
+    text.setAttribute('y', '3');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '9');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('class', 'tb3-trace-badge-text');
+    text.textContent = String(idx + 1);
+
+    badge.appendChild(circle);
+    badge.appendChild(text);
+    devGroup.appendChild(badge);
+  }
+
+  function _clearHopBadges() {
+    const badges = document.querySelectorAll('.tb3-trace-badge');
+    badges.forEach(function(b) { b.parentNode.removeChild(b); });
   }
 
   function _movePacketTracked(el, fromPt, toPt, durMs, onDone) {

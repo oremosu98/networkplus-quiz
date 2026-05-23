@@ -21938,6 +21938,17 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('phase5: _failHop auto-pauses autoplay on failure (spec §3.5)',
     /_traceState\.mode === 'play'[\s\S]{0,300}_traceState\.mode = 'paused'/.test(tbv3SrcP5));
 
+  // ───── Stage 10: Per-hop canvas badge ─────
+
+  test('phase5: _updateHopBadge function defined',
+    /function _updateHopBadge\(\)/.test(tbv3SrcP5));
+
+  test('phase5: badge SVG group uses .tb3-trace-badge class',
+    /classList\.add\('tb3-trace-badge'\)/.test(tbv3SrcP5));
+
+  test('phase5: badge adds .is-failed class when on failedAt hop',
+    /isFailed[\s\S]{0,200}classList\.add\('is-failed'\)/.test(tbv3SrcP5));
+
 })();
 
 // ── Summary ──

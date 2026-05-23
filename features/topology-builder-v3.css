@@ -1424,3 +1424,24 @@ html[data-theme="light"] #page-topology-builder-v3 {
   color: var(--tb3-pkt-failure, oklch(0.6 0.2 25));
   font-weight: 500;
 }
+
+/* Trace canvas badge (Phase 5 Stage 10) */
+
+.tb3-trace-badge-circle {
+  fill: var(--tb3-accent);
+  stroke: var(--tb3-bg);
+  stroke-width: 1.5;
+}
+
+.tb3-trace-badge.is-failed .tb3-trace-badge-circle {
+  fill: var(--tb3-pkt-failure, oklch(0.6 0.2 25));
+}
+
+.tb3-trace-badge-text {
+  fill: var(--tb3-bg);
+  font-family: 'SF Mono', monospace;
+}
+
+.tb3-trace-badge {
+  pointer-events: none;
+}
