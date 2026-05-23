@@ -22259,6 +22259,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('P6: _buildLayerStackForHop is defined',
     /function\s+_buildLayerStackForHop\s*\(/.test(tbv3SrcP6)
   );
+
+  // ---- Stage 5: _renderOSIPanel + dispatch ----
+  test('P6: _renderOSIPanel is defined',
+    /function\s+_renderOSIPanel\s*\(/.test(tbv3SrcP6)
+  );
+  test('P6: _renderTracePanel dispatches OSI vs annotation by state.mode',
+    /state\.mode\s*===\s*'osi'[\s\S]{0,80}_renderOSIPanel\s*\([\s\S]{0,80}_renderTraceAnnotation\s*\(/.test(tbv3SrcP6)
+  );
+  test('P6: _renderOSIPanel emits <ol class="tb3-osi-stack">',
+    /tb3-osi-stack/.test(tbv3SrcP6)
+  );
+  test('P6: _renderOSIPanel uses _escAttr only (no _escHtml)',
+    !/_renderOSIPanel[\s\S]{0,2500}_escHtml/.test(tbv3SrcP6)
+  );
 })();
 
 // ── Summary ──

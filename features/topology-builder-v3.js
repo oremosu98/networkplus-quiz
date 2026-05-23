@@ -3180,7 +3180,9 @@
       : '<section class="tb3-trace-empty"><p>Add devices to the canvas to start tracing.</p></section>';
 
     const hopsHtml = _renderHopList();
-    const annotationHtml = _renderTraceAnnotation();
+    const annotationHtml = (state.mode === 'osi')
+      ? _renderOSIPanel()
+      : _renderTraceAnnotation();
 
     panel.innerHTML =
       '<header class="tb3-trace-head">' +
@@ -3478,6 +3480,122 @@
         '<div class="tb3-trace-anno-osi">' + _escAttr(osiChip) + '</div>' +
         '<div class="tb3-trace-anno-action">' + _escAttr(action) + '</div>' +
         '<div class="tb3-trace-anno-reason' + (isFailed ? ' is-failure' : '') + '">' + _escAttr(reason || '') + '</div>' +
+      '</section>';
+  }
+
+  // ===========================================================================
+  // Phase 6: _renderOSIPanel
+  // Replaces _renderTraceAnnotation when state.mode === 'osi'. Per spec §3.3.
+  // Empty state per spec §6 — same 7-row DOM shape, only the content varies.
+  // ===========================================================================
+  function _renderOSIPanel() {
+    const state = _getState();
+    const hasHops = _traceState && Array.isArray(_traceState.hops) && _traceState.hops.length > 0;
+
+    if (!hasHops) {
+      // Empty state — render the 7-row stack with all rows passive + placeholder
+      // proto + verb copy per spec §6.
+      const layerNames = { 7:'Application', 6:'Presentation', 5:'Session', 4:'Transport', 3:'Network', 2:'Data Link', 1:'Physical' };
+      let rowsHtml = '';
+      for (let n = 7; n >= 1; n--) {
+        rowsHtml +=
+          '<li class="tb3-osi-layer" data-layer="' + n + '">' +
+            '<span class="tb3-osi-num">L' + n + '</span>' +
+            '<div>' +
+              '<span class="tb3-osi-name">' + layerNames[n] + '</span>' +
+              '<span class="tb3-osi-proto">n/a</span>' +
+              '<span class="tb3-osi-verb">Pick a source + destination, then Start to populate this layer</span>' +
+            '</div>' +
+          '</li>';
+      }
+      return '' +
+        '<section class="tb3-osi-panel">' +
+          '<div class="tb3-osi-eyebrow">PICK SOURCE + DEST</div>' +
+          '<div class="tb3-osi-title">Awaiting trace</div>' +
+          '<ol class="tb3-osi-stack">' + rowsHtml + '</ol>' +
+        '</section>';
+    }
+
+    const idx = _traceState.currentHopIdx;
+    const total = _traceState.hops.length;
+    const hopId = _traceState.hops[idx];
+    const dev = (state.devices || []).find(function (d) { return d.id === hopId; });
+    if (!dev) return '<section class="tb3-osi-panel"><div class="tb3-osi-eyebrow">HOP ' + (idx+1) + ' OF ' + total + '</div><div class="tb3-osi-title">Unknown device</div></section>';
+
+    const role = _hopRole(idx);
+    const srcId = _traceState.srcId;
+    const dstId = _traceState.dstId;
+    const srcDev = (state.devices || []).find(function (d) { return d.id === srcId; });
+    const dstDev = (state.devices || []).find(function (d) { return d.id === dstId; });
+    const srcIp = (srcDev && srcDev.config && srcDev.config.ip) || '';
+    const dstIp = (dstDev && dstDev.config && dstDev.config.ip) || '';
+    const srcMac = srcId ? _genMockMac(srcId) : '';
+    const dstMac = dstId ? _genMockMac(dstId) : '';
+
+    // Next hop MAC for router-out context.
+    const nextHopIdx = idx + 1;
+    const nextHopId = (nextHopIdx < total) ? _traceState.hops[nextHopIdx] : null;
+    const nextHopMac = nextHopId ? _genMockMac(nextHopId) : '';
+    const routerMacOut = (role === 'intermediate' && nextHopId) ? _genMockMac(nextHopId) : '';
+
+    // Cable type: read the cable touching this hop + its next neighbour from
+    // state.cables (shape {id, fromId, fromPort, toId, toPort, type}). Default
+    // 'cat6' per spec §7.5.
+    let cableType = 'cat6';
+    if (state.cables && nextHopId) {
+      const cab = state.cables.find(function (c) {
+        return (c.fromId === hopId && c.toId === nextHopId) ||
+               (c.toId === hopId && c.fromId === nextHopId);
+      });
+      if (cab && cab.type) cableType = cab.type;
+    }
+
+    const ctx = {
+      srcIp: srcIp,
+      dstIp: dstIp,
+      srcMac: srcMac,
+      dstMac: dstMac,
+      nextHopMac: nextHopMac,
+      routerMacOut: routerMacOut,
+      cableType: cableType
+    };
+
+    const stack = _buildLayerStackForHop({ dev: dev }, role, ctx);
+
+    // If this hop is the failing hop, mark the corresponding layer's row.
+    if (_traceState.failedAt !== null && _traceState.failedAt === idx) {
+      const failLayer = (typeof _failedReasonToLayer === 'function')
+        ? _failedReasonToLayer(_traceState.reasonCode || null)
+        : 3;
+      stack.forEach(function (row) {
+        if (row.num === failLayer) row.failure = true;
+      });
+    }
+
+    let rowsHtml = '';
+    stack.forEach(function (row) {
+      const cls = 'tb3-osi-layer' +
+                  (row.active ? ' is-active' : ' is-passive') +
+                  (row.failure ? ' is-failure' : '');
+      rowsHtml +=
+        '<li class="' + cls + '" data-layer="' + row.num + '">' +
+          '<span class="tb3-osi-num">L' + row.num + '</span>' +
+          '<div>' +
+            '<span class="tb3-osi-name">' + _escAttr(row.name) + '</span>' +
+            '<span class="tb3-osi-proto">' + _escAttr(row.proto) + '</span>' +
+            '<span class="tb3-osi-verb">' + _escAttr(row.verb) + '</span>' +
+            (row.failure && _traceState.reasons && _traceState.reasons[idx]
+              ? '<span class="tb3-osi-layer-reason">' + _escAttr(_traceState.reasons[idx]) + '</span>'
+              : '') +
+          '</div>' +
+        '</li>';
+    });
+
+    return '' +
+      '<section class="tb3-osi-panel">' +
+        '<div class="tb3-osi-eyebrow">HOP ' + (idx + 1) + ' OF ' + total + '</div>' +
+        '<div class="tb3-osi-title">' + _escAttr(dev.hostname || dev.id) + '</div>' +
+        '<ol class="tb3-osi-stack">' + rowsHtml + '</ol>' +
       '</section>';
   }
 
