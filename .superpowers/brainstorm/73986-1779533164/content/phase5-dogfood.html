@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TB v3 Phase 5 — Trace mode founder dogfood</title>
+<style>
+  body { font: 14px -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #1a1410; background: #faf8f5; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #b8860b; margin-bottom: 4px; }
+  ol { padding-left: 0; counter-reset: step; list-style: none; }
+  li { counter-increment: step; padding: 14px 0; border-bottom: 1px solid #e5dcc8; display: flex; gap: 14px; align-items: flex-start; }
+  li::before { content: counter(step); flex: 0 0 28px; height: 28px; line-height: 28px; text-align: center; background: #b8860b; color: #faf8f5; border-radius: 50%; font-weight: 700; }
+  .action { font-weight: 600; color: #1a1410; }
+  .observe { font-weight: 400; color: #6b5b3f; margin-top: 4px; }
+  .observe strong { color: #1a1410; }
+  code { background: #f0e8d8; padding: 1px 4px; border-radius: 3px; font-family: 'SF Mono', monospace; font-size: 12.5px; }
+  footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5dcc8; font-size: 12px; color: #6b5b3f; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">TB v3 Phase 5 — founder dogfood</div>
+<h1>Trace mode smoke test</h1>
+<p>Walk these 10 steps end-to-end before signing off v6.2.0. Each step = one action + one observable outcome.</p>
+
+<ol>
+
+<li>
+  <div>
+    <div class="action">Open the Topology Builder v3 page. Drop a star topology: 1 switch, 1 server, 3 workstations. Cable them all to the switch.</div>
+    <div class="observe">Expected: <strong>5 devices on the canvas, 4 cables, no warnings.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Configure IPs: workstations <code>10.0.0.10/24</code>, <code>10.0.0.20/24</code>, <code>10.0.0.30/24</code> with gateway <code>10.0.0.1</code>; server <code>10.0.0.100/24</code>; switch needs no IP.</div>
+    <div class="observe">Expected: <strong>All devices configured. No diagnostic drawer warnings.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Click the <strong>Trace</strong> pill in the modebar (next to Simulate).</div>
+    <div class="observe">Expected: <strong>Trace panel slides in from the right (240ms). Header shows TRACE eyebrow + "Trace mode" + × button. Controls section shows src/dst dropdowns + ping pill + Start trace / Next hop / Play / End trace buttons. Start disabled until src + dst are different.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Pick source = WS-1, destination = SRV-1. Click <strong>Start trace</strong>.</div>
+    <div class="observe">Expected: <strong>Packet appears at WS-1. Hop list populates with 3 chips (1·WS-1 current with accent left-bar, 2·SW-1 dim, 3·SRV-1 dim) cascading in 40ms apart. Annotation pane shows "Hop 1 of 3 / WS-1 / L7 · Application / Originates ICMP echo request / Targets 10.0.0.100 via default gateway 10.0.0.1". Next button enables.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Click <strong>Next hop</strong>.</div>
+    <div class="observe">Expected: <strong>Packet glides 250ms from WS-1 to switch (smooth cubic-bezier ease-in-out). 80ms accent glow on switch on arrival. Hop list: chip 1 muted ✓, chip 2 current with accent left-bar. Canvas badge "2" appears on switch. Annotation updates to "Hop 2 of 3 / SW-1 / L2 · Data Link / Forwards via MAC table / Egress port toward 10.0.0.100".</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Click <strong>Next hop</strong> again to reach the destination.</div>
+    <div class="observe">Expected: <strong>Packet glides to SRV-1. Annotation: "Hop 3 of 3 / SRV-1 / L7 · Application / Receives ICMP echo, sends reply / Replies to 10.0.0.10". Next button disables (at destination). Mode = done.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Click <strong>End trace</strong> to clear. Now pick source = WS-2, destination = WS-3. Click <strong>Start trace</strong>, then <strong>Play</strong>.</div>
+    <div class="observe">Expected: <strong>Autoplay runs through the trace: 200ms pre-roll, then 600ms-per-hop glide with 120ms gap between hops. Play button text swaps to "Pause" while running. End-of-trace, mode = done.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Click <strong>End trace</strong>. Now break WS-1: clear its <code>config.gateway</code> field (Inspector → Network → Gateway). Open Trace, pick WS-1 → SRV-1, click Start.</div>
+    <div class="observe">Expected: <strong>Trace fails at hop 1. WS-1 shakes (200ms × 4 cycles) + glows red (1.2s fade). Annotation reason switches to red-tinted "Workstation-1 has no default gateway." Mode = paused (auto-paused on failure). Hop chip 1 shows red left-bar + red dot.</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Switch to Simulate mode (click Simulate pill — Trace closes). Re-trigger the failed ping (WS-1 → SRV-1). In the Simulate log, find the failed row.</div>
+    <div class="observe">Expected: <strong>Failed log row shows "→ Trace" chevron at the end. Click the chevron. Simulate closes, Trace opens with WS-1/SRV-1 pre-populated, packet at source, hop list rendered. (One-click handoff from failure to investigation.)</strong></div>
+  </div>
+</li>
+
+<li>
+  <div>
+    <div class="action">Close Trace via × button. Re-fix the WS-1 gateway. Open Trace again, verify the trace now succeeds end-to-end. Then press Esc to confirm Esc closes Trace.</div>
+    <div class="observe">Expected: <strong>Fixed trace runs clean (no failure beat). Esc closes Trace cleanly (panel slides out 180ms — faster exit per asymmetric timing). No errors in browser console. All 5 rail panels (Inspector, Picker, Diagnostic, Simulate, Trace) close cleanly when another opens (cross-rail mutex symmetric).</strong></div>
+  </div>
+</li>
+
+</ol>
+
+<footer>
+If all 10 steps pass: v6.2.0 ready to ship. If any step trips, fix root cause + retest the affected steps before ship. Same discipline as Phase 4.
+</footer>
+
+</body>
+</html>

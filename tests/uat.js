@@ -21705,6 +21705,330 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ═══════════════════════════════════════════════════════════════
+// TB v3 Phase 5 (Trace mode) fixtures
+// ═══════════════════════════════════════════════════════════════
+
+(function _tbv3Phase5Fixtures() {
+  const tbv3SrcP5 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  // ───── Stage 1: _traceState schema + pure-fn stubs ─────
+
+  test('phase5: _traceState module-scope var declared',
+    /var\s+_traceState\s*=\s*null\b/.test(tbv3SrcP5));
+
+  test('phase5: _initTraceState defined',
+    /function\s+_initTraceState\s*\(/.test(tbv3SrcP5));
+
+  test('phase5: _resetTraceState defined',
+    /function\s+_resetTraceState\s*\(/.test(tbv3SrcP5));
+
+  // Schema fields locked per spec §5
+  const initBody = _fnBody(tbv3SrcP5, '_initTraceState');
+
+  test('phase5: _initTraceState declares srcId/dstId/protocol pair fields',
+    /srcId:[\s\S]{0,80}dstId:[\s\S]{0,80}protocol:/.test(initBody));
+
+  test('phase5: protocol defaults to ping',
+    /protocol:\s*\(payload && payload\.protocol\)\s*\|\|\s*['"]ping['"]/.test(initBody));
+
+  test('phase5: _initTraceState declares hops/reasons/failedAt path fields',
+    /hops:\s*\[\][\s\S]{0,80}reasons:\s*\{\}[\s\S]{0,80}failedAt:\s*null/.test(initBody));
+
+  test('phase5: _initTraceState declares currentHopIdx + mode + autoplayTimer',
+    /currentHopIdx:\s*0[\s\S]{0,120}mode:\s*['"]idle['"][\s\S]{0,120}autoplayTimer:\s*null/.test(initBody));
+
+  test('phase5: _initTraceState declares rafHandle (emil §8.6 interruptibility)',
+    /rafHandle:\s*null/.test(initBody));
+
+  test('phase5: _initTraceState declares packet + lastPayload',
+    /packet:\s*null[\s\S]{0,200}lastPayload:\s*payload\s*\|\|\s*null/.test(initBody));
+
+  const resetBody = _fnBody(tbv3SrcP5, '_resetTraceState');
+
+  test('phase5: _resetTraceState cancels autoplayTimer',
+    /clearTimeout\(_traceState\.autoplayTimer\)/.test(resetBody));
+
+  test('phase5: _resetTraceState cancels rafHandle (emil §8.6 — both handles must clear)',
+    /cancelAnimationFrame\(_traceState\.rafHandle\)/.test(resetBody));
+
+  test('phase5: _resetTraceState despawns packet via Phase 4 helper',
+    /_despawnPacket\(_traceState\.packet\)/.test(resetBody));
+
+  test('phase5: _resetTraceState sets _traceState back to null',
+    /_traceState\s*=\s*null/.test(resetBody));
+
+  // Tombstones — Phase 5 state is transient like _simState
+  test('phase5: _traceState transient — no STORAGE namespace key references trace state',
+    !/STORAGE\.[A-Z_]*TRACE/.test(tbv3SrcP5));
+
+  test('phase5: _traceState transient — no nplus_tb_v3_trace localStorage key',
+    !/nplus_tb_v3_trace/.test(tbv3SrcP5));
+
+  // ───── Stage 2: Modebar pill + open/close lifecycle ─────
+
+  test('phase5: Trace pill is no longer locked in _renderModeBar',
+    !/\{\s*id:\s*'trace',[^}]*locked:\s*true/.test(tbv3SrcP5));
+
+  test('phase5: _renderModeBar click handler dispatches trace to _openTrace',
+    /mode\s*===\s*['"]trace['"][\s\S]{0,80}_openTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: _openTrace defined and accepts payload',
+    /function\s+_openTrace\s*\(\s*payload\s*\)/.test(tbv3SrcP5));
+
+  test('phase5: _closeTrace defined',
+    /function\s+_closeTrace\s*\(\s*\)/.test(tbv3SrcP5));
+
+  test('phase5: _renderTracePanel defined (Stage 2 stub — controls/hops/anno ship in Stages 3/5/7)',
+    /function\s+_renderTracePanel\s*\(/.test(tbv3SrcP5));
+
+  // Cross-rail mutex (5 fns now: Inspector via _selectDevice, Picker, Diagnostic, Simulate, Trace)
+  test('phase5: _openTrace closes other 4 rail panels (cross-rail mutex)',
+    /body\.classList\.remove\(['"]picker-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]inspector-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]diagnostic-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]simulate-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace adds body.trace-open class',
+    /body\.classList\.add\(['"]trace-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace sets state.mode = "trace"',
+    /state\.mode\s*=\s*['"]trace['"]/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace calls _initTraceState with payload',
+    /_initTraceState\(payload/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _closeTrace removes body.trace-open + sets state.mode = "design"',
+    /body\.classList\.remove\(['"]trace-open['"]\)[\s\S]{0,300}state\.mode\s*=\s*['"]design['"]/.test(_fnBody(tbv3SrcP5, '_closeTrace')));
+
+  test('phase5: _closeTrace invokes _resetTraceState',
+    /_resetTraceState\(\)/.test(_fnBody(tbv3SrcP5, '_closeTrace')));
+
+  test('phase5: Esc key closes Trace when body.trace-open is set',
+    /classList\.contains\(['"]trace-open['"]\)[\s\S]{0,100}_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_wireGlobalKeys')));
+
+  // Cross-rail symmetric — each other _open* fn now closes Trace
+  test('phase5: Cross-rail mutex — _openPicker closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openPicker')));
+
+  test('phase5: Cross-rail mutex — _openDiagnostic closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openDiagnostic')));
+
+  test('phase5: Cross-rail mutex — _openSimulate calls _closeTrace() (Stage 12 — full teardown, not just class toggle)',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openSimulate')));
+
+  test('phase5: Cross-rail mutex — _selectDevice closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_selectDevice')));
+
+  // Feature module registration
+  test('phase5: _openTrace exposed on feature module registration',
+    /_openTrace:\s*_openTrace/.test(tbv3SrcP5));
+
+  test('phase5: _closeTrace exposed on feature module registration',
+    /_closeTrace:\s*function/.test(tbv3SrcP5));
+
+  // Static panel DOM
+  test('phase5: static #tb3-trace-panel aside emitted in workspace HTML',
+    /id="tb3-trace-panel"/.test(tbv3SrcP5));
+
+  test('phase5: trace panel has close button',
+    /id="tb3-trace-close"/.test(tbv3SrcP5));
+
+  test('phase5: trace panel has eyebrow + title + 3 section hosts (controls/hops/annotation)',
+    /tb3-trace-eyebrow[\s\S]{0,200}tb3-trace-title[\s\S]{0,300}tb3-trace-controls-host[\s\S]{0,200}tb3-trace-hops-host[\s\S]{0,200}tb3-trace-annotation-host/.test(tbv3SrcP5));
+
+  // ───── Stage 2: Scoped CSS ─────
+
+  const tbv3CssP5 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('phase5: #tb3-trace-panel CSS rules present',
+    /#tb3-trace-panel\s*\{/.test(tbv3CssP5));
+
+  test('phase5: body.trace-open shows panel via translateX(0)',
+    /\.trace-open\s+#tb3-trace-panel[\s\S]{0,200}translateX\(0\)/.test(tbv3CssP5));
+
+  test('phase5: panel slide-in 240ms (open) per emil §8.6',
+    /#tb3-trace-panel[\s\S]{0,400}transition:\s*transform\s+240ms/.test(tbv3CssP5));
+
+  test('phase5: --tb3-ease-out cubic-bezier token locked',
+    /--tb3-ease-out:\s*cubic-bezier\(\s*0\.23\s*,\s*1\s*,\s*0\.32\s*,\s*1\s*\)/.test(tbv3CssP5));
+
+  test('phase5: --tb3-ease-in-out cubic-bezier token locked',
+    /--tb3-ease-in-out:\s*cubic-bezier\(\s*0\.77\s*,\s*0\s*,\s*0\.175\s*,\s*1\s*\)/.test(tbv3CssP5));
+
+  test('phase5: #tb3-trace-close has scale(0.97) on :active (emil §8.6 press feedback)',
+    /#tb3-trace-close:active[\s\S]{0,200}transform:\s*scale\(0\.97\)/.test(tbv3CssP5));
+
+  test('phase5: hover state gated @media (hover: hover) and (pointer: fine) (emil §8.6)',
+    /@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)[\s\S]{0,400}#tb3-trace-close:hover/.test(tbv3CssP5));
+
+  test('phase5: focus-visible 2px accent outline on close button',
+    /#tb3-trace-close:focus-visible[\s\S]{0,200}outline:\s*2px\s+solid\s+var\(--tb3-accent\)/.test(tbv3CssP5));
+
+  test('phase5: reduced-motion gate neutralizes #tb3-trace-panel transition',
+    /prefers-reduced-motion:\s*reduce[\s\S]{0,800}#tb3-trace-panel[\s\S]{0,200}transition:\s*none/.test(tbv3CssP5));
+
+  // ───── Stage 4: _startTrace + computePath integration ─────
+
+  test('phase5: _startTrace function defined',
+    /function _startTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: _startTrace calls computePath with srcId, dstId, state',
+    /computePath\(_traceState\.srcId, _traceState\.dstId, state\)/.test(tbv3SrcP5));
+
+  test('phase5: _startTrace populates hops from result.hops (NOT result.path — spec §10)',
+    /Array\.isArray\(result\.hops\)/.test(tbv3SrcP5));
+
+  test('phase5: _startTrace spawns amber packet (Phase 4 helper reuse)',
+    /_spawnPacketSvg\('amber'\)/.test(tbv3SrcP5));
+
+  // ───── Stage 6: _stepTrace + _movePacketTracked + settle pulse ─────
+
+  test('phase5: _stepTrace function defined',
+    /function _stepTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: _stepTrace cancels prior rAF before new step (emil §8.6 interruptibility)',
+    /cancelAnimationFrame\(_traceState\.rafHandle\)/.test(tbv3SrcP5));
+
+  test('phase5: _stepTrace uses _movePacketTracked wrapper for rAF capture',
+    /_movePacketTracked\(_traceState\.packet/.test(tbv3SrcP5));
+
+  test('phase5: step 250ms vs autoplay 600ms (spec §8.1 + §8.2)',
+    /durMs\s*=\s*isAutoplay\s*\?\s*600\s*:\s*250/.test(tbv3SrcP5));
+
+  // ───── Stage 7: _renderTraceAnnotation + locked copy ─────
+
+  test('phase5: locked action copy — source emits ICMP echo (stop-slop §7.4)',
+    /Originates ICMP echo request/.test(tbv3SrcP5));
+
+  test('phase5: locked action copy — destination receives + replies (stop-slop §7.4)',
+    /Receives ICMP echo, sends reply/.test(tbv3SrcP5));
+
+  test('phase5: firewall action copy locked (stop-slop §7.4 — was "Inspects + forwards")',
+    /Filters and forwards/.test(tbv3SrcP5));
+
+  test('phase5: tombstone — "Inspects + forwards" replaced by "Filters and forwards"',
+    !/Inspects \+ forwards/.test(tbv3SrcP5));
+
+  test('phase5: firewall reason copy locked (stop-slop §7.4 — period breaks the chain)',
+    /Permits per policy\. Egress/.test(tbv3SrcP5));
+
+  // ───── Stage 8: _playTrace + _pauseTrace + _endTrace ─────
+
+  test('phase5: _playTrace function defined',
+    /function _playTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: autoplay uses 600ms hop + 120ms gap (spec §8.2)',
+    /setTimeout\(tick,\s*600\s*\+\s*120\)/.test(tbv3SrcP5));
+
+  test('phase5: _pauseTrace function defined',
+    /function _pauseTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: _pauseTrace clears autoplayTimer',
+    /clearTimeout\(_traceState\.autoplayTimer\)/.test(tbv3SrcP5));
+
+  test('phase5: _pauseTrace also cancels rafHandle (emil §8.6 — both timers must clear)',
+    /cancelAnimationFrame\(_traceState\.rafHandle\)/.test(tbv3SrcP5));
+
+  // ───── Stage 9: _failHop + auto-pause + reason copy ─────
+
+  test('phase5: _failHop function defined with hopIdx + reasonText params',
+    /function _failHop\(hopIdx, reasonText\)/.test(tbv3SrcP5));
+
+  test('phase5: _failHop reuses Phase 4 _failDevice (shake + glow)',
+    /_failDevice\(hopId,\s*reasonText/.test(tbv3SrcP5));
+
+  test('phase5: _failHop auto-pauses autoplay on failure (spec §3.5)',
+    /_traceState\.mode === 'play'[\s\S]{0,300}_traceState\.mode = 'paused'/.test(tbv3SrcP5));
+
+  // ───── Stage 10: Per-hop canvas badge ─────
+
+  test('phase5: _updateHopBadge function defined',
+    /function _updateHopBadge\(\)/.test(tbv3SrcP5));
+
+  test('phase5: badge SVG group uses .tb3-trace-badge class',
+    /classList\.add\('tb3-trace-badge'\)/.test(tbv3SrcP5));
+
+  test('phase5: badge adds .is-failed class when on failedAt hop',
+    /isFailed[\s\S]{0,200}classList\.add\('is-failed'\)/.test(tbv3SrcP5));
+
+  // ───── Stage 12: Cross-rail mutex symmetry forEach lock ─────
+
+  ['_selectDevice', '_openPicker', '_openDiagnostic', '_openSimulate'].forEach(function (fname) {
+    test('phase5: cross-rail symmetry — ' + fname + ' calls _closeTrace() (Stage 12 forEach lock)',
+      /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, fname)));
+  });
+
+  // ───── Stage 11: Sim→Trace handoff (failed-row chevron) ─────
+
+  test('phase5: Sim→Trace chevron class emitted in _renderSimLog',
+    /tb3-sim-log-trace-this/.test(tbv3SrcP5));
+
+  test('phase5: chevron conditional on entry.failure AND entry.pair (failed-only per spec §3.8)',
+    /entry\.failure && entry\.pair/.test(tbv3SrcP5));
+
+  test('phase5: _motionPing failure entry includes pair.path for handoff',
+    /pair:\s*\{[\s\S]{0,200}path:/.test(tbv3SrcP5));
+
+  test('phase5: chevron click unpacks srcId/dstId from pair.path (spec §9.2)',
+    /entry\.pair\.path\[0\][\s\S]{0,200}entry\.pair\.path\[entry\.pair\.path\.length - 1\]/.test(tbv3SrcP5));
+
+  // ───── Stage 13: §12.1 consolidation guards ─────
+
+  test('phase5: _renderTracePanel emits #tb3-trace-panel',
+    /id\s*=\s*['"]?tb3-trace-panel['"]?/.test(tbv3SrcP5));
+
+  // _renderTraceControls emits src/dst dropdowns + 4 buttons
+  (function () {
+    const ctrlBody = _fnBody(tbv3SrcP5, '_renderTraceControls');
+    test('phase5: src dropdown emitted (#tb3-trace-src)',
+      /tb3-trace-src/.test(ctrlBody));
+    test('phase5: dst dropdown emitted (#tb3-trace-dst)',
+      /tb3-trace-dst/.test(ctrlBody));
+    test('phase5: Start button emitted (#tb3-trace-start)',
+      /tb3-trace-start/.test(ctrlBody));
+    test('phase5: Next button emitted (#tb3-trace-next)',
+      /tb3-trace-next/.test(ctrlBody));
+    test('phase5: Play button emitted (#tb3-trace-play)',
+      /tb3-trace-play/.test(ctrlBody));
+    test('phase5: End button emitted (#tb3-trace-end)',
+      /tb3-trace-end/.test(ctrlBody));
+    test('phase5: End button labeled "End trace" (stop-slop §7.4)',
+      /End trace/.test(ctrlBody));
+    test('phase5: tombstone — bare "End" button label must not return',
+      !/['"]End['"]$/m.test(ctrlBody));
+  })();
+
+  // _renderHopList emits .is-current / .is-failed / .is-done states
+  (function () {
+    const hlBody = _fnBody(tbv3SrcP5, '_renderHopList');
+    test('phase5: hop list .is-current state',
+      /is-current/.test(hlBody));
+    test('phase5: hop list .is-failed state',
+      /is-failed/.test(hlBody));
+    test('phase5: hop list .is-done state',
+      /is-done/.test(hlBody));
+  })();
+
+  // _renderTraceAnnotation emits OSI chip + action + reason
+  (function () {
+    const annoBody = _fnBody(tbv3SrcP5, '_renderTraceAnnotation');
+    test('phase5: annotation OSI chip class',
+      /tb3-trace-anno-osi/.test(annoBody));
+    test('phase5: annotation action class',
+      /tb3-trace-anno-action/.test(annoBody));
+    test('phase5: annotation reason class',
+      /tb3-trace-anno-reason/.test(annoBody));
+  })();
+
+  // Reduced-motion CSS gate present
+  test('phase5: reduced-motion gate applied to .tb3-trace-* rules',
+    /prefers-reduced-motion: reduce[\s\S]{0,2000}tb3-trace/.test(tbv3CssP5));
+
+  // Trace modebar pill — emitted via template concat data-mode="' + m.id + '"
+  // where the modes array carries { id: 'trace', label: 'Trace', ... }
+  test('phase5: modebar Trace pill entry in modes array',
+    /\{\s*id:\s*['"]trace['"]\s*,\s*label:\s*['"]Trace['"]/.test(tbv3SrcP5));
+
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

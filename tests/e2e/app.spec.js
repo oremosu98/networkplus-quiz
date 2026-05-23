@@ -2872,6 +2872,249 @@ test.describe('topology-builder-v3', () => {
     });
     await expect(page.locator('#tb3-body')).not.toHaveClass(/simulate-open/);
   });
+
+  // ──────────────────────────────────────────────────────────────
+  // Phase 5 — Trace mode (Stage 14: tests 36-45)
+  // ──────────────────────────────────────────────────────────────
+
+  test('36: Trace pill opens panel', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.locator('.tb3-mode[data-mode="trace"]').click();
+    await page.waitForSelector('#tb3-trace-panel');
+    await expect(page.locator('#tb3-trace-panel')).toBeVisible();
+    await expect(page.locator('.tb3-trace-title')).toHaveText('Trace mode');
+  });
+
+  test('37: src/dst dropdowns populate from state.devices', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '10.0.0.1', mask: 24 } },
+        { id: 'd2', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '10.0.0.20', mask: 24 } }
+      ];
+      state.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      mod._setState(state);
+      mod._renderCanvas();
+    });
+    await page.locator('.tb3-mode[data-mode="trace"]').click();
+    await page.waitForSelector('#tb3-trace-src');
+    const srcOptions = await page.locator('#tb3-trace-src option').count();
+    expect(srcOptions).toBeGreaterThanOrEqual(3);
+    await expect(page.locator('#tb3-trace-src option').nth(1)).toHaveText('WS-1');
+  });
+
+  test('38: Start enables Next, populates hop list', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '10.0.0.1', mask: 24 } },
+        { id: 'd2', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '10.0.0.20', mask: 24 } }
+      ];
+      state.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      mod._setState(state);
+      mod._renderCanvas();
+      mod._openTrace({ srcId: 'd1', dstId: 'd2', protocol: 'ping' });
+      mod._startTrace();
+    });
+    await page.waitForSelector('#tb3-trace-panel .tb3-trace-hops');
+    const hopCount = await page.locator('.tb3-trace-hop').count();
+    expect(hopCount).toBeGreaterThanOrEqual(2);
+  });
+
+  test('39: Next advances hop chip + canvas badge follows', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '10.0.0.1', mask: 24 } },
+        { id: 'd2', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '10.0.0.20', mask: 24 } }
+      ];
+      state.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      mod._setState(state);
+      mod._renderCanvas();
+      mod._openTrace({ srcId: 'd1', dstId: 'd2', protocol: 'ping' });
+      mod._startTrace();
+    });
+    await page.waitForSelector('.tb3-trace-hop.is-current');
+    // Initial state: hop 1 is current (the source); badge renders only after Next advances.
+    await expect(page.locator('.tb3-trace-hop.is-current .tb3-trace-hop-num')).toHaveText('1');
+
+    await page.click('#tb3-trace-next');
+    await page.waitForTimeout(400);  // 250ms glide + buffer
+    await expect(page.locator('.tb3-trace-hop.is-current .tb3-trace-hop-num')).toHaveText('2');
+    // Badge appears after first Next (rendered by _updateHopBadge in _stepTrace onDone).
+    await expect(page.locator('.tb3-trace-badge text')).toHaveText('2');
+  });
+
+  test('40: Play/Pause toggle works', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '10.0.0.1', mask: 24 } },
+        // d2 is a SWITCH (L2-transparent) so computePath's BFS walks through it.
+        // Phase 3 BFS stops at L3 boundaries (router/firewall/etc), so a router
+        // mid-path on the same subnet would block the L2 walk to d3.
+        { id: 'd2', type: 'switch', hostname: 'SW-1', x: 200, y: 100, config: { ip: '10.0.0.5', mask: 24 } },
+        { id: 'd3', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '10.0.0.20', mask: 24 } }
+      ];
+      state.cables = [
+        { id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' },
+        { id: 'c2', fromId: 'd2', fromPort: 1, toId: 'd3', toPort: 0, type: 'cat6' }
+      ];
+      mod._setState(state);
+      mod._renderCanvas();
+      mod._openTrace({ srcId: 'd1', dstId: 'd3', protocol: 'ping' });
+      mod._startTrace();
+    });
+    await page.waitForSelector('#tb3-trace-play:not([disabled])');
+    await page.click('#tb3-trace-play');
+    await expect(page.locator('#tb3-trace-play')).toHaveText('Pause');
+    await page.click('#tb3-trace-play');
+    await expect(page.locator('#tb3-trace-play')).toHaveText('Play');
+  });
+
+  test('41: Failure path marks hop is-failed + shows reason copy', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    // Broken topology: workstation has NO gateway, destination on a foreign subnet
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '', mask: 24 } },
+        { id: 'd2', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '192.168.30.20', mask: 24 } }
+      ];
+      state.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      mod._setState(state);
+      mod._renderCanvas();
+      mod._openTrace({ srcId: 'd1', dstId: 'd2', protocol: 'ping' });
+      mod._startTrace();
+    });
+    await page.waitForSelector('.tb3-trace-hop.is-failed');
+    const reasonText = await page.locator('.tb3-trace-anno-reason').textContent();
+    expect(reasonText).toMatch(/gateway|route|subnet/i);
+  });
+
+  test('42: Sim→Trace handoff chevron class exists in source (marker — full motion-driven flow in dogfood)', async ({ page }) => {
+    // Marker test reserved per plan §14 — full Simulate motion flow that produces a
+    // failed log entry with .pair is exercised in Stage 15 dogfood. Structural
+    // emission of the chevron class is locked by UAT Stage 11 guards.
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    // Confirm the feature module loads and exposes the chevron-handling fns.
+    const exposed = await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      return mod && typeof mod._openTrace === 'function';
+    });
+    expect(exposed).toBe(true);
+  });
+
+  test('43: _closeTrace removes the panel', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      window._certanvilFeatures['topology-builder-v3']._openTrace();
+    });
+    await page.waitForSelector('#tb3-body.trace-open');
+
+    // Use exposed _closeTrace (same pattern as Phase 4 test 33)
+    await page.evaluate(() => {
+      window._certanvilFeatures['topology-builder-v3']._closeTrace();
+    });
+    await expect(page.locator('#tb3-body')).not.toHaveClass(/trace-open/);
+  });
+
+  test('44: Cross-rail mutex — opening Picker closes Trace', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      window._certanvilFeatures['topology-builder-v3']._openTrace();
+    });
+    await page.waitForSelector('#tb3-body.trace-open');
+
+    await page.evaluate(() => {
+      window._certanvilFeatures['topology-builder-v3']._openPicker();
+    });
+    await expect(page.locator('#tb3-body')).not.toHaveClass(/trace-open/);
+  });
+
+  test('45: Trace runs cleanly under prefers-reduced-motion', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.evaluate(() => {
+      const mod = window._certanvilFeatures['topology-builder-v3'];
+      const state = mod._getState();
+      state.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '10.0.0.10', gateway: '10.0.0.1', mask: 24 } },
+        { id: 'd2', type: 'server', hostname: 'SRV-1', x: 300, y: 100, config: { ip: '10.0.0.20', mask: 24 } }
+      ];
+      state.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      mod._setState(state);
+      mod._renderCanvas();
+      mod._openTrace({ srcId: 'd1', dstId: 'd2', protocol: 'ping' });
+      mod._startTrace();
+    });
+    await page.waitForSelector('#tb3-trace-panel');
+    // Reduced-motion CSS neutralizes the stagger keyframe + settle pulse.
+    // The rAF-driven glide in _movePacketTracked still runs at 250ms — wait
+    // past that so the hop transition completes naturally.
+    await page.click('#tb3-trace-next');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.tb3-trace-hop.is-current .tb3-trace-hop-num')).toHaveText('2');
+  });
 });
 
 

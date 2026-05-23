@@ -26,6 +26,14 @@
     activeScenarioId: null, // phase 2: id of currently-loaded scenario when intent === 'lab'
   };
 
+  // Phase 5 helper — internal accessor mirroring the registration-object
+  // _getState exposure. Lets render helpers (_renderTracePanel /
+  // _renderHopList / _renderTraceAnnotation / _startTrace) reference
+  // state via a fn call instead of the bare var. Without this the plan's
+  // _getState() calls would ReferenceError at runtime (the registration's
+  // inline function is only reachable via window._certanvilFeatures[...]).
+  function _getState() { return state; }
+
   // Ephemeral Simulate-mode state (Phase 4) — NOT persisted, cleared on mode exit
   var _simState = {
     drillSrcId: null,        // device id
@@ -37,6 +45,43 @@
     playing: false,          // true while Validator Preview queue is running
   };
 
+  // Ephemeral Trace-mode state (Phase 5) — NOT persisted, cleared on _closeTrace
+  // Separate from _simState per spec §3.6 (clean mode separation).
+  var _traceState = null;
+
+  function _initTraceState(payload) {
+    _traceState = {
+      // pair identity
+      srcId: (payload && payload.srcId) || null,
+      dstId: (payload && payload.dstId) || null,
+      protocol: (payload && payload.protocol) || 'ping',
+
+      // computed path (from Phase 3's computePath — note: result.hops NOT result.path)
+      hops: [],
+      reasons: {},
+      failedAt: null,
+
+      // playback
+      currentHopIdx: 0,
+      mode: 'idle',
+      autoplayTimer: null,
+      rafHandle: null,        // emil §8.6 — captured for interruptibility on rapid Next clicks
+
+      // visuals
+      packet: null,
+
+      // handoff bookkeeping (Sim→Trace re-entry)
+      lastPayload: payload || null
+    };
+  }
+
+  function _resetTraceState() {
+    if (_traceState && _traceState.autoplayTimer) clearTimeout(_traceState.autoplayTimer);
+    if (_traceState && _traceState.rafHandle) cancelAnimationFrame(_traceState.rafHandle);
+    if (_traceState && _traceState.packet) _despawnPacket(_traceState.packet);
+    _traceState = null;
+  }
+
   // ───────────────────────────────────────────────────────────
   // CSS LOADING (single-call from enter())
   // ───────────────────────────────────────────────────────────
@@ -46,7 +91,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r9'; // r9: Phase 4 Simulate mode substrate CSS appended
+  var TB3_CSS_REV = 'r10'; // r10: Phase 5 Trace mode CSS appended (panel slide, hop list, badges, settle pulse)
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -1770,6 +1815,18 @@
             '<div id="tb3-sim-log"></div>' +
           '</div>' +
         '</aside>' +
+        '<aside id="tb3-trace-panel" aria-label="Trace panel">' +
+          '<div class="tb3-trace-head">' +
+            '<div>' +
+              '<div class="tb3-trace-eyebrow">Trace</div>' +
+              '<h3 class="tb3-trace-title">Trace mode</h3>' +
+            '</div>' +
+            '<button type="button" id="tb3-trace-close" aria-label="Close Trace">&times;</button>' +
+          '</div>' +
+          '<div id="tb3-trace-controls-host" class="tb3-trace-section"></div>' +
+          '<div id="tb3-trace-hops-host" class="tb3-trace-section"></div>' +
+          '<div id="tb3-trace-annotation-host" class="tb3-trace-section"></div>' +
+        '</aside>' +
       '</div>' +
 
       // Status bar
@@ -2419,6 +2476,9 @@
     if (body && body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body && body.classList.contains('trace-open')) {
+      _closeTrace();
+    }
     state.selectedId = id;
     _renderCanvas();
     _renderInspector();
@@ -2785,6 +2845,7 @@
     if (body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body.classList.contains('trace-open')) _closeTrace();
     // Mutually exclusive with Inspector (only one rail panel at a time).
     body.classList.remove('inspector-open');
     body.classList.add('picker-open');
@@ -2976,6 +3037,7 @@
     if (body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body.classList.contains('trace-open')) _closeTrace();
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.add('diagnostic-open');
@@ -3009,10 +3071,14 @@
   function _openSimulate() {
     var body = document.getElementById('tb3-body');
     if (!body) return;
-    // Close any other rail panel (single mutual-exclusion family)
+    // Close any other rail panel (single mutual-exclusion family).
+    // _closeTrace() runs the full Phase 5 teardown (RAF cancel, packet
+    // despawn, state reset) — must call it rather than just toggling
+    // the class, matching the _openPicker pattern (Stage 12 §4.3).
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
+    if (body.classList.contains('trace-open')) _closeTrace();
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();
@@ -3035,6 +3101,529 @@
     _simState.drillDstId = null;
     state.mode = 'design';
     _renderModeBar();
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // TRACE PANEL (Phase 5 — open/close + render stub)
+  // ───────────────────────────────────────────────────────────
+
+  function _openTrace(payload) {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    // Close any other rail panel (single mutual-exclusion family — Phase 4 pattern)
+    body.classList.remove('picker-open');
+    body.classList.remove('inspector-open');
+    body.classList.remove('diagnostic-open');
+    body.classList.remove('simulate-open');
+    body.classList.add('trace-open');
+    state.mode = 'trace';
+    _initTraceState(payload || null);
+    _renderTracePanel();
+    _renderModeBar();
+  }
+
+  function _closeTrace() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('trace-open');
+    _resetTraceState();
+    state.mode = 'design';
+    _renderModeBar();
+  }
+
+  function _renderTracePanel() {
+    var panel = document.getElementById('tb3-trace-panel');
+    if (!panel) {
+      panel = document.createElement('aside');
+      panel.id = 'tb3-trace-panel';
+      panel.className = 'tb3-rail-panel';
+      panel.dataset.mode = 'trace';
+      document.querySelector('.tb3-workspace').appendChild(panel);
+    }
+
+    var st = _getState();
+    var hasDevices = st.devices && st.devices.length >= 2;
+
+    // Empty-state copy per emil §8.6 fallback
+    var controlsHtml = hasDevices
+      ? _renderTraceControls()
+      : '<section class="tb3-trace-empty"><p>Add devices to the canvas to start tracing.</p></section>';
+
+    const hopsHtml = _renderHopList();
+    const annotationHtml = _renderTraceAnnotation();
+
+    panel.innerHTML =
+      '<header class="tb3-trace-head">' +
+        '<span class="tb3-trace-eyebrow">TRACE</span>' +
+        '<h3 class="tb3-trace-title">Trace mode</h3>' +
+        '<button class="tb3-trace-close" aria-label="Close Trace">×</button>' +
+      '</header>' +
+      controlsHtml +
+      hopsHtml +
+      annotationHtml;
+
+    _wireTracePanel();
+  }
+
+  function _renderTraceControls() {
+    var st = _getState();
+    var devicesOpts = _buildDeviceOptions(st.devices, _traceState.srcId);
+    var dstOpts = _buildDeviceOptions(st.devices, _traceState.dstId);
+    var startEnabled = _traceState.srcId && _traceState.dstId && _traceState.srcId !== _traceState.dstId;
+    var nextEnabled = _traceState.mode === 'step' && _canStepFurther();
+    var endEnabled = _traceState.mode !== 'idle';
+    var playLabel = _traceState.mode === 'play' ? 'Pause' : 'Play';
+    var playDisabled = _traceState.mode === 'idle' || _traceState.mode === 'done';
+
+    return '' +
+      '<section class="tb3-trace-controls">' +
+        '<div class="tb3-trace-pair">' +
+          '<label>Source <select id="tb3-trace-src">' + devicesOpts + '</select></label>' +
+          '<label>Destination <select id="tb3-trace-dst">' + dstOpts + '</select></label>' +
+        '</div>' +
+        '<div class="tb3-trace-protocol-row">' +
+          '<button class="tb3-trace-proto on" data-proto="ping" disabled>ping</button>' +
+        '</div>' +
+        '<div class="tb3-trace-controls-row">' +
+          '<button id="tb3-trace-start" class="tb3-trace-btn primary"' + (startEnabled ? '' : ' disabled') + '>Start trace</button>' +
+          '<button id="tb3-trace-next" class="tb3-trace-btn"' + (nextEnabled ? '' : ' disabled') + '>Next hop ›</button>' +
+          '<button id="tb3-trace-play" class="tb3-trace-btn"' + (playDisabled ? ' disabled' : '') + '>' + playLabel + '</button>' +
+          '<button id="tb3-trace-end" class="tb3-trace-btn ghost"' + (endEnabled ? '' : ' disabled') + '>End trace</button>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function _startTrace() {
+    if (!_traceState || !_traceState.srcId || !_traceState.dstId) return;
+    if (_traceState.srcId === _traceState.dstId) return;
+
+    const state = _getState();
+    const result = computePath(_traceState.srcId, _traceState.dstId, state);
+
+    // Phase 3 schema: result is {ok, hops?, reason?, failedAt?}
+    // - On success, result.hops is the device-ID path.
+    // - On failure, result.hops is undefined; result.failedAt is the DEVICE ID
+    //   where the path broke (NOT an index). Phase 5 normalizes: hops always
+    //   carries at least [srcId] so _renderHopList has something to mark; we
+    //   convert Phase 3's device-ID failedAt to an INDEX in that hops array,
+    //   because _canStepFurther + _renderHopList expect a numeric index.
+    // Field name discipline per spec §10: 'hops' NOT 'path'.
+    if (result && Array.isArray(result.hops) && result.hops.length > 0) {
+      _traceState.hops = result.hops.slice();
+    } else {
+      _traceState.hops = [_traceState.srcId];
+    }
+
+    if (result && result.ok === false && result.failedAt) {
+      var failIdx = _traceState.hops.indexOf(result.failedAt);
+      _traceState.failedAt = failIdx >= 0 ? failIdx : 0;
+    } else {
+      _traceState.failedAt = null;
+    }
+
+    _traceState.reasons = {};
+    if (_traceState.failedAt !== null) {
+      _traceState.reasons[_traceState.failedAt] = _reachReasonText(
+        _traceState.failedAt,
+        result.reason,
+        _traceState.srcId,
+        _traceState.dstId
+      );
+    }
+
+    _traceState.currentHopIdx = 0;
+    _traceState.mode = 'step';
+
+    // Spawn packet at source (Phase 4 helper reuse).
+    if (_traceState.packet) _despawnPacket(_traceState.packet);
+    _traceState.packet = _spawnPacketSvg('amber');
+    const srcPt = _devCenter(_traceState.srcId);
+    if (_traceState.packet && srcPt) {
+      _traceState.packet.setAttribute('cx', srcPt.x);
+      _traceState.packet.setAttribute('cy', srcPt.y);
+    }
+
+    _renderTracePanel();
+  }
+
+  function _stepTrace() {
+    if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') return;
+    if (!_canStepFurther()) return;
+
+    // rAF cancellation discipline (emil §8.6 — interruptibility):
+    // Cancel any in-flight glide before launching the next one so
+    // rapid Next clicks retarget cleanly without orphan loops.
+    if (_traceState.rafHandle) {
+      cancelAnimationFrame(_traceState.rafHandle);
+      _traceState.rafHandle = null;
+    }
+
+    const fromHopIdx = _traceState.currentHopIdx;
+    const toHopIdx = fromHopIdx + 1;
+    const fromPt = _devCenter(_traceState.hops[fromHopIdx]);
+    const toPt = _devCenter(_traceState.hops[toHopIdx]);
+    if (!fromPt || !toPt || !_traceState.packet) return;
+
+    // Glide duration per spec §8.1: 250ms cubic-bezier ease-in-out
+    // (the strong custom curve, NOT default CSS easing).
+    const isAutoplay = _traceState.mode === 'play';
+    const durMs = isAutoplay ? 600 : 250;
+
+    _movePacketTracked(_traceState.packet, fromPt, toPt, durMs, function() {
+      _traceState.currentHopIdx = toHopIdx;
+      _renderSettlePulse(_traceState.hops[toHopIdx]);
+      _updateHopBadge();
+
+      // If this hop is the failed hop, trigger the failure beat.
+      // _failHop is implemented in Stage 9 — guard for now.
+      if (_traceState.failedAt !== null && toHopIdx === _traceState.failedAt) {
+        if (typeof _failHop === 'function') {
+          _failHop(toHopIdx, _traceState.reasons[toHopIdx] || '');
+        }
+      }
+
+      // If we reached the destination (no failure), mark mode = 'done'.
+      if (_traceState.currentHopIdx === _traceState.hops.length - 1 && _traceState.failedAt === null) {
+        _traceState.mode = 'done';
+      }
+
+      _renderTracePanel();
+    });
+  }
+
+  function _renderSettlePulse(devId) {
+    if (!devId) return;
+    const el = document.querySelector('.tb3-dev[data-device-id="' + _escAttr(devId) + '"]');
+    if (!el) return;
+    // Re-trigger by removing + reflow + adding the class
+    el.classList.remove('tb3-trace-settle');
+    // Force reflow so the animation re-fires on rapid re-entry
+    void el.offsetWidth;
+    el.classList.add('tb3-trace-settle');
+  }
+
+  function _updateHopBadge() {
+    if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') {
+      _clearHopBadges();
+      return;
+    }
+    // Remove any existing badge first.
+    _clearHopBadges();
+
+    const idx = _traceState.currentHopIdx;
+    const hopId = _traceState.hops[idx];
+    if (!hopId) return;
+    const isFailed = (idx === _traceState.failedAt);
+
+    const devGroup = document.querySelector('g.tb3-dev[data-device-id="' + _escAttr(hopId) + '"]');
+    if (!devGroup) return;
+
+    // Find the device's bounding rect inside the group — the badge sits at top-right.
+    const rect = devGroup.querySelector('rect') || devGroup.querySelector('image') || devGroup.firstElementChild;
+    if (!rect) return;
+    const rectX = parseFloat(rect.getAttribute('x') || rect.getAttribute('cx') || 0);
+    const rectY = parseFloat(rect.getAttribute('y') || rect.getAttribute('cy') || 0);
+    const rectW = parseFloat(rect.getAttribute('width') || 60);
+
+    // Build the badge SVG group.
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const badge = document.createElementNS(SVG_NS, 'g');
+    badge.classList.add('tb3-trace-badge');
+    if (isFailed) badge.classList.add('is-failed');
+    badge.setAttribute('transform', 'translate(' + (rectX + rectW - 4) + ',' + (rectY - 4) + ')');
+
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('r', '7');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('class', 'tb3-trace-badge-circle');
+
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('x', '0');
+    text.setAttribute('y', '3');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '9');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('class', 'tb3-trace-badge-text');
+    text.textContent = String(idx + 1);
+
+    badge.appendChild(circle);
+    badge.appendChild(text);
+    devGroup.appendChild(badge);
+  }
+
+  function _clearHopBadges() {
+    const badges = document.querySelectorAll('.tb3-trace-badge');
+    badges.forEach(function(b) { b.parentNode.removeChild(b); });
+  }
+
+  function _movePacketTracked(el, fromPt, toPt, durMs, onDone) {
+    if (!el) { if (onDone) onDone(); return; }
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - start) / durMs);
+      // cubic-bezier ease-in-out approximation per spec §8.1
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const x = fromPt.x + (toPt.x - fromPt.x) * ease;
+      const y = fromPt.y + (toPt.y - fromPt.y) * ease;
+      el.setAttribute('cx', x);
+      el.setAttribute('cy', y);
+      if (t < 1) {
+        _traceState.rafHandle = requestAnimationFrame(step);
+      } else {
+        _traceState.rafHandle = null;
+        if (onDone) onDone();
+      }
+    }
+    _traceState.rafHandle = requestAnimationFrame(step);
+  }
+
+  function _canStepFurther() {
+    return _traceState && Array.isArray(_traceState.hops) && _traceState.currentHopIdx < _traceState.hops.length - 1 && _traceState.failedAt === null;
+  }
+
+  function _buildDeviceOptions(devices, selectedId) {
+    var opts = '<option value="">— pick —</option>';
+    (devices || []).forEach(function(d) {
+      var sel = (d.id === selectedId) ? ' selected' : '';
+      opts += '<option value="' + _escAttr(d.id) + '"' + sel + '>' + _escAttr(d.hostname || d.id) + '</option>';
+    });
+    return opts;
+  }
+
+  function _renderHopList() {
+    if (!_traceState || !Array.isArray(_traceState.hops) || _traceState.hops.length === 0) {
+      return '';
+    }
+    const state = _getState();
+    const total = _traceState.hops.length;
+    let html = '<ol class="tb3-trace-hops">';
+    _traceState.hops.forEach(function(hopId, idx) {
+      const dev = (state.devices || []).find(function(d) { return d.id === hopId; });
+      const label = dev ? (dev.hostname || dev.id) : hopId;
+      const num = idx + 1;
+      let cls = 'tb3-trace-hop';
+      if (idx === _traceState.failedAt) cls += ' is-failed';
+      else if (idx < _traceState.currentHopIdx) cls += ' is-done';
+      else if (idx === _traceState.currentHopIdx) cls += ' is-current';
+      html += '<li class="' + cls + '" data-hop-idx="' + idx + '" style="--tb3-hop-idx: ' + idx + '">' +
+                '<span class="tb3-trace-hop-num">' + num + '</span>' +
+                '<span class="tb3-trace-hop-label">' + _escAttr(label) + '</span>' +
+              '</li>';
+    });
+    html += '</ol>';
+    return html;
+  }
+
+  function _renderTraceAnnotation() {
+    if (!_traceState || !Array.isArray(_traceState.hops) || _traceState.hops.length === 0) {
+      return '';
+    }
+    const state = _getState();
+    const idx = _traceState.currentHopIdx;
+    const total = _traceState.hops.length;
+    const hopId = _traceState.hops[idx];
+    const dev = (state.devices || []).find(function(d) { return d.id === hopId; });
+    if (!dev) return '';
+
+    const isSrc = (idx === 0);
+    const isDst = (idx === total - 1);
+    const isFailed = (idx === _traceState.failedAt);
+
+    const osiChip = _osiChipForDevice(dev, isSrc, isDst);
+    const action = _actionForDevice(dev, isSrc, isDst);
+    const reason = isFailed
+      ? _traceState.reasons[idx]
+      : _reasonForDevice(dev, isSrc, isDst, state);
+
+    return '' +
+      '<section class="tb3-trace-annotation">' +
+        '<div class="tb3-trace-anno-eyebrow">Hop ' + (idx + 1) + ' of ' + total + '</div>' +
+        '<div class="tb3-trace-anno-title">' + _escAttr(dev.hostname || dev.id) + '</div>' +
+        '<div class="tb3-trace-anno-osi">' + _escAttr(osiChip) + '</div>' +
+        '<div class="tb3-trace-anno-action">' + _escAttr(action) + '</div>' +
+        '<div class="tb3-trace-anno-reason' + (isFailed ? ' is-failure' : '') + '">' + _escAttr(reason || '') + '</div>' +
+      '</section>';
+  }
+
+  function _osiChipForDevice(dev, isSrc, isDst) {
+    if (isSrc || isDst) return 'L7 · Application';
+    if (dev.type === 'switch') return 'L2 · Data Link';
+    if (dev.type === 'router' || dev.type === 'l3-switch' || dev.type === 'firewall' || dev.type === 'vpn') return 'L3 · Network';
+    return 'L3 · Network';  // fallback
+  }
+
+  function _actionForDevice(dev, isSrc, isDst) {
+    // Locked stop-slop copy per spec §7.4. Ping-only (Phase 5).
+    if (isSrc) return 'Originates ICMP echo request';
+    if (isDst) return 'Receives ICMP echo, sends reply';
+    if (dev.type === 'switch') return 'Forwards via MAC table';
+    if (dev.type === 'router' || dev.type === 'l3-switch') return 'Forwards via routing table';
+    if (dev.type === 'firewall' || dev.type === 'vpn') return 'Filters and forwards';
+    return 'Forwards';
+  }
+
+  function _reasonForDevice(dev, isSrc, isDst, state) {
+    // Locked stop-slop reason templates per spec §7.4.
+    if (isSrc) {
+      const dstId = _traceState.dstId;
+      const dstDev = (state.devices || []).find(function(d) { return d.id === dstId; });
+      const dstIp = (dstDev && dstDev.config && dstDev.config.ip) ? dstDev.config.ip : '?';
+      const gw = (dev.config && dev.config.gateway) ? dev.config.gateway : '?';
+      return 'Targets ' + dstIp + ' via default gateway ' + gw;
+    }
+    if (isDst) {
+      const srcId = _traceState.srcId;
+      const srcDev = (state.devices || []).find(function(d) { return d.id === srcId; });
+      const srcIp = (srcDev && srcDev.config && srcDev.config.ip) ? srcDev.config.ip : '?';
+      return 'Replies to ' + srcIp;
+    }
+    // Intermediate hop: find next hop IP for egress reason
+    const nextIdx = (_traceState.hops || []).indexOf(dev.id) + 1;
+    const nextHopId = (_traceState.hops || [])[nextIdx];
+    const nextDev = (state.devices || []).find(function(d) { return d.id === nextHopId; });
+    const nextIp = (nextDev && nextDev.config && nextDev.config.ip) ? nextDev.config.ip : '?';
+    if (dev.type === 'switch') {
+      return 'Egress port toward ' + nextIp;  // MAC info would be ideal but IP is the user-facing handle
+    }
+    if (dev.type === 'firewall' || dev.type === 'vpn') {
+      return 'Permits per policy. Egress ' + nextIp;
+    }
+    return 'Egress to ' + nextIp;
+  }
+
+  function _playTrace() {
+    if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') return;
+    if (!_canStepFurther()) return;
+
+    _traceState.mode = 'play';
+    _renderTracePanel();
+
+    function tick() {
+      // Check we're still in play mode (could have been paused or ended mid-cycle).
+      if (!_traceState || _traceState.mode !== 'play') return;
+      // Check we have somewhere to go.
+      if (!_canStepFurther()) {
+        _traceState.mode = 'done';
+        _renderTracePanel();
+        return;
+      }
+
+      _stepTrace();
+
+      // After _stepTrace fires (which is rAF-driven 600ms in autoplay mode),
+      // schedule the next tick after the hop duration + 120ms gap.
+      // Note: _stepTrace's onDone callback handles the failure case (auto-pauses
+      // via _failHop in Stage 9). We rely on _traceState.mode being checked
+      // at the top of tick() to bail when paused/failed.
+      _traceState.autoplayTimer = setTimeout(tick, 600 + 120);
+    }
+
+    // Kick off first tick after a short pre-roll (gives the user time to see
+    // the hop list before motion starts).
+    _traceState.autoplayTimer = setTimeout(tick, 200);
+  }
+
+  function _pauseTrace() {
+    if (!_traceState) return;
+    _traceState.mode = 'paused';
+    if (_traceState.autoplayTimer) {
+      clearTimeout(_traceState.autoplayTimer);
+      _traceState.autoplayTimer = null;
+    }
+    if (_traceState.rafHandle) {
+      cancelAnimationFrame(_traceState.rafHandle);
+      _traceState.rafHandle = null;
+    }
+    _renderTracePanel();
+  }
+
+  function _endTrace() {
+    if (!_traceState) return;
+    _traceState.mode = 'done';
+    if (_traceState.autoplayTimer) {
+      clearTimeout(_traceState.autoplayTimer);
+      _traceState.autoplayTimer = null;
+    }
+    if (_traceState.rafHandle) {
+      cancelAnimationFrame(_traceState.rafHandle);
+      _traceState.rafHandle = null;
+    }
+    if (_traceState.packet) {
+      _despawnPacket(_traceState.packet);
+      _traceState.packet = null;
+    }
+    _renderTracePanel();
+  }
+
+  function _failHop(hopIdx, reasonText) {
+    if (!_traceState || typeof hopIdx !== 'number') return;
+    const hopId = _traceState.hops[hopIdx];
+    if (!hopId) return;
+
+    // Re-use Phase 4's _failDevice — 200ms shake + 1.2s red glow.
+    // Reduced-motion path inside _failDevice handles the gate.
+    _failDevice(hopId, reasonText || '');
+
+    // If we were autoplaying, auto-pause so the user can read the reason.
+    if (_traceState.mode === 'play') {
+      _traceState.mode = 'paused';
+      if (_traceState.autoplayTimer) {
+        clearTimeout(_traceState.autoplayTimer);
+        _traceState.autoplayTimer = null;
+      }
+    }
+
+    // Make sure the reason is captured on _traceState so the annotation renders it.
+    // (Already populated in _startTrace from REACH_REASON_TEMPLATES; this is a safety net.)
+    if (reasonText && !_traceState.reasons[hopIdx]) {
+      _traceState.reasons[hopIdx] = reasonText;
+    }
+
+    _renderTracePanel();
+  }
+
+  function _wireTracePanel() {
+    var panel = document.getElementById('tb3-trace-panel');
+    if (!panel) return;
+
+    // Close
+    var closeBtn = panel.querySelector('.tb3-trace-close');
+    if (closeBtn) closeBtn.onclick = _closeTrace;
+
+    // Src/Dst dropdowns
+    var srcSel = panel.querySelector('#tb3-trace-src');
+    if (srcSel) srcSel.onchange = function(e) {
+      _traceState.srcId = e.target.value || null;
+      _renderTracePanel();
+    };
+    var dstSel = panel.querySelector('#tb3-trace-dst');
+    if (dstSel) dstSel.onchange = function(e) {
+      _traceState.dstId = e.target.value || null;
+      _renderTracePanel();
+    };
+
+    // Buttons — Stage 4+ wire real handlers; for now just hold the references
+    var startBtn = panel.querySelector('#tb3-trace-start');
+    if (startBtn) startBtn.onclick = function() {
+      if (typeof _startTrace === 'function') _startTrace();
+    };
+    var nextBtn = panel.querySelector('#tb3-trace-next');
+    if (nextBtn) nextBtn.onclick = function() {
+      if (typeof _stepTrace === 'function') _stepTrace();
+    };
+    var playBtn = panel.querySelector('#tb3-trace-play');
+    if (playBtn) playBtn.onclick = function() {
+      if (_traceState.mode === 'play') {
+        if (typeof _pauseTrace === 'function') _pauseTrace();
+      } else {
+        if (typeof _playTrace === 'function') _playTrace();
+      }
+    };
+    var endBtn = panel.querySelector('#tb3-trace-end');
+    if (endBtn) endBtn.onclick = function() {
+      if (typeof _endTrace === 'function') _endTrace();
+    };
   }
 
   function _renderSimulatePanel() {
@@ -3118,7 +3707,7 @@
       _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[0] + ' sends ICMP echo to ' + path[path.length - 1], failure: false });
       if (spec.failedAt) {
         _failDevice(spec.failedAt, spec.failReason);
-        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]), failure: true });
+        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]), failure: true, pair: { path: path, protocol: 'ping', failedAt: spec.failedAt, failReason: spec.failReason || '' } });
       } else {
         _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[path.length - 1] + ' reply received', failure: false });
       }
@@ -3154,6 +3743,12 @@
               protocol: 'ping',
               text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]),
               failure: true,
+              pair: {
+                path: path,
+                protocol: 'ping',
+                failedAt: spec.failedAt,
+                failReason: spec.failReason || ''
+              }
             });
             _despawnPacket(el);
             if (spec.onComplete) spec.onComplete();
@@ -3366,18 +3961,22 @@
     // data-log-idx on each row maps back to _simState.log[idx]; rows that carry
     // a .pair field (validator-preview entries) are re-playable via the logHost
     // click handler wired in _wireSimulate (Task 9.3).
-    var rows = _simState.log.map(function (e, idx) {
-      var date = new Date(e.ts);
+    var rows = _simState.log.map(function (entry, idx) {
+      var date = new Date(entry.ts);
       var ts = ('0' + date.getHours()).slice(-2) + ':' +
                ('0' + date.getMinutes()).slice(-2) + ':' +
                ('0' + date.getSeconds()).slice(-2) + '.' +
                ('00' + date.getMilliseconds()).slice(-3);
-      var cls = 'tb3-sim-log-row' + (e.failure ? ' fail' : '');
-      var prefix = e.failure ? '✗' : '·';
+      var cls = 'tb3-sim-log-row' + (entry.failure ? ' fail' : '');
+      var prefix = entry.failure ? '✗' : '·';
+      var traceChevron = (entry.failure && entry.pair)
+        ? '<button class="tb3-sim-log-trace-this" data-log-idx="' + idx + '" aria-label="Trace this">→ Trace</button>'
+        : '';
       return '<div class="' + cls + '" data-log-idx="' + idx + '">' +
                '<span class="tb3-sim-log-prefix">' + prefix + '</span>' +
                '<span class="tb3-sim-log-ts">' + ts + '</span>' +
-               '<span class="tb3-sim-log-text">' + _escAttr(e.text) + '</span>' +
+               '<span class="tb3-sim-log-text">' + _escAttr(entry.text) + '</span>' +
+               traceChevron +
              '</div>';
     }).join('');
     host.innerHTML = rows;
@@ -3512,13 +4111,27 @@
     var logHost = panel.querySelector('#tb3-sim-log');
     if (logHost) {
       logHost.onclick = function (e) {
+        // Trace chevron branch — must come before the re-play branch.
+        var traceBtn = e.target.closest('.tb3-sim-log-trace-this');
+        if (traceBtn) {
+          var idx = parseInt(traceBtn.dataset.logIdx, 10);
+          var entry = _simState.log[idx];
+          if (!entry || !entry.pair) return;
+          var payload = {
+            srcId: entry.pair.path[0],
+            dstId: entry.pair.path[entry.pair.path.length - 1],
+            protocol: entry.protocol
+          };
+          _openTrace(payload);
+          return;
+        }
+        // Re-play the pair via _animatePacket.
         var row = e.target.closest('.tb3-sim-log-row');
         if (!row) return;
         var idx = parseInt(row.getAttribute('data-log-idx'), 10);
         if (isNaN(idx)) return;
         var entry = _simState.log[idx];
         if (!entry || !entry.pair) return;
-        // Re-play the pair via _animatePacket.
         _animatePacket({
           path: entry.pair.path,
           protocol: entry.pair.protocol,
@@ -3562,6 +4175,7 @@
           _closeSimulate();
           return;
         }
+        if (body && body.classList.contains('trace-open')) { _closeTrace(); return; }
         if (body && body.classList.contains('diagnostic-open')) { _closeDiagnostic(); return; }
         if (document.getElementById('tb3-body').classList.contains('picker-open')) {
           _closePicker();
@@ -3633,13 +4247,13 @@
     var modes = [
       { id: 'design',   label: 'Design',   icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',           locked: false },
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
-      { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>',                                                                                                                                                          locked: true },
+      { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>',                                                                                                                                                       locked: true },
       { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
     ];
     var html = modes.map(function (m) {
       var on = (m.id === state.mode);
-      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'trace':4,'osi':5,'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
+      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'osi':5,'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
     }).join('');
     row.innerHTML = html;
 
@@ -3650,6 +4264,10 @@
         var mode = el.getAttribute('data-mode');
         if (mode === 'simulate') {
           _openSimulate();
+          return;
+        }
+        if (mode === 'trace') {
+          _openTrace();
           return;
         }
         if (mode === state.mode) return;
@@ -3757,6 +4375,14 @@
     // Phase 4 — Simulate mode (exposed for Playwright tests 28-35)
     _renderCanvas: function () { _renderCanvas(); },
     _closeSimulate: function () { _closeSimulate(); },
+    // Phase 5 — Trace mode
+    _openTrace: _openTrace,
+    _closeTrace: function () { _closeTrace(); },
+    _startTrace: _startTrace,
+    _stepTrace: _stepTrace,
+    _playTrace: _playTrace,
+    _pauseTrace: _pauseTrace,
+    _endTrace: _endTrace,
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
