@@ -3679,7 +3679,7 @@
       _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[0] + ' sends ICMP echo to ' + path[path.length - 1], failure: false });
       if (spec.failedAt) {
         _failDevice(spec.failedAt, spec.failReason);
-        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]), failure: true });
+        _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]), failure: true, pair: { path: path, protocol: 'ping', failedAt: spec.failedAt, failReason: spec.failReason || '' } });
       } else {
         _appendLogEntry({ ts: Date.now(), protocol: 'ping', text: path[path.length - 1] + ' reply received', failure: false });
       }
@@ -3715,6 +3715,12 @@
               protocol: 'ping',
               text: _reachReasonText(spec.failedAt, spec.failReason, path[0], path[path.length - 1]),
               failure: true,
+              pair: {
+                path: path,
+                protocol: 'ping',
+                failedAt: spec.failedAt,
+                failReason: spec.failReason || ''
+              }
             });
             _despawnPacket(el);
             if (spec.onComplete) spec.onComplete();
@@ -3927,18 +3933,22 @@
     // data-log-idx on each row maps back to _simState.log[idx]; rows that carry
     // a .pair field (validator-preview entries) are re-playable via the logHost
     // click handler wired in _wireSimulate (Task 9.3).
-    var rows = _simState.log.map(function (e, idx) {
-      var date = new Date(e.ts);
+    var rows = _simState.log.map(function (entry, idx) {
+      var date = new Date(entry.ts);
       var ts = ('0' + date.getHours()).slice(-2) + ':' +
                ('0' + date.getMinutes()).slice(-2) + ':' +
                ('0' + date.getSeconds()).slice(-2) + '.' +
                ('00' + date.getMilliseconds()).slice(-3);
-      var cls = 'tb3-sim-log-row' + (e.failure ? ' fail' : '');
-      var prefix = e.failure ? '✗' : '·';
+      var cls = 'tb3-sim-log-row' + (entry.failure ? ' fail' : '');
+      var prefix = entry.failure ? '✗' : '·';
+      var traceChevron = (entry.failure && entry.pair)
+        ? '<button class="tb3-sim-log-trace-this" data-log-idx="' + idx + '" aria-label="Trace this">→ Trace</button>'
+        : '';
       return '<div class="' + cls + '" data-log-idx="' + idx + '">' +
                '<span class="tb3-sim-log-prefix">' + prefix + '</span>' +
                '<span class="tb3-sim-log-ts">' + ts + '</span>' +
-               '<span class="tb3-sim-log-text">' + _escAttr(e.text) + '</span>' +
+               '<span class="tb3-sim-log-text">' + _escAttr(entry.text) + '</span>' +
+               traceChevron +
              '</div>';
     }).join('');
     host.innerHTML = rows;
@@ -4073,13 +4083,27 @@
     var logHost = panel.querySelector('#tb3-sim-log');
     if (logHost) {
       logHost.onclick = function (e) {
+        // Trace chevron branch — must come before the re-play branch.
+        var traceBtn = e.target.closest('.tb3-sim-log-trace-this');
+        if (traceBtn) {
+          var idx = parseInt(traceBtn.dataset.logIdx, 10);
+          var entry = _simState.log[idx];
+          if (!entry || !entry.pair) return;
+          var payload = {
+            srcId: entry.pair.path[0],
+            dstId: entry.pair.path[entry.pair.path.length - 1],
+            protocol: entry.protocol
+          };
+          _openTrace(payload);
+          return;
+        }
+        // Re-play the pair via _animatePacket.
         var row = e.target.closest('.tb3-sim-log-row');
         if (!row) return;
         var idx = parseInt(row.getAttribute('data-log-idx'), 10);
         if (isNaN(idx)) return;
         var entry = _simState.log[idx];
         if (!entry || !entry.pair) return;
-        // Re-play the pair via _animatePacket.
         _animatePacket({
           path: entry.pair.path,
           protocol: entry.pair.protocol,

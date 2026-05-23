@@ -21949,6 +21949,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('phase5: badge adds .is-failed class when on failedAt hop',
     /isFailed[\s\S]{0,200}classList\.add\('is-failed'\)/.test(tbv3SrcP5));
 
+  // ───── Stage 11: Sim→Trace handoff (failed-row chevron) ─────
+
+  test('phase5: Sim→Trace chevron class emitted in _renderSimLog',
+    /tb3-sim-log-trace-this/.test(tbv3SrcP5));
+
+  test('phase5: chevron conditional on entry.failure AND entry.pair (failed-only per spec §3.8)',
+    /entry\.failure && entry\.pair/.test(tbv3SrcP5));
+
+  test('phase5: _motionPing failure entry includes pair.path for handoff',
+    /pair:\s*\{[\s\S]{0,200}path:/.test(tbv3SrcP5));
+
+  test('phase5: chevron click unpacks srcId/dstId from pair.path (spec §9.2)',
+    /entry\.pair\.path\[0\][\s\S]{0,200}entry\.pair\.path\[entry\.pair\.path\.length - 1\]/.test(tbv3SrcP5));
+
 })();
 
 // ── Summary ──
