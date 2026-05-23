@@ -22149,6 +22149,116 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
       out && /^02:00:00:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$/.test(out.null)
     );
   }
+
+  // ---- Stage 4: _activeLayersForDev shape per role ----
+  function loadActiveLayers() {
+    const fnBody = _fnBody(tbv3SrcP6, '_activeLayersForDev');
+    const sandbox = { __out: null };
+    vm.runInNewContext(
+      fnBody + '\n' +
+      '__out = {\n' +
+      '  workstation: _activeLayersForDev({type:"workstation"}),\n' +
+      '  server:      _activeLayersForDev({type:"server"}),\n' +
+      '  laptop:      _activeLayersForDev({type:"laptop"}),\n' +
+      '  smartphone:  _activeLayersForDev({type:"smartphone"}),\n' +
+      '  switch:      _activeLayersForDev({type:"switch"}),\n' +
+      '  router:      _activeLayersForDev({type:"router"}),\n' +
+      '  l3switch:    _activeLayersForDev({type:"l3-switch"}),\n' +
+      '  firewall:    _activeLayersForDev({type:"firewall"}),\n' +
+      '  vpn:         _activeLayersForDev({type:"vpn"})\n' +
+      '};',
+      sandbox
+    );
+    return sandbox.__out;
+  }
+
+  {
+    let out = null;
+    try { out = loadActiveLayers(); } catch(e) { /* function not yet implemented */ }
+    function eq(a, b) { return a && b && JSON.stringify(a.slice().sort()) === JSON.stringify(b.slice().sort()); }
+    test('P6: endpoint workstation active = [1,2,3,7] (ICMP)', out && eq(out.workstation, [1,2,3,7]));
+    test('P6: endpoint server active = [1,2,3,7]', out && eq(out.server, [1,2,3,7]));
+    test('P6: endpoint laptop active = [1,2,3,7]', out && eq(out.laptop, [1,2,3,7]));
+    test('P6: endpoint smartphone active = [1,2,3,7]', out && eq(out.smartphone, [1,2,3,7]));
+    test('P6: switch active = [1,2]', out && eq(out.switch, [1,2]));
+    test('P6: router active = [1,2,3]', out && eq(out.router, [1,2,3]));
+    test('P6: l3-switch active = [1,2,3]', out && eq(out.l3switch, [1,2,3]));
+    test('P6: firewall active = [1,2,3]', out && eq(out.firewall, [1,2,3]));
+    test('P6: vpn active = [1,2,3]', out && eq(out.vpn, [1,2,3]));
+  }
+
+  // ---- Stage 4: locked stop-slop verb templates per spec §7.4 ----
+  test("P6: locked verb 'Originates ICMP echo request'",
+    tbv3SrcP6.includes("'Originates ICMP echo request'")
+  );
+  test("P6: locked verb 'Receives ICMP echo, sends reply'",
+    tbv3SrcP6.includes("'Receives ICMP echo, sends reply'")
+  );
+  test("P6: locked verb 'n/a — ICMP runs directly on IP'",
+    tbv3SrcP6.includes("'n/a — ICMP runs directly on IP'")
+  );
+  test("P6: locked verb 'Wraps payload with source/dest IP'",
+    tbv3SrcP6.includes("'Wraps payload with source/dest IP'")
+  );
+  test("P6: locked verb 'Forwards via routing table'",
+    tbv3SrcP6.includes("'Forwards via routing table'")
+  );
+  test("P6: locked verb 'Filters per policy. Forwards via routing table' (period load-bearing)",
+    tbv3SrcP6.includes("'Filters per policy. Forwards via routing table'")
+  );
+  test("P6: locked verb 'Accepts packet for own IP'",
+    tbv3SrcP6.includes("'Accepts packet for own IP'")
+  );
+  test("P6: locked verb 'Frames with source/next-hop MAC'",
+    tbv3SrcP6.includes("'Frames with source/next-hop MAC'")
+  );
+  test("P6: locked verb 'Forwards via MAC table'",
+    tbv3SrcP6.includes("'Forwards via MAC table'")
+  );
+  test("P6: locked verb 'Rewrites frame with own MAC + next-hop MAC'",
+    tbv3SrcP6.includes("'Rewrites frame with own MAC + next-hop MAC'")
+  );
+  test("P6: locked verb 'Accepts frame for own MAC'",
+    tbv3SrcP6.includes("'Accepts frame for own MAC'")
+  );
+  test("P6: locked verb 'Encodes frame as electrical signal'",
+    tbv3SrcP6.includes("'Encodes frame as electrical signal'")
+  );
+
+  // ---- Tombstones: bare variants must NOT exist per spec §7.4 ----
+  test("P6: tombstone — 'Wraps with IP' bare variant must not exist",
+    !tbv3SrcP6.includes("'Wraps with IP'")
+  );
+  test("P6: tombstone — 'Rewrites MAC' bare variant must not exist",
+    !tbv3SrcP6.includes("'Rewrites MAC'")
+  );
+
+  // ---- Stage 4: _hopRole returns 'source' | 'intermediate' | 'dest' ----
+  function loadHopRole() {
+    const fnBody = _fnBody(tbv3SrcP6, '_hopRole');
+    const sandbox = {
+      _traceState: { hops: ['a', 'b', 'c', 'd'] },
+      __out: null
+    };
+    vm.runInNewContext(
+      fnBody + '\n' +
+      '__out = { src:_hopRole(0), mid:_hopRole(2), dst:_hopRole(3) };',
+      sandbox
+    );
+    return sandbox.__out;
+  }
+  {
+    let out = null;
+    try { out = loadHopRole(); } catch(e) { /* function not yet implemented */ }
+    test("P6: _hopRole returns 'source' at idx 0", out && out.src === 'source');
+    test("P6: _hopRole returns 'intermediate' in middle", out && out.mid === 'intermediate');
+    test("P6: _hopRole returns 'dest' at last idx", out && out.dst === 'dest');
+  }
+
+  // ---- Stage 4: _buildLayerStackForHop returns 7 rows ----
+  test('P6: _buildLayerStackForHop is defined',
+    /function\s+_buildLayerStackForHop\s*\(/.test(tbv3SrcP6)
+  );
 })();
 
 // ── Summary ──
