@@ -71,6 +71,9 @@
       // visuals
       packet: null,
 
+      // OSI failure layer (Phase 6 — set by _startTrace from result.reason)
+      reasonCode: null,
+
       // handoff bookkeeping (Sim→Trace re-entry)
       lastPayload: payload || null
     };
@@ -3261,6 +3264,9 @@
         _traceState.srcId,
         _traceState.dstId
       );
+      _traceState.reasonCode = result.reason || null;
+    } else {
+      _traceState.reasonCode = null;
     }
 
     _traceState.currentHopIdx = 0;
@@ -3623,6 +3629,43 @@
     }
     row.addEventListener('animationend', clear, { once: true });
     setTimeout(clear, 1400);   // reduced-motion safety net (1200ms + 200ms buffer)
+  }
+
+  // ── Stage 7: failure-reason → OSI layer mapping (spec §8) ──────────────────
+  // NOTE: _failedReasonToLayer is self-contained (inlines the table) so the
+  // vm-sandbox UAT fixture can extract and run it without module-scope deps.
+  var _FAILED_REASON_TO_LAYER = {
+    'no-link':           1,
+    'no-cable-path':     1,
+    'mac-not-found':     2,
+    'no-l2-path':        2,
+    'no-ip':             3,
+    'no-gateway':        3,
+    'gateway-not-found': 3,
+    'different-subnet':  3,
+    'not-l3':            3,
+    'no-route':          3,
+    'no-router-between': 3,
+  };
+
+  function _failedReasonToLayer(reason) {
+    var map = {
+      'no-link':           1,
+      'no-cable-path':     1,
+      'mac-not-found':     2,
+      'no-l2-path':        2,
+      'no-ip':             3,
+      'no-gateway':        3,
+      'gateway-not-found': 3,
+      'different-subnet':  3,
+      'not-l3':            3,
+      'no-route':          3,
+      'no-router-between': 3,
+    };
+    if (reason && Object.prototype.hasOwnProperty.call(map, reason)) {
+      return map[reason];
+    }
+    return 3; // default: L3 Network
   }
 
   function _osiChipForDevice(dev, isSrc, isDst) {
