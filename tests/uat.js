@@ -22089,6 +22089,28 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     !/id:\s*'osi'[\s\S]{0,400}locked:\s*true/.test(tbv3SrcP6)
   );
 
+  // ---- Stage 2: _openOSI / _closeOSI lifecycle ----
+  test(
+    'P6: _openOSI defined',
+    /function\s+_openOSI\s*\(/.test(tbv3SrcP6)
+  );
+  test(
+    'P6: _openOSI calls _openTrace then sets state.mode = "osi"',
+    /_openOSI[\s\S]{0,400}_openTrace[\s\S]{0,200}state\.mode\s*=\s*'osi'/.test(tbv3SrcP6)
+  );
+  test(
+    "P6: _openOSI adds 'osi-open' body class",
+    /_openOSI[\s\S]{0,400}classList\.add\('osi-open'\)/.test(tbv3SrcP6)
+  );
+  test(
+    'P6: _closeOSI removes osi-open + delegates to _closeTrace',
+    /_closeOSI[\s\S]{0,200}classList\.remove\('osi-open'\)[\s\S]{0,100}_closeTrace\s*\(/.test(tbv3SrcP6)
+  );
+  test(
+    'P6: modebar wires osi branch to _openOSI',
+    /mode\s*===\s*'osi'[\s\S]{0,80}_openOSI\s*\(/.test(tbv3SrcP6)
+  );
+
   // Expose tbv3SrcP6 + tbv3CssP6 for downstream Phase 6 stages by reusing this block.
 })();
 

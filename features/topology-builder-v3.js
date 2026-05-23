@@ -2481,6 +2481,9 @@
     if (body && body.classList.contains('trace-open')) {
       _closeTrace();
     }
+    if (body && body.classList.contains('osi-open')) {
+      _closeOSI();
+    }
     state.selectedId = id;
     _renderCanvas();
     _renderInspector();
@@ -2848,6 +2851,9 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
+    if (body.classList.contains('osi-open')) {
+      _closeOSI();
+    }
     // Mutually exclusive with Inspector (only one rail panel at a time).
     body.classList.remove('inspector-open');
     body.classList.add('picker-open');
@@ -3040,6 +3046,9 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
+    if (body.classList.contains('osi-open')) {
+      _closeOSI();
+    }
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.add('diagnostic-open');
@@ -3081,6 +3090,9 @@
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
     if (body.classList.contains('trace-open')) _closeTrace();
+    if (body.classList.contains('osi-open')) {
+      _closeOSI();
+    }
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();
@@ -3131,6 +3143,22 @@
     _resetTraceState();
     state.mode = 'design';
     _renderModeBar();
+  }
+
+  function _openOSI(payload) {
+    // OSI is a view-toggle on Trace per spec §3.1 — reuse _openTrace fully
+    // (cross-rail sweep + _initTraceState + _renderTracePanel) then override
+    // state.mode and add the osi-open body class.
+    _openTrace(payload || null);
+    state.mode = 'osi';
+    document.body.classList.add('osi-open');
+    _renderTracePanel();   // re-render so dispatch picks _renderOSIPanel (Stage 5)
+    _renderModeBar();      // repaint so OSI pill highlights, Trace pill un-highlights
+  }
+
+  function _closeOSI() {
+    document.body.classList.remove('osi-open');
+    _closeTrace();   // shares teardown — clears _traceState + removes trace-open class
   }
 
   function _renderTracePanel() {
@@ -4190,6 +4218,10 @@
           _closeSimulate();
           return;
         }
+        if (body && body.classList.contains('osi-open')) {
+          _closeOSI();
+          return;
+        }
         if (body && body.classList.contains('trace-open')) { _closeTrace(); return; }
         if (body && body.classList.contains('diagnostic-open')) { _closeDiagnostic(); return; }
         if (document.getElementById('tb3-body').classList.contains('picker-open')) {
@@ -4283,6 +4315,10 @@
         }
         if (mode === 'trace') {
           _openTrace();
+          return;
+        }
+        if (mode === 'osi') {
+          _openOSI();
           return;
         }
         if (mode === state.mode) return;
@@ -4398,6 +4434,8 @@
     _playTrace: _playTrace,
     _pauseTrace: _pauseTrace,
     _endTrace: _endTrace,
+    _openOSI: _openOSI,
+    _closeOSI: function () { _closeOSI(); },
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
