@@ -126,6 +126,7 @@ function _initTraceState(payload = null) {
     currentHopIdx: 0,                  // 0 = at src, len-1 = at dst (or failedAt)
     mode: 'idle',                      // 'idle' | 'step' | 'play' | 'paused' | 'done'
     autoplayTimer: null,               // setTimeout handle for next autoplay step
+    rafHandle: null,                   // requestAnimationFrame handle for the in-flight packet glide (emil pass — interruptibility)
 
     // visuals
     packet: null,                      // current packet SVG element (from _spawnPacketSvg)
@@ -137,6 +138,7 @@ function _initTraceState(payload = null) {
 
 function _resetTraceState() {
   if (_traceState?.autoplayTimer) clearTimeout(_traceState.autoplayTimer);
+  if (_traceState?.rafHandle) cancelAnimationFrame(_traceState.rafHandle);
   if (_traceState?.packet) _despawnPacket(_traceState.packet);
   _traceState = null;
 }
@@ -457,6 +459,98 @@ T=1200   Glow fully fades. UI rests at the paused state. User can re-Start or cl
 }
 ```
 
+### 8.6 Motion polish + invisible details (emil-design-eng pass)
+
+**Locked easing tokens** (shared `--tb3-ease-*` CSS vars, applied via existing `.tb3-*` rules):
+
+```css
+:root, [data-theme] {
+  --tb3-ease-out:    cubic-bezier(0.23, 1, 0.32, 1);     /* entries: panel, settle pulse, badge, glow ramp */
+  --tb3-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);    /* moves: packet step glide, autoplay hop */
+}
+```
+
+Applied per motion:
+- Step glide (`_movePacket`, 250ms): `--tb3-ease-in-out` — packet moves on screen.
+- Autoplay hop (`_movePacket`, 600ms): `--tb3-ease-in-out` — same family, longer duration.
+- Settle pulse (80ms): `--tb3-ease-out` — entry/ramp.
+- Panel slide-in: `--tb3-ease-out` — entering from right edge.
+- Failure glow ramp (1.2s): `--tb3-ease-out` — ramps from transparent.
+- Failure shake (200ms): `linear` — oscillation needs constant motion.
+
+**Button feedback** (Start / Next / Play / Pause / End / Close — all `.tb3-trace-btn` and `.tb3-trace-close`):
+
+```css
+.tb3-trace-btn,
+.tb3-trace-close {
+  transition: transform 140ms var(--tb3-ease-out),
+              background-color 160ms var(--tb3-ease-out);
+}
+.tb3-trace-btn:active,
+.tb3-trace-close:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tb3-trace-btn:hover,
+  .tb3-trace-close:hover {
+    background-color: var(--tb3-surface-hover);
+  }
+}
+.tb3-trace-btn:focus-visible,
+.tb3-trace-close:focus-visible {
+  outline: 2px solid var(--tb3-accent);
+  outline-offset: 2px;
+}
+.tb3-trace-btn[disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+```
+
+Press-feedback `scale(0.97)` makes every control feel responsive to touch / click. Hover gated to `(hover: hover) and (pointer: fine)` to avoid sticky touch-device hover states.
+
+**Asymmetric panel timing** (the dismissal-is-snappy rule):
+- Slide-in (open): `transform: translateX(0)` over **240ms** `--tb3-ease-out`.
+- Slide-out (close): `transform: translateX(100%)` over **180ms** `--tb3-ease-out`.
+
+The 60ms difference is the emil "fast where the system is responding" rule. Phase 4 Simulate panel stays symmetric for consistency with its existing tests; Trace is a Phase 5 refinement.
+
+**rAF cancellation discipline** — `_stepTrace` MUST cancel the prior step's rAF before launching a new `_movePacket`:
+
+```javascript
+function _stepTrace() {
+  if (_traceState.rafHandle) cancelAnimationFrame(_traceState.rafHandle);
+  // ...compute next-hop center, fire _movePacket, store new rafHandle into _traceState.rafHandle...
+}
+```
+
+Same applies to `_pauseTrace` and `_endTrace` (both cancel `autoplayTimer` AND `rafHandle`). This makes step glides interruptible — rapid Next clicks retarget cleanly to the next-next hop without orphan loops.
+
+**Hop-list stagger** (one-time on `_startTrace`):
+- Each `.tb3-trace-hop` chip animates in: `opacity 0 → 1`, `transform: translateY(4px) → 0`, 200ms `--tb3-ease-out`.
+- Stagger: `animation-delay: calc(var(--tb3-hop-idx) * 40ms)`, inline style per chip (`style="--tb3-hop-idx: 0"`, `--tb3-hop-idx: 1`, etc.).
+- 3-hop scenario = 0/40/80ms cascade; 5-hop = 0/40/80/120/160ms — still snappy. Capped naturally by hop count.
+
+**Reduced-motion exact fallback paths** (replaces the generic §8.4 placeholder):
+- Step glide: packet teleports (`transform: translate(nextX, nextY)` set immediately, no transition) + 1.5s static `drop-shadow(0 0 6px var(--tb3-accent))` on arriving hop in place of the 80ms pulse.
+- Autoplay: same teleport + 800ms between hops (longer because no glide fills the time).
+- Failure: 1.5s static `drop-shadow(0 0 8px var(--tb3-pkt-failure))` on failing hop. No shake.
+- Panel slide: instant — `transition: none` while reduced-motion is active.
+- Button press: no `scale(0.97)` — only `background-color` transitions on hover/active to indicate press.
+- Hop-list stagger: bypass — all chips appear simultaneously, no delay.
+
+**Empty-state behavior** (Trace opened on a canvas with no devices):
+- Panel renders with placeholder copy in the controls area: "Add devices to the canvas to start tracing."
+- Src/Dst dropdowns + Start button hidden (`display:none`) until `state.devices.length >= 2`.
+- Recovers automatically when devices are added (cross-rail mutex closes Trace + reopens on next Trace pill click; or Trace stays open if user adds devices via canvas while Trace is open — re-render fires on `_renderCanvas` calls that include `_renderTracePanel()` invocation when `state.mode === 'trace'`, mirroring the Phase 4 dogfood-fix pattern).
+
+**Hop-chip past-hop click affordance** — DEFERRED to Phase 5.x:
+- Phase 5 ships with non-clickable hop chips (they're status indicators, not interactive controls).
+- If founder dogfood feedback requests "click hop 1 to rewind", add the rewind affordance in a follow-up: clicking `.tb3-trace-hop.is-done` calls `_rewindToHop(hopIdx)` which sets `currentHopIdx = hopIdx`, repositions packet, re-renders annotation. Logged in §13 known limitations.
+
+**Cohesion check**: the motion language above matches Phase 4 Simulate's vocabulary (cubic-bezier eases, 200-ish ms panel slide, settle pulse pattern) one level richer. Trace adds step-glide + stagger + rAF discipline without introducing new motion families. The emil "personality matches mood" check passes — Trace is a study tool, so motion is precise + interruptible + calm, not theatrical.
+
 ## 9. Simulate → Trace handoff protocol
 
 ### 9.1 Payload shape
@@ -601,6 +695,7 @@ Full bite-by-bite breakdown lives in the writing-plans output. This section is t
 - **OSI chip is a label, not an expansion**: hover/click does nothing. Phase 6 ships the full OSI drill.
 - **Single path per Trace**: if the topology has multiple paths (ECMP, multipath), Phase 5 traces only the one `computePath` returns. Multi-path exploration is out of scope.
 - **No "Coach this trace" affordance**: Phase 8 Coach mode will add an AI explanation button to the annotation; Phase 5 ships the substrate, not the UI.
+- **Hop-chip past-hop click rewind**: deferred to Phase 5.x. Hop chips in Phase 5 are status indicators only, not interactive controls. If founder dogfood feedback asks for "click hop 1 to rewind", `_rewindToHop(hopIdx)` is the implementation path (§8.6).
 
 ## 14. Phase 6+ implications
 
