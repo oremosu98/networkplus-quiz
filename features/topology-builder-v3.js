@@ -1807,6 +1807,18 @@
             '<div id="tb3-sim-log"></div>' +
           '</div>' +
         '</aside>' +
+        '<aside id="tb3-trace-panel" aria-label="Trace panel">' +
+          '<div class="tb3-trace-head">' +
+            '<div>' +
+              '<div class="tb3-trace-eyebrow">Trace</div>' +
+              '<h3 class="tb3-trace-title">Trace mode</h3>' +
+            '</div>' +
+            '<button type="button" id="tb3-trace-close" aria-label="Close Trace">&times;</button>' +
+          '</div>' +
+          '<div id="tb3-trace-controls-host" class="tb3-trace-section"></div>' +
+          '<div id="tb3-trace-hops-host" class="tb3-trace-section"></div>' +
+          '<div id="tb3-trace-annotation-host" class="tb3-trace-section"></div>' +
+        '</aside>' +
       '</div>' +
 
       // Status bar
@@ -2456,6 +2468,9 @@
     if (body && body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body && body.classList.contains('trace-open')) {
+      _closeTrace();
+    }
     state.selectedId = id;
     _renderCanvas();
     _renderInspector();
@@ -2822,6 +2837,7 @@
     if (body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body.classList.contains('trace-open')) _closeTrace();
     // Mutually exclusive with Inspector (only one rail panel at a time).
     body.classList.remove('inspector-open');
     body.classList.add('picker-open');
@@ -3013,6 +3029,7 @@
     if (body.classList.contains('simulate-open')) {
       _closeSimulate();
     }
+    if (body.classList.contains('trace-open')) _closeTrace();
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.add('diagnostic-open');
@@ -3050,6 +3067,7 @@
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
+    body.classList.remove('trace-open');
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();
@@ -3072,6 +3090,45 @@
     _simState.drillDstId = null;
     state.mode = 'design';
     _renderModeBar();
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // TRACE PANEL (Phase 5 — open/close + render stub)
+  // ───────────────────────────────────────────────────────────
+
+  function _openTrace(payload) {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    // Close any other rail panel (single mutual-exclusion family — Phase 4 pattern)
+    body.classList.remove('picker-open');
+    body.classList.remove('inspector-open');
+    body.classList.remove('diagnostic-open');
+    body.classList.remove('simulate-open');
+    body.classList.add('trace-open');
+    state.mode = 'trace';
+    _initTraceState(payload || null);
+    _renderTracePanel();
+    _renderModeBar();
+  }
+
+  function _closeTrace() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('trace-open');
+    _resetTraceState();
+    state.mode = 'design';
+    _renderModeBar();
+  }
+
+  function _renderTracePanel() {
+    // Stage 2: just wire the close button. Controls/hops/annotation
+    // render fns ship in Stages 3, 5, 7.
+    _wireTraceClose();
+  }
+
+  function _wireTraceClose() {
+    var btn = document.getElementById('tb3-trace-close');
+    if (btn) btn.onclick = _closeTrace;
   }
 
   function _renderSimulatePanel() {
@@ -3599,6 +3656,7 @@
           _closeSimulate();
           return;
         }
+        if (body && body.classList.contains('trace-open')) { _closeTrace(); return; }
         if (body && body.classList.contains('diagnostic-open')) { _closeDiagnostic(); return; }
         if (document.getElementById('tb3-body').classList.contains('picker-open')) {
           _closePicker();
@@ -3670,13 +3728,13 @@
     var modes = [
       { id: 'design',   label: 'Design',   icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',           locked: false },
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
-      { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>',                                                                                                                                                          locked: true },
+      { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>',                                                                                                                                                       locked: true },
       { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
     ];
     var html = modes.map(function (m) {
       var on = (m.id === state.mode);
-      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'trace':4,'osi':5,'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
+      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'osi':5,'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
     }).join('');
     row.innerHTML = html;
 
@@ -3687,6 +3745,10 @@
         var mode = el.getAttribute('data-mode');
         if (mode === 'simulate') {
           _openSimulate();
+          return;
+        }
+        if (mode === 'trace') {
+          _openTrace();
           return;
         }
         if (mode === state.mode) return;
@@ -3794,6 +3856,9 @@
     // Phase 4 — Simulate mode (exposed for Playwright tests 28-35)
     _renderCanvas: function () { _renderCanvas(); },
     _closeSimulate: function () { _closeSimulate(); },
+    // Phase 5 — Trace mode
+    _openTrace: _openTrace,
+    _closeTrace: function () { _closeTrace(); },
   };
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler

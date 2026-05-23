@@ -21765,6 +21765,106 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('phase5: _traceState transient — no nplus_tb_v3_trace localStorage key',
     !/nplus_tb_v3_trace/.test(tbv3SrcP5));
 
+  // ───── Stage 2: Modebar pill + open/close lifecycle ─────
+
+  test('phase5: Trace pill is no longer locked in _renderModeBar',
+    !/\{\s*id:\s*'trace',[^}]*locked:\s*true/.test(tbv3SrcP5));
+
+  test('phase5: _renderModeBar click handler dispatches trace to _openTrace',
+    /mode\s*===\s*['"]trace['"][\s\S]{0,80}_openTrace\(\)/.test(tbv3SrcP5));
+
+  test('phase5: _openTrace defined and accepts payload',
+    /function\s+_openTrace\s*\(\s*payload\s*\)/.test(tbv3SrcP5));
+
+  test('phase5: _closeTrace defined',
+    /function\s+_closeTrace\s*\(\s*\)/.test(tbv3SrcP5));
+
+  test('phase5: _renderTracePanel defined (Stage 2 stub — controls/hops/anno ship in Stages 3/5/7)',
+    /function\s+_renderTracePanel\s*\(/.test(tbv3SrcP5));
+
+  // Cross-rail mutex (5 fns now: Inspector via _selectDevice, Picker, Diagnostic, Simulate, Trace)
+  test('phase5: _openTrace closes other 4 rail panels (cross-rail mutex)',
+    /body\.classList\.remove\(['"]picker-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]inspector-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]diagnostic-open['"]\)[\s\S]{0,400}body\.classList\.remove\(['"]simulate-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace adds body.trace-open class',
+    /body\.classList\.add\(['"]trace-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace sets state.mode = "trace"',
+    /state\.mode\s*=\s*['"]trace['"]/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _openTrace calls _initTraceState with payload',
+    /_initTraceState\(payload/.test(_fnBody(tbv3SrcP5, '_openTrace')));
+
+  test('phase5: _closeTrace removes body.trace-open + sets state.mode = "design"',
+    /body\.classList\.remove\(['"]trace-open['"]\)[\s\S]{0,300}state\.mode\s*=\s*['"]design['"]/.test(_fnBody(tbv3SrcP5, '_closeTrace')));
+
+  test('phase5: _closeTrace invokes _resetTraceState',
+    /_resetTraceState\(\)/.test(_fnBody(tbv3SrcP5, '_closeTrace')));
+
+  test('phase5: Esc key closes Trace when body.trace-open is set',
+    /classList\.contains\(['"]trace-open['"]\)[\s\S]{0,100}_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_wireGlobalKeys')));
+
+  // Cross-rail symmetric — each other _open* fn now closes Trace
+  test('phase5: Cross-rail mutex — _openPicker closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openPicker')));
+
+  test('phase5: Cross-rail mutex — _openDiagnostic closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openDiagnostic')));
+
+  test('phase5: Cross-rail mutex — _openSimulate removes trace-open class',
+    /body\.classList\.remove\(['"]trace-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openSimulate')));
+
+  test('phase5: Cross-rail mutex — _selectDevice closes Trace',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_selectDevice')));
+
+  // Feature module registration
+  test('phase5: _openTrace exposed on feature module registration',
+    /_openTrace:\s*_openTrace/.test(tbv3SrcP5));
+
+  test('phase5: _closeTrace exposed on feature module registration',
+    /_closeTrace:\s*function/.test(tbv3SrcP5));
+
+  // Static panel DOM
+  test('phase5: static #tb3-trace-panel aside emitted in workspace HTML',
+    /id="tb3-trace-panel"/.test(tbv3SrcP5));
+
+  test('phase5: trace panel has close button',
+    /id="tb3-trace-close"/.test(tbv3SrcP5));
+
+  test('phase5: trace panel has eyebrow + title + 3 section hosts (controls/hops/annotation)',
+    /tb3-trace-eyebrow[\s\S]{0,200}tb3-trace-title[\s\S]{0,300}tb3-trace-controls-host[\s\S]{0,200}tb3-trace-hops-host[\s\S]{0,200}tb3-trace-annotation-host/.test(tbv3SrcP5));
+
+  // ───── Stage 2: Scoped CSS ─────
+
+  const tbv3CssP5 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('phase5: #tb3-trace-panel CSS rules present',
+    /#tb3-trace-panel\s*\{/.test(tbv3CssP5));
+
+  test('phase5: body.trace-open shows panel via translateX(0)',
+    /\.trace-open\s+#tb3-trace-panel[\s\S]{0,200}translateX\(0\)/.test(tbv3CssP5));
+
+  test('phase5: panel slide-in 240ms (open) per emil §8.6',
+    /#tb3-trace-panel[\s\S]{0,400}transition:\s*transform\s+240ms/.test(tbv3CssP5));
+
+  test('phase5: --tb3-ease-out cubic-bezier token locked',
+    /--tb3-ease-out:\s*cubic-bezier\(\s*0\.23\s*,\s*1\s*,\s*0\.32\s*,\s*1\s*\)/.test(tbv3CssP5));
+
+  test('phase5: --tb3-ease-in-out cubic-bezier token locked',
+    /--tb3-ease-in-out:\s*cubic-bezier\(\s*0\.77\s*,\s*0\s*,\s*0\.175\s*,\s*1\s*\)/.test(tbv3CssP5));
+
+  test('phase5: #tb3-trace-close has scale(0.97) on :active (emil §8.6 press feedback)',
+    /#tb3-trace-close:active[\s\S]{0,200}transform:\s*scale\(0\.97\)/.test(tbv3CssP5));
+
+  test('phase5: hover state gated @media (hover: hover) and (pointer: fine) (emil §8.6)',
+    /@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)[\s\S]{0,400}#tb3-trace-close:hover/.test(tbv3CssP5));
+
+  test('phase5: focus-visible 2px accent outline on close button',
+    /#tb3-trace-close:focus-visible[\s\S]{0,200}outline:\s*2px\s+solid\s+var\(--tb3-accent\)/.test(tbv3CssP5));
+
+  test('phase5: reduced-motion gate neutralizes #tb3-trace-panel transition',
+    /prefers-reduced-motion:\s*reduce[\s\S]{0,800}#tb3-trace-panel[\s\S]{0,200}transition:\s*none/.test(tbv3CssP5));
+
 })();
 
 // ── Summary ──

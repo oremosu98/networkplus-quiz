@@ -980,3 +980,122 @@ html[data-theme="light"] #page-topology-builder-v3 {
 @media (prefers-reduced-motion: reduce) {
   #page-topology-builder-v3 .tb3-dev-failing { animation: none; }
 }
+
+/* ═════════════════════════════════════════════════════════
+   Phase 5 — Trace mode rail panel + motion tokens
+   ═════════════════════════════════════════════════════════ */
+
+/* Emil §8.6 — locked easing tokens for Phase 5 motion language.
+   Globally available (theme-invariant). */
+:root, [data-theme] {
+  --tb3-ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --tb3-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Trace panel — mirrors Simulate panel structure (320px right-anchored
+   overlay, body-class toggle), with emil §8.6 asymmetric timing:
+   open 240ms, close 180ms (dismissals feel snappy). */
+#page-topology-builder-v3 #tb3-trace-panel {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--tb3-surface);
+  border-left: 1px solid var(--tb3-border);
+  z-index: 6;
+  flex-direction: column;
+  padding: 18px 18px 12px;
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 240ms var(--tb3-ease-out);
+}
+
+#page-topology-builder-v3 .tb3-body.trace-open #tb3-trace-panel {
+  display: flex;
+  transform: translateX(0);
+}
+
+#page-topology-builder-v3 .tb3-body.trace-open .tb3-rrail { display: none; }
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--tb3-text-dim);
+  margin-bottom: 6px;
+}
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-title {
+  font-family: Fraunces, Georgia, serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -.01em;
+  margin: 0;
+  color: var(--tb3-text);
+  text-transform: none;
+}
+
+#page-topology-builder-v3 #tb3-trace-close {
+  background: transparent;
+  border: 0;
+  color: var(--tb3-text-dim);
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  margin: -4px -4px 0 0;
+  transition: transform 140ms var(--tb3-ease-out),
+              color 160ms var(--tb3-ease-out);
+}
+
+#page-topology-builder-v3 #tb3-trace-close:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #page-topology-builder-v3 #tb3-trace-close:hover { color: var(--tb3-text); }
+}
+
+#page-topology-builder-v3 #tb3-trace-close:focus-visible {
+  outline: 2px solid var(--tb3-accent);
+  outline-offset: 2px;
+}
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-section {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--tb3-border);
+}
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-section:last-of-type {
+  border-bottom: 0;
+}
+
+#page-topology-builder-v3 #tb3-trace-panel .tb3-trace-section:empty {
+  display: none;
+}
+
+/* Reduced-motion gate — neutralizes panel slide + button press.
+   Asymmetric close timing falls back to instant on reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  #page-topology-builder-v3 #tb3-trace-panel {
+    transition: none;
+  }
+  #page-topology-builder-v3 #tb3-trace-close {
+    transition: color 0s;
+  }
+  #page-topology-builder-v3 #tb3-trace-close:active {
+    transform: none;
+  }
+}
