@@ -1368,3 +1368,59 @@ html[data-theme="light"] #page-topology-builder-v3 {
     transition: filter 1500ms ease;
   }
 }
+
+/* Trace annotation pane (Phase 5 Stage 7) */
+
+.tb3-trace-annotation {
+  padding: 16px 18px;
+  border-top: 1px solid var(--tb3-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tb3-trace-anno-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tb3-text-dim);
+}
+
+.tb3-trace-anno-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tb3-text);
+}
+
+.tb3-trace-anno-osi {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: 'SF Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tb3-accent);
+  background: rgba(0,0,0,0);
+  border: 1px solid var(--tb3-accent);
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin: 2px 0;
+}
+
+.tb3-trace-anno-action {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tb3-text);
+}
+
+.tb3-trace-anno-reason {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--tb3-text-dim);
+  line-height: 1.45;
+}
+
+.tb3-trace-anno-reason.is-failure {
+  color: var(--tb3-pkt-failure, oklch(0.6 0.2 25));
+  font-weight: 500;
+}
