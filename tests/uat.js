@@ -21970,6 +21970,63 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('phase5: chevron click unpacks srcId/dstId from pair.path (spec §9.2)',
     /entry\.pair\.path\[0\][\s\S]{0,200}entry\.pair\.path\[entry\.pair\.path\.length - 1\]/.test(tbv3SrcP5));
 
+  // ───── Stage 13: §12.1 consolidation guards ─────
+
+  test('phase5: _renderTracePanel emits #tb3-trace-panel',
+    /id\s*=\s*['"]?tb3-trace-panel['"]?/.test(tbv3SrcP5));
+
+  // _renderTraceControls emits src/dst dropdowns + 4 buttons
+  (function () {
+    const ctrlBody = _fnBody(tbv3SrcP5, '_renderTraceControls');
+    test('phase5: src dropdown emitted (#tb3-trace-src)',
+      /tb3-trace-src/.test(ctrlBody));
+    test('phase5: dst dropdown emitted (#tb3-trace-dst)',
+      /tb3-trace-dst/.test(ctrlBody));
+    test('phase5: Start button emitted (#tb3-trace-start)',
+      /tb3-trace-start/.test(ctrlBody));
+    test('phase5: Next button emitted (#tb3-trace-next)',
+      /tb3-trace-next/.test(ctrlBody));
+    test('phase5: Play button emitted (#tb3-trace-play)',
+      /tb3-trace-play/.test(ctrlBody));
+    test('phase5: End button emitted (#tb3-trace-end)',
+      /tb3-trace-end/.test(ctrlBody));
+    test('phase5: End button labeled "End trace" (stop-slop §7.4)',
+      /End trace/.test(ctrlBody));
+    test('phase5: tombstone — bare "End" button label must not return',
+      !/['"]End['"]$/m.test(ctrlBody));
+  })();
+
+  // _renderHopList emits .is-current / .is-failed / .is-done states
+  (function () {
+    const hlBody = _fnBody(tbv3SrcP5, '_renderHopList');
+    test('phase5: hop list .is-current state',
+      /is-current/.test(hlBody));
+    test('phase5: hop list .is-failed state',
+      /is-failed/.test(hlBody));
+    test('phase5: hop list .is-done state',
+      /is-done/.test(hlBody));
+  })();
+
+  // _renderTraceAnnotation emits OSI chip + action + reason
+  (function () {
+    const annoBody = _fnBody(tbv3SrcP5, '_renderTraceAnnotation');
+    test('phase5: annotation OSI chip class',
+      /tb3-trace-anno-osi/.test(annoBody));
+    test('phase5: annotation action class',
+      /tb3-trace-anno-action/.test(annoBody));
+    test('phase5: annotation reason class',
+      /tb3-trace-anno-reason/.test(annoBody));
+  })();
+
+  // Reduced-motion CSS gate present
+  test('phase5: reduced-motion gate applied to .tb3-trace-* rules',
+    /prefers-reduced-motion: reduce[\s\S]{0,2000}tb3-trace/.test(tbv3CssP5));
+
+  // Trace modebar pill — emitted via template concat data-mode="' + m.id + '"
+  // where the modes array carries { id: 'trace', label: 'Trace', ... }
+  test('phase5: modebar Trace pill entry in modes array',
+    /\{\s*id:\s*['"]trace['"]\s*,\s*label:\s*['"]Trace['"]/.test(tbv3SrcP5));
+
 })();
 
 // ── Summary ──
