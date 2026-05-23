@@ -22366,6 +22366,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('P6: _stepTrace dispatches OSI intermediate role to _animateIntermediate',
     /_stepTrace[\s\S]{0,4000}role\s*===\s*'intermediate'[\s\S]{0,200}_animateIntermediate/.test(tbv3SrcP6)
   );
+
+  // ---- Stage 10: _animateDecap + reduced-motion coverage ----
+  test('P6: _animateDecap is defined',
+    /function\s+_animateDecap\s*\(/.test(tbv3SrcP6)
+  );
+  test('P6: _animateDecap captures rAF on osiAnimHandle',
+    /_animateDecap[\s\S]{0,1500}_traceState\.osiAnimHandle\s*=\s*requestAnimationFrame/.test(tbv3SrcP6)
+  );
+  test('P6: _animateDecap sorts layers ascending (bottom-up L1 → L7)',
+    /_animateDecap[\s\S]{0,800}sort\(function[\s\S]{0,80}return\s+a\s*-\s*b/.test(tbv3SrcP6)
+  );
+  test('P6: _stepTrace dispatches OSI dest role to _animateDecap',
+    /_stepTrace[\s\S]{0,4000}role\s*===\s*'dest'[\s\S]{0,200}_animateDecap/.test(tbv3SrcP6)
+  );
 })();
 
 // ── Summary ──

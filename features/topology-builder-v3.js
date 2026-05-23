@@ -3338,8 +3338,9 @@
           });
         } else if (role === 'intermediate') {
           _animateIntermediate(hopId, (hopDev && hopDev.type) || 'router', null);
+        } else if (role === 'dest') {
+          _animateDecap(hopId, activeLayers, null);
         }
-        // dest handled in Stage 10
       }
 
       // If this hop is the failed hop, trigger the failure beat.
@@ -3814,6 +3815,52 @@
         }
       }
 
+      if (elapsed < totalMs) {
+        _traceState.osiAnimHandle = requestAnimationFrame(tick);
+      } else {
+        _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+
+    _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  // ===========================================================================
+  // Phase 6: _animateDecap
+  // Per-layer cascade L1 → L7 (bottom-up). Mirror of _animateEncap timing
+  // (80ms per active layer, no overlap) but bottom-up. Easing rides the
+  // tb3OSILayerSettle keyframe from CSS (same cubic-bezier as encap per
+  // spec §9.3 — mirror).
+  // ===========================================================================
+  function _animateDecap(dstHopId, activeLayers, onDone) {
+    if (_reducedMotion && _reducedMotion()) {
+      (activeLayers || []).forEach(function (n) { _setOSILayerFiring(n); });
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    // Filter to layers we'll fire (active subset only, sorted bottom-up 1 → 7).
+    var layers = (activeLayers || []).slice().sort(function (a, b) { return a - b; });
+    if (layers.length === 0) {
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
+
+    var startTs = null;
+    var perLayerMs = 80;
+    var totalMs = layers.length * perLayerMs;
+    var fired = new Array(layers.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+      for (var i = 0; i < layers.length; i++) {
+        if (!fired[i] && elapsed >= i * perLayerMs) {
+          fired[i] = true;
+          _setOSILayerFiring(layers[i]);
+        }
+      }
       if (elapsed < totalMs) {
         _traceState.osiAnimHandle = requestAnimationFrame(tick);
       } else {
