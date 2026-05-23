@@ -3121,14 +3121,116 @@
   }
 
   function _renderTracePanel() {
-    // Stage 2: just wire the close button. Controls/hops/annotation
-    // render fns ship in Stages 3, 5, 7.
-    _wireTraceClose();
+    var panel = document.getElementById('tb3-trace-panel');
+    if (!panel) {
+      panel = document.createElement('aside');
+      panel.id = 'tb3-trace-panel';
+      panel.className = 'tb3-rail-panel';
+      panel.dataset.mode = 'trace';
+      document.querySelector('.tb3-workspace').appendChild(panel);
+    }
+
+    var st = _getState();
+    var hasDevices = st.devices && st.devices.length >= 2;
+
+    // Empty-state copy per emil §8.6 fallback
+    var controlsHtml = hasDevices
+      ? _renderTraceControls()
+      : '<section class="tb3-trace-empty"><p>Add devices to the canvas to start tracing.</p></section>';
+
+    panel.innerHTML =
+      '<header class="tb3-trace-head">' +
+        '<span class="tb3-trace-eyebrow">TRACE</span>' +
+        '<h3 class="tb3-trace-title">Trace mode</h3>' +
+        '<button class="tb3-trace-close" aria-label="Close Trace">×</button>' +
+      '</header>' +
+      controlsHtml;
+
+    _wireTracePanel();
   }
 
-  function _wireTraceClose() {
-    var btn = document.getElementById('tb3-trace-close');
-    if (btn) btn.onclick = _closeTrace;
+  function _renderTraceControls() {
+    var st = _getState();
+    var devicesOpts = _buildDeviceOptions(st.devices, _traceState.srcId);
+    var dstOpts = _buildDeviceOptions(st.devices, _traceState.dstId);
+    var startEnabled = _traceState.srcId && _traceState.dstId && _traceState.srcId !== _traceState.dstId;
+    var nextEnabled = _traceState.mode === 'step' && _canStepFurther();
+    var endEnabled = _traceState.mode !== 'idle';
+    var playLabel = _traceState.mode === 'play' ? 'Pause' : 'Play';
+    var playDisabled = _traceState.mode === 'idle' || _traceState.mode === 'done';
+
+    return '' +
+      '<section class="tb3-trace-controls">' +
+        '<div class="tb3-trace-pair">' +
+          '<label>Source <select id="tb3-trace-src">' + devicesOpts + '</select></label>' +
+          '<label>Destination <select id="tb3-trace-dst">' + dstOpts + '</select></label>' +
+        '</div>' +
+        '<div class="tb3-trace-protocol-row">' +
+          '<button class="tb3-trace-proto on" data-proto="ping" disabled>ping</button>' +
+        '</div>' +
+        '<div class="tb3-trace-controls-row">' +
+          '<button id="tb3-trace-start" class="tb3-trace-btn primary"' + (startEnabled ? '' : ' disabled') + '>Start trace</button>' +
+          '<button id="tb3-trace-next" class="tb3-trace-btn"' + (nextEnabled ? '' : ' disabled') + '>Next hop ›</button>' +
+          '<button id="tb3-trace-play" class="tb3-trace-btn"' + (playDisabled ? ' disabled' : '') + '>' + playLabel + '</button>' +
+          '<button id="tb3-trace-end" class="tb3-trace-btn ghost"' + (endEnabled ? '' : ' disabled') + '>End trace</button>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function _canStepFurther() {
+    return _traceState && Array.isArray(_traceState.hops) && _traceState.currentHopIdx < _traceState.hops.length - 1 && _traceState.failedAt === null;
+  }
+
+  function _buildDeviceOptions(devices, selectedId) {
+    var opts = '<option value="">— pick —</option>';
+    (devices || []).forEach(function(d) {
+      var sel = (d.id === selectedId) ? ' selected' : '';
+      opts += '<option value="' + _escAttr(d.id) + '"' + sel + '>' + _escAttr(d.hostname || d.id) + '</option>';
+    });
+    return opts;
+  }
+
+  function _wireTracePanel() {
+    var panel = document.getElementById('tb3-trace-panel');
+    if (!panel) return;
+
+    // Close
+    var closeBtn = panel.querySelector('.tb3-trace-close');
+    if (closeBtn) closeBtn.onclick = _closeTrace;
+
+    // Src/Dst dropdowns
+    var srcSel = panel.querySelector('#tb3-trace-src');
+    if (srcSel) srcSel.onchange = function(e) {
+      _traceState.srcId = e.target.value || null;
+      _renderTracePanel();
+    };
+    var dstSel = panel.querySelector('#tb3-trace-dst');
+    if (dstSel) dstSel.onchange = function(e) {
+      _traceState.dstId = e.target.value || null;
+      _renderTracePanel();
+    };
+
+    // Buttons — Stage 4+ wire real handlers; for now just hold the references
+    var startBtn = panel.querySelector('#tb3-trace-start');
+    if (startBtn) startBtn.onclick = function() {
+      if (typeof _startTrace === 'function') _startTrace();
+    };
+    var nextBtn = panel.querySelector('#tb3-trace-next');
+    if (nextBtn) nextBtn.onclick = function() {
+      if (typeof _stepTrace === 'function') _stepTrace();
+    };
+    var playBtn = panel.querySelector('#tb3-trace-play');
+    if (playBtn) playBtn.onclick = function() {
+      if (_traceState.mode === 'play') {
+        if (typeof _pauseTrace === 'function') _pauseTrace();
+      } else {
+        if (typeof _playTrace === 'function') _playTrace();
+      }
+    };
+    var endBtn = panel.querySelector('#tb3-trace-end');
+    if (endBtn) endBtn.onclick = function() {
+      if (typeof _endTrace === 'function') _endTrace();
+    };
   }
 
   function _renderSimulatePanel() {
