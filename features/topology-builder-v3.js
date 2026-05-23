@@ -3138,13 +3138,16 @@
       ? _renderTraceControls()
       : '<section class="tb3-trace-empty"><p>Add devices to the canvas to start tracing.</p></section>';
 
+    const hopsHtml = _renderHopList();
+
     panel.innerHTML =
       '<header class="tb3-trace-head">' +
         '<span class="tb3-trace-eyebrow">TRACE</span>' +
         '<h3 class="tb3-trace-title">Trace mode</h3>' +
         '<button class="tb3-trace-close" aria-label="Close Trace">×</button>' +
       '</header>' +
-      controlsHtml;
+      controlsHtml +
+      hopsHtml;
 
     _wireTracePanel();
   }
@@ -3224,6 +3227,30 @@
       opts += '<option value="' + _escAttr(d.id) + '"' + sel + '>' + _escAttr(d.hostname || d.id) + '</option>';
     });
     return opts;
+  }
+
+  function _renderHopList() {
+    if (!_traceState || !Array.isArray(_traceState.hops) || _traceState.hops.length === 0) {
+      return '';
+    }
+    const state = _getState();
+    const total = _traceState.hops.length;
+    let html = '<ol class="tb3-trace-hops">';
+    _traceState.hops.forEach(function(hopId, idx) {
+      const dev = (state.devices || []).find(function(d) { return d.id === hopId; });
+      const label = dev ? (dev.hostname || dev.id) : hopId;
+      const num = idx + 1;
+      let cls = 'tb3-trace-hop';
+      if (idx === _traceState.failedAt) cls += ' is-failed';
+      else if (idx < _traceState.currentHopIdx) cls += ' is-done';
+      else if (idx === _traceState.currentHopIdx) cls += ' is-current';
+      html += '<li class="' + cls + '" data-hop-idx="' + idx + '" style="--tb3-hop-idx: ' + idx + '">' +
+                '<span class="tb3-trace-hop-num">' + num + '</span>' +
+                '<span class="tb3-trace-hop-label">' + _escAttr(label) + '</span>' +
+              '</li>';
+    });
+    html += '</ol>';
+    return html;
   }
 
   function _wireTracePanel() {
