@@ -22380,6 +22380,38 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('P6: _stepTrace dispatches OSI dest role to _animateDecap',
     /_stepTrace[\s\S]{0,4000}role\s*===\s*'dest'[\s\S]{0,200}_animateDecap/.test(tbv3SrcP6)
   );
+
+  // ---- Stage 11: 5-panel cross-rail mutex forEach lock ----
+  // Every inspector-opener path (the 4 from Phase 5 + any new) MUST call
+  // _closeTrace() AND _closeOSI() (the Trace mutex was Phase 5 Stage 12's
+  // catch; OSI extends it). _openTrace itself does NOT call _closeOSI()
+  // because they share state — switching between them is a mode flip.
+  ['_selectDevice', '_openPicker', '_openDiagnostic', '_openSimulate'].forEach(function (openerName) {
+    var body = _fnBody(tbv3SrcP6, openerName) || '';
+    test(
+      'P6 mutex: ' + openerName + ' calls _closeTrace()',
+      /_closeTrace\s*\(/.test(body)
+    );
+    test(
+      'P6 mutex: ' + openerName + ' calls _closeOSI()',
+      /_closeOSI\s*\(/.test(body)
+    );
+  });
+
+  // ---- Stage 11: _openTrace does NOT call _closeOSI (view-toggle invariant) ----
+  {
+    var openTraceBody = _fnBody(tbv3SrcP6, '_openTrace') || '';
+    test(
+      'P6 mutex: _openTrace does NOT call _closeOSI (Trace/OSI share state)',
+      !/_closeOSI\s*\(/.test(openTraceBody)
+    );
+  }
+
+  // ---- Stage 11: Esc handler closes OSI before Trace ----
+  test(
+    'P6 mutex: Esc handler closes osi-open before trace-open (more-specific first)',
+    /classList\.contains\('osi-open'\)[\s\S]{0,200}_closeOSI[\s\S]{0,400}classList\.contains\('trace-open'\)[\s\S]{0,200}_closeTrace/.test(tbv3SrcP6)
+  );
 })();
 
 // ── Summary ──
