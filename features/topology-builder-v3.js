@@ -3553,6 +3553,118 @@
     return '02:00:00:' + hex2(b1) + ':' + hex2(b2) + ':' + hex2(b3);
   }
 
+  // ===========================================================================
+  // Phase 6: OSI active-layers + role + layer-stack builder
+  // ===========================================================================
+
+  function _hopRole(hopIdx) {
+    if (!_traceState || !Array.isArray(_traceState.hops)) return 'intermediate';
+    const last = _traceState.hops.length - 1;
+    if (hopIdx === 0) return 'source';
+    if (hopIdx === last) return 'dest';
+    return 'intermediate';
+  }
+
+  function _activeLayersForDev(dev) {
+    if (!dev || !dev.type) return [1, 2, 3];
+    var endpoints = ['workstation', 'server', 'laptop', 'smartphone', 'game-console', 'smart-tv'];
+    if (endpoints.indexOf(dev.type) !== -1) return [1, 2, 3, 7];  // ICMP: L4 = n/a
+    if (dev.type === 'switch' || dev.type === 'ap' || dev.type === 'wlc') return [1, 2];
+    if (dev.type === 'router' || dev.type === 'l3-switch' || dev.type === 'firewall' || dev.type === 'vpn') return [1, 2, 3];
+    if (dev.type === 'cloud' || dev.type === 'internet') return [1, 2, 3];
+    return [1, 2, 3];
+  }
+
+  // Locked stop-slop verb templates per spec §7.4 (extending Phase 5's
+  // _actionForDevice discipline to layer level). Returns the verb string for a
+  // given {layer, role, deviceType}. Period in 'Filters per policy. Forwards
+  // via routing table' is load-bearing (spec §7.4 — "period breaks the chain").
+  function _verbForLayer(layerNum, role, devType) {
+    if (layerNum === 7) {
+      if (role === 'source') return 'Originates ICMP echo request';
+      if (role === 'dest') return 'Receives ICMP echo, sends reply';
+      return 'n/a — device does not examine application data';
+    }
+    if (layerNum === 4) return 'n/a — ICMP runs directly on IP';
+    if (layerNum === 3) {
+      if (role === 'source') return 'Wraps payload with source/dest IP';
+      if (role === 'dest') return 'Accepts packet for own IP';
+      if (devType === 'switch' || devType === 'ap' || devType === 'wlc') return 'n/a — switch does not examine IP';
+      if (devType === 'firewall' || devType === 'vpn') return 'Filters per policy. Forwards via routing table';
+      return 'Forwards via routing table';
+    }
+    if (layerNum === 2) {
+      if (role === 'source') return 'Frames with source/next-hop MAC';
+      if (role === 'dest') return 'Accepts frame for own MAC';
+      if (devType === 'switch' || devType === 'ap' || devType === 'wlc') return 'Forwards via MAC table';
+      return 'Rewrites frame with own MAC + next-hop MAC';
+    }
+    if (layerNum === 1) {
+      if (role === 'dest') return 'Receives signal';
+      return 'Encodes frame as electrical signal';
+    }
+    if (layerNum === 5 || layerNum === 6) return 'n/a — not engaged by ping';
+    return '';
+  }
+
+  function _protoForLayer(layerNum, role, devType, ctx) {
+    // ctx = { srcIp, dstIp, srcMac, nextHopMac, routerMacOut, dstMac, cableType }
+    var ct = (ctx && ctx.cableType) || 'cat6';
+    if (layerNum === 7) {
+      if (role === 'source') return 'ICMP echo request · type=8 code=0';
+      if (role === 'dest') return 'ICMP echo reply queued';
+      return 'n/a';
+    }
+    if (layerNum === 4) return 'n/a';
+    if (layerNum === 3) {
+      if (role === 'source') return 'IP · src=' + (ctx.srcIp || '?') + ' · dst=' + (ctx.dstIp || '?');
+      if (role === 'dest') return 'IP · dst=' + (ctx.dstIp || '?') + ' matches';
+      if (devType === 'switch' || devType === 'ap' || devType === 'wlc') return 'n/a';
+      return 'IP · src=' + (ctx.srcIp || '?') + ' · dst=' + (ctx.dstIp || '?') + ' · TTL decrements';
+    }
+    if (layerNum === 2) {
+      if (role === 'source') return 'Ethernet · src=' + (ctx.srcMac || '?') + ' · dst=' + (ctx.nextHopMac || '?');
+      if (role === 'dest') return 'Ethernet · dst=' + (ctx.dstMac || '?') + ' matches';
+      if (devType === 'switch' || devType === 'ap' || devType === 'wlc') return 'Ethernet · forwarding table lookup';
+      return 'Ethernet · src=' + (ctx.routerMacOut || '?') + ' · dst=' + (ctx.nextHopMac || '?');
+    }
+    if (layerNum === 1) {
+      if (role === 'dest') return ct + ' · signal received';
+      return ct + ' · electrical signal';
+    }
+    if (layerNum === 5 || layerNum === 6) return 'n/a';
+    return '';
+  }
+
+  // _buildLayerStackForHop(hop, role, ctx) → array of 7 row descriptors
+  //   { num, name, proto, verb, active, failure }
+  // Layers always 7→1 (top-down render order). ctx as in _protoForLayer above.
+  function _buildLayerStackForHop(hop, role, ctx) {
+    const dev = (hop && hop.dev) || hop || {};
+    const activeNums = _activeLayersForDev(dev);
+    const layerNames = {
+      7: 'Application',
+      6: 'Presentation',
+      5: 'Session',
+      4: 'Transport',
+      3: 'Network',
+      2: 'Data Link',
+      1: 'Physical'
+    };
+    const out = [];
+    for (let n = 7; n >= 1; n--) {
+      out.push({
+        num: n,
+        name: layerNames[n],
+        proto: _protoForLayer(n, role, dev.type, ctx || {}),
+        verb: _verbForLayer(n, role, dev.type),
+        active: activeNums.indexOf(n) !== -1,
+        failure: false   // populated in Stage 7
+      });
+    }
+    return out;
+  }
+
   function _playTrace() {
     if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') return;
     if (!_canStepFurther()) return;
