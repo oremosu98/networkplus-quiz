@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TB v3 Phase 6 — OSI mode dogfood smoke</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 840px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .eyebrow { color: #846b3f; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  ol { padding-left: 24px; }
+  li { margin: 18px 0; padding: 12px 16px; border-left: 3px solid #846b3f; background: #faf7f1; }
+  li strong { display: block; margin-bottom: 6px; font-size: 16px; }
+  code { font-family: SF Mono, Menlo, monospace; font-size: 13px; background: #f0eadd; padding: 2px 6px; border-radius: 3px; }
+  .pass { color: #2e7d32; font-weight: 600; }
+  .fail { color: #c62828; font-weight: 600; }
+</style>
+</head>
+<body>
+<p class="eyebrow">TB v3 — Phase 6 — OSI mode</p>
+<h1>Founder dogfood smoke (10 steps)</h1>
+<p>Walk this end-to-end on the live app (Chrome / Safari, both themes if time). Pass = behavior matches the step's exit criterion. Fail = stop, report, do not ship.</p>
+
+<ol>
+  <li>
+    <strong>1. Build star topology</strong>
+    Network Builder → Free Build → drop 1 switch + 1 server + 3 workstations + 4 cables (each workstation + server cabled to the switch).
+    Exit: 5 devices + 4 cables on canvas.
+  </li>
+  <li>
+    <strong>2. Configure IPs</strong>
+    Reuse Phase 5 dogfood setup. Each workstation + server gets <code>192.168.10.X/24</code>, gateway <code>192.168.10.1</code> (the switch is L2-transparent, no IP).
+    Exit: every endpoint has IP + mask + gateway populated.
+  </li>
+  <li>
+    <strong>3. Click OSI pill — Trace auto-enters, empty-state layer placeholder</strong>
+    Click the OSI modebar pill. Trace panel opens, body has classes <code>trace-open</code> + <code>osi-open</code>. Layer stack renders 7 passive rows with "Pick a source + destination" copy.
+    Exit: 7 passive rows visible, source/dest pickers populated with all 5 devices.
+  </li>
+  <li>
+    <strong>4. Pick src/dst, click Start — encap cascade at source (L7 → L1, ~400ms)</strong>
+    Source = WS-1, destination = Server. Click Start. Watch the source row's L7 row fire, then L3, then L2, then L1 — bronze drop-shadow pulse per layer, top-down cascade ~80ms each.
+    Exit: cascade fires top-down at source; all 4 active layers (L1,L2,L3,L7) flash sequentially; passive layers (L4,L5,L6) stay dim.
+  </li>
+  <li>
+    <strong>5. Click Next — glide + intermediate motion at switch (decap-up + pause + re-encap)</strong>
+    Click Next. Packet glides from WS-1 to the switch. On arrival, layer stack flips to the switch's role. L1 fires, then L2 fires, 100ms pause, then L2 fires again, then L1 fires (decap-up to L2 + re-encap-down to L1). L3+L7 stay passive (switch doesn't examine IP).
+    Exit: switch row shows only L1+L2 active, with the 3-phase choreography visible.
+  </li>
+  <li>
+    <strong>6. Click Next — glide + decap at dest (L1 → L7)</strong>
+    Click Next. Packet glides switch → Server. Layer stack flips to Server's role. L1 fires, then L2, L3, L7 in ascending order (bottom-up decap cascade ~320ms total).
+    Exit: dest row shows 4 active layers firing bottom-up; trace mode flips to <code>'done'</code>.
+  </li>
+  <li>
+    <strong>7. End trace, toggle Trace view — same trace, standard annotation; toggle back to OSI — resumes at current hop</strong>
+    Click End. Click the Trace modebar pill (NOT OSI) — Phase 5 annotation pane renders with OSI chip + action verb. Click OSI pill again — layer stack returns at the current hop (idx preserved). State should be shared, the panel just re-renders.
+    Exit: <code>currentHopIdx</code> survives the Trace ↔ OSI toggle. Verify in console: <code>window._certanvilFeatures['topology-builder-v3']._getTraceState().currentHopIdx</code>.
+  </li>
+  <li>
+    <strong>8. Break WS-1 gateway, restart — encap stops at L3, L3 row red, WS-1 shakes red, auto-pause</strong>
+    Inspector on WS-1 → clear the gateway field. Restart the trace (Start). At the source hop, encap cascade fires through L7 then stops at L3 — the L3 row gets <code>.is-failure</code> (2px red left-bar + red text + 6% red-tint bg + inline reason "WS-1 has no default gateway"). WS-1 device shakes red on canvas (Phase 5's <code>_failHop</code> fires in parallel).
+    Exit: L3 row red, no further layers fire, mode = paused.
+  </li>
+  <li>
+    <strong>9. Restore gateway, run autoplay through 3-hop path</strong>
+    Restore the gateway. Click Start, then Play (not Next). Autoplay walks the 3 hops at 600ms glide + ~400ms per-hop OSI cascade. ~3-4 seconds total.
+    Exit: trace completes end-to-end, mode = done.
+  </li>
+  <li>
+    <strong>10. Esc closes OSI. Open Picker — cross-rail mutex closes Trace + OSI cleanly. No console errors.</strong>
+    Press Esc — OSI panel closes (both <code>osi-open</code> and <code>trace-open</code> body classes cleared). Re-open OSI. Click the right-rail Scenarios picker. Confirm OSI + Trace both close + Picker opens. Check console — zero errors throughout.
+    Exit: all 10 steps clean, no console errors, ready to ship.
+  </li>
+</ol>
+
+<p style="margin-top:32px;padding:14px 18px;background:#eef5ee;border-left:3px solid #2e7d32;">
+  <strong class="pass">All 10 steps pass</strong> → tag v6.3.0 + push.
+  <br><br>
+  <strong class="fail">Any step fails</strong> → STOP, report, do not ship.
+</p>
+</body>
+</html>
