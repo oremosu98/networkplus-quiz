@@ -3063,11 +3063,14 @@
   function _openSimulate() {
     var body = document.getElementById('tb3-body');
     if (!body) return;
-    // Close any other rail panel (single mutual-exclusion family)
+    // Close any other rail panel (single mutual-exclusion family).
+    // _closeTrace() runs the full Phase 5 teardown (RAF cancel, packet
+    // despawn, state reset) — must call it rather than just toggling
+    // the class, matching the _openPicker pattern (Stage 12 §4.3).
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
-    body.classList.remove('trace-open');
+    if (body.classList.contains('trace-open')) _closeTrace();
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();

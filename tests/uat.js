@@ -21811,8 +21811,8 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('phase5: Cross-rail mutex — _openDiagnostic closes Trace',
     /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openDiagnostic')));
 
-  test('phase5: Cross-rail mutex — _openSimulate removes trace-open class',
-    /body\.classList\.remove\(['"]trace-open['"]\)/.test(_fnBody(tbv3SrcP5, '_openSimulate')));
+  test('phase5: Cross-rail mutex — _openSimulate calls _closeTrace() (Stage 12 — full teardown, not just class toggle)',
+    /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_openSimulate')));
 
   test('phase5: Cross-rail mutex — _selectDevice closes Trace',
     /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, '_selectDevice')));
@@ -21948,6 +21948,13 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
 
   test('phase5: badge adds .is-failed class when on failedAt hop',
     /isFailed[\s\S]{0,200}classList\.add\('is-failed'\)/.test(tbv3SrcP5));
+
+  // ───── Stage 12: Cross-rail mutex symmetry forEach lock ─────
+
+  ['_selectDevice', '_openPicker', '_openDiagnostic', '_openSimulate'].forEach(function (fname) {
+    test('phase5: cross-rail symmetry — ' + fname + ' calls _closeTrace() (Stage 12 forEach lock)',
+      /_closeTrace\(\)/.test(_fnBody(tbv3SrcP5, fname)));
+  });
 
   // ───── Stage 11: Sim→Trace handoff (failed-row chevron) ─────
 
