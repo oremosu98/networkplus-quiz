@@ -240,7 +240,60 @@ _openInspector / _selectDevice / _openPicker / _openDiagnostic / _openSimulate
 
 ## 7. Visual surfaces
 
-### 7.1 Rail panel DOM
+### 7.1 Visual language lock (taste-skill pass — dashboards within editorial-premium shell)
+
+**Routing**: per the taste-skill master router, Trace mode routes to `dashboards`. The per-hop annotations + step controls + ordered hop list are an information-layout problem, not a poster. The dashboards skill's "queue + detail panel" archetype maps 1:1 onto hop list + annotation pane.
+
+**Shell**: Trace lives inside the cert-app's existing editorial-premium global system (forged-bronze accents, hairline borders, OKLCH palette, Fraunces + Inter typography). The dashboards style is applied THROUGH that shell, not as a separate identity. Phase 4 Simulate panel set the precedent — Trace extends it one level richer.
+
+**Calibrated dials** (per dashboards skill baseline + this surface):
+
+| Dial | Value | Reasoning |
+|---|---|---|
+| DESIGN_VARIANCE | 3 | Disciplined, calm, predictable. Trace is a tool. |
+| MOTION_INTENSITY | 4 | Utility motion + live-state. No theatrical reveals. |
+| VISUAL_DENSITY | 7 | Cockpit mode. Tight typography, hairline dividers, mono for IPs, no card chrome. |
+
+**Component vocabulary (locked)**:
+- **Hop list = queue pattern** (dashboards canon): hairline-divided ordered list, no per-row card; current-row accent left-bar; failed-row red dot; done-row muted check.
+- **Annotation pane = detail panel** (dashboards canon): paired with the hop-list queue — the exact archetype named in the skill.
+- **Canvas badge = breathing status dot**: 14px filled circle on the active hop device, hop number inside.
+- **Controls = utility command rail**: Start / Next / Play / End as task-first buttons, NOT pill spam.
+- **Rail panel chrome**: thin left-edge hairline border + flat surface tone. NO box-in-box.
+
+**Anti-slop bans (locked for Phase 5)** — combined dashboards "Style-Specific Avoidances" + the cert-app editorial-premium global system:
+- NO soft cards, drop shadows, `rounded-2xl` decoration.
+- NO purple / indigo accents — bronze (`var(--tb3-accent)`) is the only accent.
+- NO emoji icons (hop list, controls, annotation, badge) — geometric/text only.
+- NO gradient overlays anywhere (the cert-app killed these globally; reaffirmed here).
+- NO marketing copy — task-first, operational verbs (stop-slop pass will lock the strings).
+- NO three equal feature boxes (no temptation in this surface — flagged for completeness).
+- NO theatrical scroll reveals — motion serves state, not entrance.
+- NO nested scrollbars — annotation pane may scroll if reason copy is long, but never a scroll inside a scroll.
+
+**Color tokens** (cert-app system, reaffirmed for Phase 5):
+- Accent (bronze): `var(--tb3-accent)`
+- Failure red: `var(--tb3-pkt-failure)` — used ONLY for failed hops + reason copy emphasis
+- Success green: `var(--tb3-success)` — used ONLY for done-row checks + final path-OK state
+- Hairline: `var(--tb3-border)`
+- Surface: `var(--tb3-surface)`
+- Text dim: `var(--tb3-text-dim)`
+- Mono: `'SF Mono', monospace` for IPs / MAC / hop indices
+
+**Typography roles**:
+- Eyebrow ("TRACE", "Hop 2 of 3") — 10px / 700 / uppercase / 0.06em letter-spacing
+- Title ("Trace mode", device hostname) — 14px / 600 — heading subordinate to work surface per dashboards rule
+- Annotation action + reason — 12.5px / 400
+- OSI chip — 10.5px / 600 / mono accent
+- Button labels — 12px / 600 (utility, not promotional)
+
+**Motion profile** (full timing in §8; this section just locks the family):
+- Step glide + settle pulse + failure shake = utility motion + status emphasis (dashboards canon).
+- No theatrical entry choreography. The panel slides in (Phase 4 pattern), not animates on every hop change.
+
+**Verification anchor**: when Phase 5 ships, Trace's rail panel must read as the same calm operator surface as Phase 4's Simulate panel, one level richer (step controls + per-hop detail). If it reads as darker, busier, or more decorative, we've drifted into AI-slop.
+
+### 7.2 Rail panel DOM
 
 ```html
 <aside id="tb3-trace-panel" class="tb3-rail-panel" data-mode="trace">
@@ -294,7 +347,7 @@ _openInspector / _selectDevice / _openPicker / _openDiagnostic / _openSimulate
 
 Width: 320px right-anchored. Same `position:absolute + transform:translateX(100%)→0` overlay mechanism as Simulate panel — read-heavy, no canvas reflow needed.
 
-### 7.2 Canvas badge
+### 7.3 Canvas badge
 
 ```svg
 <g class="tb3-trace-badge" data-hop-idx="1" transform="translate(<devX + 32>, <devY - 6>)">
@@ -305,7 +358,7 @@ Width: 320px right-anchored. Same `position:absolute + transform:translateX(100%
 
 Rendered onto the current hop device's `<g class="tb3-dev">` group. One badge at a time (removed on hop change, re-added at new hop). Red variant: `fill="var(--tb3-pkt-failure)"` when `hopIdx === failedAt`.
 
-### 7.3 Annotation copy templates
+### 7.4 Annotation copy templates
 
 | Device type | OSI chip | Action | Reason source |
 |---|---|---|---|
