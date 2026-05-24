@@ -22552,6 +22552,23 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_clearPacketTransition[\s\S]{0,400}clearTimeout\([\s\S]{0,100}packetTimerId/.test(tbv3SrcP7)
   );
 
+  // ---- Stage 9: cascade in standing device (encap/decap 3D variants) ----
+  test('P7: _animateEncap3D is defined',
+    /function\s+_animateEncap3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateDecap3D is defined',
+    /function\s+_animateDecap3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateEncap3D captures rAF on osiAnimHandle',
+    /function\s+_animateEncap3D[\s\S]{0,2000}_traceState\.osiAnimHandle\s*=\s*requestAnimationFrame/.test(tbv3SrcP7)
+  );
+  test('P7: _setOSILayerFiring accepts optional devId for in-device scoping',
+    /function\s+_setOSILayerFiring\s*\([^)]*devId/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace 3D branch wires _packetRise → cascade → _packetFall',
+    /function\s+_stepTrace[\s\S]+?state\.mode\s*===\s*['"]3d['"][\s\S]{0,2500}_packetRise[\s\S]{0,600}_packetFall/.test(tbv3SrcP7)
+  );
+
 })();
 
 // ── Summary ──

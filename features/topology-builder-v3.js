@@ -3444,6 +3444,58 @@
         }
       }
 
+      // Phase 7 Stage 9: 3D-mode in-device cascade choreography.
+      // 4-phase per spec §5.3: GLIDE (just finished via _movePacketTracked) →
+      // RISE (_packetRise) → CASCADE (_animateEncap3D / _animateDecap3D /
+      // Phase 6 _animateIntermediate placeholder; Stage 10 swaps in the 3D
+      // variant) → FALL (_packetFall). Pre-renders the in-device OSI stack
+      // into the foreignObject container so the cascade has rows to light.
+      if (state.mode === '3d') {
+        var role3d = _hopRole(toHopIdx);
+        var devId3d = _traceState.hops[toHopIdx];
+        var hopDev3d = (state.devices || []).find(function (d) { return d.id === devId3d; });
+
+        // Compose ctx for proto strings (mirrors the Phase 6 OSI panel pattern
+        // so in-device rows show real IPs + mock MACs + cable type).
+        var srcId3d = _traceState.srcId;
+        var dstId3d = _traceState.dstId;
+        var srcDev3d = (state.devices || []).find(function (d) { return d.id === srcId3d; });
+        var dstDev3d = (state.devices || []).find(function (d) { return d.id === dstId3d; });
+        var srcIp3d = (srcDev3d && srcDev3d.config && srcDev3d.config.ip) || '';
+        var dstIp3d = (dstDev3d && dstDev3d.config && dstDev3d.config.ip) || '';
+        var nextHopIdx3d = toHopIdx + 1;
+        var nextHopId3d = (nextHopIdx3d < _traceState.hops.length) ? _traceState.hops[nextHopIdx3d] : null;
+        var cableType3d = 'cat6';
+        if (state.cables && nextHopId3d) {
+          var cab3d = state.cables.find(function (c) {
+            return (c.fromId === devId3d && c.toId === nextHopId3d) ||
+                   (c.toId === devId3d && c.fromId === nextHopId3d);
+          });
+          if (cab3d && cab3d.type) cableType3d = cab3d.type;
+        }
+        var ctx3d = {
+          srcIp: srcIp3d,
+          dstIp: dstIp3d,
+          srcMac: srcId3d ? _genMockMac(srcId3d) : '',
+          dstMac: dstId3d ? _genMockMac(dstId3d) : '',
+          nextHopMac: nextHopId3d ? _genMockMac(nextHopId3d) : '',
+          routerMacOut: (role3d === 'intermediate' && nextHopId3d) ? _genMockMac(nextHopId3d) : '',
+          cableType: cableType3d
+        };
+        var layerStack3d = _buildLayerStackForHop({ dev: hopDev3d || {} }, role3d, ctx3d);
+
+        // Pre-render the in-device cascade DOM (all rows start passive)
+        _render3DDeviceCascade(devId3d, role3d, layerStack3d);
+
+        // Sequential chain: RISE → CASCADE → FALL
+        _packetRise(function () {
+          var onCascadeDone = function () { _packetFall(function () { /* settle complete */ }); };
+          if (role3d === 'source')       _animateEncap3D(devId3d, layerStack3d, onCascadeDone);
+          else if (role3d === 'dest')    _animateDecap3D(devId3d, layerStack3d, onCascadeDone);
+          else                           _animateIntermediate(devId3d, (hopDev3d && hopDev3d.type) || 'router', onCascadeDone);
+        });
+      }
+
       // If this hop is the failed hop, trigger the failure beat.
       // _failHop is implemented in Stage 9 — guard for now.
       if (_traceState.failedAt !== null && toHopIdx === _traceState.failedAt) {
@@ -3893,10 +3945,20 @@
   // path: single 1200ms drop-shadow fade (handled by CSS @media block, JS only
   // adds + removes the class).
   // ===========================================================================
-  function _setOSILayerFiring(layerNum) {
-    const panel = document.getElementById('tb3-trace-panel');
-    if (!panel) return;
-    const row = panel.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+  function _setOSILayerFiring(layerNum, devId) {
+    // Phase 7 Stage 9: optional devId param routes to the in-device cascade
+    // container (3D mode). When omitted, preserves Phase 6 panel behavior
+    // byte-identically by reading from #tb3-trace-panel.
+    var row;
+    if (devId) {
+      var container = document.getElementById('tb3-3d-cascade-' + devId);
+      if (!container) return;
+      row = container.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+    } else {
+      const panel = document.getElementById('tb3-trace-panel');
+      if (!panel) return;
+      row = panel.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+    }
     if (!row) return;
     row.classList.add('tb3-osi-layer-firing');
     // Use animationend (full-motion path); fallback timer for reduced-motion path
@@ -4125,6 +4187,79 @@
     }
 
     _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 9: _animateEncap3D / _animateDecap3D
+  // Mirror Phase 6's _animateEncap / _animateDecap but target the in-device
+  // cascade rows (via devId scoping in _setOSILayerFiring) instead of the
+  // right-rail panel. Captures rAF on _traceState.osiAnimHandle (same
+  // discipline; Phase 6 cancel sites cover Phase 7 automatically).
+  // ===========================================================================
+
+  function _animateEncap3D(devId, layerStack, onDone) {
+    if (_reducedMotion && _reducedMotion()) {
+      // Fast-path: light all 7 rows at once
+      for (var n = 7; n >= 1; n--) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var seq = [7, 6, 5, 4, 3, 2, 1];   // L7 → L1 encap order
+    var perLayerMs = 80;
+    var totalMs = seq.length * perLayerMs;
+    var startTs = null;
+    var fired = new Array(seq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+      for (var i = 0; i < seq.length; i++) {
+        if (!fired[i] && elapsed >= i * perLayerMs) {
+          fired[i] = true;
+          _setOSILayerFiring(seq[i], devId);
+        }
+      }
+      if (elapsed < totalMs) {
+        if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  function _animateDecap3D(devId, layerStack, onDone) {
+    if (_reducedMotion && _reducedMotion()) {
+      for (var n = 1; n <= 7; n++) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var seq = [1, 2, 3, 4, 5, 6, 7];   // L1 → L7 decap order
+    var perLayerMs = 80;
+    var totalMs = seq.length * perLayerMs;
+    var startTs = null;
+    var fired = new Array(seq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+      for (var i = 0; i < seq.length; i++) {
+        if (!fired[i] && elapsed >= i * perLayerMs) {
+          fired[i] = true;
+          _setOSILayerFiring(seq[i], devId);
+        }
+      }
+      if (elapsed < totalMs) {
+        if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
   }
 
   function _osiChipForDevice(dev, isSrc, isDst) {
