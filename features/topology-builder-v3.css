@@ -2255,10 +2255,12 @@ html[data-theme="light"] #page-topology-builder-v3 {
   width: 4px; height: 4px;
   border-radius: 99px;
 }
-.tb3-3d-dev-illust .illust-controller-btn.btn-a { background: #c47340; }
-.tb3-3d-dev-illust .illust-controller-btn.btn-b { background: #a73e29; }
-.tb3-3d-dev-illust .illust-controller-btn.btn-x { background: #4a6a82; }
-.tb3-3d-dev-illust .illust-controller-btn.btn-y { background: #f5c25c; }
+/* Controller buttons reuse Stage 1 family-accent vars for
+   single-source-of-truth — if accents are tuned, these track. */
+.tb3-3d-dev-illust .illust-controller-btn.btn-a { background: var(--tb3-3d-accent-network); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-b { background: var(--tb3-3d-accent-security); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-x { background: var(--tb3-3d-accent-cloud); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-y { background: #f5c25c; }  /* LED gold — not a family accent */
 
 /* printer — paper tray + output slot */
 .tb3-3d-dev-illust .illust-printer-tray {
