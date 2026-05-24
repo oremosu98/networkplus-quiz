@@ -3233,6 +3233,60 @@
     '</div>' +
     '<div class="illust-badge illust-badge-mpls">MPLS</div>';
 
+  // ── Phase 7 v2.1 §2 Batch 2B: Endpoint device illustrations ──
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['pc'] =
+    '<div class="illust-pc-tower"></div>' +
+    '<div class="illust-led-row" style="left:50%;transform:translateX(-50%);bottom:6px;top:auto;"><span class="led"></span></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['laptop'] =
+    '<div class="illust-laptop-screen"></div>' +
+    '<div class="illust-laptop-base"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['server'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-srv">SRV</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['smartphone'] =
+    '<div class="illust-phone-screen"></div>' +
+    '<div class="illust-phone-speaker"></div>' +
+    '<div class="illust-phone-home"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['smart-tv'] =
+    '<div class="illust-tv-screen"></div>' +
+    '<div class="illust-tv-stand"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['game-console'] =
+    '<div class="illust-console-body"></div>' +
+    '<div class="illust-controller-dpad"></div>' +
+    '<div class="illust-controller-stick" style="left:36px;top:10px;"></div>' +
+    '<div class="illust-controller-stick" style="left:46px;top:10px;"></div>' +
+    '<div class="illust-controller-btn btn-a" style="right:14px;top:6px;"></div>' +
+    '<div class="illust-controller-btn btn-b" style="right:8px;top:12px;"></div>' +
+    '<div class="illust-controller-btn btn-x" style="right:20px;top:12px;"></div>' +
+    '<div class="illust-controller-btn btn-y" style="right:14px;top:18px;"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['printer'] =
+    '<div class="illust-printer-tray"></div>' +
+    '<div class="illust-printer-slot"></div>' +
+    '<div class="illust-led-row" style="left:auto;right:8px;top:26px;"><span class="led"></span></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['voip'] =
+    '<div class="illust-voip-mouthpiece"></div>' +
+    '<div class="illust-voip-base"></div>' +
+    '<div class="illust-voip-keypad"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['iot'] =
+    '<div class="illust-iot-radial"></div>' +
+    '<div class="illust-iot-disc"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['dns-server'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-dns">DNS</div>';
+
   var TB_V3_PALETTE_GROUPS = [
     { name: 'Routers',     items: ['router', 'l3-router', 'isp-router'] },
     { name: 'Switches',    items: ['switch', 'l3-switch', 'hub', 'dmz-switch', 'bridge'] },

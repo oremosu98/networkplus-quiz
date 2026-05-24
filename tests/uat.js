@@ -22660,6 +22660,28 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2B UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2BFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2B — all 10 endpoint device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['pc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['laptop'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['server'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['smartphone'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['smart-tv'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['game-console'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['printer'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['voip'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['iot'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['dns-server'\]/.test(tbv3SrcPo)
+  );
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
