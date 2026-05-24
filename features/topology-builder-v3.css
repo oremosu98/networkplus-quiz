@@ -1913,14 +1913,39 @@ html[data-theme="light"] #page-topology-builder-v3 {
   margin-top: -800px;
   transform: rotateX(90deg) translateZ(-30px);
   transform-origin: center center;
-  /* ui-ux-pro-max recommendation: 22% darken (was 35%) keeps the floor warm
-   * without an oppressive "thunderdome" vignette. Stripe/Vercel use 12-22%.
-   * Midpoint at 40% keeps the center bright, vignette ramps in the outer 60%. */
-  background: radial-gradient(
+  /* Stage 6: cream base (replaces background shorthand so background-image layers work) */
+  background-color: var(--tb3-cream, #f5ede0);
+  /* Stage 6: grid cross-hatch (60×60 px) layered over radial vignette.
+   * Grid lines use color-mix so they track the cream token in light/dark.
+   * Radial mask fades the grid at the edges so there's no hard cut-off. */
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--tb3-cream, #f5ede0) 82%, black 18%) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--tb3-cream, #f5ede0) 82%, black 18%) 1px,
+      transparent 1px
+    ),
+    radial-gradient(
+      ellipse at 50% 50%,
+      var(--tb3-cream, #f5ede0) 0%,
+      var(--tb3-cream, #f5ede0) 40%,
+      color-mix(in oklab, var(--tb3-cream, #f5ede0) 78%, black 22%) 100%
+    );
+  background-size: 60px 60px, 60px 60px, 100% 100%;
+  /* Stage 6: edge-fade mask — grid dissolves before reaching floor border */
+  -webkit-mask-image: radial-gradient(
     ellipse at 50% 50%,
-    var(--tb3-cream, #f5ede0) 0%,
-    var(--tb3-cream, #f5ede0) 40%,
-    color-mix(in oklab, var(--tb3-cream, #f5ede0) 78%, black 22%) 100%
+    black 30%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse at 50% 50%,
+    black 30%,
+    transparent 80%
   );
   pointer-events: none;
 }
@@ -1953,5 +1978,964 @@ html[data-theme="light"] #page-topology-builder-v3 {
   .tb3-3d-popup-modal.is-open .tb3-3d-popup-card {
     transform: scale(1);
     transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 7 v2 POLISH (v6.4.3)
+   §1 family accents + §2 per-illustration + §3 floor/packets/labels/legend
+   §4 hover + §5 reduced-motion expanded
+   Spec: docs/superpowers/specs/2026-05-24-tb-v3-popup-v2-polish.md
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Phase 7 v2.1 §1: Family accent stripe ── */
+:root {
+  --tb3-3d-accent-network:  #c47340;  /* warm bronze */
+  --tb3-3d-accent-endpoint: #8a7e6c;  /* warm grey */
+  --tb3-3d-accent-wireless: #6b8aa0;  /* cool blue-grey */
+  --tb3-3d-accent-security: #a73e29;  /* red-bronze */
+  --tb3-3d-accent-cloud:    #4a6a82;  /* blue-bronze */
+}
+
+.tb3-3d-dev-accent-stripe {
+  position: absolute;
+  bottom: -3px;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  transform: translateZ(-1px);
+  pointer-events: none;
+}
+
+.tb3-3d-dev[data-family="network"]  .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-network); }
+.tb3-3d-dev[data-family="endpoint"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-endpoint); }
+.tb3-3d-dev[data-family="wireless"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-wireless); }
+.tb3-3d-dev[data-family="security"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-security); }
+.tb3-3d-dev[data-family="cloud"]    .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-cloud); }
+
+/* ── Phase 7 v2.1 §2: Per-device illustration overlays ── */
+
+.tb3-3d-dev-illust {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(15px);
+  pointer-events: none;
+}
+
+/* ── Phase 7 v2.1 §2 Batch 2A: Network device illustrations ── */
+
+/* Shared elements (reused across batches 2A-2E) */
+.tb3-3d-dev-illust .illust-rack-bar {
+  position: absolute;
+  top: 4px; left: 50%; transform: translateX(-50%);
+  width: 60%; height: 2px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-antenna {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, white 40%), var(--tb3-bronze, #8b5a3c));
+  border-radius: 1px;
+  transform-origin: bottom center;
+}
+.tb3-3d-dev-illust .illust-led-row {
+  position: absolute;
+  top: 10px; left: 12px;
+  display: flex; gap: 4px;
+}
+.tb3-3d-dev-illust .illust-led-row .led {
+  width: 3px; height: 3px; border-radius: 99px;
+  background: #f5c25c;
+  box-shadow: 0 0 3px rgba(245,194,92,.6);
+}
+.tb3-3d-dev-illust .illust-led-row .led.off {
+  background: rgba(0,0,0,.2);
+  box-shadow: none;
+}
+
+.tb3-3d-dev-illust .illust-badge {
+  position: absolute;
+  bottom: 4px; right: 4px;
+  font: 600 7px/1 -apple-system, system-ui;
+  letter-spacing: .04em;
+  background: rgba(255,255,255,.85);
+  color: #1a1a1a;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.tb3-3d-dev-illust .illust-badge-l3   { color: #c47340; }
+.tb3-3d-dev-illust .illust-badge-isp  { color: #4a6a82; }
+.tb3-3d-dev-illust .illust-badge-dmz  { color: #a73e29; }
+.tb3-3d-dev-illust .illust-badge-mpls { color: #5b4a82; }  /* distinct from -isp's #4a6a82: provider-core vs edge-ISP */
+.tb3-3d-dev-illust .illust-badge-hub  { color: #8b5a3c; }
+.tb3-3d-dev-illust .illust-badge-bridge { color: #8b5a3c; }
+
+.tb3-3d-dev-illust .illust-port-grid {
+  position: absolute;
+  inset: 12px 12px 10px 12px;
+  display: grid;
+  gap: 2px;
+}
+.tb3-3d-dev-illust .switch-ports {
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+.tb3-3d-dev-illust .switch-ports .port {
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .switch-ports .port.lit {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 60%, #f5c25c 60%, #f5c25c);
+}
+.tb3-3d-dev-illust .switch-ports.dmz .port.lit {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 60%, var(--tb3-3d-accent-security) 60%, var(--tb3-3d-accent-security));
+}
+
+.tb3-3d-dev-illust .illust-dmz-rail {
+  position: absolute;
+  top: 4px; left: 4px; right: 4px; height: 2px;
+  background: var(--tb3-3d-accent-security);
+  border-radius: 1px;
+}
+
+.tb3-3d-dev-illust .illust-wan-cluster {
+  position: absolute;
+  top: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 4px;
+}
+.tb3-3d-dev-illust .illust-wan-cluster .led-wan {
+  width: 6px; height: 4px;
+  background: #4a6a82;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(74,106,130,.5);
+}
+
+.tb3-3d-dev-illust .illust-hub-spokes {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4px;
+}
+.tb3-3d-dev-illust .illust-hub-spokes span {
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  border-radius: 99px;
+}
+
+.tb3-3d-dev-illust .illust-bridge-arc {
+  position: absolute;
+  top: 8px; left: 12px; right: 12px; height: 30px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 65%, black 35%);
+  border-bottom: none;
+  border-radius: 50% 50% 0 0;
+}
+
+.tb3-3d-dev-illust .illust-rack-chassis {
+  position: absolute;
+  inset: 6px;
+  display: flex; flex-direction: column;
+  gap: 2px;
+}
+.tb3-3d-dev-illust .illust-rack-chassis .rack-unit {
+  flex: 1;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 40%, black 60%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 40%, black 60%);
+  border-radius: 1px;
+  position: relative;
+}
+.tb3-3d-dev-illust .illust-rack-chassis .rack-unit .led {
+  position: absolute;
+  left: 4px; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 2px; border-radius: 99px;
+  background: #f5c25c;
+  box-shadow: 0 0 2px rgba(245,194,92,.5);
+}
+
+.tb3-3d-dev-illust .mpls-ports {
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: 1fr;
+  bottom: 16px;
+}
+.tb3-3d-dev-illust .mpls-ports .port-wan {
+  background: color-mix(in oklab, #4a6a82 50%, black 50%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .mpls-ports .port-wan.lit {
+  background: linear-gradient(to bottom, color-mix(in oklab, #4a6a82 50%, black 50%) 60%, #4a6a82 60%, #4a6a82);
+  box-shadow: 0 0 4px rgba(74,106,130,.4);
+}
+
+.tb3-3d-dev-illust .illust-port {
+  position: absolute;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  border-radius: 1px;
+}
+
+/* ── Phase 7 v2.1 §2 Batch 2B: Endpoint device illustrations ── */
+
+/* pc — desktop tower */
+.tb3-3d-dev-illust .illust-pc-tower {
+  position: absolute;
+  left: 50%; top: 6px;
+  transform: translateX(-50%);
+  width: 24px; height: 44px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-radius: 2px;
+}
+
+/* laptop — hinged screen + base */
+.tb3-3d-dev-illust .illust-laptop-screen {
+  position: absolute;
+  left: 14px; top: 6px; right: 14px;
+  height: 24px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 2px 2px 0 0;
+}
+.tb3-3d-dev-illust .illust-laptop-base {
+  position: absolute;
+  left: 8px; top: 32px; right: 8px;
+  height: 18px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 40%, black 60%);
+  border-radius: 0 0 3px 3px;
+}
+
+/* smartphone — portrait rect + speaker + home */
+.tb3-3d-dev-illust .illust-phone-screen {
+  position: absolute;
+  left: 50%; top: 6px;
+  transform: translateX(-50%);
+  width: 22px; height: 44px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 32%, black 68%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 3px;
+}
+.tb3-3d-dev-illust .illust-phone-speaker {
+  position: absolute;
+  left: 50%; top: 9px;
+  transform: translateX(-50%);
+  width: 8px; height: 1.5px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 99px;
+}
+.tb3-3d-dev-illust .illust-phone-home {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 1px;
+}
+
+/* smart-tv — wide screen + stand */
+.tb3-3d-dev-illust .illust-tv-screen {
+  position: absolute;
+  left: 8px; right: 8px; top: 4px;
+  height: 38px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 32%, black 68%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 2px;
+}
+.tb3-3d-dev-illust .illust-tv-stand {
+  position: absolute;
+  left: 50%; bottom: 4px;
+  transform: translateX(-50%);
+  width: 24px; height: 8px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+}
+
+/* game-console — body + controller bump (D-pad + sticks + buttons) */
+.tb3-3d-dev-illust .illust-console-body {
+  position: absolute;
+  left: 6px; right: 6px; top: 28px;
+  height: 22px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-radius: 3px;
+}
+.tb3-3d-dev-illust .illust-controller-dpad {
+  position: absolute;
+  left: 14px; top: 8px;
+  width: 14px; height: 14px;
+  background:
+    linear-gradient(0deg, transparent 36%, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%) 36%, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%) 64%, transparent 64%),
+    linear-gradient(90deg, transparent 36%, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%) 36%, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%) 64%, transparent 64%);
+}
+.tb3-3d-dev-illust .illust-controller-stick {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 45%, black 55%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%);
+}
+.tb3-3d-dev-illust .illust-controller-btn {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 99px;
+}
+/* Controller buttons reuse Stage 1 family-accent vars for
+   single-source-of-truth — if accents are tuned, these track. */
+.tb3-3d-dev-illust .illust-controller-btn.btn-a { background: var(--tb3-3d-accent-network); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-b { background: var(--tb3-3d-accent-security); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-x { background: var(--tb3-3d-accent-cloud); }
+.tb3-3d-dev-illust .illust-controller-btn.btn-y { background: #f5c25c; }  /* LED gold — not a family accent */
+
+/* printer — paper tray + output slot */
+.tb3-3d-dev-illust .illust-printer-tray {
+  position: absolute;
+  left: 8px; right: 8px; top: 6px;
+  height: 16px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-printer-slot {
+  position: absolute;
+  left: 16px; right: 16px; top: 36px;
+  height: 4px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%);
+  border-radius: 1px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
+}
+
+/* voip — handset cradle */
+.tb3-3d-dev-illust .illust-voip-mouthpiece {
+  position: absolute;
+  left: 14px; right: 14px; top: 4px;
+  height: 16px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 8px 8px 2px 2px;
+}
+.tb3-3d-dev-illust .illust-voip-base {
+  position: absolute;
+  left: 8px; right: 8px; top: 24px;
+  height: 28px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 40%, black 60%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%);
+  border-radius: 2px;
+}
+.tb3-3d-dev-illust .illust-voip-keypad {
+  position: absolute;
+  left: 14px; right: 14px; top: 28px;
+  height: 18px;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0, transparent 5px, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%) 5px, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%) 6px),
+    repeating-linear-gradient(90deg, transparent 0, transparent 6px, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%) 6px, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%) 7px);
+}
+
+/* iot — disc + radial dots */
+.tb3-3d-dev-illust .illust-iot-disc {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+}
+.tb3-3d-dev-illust .illust-iot-radial {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px; height: 50px;
+  border-radius: 99px;
+  border: 1px dashed color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, transparent 50%);
+  pointer-events: none;
+}
+
+/* dns-server — reuses .illust-rack-chassis; just a DNS badge */
+.tb3-3d-dev-illust .illust-badge-dns { color: #4a6a82; }
+.tb3-3d-dev-illust .illust-badge-srv { color: var(--tb3-bronze, #8b5a3c); }
+
+/* ── Phase 7 v2.1 §2 Batch 2C: Wireless + Security illustrations ── */
+
+/* wap — dome + radiating rings */
+.tb3-3d-dev-illust .illust-wap-dome {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px;
+  border-radius: 99px 99px 0 0;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, white 45%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 45%, black 55%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-bottom: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%);
+}
+.tb3-3d-dev-illust .illust-wap-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 99px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 60%, transparent 40%);
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-wap-ring-1 { width: 26px; height: 26px; border-width: 1px; }
+.tb3-3d-dev-illust .illust-wap-ring-2 { width: 40px; height: 40px; border-width: 1px; border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 40%, transparent 60%); }
+.tb3-3d-dev-illust .illust-wap-ring-3 { width: 54px; height: 54px; border-width: 1px; border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 25%, transparent 75%); }
+
+/* wlc — radio wave hint */
+.tb3-3d-dev-illust .illust-wlc-radio {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 12px; height: 8px;
+  background:
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 70%, transparent 30%) 0 1px, transparent 2px),
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 50%, transparent 50%) 3px 4px, transparent 5px),
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 30%, transparent 70%) 6px 7px, transparent 8px);
+}
+.tb3-3d-dev-illust .illust-badge-wlc { color: var(--tb3-3d-accent-wireless); }
+
+/* firewall — brick wall + flame */
+.tb3-3d-dev-illust .illust-fw-brick {
+  position: absolute;
+  left: 6px; right: 6px;
+  height: 12px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 0 14px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 14px 15px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 15px 29px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 29px 30px
+  );
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-fw-brick-row-1 { top: 8px; }
+.tb3-3d-dev-illust .illust-fw-brick-row-2 {
+  top: 22px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) -7px 7px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 7px 8px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 8px 22px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 22px 23px
+  );
+}
+.tb3-3d-dev-illust .illust-fw-brick-row-3 { top: 36px; }
+.tb3-3d-dev-illust .illust-fw-flame {
+  position: absolute;
+  right: 8px; top: 4px;
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid var(--tb3-3d-accent-security);
+  filter: drop-shadow(0 0 2px rgba(167, 62, 41, .4));
+}
+
+/* ids — shield + scope */
+.tb3-3d-dev-illust .illust-shield {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 38px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, transparent 70%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 15%, transparent 85%));
+  border: 1.5px solid var(--tb3-3d-accent-security);
+  border-radius: 14px 14px 14px 14px / 12px 12px 24px 24px;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-shield-ids { /* ids-specific tweak */ }
+.tb3-3d-dev-illust .illust-scope-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 99px;
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-security) 70%, transparent 30%);
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-scope-ring-outer { width: 16px; height: 16px; }
+.tb3-3d-dev-illust .illust-scope-ring-inner { width: 8px; height: 8px; }
+.tb3-3d-dev-illust .illust-scope-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px; height: 2px;
+  border-radius: 99px;
+  background: var(--tb3-3d-accent-security);
+}
+
+/* vpg — tunnel arch + lock */
+.tb3-3d-dev-illust .illust-vpg-tunnel {
+  position: absolute;
+  left: 18px; right: 18px; top: 6px;
+  height: 28px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 65%, black 35%);
+  border-bottom: none;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 12%, transparent 88%));
+}
+.tb3-3d-dev-illust .illust-vpg-lock {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  transform: translateX(-50%);
+  width: 12px; height: 10px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-radius: 2px;
+}
+.tb3-3d-dev-illust .illust-vpg-lock-shackle {
+  position: absolute;
+  left: 50%; bottom: 16px;
+  transform: translateX(-50%);
+  width: 7px; height: 5px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+  border-radius: 99px 99px 0 0;
+}
+
+/* sase-edge — shield + cloud above */
+.tb3-3d-dev-illust .illust-shield-sase {
+  top: 60%;
+  width: 26px; height: 30px;
+}
+.tb3-3d-dev-illust .illust-sase-cloud {
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  width: 32px; height: 16px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 16px 16px 8px 8px;
+}
+.tb3-3d-dev-illust .illust-sase-cloud::before {
+  content: '';
+  position: absolute;
+  left: 18%; top: -4px;
+  width: 8px; height: 8px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+}
+.tb3-3d-dev-illust .illust-sase-cloud::after {
+  content: '';
+  position: absolute;
+  right: 22%; top: -6px;
+  width: 10px; height: 10px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+}
+
+/* ── Phase 7 v2.1 §2 Batch 2D: Cloud core illustrations ── */
+
+/* cloud — 3-hump blob via base + ::before + ::after pseudo-elements */
+.tb3-3d-dev-illust .illust-cloud-base {
+  position: absolute;
+  left: 14px; right: 14px; top: 18px;
+  height: 22px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-radius: 11px 11px 6px 6px;
+}
+.tb3-3d-dev-illust .illust-cloud-base::before {
+  content: '';
+  position: absolute;
+  left: 10%; top: -8px;
+  width: 14px; height: 14px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-bottom: none;
+}
+.tb3-3d-dev-illust .illust-cloud-base::after {
+  content: '';
+  position: absolute;
+  right: 14%; top: -10px;
+  width: 18px; height: 18px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-bottom: none;
+}
+
+/* internet — globe orb + latitude + longitude lines */
+.tb3-3d-dev-illust .illust-globe-orb {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px; height: 36px;
+  border-radius: 99px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--tb3-3d-accent-cloud) 35%, white 65%), color-mix(in oklab, var(--tb3-3d-accent-cloud) 65%, black 35%));
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+}
+.tb3-3d-dev-illust .illust-globe-lat {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 75%, black 25%);
+  border-radius: 99px;
+  border-left: none;
+  border-right: none;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-globe-lat-1 { width: 36px; height: 14px; }
+.tb3-3d-dev-illust .illust-globe-lat-2 { width: 36px; height: 26px; }
+.tb3-3d-dev-illust .illust-globe-lat-3 { width: 36px; height: 36px; }
+.tb3-3d-dev-illust .illust-globe-lon {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 14px; height: 36px;
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+  border-top: none;
+  border-bottom: none;
+  border-radius: 99px;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-globe-lon-l { transform: translate(-50%, -50%) rotate(-15deg); }
+.tb3-3d-dev-illust .illust-globe-lon-r { transform: translate(-50%, -50%) rotate(15deg); }
+
+/* load-balancer — downward funnel + 3 outbound dots */
+.tb3-3d-dev-illust .illust-lb-funnel {
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 28px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+}
+.tb3-3d-dev-illust .illust-lb-arrow {
+  position: absolute;
+  bottom: 8px;
+  width: 6px; height: 6px;
+  border-radius: 99px;
+  background: var(--tb3-3d-accent-cloud);
+  box-shadow: 0 0 4px color-mix(in oklab, var(--tb3-3d-accent-cloud) 60%, transparent 40%);
+}
+.tb3-3d-dev-illust .illust-lb-arrow-1 { left: 26%; }
+.tb3-3d-dev-illust .illust-lb-arrow-2 { left: 50%; transform: translateX(-50%); }
+.tb3-3d-dev-illust .illust-lb-arrow-3 { right: 26%; }
+
+/* ── Phase 7 v2.1 §2 Batch 2E: Public Cloud illustrations ── */
+
+/* public-web — small globe + page */
+.tb3-3d-dev-illust .illust-pw-globe {
+  position: absolute;
+  left: 10px; top: 50%;
+  transform: translateY(-50%);
+  width: 26px; height: 26px;
+  border-radius: 99px;
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--tb3-3d-accent-cloud) 35%, white 65%), color-mix(in oklab, var(--tb3-3d-accent-cloud) 65%, black 35%));
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+  box-shadow: inset -3px -3px 6px rgba(0, 0, 0, .15);
+}
+.tb3-3d-dev-illust .illust-pw-page {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 30px; height: 38px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 12%, white 88%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 45%, black 55%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-pw-page-line {
+  position: absolute;
+  right: 12px;
+  width: 22px; height: 1.5px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+}
+.tb3-3d-dev-illust .illust-pw-page-line-1 { top: calc(50% - 8px); }
+.tb3-3d-dev-illust .illust-pw-page-line-2 { top: 50%; }
+.tb3-3d-dev-illust .illust-pw-page-line-3 { top: calc(50% + 8px); }
+
+/* public-file — stacked docs + cloud silhouette */
+.tb3-3d-dev-illust .illust-pf-cloud {
+  position: absolute;
+  left: 6px; top: 6px;
+  width: 28px; height: 14px;
+  background: color-mix(in oklab, var(--tb3-3d-accent-cloud) 18%, white 82%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 55%, black 45%);
+  border-radius: 14px 14px 6px 6px;
+}
+.tb3-3d-dev-illust .illust-pf-doc {
+  position: absolute;
+  width: 28px; height: 36px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 12%, white 88%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 45%, black 55%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-pf-doc-1 { right: 8px; top: 8px; }
+.tb3-3d-dev-illust .illust-pf-doc-2 { right: 14px; top: 13px; opacity: .82; }
+.tb3-3d-dev-illust .illust-pf-doc-3 { right: 20px; top: 18px; opacity: .65; }
+
+/* public-cloud — large cloud + 4 sub-service dots */
+.tb3-3d-dev-illust .illust-cloud-large {
+  left: 8px; right: 8px; top: 16px; height: 28px;
+  border-radius: 14px 14px 8px 8px;
+}
+.tb3-3d-dev-illust .illust-pc-dot {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 99px;
+  background: var(--tb3-3d-accent-cloud);
+  box-shadow: 0 0 3px color-mix(in oklab, var(--tb3-3d-accent-cloud) 55%, transparent 45%);
+}
+.tb3-3d-dev-illust .illust-pc-dot-1 { left: 30%; top: 28px; }
+.tb3-3d-dev-illust .illust-pc-dot-2 { left: 46%; top: 30px; }
+.tb3-3d-dev-illust .illust-pc-dot-3 { left: 62%; top: 28px; }
+.tb3-3d-dev-illust .illust-pc-dot-4 { left: 46%; top: 36px; }
+
+/* vpc / cloud-subnet — dashed container rectangles */
+.tb3-3d-dev-illust .illust-container {
+  position: absolute;
+  border: 1.5px dashed color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--tb3-3d-accent-cloud) 6%, transparent 94%);
+}
+.tb3-3d-dev-illust .illust-container-vpc {
+  left: 6px; right: 6px; top: 8px; bottom: 8px;
+}
+.tb3-3d-dev-illust .illust-container-subnet {
+  left: 24px; right: 24px; top: 18px; bottom: 18px;
+}
+.tb3-3d-dev-illust .illust-badge-vpc,
+.tb3-3d-dev-illust .illust-badge-subnet {
+  color: var(--tb3-3d-accent-cloud);
+}
+
+/* igw / nat-gw — gateway arch + pillars + variant decoration */
+.tb3-3d-dev-illust .illust-gw-arch {
+  position: absolute;
+  left: 16px; right: 16px; top: 10px;
+  height: 22px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%);
+  border-bottom: none;
+  border-radius: 50% 50% 0 0;
+}
+.tb3-3d-dev-illust .illust-gw-pillar {
+  position: absolute;
+  top: 22px;
+  width: 4px; height: 22px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-gw-pillar-l { left: 16px; }
+.tb3-3d-dev-illust .illust-gw-pillar-r { right: 16px; }
+.tb3-3d-dev-illust .illust-gw-globe {
+  position: absolute;
+  right: 6px; top: 18px;
+  width: 14px; height: 14px;
+  border-radius: 99px;
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--tb3-3d-accent-cloud) 35%, white 65%), color-mix(in oklab, var(--tb3-3d-accent-cloud) 65%, black 35%));
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+}
+.tb3-3d-dev-illust .illust-natgw-xlate {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  transform: translateX(-50%);
+  width: 32px; height: 4px;
+  background:
+    linear-gradient(90deg, transparent 0 8px, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%) 8px 24px, transparent 24px 32px);
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-natgw-xlate::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-right: 6px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%);
+}
+.tb3-3d-dev-illust .illust-natgw-xlate::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 60%, black 40%);
+}
+
+/* tgw — hub + 4 spokes */
+.tb3-3d-dev-illust .illust-tgw-hub {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--tb3-3d-accent-cloud) 55%, white 45%), color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%));
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+  box-shadow: 0 0 4px color-mix(in oklab, var(--tb3-3d-accent-cloud) 40%, transparent 60%);
+  z-index: 2;
+}
+.tb3-3d-dev-illust .illust-tgw-spoke {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 32px; height: 2px;
+  background: color-mix(in oklab, var(--tb3-3d-accent-cloud) 60%, black 40%);
+  transform-origin: 0 50%;
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-tgw-spoke-1 { transform: rotate(45deg);   }
+.tb3-3d-dev-illust .illust-tgw-spoke-2 { transform: rotate(135deg);  }
+.tb3-3d-dev-illust .illust-tgw-spoke-3 { transform: rotate(225deg);  }
+.tb3-3d-dev-illust .illust-tgw-spoke-4 { transform: rotate(315deg);  }
+
+/* ── Phase 7 v2.1 §3a: Device labels below ── */
+.tb3-3d-dev-label-below {
+  position: absolute;
+  top: 60px; left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  /* JS rewrites .style.transform on every _apply3DCamera() call to keep
+     the label perpendicular to the camera as the scene rotates. */
+}
+
+.tb3-3d-dev-label-below .tb3-3d-dev-name {
+  display: block;
+  font: 600 11px/1.2 "Fraunces", Georgia, serif;
+  color: var(--tb3-ink, #1a1a1a);
+  letter-spacing: .02em;
+}
+
+.tb3-3d-dev-label-below .tb3-3d-dev-ip {
+  display: block;
+  font: 500 9px/1.2 -apple-system, "SF Mono", Menlo, monospace;
+  color: var(--tb3-muted, #7a6e5e);
+  margin-top: 2px;
+}
+
+/* ── Phase 7 v2.1 §3b: Ambient packet motion ── */
+.tb3-3d-ambient-packet {
+  /* SVG inline styles drive positioning; this rule reserves the
+     selector for the reduced-motion gate below. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Phase 7 v2 polish: kill ambient packets entirely (decorative only) */
+  .tb3-3d-ambient-packet { display: none !important; }
+}
+
+/* ── Stage 6 chrome: header spacer, tool buttons, legend chip, hover lift ── */
+
+/* Header spacer pushes tool buttons + close to the right */
+.tb3-3d-popup-header-spacer {
+  flex: 1 1 0;
+}
+
+/* Tool buttons (Fit-to-view, Reset) */
+.tb3-3d-popup-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in oklab, var(--tb3-cream, #f5ede0) 60%, black 40%);
+  border-radius: 6px;
+  background: transparent;
+  color: color-mix(in oklab, var(--tb3-cream, #f5ede0) 70%, black 30%);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.tb3-3d-popup-tool-btn:hover {
+  background: color-mix(in oklab, var(--tb3-cream, #f5ede0) 12%, black 88%);
+  color: var(--tb3-cream, #f5ede0);
+  border-color: color-mix(in oklab, var(--tb3-cream, #f5ede0) 50%, black 50%);
+}
+
+.tb3-3d-popup-tool-btn:active {
+  transform: scale(0.94);
+}
+
+/* Device family legend chip — bottom-left corner of viewport */
+.tb3-3d-legend-chip .tb3-3d-popup-legend-title,
+.tb3-3d-popup-legend-title {
+  font: 600 10px/1 "Fraunces", Georgia, serif;
+  color: var(--tb3-ink, #1a1a1a);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 8px;
+}
+
+.tb3-3d-legend-chip {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  background: color-mix(in oklab, #1a1410 85%, transparent);
+  border: 1px solid color-mix(in oklab, var(--tb3-cream, #f5ede0) 20%, transparent);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tb3-3d-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tb3-3d-legend-label {
+  font: 500 10px/1 -apple-system, system-ui, sans-serif;
+  color: color-mix(in oklab, var(--tb3-cream, #f5ede0) 80%, transparent);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Hover lift on 3D device cards — targets .tb3-3d-dev (the class _build3DDeviceEl emits) */
+.tb3-3d-dev .tb3-3d-dev-top,
+.tb3-3d-dev .tb3-3d-dev-illust,
+.tb3-3d-dev .tb3-3d-dev-accent-stripe {
+  transition: transform 180ms cubic-bezier(.16, 1, .3, 1);
+}
+.tb3-3d-dev:hover .tb3-3d-dev-top {
+  transform: translateZ(8px);
+}
+.tb3-3d-dev:hover .tb3-3d-dev-illust {
+  transform: translateZ(23px);   /* base 15px + lift 8px */
+}
+.tb3-3d-dev:hover .tb3-3d-dev-accent-stripe {
+  transform: translateZ(7px);    /* base -1px + lift 8px */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Stage 6: kill tool-button transition and hover lift in reduced-motion */
+  .tb3-3d-popup-tool-btn { transition: none; }
+  .tb3-3d-dev .tb3-3d-dev-top,
+  .tb3-3d-dev .tb3-3d-dev-illust,
+  .tb3-3d-dev .tb3-3d-dev-accent-stripe { transition: none; }
+  .tb3-3d-dev:hover .tb3-3d-dev-top,
+  .tb3-3d-dev:hover .tb3-3d-dev-illust,
+  .tb3-3d-dev:hover .tb3-3d-dev-accent-stripe { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Stage 7: kill hover-lift transitions so reduced-motion users don't get
+     a momentary translateZ shift on mouseover */
+  .tb3-3d-dev .tb3-3d-dev-top,
+  .tb3-3d-dev .tb3-3d-dev-illust,
+  .tb3-3d-dev .tb3-3d-dev-accent-stripe {
+    transition: none !important;
+  }
+  .tb3-3d-dev:hover .tb3-3d-dev-top,
+  .tb3-3d-dev:hover .tb3-3d-dev-illust,
+  .tb3-3d-dev:hover .tb3-3d-dev-accent-stripe {
+    transform: none !important;
   }
 }

@@ -53,7 +53,7 @@
   // Lives separate from state.mode (popup is transient, not a mode value).
   var _3dPopup = {
     open: false,
-    camera: { rotX: 52, rotY: -18, zoom: 1 },
+    camera: { rotX: 42, rotY: -18, zoom: 1.1 }, // Stage 6: lower tilt, tighter zoom
     dragState: { active: false, startX: 0, startY: 0, startRotX: 0, startRotY: 0 },
     velocityX: 0,
     velocityY: 0,
@@ -107,7 +107,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r14'; // r14: V1 parity — new device icons + ports + scenarios + title-case
+  var TB3_CSS_REV = 'r15'; // r15: Polish pass — per-device 3D illustrations + labels + centroid + ambient packets
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -3133,6 +3133,258 @@
     'sase-edge':      { label: 'SASE Edge', icon: _icoSaseEdge() },
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish (v6.4.3): device family map.
+  // Used by the 3D popup to apply color-coded family accents per device.
+  // ═══════════════════════════════════════════════════════════════════════════
+  var _TB_V3_DEVICE_FAMILY = {
+    // network
+    'router': 'network', 'l3-router': 'network', 'isp-router': 'network',
+    'switch': 'network', 'l3-switch': 'network', 'dmz-switch': 'network',
+    'hub': 'network', 'bridge': 'network', 'onprem-dc': 'network',
+    'mpls-core': 'network',
+    // endpoint
+    'pc': 'endpoint', 'laptop': 'endpoint', 'server': 'endpoint',
+    'smartphone': 'endpoint', 'smart-tv': 'endpoint', 'game-console': 'endpoint',
+    'printer': 'endpoint', 'voip': 'endpoint', 'iot': 'endpoint',
+    'dns-server': 'endpoint',
+    // wireless
+    'wap': 'wireless', 'wlc': 'wireless',
+    // security
+    'firewall': 'security', 'ids': 'security', 'vpg': 'security',
+    'sase-edge': 'security',
+    // cloud
+    'cloud': 'cloud', 'internet': 'cloud', 'load-balancer': 'cloud',
+    'public-web': 'cloud', 'public-file': 'cloud', 'public-cloud': 'cloud',
+    'vpc': 'cloud', 'cloud-subnet': 'cloud',
+    'igw': 'cloud', 'nat-gw': 'cloud', 'tgw': 'cloud'
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish: device 3D illustration overlays.
+  // Each entry is an HTML string fragment rendered above the device's top face.
+  // Filled in across batches 2A-2E.
+  // ═══════════════════════════════════════════════════════════════════════════
+  var _TB_V3_DEVICE_3D_ILLUSTRATIONS = {};
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['router'] =
+    '<div class="illust-rack-bar"></div>' +
+    '<div class="illust-antenna" style="left:18px;top:-18px;height:18px;"></div>' +
+    '<div class="illust-antenna" style="left:50%;top:-22px;height:22px;margin-left:-1px;"></div>' +
+    '<div class="illust-antenna" style="right:18px;top:-18px;height:18px;transform:rotate(10deg);"></div>' +
+    '<div class="illust-led-row"><span class="led"></span><span class="led off"></span><span class="led"></span><span class="led"></span></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['l3-router'] =
+    _TB_V3_DEVICE_3D_ILLUSTRATIONS['router'] +
+    '<div class="illust-badge illust-badge-l3">L3</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['isp-router'] =
+    '<div class="illust-rack-bar"></div>' +
+    '<div class="illust-antenna" style="left:14px;top:-18px;height:16px;transform:rotate(-15deg);"></div>' +
+    '<div class="illust-antenna" style="right:14px;top:-18px;height:16px;transform:rotate(15deg);"></div>' +
+    '<div class="illust-wan-cluster">' +
+      '<span class="led-wan"></span><span class="led-wan"></span>' +
+    '</div>' +
+    '<div class="illust-badge illust-badge-isp">ISP</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['switch'] =
+    '<div class="illust-port-grid switch-ports">' +
+      Array.from({ length: 24 }).map(function (_, i) {
+        return '<span class="port' + (i % 3 === 0 ? ' lit' : '') + '"></span>';
+      }).join('') +
+    '</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['l3-switch'] =
+    _TB_V3_DEVICE_3D_ILLUSTRATIONS['switch'] +
+    '<div class="illust-badge illust-badge-l3">L3</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['dmz-switch'] =
+    '<div class="illust-port-grid switch-ports dmz">' +
+      Array.from({ length: 24 }).map(function (_, i) {
+        return '<span class="port' + (i % 4 === 0 ? ' lit' : '') + '"></span>';
+      }).join('') +
+    '</div>' +
+    '<div class="illust-dmz-rail"></div>' +
+    '<div class="illust-badge illust-badge-dmz">DMZ</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['hub'] =
+    '<div class="illust-hub-spokes">' +
+      Array.from({ length: 6 }).map(function () { return '<span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-hub">HUB</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['bridge'] =
+    '<div class="illust-bridge-arc"></div>' +
+    '<div class="illust-port" style="left:6px;top:50%;width:8px;height:4px;transform:translateY(-50%);"></div>' +
+    '<div class="illust-port" style="right:6px;top:50%;width:8px;height:4px;transform:translateY(-50%);"></div>' +
+    '<div class="illust-badge illust-badge-bridge">BR</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['onprem-dc'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['mpls-core'] =
+    '<div class="illust-rack-bar"></div>' +
+    '<div class="illust-port-grid mpls-ports">' +
+      Array.from({ length: 8 }).map(function (_, i) {
+        return '<span class="port-wan' + (i < 6 ? ' lit' : '') + '"></span>';
+      }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-mpls">MPLS</div>';
+
+  // ── Phase 7 v2.1 §2 Batch 2B: Endpoint device illustrations ──
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['pc'] =
+    '<div class="illust-pc-tower"></div>' +
+    '<div class="illust-led-row" style="left:50%;transform:translateX(-50%);bottom:6px;top:auto;"><span class="led"></span></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['laptop'] =
+    '<div class="illust-laptop-screen"></div>' +
+    '<div class="illust-laptop-base"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['server'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-srv">SRV</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['smartphone'] =
+    '<div class="illust-phone-screen"></div>' +
+    '<div class="illust-phone-speaker"></div>' +
+    '<div class="illust-phone-home"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['smart-tv'] =
+    '<div class="illust-tv-screen"></div>' +
+    '<div class="illust-tv-stand"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['game-console'] =
+    '<div class="illust-console-body"></div>' +
+    '<div class="illust-controller-dpad"></div>' +
+    '<div class="illust-controller-stick" style="left:36px;top:10px;"></div>' +
+    '<div class="illust-controller-stick" style="left:46px;top:10px;"></div>' +
+    '<div class="illust-controller-btn btn-a" style="right:14px;top:6px;"></div>' +
+    '<div class="illust-controller-btn btn-b" style="right:8px;top:12px;"></div>' +
+    '<div class="illust-controller-btn btn-x" style="right:20px;top:12px;"></div>' +
+    '<div class="illust-controller-btn btn-y" style="right:14px;top:18px;"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['printer'] =
+    '<div class="illust-printer-tray"></div>' +
+    '<div class="illust-printer-slot"></div>' +
+    '<div class="illust-led-row" style="left:auto;right:8px;top:26px;"><span class="led"></span></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['voip'] =
+    '<div class="illust-voip-mouthpiece"></div>' +
+    '<div class="illust-voip-base"></div>' +
+    '<div class="illust-voip-keypad"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['iot'] =
+    '<div class="illust-iot-radial"></div>' +
+    '<div class="illust-iot-disc"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['dns-server'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-badge illust-badge-dns">DNS</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['wap'] =
+    '<div class="illust-wap-dome"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-1"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-2"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-3"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['wlc'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-wlc-radio"></div>' +
+    '<div class="illust-badge illust-badge-wlc">WLC</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['firewall'] =
+    '<div class="illust-fw-brick illust-fw-brick-row-1"></div>' +
+    '<div class="illust-fw-brick illust-fw-brick-row-2"></div>' +
+    '<div class="illust-fw-brick illust-fw-brick-row-3"></div>' +
+    '<div class="illust-fw-flame"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['ids'] =
+    '<div class="illust-shield illust-shield-ids"></div>' +
+    '<div class="illust-scope-ring illust-scope-ring-outer"></div>' +
+    '<div class="illust-scope-ring illust-scope-ring-inner"></div>' +
+    '<div class="illust-scope-dot"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['vpg'] =
+    '<div class="illust-vpg-tunnel"></div>' +
+    '<div class="illust-vpg-lock"></div>' +
+    '<div class="illust-vpg-lock-shackle"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['sase-edge'] =
+    '<div class="illust-sase-cloud"></div>' +
+    '<div class="illust-shield illust-shield-sase"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['cloud'] =
+    '<div class="illust-cloud-base"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['internet'] =
+    '<div class="illust-globe-orb"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-1"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-2"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-3"></div>' +
+    '<div class="illust-globe-lon illust-globe-lon-l"></div>' +
+    '<div class="illust-globe-lon illust-globe-lon-r"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['load-balancer'] =
+    '<div class="illust-lb-funnel"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-1"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-2"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-3"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['public-web'] =
+    '<div class="illust-pw-globe"></div>' +
+    '<div class="illust-pw-page"></div>' +
+    '<div class="illust-pw-page-line illust-pw-page-line-1"></div>' +
+    '<div class="illust-pw-page-line illust-pw-page-line-2"></div>' +
+    '<div class="illust-pw-page-line illust-pw-page-line-3"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['public-file'] =
+    '<div class="illust-pf-cloud"></div>' +
+    '<div class="illust-pf-doc illust-pf-doc-3"></div>' +
+    '<div class="illust-pf-doc illust-pf-doc-2"></div>' +
+    '<div class="illust-pf-doc illust-pf-doc-1"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['public-cloud'] =
+    '<div class="illust-cloud-base illust-cloud-large"></div>' +
+    '<div class="illust-pc-dot illust-pc-dot-1"></div>' +
+    '<div class="illust-pc-dot illust-pc-dot-2"></div>' +
+    '<div class="illust-pc-dot illust-pc-dot-3"></div>' +
+    '<div class="illust-pc-dot illust-pc-dot-4"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['vpc'] =
+    '<div class="illust-container illust-container-vpc"></div>' +
+    '<div class="illust-badge illust-badge-vpc">VPC</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['cloud-subnet'] =
+    '<div class="illust-container illust-container-subnet"></div>' +
+    '<div class="illust-badge illust-badge-subnet">SUB</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['igw'] =
+    '<div class="illust-gw-arch"></div>' +
+    '<div class="illust-gw-pillar illust-gw-pillar-l"></div>' +
+    '<div class="illust-gw-pillar illust-gw-pillar-r"></div>' +
+    '<div class="illust-gw-globe"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['nat-gw'] =
+    '<div class="illust-gw-arch"></div>' +
+    '<div class="illust-gw-pillar illust-gw-pillar-l"></div>' +
+    '<div class="illust-gw-pillar illust-gw-pillar-r"></div>' +
+    '<div class="illust-natgw-xlate"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['tgw'] =
+    '<div class="illust-tgw-hub"></div>' +
+    '<div class="illust-tgw-spoke illust-tgw-spoke-1"></div>' +
+    '<div class="illust-tgw-spoke illust-tgw-spoke-2"></div>' +
+    '<div class="illust-tgw-spoke illust-tgw-spoke-3"></div>' +
+    '<div class="illust-tgw-spoke illust-tgw-spoke-4"></div>';
+
   var TB_V3_PALETTE_GROUPS = [
     { name: 'Routers',     items: ['router', 'l3-router', 'isp-router'] },
     { name: 'Switches',    items: ['switch', 'l3-switch', 'hub', 'dmz-switch', 'bridge'] },
@@ -4105,25 +4357,122 @@
       'rotateX(' + _3dPopup.camera.rotX + 'deg) ' +
       'rotateY(' + _3dPopup.camera.rotY + 'deg) ' +
       'scale(' + _3dPopup.camera.zoom + ')';
+
+    // Stage 3: counter-rotate labels so they stay camera-facing
+    var labels = stage.querySelectorAll('.tb3-3d-dev-label-below');
+    var counterTransform = 'translateX(-50%) rotateX(' + (-_3dPopup.camera.rotX) + 'deg) rotateY(' + (-_3dPopup.camera.rotY) + 'deg)';
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].style.transform = counterTransform;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Phase 7 v2 §3: Extruded device cards
   // ---------------------------------------------------------------------------
 
-  function _build3DDeviceEl(dev) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish: scene centroid helper.
+  // Returns {cx, cy} = arithmetic mean of all device positions, so the
+  // topology can be translated to center around the stage origin (viewport
+  // 50/50). Returns {0,0} for empty topologies.
+  // ═══════════════════════════════════════════════════════════════════════════
+  function _computeSceneCentroid(devices) {
+    if (!Array.isArray(devices) || devices.length === 0) return { cx: 0, cy: 0 };
+    var sumX = 0, sumY = 0;
+    for (var i = 0; i < devices.length; i++) {
+      sumX += (typeof devices[i].x === 'number' ? devices[i].x : 0);
+      sumY += (typeof devices[i].y === 'number' ? devices[i].y : 0);
+    }
+    return { cx: sumX / devices.length, cy: sumY / devices.length };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Stage 6: Fit-to-view — auto-computes optimal zoom so all devices
+  // are visible, then tweens camera to that zoom over 400ms (ease-out cubic).
+  // Cancel-on-new-call discipline: always cancels any in-flight rAF first.
+  // ═══════════════════════════════════════════════════════════════════════════
+  function _fitCameraToDevices(devices) {
+    if (!Array.isArray(devices) || devices.length === 0) return;
+    // Compute bounding box of device positions (canvas coords)
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (var i = 0; i < devices.length; i++) {
+      var dx = typeof devices[i].x === 'number' ? devices[i].x : 0;
+      var dy = typeof devices[i].y === 'number' ? devices[i].y : 0;
+      if (dx < minX) minX = dx;
+      if (dx > maxX) maxX = dx;
+      if (dy < minY) minY = dy;
+      if (dy > maxY) maxY = dy;
+    }
+    var spanX = (maxX - minX) || 1;
+    var spanY = (maxY - minY) || 1;
+    // Fit zoom so the largest axis fills ~70% of the viewport (conservative margin)
+    var viewport = document.getElementById('tb3-3d-popup-viewport');
+    var vpW = viewport ? viewport.offsetWidth : 900;
+    var vpH = viewport ? viewport.offsetHeight : 600;
+    // Approximate device footprint in stage px (each device is 80px wide)
+    var DEVICE_PX = 80;
+    var stageSpanX = spanX * 0.15 + DEVICE_PX; // 0.15 = canvas→stage scale approx
+    var stageSpanY = spanY * 0.10 + DEVICE_PX;
+    var fitZoom = Math.min((vpW * 0.7) / stageSpanX, (vpH * 0.7) / stageSpanY, 2.0);
+    fitZoom = Math.max(fitZoom, 0.5);
+    // Tween to fitZoom keeping rotX/rotY unchanged
+    var startZoom = _3dPopup.camera.zoom;
+    var targetZoom = fitZoom;
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    if (_3dPopupReducedMotion()) {
+      _3dPopup.camera.zoom = targetZoom;
+      _apply3DCamera();
+      return;
+    }
+    var startTs = null;
+    var durationMs = 400;
+    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var t = Math.min(1, (ts - startTs) / durationMs);
+      var k = ease(t);
+      _3dPopup.camera.zoom = startZoom + (targetZoom - startZoom) * k;
+      _apply3DCamera();
+      if (t < 1) {
+        _3dPopup.rafHandle = requestAnimationFrame(tick);
+      } else {
+        _3dPopup.camera.zoom = targetZoom;
+        _apply3DCamera();
+        _3dPopup.rafHandle = null;
+      }
+    }
+    _3dPopup.rafHandle = requestAnimationFrame(tick);
+  }
+
+  function _build3DDeviceEl(dev, sceneCx, sceneCy) {
+    sceneCx = sceneCx || 0;
+    sceneCy = sceneCy || 0;
     var iconHtml = (TB_V3_DEVICE_TYPES && TB_V3_DEVICE_TYPES[dev.type] && TB_V3_DEVICE_TYPES[dev.type].icon)
       ? TB_V3_DEVICE_TYPES[dev.type].icon
       : '';
     var labelHtml = '<span class="tb3-3d-dev-label">' + _escAttr(dev.label || dev.hostname || dev.type) + '</span>';
+    var family = _TB_V3_DEVICE_FAMILY[dev.type] || 'network';
+    var illust = (_TB_V3_DEVICE_3D_ILLUSTRATIONS && _TB_V3_DEVICE_3D_ILLUSTRATIONS[dev.type]) ? _TB_V3_DEVICE_3D_ILLUSTRATIONS[dev.type] : '';
+    // Stage 3: label below the device card (hostname + IP, counter-rotated by _apply3DCamera)
+    var labelName = _escAttr(dev.label || dev.hostname || dev.type);
+    var labelIp = dev.config && dev.config.ip ? _escAttr(dev.config.ip) : '';
+    var labelBelowHtml =
+      '<div class="tb3-3d-dev-label-below">' +
+        '<span class="tb3-3d-dev-name">' + labelName + '</span>' +
+        (labelIp ? '<span class="tb3-3d-dev-ip">' + labelIp + '</span>' : '') +
+      '</div>';
     var el = document.createElement('div');
     el.className = 'tb3-3d-dev';
     el.setAttribute('data-device-id', _escAttr(dev.id));
-    // Position card in 3D space using device's canvas coordinates as a base.
-    // translate3d is GPU-composited and integrates cleanly with transform-style:
-    // preserve-3d on the stage (camera rotation applied in Stage 5).
-    var x = (typeof dev.x === 'number' ? dev.x : 0);
-    var y = (typeof dev.y === 'number' ? dev.y : 0);
+    el.setAttribute('data-family', family);
+    // Position card in 3D space using centroid-relative coords so the topology
+    // is centered around the stage origin (viewport 50/50) regardless of its
+    // raw canvas-coordinate range. Stage 4 centroid offset fix.
+    var x = (typeof dev.x === 'number' ? dev.x : 0) - sceneCx;   // NEW: centroid-relative
+    var y = (typeof dev.y === 'number' ? dev.y : 0) - sceneCy;
     el.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
     el.innerHTML =
       '<div class="tb3-3d-dev-top">' + iconHtml + labelHtml + '</div>' +
@@ -4131,7 +4480,10 @@
       '<div class="tb3-3d-dev-side-n"></div>' +
       '<div class="tb3-3d-dev-side-s"></div>' +
       '<div class="tb3-3d-dev-side-e"></div>' +
-      '<div class="tb3-3d-dev-side-w"></div>';
+      '<div class="tb3-3d-dev-side-w"></div>' +
+      '<div class="tb3-3d-dev-illust">' + illust + '</div>' +
+      '<div class="tb3-3d-dev-accent-stripe"></div>' +
+      labelBelowHtml;
     return el;
   }
 
@@ -4142,12 +4494,16 @@
     return null;
   }
 
-  function _build3DCableEl(cab, fromDev, toDev) {
-    // Cable anchors: bottom-edge midpoint of each device card (44px from left, 60px from top)
-    var x1 = (fromDev.x || 0) + 44;
-    var y1 = (fromDev.y || 0) + 60;
-    var x2 = (toDev.x || 0) + 44;
-    var y2 = (toDev.y || 0) + 60;
+  function _build3DCableEl(cab, fromDev, toDev, sceneCx, sceneCy) {
+    sceneCx = sceneCx || 0;
+    sceneCy = sceneCy || 0;
+    // Cable anchors: bottom-edge midpoint of each device card (44px from left, 60px from top).
+    // Subtract centroid from each endpoint so cable bezier uses the same shifted coords
+    // as the device transforms (Stage 4 centroid offset fix).
+    var x1 = ((fromDev.x || 0) - sceneCx) + 44;
+    var y1 = ((fromDev.y || 0) - sceneCy) + 60;
+    var x2 = ((toDev.x || 0) - sceneCx) + 44;
+    var y2 = ((toDev.y || 0) - sceneCy) + 60;
 
     // Bezier control points: midpoint X with a slight Y offset for a natural sag.
     // ui-ux-pro-max recommendation: cap sag at 70px so long cables don't droop excessively
@@ -4222,6 +4578,85 @@
     path.setAttribute('fill', 'none');
     svg.appendChild(path);
 
+    return svg;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish Stage 5: ambient packet motion per cable.
+  // 3 staggered bronze packets traverse the cable's bezier path continuously.
+  // emil-tuned: 2.6s duration, LINEAR easing (continuous-flow rhythm), 0.867s
+  // stagger, dim drop-shadow glow. Reduced-motion gate hides them entirely.
+  // ═══════════════════════════════════════════════════════════════════════════
+  function _buildAmbientPacketEl(cab, fromDev, toDev, sceneCx, sceneCy) {
+    sceneCx = sceneCx || 0;
+    sceneCy = sceneCy || 0;
+    var svgNs = 'http://www.w3.org/2000/svg';
+
+    // MUST match _build3DCableEl's bezier formula exactly
+    var x1 = ((fromDev.x || 0) - sceneCx) + 44;
+    var y1 = ((fromDev.y || 0) - sceneCy) + 60;
+    var x2 = ((toDev.x || 0) - sceneCx) + 44;
+    var y2 = ((toDev.y || 0) - sceneCy) + 60;
+    var midX = (x1 + x2) / 2;
+    var sagY = Math.min(70, Math.max(20, Math.abs(x2 - x1) * 0.12));
+    var cy1 = y1 + sagY;
+    var cy2 = y2 + sagY;
+
+    var minX = Math.min(x1, x2) - 20;
+    var minY = Math.min(y1, y2) - 4;
+    var maxX = Math.max(x1, x2) + 20;
+    var maxY = Math.max(y1, y2) + sagY + 8;
+    var w = maxX - minX;
+    var h = maxY - minY;
+
+    var px1 = x1 - minX, py1 = y1 - minY;
+    var px2 = x2 - minX, py2 = y2 - minY;
+    var cpX = midX - minX, pcy1 = cy1 - minY, pcy2 = cy2 - minY;
+    var pathStr = 'M' + px1 + ',' + py1 +
+                  ' C' + cpX + ',' + pcy1 + ' ' + cpX + ',' + pcy2 + ' ' + px2 + ',' + py2;
+    var pathId = 'tb3-3d-amb-path-' + cab.id;
+
+    var svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('class', 'tb3-3d-ambient-packet');
+    svg.setAttribute('data-cable-id', cab.id);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    svg.style.position = 'absolute';
+    svg.style.left = minX + 'px';
+    svg.style.top = minY + 'px';
+    svg.style.transform = 'translateZ(0.5px)';
+    svg.style.overflow = 'visible';
+    svg.style.pointerEvents = 'none';
+
+    var defs = document.createElementNS(svgNs, 'defs');
+    var path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('id', pathId);
+    path.setAttribute('d', pathStr);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'none');
+    defs.appendChild(path);
+    svg.appendChild(defs);
+
+    // 3 staggered packets — emil-tuned 2.6s duration, linear easing
+    var DURATION = '2.6s';
+    var stagger = ['0s', '0.867s', '1.733s'];
+    for (var i = 0; i < 3; i++) {
+      var pkt = document.createElementNS(svgNs, 'circle');
+      pkt.setAttribute('r', '2');
+      pkt.setAttribute('fill', 'var(--tb3-bronze, #8b5a3c)');
+      pkt.setAttribute('filter', 'drop-shadow(0 0 2px rgba(139, 90, 60, .55))');
+      var anim = document.createElementNS(svgNs, 'animateMotion');
+      anim.setAttribute('dur', DURATION);
+      anim.setAttribute('repeatCount', 'indefinite');
+      anim.setAttribute('begin', stagger[i]);
+      // emil: drop keySplines + calcMode entirely — animateMotion defaults to linear
+      var mpath = document.createElementNS(svgNs, 'mpath');
+      mpath.setAttribute('href', '#' + pathId);
+      anim.appendChild(mpath);
+      pkt.appendChild(anim);
+      svg.appendChild(pkt);
+    }
     return svg;
   }
 
@@ -4340,16 +4775,16 @@
 
   function _on3DPopupDblClick() {
     if (_3dPopupReducedMotion()) {
-      _3dPopup.camera.rotX = 52;
+      _3dPopup.camera.rotX = 42; // Stage 6: updated default
       _3dPopup.camera.rotY = -18;
-      _3dPopup.camera.zoom = 1;
+      _3dPopup.camera.zoom = 1.1; // Stage 6: updated default
       _apply3DCamera();
       return;
     }
     var startRotX = _3dPopup.camera.rotX;
     var startRotY = _3dPopup.camera.rotY;
     var startZoom = _3dPopup.camera.zoom;
-    var targetRotX = 52, targetRotY = -18, targetZoom = 1;
+    var targetRotX = 42, targetRotY = -18, targetZoom = 1.1; // Stage 6: updated defaults
     var startTs = null;
     var durationMs = 400;
     if (_3dPopup.rafHandle) {
@@ -4451,12 +4886,14 @@
     // Clear any previously-rendered cards and cables before (re-)populating.
     // .tb3-3d-cable selector is preemptively included so Stage 4's cable build
     // is cleared on re-render without needing to revisit this function.
-    var existing = stage.querySelectorAll('.tb3-3d-dev, .tb3-3d-cable');
+    var existing = stage.querySelectorAll('.tb3-3d-dev, .tb3-3d-cable, .tb3-3d-ambient-packet');
     for (var i = 0; i < existing.length; i++) {
       existing[i].parentNode.removeChild(existing[i]);
     }
+    var centroid = _computeSceneCentroid(state.devices);   // Stage 4: centroid offset
+
     for (var j = 0; j < state.devices.length; j++) {
-      stage.appendChild(_build3DDeviceEl(state.devices[j]));
+      stage.appendChild(_build3DDeviceEl(state.devices[j], centroid.cx, centroid.cy));
     }
 
     // Append cables (Stage 4)
@@ -4465,7 +4902,8 @@
       var fromDev = _findDeviceById(cab.fromId);
       var toDev = _findDeviceById(cab.toId);
       if (!fromDev || !toDev) continue;
-      stage.appendChild(_build3DCableEl(cab, fromDev, toDev));
+      stage.appendChild(_build3DCableEl(cab, fromDev, toDev, centroid.cx, centroid.cy));
+      stage.appendChild(_buildAmbientPacketEl(cab, fromDev, toDev, centroid.cx, centroid.cy));
     }
 
     // Empty state — no devices on canvas
@@ -4512,6 +4950,9 @@
         '<header class="tb3-3d-popup-header">' +
           '<h2 id="tb3-3d-popup-title" class="tb3-3d-popup-title">3D view of topology</h2>' +
           '<span class="tb3-3d-popup-counts">' + devCount + ' devices &middot; ' + cabCount + ' cables</span>' +
+          '<span class="tb3-3d-popup-header-spacer"></span>' +
+          '<button class="tb3-3d-popup-tool-btn" id="tb3-3d-popup-fit-btn" aria-label="Fit topology to view" type="button" title="Fit to view">⊡</button>' +
+          '<button class="tb3-3d-popup-tool-btn" id="tb3-3d-popup-reset-btn" aria-label="Reset camera to default" type="button" title="Reset camera">↺</button>' +
           '<button class="tb3-3d-popup-close-btn" id="tb3-3d-popup-close-btn" aria-label="Close 3D view" type="button">&times;</button>' +
         '</header>' +
         '<div class="tb3-3d-popup-viewport" id="tb3-3d-popup-viewport" role="img" ' +
@@ -4519,6 +4960,14 @@
              'tabindex="0">' +
           '<div class="tb3-3d-popup-stage" id="tb3-3d-popup-stage">' +
             '<div class="tb3-3d-floor"></div>' +
+          '</div>' +
+          '<div class="tb3-3d-legend-chip" id="tb3-3d-legend-chip">' +
+            '<div class="tb3-3d-popup-legend-title">Device families</div>' +
+            '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-network,#8a6a3e)"></span><span class="tb3-3d-legend-label">Network</span>' +
+            '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-endpoint,#5a8a4e)"></span><span class="tb3-3d-legend-label">Endpoint</span>' +
+            '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-security,#8a4e4e)"></span><span class="tb3-3d-legend-label">Security</span>' +
+            '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-cloud,#4e6a8a)"></span><span class="tb3-3d-legend-label">Cloud</span>' +
+            '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-wireless,#7a5a8a)"></span><span class="tb3-3d-legend-label">Wireless</span>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -4530,6 +4979,9 @@
     // Wire X button + backdrop close (full input listeners come in Stage 5)
     document.getElementById('tb3-3d-popup-close-btn').addEventListener('click', _close3DPopup);
     document.getElementById('tb3-3d-popup-backdrop').addEventListener('click', _close3DPopup);
+    // Stage 6: Fit-to-view + Reset camera tool buttons
+    document.getElementById('tb3-3d-popup-fit-btn').addEventListener('click', function () { _fitCameraToDevices(state.devices); });
+    document.getElementById('tb3-3d-popup-reset-btn').addEventListener('click', _on3DPopupDblClick);
 
     // Open tween — add .is-open after a paint to trigger CSS transitions
     requestAnimationFrame(function () {

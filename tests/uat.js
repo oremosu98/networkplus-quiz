@@ -22460,7 +22460,7 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_render3DScene\s*\(/.test(tbv3SrcP7v2)
   );
   test('P7v2: _build3DDeviceEl emits 5-face extruded card structure',
-    /function\s+_build3DDeviceEl[\s\S]{0,1000}tb3-3d-dev-top[\s\S]{0,200}tb3-3d-dev-bottom[\s\S]{0,200}tb3-3d-dev-side-n[\s\S]{0,200}tb3-3d-dev-side-s[\s\S]{0,200}tb3-3d-dev-side-e[\s\S]{0,200}tb3-3d-dev-side-w/.test(tbv3SrcP7v2)
+    /function\s+_build3DDeviceEl[\s\S]{0,3500}tb3-3d-dev-top[\s\S]{0,200}tb3-3d-dev-bottom[\s\S]{0,200}tb3-3d-dev-side-n[\s\S]{0,200}tb3-3d-dev-side-s[\s\S]{0,200}tb3-3d-dev-side-e[\s\S]{0,200}tb3-3d-dev-side-w/.test(tbv3SrcP7v2)
   );
   test('P7v2: top face uses 135deg gradient (light from upper-left)',
     /\.tb3-3d-dev-top[\s\S]{0,400}linear-gradient\(\s*135deg/.test(tbv3CssP7v2)
@@ -22480,7 +22480,7 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /_build3DCableEl[\s\S]{0,3000}transform\s*=\s*['"]translateZ\(0\)['"]/.test(tbv3SrcP7v2)
   );
   test('P7v2: floor uses rotateX(90deg) + radial gradient vignette',
-    /\.tb3-3d-floor[\s\S]{0,800}rotateX\(90deg\)[\s\S]{0,400}radial-gradient/.test(tbv3CssP7v2)
+    /\.tb3-3d-floor[\s\S]{0,800}rotateX\(90deg\)[\s\S]{0,1600}radial-gradient/.test(tbv3CssP7v2)
   );
 
   // ---- Stage 5: drag + zoom + momentum + animations ----
@@ -22605,6 +22605,314 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
   test('V1P: no sentence-case scenario titles remain (regression guard)',
     !/title:\s*'Star topology with central switch'/.test(tbv3SrcV1P)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish UAT fixtures (Stage 1)
+// ══════════════════════════════════════════
+(function _tbv3PolishStage1Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 1: device family map + accent CSS ----
+  test('POLISH: _TB_V3_DEVICE_FAMILY defined with 37 entries',
+    (function () {
+      var m = tbv3SrcPo.match(/_TB_V3_DEVICE_FAMILY\s*=\s*\{([^}]+)\}/);
+      if (!m) return false;
+      var entries = (m[1].match(/'[a-z0-9-]+'\s*:/g) || []).length;
+      return entries >= 37;
+    })()
+  );
+  test('POLISH: _build3DDeviceEl emits data-family attribute',
+    /function\s+_build3DDeviceEl[\s\S]{0,1500}setAttribute\(['"]data-family['"]/.test(tbv3SrcPo)
+  );
+  test('POLISH: family accent CSS defines all 5 color variables',
+    /--tb3-3d-accent-network/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-endpoint/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-wireless/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-security/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-cloud/.test(tbv3CssPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2A UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2AFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2A — all 10 network device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['router'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['l3-router'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['isp-router'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['switch'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['l3-switch'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['dmz-switch'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['hub'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['bridge'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['onprem-dc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['mpls-core'\]/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2B UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2BFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2B — all 10 endpoint device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['pc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['laptop'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['server'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['smartphone'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['smart-tv'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['game-console'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['printer'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['voip'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['iot'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['dns-server'\]/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2C UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2CFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2C — all 6 wireless+security device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['wap'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['wlc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['firewall'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['ids'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['vpg'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['sase-edge'\]/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2D UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2DFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2D — all 3 cloud core device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['cloud'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['internet'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['load-balancer'\]/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2E UAT fixtures — FINAL illustration batch
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2EFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2E — all 8 public-cloud device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['public-web'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['public-file'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['public-cloud'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['vpc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['cloud-subnet'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['igw'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['nat-gw'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['tgw'\]/.test(tbv3SrcPo)
+  );
+  test('POLISH: all 37 device types have illustrations',
+    (function () {
+      var src = tbv3SrcPo;
+      var types = [
+        'router','l3-router','isp-router','switch','l3-switch','dmz-switch','hub','bridge','onprem-dc','mpls-core',
+        'pc','laptop','server','smartphone','smart-tv','game-console','printer','voip','iot','dns-server',
+        'wap','wlc','firewall','ids','vpg','sase-edge',
+        'cloud','internet','load-balancer',
+        'public-web','public-file','public-cloud','vpc','cloud-subnet','igw','nat-gw','tgw'
+      ];
+      for (var i = 0; i < types.length; i++) {
+        var t = types[i].replace(/[\.\*\+\?\(\)\[\]\\]/g, '\\$&');
+        var rx = new RegExp("_TB_V3_DEVICE_3D_ILLUSTRATIONS\\['" + t + "'\\]");
+        if (!rx.test(src)) return false;
+      }
+      return true;
+    })()
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 3 UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage3Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 3: device labels below + counter-rotation ----
+  test('POLISH: label-below CSS classes defined',
+    /\.tb3-3d-dev-label-below/.test(tbv3CssPo) &&
+    /\.tb3-3d-dev-name/.test(tbv3CssPo) &&
+    /\.tb3-3d-dev-ip/.test(tbv3CssPo)
+  );
+  test('POLISH: _apply3DCamera counter-rotates labels',
+    /function\s+_apply3DCamera[\s\S]{0,1200}\.tb3-3d-dev-label-below[\s\S]{0,300}counterTransform/.test(tbv3SrcPo)
+  );
+  test('POLISH: _build3DDeviceEl emits .tb3-3d-dev-label-below in innerHTML',
+    /function\s+_build3DDeviceEl[\s\S]{0,3500}tb3-3d-dev-label-below/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 4 UAT fixtures — centroid offset
+// ══════════════════════════════════════════
+(function _tbv3PolishStage4Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: _computeSceneCentroid helper defined',
+    /function\s+_computeSceneCentroid\s*\(/.test(tbv3SrcPo)
+  );
+  test('POLISH: _build3DDeviceEl + _build3DCableEl accept sceneCx/sceneCy params',
+    /function\s+_build3DDeviceEl\s*\([^)]*sceneCx[^)]*sceneCy/.test(tbv3SrcPo) &&
+    /function\s+_build3DCableEl\s*\([^)]*sceneCx[^)]*sceneCy/.test(tbv3SrcPo)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 5 UAT fixtures — ambient packets
+// ══════════════════════════════════════════
+(function _tbv3PolishStage5Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('POLISH: _buildAmbientPacketEl defined with animateMotion + mpath',
+    /function\s+_buildAmbientPacketEl[\s\S]{0,4000}animateMotion[\s\S]{0,500}mpath/.test(tbv3SrcPo)
+  );
+  test('POLISH: reduced-motion hides ambient packets',
+    /@media\s*\(prefers-reduced-motion[\s\S]{0,3000}\.tb3-3d-ambient-packet[\s\S]{0,100}display\s*:\s*none/.test(tbv3CssPo)
+  );
+})();
+
+// ── Stage 6: v6.4.3 TB v3 Popup Polish ──
+(function () {
+  var fs = require('fs');
+  var tbv3SrcS6 = fs.readFileSync(
+    require('path').join(__dirname, '../features/topology-builder-v3.js'), 'utf8'
+  );
+  var tbv3CssS6 = fs.readFileSync(
+    require('path').join(__dirname, '../features/topology-builder-v3.css'), 'utf8'
+  );
+
+  // 6.1 Floor grid CSS: background-color + background-image with linear-gradient grid
+  test('STAGE6: .tb3-3d-floor has background-color (not shorthand)',
+    /\.tb3-3d-floor[\s\S]{0,600}background-color\s*:/.test(tbv3CssS6)
+  );
+  test('STAGE6: .tb3-3d-floor background-image includes 60px grid linear-gradient',
+    /\.tb3-3d-floor[\s\S]{0,800}linear-gradient[\s\S]{0,400}60px\s+60px/.test(tbv3CssS6)
+  );
+  test('STAGE6: .tb3-3d-floor has mask-image edge-fade',
+    /\.tb3-3d-floor[\s\S]{0,2200}mask-image\s*:[\s\S]{0,400}radial-gradient/.test(tbv3CssS6)
+  );
+
+  // 6.2 Camera defaults updated
+  test('STAGE6: _3dPopup camera defaults rotX:42 zoom:1.1',
+    /camera\s*:\s*\{\s*rotX\s*:\s*42\s*,\s*rotY\s*:\s*-18\s*,\s*zoom\s*:\s*1\.1\s*\}/.test(tbv3SrcS6)
+  );
+  test('STAGE6: _on3DPopupDblClick reset targets use rotX 42 zoom 1.1',
+    /targetRotX\s*=\s*42[\s\S]{0,100}targetZoom\s*=\s*1\.1/.test(tbv3SrcS6)
+  );
+  test('STAGE6: _on3DPopupDblClick reduced-motion branch uses rotX 42 zoom 1.1',
+    /camera\.rotX\s*=\s*42[\s\S]{0,100}camera\.zoom\s*=\s*1\.1/.test(tbv3SrcS6)
+  );
+
+  // 6.3 Fit + Reset buttons in header HTML
+  test('STAGE6: header contains tb3-3d-popup-fit-btn',
+    /tb3-3d-popup-fit-btn/.test(tbv3SrcS6)
+  );
+  test('STAGE6: header contains tb3-3d-popup-reset-btn',
+    /tb3-3d-popup-reset-btn/.test(tbv3SrcS6)
+  );
+  test('STAGE6: header contains tb3-3d-popup-header-spacer',
+    /tb3-3d-popup-header-spacer/.test(tbv3SrcS6)
+  );
+
+  // 6.4 Fit/Reset handlers wired
+  test('STAGE6: fit-btn click wires _fitCameraToDevices',
+    /tb3-3d-popup-fit-btn[\s\S]{0,200}_fitCameraToDevices/.test(tbv3SrcS6)
+  );
+  test('STAGE6: reset-btn click wires _on3DPopupDblClick',
+    /tb3-3d-popup-reset-btn[\s\S]{0,200}_on3DPopupDblClick/.test(tbv3SrcS6)
+  );
+
+  // 6.5 _fitCameraToDevices function exists with rAF tween
+  test('STAGE6: _fitCameraToDevices defined with rAF tween + cancel discipline',
+    /function\s+_fitCameraToDevices[\s\S]{0,1600}cancelAnimationFrame[\s\S]{0,700}requestAnimationFrame/.test(tbv3SrcS6)
+  );
+  test('STAGE6: _fitCameraToDevices respects reduced-motion fast path',
+    /function\s+_fitCameraToDevices[\s\S]{0,2000}_3dPopupReducedMotion/.test(tbv3SrcS6)
+  );
+
+  // 6.6 Legend chip present in viewport HTML
+  test('STAGE6: tb3-3d-legend-chip appended inside viewport',
+    /tb3-3d-legend-chip/.test(tbv3SrcS6)
+  );
+  test('STAGE6: legend chip contains at least 3 device-family dots',
+    (tbv3SrcS6.match(/tb3-3d-legend-dot/g) || []).length >= 3
+  );
+
+  // 6.7 Chrome CSS present
+  test('STAGE6: .tb3-3d-popup-tool-btn CSS rule exists',
+    /\.tb3-3d-popup-tool-btn\s*\{/.test(tbv3CssS6)
+  );
+  test('STAGE6: .tb3-3d-legend-chip CSS rule exists',
+    /\.tb3-3d-legend-chip\s*\{/.test(tbv3CssS6)
+  );
+  test('STAGE6: .tb3-3d-dev hover-lift CSS exists for child elements',
+    /\.tb3-3d-dev:hover\s+\.tb3-3d-dev-top[\s\S]{0,200}translateZ\(8px\)/.test(tbv3CssS6)
+  );
+  test('STAGE6: Stage 6 reduced-motion gate kills tool-btn transition and hover lift',
+    /@media\s*\(prefers-reduced-motion[\s\S]{0,3000}\.tb3-3d-popup-tool-btn[\s\S]{0,100}transition\s*:\s*none/.test(tbv3CssS6)
+  );
+  test('STAGE6: legend chip contains "Device families" title',
+    /tb3-3d-legend-chip[\s\S]{0,500}Device families/.test(tbv3SrcS6)
+  );
+})();
+
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 7 UAT fixtures — reduced-motion + a11y
+// ══════════════════════════════════════════
+(function _tbv3PolishStage7Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('POLISH: reduced-motion kills hover-lift transitions',
+    /@media\s*\(prefers-reduced-motion[\s\S]{0,5000}\.tb3-3d-dev\s+\.tb3-3d-dev-top[\s\S]{0,300}transition\s*:\s*none/.test(tbv3CssPo)
+  );
+  test('POLISH: reduced-motion kills hover-lift transforms',
+    /@media\s*\(prefers-reduced-motion[\s\S]{0,5000}\.tb3-3d-dev:hover\s+\.tb3-3d-dev-top[\s\S]{0,300}transform\s*:\s*none/.test(tbv3CssPo)
+  );
+  test('POLISH: Fit + Reset buttons have aria-labels',
+    /tb3-3d-popup-fit-btn[\s\S]{0,200}aria-label/.test(tbv3SrcPo) &&
+    /tb3-3d-popup-reset-btn[\s\S]{0,200}aria-label/.test(tbv3SrcPo)
   );
 })();
 

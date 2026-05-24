@@ -3546,6 +3546,94 @@ test.describe('topology-builder-v3', () => {
     expect(checks.homeExists).toBe(true);
     expect(checks.noSentenceCase).toBe(true);
   });
+
+  // ────────────────────────────────────────────────────────────
+  // Polish tests (v6.4.3)
+  // ────────────────────────────────────────────────────────────
+
+  test('TB v3 POLISH — test 62: device labels render with hostname + IP', async ({ page }) => {
+    await page.goto('/?cert=netplus');
+    await page.waitForFunction(() => typeof window.showPage === 'function');
+    await page.evaluate(async () => {
+      window._gateProOnly = () => true;
+      window._certanvilSignedIn = true;
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      if (typeof window.openTopologyBuilderV3 === 'function') window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg', { timeout: 15000 });
+    await page.evaluate(() => {
+      var tb3 = window._certanvilFeatures['topology-builder-v3'];
+      var s = tb3._getState();
+      s.devices.push({ id: 'd1', type: 'router', x: 100, y: 100, label: 'R1', config: { ip: '10.0.0.1' } });
+      s.devices.push({ id: 'd2', type: 'pc', x: 300, y: 100, label: 'PC-Alice', config: { ip: '10.0.0.50' } });
+      tb3._renderCanvas();
+    });
+    await page.click('.tb3-mode[data-mode="3d"]');
+    await page.waitForSelector('#tb3-3d-popup-fit-btn', { timeout: 5000 });
+    await page.waitForTimeout(300);
+    const labels = await page.locator('.tb3-3d-dev-label-below').count();
+    const names = await page.locator('.tb3-3d-dev-name').allTextContents();
+    const ips = await page.locator('.tb3-3d-dev-ip').allTextContents();
+    expect(labels).toBeGreaterThanOrEqual(2);
+    expect(names.join(',')).toContain('R1');
+    expect(names.join(',')).toContain('PC-Alice');
+    expect(ips.join(',')).toContain('10.0.0.1');
+    expect(ips.join(',')).toContain('10.0.0.50');
+  });
+
+  test('TB v3 POLISH — test 63: ambient packet SVG elements exist per cable', async ({ page }) => {
+    await page.goto('/?cert=netplus');
+    await page.waitForFunction(() => typeof window.showPage === 'function');
+    await page.evaluate(async () => {
+      window._gateProOnly = () => true;
+      window._certanvilSignedIn = true;
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      if (typeof window.openTopologyBuilderV3 === 'function') window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg', { timeout: 15000 });
+    await page.evaluate(() => {
+      var tb3 = window._certanvilFeatures['topology-builder-v3'];
+      var s = tb3._getState();
+      s.devices.push({ id: 'd1', type: 'router', x: 100, y: 100, label: 'R1', config: { ip: '10.0.0.1' } });
+      s.devices.push({ id: 'd2', type: 'switch', x: 300, y: 100, label: 'SW1', config: {} });
+      s.cables.push({ id: 'c1', fromId: 'd1', toId: 'd2', fromPort: 'Gi0', toPort: 'Fa0', type: 'ethernet' });
+      tb3._renderCanvas();
+    });
+    await page.click('.tb3-mode[data-mode="3d"]');
+    await page.waitForSelector('#tb3-3d-popup-fit-btn', { timeout: 5000 });
+    await page.waitForTimeout(300);
+    const packets = await page.locator('.tb3-3d-ambient-packet').count();
+    expect(packets).toBeGreaterThanOrEqual(1);
+  });
+
+  test('TB v3 POLISH — test 64: Fit-to-view button changes camera zoom', async ({ page }) => {
+    await page.goto('/?cert=netplus');
+    await page.waitForFunction(() => typeof window.showPage === 'function');
+    await page.evaluate(async () => {
+      window._gateProOnly = () => true;
+      window._certanvilSignedIn = true;
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      if (typeof window.openTopologyBuilderV3 === 'function') window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg', { timeout: 15000 });
+    await page.evaluate(() => {
+      var tb3 = window._certanvilFeatures['topology-builder-v3'];
+      var s = tb3._getState();
+      s.devices.push({ id: 'd1', type: 'router', x: 0, y: 0 });
+      s.devices.push({ id: 'd2', type: 'router', x: 1500, y: 1500 });
+      tb3._renderCanvas();
+    });
+    await page.click('.tb3-mode[data-mode="3d"]');
+    await page.waitForSelector('#tb3-3d-popup-fit-btn', { timeout: 5000 });
+    const beforeTransform = await page.locator('#tb3-3d-popup-stage').getAttribute('style');
+    await page.click('#tb3-3d-popup-fit-btn');
+    await page.waitForTimeout(500);
+    const afterTransform = await page.locator('#tb3-3d-popup-stage').getAttribute('style');
+    expect(afterTransform).not.toBe(beforeTransform);
+  });
 });
 
 
