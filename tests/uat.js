@@ -22445,8 +22445,8 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('P7v2: _open3DPopup creates modal with role=dialog + aria-modal',
     /_open3DPopup[\s\S]{0,1500}role['"]?\s*,\s*['"]dialog['"][\s\S]{0,200}aria-modal['"]?\s*,\s*['"]true['"]/.test(tbv3SrcP7v2)
   );
-  test('P7v2: modal chrome CSS defines tb3-3d-popup-modal positioning',
-    /\.tb3-3d-popup-modal\s*\{[\s\S]{0,500}position:\s*fixed[\s\S]{0,200}z-index:\s*70/.test(tbv3CssP7v2)
+  test('P7v2: modal chrome CSS defines tb3-3d-popup-modal positioning above builder stacking context',
+    /\.tb3-3d-popup-modal\s*\{[\s\S]{0,800}position:\s*fixed[\s\S]{0,400}z-index:\s*10001/.test(tbv3CssP7v2)
   );
   test('P7v2: modal card has the spec-cream background + bronze shadow',
     /\.tb3-3d-popup-card[\s\S]{0,800}background:\s*var\(--tb3-cream/.test(tbv3CssP7v2)
