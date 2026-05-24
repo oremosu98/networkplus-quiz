@@ -22621,6 +22621,32 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /state\.mode\s*===\s*['"]3d['"][\s\S]{0,2500}_update3DAriaStatus\s*\(/.test(tbv3SrcP7)
   );
 
+  // ---- Stage 13: cross-rail mutex forEach audit + cumulative count ----
+  ['_selectDevice', '_openPicker', '_openDiagnostic', '_openSimulate'].forEach(function (fnName) {
+    var fnBody = _fnBody(tbv3SrcP7, fnName);
+    test('P7: ' + fnName + ' sweeps trace-open',
+      /classList\.contains\(['"]trace-open['"]\)[\s\S]{0,80}_closeTrace/.test(fnBody)
+    );
+    test('P7: ' + fnName + ' sweeps osi-open',
+      /classList\.contains\(['"]osi-open['"]\)[\s\S]{0,80}_closeOSI/.test(fnBody)
+    );
+    test('P7: ' + fnName + ' sweeps 3d-open',
+      /classList\.contains\(['"]3d-open['"]\)[\s\S]{0,80}_close3D/.test(fnBody)
+    );
+  });
+
+  // Cumulative count guard — Phase 7 should have grown the suite by 50+
+  test('P7: Phase 7 added ≥ 50 UAT guards cumulative (post-Stage 13)',
+    (function () {
+      var uatSrc = fs.readFileSync(__filename, 'utf8');
+      var phase7Block = uatSrc.match(/_tbv3Phase7Fixtures[\s\S]*?\n\}\)\(\);/);
+      if (!phase7Block) return false;
+      var matches = phase7Block[0].match(/test\(['"]P7:/g);
+      var count = matches ? matches.length : 0;
+      return count >= 50;
+    })()
+  );
+
 })();
 
 // ── Summary ──
