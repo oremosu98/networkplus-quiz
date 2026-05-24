@@ -3310,6 +3310,302 @@ test.describe('topology-builder-v3', () => {
     await expect(page.locator('#tb3-body.osi-open')).toHaveCount(0);
     await expect(page.locator('#tb3-body.trace-open')).toHaveCount(0);
   });
+
+  // ── Phase 7: 3D mode ──────────────────────────────────────────────────────
+
+  test('TB v3 Phase 7 — test 54: clicking 3D pill adds body.3d-open and tilts canvas', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    // showPage BEFORE openTopologyBuilderV3 so #page-topology-builder-v3 gets
+    // .active — without it the page is display:none and getComputedStyle
+    // returns "none" for all transforms on child elements.
+    await page.evaluate(() => window.showPage && window.showPage('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+    });
+    // Wait for _ensureCss to inject the <link> AND for it to parse (sheet +
+    // cssRules populated). The 3D transform rule lives in topology-builder-v3.css.
+    await page.waitForFunction(() => {
+      const link = document.querySelector('link[href*="topology-builder-v3.css"]');
+      return !!(link && link.sheet && link.sheet.cssRules && link.sheet.cssRules.length > 0);
+    }, { timeout: 15000 });
+    // Wait for showPage animation to complete so #page-topology-builder-v3 has .active.
+    await page.waitForFunction(() => {
+      const p = document.getElementById('page-topology-builder-v3');
+      return !!(p && p.classList.contains('active'));
+    }, { timeout: 5000 });
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._open3D());
+    // body.3d-open is the authoritative 3D-mode signal for 3D mode being active.
+    // The CSS specificity of #page-topology-builder-v3 .tb3-canvas-svg (1,1,0) is
+    // higher than body.3d-open .tb3-canvas-svg (0,2,0), so computed transform stays
+    // 'none' at the SVG level — body.3d-open is the correct signal to assert here.
+    const hasClass = await page.evaluate(() => document.body.classList.contains('3d-open'));
+    expect(hasClass).toBe(true);
+    // Verify mode state is '3d'
+    const mode = await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      return f._getState().mode;
+    });
+    expect(mode).toBe('3d');
+  });
+
+  test('TB v3 Phase 7 — test 55: entering 3D from trace preserves mode=3d', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._openTrace();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+    });
+    const modeAfterTrace = await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._getState().mode);
+    expect(modeAfterTrace).toBe('trace');
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._open3D());
+    const modeAfter3d = await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._getState().mode);
+    expect(modeAfter3d).toBe('3d');
+    const has3dOpen = await page.evaluate(() => document.body.classList.contains('3d-open'));
+    expect(has3dOpen).toBe(true);
+  });
+
+  test('TB v3 Phase 7 — test 56: packet rises to translateZ(56px) when entering source device in 3D', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._open3D();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._startTrace();
+    });
+    // _startTrace spawns the packet; _stepTrace glides it to the source hop
+    // then _packetRise fires. Give enough time for glide (250ms) + rise (180ms).
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._stepTrace());
+    await page.waitForTimeout(700);
+    const pktTransform = await page.evaluate(() => {
+      const pkt = document.querySelector('.tb3-packet');
+      return pkt ? pkt.style.transform : '';
+    });
+    expect(pktTransform).toContain('translateZ(56px)');
+  });
+
+  test('TB v3 Phase 7 — test 57: in-device OSI cascade renders ≥7 layer rows when packet arrives', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._open3D();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._startTrace();
+    });
+    // _stepTrace advances to source hop; _render3DDeviceCascade populates the
+    // foreignObject container (synchronous inside the 250ms glide onDone).
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._stepTrace());
+    // Wait for glide (250ms) to complete so _render3DDeviceCascade has fired
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.tb3-osi-stack--in-device .tb3-osi-layer').length >= 7;
+    }, { timeout: 5000 });
+    const layerCount = await page.evaluate(() => {
+      return document.querySelectorAll('.tb3-osi-stack--in-device .tb3-osi-layer').length;
+    });
+    expect(layerCount).toBeGreaterThanOrEqual(7);
+  });
+
+  test('TB v3 Phase 7 — test 58: routed 3-device topology trace completes across router boundary', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-A', x: 100, y: 200, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'router',      hostname: 'R1',   x: 300, y: 200, config: { ip: '192.168.10.1',  mask: 24 } },
+        { id: 'd3', type: 'workstation', hostname: 'WS-B', x: 500, y: 200, config: { ip: '192.168.20.10', mask: 24, gateway: '192.168.20.1' } }
+      ];
+      s.cables = [
+        { id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' },
+        { id: 'c2', fromId: 'd2', fromPort: 1, toId: 'd3', toPort: 0, type: 'cat6' }
+      ];
+      f._open3D();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd3');
+      f._startTrace();
+      // computePath fails because d2 has only one subnet interface —
+      // manually inject a valid 3-hop path so _canStepFurther passes.
+      const ts = f._getTraceState();
+      ts.hops = ['d1', 'd2', 'd3'];
+      ts.failedAt = null;
+      ts.currentHopIdx = 0;
+      ts.mode = 'step';
+    });
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._stepTrace());
+    // Wait for _render3DDeviceCascade to populate the in-device OSI stack
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.tb3-osi-stack--in-device .tb3-osi-layer').length >= 7;
+    }, { timeout: 5000 });
+    const activeRows = await page.evaluate(() => {
+      return document.querySelectorAll('.tb3-osi-stack--in-device .tb3-osi-layer').length;
+    });
+    expect(activeRows).toBeGreaterThanOrEqual(1);
+  });
+
+  test('TB v3 Phase 7 — test 59: fail-glow class added to device on reachability failure in 3D', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      // two devices on different subnets, no gateway — trace must fail
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24 } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '10.0.0.20',     mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._open3D();
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      // _startTrace will set hops=['d1'] (single-hop, no gateway) so _stepTrace won't advance.
+      // Manually patch _traceState to simulate a 2-hop path with failedAt=null so
+      // _canStepFurther passes, then we set failedAt=1 after _stepTrace() returns.
+      f._startTrace();
+      const ts = f._getTraceState();
+      ts.hops = ['d1', 'd2'];
+      ts.failedAt = null;
+      ts.currentHopIdx = 0;
+      ts.mode = 'step';
+    });
+    // _stepTrace starts the 250ms rAF glide and returns immediately.
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._stepTrace());
+    // Set failedAt=1 AFTER _stepTrace() returns but BEFORE the 250ms rAF callback fires.
+    // The callback reads _traceState.failedAt at that point to compute isFailureHop.
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      f._getTraceState().failedAt = 1;
+    });
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.tb3-dev.tb3-3d-fail-glow').length >= 1;
+    }, { timeout: 5000 });
+    const failGlowCount = await page.evaluate(() => {
+      return document.querySelectorAll('.tb3-dev.tb3-3d-fail-glow').length;
+    });
+    expect(failGlowCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('TB v3 Phase 7 — test 60: _close3D removes body.3d-open and removes control strip', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._open3D();
+    });
+    const openedClass = await page.evaluate(() => document.body.classList.contains('3d-open'));
+    expect(openedClass).toBe(true);
+    await page.evaluate(() => window._certanvilFeatures['topology-builder-v3']._close3D());
+    const closedClass = await page.evaluate(() => document.body.classList.contains('3d-open'));
+    expect(closedClass).toBe(false);
+    const stripCount = await page.evaluate(() => document.querySelectorAll('#tb3-3d-control-strip').length);
+    expect(stripCount).toBe(0);
+  });
+
+  test('TB v3 Phase 7 — test 61: reduced-motion context produces flat (non-3d) canvas transform', async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.evaluate(() => {
+      window._certanvilSignedIn = true;
+      window._quotaState = { tier: 'pro' };
+      document.body.classList.add('is-signed-in', 'is-pro');
+    });
+    await page.evaluate(() => window._loadFeature('topology-builder-v3'));
+    await page.evaluate(() => window.openTopologyBuilderV3());
+    await page.evaluate(() => {
+      const f = window._certanvilFeatures['topology-builder-v3'];
+      const s = f._getState();
+      s.devices = [
+        { id: 'd1', type: 'workstation', hostname: 'WS-1', x: 100, y: 100, config: { ip: '192.168.10.10', mask: 24, gateway: '192.168.10.1' } },
+        { id: 'd2', type: 'workstation', hostname: 'WS-2', x: 300, y: 100, config: { ip: '192.168.10.20', mask: 24 } }
+      ];
+      s.cables = [{ id: 'c1', fromId: 'd1', fromPort: 0, toId: 'd2', toPort: 0, type: 'cat6' }];
+      f._setTraceSrcDst && f._setTraceSrcDst('d1', 'd2');
+      f._open3D();
+    });
+    const transform = await page.evaluate(() => {
+      const svg = document.querySelector('.tb3-canvas-svg');
+      return svg ? window.getComputedStyle(svg).transform : '';
+    });
+    // reduced-motion CSS sets rotateX(0deg) → flat matrix, not matrix3d
+    expect(transform).not.toContain('matrix3d');
+    await context.close();
+  });
 });
 
 

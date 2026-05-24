@@ -1645,3 +1645,254 @@ html[data-theme="light"] #page-topology-builder-v3 {
     transition: filter 1200ms ease;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 7 — 3D MODE
+   Activates only when body.3d-open. Scene tilts ~50°; per-device standing
+   transforms in §2; cascade in §3; motion in §4; reduced-motion in §5.
+   Spec: docs/superpowers/specs/2026-05-24-tb-v3-phase7-3d-design.md
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Phase 7 §1: Scene-level transforms ── */
+body.3d-open .tb3-canvas-wrap {
+  perspective: 1400px;
+  perspective-origin: 50% 30%;
+}
+
+body.3d-open .tb3-canvas-svg {
+  transform: rotateX(50deg);
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
+}
+
+body.3d-open .tb3-canvas-svg > * {
+  transform-style: preserve-3d;
+}
+
+/* ── Phase 7 §2: Per-device standing transforms ── */
+body.3d-open .tb3-dev {
+  transform: rotateX(-50deg) translateZ(28px);
+  transform-origin: 50% 100%;
+  transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Phase 7 §3: Cables and packet at table plane ── */
+body.3d-open .tb3-cable {
+  /* Cables render on the SVG path at translateZ(0) — no per-cable transform
+     needed; preserve-3d on the parent scene handles depth-sort automatically. */
+  transform: translateZ(0);
+}
+
+body.3d-open .tb3-packet {
+  /* Packet baseline at table plane. Stage 8 adds rise (translateZ:56px)
+     and fall transitions as one-shot inline styles set by _packetRise /
+     _packetFall — DO NOT add transition shorthand here that would conflict. */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Floating control strip + modebar float above 3D scene */
+body.3d-open .tb3-strip,
+body.3d-open .tb3-bar {
+  z-index: 50;
+}
+
+/* ── Phase 7 §4: In-device cascade ── */
+
+/* foreignObject wrapper — hidden by inline style by default; shown when device fires */
+.tb3-3d-device-cascade-fo { /* foreignObject styling minimal — inline display drives visibility */ }
+
+body.3d-open .tb3-osi-stack--in-device {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--tb3-surface, #fff);
+  border: 1px solid var(--tb3-border-soft, rgba(0,0,0,.08));
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: var(--tb3-font, system-ui);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  border-bottom: 1px solid var(--tb3-border-hairline, rgba(0,0,0,.04));
+  opacity: 0;
+  transition: opacity 80ms cubic-bezier(.4, 0, .2, 1);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer:last-child {
+  border-bottom: none;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-active {
+  opacity: 1;
+  background: var(--tb3-accent-soft, rgba(139, 90, 60, .08));
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-passive {
+  opacity: .35;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-num {
+  font-weight: 700;
+  width: 18px;
+  color: var(--tb3-accent, #8b5a3c);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-name {
+  flex: 0 0 auto;
+  width: 60px;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-proto {
+  flex: 1 1 auto;
+  font-family: var(--tb3-font-mono, monospace);
+  font-size: 9px;
+  color: var(--tb3-muted, #666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-verb {
+  display: none;   /* In-device variant hides verb — aria-label carries it */
+}
+
+/* ── Phase 7 §5: Floating control strip + 3D-mode right-rail hide ── */
+
+/* In 3D mode, the right-rail trace annotation panel hides. */
+body.3d-open .tb3-rrail {
+  display: none;
+}
+
+.tb3-3d-strip {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--tb3-surface, #fff);
+  border: 1px solid var(--tb3-border, rgba(0,0,0,.12));
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06);
+  z-index: 60;
+  font-family: var(--tb3-font, system-ui);
+  font-size: 13px;
+}
+
+.tb3-3d-strip-status {
+  font-weight: 500;
+  color: var(--tb3-text, #1a1a1a);
+  min-width: 180px;
+}
+
+.tb3-3d-strip-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tb3-3d-btn {
+  font: inherit;
+  padding: 6px 12px;
+  background: var(--tb3-surface-soft, #f5f5f5);
+  border: 1px solid var(--tb3-border-soft, rgba(0,0,0,.08));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.tb3-3d-btn:hover:not(:disabled) {
+  background: var(--tb3-accent-soft, rgba(139, 90, 60, .12));
+}
+
+.tb3-3d-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.tb3-3d-speed {
+  font: inherit;
+  padding: 6px 8px;
+  background: var(--tb3-surface-soft, #f5f5f5);
+  border: 1px solid var(--tb3-border-soft, rgba(0,0,0,.08));
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ── Phase 7 §6: Motion easing tokens (asymmetric rise/fall + cascade) ── */
+:root {
+  --tb3-3d-rise: cubic-bezier(.2, .7, .2, 1);
+  --tb3-3d-fall: cubic-bezier(.8, 0, .8, .3);
+  --tb3-3d-cascade: cubic-bezier(.4, 0, .2, 1);
+  --tb3-3d-scene: linear;
+}
+
+/* ── Phase 7 §7: Failure UX (rim glow + layer pulse + trapped packet) ── */
+
+@keyframes tb3FailGlowPulse {
+  0%, 100% { box-shadow: 0 0 12px var(--tb3-fail-border, rgba(239, 68, 68, .45)); }
+  50%      { box-shadow: 0 0 24px var(--tb3-fail-glow, rgba(239, 68, 68, .85)); }
+}
+
+@keyframes tb3OSILayerFailPulse {
+  0%, 100% {
+    background: var(--tb3-fail-soft, rgba(239, 68, 68, .15));
+    border-left: 2px solid var(--tb3-fail-border, rgba(239, 68, 68, .6));
+  }
+  50% {
+    background: var(--tb3-fail-strong, rgba(239, 68, 68, .35));
+    border-left: 2px solid var(--tb3-fail-strong, rgba(239, 68, 68, 1));
+  }
+}
+
+body.3d-open .tb3-dev.tb3-3d-fail-glow {
+  animation: tb3FailGlowPulse 2s ease-in-out infinite;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-failure {
+  animation: tb3OSILayerFailPulse 1.2s ease-in-out 3;
+  opacity: 1;
+}
+
+/* ── Phase 7 §8: Reduced-motion fallback ── */
+@media (prefers-reduced-motion: reduce) {
+  body.3d-open .tb3-canvas-svg {
+    transform: rotateX(0deg);
+    transition: none;
+  }
+  body.3d-open .tb3-dev {
+    transform: none;
+    transition: none;
+  }
+  body.3d-open .tb3-packet {
+    transition: none;
+    transform: none !important;
+  }
+  body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer {
+    animation: none;
+    opacity: 1;
+    transition: none;
+  }
+  body.3d-open .tb3-dev.tb3-3d-fail-glow {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--tb3-fail-border, rgba(239, 68, 68, .6));
+  }
+  body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-failure {
+    animation: none;
+    background: var(--tb3-fail-soft, rgba(239, 68, 68, .2));
+  }
+}

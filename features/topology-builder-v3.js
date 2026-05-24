@@ -67,6 +67,7 @@
       autoplayTimer: null,
       rafHandle: null,        // emil §8.6 — captured for interruptibility on rapid Next clicks
       osiAnimHandle: null,    // Phase 6 — OSI overlay animation handle (dual-timer discipline)
+      packetTimerId: null,    // Phase 7 Stage 8 — packet rise/fall safety-net timer ID (cancellable)
 
       // visuals
       packet: null,
@@ -80,6 +81,7 @@
   }
 
   function _resetTraceState() {
+    _clearPacketTransition();   // P7 Stage 8 — must run BEFORE _traceState is nulled (reads packetTimerId)
     if (_traceState && _traceState.autoplayTimer) clearTimeout(_traceState.autoplayTimer);
     if (_traceState && _traceState.rafHandle) cancelAnimationFrame(_traceState.rafHandle);
     if (_traceState && _traceState.osiAnimHandle) cancelAnimationFrame(_traceState.osiAnimHandle);
@@ -96,7 +98,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r11'; // r11: Phase 6 OSI mode CSS appended (layer stack, encap/decap motion, failure variants)
+  var TB3_CSS_REV = 'r12'; // r12: Phase 7 3D mode CSS appended
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -1792,7 +1794,7 @@
           '<div class="tb3-rrail-btn" id="tb3-rrail-scenarios" title="Scenarios — pick a lab">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v14"/></svg>' +
           '</div>' +
-          '<div class="tb3-rrail-btn locked" title="Coach (Phase 7)">' +
+          '<div class="tb3-rrail-btn locked" title="Coach (Phase 8)">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>' +
           '</div>' +
         '</div>' +
@@ -1995,6 +1997,11 @@
           '<rect class="tb3-dev-rect" x="0" y="0" width="76" height="76" rx="9"/>' +
           '<text class="tb3-dev-label" x="38" y="50" font-family="Inter">' + (dev.label || dev.id.slice(-4)) + '</text>' +
           '<text class="tb3-dev-type" x="38" y="66" font-family="Inter">' + dev.type + '</text>' +
+          '<foreignObject class="tb3-3d-device-cascade-fo" data-dev-id="' + _escAttr(dev.id) + '"' +
+            ' x="-32" y="80" width="140" height="170"' +
+            ' style="display:none;">' +
+            '<div xmlns="http://www.w3.org/1999/xhtml" class="tb3-3d-device-cascade" id="tb3-3d-cascade-' + _escAttr(dev.id) + '"></div>' +
+          '</foreignObject>' +
         '</g>';
     });
 
@@ -2484,9 +2491,8 @@
     if (body && body.classList.contains('trace-open')) {
       _closeTrace();
     }
-    if (body && body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body && body.classList.contains('osi-open'))   _closeOSI();
+    if (body && body.classList.contains('3d-open'))    _close3D();
     state.selectedId = id;
     _renderCanvas();
     _renderInspector();
@@ -2854,9 +2860,8 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     // Mutually exclusive with Inspector (only one rail panel at a time).
     body.classList.remove('inspector-open');
     body.classList.add('picker-open');
@@ -3049,9 +3054,8 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.add('diagnostic-open');
@@ -3093,9 +3097,8 @@
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();
@@ -3171,7 +3174,104 @@
     _closeTrace();   // shares teardown — clears _traceState + removes trace-open class
   }
 
+  // ===========================================================================
+  // Phase 7: _open3D / _close3D — 3D mode lifecycle
+  // 3D is a peer mode (state.mode === '3d') that wraps _openTrace per spec §3.
+  // OSI cascade integration: when state.mode === '3d', _stepTrace dispatches
+  // Phase 6's _animate* fns but they render INTO the standing device via
+  // _render3DDeviceCascade (Stage 6) instead of the right-rail panel.
+  // ===========================================================================
+  function _open3D(payload) {
+    _openTrace(payload || null);
+    state.mode = '3d';
+    document.body.classList.add('3d-open');
+    _renderTracePanel();   // Stage 7 will dispatch to floating control strip
+    _renderCanvas();       // Stage 3 scoped CSS activates standing devices
+    _renderModeBar();
+  }
+
+  function _close3D() {
+    document.body.classList.remove('3d-open');
+    var strip = document.getElementById('tb3-3d-control-strip');
+    if (strip) strip.remove();
+    // Phase 7 Stage 11 — clean lingering fail-glow classes (all devices,
+    // long traces may have multiple failed hops over a session)
+    var glowed = document.querySelectorAll('.tb3-3d-fail-glow');
+    for (var i = 0; i < glowed.length; i++) {
+      glowed[i].classList.remove('tb3-3d-fail-glow');
+    }
+    _closeTrace();   // shares teardown with Trace/OSI
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 7: _renderFloating3DControlStrip
+  // In 3D mode, the right-rail trace panel hides. This minimal strip pins
+  // to viewport bottom with Start/Next/Play/End/Speed controls. aria-live
+  // status region announces hop transitions (Stage 12 wires _update3DAriaStatus).
+  // ===========================================================================
+  function _renderFloating3DControlStrip() {
+    var hostId = 'tb3-3d-control-strip';
+    var existing = document.getElementById(hostId);
+    if (existing) existing.remove();
+
+    var hasHops = _traceState && Array.isArray(_traceState.hops) && _traceState.hops.length > 0;
+    var hopIdx = (_traceState && _traceState.currentHopIdx) || 0;
+    var totalHops = hasHops ? _traceState.hops.length : 0;
+
+    var strip = document.createElement('div');
+    strip.id = hostId;
+    strip.className = 'tb3-3d-strip';
+    strip.setAttribute('role', 'toolbar');
+    strip.setAttribute('aria-label', '3D mode trace controls');
+    strip.innerHTML =
+      '<div class="tb3-3d-strip-status" aria-live="polite" id="tb3-3d-status">' +
+        (hasHops ? ('Hop ' + (hopIdx + 1) + ' of ' + totalHops) : 'Pick a source and destination, then Start') +
+      '</div>' +
+      '<div class="tb3-3d-strip-controls">' +
+        '<button class="tb3-3d-btn" data-act="start"' + (hasHops ? ' disabled' : '') + '>Start</button>' +
+        '<button class="tb3-3d-btn" data-act="next"' + (hasHops ? '' : ' disabled') + '>Next</button>' +
+        '<button class="tb3-3d-btn" data-act="play"' + (hasHops ? '' : ' disabled') + '>Play</button>' +
+        '<button class="tb3-3d-btn" data-act="end"' + (hasHops ? '' : ' disabled') + '>End</button>' +
+        '<select class="tb3-3d-speed" data-act="speed">' +
+          '<option value="0.5">0.5\xd7</option>' +
+          '<option value="1" selected>1\xd7</option>' +
+          '<option value="2">2\xd7</option>' +
+        '</select>' +
+      '</div>';
+
+    document.body.appendChild(strip);
+
+    // Wire button clicks to existing Phase 5 control functions
+    var btns = strip.querySelectorAll('button[data-act]');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var act = btn.getAttribute('data-act');
+          if (act === 'start' && typeof _startTrace === 'function') _startTrace();
+          else if (act === 'next' && typeof _stepTrace === 'function') _stepTrace();
+          else if (act === 'play' && typeof _playTrace === 'function') _playTrace();
+          else if (act === 'end' && typeof _endTrace === 'function') _endTrace();
+        });
+      })(btns[i]);
+    }
+    var speedSel = strip.querySelector('select[data-act="speed"]');
+    if (speedSel) {
+      speedSel.addEventListener('change', function (e) {
+        if (typeof _setTraceSpeed === 'function') {
+          _setTraceSpeed(parseFloat(e.target.value));
+        }
+      });
+    }
+  }
+
   function _renderTracePanel() {
+    var st = _getState();
+    // Phase 7: 3D mode bypasses the right-rail panel — floating strip is the surface
+    if (state.mode === '3d') {
+      _renderFloating3DControlStrip();
+      return;
+    }
+
     var panel = document.getElementById('tb3-trace-panel');
     if (!panel) {
       panel = document.createElement('aside');
@@ -3181,7 +3281,6 @@
       document.querySelector('.tb3-workspace').appendChild(panel);
     }
 
-    var st = _getState();
     var hasDevices = st.devices && st.devices.length >= 2;
 
     // Empty-state copy per emil §8.6 fallback
@@ -3238,6 +3337,14 @@
   function _startTrace() {
     if (!_traceState || !_traceState.srcId || !_traceState.dstId) return;
     if (_traceState.srcId === _traceState.dstId) return;
+
+    // Phase 7 Stage 11 — clear any lingering fail-glow from a previous failed
+    // trace BEFORE any rendering kicks off, otherwise the new trace's first
+    // hop could render with stale glow.
+    var glowed = document.querySelectorAll('.tb3-3d-fail-glow');
+    for (var i = 0; i < glowed.length; i++) {
+      glowed[i].classList.remove('tb3-3d-fail-glow');
+    }
 
     const state = _getState();
     const result = computePath(_traceState.srcId, _traceState.dstId, state);
@@ -3298,6 +3405,17 @@
     }
   }
 
+  // ===========================================================================
+  // Phase 7 Stage 12: _update3DAriaStatus
+  // Updates the aria-live polite region in the floating control strip so
+  // screen-reader users get hop-by-hop announcements. Called from _stepTrace
+  // 3D branch (and the failure short-circuit).
+  // ===========================================================================
+  function _update3DAriaStatus(text) {
+    var status = document.getElementById('tb3-3d-status');
+    if (status) status.textContent = text;
+  }
+
   function _stepTrace() {
     if (!_traceState || _traceState.mode === 'idle' || _traceState.mode === 'done') return;
     if (!_canStepFurther()) return;
@@ -3314,6 +3432,7 @@
       cancelAnimationFrame(_traceState.osiAnimHandle);
       _traceState.osiAnimHandle = null;
     }
+    _clearPacketTransition();   // NEW Phase 7 — cancel any in-flight rise/fall
 
     const fromHopIdx = _traceState.currentHopIdx;
     const toHopIdx = fromHopIdx + 1;
@@ -3348,6 +3467,91 @@
         } else if (role === 'dest') {
           _animateDecap(hopId, activeLayers, null);
         }
+      }
+
+      // Phase 7 Stage 9: 3D-mode in-device cascade choreography.
+      // 4-phase per spec §5.3: GLIDE (just finished via _movePacketTracked) →
+      // RISE (_packetRise) → CASCADE (_animateEncap3D / _animateDecap3D /
+      // Phase 6 _animateIntermediate placeholder; Stage 10 swaps in the 3D
+      // variant) → FALL (_packetFall). Pre-renders the in-device OSI stack
+      // into the foreignObject container so the cascade has rows to light.
+      if (state.mode === '3d') {
+        var role3d = _hopRole(toHopIdx);
+        var devId3d = _traceState.hops[toHopIdx];
+        var hopDev3d = (state.devices || []).find(function (d) { return d.id === devId3d; });
+
+        // Compose ctx for proto strings (mirrors the Phase 6 OSI panel pattern
+        // so in-device rows show real IPs + mock MACs + cable type).
+        var srcId3d = _traceState.srcId;
+        var dstId3d = _traceState.dstId;
+        var srcDev3d = (state.devices || []).find(function (d) { return d.id === srcId3d; });
+        var dstDev3d = (state.devices || []).find(function (d) { return d.id === dstId3d; });
+        var srcIp3d = (srcDev3d && srcDev3d.config && srcDev3d.config.ip) || '';
+        var dstIp3d = (dstDev3d && dstDev3d.config && dstDev3d.config.ip) || '';
+        var nextHopIdx3d = toHopIdx + 1;
+        var nextHopId3d = (nextHopIdx3d < _traceState.hops.length) ? _traceState.hops[nextHopIdx3d] : null;
+        var cableType3d = 'cat6';
+        if (state.cables && nextHopId3d) {
+          var cab3d = state.cables.find(function (c) {
+            return (c.fromId === devId3d && c.toId === nextHopId3d) ||
+                   (c.toId === devId3d && c.fromId === nextHopId3d);
+          });
+          if (cab3d && cab3d.type) cableType3d = cab3d.type;
+        }
+        var ctx3d = {
+          srcIp: srcIp3d,
+          dstIp: dstIp3d,
+          srcMac: srcId3d ? _genMockMac(srcId3d) : '',
+          dstMac: dstId3d ? _genMockMac(dstId3d) : '',
+          nextHopMac: nextHopId3d ? _genMockMac(nextHopId3d) : '',
+          routerMacOut: (role3d === 'intermediate' && nextHopId3d) ? _genMockMac(nextHopId3d) : '',
+          cableType: cableType3d
+        };
+        var layerStack3d = _buildLayerStackForHop({ dev: hopDev3d || {} }, role3d, ctx3d);
+
+        // Phase 7 Stage 12 — aria-live announcement BEFORE motion fires
+        var hopN = toHopIdx + 1;
+        var totalN = _traceState.hops.length;
+        var devLabel = (hopDev3d && hopDev3d.label) || devId3d;
+        var isFailureHop = (_traceState.failedAt === toHopIdx);
+        if (isFailureHop) {
+          var failLayer = (typeof _failedReasonToLayer === 'function')
+                        ? _failedReasonToLayer(_traceState.reasonCode)
+                        : null;
+          _update3DAriaStatus('Failure at Hop ' + hopN + ' of ' + totalN + ' — ' + devLabel +
+                               ' — ' + (_traceState.reasonCode || 'unknown reason') +
+                               (failLayer ? ' — Layer ' + failLayer : ''));
+        } else {
+          var roleVerb = (role3d === 'source')       ? 'encapsulating'
+                       : (role3d === 'dest')         ? 'decapsulating'
+                       : /* intermediate */            'forwarding';
+          _update3DAriaStatus('Hop ' + hopN + ' of ' + totalN + ' — ' + devLabel +
+                               ' — ' + roleVerb);
+        }
+
+        // Pre-render the in-device cascade DOM (all rows start passive)
+        _render3DDeviceCascade(devId3d, role3d, layerStack3d);
+
+        // Phase 7 Stage 11: failure short-circuit. If this is the failing hop,
+        // glow the device + trap the packet (skip _packetFall). The .is-failure
+        // row class is already set by _buildLayerStackForHop when
+        // _traceState.failedAt === toHopIdx, so the OSI layer pulse fires
+        // automatically once the cascade lights it.
+
+        // Sequential chain: RISE → CASCADE → FALL (or → TRAP on failure)
+        _packetRise(function () {
+          var onCascadeDone = isFailureHop
+            ? function () {
+                // Failure: glow the device, trap the packet (no fall)
+                var devEl = document.querySelector('.tb3-dev[data-device-id="' + devId3d + '"]');
+                if (devEl) devEl.classList.add('tb3-3d-fail-glow');
+                // settle is implicit — _renderTracePanel below handles badge/panel update
+              }
+            : function () { _packetFall(function () { /* settle complete */ }); };
+          if (role3d === 'source')       _animateEncap3D(devId3d, layerStack3d, onCascadeDone);
+          else if (role3d === 'dest')    _animateDecap3D(devId3d, layerStack3d, onCascadeDone);
+          else                           _animateIntermediate3D(devId3d, (hopDev3d && hopDev3d.type) || 'router', onCascadeDone);
+        });
       }
 
       // If this hop is the failed hop, trigger the failure beat.
@@ -3523,6 +3727,168 @@
   }
 
   // ===========================================================================
+  // ===========================================================================
+  // Phase 7 Stage 1: _renderOSIStack
+  // Shared 7-row OSI layer-stack HTML. Variant flag controls the wrapper
+  // class only — row DOM is byte-identical across variants. Callers pass
+  // {variant:'panel'} for the right-rail trace annotation surface or
+  // {variant:'in-device'} for an in-device cascade (Phase 7 §5.3).
+  // ===========================================================================
+  function _renderOSIStack(layerStack, opts) {
+    var variant = (opts && opts.variant) || 'panel';
+    var wrapperClass = (variant === 'in-device')
+      ? 'tb3-osi-stack tb3-osi-stack--in-device'
+      : 'tb3-osi-stack';
+
+    var hopIdx = (opts && typeof opts.hopIdx === 'number') ? opts.hopIdx : null;
+    var reasons = (opts && opts.reasons) || null;
+
+    var rowsHtml = '';
+    layerStack.forEach(function (row) {
+      var cls = 'tb3-osi-layer' +
+                (row.active ? ' is-active' : ' is-passive') +
+                (row.failure ? ' is-failure' : '');
+      rowsHtml +=
+        '<li class="' + cls + '" data-layer="' + row.num + '">' +
+          '<span class="tb3-osi-num">L' + row.num + '</span>' +
+          '<div>' +
+            '<span class="tb3-osi-name">' + _escAttr(row.name) + '</span>' +
+            '<span class="tb3-osi-proto">' + _escAttr(row.proto) + '</span>' +
+            '<span class="tb3-osi-verb">' + _escAttr(row.verb) + '</span>' +
+            (row.failure && reasons && hopIdx !== null && reasons[hopIdx]
+              ? '<span class="tb3-osi-layer-reason">' + _escAttr(reasons[hopIdx]) + '</span>'
+              : '') +
+          '</div>' +
+        '</li>';
+    });
+
+    return '<ol class="' + wrapperClass + '">' + rowsHtml + '</ol>';
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 6: _render3DDeviceCascade
+  // Populates the foreignObject HTML container inside the SVG device <g>
+  // with the 7-row OSI stack when this device fires during 3D-mode trace.
+  // Called by _animate*3D fns (Stages 9-10). Stages 9+ also show/hide the
+  // foreignObject via the .style.display toggle on the .tb3-3d-device-cascade-fo
+  // wrapper (foreignObject doesn't honor CSS display:none via class — needs
+  // inline or attribute style).
+  // ===========================================================================
+  function _render3DDeviceCascade(devId, role, layerStack) {
+    var container = document.getElementById('tb3-3d-cascade-' + devId);
+    if (!container) return;
+    container.innerHTML = _renderOSIStack(layerStack, { variant: 'in-device' });
+    // Show the foreignObject wrapper
+    var fo = document.querySelector('.tb3-3d-device-cascade-fo[data-dev-id="' + devId + '"]');
+    if (fo) fo.style.display = '';
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 8: Packet rise/fall + cancel discipline
+  // 1-shot CSS transitions on the .tb3-packet element. Self-cancelling via
+  // _clearPacketTransition which overwrites the transform + forces a reflow
+  // before the next transition. Triple-coverage cancel in _stepTrace:
+  // rafHandle (Phase 5 glide) + osiAnimHandle (Phase 6 cascade) + packet
+  // transition (Phase 7). emil §8.6 dual-timer becomes triple-timer.
+  // ===========================================================================
+
+  function _packetRise(onDone) {
+    var pkt = document.querySelector('.tb3-packet');
+    if (!pkt) {
+      // Async for consistency — every code path settles via macrotask, never sync (re-entrancy hazard).
+      if (typeof onDone === 'function') setTimeout(onDone, 0);
+      return;
+    }
+
+    // Reduced-motion fast-path: teleport, no transition.
+    var rm = (typeof _reducedMotion === 'function') ? _reducedMotion()
+           : (typeof window !== 'undefined' && window.matchMedia &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (rm) {
+      pkt.style.transition = 'none';
+      pkt.style.transform = 'translateZ(56px)';
+      if (typeof onDone === 'function') setTimeout(onDone, 0);
+      return;
+    }
+
+    pkt.style.transition = 'transform 180ms var(--tb3-3d-rise)';
+    pkt.style.transform = 'translateZ(56px)';
+
+    var fired = false;
+    var onEnd = function () {
+      if (fired) return;
+      fired = true;
+      pkt.removeEventListener('transitionend', onEnd);
+      if (_traceState) _traceState.packetTimerId = null;  // clear on natural completion (avoid leaking ID)
+      if (typeof onDone === 'function') onDone();
+    };
+    pkt.addEventListener('transitionend', onEnd);
+    // Safety net — if transitionend fails to fire (e.g., interrupted), guarantee onDone.
+    // Capture the timer ID so _clearPacketTransition can cancel it on cancel paths.
+    if (_traceState) {
+      _traceState.packetTimerId = setTimeout(onEnd, 240);
+    } else {
+      // No active trace — nothing to cancel against, fire-and-forget.
+      setTimeout(onEnd, 240);
+    }
+  }
+
+  function _packetFall(onDone) {
+    var pkt = document.querySelector('.tb3-packet');
+    if (!pkt) {
+      // Async for consistency — every code path settles via macrotask, never sync (re-entrancy hazard).
+      if (typeof onDone === 'function') setTimeout(onDone, 0);
+      return;
+    }
+
+    var rm = (typeof _reducedMotion === 'function') ? _reducedMotion()
+           : (typeof window !== 'undefined' && window.matchMedia &&
+              window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (rm) {
+      pkt.style.transition = 'none';
+      pkt.style.transform = 'translateZ(0)';
+      if (typeof onDone === 'function') setTimeout(onDone, 0);
+      return;
+    }
+
+    pkt.style.transition = 'transform 180ms var(--tb3-3d-fall)';
+    pkt.style.transform = 'translateZ(0)';
+
+    var fired = false;
+    var onEnd = function () {
+      if (fired) return;
+      fired = true;
+      pkt.removeEventListener('transitionend', onEnd);
+      if (_traceState) _traceState.packetTimerId = null;  // clear on natural completion (avoid leaking ID)
+      if (typeof onDone === 'function') onDone();
+    };
+    pkt.addEventListener('transitionend', onEnd);
+    // Safety net — capture timer ID so _clearPacketTransition can cancel a stale onEnd.
+    if (_traceState) {
+      _traceState.packetTimerId = setTimeout(onEnd, 240);
+    } else {
+      // No active trace — nothing to cancel against, fire-and-forget.
+      setTimeout(onEnd, 240);
+    }
+  }
+
+  function _clearPacketTransition() {
+    // Cancel any pending safety-net timer FIRST so a fired-but-not-yet-executed
+    // onEnd from a prior rise/fall can't race against the DOM reset below.
+    if (_traceState && _traceState.packetTimerId) {
+      clearTimeout(_traceState.packetTimerId);
+      _traceState.packetTimerId = null;
+    }
+    var pkt = document.querySelector('.tb3-packet');
+    if (!pkt) return;
+    pkt.style.transition = 'none';
+    pkt.style.transform = '';
+    // Force reflow to commit the reset before any next transition is applied.
+    void pkt.offsetWidth;
+    pkt.style.transition = '';
+  }
+
+  // ===========================================================================
   // Phase 6: _renderOSIPanel
   // Replaces _renderTraceAnnotation when state.mode === 'osi'. Per spec §3.3.
   // Empty state per spec §6 — same 7-row DOM shape, only the content varies.
@@ -3532,6 +3898,11 @@
     const hasHops = _traceState && Array.isArray(_traceState.hops) && _traceState.hops.length > 0;
 
     if (!hasHops) {
+      // Empty-state rows are intentionally NOT delegated to _renderOSIStack —
+      // they use a static placeholder dict (no layerStack, no reasons, no
+      // per-hop dispatch) and the rendering shape diverges (all rows passive,
+      // 'n/a' proto, fixed prompt verb). If we ever build a synthetic layerStack
+      // for the empty case, this can fold into _renderOSIStack.
       // Empty state — render the 7-row stack with all rows passive + placeholder
       // proto + verb copy per spec §6.
       const layerNames = { 7:'Application', 6:'Presentation', 5:'Session', 4:'Transport', 3:'Network', 2:'Data Link', 1:'Physical' };
@@ -3611,30 +3982,17 @@
       });
     }
 
-    let rowsHtml = '';
-    stack.forEach(function (row) {
-      const cls = 'tb3-osi-layer' +
-                  (row.active ? ' is-active' : ' is-passive') +
-                  (row.failure ? ' is-failure' : '');
-      rowsHtml +=
-        '<li class="' + cls + '" data-layer="' + row.num + '">' +
-          '<span class="tb3-osi-num">L' + row.num + '</span>' +
-          '<div>' +
-            '<span class="tb3-osi-name">' + _escAttr(row.name) + '</span>' +
-            '<span class="tb3-osi-proto">' + _escAttr(row.proto) + '</span>' +
-            '<span class="tb3-osi-verb">' + _escAttr(row.verb) + '</span>' +
-            (row.failure && _traceState.reasons && _traceState.reasons[idx]
-              ? '<span class="tb3-osi-layer-reason">' + _escAttr(_traceState.reasons[idx]) + '</span>'
-              : '') +
-          '</div>' +
-        '</li>';
+    const stackHtml = _renderOSIStack(stack, {
+      variant: 'panel',
+      hopIdx: idx,
+      reasons: _traceState.reasons
     });
 
     return '' +
       '<section class="tb3-osi-panel">' +
         '<div class="tb3-osi-eyebrow">HOP ' + (idx + 1) + ' OF ' + total + '</div>' +
         '<div class="tb3-osi-title">' + _escAttr(dev.hostname || dev.id) + '</div>' +
-        '<ol class="tb3-osi-stack">' + rowsHtml + '</ol>' +
+        stackHtml +
       '</section>';
   }
 
@@ -3645,10 +4003,20 @@
   // path: single 1200ms drop-shadow fade (handled by CSS @media block, JS only
   // adds + removes the class).
   // ===========================================================================
-  function _setOSILayerFiring(layerNum) {
-    const panel = document.getElementById('tb3-trace-panel');
-    if (!panel) return;
-    const row = panel.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+  function _setOSILayerFiring(layerNum, devId) {
+    // Phase 7 Stage 9: optional devId param routes to the in-device cascade
+    // container (3D mode). When omitted, preserves Phase 6 panel behavior
+    // byte-identically by reading from #tb3-trace-panel.
+    var row;
+    if (devId) {
+      var container = document.getElementById('tb3-3d-cascade-' + devId);
+      if (!container) return;
+      row = container.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+    } else {
+      const panel = document.getElementById('tb3-trace-panel');
+      if (!panel) return;
+      row = panel.querySelector('.tb3-osi-layer[data-layer="' + layerNum + '"]');
+    }
     if (!row) return;
     row.classList.add('tb3-osi-layer-firing');
     // Use animationend (full-motion path); fallback timer for reduced-motion path
@@ -3877,6 +4245,153 @@
     }
 
     _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 9: _animateEncap3D / _animateDecap3D
+  // Mirror Phase 6's _animateEncap / _animateDecap but target the in-device
+  // cascade rows (via devId scoping in _setOSILayerFiring) instead of the
+  // right-rail panel. Captures rAF on _traceState.osiAnimHandle (same
+  // discipline; Phase 6 cancel sites cover Phase 7 automatically).
+  // ===========================================================================
+
+  function _animateEncap3D(devId, layerStack, onDone) {
+    if (_reducedMotion && _reducedMotion()) {
+      // Fast-path: light all 7 rows at once
+      for (var n = 7; n >= 1; n--) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var seq = [7, 6, 5, 4, 3, 2, 1];   // L7 → L1 encap order
+    var perLayerMs = 80;
+    var totalMs = seq.length * perLayerMs;
+    var startTs = null;
+    var fired = new Array(seq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+      for (var i = 0; i < seq.length; i++) {
+        if (!fired[i] && elapsed >= i * perLayerMs) {
+          fired[i] = true;
+          _setOSILayerFiring(seq[i], devId);
+        }
+      }
+      if (elapsed < totalMs) {
+        if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  function _animateDecap3D(devId, layerStack, onDone) {
+    if (_reducedMotion && _reducedMotion()) {
+      for (var n = 1; n <= 7; n++) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var seq = [1, 2, 3, 4, 5, 6, 7];   // L1 → L7 decap order
+    var perLayerMs = 80;
+    var totalMs = seq.length * perLayerMs;
+    var startTs = null;
+    var fired = new Array(seq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+      for (var i = 0; i < seq.length; i++) {
+        if (!fired[i] && elapsed >= i * perLayerMs) {
+          fired[i] = true;
+          _setOSILayerFiring(seq[i], devId);
+        }
+      }
+      if (elapsed < totalMs) {
+        if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 10: _animateIntermediate3D
+  // Mirrors Phase 6 _animateIntermediate (decap-up → 200ms pause →
+  // re-encap-down) but targets in-device cascade rows via devId scoping.
+  // topLayer = 2 for switch/ap/wlc; = 3 for router/l3-switch/firewall/vpn.
+  // ===========================================================================
+  function _animateIntermediate3D(devId, deviceType, onDone) {
+    var topLayer;
+    if (deviceType === 'switch' || deviceType === 'ap' || deviceType === 'wlc') {
+      topLayer = 2;
+    } else if (deviceType === 'router' || deviceType === 'l3-switch' || deviceType === 'firewall' || deviceType === 'vpn') {
+      topLayer = 3;
+    } else {
+      topLayer = 3;   // default (cloud, internet, etc. — engages L3)
+    }
+
+    if (_reducedMotion && _reducedMotion()) {
+      for (var n = 1; n <= topLayer; n++) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var upSeq = [];
+    for (var u = 1; u <= topLayer; u++) upSeq.push(u);
+    var downSeq = [];
+    for (var d = topLayer; d >= 1; d--) downSeq.push(d);
+
+    var perLayerMs = 80;
+    var pauseMs = 200;
+    var upTotalMs = upSeq.length * perLayerMs;
+    var pauseEndMs = upTotalMs + pauseMs;
+    var totalMs = pauseEndMs + downSeq.length * perLayerMs;
+
+    var startTs = null;
+    var upFired = new Array(upSeq.length).fill(false);
+    var downFired = new Array(downSeq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+
+      if (elapsed < upTotalMs) {
+        for (var i = 0; i < upSeq.length; i++) {
+          if (!upFired[i] && elapsed >= i * perLayerMs) {
+            upFired[i] = true;
+            _setOSILayerFiring(upSeq[i], devId);
+          }
+        }
+      } else if (elapsed >= pauseEndMs) {
+        var downElapsed = elapsed - pauseEndMs;
+        for (var j = 0; j < downSeq.length; j++) {
+          if (!downFired[j] && downElapsed >= j * perLayerMs) {
+            downFired[j] = true;
+            _setOSILayerFiring(downSeq[j], devId);
+          }
+        }
+      }
+
+      if (elapsed < totalMs) {
+        if (_traceState) {
+          _traceState.osiAnimHandle = requestAnimationFrame(tick);
+        }
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) {
+      _traceState.osiAnimHandle = requestAnimationFrame(tick);
+    } else if (typeof onDone === 'function') {
+      onDone();
+    }
   }
 
   function _osiChipForDevice(dev, isSrc, isDst) {
@@ -4110,6 +4625,7 @@
       cancelAnimationFrame(_traceState.osiAnimHandle);
       _traceState.osiAnimHandle = null;
     }
+    _clearPacketTransition();   // Phase 7 Stage 8 — cancel any in-flight packet rise/fall + safety-net timer
     _renderTracePanel();
   }
 
@@ -4128,6 +4644,7 @@
       cancelAnimationFrame(_traceState.osiAnimHandle);
       _traceState.osiAnimHandle = null;
     }
+    _clearPacketTransition();   // Phase 7 Stage 8 — cancel any in-flight packet rise/fall + safety-net timer
     if (_traceState.packet) {
       _despawnPacket(_traceState.packet);
       _traceState.packet = null;
@@ -4754,6 +5271,10 @@
           _closeSimulate();
           return;
         }
+        if (body && body.classList.contains('3d-open')) {
+          _close3D();
+          return;
+        }
         if (body && body.classList.contains('osi-open')) {
           _closeOSI();
           return;
@@ -4832,11 +5353,11 @@
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
       { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>' },
-      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
+      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: false },
     ];
     var html = modes.map(function (m) {
       var on = (m.id === state.mode);
-      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
+      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — coming soon' : m.label) + '">' + m.icon + m.label + '</div>';
     }).join('');
     row.innerHTML = html;
 
@@ -4855,6 +5376,10 @@
         }
         if (mode === 'osi') {
           _openOSI();
+          return;
+        }
+        if (mode === '3d') {
+          _open3D();
           return;
         }
         if (mode === state.mode) return;
@@ -4972,6 +5497,9 @@
     _endTrace: _endTrace,
     _openOSI: _openOSI,
     _closeOSI: function () { _closeOSI(); },
+    // Phase 7 — 3D mode lifecycle
+    _open3D: _open3D,
+    _close3D: _close3D,
     // Phase 6 — OSI mode test exposures
     _genMockMac: _genMockMac,
     _activeLayersForDev: _activeLayersForDev,

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Founder dogfood — TB v3 Phase 7 (3D mode)</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; max-width: 880px; margin: 32px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .meta { color: #666; font-size: 12px; margin-bottom: 24px; }
+  .step { border-left: 3px solid #d8b89a; padding: 12px 16px; margin: 12px 0; background: #fafafa; border-radius: 4px; }
+  .step h3 { margin: 0 0 6px 0; font-size: 14px; }
+  .step p { margin: 4px 0; }
+  label { display: block; margin-top: 8px; color: #555; }
+  textarea { width: 100%; min-height: 50px; font: inherit; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; }
+  code { background: #eee; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Founder dogfood — TB v3 Phase 7 (3D mode)</h1>
+<div class="meta">
+  Branch: <code>feat/tb-v3-phase7</code> · Target version: <code>v6.4.0</code> ·
+  Open in: <a href="../index.html#page-topology" target="_blank">Topology Builder v3</a>
+</div>
+
+<p>10-step manual smoke test. Run through each step in order; jot any glitch, surprise, or idea
+in the notes box. If a step fails: do NOT mark complete — flag for fix before ship.</p>
+
+<div class="step">
+  <h3>Step 1: Activate 3D mode from Design state</h3>
+  <p>Open Topology Builder v3. With no topology on canvas, click the <strong>3D modebar pill</strong>.</p>
+  <p>Expected: scene tilts back ~50°, perspective vanishing point visible. Modebar pill highlights.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 2: 3D mode with existing topology</h3>
+  <p>Drag a few devices onto the canvas, connect with cables, then click 3D pill again.</p>
+  <p>Expected: all devices stand vertically from the table plane; cables lie flat. No overlap glitches.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 3: Start trace in 3D</h3>
+  <p>Pick a source device + destination, click <strong>Start</strong> in the floating control strip.</p>
+  <p>Expected: packet appears at source, glides along cable in 3D. Strip status updates with "Hop 1 of N — …".</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 4: Source device cascade (encap)</h3>
+  <p>Watch the source standing device as the packet arrives.</p>
+  <p>Expected: packet rises into the device, 7 OSI rows appear inside the device card, then cascade L7 → L1
+     (rows light top-down, ~560ms total). Packet then falls back to cable.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 5: Intermediate router cascade (decap-up + re-encap-down)</h3>
+  <p>Step to the next hop (router or l3-switch). Watch the standing device.</p>
+  <p>Expected: packet rises, then cascade fires L1 → L2 → L3, brief pause, then L3 → L2 → L1.
+     ~680ms total. Visible "the device touched layers up to L3" beat.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 6: Destination device cascade (decap)</h3>
+  <p>Step to the final destination hop.</p>
+  <p>Expected: packet rises into destination device, cascade L1 → L7 (~560ms). Packet then falls.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 7: Failure path in 3D</h3>
+  <p>Restart with a deliberately broken topology (disconnect a cable mid-route, or pick endpoints
+     with no path). Click Start.</p>
+  <p>Expected: packet rises into the failing device, cascade fires up to the failing layer, that row
+     pulses red 3x. Device card pulses with red rim glow. Packet stays trapped inside (no fall).</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 8: Esc cleanup</h3>
+  <p>While in 3D mode (mid-trace or idle), press <code>Esc</code>.</p>
+  <p>Expected: 3D mode closes cleanly. Scene flattens. Floating control strip disappears. No lingering
+     <code>3d-open</code> body class. Right-rail trace/OSI panel restored if it was open prior to 3D entry.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 9: Reduced-motion mode</h3>
+  <p>macOS: System Settings → Accessibility → Display → Reduce motion. Reload the app.
+     Enter 3D mode and run a trace.</p>
+  <p>Expected: scene does NOT tilt (stays flat). Packet does NOT rise/fall. Cascade rows appear
+     instantly (no per-row stagger). Failure glow becomes static red border. All trace logic still
+     works — just no motion drama.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+<div class="step">
+  <h3>Step 10: Mode round-trip (3D ↔ Trace ↔ OSI)</h3>
+  <p>Start a trace in 3D, advance 2 hops. Click Trace pill — should see same trace in 2D with right-rail
+     hop chips. Click OSI pill — should see Phase 6 panel with same hop selected. Click 3D pill —
+     back to 3D scene, same trace state.</p>
+  <p>Expected: no orphan animations, no flicker, no state loss. Floating strip appears/disappears
+     correctly on entry/exit of 3D.</p>
+  <label>Notes: <textarea></textarea></label>
+</div>
+
+</body>
+</html>

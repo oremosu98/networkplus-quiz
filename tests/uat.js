@@ -22414,6 +22414,241 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 — 3D mode UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3Phase7Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcP7 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssP7 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 1: _renderOSIStack extraction (refactor, zero-behavior-change) ----
+  test('P7: _renderOSIStack is defined as a function',
+    /function\s+_renderOSIStack\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _renderOSIPanel delegates 7-row HTML to _renderOSIStack',
+    /function\s+_renderOSIPanel[\s\S]{0,4500}_renderOSIStack\s*\(/.test(tbv3SrcP7)
+  );
+  test("P7: _renderOSIStack accepts opts.variant and emits in-device class",
+    /function\s+_renderOSIStack\s*\([^)]*opts[^)]*\)\s*\{[\s\S]{0,600}tb3-osi-stack--in-device/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 2: _open3D / _close3D lifecycle + 6-panel mutex ----
+  test('P7: _open3D is defined',
+    /function\s+_open3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _open3D wraps _openTrace then sets state.mode = "3d"',
+    /_open3D[\s\S]{0,500}_openTrace[\s\S]{0,300}state\.mode\s*=\s*'3d'/.test(tbv3SrcP7)
+  );
+  test("P7: _open3D adds '3d-open' body class",
+    /_open3D[\s\S]{0,500}classList\.add\('3d-open'\)/.test(tbv3SrcP7)
+  );
+  test('P7: _close3D removes 3d-open + delegates to _closeTrace',
+    // P7 Stage 11 widened {0,200} → {0,500} second window to accommodate the
+    // fail-glow cleanup loop between classList.remove('3d-open') and _closeTrace().
+    /function\s+_close3D[\s\S]{0,200}classList\.remove\('3d-open'\)[\s\S]{0,500}_closeTrace\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: modebar wires 3d branch to _open3D',
+    /mode\s*===\s*'3d'[\s\S]{0,80}_open3D\s*\(/.test(tbv3SrcP7)
+  );
+  test("P7: stale {'3d':6} locked-phase map entry removed",
+    !/\{['"]3d['"]\s*:\s*6\}/.test(tbv3SrcP7)
+  );
+  test('P7: Esc handler closes 3d-open BEFORE osi-open (more-specific first)',
+    (function () {
+      // Find the Esc handler — the keydown listener that checks body classes
+      // and calls _close*. Verify '3d-open' check appears before 'osi-open' check.
+      var match = tbv3SrcP7.match(/contains\(['"]3d-open['"]\)[\s\S]{0,200}contains\(['"]osi-open['"]\)/);
+      return !!match;
+    })()
+  );
+
+  // ---- Stage 3: scene-level scoped CSS ----
+  test('P7: scene scoped CSS gates on body.3d-open',
+    /body\.3d-open\s+\.tb3-canvas-wrap/.test(tbv3CssP7)
+  );
+  test('P7: scene applies perspective 1400px',
+    /body\.3d-open\s+\.tb3-canvas-wrap[\s\S]{0,200}perspective:\s*1400px/.test(tbv3CssP7)
+  );
+  test('P7: scene applies rotateX(50deg) + preserve-3d',
+    /body\.3d-open\s+\.tb3-canvas-svg[\s\S]{0,300}rotateX\(50deg\)[\s\S]{0,200}preserve-3d/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 4: per-device standing transform ----
+  test('P7: standing device counter-rotates rotateX(-50deg)',
+    /body\.3d-open\s+\.tb3-dev[\s\S]{0,300}rotateX\(-50deg\)/.test(tbv3CssP7)
+  );
+  test('P7: standing device anchors bottom edge (transform-origin 50% 100%)',
+    /body\.3d-open\s+\.tb3-dev[\s\S]{0,400}transform-origin:\s*50%\s+100%/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 5: cable + packet 3D baseline ----
+  test('P7: cables render at translateZ(0) on table plane',
+    /body\.3d-open\s+\.tb3-cable[\s\S]{0,200}translateZ\(0\)/.test(tbv3CssP7)
+  );
+  test('P7: packet baseline at translateZ(0)',
+    /body\.3d-open\s+\.tb3-packet[\s\S]{0,300}translateZ\(0\)/.test(tbv3CssP7)
+  );
+  test('P7: modebar z-index above 3D scene',
+    /body\.3d-open\s+\.tb3-bar[\s\S]{0,500}z-index:\s*50/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 6: in-device cascade DOM + _render3DDeviceCascade ----
+  test('P7: _render3DDeviceCascade is defined',
+    /function\s+_render3DDeviceCascade\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _render3DDeviceCascade calls _renderOSIStack with in-device variant',
+    /_render3DDeviceCascade[\s\S]{0,400}_renderOSIStack[\s\S]{0,100}variant:\s*['"]in-device['"]/.test(tbv3SrcP7)
+  );
+  test('P7: device template includes tb3-3d-device-cascade foreignObject',
+    /tb3-3d-cascade-/.test(tbv3SrcP7) && /tb3-3d-device-cascade-fo/.test(tbv3SrcP7)
+  );
+  test('P7: in-device cascade uses opacity-fade rows (no display:none default)',
+    /\.tb3-osi-stack--in-device\s+\.tb3-osi-layer[\s\S]{0,500}opacity:\s*0[\s\S]{0,100}transition:\s*opacity/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 7: floating control strip + render dispatch ----
+  test('P7: _renderFloating3DControlStrip is defined',
+    /function\s+_renderFloating3DControlStrip\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _renderTracePanel short-circuits to floating strip in 3D mode',
+    /_renderTracePanel[\s\S]{0,600}state\.mode\s*===\s*['"]3d['"][\s\S]{0,200}_renderFloating3DControlStrip/.test(tbv3SrcP7)
+  );
+  test('P7: floating strip has aria-live status region',
+    /tb3-3d-strip-status[\s\S]{0,300}aria-live=['"]polite['"]/.test(tbv3SrcP7)
+  );
+  test('P7: right-rail panel hidden in 3D mode',
+    /body\.3d-open\s+\.tb3-rrail[\s\S]{0,200}display:\s*none/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 8: packet rise/fall + cancel discipline ----
+  test('P7: _packetRise is defined',
+    /function\s+_packetRise\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _packetFall is defined',
+    /function\s+_packetFall\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _clearPacketTransition is defined',
+    /function\s+_clearPacketTransition\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace cancel chain runs rafHandle → osiAnimHandle → _clearPacketTransition in order',
+    /function\s+_stepTrace[\s\S]{0,500}cancelAnimationFrame[\s\S]{0,400}rafHandle[\s\S]{0,500}cancelAnimationFrame[\s\S]{0,400}osiAnimHandle[\s\S]{0,500}_clearPacketTransition\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: 4 motion easing tokens declared with correct cubic-bezier values',
+    /--tb3-3d-rise:\s*cubic-bezier\(\.2,\s*\.7,\s*\.2,\s*1\)/.test(tbv3CssP7) &&
+    /--tb3-3d-fall:\s*cubic-bezier\(\.8,\s*0,\s*\.8,\s*\.3\)/.test(tbv3CssP7) &&
+    /--tb3-3d-cascade:\s*cubic-bezier\(\.4,\s*0,\s*\.2,\s*1\)/.test(tbv3CssP7) &&
+    /--tb3-3d-scene:\s*linear/.test(tbv3CssP7)
+  );
+  test('P7: _pauseTrace calls _clearPacketTransition',
+    /function\s+_pauseTrace[\s\S]{0,800}_clearPacketTransition\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _endTrace calls _clearPacketTransition',
+    /function\s+_endTrace[\s\S]{0,800}_clearPacketTransition\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _resetTraceState calls _clearPacketTransition',
+    /function\s+_resetTraceState[\s\S]{0,800}_clearPacketTransition\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _clearPacketTransition cancels packetTimerId',
+    /function\s+_clearPacketTransition[\s\S]{0,400}clearTimeout\([\s\S]{0,100}packetTimerId/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 9: cascade in standing device (encap/decap 3D variants) ----
+  test('P7: _animateEncap3D is defined',
+    /function\s+_animateEncap3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateDecap3D is defined',
+    /function\s+_animateDecap3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateEncap3D captures rAF on osiAnimHandle',
+    /function\s+_animateEncap3D[\s\S]{0,2000}_traceState\.osiAnimHandle\s*=\s*requestAnimationFrame/.test(tbv3SrcP7)
+  );
+  test('P7: _setOSILayerFiring accepts optional devId for in-device scoping',
+    /function\s+_setOSILayerFiring\s*\([^)]*devId/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace 3D branch wires _packetRise → cascade → _packetFall',
+    /function\s+_stepTrace[\s\S]+?state\.mode\s*===\s*['"]3d['"][\s\S]{0,3600}_packetRise[\s\S]{0,600}_packetFall/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 10: intermediate hop in standing device ----
+  test('P7: _animateIntermediate3D is defined',
+    /function\s+_animateIntermediate3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateIntermediate3D uses topLayer=2 for switch',
+    /function\s+_animateIntermediate3D[\s\S]{0,800}deviceType\s*===\s*['"]switch['"][\s\S]{0,200}topLayer\s*=\s*2/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace 3D branch intermediate path uses _animateIntermediate3D',
+    // P7 Stage 11 widened {0,2500} → {0,4500} to accommodate the isFailureHop
+    // short-circuit branch inserted before the dispatch.
+    /state\.mode\s*===\s*['"]3d['"][\s\S]{0,4500}_animateIntermediate3D/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 11: failure UX ----
+  test('P7: tb3FailGlowPulse keyframe defined',
+    /@keyframes\s+tb3FailGlowPulse/.test(tbv3CssP7)
+  );
+  test('P7: tb3OSILayerFailPulse keyframe defined',
+    /@keyframes\s+tb3OSILayerFailPulse/.test(tbv3CssP7)
+  );
+  test('P7: tb3-3d-fail-glow applies pulse animation on standing device',
+    /body\.3d-open\s+\.tb3-dev\.tb3-3d-fail-glow[\s\S]{0,200}animation:\s*tb3FailGlowPulse/.test(tbv3CssP7)
+  );
+  test('P7: _stepTrace 3D branch applies tb3-3d-fail-glow on failed hop',
+    /state\.mode\s*===\s*['"]3d['"][\s\S]{0,4500}classList\.add\(['"]tb3-3d-fail-glow['"]\)/.test(tbv3SrcP7)
+  );
+  test('P7: _close3D clears tb3-3d-fail-glow on teardown',
+    /function\s+_close3D[\s\S]{0,800}classList\.remove\(['"]tb3-3d-fail-glow['"]\)/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 12: reduced-motion + aria-live ----
+  test('P7: reduced-motion media query in Phase 7 CSS section',
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,3000}body\.3d-open\s+\.tb3-canvas-svg/.test(tbv3CssP7)
+  );
+  test('P7: reduced-motion zeros the scene tilt (rotateX 0)',
+    /@media[^{]*prefers-reduced-motion[\s\S]{0,2500}body\.3d-open\s+\.tb3-canvas-svg[\s\S]{0,200}rotateX\(0deg\)/.test(tbv3CssP7)
+  );
+  test('P7: reduced-motion clears in-device cascade animation',
+    /@media[^{]*prefers-reduced-motion[\s\S]{0,3000}body\.3d-open\s+\.tb3-osi-stack--in-device[\s\S]{0,400}animation:\s*none/.test(tbv3CssP7)
+  );
+  test('P7: reduced-motion swaps fail-glow pulse for static border',
+    /@media[^{]*prefers-reduced-motion[\s\S]{0,3500}\.tb3-3d-fail-glow[\s\S]{0,400}animation:\s*none/.test(tbv3CssP7)
+  );
+  test('P7: _update3DAriaStatus is defined',
+    /function\s+_update3DAriaStatus\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace 3D branch updates aria-live status',
+    /state\.mode\s*===\s*['"]3d['"][\s\S]{0,2500}_update3DAriaStatus\s*\(/.test(tbv3SrcP7)
+  );
+
+  // ---- Stage 13: cross-rail mutex forEach audit + cumulative count ----
+  ['_selectDevice', '_openPicker', '_openDiagnostic', '_openSimulate'].forEach(function (fnName) {
+    var fnBody = _fnBody(tbv3SrcP7, fnName);
+    test('P7: ' + fnName + ' sweeps trace-open',
+      /classList\.contains\(['"]trace-open['"]\)[\s\S]{0,80}_closeTrace/.test(fnBody)
+    );
+    test('P7: ' + fnName + ' sweeps osi-open',
+      /classList\.contains\(['"]osi-open['"]\)[\s\S]{0,80}_closeOSI/.test(fnBody)
+    );
+    test('P7: ' + fnName + ' sweeps 3d-open',
+      /classList\.contains\(['"]3d-open['"]\)[\s\S]{0,80}_close3D/.test(fnBody)
+    );
+  });
+
+  // Cumulative count guard — Phase 7 should have grown the suite by 50+
+  test('P7: Phase 7 added ≥ 50 UAT guards cumulative (post-Stage 13)',
+    (function () {
+      var uatSrc = fs.readFileSync(__filename, 'utf8');
+      var phase7Block = uatSrc.match(/_tbv3Phase7Fixtures[\s\S]*?\n\}\)\(\);/);
+      if (!phase7Block) return false;
+      var matches = phase7Block[0].match(/test\(['"]P7:/g);
+      var count = matches ? matches.length : 0;
+      return count >= 50;
+    })()
+  );
+
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
