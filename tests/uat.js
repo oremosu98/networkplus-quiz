@@ -22483,6 +22483,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /\.tb3-3d-floor[\s\S]{0,800}rotateX\(90deg\)[\s\S]{0,400}radial-gradient/.test(tbv3CssP7v2)
   );
 
+  // ---- Stage 5: drag + zoom + momentum + animations ----
+  test('P7v2: _attach3DInputListeners wires mousedown/mousemove/mouseup/wheel/dblclick',
+    /function\s+_attach3DInputListeners[\s\S]{0,1500}mousedown[\s\S]{0,500}mousemove[\s\S]{0,500}mouseup[\s\S]{0,500}wheel[\s\S]{0,500}dblclick/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: drag rotates camera with rotX clamped [15, 75]',
+    /_on3DPopupMouseMove[\s\S]{0,800}_clamp3D[\s\S]{0,80}15[\s\S]{0,80}75/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: momentum decay 0.92 (emil-tuned, less floaty than 0.94)',
+    /_start3DMomentumDecay[\s\S]{0,800}velocityX\s*\*=\s*0\.92/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: wheel zoom clamped [0.5, 2.0]',
+    /_on3DPopupWheel[\s\S]{0,500}_clamp3D[\s\S]{0,80}0\.5[\s\S]{0,80}2(\.0)?/.test(tbv3SrcP7v2)
+  );
+
 })();
 
 // ── Summary ──

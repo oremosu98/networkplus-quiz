@@ -3314,6 +3314,159 @@
     return svg;
   }
 
+  // ===========================================================================
+  // Phase 7 v2 Stage 5: Input handlers — drag rotate, scroll zoom, momentum,
+  // double-click reset, Esc close. Stage 6 extends with arrows/+/-/R.
+  // emil-design-eng tuned: decay 0.92, threshold 0.08, reset 400ms.
+  // ===========================================================================
+  var _3dPopupListeners = null;
+
+  function _attach3DInputListeners() {
+    var viewport = document.getElementById('tb3-3d-popup-viewport');
+    if (!viewport) return;
+
+    _3dPopupListeners = {
+      mousedown: _on3DPopupMouseDown,
+      mousemove: _on3DPopupMouseMove,
+      mouseup: _on3DPopupMouseUp,
+      wheel: _on3DPopupWheel,
+      dblclick: _on3DPopupDblClick,
+      keydown: _on3DPopupKeyDown
+    };
+
+    viewport.addEventListener('mousedown', _3dPopupListeners.mousedown);
+    document.addEventListener('mousemove', _3dPopupListeners.mousemove);
+    document.addEventListener('mouseup', _3dPopupListeners.mouseup);
+    viewport.addEventListener('wheel', _3dPopupListeners.wheel, { passive: false });
+    viewport.addEventListener('dblclick', _3dPopupListeners.dblclick);
+    document.addEventListener('keydown', _3dPopupListeners.keydown);
+  }
+
+  function _detach3DInputListeners() {
+    if (!_3dPopupListeners) return;
+    var viewport = document.getElementById('tb3-3d-popup-viewport');
+    if (viewport) {
+      viewport.removeEventListener('mousedown', _3dPopupListeners.mousedown);
+      viewport.removeEventListener('wheel', _3dPopupListeners.wheel);
+      viewport.removeEventListener('dblclick', _3dPopupListeners.dblclick);
+    }
+    document.removeEventListener('mousemove', _3dPopupListeners.mousemove);
+    document.removeEventListener('mouseup', _3dPopupListeners.mouseup);
+    document.removeEventListener('keydown', _3dPopupListeners.keydown);
+    _3dPopupListeners = null;
+  }
+
+  function _on3DPopupMouseDown(e) {
+    if (e.button !== 0) return;
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    _3dPopup.dragState.active = true;
+    _3dPopup.dragState.startX = e.clientX;
+    _3dPopup.dragState.startY = e.clientY;
+    _3dPopup.dragState.startRotX = _3dPopup.camera.rotX;
+    _3dPopup.dragState.startRotY = _3dPopup.camera.rotY;
+    _3dPopup.velocityX = 0;
+    _3dPopup.velocityY = 0;
+    _3dPopup.dragState._lastX = e.clientX;
+    _3dPopup.dragState._lastY = e.clientY;
+    e.preventDefault();
+  }
+
+  function _on3DPopupMouseMove(e) {
+    if (!_3dPopup.dragState.active) return;
+    var dx = e.clientX - _3dPopup.dragState.startX;
+    var dy = e.clientY - _3dPopup.dragState.startY;
+
+    var newRotY = _3dPopup.dragState.startRotY + dx * 0.4;
+    var newRotX = _clamp3D(_3dPopup.dragState.startRotX - dy * 0.4, 15, 75);
+
+    _3dPopup.velocityY = (e.clientX - _3dPopup.dragState._lastX) * 0.4;
+    _3dPopup.velocityX = -(e.clientY - _3dPopup.dragState._lastY) * 0.4;
+    _3dPopup.dragState._lastX = e.clientX;
+    _3dPopup.dragState._lastY = e.clientY;
+
+    _3dPopup.camera.rotY = newRotY;
+    _3dPopup.camera.rotX = newRotX;
+    _apply3DCamera();
+  }
+
+  function _on3DPopupMouseUp() {
+    if (!_3dPopup.dragState.active) return;
+    _3dPopup.dragState.active = false;
+    if (Math.abs(_3dPopup.velocityX) > 0.5 || Math.abs(_3dPopup.velocityY) > 0.5) {
+      _start3DMomentumDecay();
+    }
+  }
+
+  function _start3DMomentumDecay() {
+    function tick() {
+      _3dPopup.camera.rotY += _3dPopup.velocityY;
+      _3dPopup.camera.rotX = _clamp3D(_3dPopup.camera.rotX + _3dPopup.velocityX, 15, 75);
+      _3dPopup.velocityX *= 0.92;
+      _3dPopup.velocityY *= 0.92;
+      _apply3DCamera();
+      if (Math.abs(_3dPopup.velocityX) > 0.08 || Math.abs(_3dPopup.velocityY) > 0.08) {
+        _3dPopup.rafHandle = requestAnimationFrame(tick);
+      } else {
+        _3dPopup.rafHandle = null;
+      }
+    }
+    _3dPopup.rafHandle = requestAnimationFrame(tick);
+  }
+
+  function _on3DPopupWheel(e) {
+    e.preventDefault();
+    var newZoom = _3dPopup.camera.zoom * (1 - e.deltaY * 0.001);
+    _3dPopup.camera.zoom = _clamp3D(newZoom, 0.5, 2.0);
+    _apply3DCamera();
+  }
+
+  function _on3DPopupDblClick() {
+    var startRotX = _3dPopup.camera.rotX;
+    var startRotY = _3dPopup.camera.rotY;
+    var startZoom = _3dPopup.camera.zoom;
+    var targetRotX = 52, targetRotY = -18, targetZoom = 1;
+    var startTs = null;
+    var durationMs = 400;
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    function ease(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var t = Math.min(1, (ts - startTs) / durationMs);
+      var k = ease(t);
+      _3dPopup.camera.rotX = startRotX + (targetRotX - startRotX) * k;
+      _3dPopup.camera.rotY = startRotY + (targetRotY - startRotY) * k;
+      _3dPopup.camera.zoom = startZoom + (targetZoom - startZoom) * k;
+      _apply3DCamera();
+      if (t < 1) {
+        _3dPopup.rafHandle = requestAnimationFrame(tick);
+      } else {
+        _3dPopup.rafHandle = null;
+      }
+    }
+    _3dPopup.rafHandle = requestAnimationFrame(tick);
+  }
+
+  function _on3DPopupKeyDown(e) {
+    if (!_3dPopup.open) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      _close3DPopup();
+      return;
+    }
+  }
+
+  function _clamp3D(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
   function _render3DScene() {
     var stage = document.getElementById('tb3-3d-popup-stage');
     if (!stage) return;
@@ -3395,12 +3548,14 @@
       modal.classList.add('is-open');
       var btn = document.getElementById('tb3-3d-popup-close-btn');
       if (btn) btn.focus();
+      _attach3DInputListeners();
     });
   }
 
   function _close3DPopup() {
     if (!_3dPopup.open) return;
     _3dPopup.open = false;
+    _detach3DInputListeners();
     if (_3dPopup.rafHandle) {
       cancelAnimationFrame(_3dPopup.rafHandle);
       _3dPopup.rafHandle = null;
