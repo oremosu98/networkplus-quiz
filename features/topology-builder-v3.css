@@ -2783,3 +2783,14 @@ html[data-theme="light"] #page-topology-builder-v3 {
   color: var(--tb3-muted, #7a6e5e);
   margin-top: 2px;
 }
+
+/* ── Phase 7 v2.1 §3b: Ambient packet motion ── */
+.tb3-3d-ambient-packet {
+  /* SVG inline styles drive positioning; this rule reserves the
+     selector for the reduced-motion gate below. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Phase 7 v2 polish: kill ambient packets entirely (decorative only) */
+  .tb3-3d-ambient-packet { display: none !important; }
+}

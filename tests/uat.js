@@ -22793,6 +22793,23 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 5 UAT fixtures — ambient packets
+// ══════════════════════════════════════════
+(function _tbv3PolishStage5Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  test('POLISH: _buildAmbientPacketEl defined with animateMotion + mpath',
+    /function\s+_buildAmbientPacketEl[\s\S]{0,4000}animateMotion[\s\S]{0,500}mpath/.test(tbv3SrcPo)
+  );
+  test('POLISH: reduced-motion hides ambient packets',
+    /@media\s*\(prefers-reduced-motion[\s\S]{0,3000}\.tb3-3d-ambient-packet[\s\S]{0,100}display\s*:\s*none/.test(tbv3CssPo)
+  );
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

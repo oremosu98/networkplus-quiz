@@ -4520,6 +4520,85 @@
     return svg;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish Stage 5: ambient packet motion per cable.
+  // 3 staggered bronze packets traverse the cable's bezier path continuously.
+  // emil-tuned: 2.6s duration, LINEAR easing (continuous-flow rhythm), 0.867s
+  // stagger, dim drop-shadow glow. Reduced-motion gate hides them entirely.
+  // ═══════════════════════════════════════════════════════════════════════════
+  function _buildAmbientPacketEl(cab, fromDev, toDev, sceneCx, sceneCy) {
+    sceneCx = sceneCx || 0;
+    sceneCy = sceneCy || 0;
+    var svgNs = 'http://www.w3.org/2000/svg';
+
+    // MUST match _build3DCableEl's bezier formula exactly
+    var x1 = ((fromDev.x || 0) - sceneCx) + 44;
+    var y1 = ((fromDev.y || 0) - sceneCy) + 60;
+    var x2 = ((toDev.x || 0) - sceneCx) + 44;
+    var y2 = ((toDev.y || 0) - sceneCy) + 60;
+    var midX = (x1 + x2) / 2;
+    var sagY = Math.min(70, Math.max(20, Math.abs(x2 - x1) * 0.12));
+    var cy1 = y1 + sagY;
+    var cy2 = y2 + sagY;
+
+    var minX = Math.min(x1, x2) - 20;
+    var minY = Math.min(y1, y2) - 4;
+    var maxX = Math.max(x1, x2) + 20;
+    var maxY = Math.max(y1, y2) + sagY + 8;
+    var w = maxX - minX;
+    var h = maxY - minY;
+
+    var px1 = x1 - minX, py1 = y1 - minY;
+    var px2 = x2 - minX, py2 = y2 - minY;
+    var cpX = midX - minX, pcy1 = cy1 - minY, pcy2 = cy2 - minY;
+    var pathStr = 'M' + px1 + ',' + py1 +
+                  ' C' + cpX + ',' + pcy1 + ' ' + cpX + ',' + pcy2 + ' ' + px2 + ',' + py2;
+    var pathId = 'tb3-3d-amb-path-' + cab.id;
+
+    var svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('class', 'tb3-3d-ambient-packet');
+    svg.setAttribute('data-cable-id', cab.id);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    svg.style.position = 'absolute';
+    svg.style.left = minX + 'px';
+    svg.style.top = minY + 'px';
+    svg.style.transform = 'translateZ(0.5px)';
+    svg.style.overflow = 'visible';
+    svg.style.pointerEvents = 'none';
+
+    var defs = document.createElementNS(svgNs, 'defs');
+    var path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('id', pathId);
+    path.setAttribute('d', pathStr);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'none');
+    defs.appendChild(path);
+    svg.appendChild(defs);
+
+    // 3 staggered packets — emil-tuned 2.6s duration, linear easing
+    var DURATION = '2.6s';
+    var stagger = ['0s', '0.867s', '1.733s'];
+    for (var i = 0; i < 3; i++) {
+      var pkt = document.createElementNS(svgNs, 'circle');
+      pkt.setAttribute('r', '2');
+      pkt.setAttribute('fill', 'var(--tb3-bronze, #8b5a3c)');
+      pkt.setAttribute('filter', 'drop-shadow(0 0 2px rgba(139, 90, 60, .55))');
+      var anim = document.createElementNS(svgNs, 'animateMotion');
+      anim.setAttribute('dur', DURATION);
+      anim.setAttribute('repeatCount', 'indefinite');
+      anim.setAttribute('begin', stagger[i]);
+      // emil: drop keySplines + calcMode entirely — animateMotion defaults to linear
+      var mpath = document.createElementNS(svgNs, 'mpath');
+      mpath.setAttribute('href', '#' + pathId);
+      anim.appendChild(mpath);
+      pkt.appendChild(anim);
+      svg.appendChild(pkt);
+    }
+    return svg;
+  }
+
   // ===========================================================================
   // Phase 7 v2 Stage 5: Input handlers — drag rotate, scroll zoom, momentum,
   // double-click reset, Esc close. Stage 6 extends with arrows/+/-/R.
@@ -4746,7 +4825,7 @@
     // Clear any previously-rendered cards and cables before (re-)populating.
     // .tb3-3d-cable selector is preemptively included so Stage 4's cable build
     // is cleared on re-render without needing to revisit this function.
-    var existing = stage.querySelectorAll('.tb3-3d-dev, .tb3-3d-cable');
+    var existing = stage.querySelectorAll('.tb3-3d-dev, .tb3-3d-cable, .tb3-3d-ambient-packet');
     for (var i = 0; i < existing.length; i++) {
       existing[i].parentNode.removeChild(existing[i]);
     }
@@ -4763,6 +4842,7 @@
       var toDev = _findDeviceById(cab.toId);
       if (!fromDev || !toDev) continue;
       stage.appendChild(_build3DCableEl(cab, fromDev, toDev, centroid.cx, centroid.cy));
+      stage.appendChild(_buildAmbientPacketEl(cab, fromDev, toDev, centroid.cx, centroid.cy));
     }
 
     // Empty state — no devices on canvas
