@@ -22445,7 +22445,7 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /_open3D[\s\S]{0,500}classList\.add\('3d-open'\)/.test(tbv3SrcP7)
   );
   test('P7: _close3D removes 3d-open + delegates to _closeTrace',
-    /_close3D[\s\S]{0,200}classList\.remove\('3d-open'\)[\s\S]{0,100}_closeTrace\s*\(/.test(tbv3SrcP7)
+    /function\s+_close3D[\s\S]{0,200}classList\.remove\('3d-open'\)[\s\S]{0,200}_closeTrace\s*\(/.test(tbv3SrcP7)
   );
   test('P7: modebar wires 3d branch to _open3D',
     /mode\s*===\s*'3d'[\s\S]{0,80}_open3D\s*\(/.test(tbv3SrcP7)
@@ -22504,6 +22504,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
   test('P7: in-device cascade uses opacity-fade rows (no display:none default)',
     /\.tb3-osi-stack--in-device\s+\.tb3-osi-layer[\s\S]{0,500}opacity:\s*0[\s\S]{0,100}transition:\s*opacity/.test(tbv3CssP7)
+  );
+
+  // ---- Stage 7: floating control strip + render dispatch ----
+  test('P7: _renderFloating3DControlStrip is defined',
+    /function\s+_renderFloating3DControlStrip\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _renderTracePanel short-circuits to floating strip in 3D mode',
+    /_renderTracePanel[\s\S]{0,600}state\.mode\s*===\s*['"]3d['"][\s\S]{0,200}_renderFloating3DControlStrip/.test(tbv3SrcP7)
+  );
+  test('P7: floating strip has aria-live status region',
+    /tb3-3d-strip-status[\s\S]{0,300}aria-live=['"]polite['"]/.test(tbv3SrcP7)
+  );
+  test('P7: right-rail panel hidden in 3D mode',
+    /body\.3d-open\s+\.tb3-rrail[\s\S]{0,200}display:\s*none/.test(tbv3CssP7)
   );
 
 })();

@@ -3190,10 +3190,80 @@
 
   function _close3D() {
     document.body.classList.remove('3d-open');
+    var strip = document.getElementById('tb3-3d-control-strip');
+    if (strip) strip.remove();
     _closeTrace();   // shares teardown with Trace/OSI
   }
 
+  // ===========================================================================
+  // Phase 7 Stage 7: _renderFloating3DControlStrip
+  // In 3D mode, the right-rail trace panel hides. This minimal strip pins
+  // to viewport bottom with Start/Next/Play/End/Speed controls. aria-live
+  // status region announces hop transitions (Stage 12 wires _update3DAriaStatus).
+  // ===========================================================================
+  function _renderFloating3DControlStrip() {
+    var hostId = 'tb3-3d-control-strip';
+    var existing = document.getElementById(hostId);
+    if (existing) existing.remove();
+
+    var hasHops = _traceState && Array.isArray(_traceState.hops) && _traceState.hops.length > 0;
+    var hopIdx = (_traceState && _traceState.currentHopIdx) || 0;
+    var totalHops = hasHops ? _traceState.hops.length : 0;
+
+    var strip = document.createElement('div');
+    strip.id = hostId;
+    strip.className = 'tb3-3d-strip';
+    strip.setAttribute('role', 'toolbar');
+    strip.setAttribute('aria-label', '3D mode trace controls');
+    strip.innerHTML =
+      '<div class="tb3-3d-strip-status" aria-live="polite" id="tb3-3d-status">' +
+        (hasHops ? ('Hop ' + (hopIdx + 1) + ' of ' + totalHops) : 'Pick a source and destination, then Start') +
+      '</div>' +
+      '<div class="tb3-3d-strip-controls">' +
+        '<button class="tb3-3d-btn" data-act="start"' + (hasHops ? ' disabled' : '') + '>Start</button>' +
+        '<button class="tb3-3d-btn" data-act="next"' + (hasHops ? '' : ' disabled') + '>Next</button>' +
+        '<button class="tb3-3d-btn" data-act="play"' + (hasHops ? '' : ' disabled') + '>Play</button>' +
+        '<button class="tb3-3d-btn" data-act="end"' + (hasHops ? '' : ' disabled') + '>End</button>' +
+        '<select class="tb3-3d-speed" data-act="speed">' +
+          '<option value="0.5">0.5\xd7</option>' +
+          '<option value="1" selected>1\xd7</option>' +
+          '<option value="2">2\xd7</option>' +
+        '</select>' +
+      '</div>';
+
+    document.body.appendChild(strip);
+
+    // Wire button clicks to existing Phase 5 control functions
+    var btns = strip.querySelectorAll('button[data-act]');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var act = btn.getAttribute('data-act');
+          if (act === 'start' && typeof _startTrace === 'function') _startTrace();
+          else if (act === 'next' && typeof _stepTrace === 'function') _stepTrace();
+          else if (act === 'play' && typeof _playTrace === 'function') _playTrace();
+          else if (act === 'end' && typeof _endTrace === 'function') _endTrace();
+        });
+      })(btns[i]);
+    }
+    var speedSel = strip.querySelector('select[data-act="speed"]');
+    if (speedSel) {
+      speedSel.addEventListener('change', function (e) {
+        if (typeof _setTraceSpeed === 'function') {
+          _setTraceSpeed(parseFloat(e.target.value));
+        }
+      });
+    }
+  }
+
   function _renderTracePanel() {
+    var st = _getState();
+    // Phase 7: 3D mode bypasses the right-rail panel — floating strip is the surface
+    if (state.mode === '3d') {
+      _renderFloating3DControlStrip();
+      return;
+    }
+
     var panel = document.getElementById('tb3-trace-panel');
     if (!panel) {
       panel = document.createElement('aside');
@@ -3203,7 +3273,6 @@
       document.querySelector('.tb3-workspace').appendChild(panel);
     }
 
-    var st = _getState();
     var hasDevices = st.devices && st.devices.length >= 2;
 
     // Empty-state copy per emil §8.6 fallback
