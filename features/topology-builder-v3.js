@@ -3523,6 +3523,46 @@
   }
 
   // ===========================================================================
+  // ===========================================================================
+  // Phase 7 Stage 1: _renderOSIStack
+  // Shared 7-row HTML generator. Phase 6 calls with variant='panel' (renders
+  // into the right-rail trace annotation panel). Phase 7 calls with
+  // variant='in-device' (renders into the standing device card in 3D mode).
+  // Both variants emit the SAME row DOM — only the wrapper class differs
+  // for scoped CSS variant styling.
+  // ===========================================================================
+  function _renderOSIStack(layerStack, opts) {
+    var variant = (opts && opts.variant) || 'panel';
+    var wrapperClass = (variant === 'in-device')
+      ? 'tb3-osi-stack tb3-osi-stack--in-device'
+      : 'tb3-osi-stack';
+
+    var hopIdx = (opts && typeof opts.hopIdx === 'number') ? opts.hopIdx : null;
+    var reasons = (opts && opts.reasons) || null;
+
+    var rowsHtml = '';
+    layerStack.forEach(function (row) {
+      var cls = 'tb3-osi-layer' +
+                (row.active ? ' is-active' : ' is-passive') +
+                (row.failure ? ' is-failure' : '');
+      rowsHtml +=
+        '<li class="' + cls + '" data-layer="' + row.num + '">' +
+          '<span class="tb3-osi-num">L' + row.num + '</span>' +
+          '<div>' +
+            '<span class="tb3-osi-name">' + _escAttr(row.name) + '</span>' +
+            '<span class="tb3-osi-proto">' + _escAttr(row.proto) + '</span>' +
+            '<span class="tb3-osi-verb">' + _escAttr(row.verb) + '</span>' +
+            (row.failure && reasons && hopIdx !== null && reasons[hopIdx]
+              ? '<span class="tb3-osi-layer-reason">' + _escAttr(reasons[hopIdx]) + '</span>'
+              : '') +
+          '</div>' +
+        '</li>';
+    });
+
+    return '<ol class="' + wrapperClass + '">' + rowsHtml + '</ol>';
+  }
+
+  // ===========================================================================
   // Phase 6: _renderOSIPanel
   // Replaces _renderTraceAnnotation when state.mode === 'osi'. Per spec §3.3.
   // Empty state per spec §6 — same 7-row DOM shape, only the content varies.
@@ -3611,30 +3651,17 @@
       });
     }
 
-    let rowsHtml = '';
-    stack.forEach(function (row) {
-      const cls = 'tb3-osi-layer' +
-                  (row.active ? ' is-active' : ' is-passive') +
-                  (row.failure ? ' is-failure' : '');
-      rowsHtml +=
-        '<li class="' + cls + '" data-layer="' + row.num + '">' +
-          '<span class="tb3-osi-num">L' + row.num + '</span>' +
-          '<div>' +
-            '<span class="tb3-osi-name">' + _escAttr(row.name) + '</span>' +
-            '<span class="tb3-osi-proto">' + _escAttr(row.proto) + '</span>' +
-            '<span class="tb3-osi-verb">' + _escAttr(row.verb) + '</span>' +
-            (row.failure && _traceState.reasons && _traceState.reasons[idx]
-              ? '<span class="tb3-osi-layer-reason">' + _escAttr(_traceState.reasons[idx]) + '</span>'
-              : '') +
-          '</div>' +
-        '</li>';
+    const stackHtml = _renderOSIStack(stack, {
+      variant: 'panel',
+      hopIdx: idx,
+      reasons: _traceState.reasons
     });
 
     return '' +
       '<section class="tb3-osi-panel">' +
         '<div class="tb3-osi-eyebrow">HOP ' + (idx + 1) + ' OF ' + total + '</div>' +
         '<div class="tb3-osi-title">' + _escAttr(dev.hostname || dev.id) + '</div>' +
-        '<ol class="tb3-osi-stack">' + rowsHtml + '</ol>' +
+        stackHtml +
       '</section>';
   }
 

@@ -22414,6 +22414,29 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 — 3D mode UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3Phase7Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcP7 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssP7 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 1: _renderOSIStack extraction (refactor, zero-behavior-change) ----
+  test('P7: _renderOSIStack is defined as a function',
+    /function\s+_renderOSIStack\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _renderOSIPanel delegates 7-row HTML to _renderOSIStack',
+    /function\s+_renderOSIPanel[\s\S]{0,4500}_renderOSIStack\s*\(/.test(tbv3SrcP7)
+  );
+  test("P7: _renderOSIStack accepts opts.variant ('panel' or 'in-device')",
+    /_renderOSIStack[\s\S]{0,400}opts\s*\&\&\s*opts\.variant/.test(tbv3SrcP7) ||
+    /_renderOSIStack\s*\([^)]*opts[^)]*\)/.test(tbv3SrcP7)
+  );
+
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
