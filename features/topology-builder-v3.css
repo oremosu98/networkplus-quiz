@@ -1669,3 +1669,10 @@ body.3d-open .tb3-canvas-svg {
 body.3d-open .tb3-canvas-svg > * {
   transform-style: preserve-3d;
 }
+
+/* ── Phase 7 §2: Per-device standing transforms ── */
+body.3d-open .tb3-dev {
+  transform: rotateX(-50deg) translateZ(28px);
+  transform-origin: 50% 100%;
+  transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
+}

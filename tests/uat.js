@@ -22473,6 +22473,14 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /body\.3d-open\s+\.tb3-canvas-svg[\s\S]{0,300}rotateX\(50deg\)[\s\S]{0,200}preserve-3d/.test(tbv3CssP7)
   );
 
+  // ---- Stage 4: per-device standing transform ----
+  test('P7: standing device counter-rotates rotateX(-50deg)',
+    /body\.3d-open\s+\.tb3-dev[\s\S]{0,300}rotateX\(-50deg\)/.test(tbv3CssP7)
+  );
+  test('P7: standing device anchors bottom edge (transform-origin 50% 100%)',
+    /body\.3d-open\s+\.tb3-dev[\s\S]{0,400}transform-origin:\s*50%\s+100%/.test(tbv3CssP7)
+  );
+
 })();
 
 // ── Summary ──
