@@ -591,7 +591,7 @@
   var TB_V3_SCENARIOS = [
     {
       id: 'star-topology',
-      title: 'Star topology with central switch',
+      title: 'Star Topology With Central Switch',
       category: 'topology',
       objectiveRefs: ['1.2', '2.1'],
       startingState: {
@@ -629,7 +629,7 @@
     },
     {
       id: 'mesh-topology',
-      title: 'Full mesh topology (4 nodes)',
+      title: 'Full Mesh Topology (4 Nodes)',
       category: 'topology',
       objectiveRefs: ['1.2'],
       startingState: {
@@ -667,7 +667,7 @@
     },
     {
       id: 'three-tier-hierarchical',
-      title: '3-tier hierarchical (core / distribution / access)',
+      title: '3-Tier Hierarchical (Core / Distribution / Access)',
       category: 'architecture',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -709,7 +709,7 @@
     },
     {
       id: 'hub-and-spoke-wan',
-      title: 'Hub-and-spoke WAN with branch routers',
+      title: 'Hub-and-Spoke WAN With Branch Routers',
       category: 'wan',
       objectiveRefs: ['1.6', '2.1'],
       startingState: {
@@ -746,7 +746,7 @@
     },
     {
       id: 'hybrid-cloud',
-      title: 'Hybrid cloud (on-prem + public cloud)',
+      title: 'Hybrid Cloud (On-Prem + Public Cloud)',
       category: 'cloud',
       objectiveRefs: ['1.8'],
       startingState: {
@@ -787,7 +787,7 @@
     },
     {
       id: 'wireless-controller-bss-ess',
-      title: 'Wireless infrastructure (BSS + ESS) with controller',
+      title: 'Wireless Infrastructure (BSS + ESS) With Controller',
       category: 'wireless',
       objectiveRefs: ['2.4'],
       startingState: {
@@ -827,7 +827,7 @@
     },
     {
       id: 'dmz-screened-subnet',
-      title: 'DMZ / screened subnet',
+      title: 'DMZ / Screened Subnet',
       category: 'security',
       objectiveRefs: ['1.6', '4.1'],
       startingState: {
@@ -868,7 +868,7 @@
     },
     {
       id: 'router-on-a-stick',
-      title: 'Router-on-a-stick (inter-VLAN routing)',
+      title: 'Router-on-a-Stick (Inter-VLAN Routing)',
       category: 'vlan',
       objectiveRefs: ['2.1', '2.3'],
       startingState: {
@@ -911,7 +911,7 @@
     },
     {
       id: 'ring-topology',
-      title: 'Ring topology (5 nodes, closed loop)',
+      title: 'Ring Topology (5 Nodes, Closed Loop)',
       category: 'topology',
       objectiveRefs: ['1.2'],
       startingState: {
@@ -949,7 +949,7 @@
     },
     {
       id: 'point-to-point-topology',
-      title: 'Point-to-point topology (single dedicated link)',
+      title: 'Point-to-Point Topology (Single Dedicated Link)',
       category: 'topology',
       objectiveRefs: ['1.2'],
       startingState: {
@@ -980,7 +980,7 @@
     },
     {
       id: 'spine-leaf-fabric',
-      title: 'Spine-leaf fabric (2 spines, 4 leaves)',
+      title: 'Spine-Leaf Fabric (2 Spines, 4 Leaves)',
       category: 'architecture',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1022,7 +1022,7 @@
     },
     {
       id: 'collapsed-core',
-      title: 'Collapsed core (2 L3 + 4 access)',
+      title: 'Collapsed Core (2 L3 + 4 Access)',
       category: 'architecture',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1063,7 +1063,7 @@
     },
     {
       id: 'soho-network',
-      title: 'SOHO (router + switch + AP + endpoints)',
+      title: 'SOHO (Router + Switch + AP + Endpoints)',
       category: 'architecture',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1103,7 +1103,7 @@
     },
     {
       id: 'mpls-wan',
-      title: 'MPLS WAN (provider any-to-any)',
+      title: 'MPLS WAN (Provider Any-to-Any)',
       category: 'wan',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1148,7 +1148,7 @@
     },
     {
       id: 'partial-mesh-wan',
-      title: 'Partial mesh WAN (4 routers, 4 links)',
+      title: 'Partial Mesh WAN (4 Routers, 4 Links)',
       category: 'wan',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1184,7 +1184,7 @@
     },
     {
       id: 'dual-isp-failover',
-      title: 'Dual-ISP failover (redundant internet edge)',
+      title: 'Dual-ISP Failover (Redundant Internet Edge)',
       category: 'wan',
       objectiveRefs: ['1.6'],
       startingState: {
@@ -1223,7 +1223,7 @@
     },
     {
       id: 'public-cloud-only',
-      title: 'Public cloud only (no on-prem)',
+      title: 'Public Cloud Only (No On-Prem)',
       category: 'cloud',
       objectiveRefs: ['1.8'],
       startingState: {
@@ -1262,7 +1262,7 @@
     },
     {
       id: 'multi-cloud',
-      title: 'Multi-cloud (two providers bridged)',
+      title: 'Multi-Cloud (Two Providers Bridged)',
       category: 'cloud',
       objectiveRefs: ['1.8'],
       startingState: {
@@ -1295,7 +1295,7 @@
     },
     {
       id: 'direct-connect-private-link',
-      title: 'Direct Connect (dedicated private link to cloud)',
+      title: 'Direct Connect (Dedicated Private Link to Cloud)',
       category: 'cloud',
       objectiveRefs: ['1.8'],
       startingState: {
@@ -1329,7 +1329,7 @@
     },
     {
       id: 'wireless-mesh',
-      title: 'Wireless mesh (radio backhaul between APs)',
+      title: 'Wireless Mesh (Radio Backhaul Between APs)',
       category: 'wireless',
       objectiveRefs: ['2.4'],
       startingState: {
@@ -1369,7 +1369,7 @@
     },
     {
       id: 'wireless-bridge-p2p',
-      title: 'Wireless bridge (point-to-point building link)',
+      title: 'Wireless Bridge (Point-to-Point Building Link)',
       category: 'wireless',
       objectiveRefs: ['2.4'],
       startingState: {
@@ -1407,7 +1407,7 @@
     },
     {
       id: 'zero-trust-segmented',
-      title: 'Zero-trust microsegmentation',
+      title: 'Zero-Trust Microsegmentation',
       category: 'security',
       objectiveRefs: ['4.1'],
       startingState: {
@@ -1456,7 +1456,7 @@
     },
     {
       id: 'bastion-jump-host',
-      title: 'Bastion / jump host (single controlled admin door)',
+      title: 'Bastion / Jump Host (Single Controlled Admin Door)',
       category: 'security',
       objectiveRefs: ['4.1'],
       startingState: {
@@ -1498,7 +1498,7 @@
     },
     {
       id: 'nac-802-1x',
-      title: 'NAC / 802.1X (port-based authentication)',
+      title: 'NAC / 802.1X (Port-Based Authentication)',
       category: 'security',
       objectiveRefs: ['4.1'],
       startingState: {
@@ -1539,7 +1539,7 @@
     },
     {
       id: 'l3-switch-svi',
-      title: 'L3 switch with SVIs (inter-VLAN routing)',
+      title: 'L3 Switch With SVIs (Inter-VLAN Routing)',
       category: 'vlan',
       objectiveRefs: ['2.1', '2.3'],
       startingState: {
@@ -2557,6 +2557,25 @@
     }
     _renderIntentChip(); // Task 4.1 (phase 2) — restore chip after state reload
     _renderCompletionPill(); // Task 6.1 (phase 2) — restore pill after state reload
+  }
+
+  // ===========================================================================
+  // Title-case helper for scenario titles. Capitalizes first letter of each
+  // word except short joiners (only when not the first word). Preserves
+  // acronyms (UPPERCASE words >= 2 chars stay so). Splits on whitespace and
+  // hyphens so hyphenated compounds get each component capitalized.
+  var _TITLE_CASE_LOWER_WORDS = new Set(['a','an','and','the','of','with','on','in','or','for','to','at','vs','via']);
+  function _titleCase(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str.split(/(\s+|-)/).map(function (part, idx) {
+      if (part.match(/^\s+$/) || part === '-') return part;
+      // If already all-uppercase (>=2 chars) → preserve as acronym
+      if (part.length >= 2 && part === part.toUpperCase() && /[A-Z]/.test(part)) return part;
+      // Lower-word check (only for non-first parts, not at start of string)
+      if (idx > 0 && _TITLE_CASE_LOWER_WORDS.has(part.toLowerCase())) return part.toLowerCase();
+      // Capitalize first letter, lower rest
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    }).join('');
   }
 
   // ===========================================================================

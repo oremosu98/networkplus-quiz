@@ -22593,6 +22593,19 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /id:\s*'satellite-wan'/.test(tbv3SrcV1P) &&
     /id:\s*'hybrid-cloud-vpn'/.test(tbv3SrcV1P)
   );
+
+  // ---- Stage 4: title-case sweep ----
+  test('V1P: _titleCase helper defined',
+    /function\s+_titleCase\s*\(/.test(tbv3SrcV1P)
+  );
+  test('V1P: scenario titles are title-cased (spot check)',
+    /title:\s*'Star Topology With Central Switch'/.test(tbv3SrcV1P) &&
+    /title:\s*'DMZ \/ Screened Subnet'/.test(tbv3SrcV1P) &&
+    /title:\s*'Router-on-a-Stick/.test(tbv3SrcV1P)
+  );
+  test('V1P: no sentence-case scenario titles remain (regression guard)',
+    !/title:\s*'Star topology with central switch'/.test(tbv3SrcV1P)
+  );
 })();
 
 // ── Summary ──
