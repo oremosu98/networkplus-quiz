@@ -107,7 +107,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r13'; // r13: Phase 7 v2 hotfix — modal z-index 70 → 10001 (was rendering behind builder stacking context)
+  var TB3_CSS_REV = 'r14'; // r14: V1 parity — new device icons + ports + scenarios + title-case
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
