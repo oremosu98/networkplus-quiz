@@ -1659,7 +1659,12 @@ html[data-theme="light"] #page-topology-builder-v3 {
 .tb3-3d-popup-modal {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  /* z-index 10001 lifts the modal above the TB v3 builder host (z-index 100)
+     and matches the app convention for top-level overlays (toasts +
+     pro-only modal + quota-exceeded modal use 9000-10000). Without this
+     the modal renders behind the builder's stacking context and appears
+     invisible — the bug shipped in v6.4.0, fixed in v6.4.1. */
+  z-index: 10001;
   display: flex;
   align-items: center;
   justify-content: center;
