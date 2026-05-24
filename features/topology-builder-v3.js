@@ -1995,6 +1995,11 @@
           '<rect class="tb3-dev-rect" x="0" y="0" width="76" height="76" rx="9"/>' +
           '<text class="tb3-dev-label" x="38" y="50" font-family="Inter">' + (dev.label || dev.id.slice(-4)) + '</text>' +
           '<text class="tb3-dev-type" x="38" y="66" font-family="Inter">' + dev.type + '</text>' +
+          '<foreignObject class="tb3-3d-device-cascade-fo" data-dev-id="' + _escAttr(dev.id) + '"' +
+            ' x="-32" y="80" width="140" height="170"' +
+            ' style="display:none;">' +
+            '<div xmlns="http://www.w3.org/1999/xhtml" class="tb3-3d-device-cascade" id="tb3-3d-cascade-' + _escAttr(dev.id) + '"></div>' +
+          '</foreignObject>' +
         '</g>';
     });
 
@@ -3576,6 +3581,24 @@
     });
 
     return '<ol class="' + wrapperClass + '">' + rowsHtml + '</ol>';
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 6: _render3DDeviceCascade
+  // Populates the foreignObject HTML container inside the SVG device <g>
+  // with the 7-row OSI stack when this device fires during 3D-mode trace.
+  // Called by _animate*3D fns (Stages 9-10). Stages 9+ also show/hide the
+  // foreignObject via the .style.display toggle on the .tb3-3d-device-cascade-fo
+  // wrapper (foreignObject doesn't honor CSS display:none via class — needs
+  // inline or attribute style).
+  // ===========================================================================
+  function _render3DDeviceCascade(devId, role, layerStack) {
+    var container = document.getElementById('tb3-3d-cascade-' + devId);
+    if (!container) return;
+    container.innerHTML = _renderOSIStack(layerStack, { variant: 'in-device' });
+    // Show the foreignObject wrapper
+    var fo = document.querySelector('.tb3-3d-device-cascade-fo[data-dev-id="' + devId + '"]');
+    if (fo) fo.style.display = '';
   }
 
   // ===========================================================================

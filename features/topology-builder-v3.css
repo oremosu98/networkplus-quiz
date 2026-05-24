@@ -1697,3 +1697,73 @@ body.3d-open .tb3-strip,
 body.3d-open .tb3-bar {
   z-index: 50;
 }
+
+/* ── Phase 7 §4: In-device cascade ── */
+
+/* foreignObject wrapper — hidden by inline style by default; shown when device fires */
+.tb3-3d-device-cascade-fo { /* foreignObject styling minimal — inline display drives visibility */ }
+
+body.3d-open .tb3-osi-stack--in-device {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--tb3-surface, #fff);
+  border: 1px solid var(--tb3-border-soft, rgba(0,0,0,.08));
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: var(--tb3-font, system-ui);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  border-bottom: 1px solid var(--tb3-border-hairline, rgba(0,0,0,.04));
+  opacity: 0;
+  transition: opacity 80ms cubic-bezier(.4, 0, .2, 1);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer:last-child {
+  border-bottom: none;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-active {
+  opacity: 1;
+  background: var(--tb3-accent-soft, rgba(139, 90, 60, .08));
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-layer.is-passive {
+  opacity: .35;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-num {
+  font-weight: 700;
+  width: 18px;
+  color: var(--tb3-accent, #8b5a3c);
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-name {
+  flex: 0 0 auto;
+  width: 60px;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-proto {
+  flex: 1 1 auto;
+  font-family: var(--tb3-font-mono, monospace);
+  font-size: 9px;
+  color: var(--tb3-muted, #666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.3d-open .tb3-osi-stack--in-device .tb3-osi-verb {
+  display: none;   /* In-device variant hides verb — aria-label carries it */
+}

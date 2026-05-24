@@ -22492,6 +22492,20 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /body\.3d-open\s+\.tb3-bar[\s\S]{0,500}z-index:\s*50/.test(tbv3CssP7)
   );
 
+  // ---- Stage 6: in-device cascade DOM + _render3DDeviceCascade ----
+  test('P7: _render3DDeviceCascade is defined',
+    /function\s+_render3DDeviceCascade\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _render3DDeviceCascade calls _renderOSIStack with in-device variant',
+    /_render3DDeviceCascade[\s\S]{0,400}_renderOSIStack[\s\S]{0,100}variant:\s*['"]in-device['"]/.test(tbv3SrcP7)
+  );
+  test('P7: device template includes tb3-3d-device-cascade foreignObject',
+    /tb3-3d-cascade-/.test(tbv3SrcP7) && /tb3-3d-device-cascade-fo/.test(tbv3SrcP7)
+  );
+  test('P7: in-device cascade uses opacity-fade rows (no display:none default)',
+    /\.tb3-osi-stack--in-device\s+\.tb3-osi-layer[\s\S]{0,500}opacity:\s*0[\s\S]{0,100}transition:\s*opacity/.test(tbv3CssP7)
+  );
+
 })();
 
 // ── Summary ──
