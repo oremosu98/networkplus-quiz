@@ -22569,6 +22569,17 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_stepTrace[\s\S]+?state\.mode\s*===\s*['"]3d['"][\s\S]{0,2500}_packetRise[\s\S]{0,600}_packetFall/.test(tbv3SrcP7)
   );
 
+  // ---- Stage 10: intermediate hop in standing device ----
+  test('P7: _animateIntermediate3D is defined',
+    /function\s+_animateIntermediate3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _animateIntermediate3D uses topLayer=2 for switch',
+    /function\s+_animateIntermediate3D[\s\S]{0,800}deviceType\s*===\s*['"]switch['"][\s\S]{0,200}topLayer\s*=\s*2/.test(tbv3SrcP7)
+  );
+  test('P7: _stepTrace 3D branch intermediate path uses _animateIntermediate3D',
+    /state\.mode\s*===\s*['"]3d['"][\s\S]{0,2500}_animateIntermediate3D/.test(tbv3SrcP7)
+  );
+
 })();
 
 // ── Summary ──

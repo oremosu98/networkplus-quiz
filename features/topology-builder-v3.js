@@ -3492,7 +3492,7 @@
           var onCascadeDone = function () { _packetFall(function () { /* settle complete */ }); };
           if (role3d === 'source')       _animateEncap3D(devId3d, layerStack3d, onCascadeDone);
           else if (role3d === 'dest')    _animateDecap3D(devId3d, layerStack3d, onCascadeDone);
-          else                           _animateIntermediate(devId3d, (hopDev3d && hopDev3d.type) || 'router', onCascadeDone);
+          else                           _animateIntermediate3D(devId3d, (hopDev3d && hopDev3d.type) || 'router', onCascadeDone);
         });
       }
 
@@ -4260,6 +4260,80 @@
       }
     }
     if (_traceState) _traceState.osiAnimHandle = requestAnimationFrame(tick);
+  }
+
+  // ===========================================================================
+  // Phase 7 Stage 10: _animateIntermediate3D
+  // Mirrors Phase 6 _animateIntermediate (decap-up → 200ms pause →
+  // re-encap-down) but targets in-device cascade rows via devId scoping.
+  // topLayer = 2 for switch/ap/wlc; = 3 for router/l3-switch/firewall/vpn.
+  // ===========================================================================
+  function _animateIntermediate3D(devId, deviceType, onDone) {
+    var topLayer;
+    if (deviceType === 'switch' || deviceType === 'ap' || deviceType === 'wlc') {
+      topLayer = 2;
+    } else if (deviceType === 'router' || deviceType === 'l3-switch' || deviceType === 'firewall' || deviceType === 'vpn') {
+      topLayer = 3;
+    } else {
+      topLayer = 3;   // default (cloud, internet, etc. — engages L3)
+    }
+
+    if (_reducedMotion && _reducedMotion()) {
+      for (var n = 1; n <= topLayer; n++) _setOSILayerFiring(n, devId);
+      if (typeof onDone === 'function') setTimeout(onDone, 80);
+      return;
+    }
+
+    var upSeq = [];
+    for (var u = 1; u <= topLayer; u++) upSeq.push(u);
+    var downSeq = [];
+    for (var d = topLayer; d >= 1; d--) downSeq.push(d);
+
+    var perLayerMs = 80;
+    var pauseMs = 200;
+    var upTotalMs = upSeq.length * perLayerMs;
+    var pauseEndMs = upTotalMs + pauseMs;
+    var totalMs = pauseEndMs + downSeq.length * perLayerMs;
+
+    var startTs = null;
+    var upFired = new Array(upSeq.length).fill(false);
+    var downFired = new Array(downSeq.length).fill(false);
+
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var elapsed = ts - startTs;
+
+      if (elapsed < upTotalMs) {
+        for (var i = 0; i < upSeq.length; i++) {
+          if (!upFired[i] && elapsed >= i * perLayerMs) {
+            upFired[i] = true;
+            _setOSILayerFiring(upSeq[i], devId);
+          }
+        }
+      } else if (elapsed >= pauseEndMs) {
+        var downElapsed = elapsed - pauseEndMs;
+        for (var j = 0; j < downSeq.length; j++) {
+          if (!downFired[j] && downElapsed >= j * perLayerMs) {
+            downFired[j] = true;
+            _setOSILayerFiring(downSeq[j], devId);
+          }
+        }
+      }
+
+      if (elapsed < totalMs) {
+        if (_traceState) {
+          _traceState.osiAnimHandle = requestAnimationFrame(tick);
+        }
+      } else {
+        if (_traceState) _traceState.osiAnimHandle = null;
+        if (typeof onDone === 'function') onDone();
+      }
+    }
+    if (_traceState) {
+      _traceState.osiAnimHandle = requestAnimationFrame(tick);
+    } else if (typeof onDone === 'function') {
+      onDone();
+    }
   }
 
   function _osiChipForDevice(dev, isSrc, isDst) {
