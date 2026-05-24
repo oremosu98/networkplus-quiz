@@ -1955,3 +1955,36 @@ html[data-theme="light"] #page-topology-builder-v3 {
     transition: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 7 v2 POLISH (v6.4.3)
+   §1 family accents + §2 per-illustration + §3 floor/packets/labels/legend
+   §4 hover + §5 reduced-motion expanded
+   Spec: docs/superpowers/specs/2026-05-24-tb-v3-popup-v2-polish.md
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Phase 7 v2.1 §1: Family accent stripe ── */
+:root {
+  --tb3-3d-accent-network:  #c47340;  /* warm bronze */
+  --tb3-3d-accent-endpoint: #8a7e6c;  /* warm grey */
+  --tb3-3d-accent-wireless: #6b8aa0;  /* cool blue-grey */
+  --tb3-3d-accent-security: #a73e29;  /* red-bronze */
+  --tb3-3d-accent-cloud:    #4a6a82;  /* blue-bronze */
+}
+
+.tb3-3d-dev-accent-stripe {
+  position: absolute;
+  bottom: -3px;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  transform: translateZ(-1px);
+  pointer-events: none;
+}
+
+.tb3-3d-dev[data-family="network"]  .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-network); }
+.tb3-3d-dev[data-family="endpoint"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-endpoint); }
+.tb3-3d-dev[data-family="wireless"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-wireless); }
+.tb3-3d-dev[data-family="security"] .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-security); }
+.tb3-3d-dev[data-family="cloud"]    .tb3-3d-dev-accent-stripe { background: var(--tb3-3d-accent-cloud); }

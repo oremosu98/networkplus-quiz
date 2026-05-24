@@ -22608,6 +22608,36 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish UAT fixtures (Stage 1)
+// ══════════════════════════════════════════
+(function _tbv3PolishStage1Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 1: device family map + accent CSS ----
+  test('POLISH: _TB_V3_DEVICE_FAMILY defined with 37 entries',
+    (function () {
+      var m = tbv3SrcPo.match(/_TB_V3_DEVICE_FAMILY\s*=\s*\{([^}]+)\}/);
+      if (!m) return false;
+      var entries = (m[1].match(/'[a-z0-9-]+'\s*:/g) || []).length;
+      return entries >= 37;
+    })()
+  );
+  test('POLISH: _build3DDeviceEl emits data-family attribute',
+    /function\s+_build3DDeviceEl[\s\S]{0,1500}setAttribute\(['"]data-family['"]/.test(tbv3SrcPo)
+  );
+  test('POLISH: family accent CSS defines all 5 color variables',
+    /--tb3-3d-accent-network/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-endpoint/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-wireless/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-security/.test(tbv3CssPo) &&
+    /--tb3-3d-accent-cloud/.test(tbv3CssPo)
+  );
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

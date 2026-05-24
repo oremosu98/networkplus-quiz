@@ -3133,6 +3133,33 @@
     'sase-edge':      { label: 'SASE Edge', icon: _icoSaseEdge() },
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Phase 7 v2 Polish (v6.4.3): device family map.
+  // Used by the 3D popup to apply color-coded family accents per device.
+  // ═══════════════════════════════════════════════════════════════════════════
+  var _TB_V3_DEVICE_FAMILY = {
+    // network
+    'router': 'network', 'l3-router': 'network', 'isp-router': 'network',
+    'switch': 'network', 'l3-switch': 'network', 'dmz-switch': 'network',
+    'hub': 'network', 'bridge': 'network', 'onprem-dc': 'network',
+    'mpls-core': 'network',
+    // endpoint
+    'pc': 'endpoint', 'laptop': 'endpoint', 'server': 'endpoint',
+    'smartphone': 'endpoint', 'smart-tv': 'endpoint', 'game-console': 'endpoint',
+    'printer': 'endpoint', 'voip': 'endpoint', 'iot': 'endpoint',
+    'dns-server': 'endpoint',
+    // wireless
+    'wap': 'wireless', 'wlc': 'wireless',
+    // security
+    'firewall': 'security', 'ids': 'security', 'vpg': 'security',
+    'sase-edge': 'security',
+    // cloud
+    'cloud': 'cloud', 'internet': 'cloud', 'load-balancer': 'cloud',
+    'public-web': 'cloud', 'public-file': 'cloud', 'public-cloud': 'cloud',
+    'vpc': 'cloud', 'cloud-subnet': 'cloud',
+    'igw': 'cloud', 'nat-gw': 'cloud', 'tgw': 'cloud'
+  };
+
   var TB_V3_PALETTE_GROUPS = [
     { name: 'Routers',     items: ['router', 'l3-router', 'isp-router'] },
     { name: 'Switches',    items: ['switch', 'l3-switch', 'hub', 'dmz-switch', 'bridge'] },
@@ -4116,9 +4143,11 @@
       ? TB_V3_DEVICE_TYPES[dev.type].icon
       : '';
     var labelHtml = '<span class="tb3-3d-dev-label">' + _escAttr(dev.label || dev.hostname || dev.type) + '</span>';
+    var family = _TB_V3_DEVICE_FAMILY[dev.type] || 'network';
     var el = document.createElement('div');
     el.className = 'tb3-3d-dev';
     el.setAttribute('data-device-id', _escAttr(dev.id));
+    el.setAttribute('data-family', family);
     // Position card in 3D space using device's canvas coordinates as a base.
     // translate3d is GPU-composited and integrates cleanly with transform-style:
     // preserve-3d on the stage (camera rotation applied in Stage 5).
@@ -4131,7 +4160,8 @@
       '<div class="tb3-3d-dev-side-n"></div>' +
       '<div class="tb3-3d-dev-side-s"></div>' +
       '<div class="tb3-3d-dev-side-e"></div>' +
-      '<div class="tb3-3d-dev-side-w"></div>';
+      '<div class="tb3-3d-dev-side-w"></div>' +
+      '<div class="tb3-3d-dev-accent-stripe"></div>';
     return el;
   }
 
