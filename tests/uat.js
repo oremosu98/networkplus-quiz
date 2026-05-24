@@ -22682,6 +22682,24 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 Polish Stage 2C UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3PolishStage2CFixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcPo = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+
+  test('POLISH: Batch 2C — all 6 wireless+security device illustrations defined',
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['wap'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['wlc'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['firewall'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['ids'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['vpg'\]/.test(tbv3SrcPo) &&
+    /_TB_V3_DEVICE_3D_ILLUSTRATIONS\['sase-edge'\]/.test(tbv3SrcPo)
+  );
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

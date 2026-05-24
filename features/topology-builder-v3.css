@@ -2328,3 +2328,172 @@ html[data-theme="light"] #page-topology-builder-v3 {
 /* dns-server — reuses .illust-rack-chassis; just a DNS badge */
 .tb3-3d-dev-illust .illust-badge-dns { color: #4a6a82; }
 .tb3-3d-dev-illust .illust-badge-srv { color: var(--tb3-bronze, #8b5a3c); }
+
+/* ── Phase 7 v2.1 §2 Batch 2C: Wireless + Security illustrations ── */
+
+/* wap — dome + radiating rings */
+.tb3-3d-dev-illust .illust-wap-dome {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px;
+  border-radius: 99px 99px 0 0;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, white 45%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 45%, black 55%));
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-bottom: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, black 70%);
+}
+.tb3-3d-dev-illust .illust-wap-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 99px;
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 60%, transparent 40%);
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-wap-ring-1 { width: 26px; height: 26px; border-width: 1px; }
+.tb3-3d-dev-illust .illust-wap-ring-2 { width: 40px; height: 40px; border-width: 1px; border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 40%, transparent 60%); }
+.tb3-3d-dev-illust .illust-wap-ring-3 { width: 54px; height: 54px; border-width: 1px; border-color: color-mix(in oklab, var(--tb3-3d-accent-wireless) 25%, transparent 75%); }
+
+/* wlc — radio wave hint */
+.tb3-3d-dev-illust .illust-wlc-radio {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 12px; height: 8px;
+  background:
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 70%, transparent 30%) 0 1px, transparent 2px),
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 50%, transparent 50%) 3px 4px, transparent 5px),
+    radial-gradient(at 0% 100%, color-mix(in oklab, var(--tb3-3d-accent-wireless) 30%, transparent 70%) 6px 7px, transparent 8px);
+}
+.tb3-3d-dev-illust .illust-badge-wlc { color: var(--tb3-3d-accent-wireless); }
+
+/* firewall — brick wall + flame */
+.tb3-3d-dev-illust .illust-fw-brick {
+  position: absolute;
+  left: 6px; right: 6px;
+  height: 12px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 0 14px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 14px 15px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 15px 29px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 29px 30px
+  );
+  border-radius: 1px;
+}
+.tb3-3d-dev-illust .illust-fw-brick-row-1 { top: 8px; }
+.tb3-3d-dev-illust .illust-fw-brick-row-2 {
+  top: 22px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) -7px 7px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 7px 8px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%) 8px 22px,
+    color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%) 22px 23px
+  );
+}
+.tb3-3d-dev-illust .illust-fw-brick-row-3 { top: 36px; }
+.tb3-3d-dev-illust .illust-fw-flame {
+  position: absolute;
+  right: 8px; top: 4px;
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid var(--tb3-3d-accent-security);
+  filter: drop-shadow(0 0 2px rgba(167, 62, 41, .4));
+}
+
+/* ids — shield + scope */
+.tb3-3d-dev-illust .illust-shield {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 38px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 30%, transparent 70%), color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 15%, transparent 85%));
+  border: 1.5px solid var(--tb3-3d-accent-security);
+  border-radius: 14px 14px 14px 14px / 12px 12px 24px 24px;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-shield-ids { /* ids-specific tweak */ }
+.tb3-3d-dev-illust .illust-scope-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 99px;
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-security) 70%, transparent 30%);
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-scope-ring-outer { width: 16px; height: 16px; }
+.tb3-3d-dev-illust .illust-scope-ring-inner { width: 8px; height: 8px; }
+.tb3-3d-dev-illust .illust-scope-dot {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px; height: 2px;
+  border-radius: 99px;
+  background: var(--tb3-3d-accent-security);
+}
+
+/* vpg — tunnel arch + lock */
+.tb3-3d-dev-illust .illust-vpg-tunnel {
+  position: absolute;
+  left: 18px; right: 18px; top: 6px;
+  height: 28px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 65%, black 35%);
+  border-bottom: none;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, transparent, color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 12%, transparent 88%));
+}
+.tb3-3d-dev-illust .illust-vpg-lock {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  transform: translateX(-50%);
+  width: 12px; height: 10px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, black 65%);
+  border-radius: 2px;
+}
+.tb3-3d-dev-illust .illust-vpg-lock-shackle {
+  position: absolute;
+  left: 50%; bottom: 16px;
+  transform: translateX(-50%);
+  width: 7px; height: 5px;
+  border: 1.5px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+  border-radius: 99px 99px 0 0;
+}
+
+/* sase-edge — shield + cloud above */
+.tb3-3d-dev-illust .illust-shield-sase {
+  top: 60%;
+  width: 26px; height: 30px;
+}
+.tb3-3d-dev-illust .illust-sase-cloud {
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  width: 32px; height: 16px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-radius: 16px 16px 8px 8px;
+}
+.tb3-3d-dev-illust .illust-sase-cloud::before {
+  content: '';
+  position: absolute;
+  left: 18%; top: -4px;
+  width: 8px; height: 8px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+}
+.tb3-3d-dev-illust .illust-sase-cloud::after {
+  content: '';
+  position: absolute;
+  right: 22%; top: -6px;
+  width: 10px; height: 10px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 35%, white 65%);
+  border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
+  border-bottom: none;
+}

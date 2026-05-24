@@ -3287,6 +3287,40 @@
     '</div>' +
     '<div class="illust-badge illust-badge-dns">DNS</div>';
 
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['wap'] =
+    '<div class="illust-wap-dome"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-1"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-2"></div>' +
+    '<div class="illust-wap-ring illust-wap-ring-3"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['wlc'] =
+    '<div class="illust-rack-chassis">' +
+      Array.from({ length: 4 }).map(function () { return '<span class="rack-unit"><span class="led"></span></span>'; }).join('') +
+    '</div>' +
+    '<div class="illust-wlc-radio"></div>' +
+    '<div class="illust-badge illust-badge-wlc">WLC</div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['firewall'] =
+    '<div class="illust-fw-brick illust-fw-brick-row-1"></div>' +
+    '<div class="illust-fw-brick illust-fw-brick-row-2"></div>' +
+    '<div class="illust-fw-brick illust-fw-brick-row-3"></div>' +
+    '<div class="illust-fw-flame"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['ids'] =
+    '<div class="illust-shield illust-shield-ids"></div>' +
+    '<div class="illust-scope-ring illust-scope-ring-outer"></div>' +
+    '<div class="illust-scope-ring illust-scope-ring-inner"></div>' +
+    '<div class="illust-scope-dot"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['vpg'] =
+    '<div class="illust-vpg-tunnel"></div>' +
+    '<div class="illust-vpg-lock"></div>' +
+    '<div class="illust-vpg-lock-shackle"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['sase-edge'] =
+    '<div class="illust-sase-cloud"></div>' +
+    '<div class="illust-shield illust-shield-sase"></div>';
+
   var TB_V3_PALETTE_GROUPS = [
     { name: 'Routers',     items: ['router', 'l3-router', 'isp-router'] },
     { name: 'Switches',    items: ['switch', 'l3-switch', 'hub', 'dmz-switch', 'bridge'] },
