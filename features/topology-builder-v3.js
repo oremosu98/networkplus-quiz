@@ -3224,6 +3224,96 @@
     return el;
   }
 
+  function _findDeviceById(id) {
+    for (var i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].id === id) return state.devices[i];
+    }
+    return null;
+  }
+
+  function _build3DCableEl(cab, fromDev, toDev) {
+    // Cable anchors: bottom-edge midpoint of each device card (44px from left, 60px from top)
+    var x1 = (fromDev.x || 0) + 44;
+    var y1 = (fromDev.y || 0) + 60;
+    var x2 = (toDev.x || 0) + 44;
+    var y2 = (toDev.y || 0) + 60;
+
+    // Bezier control points: midpoint X with a slight Y offset for a natural sag.
+    // ui-ux-pro-max recommendation: cap sag at 70px so long cables don't droop excessively
+    // (real Cat6 in a stylized 3D scene reads best around 30-60px sag).
+    var midX = (x1 + x2) / 2;
+    var sagY = Math.min(70, Math.max(20, Math.abs(x2 - x1) * 0.12));
+    var cy1 = y1 + sagY;
+    var cy2 = y2 + sagY;
+
+    // Bounding box for the SVG container
+    var minX = Math.min(x1, x2) - 20;
+    var minY = Math.min(y1, y2) - 4;
+    var maxX = Math.max(x1, x2) + 20;
+    var maxY = Math.max(y1, y2) + sagY + 8;
+    var w = maxX - minX;
+    var h = maxY - minY;
+
+    var px1 = x1 - minX, py1 = y1 - minY;
+    var px2 = x2 - minX, py2 = y2 - minY;
+    var pcy1 = cy1 - minY;
+    var pcy2 = cy2 - minY;
+    var cpX = midX - minX;
+
+    var pathStr = 'M' + px1 + ',' + py1 +
+                  ' C' + cpX + ',' + pcy1 + ' ' +
+                         cpX + ',' + pcy2 + ' ' +
+                         px2 + ',' + py2;
+
+    var gradId = 'tb3-cable-grad-' + cab.id;
+    var svgNs = 'http://www.w3.org/2000/svg';
+
+    var svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('class', 'tb3-3d-cable');
+    svg.setAttribute('data-cable-id', cab.id);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    svg.style.position = 'absolute';
+    svg.style.left = minX + 'px';
+    svg.style.top = minY + 'px';
+    svg.style.transform = 'translateZ(0)';
+    svg.style.overflow = 'visible';
+    svg.style.pointerEvents = 'none';
+
+    var defs = document.createElementNS(svgNs, 'defs');
+    var grad = document.createElementNS(svgNs, 'linearGradient');
+    grad.setAttribute('id', gradId);
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+    // ui-ux-pro-max recommendation: soften edge darken from 30% black to 18% — keeps the
+    // cable feeling like metal rather than licorice. Stripe/Vercel use ~15-22% darken.
+    var stop1 = document.createElementNS(svgNs, 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', 'color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 82%, black 18%)');
+    var stop2 = document.createElementNS(svgNs, 'stop');
+    stop2.setAttribute('offset', '50%');
+    stop2.setAttribute('stop-color', 'var(--tb3-bronze, #8b5a3c)');
+    var stop3 = document.createElementNS(svgNs, 'stop');
+    stop3.setAttribute('offset', '100%');
+    stop3.setAttribute('stop-color', 'color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 82%, black 18%)');
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    grad.appendChild(stop3);
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    var path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('d', pathStr);
+    path.setAttribute('stroke', 'url(#' + gradId + ')');
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('fill', 'none');
+    svg.appendChild(path);
+
+    return svg;
+  }
+
   function _render3DScene() {
     var stage = document.getElementById('tb3-3d-popup-stage');
     if (!stage) return;
@@ -3236,6 +3326,15 @@
     }
     for (var j = 0; j < state.devices.length; j++) {
       stage.appendChild(_build3DDeviceEl(state.devices[j]));
+    }
+
+    // Append cables (Stage 4)
+    for (var c = 0; c < state.cables.length; c++) {
+      var cab = state.cables[c];
+      var fromDev = _findDeviceById(cab.fromId);
+      var toDev = _findDeviceById(cab.toId);
+      if (!fromDev || !toDev) continue;
+      stage.appendChild(_build3DCableEl(cab, fromDev, toDev));
     }
 
     // Update header counts so they stay in sync on every re-render.

@@ -1885,3 +1885,37 @@ html[data-theme="light"] #page-topology-builder-v3 {
     filter: drop-shadow(4px 7px 8px rgba(0, 0, 0, .18));
   }
 }
+
+/* ── Phase 7 v2 §4: Cables — 3D-aware bezier ribbons ── */
+.tb3-3d-cable {
+  /* SVG element styling — width/height/left/top set inline by builder */
+  pointer-events: none;
+}
+
+.tb3-3d-cable path {
+  /* stroke + stroke-width set inline; this rule sets material feel */
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, .14));
+}
+
+/* ── Phase 7 v2 §5: Floor + ambient lighting ── */
+.tb3-3d-floor {
+  position: absolute;
+  width: 2400px;
+  height: 1600px;
+  left: 50%;
+  top: 50%;
+  margin-left: -1200px;
+  margin-top: -800px;
+  transform: rotateX(90deg) translateZ(-30px);
+  transform-origin: center center;
+  /* ui-ux-pro-max recommendation: 22% darken (was 35%) keeps the floor warm
+   * without an oppressive "thunderdome" vignette. Stripe/Vercel use 12-22%.
+   * Midpoint at 40% keeps the center bright, vignette ramps in the outer 60%. */
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    var(--tb3-cream, #f5ede0) 0%,
+    var(--tb3-cream, #f5ede0) 40%,
+    color-mix(in oklab, var(--tb3-cream, #f5ede0) 78%, black 22%) 100%
+  );
+  pointer-events: none;
+}

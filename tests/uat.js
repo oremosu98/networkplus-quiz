@@ -22472,6 +22472,17 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_render3DScene[\s\S]{0,2000}\.tb3-3d-popup-counts[\s\S]{0,400}aria-label[\s\S]{0,300}rotate/.test(tbv3SrcP7v2)
   );
 
+  // ---- Stage 4: cables + floor ----
+  test('P7v2: _build3DCableEl creates SVG with bezier path + gradient',
+    /function\s+_build3DCableEl[\s\S]{0,2500}createElementNS[\s\S]{0,800}linearGradient[\s\S]{0,500}createElementNS[\s\S]{0,800}path/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: cables sit at translateZ(0) (table plane)',
+    /_build3DCableEl[\s\S]{0,3000}transform\s*=\s*['"]translateZ\(0\)['"]/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: floor uses rotateX(90deg) + radial gradient vignette',
+    /\.tb3-3d-floor[\s\S]{0,800}rotateX\(90deg\)[\s\S]{0,400}radial-gradient/.test(tbv3CssP7v2)
+  );
+
 })();
 
 // ── Summary ──
