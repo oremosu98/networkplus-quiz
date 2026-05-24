@@ -2411,12 +2411,12 @@ test.describe('topology-builder-v3', () => {
     await expect(page.locator('#app-topbar')).toBeHidden();
   });
 
-  test('03: palette renders 6 groups + 21 devices', async ({ page }) => {
+  test('03: palette renders 7 groups + 37 devices', async ({ page }) => {
     await page.click('[data-sb-page="topology-builder-v3"]');
     const groups = page.locator('#tb3-palette .tb3-palette-grp');
-    await expect(groups).toHaveCount(6);
+    await expect(groups).toHaveCount(7);
     const items = page.locator('#tb3-palette .tb3-palette-item');
-    await expect(items).toHaveCount(21);
+    await expect(items).toHaveCount(37);
   });
 
   test('04: mode bar shows 5 modes with Design active', async ({ page }) => {
@@ -2518,7 +2518,7 @@ test.describe('topology-builder-v3', () => {
     await page.click('#tb3-rrail-scenarios');
     await page.click('.tb3-picker-row[data-scenario-id="star-topology"]');
     await expect(page.locator('#tb3-intent-name')).toContainText('Lab');
-    await expect(page.locator('#tb3-intent-name')).toContainText('Star topology');
+    await expect(page.locator('#tb3-intent-name')).toContainText('Star Topology With Central Switch');
   });
 
   test('14: completion pill appears with goals-met state on star-topology load', async ({ page }) => {
@@ -2562,11 +2562,11 @@ test.describe('topology-builder-v3', () => {
     await expect(page.locator('#tb3-intent-name')).toContainText('Free Build');
   });
 
-  test('17: picker renders all 25 scenarios', async ({ page }) => {
+  test('17: picker renders all 42 scenarios', async ({ page }) => {
     await page.click('[data-sb-page="topology-builder-v3"]');
     await page.click('#tb3-rrail-scenarios');
     const rows = page.locator('#tb3-picker .tb3-picker-row');
-    await expect(rows).toHaveCount(25);
+    await expect(rows).toHaveCount(42);
   });
 
   test('18: diagnostic drawer opens when completion pill clicked', async ({ page }) => {
@@ -3175,12 +3175,12 @@ test.describe('topology-builder-v3', () => {
     const counts = await page.evaluate(() => {
       const f = window._certanvilFeatures['topology-builder-v3'];
       return {
-        workstation: (f._activeLayersForDev && f._activeLayersForDev({ type: 'workstation' }) || []).length,
-        switchDev:   (f._activeLayersForDev && f._activeLayersForDev({ type: 'switch' })      || []).length,
-        router:      (f._activeLayersForDev && f._activeLayersForDev({ type: 'router' })      || []).length
+        pc:        (f._activeLayersForDev && f._activeLayersForDev({ type: 'pc' })     || []).length,
+        switchDev: (f._activeLayersForDev && f._activeLayersForDev({ type: 'switch' }) || []).length,
+        router:    (f._activeLayersForDev && f._activeLayersForDev({ type: 'router' }) || []).length
       };
     });
-    expect(counts.workstation).toBe(4);
+    expect(counts.pc).toBe(4);
     expect(counts.switchDev).toBe(2);
     expect(counts.router).toBe(3);
   });
