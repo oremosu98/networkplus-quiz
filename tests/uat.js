@@ -22505,6 +22505,17 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /_on3DPopupKeyDown[\s\S]{0,2500}ArrowLeft[\s\S]{0,300}ArrowRight[\s\S]{0,300}ArrowUp[\s\S]{0,300}ArrowDown[\s\S]{0,500}['"]\+['"][\s\S]{0,500}['"]-['"][\s\S]{0,500}['"][rR]['"]/.test(tbv3SrcP7v2)
   );
 
+  // ---- Stage 7: reduced-motion + a11y ----
+  test('P7v2: @media prefers-reduced-motion disables popup transitions',
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,800}\.tb3-3d-popup-modal[\s\S]{0,200}transition:\s*none/.test(tbv3CssP7v2)
+  );
+  test('P7v2: _on3DPopupMouseUp respects reduced-motion (no momentum)',
+    /function\s+_on3DPopupMouseUp[\s\S]{0,600}_3dPopupReducedMotion\s*\(\s*\)\s*\)\s*return/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: focus trap pulls escaped focus back to close button',
+    /_on3DPopupFocusIn[\s\S]{0,500}modal\.contains[\s\S]{0,200}tb3-3d-popup-close-btn[\s\S]{0,80}\.focus/.test(tbv3SrcP7v2)
+  );
+
 })();
 
 // ── Summary ──

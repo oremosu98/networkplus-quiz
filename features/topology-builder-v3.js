@@ -3336,7 +3336,8 @@
       mouseup: _on3DPopupMouseUp,
       wheel: _on3DPopupWheel,
       dblclick: _on3DPopupDblClick,
-      keydown: _on3DPopupKeyDown
+      keydown: _on3DPopupKeyDown,
+      focusin: _on3DPopupFocusIn   // NEW Stage 7
     };
 
     viewport.addEventListener('mousedown', _3dPopupListeners.mousedown);
@@ -3345,6 +3346,7 @@
     viewport.addEventListener('wheel', _3dPopupListeners.wheel, { passive: false });
     viewport.addEventListener('dblclick', _3dPopupListeners.dblclick);
     document.addEventListener('keydown', _3dPopupListeners.keydown);
+    document.addEventListener('focusin', _3dPopupListeners.focusin);   // NEW
   }
 
   function _detach3DInputListeners() {
@@ -3358,6 +3360,7 @@
     document.removeEventListener('mousemove', _3dPopupListeners.mousemove);
     document.removeEventListener('mouseup', _3dPopupListeners.mouseup);
     document.removeEventListener('keydown', _3dPopupListeners.keydown);
+    document.removeEventListener('focusin', _3dPopupListeners.focusin);
     _3dPopupListeners = null;
   }
 
@@ -3400,6 +3403,7 @@
   function _on3DPopupMouseUp() {
     if (!_3dPopup.dragState.active) return;
     _3dPopup.dragState.active = false;
+    if (_3dPopupReducedMotion()) return;   // NEW Stage 7 — no momentum
     if (Math.abs(_3dPopup.velocityX) > 0.5 || Math.abs(_3dPopup.velocityY) > 0.5) {
       _start3DMomentumDecay();
     }
@@ -3429,6 +3433,13 @@
   }
 
   function _on3DPopupDblClick() {
+    if (_3dPopupReducedMotion()) {
+      _3dPopup.camera.rotX = 52;
+      _3dPopup.camera.rotY = -18;
+      _3dPopup.camera.zoom = 1;
+      _apply3DCamera();
+      return;
+    }
     var startRotX = _3dPopup.camera.rotX;
     var startRotY = _3dPopup.camera.rotY;
     var startZoom = _3dPopup.camera.zoom;
@@ -3510,6 +3521,20 @@
     }
   }
 
+  function _3dPopupReducedMotion() {
+    return (typeof _reducedMotion === 'function') ? _reducedMotion() : false;
+  }
+
+  function _on3DPopupFocusIn(e) {
+    if (!_3dPopup.open) return;
+    var modal = document.getElementById('tb3-3d-popup-modal');
+    if (!modal) return;
+    if (!modal.contains(e.target)) {
+      var btn = document.getElementById('tb3-3d-popup-close-btn');
+      if (btn) btn.focus();
+    }
+  }
+
   function _clamp3D(v, lo, hi) {
     return Math.max(lo, Math.min(hi, v));
   }
@@ -3535,6 +3560,16 @@
       var toDev = _findDeviceById(cab.toId);
       if (!fromDev || !toDev) continue;
       stage.appendChild(_build3DCableEl(cab, fromDev, toDev));
+    }
+
+    // Empty state — no devices on canvas
+    var existingEmpty = stage.querySelector('.tb3-3d-popup-empty');
+    if (existingEmpty) existingEmpty.remove();
+    if (state.devices.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'tb3-3d-popup-empty';
+      empty.textContent = 'Add devices to the canvas to see them in 3D.';
+      stage.appendChild(empty);
     }
 
     // Update header counts so they stay in sync on every re-render.

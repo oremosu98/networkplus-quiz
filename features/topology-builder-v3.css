@@ -1919,3 +1919,34 @@ html[data-theme="light"] #page-topology-builder-v3 {
   );
   pointer-events: none;
 }
+
+/* ── Phase 7 v2 §6: Empty-state ── */
+.tb3-3d-popup-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--tb3-font, system-ui);
+  font-size: 14px;
+  color: var(--tb3-muted, #666);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ── Phase 7 v2 §7: Reduced-motion fallback ── */
+@media (prefers-reduced-motion: reduce) {
+  .tb3-3d-popup-modal,
+  .tb3-3d-popup-card {
+    transition: none !important;
+  }
+  .tb3-3d-popup-modal:not(.is-open) {
+    opacity: 0;
+  }
+  .tb3-3d-popup-modal.is-open {
+    opacity: 1;
+  }
+  .tb3-3d-popup-modal.is-open .tb3-3d-popup-card {
+    transform: scale(1);
+    transition: none !important;
+  }
+}
