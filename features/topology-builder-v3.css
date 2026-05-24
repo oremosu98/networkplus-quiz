@@ -2497,3 +2497,94 @@ html[data-theme="light"] #page-topology-builder-v3 {
   border: 1px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 50%, black 50%);
   border-bottom: none;
 }
+
+/* ── Phase 7 v2.1 §2 Batch 2D: Cloud core illustrations ── */
+
+/* cloud — 3-hump blob via base + ::before + ::after pseudo-elements */
+.tb3-3d-dev-illust .illust-cloud-base {
+  position: absolute;
+  left: 14px; right: 14px; top: 18px;
+  height: 22px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-radius: 11px 11px 6px 6px;
+}
+.tb3-3d-dev-illust .illust-cloud-base::before {
+  content: '';
+  position: absolute;
+  left: 10%; top: -8px;
+  width: 14px; height: 14px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-bottom: none;
+}
+.tb3-3d-dev-illust .illust-cloud-base::after {
+  content: '';
+  position: absolute;
+  right: 14%; top: -10px;
+  width: 18px; height: 18px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 25%, white 75%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 50%, black 50%);
+  border-bottom: none;
+}
+
+/* internet — globe orb + latitude + longitude lines */
+.tb3-3d-dev-illust .illust-globe-orb {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px; height: 36px;
+  border-radius: 99px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--tb3-3d-accent-cloud) 35%, white 65%), color-mix(in oklab, var(--tb3-3d-accent-cloud) 65%, black 35%));
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+}
+.tb3-3d-dev-illust .illust-globe-lat {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 75%, black 25%);
+  border-radius: 99px;
+  border-left: none;
+  border-right: none;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-globe-lat-1 { width: 36px; height: 14px; }
+.tb3-3d-dev-illust .illust-globe-lat-2 { width: 36px; height: 26px; }
+.tb3-3d-dev-illust .illust-globe-lat-3 { width: 36px; height: 36px; }
+.tb3-3d-dev-illust .illust-globe-lon {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 14px; height: 36px;
+  border: 1px solid color-mix(in oklab, var(--tb3-3d-accent-cloud) 70%, black 30%);
+  border-top: none;
+  border-bottom: none;
+  border-radius: 99px;
+  pointer-events: none;
+}
+.tb3-3d-dev-illust .illust-globe-lon-l { transform: translate(-50%, -50%) rotate(-15deg); }
+.tb3-3d-dev-illust .illust-globe-lon-r { transform: translate(-50%, -50%) rotate(15deg); }
+
+/* load-balancer — downward funnel + 3 outbound dots */
+.tb3-3d-dev-illust .illust-lb-funnel {
+  position: absolute;
+  left: 50%; top: 8px;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 28px solid color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 55%, black 45%);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+}
+.tb3-3d-dev-illust .illust-lb-arrow {
+  position: absolute;
+  bottom: 8px;
+  width: 6px; height: 6px;
+  border-radius: 99px;
+  background: var(--tb3-3d-accent-cloud);
+  box-shadow: 0 0 4px color-mix(in oklab, var(--tb3-3d-accent-cloud) 60%, transparent 40%);
+}
+.tb3-3d-dev-illust .illust-lb-arrow-1 { left: 26%; }
+.tb3-3d-dev-illust .illust-lb-arrow-2 { left: 50%; transform: translateX(-50%); }
+.tb3-3d-dev-illust .illust-lb-arrow-3 { right: 26%; }

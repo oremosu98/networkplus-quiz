@@ -3321,6 +3321,23 @@
     '<div class="illust-sase-cloud"></div>' +
     '<div class="illust-shield illust-shield-sase"></div>';
 
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['cloud'] =
+    '<div class="illust-cloud-base"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['internet'] =
+    '<div class="illust-globe-orb"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-1"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-2"></div>' +
+    '<div class="illust-globe-lat illust-globe-lat-3"></div>' +
+    '<div class="illust-globe-lon illust-globe-lon-l"></div>' +
+    '<div class="illust-globe-lon illust-globe-lon-r"></div>';
+
+  _TB_V3_DEVICE_3D_ILLUSTRATIONS['load-balancer'] =
+    '<div class="illust-lb-funnel"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-1"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-2"></div>' +
+    '<div class="illust-lb-arrow illust-lb-arrow-3"></div>';
+
   var TB_V3_PALETTE_GROUPS = [
     { name: 'Routers',     items: ['router', 'l3-router', 'isp-router'] },
     { name: 'Switches',    items: ['switch', 'l3-switch', 'hub', 'dmz-switch', 'bridge'] },
