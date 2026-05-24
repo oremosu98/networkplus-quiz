@@ -4962,6 +4962,7 @@
             '<div class="tb3-3d-floor"></div>' +
           '</div>' +
           '<div class="tb3-3d-legend-chip" id="tb3-3d-legend-chip">' +
+            '<div class="tb3-3d-popup-legend-title">Device families</div>' +
             '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-network,#8a6a3e)"></span><span class="tb3-3d-legend-label">Network</span>' +
             '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-endpoint,#5a8a4e)"></span><span class="tb3-3d-legend-label">Endpoint</span>' +
             '<span class="tb3-3d-legend-dot" style="background:var(--tb3-3d-accent-security,#8a4e4e)"></span><span class="tb3-3d-legend-label">Security</span>' +

@@ -22884,11 +22884,14 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   test('STAGE6: .tb3-3d-legend-chip CSS rule exists',
     /\.tb3-3d-legend-chip\s*\{/.test(tbv3CssS6)
   );
-  test('STAGE6: .tb3-3d-dev-card hover lift CSS exists',
-    /\.tb3-3d-dev-card:hover[\s\S]{0,100}translateZ/.test(tbv3CssS6)
+  test('STAGE6: .tb3-3d-dev hover-lift CSS exists for child elements',
+    /\.tb3-3d-dev:hover\s+\.tb3-3d-dev-top[\s\S]{0,200}translateZ\(8px\)/.test(tbv3CssS6)
   );
   test('STAGE6: Stage 6 reduced-motion gate kills tool-btn transition and hover lift',
     /@media\s*\(prefers-reduced-motion[\s\S]{0,3000}\.tb3-3d-popup-tool-btn[\s\S]{0,100}transition\s*:\s*none/.test(tbv3CssS6)
+  );
+  test('STAGE6: legend chip contains "Device families" title',
+    /tb3-3d-legend-chip[\s\S]{0,500}Device families/.test(tbv3SrcS6)
   );
 })();
 
