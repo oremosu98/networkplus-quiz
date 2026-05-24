@@ -3310,6 +3310,140 @@ test.describe('topology-builder-v3', () => {
     await expect(page.locator('#tb3-body.osi-open')).toHaveCount(0);
     await expect(page.locator('#tb3-body.trace-open')).toHaveCount(0);
   });
+
+  // Phase 7 v2 — 3D popup modal
+  test('54: 3D popup opens with role=dialog and receives focus', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg');
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      f._open3DPopup();
+    });
+    await page.waitForSelector('#tb3-3d-popup-modal');
+    const role = await page.locator('#tb3-3d-popup-modal').getAttribute('role');
+    expect(role).toBe('dialog');
+    const focused = await page.evaluate(() => {
+      return document.activeElement && document.activeElement.closest('#tb3-3d-popup-modal') !== null;
+    });
+    expect(focused).toBe(true);
+  });
+
+  test('55: dragging in the 3D viewport changes the camera transform', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg');
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      f._open3DPopup();
+    });
+    await page.waitForSelector('#tb3-3d-popup-modal');
+    const before = await page.evaluate(() => {
+      var s = document.getElementById('tb3-3d-popup-stage');
+      return s ? s.style.transform : '';
+    });
+    // Fire synthetic drag events directly on the viewport — bypasses Playwright
+    // actionability hover which fails when the popup card obscures the element.
+    await page.evaluate(() => {
+      var vp = document.getElementById('tb3-3d-popup-viewport');
+      if (!vp) return;
+      var rect = vp.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2;
+      var cy = rect.top + rect.height / 2;
+      vp.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: cx, clientY: cy }));
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: cx + 60, clientY: cy + 30 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: cx + 80, clientY: cy + 40 }));
+      document.dispatchEvent(new MouseEvent('mouseup',   { bubbles: true, cancelable: true, clientX: cx + 80, clientY: cy + 40 }));
+    });
+    const after = await page.evaluate(() => {
+      var s = document.getElementById('tb3-3d-popup-stage');
+      return s ? s.style.transform : '';
+    });
+    expect(after).not.toBe(before);
+  });
+
+  test('56: Escape key closes the 3D popup cleanly', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg');
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      f._open3DPopup();
+    });
+    await page.waitForSelector('#tb3-3d-popup-modal');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tb3-3d-popup-modal')).toHaveCount(0);
+    const mode = await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      return f._getState ? f._getState().mode : null;
+    });
+    expect(mode).not.toBe('3d');
+  });
+
+  test('57: live sync — adding a device while popup is open updates the 3D scene', async ({ page }) => {
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg');
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      f._open3DPopup();
+    });
+    await page.waitForSelector('#tb3-3d-popup-modal');
+    const countBefore = await page.evaluate(() => {
+      return document.querySelectorAll('#tb3-3d-popup-stage .tb3-3d-dev').length;
+    });
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      var s = f._getState();
+      s.devices.push({ id: 'dev_live_sync_01', type: 'router', x: 400, y: 300, label: 'R1', config: {} });
+      f._setState(s);
+      f._renderCanvas();
+    });
+    const countAfter = await page.evaluate(() => {
+      return document.querySelectorAll('#tb3-3d-popup-stage .tb3-3d-dev').length;
+    });
+    expect(countAfter).toBeGreaterThan(countBefore);
+  });
+
+  test('58: reduced-motion skips entry animation on 3D popup open', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('http://localhost:3131/');
+    await page.evaluate(async () => {
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg');
+    await page.evaluate(() => {
+      var f = window._certanvilFeatures['topology-builder-v3'];
+      f._open3DPopup();
+    });
+    await page.waitForSelector('#tb3-3d-popup-modal');
+    const animDuration = await page.evaluate(() => {
+      var modal = document.getElementById('tb3-3d-popup-modal');
+      if (!modal) return null;
+      return window.getComputedStyle(modal).animationDuration;
+    });
+    // reduced-motion gates collapse animation to 0.01ms or 0s
+    const isNeutralised = !animDuration || animDuration === '0s' || animDuration === '0.01ms' || parseFloat(animDuration) < 0.1;
+    expect(isNeutralised).toBe(true);
+  });
 });
 
 

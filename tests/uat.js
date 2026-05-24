@@ -22414,6 +22414,110 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ══════════════════════════════════════════
+// TB v3 Phase 7 v2 — 3D popup UAT fixtures
+// ══════════════════════════════════════════
+(function _tbv3Phase7v2Fixtures() {
+  const fs = require('fs');
+  const path = require('path');
+  const tbv3SrcP7v2 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.js'), 'utf8');
+  const tbv3CssP7v2 = fs.readFileSync(path.join(__dirname, '..', 'features', 'topology-builder-v3.css'), 'utf8');
+
+  // ---- Stage 1: _3dPopup state + lifecycle + pill rewire ----
+  test('P7v2: _3dPopup state object defined with all fields',
+    /_3dPopup\s*=\s*\{[\s\S]{0,400}open:\s*false[\s\S]{0,400}camera:[\s\S]{0,200}rotX[\s\S]{0,200}rotY[\s\S]{0,200}zoom[\s\S]{0,400}dragState/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: _open3DPopup is defined',
+    /function\s+_open3DPopup\s*\(/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: _close3DPopup is defined',
+    /function\s+_close3DPopup\s*\(/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: 3D modebar pill unlocked (locked:false)',
+    /id:\s*['"]3d['"][\s\S]{0,400}locked:\s*false/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: modebar wires 3d click to _open3DPopup (NOT _open3D)',
+    /mode\s*===\s*['"]3d['"][\s\S]{0,100}_open3DPopup\s*\(/.test(tbv3SrcP7v2) &&
+    !/mode\s*===\s*['"]3d['"][\s\S]{0,100}_open3D\s*\(\s*\)/.test(tbv3SrcP7v2.replace(/_open3DPopup/g, 'XX'))
+  );
+
+  // ---- Stage 2: modal DOM + chrome CSS ----
+  test('P7v2: _open3DPopup creates modal with role=dialog + aria-modal',
+    /_open3DPopup[\s\S]{0,1500}role['"]?\s*,\s*['"]dialog['"][\s\S]{0,200}aria-modal['"]?\s*,\s*['"]true['"]/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: modal chrome CSS defines tb3-3d-popup-modal positioning',
+    /\.tb3-3d-popup-modal\s*\{[\s\S]{0,500}position:\s*fixed[\s\S]{0,200}z-index:\s*70/.test(tbv3CssP7v2)
+  );
+  test('P7v2: modal card has the spec-cream background + bronze shadow',
+    /\.tb3-3d-popup-card[\s\S]{0,800}background:\s*var\(--tb3-cream/.test(tbv3CssP7v2)
+  );
+  test('P7v2: _apply3DCamera writes transform to stage',
+    /function\s+_apply3DCamera[\s\S]{0,400}getElementById\(['"]tb3-3d-popup-stage['"]\)[\s\S]{0,400}transform[\s\S]{0,200}rotateX/.test(tbv3SrcP7v2)
+  );
+
+  // ---- Stage 3: device extruded cards ----
+  test('P7v2: _render3DScene is defined',
+    /function\s+_render3DScene\s*\(/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: _build3DDeviceEl emits 5-face extruded card structure',
+    /function\s+_build3DDeviceEl[\s\S]{0,1000}tb3-3d-dev-top[\s\S]{0,200}tb3-3d-dev-bottom[\s\S]{0,200}tb3-3d-dev-side-n[\s\S]{0,200}tb3-3d-dev-side-s[\s\S]{0,200}tb3-3d-dev-side-e[\s\S]{0,200}tb3-3d-dev-side-w/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: top face uses 135deg gradient (light from upper-left)',
+    /\.tb3-3d-dev-top[\s\S]{0,400}linear-gradient\(\s*135deg/.test(tbv3CssP7v2)
+  );
+  test('P7v2: device drop-shadow offset matches light direction',
+    /\.tb3-3d-dev\s*\{[\s\S]{0,200}drop-shadow\(8px\s+14px\s+16px/.test(tbv3CssP7v2)
+  );
+  test('P7v2: _render3DScene updates header counts + viewport aria-label',
+    /function\s+_render3DScene[\s\S]{0,2000}\.tb3-3d-popup-counts[\s\S]{0,400}aria-label[\s\S]{0,300}rotate/.test(tbv3SrcP7v2)
+  );
+
+  // ---- Stage 4: cables + floor ----
+  test('P7v2: _build3DCableEl creates SVG with bezier path + gradient',
+    /function\s+_build3DCableEl[\s\S]{0,2500}createElementNS[\s\S]{0,800}linearGradient[\s\S]{0,500}createElementNS[\s\S]{0,800}path/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: cables sit at translateZ(0) (table plane)',
+    /_build3DCableEl[\s\S]{0,3000}transform\s*=\s*['"]translateZ\(0\)['"]/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: floor uses rotateX(90deg) + radial gradient vignette',
+    /\.tb3-3d-floor[\s\S]{0,800}rotateX\(90deg\)[\s\S]{0,400}radial-gradient/.test(tbv3CssP7v2)
+  );
+
+  // ---- Stage 5: drag + zoom + momentum + animations ----
+  test('P7v2: _attach3DInputListeners wires mousedown/mousemove/mouseup/wheel/dblclick',
+    /function\s+_attach3DInputListeners[\s\S]{0,1500}mousedown[\s\S]{0,500}mousemove[\s\S]{0,500}mouseup[\s\S]{0,500}wheel[\s\S]{0,500}dblclick/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: drag rotates camera with rotX clamped [15, 75]',
+    /_on3DPopupMouseMove[\s\S]{0,800}_clamp3D[\s\S]{0,80}15[\s\S]{0,80}75/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: momentum decay 0.92 (emil-tuned, less floaty than 0.94)',
+    /_start3DMomentumDecay[\s\S]{0,800}velocityX\s*\*=\s*0\.92/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: wheel zoom clamped [0.5, 2.0]',
+    /_on3DPopupWheel[\s\S]{0,500}_clamp3D[\s\S]{0,80}0\.5[\s\S]{0,80}2(\.0)?/.test(tbv3SrcP7v2)
+  );
+
+  // ---- Stage 6: live sync + keyboard nav ----
+  test('P7v2: _renderCanvas calls _render3DScene when popup is open',
+    /function\s+_renderCanvas[\s\S]{0,8000}if\s*\(\s*_3dPopup\.open\s*\)\s*_render3DScene\s*\(\s*\)/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: keyboard nav covers Esc + ArrowLeft/Right/Up/Down + plus/minus + R',
+    /_on3DPopupKeyDown[\s\S]{0,2500}ArrowLeft[\s\S]{0,300}ArrowRight[\s\S]{0,300}ArrowUp[\s\S]{0,300}ArrowDown[\s\S]{0,500}['"]\+['"][\s\S]{0,500}['"]-['"][\s\S]{0,500}['"][rR]['"]/.test(tbv3SrcP7v2)
+  );
+
+  // ---- Stage 7: reduced-motion + a11y ----
+  test('P7v2: @media prefers-reduced-motion disables popup transitions',
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]{0,800}\.tb3-3d-popup-modal[\s\S]{0,200}transition:\s*none/.test(tbv3CssP7v2)
+  );
+  test('P7v2: _on3DPopupMouseUp respects reduced-motion (no momentum)',
+    /function\s+_on3DPopupMouseUp[\s\S]{0,600}_3dPopupReducedMotion\s*\(\s*\)\s*\)\s*return/.test(tbv3SrcP7v2)
+  );
+  test('P7v2: focus trap pulls escaped focus back to close button',
+    /_on3DPopupFocusIn[\s\S]{0,500}modal\.contains[\s\S]{0,200}tb3-3d-popup-close-btn[\s\S]{0,80}\.focus/.test(tbv3SrcP7v2)
+  );
+
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

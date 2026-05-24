@@ -49,6 +49,17 @@
   // Separate from _simState per spec §3.6 (clean mode separation).
   var _traceState = null;
 
+  // Ephemeral 3D popup state (Phase 7 v2) — NOT persisted, cleared on _close3DPopup
+  // Lives separate from state.mode (popup is transient, not a mode value).
+  var _3dPopup = {
+    open: false,
+    camera: { rotX: 52, rotY: -18, zoom: 1 },
+    dragState: { active: false, startX: 0, startY: 0, startRotX: 0, startRotY: 0 },
+    velocityX: 0,
+    velocityY: 0,
+    rafHandle: null
+  };
+
   function _initTraceState(payload) {
     _traceState = {
       // pair identity
@@ -96,7 +107,7 @@
   // APP_VERSION hasn't changed. After v3 ships in a version-bump cycle,
   // APP_VERSION will be the canonical cache key and this constant can be
   // retired (or kept at .0 forever).
-  var TB3_CSS_REV = 'r11'; // r11: Phase 6 OSI mode CSS appended (layer stack, encap/decap motion, failure variants)
+  var TB3_CSS_REV = 'r12'; // r12: Phase 7 v2 3D popup CSS appended (modal, extruded-card devices, bezier ribbons, gradient floor)
 
   function _ensureCss() {
     if (document.querySelector('link[href*="topology-builder-v3.css"]')) return;
@@ -2002,6 +2013,11 @@
     if (state.mode === 'simulate') {
       _renderSimulatePanel();
     }
+
+    // Phase 7 v2 Stage 6: live sync — if 3D popup is open, refresh its scene.
+    // Camera transform on .tb3-3d-popup-stage is NOT touched — user keeps
+    // their rotated view across edits.
+    if (_3dPopup.open) _render3DScene();
   }
 
   function _updateZoomDisplay() {
@@ -3169,6 +3185,469 @@
     var body = document.getElementById('tb3-body');
     if (body) body.classList.remove('osi-open');
     _closeTrace();   // shares teardown — clears _traceState + removes trace-open class
+  }
+
+  // ===========================================================================
+  // Phase 7 v2: _open3DPopup / _close3DPopup — 3D popup lifecycle
+  // 3D popup is a transient modal (NOT a mode). Does NOT modify state.mode.
+  // Spec: docs/superpowers/specs/2026-05-24-tb-v3-phase7-3d-popup-design.md §4
+  // ===========================================================================
+  function _apply3DCamera() {
+    var stage = document.getElementById('tb3-3d-popup-stage');
+    if (!stage) return;
+    stage.style.transform =
+      'rotateX(' + _3dPopup.camera.rotX + 'deg) ' +
+      'rotateY(' + _3dPopup.camera.rotY + 'deg) ' +
+      'scale(' + _3dPopup.camera.zoom + ')';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 7 v2 §3: Extruded device cards
+  // ---------------------------------------------------------------------------
+
+  function _build3DDeviceEl(dev) {
+    var iconHtml = (TB_V3_DEVICE_TYPES && TB_V3_DEVICE_TYPES[dev.type] && TB_V3_DEVICE_TYPES[dev.type].icon)
+      ? TB_V3_DEVICE_TYPES[dev.type].icon
+      : '';
+    var labelHtml = '<span class="tb3-3d-dev-label">' + _escAttr(dev.label || dev.hostname || dev.type) + '</span>';
+    var el = document.createElement('div');
+    el.className = 'tb3-3d-dev';
+    el.setAttribute('data-device-id', _escAttr(dev.id));
+    // Position card in 3D space using device's canvas coordinates as a base.
+    // translate3d is GPU-composited and integrates cleanly with transform-style:
+    // preserve-3d on the stage (camera rotation applied in Stage 5).
+    var x = (typeof dev.x === 'number' ? dev.x : 0);
+    var y = (typeof dev.y === 'number' ? dev.y : 0);
+    el.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
+    el.innerHTML =
+      '<div class="tb3-3d-dev-top">' + iconHtml + labelHtml + '</div>' +
+      '<div class="tb3-3d-dev-bottom"></div>' +
+      '<div class="tb3-3d-dev-side-n"></div>' +
+      '<div class="tb3-3d-dev-side-s"></div>' +
+      '<div class="tb3-3d-dev-side-e"></div>' +
+      '<div class="tb3-3d-dev-side-w"></div>';
+    return el;
+  }
+
+  function _findDeviceById(id) {
+    for (var i = 0; i < state.devices.length; i++) {
+      if (state.devices[i].id === id) return state.devices[i];
+    }
+    return null;
+  }
+
+  function _build3DCableEl(cab, fromDev, toDev) {
+    // Cable anchors: bottom-edge midpoint of each device card (44px from left, 60px from top)
+    var x1 = (fromDev.x || 0) + 44;
+    var y1 = (fromDev.y || 0) + 60;
+    var x2 = (toDev.x || 0) + 44;
+    var y2 = (toDev.y || 0) + 60;
+
+    // Bezier control points: midpoint X with a slight Y offset for a natural sag.
+    // ui-ux-pro-max recommendation: cap sag at 70px so long cables don't droop excessively
+    // (real Cat6 in a stylized 3D scene reads best around 30-60px sag).
+    var midX = (x1 + x2) / 2;
+    var sagY = Math.min(70, Math.max(20, Math.abs(x2 - x1) * 0.12));
+    var cy1 = y1 + sagY;
+    var cy2 = y2 + sagY;
+
+    // Bounding box for the SVG container
+    var minX = Math.min(x1, x2) - 20;
+    var minY = Math.min(y1, y2) - 4;
+    var maxX = Math.max(x1, x2) + 20;
+    var maxY = Math.max(y1, y2) + sagY + 8;
+    var w = maxX - minX;
+    var h = maxY - minY;
+
+    var px1 = x1 - minX, py1 = y1 - minY;
+    var px2 = x2 - minX, py2 = y2 - minY;
+    var pcy1 = cy1 - minY;
+    var pcy2 = cy2 - minY;
+    var cpX = midX - minX;
+
+    var pathStr = 'M' + px1 + ',' + py1 +
+                  ' C' + cpX + ',' + pcy1 + ' ' +
+                         cpX + ',' + pcy2 + ' ' +
+                         px2 + ',' + py2;
+
+    var gradId = 'tb3-cable-grad-' + cab.id;
+    var svgNs = 'http://www.w3.org/2000/svg';
+
+    var svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('class', 'tb3-3d-cable');
+    svg.setAttribute('data-cable-id', cab.id);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    svg.style.position = 'absolute';
+    svg.style.left = minX + 'px';
+    svg.style.top = minY + 'px';
+    svg.style.transform = 'translateZ(0)';
+    svg.style.overflow = 'visible';
+    svg.style.pointerEvents = 'none';
+
+    var defs = document.createElementNS(svgNs, 'defs');
+    var grad = document.createElementNS(svgNs, 'linearGradient');
+    grad.setAttribute('id', gradId);
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+    // ui-ux-pro-max recommendation: soften edge darken from 30% black to 18% — keeps the
+    // cable feeling like metal rather than licorice. Stripe/Vercel use ~15-22% darken.
+    var stop1 = document.createElementNS(svgNs, 'stop');
+    stop1.setAttribute('offset', '0%');
+    stop1.setAttribute('stop-color', 'color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 82%, black 18%)');
+    var stop2 = document.createElementNS(svgNs, 'stop');
+    stop2.setAttribute('offset', '50%');
+    stop2.setAttribute('stop-color', 'var(--tb3-bronze, #8b5a3c)');
+    var stop3 = document.createElementNS(svgNs, 'stop');
+    stop3.setAttribute('offset', '100%');
+    stop3.setAttribute('stop-color', 'color-mix(in oklab, var(--tb3-bronze, #8b5a3c) 82%, black 18%)');
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    grad.appendChild(stop3);
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    var path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('d', pathStr);
+    path.setAttribute('stroke', 'url(#' + gradId + ')');
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('fill', 'none');
+    svg.appendChild(path);
+
+    return svg;
+  }
+
+  // ===========================================================================
+  // Phase 7 v2 Stage 5: Input handlers — drag rotate, scroll zoom, momentum,
+  // double-click reset, Esc close. Stage 6 extends with arrows/+/-/R.
+  // emil-design-eng tuned: decay 0.92, threshold 0.08, reset 400ms.
+  // ===========================================================================
+  var _3dPopupListeners = null;
+
+  function _attach3DInputListeners() {
+    var viewport = document.getElementById('tb3-3d-popup-viewport');
+    if (!viewport) return;
+
+    _3dPopupListeners = {
+      mousedown: _on3DPopupMouseDown,
+      mousemove: _on3DPopupMouseMove,
+      mouseup: _on3DPopupMouseUp,
+      wheel: _on3DPopupWheel,
+      dblclick: _on3DPopupDblClick,
+      keydown: _on3DPopupKeyDown,
+      focusin: _on3DPopupFocusIn   // NEW Stage 7
+    };
+
+    viewport.addEventListener('mousedown', _3dPopupListeners.mousedown);
+    document.addEventListener('mousemove', _3dPopupListeners.mousemove);
+    document.addEventListener('mouseup', _3dPopupListeners.mouseup);
+    viewport.addEventListener('wheel', _3dPopupListeners.wheel, { passive: false });
+    viewport.addEventListener('dblclick', _3dPopupListeners.dblclick);
+    document.addEventListener('keydown', _3dPopupListeners.keydown);
+    document.addEventListener('focusin', _3dPopupListeners.focusin);   // NEW
+  }
+
+  function _detach3DInputListeners() {
+    if (!_3dPopupListeners) return;
+    var viewport = document.getElementById('tb3-3d-popup-viewport');
+    if (viewport) {
+      viewport.removeEventListener('mousedown', _3dPopupListeners.mousedown);
+      viewport.removeEventListener('wheel', _3dPopupListeners.wheel);
+      viewport.removeEventListener('dblclick', _3dPopupListeners.dblclick);
+    }
+    document.removeEventListener('mousemove', _3dPopupListeners.mousemove);
+    document.removeEventListener('mouseup', _3dPopupListeners.mouseup);
+    document.removeEventListener('keydown', _3dPopupListeners.keydown);
+    document.removeEventListener('focusin', _3dPopupListeners.focusin);
+    _3dPopupListeners = null;
+  }
+
+  function _on3DPopupMouseDown(e) {
+    if (e.button !== 0) return;
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    _3dPopup.dragState.active = true;
+    _3dPopup.dragState.startX = e.clientX;
+    _3dPopup.dragState.startY = e.clientY;
+    _3dPopup.dragState.startRotX = _3dPopup.camera.rotX;
+    _3dPopup.dragState.startRotY = _3dPopup.camera.rotY;
+    _3dPopup.velocityX = 0;
+    _3dPopup.velocityY = 0;
+    _3dPopup.dragState._lastX = e.clientX;
+    _3dPopup.dragState._lastY = e.clientY;
+    e.preventDefault();
+  }
+
+  function _on3DPopupMouseMove(e) {
+    if (!_3dPopup.dragState.active) return;
+    var dx = e.clientX - _3dPopup.dragState.startX;
+    var dy = e.clientY - _3dPopup.dragState.startY;
+
+    var newRotY = _3dPopup.dragState.startRotY + dx * 0.4;
+    var newRotX = _clamp3D(_3dPopup.dragState.startRotX - dy * 0.4, 15, 75);
+
+    _3dPopup.velocityY = (e.clientX - _3dPopup.dragState._lastX) * 0.4;
+    _3dPopup.velocityX = -(e.clientY - _3dPopup.dragState._lastY) * 0.4;
+    _3dPopup.dragState._lastX = e.clientX;
+    _3dPopup.dragState._lastY = e.clientY;
+
+    _3dPopup.camera.rotY = newRotY;
+    _3dPopup.camera.rotX = newRotX;
+    _apply3DCamera();
+  }
+
+  function _on3DPopupMouseUp() {
+    if (!_3dPopup.dragState.active) return;
+    _3dPopup.dragState.active = false;
+    if (_3dPopupReducedMotion()) return;   // NEW Stage 7 — no momentum
+    if (Math.abs(_3dPopup.velocityX) > 0.5 || Math.abs(_3dPopup.velocityY) > 0.5) {
+      _start3DMomentumDecay();
+    }
+  }
+
+  function _start3DMomentumDecay() {
+    function tick() {
+      _3dPopup.camera.rotY += _3dPopup.velocityY;
+      _3dPopup.camera.rotX = _clamp3D(_3dPopup.camera.rotX + _3dPopup.velocityX, 15, 75);
+      _3dPopup.velocityX *= 0.92;
+      _3dPopup.velocityY *= 0.92;
+      _apply3DCamera();
+      if (Math.abs(_3dPopup.velocityX) > 0.08 || Math.abs(_3dPopup.velocityY) > 0.08) {
+        _3dPopup.rafHandle = requestAnimationFrame(tick);
+      } else {
+        _3dPopup.rafHandle = null;
+      }
+    }
+    _3dPopup.rafHandle = requestAnimationFrame(tick);
+  }
+
+  function _on3DPopupWheel(e) {
+    e.preventDefault();
+    var newZoom = _3dPopup.camera.zoom * (1 - e.deltaY * 0.001);
+    _3dPopup.camera.zoom = _clamp3D(newZoom, 0.5, 2.0);
+    _apply3DCamera();
+  }
+
+  function _on3DPopupDblClick() {
+    if (_3dPopupReducedMotion()) {
+      _3dPopup.camera.rotX = 52;
+      _3dPopup.camera.rotY = -18;
+      _3dPopup.camera.zoom = 1;
+      _apply3DCamera();
+      return;
+    }
+    var startRotX = _3dPopup.camera.rotX;
+    var startRotY = _3dPopup.camera.rotY;
+    var startZoom = _3dPopup.camera.zoom;
+    var targetRotX = 52, targetRotY = -18, targetZoom = 1;
+    var startTs = null;
+    var durationMs = 400;
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    function ease(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+    function tick(ts) {
+      if (startTs === null) startTs = ts;
+      var t = Math.min(1, (ts - startTs) / durationMs);
+      var k = ease(t);
+      _3dPopup.camera.rotX = startRotX + (targetRotX - startRotX) * k;
+      _3dPopup.camera.rotY = startRotY + (targetRotY - startRotY) * k;
+      _3dPopup.camera.zoom = startZoom + (targetZoom - startZoom) * k;
+      _apply3DCamera();
+      if (t < 1) {
+        _3dPopup.rafHandle = requestAnimationFrame(tick);
+      } else {
+        _3dPopup.rafHandle = null;
+      }
+    }
+    _3dPopup.rafHandle = requestAnimationFrame(tick);
+  }
+
+  function _on3DPopupKeyDown(e) {
+    if (!_3dPopup.open) return;
+    var step = 5;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      _close3DPopup();
+      return;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      _3dPopup.camera.rotY -= step;
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      _3dPopup.camera.rotY += step;
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _3dPopup.camera.rotX = _clamp3D(_3dPopup.camera.rotX - step, 15, 75);
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _3dPopup.camera.rotX = _clamp3D(_3dPopup.camera.rotX + step, 15, 75);
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      _3dPopup.camera.zoom = _clamp3D(_3dPopup.camera.zoom * 1.1, 0.5, 2.0);
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      _3dPopup.camera.zoom = _clamp3D(_3dPopup.camera.zoom / 1.1, 0.5, 2.0);
+      _apply3DCamera();
+      return;
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      _on3DPopupDblClick();   // reuse the 400ms tween
+      return;
+    }
+  }
+
+  function _3dPopupReducedMotion() {
+    return (typeof _reducedMotion === 'function') ? _reducedMotion() : false;
+  }
+
+  function _on3DPopupFocusIn(e) {
+    if (!_3dPopup.open) return;
+    var modal = document.getElementById('tb3-3d-popup-modal');
+    if (!modal) return;
+    if (!modal.contains(e.target)) {
+      var btn = document.getElementById('tb3-3d-popup-close-btn');
+      if (btn) btn.focus();
+    }
+  }
+
+  function _clamp3D(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  function _render3DScene() {
+    var stage = document.getElementById('tb3-3d-popup-stage');
+    if (!stage) return;
+    // Clear any previously-rendered cards and cables before (re-)populating.
+    // .tb3-3d-cable selector is preemptively included so Stage 4's cable build
+    // is cleared on re-render without needing to revisit this function.
+    var existing = stage.querySelectorAll('.tb3-3d-dev, .tb3-3d-cable');
+    for (var i = 0; i < existing.length; i++) {
+      existing[i].parentNode.removeChild(existing[i]);
+    }
+    for (var j = 0; j < state.devices.length; j++) {
+      stage.appendChild(_build3DDeviceEl(state.devices[j]));
+    }
+
+    // Append cables (Stage 4)
+    for (var c = 0; c < state.cables.length; c++) {
+      var cab = state.cables[c];
+      var fromDev = _findDeviceById(cab.fromId);
+      var toDev = _findDeviceById(cab.toId);
+      if (!fromDev || !toDev) continue;
+      stage.appendChild(_build3DCableEl(cab, fromDev, toDev));
+    }
+
+    // Empty state — no devices on canvas
+    var existingEmpty = stage.querySelector('.tb3-3d-popup-empty');
+    if (existingEmpty) existingEmpty.remove();
+    if (state.devices.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'tb3-3d-popup-empty';
+      empty.textContent = 'Add devices to the canvas to see them in 3D.';
+      stage.appendChild(empty);
+    }
+
+    // Update header counts so they stay in sync on every re-render.
+    var counts = document.querySelector('.tb3-3d-popup-counts');
+    if (counts) counts.innerHTML = state.devices.length + ' devices &middot; ' + state.cables.length + ' cables';
+
+    // Update viewport aria-label with live counts (live sync exercised in Stage 6).
+    var vp = document.getElementById('tb3-3d-popup-viewport');
+    if (vp) {
+      vp.setAttribute('aria-label',
+        '3D rendering of ' + state.devices.length + ' devices and ' + state.cables.length +
+        ' cables. Use arrow keys to rotate, plus or minus to zoom, R to reset, Escape to close.');
+    }
+  }
+
+  function _open3DPopup() {
+    if (_3dPopup.open) return;
+    _3dPopup.open = true;
+
+    document.body.style.overflow = 'hidden';
+
+    var devCount = state.devices.length;
+    var cabCount = state.cables.length;
+
+    var modal = document.createElement('div');
+    modal.className = 'tb3-3d-popup-modal';
+    modal.id = 'tb3-3d-popup-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'tb3-3d-popup-title');
+    modal.innerHTML =
+      '<div class="tb3-3d-popup-backdrop" id="tb3-3d-popup-backdrop"></div>' +
+      '<div class="tb3-3d-popup-card">' +
+        '<header class="tb3-3d-popup-header">' +
+          '<h2 id="tb3-3d-popup-title" class="tb3-3d-popup-title">3D view of topology</h2>' +
+          '<span class="tb3-3d-popup-counts">' + devCount + ' devices &middot; ' + cabCount + ' cables</span>' +
+          '<button class="tb3-3d-popup-close-btn" id="tb3-3d-popup-close-btn" aria-label="Close 3D view" type="button">&times;</button>' +
+        '</header>' +
+        '<div class="tb3-3d-popup-viewport" id="tb3-3d-popup-viewport" role="img" ' +
+             'aria-label="3D rendering of ' + devCount + ' devices and ' + cabCount + ' cables. Use arrow keys to rotate, plus or minus to zoom, R to reset, Escape to close." ' +
+             'tabindex="0">' +
+          '<div class="tb3-3d-popup-stage" id="tb3-3d-popup-stage">' +
+            '<div class="tb3-3d-floor"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    _render3DScene();    // populate device extruded cards (Stage 3) + cables (Stage 4)
+    _apply3DCamera();    // apply initial camera (full impl arrives in Stage 5)
+
+    // Wire X button + backdrop close (full input listeners come in Stage 5)
+    document.getElementById('tb3-3d-popup-close-btn').addEventListener('click', _close3DPopup);
+    document.getElementById('tb3-3d-popup-backdrop').addEventListener('click', _close3DPopup);
+
+    // Open tween — add .is-open after a paint to trigger CSS transitions
+    requestAnimationFrame(function () {
+      modal.classList.add('is-open');
+      var btn = document.getElementById('tb3-3d-popup-close-btn');
+      if (btn) btn.focus();
+      _attach3DInputListeners();
+    });
+  }
+
+  function _close3DPopup() {
+    if (!_3dPopup.open) return;
+    _3dPopup.open = false;
+    _detach3DInputListeners();
+    if (_3dPopup.rafHandle) {
+      cancelAnimationFrame(_3dPopup.rafHandle);
+      _3dPopup.rafHandle = null;
+    }
+    var modal = document.getElementById('tb3-3d-popup-modal');
+    if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
+    document.body.style.overflow = '';
+    var pill = document.querySelector('.tb3-mode[data-mode="3d"]');
+    if (pill) pill.focus();
+    // Stage 5: close animation, Stage 6: detach input listeners
   }
 
   function _renderTracePanel() {
@@ -4832,11 +5311,11 @@
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
       { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>' },
-      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
+      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: false },
     ];
     var html = modes.map(function (m) {
       var on = (m.id === state.mode);
-      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
+      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — coming soon' : m.label) + '">' + m.icon + m.label + '</div>';
     }).join('');
     row.innerHTML = html;
 
@@ -4855,6 +5334,11 @@
         }
         if (mode === 'osi') {
           _openOSI();
+          return;
+        }
+        if (mode === '3d') {
+          // Phase 7 v2: 3D is a popup, NOT a mode — do NOT modify state.mode
+          _open3DPopup();
           return;
         }
         if (mode === state.mode) return;
@@ -4972,6 +5456,9 @@
     _endTrace: _endTrace,
     _openOSI: _openOSI,
     _closeOSI: function () { _closeOSI(); },
+    // Phase 7 v2 — 3D popup test exposures
+    _open3DPopup: _open3DPopup,
+    _close3DPopup: function () { _close3DPopup(); },
     // Phase 6 — OSI mode test exposures
     _genMockMac: _genMockMac,
     _activeLayersForDev: _activeLayersForDev,

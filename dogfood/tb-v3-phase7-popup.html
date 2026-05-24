@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TB v3 Phase 7 v2 — 3D Popup Dogfood</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0f0e0c; color: #e8e0d0; min-height: 100vh; padding: 32px 24px 80px; }
+  h1   { font-size: 22px; font-weight: 700; color: #c8a95a; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #9a8e7a; margin-bottom: 36px; }
+  .step { border: 1px solid #2a2620; border-radius: 10px; padding: 20px 24px;
+          margin-bottom: 16px; position: relative; }
+  .step-num { font-size: 11px; font-weight: 700; letter-spacing: .08em;
+              color: #c8a95a; text-transform: uppercase; margin-bottom: 6px; }
+  .step h2  { font-size: 15px; font-weight: 600; color: #e8e0d0; margin-bottom: 8px; }
+  .step p   { font-size: 13px; color: #9a8e7a; line-height: 1.55; }
+  .step .expect { margin-top: 10px; padding: 10px 14px; background: #1a1815;
+                  border-left: 2px solid #c8a95a; border-radius: 4px;
+                  font-size: 12px; color: #c8a95a; line-height: 1.5; }
+  .step .expect strong { color: #e8e0d0; }
+  .pass-fail { display: flex; gap: 10px; margin-top: 14px; }
+  .pass-fail label { display: flex; align-items: center; gap: 6px;
+                     font-size: 12px; color: #9a8e7a; cursor: pointer; }
+  .pass-fail input[type=radio] { accent-color: #c8a95a; }
+  .verdict { display: none; margin-top: 6px; font-size: 12px; font-weight: 600; }
+  .verdict.pass { color: #4caf72; }
+  .verdict.fail { color: #e05252; }
+  #summary { margin-top: 32px; padding: 20px 24px; border: 1px solid #2a2620;
+             border-radius: 10px; background: #1a1815; }
+  #summary h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #c8a95a; }
+  #tally { font-size: 14px; color: #9a8e7a; }
+  #tally strong { color: #e8e0d0; }
+  .note { font-size: 11px; color: #5a5248; margin-top: 28px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>TB v3 Phase 7 v2 — 3D Popup</h1>
+<p class="sub">Founder smoke test · 8 steps · run against http://localhost:3131 with the dev server running</p>
+
+<!-- Step 1 -->
+<div class="step" id="s1">
+  <div class="step-num">Step 1 of 8</div>
+  <h2>Empty-canvas 3D popup opens</h2>
+  <p>
+    Open the Network Builder (TB v3). Leave the canvas completely empty — no devices, no cables.
+    Click the <strong>3D</strong> pill in the modebar.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> A modal overlay appears centred on screen. It has a header showing
+    "3D view of topology", a counts line reading "0 devices · 0 cables", and an X close button.
+    The viewport area shows an empty-state message (e.g. "Add devices to the canvas to see them in 3D.").
+    The rest of the canvas is dimmed behind a blurred backdrop.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s1" value="pass" onchange="mark(1,'pass')"> Pass</label>
+    <label><input type="radio" name="s1" value="fail" onchange="mark(1,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v1"></div>
+</div>
+
+<!-- Step 2 -->
+<div class="step" id="s2">
+  <div class="step-num">Step 2 of 8</div>
+  <h2>Devices render as extruded 3D cards</h2>
+  <p>
+    Close the popup (X button or Esc). Drop 3 devices onto the canvas — e.g. a router, a switch,
+    and a workstation. Re-open the 3D popup.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> Counts update to "3 devices · 0 cables". Each device appears as a
+    bronze extruded card in the 3D viewport — a top face showing the device icon and label,
+    four side rims, and a bottom face. Cards sit on a floor with a radial vignette.
+    The viewport has perspective depth (not flat).
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s2" value="pass" onchange="mark(2,'pass')"> Pass</label>
+    <label><input type="radio" name="s2" value="fail" onchange="mark(2,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v2"></div>
+</div>
+
+<!-- Step 3 -->
+<div class="step" id="s3">
+  <div class="step-num">Step 3 of 8</div>
+  <h2>Drag rotates the scene</h2>
+  <p>
+    With the 3D popup open and devices visible, click and drag inside the viewport — left/right
+    and up/down.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> The scene rotates in 3D around the Y axis (horizontal drag) and X axis
+    (vertical drag). Rotation is smooth, proportional to drag distance, and stays within the
+    vertical clamp (15° – 75° pitch). The floor and device cards rotate together.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s3" value="pass" onchange="mark(3,'pass')"> Pass</label>
+    <label><input type="radio" name="s3" value="fail" onchange="mark(3,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v3"></div>
+</div>
+
+<!-- Step 4 -->
+<div class="step" id="s4">
+  <div class="step-num">Step 4 of 8</div>
+  <h2>Momentum decays after drag release</h2>
+  <p>
+    Drag quickly across the viewport and release the mouse button while still moving.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> The scene continues to rotate briefly after release, then decelerates
+    and stops (Emil-tuned 0.92/0.94 decay). It does not snap to a stop immediately on mouseup, and
+    it does not spin indefinitely. Decay happens within roughly 300–500 ms.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s4" value="pass" onchange="mark(4,'pass')"> Pass</label>
+    <label><input type="radio" name="s4" value="fail" onchange="mark(4,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v4"></div>
+</div>
+
+<!-- Step 5 -->
+<div class="step" id="s5">
+  <div class="step-num">Step 5 of 8</div>
+  <h2>Scroll wheel zooms in and out</h2>
+  <p>
+    With the 3D popup open, scroll the mouse wheel up and down inside the viewport.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> Scrolling up zooms in (scene grows), scrolling down zooms out
+    (scene shrinks). Zoom stays within sensible bounds — it cannot zoom in so far that all
+    geometry disappears, nor zoom out so far that nothing is visible. Page does not scroll
+    while the wheel is over the viewport.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s5" value="pass" onchange="mark(5,'pass')"> Pass</label>
+    <label><input type="radio" name="s5" value="fail" onchange="mark(5,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v5"></div>
+</div>
+
+<!-- Step 6 -->
+<div class="step" id="s6">
+  <div class="step-num">Step 6 of 8</div>
+  <h2>Double-click resets camera</h2>
+  <p>
+    Rotate the scene and zoom in or out so it is clearly off-default. Then double-click
+    anywhere inside the viewport.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> The scene animates back to the default camera position
+    (rotX ≈ 30°, rotY ≈ −20°, zoom ≈ 1.0) over roughly 320–400 ms. The tween is smooth —
+    not a snap. After the tween completes, dragging works normally from the reset position.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s6" value="pass" onchange="mark(6,'pass')"> Pass</label>
+    <label><input type="radio" name="s6" value="fail" onchange="mark(6,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v6"></div>
+</div>
+
+<!-- Step 7 -->
+<div class="step" id="s7">
+  <div class="step-num">Step 7 of 8</div>
+  <h2>Live sync — canvas edit reflects in open popup</h2>
+  <p>
+    Keep the 3D popup open. In a separate browser tab (or by temporarily dismissing via Esc and
+    immediately reopening), add a cable between two devices on the canvas, then re-open the popup
+    without closing it first. Alternatively: open the popup, then in the browser console run
+    <code>window._certanvilFeatures['topology-builder-v3']._renderCanvas()</code> after mutating
+    state to add a device programmatically.
+  </p>
+  <div class="expect">
+    <strong>Expected:</strong> The device count and 3D scene update to reflect the new topology
+    state. A device added while the popup is open appears in the 3D viewport without requiring
+    a close-and-reopen. Counts header updates accordingly.
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s7" value="pass" onchange="mark(7,'pass')"> Pass</label>
+    <label><input type="radio" name="s7" value="fail" onchange="mark(7,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v7"></div>
+</div>
+
+<!-- Step 8 -->
+<div class="step" id="s8">
+  <div class="step-num">Step 8 of 8</div>
+  <h2>Esc closes cleanly + reduced-motion fallback</h2>
+  <p>
+    With the popup open, press <strong>Escape</strong>. Then enable
+    <em>System Preferences → Accessibility → Reduce Motion</em> (or use DevTools
+    → Rendering → Emulate prefers-reduced-motion: reduce) and re-open the popup.
+  </p>
+  <div class="expect">
+    <strong>Expected (Esc):</strong> The popup closes immediately. Focus returns to the canvas
+    or the 3D modebar pill. The modal DOM node is removed. The 3D mode pill is no longer
+    in its active/pressed state.
+    <br><br>
+    <strong>Expected (reduced-motion):</strong> The popup opens instantly — no fade-in or
+    scale animation. Drag still rotates the scene (motion driven by input, not CSS animation),
+    but momentum decay is disabled (scene stops immediately on mouseup).
+  </div>
+  <div class="pass-fail">
+    <label><input type="radio" name="s8" value="pass" onchange="mark(8,'pass')"> Pass</label>
+    <label><input type="radio" name="s8" value="fail" onchange="mark(8,'fail')"> Fail</label>
+  </div>
+  <div class="verdict" id="v8"></div>
+</div>
+
+<!-- Summary -->
+<div id="summary">
+  <h2>Summary</h2>
+  <div id="tally">Mark each step above to see your score.</div>
+</div>
+
+<p class="note">
+  TB v3 Phase 7 v2 · v6.4.0 · dogfood/tb-v3-phase7-popup.html<br>
+  Run against http://localhost:3131 · Do NOT test against prod (no nplus_* localStorage writes).
+</p>
+
+<script>
+  var results = {};
+  function mark(step, verdict) {
+    results[step] = verdict;
+    var v = document.getElementById('v' + step);
+    v.style.display = 'block';
+    v.className = 'verdict ' + verdict;
+    v.textContent = verdict === 'pass' ? '✓ Pass' : '✗ Fail';
+    tally();
+  }
+  function tally() {
+    var total = 8;
+    var passed = Object.values(results).filter(function(r){ return r === 'pass'; }).length;
+    var failed = Object.values(results).filter(function(r){ return r === 'fail'; }).length;
+    var remaining = total - passed - failed;
+    var t = document.getElementById('tally');
+    if (passed + failed === 0) {
+      t.innerHTML = 'Mark each step above to see your score.';
+      return;
+    }
+    t.innerHTML =
+      '<strong>' + passed + '</strong> / ' + total + ' passed' +
+      (failed > 0 ? ' · <span style="color:#e05252"><strong>' + failed + '</strong> failed</span>' : '') +
+      (remaining > 0 ? ' · <span style="color:#9a8e7a">' + remaining + ' remaining</span>' : '') +
+      (passed === total ? ' — <span style="color:#4caf72;font-weight:700">All pass. Ship it.</span>' : '');
+  }
+</script>
+</body>
+</html>
