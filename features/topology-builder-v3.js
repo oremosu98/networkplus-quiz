@@ -1792,7 +1792,7 @@
           '<div class="tb3-rrail-btn" id="tb3-rrail-scenarios" title="Scenarios — pick a lab">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v14"/></svg>' +
           '</div>' +
-          '<div class="tb3-rrail-btn locked" title="Coach (Phase 7)">' +
+          '<div class="tb3-rrail-btn locked" title="Coach (Phase 8)">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>' +
           '</div>' +
         '</div>' +
@@ -2484,9 +2484,8 @@
     if (body && body.classList.contains('trace-open')) {
       _closeTrace();
     }
-    if (body && body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body && body.classList.contains('osi-open'))   _closeOSI();
+    if (body && body.classList.contains('3d-open'))    _close3D();
     state.selectedId = id;
     _renderCanvas();
     _renderInspector();
@@ -2854,9 +2853,8 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     // Mutually exclusive with Inspector (only one rail panel at a time).
     body.classList.remove('inspector-open');
     body.classList.add('picker-open');
@@ -3049,9 +3047,8 @@
       _closeSimulate();
     }
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     body.classList.remove('picker-open');
     body.classList.remove('inspector-open');
     body.classList.add('diagnostic-open');
@@ -3093,9 +3090,8 @@
     body.classList.remove('inspector-open');
     body.classList.remove('diagnostic-open');
     if (body.classList.contains('trace-open')) _closeTrace();
-    if (body.classList.contains('osi-open')) {
-      _closeOSI();
-    }
+    if (body.classList.contains('osi-open'))   _closeOSI();
+    if (body.classList.contains('3d-open'))    _close3D();
     body.classList.add('simulate-open');
     state.mode = 'simulate';
     _renderSimulatePanel();
@@ -3169,6 +3165,27 @@
     var body = document.getElementById('tb3-body');
     if (body) body.classList.remove('osi-open');
     _closeTrace();   // shares teardown — clears _traceState + removes trace-open class
+  }
+
+  // ===========================================================================
+  // Phase 7: _open3D / _close3D — 3D mode lifecycle
+  // 3D is a peer mode (state.mode === '3d') that wraps _openTrace per spec §3.
+  // OSI cascade integration: when state.mode === '3d', _stepTrace dispatches
+  // Phase 6's _animate* fns but they render INTO the standing device via
+  // _render3DDeviceCascade (Stage 6) instead of the right-rail panel.
+  // ===========================================================================
+  function _open3D(payload) {
+    _openTrace(payload || null);
+    state.mode = '3d';
+    document.body.classList.add('3d-open');
+    _renderTracePanel();   // Stage 7 will dispatch to floating control strip
+    _renderCanvas();       // Stage 3 scoped CSS activates standing devices
+    _renderModeBar();
+  }
+
+  function _close3D() {
+    document.body.classList.remove('3d-open');
+    _closeTrace();   // shares teardown with Trace/OSI
   }
 
   function _renderTracePanel() {
@@ -4785,6 +4802,10 @@
           _closeSimulate();
           return;
         }
+        if (body && body.classList.contains('3d-open')) {
+          _close3D();
+          return;
+        }
         if (body && body.classList.contains('osi-open')) {
           _closeOSI();
           return;
@@ -4863,11 +4884,11 @@
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
       { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>' },
-      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: true },
+      { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: false },
     ];
     var html = modes.map(function (m) {
       var on = (m.id === state.mode);
-      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — phase ' + ({'3d':6}[m.id]) : m.label) + '">' + m.icon + m.label + '</div>';
+      return '<div class="tb3-mode' + (on ? ' on' : '') + (m.locked ? ' locked' : '') + '" data-mode="' + m.id + '" title="' + (m.locked ? m.label + ' — coming soon' : m.label) + '">' + m.icon + m.label + '</div>';
     }).join('');
     row.innerHTML = html;
 
@@ -4886,6 +4907,10 @@
         }
         if (mode === 'osi') {
           _openOSI();
+          return;
+        }
+        if (mode === '3d') {
+          _open3D();
           return;
         }
         if (mode === state.mode) return;
@@ -5003,6 +5028,9 @@
     _endTrace: _endTrace,
     _openOSI: _openOSI,
     _closeOSI: function () { _closeOSI(); },
+    // Phase 7 — 3D mode lifecycle
+    _open3D: _open3D,
+    _close3D: _close3D,
     // Phase 6 — OSI mode test exposures
     _genMockMac: _genMockMac,
     _activeLayersForDev: _activeLayersForDev,

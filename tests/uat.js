@@ -22434,6 +22434,26 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
     /function\s+_renderOSIStack\s*\([^)]*opts[^)]*\)\s*\{[\s\S]{0,600}tb3-osi-stack--in-device/.test(tbv3SrcP7)
   );
 
+  // ---- Stage 2: _open3D / _close3D lifecycle + 6-panel mutex ----
+  test('P7: _open3D is defined',
+    /function\s+_open3D\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: _open3D wraps _openTrace then sets state.mode = "3d"',
+    /_open3D[\s\S]{0,500}_openTrace[\s\S]{0,300}state\.mode\s*=\s*'3d'/.test(tbv3SrcP7)
+  );
+  test("P7: _open3D adds '3d-open' body class",
+    /_open3D[\s\S]{0,500}classList\.add\('3d-open'\)/.test(tbv3SrcP7)
+  );
+  test('P7: _close3D removes 3d-open + delegates to _closeTrace',
+    /_close3D[\s\S]{0,200}classList\.remove\('3d-open'\)[\s\S]{0,100}_closeTrace\s*\(/.test(tbv3SrcP7)
+  );
+  test('P7: modebar wires 3d branch to _open3D',
+    /mode\s*===\s*'3d'[\s\S]{0,80}_open3D\s*\(/.test(tbv3SrcP7)
+  );
+  test("P7: stale {'3d':6} locked-phase map entry removed",
+    !/\{['"]3d['"]\s*:\s*6\}/.test(tbv3SrcP7)
+  );
+
 })();
 
 // ── Summary ──
