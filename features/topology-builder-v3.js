@@ -7902,6 +7902,24 @@
         if (typeof _renderModeBar === 'function') _renderModeBar();
       }
     }
+    // v6.5.5 fix: ALWAYS reset viewport on walkStart so the scenario fits the
+    // canvas, regardless of whether scenarios switched. Without this, the
+    // user's prior zoom/pan (e.g., 268% zoom) is still applied to the new
+    // scenario's devices — rendering them off-screen and making the
+    // walkthrough visually unusable. Use the scenario's startingState.viewport
+    // when defined; otherwise fall back to {0,0,1}.
+    var walkScenario = TB_V3_SCENARIOS.find(function (s) { return s.id === walk.scenarioId; });
+    if (walkScenario && walkScenario.startingState && walkScenario.startingState.viewport) {
+      state.viewport = {
+        x: walkScenario.startingState.viewport.x || 0,
+        y: walkScenario.startingState.viewport.y || 0,
+        zoom: walkScenario.startingState.viewport.zoom || 1,
+      };
+    } else {
+      state.viewport = { x: 0, y: 0, zoom: 1 };
+    }
+    if (typeof _renderCanvas === 'function') _renderCanvas();
+    if (typeof _renderMinimap === 'function') _renderMinimap();
     state.priorIntent = state.intent;
     state.intent = 'walk';
     state.activeWalkthroughId = walkthroughId;
