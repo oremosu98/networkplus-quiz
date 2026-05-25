@@ -23637,23 +23637,34 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.6: package.json version is 6.5.6', (function () {
+test('v6.5.7: package.json version is 6.5.7', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.6"/.test(pkg);
+  return /"version":\s*"6\.5\.7"/.test(pkg);
 })());
 
-test('v6.5.6: sw.js CACHE_NAME is netplus-v6.5.6', (function () {
+test('v6.5.7: sw.js CACHE_NAME is netplus-v6.5.7', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.6/.test(sw);
+  return /netplus-v6\.5\.7/.test(sw);
 })());
 
-test('v6.5.6: index.html version badge is v6.5.6', (function () {
-  return /version-badge[\s\S]*?v6\.5\.6/.test(html);
+test('v6.5.7: index.html version badge is v6.5.7', (function () {
+  return /version-badge[\s\S]*?v6\.5\.7/.test(html);
 })());
 
-test('v6.5.6: app.js APP_VERSION is 6.5.6', (function () {
+test('v6.5.7: app.js APP_VERSION is 6.5.7', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.6['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.7['"]/.test(js);
+})());
+
+test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {
+  var css = read('features/topology-builder-v3.css');
+  // Catalog rules (not card) — extract those specifically
+  var rules = css.match(/\.tb3-walk-(scen-row|catalog-header|catalog-domain|row|nest)[^{]*\{[^}]*\}/g) || [];
+  for (var i = 0; i < rules.length; i++) {
+    // No hardcoded white text in catalog rules
+    if (/color:\s*rgba\(255,\s*255,\s*255/.test(rules[i])) return false;
+  }
+  return rules.length > 0; // ensure we actually found rules
 })());
 
 test('TB v3 walk: catalog panel uses absolute positioning (slides over canvas, not grid item)', (function () {

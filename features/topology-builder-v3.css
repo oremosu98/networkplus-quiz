@@ -3013,8 +3013,8 @@ html[data-theme="light"] #page-topology-builder-v3 {
 }
 .tb3-walk-catalog-header {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--tb3-text-strong, #f5deb6);
+  font-weight: 700;
+  color: var(--tb3-text);
   margin-bottom: 4px;
 }
 .tb3-walk-catalog-domain-h {
@@ -3022,13 +3022,13 @@ html[data-theme="light"] #page-topology-builder-v3 {
   justify-content: space-between;
   align-items: center;
   padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--tb3-surface-2);
   border-left: 2px solid var(--tb3-bronze, #8b5a3c);
   border-radius: 4px;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--tb3-text);
   font-weight: 600;
   margin-top: 8px;
 }
@@ -3046,21 +3046,21 @@ html[data-theme="light"] #page-topology-builder-v3 {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--tb3-surface);
+  border: 1px solid var(--tb3-border);
   border-radius: 5px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--tb3-text);
   cursor: pointer;
   transition: opacity 200ms ease, background 200ms ease;
 }
 .tb3-walk-scen-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--tb3-surface-2);
 }
 .tb3-walk-scen-title { flex: 1; }
 .tb3-walk-walks-pill {
   font-size: 9px;
-  color: rgba(201, 138, 54, 0.9);
+  color: var(--tb3-bronze, #c98a36);
   background: rgba(201, 138, 54, 0.10);
   border: 1px solid rgba(201, 138, 54, 0.3);
   padding: 2px 7px;
@@ -3072,14 +3072,14 @@ html[data-theme="light"] #page-topology-builder-v3 {
 .tb3-walk-scen-row.tb3-walk-scen-active {
   background: linear-gradient(180deg, rgba(201, 138, 54, 0.18), rgba(201, 138, 54, 0.06)) !important;
   border-color: rgba(201, 138, 54, 0.55) !important;
-  color: #f5deb6 !important;
+  color: var(--tb3-text) !important;
 }
 .tb3-walk-dimmed {
-  opacity: 0.3;
+  opacity: 0.5;
   pointer-events: none;
 }
 .tb3-walk-catalog-domain-h.tb3-walk-dimmed {
-  border-left-color: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--tb3-border-soft);
 }
 .tb3-walk-nest {
   margin-left: 14px;
@@ -3099,7 +3099,7 @@ html[data-theme="light"] #page-topology-builder-v3 {
   border-radius: 4px;
   background: linear-gradient(180deg, rgba(201, 138, 54, 0.14), rgba(201, 138, 54, 0.05));
   border: 1px solid rgba(201, 138, 54, 0.35);
-  color: #f5deb6;
+  color: var(--tb3-text);
   font-size: 10px;
   cursor: pointer;
   transition: background 200ms ease;
@@ -3119,13 +3119,13 @@ html[data-theme="light"] #page-topology-builder-v3 {
   border: 1px solid rgba(201, 138, 54, 0.45);
   flex-shrink: 0;
 }
-.tb3-walk-row-title { flex: 1; }
+.tb3-walk-row-title { flex: 1; color: var(--tb3-text); }
 .tb3-walk-row-meta {
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--tb3-text-dim);
 }
 .tb3-walk-row.tb3-walk-row-running .tb3-walk-row-meta {
-  color: rgba(240, 199, 137, 0.95);
+  color: var(--tb3-bronze, #f0c789);
 }
 
 /* ── Walkthrough completion ledger (Task 14) ───────────────────── */
@@ -3156,12 +3156,12 @@ html[data-theme="light"] #page-topology-builder-v3 {
 .tb3-walk-badge-blank {
   width: 14px; height: 14px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--tb3-surface-2);
+  border: 1px solid var(--tb3-border-soft);
   flex-shrink: 0;
 }
 .tb3-walk-row.tb3-walk-row-done .tb3-walk-row-title {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--tb3-text-mid);
 }
 .tb3-walk-walks-pill-complete {
   color: rgba(93, 161, 75, 0.95) !important;
@@ -3250,7 +3250,7 @@ html[data-theme="light"] #page-topology-builder-v3 {
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(201, 138, 54, 0.9);
+  color: var(--tb3-bronze, #c98a36);
   font-weight: 600;
 }
 .tb3-walk-card-kind {
