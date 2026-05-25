@@ -7607,8 +7607,8 @@
     anchorStepCardToViewportCenter();
   }
   function renderWalkCatalog() {
-    var workspace = document.querySelector('.tb3-workspace');
-    if (!workspace) return;
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
 
     // Get or create the panel
     var panel = document.querySelector('.tb3-rail-panel[data-mode="walk-catalog"]');
@@ -7616,7 +7616,7 @@
       panel = document.createElement('aside');
       panel.className = 'tb3-rail-panel';
       panel.dataset.mode = 'walk-catalog';
-      workspace.appendChild(panel);
+      body.appendChild(panel);
     }
 
     // Group scenarios by primary exam domain (first objectiveRef)

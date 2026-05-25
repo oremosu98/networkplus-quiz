@@ -22950,6 +22950,14 @@ test('TB v3 walk: domainsForRefs maps objectiveRefs to exam-domain names', (func
     && eq(fn(['9.9']), ['Other']);
 })());
 
+test('TB v3 walk: renderWalkCatalog mounts panel to #tb3-body (not .tb3-workspace)', (function () {
+  var m = tbV3JsForWalk.match(/function renderWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /getElementById\(['"]tb3-body['"]\)/.test(body)
+      && !/querySelector\(['"]\.tb3-workspace['"]\)/.test(body);
+})());
+
 test('TB v3 walk: walkthroughs file exists and exports array', (function () {
   const walkJs = read('features/topology-builder-v3-walkthroughs.js');
   return /var TB_V3_WALKTHROUGHS = \[/.test(walkJs);
