@@ -2588,6 +2588,25 @@
       var json = localStorage.getItem(STORAGE.TB_V3_DRAFT);
       if (json) {
         state = parseState(json);
+        // ── Walkthrough auto-resume (Phase 8) ──
+        if (state.activeWalkthroughId) {
+          var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === state.activeWalkthroughId; });
+          if (walk) {
+            // Clamp stepIdx in case content was trimmed since last visit
+            state.walkStepIdx = Math.min(state.walkStepIdx || 0, walk.steps.length - 1);
+            state.intent = 'walk';
+            // Defer until after layout — runStep + markCardAsResumed need DOM
+            requestAnimationFrame(function () {
+              runStep(walk.steps[state.walkStepIdx], state.walkMode);
+              markCardAsResumed();
+            });
+          } else {
+            // Stale walkthrough id (content removed since last visit) — silently clear
+            state.activeWalkthroughId = null;
+            state.walkStepIdx = 0;
+            state.intent = state.priorIntent || 'free-build';
+          }
+        }
       }
     } catch (e) {
       // Silent — start fresh
@@ -6877,6 +6896,7 @@
   function hideStepCard() {}                          // Task 15
   function showCompletionCard(/* walkthroughId */) {} // Task 18
   function renderWalkCatalog() {}                     // Task 12
+  function markCardAsResumed() {}                     // Task 15
 
   function walkStart(walkthroughId) {
     var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === walkthroughId; });

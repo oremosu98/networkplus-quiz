@@ -22998,6 +22998,23 @@ test('TB v3 walk: _loadProgress + _bumpProgress helpers defined', (function () {
       && /function _bumpProgress\(/.test(tbV3JsForWalk);
 })());
 
+test('TB v3 walk: _loadState restores activeWalkthroughId from DRAFT', (function () {
+  var m = tbV3JsForWalk.match(/function _loadState[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /state\.activeWalkthroughId/.test(m[0])
+      && /requestAnimationFrame/.test(m[0]);
+})());
+
+test('TB v3 walk: _loadState clamps walkStepIdx via Math.min', (function () {
+  var m = tbV3JsForWalk.match(/function _loadState[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /Math\.min/.test(m[0]) && /walkStepIdx/.test(m[0]);
+})());
+
+test('TB v3 walk: markCardAsResumed stub defined', (function () {
+  return /function markCardAsResumed\(/.test(tbV3JsForWalk);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
