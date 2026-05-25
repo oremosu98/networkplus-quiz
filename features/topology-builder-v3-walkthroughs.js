@@ -247,7 +247,7 @@ var TB_V3_WALKTHROUGHS = [
         id: 's2',
         type: 'highlight',
         title: 'HQ holds the central path',
-        body: 'The hub router carries every WAN conversation in the topology. Its routing table is small — one entry per branch subnet — but every branch-to-branch packet still passes through this single box. Small table, big responsibility.',
+        body: 'The hub router carries every WAN conversation in the topology. Its routing table is small (one entry per branch subnet), but every branch-to-branch packet still passes through this single box. Small table, big responsibility.',
         target: { kind: 'device', id: 'sc_hns_hub' },
       },
       {
@@ -272,7 +272,7 @@ var TB_V3_WALKTHROUGHS = [
         id: 's5',
         type: 'flow',
         title: 'Branch to branch hairpins through HQ',
-        body: 'When BR-1 needs to reach BR-2, the packet leaves BR-1, transits the hub, and exits down the BR-2 spoke. Two WAN hops for traffic that is logically branch-to-branch — the hidden cost of the shape, and why a busy hub becomes a bottleneck.',
+        body: 'When BR-1 needs to reach BR-2, the packet leaves BR-1, transits the hub, and exits down the BR-2 spoke. Two WAN hops for traffic that is logically branch-to-branch. That hairpin is the hidden cost of the shape, and why a busy hub becomes a bottleneck.',
         flow: {
           from: 'sc_hns_b1',
           to: 'sc_hns_b2',
@@ -284,7 +284,7 @@ var TB_V3_WALKTHROUGHS = [
         id: 's6',
         type: 'narrate',
         title: 'When this shape fits and when it does not',
-        body: 'Hub-and-spoke works when branches mostly talk to HQ and rarely to each other — retail stores reaching a central ERP, clinics reaching a records system. The moment branches need real-time peer traffic (voice, video, replication), the hairpin hurts, and the topology evolves to partial-mesh or SD-WAN.',
+        body: 'Hub-and-spoke works when branches mostly talk to HQ and rarely to each other: retail stores reaching a central ERP, clinics reaching a records system. The moment branches need real-time peer traffic (voice, video, replication), the hairpin hurts, and the topology evolves to partial-mesh or SD-WAN.',
       },
     ],
   },
