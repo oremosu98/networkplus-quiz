@@ -3988,30 +3988,3 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
   .br-send,.br-close,.br-cancel{ transition:none !important; }
 }
 
-/* v6.5.16 — Logo animation on the loading screen (mockup option 2).
-   140x140 above the editorial loading frame. Plays once per page-load;
-   inline JS resets + replays on each .active toggle. Theme-aware: dark
-   video by default, swapped to light under [data-theme="light"]. Reduced-
-   motion: video paused on first frame via JS. Cert-agnostic monogram. */
-#page-loading .loading-anim{
-  /* v6.5.17 — 110px (was 140) + 8px radius (was 16) so the rounded
-     corners stop clipping the C/A monogram strokes. */
-  width:110px;
-  height:110px;
-  margin:0 auto 24px;
-  display:block;
-  position:relative;
-  border-radius:8px;
-  overflow:hidden;
-}
-#page-loading .loading-anim-video{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:transparent;
-}
-#page-loading .loading-anim-light{ display:none; }
-html[data-theme="light"] #page-loading .loading-anim-light{ display:block; }
-html[data-theme="light"] #page-loading .loading-anim-dark{ display:none; }

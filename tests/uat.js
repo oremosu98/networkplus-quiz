@@ -152,35 +152,22 @@ test('Port Drill button', html.includes('startPortDrill()') || js.includes('star
 test('Analytics button (v4.53.0: in sidebar JS, not setup-nav row)',
   js.includes('renderAnalytics') && /APP_SIDEBAR_PRACTICE[\s\S]{0,800}analytics/.test(js));
 test('Topic brief div', html.includes('id="topic-brief"'));
-// v6.5.16 — CertAnvil logo animation on the loading screen (mockup option 2).
-// Cert-agnostic: same monogram for every cert. 140x140 above the editorial
-// loading frame, plays once per show via inline MutationObserver. Both theme
-// MP4s precached in sw.js SHELL_ASSETS. The data-integrity asserts: (1) the
-// loading-anim block exists at the top of #page-loading with both theme videos,
-// (2) the videos point at the precached asset paths, (3) sw.js precaches both
-// MP4 files, (4) the dg-system.css theme show/hide rules exist.
-test('v6.5.16 logo-anim: HTML block + both theme videos in #page-loading', (function () {
-  if (!html.includes('class="loading-anim"')) return false;
-  if (!/loading-anim-video loading-anim-dark[\s\S]{0,200}logo-dark\.mp4/.test(html)) return false;
-  if (!/loading-anim-video loading-anim-light[\s\S]{0,200}logo-light\.mp4/.test(html)) return false;
-  // Block must sit inside #page-loading (before the skeleton-loader)
-  return /id="page-loading"[\s\S]{0,300}class="loading-anim"[\s\S]{0,2000}class="skeleton-loader"/.test(html);
+// v6.5.18 — Reverted v6.5.16/v6.5.17 logo animation. Tombstone guards
+// ensure the loading-anim block + MP4 references + CSS rules do not
+// accidentally come back in a future diff.
+test('v6.5.18 tombstone: loading-anim block removed from index.html', (function () {
+  return !html.includes('class="loading-anim"') &&
+         !html.includes('logo-animation/logo-dark.mp4') &&
+         !html.includes('logo-animation/logo-light.mp4');
 })());
-test('v6.5.16 logo-anim: replay-on-show MutationObserver script present', (function () {
-  return html.includes('loading-anim-video') &&
-         html.includes("page.classList.contains('active')") &&
-         html.includes('attributeFilter');
-})());
-test('v6.5.16 logo-anim: sw.js precaches both theme MP4 files', (function () {
-  var sw = read('sw.js');
-  return sw.includes('./assets/logo-animation/logo-dark.mp4') &&
-         sw.includes('./assets/logo-animation/logo-light.mp4');
-})());
-test('v6.5.16 logo-anim: dg-system.css theme show/hide rules', (function () {
+test('v6.5.18 tombstone: dg-system.css does not redefine .loading-anim', (function () {
   var dg = read('dg-system.css');
-  return dg.includes('#page-loading .loading-anim') &&
-         dg.includes('html[data-theme="light"] #page-loading .loading-anim-light') &&
-         dg.includes('html[data-theme="light"] #page-loading .loading-anim-dark');
+  return !dg.includes('#page-loading .loading-anim');
+})());
+test('v6.5.18 tombstone: sw.js does not precache the removed MP4 files', (function () {
+  var sw = read('sw.js');
+  return !sw.includes('logo-animation/logo-dark.mp4') &&
+         !sw.includes('logo-animation/logo-light.mp4');
 })());
 test('Subnet reference table', html.includes('subnet-table'));
 test('Port mastery answer area', html.includes('id="pt-answer-area"'));
@@ -23833,23 +23820,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.17:package.json version is 6.5.17', (function () {
+test('v6.5.18:package.json version is 6.5.18', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.17"/.test(pkg);
+  return /"version":\s*"6\.5\.18"/.test(pkg);
 })());
 
-test('v6.5.17:sw.js CACHE_NAME is netplus-v6.5.17', (function () {
+test('v6.5.18:sw.js CACHE_NAME is netplus-v6.5.18', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.17/.test(sw);
+  return /netplus-v6\.5\.18/.test(sw);
 })());
 
-test('v6.5.17:index.html version badge is v6.5.11', (function () {
-  return /version-badge[\s\S]*?v6\.5\.17/.test(html);
+test('v6.5.18:index.html version badge is v6.5.11', (function () {
+  return /version-badge[\s\S]*?v6\.5\.18/.test(html);
 })());
 
-test('v6.5.17:app.js APP_VERSION is 6.5.17', (function () {
+test('v6.5.18:app.js APP_VERSION is 6.5.18', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.17['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.18['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {
