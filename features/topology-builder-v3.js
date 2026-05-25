@@ -59,7 +59,7 @@
   // Lives separate from state.mode (popup is transient, not a mode value).
   var _3dPopup = {
     open: false,
-    camera: { rotX: 42, rotY: -18, zoom: 1.1 }, // Stage 6: lower tilt, tighter zoom
+    camera: { rotX: 42, rotY: -18, zoom: 1.1, panX: 0, panY: 0 }, // Stage 6: lower tilt, tighter zoom (panX/panY for walk-focus)
     dragState: { active: false, startX: 0, startY: 0, startRotX: 0, startRotY: 0 },
     velocityX: 0,
     velocityY: 0,
@@ -4437,14 +4437,16 @@
   function _apply3DCamera() {
     var stage = document.getElementById('tb3-3d-popup-stage');
     if (!stage) return;
+    var cam = _3dPopup.camera;
     stage.style.transform =
-      'rotateX(' + _3dPopup.camera.rotX + 'deg) ' +
-      'rotateY(' + _3dPopup.camera.rotY + 'deg) ' +
-      'scale(' + _3dPopup.camera.zoom + ')';
+      'translate3d(' + (cam.panX || 0) + 'px, ' + (cam.panY || 0) + 'px, 0) ' +
+      'rotateX(' + cam.rotX + 'deg) ' +
+      'rotateY(' + cam.rotY + 'deg) ' +
+      'scale(' + cam.zoom + ')';
 
     // Stage 3: counter-rotate labels so they stay camera-facing
     var labels = stage.querySelectorAll('.tb3-3d-dev-label-below');
-    var counterTransform = 'translateX(-50%) rotateX(' + (-_3dPopup.camera.rotX) + 'deg) rotateY(' + (-_3dPopup.camera.rotY) + 'deg)';
+    var counterTransform = 'translateX(-50%) rotateX(' + (-cam.rotX) + 'deg) rotateY(' + (-cam.rotY) + 'deg)';
     for (var i = 0; i < labels.length; i++) {
       labels[i].style.transform = counterTransform;
     }
@@ -7265,8 +7267,9 @@
       return;
     }
 
-    // Compute viewport center vs device center; tween an additive translate on
-    // the stage to bring the device to viewport center.
+    // Compute viewport center vs device center; tween panX/panY in the camera
+    // state so the focus offset survives subsequent user drag/zoom (every
+    // _apply3DCamera() call re-applies the translate3d before rotate/scale).
     var viewport = document.getElementById('tb3-3d-popup-viewport') || stage.parentElement;
     if (!viewport) return;
     var vpRect = viewport.getBoundingClientRect();
@@ -7274,18 +7277,21 @@
     var dx = (vpRect.left + vpRect.width / 2) - (devRect.left + devRect.width / 2);
     var dy = (vpRect.top + vpRect.height / 2) - (devRect.top + devRect.height / 2);
 
-    // Strip any prior walk-focus translate so we don't accumulate; preserve
-    // any rotateX/rotateY/scale the user has set (drag/zoom).
-    var curTransform = (stage.style.transform || '').replace(/translate3d\([^)]*\)\s*/g, '');
+    // Delta is relative to the current camera pan, so repeated focuses chain
+    // correctly (target = where the device would sit after applying the new pan).
+    var startX = _3dPopup.camera.panX || 0;
+    var startY = _3dPopup.camera.panY || 0;
+    var targetX = startX + dx;
+    var targetY = startY + dy;
 
     var startTime = performance.now();
     var dur = 500;
     function frame(t) {
       var k = Math.min((t - startTime) / dur, 1);
       var ease = 1 - Math.pow(1 - k, 3); // ease-out cubic
-      var tx = dx * ease;
-      var ty = dy * ease;
-      stage.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) ' + curTransform;
+      _3dPopup.camera.panX = startX + (targetX - startX) * ease;
+      _3dPopup.camera.panY = startY + (targetY - startY) * ease;
+      _apply3DCamera();
       if (k < 1) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -7303,10 +7309,11 @@
     for (var k = 0; k < walkPackets.length; k++) {
       walkPackets[k].parentNode && walkPackets[k].parentNode.removeChild(walkPackets[k]);
     }
-    // Reset only the walk-added translate; preserve user-set rotation/scale.
-    var stage = document.getElementById('tb3-3d-popup-stage');
-    if (stage) {
-      stage.style.transform = (stage.style.transform || '').replace(/translate3d\([^)]*\)\s*/g, '');
+    // Reset camera pan (was set by _focusCameraOnDevice3D); preserves rotX/rotY/zoom.
+    if (_3dPopup.camera.panX !== 0 || _3dPopup.camera.panY !== 0) {
+      _3dPopup.camera.panX = 0;
+      _3dPopup.camera.panY = 0;
+      _apply3DCamera();
     }
   }
   function animateFlow(flow, mode) {

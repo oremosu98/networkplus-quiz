@@ -22848,7 +22848,7 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
 
   // 6.2 Camera defaults updated
   test('STAGE6: _3dPopup camera defaults rotX:42 zoom:1.1',
-    /camera\s*:\s*\{\s*rotX\s*:\s*42\s*,\s*rotY\s*:\s*-18\s*,\s*zoom\s*:\s*1\.1\s*\}/.test(tbv3SrcS6)
+    /camera\s*:\s*\{\s*rotX\s*:\s*42\s*,\s*rotY\s*:\s*-18\s*,\s*zoom\s*:\s*1\.1\b/.test(tbv3SrcS6)
   );
   test('STAGE6: _on3DPopupDblClick reset targets use rotX 42 zoom 1.1',
     /targetRotX\s*=\s*42[\s\S]{0,100}targetZoom\s*=\s*1\.1/.test(tbv3SrcS6)
@@ -23600,6 +23600,31 @@ test('TB v3 walk: catalog panel hidden by default + shown when walk-catalog-open
   var css = read('features/topology-builder-v3.css');
   return /\.tb3-rail-panel\[data-mode="walk-catalog"\]\s*\{[\s\S]*?display:\s*none/.test(css)
       && /walk-catalog-open[\s\S]*?\.tb3-rail-panel\[data-mode="walk-catalog"\][\s\S]*?display:\s*flex/.test(css);
+})());
+
+test('TB v3 walk: _3dPopup.camera now has panX/panY', (function () {
+  return /camera:\s*\{[^}]*panX:\s*0[^}]*panY:\s*0/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: _apply3DCamera includes translate3d with panX/panY', (function () {
+  var m = tbV3JsForWalk.match(/function _apply3DCamera[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /translate3d/.test(m[0]) && /panX/.test(m[0]) && /panY/.test(m[0]);
+})());
+
+test('TB v3 walk: _focusCameraOnDevice3D mutates camera state (not stage.style directly)', (function () {
+  var m = tbV3JsForWalk.match(/function _focusCameraOnDevice3D[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /_3dPopup\.camera\.panX/.test(body)
+      && /_apply3DCamera\(\)/.test(body)
+      && !/stage\.style\.transform\s*=/.test(body);  // no direct mutation
+})());
+
+test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (function () {
+  var m = tbV3JsForWalk.match(/function _clearWalkHighlight3D[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /panX\s*=\s*0/.test(m[0]) && /_apply3DCamera/.test(m[0]);
 })());
 
 // ── Summary ──
