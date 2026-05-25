@@ -3831,6 +3831,49 @@ test.describe('TB v3 Walkthrough Phase 8', () => {
     expect(progress['star-topology-shape']).toBeTruthy();
     expect(progress['star-topology-shape'].completedAt).toBeTruthy();
   });
+
+  // v6.5.9 — Phase 8c Switching/VLAN: 3 new walkthroughs. Spot-check
+  // router-on-a-stick (the pedagogically richest of the three, contrasts
+  // directly with l3-switch-svi); the other 2 covered statically by the
+  // UAT v6.5.9 structural + data-integrity guards.
+  test('TB v3 WALK v6.5.9 — VLAN: start router-on-a-stick-trunk, walk all 6 steps, completion writes PROGRESS', async ({ page }) => {
+    await page.goto('/?cert=netplus');
+    await page.waitForFunction(() => typeof window.showPage === 'function');
+    await page.evaluate(async () => {
+      window._gateProOnly = () => true;
+      window._certanvilSignedIn = true;
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      if (typeof window.openTopologyBuilderV3 === 'function') window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg', { timeout: 15000 });
+
+    await page.evaluate(() => {
+      var tb3 = window._certanvilFeatures['topology-builder-v3'];
+      if (tb3 && typeof tb3.walkStart === 'function') tb3.walkStart('router-on-a-stick-trunk');
+      else if (typeof window.walkStart === 'function') window.walkStart('router-on-a-stick-trunk');
+    });
+
+    await page.waitForSelector('.tb3-walk-card', { timeout: 5000 });
+    await expect(page.locator('.tb3-walk-card-pos')).toContainText('1 / 6');
+    await expect(page.locator('.tb3-walk-card-title')).toContainText('One link does all VLANs');
+
+    for (var i = 0; i < 5; i++) {
+      await page.click('[data-walk-next]');
+      await page.waitForTimeout(200);
+    }
+
+    await expect(page.locator('[data-walk-next]')).toContainText('Finish');
+    await page.click('[data-walk-next]');
+
+    await expect(page.locator('.tb3-walk-card-complete-title')).toContainText('Walkthrough complete');
+
+    var progress = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('nplus_tb_v3_walk_progress_v1') || '{}');
+    });
+    expect(progress['router-on-a-stick-trunk']).toBeTruthy();
+    expect(progress['router-on-a-stick-trunk'].completedAt).toBeTruthy();
+  });
 });
 
 

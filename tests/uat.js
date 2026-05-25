@@ -23476,12 +23476,12 @@ test('TB v3 walk: hub-spoke-branches-reach-hq walkthrough exists with 6 steps', 
   return !!walk && walk.scenarioId === 'hub-and-spoke-wan' && walk.steps.length === 6;
 })());
 
-// v6.5.8 — Phase 8b Topology fundamentals: 6 new walkthroughs for star / mesh /
+// v6.5.9 — Phase 8b Topology fundamentals: 6 new walkthroughs for star / mesh /
 // three-tier / ring / point-to-point / spine-leaf scenarios. Consolidated guard
 // asserts presence + scenario binding + step count for each; the existing data-
 // integrity sweep below auto-validates their device-id targets against the
 // scenarios in topology-builder-v3.js — no additional sweep needed.
-test('TB v3 walk: 6 topology fundamentals walkthroughs (v6.5.8) present + bound + sized', (function () {
+test('TB v3 walk: 6 topology fundamentals walkthroughs (v6.5.9) present + bound + sized', (function () {
   var walkJs = read('features/topology-builder-v3-walkthroughs.js');
   var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
   if (!arrMatch) return false;
@@ -23493,6 +23493,25 @@ test('TB v3 walk: 6 topology fundamentals walkthroughs (v6.5.8) present + bound 
     { id: 'ring-topology-loop',          scenarioId: 'ring-topology',            steps: 6 },
     { id: 'point-to-point-atomic-link',  scenarioId: 'point-to-point-topology',  steps: 5 },
     { id: 'spine-leaf-east-west',        scenarioId: 'spine-leaf-fabric',        steps: 6 },
+  ];
+  return expected.every(function (e) {
+    var w = walks.find(function (x) { return x.id === e.id; });
+    return !!w && w.scenarioId === e.scenarioId && w.steps.length === e.steps;
+  });
+})());
+
+// v6.5.9 — Phase 8c Switching/VLAN: 3 new walkthroughs for router-on-a-stick /
+// l3-switch-svi / collapsed-core. Same consolidated-guard pattern as v6.5.9;
+// the data-integrity sweep below auto-validates device-id targets.
+test('TB v3 walk: 3 switching+VLAN walkthroughs (v6.5.9) present + bound + sized', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var expected = [
+    { id: 'router-on-a-stick-trunk',  scenarioId: 'router-on-a-stick',  steps: 6 },
+    { id: 'l3-switch-svi-routing',    scenarioId: 'l3-switch-svi',      steps: 6 },
+    { id: 'collapsed-core-two-tiers', scenarioId: 'collapsed-core',     steps: 6 },
   ];
   return expected.every(function (e) {
     var w = walks.find(function (x) { return x.id === e.id; });
@@ -23661,23 +23680,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.8: package.json version is 6.5.8', (function () {
+test('v6.5.9: package.json version is 6.5.9', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.8"/.test(pkg);
+  return /"version":\s*"6\.5\.9"/.test(pkg);
 })());
 
-test('v6.5.8: sw.js CACHE_NAME is netplus-v6.5.8', (function () {
+test('v6.5.9: sw.js CACHE_NAME is netplus-v6.5.9', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.8/.test(sw);
+  return /netplus-v6\.5\.9/.test(sw);
 })());
 
-test('v6.5.8: index.html version badge is v6.5.8', (function () {
-  return /version-badge[\s\S]*?v6\.5\.8/.test(html);
+test('v6.5.9: index.html version badge is v6.5.9', (function () {
+  return /version-badge[\s\S]*?v6\.5\.9/.test(html);
 })());
 
-test('v6.5.8: app.js APP_VERSION is 6.5.8', (function () {
+test('v6.5.9: app.js APP_VERSION is 6.5.9', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.8['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.9['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {
