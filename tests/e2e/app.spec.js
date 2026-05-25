@@ -4076,6 +4076,45 @@ test.describe('TB v3 Walkthrough Phase 8', () => {
     expect(progress['site-to-site-ipsec-tunnel']).toBeTruthy();
     expect(progress['site-to-site-ipsec-tunnel'].completedAt).toBeTruthy();
   });
+
+  // v6.5.15 — Phase 8i SASE + Security: spot-check zero-trust-microsegment.
+  test('TB v3 WALK v6.5.15 — Security: start zero-trust-microsegment, walk all 5 steps, completion writes PROGRESS', async ({ page }) => {
+    await page.goto('/?cert=netplus');
+    await page.waitForFunction(() => typeof window.showPage === 'function');
+    await page.evaluate(async () => {
+      window._gateProOnly = () => true;
+      window._certanvilSignedIn = true;
+      await window._loadFeature('topology-builder-v3');
+      window.showPage('topology-builder-v3');
+      if (typeof window.openTopologyBuilderV3 === 'function') window.openTopologyBuilderV3();
+    });
+    await page.waitForSelector('#tb3-canvas-svg', { timeout: 15000 });
+
+    await page.evaluate(() => {
+      var tb3 = window._certanvilFeatures['topology-builder-v3'];
+      if (tb3 && typeof tb3.walkStart === 'function') tb3.walkStart('zero-trust-microsegment');
+      else if (typeof window.walkStart === 'function') window.walkStart('zero-trust-microsegment');
+    });
+
+    await page.waitForSelector('.tb3-walk-card', { timeout: 5000 });
+    await expect(page.locator('.tb3-walk-card-pos')).toContainText('1 / 5');
+
+    for (var i = 0; i < 4; i++) {
+      await page.click('[data-walk-next]');
+      await page.waitForTimeout(200);
+    }
+
+    await expect(page.locator('[data-walk-next]')).toContainText('Finish');
+    await page.click('[data-walk-next]');
+
+    await expect(page.locator('.tb3-walk-card-complete-title')).toContainText('Walkthrough complete');
+
+    var progress = await page.evaluate(() => {
+      return JSON.parse(localStorage.getItem('nplus_tb_v3_walk_progress_v1') || '{}');
+    });
+    expect(progress['zero-trust-microsegment']).toBeTruthy();
+    expect(progress['zero-trust-microsegment'].completedAt).toBeTruthy();
+  });
 });
 
 

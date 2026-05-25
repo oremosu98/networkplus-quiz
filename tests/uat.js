@@ -23622,6 +23622,26 @@ test('TB v3 walk: 3 VPN walkthroughs (v6.5.14) present + bound + sized', (functi
   });
 })());
 
+// v6.5.15 — Phase 8i SASE + Security: 4 new walkthroughs (SASE cloud-edge,
+// zero-trust microsegmentation, bastion/jump-host single-door, 802.1X NAC).
+// FINAL ship — closes the catalog at 42 of 42 scenarios covered.
+test('TB v3 walk: 4 SASE+Security walkthroughs (v6.5.15 — catalog complete) present + bound + sized', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var expected = [
+    { id: 'sase-cloud-edge',           scenarioId: 'sase-architecture',     steps: 5 },
+    { id: 'zero-trust-microsegment',   scenarioId: 'zero-trust-segmented',  steps: 5 },
+    { id: 'bastion-single-door',       scenarioId: 'bastion-jump-host',     steps: 5 },
+    { id: 'nac-8021x-port-auth',       scenarioId: 'nac-802-1x',            steps: 5 },
+  ];
+  return expected.every(function (e) {
+    var w = walks.find(function (x) { return x.id === e.id; });
+    return !!w && w.scenarioId === e.scenarioId && w.steps.length === e.steps;
+  });
+})());
+
 test('TB v3 walk: ALL pilot walkthroughs pass data integrity (scenario + device ids exist)', (function () {
   var walkJs = read('features/topology-builder-v3-walkthroughs.js');
   var tbJs = read('features/topology-builder-v3.js');
@@ -23783,23 +23803,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.14:package.json version is 6.5.14', (function () {
+test('v6.5.15:package.json version is 6.5.15', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.14"/.test(pkg);
+  return /"version":\s*"6\.5\.15"/.test(pkg);
 })());
 
-test('v6.5.14:sw.js CACHE_NAME is netplus-v6.5.14', (function () {
+test('v6.5.15:sw.js CACHE_NAME is netplus-v6.5.15', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.14/.test(sw);
+  return /netplus-v6\.5\.15/.test(sw);
 })());
 
-test('v6.5.14:index.html version badge is v6.5.11', (function () {
-  return /version-badge[\s\S]*?v6\.5\.14/.test(html);
+test('v6.5.15:index.html version badge is v6.5.11', (function () {
+  return /version-badge[\s\S]*?v6\.5\.15/.test(html);
 })());
 
-test('v6.5.14:app.js APP_VERSION is 6.5.14', (function () {
+test('v6.5.15:app.js APP_VERSION is 6.5.15', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.14['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.15['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {
