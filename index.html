@@ -2754,10 +2754,6 @@
   </div>
 </div>
 
-<!-- v3 — Topology Builder revamp. Walkthroughs data is eagerly loaded so
-     the global TB_V3_WALKTHROUGHS constant exists before the main TB v3
-     file lazy-loads via _loadFeature('topology-builder-v3'). -->
-<script src="features/topology-builder-v3-walkthroughs.js"></script>
 <div id="page-topology-builder-v3" class="page"></div>
 
 <!-- ══════════════════════════════════════════
@@ -2963,6 +2959,8 @@
      Other 5 scripts are small enough that the browser's preload scanner
      picks them up via the <script defer> tag itself. -->
 <link rel="preload" as="script" href="app.js">
+<!-- Walkthroughs constant must be globally defined before TB v3 lazy-loads via _loadFeature() -->
+<script defer src="features/topology-builder-v3-walkthroughs.js"></script>
 <script defer src="lib/supabase-umd.min.js"></script>
 <script defer src="lib/supabase.js"></script>
 <script defer src="cloud-store.js"></script>

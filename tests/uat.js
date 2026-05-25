@@ -22940,9 +22940,9 @@ test('TB v3 walk: walkthroughs file exists and exports array', (function () {
   return /var TB_V3_WALKTHROUGHS = \[/.test(walkJs);
 })());
 
-test('TB v3 walk: walkthroughs script tag is eager (no lazy attrs)', (function () {
+test('TB v3 walk: walkthroughs script tag is parser-friendly (no async / no module)', (function () {
   const m = html.match(/<script[^>]*topology-builder-v3-walkthroughs\.js[^>]*><\/script>/);
-  return !!m && !/\b(defer|async|type=["']module)/.test(m[0]);
+  return !!m && !/\basync\b|type=["']module/.test(m[0]);
 })());
 
 // ── Summary ──
