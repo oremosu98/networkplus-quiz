@@ -23432,6 +23432,18 @@ test('TB v3 walk: branch-office-wireless-lan walkthrough exists with 5 steps', (
   return !!walk && walk.scenarioId === 'branch-office-wireless' && walk.steps.length === 5;
 })());
 
+test('TB v3 walk: dmz-defense-in-depth walkthrough exists with 7 steps + Network Security domainTag', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var walk = walks.find(function (w) { return w.id === 'dmz-defense-in-depth'; });
+  return !!walk
+    && walk.scenarioId === 'dmz-screened-subnet'
+    && walk.steps.length === 7
+    && walk.domainTags && walk.domainTags.indexOf('Network Security') !== -1;
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
