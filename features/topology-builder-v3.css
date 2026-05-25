@@ -3173,3 +3173,143 @@ html[data-theme="light"] #page-topology-builder-v3 {
 .tb3-walk-walks-pill-partial {
   /* Uses base amber from .tb3-walk-walks-pill — no override needed */
 }
+
+/* ── Walkthrough step card (Task 15) ────────────────────────────── */
+.tb3-walk-card {
+  position: absolute;
+  width: 260px;
+  background: linear-gradient(180deg, #161618, #0e0e10);
+  border: 1px solid rgba(201, 138, 54, 0.55);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow:
+    0 0 0 1px rgba(201, 138, 54, 0.18),
+    0 12px 36px -10px rgba(0, 0, 0, 0.85),
+    0 6px 22px -10px rgba(201, 138, 54, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 105;
+  color: rgba(255, 255, 255, 0.92);
+  transition:
+    left 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: inherit;
+}
+.tb3-walk-card.tb3-walk-card-in-popup {
+  z-index: 8;
+}
+.tb3-walk-card-exit-x {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+.tb3-walk-card-exit-x:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+.tb3-walk-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tb3-walk-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 200ms;
+}
+.tb3-walk-card-dot.done {
+  background: rgba(201, 138, 54, 0.85);
+  border-color: #c98a36;
+}
+.tb3-walk-card-dot.current {
+  background: rgba(201, 138, 54, 0.4);
+  border-color: #f0c789;
+  box-shadow: 0 0 0 2px rgba(201, 138, 54, 0.18);
+}
+.tb3-walk-card-pos {
+  margin-left: auto;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(201, 138, 54, 0.9);
+  font-weight: 600;
+}
+.tb3-walk-card-kind {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #c98a36;
+  background: rgba(201, 138, 54, 0.12);
+  border: 1px solid rgba(201, 138, 54, 0.3);
+  padding: 3px 7px;
+  border-radius: 3px;
+  align-self: flex-start;
+}
+.tb3-walk-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.tb3-walk-card-body {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.55;
+}
+.tb3-walk-card-controls {
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tb3-walk-card-btn {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid;
+  background-clip: padding-box;
+}
+.tb3-walk-card-btn-back {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+}
+.tb3-walk-card-btn-back[disabled] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.tb3-walk-card-btn-next {
+  background: linear-gradient(180deg, rgba(201, 138, 54, 0.3), rgba(201, 138, 54, 0.18));
+  border-color: rgba(201, 138, 54, 0.6);
+  color: #f5deb6;
+}
+.tb3-walk-card-btn-next:hover {
+  background: linear-gradient(180deg, rgba(201, 138, 54, 0.4), rgba(201, 138, 54, 0.25));
+}
+.tb3-walk-card-resume-link {
+  font-size: 10px;
+  color: #f0c789;
+  text-align: center;
+  margin-top: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb3-walk-card { transition: none; }
+}

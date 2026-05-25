@@ -23253,6 +23253,38 @@ test('TB v3 walk: CSS has done + resume + blank badge styles + complete pill', (
       && /\.tb3-walk-walks-pill-complete\b/.test(tbCss);
 })());
 
+test('TB v3 walk: renderStepCard creates .tb3-walk-card element', (function () {
+  var m = tbV3JsForWalk.match(/function renderStepCard\(step\)[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /tb3-walk-card/.test(body)
+      && /step\.title/.test(body)
+      && /step\.body/.test(body);
+})());
+
+test('TB v3 walk: hideStepCard removes the card', (function () {
+  var m = tbV3JsForWalk.match(/function hideStepCard\(\)[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /remove/.test(m[0]) || /removeChild/.test(m[0]);
+})());
+
+test('TB v3 walk: markCardAsResumed adds resume link', (function () {
+  var m = tbV3JsForWalk.match(/function markCardAsResumed\(\)[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /tb3-walk-card-resume-link|Restart/.test(m[0]);
+})());
+
+test('TB v3 walk: card CSS has z-index 105 (2D) and popup variant has z-index 8', (function () {
+  var tbCss = read('features/topology-builder-v3.css');
+  return /\.tb3-walk-card\s*\{[\s\S]*z-index:\s*105/.test(tbCss)
+      && /tb3-walk-card-in-popup[\s\S]*z-index:\s*8/.test(tbCss);
+})());
+
+test('TB v3 walk: Esc keydown handler wired to walkExit', (function () {
+  return /['"]Escape['"][\s\S]{0,200}walkExit/.test(tbV3JsForWalk)
+      || /walkExit[\s\S]{0,200}['"]Escape['"]/.test(tbV3JsForWalk);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

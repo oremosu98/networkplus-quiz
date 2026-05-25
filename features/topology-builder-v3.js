@@ -6973,7 +6973,61 @@
   }
 
   // Stubs for downstream tasks (replaced by Tasks 8/9/15/16/18)
-  function renderStepCard(/* step */) {}                         // Task 15
+  function renderStepCard(step) {
+    var card = document.querySelector('.tb3-walk-card');
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'tb3-walk-card';
+      // Mount to whichever container matches the current mode
+      var host;
+      if (state.walkMode === '3d') {
+        host = document.getElementById('tb3-3d-popup-modal') || document.body;
+        card.classList.add('tb3-walk-card-in-popup');
+      } else {
+        host = document.getElementById('tb3-canvas-wrap') || document.body;
+      }
+      host.appendChild(card);
+    }
+
+    var walk = (typeof TB_V3_WALKTHROUGHS !== 'undefined' ? TB_V3_WALKTHROUGHS : [])
+      .find(function (w) { return w.id === state.activeWalkthroughId; });
+    if (!walk) return;
+    var idx = state.walkStepIdx;
+    var total = walk.steps.length;
+
+    var dotsHtml = '';
+    for (var i = 0; i < total; i++) {
+      var dotClass = 'tb3-walk-card-dot';
+      if (i < idx) dotClass += ' done';
+      else if (i === idx) dotClass += ' current';
+      dotsHtml += '<span class="' + dotClass + '"></span>';
+    }
+
+    var backDisabled = idx === 0 ? ' disabled' : '';
+    var nextLabel = idx === total - 1 ? 'Finish →' : 'Continue →';
+    var kindLabel = step.type.charAt(0).toUpperCase() + step.type.slice(1);
+
+    card.innerHTML =
+      '<div class="tb3-walk-card-exit-x" data-walk-exit>×</div>' +
+      '<div class="tb3-walk-card-progress">' + dotsHtml +
+        '<span class="tb3-walk-card-pos">' + (idx + 1) + ' / ' + total + '</span>' +
+      '</div>' +
+      '<div class="tb3-walk-card-kind">' + kindLabel + '</div>' +
+      '<div class="tb3-walk-card-title">' + _escAttr(step.title) + '</div>' +
+      '<div class="tb3-walk-card-body">' + _escAttr(step.body) + '</div>' +
+      '<div class="tb3-walk-card-controls">' +
+        '<div class="tb3-walk-card-btn tb3-walk-card-btn-back"' + backDisabled + ' data-walk-back>← Back</div>' +
+        '<div class="tb3-walk-card-btn tb3-walk-card-btn-next" data-walk-next>' + nextLabel + '</div>' +
+      '</div>';
+
+    // Wire buttons
+    var exitBtn = card.querySelector('[data-walk-exit]');
+    if (exitBtn) exitBtn.onclick = walkExit;
+    var nextBtn = card.querySelector('[data-walk-next]');
+    if (nextBtn) nextBtn.onclick = walkNext;
+    var backBtn = card.querySelector('[data-walk-back]');
+    if (backBtn && idx > 0) backBtn.onclick = walkBack;
+  }                                                              // Task 15
   function anchorStepCardToViewportCenter() {}                   // Task 16
   function anchorStepCardToTarget(/* target, mode */) {}         // Task 16
   function anchorStepCardToDevice(/* deviceId, mode */) {}       // Task 16
@@ -7287,7 +7341,10 @@
   }
 
   // Stubs for not-yet-implemented functions (later tasks replace these):
-  function hideStepCard() {}                          // Task 15
+  function hideStepCard() {
+    var card = document.querySelector('.tb3-walk-card');
+    if (card && card.parentNode) card.parentNode.removeChild(card);
+  }                                                   // Task 15
   function showCompletionCard(/* walkthroughId */) {} // Task 18
   function renderWalkCatalog() {
     var workspace = document.querySelector('.tb3-workspace');
@@ -7445,7 +7502,22 @@
     if (!walkthroughId) return;
     walkStart(walkthroughId);
   }                     // Task 12
-  function markCardAsResumed() {}                     // Task 15
+  function markCardAsResumed() {
+    var card = document.querySelector('.tb3-walk-card');
+    if (!card) return;
+    if (card.querySelector('.tb3-walk-card-resume-link')) return;
+    var link = document.createElement('div');
+    link.className = 'tb3-walk-card-resume-link';
+    link.textContent = '↺ Restart from beginning';
+    link.onclick = function () {
+      state.walkStepIdx = 0;
+      if (typeof _saveState === 'function') _saveState();
+      var walk = (typeof TB_V3_WALKTHROUGHS !== 'undefined' ? TB_V3_WALKTHROUGHS : [])
+        .find(function (w) { return w.id === state.activeWalkthroughId; });
+      if (walk && walk.steps.length > 0) runStep(walk.steps[0], state.walkMode);
+    };
+    card.appendChild(link);
+  }                                                    // Task 15
 
   function walkStart(walkthroughId) {
     var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === walkthroughId; });
@@ -7497,6 +7569,16 @@
     state.walkCardAnchor = null;
     _saveState();
     renderWalkCatalog();
+  }
+
+  // Esc-to-exit walk (bind once)
+  if (typeof document !== 'undefined' && !window._tb3WalkEscBound) {
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && state.activeWalkthroughId) {
+        walkExit();
+      }
+    });
+    window._tb3WalkEscBound = true;
   }
 
   function walkComplete() {
