@@ -23637,23 +23637,31 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.5: package.json version is 6.5.5', (function () {
+test('v6.5.6: package.json version is 6.5.6', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.5"/.test(pkg);
+  return /"version":\s*"6\.5\.6"/.test(pkg);
 })());
 
-test('v6.5.5: sw.js CACHE_NAME is netplus-v6.5.5', (function () {
+test('v6.5.6: sw.js CACHE_NAME is netplus-v6.5.6', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.5/.test(sw);
+  return /netplus-v6\.5\.6/.test(sw);
 })());
 
-test('v6.5.5: index.html version badge is v6.5.5', (function () {
-  return /version-badge[\s\S]*?v6\.5\.5/.test(html);
+test('v6.5.6: index.html version badge is v6.5.6', (function () {
+  return /version-badge[\s\S]*?v6\.5\.6/.test(html);
 })());
 
-test('v6.5.5: app.js APP_VERSION is 6.5.5', (function () {
+test('v6.5.6: app.js APP_VERSION is 6.5.6', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.5['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.6['"]/.test(js);
+})());
+
+test('TB v3 walk: catalog panel uses absolute positioning (slides over canvas, not grid item)', (function () {
+  var css = read('features/topology-builder-v3.css');
+  var m = css.match(/#page-topology-builder-v3\s+\.tb3-rail-panel\[data-mode=["']walk-catalog["']\]\s*\{[\s\S]*?\n\}/);
+  if (!m) return false;
+  return /position:\s*absolute/.test(m[0])
+      && /transform:\s*translateX\(100%\)/.test(m[0]);
 })());
 
 test('TB v3 walk: walkStart resets viewport to scenario startingState (or {0,0,1})', (function () {
