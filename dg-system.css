@@ -3994,12 +3994,14 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
    video by default, swapped to light under [data-theme="light"]. Reduced-
    motion: video paused on first frame via JS. Cert-agnostic monogram. */
 #page-loading .loading-anim{
-  width:140px;
-  height:140px;
+  /* v6.5.17 — 110px (was 140) + 8px radius (was 16) so the rounded
+     corners stop clipping the C/A monogram strokes. */
+  width:110px;
+  height:110px;
   margin:0 auto 24px;
   display:block;
   position:relative;
-  border-radius:16px;
+  border-radius:8px;
   overflow:hidden;
 }
 #page-loading .loading-anim-video{

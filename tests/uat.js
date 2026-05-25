@@ -23833,23 +23833,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.16:package.json version is 6.5.16', (function () {
+test('v6.5.17:package.json version is 6.5.17', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.16"/.test(pkg);
+  return /"version":\s*"6\.5\.17"/.test(pkg);
 })());
 
-test('v6.5.16:sw.js CACHE_NAME is netplus-v6.5.16', (function () {
+test('v6.5.17:sw.js CACHE_NAME is netplus-v6.5.17', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.16/.test(sw);
+  return /netplus-v6\.5\.17/.test(sw);
 })());
 
-test('v6.5.16:index.html version badge is v6.5.11', (function () {
-  return /version-badge[\s\S]*?v6\.5\.16/.test(html);
+test('v6.5.17:index.html version badge is v6.5.11', (function () {
+  return /version-badge[\s\S]*?v6\.5\.17/.test(html);
 })());
 
-test('v6.5.16:app.js APP_VERSION is 6.5.16', (function () {
+test('v6.5.17:app.js APP_VERSION is 6.5.17', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.16['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.17['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {

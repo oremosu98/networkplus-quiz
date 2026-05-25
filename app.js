@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v6.5.16
+// Network+ AI Quiz — app.js  v6.5.17
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '6.5.16';
+const APP_VERSION = '6.5.17';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
