@@ -23352,6 +23352,65 @@ test('TB v3 walk: completion CSS has tb3-walk-card-complete styles', (function (
       && /\.tb3-walk-card-complete-icon\b/.test(tbCss);
 })());
 
+test('TB v3 walk: home-network-comms walkthrough exists with 6 steps', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var walk = walks.find(function (w) { return w.id === 'home-network-comms'; });
+  if (!walk) return false;
+  return walk.scenarioId === 'home-network'
+    && walk.steps.length === 6
+    && walk.steps.every(function (s) { return s.id && s.type && s.title && s.body; });
+})());
+
+test('TB v3 walk: home-network-comms steps reference valid device IDs', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var tbJs = read('features/topology-builder-v3.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var walk = walks.find(function (w) { return w.id === 'home-network-comms'; });
+  if (!walk) return false;
+  // Find home-network scenario, then walk bracket depth to capture the full devices array
+  var anchor = tbJs.search(/id:\s*['"]home-network['"]/);
+  if (anchor === -1) return false;
+  var devKey = tbJs.indexOf('devices:', anchor);
+  if (devKey === -1) return false;
+  var start = tbJs.indexOf('[', devKey);
+  if (start === -1) return false;
+  var depth = 0, end = -1;
+  for (var p = start; p < tbJs.length; p++) {
+    var ch = tbJs.charAt(p);
+    if (ch === '[') depth++;
+    else if (ch === ']') { depth--; if (depth === 0) { end = p; break; } }
+  }
+  if (end === -1) return false;
+  var devicesBlock = tbJs.substring(start, end + 1);
+  // Each device entry is an object literal starting with `{ id: '…'` — capture only those top-level ids
+  var deviceIds = (devicesBlock.match(/\{\s*id:\s*['"]([^'"]+)['"]/g) || []).map(function (m) {
+    return m.match(/['"]([^'"]+)['"]/)[1];
+  });
+  // Validate each step's referenced ids
+  for (var i = 0; i < walk.steps.length; i++) {
+    var step = walk.steps[i];
+    if (step.type === 'highlight') {
+      var t = step.target;
+      var ids = t.kind === 'device' ? [t.id] : (t.kind === 'devices' ? t.ids : []);
+      for (var j = 0; j < ids.length; j++) {
+        if (deviceIds.indexOf(ids[j]) === -1) return false;
+      }
+    }
+    if (step.type === 'flow') {
+      var flowIds = [step.flow.from, step.flow.to].concat(step.flow.via || []);
+      for (var k = 0; k < flowIds.length; k++) {
+        if (deviceIds.indexOf(flowIds[k]) === -1) return false;
+      }
+    }
+  }
+  return true;
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
