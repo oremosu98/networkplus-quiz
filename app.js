@@ -760,6 +760,7 @@ const STORAGE = {
   BUG_REPORTS: 'nplus_bug_reports', // v5.6.x bug-report drawer retry queue
   TB_V3_DRAFT: 'nplus_tb_v3_draft', // v6.x topology-builder v3 canvas state (Net+ only)
   TB_V3_FREEBUILD_BACKUP: 'nplus_tb_v3_freebuild_backup', // phase 2 freebuild backup state
+  TB_V3_WALK_PROGRESS: 'nplus_tb_v3_walk_progress_v1', // phase 8 walkthrough progress
   PORT_BEST: 'nplus_port_best',
   PORT_STREAK_BEST: 'nplus_port_streak_best',
   PORT_FAMILY_BEST: 'nplus_port_family_best',
