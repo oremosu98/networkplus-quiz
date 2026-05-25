@@ -6965,9 +6965,10 @@
     for (var j = 0; j < pellets.length; j++) {
       pellets[j].parentNode && pellets[j].parentNode.removeChild(pellets[j]);
     }
-    // 3D-mode glow reset will plug in once Task 10 lands (_tb3ClearGlowMaterials)
-    if (mode === '3d' && typeof _tb3ClearGlowMaterials === 'function') {
-      _tb3ClearGlowMaterials();
+    // 3D popup is CSS-3D + SVG (no Three.js). Reset stage translate added by
+    // _focusCameraOnDevice3D so user-set rotation/zoom remain intact.
+    if (mode === '3d') {
+      _clearWalkHighlight3D();
     }
   }
 
@@ -6995,8 +6996,81 @@
           if (cblEl) cblEl.classList.add('tb3-walk-cable-pulse');
         }
       }
+    } else if (mode === '3d') {
+      // 3D popup is CSS-3D + SVG. Same data-device-id / data-cable-id conventions
+      // as 2D, so the same tb3-walk-pulse / tb3-walk-cable-pulse classes apply
+      // (filter: drop-shadow works on both DOM divs and SVG paths).
+      for (var i3 = 0; i3 < resolved.devices.length; i3++) {
+        var el3 = document.querySelector('.tb3-3d-dev[data-device-id="' + resolved.devices[i3] + '"]');
+        if (el3) el3.classList.add('tb3-walk-pulse');
+      }
+      for (var j3 = 0; j3 < resolved.cables.length; j3++) {
+        var a3 = resolved.cables[j3][0], b3 = resolved.cables[j3][1];
+        var cbl3 = state.cables.find(function (c) {
+          return (c.fromId === a3 && c.toId === b3) || (c.fromId === b3 && c.toId === a3);
+        });
+        if (cbl3) {
+          var cblEl3 = document.querySelector('.tb3-3d-cable[data-cable-id="' + cbl3.id + '"]');
+          if (cblEl3) cblEl3.classList.add('tb3-walk-cable-pulse');
+        }
+      }
+      // Camera focus on single-device targets only (multi-device / cable groups
+      // don't trigger camera moves — keeps user-set rotation/zoom stable).
+      if (target && target.kind === 'device' && target.cameraIn3D !== 'none') {
+        _focusCameraOnDevice3D(target.id);
+      }
     }
-    // 3D path lands in Task 10
+  }
+
+  function _focusCameraOnDevice3D(deviceId) {
+    var stage = document.getElementById('tb3-3d-popup-stage');
+    if (!stage) return;
+    var devEl = document.querySelector('.tb3-3d-dev[data-device-id="' + deviceId + '"]');
+    if (!devEl) return;
+
+    // Reduced-motion: skip camera tween entirely so user view is undisturbed
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    // Compute viewport center vs device center; tween an additive translate on
+    // the stage to bring the device to viewport center.
+    var viewport = document.getElementById('tb3-3d-popup-viewport') || stage.parentElement;
+    if (!viewport) return;
+    var vpRect = viewport.getBoundingClientRect();
+    var devRect = devEl.getBoundingClientRect();
+    var dx = (vpRect.left + vpRect.width / 2) - (devRect.left + devRect.width / 2);
+    var dy = (vpRect.top + vpRect.height / 2) - (devRect.top + devRect.height / 2);
+
+    // Strip any prior walk-focus translate so we don't accumulate; preserve
+    // any rotateX/rotateY/scale the user has set (drag/zoom).
+    var curTransform = (stage.style.transform || '').replace(/translate3d\([^)]*\)\s*/g, '');
+
+    var startTime = performance.now();
+    var dur = 500;
+    function frame(t) {
+      var k = Math.min((t - startTime) / dur, 1);
+      var ease = 1 - Math.pow(1 - k, 3); // ease-out cubic
+      var tx = dx * ease;
+      var ty = dy * ease;
+      stage.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) ' + curTransform;
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function _clearWalkHighlight3D() {
+    // Remove walk classes from 3D popup elements (defensive — clearEffects
+    // already strips by class globally, but this is the explicit 3D-scoped path).
+    var devs = document.querySelectorAll('.tb3-3d-dev.tb3-walk-pulse');
+    for (var i = 0; i < devs.length; i++) devs[i].classList.remove('tb3-walk-pulse');
+    var cbls = document.querySelectorAll('.tb3-3d-cable.tb3-walk-cable-pulse');
+    for (var j = 0; j < cbls.length; j++) cbls[j].classList.remove('tb3-walk-cable-pulse');
+    // Reset only the walk-added translate; preserve user-set rotation/scale.
+    var stage = document.getElementById('tb3-3d-popup-stage');
+    if (stage) {
+      stage.style.transform = (stage.style.transform || '').replace(/translate3d\([^)]*\)\s*/g, '');
+    }
   }
   function animateFlow(flow, mode) {
     if (mode === '2d') {

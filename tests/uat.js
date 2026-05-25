@@ -23121,6 +23121,34 @@ test('TB v3 walk: CSS for pellet has reduced-motion arrow fallback', (function (
       && /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?tb3-walk-flow-arrow/.test(tbCss);
 })());
 
+test('TB v3 walk: applyHighlight has 3D branch', (function () {
+  var m = tbV3JsForWalk.match(/function applyHighlight\(target,\s*mode\)\s*\{[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /mode\s*===\s*['"]3d['"]/.test(body) && /tb3-3d-dev/.test(body);
+})());
+
+test('TB v3 walk: _focusCameraOnDevice3D helper exists', (function () {
+  return /function _focusCameraOnDevice3D\(/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: _focusCameraOnDevice3D animates the popup stage transform', (function () {
+  var m = tbV3JsForWalk.match(/function _focusCameraOnDevice3D[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /tb3-3d-popup-stage/.test(body) && /requestAnimationFrame/.test(body);
+})());
+
+test('TB v3 walk: _clearWalkHighlight3D removes walk classes from 3D popup', (function () {
+  return /function _clearWalkHighlight3D\(/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: clearEffects calls _clearWalkHighlight3D when mode is 3d', (function () {
+  var m = tbV3JsForWalk.match(/function clearEffects\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /_clearWalkHighlight3D/.test(m[0]);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
