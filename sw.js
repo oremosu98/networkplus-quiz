@@ -1,5 +1,5 @@
-// Service Worker v6.5.15 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v6.5.15';
+// Service Worker v6.5.16 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v6.5.16';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -28,7 +28,12 @@ const SHELL_ASSETS = [
   './migration.js',
   // v4.99.56 (D.5): landing-diagnostic claim hook. Fires on URL action
   // `?action=claim-diagnostic&token=...` post magic-link sign-in.
-  './diagnostic-claim.js'
+  './diagnostic-claim.js',
+  // v6.5.16: CertAnvil logo animation on the loading screen (mockup option 2).
+  // 280x280 MP4 per theme, ~200KB each. Precached so the brand reveal plays
+  // instantly on the first generation, no first-load fetch lag.
+  './assets/logo-animation/logo-dark.mp4',
+  './assets/logo-animation/logo-light.mp4'
 ];
 // Hard cap on cached entries to prevent unbounded cache growth (#20).
 // The shell counts toward this; everything beyond it (icons, fonts, runtime
