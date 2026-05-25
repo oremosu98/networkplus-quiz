@@ -23637,23 +23637,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.2: package.json version is 6.5.2', (function () {
+test('v6.5.3: package.json version is 6.5.3', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.2"/.test(pkg);
+  return /"version":\s*"6\.5\.3"/.test(pkg);
 })());
 
-test('v6.5.2: sw.js CACHE_NAME is netplus-v6.5.2', (function () {
+test('v6.5.3: sw.js CACHE_NAME is netplus-v6.5.3', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.2/.test(sw);
+  return /netplus-v6\.5\.3/.test(sw);
 })());
 
-test('v6.5.2: index.html version badge is v6.5.2', (function () {
-  return /version-badge[\s\S]*?v6\.5\.2/.test(html);
+test('v6.5.3: index.html version badge is v6.5.3', (function () {
+  return /version-badge[\s\S]*?v6\.5\.3/.test(html);
 })());
 
-test('v6.5.2: app.js APP_VERSION is 6.5.2', (function () {
+test('v6.5.3: app.js APP_VERSION is 6.5.3', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.2['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.3['"]/.test(js);
 })());
 
 // Bug A: MutationObserver re-applies walk FX after canvas re-render
@@ -23772,6 +23772,20 @@ test('v6.5.2 drag: controls still clickable (.tb3-walk-card-controls cursor:poin
   var tbCss = read('features/topology-builder-v3.css');
   var m = tbCss.match(/\.tb3-walk-card-controls[\s\S]*?\{[\s\S]*?cursor:\s*pointer[\s\S]*?user-select:\s*auto[\s\S]*?\}/);
   return !!m;
+})());
+
+test('TB v3 walk: walkStart preserves walkMode across loadScenarioOnCanvas state reassign', (function () {
+  var m = tbV3JsForWalk.match(/function walkStart[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /savedWalkMode\s*=\s*state\.walkMode/.test(body)
+      && /state\.walkMode\s*=\s*savedWalkMode/.test(body);
+})());
+
+test('TB v3 walk: runStep defaults mode to 2d when undefined', (function () {
+  var m = tbV3JsForWalk.match(/function runStep[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /mode\s*=\s*mode\s*\|\|\s*['"]2d['"]/.test(m[0]);
 })());
 
 // ── Summary ──

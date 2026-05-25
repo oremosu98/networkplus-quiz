@@ -7007,6 +7007,7 @@
 
   function runStep(step, mode) {
     if (!step) return;
+    mode = mode || '2d';  // v6.5.3 defensive default — handles edge cases where state.walkMode is undefined
     clearEffects(mode);
     // Bug A fix (v6.5.2): track which flow step's pellets are currently in
     // flight so the SVG mutation observer can decide whether to re-spawn.
@@ -7893,11 +7894,22 @@
     // Bug B fix (v6.5.2): loadScenarioOnCanvas returns the new state — must
     // reassign `state = ...` (matches scenario-picker pattern at L4156) so
     // activeScenarioId syncs, then trigger a canvas re-render.
+    // v6.5.3 root-cause fix: loadScenarioOnCanvas constructs a fresh state
+    // object that does NOT include walkthrough-specific fields (walkMode,
+    // walkCardAnchor). Preserve and restore them across the reassignment,
+    // and re-render intent chip / minimap / mode bar to clear stale UI.
     if (state.activeScenarioId !== walk.scenarioId) {
       var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === walk.scenarioId; });
       if (scenario) {
+        var savedWalkMode = state.walkMode || '2d';
+        var savedWalkCardAnchor = state.walkCardAnchor;
         state = loadScenarioOnCanvas(state, scenario);
+        state.walkMode = savedWalkMode;
+        state.walkCardAnchor = savedWalkCardAnchor;
         if (typeof _renderCanvas === 'function') _renderCanvas();
+        if (typeof _renderIntentChip === 'function') _renderIntentChip();
+        if (typeof _renderMinimap === 'function') _renderMinimap();
+        if (typeof _renderModeBar === 'function') _renderModeBar();
       }
     }
     state.priorIntent = state.intent;
