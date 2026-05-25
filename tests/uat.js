@@ -23170,6 +23170,34 @@ test('TB v3 walk: 3D flow has reduced-motion CSS gate', (function () {
       && /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?tb3-walk-3d-packet/.test(tbCss);
 })());
 
+test('TB v3 walk: renderWalkCatalog builds tb3-rail-panel with data-mode="walk-catalog"', (function () {
+  var m = tbV3JsForWalk.match(/function renderWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /tb3-rail-panel/.test(body)
+      && /walk-catalog/.test(body);
+})());
+
+test('TB v3 walk: renderWalkCatalog groups by exam domain via domainsForRefs', (function () {
+  var m = tbV3JsForWalk.match(/function renderWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /domainsForRefs/.test(m[0]);
+})());
+
+test('TB v3 walk: renderWalkCatalog only lists scenarios with walks', (function () {
+  var m = tbV3JsForWalk.match(/function renderWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /TB_V3_WALKTHROUGHS/.test(body) && /scenarioId/.test(body);
+})());
+
+test('TB v3 walk: catalog CSS has domain header + scenario row + walks-pill styles', (function () {
+  var tbCss = read('features/topology-builder-v3.css');
+  return /\.tb3-walk-catalog-domain-h\b/.test(tbCss)
+      && /\.tb3-walk-scen-row\b/.test(tbCss)
+      && /\.tb3-walk-walks-pill\b/.test(tbCss);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

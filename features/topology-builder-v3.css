@@ -3005,3 +3005,67 @@ html[data-theme="light"] #page-topology-builder-v3 {
 @media (prefers-reduced-motion: reduce) {
   .tb3-walk-3d-packet { display: none; }
 }
+
+/* ── Walkthrough catalog (Phase 8) ─────────────────────────────── */
+.tb3-rail-panel[data-mode="walk-catalog"] {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tb3-walk-catalog-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tb3-text-strong, #f5deb6);
+  margin-bottom: 4px;
+}
+.tb3-walk-catalog-domain-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--tb3-bronze, #8b5a3c);
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+  margin-top: 8px;
+}
+.tb3-walk-catalog-domain-count {
+  background: rgba(201, 138, 54, 0.12);
+  color: rgba(201, 138, 54, 0.85);
+  padding: 2px 6px;
+  border-radius: 9px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.tb3-walk-scen-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition: opacity 200ms ease, background 200ms ease;
+}
+.tb3-walk-scen-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.tb3-walk-scen-title { flex: 1; }
+.tb3-walk-walks-pill {
+  font-size: 9px;
+  color: rgba(201, 138, 54, 0.9);
+  background: rgba(201, 138, 54, 0.10);
+  border: 1px solid rgba(201, 138, 54, 0.3);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.tb3-walk-scen-chev { color: rgba(201, 138, 54, 0.5); font-size: 12px; }

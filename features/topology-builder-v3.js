@@ -7289,7 +7289,91 @@
   // Stubs for not-yet-implemented functions (later tasks replace these):
   function hideStepCard() {}                          // Task 15
   function showCompletionCard(/* walkthroughId */) {} // Task 18
-  function renderWalkCatalog() {}                     // Task 12
+  function renderWalkCatalog() {
+    var workspace = document.querySelector('.tb3-workspace');
+    if (!workspace) return;
+
+    // Get or create the panel
+    var panel = document.querySelector('.tb3-rail-panel[data-mode="walk-catalog"]');
+    if (!panel) {
+      panel = document.createElement('aside');
+      panel.className = 'tb3-rail-panel';
+      panel.dataset.mode = 'walk-catalog';
+      workspace.appendChild(panel);
+    }
+
+    // Group scenarios by primary exam domain (first objectiveRef)
+    // Only include scenarios that have at least one walkthrough
+    var groups = {};
+    for (var i = 0; i < TB_V3_SCENARIOS.length; i++) {
+      var scen = TB_V3_SCENARIOS[i];
+      var walks = TB_V3_WALKTHROUGHS.filter(function (w) { return w.scenarioId === scen.id; });
+      if (walks.length === 0) continue;
+      var primaryDomain = domainsForRefs(scen.objectiveRefs || [])[0];
+      groups[primaryDomain] = groups[primaryDomain] || [];
+      groups[primaryDomain].push({ scen: scen, walks: walks });
+    }
+
+    // Stable domain order
+    var domainOrder = [
+      'Networking Concepts',
+      'Network Implementation',
+      'Network Operations',
+      'Network Security',
+      'Network Troubleshooting',
+      'Other',
+    ];
+
+    var html = '<div class="tb3-walk-catalog-header">Walkthroughs</div>';
+
+    for (var d = 0; d < domainOrder.length; d++) {
+      var domain = domainOrder[d];
+      var items = groups[domain];
+      if (!items || items.length === 0) continue;
+
+      html += '<div class="tb3-walk-catalog-domain-h">' +
+              '<span>' + domain + '</span>' +
+              '<span class="tb3-walk-catalog-domain-count">' + items.length + '</span>' +
+              '</div>';
+
+      for (var k = 0; k < items.length; k++) {
+        var item = items[k];
+        var walkCount = item.walks.length;
+        html += '<div class="tb3-walk-scen-row" data-scenario-id="' + item.scen.id + '">' +
+                '<span class="tb3-walk-scen-title">' + item.scen.title + '</span>' +
+                '<span class="tb3-walk-walks-pill">' + walkCount + ' walk' + (walkCount === 1 ? '' : 's') + '</span>' +
+                '<span class="tb3-walk-scen-chev">▸</span>' +
+                '</div>';
+      }
+    }
+
+    if (Object.keys(groups).length === 0) {
+      html += '<div style="padding:12px;font-size:11px;color:var(--tb3-text-dim);text-align:center">' +
+              'No walkthroughs available yet.</div>';
+    }
+
+    panel.innerHTML = html;
+
+    // Wire row clicks (Task 13 will replace this to activate the scenario in focus-dim mode)
+    var rows = panel.querySelectorAll('.tb3-walk-scen-row');
+    for (var r = 0; r < rows.length; r++) {
+      rows[r].addEventListener('click', _onCatalogRowClick);
+    }
+  }
+
+  function _onCatalogRowClick(ev) {
+    var row = ev.currentTarget;
+    var scenarioId = row.dataset.scenarioId;
+    if (!scenarioId) return;
+    // Placeholder behavior — Task 13 implements activate-scenario-in-focus-dim
+    var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === scenarioId; });
+    if (scenario) {
+      state.activeScenarioId = scenarioId;
+      if (typeof loadScenarioOnCanvas === 'function') {
+        state = loadScenarioOnCanvas(state, scenario);
+      }
+    }
+  }                     // Task 12
   function markCardAsResumed() {}                     // Task 15
 
   function walkStart(walkthroughId) {
