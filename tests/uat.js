@@ -23635,6 +23635,145 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
   return /panX\s*=\s*0/.test(m[0]) && /_apply3DCamera/.test(m[0]);
 })());
 
+// ── v6.5.2 hotfix tests ──
+
+test('v6.5.2: package.json version is 6.5.2', (function () {
+  var pkg = read('package.json');
+  return /"version":\s*"6\.5\.2"/.test(pkg);
+})());
+
+test('v6.5.2: sw.js CACHE_NAME is netplus-v6.5.2', (function () {
+  var sw = read('sw.js');
+  return /netplus-v6\.5\.2/.test(sw);
+})());
+
+test('v6.5.2: index.html version badge is v6.5.2', (function () {
+  return /version-badge[\s\S]*?v6\.5\.2/.test(html);
+})());
+
+test('v6.5.2: app.js APP_VERSION is 6.5.2', (function () {
+  var js = read('app.js');
+  return /APP_VERSION\s*=\s*['"]6\.5\.2['"]/.test(js);
+})());
+
+// Bug A: MutationObserver re-applies walk FX after canvas re-render
+test('v6.5.2 Bug A: _startWalkEffectObserver defined and uses MutationObserver on #tb3-canvas-svg', (function () {
+  var m = tbV3JsForWalk.match(/function _startWalkEffectObserver[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /MutationObserver/.test(m[0])
+      && /tb3-canvas-svg/.test(m[0])
+      && /childList/.test(m[0]);
+})());
+
+test('v6.5.2 Bug A: walkStart calls _startWalkEffectObserver', (function () {
+  var m = tbV3JsForWalk.match(/function walkStart\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /_startWalkEffectObserver\(\)/.test(m[0]);
+})());
+
+test('v6.5.2 Bug A: walkExit calls _stopWalkEffectObserver', (function () {
+  var m = tbV3JsForWalk.match(/function walkExit\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /_stopWalkEffectObserver\(\)/.test(m[0]);
+})());
+
+test('v6.5.2 Bug A: observer re-applies applyHighlight for current step', (function () {
+  var m = tbV3JsForWalk.match(/function _startWalkEffectObserver[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /applyHighlight\(step\.target/.test(m[0]);
+})());
+
+test('v6.5.2 Bug A: runStep tracks walkActiveFlowStepId for flow steps only', (function () {
+  var m = tbV3JsForWalk.match(/function runStep\(step,\s*mode\)[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /walkActiveFlowStepId/.test(m[0])
+      && /step\.type\s*===?\s*['"]flow['"]/.test(m[0]);
+})());
+
+test('v6.5.2 Bug A: observer respawns pellets for current flow step', (function () {
+  var m = tbV3JsForWalk.match(/function _startWalkEffectObserver[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /walkActiveFlowStepId/.test(m[0])
+      && /_animateFlow2D\(step\.flow\)/.test(m[0]);
+})());
+
+// Bug B: walkStart reassigns state from loadScenarioOnCanvas + re-renders
+test('v6.5.2 Bug B: walkStart reassigns state = loadScenarioOnCanvas(...)', (function () {
+  var m = tbV3JsForWalk.match(/function walkStart\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /state\s*=\s*loadScenarioOnCanvas\(state,\s*scenario\)/.test(m[0]);
+})());
+
+test('v6.5.2 Bug B: walkStart calls _renderCanvas after loading a scenario', (function () {
+  var m = tbV3JsForWalk.match(/function walkStart\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /_renderCanvas\(\)/.test(m[0]);
+})());
+
+// Bug C: anchor positioning uses smaller margin + zero buffer
+test('v6.5.2 Bug C: _computeAnchorPosition margin reduced to 12', (function () {
+  var m = tbV3JsForWalk.match(/function _computeAnchorPosition[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /var\s+margin\s*=\s*12\b/.test(m[0]);
+})());
+
+test('v6.5.2 Bug C: _pickAnchorSide buffer reduced from 4 to 0', (function () {
+  var m = tbV3JsForWalk.match(/function _pickAnchorSide[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /pos\.left\s*>=\s*0\b/.test(body)
+      && /pos\.top\s*>=\s*0\b/.test(body)
+      && !/hostSize\.width\s*-\s*4/.test(body)
+      && !/hostSize\.height\s*-\s*4/.test(body);
+})());
+
+// Draggable step card
+test('v6.5.2 drag: _makeCardDraggable function defined', (function () {
+  return /function _makeCardDraggable\(card\)/.test(tbV3JsForWalk);
+})());
+
+test('v6.5.2 drag: renderStepCard calls _makeCardDraggable', (function () {
+  var m = tbV3JsForWalk.match(/function renderStepCard\(step\)[\s\S]*?_makeCardDraggable\(card\)/);
+  return !!m;
+})());
+
+test('v6.5.2 drag: mousedown handler skips control-region targets', (function () {
+  var m = tbV3JsForWalk.match(/function _makeCardDraggable[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /data-walk-next/.test(m[0])
+      && /data-walk-back/.test(m[0])
+      && /data-walk-exit/.test(m[0])
+      && /tb3-walk-card-controls/.test(m[0]);
+})());
+
+test('v6.5.2 drag: document-level mousemove + mouseup listeners bound once via _tb3WalkDragBound guard', (function () {
+  return /window\._tb3WalkDragBound/.test(tbV3JsForWalk)
+      && /document\.addEventListener\(['"]mousemove['"]/.test(tbV3JsForWalk)
+      && /document\.addEventListener\(['"]mouseup['"]/.test(tbV3JsForWalk);
+})());
+
+test('v6.5.2 drag: drag updates card.style.left/top live', (function () {
+  return /ds\.startLeft\s*\+\s*dx/.test(tbV3JsForWalk)
+      && /ds\.startTop\s*\+\s*dy/.test(tbV3JsForWalk);
+})());
+
+test('v6.5.2 drag: mouseup marks anchor as custom so next step skips re-anchor reset', (function () {
+  return /walkCardAnchor\s*=\s*\{\s*custom:\s*true\s*\}/.test(tbV3JsForWalk);
+})());
+
+test('v6.5.2 drag: .tb3-walk-card CSS has cursor:grab + user-select:none', (function () {
+  var tbCss = read('features/topology-builder-v3.css');
+  var m = tbCss.match(/\.tb3-walk-card\s*\{[\s\S]*?\}/);
+  if (!m) return false;
+  return /cursor:\s*grab/.test(m[0]) && /user-select:\s*none/.test(m[0]);
+})());
+
+test('v6.5.2 drag: controls still clickable (.tb3-walk-card-controls cursor:pointer + user-select:auto)', (function () {
+  var tbCss = read('features/topology-builder-v3.css');
+  var m = tbCss.match(/\.tb3-walk-card-controls[\s\S]*?\{[\s\S]*?cursor:\s*pointer[\s\S]*?user-select:\s*auto[\s\S]*?\}/);
+  return !!m;
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

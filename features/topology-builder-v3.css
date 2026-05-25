@@ -3194,6 +3194,17 @@ html[data-theme="light"] #page-topology-builder-v3 {
     left 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
     top 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
   font-family: inherit;
+  /* v6.5.2: drag-to-move support */
+  cursor: grab;
+  user-select: none;
+}
+/* v6.5.2: keep controls and resume link clickable / selectable while card is draggable */
+.tb3-walk-card-controls,
+.tb3-walk-card-controls *,
+.tb3-walk-card-exit-x,
+.tb3-walk-card-resume-link {
+  cursor: pointer;
+  user-select: auto;
 }
 .tb3-walk-card.tb3-walk-card-in-popup {
   z-index: 8;

@@ -7008,6 +7008,9 @@
   function runStep(step, mode) {
     if (!step) return;
     clearEffects(mode);
+    // Bug A fix (v6.5.2): track which flow step's pellets are currently in
+    // flight so the SVG mutation observer can decide whether to re-spawn.
+    state.walkActiveFlowStepId = (step.type === 'flow') ? step.id : null;
     _fadeCardThroughStepChange(function () {
       renderStepCard(step);
       switch (step.type) {
@@ -7113,7 +7116,58 @@
     if (nextBtn) nextBtn.onclick = walkNext;
     var backBtn = card.querySelector('[data-walk-back]');
     if (backBtn && idx > 0) backBtn.onclick = walkBack;
+
+    // v6.5.2: drag-to-move step card around the canvas
+    _makeCardDraggable(card);
   }                                                              // Task 15
+
+  // v6.5.2: drag step card. Mousedown anywhere on the card (except controls)
+  // starts a drag; mousemove updates left/top; mouseup ends it. Document-level
+  // mousemove/mouseup listeners are bound once per session.
+  var _tb3WalkCardDragState = null;
+  function _makeCardDraggable(card) {
+    if (!card) return;
+    card.style.cursor = 'grab';
+    card.onmousedown = function (e) {
+      // Don't drag from buttons / interactive controls — they own clicks.
+      if (e.target.closest('[data-walk-next], [data-walk-back], [data-walk-exit], [data-walk-replay], [data-walk-catalog], [data-walk-sibling], .tb3-walk-card-resume-link, .tb3-walk-card-controls')) return;
+      var host = card.parentElement;
+      if (!host) return;
+      var hostRect = host.getBoundingClientRect();
+      var cardRect = card.getBoundingClientRect();
+      _tb3WalkCardDragState = {
+        card: card,
+        startX: e.clientX,
+        startY: e.clientY,
+        startLeft: cardRect.left - hostRect.left,
+        startTop:  cardRect.top  - hostRect.top,
+      };
+      card.style.cursor = 'grabbing';
+      card.style.transition = 'none';
+      e.preventDefault();
+    };
+  }
+  if (typeof document !== 'undefined' && !window._tb3WalkDragBound) {
+    document.addEventListener('mousemove', function (e) {
+      var ds = _tb3WalkCardDragState;
+      if (!ds) return;
+      var dx = e.clientX - ds.startX;
+      var dy = e.clientY - ds.startY;
+      ds.card.style.left = (ds.startLeft + dx) + 'px';
+      ds.card.style.top  = (ds.startTop  + dy) + 'px';
+    });
+    document.addEventListener('mouseup', function () {
+      var ds = _tb3WalkCardDragState;
+      if (!ds) return;
+      ds.card.style.cursor = 'grab';
+      // Restore tween-style position transition for the next step's anchor move
+      ds.card.style.transition = '';
+      // Mark anchor as user-customised so future anchor-recompute can skip
+      state.walkCardAnchor = { custom: true };
+      _tb3WalkCardDragState = null;
+    });
+    window._tb3WalkDragBound = true;
+  }                                                              // v6.5.2 drag
   function anchorStepCardToViewportCenter() {
     var card = document.querySelector('.tb3-walk-card');
     if (!card) return;
@@ -7179,11 +7233,13 @@
     var sides = ['above-right', 'below-right', 'above-left', 'below-left', 'top-center'];
     for (var i = 0; i < sides.length; i++) {
       var pos = _computeAnchorPosition(sides[i], devCenter, cardRect);
+      // Bug C fix (v6.5.2): buffer was 4 → 0 so card can sit flush with host
+      // edge on narrower viewports (was falling through to top-center too often).
       if (
-        pos.left >= 4 &&
-        pos.top >= 4 &&
-        pos.left + cardRect.width <= hostSize.width - 4 &&
-        pos.top + cardRect.height <= hostSize.height - 4
+        pos.left >= 0 &&
+        pos.top >= 0 &&
+        pos.left + cardRect.width <= hostSize.width &&
+        pos.top + cardRect.height <= hostSize.height
       ) {
         return sides[i];
       }
@@ -7192,7 +7248,10 @@
   }
 
   function _computeAnchorPosition(side, devCenter, cardRect) {
-    var margin = 24;
+    // Bug C fix (v6.5.2): margin was 24 → 12 so the card-to-device gap doesn't
+    // push the card off-screen on smaller hosts (260px card + 24px margin + 83/2
+    // device half-width often exceeded the wrap width).
+    var margin = 12;
     switch (side) {
       case 'above-right':
         return {
@@ -7782,19 +7841,71 @@
     card.appendChild(link);
   }                                                    // Task 15
 
+  // Bug A fix (v6.5.2): TB v3 _renderCanvas rewrites svg.innerHTML on every render,
+  // which wipes the runtime-added .tb3-walk-pulse / .tb3-walk-cable-pulse classes
+  // and any in-flight pellet sprites. A MutationObserver on #tb3-canvas-svg
+  // detects the childList rewrite and re-applies the current step's effects.
+  var _walkSvgObserver = null;
+
+  function _startWalkEffectObserver() {
+    if (_walkSvgObserver) return;
+    var svg = document.getElementById('tb3-canvas-svg');
+    if (!svg || typeof MutationObserver === 'undefined') return;
+    _walkSvgObserver = new MutationObserver(function () {
+      if (!state.activeWalkthroughId) return;
+      var walkList = (typeof TB_V3_WALKTHROUGHS !== 'undefined' ? TB_V3_WALKTHROUGHS : []);
+      var walk = walkList.find(function (w) { return w.id === state.activeWalkthroughId; });
+      if (!walk) return;
+      var step = walk.steps[state.walkStepIdx];
+      if (!step) return;
+      // 2D-mode only — 3D popup uses its own SVG outside #tb3-canvas-svg.
+      if (state.walkMode !== '2d') return;
+      if (step.type === 'highlight' && step.target) {
+        applyHighlight(step.target, '2d');
+      } else if (step.type === 'flow' && step.flow) {
+        // Pellets live inside the SVG too — the rewrite wipes them. Re-spawn
+        // only if we're still on this flow step (idempotent: clearEffects strips
+        // any leftover pellets before _animateFlow2D spawns fresh ones).
+        if (state.walkActiveFlowStepId === step.id) {
+          // Strip stale pellets/arrows that the rewrite may have orphaned in
+          // sibling DOM (none expected, but defensive), then respawn.
+          var stale = document.querySelectorAll('.tb3-walk-pellet, .tb3-walk-flow-arrow');
+          for (var s = 0; s < stale.length; s++) {
+            stale[s].parentNode && stale[s].parentNode.removeChild(stale[s]);
+          }
+          _animateFlow2D(step.flow);
+        }
+      }
+    });
+    _walkSvgObserver.observe(svg, { childList: true, subtree: false });
+  }
+
+  function _stopWalkEffectObserver() {
+    if (_walkSvgObserver) {
+      _walkSvgObserver.disconnect();
+      _walkSvgObserver = null;
+    }
+  }
+
   function walkStart(walkthroughId) {
     var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === walkthroughId; });
     if (!walk) { console.warn('[walk] unknown walkthroughId', walkthroughId); return; }
-    // If the active scenario doesn't match, load it
+    // Bug B fix (v6.5.2): loadScenarioOnCanvas returns the new state — must
+    // reassign `state = ...` (matches scenario-picker pattern at L4156) so
+    // activeScenarioId syncs, then trigger a canvas re-render.
     if (state.activeScenarioId !== walk.scenarioId) {
       var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === walk.scenarioId; });
-      if (scenario) loadScenarioOnCanvas(state, scenario);
+      if (scenario) {
+        state = loadScenarioOnCanvas(state, scenario);
+        if (typeof _renderCanvas === 'function') _renderCanvas();
+      }
     }
     state.priorIntent = state.intent;
     state.intent = 'walk';
     state.activeWalkthroughId = walkthroughId;
     state.walkStepIdx = 0;
     _saveStateImmediate();
+    _startWalkEffectObserver();   // Bug A fix (v6.5.2)
     if (walk.steps && walk.steps.length > 0) runStep(walk.steps[0], state.walkMode);
     renderWalkCatalog();
   }
@@ -7824,12 +7935,14 @@
 
   function walkExit() {
     if (!state.activeWalkthroughId) return;
+    _stopWalkEffectObserver();   // Bug A fix (v6.5.2)
     clearEffects(state.walkMode);
     hideStepCard();
     state.intent = state.priorIntent || 'free-build';
     state.activeWalkthroughId = null;
     state.walkStepIdx = 0;
     state.walkCardAnchor = null;
+    state.walkActiveFlowStepId = null;
     _saveStateImmediate();
     renderWalkCatalog();
   }
