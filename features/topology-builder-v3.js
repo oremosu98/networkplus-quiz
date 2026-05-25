@@ -7200,24 +7200,29 @@
     var speed = flow.speed === 'slow' ? '4s' : (flow.speed === 'fast' ? '1.6s' : '2.6s');
     var forwardBack = flow.direction === 'forward-back';
 
+    // Match centroid offset used by _buildAmbientPacketEl / _build3DDeviceEl / _build3DCableEl
+    var centroid = _computeSceneCentroid(state.devices);
+
     // For each segment (from → to), find the cable + spawn an SVG packet that animates along it
     for (var i = 0; i < path.length - 1; i++) {
       var fromId = path[i];
       var toId = path[i + 1];
-      _spawnWalkPacket3D(stage, fromId, toId, speed, forwardBack, i * 0.4);
+      _spawnWalkPacket3D(stage, fromId, toId, speed, forwardBack, i * 0.4, centroid.cx, centroid.cy);
     }
   }
 
-  function _spawnWalkPacket3D(stage, fromId, toId, dur, forwardBack, delayS) {
+  function _spawnWalkPacket3D(stage, fromId, toId, dur, forwardBack, delayS, sceneCx, sceneCy) {
+    sceneCx = sceneCx || 0;
+    sceneCy = sceneCy || 0;
     var fromDev = state.devices.find(function (d) { return d.id === fromId; });
     var toDev = state.devices.find(function (d) { return d.id === toId; });
     if (!fromDev || !toDev) return;
 
-    // Match _buildAmbientPacketEl bezier formula: x = dev.x + 44, y = dev.y + 60
-    var x1 = fromDev.x + 44;
-    var y1 = fromDev.y + 60;
-    var x2 = toDev.x + 44;
-    var y2 = toDev.y + 60;
+    // Match _buildAmbientPacketEl bezier formula: x = (dev.x - sceneCx) + 44, y = (dev.y - sceneCy) + 60
+    var x1 = (fromDev.x - sceneCx) + 44;
+    var y1 = (fromDev.y - sceneCy) + 60;
+    var x2 = (toDev.x - sceneCx) + 44;
+    var y2 = (toDev.y - sceneCy) + 60;
     var sagY = Math.min(70, Math.max(20, Math.abs(x2 - x1) * 0.12));
     var cy1 = y1 + sagY;
     var cy2 = y2 + sagY;
@@ -7235,7 +7240,7 @@
     var cpX = midX - minX, pcy1 = cy1 - minY, pcy2 = cy2 - minY;
     var pathStr = 'M' + px1 + ',' + py1 +
                   ' C' + cpX + ',' + pcy1 + ' ' + cpX + ',' + pcy2 + ' ' + px2 + ',' + py2;
-    var pathId = 'tb3-walk-3d-path-' + fromId + '-' + toId + '-' + Date.now();
+    var pathId = 'tb3-walk-3d-path-' + fromId + '-' + toId + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
     var svgNs = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(svgNs, 'svg');
@@ -7264,7 +7269,7 @@
       pkt.setAttribute('r', '4');
       var anim = document.createElementNS(svgNs, 'animateMotion');
       anim.setAttribute('dur', dur);
-      anim.setAttribute('repeatCount', forwardBack ? '2' : 'indefinite');
+      anim.setAttribute('repeatCount', forwardBack ? '1' : 'indefinite');
       anim.setAttribute('begin', (stagger[p] + delayS) + 's');
       // For forward-back: alternate direction via keyPoints (forward then reverse)
       if (forwardBack) {
