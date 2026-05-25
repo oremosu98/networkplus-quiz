@@ -571,6 +571,27 @@
     return { complete: failures.length === 0, failures: failures };
   }
 
+  // ── Exam domain lookup ───────────────────────────────────────────
+  const _TB_V3_EXAM_DOMAINS = {
+    '1': 'Networking Concepts',
+    '2': 'Network Implementation',
+    '3': 'Network Operations',
+    '4': 'Network Security',
+    '5': 'Network Troubleshooting',
+  };
+
+  function domainsForRefs(objectiveRefs) {
+    if (!Array.isArray(objectiveRefs) || objectiveRefs.length === 0) {
+      return ['Other'];
+    }
+    return [...new Set(
+      objectiveRefs.map(r => {
+        const major = String(r).split('.')[0];
+        return _TB_V3_EXAM_DOMAINS[major] || 'Other';
+      })
+    )];
+  }
+
   // ───────────────────────────────────────────────────────────
   // SCENARIOS CATALOG (Phase 2 — 8 starter; full 20-25 in Phase 2.x)
   //

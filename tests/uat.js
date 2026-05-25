@@ -22916,6 +22916,25 @@ test('phase2: TB_V3_FREEBUILD_BACKUP does not collide with TB_V3_DRAFT', !/TB_V3
   );
 })();
 
+// ════════════════════════════════════════════════════════════════════
+// TB v3 Walkthrough (Phase 8)
+// ════════════════════════════════════════════════════════════════════
+const tbV3JsForWalk = read('features/topology-builder-v3.js');
+
+test('TB v3 walk: domainsForRefs maps objectiveRefs to exam-domain names', (function () {
+  const constMatch = tbV3JsForWalk.match(/const _TB_V3_EXAM_DOMAINS = \{[\s\S]*?\};/);
+  const fnMatch = tbV3JsForWalk.match(/function domainsForRefs\([\s\S]*?\n  \}/);
+  if (!constMatch || !fnMatch) return false;
+  const fn = new Function(constMatch[0] + '\nreturn ' + fnMatch[0])();
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  return eq(fn(['1.2']), ['Networking Concepts'])
+    && eq(fn(['4.1', '1.6']), ['Network Security', 'Networking Concepts'])
+    && eq(fn(['1.6', '1.8']), ['Networking Concepts'])
+    && eq(fn([]), ['Other'])
+    && eq(fn(null), ['Other'])
+    && eq(fn(['9.9']), ['Other']);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
