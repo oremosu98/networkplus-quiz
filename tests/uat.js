@@ -23285,6 +23285,30 @@ test('TB v3 walk: Esc keydown handler wired to walkExit', (function () {
       || /walkExit[\s\S]{0,200}['"]Escape['"]/.test(tbV3JsForWalk);
 })());
 
+test('TB v3 walk: anchor functions defined (target, device, viewportCenter)', (function () {
+  return /function anchorStepCardToTarget\(target,\s*mode\)/.test(tbV3JsForWalk)
+      && /function anchorStepCardToDevice\(deviceId,\s*mode\)/.test(tbV3JsForWalk)
+      && /function anchorStepCardToViewportCenter\(\)/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: _pickAnchorSide considers fallback order above-right → below-right → above-left → below-left → top-center', (function () {
+  var m = tbV3JsForWalk.match(/function _pickAnchorSide[\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  var sides = ['above-right', 'below-right', 'above-left', 'below-left', 'top-center'];
+  return sides.every(function (s) { return body.includes("'" + s + "'") || body.includes('"' + s + '"'); });
+})());
+
+test('TB v3 walk: anchorStepCardToDevice uses getBoundingClientRect', (function () {
+  var m = tbV3JsForWalk.match(/function anchorStepCardToDevice[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /getBoundingClientRect/.test(m[0]);
+})());
+
+test('TB v3 walk: _computeAnchorPosition function exists', (function () {
+  return /function _computeAnchorPosition/.test(tbV3JsForWalk);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

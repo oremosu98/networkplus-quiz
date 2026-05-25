@@ -7028,9 +7028,115 @@
     var backBtn = card.querySelector('[data-walk-back]');
     if (backBtn && idx > 0) backBtn.onclick = walkBack;
   }                                                              // Task 15
-  function anchorStepCardToViewportCenter() {}                   // Task 16
-  function anchorStepCardToTarget(/* target, mode */) {}         // Task 16
-  function anchorStepCardToDevice(/* deviceId, mode */) {}       // Task 16
+  function anchorStepCardToViewportCenter() {
+    var card = document.querySelector('.tb3-walk-card');
+    if (!card) return;
+    var host = (state.walkMode === '3d')
+      ? document.getElementById('tb3-3d-popup-modal')
+      : document.getElementById('tb3-canvas-wrap');
+    if (!host) return;
+    var hostRect = host.getBoundingClientRect();
+    var cardRect = card.getBoundingClientRect();
+    card.style.left = Math.max(20, (hostRect.width - cardRect.width) / 2) + 'px';
+    card.style.top = '40px';
+    state.walkCardAnchor = null;
+  }
+
+  function anchorStepCardToTarget(target, mode) {
+    var resolved = resolveTarget(target);
+    if (resolved.devices.length > 0) {
+      anchorStepCardToDevice(resolved.devices[0], mode);
+    } else if (resolved.cables.length > 0) {
+      anchorStepCardToDevice(resolved.cables[0][0], mode);
+    } else {
+      anchorStepCardToViewportCenter();
+    }
+  }
+
+  function anchorStepCardToDevice(deviceId, mode) {
+    var card = document.querySelector('.tb3-walk-card');
+    if (!card) return;
+    var host = (mode === '3d')
+      ? document.getElementById('tb3-3d-popup-modal')
+      : document.getElementById('tb3-canvas-wrap');
+    if (!host) return;
+
+    var devEl = (mode === '3d')
+      ? document.querySelector('.tb3-3d-dev[data-device-id="' + deviceId + '"]')
+      : document.querySelector('.tb3-dev[data-device-id="' + deviceId + '"]');
+    if (!devEl) {
+      anchorStepCardToViewportCenter();
+      return;
+    }
+
+    var hostRect = host.getBoundingClientRect();
+    var devRect  = devEl.getBoundingClientRect();
+    var cardRect = card.getBoundingClientRect();
+
+    // Device center relative to host's top-left
+    var devCenter = {
+      x: devRect.left - hostRect.left + devRect.width / 2,
+      y: devRect.top - hostRect.top + devRect.height / 2,
+      width: devRect.width || 32,
+      height: devRect.height || 32,
+    };
+
+    var side = _pickAnchorSide(devCenter, { width: hostRect.width, height: hostRect.height }, cardRect);
+    var pos = _computeAnchorPosition(side, devCenter, cardRect);
+
+    card.style.left = pos.left + 'px';
+    card.style.top = pos.top + 'px';
+    state.walkCardAnchor = { deviceId: deviceId, side: pos.tailSide };
+  }
+
+  function _pickAnchorSide(devCenter, hostSize, cardRect) {
+    var sides = ['above-right', 'below-right', 'above-left', 'below-left', 'top-center'];
+    for (var i = 0; i < sides.length; i++) {
+      var pos = _computeAnchorPosition(sides[i], devCenter, cardRect);
+      if (
+        pos.left >= 4 &&
+        pos.top >= 4 &&
+        pos.left + cardRect.width <= hostSize.width - 4 &&
+        pos.top + cardRect.height <= hostSize.height - 4
+      ) {
+        return sides[i];
+      }
+    }
+    return 'top-center';
+  }
+
+  function _computeAnchorPosition(side, devCenter, cardRect) {
+    var margin = 24;
+    switch (side) {
+      case 'above-right':
+        return {
+          left: devCenter.x + devCenter.width / 2 + margin,
+          top:  devCenter.y - cardRect.height / 2,
+          tailSide: 'left',
+        };
+      case 'below-right':
+        return {
+          left: devCenter.x + devCenter.width / 2 + margin,
+          top:  devCenter.y + cardRect.height / 4,
+          tailSide: 'left',
+        };
+      case 'above-left':
+        return {
+          left: devCenter.x - devCenter.width / 2 - cardRect.width - margin,
+          top:  devCenter.y - cardRect.height / 2,
+          tailSide: 'right',
+        };
+      case 'below-left':
+        return {
+          left: devCenter.x - devCenter.width / 2 - cardRect.width - margin,
+          top:  devCenter.y + cardRect.height / 4,
+          tailSide: 'right',
+        };
+      case 'top-center':
+      default:
+        return { left: 40, top: 40, tailSide: 'bottom' };
+    }
+  }
   function applyHighlight(target, mode) {
     var resolved = resolveTarget(target);
     if (mode === '2d') {
