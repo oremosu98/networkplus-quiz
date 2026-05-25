@@ -4378,6 +4378,34 @@
     _renderModeBar();
   }
 
+  // ───────────────────────────────────────────────────────────
+  // WALK CATALOG (Follow-up #2 — sidebar trigger for walkthroughs)
+  // ───────────────────────────────────────────────────────────
+
+  function _openWalkCatalog() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    // Mutual-exclusion sweep (same pattern as _openTrace)
+    body.classList.remove('picker-open');
+    body.classList.remove('inspector-open');
+    body.classList.remove('diagnostic-open');
+    body.classList.remove('simulate-open');
+    body.classList.remove('trace-open');
+    body.classList.remove('osi-open');
+    body.classList.add('walk-catalog-open');
+    state.mode = 'walk';
+    renderWalkCatalog();
+    _renderModeBar();
+  }
+
+  function _closeWalkCatalog() {
+    var body = document.getElementById('tb3-body');
+    if (!body) return;
+    body.classList.remove('walk-catalog-open');
+    state.mode = 'design';
+    _renderModeBar();
+  }
+
   function _openOSI(payload) {
     // OSI is a view-toggle on Trace per spec §3.1.
     // If already in trace/osi mode, preserve _traceState (mid-trace toggle must
@@ -6724,6 +6752,7 @@
       { id: 'design',   label: 'Design',   icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',           locked: false },
       { id: 'simulate', label: 'Simulate', icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5v14"/></svg>' },
       { id: 'trace',    label: 'Trace',    icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4 0 4-7 8-7s4 14 8 14"/></svg>' },
+      { id: 'walk',     label: 'Walk',     icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 4l-2 5 3 4-1 7M14 2l-1 6 3 2-2 4 3 6"/><circle cx="14" cy="2" r="1.5"/></svg>' },
       { id: 'osi',      label: 'OSI',      icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 10h18M3 14h18M3 18h18"/></svg>' },
       { id: '3d',       label: '3D',       icon: '<svg viewBox="0 0 24 24" class="tb3-mode-ic" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>',                                                                                                       locked: false },
     ];
@@ -6744,6 +6773,10 @@
         }
         if (mode === 'trace') {
           _openTrace();
+          return;
+        }
+        if (mode === 'walk') {
+          _openWalkCatalog();
           return;
         }
         if (mode === 'osi') {
@@ -6850,6 +6883,8 @@
     walkExit: walkExit,
     walkComplete: walkComplete,
     renderWalkCatalog: renderWalkCatalog,
+    _openWalkCatalog: _openWalkCatalog,
+    _closeWalkCatalog: _closeWalkCatalog,
     showCompletionCard: showCompletionCard,
     // Walkthrough internals (for tests)
     domainsForRefs: domainsForRefs,
@@ -7589,6 +7624,7 @@
     ];
 
     var html = '<div class="tb3-walk-catalog-header">Walkthroughs</div>';
+    html += '<button type="button" class="tb3-walk-catalog-close" aria-label="Close walkthroughs">&times;</button>';
 
     // Apply active/dim treatment + nested walkthroughs
     var hasActive = !!state.activeScenarioId;
@@ -7682,6 +7718,8 @@
     for (var wr = 0; wr < walkRows.length; wr++) {
       walkRows[wr].addEventListener('click', _onWalkRowClick);
     }
+    var closeBtn = panel.querySelector('.tb3-walk-catalog-close');
+    if (closeBtn) closeBtn.addEventListener('click', _closeWalkCatalog);
   }
 
   function _onCatalogRowClick(ev) {

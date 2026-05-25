@@ -3009,7 +3009,6 @@ html[data-theme="light"] #page-topology-builder-v3 {
 /* ── Walkthrough catalog (Phase 8) ─────────────────────────────── */
 .tb3-rail-panel[data-mode="walk-catalog"] {
   padding: 14px;
-  display: flex;
   flex-direction: column;
   gap: 6px;
 }
@@ -3375,4 +3374,28 @@ html[data-theme="light"] #page-topology-builder-v3 {
   margin-left: auto;
   font-size: 9px;
   color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Walk catalog visibility (Follow-up #2) ───────────────────── */
+.tb3-rail-panel[data-mode="walk-catalog"] {
+  display: none;
+  position: relative;
+}
+#tb3-body.walk-catalog-open .tb3-rail-panel[data-mode="walk-catalog"] {
+  display: flex;
+}
+.tb3-walk-catalog-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--tb3-text-dim, rgba(255, 255, 255, 0.45));
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.tb3-walk-catalog-close:hover {
+  color: var(--tb3-text, rgba(255, 255, 255, 0.9));
 }

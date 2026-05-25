@@ -23584,6 +23584,24 @@ test('TB v3 walk: walkthrough fns exported on tb3 registration object', (functio
       && /TB_V3_WALKTHROUGHS:/.test(tbV3JsForWalk);
 })());
 
+test('TB v3 walk: mode bar registers walk mode', (function () {
+  var m = tbV3JsForWalk.match(/function _renderModeBar[\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /id:\s*['"]walk['"]/.test(m[0]) && /label:\s*['"]Walk['"]/.test(m[0]);
+})());
+
+test('TB v3 walk: _openWalkCatalog adds walk-catalog-open body class', (function () {
+  var m = tbV3JsForWalk.match(/function _openWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /walk-catalog-open/.test(m[0]) && /renderWalkCatalog/.test(m[0]);
+})());
+
+test('TB v3 walk: catalog panel hidden by default + shown when walk-catalog-open', (function () {
+  var css = read('features/topology-builder-v3.css');
+  return /\.tb3-rail-panel\[data-mode="walk-catalog"\]\s*\{[\s\S]*?display:\s*none/.test(css)
+      && /walk-catalog-open[\s\S]*?\.tb3-rail-panel\[data-mode="walk-catalog"\][\s\S]*?display:\s*flex/.test(css);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
