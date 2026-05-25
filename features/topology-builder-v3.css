@@ -3129,3 +3129,47 @@ html[data-theme="light"] #page-topology-builder-v3 {
 .tb3-walk-row.tb3-walk-row-running .tb3-walk-row-meta {
   color: rgba(240, 199, 137, 0.95);
 }
+
+/* ── Walkthrough completion ledger (Task 14) ───────────────────── */
+.tb3-walk-badge-done {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(93, 161, 75, 0.85);
+  color: #0e0e10;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.tb3-walk-badge-resume {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(201, 138, 54, 0.25);
+  border: 1px solid rgba(201, 138, 54, 0.55);
+  color: #f0c789;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tb3-walk-badge-blank {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+.tb3-walk-row.tb3-walk-row-done .tb3-walk-row-title {
+  color: rgba(255, 255, 255, 0.55);
+}
+.tb3-walk-walks-pill-complete {
+  color: rgba(93, 161, 75, 0.95) !important;
+  background: rgba(93, 161, 75, 0.12) !important;
+  border-color: rgba(93, 161, 75, 0.4) !important;
+}
+.tb3-walk-walks-pill-partial {
+  /* Uses base amber from .tb3-walk-walks-pill — no override needed */
+}

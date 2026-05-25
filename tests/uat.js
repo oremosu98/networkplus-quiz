@@ -23229,6 +23229,30 @@ test('TB v3 walk: CSS has active + dimmed + nest styles', (function () {
       && /\.tb3-walk-row\b/.test(tbCss);
 })());
 
+test('TB v3 walk: _walkBadgeFor helper defined', (function () {
+  return /function _walkBadgeFor\(walkthroughId\)/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: _walksPillText returns done/total when any progress', (function () {
+  var m = tbV3JsForWalk.match(/function _walksPillText\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /completedAt/.test(m[0]) && /\/.+walks\.length|walks\.length.+\//.test(m[0]);
+})());
+
+test('TB v3 walk: catalog walk row includes badge markup', (function () {
+  var m = tbV3JsForWalk.match(/function renderWalkCatalog\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /tb3-walk-badge/.test(m[0]);
+})());
+
+test('TB v3 walk: CSS has done + resume + blank badge styles + complete pill', (function () {
+  var tbCss = read('features/topology-builder-v3.css');
+  return /\.tb3-walk-badge-done\b/.test(tbCss)
+      && /\.tb3-walk-badge-resume\b/.test(tbCss)
+      && /\.tb3-walk-badge-blank\b/.test(tbCss)
+      && /\.tb3-walk-walks-pill-complete\b/.test(tbCss);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

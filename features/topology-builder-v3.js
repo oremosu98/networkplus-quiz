@@ -7352,9 +7352,14 @@
         if (isActive) rowClasses += ' tb3-walk-scen-active';
         if (isDimmed) rowClasses += ' tb3-walk-dimmed';
 
+        var pillInfo = _walksPillText(item.walks);
+        var pillClass = 'tb3-walk-walks-pill';
+        if (pillInfo.variant === 'complete') pillClass += ' tb3-walk-walks-pill-complete';
+        if (pillInfo.variant === 'partial')  pillClass += ' tb3-walk-walks-pill-partial';
+
         html += '<div class="' + rowClasses + '" data-scenario-id="' + _escAttr(item.scen.id) + '">' +
                 '<span class="tb3-walk-scen-title">' + _escAttr(item.scen.title) + '</span>' +
-                '<span class="tb3-walk-walks-pill">' + item.walks.length + ' walk' + (item.walks.length === 1 ? '' : 's') + '</span>' +
+                '<span class="' + pillClass + '">' + pillInfo.text + '</span>' +
                 '<span class="tb3-walk-scen-chev">' + (isActive ? '▾' : '▸') + '</span>' +
                 '</div>';
 
@@ -7364,13 +7369,33 @@
           for (var w = 0; w < item.walks.length; w++) {
             var walk = item.walks[w];
             var running = state.activeWalkthroughId === walk.id;
-            var rowClass = 'tb3-walk-row' + (running ? ' tb3-walk-row-running' : '');
+            var badge = _walkBadgeFor(walk.id);
+            var rowClass = 'tb3-walk-row';
+            if (running) rowClass += ' tb3-walk-row-running';
+            if (badge.kind === 'done') rowClass += ' tb3-walk-row-done';
+
+            var badgeMarkup;
+            if (badge.kind === 'done') {
+              badgeMarkup = '<span class="tb3-walk-badge-done">✓</span>';
+            } else if (badge.kind === 'resume') {
+              badgeMarkup = '<span class="tb3-walk-badge-resume">▶</span>';
+            } else {
+              badgeMarkup = '<span class="tb3-walk-badge-blank"></span>';
+            }
+
+            var meta;
+            if (running) {
+              meta = '● Running';
+            } else if (badge.kind === 'resume') {
+              meta = 'Resume · step ' + (badge.stepIdx + 1) + ' / ' + walk.steps.length;
+            } else {
+              meta = (walk.durationMin || '?') + ' min';
+            }
+
             html += '<div class="' + rowClass + '" data-walk-id="' + _escAttr(walk.id) + '">' +
-                    '<span class="tb3-walk-lens-icon"></span>' +
+                    badgeMarkup +
                     '<span class="tb3-walk-row-title">' + _escAttr(walk.title) + '</span>' +
-                    '<span class="tb3-walk-row-meta">' +
-                      (running ? '● Running' : (walk.durationMin || '?') + ' min') +
-                    '</span>' +
+                    '<span class="tb3-walk-row-meta">' + meta + '</span>' +
                     '</div>';
           }
           html += '</div>';
@@ -7500,6 +7525,28 @@
     progress[walkthroughId].stepIdx = state.walkStepIdx;
     progress[walkthroughId].lastViewedAt = Date.now();
     localStorage.setItem(STORAGE.TB_V3_WALK_PROGRESS, JSON.stringify(progress));
+  }
+
+  function _walkBadgeFor(walkthroughId) {
+    var progress = _loadProgress();
+    var entry = progress[walkthroughId];
+    if (!entry) return { kind: 'blank' };
+    if (entry.completedAt) return { kind: 'done' };
+    if (entry.stepIdx > 0) return { kind: 'resume', stepIdx: entry.stepIdx };
+    return { kind: 'blank' };
+  }
+
+  function _walksPillText(walks) {
+    var progress = _loadProgress();
+    var completed = walks.filter(function (w) {
+      return progress[w.id] && progress[w.id].completedAt;
+    }).length;
+    var anyTouched = walks.some(function (w) { return progress[w.id]; });
+    if (!anyTouched) {
+      return { text: walks.length + ' walk' + (walks.length === 1 ? '' : 's'), variant: 'default' };
+    }
+    var variant = completed === walks.length ? 'complete' : 'partial';
+    return { text: completed + ' / ' + walks.length + ' done', variant: variant };
   }
 
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
