@@ -25,6 +25,7 @@
     selectedId: null,      // currently-selected device id (or null)
     activeScenarioId: null, // phase 2: id of currently-loaded scenario when intent === 'lab'
     // ── walkthrough (Phase 8) ──
+    priorIntent: null,           // string|null — saved intent for restore on walkExit
     activeWalkthroughId: null,   // string|null — running walkthrough
     walkStepIdx: 0,              // number      — 0-based current step
     walkMode: '2d',              // '2d'|'3d'   — visible renderer
@@ -264,13 +265,14 @@
         selectedId: null,
         activeScenarioId: parsed.activeScenarioId || null,
         // ── walkthrough fields (Phase 8) ──
+        priorIntent: null,        // runtime-only, always reset on load
         activeWalkthroughId: parsed.activeWalkthroughId || null,
         walkStepIdx: typeof parsed.walkStepIdx === 'number' ? parsed.walkStepIdx : 0,
         walkMode: '2d',           // runtime-only, always reset on load
         walkCardAnchor: null,     // runtime-only, always reset on load
       };
     } catch (e) {
-      return { devices: [], cables: [], viewport: { x: 0, y: 0, zoom: 1 }, intent: 'free-build', mode: 'design', selectedId: null, activeScenarioId: null, activeWalkthroughId: null, walkStepIdx: 0, walkMode: '2d', walkCardAnchor: null };
+      return { devices: [], cables: [], viewport: { x: 0, y: 0, zoom: 1 }, intent: 'free-build', mode: 'design', selectedId: null, activeScenarioId: null, priorIntent: null, activeWalkthroughId: null, walkStepIdx: 0, walkMode: '2d', walkCardAnchor: null };
     }
   }
 

@@ -22961,6 +22961,10 @@ test('TB v3 walk: state declares walkCardAnchor field', (function () {
   return /walkCardAnchor\s*:\s*null/.test(tbV3JsForWalk);
 })());
 
+test('TB v3 walk: state declares priorIntent field', (function () {
+  return /priorIntent\s*:\s*null/.test(tbV3JsForWalk);
+})());
+
 test('TB v3 walk: STORAGE adds TB_V3_WALK_PROGRESS key (registered in app.js)', (function () {
   const appJs = read('app.js');
   return /TB_V3_WALK_PROGRESS\s*:\s*['"]nplus_tb_v3_walk_progress/.test(appJs);
