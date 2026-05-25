@@ -23519,6 +23519,29 @@ test('TB v3 walk: 3 switching+VLAN walkthroughs (v6.5.9) present + bound + sized
   });
 })());
 
+// v6.5.10 — Phase 8d WAN: 7 new walkthroughs covering the entire WAN category
+// (MPLS, partial mesh, dual-ISP failover, SD-WAN, cellular 4G/5G, satellite, MAN).
+// Same consolidated-guard pattern; data-integrity sweep auto-validates device IDs.
+test('TB v3 walk: 7 WAN walkthroughs (v6.5.10) present + bound + sized', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var expected = [
+    { id: 'mpls-wan-provider-fabric',      scenarioId: 'mpls-wan',                  steps: 6 },
+    { id: 'partial-mesh-wan-tradeoff',     scenarioId: 'partial-mesh-wan',          steps: 6 },
+    { id: 'dual-isp-failover-edge',        scenarioId: 'dual-isp-failover',         steps: 6 },
+    { id: 'sd-wan-overlay',                scenarioId: 'sd-wan-network',            steps: 6 },
+    { id: 'cellular-wan-4g-5g',            scenarioId: 'cellular-4g-5g-wan',        steps: 6 },
+    { id: 'satellite-wan-up-and-down',     scenarioId: 'satellite-wan',             steps: 6 },
+    { id: 'metro-area-network-scope',      scenarioId: 'metropolitan-area-network', steps: 5 },
+  ];
+  return expected.every(function (e) {
+    var w = walks.find(function (x) { return x.id === e.id; });
+    return !!w && w.scenarioId === e.scenarioId && w.steps.length === e.steps;
+  });
+})());
+
 test('TB v3 walk: ALL pilot walkthroughs pass data integrity (scenario + device ids exist)', (function () {
   var walkJs = read('features/topology-builder-v3-walkthroughs.js');
   var tbJs = read('features/topology-builder-v3.js');
@@ -23680,23 +23703,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.9: package.json version is 6.5.9', (function () {
+test('v6.5.10: package.json version is 6.5.10', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.9"/.test(pkg);
+  return /"version":\s*"6\.5\.10"/.test(pkg);
 })());
 
-test('v6.5.9: sw.js CACHE_NAME is netplus-v6.5.9', (function () {
+test('v6.5.10: sw.js CACHE_NAME is netplus-v6.5.10', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.9/.test(sw);
+  return /netplus-v6\.5\.10/.test(sw);
 })());
 
-test('v6.5.9: index.html version badge is v6.5.9', (function () {
-  return /version-badge[\s\S]*?v6\.5\.9/.test(html);
+test('v6.5.10: index.html version badge is v6.5.10', (function () {
+  return /version-badge[\s\S]*?v6\.5\.10/.test(html);
 })());
 
-test('v6.5.9: app.js APP_VERSION is 6.5.9', (function () {
+test('v6.5.10: app.js APP_VERSION is 6.5.10', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.9['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.10['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {
