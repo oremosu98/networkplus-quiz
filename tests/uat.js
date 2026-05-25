@@ -22945,6 +22945,26 @@ test('TB v3 walk: walkthroughs script tag is parser-friendly (no async / no modu
   return !!m && !/\basync\b|type=["']module/.test(m[0]);
 })());
 
+test('TB v3 walk: state declares activeWalkthroughId field', (function () {
+  return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: state declares walkStepIdx field', (function () {
+  return /walkStepIdx\s*:\s*0/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: state declares walkMode field defaulting to 2d', (function () {
+  return /walkMode\s*:\s*['"]2d['"]/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: state declares walkCardAnchor field', (function () {
+  return /walkCardAnchor\s*:\s*null/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: STORAGE adds TB_V3_WALK_PROGRESS key', (function () {
+  return /TB_V3_WALK_PROGRESS/.test(tbV3JsForWalk);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

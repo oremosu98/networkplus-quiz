@@ -20,10 +20,15 @@
     devices: [],           // [{id, type, x, y, label, config}]
     cables: [],            // [{id, fromId, fromPort, toId, toPort}]
     viewport: { x: 0, y: 0, zoom: 1 }, // pan offset + zoom
-    intent: 'free-build',  // 'free-build' | 'lab' | 'pbq'
+    intent: 'free-build',  // 'free-build' | 'lab' | 'pbq' | 'walk'
     mode: 'design',        // 'design' | 'simulate' | 'trace' | 'osi' | '3d'
     selectedId: null,      // currently-selected device id (or null)
     activeScenarioId: null, // phase 2: id of currently-loaded scenario when intent === 'lab'
+    // ── walkthrough (Phase 8) ──
+    activeWalkthroughId: null,   // string|null — running walkthrough
+    walkStepIdx: 0,              // number      — 0-based current step
+    walkMode: '2d',              // '2d'|'3d'   — visible renderer
+    walkCardAnchor: null,        // {deviceId, side}|null — last card placement
   };
 
   // Phase 5 helper — internal accessor mirroring the registration-object
@@ -238,6 +243,10 @@
       intent: s.intent,
       mode: s.mode,
       activeScenarioId: s.activeScenarioId || null,
+      // ── walkthrough fields (Phase 8) — companion key STORAGE.TB_V3_WALK_PROGRESS holds richer progress ──
+      activeWalkthroughId: s.activeWalkthroughId || null,
+      walkStepIdx: s.walkStepIdx || 0,
+      // NOTE: walkMode + walkCardAnchor are runtime-only, NOT persisted
     });
   }
 
@@ -254,9 +263,14 @@
         mode: parsed.mode || 'design',
         selectedId: null,
         activeScenarioId: parsed.activeScenarioId || null,
+        // ── walkthrough fields (Phase 8) ──
+        activeWalkthroughId: parsed.activeWalkthroughId || null,
+        walkStepIdx: typeof parsed.walkStepIdx === 'number' ? parsed.walkStepIdx : 0,
+        walkMode: '2d',           // runtime-only, always reset on load
+        walkCardAnchor: null,     // runtime-only, always reset on load
       };
     } catch (e) {
-      return { devices: [], cables: [], viewport: { x: 0, y: 0, zoom: 1 }, intent: 'free-build', mode: 'design', selectedId: null, activeScenarioId: null };
+      return { devices: [], cables: [], viewport: { x: 0, y: 0, zoom: 1 }, intent: 'free-build', mode: 'design', selectedId: null, activeScenarioId: null, activeWalkthroughId: null, walkStepIdx: 0, walkMode: '2d', walkCardAnchor: null };
     }
   }
 
