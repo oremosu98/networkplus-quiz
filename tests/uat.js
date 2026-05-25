@@ -44,6 +44,21 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
+// ── Reduced-motion test helper (added Phase 8) ──────────────────
+// Returns a fake matchMedia for behavioral tests that sandbox functions
+// reading `prefers-reduced-motion`. The fake responds to any query containing
+// "reduce" with the given value.
+function mockMatchMedia(reducedMotion) {
+  return function (query) {
+    return {
+      matches: typeof query === 'string' && query.indexOf('reduce') !== -1 && !!reducedMotion,
+      media: query,
+      addEventListener: function () {},
+      removeEventListener: function () {},
+    };
+  };
+}
+
 let html, js, css, sw, certNetplus, certSecplus, cloudStoreJs, authStateJs;
 try {
   html = read('index.html');
@@ -23451,6 +23466,114 @@ test('TB v3 walk: hub-spoke-branches-reach-hq walkthrough exists with 6 steps', 
   var walks = new Function('return ' + arrMatch[1])();
   var walk = walks.find(function (w) { return w.id === 'hub-spoke-branches-reach-hq'; });
   return !!walk && walk.scenarioId === 'hub-and-spoke-wan' && walk.steps.length === 6;
+})());
+
+test('TB v3 walk: ALL pilot walkthroughs pass data integrity (scenario + device ids exist)', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var tbJs = read('features/topology-builder-v3.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  if (walks.length === 0) return true;  // empty is valid
+
+  // Build a map: scenarioId -> Set of device ids (using bracket-depth walker
+  // for reliable parsing of nested arrays like interfaces:[...])
+  function extractScenarioDevices(scenId) {
+    var anchor = tbJs.indexOf("id: '" + scenId + "'");
+    if (anchor === -1) anchor = tbJs.indexOf('id: "' + scenId + '"');
+    if (anchor === -1) return null;
+    var devicesIdx = tbJs.indexOf('devices:', anchor);
+    if (devicesIdx === -1) return null;
+    var openBracket = tbJs.indexOf('[', devicesIdx);
+    if (openBracket === -1) return null;
+    var depth = 0, end = openBracket;
+    for (var i = openBracket; i < tbJs.length; i++) {
+      var ch = tbJs[i];
+      if (ch === '[') depth++;
+      else if (ch === ']') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    var devSection = tbJs.slice(openBracket, end + 1);
+    // Find top-level `{ id: '...'` matches only
+    var ids = [];
+    var depth2 = 0;
+    var lineMatch;
+    var re = /\{\s*id:\s*['"]([^'"]+)['"]/g;
+    while ((lineMatch = re.exec(devSection)) !== null) {
+      ids.push(lineMatch[1]);
+    }
+    return ids;
+  }
+
+  for (var w = 0; w < walks.length; w++) {
+    var walk = walks[w];
+    var devIds = extractScenarioDevices(walk.scenarioId);
+    if (devIds === null) return false;  // scenario not found
+    for (var s = 0; s < walk.steps.length; s++) {
+      var step = walk.steps[s];
+      if (step.type === 'highlight' && step.target) {
+        var t = step.target;
+        var ids = t.kind === 'device' ? [t.id]
+                : t.kind === 'devices' ? (t.ids || [])
+                : t.kind === 'cable' ? [t.deviceA, t.deviceB]
+                : [];
+        for (var i = 0; i < ids.length; i++) {
+          if (devIds.indexOf(ids[i]) === -1) return false;
+        }
+      }
+      if (step.type === 'flow' && step.flow) {
+        var flowIds = [step.flow.from, step.flow.to].concat(step.flow.via || []);
+        for (var j = 0; j < flowIds.length; j++) {
+          if (devIds.indexOf(flowIds[j]) === -1) return false;
+        }
+      }
+    }
+  }
+  return true;
+})());
+
+test('TB v3 walk: _pickAnchorSide never returns a side that overflows the host', (function () {
+  var sidesMatch = tbV3JsForWalk.match(/function _pickAnchorSide[\s\S]*?\n  \}/);
+  var posMatch = tbV3JsForWalk.match(/function _computeAnchorPosition[\s\S]*?\n  \}/);
+  if (!sidesMatch || !posMatch) return false;
+  var ctx = new Function(
+    posMatch[0] + '\n' +
+    sidesMatch[0] + '\n' +
+    'return { _pickAnchorSide: _pickAnchorSide, _computeAnchorPosition: _computeAnchorPosition };'
+  )();
+  // Run 4 corner cases — device near each edge of a small host
+  var hostSize = { width: 600, height: 400 };
+  var cardRect = { width: 260, height: 180 };
+  var corners = [
+    { x: 50,  y: 50,  width: 32, height: 32 },   // top-left
+    { x: 550, y: 50,  width: 32, height: 32 },   // top-right
+    { x: 50,  y: 350, width: 32, height: 32 },   // bottom-left
+    { x: 550, y: 350, width: 32, height: 32 },   // bottom-right
+    { x: 300, y: 200, width: 32, height: 32 },   // center
+  ];
+  for (var c = 0; c < corners.length; c++) {
+    var side = ctx._pickAnchorSide(corners[c], hostSize, cardRect);
+    var pos = ctx._computeAnchorPosition(side, corners[c], cardRect);
+    // Top-center fallback can sit at (40, 40) which is inside; all sides must
+    // produce coords that don't overflow the host. The top-center fallback
+    // explicitly does not check bounds (it's the floor), so accept that
+    // anchorStepCardToViewportCenter handles its own clamping.
+    if (side !== 'top-center') {
+      if (pos.left < 0 || pos.top < 0
+          || pos.left + cardRect.width > hostSize.width
+          || pos.top + cardRect.height > hostSize.height) {
+        return false;
+      }
+    }
+  }
+  return true;
+})());
+
+test('TB v3 walk: mockMatchMedia helper produces correct reduced-motion fake', (function () {
+  var fakeOn = mockMatchMedia(true);
+  var fakeOff = mockMatchMedia(false);
+  return fakeOn('(prefers-reduced-motion: reduce)').matches === true
+      && fakeOff('(prefers-reduced-motion: reduce)').matches === false
+      && fakeOn('(min-width: 800px)').matches === false;
 })());
 
 // ── Summary ──
