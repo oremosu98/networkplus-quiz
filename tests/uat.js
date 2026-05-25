@@ -23586,6 +23586,24 @@ test('TB v3 walk: 3 SMB/Office walkthroughs (v6.5.12) present + bound + sized', 
   });
 })());
 
+// v6.5.13 — Phase 8g Wireless: 3 new walkthroughs (ESS+WLC roaming, mesh
+// backhaul throughput trade, point-to-point bridge between buildings).
+test('TB v3 walk: 3 Wireless walkthroughs (v6.5.13) present + bound + sized', (function () {
+  var walkJs = read('features/topology-builder-v3-walkthroughs.js');
+  var arrMatch = walkJs.match(/var TB_V3_WALKTHROUGHS = (\[[\s\S]*\]);/);
+  if (!arrMatch) return false;
+  var walks = new Function('return ' + arrMatch[1])();
+  var expected = [
+    { id: 'wireless-ess-roaming',         scenarioId: 'wireless-controller-bss-ess',  steps: 6 },
+    { id: 'wireless-mesh-backhaul',       scenarioId: 'wireless-mesh',                steps: 5 },
+    { id: 'wireless-bridge-buildings',    scenarioId: 'wireless-bridge-p2p',          steps: 5 },
+  ];
+  return expected.every(function (e) {
+    var w = walks.find(function (x) { return x.id === e.id; });
+    return !!w && w.scenarioId === e.scenarioId && w.steps.length === e.steps;
+  });
+})());
+
 test('TB v3 walk: ALL pilot walkthroughs pass data integrity (scenario + device ids exist)', (function () {
   var walkJs = read('features/topology-builder-v3-walkthroughs.js');
   var tbJs = read('features/topology-builder-v3.js');
@@ -23747,23 +23765,23 @@ test('TB v3 walk: _clearWalkHighlight3D resets panX/panY via camera state', (fun
 
 // ── v6.5.2 hotfix tests ──
 
-test('v6.5.12:package.json version is 6.5.12', (function () {
+test('v6.5.13:package.json version is 6.5.13', (function () {
   var pkg = read('package.json');
-  return /"version":\s*"6\.5\.12"/.test(pkg);
+  return /"version":\s*"6\.5\.13"/.test(pkg);
 })());
 
-test('v6.5.12:sw.js CACHE_NAME is netplus-v6.5.12', (function () {
+test('v6.5.13:sw.js CACHE_NAME is netplus-v6.5.13', (function () {
   var sw = read('sw.js');
-  return /netplus-v6\.5\.12/.test(sw);
+  return /netplus-v6\.5\.13/.test(sw);
 })());
 
-test('v6.5.12:index.html version badge is v6.5.11', (function () {
-  return /version-badge[\s\S]*?v6\.5\.12/.test(html);
+test('v6.5.13:index.html version badge is v6.5.11', (function () {
+  return /version-badge[\s\S]*?v6\.5\.13/.test(html);
 })());
 
-test('v6.5.12:app.js APP_VERSION is 6.5.12', (function () {
+test('v6.5.13:app.js APP_VERSION is 6.5.13', (function () {
   var js = read('app.js');
-  return /APP_VERSION\s*=\s*['"]6\.5\.12['"]/.test(js);
+  return /APP_VERSION\s*=\s*['"]6\.5\.13['"]/.test(js);
 })());
 
 test('TB v3 walk: catalog text uses theme tokens, not hardcoded white rgba', (function () {

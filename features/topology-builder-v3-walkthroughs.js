@@ -1808,4 +1808,153 @@ var TB_V3_WALKTHROUGHS = [
       },
     ],
   },
+  {
+    id: 'wireless-ess-roaming',
+    scenarioId: 'wireless-controller-bss-ess',
+    title: 'One SSID across many APs',
+    brief: 'See how a WLC plus lightweight APs forms an Extended Service Set with seamless client roaming.',
+    durationMin: 5,
+    // inherits Network Implementation from scenario.objectiveRefs ['2.4']
+    steps: [
+      {
+        id: 's1',
+        type: 'narrate',
+        title: 'Multiple APs, one network',
+        body: 'An Extended Service Set (ESS) is multiple APs broadcasting the same SSID, coordinated by a Wireless LAN Controller. The clients see one network; the WLC handles the radio coordination and roaming behind the scenes.',
+      },
+      {
+        id: 's2',
+        type: 'highlight',
+        title: 'WLC-01 is the brain',
+        body: 'WLC-01 holds the global wireless config: SSIDs, security profiles, RF channel plan, client database. Lightweight APs (LWAPs) tunnel client traffic to it via CAPWAP. Decisions about which AP serves which client live on the controller.',
+        target: { kind: 'device', id: 'sc_wls_wlc' },
+      },
+      {
+        id: 's3',
+        type: 'highlight',
+        title: 'Each AP is one BSS',
+        body: 'AP-01, AP-02, AP-03 each form a Basic Service Set (BSS) on their own BSSID (the radio MAC). All three advertise the same SSID. Clients pick the strongest BSSID; the WLC arbitrates when a client tries to associate.',
+        target: { kind: 'devices', ids: ['sc_wls_ap1', 'sc_wls_ap2', 'sc_wls_ap3'] },
+      },
+      {
+        id: 's4',
+        type: 'flow',
+        title: 'Client traffic tunnels to the controller',
+        body: 'LAPTOP associates with AP-02 (strongest signal). Its frames travel over the air to AP-02, get encapsulated in a CAPWAP tunnel, and ride the wired uplink to WLC-01. The controller decapsulates and forwards to CORE-SW. Reply traffic retraces the tunnel.',
+        flow: {
+          from: 'sc_wls_cli2',
+          to: 'sc_wls_sw',
+          via: ['sc_wls_ap2', 'sc_wls_wlc'],
+          direction: 'forward-back',
+        },
+      },
+      {
+        id: 's5',
+        type: 'narrate',
+        title: 'Roaming inside the ESS',
+        body: 'As LAPTOP moves from AP-02 to AP-03 coverage, the WLC migrates the client session: same IP, same security state, same encryption keys. The application barely notices. Without a controller (autonomous APs), each AP is independent and the client must reauthenticate, often dropping DHCP.',
+      },
+      {
+        id: 's6',
+        type: 'narrate',
+        title: 'How the exam tests it',
+        body: 'N10-009 obj 2.4 contrasts ESS (multi-AP roaming) against ad-hoc (peer-to-peer, no infrastructure) and infrastructure (single AP). Recognise BSS = one AP, ESS = multi-AP with shared SSID. The WLC + lightweight AP pattern is the enterprise default; autonomous APs are SMB territory.',
+      },
+    ],
+  },
+  {
+    id: 'wireless-mesh-backhaul',
+    scenarioId: 'wireless-mesh',
+    title: 'Radio backhaul instead of cable',
+    brief: 'Trace how mesh APs chain back to one wired root AP and what each radio hop costs in throughput.',
+    durationMin: 4,
+    // inherits Network Implementation from scenario.objectiveRefs ['2.4']
+    steps: [
+      {
+        id: 's1',
+        type: 'narrate',
+        title: 'When pulling cable is impractical',
+        body: 'Wireless mesh chains APs together via radio backhaul instead of pulling cable to every AP. One root AP wires into the LAN switch; mesh APs extend coverage over radio links between themselves. Warehouses, outdoor coverage, historic buildings without conduit.',
+      },
+      {
+        id: 's2',
+        type: 'highlight',
+        title: 'Three APs, one wired drop',
+        body: 'AP-1 (root) has the only cable to LAN-SW. AP-2 and AP-3 connect to AP-1 over a wireless backhaul link, forming a chain. The mesh protocol (802.11s or vendor proprietary) discovers neighbours and picks forwarding paths back to the root.',
+        target: { kind: 'devices', ids: ['sc_wm_ap1', 'sc_wm_ap2', 'sc_wm_ap3'] },
+      },
+      {
+        id: 's3',
+        type: 'flow',
+        title: 'Client traffic hops through the mesh',
+        body: 'CLIENT associates with AP-3 (closest). Frames cross the air to AP-3, then over the mesh backhaul to AP-2, then to AP-1 (the root), down the wired uplink to LAN-SW, and onto GATEWAY. Each radio hop costs throughput because the same spectrum carries both client and backhaul traffic.',
+        flow: {
+          from: 'sc_wm_phn',
+          to: 'sc_wm_rtr',
+          via: ['sc_wm_ap3', 'sc_wm_ap2', 'sc_wm_ap1', 'sc_wm_sw'],
+          direction: 'forward',
+        },
+      },
+      {
+        id: 's4',
+        type: 'narrate',
+        title: 'The throughput trade-off',
+        body: 'Every mesh hop halves available bandwidth because the AP transmits both directions on the same channel. A 3-hop chain delivers roughly a quarter of the root throughput. Self-healing is the upside. Lose AP-2 and AP-3 picks an alternate path back to the root automatically.',
+      },
+      {
+        id: 's5',
+        type: 'narrate',
+        title: 'Where mesh wins and what the exam tests',
+        body: 'Mesh wins when wiring every AP costs more than the throughput loss. N10-009 obj 2.4 expects you to recognise mesh against controller-based ESS (every AP wired) and ad-hoc (peer-to-peer, no infrastructure). The mesh-vs-wired-AP trade is a common PBQ pattern.',
+      },
+    ],
+  },
+  {
+    id: 'wireless-bridge-buildings',
+    scenarioId: 'wireless-bridge-p2p',
+    title: 'Two buildings, one wireless hop',
+    brief: 'See how two APs in bridge mode link two LAN segments transparently at L2 over a radio link.',
+    durationMin: 4,
+    // inherits Network Implementation from scenario.objectiveRefs ['2.4']
+    steps: [
+      {
+        id: 's1',
+        type: 'narrate',
+        title: 'Replace a cable trench with a radio link',
+        body: 'Point-to-point wireless bridge links two physically separated LAN segments over a wireless backhaul. Two APs in bridge mode point at each other with line of sight; the bridge radio carries only their backhaul, no clients. Replaces a fibre trench or leased line for short hops between buildings.',
+      },
+      {
+        id: 's2',
+        type: 'highlight',
+        title: 'The bridge pair',
+        body: 'AP-A and AP-B run in bridge mode, not infrastructure mode. They do not accept client associations on the bridge radio. Their job is to ferry Ethernet frames between SW-A and SW-B as if a cable physically connected them.',
+        target: { kind: 'devices', ids: ['sc_wb_apa', 'sc_wb_apb'] },
+      },
+      {
+        id: 's3',
+        type: 'highlight',
+        title: 'Each side has its own LAN switch',
+        body: 'SW-A and SW-B are the wired switches on each side of the bridge. Clients attach to the switches normally (LAPTOP-A on SW-A). The bridge is transparent at L2: clients on SW-A and SW-B share the same broadcast domain.',
+        target: { kind: 'devices', ids: ['sc_wb_swa', 'sc_wb_swb'] },
+      },
+      {
+        id: 's4',
+        type: 'flow',
+        title: 'Frame crosses the bridge',
+        body: 'LAPTOP-A sends a frame to a host on SW-B. SW-A hands it to AP-A. AP-A modulates the frame onto the bridge radio. AP-B demodulates and hands it to SW-B. The bridge looks like a wire to the client.',
+        flow: {
+          from: 'sc_wb_lap',
+          to: 'sc_wb_swb',
+          via: ['sc_wb_swa', 'sc_wb_apa', 'sc_wb_apb'],
+          direction: 'forward',
+        },
+      },
+      {
+        id: 's5',
+        type: 'narrate',
+        title: 'Where this fits and what breaks it',
+        body: 'Bridge mode works for short building-to-building hops where line of sight holds. Weather (heavy rain, snow), tree growth, and Fresnel-zone obstructions all degrade reliability. N10-009 obj 2.4 expects you to recognise the bridge use case and contrast it against mesh (multi-AP backhaul) and infrastructure (client-facing APs).',
+      },
+    ],
+  },
 ];
