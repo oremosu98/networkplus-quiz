@@ -6864,6 +6864,98 @@
     },
   };
 
+  // ════════════════════════════════════════════════════════════════════
+  // TB v3 Walkthrough — runner lifecycle (Phase 8)
+  // state.intent union: 'free-build' | 'lab' | 'pbq' | 'walk'
+  // ════════════════════════════════════════════════════════════════════
+
+  // Stubs for not-yet-implemented functions (later tasks replace these):
+  function runStep(/* step, mode */) {}              // Task 6
+  function clearEffects(/* mode */) {}                // Task 6
+  function hideStepCard() {}                          // Task 15
+  function showCompletionCard(/* walkthroughId */) {} // Task 18
+  function renderWalkCatalog() {}                     // Task 12
+
+  function walkStart(walkthroughId) {
+    var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === walkthroughId; });
+    if (!walk) { console.warn('[walk] unknown walkthroughId', walkthroughId); return; }
+    // If the active scenario doesn't match, load it
+    if (state.activeScenarioId !== walk.scenarioId) {
+      var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === walk.scenarioId; });
+      if (scenario) loadScenarioOnCanvas(state, scenario);
+    }
+    state.priorIntent = state.intent;
+    state.intent = 'walk';
+    state.activeWalkthroughId = walkthroughId;
+    state.walkStepIdx = 0;
+    _saveState();
+    if (walk.steps && walk.steps.length > 0) runStep(walk.steps[0], state.walkMode);
+    renderWalkCatalog();
+  }
+
+  function walkNext() {
+    if (!state.activeWalkthroughId) return;
+    var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === state.activeWalkthroughId; });
+    if (!walk) return;
+    if (state.walkStepIdx >= walk.steps.length - 1) {
+      walkComplete();
+      return;
+    }
+    state.walkStepIdx += 1;
+    _bumpProgress(state.activeWalkthroughId);
+    _saveState();
+    runStep(walk.steps[state.walkStepIdx], state.walkMode);
+  }
+
+  function walkBack() {
+    if (!state.activeWalkthroughId || state.walkStepIdx <= 0) return;
+    state.walkStepIdx -= 1;
+    _saveState();
+    var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === state.activeWalkthroughId; });
+    if (!walk) return;
+    runStep(walk.steps[state.walkStepIdx], state.walkMode);
+  }
+
+  function walkExit() {
+    if (!state.activeWalkthroughId) return;
+    clearEffects(state.walkMode);
+    hideStepCard();
+    state.intent = state.priorIntent || 'free-build';
+    state.activeWalkthroughId = null;
+    state.walkStepIdx = 0;
+    state.walkCardAnchor = null;
+    _saveState();
+    renderWalkCatalog();
+  }
+
+  function walkComplete() {
+    var id = state.activeWalkthroughId;
+    if (!id) return;
+    var walk = TB_V3_WALKTHROUGHS.find(function (w) { return w.id === id; });
+    if (!walk) return;
+    var progress = _loadProgress();
+    progress[id] = progress[id] || { stepIdx: 0, completedAt: null, lastViewedAt: 0 };
+    progress[id].completedAt = Date.now();
+    progress[id].stepIdx = walk.steps.length - 1;
+    progress[id].lastViewedAt = Date.now();
+    localStorage.setItem(STORAGE.TB_V3_WALK_PROGRESS, JSON.stringify(progress));
+    showCompletionCard(id);
+    // Don't auto-exit — user clicks Replay or Catalog
+  }
+
+  function _loadProgress() {
+    try { return JSON.parse(localStorage.getItem(STORAGE.TB_V3_WALK_PROGRESS) || '{}'); }
+    catch (e) { return {}; }
+  }
+
+  function _bumpProgress(walkthroughId) {
+    var progress = _loadProgress();
+    progress[walkthroughId] = progress[walkthroughId] || { stepIdx: 0, completedAt: null, lastViewedAt: 0 };
+    progress[walkthroughId].stepIdx = state.walkStepIdx;
+    progress[walkthroughId].lastViewedAt = Date.now();
+    localStorage.setItem(STORAGE.TB_V3_WALK_PROGRESS, JSON.stringify(progress));
+  }
+
   // Also expose openTopologyBuilderV3 directly on window for the sidebar handler
   window.openTopologyBuilderV3 = openTopologyBuilderV3;
 })();

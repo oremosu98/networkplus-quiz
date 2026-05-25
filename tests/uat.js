@@ -22966,6 +22966,34 @@ test('TB v3 walk: STORAGE adds TB_V3_WALK_PROGRESS key (registered in app.js)', 
   return /TB_V3_WALK_PROGRESS\s*:\s*['"]nplus_tb_v3_walk_progress/.test(appJs);
 })());
 
+test('TB v3 walk: walkStart, walkNext, walkBack, walkExit, walkComplete all defined', (function () {
+  return /function walkStart\(/.test(tbV3JsForWalk)
+      && /function walkNext\(/.test(tbV3JsForWalk)
+      && /function walkBack\(/.test(tbV3JsForWalk)
+      && /function walkExit\(/.test(tbV3JsForWalk)
+      && /function walkComplete\(/.test(tbV3JsForWalk);
+})());
+
+test('TB v3 walk: walkStart assigns intent="walk" and resets walkStepIdx', (function () {
+  var m = tbV3JsForWalk.match(/function walkStart\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  var body = m[0];
+  return /intent\s*=\s*['"]walk['"]/.test(body)
+      && /walkStepIdx\s*=\s*0/.test(body)
+      && /activeWalkthroughId\s*=/.test(body);
+})());
+
+test('TB v3 walk: walkComplete writes completedAt to PROGRESS', (function () {
+  var m = tbV3JsForWalk.match(/function walkComplete\([\s\S]*?\n  \}/);
+  if (!m) return false;
+  return /completedAt\s*[:=]\s*Date\.now\(\)/.test(m[0]);
+})());
+
+test('TB v3 walk: _loadProgress + _bumpProgress helpers defined', (function () {
+  return /function _loadProgress\(/.test(tbV3JsForWalk)
+      && /function _bumpProgress\(/.test(tbV3JsForWalk);
+})());
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
