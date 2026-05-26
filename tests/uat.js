@@ -23337,6 +23337,45 @@ test('TB v3 Coach: defaultProvider surfaces 429 quota as err.status for askAI qu
 })());
 
 // ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · Scenarios picker Start-PBQ CTA (v6.5.19 Task 18)
+// Picker rows that have a matching PBQ in TB_V3_PBQS get an inline
+// "Start PBQ" button. Clicking it loads the scenario AND activates
+// the Coach PBQ in one shot.
+// ─────────────────────────────────────────────────────────────────────
+
+test('TB v3 Coach: scenarios picker emits Start PBQ button for matching scenarios', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  return /window\.TB_V3_PBQS/.test(tbV3Src)
+      && /tb3-picker-row-pbq/.test(tbV3Src)
+      && /Start PBQ/.test(tbV3Src)
+      && /data-pbq-id/.test(tbV3Src);
+})());
+
+test('TB v3 Coach: picker click handler branches on .tb3-picker-row-pbq before row activation', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  // The pbqBtn branch must use .closest + stopPropagation + the
+  // startPbq:true option flag.
+  return /closest\(['"]\.tb3-picker-row-pbq['"]\)/.test(tbV3Src)
+      && /stopPropagation/.test(tbV3Src)
+      && /startPbq:\s*true/.test(tbV3Src);
+})());
+
+test('TB v3 Coach: _onPickerRowActivate activates Coach PBQ via setState on startPbq option', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  return /_onPickerRowActivate\(scenarioId,\s*opts\)/.test(tbV3Src)
+      && /opts\.startPbq/.test(tbV3Src)
+      && /TbV3Coach\.setState/.test(tbV3Src)
+      && /activePbqId:\s*scenarioId/.test(tbV3Src);
+})());
+
+test('TB v3 Coach: CSS defines .tb3-picker-row-pbq with accent border + reduced-motion gate', (function () {
+  const css = read('features/topology-builder-v3.css');
+  return /\.tb3-picker-row-pbq/.test(css)
+      && /var\(--tb3-accent\)/.test(css)
+      && /prefers-reduced-motion/.test(css);
+})());
+
+// ─────────────────────────────────────────────────────────────────────
 // Phase 9 Coach · FB action narration (v6.5.19 Task 7)
 // Scripted strings keyed by canvas event type. AI is NOT invoked for
 // narration — silence is preferable to noise for unknown events.

@@ -4127,9 +4127,14 @@
       html += '<div class="tb3-picker-grp-h">' + TB_V3_CATEGORY_LABELS[cat] + '</div>';
       rows.forEach(function (s) {
         var active = (state.intent === 'lab' && state.activeScenarioId === s.id);
+        var pbqCatalog = (typeof window !== 'undefined' && window.TB_V3_PBQS) || [];
+        var hasPbq = pbqCatalog.some(function (p) { return p.id === s.id; });
         html += '<div class="tb3-picker-row' + (active ? ' on' : '') + '" data-scenario-id="' + _escAttr(s.id) + '" role="button" tabindex="0">';
         html += '<div class="tb3-picker-row-t">' + _escAttr(s.title) + '</div>';
         html += '<div class="tb3-picker-row-m">' + s.objectiveRefs.map(_escAttr).join(' &middot; ') + '</div>';
+        if (hasPbq) {
+          html += '<button type="button" class="tb3-picker-row-pbq" data-pbq-id="' + _escAttr(s.id) + '" aria-label="Start performance-based question for ' + _escAttr(s.title) + '">Start PBQ &rarr;</button>';
+        }
         html += '</div>';
       });
       html += '</div>';
@@ -4171,6 +4176,16 @@
     if (panel) {
       panel.addEventListener('click', function (e) {
         if (e.target.id === 'tb3-picker-close') { _closePicker(); return; }
+        // Start-PBQ CTA — load scenario AND activate the Coach PBQ.
+        // Placed before the row branch so the inner button click does
+        // not double-fire as a row activation.
+        var pbqBtn = e.target.closest('.tb3-picker-row-pbq');
+        if (pbqBtn) {
+          e.stopPropagation();
+          var pbqId = pbqBtn.getAttribute('data-pbq-id');
+          _onPickerRowActivate(pbqId, { startPbq: true });
+          return;
+        }
         var row = e.target.closest('.tb3-picker-row');
         if (row) { _onPickerRowActivate(row.getAttribute('data-scenario-id')); }
       });
@@ -4184,7 +4199,8 @@
   }
 
   // Stub for Stage 3 — row click handler.
-  function _onPickerRowActivate(scenarioId) {
+  function _onPickerRowActivate(scenarioId, opts) {
+    opts = opts || {};
     var scenario = TB_V3_SCENARIOS.find(function (s) { return s.id === scenarioId; });
     if (!scenario) return;
 
@@ -4214,6 +4230,22 @@
     _renderPickerPanel();
     _renderCompletionPill();
     _saveState();
+    // Task 18 — Start-PBQ CTA: activate the Coach PBQ for this scenario
+    // and open the Coach panel. The PBQ id matches the scenario id.
+    if (opts.startPbq && typeof window !== 'undefined' && window.TbV3Coach) {
+      try {
+        window.TbV3Coach.setState({
+          activePbqId: scenarioId,
+          currentStepIndex: 0,
+          hintsUsed: 0,
+        });
+        document.body.classList.add('coach-open');
+        var host = document.querySelector('[data-coach-host]');
+        if (host && typeof window.TbV3Coach.render === 'function') {
+          window.TbV3Coach.render(host);
+        }
+      } catch (_) {}
+    }
     // Auto-close the picker after a successful load so the completion pill
     // (and the rrail in general) is immediately visible. Cancel paths
     // (early-return on user-declined confirm) leave the picker open so the

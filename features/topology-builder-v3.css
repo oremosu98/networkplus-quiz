@@ -476,6 +476,31 @@ html[data-theme="light"] #page-topology-builder-v3 {
   font-family: ui-monospace, Menlo, monospace; margin-top: 4px;
   letter-spacing: .02em;
 }
+#page-topology-builder-v3 .tb3-picker-row-pbq {
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--tb3-accent);
+  border-radius: 6px;
+  color: var(--tb3-accent);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .12s ease;
+}
+#page-topology-builder-v3 .tb3-picker-row-pbq:hover,
+#page-topology-builder-v3 .tb3-picker-row-pbq:focus-visible {
+  background: var(--tb3-accent);
+  color: var(--tb3-bg, #fff);
+  outline: none;
+}
+#page-topology-builder-v3 .tb3-picker-row-pbq:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  #page-topology-builder-v3 .tb3-picker-row-pbq { transition: none; }
+  #page-topology-builder-v3 .tb3-picker-row-pbq:active { transform: none; }
+}
 
 /* Intent chip — lab accent state (Task 4.1 phase 2) */
 #page-topology-builder-v3 .tb3-intent { cursor: pointer; transition: background .15s ease; }
