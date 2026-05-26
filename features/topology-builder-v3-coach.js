@@ -247,7 +247,7 @@
       })
       .catch(function (err) {
         if (err && err.status === 429) return 'BYOK quota reached for today.';
-        return "I couldn't reach the tutor — try rephrasing, or check your connection.";
+        return "I couldn't reach the tutor. Try rephrasing, or check your connection.";
       });
   }
 
@@ -265,17 +265,17 @@
         'router': 'Routers move packets between subnets at L3. This one will likely be your gateway.',
         'soho-router': 'A SOHO router is converged: routing + switching + DHCP + NAT in one device.',
         'switch': 'Switches forward frames within a subnet at L2. Multiple endpoints share one L2 broadcast domain.',
-        'pc': 'Endpoints sit at the edge — they originate traffic and receive it.',
-        'phone': 'Endpoints sit at the edge — they originate traffic and receive it.',
-        'printer': 'Endpoints sit at the edge — they originate traffic and receive it.',
-        'endpoint': 'Endpoints sit at the edge — they originate traffic and receive it.',
+        'pc': 'Endpoints sit at the edge. They originate traffic and receive it.',
+        'phone': 'Endpoints sit at the edge. They originate traffic and receive it.',
+        'printer': 'Endpoints sit at the edge. They originate traffic and receive it.',
+        'endpoint': 'Endpoints sit at the edge. They originate traffic and receive it.',
         'isp': 'The ISP represents the WAN side. Anything beyond it leaves your control.',
         'firewall': 'Firewalls inspect traffic crossing a boundary and decide what passes.',
       };
       return map[t] || null;
     },
     'cable-drawn': function () {
-      return 'Cables are L1 — physical paths. Protocol decisions happen on the devices at each end.';
+      return 'Cables are L1. Protocol decisions happen on the devices at each end.';
     },
     'device-deleted': function () { return null; },
     'cable-deleted': function () { return null; },

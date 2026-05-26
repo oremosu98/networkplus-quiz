@@ -34,7 +34,7 @@ var TB_V3_PBQS = [
         hints: [
           'Look in the device palette for a router.',
           'Drag the SOHO router into the centre of the canvas.',
-          "You don't need a separate switch — the SOHO router is converged.",
+          "You don't need a separate switch. The SOHO router is converged.",
         ],
         aiPromptSeed: 'Student is on step "place SOHO router" and stuck after 3 hints. Their canvas: {{state}}. Help them place a single router and explain SOHO convergence in 1–2 short paragraphs.',
       },
@@ -48,7 +48,7 @@ var TB_V3_PBQS = [
           }).length >= 4;
         },
         hints: [
-          'Endpoints are the devices that consume the network — PCs, phones, printers.',
+          'Endpoints are the devices that consume the network: PCs, phones, printers.',
           'Drag four endpoints from the palette. A mix of types is fine.',
           'They go around the router, not on top of it. Space them out.',
         ],
@@ -87,7 +87,7 @@ var TB_V3_PBQS = [
         },
         hints: [
           'Add the ISP from the palette if it is not on the canvas yet.',
-          'Draw a cable from the router to the ISP — this is the WAN side.',
+          'Draw a cable from the router to the ISP. This is the WAN side.',
           'The WAN link is the one cable that does not go to a LAN endpoint.',
         ],
         aiPromptSeed: 'Student is on step "WAN to ISP" and stuck after 3 hints. Canvas: {{state}}. Explain WAN vs LAN on a SOHO router in 1–2 short paragraphs.',
