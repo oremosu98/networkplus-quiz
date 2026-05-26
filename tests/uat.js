@@ -23502,6 +23502,73 @@ test('TB v3 Coach: SOHO PBQ wired end-to-end via useHint produces real hints', (
   return r && r.kind === 'scripted' && /palette/.test(r.text);
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · scoped CSS (v6.5.19 Task 10)
+// Structural guards that the Coach CSS block lives in dg-system.css
+// with the locked .tb3-coach__* class contract + motion rules + the
+// prefers-reduced-motion opt-out.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 Coach CSS: .tb3-coach shell rule exists in dg-system.css', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach\s*\{[^}]*width:\s*360px/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: header + brand + counter selectors defined', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__header/.test(dgCss)
+      && /\.tb3-coach__brand/.test(dgCss)
+      && /\.tb3-coach__mono/.test(dgCss)
+      && /\.tb3-coach__counter/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: mode strip + variants (pbq/fb) defined', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__mode\b/.test(dgCss)
+      && /\.tb3-coach__mode--pbq/.test(dgCss)
+      && /\.tb3-coach__mode--fb/.test(dgCss)
+      && /\.tb3-coach__mode-dot/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: lesson list (PBQ body) + done-state defined', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__lesson-title/.test(dgCss)
+      && /\.tb3-coach__lesson-list/.test(dgCss)
+      && /\.tb3-coach__lesson-list li\[data-done="true"\]/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: hint rail + 3 pip variants + AI rung defined', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__hint-rail/.test(dgCss)
+      && /\.tb3-coach__hint-pip\b/.test(dgCss)
+      && /\.tb3-coach__hint-pip\[data-filled="true"\]/.test(dgCss)
+      && /\.tb3-coach__hint-pip--ai/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: FB feed message variants (scripted/ai/you) defined', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__msg\b/.test(dgCss)
+      && /\.tb3-coach__msg--ai/.test(dgCss)
+      && /\.tb3-coach__msg--you/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: buttons declare :active scale + :hover + :focus-visible', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__btn:active[\s\S]{0,40}transform:\s*scale\(0\.97\)/.test(dgCss)
+      && /\.tb3-coach__btn:hover/.test(dgCss)
+      && /\.tb3-coach__btn:focus-visible/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: input bar declares focus-visible ring', (function () {
+  const dgCss = read('dg-system.css');
+  return /\.tb3-coach__ask:focus-visible/.test(dgCss);
+})());
+
+test('TB v3 Coach CSS: prefers-reduced-motion opt-out neutralises Coach transitions', (function () {
+  const dgCss = read('dg-system.css');
+  const m = dgCss.match(/@media \(prefers-reduced-motion: reduce\)\{[^}]*?\.tb3-coach[\s\S]*?\}\s*\}/);
+  return !!m && /transition:\s*none\s*!important/.test(m[0]);
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());
