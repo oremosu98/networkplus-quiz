@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v6.5.18
+// Network+ AI Quiz — app.js  v7.0.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '6.5.18';
+const APP_VERSION = '7.0.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -15631,17 +15631,7 @@ function renderAppSidebar() {
       <div class="sb-section-label">Practice</div>
       ${APP_SIDEBAR_PRACTICE.map(renderItem).join('')}
     </div>
-    ${(typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus') ? `
-    <div class="sb-section">
-      <div class="sb-section-label">Drills</div>
-      ${APP_SIDEBAR_DRILLS_SECPLUS.map(renderItem).join('')}
-    </div>
-    ` : `
-    <div class="sb-section">
-      <div class="sb-section-label">Drills</div>
-      ${APP_SIDEBAR_DRILLS.map(renderItem).join('')}
-    </div>
-    `}
+    ${/* MVP-quiz-only: Drills sidebar section hidden — all drills deleted */ ''}
     <div class="sb-section">
       <div class="sb-section-label">Account</div>
       ${APP_SIDEBAR_SETTINGS.map(renderItem).join('')}
