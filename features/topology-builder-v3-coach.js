@@ -437,6 +437,49 @@
     return wrap;
   }
 
+  // ── FB body render (Task 13) ───────────────────────────────────────
+  // Time-ordered feed of messages. Three kinds:
+  //   - scripted (◯) — Coach narration in response to canvas events
+  //   - ai (★)       — Coach AI reply to student question
+  //   - you          — what the student typed
+  // Decorative icons get aria-hidden so screen readers skip them; the
+  // adjacent .tb3-coach__msg-meta + body text carries the meaning.
+  var FB_ICONS = { scripted: '◯', ai: '★', you: '' };
+
+  function renderMsg(m) {
+    m = m || {};
+    var kind = m.kind || 'scripted';
+    var article = el('article', { class: 'tb3-coach__msg tb3-coach__msg--' + kind });
+    if (kind !== 'you') {
+      article.appendChild(el('span', {
+        class: 'tb3-coach__msg-icon',
+        text: FB_ICONS[kind] || '',
+        attrs: { 'aria-hidden': 'true' },
+      }));
+    }
+    var body = el('div');
+    if (m.meta) {
+      body.appendChild(el('div', { class: 'tb3-coach__msg-meta', text: m.meta }));
+    }
+    // Plain text only — wrap in a span so we can use textContent in both
+    // the real DOM and the Node sandbox shim (no createTextNode dep).
+    body.appendChild(el('span', {
+      class: 'tb3-coach__msg-text',
+      text: m.text == null ? '' : String(m.text),
+    }));
+    article.appendChild(body);
+    return article;
+  }
+
+  function renderFbBody(messages) {
+    var feed = el('div', { class: 'tb3-coach__feed' });
+    var list = Array.isArray(messages) ? messages : [];
+    for (var i = 0; i < list.length; i++) {
+      feed.appendChild(renderMsg(list[i]));
+    }
+    return feed;
+  }
+
   // ── Module export ──────────────────────────────────────────────────
   var TbV3Coach = {
     COACH_VERSION: COACH_VERSION,
@@ -459,6 +502,8 @@
     renderHeader: renderHeader,
     renderModeStrip: renderModeStrip,
     renderPbqBody: renderPbqBody,
+    renderFbBody: renderFbBody,
+    renderMsg: renderMsg,
     el: el,
   };
 

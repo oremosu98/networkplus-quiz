@@ -23770,6 +23770,71 @@ test('TB v3 Coach: renderPbqBody renders hint rail even when no PBQ active (empt
   return ok;
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · FB body render (v6.5.19 Task 13)
+// renderFbBody builds the message feed. Each message is renderMsg's
+// output — three kinds: scripted (◯), ai (★), you (no icon).
+// Decorative icons aria-hidden so SR users hear meta + body only.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 Coach: renderFbBody renders one .tb3-coach__msg per input message', (function () {
+  const Coach = _loadCoachWithDom();
+  const feed = Coach.renderFbBody([
+    { kind: 'scripted', meta: 'You added a router', text: 'Routers move…' },
+    { kind: 'you', meta: 'You asked', text: 'What is NAT?' },
+    { kind: 'ai', meta: 'Coach · AI', text: 'NAT rewrites…' },
+  ]);
+  const ok = feed.className === 'tb3-coach__feed'
+      && feed.children.length === 3;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: renderMsg sets class variant per kind', (function () {
+  const Coach = _loadCoachWithDom();
+  const a = Coach.renderMsg({ kind: 'scripted', text: 'a' });
+  const b = Coach.renderMsg({ kind: 'ai', text: 'b' });
+  const c = Coach.renderMsg({ kind: 'you', text: 'c' });
+  const ok = a.className.indexOf('tb3-coach__msg--scripted') >= 0
+      && b.className.indexOf('tb3-coach__msg--ai') >= 0
+      && c.className.indexOf('tb3-coach__msg--you') >= 0;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: renderMsg gives scripted + ai messages an aria-hidden icon; you has none', (function () {
+  const Coach = _loadCoachWithDom();
+  const scripted = Coach.renderMsg({ kind: 'scripted', text: 'x' });
+  const ai = Coach.renderMsg({ kind: 'ai', text: 'y' });
+  const you = Coach.renderMsg({ kind: 'you', text: 'z' });
+  const si = scripted.querySelector('.tb3-coach__msg-icon');
+  const ai_i = ai.querySelector('.tb3-coach__msg-icon');
+  const yi = you.querySelector('.tb3-coach__msg-icon');
+  const ok = si && si.getAttribute('aria-hidden') === 'true'
+      && ai_i && ai_i.getAttribute('aria-hidden') === 'true'
+      && yi === null;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: renderMsg meta text renders when provided', (function () {
+  const Coach = _loadCoachWithDom();
+  const m = Coach.renderMsg({ kind: 'ai', meta: 'Coach · AI', text: 'hi' });
+  const meta = m.querySelector('.tb3-coach__msg-meta');
+  const ok = meta && meta.textContent === 'Coach · AI';
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: renderFbBody on empty input renders empty feed container', (function () {
+  const Coach = _loadCoachWithDom();
+  const feed = Coach.renderFbBody([]);
+  const feed2 = Coach.renderFbBody(null);
+  const ok = feed.className === 'tb3-coach__feed' && feed.children.length === 0
+      && feed2.className === 'tb3-coach__feed' && feed2.children.length === 0;
+  _teardownDom();
+  return ok;
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());
