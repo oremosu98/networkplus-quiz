@@ -63,12 +63,66 @@
     return next;
   }
 
+  // ── AI response cache (Task 5) ─────────────────────────────────────
+  // localStorage-backed cache keyed by a stable hash of the AI call
+  // inputs (topology + question + mode + step). 24h TTL — survives
+  // reload (the v1 STORAGE.TB_COACH_CACHE precedent). On hit, askAI
+  // skips the provider call AND skips the counter increment per spec
+  // §3.6. djb2 hash for portability; Task 17 swaps in tbTopologyHash
+  // when the integration boundary lands.
+  var CACHE_KEY = 'tbV3CoachCache';
+  var CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+  function cacheKey(input) {
+    var s = JSON.stringify(input || {});
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) {
+      h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    }
+    return 'k' + (h >>> 0).toString(16);
+  }
+
+  function _readCache() {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      var raw = localStorage.getItem(CACHE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function _writeCache(obj) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(obj));
+      }
+    } catch (e) { /* swallow — quota / SecurityError */ }
+  }
+
+  function cacheGet(input) {
+    var cache = _readCache();
+    var entry = cache[cacheKey(input)];
+    if (!entry) return null;
+    if (Date.now() - entry.t > CACHE_TTL_MS) return null;
+    return entry.v;
+  }
+
+  function cacheSet(input, value) {
+    var cache = _readCache();
+    cache[cacheKey(input)] = { v: value, t: Date.now() };
+    _writeCache(cache);
+  }
+
   // ── Module export ──────────────────────────────────────────────────
   var TbV3Coach = {
     COACH_VERSION: COACH_VERSION,
     getCoachMode: getCoachMode,
     getCounter: getCounter,
     incrementCounter: incrementCounter,
+    cacheKey: cacheKey,
+    cacheGet: cacheGet,
+    cacheSet: cacheSet,
   };
 
   if (typeof window !== 'undefined') {

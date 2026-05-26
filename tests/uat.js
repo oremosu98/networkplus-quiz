@@ -23177,6 +23177,47 @@ test('TB v3 Coach: getCounter resets when the persisted date is stale', (functio
   return c.count === 0;
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · AI response cache (v6.5.19 Task 5)
+// djb2-hash keyed localStorage cache with 24h TTL. Misses + expired
+// entries return null. Same _mockLocalStorage helper as Task 4.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 Coach: cacheGet returns null on miss', (function () {
+  const Coach = _loadCoachWithGlobals();
+  const v = Coach.cacheGet({ q: 'never-set' });
+  delete global.localStorage;
+  return v === null;
+})());
+
+test('TB v3 Coach: cacheSet then cacheGet roundtrips the value', (function () {
+  const Coach = _loadCoachWithGlobals();
+  Coach.cacheSet({ q: 'hello' }, 'world');
+  const v = Coach.cacheGet({ q: 'hello' });
+  delete global.localStorage;
+  return v === 'world';
+})());
+
+test('TB v3 Coach: cacheGet returns null when entry is older than 24h TTL', (function () {
+  const ls = _mockLocalStorage();
+  const Coach = _loadCoachWithGlobals(ls);
+  const key = Coach.cacheKey({ q: 'stale' });
+  const stale = {};
+  stale[key] = { v: 'old-answer', t: Date.now() - (25 * 60 * 60 * 1000) };
+  ls._seed('tbV3CoachCache', JSON.stringify(stale));
+  const v = Coach.cacheGet({ q: 'stale' });
+  delete global.localStorage;
+  return v === null;
+})());
+
+test('TB v3 Coach: cacheKey is deterministic for identical inputs', (function () {
+  const Coach = _loadCoachWithGlobals();
+  const k1 = Coach.cacheKey({ q: 'same', mode: 'fb' });
+  const k2 = Coach.cacheKey({ q: 'same', mode: 'fb' });
+  const k3 = Coach.cacheKey({ q: 'different', mode: 'fb' });
+  delete global.localStorage;
+  return k1 === k2 && k1 !== k3 && /^k[0-9a-f]+$/.test(k1);
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());
